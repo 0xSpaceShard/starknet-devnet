@@ -112,9 +112,9 @@ def set_time():
 @base.route("/account_balance", methods=["GET"])
 async def get_balance():
     """Gets balance for the address"""
-
     address = request.args.get("address", type=lambda x: int(x, 16))
-    balance = await FeeToken.get_balance(address)
+
+    balance = await state.starknet_wrapper.get_balance(address)
     return jsonify({
         "amount": balance,
         "unit": "wei"
@@ -140,15 +140,17 @@ async def mint():
 
     address = extract_hex_string(request_json, "address")
     amount = extract_positive(request_json, "amount")
-
     is_lite = request_json.get("lite", False)
 
-    tx_hash = None
-    if is_lite:
-        await FeeToken.mint_lite(address, amount)
-    else:
-        tx_hash_int = await FeeToken.mint(address, amount, state.starknet_wrapper)
-        tx_hash = hex(tx_hash_int)
+    tx_hash = state.starknet_wrapper.mint(
+        address=address,
+        amount=amount,
+        lite=is_lite
+    )
 
-    new_balance = await FeeToken.get_balance(address)
-    return jsonify({"new_balance": new_balance, "unit": "wei", "tx_hash": tx_hash})
+    new_balance = state.starknet_wrapper.get_balance(address)
+    return jsonify({
+        "new_balance": new_balance,
+        "unit": "wei",
+        "tx_hash": tx_hash
+    })
