@@ -1,6 +1,7 @@
 """
 Base routes
 """
+from pickle import UnpicklingError
 from flask import Blueprint, Response, request, jsonify
 from starknet_devnet.fee_token import FeeToken
 
@@ -78,7 +79,14 @@ def load():
     if not load_path:
         raise StarknetDevnetException(message="No path provided.", status_code=400)
 
-    state.load(load_path)
+    try:
+        state.load(load_path)
+    except (FileNotFoundError, UnpicklingError) as error:
+        raise StarknetDevnetException(
+            message=f"Error: Cannot load from {load_path}. Make sure the file exists and contains a Devnet dump.",
+            status_code=400
+        ) from error
+
     return Response(status=200)
 
 @base.route("/increase_time", methods=["POST"])

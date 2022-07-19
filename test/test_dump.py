@@ -103,13 +103,23 @@ def deploy_empty_contract():
     assert initial_balance == "0"
     return contract_address
 
-def test_load_if_no_file():
-    """Test loading if dump file not present."""
+def test_load_via_cli_if_no_file():
+    """Test loading via CLI if dump file not present."""
     assert_no_dump_present(DUMP_PATH)
     devnet_proc = ACTIVE_DEVNET.start("--load-path", DUMP_PATH, stderr=subprocess.PIPE)
     assert devnet_proc.returncode == 1
     expected_msg = f"Error: Cannot load from {DUMP_PATH}. Make sure the file exists and contains a Devnet dump.\n"
     assert expected_msg == devnet_proc.stderr.read().decode("utf-8")
+
+@devnet_in_background()
+def test_load_via_http_if_no_file():
+    """Test loading via HTTP if dump file not present."""
+    assert_no_dump_present(DUMP_PATH)
+
+    resp = send_load_request(load_path=DUMP_PATH)
+    expected_msg = f"Error: Cannot load from {DUMP_PATH}. Make sure the file exists and contains a Devnet dump."
+    assert resp.json()["message"] == expected_msg
+    assert resp.status_code == 400
 
 @devnet_in_background()
 def test_dumping_if_path_not_provided():
