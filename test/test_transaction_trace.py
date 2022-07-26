@@ -6,7 +6,7 @@ import pytest
 import requests
 from starkware.starknet.services.api.feeder_gateway.response_objects import BlockTransactionTraces
 
-from .util import deploy, get_transaction_receipt, invoke, load_json_from_path, devnet_in_background
+from .util import deploy, get_transaction_receipt, invoke, load_json_from_path, devnet_in_background, declare
 from .settings import APP_URL
 from .shared import ABI_PATH, CONTRACT_PATH, SIGNATURE, NONEXISTENT_TX_HASH
 
@@ -117,6 +117,22 @@ def test_get_block_traces():
     """Test getting all traces of a block"""
 
     tx_hash = deploy_empty_contract()["tx_hash"]
+
+    tx_receipt = get_transaction_receipt(tx_hash=tx_hash)
+    block_hash = tx_receipt["block_hash"]
+
+    assert_get_block_traces_response({ "blockHash": block_hash }, tx_hash)
+    assert_get_block_traces_response({ "blockNumber": 0 }, tx_hash)
+    assert_get_block_traces_response({}, tx_hash) # default behavior - no params provided
+
+@pytest.mark.transaction_trace
+@devnet_in_background()
+def test_get_block_traces_declared_contract():
+    """Test getting all traces of a block"""
+
+    # Declare the class to be deployed
+    declare_info = declare(contract=CONTRACT_PATH)
+    tx_hash=declare_info["tx_hash"]
 
     tx_receipt = get_transaction_receipt(tx_hash=tx_hash)
     block_hash = tx_receipt["block_hash"]

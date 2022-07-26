@@ -200,14 +200,23 @@ class StarknetDevnetException(StarkException):
         super().__init__(code=code, message=message)
         self.status_code = status_code
 
+#pylint: disable=too-many-instance-attributes
 @dataclass
 class DummyCallInfo:
     """Used temporarily until contracts received from starknet.deploy include their own execution_info.call_info"""
     def __init__(self):
         self.execution_resources = None
-        self.contract_address = None
+        self.contract_address = 0
         self.events = []
         self.internal_calls = []
+        self.caller_address = 0
+        self.call_type = None
+        self.class_hash = None
+        self.entry_point_selector = None
+        self.entry_point_type = None
+        self.calldata = None
+        self.retdata = []
+        self.l2_to_l1_messages = []
 
 @dataclass
 class DummyExecutionInfo:
