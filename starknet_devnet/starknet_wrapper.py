@@ -411,16 +411,17 @@ class StarknetWrapper:
     async def mint(self, to_address: int, amount: int, lite: bool):
         """
         Mint `amount` tokens at address `to_address`.
-        Returns the `tx_hash` if not `lite`; else returns `None`
+        Returns the `tx_hash` (as hex str) if not `lite`; else returns `None`
         """
         amount_uint256 = Uint256.from_felt(amount)
 
         tx_hash = None
         if lite:
-            self.__fee_token.mint_lite(to_address, amount_uint256)
+            await self.__fee_token.mint_lite(to_address, amount_uint256)
         else:
             transaction = self.__fee_token.get_mint_transaction(to_address, amount_uint256)
-            _, tx_hash, _ = await self.invoke(transaction)
+            _, tx_hash_int, _ = await self.invoke(transaction)
+            tx_hash = hex(tx_hash_int)
 
         return tx_hash
 
