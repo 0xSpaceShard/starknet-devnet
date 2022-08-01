@@ -1,0 +1,8 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Must be one of existing transaction statuses",
+    "type": "string",
+    "enum": [
+        "NOT_RECEIVED", "RECEIVED", "PENDING", "REJECTED", "ACCEPTED_ON_L2", "ACCEPTED_ON_L1"
+    ]
+}

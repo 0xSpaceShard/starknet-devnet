@@ -162,6 +162,8 @@ def get_transaction_status():
 
     transaction_hash = request.args.get("transactionHash")
     transaction_status = state.starknet_wrapper.transactions.get_transaction_status(transaction_hash)
+    if "block_hash" in transaction_status:
+        transaction_status['block_hash'] = hex(transaction_status['block_hash'])
     return jsonify(transaction_status)
 
 @feeder_gateway.route("/get_transaction", methods=["GET"])

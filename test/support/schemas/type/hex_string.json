@@ -1,0 +1,6 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Hex String with pattern validation",
+    "type": "string",
+    "pattern": "^0x[a-fA-F0-9]+$"
+}
