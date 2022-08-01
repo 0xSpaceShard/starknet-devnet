@@ -409,9 +409,13 @@ class StarknetWrapper:
         self.block_info_generator.set_gas_price(gas_price)
 
     async def mint(self, to_address: int, amount: int, lite: bool):
-        """Mint `amount` tokens at address `to_address`."""
+        """
+        Mint `amount` tokens at address `to_address`.
+        Returns the `tx_hash` if not `lite`; else returns `None`
+        """
         amount_uint256 = Uint256.from_felt(amount)
 
+        tx_hash = None
         if lite:
             self.__fee_token.mint_lite(to_address, amount_uint256)
         else:

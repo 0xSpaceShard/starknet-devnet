@@ -142,13 +142,13 @@ async def mint():
     amount = extract_positive(request_json, "amount")
     is_lite = request_json.get("lite", False)
 
-    tx_hash = state.starknet_wrapper.mint(
-        address=address,
+    tx_hash = await state.starknet_wrapper.mint(
+        to_address=address,
         amount=amount,
         lite=is_lite
     )
 
-    new_balance = state.starknet_wrapper.get_balance(address)
+    new_balance = await state.starknet_wrapper.get_balance(address)
     return jsonify({
         "new_balance": new_balance,
         "unit": "wei",
