@@ -373,7 +373,7 @@ async def add_declare_transaction(contract_class: RpcContractClass, version: str
 
     declare_transaction = Declare(
         contract_class=contract_definition,
-        version=version,
+        version=int(version, 16),
         sender_address=DECLARE_SENDER_ADDRESS,
         max_fee=0,
         signature=[],
@@ -399,8 +399,8 @@ async def add_deploy_transaction(contract_address_salt: str, constructor_calldat
         raise RpcError(code=50, message="Invalid contract class") from ex
 
     deploy_transaction = Deploy(
-        contract_address_salt=contract_address_salt,
-        constructor_calldata=constructor_calldata,
+        contract_address_salt=int(contract_address_salt, 16),
+        constructor_calldata=[int(data, 16) for data in constructor_calldata],
         contract_definition=contract_class,
         version=constants.TRANSACTION_VERSION,
     )

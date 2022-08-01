@@ -27,6 +27,8 @@ class FeeToken:
     # ADDRESS = calculate_contract_address_from_hash(salt=10, class_hash=HASH,
     # constructor_calldata=[], caller_address=0)
     ADDRESS = 2774287484619332564597403632816768868845110259953541691709975889937073775752
+    SYMBOL = "ETH"
+    NAME = "ether"
 
     contract: StarknetContract = None
 
@@ -55,8 +57,8 @@ class FeeToken:
             state=newly_deployed_fee_token_state,
             storage_updates={
                 # Running the constructor doesn't need to be simulated
-                get_selector_from_name('ERC20_name'): StorageLeaf(int.from_bytes(bytes('ether', "ascii"), "big")),
-                get_selector_from_name('ERC20_symbol'): StorageLeaf(int.from_bytes(bytes('ETH', "ascii"), "big")),
+                get_selector_from_name('ERC20_name'): StorageLeaf(int.from_bytes(bytes(FeeToken.NAME, "ascii"), "big")),
+                get_selector_from_name('ERC20_symbol'): StorageLeaf(int.from_bytes(bytes(FeeToken.SYMBOL, "ascii"), "big")),
                 get_selector_from_name('ERC20_decimals'): StorageLeaf(18)
             }
         )

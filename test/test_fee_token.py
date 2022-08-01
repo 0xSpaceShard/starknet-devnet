@@ -14,6 +14,16 @@ def test_precomputed_address_unchanged():
     """Assert that the precomputed fee_token address is unchanged."""
     assert_equal(FeeToken.ADDRESS, 2774287484619332564597403632816768868845110259953541691709975889937073775752)
 
+@pytest.mark.fee_token
+@devnet_in_background()
+def test_fee_token_address():
+    """Sends fee token request;"""
+    response = requests.get(f"{APP_URL}/fee_token")
+    assert response.status_code == 200
+    assert response.json().get("address") == "0x62230ea046a9a5fbc261ac77d03c8d41e5d442db2284587570ab46455fd2488"
+    assert response.json().get("symbol") == "ETH"
+
+
 def mint(address: str, amount: int, lite=False):
     """Sends mint request; returns parsed json body"""
     response = requests.post(f"{APP_URL}/mint", json={
