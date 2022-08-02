@@ -317,11 +317,34 @@ A local block explorer (Voyager), as noted [here](https://voyager.online/local-v
 
 ## Block
 
-Devnet start with genesis block.
+Devnet start with a genesis block.
+
+GENESIS_BLOCK_NUMBER = 0
+
+GENESIS_BLOCK_HASH = "0x0"
+
 You can create empty block without transaction.
 
 ```
-GET /create_block
+POST /create_block
+```
+
+Response:
+
+```
+{
+    "transactions": [],
+    "parent_block_hash": "0x0",
+    "timestamp": 1659457385,
+    "state_root": "004bee3ee...",
+    "gas_price": "0x174876e800",
+    "sequencer_address": "0x4bbfb0d1aa...",
+    "transaction_receipts": [],
+    "starknet_version": "0.9.1",
+    "block_hash": "0x1",
+    "block_number": 1,
+    "status": "ACCEPTED_ON_L2"
+}
 ```
 
 ## Lite mode
