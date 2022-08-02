@@ -81,4 +81,4 @@ async def test_deploy_lite():
     tx_status = devnet.transactions.get_transaction_status(hex(tx_hash))
 
     assert tx_status["tx_status"] == TransactionStatus.ACCEPTED_ON_L2.name
-    assert tx_status["block_hash"] == 0
+    assert tx_status["block_hash"] == '0x0'
