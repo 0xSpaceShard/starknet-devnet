@@ -417,7 +417,10 @@ class StarknetWrapper:
 
         tx_hash = None
         if lite:
-            await self.__fee_token.mint_lite(to_address, amount_uint256)
+            await self.__fee_token.contract.mint(
+                to_address,
+                (amount_uint256.low, amount_uint256.high)
+            ).invoke()
         else:
             transaction = self.__fee_token.get_mint_transaction(to_address, amount_uint256)
             _, tx_hash_int, _ = await self.invoke(transaction)

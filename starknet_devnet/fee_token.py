@@ -93,7 +93,3 @@ class FeeToken:
             "contract_address": hex(cls.ADDRESS)
         }
         return InvokeFunction.load(transaction_data)
-
-    async def mint_lite(self, to_address: int, amount: Uint256) -> None:
-        """Mint `amount` of token at `to_address` without creating a tx."""
-        await self.contract.mint(to_address, (amount.low, amount.high)).invoke()
