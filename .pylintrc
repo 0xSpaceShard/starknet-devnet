@@ -1,5 +1,8 @@
 [FORMAT]
 max-line-length=150
+string-quote=double
+triple-quote=double
+docstring-quote=double
 
 [BASIC]
 min-public-methods=1
