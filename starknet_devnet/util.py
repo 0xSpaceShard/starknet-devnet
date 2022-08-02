@@ -134,17 +134,17 @@ def parse_args():
     )
     parser.add_argument(
         "--lite-mode",
-        action='store_true',
+        action="store_true",
         help="Applies all lite-mode-* optimizations by disabling some features."
     )
     parser.add_argument(
         "--lite-mode-block-hash",
-        action='store_true',
+        action="store_true",
         help="Disables block hash calculation"
     )
     parser.add_argument(
         "--lite-mode-deploy-hash",
-        action='store_true',
+        action="store_true",
         help="Disables deploy tx hash calculation"
     )
     parser.add_argument(

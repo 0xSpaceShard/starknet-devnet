@@ -2,7 +2,7 @@
 Tests RPC blocks
 """
 
-from test.shared import GENESIS_BLOCK_NUMBER, INCORECT_GENESIS_BLOCK_HASH
+from test.shared import GENESIS_BLOCK_NUMBER, INCORRECT_GENESIS_BLOCK_HASH
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 
 from .rpc_utils import rpc_call, get_block_with_transaction, pad_zero, gateway_call
@@ -140,7 +140,7 @@ def test_get_block_by_hash_raises_on_incorrect_hash(deploy_info):
     Get block by incorrect hash
     """
     ex = rpc_call(
-        "starknet_getBlockByHash", params={"block_hash": INCORECT_GENESIS_BLOCK_HASH}
+        "starknet_getBlockByHash", params={"block_hash": INCORRECT_GENESIS_BLOCK_HASH}
     )
 
     assert ex["error"] == {
@@ -169,7 +169,7 @@ def test_get_block_transaction_count_by_hash_raises_on_incorrect_hash(deploy_inf
     Get count of transactions in block by incorrect block hash
     """
     ex = rpc_call(
-        "starknet_getBlockTransactionCountByHash", params={"block_hash": INCORECT_GENESIS_BLOCK_HASH}
+        "starknet_getBlockTransactionCountByHash", params={"block_hash": INCORRECT_GENESIS_BLOCK_HASH}
     )
 
     assert ex["error"] == {

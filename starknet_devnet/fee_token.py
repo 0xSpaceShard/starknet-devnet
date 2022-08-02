@@ -57,9 +57,9 @@ class FeeToken:
             state=newly_deployed_fee_token_state,
             storage_updates={
                 # Running the constructor doesn't need to be simulated
-                get_selector_from_name('ERC20_name'): StorageLeaf(int.from_bytes(bytes(FeeToken.NAME, "ascii"), "big")),
-                get_selector_from_name('ERC20_symbol'): StorageLeaf(int.from_bytes(bytes(FeeToken.SYMBOL, "ascii"), "big")),
-                get_selector_from_name('ERC20_decimals'): StorageLeaf(18)
+                get_selector_from_name("ERC20_name"): StorageLeaf(int.from_bytes(bytes(FeeToken.NAME, "ascii"), "big")),
+                get_selector_from_name("ERC20_symbol"): StorageLeaf(int.from_bytes(bytes(FeeToken.SYMBOL, "ascii"), "big")),
+                get_selector_from_name("ERC20_decimals"): StorageLeaf(18)
             }
         )
 
