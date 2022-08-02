@@ -261,7 +261,7 @@ def test_create_block_endpoint():
     assert resp.get("block_number") == GENESIS_BLOCK_NUMBER + 1
     assert resp.get("block_hash") == hex(GENESIS_BLOCK_NUMBER + 1)
     assert resp.get("status") == "ACCEPTED_ON_L2"
-    assert resp.get("gas_price") != '0'
+    assert resp.get("gas_price") != "0"
     assert resp.get("transactions") == []
 
     deploy(STORAGE_CONTRACT_PATH)
