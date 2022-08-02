@@ -8,7 +8,7 @@ from typing import List
 
 from test.shared import INCORRECT_GENESIS_BLOCK_HASH
 from starkware.starknet.definitions import constants
-from starknet_devnet.blueprints.rpc import RpcContractClass, RpcInvokeTransaction
+from starknet_devnet.blueprints.rpc import RpcContractClass
 
 from .rpc_utils import rpc_call, get_block_with_transaction, pad_zero
 
@@ -330,16 +330,14 @@ def test_add_invoke_transaction(invoke_content):
     """
     Add invoke transaction
     """
-    function_invocation = RpcInvokeTransaction(
-        contract_address=invoke_content["contract_address"],
-        entry_point_selector=invoke_content["entry_point_selector"],
-        calldata=invoke_content["calldata"],
-    )
-
     resp = rpc_call(
         "starknet_addInvokeTransaction",
         params={
-            "function_invocation": function_invocation,
+            "function_invocation": {
+                "contract_address": invoke_content["contract_address"],
+                "entry_point_selector": invoke_content["entry_point_selector"],
+                "calldata": invoke_content["calldata"],
+            },
             "signature": invoke_content["signature"],
             "max_fee": hex(0),
             "version": hex(constants.TRANSACTION_VERSION),
@@ -347,7 +345,7 @@ def test_add_invoke_transaction(invoke_content):
     )
     receipt = resp["result"]
 
-    assert set(receipt.keys()) == set(["transaction_hash"])
+    assert set(receipt.keys()) == {"transaction_hash"}
     assert receipt["transaction_hash"][:3] == "0x0"
 
 
@@ -366,7 +364,7 @@ def test_add_declare_transaction_on_incorrect_contract(declare_content):
         "starknet_addDeclareTransaction",
         params={
             "contract_class": rpc_contract,
-            "version": constants.TRANSACTION_VERSION,
+            "version": hex(constants.TRANSACTION_VERSION),
         }
     )
 
@@ -391,7 +389,7 @@ def test_add_declare_transaction(declare_content):
         "starknet_addDeclareTransaction",
         params={
             "contract_class": rpc_contract,
-            "version": constants.TRANSACTION_VERSION,
+            "version": hex(constants.TRANSACTION_VERSION),
         }
     )
     receipt = resp["result"]
@@ -406,6 +404,8 @@ def test_add_deploy_transaction_on_incorrect_contract(deploy_content):
     Add deploy transaction on incorrect class
     """
     contract_definition = deploy_content["contract_definition"]
+    salt = deploy_content["contract_address_salt"]
+    calldata = [hex(data) for data in deploy_content["constructor_calldata"]]
 
     rpc_contract = RpcContractClass(
         program="",
@@ -415,8 +415,8 @@ def test_add_deploy_transaction_on_incorrect_contract(deploy_content):
     ex = rpc_call(
         "starknet_addDeployTransaction",
         params={
-            "contract_address_salt": int(deploy_content["contract_address_salt"], 16),
-            "constructor_calldata": deploy_content["constructor_calldata"],
+            "contract_address_salt": salt,
+            "constructor_calldata": calldata,
             "contract_definition": rpc_contract,
         }
     )
@@ -432,6 +432,8 @@ def test_add_deploy_transaction(deploy_content):
     Add deploy transaction
     """
     contract_definition = deploy_content["contract_definition"]
+    salt = deploy_content["contract_address_salt"]
+    calldata = [hex(data) for data in deploy_content["constructor_calldata"]]
 
     rpc_contract = RpcContractClass(
         program=contract_definition["program"],
@@ -441,8 +443,8 @@ def test_add_deploy_transaction(deploy_content):
     resp = rpc_call(
         "starknet_addDeployTransaction",
         params={
-            "contract_address_salt": int(deploy_content["contract_address_salt"], 16),
-            "constructor_calldata": deploy_content["constructor_calldata"],
+            "contract_address_salt": salt,
+            "constructor_calldata": calldata,
             "contract_definition": rpc_contract,
         }
     )

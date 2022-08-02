@@ -10,6 +10,8 @@ import requests
 
 import pytest
 
+from .test_account import get_account_balance
+from .test_fee_token import mint
 from .util import call, deploy, devnet_in_background, invoke, run_devnet_in_background, terminate_and_wait
 from .settings import APP_URL
 from .shared import CONTRACT_PATH, ABI_PATH
@@ -103,13 +105,43 @@ def deploy_empty_contract():
     assert initial_balance == "0"
     return contract_address
 
-def test_load_if_no_file():
-    """Test loading if dump file not present."""
+def test_load_via_cli_if_no_file():
+    """Test loading via CLI if dump file not present."""
     assert_no_dump_present(DUMP_PATH)
     devnet_proc = ACTIVE_DEVNET.start("--load-path", DUMP_PATH, stderr=subprocess.PIPE)
     assert devnet_proc.returncode == 1
     expected_msg = f"Error: Cannot load from {DUMP_PATH}. Make sure the file exists and contains a Devnet dump.\n"
     assert expected_msg == devnet_proc.stderr.read().decode("utf-8")
+
+def test_mint_after_load():
+    """Assert that minting can be done after loading."""
+    devnet_proc = ACTIVE_DEVNET.start("--dump-path", DUMP_PATH, "--dump-on", "exit")
+    dummy_address = "0x1"
+    initial_balance = get_account_balance(dummy_address)
+    assert initial_balance == 0
+
+    terminate_and_wait(devnet_proc)
+    assert_dump_present(DUMP_PATH)
+
+    loaded_devnet_proc = ACTIVE_DEVNET.start("--load-path", DUMP_PATH)
+    dummy_amount = 1
+    resp_body = mint(dummy_address, dummy_amount)
+    assert resp_body["new_balance"] == dummy_amount
+
+    final_balance = get_account_balance(dummy_address)
+    assert final_balance == dummy_amount
+
+    terminate_and_wait(loaded_devnet_proc)
+
+@devnet_in_background()
+def test_load_via_http_if_no_file():
+    """Test loading via HTTP if dump file not present."""
+    assert_no_dump_present(DUMP_PATH)
+
+    resp = send_load_request(load_path=DUMP_PATH)
+    expected_msg = f"Error: Cannot load from {DUMP_PATH}. Make sure the file exists and contains a Devnet dump."
+    assert resp.json()["message"] == expected_msg
+    assert resp.status_code == 400
 
 @devnet_in_background()
 def test_dumping_if_path_not_provided():
