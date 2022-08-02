@@ -396,17 +396,12 @@ class StarknetWrapper:
         gas_price = state.state.block_info.gas_price
         gas_usage = tx_fee // gas_price if gas_price else 0
 
-        result = {
+        return {
             "overall_fee": tx_fee,
             "unit": "wei",
             "gas_price": gas_price,
             "gas_usage": gas_usage,
         }
-
-        if state.state.block_info.block_timestamp == 0:
-            result["warning"] = "block isn't produced"
-
-        return result
 
     def increase_block_time(self, time_s: int):
         """Increases the block time by `time_s`."""
