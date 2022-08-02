@@ -114,7 +114,7 @@ async def get_balance():
     """Gets balance for the address"""
     address = request.args.get("address", type=lambda x: int(x, 16))
 
-    balance = await state.starknet_wrapper.get_balance(address)
+    balance = await state.starknet_wrapper.fee_token.get_balance(address)
     return jsonify({
         "amount": balance,
         "unit": "wei"
@@ -142,13 +142,13 @@ async def mint():
     amount = extract_positive(request_json, "amount")
     is_lite = request_json.get("lite", False)
 
-    tx_hash = await state.starknet_wrapper.mint(
+    tx_hash = await state.starknet_wrapper.fee_token.mint(
         to_address=address,
         amount=amount,
         lite=is_lite
     )
 
-    new_balance = await state.starknet_wrapper.get_balance(address)
+    new_balance = await state.starknet_wrapper.fee_token.get_balance(address)
     return jsonify({
         "new_balance": new_balance,
         "unit": "wei",

@@ -30,7 +30,6 @@ from .general_config import DEFAULT_GENERAL_CONFIG
 from .origin import NullOrigin, Origin
 from .util import (
     DummyExecutionInfo,
-    Uint256,
     enable_pickling,
     generate_state_update,
     to_bytes
@@ -68,9 +67,10 @@ class StarknetWrapper:
         self.l1l2 = DevnetL1L2()
         self.transactions = DevnetTransactions(self.origin)
         self.__starknet = None
+        self.starknet = None # Temporary hotfix will be cleaned with async fix PR
         self.__current_carried_state = None
         self.__initialized = False
-        self.__fee_token = FeeToken()
+        self.fee_token = FeeToken(self)
 
         self.accounts: List[Account] = []
         """List of predefined accounts"""
@@ -86,7 +86,7 @@ class StarknetWrapper:
         if not self.__initialized:
             starknet = await self.__get_starknet()
 
-            await self.__deploy_fee_token()
+            await self.fee_token.deploy()
             await self.__deploy_accounts()
 
             await self.__preserve_current_state(starknet.state.state)
@@ -102,6 +102,7 @@ class StarknetWrapper:
         """
         if not self.__starknet:
             self.__starknet = await Starknet.empty(general_config=DEFAULT_GENERAL_CONFIG)
+        self.starknet = self.__starknet
         return self.__starknet
 
     async def get_state(self):
@@ -169,11 +170,6 @@ class StarknetWrapper:
             transaction.set_block(block=block)
 
         self.transactions.store(tx_hash, transaction)
-
-    async def __deploy_fee_token(self):
-        starknet = await self.__get_starknet()
-        await self.__fee_token.deploy(starknet)
-        self.contracts.store(FeeToken.ADDRESS, ContractWrapper(self.__fee_token.contract, FeeToken.get_contract_class()))
 
     async def __deploy_accounts(self):
         starknet = await self.__get_starknet()
@@ -407,28 +403,3 @@ class StarknetWrapper:
     def set_gas_price(self, gas_price: int):
         """Sets gas price to `gas_price`."""
         self.block_info_generator.set_gas_price(gas_price)
-
-    async def mint(self, to_address: int, amount: int, lite: bool):
-        """
-        Mint `amount` tokens at address `to_address`.
-        Returns the `tx_hash` (as hex str) if not `lite`; else returns `None`
-        """
-        amount_uint256 = Uint256.from_felt(amount)
-
-        tx_hash = None
-        if lite:
-            await self.__fee_token.contract.mint(
-                to_address,
-                (amount_uint256.low, amount_uint256.high)
-            ).invoke()
-        else:
-            transaction = self.__fee_token.get_mint_transaction(to_address, amount_uint256)
-            _, tx_hash_int, _ = await self.invoke(transaction)
-            tx_hash = hex(tx_hash_int)
-
-        return tx_hash
-
-    async def get_balance(self, address: int):
-        """Returns balance at `address` as stored in fee token contract."""
-
-        return await self.__fee_token.get_balance(address)

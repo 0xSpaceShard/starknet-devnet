@@ -8,10 +8,10 @@ from starkware.starknet.services.api.gateway.transaction import InvokeFunction
 from starkware.starknet.storage.starknet_storage import StorageLeaf
 from starkware.starknet.business_logic.state.objects import (ContractState, ContractCarriedState)
 from starkware.starknet.testing.contract import StarknetContract
-from starkware.starknet.testing.starknet import Starknet
 from starkware.python.utils import to_bytes
 from starkware.starknet.compiler.compile import get_selector_from_name
 from starknet_devnet.util import Uint256
+from .contract_wrapper import ContractWrapper
 
 class FeeToken:
     """Wrapper of token for charging fees."""
@@ -32,6 +32,9 @@ class FeeToken:
 
     contract: StarknetContract = None
 
+    def __init__(self, startknet_wrapper):
+        self.startknet_wrapper = startknet_wrapper
+
     @classmethod
     def get_contract_class(cls):
         """Returns contract class via lazy loading."""
@@ -39,8 +42,9 @@ class FeeToken:
             cls.CONTRACT_CLASS = ContractClass.load(load_nearby_contract("ERC20_Mintable_OZ_0.2.0"))
         return cls.CONTRACT_CLASS
 
-    async def deploy(self, starknet: Starknet):
+    async def deploy(self):
         """Deploy token contract for charging fees."""
+        starknet = self.startknet_wrapper.starknet
 
         fee_token_carried_state = starknet.state.state.contract_states[FeeToken.ADDRESS]
         fee_token_state = fee_token_carried_state.state
@@ -69,6 +73,8 @@ class FeeToken:
             deploy_execution_info=None
         )
 
+        self.startknet_wrapper.contracts.store(FeeToken.ADDRESS, ContractWrapper(self.contract, self.get_contract_class()))
+
     async def get_balance(self, address: int) -> int:
         """Return the balance of the contract under `address`."""
         response = await self.contract.balanceOf(address).call()
@@ -93,3 +99,23 @@ class FeeToken:
             "contract_address": hex(cls.ADDRESS)
         }
         return InvokeFunction.load(transaction_data)
+
+    async def mint(self, to_address: int, amount: int, lite: bool):
+        """
+        Mint `amount` tokens at address `to_address`.
+        Returns the `tx_hash` (as hex str) if not `lite`; else returns `None`
+        """
+        amount_uint256 = Uint256.from_felt(amount)
+
+        tx_hash = None
+        if lite:
+            await self.contract.mint(
+                to_address,
+                (amount_uint256.low, amount_uint256.high)
+            ).invoke()
+        else:
+            transaction = self.get_mint_transaction(to_address, amount_uint256)
+            _, tx_hash_int, _ = await self.startknet_wrapper.invoke(transaction)
+            tx_hash = hex(tx_hash_int)
+
+        return tx_hash
