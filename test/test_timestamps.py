@@ -35,10 +35,6 @@ def get_ts_from_last_block():
     """Returns the timestamp of the last block"""
     return get_block(parse=True)["timestamp"]
 
-def get_ts_from_first_block():
-    """Returns the timestamp of the first block"""
-    return get_block(block_number=0, parse=True)["timestamp"]
-
 def increase_time(time_s):
     """Increases the block timestamp offset"""
     increase_time_response = requests.post(f"{APP_URL}/increase_time", json={"time": time_s})
