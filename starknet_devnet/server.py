@@ -36,11 +36,12 @@ app.register_blueprint(rpc)
 def generate_accounts(args):
     """Generate accounts """
     if args.accounts:
-        state.generate_accounts(
+        state.starknet_wrapper.accounts.generate(
             n_accounts=args.accounts,
             initial_balance=args.initial_balance,
             seed=args.seed
         )
+        state.starknet_wrapper.accounts.print()
 
 def set_dump_options(args):
     """Assign dumping options from args to state."""

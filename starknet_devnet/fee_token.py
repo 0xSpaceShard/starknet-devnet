@@ -11,7 +11,6 @@ from starkware.starknet.testing.contract import StarknetContract
 from starkware.python.utils import to_bytes
 from starkware.starknet.compiler.compile import get_selector_from_name
 from starknet_devnet.util import Uint256
-from .contract_wrapper import ContractWrapper
 
 class FeeToken:
     """Wrapper of token for charging fees."""
@@ -32,8 +31,8 @@ class FeeToken:
 
     contract: StarknetContract = None
 
-    def __init__(self, startknet_wrapper):
-        self.startknet_wrapper = startknet_wrapper
+    def __init__(self, starknet_wrapper):
+        self.starknet_wrapper = starknet_wrapper
 
     @classmethod
     def get_contract_class(cls):
@@ -44,13 +43,14 @@ class FeeToken:
 
     async def deploy(self):
         """Deploy token contract for charging fees."""
-        starknet = self.startknet_wrapper.starknet
+        starknet = self.starknet_wrapper.starknet
+        contract_class = FeeToken.get_contract_class()
 
         fee_token_carried_state = starknet.state.state.contract_states[FeeToken.ADDRESS]
         fee_token_state = fee_token_carried_state.state
         assert not fee_token_state.initialized
 
-        starknet.state.state.contract_definitions[FeeToken.HASH_BYTES] = FeeToken.get_contract_class()
+        starknet.state.state.contract_definitions[FeeToken.HASH_BYTES] = contract_class
         newly_deployed_fee_token_state = await ContractState.create(
             contract_hash=FeeToken.HASH_BYTES,
             storage_commitment_tree=fee_token_state.storage_commitment_tree
@@ -73,7 +73,7 @@ class FeeToken:
             deploy_execution_info=None
         )
 
-        self.startknet_wrapper.contracts.store(FeeToken.ADDRESS, ContractWrapper(self.contract, self.get_contract_class()))
+        self.starknet_wrapper.store_contract(FeeToken.ADDRESS, self.contract, contract_class)
 
     async def get_balance(self, address: int) -> int:
         """Return the balance of the contract under `address`."""
@@ -115,7 +115,7 @@ class FeeToken:
             ).invoke()
         else:
             transaction = self.get_mint_transaction(to_address, amount_uint256)
-            _, tx_hash_int, _ = await self.startknet_wrapper.invoke(transaction)
+            _, tx_hash_int, _ = await self.starknet_wrapper.invoke(transaction)
             tx_hash = hex(tx_hash_int)
 
         return tx_hash
