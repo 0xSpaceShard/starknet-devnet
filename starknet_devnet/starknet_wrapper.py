@@ -203,7 +203,7 @@ class StarknetWrapper:
         transaction = DevnetTransaction(
             internal_tx=internal_declare,
             status=TransactionStatus.ACCEPTED_ON_L2,
-            execution_info=DummyExecutionInfo(),
+            execution_info=DummyExecutionInfo(0, declare_transaction.sender_address, internal_declare.class_hash),
             transaction_hash=tx_hash
         )
 
@@ -254,7 +254,7 @@ class StarknetWrapper:
         except StarkException as err:
             error_message = err.message
             status = TransactionStatus.REJECTED
-            execution_info = DummyExecutionInfo()
+            execution_info = DummyExecutionInfo(contract_address, 0, None)
             state_update = None
 
         transaction = DevnetTransaction(
@@ -295,7 +295,7 @@ class StarknetWrapper:
         except StarkException as err:
             error_message = err.message
             status = TransactionStatus.REJECTED
-            execution_info = DummyExecutionInfo()
+            execution_info = DummyExecutionInfo(invoke_transaction.contract_address, invoke_transaction.caller_address, None)
             adapted_result = []
             state_update = None
 

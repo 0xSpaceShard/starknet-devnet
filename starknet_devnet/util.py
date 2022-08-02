@@ -7,10 +7,11 @@ from dataclasses import dataclass
 from enum import Enum, auto
 import os
 import sys
-from typing import List, Dict, Union
+from typing import List, Dict, Optional, Union
 
 from starkware.starkware_utils.error_handling import StarkException
 from starkware.starknet.testing.contract import StarknetContract
+from starkware.starknet.business_logic.execution.objects import CallInfo
 from starkware.starknet.business_logic.state.state import CarriedState
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     BlockStateUpdate, StateDiff, StorageEntry, DeployedContract
@@ -201,20 +202,11 @@ class StarknetDevnetException(StarkException):
         self.status_code = status_code
 
 @dataclass
-class DummyCallInfo:
-    """Used temporarily until contracts received from starknet.deploy include their own execution_info.call_info"""
-    def __init__(self):
-        self.execution_resources = None
-        self.contract_address = None
-        self.events = []
-        self.internal_calls = []
-
-@dataclass
 class DummyExecutionInfo:
-    """Used temporarily until contracts received from starknet.deploy include their own execution_info."""
-    def __init__(self):
+    """Used if tx fails, but execution info is still required."""
+    def __init__(self, contract_address: int, caller_address: int, class_hash: Optional[bytes]):
         self.actual_fee = 0
-        self.call_info = DummyCallInfo()
+        self.call_info = CallInfo.empty(contract_address, caller_address, class_hash)
         self.retdata = []
         self.internal_calls = []
         self.l2_to_l1_messages = []
