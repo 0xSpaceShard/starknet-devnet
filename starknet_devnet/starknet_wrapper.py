@@ -30,6 +30,7 @@ from .general_config import DEFAULT_GENERAL_CONFIG
 from .origin import NullOrigin, Origin
 from .util import (
     DummyExecutionInfo,
+    Uint256,
     enable_pickling,
     generate_state_update,
     to_bytes
@@ -69,6 +70,7 @@ class StarknetWrapper:
         self.__starknet = None
         self.__current_carried_state = None
         self.__initialized = False
+        self.__fee_token = FeeToken()
 
         self.accounts: List[Account] = []
         """List of predefined accounts"""
@@ -170,8 +172,8 @@ class StarknetWrapper:
 
     async def __deploy_fee_token(self):
         starknet = await self.__get_starknet()
-        await FeeToken.deploy(starknet)
-        self.contracts.store(FeeToken.ADDRESS, ContractWrapper(FeeToken.contract, FeeToken.get_contract_class()))
+        await self.__fee_token.deploy(starknet)
+        self.contracts.store(FeeToken.ADDRESS, ContractWrapper(self.__fee_token.contract, FeeToken.get_contract_class()))
 
     async def __deploy_accounts(self):
         starknet = await self.__get_starknet()
@@ -405,3 +407,28 @@ class StarknetWrapper:
     def set_gas_price(self, gas_price: int):
         """Sets gas price to `gas_price`."""
         self.block_info_generator.set_gas_price(gas_price)
+
+    async def mint(self, to_address: int, amount: int, lite: bool):
+        """
+        Mint `amount` tokens at address `to_address`.
+        Returns the `tx_hash` (as hex str) if not `lite`; else returns `None`
+        """
+        amount_uint256 = Uint256.from_felt(amount)
+
+        tx_hash = None
+        if lite:
+            await self.__fee_token.contract.mint(
+                to_address,
+                (amount_uint256.low, amount_uint256.high)
+            ).invoke()
+        else:
+            transaction = self.__fee_token.get_mint_transaction(to_address, amount_uint256)
+            _, tx_hash_int, _ = await self.invoke(transaction)
+            tx_hash = hex(tx_hash_int)
+
+        return tx_hash
+
+    async def get_balance(self, address: int):
+        """Returns balance at `address` as stored in fee token contract."""
+
+        return await self.__fee_token.get_balance(address)
