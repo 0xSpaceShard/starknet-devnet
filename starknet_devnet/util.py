@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 import os
 import sys
-from typing import List, Dict, Optional, Union
+from typing import List, Dict, Union
 
 from starkware.starkware_utils.error_handling import StarkException
 from starkware.starknet.testing.contract import StarknetContract
@@ -204,9 +204,9 @@ class StarknetDevnetException(StarkException):
 @dataclass
 class DummyExecutionInfo:
     """Used if tx fails, but execution info is still required."""
-    def __init__(self, contract_address: int, caller_address: int, class_hash: Optional[bytes]):
+    def __init__(self):
         self.actual_fee = 0
-        self.call_info = CallInfo.empty(contract_address, caller_address, class_hash)
+        self.call_info = CallInfo.empty_for_testing()
         self.retdata = []
         self.internal_calls = []
         self.l2_to_l1_messages = []

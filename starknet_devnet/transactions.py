@@ -115,12 +115,18 @@ class DevnetTransaction:
         """Returns the transaction receipt"""
         tx_info = self.get_tx_info()
 
+        execution_resources = (
+            self.execution_info.call_info.execution_resources
+            if not self.status == TransactionStatus.REJECTED
+            else None
+        )
+
         return TransactionReceipt.from_tx_info(
             transaction_hash=self.transaction_hash,
             tx_info=tx_info,
             actual_fee=self.__get_actual_fee(),
             events=self.__get_events(),
-            execution_resources=self.execution_info.call_info.execution_resources,
+            execution_resources=execution_resources,
             l2_to_l1_messages=self.__get_l2_to_l1_messages()
         )
 
