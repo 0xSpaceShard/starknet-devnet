@@ -1,0 +1,19 @@
+
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Predeployed accounts fixed value response schema",
+    "type": "object",
+    "properties": {
+        "tx_status": {
+            "$ref": "type/tx_status.json"
+        },
+        "block_hash": {
+            "$ref": "type/hex_string.json"
+        }
+    },
+    "required": ["tx_status"],
+    "dependentRequired": {
+        "block_hash": ["tx_status"]
+    },
+    "additionalProperties": false
+}

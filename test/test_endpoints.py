@@ -8,6 +8,7 @@ import pytest
 
 from starknet_devnet.server import app
 from .util import devnet_in_background, load_file_content, deploy
+from .support.assertions import assert_valid_schema
 from .settings import APP_URL
 from .shared import GENESIS_BLOCK_HASH, GENESIS_BLOCK_NUMBER, STORAGE_CONTRACT_PATH
 
@@ -163,6 +164,12 @@ def get_state_update(block_hash, block_number):
         f"{APP_URL}/feeder_gateway/get_state_update?blockHash={block_hash}&blockNumber={block_number}"
     )
 
+def get_transaction_status(tx_hash):
+    """Get transaction status"""
+    response = requests.get(f"{APP_URL}/feeder_gateway/get_transaction_status?transactionHash={tx_hash}")
+    assert response.status_code == 200
+    return response.json()
+
 @pytest.mark.deploy
 @devnet_in_background()
 def test_error_response_deploy_without_calldata():
@@ -271,3 +278,22 @@ def test_create_block_endpoint():
     resp = requests.post(f"{APP_URL}/create_block").json()
     assert resp.get("block_number") == GENESIS_BLOCK_NUMBER + 3
     assert resp.get("block_hash") == hex(GENESIS_BLOCK_NUMBER + 3)
+    
+def test_get_transaction_status():
+    """Assert valid response schema"""
+    #Create Transaction
+    response = requests.post(f"{APP_URL}/mint", json={
+        "address": "0x0513493b4Fe460031d445fFACacACf3B19196a05Fd146Ed1609B7248101eF847",
+        "amount": 1000e18
+    })
+    assert response.status_code == 200
+    tx_hash = response.json().get("tx_hash")
+
+    json_response = get_transaction_status(tx_hash)
+    assert_valid_schema(json_response, "get_transaction_status.json")
+    assert json_response.get("tx_status") == "ACCEPTED_ON_L2"
+
+    invalid_tx_hash = "0x443a8b3ec1f9e0c64"
+    json_response = get_transaction_status(invalid_tx_hash)
+    assert_valid_schema(json_response, "get_transaction_status.json")
+    assert json_response.get("tx_status") == "NOT_RECEIVED"

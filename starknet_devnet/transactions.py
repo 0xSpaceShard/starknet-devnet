@@ -228,7 +228,7 @@ class DevnetTransactions:
 
         # "block_hash" will only exist after transaction enters ACCEPTED_ON_L2
         if transaction.status == TransactionStatus.ACCEPTED_ON_L2 and transaction.block is not None:
-            status_response["block_hash"] = transaction.block.block_hash
+            status_response["block_hash"] = hex(transaction.block.block_hash)
 
         # "tx_failure_reason" will only exist if the transaction was rejected.
         if transaction.status == TransactionStatus.REJECTED:
