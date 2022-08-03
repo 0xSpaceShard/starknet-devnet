@@ -39,7 +39,6 @@ def common_estimate_response(response):
     assert isinstance(response_parsed.get("gas_usage"), int)
     assert response_parsed.get("overall_fee") == response_parsed.get("gas_price") * response_parsed.get("gas_usage")
     assert response_parsed.get("unit") == "wei"
-    assert response_parsed.get("warning") is None
 
 @devnet_in_background()
 def test_estimate_fee_with_genesis_block():
