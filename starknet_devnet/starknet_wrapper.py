@@ -142,7 +142,7 @@ class StarknetWrapper:
         state = await self.get_state()
         return state.state.shared_state.contract_states.root
 
-    def store_contract(self, 
+    def store_contract(self,
         address: int, contract: StarknetContract, contract_class: ContractClass, tx_hash: int = None):
         """Store the provided data sa wrapped contract"""
         self.contracts.store(address, ContractWrapper(contract, contract_class, tx_hash))
