@@ -546,6 +546,17 @@ poetry run starknet-devnet
 ./scripts/lint.sh
 ```
 
+### Development - Test in parallel
+```bash
+./scripts/test.sh 
+#optional you can pass <TEST_DIR>/
+```
+or manually you can set -s -v for verbose and replace 'auto' with number of workers (recommended same as CPU cores)
+```bash
+poetry run pytest -n auto --dist loadscope test/  
+# parallel testing using auto detect number of CPU cores and spawn same amount of workers
+```
+
 ### Development - Test
 
 When running tests locally, do it from the project root:
@@ -554,8 +565,6 @@ When running tests locally, do it from the project root:
 ./scripts/compile_contracts.sh # first generate the artifacts
 
 poetry run pytest test/
-
-poetry run pytest -n auto --dist loadscope test/  # parallel testing using n CPU workers
 
 poetry run pytest -s -v test/ # for more verbose output
 
