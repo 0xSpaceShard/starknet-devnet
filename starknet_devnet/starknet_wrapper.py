@@ -19,7 +19,7 @@ from starkware.starknet.services.api.gateway.transaction import InvokeFunction, 
 from starkware.starknet.testing.starknet import Starknet
 from starkware.starkware_utils.error_handling import StarkException
 from starkware.starknet.business_logic.transaction_fee import calculate_tx_fee
-from starkware.starknet.services.api.contract_class import EntryPointType
+from starkware.starknet.services.api.contract_class import EntryPointType, ContractClass
 from starkware.starknet.services.api.feeder_gateway.response_objects import TransactionStatus
 from starkware.starknet.testing.contract import StarknetContract
 from starkware.starknet.testing.objects import FunctionInvocation
@@ -142,9 +142,10 @@ class StarknetWrapper:
         state = await self.get_state()
         return state.state.shared_state.contract_states.root
 
-    def store_contract(self, address, contract, contract_class):
+    def store_contract(self, 
+        address: int, contract: StarknetContract, contract_class: ContractClass, tx_hash: int = None):
         """Store the provided data sa wrapped contract"""
-        self.contracts.store(address, ContractWrapper(contract, contract_class))
+        self.contracts.store(address, ContractWrapper(contract, contract_class, tx_hash))
 
     async def __store_transaction(
         self, transaction: DevnetTransaction, tx_hash: int,
@@ -247,7 +248,7 @@ class StarknetWrapper:
             error_message = None
             status = TransactionStatus.ACCEPTED_ON_L2
 
-            self.contracts.store(contract.contract_address, ContractWrapper(contract, contract_class, tx_hash))
+            self.store_contract(contract.contract_address, contract, contract_class, tx_hash)
             state_update = await self.__update_state()
         except StarkException as err:
             error_message = err.message
@@ -333,8 +334,7 @@ class StarknetWrapper:
                 contract_class = state.state.get_contract_class(class_hash)
 
                 contract = StarknetContract(state, contract_class.abi, internal_call.contract_address, None)
-                contract_wrapper = ContractWrapper(contract, contract_class, tx_hash)
-                self.contracts.store(internal_call.contract_address, contract_wrapper)
+                self.store_contract(internal_call.contract_address, contract, contract_class, tx_hash)
             await self.__register_new_contracts(internal_call.internal_calls, tx_hash)
 
     async def get_storage_at(self, contract_address: int, key: int) -> str:
