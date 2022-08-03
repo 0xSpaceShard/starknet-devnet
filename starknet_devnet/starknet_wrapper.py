@@ -109,12 +109,6 @@ class StarknetWrapper:
 
         return self.starknet
 
-    def get_starknet(self):
-        """
-        Returns the underlying Starknet instance.
-        """
-        return self.starknet
-
     def get_state(self):
         """
         Returns the StarknetState of the underlyling Starknet instance.
@@ -196,12 +190,11 @@ class StarknetWrapper:
         Returns (class_hash, transaction_hash)
         """
 
-        starknet = self.get_starknet()
         internal_declare: InternalDeclare = InternalDeclare.from_external(
             declare_transaction,
-            starknet.state.general_config
+            self.starknet.state.general_config
         )
-        declared_class = await starknet.declare(
+        declared_class = await self.starknet.declare(
             contract_class=declare_transaction.contract_class,
         )
         self.contracts.store_class(declared_class.class_hash, declare_transaction.contract_class)
@@ -246,10 +239,8 @@ class StarknetWrapper:
         else:
             tx_hash = internal_tx.hash_value
 
-        starknet = self.get_starknet()
-
         try:
-            contract = await starknet.deploy(
+            contract = await self.starknet.deploy(
                 contract_class=contract_class,
                 constructor_calldata=deploy_transaction.constructor_calldata,
                 contract_address_salt=deploy_transaction.contract_address_salt
@@ -362,8 +353,7 @@ class StarknetWrapper:
 
     async def load_messaging_contract_in_l1(self, network_url: str, contract_address: str, network_id: str) -> dict:
         """Loads the messaging contract at `contract_address`"""
-        starknet = self.get_starknet()
-        return self.l1l2.load_l1_messaging_contract(starknet, network_url, contract_address, network_id)
+        return self.l1l2.load_l1_messaging_contract(self.starknet, network_url, contract_address, network_id)
 
     async def postman_flush(self) -> dict:
         """Handles all pending L1 <> L2 messages and sends them to the other layer. """

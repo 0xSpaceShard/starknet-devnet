@@ -5,6 +5,7 @@ import json
 import pytest
 import requests
 
+from starknet_devnet.constants import DEFAULT_GAS_PRICE
 from .util import (
     deploy,
     devnet_in_background,
@@ -35,7 +36,7 @@ def common_estimate_response(response):
     assert response.status_code == 200
     response_parsed = response.json()
 
-    assert response_parsed.get("gas_price") == GAS_PRICE
+    assert response_parsed.get("gas_price") == DEFAULT_GAS_PRICE
     assert isinstance(response_parsed.get("gas_usage"), int)
     assert response_parsed.get("overall_fee") == response_parsed.get("gas_price") * response_parsed.get("gas_usage")
     assert response_parsed.get("unit") == "wei"
@@ -79,10 +80,8 @@ def test_estimate_fee_with_invalid_data():
     assert resp.status_code == 400
     assert "Invalid Starknet function call" in json_error_message
 
-GAS_PRICE = int(1e11)
-
 @pytest.mark.estimate_fee
-@devnet_in_background("--gas-price", str(GAS_PRICE))
+@devnet_in_background("--gas-price", str(DEFAULT_GAS_PRICE))
 def test_estimate_fee_with_complete_request_data():
     """Estimate fee with complete request data"""
 

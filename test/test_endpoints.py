@@ -7,6 +7,7 @@ import requests
 import pytest
 
 from starknet_devnet.server import app
+from starknet_devnet.constants import DEFAULT_GAS_PRICE
 from .util import devnet_in_background, load_file_content, deploy
 from .support.assertions import assert_valid_schema
 from .settings import APP_URL
@@ -268,7 +269,7 @@ def test_create_block_endpoint():
     assert resp.get("block_number") == GENESIS_BLOCK_NUMBER + 1
     assert resp.get("block_hash") == hex(GENESIS_BLOCK_NUMBER + 1)
     assert resp.get("status") == "ACCEPTED_ON_L2"
-    assert resp.get("gas_price") == "0x174876e800"
+    assert resp.get("gas_price") == hex(DEFAULT_GAS_PRICE)
     assert resp.get("transactions") == []
 
     deploy(STORAGE_CONTRACT_PATH)
@@ -279,6 +280,7 @@ def test_create_block_endpoint():
     assert resp.get("block_number") == GENESIS_BLOCK_NUMBER + 3
     assert resp.get("block_hash") == hex(GENESIS_BLOCK_NUMBER + 3)
 
+@devnet_in_background()
 def test_get_transaction_status():
     """Assert valid response schema"""
     #Create Transaction
