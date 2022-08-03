@@ -18,18 +18,17 @@ from starkware.starknet.services.api.gateway.transaction import InvokeFunction, 
 from starkware.starknet.testing.starknet import Starknet
 from starkware.starkware_utils.error_handling import StarkException
 from starkware.starknet.business_logic.transaction_fee import calculate_tx_fee
-from starkware.starknet.services.api.contract_class import EntryPointType
+from starkware.starknet.services.api.contract_class import EntryPointType, ContractClass
 from starkware.starknet.services.api.feeder_gateway.response_objects import TransactionStatus
 from starkware.starknet.testing.contract import StarknetContract
 from starkware.starknet.testing.objects import FunctionInvocation
 
-from .account import Account
+from .accounts import Accounts
 from .fee_token import FeeToken
 from .general_config import DEFAULT_GENERAL_CONFIG
 from .origin import NullOrigin, Origin
 from .util import (
     DummyExecutionInfo,
-    Uint256,
     enable_pickling,
     generate_state_update,
     to_bytes
@@ -66,13 +65,11 @@ class StarknetWrapper:
         self.contracts = DevnetContracts(self.origin)
         self.l1l2 = DevnetL1L2()
         self.transactions = DevnetTransactions(self.origin)
-        self.__starknet = None
+        self.starknet: Starknet = None
         self.__current_carried_state = None
         self.__initialized = False
-        self.__fee_token = FeeToken()
-
-        self.accounts: List[Account] = []
-        """List of predefined accounts"""
+        self.fee_token = FeeToken(self)
+        self.accounts = Accounts(self)
 
     @staticmethod
     def load(path: str) -> "StarknetWrapper":
@@ -85,8 +82,9 @@ class StarknetWrapper:
         if not self.__initialized:
             starknet = await self.__init_starknet()
 
-            await self.__deploy_fee_token()
-            await self.__deploy_accounts()
+            await self.fee_token.deploy()
+            await self.accounts.deploy()
+
             await self.__preserve_current_state(starknet.state.state)
             await self.create_empty_block()
             self.__initialized = True
@@ -106,21 +104,22 @@ class StarknetWrapper:
         """
         Create and return underlying Starknet instance
         """
-        if not self.__starknet:
-            self.__starknet = await Starknet.empty(general_config=DEFAULT_GENERAL_CONFIG)
-        return self.__starknet
+        if not self.starknet:
+            self.starknet = await Starknet.empty(general_config=DEFAULT_GENERAL_CONFIG)
+
+        return self.starknet
 
     def get_starknet(self):
         """
         Returns the underlying Starknet instance.
         """
-        return self.__starknet
+        return self.starknet
 
     def get_state(self):
         """
         Returns the StarknetState of the underlyling Starknet instance.
         """
-        return self.__starknet.state
+        return self.starknet.state
 
     async def __update_state(self):
         previous_state = self.__current_carried_state
@@ -153,6 +152,11 @@ class StarknetWrapper:
     def __get_state_root(self):
         return self.get_state().state.shared_state.contract_states.root
 
+    def store_contract(self,
+        address: int, contract: StarknetContract, contract_class: ContractClass, tx_hash: int = None):
+        """Store the provided data sa wrapped contract"""
+        self.contracts.store(address, ContractWrapper(contract, contract_class, tx_hash))
+
     async def __store_transaction(
         self, transaction: DevnetTransaction, tx_hash: int,
         state_update: Dict, error_message: str=None
@@ -178,17 +182,6 @@ class StarknetWrapper:
             transaction.set_block(block=block)
 
         self.transactions.store(tx_hash, transaction)
-
-    async def __deploy_fee_token(self):
-        starknet = self.get_starknet()
-        await self.__fee_token.deploy(starknet)
-        self.contracts.store(FeeToken.ADDRESS, ContractWrapper(self.__fee_token.contract, FeeToken.get_contract_class()))
-
-    async def __deploy_accounts(self):
-        starknet = self.get_starknet()
-        for account in self.accounts:
-            contract = await account.deploy(starknet)
-            self.contracts.store(account.address, ContractWrapper(contract, Account.get_contract_class()))
 
     def set_config(self, config: DevnetConfig):
         """
@@ -265,7 +258,7 @@ class StarknetWrapper:
             error_message = None
             status = TransactionStatus.ACCEPTED_ON_L2
 
-            self.contracts.store(contract.contract_address, ContractWrapper(contract, contract_class, tx_hash))
+            self.store_contract(contract.contract_address, contract, contract_class, tx_hash)
             state_update = await self.__update_state()
         except StarkException as err:
             error_message = err.message
@@ -343,8 +336,6 @@ class StarknetWrapper:
 
         return { "result": adapted_result }
 
-
-
     async def __register_new_contracts(self, internal_calls: List[Union[FunctionInvocation, CallInfo]], tx_hash: int):
         for internal_call in internal_calls:
             if internal_call.entry_point_type == EntryPointType.CONSTRUCTOR:
@@ -353,8 +344,7 @@ class StarknetWrapper:
                 contract_class = state.state.get_contract_class(class_hash)
 
                 contract = StarknetContract(state, contract_class.abi, internal_call.contract_address, None)
-                contract_wrapper = ContractWrapper(contract, contract_class, tx_hash)
-                self.contracts.store(internal_call.contract_address, contract_wrapper)
+                self.store_contract(internal_call.contract_address, contract, contract_class, tx_hash)
             await self.__register_new_contracts(internal_call.internal_calls, tx_hash)
 
     async def get_storage_at(self, contract_address: int, key: int) -> str:
@@ -416,28 +406,3 @@ class StarknetWrapper:
     def set_gas_price(self, gas_price: int):
         """Sets gas price to `gas_price`."""
         self.block_info_generator.set_gas_price(gas_price)
-
-    async def mint(self, to_address: int, amount: int, lite: bool):
-        """
-        Mint `amount` tokens at address `to_address`.
-        Returns the `tx_hash` (as hex str) if not `lite`; else returns `None`
-        """
-        amount_uint256 = Uint256.from_felt(amount)
-
-        tx_hash = None
-        if lite:
-            await self.__fee_token.contract.mint(
-                to_address,
-                (amount_uint256.low, amount_uint256.high)
-            ).invoke()
-        else:
-            transaction = self.__fee_token.get_mint_transaction(to_address, amount_uint256)
-            _, tx_hash_int, _ = await self.invoke(transaction)
-            tx_hash = hex(tx_hash_int)
-
-        return tx_hash
-
-    async def get_balance(self, address: int):
-        """Returns balance at `address` as stored in fee token contract."""
-
-        return await self.__fee_token.get_balance(address)

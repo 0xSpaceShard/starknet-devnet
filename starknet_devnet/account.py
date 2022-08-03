@@ -9,7 +9,6 @@ from starkware.starknet.public.abi import get_selector_from_name
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.core.os.contract_address.contract_address import calculate_contract_address_from_hash
 from starkware.starknet.storage.starknet_storage import StorageLeaf
-from starkware.starknet.testing.starknet import Starknet
 from starkware.starknet.testing.contract import StarknetContract
 from starkware.python.utils import to_bytes
 
@@ -26,7 +25,8 @@ class Account:
     HASH = 3234970678029762354735267567433689214900679403476863445247436772798892968339
     HASH_BYTES = to_bytes(HASH)
 
-    def __init__(self, private_key: int, public_key: int, initial_balance: int):
+    def __init__(self, starknet_wrapper, private_key: int, public_key: int, initial_balance: int):
+        self.starknet_wrapper = starknet_wrapper
         self.private_key = private_key
         self.public_key = public_key
 
@@ -56,13 +56,15 @@ class Account:
             "address": hex(self.address)
         }
 
-    async def deploy(self, starknet: Starknet) -> StarknetContract:
+    async def deploy(self) -> StarknetContract:
         """Deploy this account."""
+        starknet = self.starknet_wrapper.starknet
+        contract_class = Account.get_contract_class()
         account_carried_state = starknet.state.state.contract_states[self.address]
         account_state = account_carried_state.state
         assert not account_state.initialized
 
-        starknet.state.state.contract_definitions[Account.HASH_BYTES] = Account.get_contract_class()
+        starknet.state.state.contract_definitions[Account.HASH_BYTES] = contract_class
 
         newly_deployed_account_state = await ContractState.create(
             contract_hash=Account.HASH_BYTES,
@@ -85,9 +87,11 @@ class Account:
         fee_token_storage_updates[balance_address] = StorageLeaf(initial_balance_uint256.low)
         fee_token_storage_updates[balance_address + 1] = StorageLeaf(initial_balance_uint256.high)
 
-        return StarknetContract(
+        contract =  StarknetContract(
             state=starknet.state,
-            abi=Account.get_contract_class().abi,
+            abi=contract_class.abi,
             contract_address=self.address,
             deploy_execution_info=None
         )
+
+        self.starknet_wrapper.store_contract(self.address, contract, contract_class)
