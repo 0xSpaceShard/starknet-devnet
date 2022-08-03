@@ -15,7 +15,7 @@ from .fee_token import FeeToken
 
 DEFAULT_GENERAL_CONFIG = build_general_config({
     "cairo_resource_fee_weights": {
-        "n_steps": 1,
+        "n_steps": constants.N_STEPS_FEE_WEIGHT,
     },
     "contract_storage_commitment_tree_height": constants.CONTRACT_STATES_COMMITMENT_TREE_HEIGHT,
     "event_commitment_tree_height": constants.EVENT_COMMITMENT_TREE_HEIGHT,
