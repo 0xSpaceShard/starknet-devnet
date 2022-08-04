@@ -192,7 +192,7 @@ class StarknetWrapper:
 
         internal_declare: InternalDeclare = InternalDeclare.from_external(
             declare_transaction,
-            self.starknet.state.general_config
+            self.get_state().general_config
         )
         declared_class = await self.starknet.declare(
             contract_class=declare_transaction.contract_class,
