@@ -412,3 +412,9 @@ def load_file_content(file_name: str):
     full_file_path = os.path.join(os.path.dirname(__file__), file_name)
     with open(full_file_path, encoding="utf-8") as deploy_file:
         return deploy_file.read()
+
+def create_empty_block():
+    """Creates an empty block and returns it."""
+    resp = requests.post(f"{APP_URL}/create_block")
+    assert resp.status_code == 200
+    return resp.json()

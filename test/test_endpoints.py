@@ -8,7 +8,7 @@ import pytest
 
 from starknet_devnet.server import app
 from starknet_devnet.constants import DEFAULT_GAS_PRICE
-from .util import devnet_in_background, load_file_content, deploy
+from .util import create_empty_block, devnet_in_background, load_file_content, deploy
 from .support.assertions import assert_valid_schema
 from .settings import APP_URL
 from .shared import GENESIS_BLOCK_HASH, GENESIS_BLOCK_NUMBER, STORAGE_CONTRACT_PATH
@@ -265,7 +265,7 @@ def test_create_block_endpoint():
     assert resp.get("block_hash") == GENESIS_BLOCK_HASH
     assert resp.get("block_number") == GENESIS_BLOCK_NUMBER
 
-    resp = requests.post(f"{APP_URL}/create_block").json()
+    resp = create_empty_block()
     assert resp.get("block_number") == GENESIS_BLOCK_NUMBER + 1
     assert resp.get("block_hash") == hex(GENESIS_BLOCK_NUMBER + 1)
     assert resp.get("status") == "ACCEPTED_ON_L2"
@@ -276,7 +276,7 @@ def test_create_block_endpoint():
     resp = get_block_by_number({"blockNumber": "latest"}).json()
     assert resp.get("block_number") == GENESIS_BLOCK_NUMBER + 2
 
-    resp = requests.post(f"{APP_URL}/create_block").json()
+    resp = create_empty_block()
     assert resp.get("block_number") == GENESIS_BLOCK_NUMBER + 3
     assert resp.get("block_hash") == hex(GENESIS_BLOCK_NUMBER + 3)
 
