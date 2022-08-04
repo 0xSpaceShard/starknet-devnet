@@ -127,8 +127,15 @@ def test_get_block_traces():
 
 @pytest.mark.transaction_trace
 @devnet_in_background()
-def test_get_block_traces_after_declare():
+def test_get_trace_and_block_traces_after_declare():
     """Test getting all traces of a block"""
 
     declare_dict = declare(CONTRACT_PATH)
+
+    # assert trace
+    trace_response = get_transaction_trace_response(declare_dict["tx_hash"])
+    trace = trace_response.json()
+    assert "function_invocation" in trace
+    assert trace["signature"] == []
+
     assert_get_block_traces_response({}, declare_dict["tx_hash"])
