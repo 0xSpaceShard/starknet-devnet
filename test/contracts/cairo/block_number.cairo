@@ -38,3 +38,13 @@ func read_block_number{
     let (fetched) = block_number.read()
     return (block_number=fetched)
 end
+
+@external
+func fail{
+    syscall_ptr : felt*, 
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+    }():
+        assert 1 = 2
+        return ()
+end

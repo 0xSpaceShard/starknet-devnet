@@ -2,7 +2,7 @@
 Test block number
 """
 
-from .shared import ARTIFACTS_PATH, GENESIS_BLOCK_NUMBER
+from .shared import ARTIFACTS_PATH, FAILING_CONTRACT_PATH, GENESIS_BLOCK_NUMBER
 from .util import devnet_in_background, deploy, call, invoke
 
 BLOCK_NUMBER_CONTRACT_PATH = f"{ARTIFACTS_PATH}/block_number.cairo/block_number.json"
@@ -49,3 +49,40 @@ def test_block_number_incremented():
 def test_block_number__incremented_in_lite_mode():
     """Tests compatibility with lite mode"""
     base_workflow()
+
+@devnet_in_background()
+def test_block_number_not_incremented_if_deploy_fails():
+    """
+    Since the deploy fails, no block should be created;
+    get_block_number should return an unchanged value
+    """
+
+    deploy_info = deploy(BLOCK_NUMBER_CONTRACT_PATH)
+    block_number_before = my_get_block_number(deploy_info["address"])
+    assert int(block_number_before) == GENESIS_BLOCK_NUMBER + 1
+
+    deploy(FAILING_CONTRACT_PATH)
+
+    block_number_after = my_get_block_number(deploy_info["address"])
+    assert int(block_number_after) == GENESIS_BLOCK_NUMBER + 1
+
+@devnet_in_background()
+def test_block_number_not_incremented_if_invoke_fails():
+    """
+    Since the invoke fails, no block should be created;
+    get_block_number should return an unchanged value
+    """
+
+    deploy_info = deploy(BLOCK_NUMBER_CONTRACT_PATH)
+    block_number_before = my_get_block_number(deploy_info["address"])
+    assert int(block_number_before) == GENESIS_BLOCK_NUMBER + 1
+
+    invoke(
+        function="fail",
+        inputs=[],
+        address=deploy_info["address"],
+        abi_path=BLOCK_NUMBER_ABI_PATH,
+    )
+
+    block_number_after = my_get_block_number(deploy_info["address"])
+    assert int(block_number_after) == GENESIS_BLOCK_NUMBER + 1
