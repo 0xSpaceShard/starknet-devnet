@@ -30,7 +30,7 @@ def base_workflow():
 
 @devnet_in_background()
 def test_block_number_incremented():
-    """Tests how block number is incremented with"""
+    """Tests how block number is incremented in regular mode"""
     base_workflow()
 
 @devnet_in_background("--lite-mode")

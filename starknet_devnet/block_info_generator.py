@@ -34,7 +34,7 @@ class BlockInfoGenerator():
 
         return BlockInfo(
             gas_price=self.gas_price,
-            block_number=block_info.block_number + 1,
+            block_number=block_info.block_number,
             block_timestamp=block_timestamp,
             sequencer_address=general_config.sequencer_address,
             starknet_version=CAIRO_LANG_VERSION

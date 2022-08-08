@@ -13,7 +13,7 @@ from starkware.starknet.business_logic.internal_transaction import (
     InternalDeploy,
 )
 from starkware.starknet.business_logic.internal_transaction import CallInfo
-from starkware.starknet.business_logic.state.state import CarriedState
+from starkware.starknet.business_logic.state.state import BlockInfo, CarriedState
 from starkware.starknet.services.api.gateway.transaction import InvokeFunction, Deploy, Declare
 from starkware.starknet.testing.starknet import Starknet
 from starkware.starkware_utils.error_handling import StarkException
@@ -91,6 +91,7 @@ class StarknetWrapper:
 
     async def create_empty_block(self):
         """create empty block"""
+        self.__update_block_number()
         state_update = await self.__update_state()
         state = self.get_state()
         state_root = self.__get_state_root()
@@ -218,6 +219,20 @@ class StarknetWrapper:
 
         return declared_class.class_hash, tx_hash
 
+
+    def __update_block_number(self):
+        """Updates just the block number. Returns the old block info"""
+        current_carried_state = self.get_state().state
+        block_info = current_carried_state.block_info
+        current_carried_state.block_info = BlockInfo(
+            gas_price=block_info.gas_price,
+            block_number=block_info.block_number + 1,
+            block_timestamp=block_info.block_timestamp,
+            sequencer_address=block_info.sequencer_address,
+            starknet_version=block_info.starknet_version
+        )
+        return block_info
+
     async def deploy(self, deploy_transaction: Deploy) -> Tuple[int, int]:
         """
         Deploys the contract specified with `deploy_transaction`.
@@ -240,6 +255,8 @@ class StarknetWrapper:
             tx_hash = internal_tx.hash_value
 
         try:
+            preserved_block_info = self.__update_block_number()
+
             contract = await self.starknet.deploy(
                 contract_class=contract_class,
                 constructor_calldata=deploy_transaction.constructor_calldata,
@@ -256,6 +273,9 @@ class StarknetWrapper:
             status = TransactionStatus.REJECTED
             execution_info = DummyExecutionInfo()
             state_update = None
+
+            # restore block info
+            self.get_state().state.block_info = preserved_block_info
 
         transaction = DevnetTransaction(
             internal_tx=internal_tx,
@@ -281,6 +301,8 @@ class StarknetWrapper:
         invoke_transaction: InternalInvokeFunction = InternalInvokeFunction.from_external(invoke_function, state.general_config)
 
         try:
+            preserved_block_info = self.__update_block_number()
+
             contract_wrapper = self.contracts.get_by_address(invoke_transaction.contract_address)
             adapted_result, execution_info = await contract_wrapper.invoke(
                 entry_point_selector=invoke_transaction.entry_point_selector,
@@ -298,6 +320,9 @@ class StarknetWrapper:
             execution_info = DummyExecutionInfo()
             adapted_result = []
             state_update = None
+
+            # restore block info
+            self.get_state().state.block_info = preserved_block_info
 
         transaction = DevnetTransaction(invoke_transaction, status, execution_info)
         tx_hash = transaction.transaction_hash
