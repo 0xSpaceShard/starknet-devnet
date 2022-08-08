@@ -58,6 +58,7 @@ def test_block_number_incremented_on_declare():
     block_number_before = my_get_block_number(deploy_info["address"])
     assert int(block_number_before) == GENESIS_BLOCK_NUMBER + 1
 
+    # just to declare a new class - nothing fails here
     declare(FAILING_CONTRACT_PATH)
 
     block_number_after = my_get_block_number(deploy_info["address"])

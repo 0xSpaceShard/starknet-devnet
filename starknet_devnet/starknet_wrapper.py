@@ -222,7 +222,7 @@ class StarknetWrapper:
 
 
     def __update_block_number(self):
-        """Updates just the block number. Returns the old block info"""
+        """Updates just the block number. Returns the old block info to allow reverting"""
         current_carried_state = self.get_state().state
         block_info = current_carried_state.block_info
         current_carried_state.block_info = BlockInfo(
