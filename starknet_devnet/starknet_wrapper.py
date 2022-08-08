@@ -208,6 +208,7 @@ class StarknetWrapper:
             transaction_hash=tx_hash
         )
 
+        self.__update_block_number()
         state_update = await self.__update_state()
 
         await self.__store_transaction(
