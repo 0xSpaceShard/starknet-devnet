@@ -3,7 +3,7 @@ Test block number
 """
 
 from .shared import ARTIFACTS_PATH, GENESIS_BLOCK_NUMBER
-from .util import create_empty_block, devnet_in_background, deploy, call
+from .util import devnet_in_background, deploy, call, invoke
 
 BLOCK_NUMBER_CONTRACT_PATH = f"{ARTIFACTS_PATH}/block_number.cairo/block_number.json"
 BLOCK_NUMBER_ABI_PATH = f"{ARTIFACTS_PATH}/block_number.cairo/block_number_abi.json"
@@ -22,8 +22,20 @@ def base_workflow():
     block_number_before = my_get_block_number(deploy_info["address"])
     assert int(block_number_before) == GENESIS_BLOCK_NUMBER + 1
 
-    # generate a new block
-    create_empty_block()
+    invoke(
+        function="write_block_number",
+        inputs=[],
+        address=deploy_info["address"],
+        abi_path=BLOCK_NUMBER_ABI_PATH
+    )
+
+    written_block_number = call(
+        function="read_block_number",
+        inputs=[],
+        address=deploy_info["address"],
+        abi_path=BLOCK_NUMBER_ABI_PATH
+    )
+    assert int(written_block_number) == GENESIS_BLOCK_NUMBER + 2
 
     block_number_after = my_get_block_number(deploy_info["address"])
     assert int(block_number_after) == GENESIS_BLOCK_NUMBER + 2
