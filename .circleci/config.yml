@@ -41,12 +41,12 @@ jobs:
           command: |
             mkdir -p test-results
             shopt -s globstar
-            SPLITED_FILES_CLASS=$(
+            SPLIT_BY_CLASS=$(
               circleci tests glob test/**/test*.py |
               sed  "s/\.py//g; s/\//./g" |
               circleci tests split --split-by=timings --timings-type=classname
             )
-            TEST_FILES=$(sed "s/\./\//g; s/ /.py /g; s/$/.py/g;" \<<< $SPLITED_FILES_CLASS)
+            TEST_FILES=$(sed "s/\./\//g; s/ /.py /g; s/$/.py/g;" \<<< $SPLIT_BY_CLASS)
             poetry run pytest -s -v --junitxml=test-results/junit.xml $TEST_FILES
       - store_test_results:
           path: test-results
