@@ -40,7 +40,12 @@ jobs:
           parallel: true
           command: |
             mkdir -p test-results
-            SPLITED_FILES_CLASS=$(circleci tests glob test/test*.py | sed  "s/\.py//g; s/\//./g" | circleci tests split --split-by=timings --timings-type=classname)
+            shopt -s globstar
+            SPLITED_FILES_CLASS=$(
+              circleci tests glob test/**/test*.py |
+              sed  "s/\.py//g; s/\//./g" |
+              circleci tests split --split-by=timings --timings-type=classname
+            )
             TEST_FILES=$(sed "s/\./\//g; s/ /.py /g; s/$/.py/g;" \<<< $SPLITED_FILES_CLASS)
             poetry run pytest -s -v --junitxml=test-results/junit.xml $TEST_FILES
       - store_test_results:
