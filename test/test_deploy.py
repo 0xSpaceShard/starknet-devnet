@@ -1,5 +1,6 @@
 """Test devnet contract deployment"""
 
+from argparse import Namespace
 from typing import List
 import pytest
 
@@ -63,7 +64,7 @@ async def test_deploy_lite():
     """
     Test the deployment of a contract with lite mode.
     """
-    devnet = StarknetWrapper(config=DevnetConfig(lite_mode_block_hash=True, lite_mode_deploy_hash=True))
+    devnet = StarknetWrapper(config=DevnetConfig(Namespace(lite_mode=True)))
     await devnet.initialize()
     deploy_transaction = get_deploy_transaction(inputs=[0])
 

@@ -2,7 +2,6 @@
 This module introduces `StarknetWrapper`, a wrapper class of
 starkware.starknet.testing.starknet.Starknet.
 """
-import dataclasses
 from copy import deepcopy
 from typing import Dict, List, Tuple, Union
 
@@ -39,14 +38,9 @@ from .transactions import DevnetTransactions, DevnetTransaction
 from .contracts import DevnetContracts
 from .blocks import DevnetBlocks
 from .block_info_generator import BlockInfoGenerator
+from .devnet_config import DevnetConfig
 
 enable_pickling()
-
-@dataclasses.dataclass
-class DevnetConfig:
-    """Configuration for the devnet."""
-    lite_mode_block_hash: bool = False
-    lite_mode_deploy_hash: bool = False
 
 #pylint: disable=too-many-instance-attributes
 class StarknetWrapper:
@@ -70,6 +64,11 @@ class StarknetWrapper:
         self.__initialized = False
         self.fee_token = FeeToken(self)
         self.accounts = Accounts(self)
+
+        if config.start_time is not None:
+            self.set_block_time(config.start_time)
+
+        self.set_gas_price(config.gas_price)
 
     @staticmethod
     def load(path: str) -> "StarknetWrapper":

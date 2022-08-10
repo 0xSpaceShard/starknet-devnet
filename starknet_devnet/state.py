@@ -2,23 +2,23 @@
 Global state singletone
 """
 
+from .devnet_config import DevnetConfig, devnet_config
 from .dump import Dumper
-from .starknet_wrapper import StarknetWrapper, DevnetConfig
+from .starknet_wrapper import StarknetWrapper
 
 class State():
     """
     Stores starknet wrapper and dumper
     """
     def __init__(self):
-        self.starknet_wrapper = StarknetWrapper(config=DevnetConfig())
-        self.dumper = Dumper(self.starknet_wrapper)
+        self.__set_starknet_wrapper(StarknetWrapper(config=devnet_config))
 
     def __set_starknet_wrapper(self, starknet_wrapper: StarknetWrapper):
         """Sets starknet wrapper and creates new instance of dumper"""
         self.starknet_wrapper = starknet_wrapper
         self.dumper = Dumper(starknet_wrapper)
 
-    async def reset(self, config: DevnetConfig = None):
+    async def reset(self, config: DevnetConfig=None):
         """Reset the starknet wrapper and dumper instances"""
         previous_config = self.starknet_wrapper.config
         self.__set_starknet_wrapper(StarknetWrapper(config=config or previous_config))

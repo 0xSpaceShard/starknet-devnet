@@ -8,15 +8,24 @@ import sys
 from typing import List
 from starkware.crypto.signature.signature import private_to_stark_key
 from .account import Account
+from .devnet_config import devnet_config
 
 class Accounts:
     """Accounts wrapper"""
-    list: List[Account] = []
+    list: List[Account]
 
     def __init__(self, starknet_wrapper):
         self.starknet_wrapper = starknet_wrapper
         self.__initial_balance = None
         self.__seed = None
+        self.list = []
+
+        self.__generate(
+            n_accounts=devnet_config.accounts,
+            initial_balance=devnet_config.initial_balance,
+            seed=devnet_config.seed
+        )
+        self.__print()
 
     def __getitem__(self, index):
         return self.list[index]
@@ -31,7 +40,7 @@ class Accounts:
         self.list.append(account)
         return account
 
-    def generate(self, n_accounts: int, initial_balance: int, seed: int):
+    def __generate(self, n_accounts: int, initial_balance: int, seed: int):
         """Generates accounts without deploying them"""
         random_generator = random.Random()
         self.__initial_balance = initial_balance
@@ -52,7 +61,7 @@ class Accounts:
                 initial_balance=initial_balance
             ))
 
-    def print(self):
+    def __print(self):
         """stdout accounts list"""
         for idx, account in enumerate(self):
             print(f"Account #{idx}")
