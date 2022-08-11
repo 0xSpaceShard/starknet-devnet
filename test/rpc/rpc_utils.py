@@ -9,6 +9,11 @@ from typing import Union
 
 from starknet_devnet.server import app
 
+def restart():
+    """Restart app"""
+    resp = app.test_client().post("/restart")
+    assert resp.status_code == 200
+
 
 def rpc_call(method: str, params: Union[dict, list]) -> dict:
     """

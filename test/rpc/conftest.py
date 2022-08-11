@@ -14,12 +14,22 @@ import pytest
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.gateway.transaction import Transaction, Deploy
 
-from .rpc_utils import gateway_call
+from .rpc_utils import gateway_call, restart
 
 
 DEPLOY_CONTENT = load_file_content("deploy_rpc.json")
 INVOKE_CONTENT = load_file_content("invoke_rpc.json")
 DECLARE_CONTENT = load_file_content("declare.json")
+
+
+@pytest.fixture(autouse=True)
+def before_and_after():
+    """Fixture that runs before and after each test"""
+    #before test
+
+    yield
+    #after test
+    restart()
 
 
 @pytest.fixture(name="contract_class")
@@ -40,7 +50,7 @@ def fixture_class_hash(deploy_info) -> str:
     return class_hash
 
 
-@pytest.fixture(name="deploy_info", scope="module")
+@pytest.fixture(name="deploy_info", scope="function")
 def fixture_deploy_info() -> dict:
     """
     Deploy a contract on devnet and return deployment info dict
@@ -50,7 +60,7 @@ def fixture_deploy_info() -> dict:
     return deploy_info
 
 
-@pytest.fixture(name="invoke_info", scope="module")
+@pytest.fixture(name="invoke_info", scope="function")
 def fixture_invoke_info() -> dict:
     """
     Make an invoke transaction on devnet and return invoke info dict
@@ -62,7 +72,7 @@ def fixture_invoke_info() -> dict:
     return {**invoke_info, **invoke_tx}
 
 
-@pytest.fixture(name="declare_info", scope="module")
+@pytest.fixture(name="declare_info", scope="function")
 def fixture_declare_info() -> dict:
     """
     Make a declare transaction on devnet and return declare info dict
@@ -73,7 +83,7 @@ def fixture_declare_info() -> dict:
     return {**declare_info, **declare_tx}
 
 
-@pytest.fixture(name="invoke_content", scope="module")
+@pytest.fixture(name="invoke_content", scope="function")
 def fixture_invoke_content() -> dict:
     """
     Invoke content JSON object
@@ -81,7 +91,7 @@ def fixture_invoke_content() -> dict:
     return json.loads(INVOKE_CONTENT)
 
 
-@pytest.fixture(name="deploy_content", scope="module")
+@pytest.fixture(name="deploy_content", scope="function")
 def fixture_deploy_content() -> dict:
     """
     Deploy content JSON object
@@ -89,7 +99,7 @@ def fixture_deploy_content() -> dict:
     return json.loads(DEPLOY_CONTENT)
 
 
-@pytest.fixture(name="declare_content", scope="module")
+@pytest.fixture(name="declare_content", scope="function")
 def fixture_declare_content() -> dict:
     """
     Declare content JSON object
