@@ -11,6 +11,8 @@ from flask_cors import CORS
 from gunicorn.app.base import BaseApplication
 from starkware.starkware_utils.error_handling import StarkException
 
+from .starknet_wrapper import StarknetWrapper
+
 from .blueprints.base import base
 from .blueprints.gateway import gateway
 from .blueprints.feeder_gateway import feeder_gateway
@@ -18,11 +20,12 @@ from .blueprints.postman import postman
 from .blueprints.rpc import rpc
 from .util import check_valid_dump_path
 from .state import state
-from .devnet_config import devnet_config, DumpOn
+from .devnet_config import DevnetConfig, DumpOn, parse_args
 
 app = Flask(__name__)
 CORS(app)
 
+# if this is removed, the tests which don't run the main function will fail
 @app.before_first_request
 async def initialize_starknet():
     """Initialize Starknet to assert it's defined before its first use."""
@@ -89,7 +92,6 @@ class Devnet(BaseApplication):
     def load(self):
         return self.application
 
-
 def main():
     """Runs the server."""
 
@@ -97,7 +99,8 @@ def main():
     # origin = Origin(args.fork) if args.fork else NullOrigin()
     # starknet_wrapper.origin = origin
 
-    args = devnet_config.args
+    args = parse_args(sys.argv[1:])
+    state.set_starknet_wrapper(StarknetWrapper(DevnetConfig(args)))
     load_dumped(args)
     set_dump_options(args)
 

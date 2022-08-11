@@ -3,6 +3,7 @@
 import argparse
 from enum import Enum, auto
 import sys
+from typing import List
 
 from . import __version__
 from .constants import (
@@ -53,7 +54,7 @@ class NonNegativeAction(argparse.Action):
 
         setattr(namespace, self.dest, value)
 
-def parse_args():
+def parse_args(raw_args: List[str]):
     """
     Parses CLI arguments.
     """
@@ -142,11 +143,11 @@ def parse_args():
     #          "or network name (alpha or alpha-mainnet)",
     # )
 
-    args = parser.parse_args()
-    if args.dump_on and not args.dump_path:
+    parsed_args = parser.parse_args(raw_args)
+    if parsed_args.dump_on and not parsed_args.dump_path:
         sys.exit("Error: --dump-path required if --dump-on present")
 
-    return args
+    return parsed_args
 
 # pylint: disable=too-few-public-methods
 # pylint: disable=too-many-instance-attributes
@@ -154,18 +155,16 @@ class DevnetConfig:
     """Class holding configuration specified by user"""
 
     def __init__(self, args: argparse.Namespace=None):
-        self.args = args
-        self.accounts = args.accounts
-        self.initial_balance = args.initial_balance
-        self.seed = args.seed
-        self.start_time = args.start_time
-        self.gas_price = args.gas_price
+        self.args = args or parse_args(["--accounts", "0"])
+        self.accounts = self.args.accounts
+        self.initial_balance = self.args.initial_balance
+        self.seed = self.args.seed
+        self.start_time = self.args.start_time
+        self.gas_price = self.args.gas_price
 
-        if args.lite_mode:
+        if self.args.lite_mode:
             self.lite_mode_block_hash = True
             self.lite_mode_deploy_hash = True
         else:
-            self.lite_mode_block_hash = args.lite_mode_block_hash
-            self.lite_mode_deploy_hash = args.lite_mode_deploy_hash
-
-devnet_config = DevnetConfig(parse_args())
+            self.lite_mode_block_hash = self.args.lite_mode_block_hash
+            self.lite_mode_deploy_hash = self.args.lite_mode_deploy_hash

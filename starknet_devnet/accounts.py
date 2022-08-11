@@ -8,7 +8,6 @@ import sys
 from typing import List
 from starkware.crypto.signature.signature import private_to_stark_key
 from .account import Account
-from .devnet_config import devnet_config
 
 class Accounts:
     """Accounts wrapper"""
@@ -21,11 +20,12 @@ class Accounts:
         self.list = []
 
         self.__generate(
-            n_accounts=devnet_config.accounts,
-            initial_balance=devnet_config.initial_balance,
-            seed=devnet_config.seed
+            n_accounts=starknet_wrapper.config.accounts,
+            initial_balance=starknet_wrapper.config.initial_balance,
+            seed=starknet_wrapper.config.seed
         )
-        self.__print()
+        if starknet_wrapper.config.accounts:
+            self.__print()
 
     def __getitem__(self, index):
         return self.list[index]
