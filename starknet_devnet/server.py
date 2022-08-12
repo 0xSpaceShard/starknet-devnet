@@ -2,7 +2,6 @@
 A server exposing Starknet functionalities as API endpoints.
 """
 
-from pickle import UnpicklingError
 import sys
 import asyncio
 
@@ -11,6 +10,8 @@ from flask_cors import CORS
 from gunicorn.app.base import BaseApplication
 from starkware.starkware_utils.error_handling import StarkException
 
+from .util import StarknetDevnetException
+
 from .starknet_wrapper import StarknetWrapper
 
 from .blueprints.base import base
@@ -18,7 +19,6 @@ from .blueprints.gateway import gateway
 from .blueprints.feeder_gateway import feeder_gateway
 from .blueprints.postman import postman
 from .blueprints.rpc import rpc
-from .util import check_valid_dump_path
 from .state import state
 from .devnet_config import DevnetConfig, DumpOn, parse_args
 
@@ -37,28 +37,9 @@ app.register_blueprint(feeder_gateway)
 app.register_blueprint(postman)
 app.register_blueprint(rpc)
 
-def set_dump_options(args):
-    """Assign dumping options from args to state."""
-    if args.dump_path:
-        try:
-            check_valid_dump_path(args.dump_path)
-        except ValueError as error:
-            sys.exit(str(error))
-
-    state.dumper.dump_path = args.dump_path
-    state.dumper.dump_on = args.dump_on
-
-def load_dumped(args):
-    """Load a previously dumped state if specified."""
-    if args.load_path:
-        try:
-            state.load(args.load_path)
-        except (FileNotFoundError, UnpicklingError):
-            sys.exit(f"Error: Cannot load from {args.load_path}. Make sure the file exists and contains a Devnet dump.")
-
 # We don't need init method here.
 # pylint: disable=W0223
-class Devnet(BaseApplication):
+class GunicornServer(BaseApplication):
     """Our Gunicorn application."""
 
     def __init__(self, application, args):
@@ -100,15 +81,21 @@ def main():
     # starknet_wrapper.origin = origin
 
     args = parse_args(sys.argv[1:])
-    state.set_starknet_wrapper(StarknetWrapper(DevnetConfig(args)))
-    load_dumped(args)
-    set_dump_options(args)
+    try:
+        if args.load_path:
+            state.load(args.load_path)
+        else:
+            state.set_starknet_wrapper(StarknetWrapper(DevnetConfig(args)))
+
+        state.set_dump_options(args.dump_path, args.dump_on)
+    except StarknetDevnetException as error:
+        sys.exit(error.message)
 
     asyncio.run(state.starknet_wrapper.initialize())
 
     try:
         print(f" * Listening on http://{args.host}:{args.port}/ (Press CTRL+C to quit)")
-        Devnet(app, args).run()
+        GunicornServer(app, args).run()
     except KeyboardInterrupt:
         pass
     finally:
