@@ -47,10 +47,14 @@ class NonNegativeAction(argparse.Action):
     Action for parsing the non negative int argument.
     """
     def __call__(self, parser, namespace, values, option_string=None):
-        value = int(values)
+        error_msg = f"{option_string} must be a positive integer; got: {values}."
+        try:
+            value = int(values)
+        except ValueError:
+            parser.error(error_msg)
 
         if value < 0:
-            parser.error(f"{option_string} must be a positive integer.")
+            parser.error(error_msg)
 
         setattr(namespace, self.dest, value)
 
@@ -107,13 +111,13 @@ def parse_args(raw_args: List[str]):
     )
     parser.add_argument(
         "--accounts",
-        type=int,
+        action=NonNegativeAction,
         help=f"Specify the number of accounts to be predeployed; defaults to {DEFAULT_ACCOUNTS}",
         default=DEFAULT_ACCOUNTS
     )
     parser.add_argument(
         "--initial-balance", "-e",
-        type=int,
+        action=NonNegativeAction,
         help="Specify the initial balance of accounts to be predeployed; " +
              f"defaults to {DEFAULT_INITIAL_BALANCE:g}",
         default=DEFAULT_INITIAL_BALANCE
@@ -155,6 +159,7 @@ class DevnetConfig:
     """Class holding configuration specified by user"""
 
     def __init__(self, args: argparse.Namespace=None):
+        # these args are used in tests; in production, this is overwritten in `main`
         self.args = args or parse_args(["--accounts", "0"])
         self.accounts = self.args.accounts
         self.initial_balance = self.args.initial_balance
