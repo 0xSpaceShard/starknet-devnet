@@ -50,7 +50,7 @@ def fixture_class_hash(deploy_info) -> str:
     return class_hash
 
 
-@pytest.fixture(name="deploy_info", scope="function")
+@pytest.fixture(name="deploy_info")
 def fixture_deploy_info() -> dict:
     """
     Deploy a contract on devnet and return deployment info dict
@@ -60,7 +60,7 @@ def fixture_deploy_info() -> dict:
     return deploy_info
 
 
-@pytest.fixture(name="invoke_info", scope="function")
+@pytest.fixture(name="invoke_info")
 def fixture_invoke_info() -> dict:
     """
     Make an invoke transaction on devnet and return invoke info dict
@@ -72,7 +72,7 @@ def fixture_invoke_info() -> dict:
     return {**invoke_info, **invoke_tx}
 
 
-@pytest.fixture(name="declare_info", scope="function")
+@pytest.fixture(name="declare_info")
 def fixture_declare_info() -> dict:
     """
     Make a declare transaction on devnet and return declare info dict
@@ -83,7 +83,7 @@ def fixture_declare_info() -> dict:
     return {**declare_info, **declare_tx}
 
 
-@pytest.fixture(name="invoke_content", scope="function")
+@pytest.fixture(name="invoke_content")
 def fixture_invoke_content() -> dict:
     """
     Invoke content JSON object
@@ -91,7 +91,7 @@ def fixture_invoke_content() -> dict:
     return json.loads(INVOKE_CONTENT)
 
 
-@pytest.fixture(name="deploy_content", scope="function")
+@pytest.fixture(name="deploy_content")
 def fixture_deploy_content() -> dict:
     """
     Deploy content JSON object
@@ -99,7 +99,7 @@ def fixture_deploy_content() -> dict:
     return json.loads(DEPLOY_CONTENT)
 
 
-@pytest.fixture(name="declare_content", scope="function")
+@pytest.fixture(name="declare_content")
 def fixture_declare_content() -> dict:
     """
     Declare content JSON object
