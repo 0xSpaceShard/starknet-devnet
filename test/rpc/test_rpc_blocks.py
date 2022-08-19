@@ -1,11 +1,11 @@
 """
 Tests RPC blocks
 """
-
 from test.shared import GENESIS_BLOCK_NUMBER, INCORRECT_GENESIS_BLOCK_HASH
 
 import pytest
 from starknet_devnet.blueprints.rpc.structures.types import BlockNumberDict, BlockHashDict, rpc_txn_type
+from starknet_devnet.blueprints.rpc.utils import rpc_root
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 
 from .rpc_utils import rpc_call, pad_zero, gateway_call
@@ -19,7 +19,7 @@ def test_get_block_with_tx_hashes(deploy_info, gateway_block, block_id):
     """
     block_hash: str = gateway_block["block_hash"]
     block_number: int = gateway_block["block_number"]
-    new_root: str = gateway_block["state_root"]
+    new_root: str = rpc_root(gateway_block["state_root"])
 
     resp = rpc_call(
         "starknet_getBlockWithTxHashes", params={"block_id": block_id}
@@ -32,7 +32,7 @@ def test_get_block_with_tx_hashes(deploy_info, gateway_block, block_id):
         "parent_hash": pad_zero(gateway_block["parent_block_hash"]),
         "block_number": block_number,
         "status": "ACCEPTED_ON_L2",
-        "sequencer_address": hex(DEFAULT_GENERAL_CONFIG.sequencer_address),
+        "sequencer_address": pad_zero(hex(DEFAULT_GENERAL_CONFIG.sequencer_address)),
         "new_root": pad_zero(new_root),
         "timestamp": gateway_block["timestamp"],
         "transactions": [transaction_hash],
@@ -64,7 +64,7 @@ def test_get_block_with_txs(gateway_block, block_id):
     """
     block_hash: str = gateway_block["block_hash"]
     block_number: int = gateway_block["block_number"]
-    new_root: str = gateway_block["state_root"]
+    new_root: str = rpc_root(gateway_block["state_root"])
     block_tx = gateway_block["transactions"][0]
 
     resp = rpc_call(
@@ -77,7 +77,7 @@ def test_get_block_with_txs(gateway_block, block_id):
         "parent_hash": pad_zero(gateway_block["parent_block_hash"]),
         "block_number": block_number,
         "status": "ACCEPTED_ON_L2",
-        "sequencer_address": hex(DEFAULT_GENERAL_CONFIG.sequencer_address),
+        "sequencer_address": pad_zero(hex(DEFAULT_GENERAL_CONFIG.sequencer_address)),
         "new_root": pad_zero(new_root),
         "timestamp": gateway_block["timestamp"],
         "transactions": [

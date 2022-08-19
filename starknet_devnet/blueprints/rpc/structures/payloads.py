@@ -74,7 +74,7 @@ async def rpc_block(block: StarknetBlock, tx_type: Optional[str] = "TXN_HASH") -
         "block_number": block.block_number if block.block_number is not None else 0,
         "new_root": new_root(),
         "timestamp": block.timestamp,
-        "sequencer_address": hex(config().sequencer_address),
+        "sequencer_address": rpc_felt(config().sequencer_address),
         "transactions": transactions,
     }
     return block
