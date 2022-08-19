@@ -11,12 +11,21 @@ from .account import Account
 
 class Accounts:
     """Accounts wrapper"""
-    list: List[Account] = []
+    list: List[Account]
 
     def __init__(self, starknet_wrapper):
         self.starknet_wrapper = starknet_wrapper
         self.__initial_balance = None
         self.__seed = None
+        self.list = []
+
+        self.__generate(
+            n_accounts=starknet_wrapper.config.accounts,
+            initial_balance=starknet_wrapper.config.initial_balance,
+            seed=starknet_wrapper.config.seed
+        )
+        if starknet_wrapper.config.accounts:
+            self.__print()
 
     def __getitem__(self, index):
         return self.list[index]
@@ -31,7 +40,7 @@ class Accounts:
         self.list.append(account)
         return account
 
-    def generate(self, n_accounts: int, initial_balance: int, seed: int):
+    def __generate(self, n_accounts: int, initial_balance: int, seed: int):
         """Generates accounts without deploying them"""
         random_generator = random.Random()
         self.__initial_balance = initial_balance
@@ -52,7 +61,7 @@ class Accounts:
                 initial_balance=initial_balance
             ))
 
-    def print(self):
+    def __print(self):
         """stdout accounts list"""
         for idx, account in enumerate(self):
             print(f"Account #{idx}")

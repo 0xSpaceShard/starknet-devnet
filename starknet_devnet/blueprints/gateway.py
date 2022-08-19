@@ -5,7 +5,8 @@ from flask import Blueprint, request, jsonify
 from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starkware_utils.error_handling import StarkErrorCode
 
-from starknet_devnet.util import DumpOn, StarknetDevnetException,fixed_length_hex
+from starknet_devnet.devnet_config import DumpOn
+from starknet_devnet.util import StarknetDevnetException,fixed_length_hex
 from starknet_devnet.state import state
 from .shared import validate_transaction
 

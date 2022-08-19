@@ -2,30 +2,47 @@
 Global state singletone
 """
 
+from pickle import UnpicklingError
+from .devnet_config import DevnetConfig
 from .dump import Dumper
-from .starknet_wrapper import StarknetWrapper, DevnetConfig
+from .starknet_wrapper import StarknetWrapper
+from .util import StarknetDevnetException, check_valid_dump_path
 
 class State():
     """
     Stores starknet wrapper and dumper
     """
     def __init__(self):
-        self.starknet_wrapper = StarknetWrapper(config=DevnetConfig())
-        self.dumper = Dumper(self.starknet_wrapper)
+        self.set_starknet_wrapper(StarknetWrapper(DevnetConfig()))
 
-    def __set_starknet_wrapper(self, starknet_wrapper: StarknetWrapper):
+    def set_starknet_wrapper(self, starknet_wrapper: StarknetWrapper):
         """Sets starknet wrapper and creates new instance of dumper"""
         self.starknet_wrapper = starknet_wrapper
         self.dumper = Dumper(starknet_wrapper)
 
-    async def reset(self, config: DevnetConfig = None):
+    async def reset(self):
         """Reset the starknet wrapper and dumper instances"""
         previous_config = self.starknet_wrapper.config
-        self.__set_starknet_wrapper(StarknetWrapper(config=config or previous_config))
+        self.set_starknet_wrapper(StarknetWrapper(previous_config))
         await self.starknet_wrapper.initialize()
 
     def load(self, load_path: str):
-        """Loads starknet wrapper from path"""
-        self.__set_starknet_wrapper(StarknetWrapper.load(load_path))
+        """Load a previously dumped state if specified."""
+        try:
+            self.set_starknet_wrapper(StarknetWrapper.load(load_path))
+        except (FileNotFoundError, UnpicklingError) as error:
+            message = f"Error: Cannot load from {load_path}. Make sure the file exists and contains a Devnet dump."
+            raise StarknetDevnetException(message=message, status_code=400) from error
+
+    def set_dump_options(self, dump_path: str, dump_on: str):
+        """Assign dumping options from args to state."""
+        if dump_path:
+            try:
+                check_valid_dump_path(dump_path)
+            except ValueError as error:
+                raise StarknetDevnetException(message=str(error)) from error
+
+        self.dumper.dump_path = dump_path
+        self.dumper.dump_on = dump_on
 
 state = State()

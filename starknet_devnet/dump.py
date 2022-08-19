@@ -4,7 +4,7 @@ import multiprocessing
 
 import cloudpickle as pickle
 
-from .util import DumpOn
+from .devnet_config import DumpOn
 
 # Instead of "fork", the default on MacOS since Python3.8 has been "spawn", which causes pickling to fail
 multiprocessing.set_start_method("fork")
@@ -32,10 +32,6 @@ class Dumper:
         """Dump to `path`."""
         path = path or self.dump_path
         assert path, "No dump_path defined"
-        print("Dumping Devnet to:", path)
 
-        multiprocessing.Process(
-            target=self.__write_file,
-            args=[path]
-        ).start()
-        # don't .join(), let it run in background
+        print("Dumping Devnet to:", path)
+        self.__write_file(path)

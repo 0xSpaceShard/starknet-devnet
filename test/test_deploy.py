@@ -10,7 +10,8 @@ from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.gateway.transaction import Deploy
 from starkware.starknet.services.api.feeder_gateway.response_objects import TransactionStatus
 
-from starknet_devnet.starknet_wrapper import StarknetWrapper, DevnetConfig
+from starknet_devnet.devnet_config import parse_args, DevnetConfig
+from starknet_devnet.starknet_wrapper import StarknetWrapper
 from .shared import CONTRACT_PATH, GENESIS_BLOCK_NUMBER
 
 def get_contract_class():
@@ -34,7 +35,7 @@ async def test_deploy():
     """
     Test the deployment of a contract.
     """
-    devnet = StarknetWrapper(config=DevnetConfig())
+    devnet = StarknetWrapper(config=DevnetConfig(parse_args([])))
     await devnet.initialize()
     deploy_transaction = get_deploy_transaction(inputs=[0])
 
@@ -63,7 +64,7 @@ async def test_deploy_lite():
     """
     Test the deployment of a contract with lite mode.
     """
-    devnet = StarknetWrapper(config=DevnetConfig(lite_mode_block_hash=True, lite_mode_deploy_hash=True))
+    devnet = StarknetWrapper(config=DevnetConfig(parse_args(["--lite-mode"])))
     await devnet.initialize()
     deploy_transaction = get_deploy_transaction(inputs=[0])
 

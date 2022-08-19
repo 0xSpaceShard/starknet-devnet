@@ -6,7 +6,7 @@ import pytest
 import requests
 
 from .settings import APP_URL
-from .util import devnet_in_background, deploy, assert_transaction_not_received, assert_tx_status, call, invoke
+from .util import devnet_in_background, deploy, assert_transaction_not_received, assert_tx_status, call, get_block, invoke
 from .shared import CONTRACT_PATH, ABI_PATH, GENESIS_BLOCK_HASH
 
 def restart():
@@ -20,13 +20,21 @@ def get_state_update():
 
 
 def deploy_contract(salt=None):
-    """Deploy empyt contract with balance of 0"""
+    """Deploy empty contract with balance of 0"""
     return deploy(CONTRACT_PATH, inputs=["0"], salt=salt)
 
 @pytest.mark.restart
 @devnet_in_background()
 def test_restart_on_initial_state():
-    """Checks restart endpoint when there were no changes"""
+    """Performs restart on intact devnet"""
+    res = restart()
+    assert res.status_code == 200
+
+
+@pytest.mark.restart
+@devnet_in_background("--lite-mode")
+def test_restart_on_initial_state_lite():
+    """Performs restart on intact devnet in lite mode"""
     res = restart()
     assert res.status_code == 200
 
@@ -79,3 +87,20 @@ def test_state_update():
     state_update = get_state_update()
 
     assert state_update["block_hash"] == GENESIS_BLOCK_HASH
+
+GAS_PRICE = str(int(1e9))
+@devnet_in_background("--gas-price", GAS_PRICE)
+def test_gas_price_unaffected_by_restart():
+    """Checks that gas price is not affected by restart"""
+    deploy_contract()
+    block_before = get_block(parse=True)
+    gas_price_before = str(int(block_before["gas_price"], 16))
+    assert gas_price_before == GAS_PRICE
+
+    restart()
+
+    deploy_contract()
+    block_after = get_block(parse=True)
+    assert block_after["block_hash"] != block_before["block_hash"]
+    gas_price_after = str(int(block_after["gas_price"], 16))
+    assert gas_price_after == GAS_PRICE
