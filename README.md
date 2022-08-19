@@ -193,6 +193,11 @@ Response:
 }
 ```
 
+Currently not supported methods are:
+- `starknet_protocolVersion` - will be removed in a future version of the specification
+- `starknet_getEvents`
+- `starknet_getNonce`
+
 ## Hardhat integration
 
 If you're using [the Hardhat plugin](https://github.com/Shard-Labs/starknet-hardhat-plugin), see [here](https://github.com/Shard-Labs/starknet-hardhat-plugin#runtime-network) on how to edit its config file to integrate Devnet.

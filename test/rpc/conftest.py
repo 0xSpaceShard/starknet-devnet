@@ -14,7 +14,7 @@ from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.gateway.transaction import Transaction, Deploy
 
 import pytest
-from starknet_devnet.blueprints.rpc.structures.types import BlockNumberDict, BlockHashDict
+from starknet_devnet.blueprints.rpc.structures.types import BlockNumberDict, BlockHashDict, Felt
 from .rpc_utils import gateway_call, get_block_with_transaction, pad_zero, add_transaction
 
 DEPLOY_CONTENT = load_file_content("deploy_rpc.json")
@@ -32,7 +32,7 @@ def fixture_contract_class() -> ContractClass:
 
 
 @pytest.fixture(name="class_hash")
-def fixture_class_hash(deploy_info) -> str:
+def fixture_class_hash(deploy_info) -> Felt:
     """
     Class hash of deployed contract
     """
@@ -131,7 +131,7 @@ def fixture_rpc_invoke_tx_common() -> dict:
 
 
 @pytest.fixture(name="run_devnet_in_background")
-def fixture_run_devnet_in_background(request) -> dict:
+def fixture_run_devnet_in_background(request) -> None:
     """
     Run devnet instance in background
     """

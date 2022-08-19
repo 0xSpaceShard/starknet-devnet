@@ -39,11 +39,10 @@ def test_get_block_with_tx_hashes(deploy_info, gateway_block, block_id):
     }
 
 
-# pylint: disable=unused-argument
-@pytest.mark.usefixtures("run_devnet_in_background")
+@pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
 @pytest.mark.parametrize("block_id", [BlockNumberDict(block_number=1234),
                                       BlockHashDict(block_hash=pad_zero(INCORRECT_GENESIS_BLOCK_HASH))])
-def test_get_block_with_tx_hashes_raises_on_incorrect_block_id(deploy_info, block_id):
+def test_get_block_with_tx_hashes_raises_on_incorrect_block_id(block_id):
     """
     Get block with tx hashes by incorrect block_id
     """
@@ -57,9 +56,9 @@ def test_get_block_with_tx_hashes_raises_on_incorrect_block_id(deploy_info, bloc
     }
 
 
-@pytest.mark.usefixtures("run_devnet_in_background")
+@pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
 @pytest.mark.parametrize("block_id", ["hash", "number", "tag"], indirect=True)
-def test_get_block_with_txs(deploy_info, gateway_block, block_id):
+def test_get_block_with_txs(gateway_block, block_id):
     """
     Get block with txs by block id
     """
@@ -95,11 +94,10 @@ def test_get_block_with_txs(deploy_info, gateway_block, block_id):
     }
 
 
-# pylint: disable=unused-argument
-@pytest.mark.usefixtures("run_devnet_in_background")
+@pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
 @pytest.mark.parametrize("block_id", [BlockNumberDict(block_number=1234),
                                       BlockHashDict(block_hash=pad_zero(INCORRECT_GENESIS_BLOCK_HASH))])
-def test_get_block_with_txs_raises_on_incorrect_block_id(deploy_info, block_id):
+def test_get_block_with_txs_raises_on_incorrect_block_id(block_id):
     """
     Get block with txs by incorrect block_id
     """
@@ -113,14 +111,14 @@ def test_get_block_with_txs_raises_on_incorrect_block_id(deploy_info, block_id):
     }
 
 
-@pytest.mark.usefixtures("run_devnet_in_background")
+@pytest.mark.usefixtures("run_devnet_in_background", "deploy_info", "gateway_block")
 @pytest.mark.parametrize("block_id", ["hash", "number", "tag"], indirect=True)
-def test_get_block_transaction_count(deploy_info, gateway_block, block_id):
+def test_get_block_transaction_count(block_id):
     """
     Get count of transactions in block by block id
     """
-    if isinstance(block_id, int):
-        block_id = GENESIS_BLOCK_NUMBER + 1
+    if "block_number" in block_id:
+        block_id["block_number"] = GENESIS_BLOCK_NUMBER + 1
 
     resp = rpc_call(
         "starknet_getBlockTransactionCount", params={"block_id": block_id}
@@ -130,11 +128,10 @@ def test_get_block_transaction_count(deploy_info, gateway_block, block_id):
     assert count == 1
 
 
-# pylint: disable=unused-argument
-@pytest.mark.usefixtures("run_devnet_in_background")
+@pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
 @pytest.mark.parametrize("block_id", [BlockNumberDict(block_number=99999),
                                       BlockHashDict(block_hash=pad_zero(INCORRECT_GENESIS_BLOCK_HASH))])
-def test_get_block_transaction_count_raises_on_incorrect_block_id(deploy_info, block_id):
+def test_get_block_transaction_count_raises_on_incorrect_block_id(block_id):
     """
     Get count of transactions in block by incorrect block id
     """
@@ -148,8 +145,8 @@ def test_get_block_transaction_count_raises_on_incorrect_block_id(deploy_info, b
     }
 
 
-@pytest.mark.usefixtures("run_devnet_in_background")
-def test_get_block_number(deploy_info):
+@pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
+def test_get_block_number():
     """
     Get the number of the latest accepted block
     """

@@ -7,6 +7,8 @@ from __future__ import annotations
 from typing import Union
 
 import requests
+
+from starknet_devnet.blueprints.rpc.structures.types import Felt
 from ..settings import APP_URL
 
 
@@ -16,7 +18,7 @@ class BackgroundDevnetClient:
     @staticmethod
     def get(endpoint: str) -> requests.Response:
         """ Submit get request at given endpoint """
-        return requests.get(f"{APP_URL}{endpoint}", headers={"content-type": "application/json"})
+        return requests.get(f"{APP_URL}{endpoint}")
 
     @staticmethod
     def post(endpoint: str, body: dict) -> requests.Response:
@@ -80,7 +82,7 @@ def get_block_with_transaction(transaction_hash: str) -> dict:
     return block
 
 
-def pad_zero(felt: str) -> str:
+def pad_zero(felt: str) -> Felt:
     """
     Convert felt with format `0xValue` to format `0x0Value`
     """

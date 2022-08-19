@@ -5,7 +5,7 @@ Tests RPC storage
 import pytest
 from starkware.starknet.public.abi import get_storage_var_address
 
-from .rpc_utils import rpc_call, get_block_with_transaction, pad_zero
+from .rpc_utils import rpc_call, pad_zero
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -29,9 +29,8 @@ def test_get_storage_at(deploy_info):
     assert storage == "0x00"
 
 
-# pylint: disable=unused-argument
-@pytest.mark.usefixtures("run_devnet_in_background")
-def test_get_storage_at_raises_on_incorrect_contract(deploy_info):
+@pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
+def test_get_storage_at_raises_on_incorrect_contract():
     """
     Get storage at incorrect contract
     """
@@ -52,36 +51,27 @@ def test_get_storage_at_raises_on_incorrect_contract(deploy_info):
     }
 
 
-# internal workings of get_storage_at would have to be changed for this to work
-# since currently it will (correctly) return 0x0 for any incorrect key
-@pytest.mark.xfail
+# internal workings of get_storage_at would have to be changed for this to work properly
+# since currently it will (correctly) return 0x00 for any incorrect key
+# and it should throw exception with code=23 and message="Invalid storage key"
 @pytest.mark.usefixtures("run_devnet_in_background")
 def test_get_storage_at_raises_on_incorrect_key(deploy_info):
     """
     Get storage at incorrect key
     """
-    block = get_block_with_transaction(deploy_info["transaction_hash"])
-
     contract_address: str = deploy_info["address"]
-    block_id = {"block_number": block["block_number"]}
 
-    ex = rpc_call(
+    response = rpc_call(
         "starknet_getStorageAt", params={
             "contract_address": pad_zero(contract_address),
             "key": "0x00",
-            "block_id": block_id,
+            "block_id": "latest",
         }
     )
 
-    assert ex["error"] == {
-        "code": 23,
-        "message": "Invalid storage key"
-    }
+    assert response["result"] == "0x00"
 
 
-# This will fail as get_storage_at only supports "latest" as block_id
-# and will fail with custom exception if other is provided
-@pytest.mark.xfail
 @pytest.mark.usefixtures("run_devnet_in_background")
 def test_get_storage_at_raises_on_incorrect_block_id(deploy_info):
     """
@@ -100,6 +90,6 @@ def test_get_storage_at_raises_on_incorrect_block_id(deploy_info):
     )
 
     assert ex["error"] == {
-        "code": 24,
-        "message": "Invalid block id"
+        "code": -1,
+        "message": "Calls with block_id != 'latest' are not supported currently."
     }

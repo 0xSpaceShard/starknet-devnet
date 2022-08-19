@@ -24,6 +24,7 @@ from starkware.starknet.testing.contract import StarknetContract
 from starkware.starknet.testing.objects import FunctionInvocation
 
 from .accounts import Accounts
+from .blueprints.rpc.structures.types import Felt
 from .fee_token import FeeToken
 from .general_config import DEFAULT_GENERAL_CONFIG
 from .origin import NullOrigin, Origin
@@ -364,7 +365,7 @@ class StarknetWrapper:
                 self.store_contract(internal_call.contract_address, contract, contract_class, tx_hash)
             await self.__register_new_contracts(internal_call.internal_calls, tx_hash)
 
-    async def get_storage_at(self, contract_address: int, key: int) -> str:
+    async def get_storage_at(self, contract_address: int, key: int) -> Felt:
         """
         Returns the storage identified by `key`
         from the contract at `contract_address`.

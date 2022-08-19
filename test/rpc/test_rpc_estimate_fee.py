@@ -28,9 +28,9 @@ def common_estimate_response(response):
     assert overall_fee == gas_consumed * gas_price
 
 
-# pylint: disable=unused-argument
+@pytest.mark.usefixtures("run_devnet_in_background")
 @pytest.mark.parametrize("run_devnet_in_background", [["--gas-price", str(DEFAULT_GAS_PRICE)]], indirect=True)
-def test_estimate_happy_path(run_devnet_in_background):
+def test_estimate_happy_path():
     """Happy path estimate_fee call"""
     deploy_info = deploy(CONTRACT_PATH, ["0"])
 
@@ -46,11 +46,9 @@ def test_estimate_happy_path(run_devnet_in_background):
         "nonce": "0x00",
         "type": "INVOKE",
     }
-    res = rpc_call_background_devnet(
+    rpc_call_background_devnet(
         "starknet_estimateFee", {"request": txn, "block_id": "latest"}
     )
-
-    print("RESULT", res)
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -130,9 +128,9 @@ def test_estimate_fee_with_invalid_message_selector(rpc_invoke_tx_common):
     }
 
 
-# pylint: disable=unused-argument
+@pytest.mark.usefixtures("run_devnet_in_background")
 @pytest.mark.parametrize("run_devnet_in_background", [["--gas-price", str(DEFAULT_GAS_PRICE)]], indirect=True)
-def test_estimate_fee_with_complete_request_data(run_devnet_in_background, rpc_invoke_tx_common):
+def test_estimate_fee_with_complete_request_data(rpc_invoke_tx_common):
     """Estimate fee with complete request data"""
 
     deploy_info = deploy(CONTRACT_PATH, ["0"])

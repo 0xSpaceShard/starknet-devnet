@@ -2,7 +2,7 @@
 RPC utilities
 """
 
-from starknet_devnet.blueprints.rpc.structures.types import BlockId, RpcError
+from starknet_devnet.blueprints.rpc.structures.types import BlockId, RpcError, Felt
 from starknet_devnet.util import StarknetDevnetException
 from starknet_devnet.state import state
 
@@ -46,7 +46,7 @@ def assert_block_id_is_latest(block_id: BlockId) -> None:
         raise RpcError(code=-1, message="Calls with block_id != 'latest' are not supported currently.")
 
 
-def rpc_felt(value: int) -> str:
+def rpc_felt(value: int) -> Felt:
     """
     Convert integer to 0x0 prefixed felt
     """
@@ -55,7 +55,7 @@ def rpc_felt(value: int) -> str:
     return "0x0" + hex(value).lstrip("0x")
 
 
-def pad_zero(felt: str) -> str:
+def pad_zero(felt: str) -> Felt:
     """
     Convert felt with format `0xValue` to format `0x0Value`
     """
@@ -64,7 +64,7 @@ def pad_zero(felt: str) -> str:
     return "0x0" + felt.lstrip("0x")
 
 
-def rpc_root(root: str) -> str:
+def rpc_root(root: str) -> Felt:
     """
     Convert 0 prefixed root to 0x prefixed root
     """

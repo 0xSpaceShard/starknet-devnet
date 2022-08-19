@@ -52,7 +52,7 @@ async def rpc_block(block: StarknetBlock, tx_type: Optional[str] = "TXN_HASH") -
     async def transaction_hashes() -> List[str]:
         return [tx["transaction_hash"] for tx in await transactions()]
 
-    def new_root() -> str:
+    def new_root() -> Felt:
         # pylint: disable=no-member
         return rpc_root(block.state_root.hex())
 

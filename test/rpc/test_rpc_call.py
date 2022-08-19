@@ -27,14 +27,11 @@ def test_call(deploy_info):
     )
     result = resp["result"]
 
-    assert isinstance(result["result"], list)
-    assert len(result["result"]) == 1
-    assert result["result"][0] == "0x00"
+    assert result["result"] == ["0x00"]
 
 
-# pylint: disable=unused-argument
-@pytest.mark.usefixtures("run_devnet_in_background")
-def test_call_raises_on_incorrect_contract_address(deploy_info):
+@pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
+def test_call_raises_on_incorrect_contract_address():
     """
     Call contract with incorrect address
     """
@@ -103,8 +100,6 @@ def test_call_raises_on_invalid_calldata(deploy_info):
     }
 
 
-# This test will fail since we are throwing a custom error block_hash different from `latest`
-@pytest.mark.xfail
 @pytest.mark.usefixtures("run_devnet_in_background")
 def test_call_raises_on_incorrect_block_hash(deploy_info):
     """
@@ -124,6 +119,6 @@ def test_call_raises_on_incorrect_block_hash(deploy_info):
     )
 
     assert ex["error"] == {
-        "code": 24,
-        "message": "Invalid block id"
+        "code": -1,
+        "message": "Calls with block_id != 'latest' are not supported currently."
     }

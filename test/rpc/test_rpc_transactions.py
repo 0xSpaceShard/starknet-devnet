@@ -19,6 +19,19 @@ from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from .rpc_utils import rpc_call, get_block_with_transaction, pad_zero
 
 
+def pad_zero_external_entry_points(contract_class: dict) -> dict:
+    """
+    Pad zero every entry point of type EXTERNAL in contract_class
+    """
+    external_entry_points = contract_class["entry_points_by_type"]["EXTERNAL"]
+    for i, _ in enumerate(external_entry_points):
+        external_entry_points[i]["selector"] = pad_zero(external_entry_points[i]["selector"])
+
+    contract_class["entry_points_by_type"]["EXTERNAL"] = external_entry_points
+
+    return contract_class
+
+
 @pytest.mark.usefixtures("run_devnet_in_background")
 def test_get_transaction_by_hash_deploy(deploy_info):
     """
@@ -45,9 +58,8 @@ def test_get_transaction_by_hash_deploy(deploy_info):
     }
 
 
-# pylint: disable=unused-argument
-@pytest.mark.usefixtures("run_devnet_in_background")
-def test_get_transaction_by_hash_invoke(deploy_info, invoke_info):
+@pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
+def test_get_transaction_by_hash_invoke(invoke_info):
     """
     Get transaction by hash
     """
@@ -107,9 +119,8 @@ def test_get_transaction_by_hash_declare(declare_info):
     }
 
 
-# pylint: disable=unused-argument
-@pytest.mark.usefixtures("run_devnet_in_background")
-def test_get_transaction_by_hash_raises_on_incorrect_hash(deploy_info):
+@pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
+def test_get_transaction_by_hash_raises_on_incorrect_hash():
     """
     Get transaction by incorrect hash
     """
@@ -247,8 +258,8 @@ def test_get_invoke_transaction_receipt(invoke_info):
     assert receipt["messages_sent"] == []
 
 
-@pytest.mark.usefixtures("run_devnet_in_background")
-def test_get_transaction_receipt_on_incorrect_hash(deploy_info):
+@pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
+def test_get_transaction_receipt_on_incorrect_hash():
     """
     Get transaction receipt by incorrect hash
     """
@@ -319,12 +330,7 @@ def test_add_declare_transaction_on_incorrect_contract(declare_content):
     Add declare transaction on incorrect class
     """
     contract_class = declare_content["contract_class"]
-
-    external_entry_points = contract_class["entry_points_by_type"]["EXTERNAL"]
-    for i, _ in enumerate(external_entry_points):
-        external_entry_points[i]["selector"] = pad_zero(external_entry_points[i]["selector"])
-
-    contract_class["entry_points_by_type"]["EXTERNAL"] = external_entry_points
+    pad_zero_external_entry_points(contract_class=contract_class)
 
     rpc_contract = RpcContractClass(
         program="",
@@ -351,12 +357,7 @@ def test_add_declare_transaction(declare_content):
     Add declare transaction
     """
     contract_class = declare_content["contract_class"]
-
-    external_entry_points = contract_class["entry_points_by_type"]["EXTERNAL"]
-    for i, _ in enumerate(external_entry_points):
-        external_entry_points[i]["selector"] = pad_zero(external_entry_points[i]["selector"])
-
-    contract_class["entry_points_by_type"]["EXTERNAL"] = external_entry_points
+    pad_zero_external_entry_points(contract_class=contract_class)
 
     rpc_contract = RpcContractClass(
         program=contract_class["program"],
@@ -385,12 +386,7 @@ def test_add_deploy_transaction_on_incorrect_contract(deploy_content):
     contract_definition = deploy_content["contract_definition"]
     salt = deploy_content["contract_address_salt"]
     calldata = [rpc_felt(data) for data in deploy_content["constructor_calldata"]]
-
-    external_entry_points = contract_definition["entry_points_by_type"]["EXTERNAL"]
-    for i, _ in enumerate(external_entry_points):
-        external_entry_points[i]["selector"] = pad_zero(external_entry_points[i]["selector"])
-
-    contract_definition["entry_points_by_type"]["EXTERNAL"] = external_entry_points
+    pad_zero_external_entry_points(contract_class=contract_definition)
 
     rpc_contract = RpcContractClass(
         program="",
@@ -420,12 +416,7 @@ def test_add_deploy_transaction(deploy_content):
     contract_definition = deploy_content["contract_definition"]
     salt = deploy_content["contract_address_salt"]
     calldata = [rpc_felt(data) for data in deploy_content["constructor_calldata"]]
-
-    external_entry_points = contract_definition["entry_points_by_type"]["EXTERNAL"]
-    for i, _ in enumerate(external_entry_points):
-        external_entry_points[i]["selector"] = pad_zero(external_entry_points[i]["selector"])
-
-    contract_definition["entry_points_by_type"]["EXTERNAL"] = external_entry_points
+    pad_zero_external_entry_points(contract_class=contract_definition)
 
     rpc_contract = RpcContractClass(
         program=contract_definition["program"],

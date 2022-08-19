@@ -2,11 +2,10 @@
 RPC block endpoints
 """
 
-from starknet_devnet.blueprints.rpc.utils import get_block_by_block_id, rpc_felt
 from starknet_devnet.blueprints.rpc.structures.payloads import rpc_block
 from starknet_devnet.blueprints.rpc.structures.types import BlockId, RpcError
+from starknet_devnet.blueprints.rpc.utils import get_block_by_block_id, rpc_felt
 from starknet_devnet.state import state
-from starknet_devnet.util import StarknetDevnetException
 
 
 async def get_block_with_tx_hashes(block_id: BlockId) -> dict:
@@ -40,18 +39,19 @@ async def block_hash_and_number() -> dict:
     """
     Get the most recent accepted block hash and number
     """
-    last_block_number = state.starknet_wrapper.blocks.get_number_of_blocks() - 1
+    number_of_blocks = state.starknet_wrapper.blocks.get_number_of_blocks()
+    if number_of_blocks == 0:
+        raise RpcError(code=32, message="There are no blocks")
 
-    try:
-        last_block = state.starknet_wrapper.blocks.get_by_number(last_block_number)
-    except StarknetDevnetException as ex:
-        raise RpcError(code=32, message="There are no blocks") from ex
+    last_block_number = number_of_blocks - 1
+    last_block = state.starknet_wrapper.blocks.get_by_number(last_block_number)
 
     result = {
         "block_hash": rpc_felt(last_block.block_hash),
         "block_number": last_block.block_number,
     }
     return result
+
 
 async def get_block_transaction_count(block_id: BlockId) -> int:
     """

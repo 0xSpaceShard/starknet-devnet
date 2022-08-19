@@ -14,6 +14,7 @@ from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 from .rpc_utils import rpc_call, gateway_call, get_block_with_transaction, pad_zero
 
 
+# pylint: disable=too-many-locals
 @pytest.mark.usefixtures("run_devnet_in_background")
 def test_get_state_update(deploy_info, invoke_info, contract_class):
     """
@@ -27,6 +28,7 @@ def test_get_state_update(deploy_info, invoke_info, contract_class):
     block_with_invoke_hash: str = pad_zero(block_with_invoke["block_hash"])
     block_id_deploy = BlockHashDict(block_hash=block_with_deploy_hash)
     block_id_invoke = BlockHashDict(block_hash=block_with_invoke_hash)
+    class_hash = pad_zero(hex(compute_class_hash(contract_class)))
 
     storage = gateway_call("get_storage_at", contractAddress=contract_address, key=get_storage_var_address("balance"))
 
@@ -49,12 +51,12 @@ def test_get_state_update(deploy_info, invoke_info, contract_class):
         "deployed_contracts": [
             {
                 "address": pad_zero(contract_address),
-                "class_hash": pad_zero(hex(compute_class_hash(contract_class))),
+                "class_hash": class_hash,
             }
         ],
         "declared_contracts": [
             {
-                "class_hash": pad_zero(hex(compute_class_hash(contract_class))),
+                "class_hash": class_hash,
             }
         ],
         "nonces": [],
@@ -97,3 +99,30 @@ def test_chain_id():
 
     assert isinstance(rpc_chain_id, str)
     assert rpc_chain_id == hex(chain_id)
+
+
+@pytest.mark.usefixtures("run_devnet_in_background")
+def test_syncing():
+    """
+    Test syncing
+    """
+    resp = rpc_call("starknet_syncing", params={})
+    syncing = resp["result"]
+
+    assert isinstance(syncing, bool)
+    assert syncing is False
+
+
+@pytest.mark.usefixtures("run_devnet_in_background")
+def test_get_events():
+    """
+    Test getEvents
+    """
+    resp = rpc_call("starknet_getEvents", params={"filter": {}})
+    events = resp["result"]
+
+    assert events == {
+        "events": [],
+        "page_number": 1,
+        "is_last_page": True,
+    }

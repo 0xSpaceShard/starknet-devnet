@@ -4,6 +4,8 @@ RPC miscellaneous endpoints
 
 from __future__ import annotations
 
+from typing import Union
+
 from starknet_devnet.blueprints.rpc.structures.payloads import Felt, Address
 from starknet_devnet.state import state
 
@@ -18,18 +20,24 @@ async def chain_id() -> str:
     return hex(chain)
 
 
-async def syncing() -> dict:
+async def syncing() -> Union[dict, bool]:
     """
     Returns an object about the sync status, or false if the node is not synching
     """
-    raise NotImplementedError()
+    return False
 
 
-async def get_events() -> dict:
+# pylint: disable=unused-argument
+# pylint: disable=redefined-builtin
+async def get_events(filter: dict) -> dict:
     """
     Returns all events matching the given filter
     """
-    raise NotImplementedError()
+    return {
+        "events": [],
+        "page_number": 1,
+        "is_last_page": True,
+    }
 
 
 # pylint: disable=unused-argument
