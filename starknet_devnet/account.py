@@ -18,11 +18,11 @@ class Account:
     """Account contract wrapper."""
 
     CONTRACT_CLASS: ContractClass = None # loaded lazily
-    CONTRACT_PATH = "accounts_artifacts/OpenZeppelin/0.2.1/Account.cairo/Account"
+    CONTRACT_PATH = "accounts_artifacts/OpenZeppelin/0.3.1/Account.cairo/Account"
 
     # Precalculated to save time
     # HASH = compute_class_hash(contract_class=Account.get_contract_class()))
-    HASH = 3234970678029762354735267567433689214900679403476863445247436772798892968339
+    HASH = 1986098657879464923403667114018380528618025599128879764218779553907945724173
     HASH_BYTES = to_bytes(HASH)
 
     def __init__(self, starknet_wrapper, private_key: int, public_key: int, initial_balance: int):
