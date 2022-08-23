@@ -111,18 +111,3 @@ def test_syncing():
 
     assert isinstance(syncing, bool)
     assert syncing is False
-
-
-@pytest.mark.usefixtures("run_devnet_in_background")
-def test_get_events():
-    """
-    Test getEvents
-    """
-    resp = rpc_call("starknet_getEvents", params={"filter": {}})
-    events = resp["result"]
-
-    assert events == {
-        "events": [],
-        "page_number": 1,
-        "is_last_page": True,
-    }

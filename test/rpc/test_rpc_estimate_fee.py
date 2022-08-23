@@ -46,9 +46,11 @@ def test_estimate_happy_path():
         "nonce": "0x00",
         "type": "INVOKE",
     }
-    rpc_call_background_devnet(
+    response = rpc_call_background_devnet(
         "starknet_estimateFee", {"request": txn, "block_id": "latest"}
     )
+
+    common_estimate_response(response)
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")

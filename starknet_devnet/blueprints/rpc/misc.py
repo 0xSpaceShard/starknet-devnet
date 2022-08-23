@@ -33,11 +33,7 @@ async def get_events(filter: dict) -> dict:
     """
     Returns all events matching the given filter
     """
-    return {
-        "events": [],
-        "page_number": 1,
-        "is_last_page": True,
-    }
+    raise NotImplementedError()
 
 
 # pylint: disable=unused-argument
