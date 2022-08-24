@@ -193,7 +193,8 @@ Response:
 }
 ```
 
-Currently not supported methods are:
+Methods currently not supported:
+
 - `starknet_protocolVersion` - will be removed in a future version of the specification
 - `starknet_getEvents`
 - `starknet_getNonce`
@@ -424,11 +425,11 @@ docker run -p 127.0.0.1:5050:5050 -e PYTHONUNBUFFERED=1 shardlabs/starknet-devne
 
 Devnet predeploys `--accounts` with some `--initial-balance`. The accounts get charged for transactions according to the `--gas-price`. A `--seed` can be used to regenerate the same set of accounts. Read more about it in the [Run section](#run).
 
-To get the code of the account (currently OpenZeppelin v0.2.1), use one of the following:
+To get the code of the account (currently OpenZeppelin v0.3.1), use one of the following:
 
 - `GET /get_code?contractAddress=<ACCOUNT_ADDRESS>`
 - [Starknet CLI](https://www.cairo-lang.org/docs/hello_starknet/cli.html#get-code): `starknet get_code --contract_address <ACCOUNT_ADDRESS> --feeder_gateway_url <DEVNET_URL>`
-- [OpenZeppelin's cairo-contract repository](https://github.com/OpenZeppelin/cairo-contracts/tree/v0.2.1)
+- [OpenZeppelin's cairo-contract repository](https://github.com/OpenZeppelin/cairo-contracts/tree/v0.3.1)
 
 You can use the accounts in e.g. [starknet-hardhat-plugin](https://github.com/Shard-Labs/starknet-hardhat-plugin) via:
 
@@ -606,13 +607,30 @@ poetry run pytest test/<TEST_FILE>::<TEST_CASE> # for a single test case
 ./scripts/check_versions.sh
 ```
 
-### Development - working with a local version of cairo-lang:
+### Development - Working with a local version of cairo-lang
 
 In `pyproject.toml` under `[tool.poetry.dependencies]` specify
 
 ```
 cairo-lang = { path = "your-cairo-lang-package.zip" }
 ```
+
+### Development - Updating accounts
+
+1. Set up https://github.com/OpenZeppelin/cairo-contracts/ locally
+
+   - `git clone ... && pip install cairo-nile && nile init`
+
+2. `git checkout` to desired version
+3. `nile compile --directory src`
+4. Copy and minify `artifacts/Account.json` and `artifacts/abi/Account.json`
+5. Update the precalculated hash
+
+   - Predeployed account addresses should be intact
+
+6. Update directory/file names containing the version
+7. Update expected test paths and addresses
+8. Update docs
 
 ### Development - Build
 
