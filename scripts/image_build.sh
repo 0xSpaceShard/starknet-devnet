@@ -20,7 +20,6 @@ function test_and_push(){
 }
 
 # building regular image
-echo "Build image regardless of versioning"
 SHA1_TAG="${CIRCLE_SHA1}${ARCH_SUFFIX}"
 docker build . -t "$IMAGE:$SHA1_TAG"
 
