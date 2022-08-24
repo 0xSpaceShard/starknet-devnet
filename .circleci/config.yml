@@ -6,14 +6,10 @@ aliases:
     filters:
       branches:
         only:
-          - build-next # TODO
+          - master
 
   - &on_master_after_test_and_build
-    context: shardlabs
-    filters:
-      branches:
-        only:
-          - build-next # TODO
+    <<: *on_master
     requires:
       - test_py_min
       - test_py_max
