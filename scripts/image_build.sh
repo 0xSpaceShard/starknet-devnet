@@ -19,13 +19,13 @@ function test_and_push(){
     fi
 }
 
-# building regular image
 SHA1_TAG="${CIRCLE_SHA1}${ARCH_SUFFIX}"
+echo "Building regular image: $SHA1_TAG"
 docker build . -t "$IMAGE:$SHA1_TAG"
 
-# building seeded image
 SEED_SUFFIX="-seed0"
 SHA1_SEEDED_TAG="${SHA1_TAG}${SEED_SUFFIX}"
+echo "Building seeded image: $SHA1_SEEDED_TAG"
 docker build . \
     -f seed0.Dockerfile \
     --build-arg BASE_TAG=$SHA1_TAG \
