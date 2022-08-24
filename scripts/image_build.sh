@@ -6,10 +6,11 @@ IMAGE=shardlabs/starknet-devnet
 function test_and_push(){
     local tagged_image="$IMAGE:$1"
 
-    echo "Run a devnet instance in background; sleep to allow it to start"
-    docker run -d -p 127.0.0.1:5050:5050 --name devnet "$tagged_image"
-    sleep 10
-    docker logs devnet
+    echo "Run $tagged_image in background; sleep to allow it to start"
+    local container_name="devnet"
+    docker run -d -p 127.0.0.1:5050:5050 --name "$container_name" --rm "$tagged_image"
+    sleep 10 # alternatively check in a loop
+    docker logs "$container_name"
 
     echo "Checking if devnet instance is alive"
     if [ ! -z $REMOTE ]; then
@@ -17,6 +18,8 @@ function test_and_push(){
     else
         curl localhost:5050/is_alive -w "\n"
     fi
+
+    docker kill "$container_name"
 }
 
 SHA1_TAG="${CIRCLE_SHA1}${ARCH_SUFFIX}"
@@ -31,7 +34,7 @@ docker build . \
     --build-arg BASE_TAG=$SHA1_TAG \
     -t "$IMAGE:$SHA1_SEEDED_TAG"
 
-# testing and pushing built images
+echo "Images built successfully; proceeding to testing and pushing"
 docker login --username "$DOCKER_USER" --password "$DOCKER_PASS"
 for pushable_tag in $SHA1_TAG $SHA1_SEEDED_TAG; do
     test_and_push $pushable_tag
