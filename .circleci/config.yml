@@ -1,18 +1,23 @@
 version: 2.1
 
 aliases:
-  - &on_master_after_test
+  - &on_master
     context: shardlabs
     filters:
       branches:
         only:
           - master
+
+  - &on_master_after_test_and_build
+    <<: *on_master
     requires:
-      - test-py-min
-      - test-py-max
+      - test_py_min
+      - test_py_max
+      - image_build
+      - image_build_arm
 
 jobs:
-  test-py-min: &test-template
+  test_py_min: &test_template
     docker:
       - image: cimg/python:3.7.12-node
     resource_class: medium
@@ -33,7 +38,7 @@ jobs:
           command: ./scripts/compile_contracts.sh
       - run:
           name: Check out previous test metadata
-          command: | 
+          command: |
             jq . "${CIRCLE_INTERNAL_TASK_DATA}/circle-test-results/results.json"
       - run:
           name: Run pytest tests
@@ -53,8 +58,8 @@ jobs:
       - store_artifacts:
           path: test-results
 
-  test-py-max:
-    <<: *test-template
+  test_py_max:
+    <<: *test_template
     docker:
       - image: cimg/python:3.9-node
 
@@ -66,7 +71,7 @@ jobs:
       - checkout
       - run: ./scripts/package_build_and_publish.sh
 
-  image_build_and_push:
+  image_build:
     docker:
       - image: cimg/base:2021.04
     resource_class: medium
@@ -75,21 +80,36 @@ jobs:
       - setup_remote_docker:
           version: 20.10.7
       - run:
-          name: Build and push image
-          command: ./scripts/image_build_and_push.sh
+          name: Build amd images
+          command: ./scripts/image_build.sh
           environment:
             ARCH_SUFFIX: ""
             REMOTE: true
 
-  image_build_and_push_arm:
+  image_build_arm:
     machine:
       image: ubuntu-2004:202111-02
     resource_class: arm.medium
     steps:
       - checkout
       - run:
-          name: Build and push image
-          command: ./scripts/image_build_and_push.sh
+          name: Build arm images
+          command: ./scripts/image_build.sh
+          environment:
+            ARCH_SUFFIX: -arm
+            REMOTE: ""
+
+  image_push:
+    docker:
+      - image: cimg/base:2021.04
+    resource_class: medium
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.7
+      - run:
+          name: Push images
+          command: ./scripts/image_push.sh
           environment:
             ARCH_SUFFIX: -arm
             REMOTE: ""
@@ -98,11 +118,13 @@ workflows:
   version: 2
   test_and_publish:
     jobs:
-      - test-py-min
-      - test-py-max
+      - test_py_min
+      - test_py_max
+      - image_build:
+          <<: *on_master
+      - image_build_arm:
+          <<: *on_master
       - package_build_and_publish:
-          <<: *on_master_after_test
-      - image_build_and_push:
-          <<: *on_master_after_test
-      - image_build_and_push_arm:
-          <<: *on_master_after_test
+          <<: *on_master_after_test_and_build
+      - image_push:
+          <<: *on_master_after_test_and_build
