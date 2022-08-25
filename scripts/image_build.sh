@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# Aside from these sha1-tagged images being useful per-se, they also allow the separation of image building and pushing.
+# Image building can thus be run in parallel with testing, and pushing can be done if testing and building was successfull.
+
 set -eu
 
 IMAGE=shardlabs/starknet-devnet
