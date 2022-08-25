@@ -20,6 +20,8 @@ function test_and_push(){
     fi
 
     docker kill "$container_name"
+
+    docker push "$tagged_image"
 }
 
 SHA1_TAG="${CIRCLE_SHA1}${ARCH_SUFFIX}"
