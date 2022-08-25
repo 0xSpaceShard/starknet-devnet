@@ -6,7 +6,7 @@ aliases:
     filters:
       branches:
         only:
-          - master
+          - build-next
 
   - &on_master_after_test_and_build
     <<: *on_master
