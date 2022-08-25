@@ -25,19 +25,31 @@ function test_and_push(){
 }
 
 SHA1_TAG="${CIRCLE_SHA1}${ARCH_SUFFIX}"
+NEXT_TAG="next${ARCH_SUFFIX}"
 echo "Building regular image: $SHA1_TAG"
-docker build . -t "$IMAGE:$SHA1_TAG"
+docker build . \
+    -t "$IMAGE:$SHA1_TAG" \
+    -t "$IMAGE:$NEXT_TAG"
 
 SEED_SUFFIX="-seed0"
 SHA1_SEEDED_TAG="${SHA1_TAG}${SEED_SUFFIX}"
+NEXT_SEEDED_TAG="${NEXT_TAG}${SEED_SUFFIX}"
 echo "Building seeded image: $SHA1_SEEDED_TAG"
 docker build . \
     -f seed0.Dockerfile \
     --build-arg BASE_TAG=$SHA1_TAG \
-    -t "$IMAGE:$SHA1_SEEDED_TAG"
+    -t "$IMAGE:$SHA1_SEEDED_TAG" \
+    -t "$IMAGE:${NEXT_SEEDED_TAG}"
 
 echo "Images built successfully; proceeding to testing and pushing"
 docker login --username "$DOCKER_USER" --password "$DOCKER_PASS"
-for pushable_tag in $SHA1_TAG $SHA1_SEEDED_TAG; do
-    test_and_push $pushable_tag
+
+echo "Pushing images tagged with sha1 commit digest"
+for sha1_pushable_tag in $SHA1_TAG $SHA1_SEEDED_TAG; do
+    test_and_push $sha1_pushable_tag
+done
+
+echo "Pushing images tagged with next"
+for next_pushable_tag in $NEXT_TAG $NEXT_SEEDED_TAG; do
+    docker push "$IMAGE:$next_pushable_tag"
 done
