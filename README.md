@@ -105,7 +105,7 @@ curl http://127.0.0.1:5050/is_alive
 
 ### Run with Docker
 
-Devnet is available as a Docker image ([shardlabs/starknet-devnet](https://hub.docker.com/repository/docker/shardlabs/starknet-devnet)):
+Devnet is available as a Docker image ([shardlabs/starknet-devnet](https://hub.docker.com/repository/docker/shardlabs/starknet-devnet)). Fetch it by running
 
 ```text
 docker pull shardlabs/starknet-devnet:<TAG>
@@ -113,17 +113,33 @@ docker pull shardlabs/starknet-devnet:<TAG>
 
 #### Versions and Tags
 
-Image tags correspond to Devnet versions as on PyPI and GitHub, with the `latest` tag used for the latest image. These images are built for linux/amd64. To use the arm64 versions, since `0.1.23` you can append `-arm` to the tag. E.g.:
+Image tags correspond to Devnet versions as on PyPI and GitHub, with the `latest` tag used for the latest stable release. These images are built for linux/amd64. To use the arm64 versions, since `0.1.23` you can append `-arm` to the tag. E.g.:
 
-- `shardlabs/starknet-devnet:0.2.10` - image for the amd64 architecture
-- `shardlabs/starknet-devnet:0.2.10-arm` - image for the arm64 architecture
+- `shardlabs/starknet-devnet:<VERSION>` - image for the amd64 architecture
+- `shardlabs/starknet-devnet:<VERSION>-arm` - image for the arm64 architecture
 - `shardlabs/starknet-devnet:latest-arm`
 
 By appending the `-seed0` suffix, you can access images which [predeploy funded accounts](#predeployed-accounts) with `--seed 0`, thus always deploying the same set of accounts. E.g.:
 
-- `shardlabs/starknet-devnet:0.2.10-seed0`
+- `shardlabs/starknet-devnet:<VERSION>-seed0`
 - `shardlabs/starknet-devnet:latest-seed0`
-- `shardlabs/starknet-devnet:0.2.10-arm-seed0`
+- `shardlabs/starknet-devnet:<VERSION>-arm-seed0`
+
+Each commit to the `master` branch of this repository also creates images with the the commit hash (full 40-hex-digits SHA1 digest):
+
+- `shardlabs/starknet-devnet:<COMMIT_HASH>`
+- `shardlabs/starknet-devnet:<COMMIT_HASH>-arm`
+- `shardlabs/starknet-devnet:<COMMIT_HASH>-seed0`
+- `shardlabs/starknet-devnet:<COMMIT_HASH>-arm-seed0`
+
+The last commit is also the candidate for the `next` release, so combining with the previously described `-arm` and `-seed0` suffixes, it is available as:
+
+- `shardlabs/starknet-devnet:next`
+- `shardlabs/starknet-devnet:next-arm`
+- `shardlabs/starknet-devnet:next-seed0`
+- `shardlabs/starknet-devnet:next-arm-seed0`
+
+#### Port publishing
 
 The server inside the container listens to the port 5050, which you need to publish to a desired `<PORT>` on your host machine:
 
