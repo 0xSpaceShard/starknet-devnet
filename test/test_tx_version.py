@@ -12,6 +12,7 @@ from .shared import ARTIFACTS_PATH
 CONTRACT_PATH = f"{ARTIFACTS_PATH}/tx_version.cairo/tx_version.json"
 ABI_PATH = f"{ARTIFACTS_PATH}/tx_version.cairo/tx_version_abi.json"
 
+
 @pytest.mark.tx_version
 @devnet_in_background()
 def test_transaction_version():

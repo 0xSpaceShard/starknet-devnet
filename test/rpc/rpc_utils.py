@@ -13,16 +13,16 @@ from ..settings import APP_URL
 
 
 class BackgroundDevnetClient:
-    """ A thin wrapper for requests, to interact with a background devnet instance """
+    """A thin wrapper for requests, to interact with a background devnet instance"""
 
     @staticmethod
     def get(endpoint: str) -> requests.Response:
-        """ Submit get request at given endpoint """
+        """Submit get request at given endpoint"""
         return requests.get(f"{APP_URL}{endpoint}")
 
     @staticmethod
     def post(endpoint: str, body: dict) -> requests.Response:
-        """ Submit post request with given dict in body (JSON) """
+        """Submit post request with given dict in body (JSON)"""
         return requests.post(f"{APP_URL}{endpoint}", json=body)
 
 
@@ -30,12 +30,7 @@ def make_rpc_payload(method: str, params: Union[dict, list]):
     """
     Make a wrapper for rpc call
     """
-    return {
-        "jsonrpc": "2.0",
-        "method": method,
-        "params": params,
-        "id": 0
-    }
+    return {"jsonrpc": "2.0", "method": method, "params": params, "id": 0}
 
 
 def rpc_call_background_devnet(method: str, params: Union[dict, list]):
@@ -50,7 +45,9 @@ def rpc_call(method: str, params: Union[dict, list]) -> dict:
     """
     Make a call to the RPC endpoint
     """
-    return BackgroundDevnetClient.post("/rpc", body=make_rpc_payload(method, params)).json()
+    return BackgroundDevnetClient.post(
+        "/rpc", body=make_rpc_payload(method, params)
+    ).json()
 
 
 def add_transaction(body: dict) -> dict:
@@ -76,7 +73,9 @@ def get_block_with_transaction(transaction_hash: str) -> dict:
     Retrieve block for given transaction
     """
     transaction = gateway_call("get_transaction", transactionHash=transaction_hash)
-    assert transaction["status"] != "NOT_RECEIVED", f"Transaction {transaction_hash} was not received or does not exist"
+    assert (
+        transaction["status"] != "NOT_RECEIVED"
+    ), f"Transaction {transaction_hash} was not received or does not exist"
     block_number: int = transaction["block_number"]
     block = gateway_call("get_block", blockNumber=block_number)
     return block

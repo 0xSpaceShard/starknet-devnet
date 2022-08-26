@@ -15,17 +15,20 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     StarknetBlock,
     FunctionInvocation,
     Event,
-    L2ToL1Message
+    L2ToL1Message,
 )
 from starkware.starknet.business_logic.internal_transaction import InternalTransaction
 from starkware.starknet.testing.objects import (
     TransactionExecutionInfo,
-    StarknetTransactionExecutionInfo
+    StarknetTransactionExecutionInfo,
 )
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
-from services.everest.business_logic.transaction_execution_objects import TransactionFailureReason
+from services.everest.business_logic.transaction_execution_objects import (
+    TransactionFailureReason,
+)
 
 from .origin import Origin
+
 
 class DevnetTransaction:
     """Represents the devnet transaction"""
@@ -34,7 +37,9 @@ class DevnetTransaction:
         self,
         internal_tx: InternalTransaction,
         status: TransactionStatus,
-        execution_info: Union[TransactionExecutionInfo, StarknetTransactionExecutionInfo],
+        execution_info: Union[
+            TransactionExecutionInfo, StarknetTransactionExecutionInfo
+        ],
         transaction_hash: int = None,
     ):
         self.block = None
@@ -50,7 +55,11 @@ class DevnetTransaction:
 
     def __get_actual_fee(self) -> int:
         """Returns the actual fee"""
-        return self.execution_info.actual_fee if hasattr(self.execution_info, "actual_fee") else 0
+        return (
+            self.execution_info.actual_fee
+            if hasattr(self.execution_info, "actual_fee")
+            else 0
+        )
 
     def __get_events(self) -> List[Event]:
         """Returns the events"""
@@ -69,11 +78,13 @@ class DevnetTransaction:
         contract_address = self.execution_info.call_info.contract_address
 
         for l2_to_l1_message in self.execution_info.call_info.l2_to_l1_messages:
-            l2_to_l1_messages.append(L2ToL1Message(
-                from_address=contract_address,
-                to_address=Web3.toChecksumAddress(hex(l2_to_l1_message.to_address)),
-                payload=l2_to_l1_message.payload,
-            ))
+            l2_to_l1_messages.append(
+                L2ToL1Message(
+                    from_address=contract_address,
+                    to_address=Web3.toChecksumAddress(hex(l2_to_l1_message.to_address)),
+                    payload=l2_to_l1_message.payload,
+                )
+            )
 
         return l2_to_l1_messages
 
@@ -92,13 +103,14 @@ class DevnetTransaction:
     def set_failure_reason(self, error_message: str):
         """Sets the failure reason of the transaction"""
         self.transaction_failure_reason = TransactionFailureReason(
-            code=StarknetErrorCode.TRANSACTION_FAILED.name,
-            error_message=error_message
+            code=StarknetErrorCode.TRANSACTION_FAILED.name, error_message=error_message
         )
 
     def get_signature(self) -> List[int]:
         """Returns the signature"""
-        return self.internal_tx.signature if hasattr(self.internal_tx, "signature") else []
+        return (
+            self.internal_tx.signature if hasattr(self.internal_tx, "signature") else []
+        )
 
     def get_tx_info(self) -> TransactionInfo:
         """Returns the transaction info"""
@@ -108,7 +120,7 @@ class DevnetTransaction:
             transaction_index=self.transaction_index,
             block_hash=self.__get_block_hash(),
             block_number=self.__get_block_number(),
-            transaction_failure_reason=self.transaction_failure_reason
+            transaction_failure_reason=self.transaction_failure_reason,
         )
 
     def get_receipt(self) -> TransactionReceipt:
@@ -127,7 +139,7 @@ class DevnetTransaction:
             actual_fee=self.__get_actual_fee(),
             events=self.__get_events(),
             execution_resources=execution_resources,
-            l2_to_l1_messages=self.__get_l2_to_l1_messages()
+            l2_to_l1_messages=self.__get_l2_to_l1_messages(),
         )
 
     def get_trace(self) -> TransactionTrace:
@@ -138,7 +150,9 @@ class DevnetTransaction:
             function_invocation=(
                 call_info
                 if isinstance(call_info, FunctionInvocation)
-                else FunctionInvocation.from_internal_version(self.execution_info.call_info)
+                else FunctionInvocation.from_internal_version(
+                    self.execution_info.call_info
+                )
             ),
             signature=self.get_signature(),
         )
@@ -152,8 +166,9 @@ class DevnetTransaction:
             events=self.__get_events(),
             execution_resources=self.execution_info.call_info.execution_resources,
             l2_to_l1_messages=self.__get_l2_to_l1_messages(),
-            l1_to_l2_consumed_message=None
+            l1_to_l2_consumed_message=None,
         )
+
 
 class DevnetTransactions:
     """
@@ -194,7 +209,6 @@ class DevnetTransactions:
 
         return transaction.get_tx_info()
 
-
     def get_transaction_trace(self, tx_hash: str):
         """
         Get a transaction trace.
@@ -233,7 +247,10 @@ class DevnetTransactions:
         }
 
         # "block_hash" will only exist after transaction enters ACCEPTED_ON_L2
-        if transaction.status == TransactionStatus.ACCEPTED_ON_L2 and transaction.block is not None:
+        if (
+            transaction.status == TransactionStatus.ACCEPTED_ON_L2
+            and transaction.block is not None
+        ):
             status_response["block_hash"] = hex(transaction.block.block_hash)
 
         # "tx_failure_reason" will only exist if the transaction was rejected.

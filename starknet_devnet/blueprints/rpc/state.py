@@ -17,9 +17,13 @@ async def get_state_update(block_id: BlockId) -> dict:
 
     try:
         if "block_hash" in block_id:
-            result = state.starknet_wrapper.blocks.get_state_update(block_hash=block_id["block_hash"])
+            result = state.starknet_wrapper.blocks.get_state_update(
+                block_hash=block_id["block_hash"]
+            )
         else:
-            result = state.starknet_wrapper.blocks.get_state_update(block_number=block_id["block_number"])
+            result = state.starknet_wrapper.blocks.get_state_update(
+                block_number=block_id["block_number"]
+            )
     except StarknetDevnetException as ex:
         raise RpcError(code=24, message="Invalid block id") from ex
 

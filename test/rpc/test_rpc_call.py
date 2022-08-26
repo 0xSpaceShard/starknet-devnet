@@ -16,14 +16,15 @@ def test_call(deploy_info):
     contract_address: str = deploy_info["address"]
 
     resp = rpc_call(
-        "starknet_call", params={
+        "starknet_call",
+        params={
             "request": {
                 "contract_address": pad_zero(contract_address),
                 "entry_point_selector": hex(get_selector_from_name("get_balance")),
                 "calldata": [],
             },
-            "block_id": "latest"
-        }
+            "block_id": "latest",
+        },
     )
     result = resp["result"]
 
@@ -36,20 +37,18 @@ def test_call_raises_on_incorrect_contract_address():
     Call contract with incorrect address
     """
     ex = rpc_call(
-        "starknet_call", params={
+        "starknet_call",
+        params={
             "request": {
                 "contract_address": "0x07b529269b82f3f3ebbb2c463a9e1edaa2c6eea8fa308ff70b30398766a2e20c",
                 "entry_point_selector": hex(get_selector_from_name("get_balance")),
                 "calldata": [],
             },
-            "block_id": "latest"
-        }
+            "block_id": "latest",
+        },
     )
 
-    assert ex["error"] == {
-        "code": 20,
-        "message": "Contract not found"
-    }
+    assert ex["error"] == {"code": 20, "message": "Contract not found"}
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -60,20 +59,18 @@ def test_call_raises_on_incorrect_selector(deploy_info):
     contract_address: str = deploy_info["address"]
 
     ex = rpc_call(
-        "starknet_call", params={
+        "starknet_call",
+        params={
             "request": {
                 "contract_address": pad_zero(contract_address),
                 "entry_point_selector": hex(get_selector_from_name("xxxxxxx")),
                 "calldata": [],
             },
-            "block_id": "latest"
-        }
+            "block_id": "latest",
+        },
     )
 
-    assert ex["error"] == {
-        "code": 21,
-        "message": "Invalid message selector"
-    }
+    assert ex["error"] == {"code": 21, "message": "Invalid message selector"}
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -84,20 +81,18 @@ def test_call_raises_on_invalid_calldata(deploy_info):
     contract_address: str = deploy_info["address"]
 
     ex = rpc_call(
-        "starknet_call", params={
+        "starknet_call",
+        params={
             "request": {
                 "contract_address": pad_zero(contract_address),
                 "entry_point_selector": hex(get_selector_from_name("get_balance")),
                 "calldata": ["a", "b", "123"],
             },
-            "block_id": "latest"
-        }
+            "block_id": "latest",
+        },
     )
 
-    assert ex["error"] == {
-        "code": 22,
-        "message": "Invalid call data"
-    }
+    assert ex["error"] == {"code": 22, "message": "Invalid call data"}
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -108,17 +103,18 @@ def test_call_raises_on_incorrect_block_hash(deploy_info):
     contract_address: str = deploy_info["address"]
 
     ex = rpc_call(
-        "starknet_call", params={
+        "starknet_call",
+        params={
             "request": {
                 "contract_address": pad_zero(contract_address),
                 "entry_point_selector": hex(get_selector_from_name("get_balance")),
                 "calldata": [],
             },
-            "block_id": "0x0"
-        }
+            "block_id": "0x0",
+        },
     )
 
     assert ex["error"] == {
         "code": -1,
-        "message": "Calls with block_id != 'latest' are not supported currently."
+        "message": "Calls with block_id != 'latest' are not supported currently.",
     }

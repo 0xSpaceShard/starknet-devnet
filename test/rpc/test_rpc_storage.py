@@ -18,11 +18,12 @@ def test_get_storage_at(deploy_info):
     block_id: str = "latest"
 
     resp = rpc_call(
-        "starknet_getStorageAt", params={
+        "starknet_getStorageAt",
+        params={
             "contract_address": pad_zero(contract_address),
             "key": key,
             "block_id": block_id,
-        }
+        },
     )
     storage = resp["result"]
 
@@ -38,17 +39,15 @@ def test_get_storage_at_raises_on_incorrect_contract():
     block_id: str = "latest"
 
     ex = rpc_call(
-        "starknet_getStorageAt", params={
+        "starknet_getStorageAt",
+        params={
             "contract_address": "0x00",
             "key": key,
             "block_id": block_id,
-        }
+        },
     )
 
-    assert ex["error"] == {
-        "code": 20,
-        "message": "Contract not found"
-    }
+    assert ex["error"] == {"code": 20, "message": "Contract not found"}
 
 
 # internal workings of get_storage_at would have to be changed for this to work properly
@@ -62,11 +61,12 @@ def test_get_storage_at_raises_on_incorrect_key(deploy_info):
     contract_address: str = deploy_info["address"]
 
     response = rpc_call(
-        "starknet_getStorageAt", params={
+        "starknet_getStorageAt",
+        params={
             "contract_address": pad_zero(contract_address),
             "key": "0x00",
             "block_id": "latest",
-        }
+        },
     )
 
     assert response["result"] == "0x00"
@@ -82,14 +82,15 @@ def test_get_storage_at_raises_on_incorrect_block_id(deploy_info):
     key: str = hex(get_storage_var_address("balance"))
 
     ex = rpc_call(
-        "starknet_getStorageAt", params={
+        "starknet_getStorageAt",
+        params={
             "contract_address": pad_zero(contract_address),
             "key": key,
             "block_id": "0x0",
-        }
+        },
     )
 
     assert ex["error"] == {
         "code": -1,
-        "message": "Calls with block_id != 'latest' are not supported currently."
+        "message": "Calls with block_id != 'latest' are not supported currently.",
     }

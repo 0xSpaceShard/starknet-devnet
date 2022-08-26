@@ -9,30 +9,41 @@ from starknet_devnet.util import StarknetDevnetException, check_valid_dump_path
 
 base = Blueprint("base", __name__)
 
+
 def extract_int(value):
     """extract int from float if an integer value"""
     return isinstance(value, float) and value.is_integer() and int(value) or value
+
 
 def extract_positive(request_json, prop_name: str):
     """Expects `prop_name` from `request_json` and expects it to be positive"""
     value = extract_int(request_json.get(prop_name))
 
     if value is None:
-        raise StarknetDevnetException(message=f"{prop_name} value must be provided.", status_code=400)
+        raise StarknetDevnetException(
+            message=f"{prop_name} value must be provided.", status_code=400
+        )
 
     if not isinstance(value, int) or isinstance(value, bool):
-        raise StarknetDevnetException(message=f"{prop_name} value must be an integer.", status_code=400)
+        raise StarknetDevnetException(
+            message=f"{prop_name} value must be an integer.", status_code=400
+        )
 
     if value < 0:
-        raise StarknetDevnetException(message=f"{prop_name} value must be greater than 0.", status_code=400)
+        raise StarknetDevnetException(
+            message=f"{prop_name} value must be greater than 0.", status_code=400
+        )
 
     return value
+
 
 def extract_hex_string(request_json, prop_name: str) -> int:
     """Parse value from hex string to int"""
     value = request_json.get(prop_name)
     if value is None:
-        raise StarknetDevnetException(status_code=400, message=f"{prop_name} value must be provided.")
+        raise StarknetDevnetException(
+            status_code=400, message=f"{prop_name} value must be provided."
+        )
 
     try:
         return int(value, 16)
@@ -46,11 +57,13 @@ def is_alive():
     """Health check endpoint."""
     return "Alive!!!"
 
+
 @base.route("/restart", methods=["POST"])
 async def restart():
     """Restart the starknet_wrapper"""
     await state.reset()
     return Response(status=200)
+
 
 @base.route("/dump", methods=["POST"])
 def dump():
@@ -69,6 +82,7 @@ def dump():
     state.dumper.dump(dump_path)
     return Response(status=200)
 
+
 @base.route("/load", methods=["POST"])
 def load():
     """Loads the starknet_wrapper"""
@@ -81,6 +95,7 @@ def load():
     state.load(load_path)
     return Response(status=200)
 
+
 @base.route("/increase_time", methods=["POST"])
 def increase_time():
     """Increases the block timestamp offset"""
@@ -90,6 +105,7 @@ def increase_time():
     state.starknet_wrapper.increase_block_time(time_s)
 
     return jsonify({"timestamp_increased_by": time_s})
+
 
 @base.route("/set_time", methods=["POST"])
 def set_time():
@@ -101,16 +117,15 @@ def set_time():
 
     return jsonify({"next_block_timestamp": time_s})
 
+
 @base.route("/account_balance", methods=["GET"])
 async def get_balance():
     """Gets balance for the address"""
     address = request.args.get("address", type=lambda x: int(x, 16))
 
     balance = await state.starknet_wrapper.fee_token.get_balance(address)
-    return jsonify({
-        "amount": balance,
-        "unit": "wei"
-    })
+    return jsonify({"amount": balance, "unit": "wei"})
+
 
 @base.route("/predeployed_accounts", methods=["GET"])
 def get_predeployed_accounts():
@@ -118,12 +133,14 @@ def get_predeployed_accounts():
     accounts = state.starknet_wrapper.accounts
     return jsonify([account.to_json() for account in accounts])
 
+
 @base.route("/fee_token", methods=["GET"])
 async def get_fee_token():
     """Get the address of the fee token"""
     fee_token_address = FeeToken.ADDRESS
     symbol = FeeToken.SYMBOL
     return jsonify({"symbol": symbol, "address": hex(fee_token_address)})
+
 
 @base.route("/mint", methods=["POST"])
 async def mint():
@@ -135,17 +152,12 @@ async def mint():
     is_lite = request_json.get("lite", False)
 
     tx_hash = await state.starknet_wrapper.fee_token.mint(
-        to_address=address,
-        amount=amount,
-        lite=is_lite
+        to_address=address, amount=amount, lite=is_lite
     )
 
     new_balance = await state.starknet_wrapper.fee_token.get_balance(address)
-    return jsonify({
-        "new_balance": new_balance,
-        "unit": "wei",
-        "tx_hash": tx_hash
-    })
+    return jsonify({"new_balance": new_balance, "unit": "wei", "tx_hash": tx_hash})
+
 
 @base.route("/create_block", methods=["POST"])
 async def create_block():

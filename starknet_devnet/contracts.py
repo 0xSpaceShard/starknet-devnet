@@ -7,11 +7,9 @@ from typing import Dict
 from starkware.starknet.services.api.contract_class import ContractClass
 
 from .origin import Origin
-from .util import (
-    StarknetDevnetException,
-    fixed_length_hex
-)
+from .util import StarknetDevnetException, fixed_length_hex
 from .contract_wrapper import ContractWrapper
+
 
 class DevnetContracts:
     """
@@ -47,7 +45,9 @@ class DevnetContracts:
         Get the contract wrapper by address.
         """
         if not self.is_deployed(address):
-            message = f"No contract at the provided address ({fixed_length_hex(address)})."
+            message = (
+                f"No contract at the provided address ({fixed_length_hex(address)})."
+            )
             raise StarknetDevnetException(message=message)
 
         return self.__instances[address]

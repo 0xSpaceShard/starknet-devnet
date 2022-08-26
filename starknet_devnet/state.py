@@ -8,10 +8,12 @@ from .dump import Dumper
 from .starknet_wrapper import StarknetWrapper
 from .util import StarknetDevnetException, check_valid_dump_path
 
-class State():
+
+class State:
     """
     Stores starknet wrapper and dumper
     """
+
     def __init__(self):
         self.set_starknet_wrapper(StarknetWrapper(DevnetConfig()))
 
@@ -44,5 +46,6 @@ class State():
 
         self.dumper.dump_path = dump_path
         self.dumper.dump_on = dump_on
+
 
 state = State()

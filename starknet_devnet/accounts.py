@@ -9,8 +9,10 @@ from typing import List
 from starkware.crypto.signature.signature import private_to_stark_key
 from .account import Account
 
+
 class Accounts:
     """Accounts wrapper"""
+
     list: List[Account]
 
     def __init__(self, starknet_wrapper):
@@ -22,7 +24,7 @@ class Accounts:
         self.__generate(
             n_accounts=starknet_wrapper.config.accounts,
             initial_balance=starknet_wrapper.config.initial_balance,
-            seed=starknet_wrapper.config.seed
+            seed=starknet_wrapper.config.seed,
         )
         if starknet_wrapper.config.accounts:
             self.__print()
@@ -54,12 +56,14 @@ class Accounts:
             private_key = random_generator.getrandbits(128)
             public_key = private_to_stark_key(private_key)
 
-            self.add(Account(
-                self.starknet_wrapper,
-                private_key=private_key,
-                public_key=public_key,
-                initial_balance=initial_balance
-            ))
+            self.add(
+                Account(
+                    self.starknet_wrapper,
+                    private_key=private_key,
+                    public_key=public_key,
+                    initial_balance=initial_balance,
+                )
+            )
 
     def __print(self):
         """stdout accounts list"""
@@ -74,6 +78,6 @@ class Accounts:
         print(
             "WARNING: Use these accounts and their keys ONLY for local testing. "
             "DO NOT use them on mainnet or other live networks because you will LOSE FUNDS.\n",
-            file=sys.stderr
+            file=sys.stderr,
         )
         sys.stdout.flush()

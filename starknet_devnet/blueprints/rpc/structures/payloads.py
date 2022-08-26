@@ -15,15 +15,25 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionSpecificInfo,
     TransactionType,
     BlockStateUpdate,
-    DeclareSpecificInfo
+    DeclareSpecificInfo,
 )
 from starkware.starknet.services.api.gateway.transaction import InvokeFunction
 from starkware.starknet.services.api.gateway.transaction_utils import compress_program
 from typing_extensions import TypedDict
 
 from starknet_devnet.blueprints.rpc.utils import rpc_root, rpc_felt
-from starknet_devnet.blueprints.rpc.structures.types import RpcBlockStatus, BlockHash, BlockNumber, Felt, \
-    rpc_block_status, TxnHash, Address, NumAsHex, TxnType, rpc_txn_type
+from starknet_devnet.blueprints.rpc.structures.types import (
+    RpcBlockStatus,
+    BlockHash,
+    BlockNumber,
+    Felt,
+    rpc_block_status,
+    TxnHash,
+    Address,
+    NumAsHex,
+    TxnType,
+    rpc_txn_type,
+)
 from starknet_devnet.state import state
 
 
@@ -31,6 +41,7 @@ class RpcBlock(TypedDict):
     """
     TypeDict for rpc block
     """
+
     status: RpcBlockStatus
     block_hash: BlockHash
     parent_hash: BlockHash
@@ -41,10 +52,13 @@ class RpcBlock(TypedDict):
     transactions: Union[List[str], List[RpcTransaction]]
 
 
-async def rpc_block(block: StarknetBlock, tx_type: Optional[str] = "TXN_HASH") -> RpcBlock:
+async def rpc_block(
+    block: StarknetBlock, tx_type: Optional[str] = "TXN_HASH"
+) -> RpcBlock:
     """
     Convert gateway block to rpc block
     """
+
     async def transactions() -> List[RpcTransaction]:
         # pylint: disable=no-member
         return [rpc_transaction(tx) for tx in block.transactions]
@@ -84,6 +98,7 @@ class RpcInvokeTransaction(TypedDict):
     """
     TypedDict for rpc invoke transaction
     """
+
     contract_address: Address
     entry_point_selector: Felt
     calldata: List[Felt]
@@ -100,6 +115,7 @@ class RpcDeclareTransaction(TypedDict):
     """
     TypedDict for rpc declare transaction
     """
+
     class_hash: Felt
     sender_address: Address
     # Common
@@ -115,6 +131,7 @@ class RpcDeployTransaction(TypedDict):
     """
     TypedDict for rpc deploy transaction
     """
+
     transaction_hash: TxnHash
     class_hash: Felt
     version: NumAsHex
@@ -124,7 +141,9 @@ class RpcDeployTransaction(TypedDict):
     constructor_calldata: List[Felt]
 
 
-RpcTransaction = Union[RpcInvokeTransaction, RpcDeclareTransaction, RpcDeployTransaction]
+RpcTransaction = Union[
+    RpcInvokeTransaction, RpcDeclareTransaction, RpcDeployTransaction
+]
 
 
 def rpc_transaction(transaction: TransactionSpecificInfo) -> RpcTransaction:
@@ -143,6 +162,7 @@ class FunctionCall(TypedDict):
     """
     TypedDict for rpc function call
     """
+
     contract_address: Address
     entry_point_selector: Felt
     calldata: List[Felt]
@@ -194,7 +214,9 @@ def rpc_deploy_transaction(transaction: DeploySpecificInfo) -> RpcDeployTransact
         "type": rpc_txn_type(transaction.tx_type.name),
         "contract_address": rpc_felt(transaction.contract_address),
         "contract_address_salt": rpc_felt(transaction.contract_address_salt),
-        "constructor_calldata": [rpc_felt(data) for data in transaction.constructor_calldata],
+        "constructor_calldata": [
+            rpc_felt(data) for data in transaction.constructor_calldata
+        ],
     }
     return txn
 
@@ -203,6 +225,7 @@ class RpcFeeEstimate(TypedDict):
     """
     Fee estimate TypedDict for rpc
     """
+
     gas_consumed: NumAsHex
     gas_price: NumAsHex
     overall_fee: NumAsHex
@@ -238,6 +261,7 @@ class EntryPoint(TypedDict):
     """
     TypedDict for rpc contract class entry point
     """
+
     offset: NumAsHex
     selector: Felt
 
@@ -246,6 +270,7 @@ class EntryPoints(TypedDict):
     """
     TypedDict for rpc contract class entry points
     """
+
     CONSTRUCTOR: List[EntryPoint]
     EXTERNAL: List[EntryPoint]
     L1_HANDLER: List[EntryPoint]
@@ -255,6 +280,7 @@ class RpcContractClass(TypedDict):
     """
     TypedDict for rpc contract class
     """
+
     program: str
     entry_points_by_type: EntryPoints
 
@@ -263,6 +289,7 @@ def rpc_contract_class(contract_class: ContractClass) -> RpcContractClass:
     """
     Convert gateway contract class to rpc contract class
     """
+
     def program() -> str:
         _program = contract_class.program.Schema().dump(contract_class.program)
         return compress_program(_program)
@@ -277,14 +304,14 @@ def rpc_contract_class(contract_class: ContractClass) -> RpcContractClass:
             for entry_point in entry_points:
                 _entry_point: EntryPoint = {
                     "selector": rpc_felt(entry_point.selector),
-                    "offset": hex(entry_point.offset)
+                    "offset": hex(entry_point.offset),
                 }
                 _entry_points[typ.name].append(_entry_point)
         return _entry_points
 
     _contract_class: RpcContractClass = {
         "program": program(),
-        "entry_points_by_type": entry_points_by_type()
+        "entry_points_by_type": entry_points_by_type(),
     }
     return _contract_class
 
@@ -293,6 +320,7 @@ class RpcStorageDiff(TypedDict):
     """
     TypedDict for rpc storage diff
     """
+
     address: Felt
     key: Felt
     value: Felt
@@ -302,6 +330,7 @@ class RpcDeclaredContractDiff(TypedDict):
     """
     TypedDict for rpc declared contract diff
     """
+
     class_hash: Felt
 
 
@@ -309,6 +338,7 @@ class RpcDeployedContractDiff(TypedDict):
     """
     TypedDict for rpc deployed contract diff
     """
+
     address: Felt
     class_hash: Felt
 
@@ -317,6 +347,7 @@ class RpcNonceDiff(TypedDict):
     """
     TypedDict for rpc nonce diff
     """
+
     contract_address: Address
     nonce: Felt
 
@@ -325,6 +356,7 @@ class RpcStateDiff(TypedDict):
     """
     TypedDict for rpc state diff
     """
+
     storage_diffs: List[RpcStorageDiff]
     declared_contracts: List[RpcDeclaredContractDiff]
     deployed_contracts: List[RpcDeployedContractDiff]
@@ -335,6 +367,7 @@ class RpcStateUpdate(TypedDict):
     """
     TypedDict for rpc state update
     """
+
     block_hash: BlockHash
     new_root: Felt
     old_root: Felt
@@ -345,6 +378,7 @@ def rpc_state_update(state_update: BlockStateUpdate) -> RpcStateUpdate:
     """
     Convert gateway state update to rpc state update
     """
+
     def storage_diffs() -> List[RpcStorageDiff]:
         _storage_diffs = []
         for address, diffs in state_update.state_diff.storage_diffs.items():
@@ -360,9 +394,7 @@ def rpc_state_update(state_update: BlockStateUpdate) -> RpcStateUpdate:
     def declared_contracts() -> List[RpcDeclaredContractDiff]:
         _contracts = []
         for contract in state_update.state_diff.declared_contracts:
-            diff: RpcDeclaredContractDiff = {
-                "class_hash": rpc_felt(contract)
-            }
+            diff: RpcDeclaredContractDiff = {"class_hash": rpc_felt(contract)}
             _contracts.append(diff)
         return _contracts
 
@@ -371,7 +403,7 @@ def rpc_state_update(state_update: BlockStateUpdate) -> RpcStateUpdate:
         for contract in state_update.state_diff.deployed_contracts:
             diff: RpcDeployedContractDiff = {
                 "address": rpc_felt(contract.address),
-                "class_hash": rpc_felt(contract.class_hash)
+                "class_hash": rpc_felt(contract.class_hash),
             }
             _contracts.append(diff)
         return _contracts
@@ -385,6 +417,6 @@ def rpc_state_update(state_update: BlockStateUpdate) -> RpcStateUpdate:
             "declared_contracts": declared_contracts(),
             "deployed_contracts": deployed_contracts(),
             "nonces": [],
-        }
+        },
     }
     return rpc_state

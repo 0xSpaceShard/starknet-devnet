@@ -13,10 +13,15 @@ def block_tag_to_block_number(block_id: BlockId) -> BlockId:
     """
     if isinstance(block_id, str):
         if block_id == "latest":
-            return {"block_number": state.starknet_wrapper.blocks.get_number_of_blocks() - 1}
+            return {
+                "block_number": state.starknet_wrapper.blocks.get_number_of_blocks() - 1
+            }
 
         if block_id == "pending":
-            raise RpcError(code=-1, message="Calls with block_id == 'pending' are not supported currently.")
+            raise RpcError(
+                code=-1,
+                message="Calls with block_id == 'pending' are not supported currently.",
+            )
 
         raise RpcError(code=24, message="Invalid block id")
 
@@ -32,8 +37,12 @@ def get_block_by_block_id(block_id: BlockId) -> dict:
 
     try:
         if "block_hash" in block_id:
-            return state.starknet_wrapper.blocks.get_by_hash(block_hash=block_id["block_hash"])
-        return state.starknet_wrapper.blocks.get_by_number(block_number=block_id["block_number"])
+            return state.starknet_wrapper.blocks.get_by_hash(
+                block_hash=block_id["block_hash"]
+            )
+        return state.starknet_wrapper.blocks.get_by_number(
+            block_number=block_id["block_number"]
+        )
     except StarknetDevnetException as ex:
         raise RpcError(code=24, message="Invalid block id") from ex
 
@@ -43,7 +52,10 @@ def assert_block_id_is_latest(block_id: BlockId) -> None:
     Assert block_id is "latest" and throw RpcError otherwise
     """
     if block_id != "latest":
-        raise RpcError(code=-1, message="Calls with block_id != 'latest' are not supported currently.")
+        raise RpcError(
+            code=-1,
+            message="Calls with block_id != 'latest' are not supported currently.",
+        )
 
 
 def rpc_felt(value: int) -> Felt:
@@ -75,11 +87,7 @@ def rpc_response(message_id: int, content: dict) -> dict:
     """
     Wrap response content in rpc format
     """
-    return {
-        "jsonrpc": "2.0",
-        "id": message_id,
-        "result": content
-    }
+    return {"jsonrpc": "2.0", "id": message_id, "result": content}
 
 
 def rpc_error(message_id: int, code: int, message: str) -> dict:
@@ -89,8 +97,5 @@ def rpc_error(message_id: int, code: int, message: str) -> dict:
     return {
         "jsonrpc": "2.0",
         "id": message_id,
-        "error": {
-            "code": code,
-            "message": message
-        }
+        "error": {"code": code, "message": message},
     }

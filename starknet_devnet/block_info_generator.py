@@ -9,11 +9,13 @@ from starkware.starknet.definitions.general_config import StarknetGeneralConfig
 
 from starknet_devnet.constants import CAIRO_LANG_VERSION
 
+
 def now() -> int:
     """Get the current time in seconds."""
     return int(time.time())
 
-class BlockInfoGenerator():
+
+class BlockInfoGenerator:
     """Generator of BlockInfo objects with the correct timestamp"""
 
     def __init__(self, start_time: int = None, gas_price: int = 0):
@@ -37,7 +39,7 @@ class BlockInfoGenerator():
             block_number=block_info.block_number,
             block_timestamp=block_timestamp,
             sequencer_address=general_config.sequencer_address,
-            starknet_version=CAIRO_LANG_VERSION
+            starknet_version=CAIRO_LANG_VERSION,
         )
 
     def increase_time(self, time_s: int):

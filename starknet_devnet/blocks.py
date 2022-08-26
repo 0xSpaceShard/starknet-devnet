@@ -6,8 +6,13 @@ from typing import Dict
 
 from starkware.starknet.testing.state import StarknetState
 from starkware.starknet.core.os.block_hash.block_hash import calculate_block_hash
-from starkware.starknet.services.api.feeder_gateway.response_objects import StarknetBlock, BlockStatus
-from starkware.starknet.services.api.feeder_gateway.response_objects import BlockStateUpdate
+from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    StarknetBlock,
+    BlockStatus,
+)
+from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    BlockStateUpdate,
+)
 
 from starknet_devnet.constants import CAIRO_LANG_VERSION
 
@@ -15,10 +20,11 @@ from .origin import Origin
 from .util import StarknetDevnetException
 from .transactions import DevnetTransaction
 
-class DevnetBlocks():
+
+class DevnetBlocks:
     """This class is used to store the generated blocks of the devnet."""
 
-    def __init__(self, origin: Origin, lite = False) -> None:
+    def __init__(self, origin: Origin, lite=False) -> None:
         self.origin = origin
         self.lite = lite
         self.__num2block: Dict[int, StarknetBlock] = {}
@@ -42,7 +48,9 @@ class DevnetBlocks():
             return self.origin.get_block_by_number(block_number)
 
         if block_number < 0:
-            message = f"Block number must be a non-negative integer; got: {block_number}."
+            message = (
+                f"Block number must be a non-negative integer; got: {block_number}."
+            )
             raise StarknetDevnetException(message=message)
 
         if block_number >= self.get_number_of_blocks():
@@ -85,12 +93,17 @@ class DevnetBlocks():
 
             return self.__state_updates[block_number]
 
-
-        return self.__state_updates.get(self.get_number_of_blocks() - 1) or self.origin.get_state_update()
+        return (
+            self.__state_updates.get(self.get_number_of_blocks() - 1)
+            or self.origin.get_state_update()
+        )
 
     async def generate(
-        self, transaction: DevnetTransaction, state: StarknetState,
-        state_update = None, is_empty_block = False
+        self,
+        transaction: DevnetTransaction,
+        state: StarknetState,
+        state_update=None,
+        is_empty_block=False,
     ) -> StarknetBlock:
         """
         Generates a block and stores it to blocks and hash2block. The block contains just the passed transaction.
@@ -111,7 +124,7 @@ class DevnetBlocks():
             transactions = []
         else:
             transaction_receipts = (transaction.get_execution(),)
-            transactions=[transaction.internal_tx]
+            transactions = [transaction.internal_tx]
 
         if self.lite or is_empty_block:
             block_hash = block_number
@@ -126,7 +139,7 @@ class DevnetBlocks():
                 tx_hashes=[transaction.internal_tx.hash_value],
                 tx_signatures=[signature],
                 event_hashes=[],
-                sequencer_address=state.general_config.sequencer_address
+                sequencer_address=state.general_config.sequencer_address,
             )
 
         block = StarknetBlock.create(
@@ -140,7 +153,7 @@ class DevnetBlocks():
             gas_price=state.state.block_info.gas_price,
             sequencer_address=state.general_config.sequencer_address,
             parent_block_hash=parent_block_hash,
-            starknet_version=CAIRO_LANG_VERSION
+            starknet_version=CAIRO_LANG_VERSION,
         )
 
         self.__num2block[block_number] = block

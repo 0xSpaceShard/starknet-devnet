@@ -607,9 +607,10 @@ poetry run starknet-devnet
 ./scripts/starknet_devnet_debug.sh
 ```
 
-### Development - Lint
+### Development - Format and lint
 
 ```text
+./scripts/format.sh
 ./scripts/lint.sh
 ```
 

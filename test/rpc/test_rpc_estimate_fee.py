@@ -29,7 +29,9 @@ def common_estimate_response(response):
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
-@pytest.mark.parametrize("run_devnet_in_background", [["--gas-price", str(DEFAULT_GAS_PRICE)]], indirect=True)
+@pytest.mark.parametrize(
+    "run_devnet_in_background", [["--gas-price", str(DEFAULT_GAS_PRICE)]], indirect=True
+)
 def test_estimate_happy_path():
     """Happy path estimate_fee call"""
     deploy_info = deploy(CONTRACT_PATH, ["0"])
@@ -78,16 +80,13 @@ def test_estimate_fee_with_invalid_call_data(rpc_invoke_tx_common):
         "contract_address": deploy_info["address"],
         "entry_point_selector": hex(get_selector_from_name("sum_point_array")),
         "calldata": ["10", "20"],
-        **rpc_invoke_tx_common
+        **rpc_invoke_tx_common,
     }
     ex = rpc_call_background_devnet(
         "starknet_estimateFee", {"request": txn, "block_id": "latest"}
     )
 
-    assert ex["error"] == {
-        "code": 22,
-        "message": "Invalid call data"
-    }
+    assert ex["error"] == {"code": 22, "message": "Invalid call data"}
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -103,10 +102,7 @@ def test_estimate_fee_with_invalid_contract_address(rpc_invoke_tx_common):
         "starknet_estimateFee", {"request": txn, "block_id": "latest"}
     )
 
-    assert ex["error"] == {
-        "code": 20,
-        "message": "Contract not found"
-    }
+    assert ex["error"] == {"code": 20, "message": "Contract not found"}
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -124,14 +120,13 @@ def test_estimate_fee_with_invalid_message_selector(rpc_invoke_tx_common):
         "starknet_estimateFee", {"request": txn, "block_id": "latest"}
     )
 
-    assert ex["error"] == {
-        "code": 21,
-        "message": "Invalid message selector"
-    }
+    assert ex["error"] == {"code": 21, "message": "Invalid message selector"}
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
-@pytest.mark.parametrize("run_devnet_in_background", [["--gas-price", str(DEFAULT_GAS_PRICE)]], indirect=True)
+@pytest.mark.parametrize(
+    "run_devnet_in_background", [["--gas-price", str(DEFAULT_GAS_PRICE)]], indirect=True
+)
 def test_estimate_fee_with_complete_request_data(rpc_invoke_tx_common):
     """Estimate fee with complete request data"""
 

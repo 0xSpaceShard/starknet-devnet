@@ -6,12 +6,22 @@ import pytest
 import requests
 
 from .settings import APP_URL
-from .util import devnet_in_background, deploy, assert_transaction_not_received, assert_tx_status, call, get_block, invoke
+from .util import (
+    devnet_in_background,
+    deploy,
+    assert_transaction_not_received,
+    assert_tx_status,
+    call,
+    get_block,
+    invoke,
+)
 from .shared import CONTRACT_PATH, ABI_PATH, GENESIS_BLOCK_HASH
+
 
 def restart():
     """Get restart response"""
     return requests.post(f"{APP_URL}/restart")
+
 
 def get_state_update():
     """Get state update"""
@@ -22,6 +32,7 @@ def get_state_update():
 def deploy_contract(salt=None):
     """Deploy empty contract with balance of 0"""
     return deploy(CONTRACT_PATH, inputs=["0"], salt=salt)
+
 
 @pytest.mark.restart
 @devnet_in_background()
@@ -51,13 +62,14 @@ def test_transaction():
 
     assert_transaction_not_received(tx_hash=tx_hash)
 
+
 @pytest.mark.restart
 @devnet_in_background()
 def test_contract():
     """Checks if contract storage is reset"""
     salt = "0x99"
     deploy_info = deploy_contract(salt)
-    contract_address =  deploy_info["address"]
+    contract_address = deploy_info["address"]
     balance = call("get_balance", contract_address, ABI_PATH)
     assert balance == "0"
 
@@ -71,6 +83,7 @@ def test_contract():
     deploy_contract(salt)
     balance = call("get_balance", contract_address, ABI_PATH)
     assert balance == "0"
+
 
 @pytest.mark.restart
 @devnet_in_background()
@@ -88,7 +101,10 @@ def test_state_update():
 
     assert state_update["block_hash"] == GENESIS_BLOCK_HASH
 
+
 GAS_PRICE = str(int(1e9))
+
+
 @devnet_in_background("--gas-price", GAS_PRICE)
 def test_gas_price_unaffected_by_restart():
     """Checks that gas price is not affected by restart"""
