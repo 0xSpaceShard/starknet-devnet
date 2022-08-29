@@ -5,6 +5,7 @@ Test block number
 from .shared import ARTIFACTS_PATH, FAILING_CONTRACT_PATH, GENESIS_BLOCK_NUMBER
 from .util import declare, devnet_in_background, run_devnet_in_background, terminate_and_wait, deploy, call, invoke
 import pytest
+import re
 
 BLOCK_NUMBER_CONTRACT_PATH = f"{ARTIFACTS_PATH}/block_number.cairo/block_number.json"
 BLOCK_NUMBER_ABI_PATH = f"{ARTIFACTS_PATH}/block_number.cairo/block_number_abi.json"
@@ -14,15 +15,19 @@ def fixture_run_devnet_in_background(request) -> None:
     """
     Run devnet instance in background
     """
-
     args = getattr(request, "param", [])
-    print(*args)
-
     proc = run_devnet_in_background(*args)
     try:
         yield
     finally:
         terminate_and_wait(proc)
+
+@pytest.fixture(name="expected_hash")
+def fixture_expected_hash(request):
+    """
+    Fixture to return values of expected hash
+    """
+    return request.param
 
 def my_get_block_number(address: str):
     """Execute my_get_block_number on block_number.cairo contract deployed at `address`"""
@@ -32,17 +37,15 @@ def my_get_block_number(address: str):
         abi_path=BLOCK_NUMBER_ABI_PATH
     )
 
-@pytest.mark.parametrize("run_devnet_in_background", [(""), ("--lite-mode", )], indirect=True) 
-def test_block_number_incremented(run_devnet_in_background):
+@pytest.mark.parametrize("run_devnet_in_background, expected_hash",
+    [([], "^0x[A-Fa-f0-9]{63}$"),(["--lite-mode"], "0x0")], indirect=True)
+def test_block_number_incremented(run_devnet_in_background, expected_hash):
     """Tests how block number is incremented in regular mode and lite mode"""
     
-    print("run_devnet_in_background", run_devnet_in_background)
-
     deploy_info = deploy(BLOCK_NUMBER_CONTRACT_PATH)
     block_number_before = my_get_block_number(deploy_info["address"])
     assert int(block_number_before) == GENESIS_BLOCK_NUMBER + 1
-
-    print("deploy_info[tx_hash]", deploy_info["tx_hash"])
+    assert re.match(expected_hash, deploy_info["tx_hash"])
 
     invoke(
         function="write_block_number",
