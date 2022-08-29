@@ -38,9 +38,10 @@ def my_get_block_number(address: str):
         abi_path=BLOCK_NUMBER_ABI_PATH
     )
 
+@pytest.mark.usefixtures("run_devnet_in_background")
 @pytest.mark.parametrize("run_devnet_in_background, expected_hash",
     [([], "^0x[A-Fa-f0-9]{63}$"),(["--lite-mode"], "0x0")], indirect=True)
-def test_block_number_incremented(run_devnet_in_background, expected_hash):
+def test_block_number_incremented(expected_hash):
     """Tests how block number is incremented in regular mode and lite mode"""
 
     deploy_info = deploy(BLOCK_NUMBER_CONTRACT_PATH)
