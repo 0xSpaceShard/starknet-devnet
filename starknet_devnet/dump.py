@@ -9,6 +9,7 @@ from .devnet_config import DumpOn
 # Instead of "fork", the default on MacOS since Python3.8 has been "spawn", which causes pickling to fail
 multiprocessing.set_start_method("fork")
 
+
 class Dumper:
     """Class for dumping objects."""
 
@@ -28,7 +29,7 @@ class Dumper:
         with open(path, "wb") as file:
             pickle.dump(self.dumpable, file)
 
-    def dump(self, path: str=None):
+    def dump(self, path: str = None):
         """Dump to `path`."""
         path = path or self.dump_path
         assert path, "No dump_path defined"

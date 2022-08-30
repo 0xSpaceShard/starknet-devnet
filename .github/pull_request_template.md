@@ -14,8 +14,9 @@
 
 ## Checklist:
 
-- [ ] No linter errors
-- [ ] Performed a self-review of the code
+- [ ] Applied formatting - `./scripts/format.sh`
+- [ ] No linter errors - `./scripts/lint.sh`
+- [ ] Performed code self-review
 - [ ] Rebased to the last commit of the target branch (or merged it into my branch)
 - [ ] Documented the changes
 - [ ] Linked the issues which this PR resolves

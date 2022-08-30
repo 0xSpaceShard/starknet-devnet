@@ -10,12 +10,22 @@ from .util import (
     assert_transaction_not_received,
     assert_transaction_receipt_not_received,
     devnet_in_background,
-    assert_block, assert_contract_code, assert_equal, assert_failing_deploy, assert_receipt, assert_salty_deploy,
-    assert_storage, assert_transaction, assert_tx_status, assert_events,
-    call, deploy,
+    assert_block,
+    assert_contract_code,
+    assert_equal,
+    assert_failing_deploy,
+    assert_receipt,
+    assert_salty_deploy,
+    assert_storage,
+    assert_transaction,
+    assert_tx_status,
+    assert_events,
+    call,
+    deploy,
     get_class_by_hash,
     get_class_hash_at,
-    get_full_contract, invoke
+    get_full_contract,
+    invoke,
 )
 
 from .shared import (
@@ -28,8 +38,9 @@ from .shared import (
     EXPECTED_SALTY_DEPLOY_HASH,
     FAILING_CONTRACT_PATH,
     GENESIS_BLOCK_NUMBER,
-    NONEXISTENT_TX_HASH
+    NONEXISTENT_TX_HASH,
 )
+
 
 @pytest.mark.general_workflow
 @devnet_in_background()
@@ -68,12 +79,10 @@ def test_general_workflow():
         function="increase_balance",
         address=deploy_info["address"],
         abi_path=ABI_PATH,
-        inputs=["10", "20"]
+        inputs=["10", "20"],
     )
     value = call(
-        function="get_balance",
-        address=deploy_info["address"],
-        abi_path=ABI_PATH
+        function="get_balance", address=deploy_info["address"], abi_path=ABI_PATH
     )
     assert_equal(value, "30", "Invoke+call failed!")
 
@@ -87,7 +96,7 @@ def test_general_workflow():
         function="sum_point_array",
         address=deploy_info["address"],
         abi_path=ABI_PATH,
-        inputs=["2", "10", "20", "30", "40"]
+        inputs=["2", "10", "20", "30", "40"],
     )
     assert_equal(value, "40 60", "Checking complex input failed!")
 
@@ -98,7 +107,7 @@ def test_general_workflow():
         inputs=None,
         expected_status="ACCEPTED_ON_L2",
         expected_address=EXPECTED_SALTY_DEPLOY_ADDRESS,
-        expected_tx_hash=EXPECTED_SALTY_DEPLOY_HASH
+        expected_tx_hash=EXPECTED_SALTY_DEPLOY_HASH,
     )
 
     assert_salty_deploy(
@@ -107,14 +116,14 @@ def test_general_workflow():
         inputs=None,
         expected_status="ACCEPTED_ON_L2",
         expected_address=EXPECTED_SALTY_DEPLOY_ADDRESS,
-        expected_tx_hash=EXPECTED_SALTY_DEPLOY_HASH
+        expected_tx_hash=EXPECTED_SALTY_DEPLOY_HASH,
     )
 
     salty_invoke_tx_hash = invoke(
         function="increase_balance",
         address=EXPECTED_SALTY_DEPLOY_ADDRESS,
         abi_path=EVENTS_ABI_PATH,
-        inputs=["10"]
+        inputs=["10"],
     )
 
     assert_events(salty_invoke_tx_hash, "test/expected/invoke_receipt_event.json")

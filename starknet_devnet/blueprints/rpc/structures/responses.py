@@ -6,10 +6,20 @@ from typing import List, Optional, Union
 from typing_extensions import TypedDict
 
 from starkware.starknet.definitions.transaction_type import TransactionType
-from starkware.starknet.services.api.feeder_gateway.response_objects import TransactionReceipt, TransactionStatus
+from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    TransactionReceipt,
+    TransactionStatus,
+)
 
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
-from starknet_devnet.blueprints.rpc.structures.types import TxnHash, Felt, Address, BlockNumber, BlockHash, TxnStatus
+from starknet_devnet.blueprints.rpc.structures.types import (
+    TxnHash,
+    Felt,
+    Address,
+    BlockNumber,
+    BlockHash,
+    TxnStatus,
+)
 from starknet_devnet.state import state
 
 
@@ -17,6 +27,7 @@ class RpcInvokeTransactionResult(TypedDict):
     """
     TypedDict for rpc invoke transaction result
     """
+
     transaction_hash: TxnHash
 
 
@@ -24,6 +35,7 @@ class RpcDeclareTransactionResult(TypedDict):
     """
     TypedDict for rpc declare transaction result
     """
+
     transaction_hash: TxnHash
     class_hash: Felt
 
@@ -32,6 +44,7 @@ class RpcDeployTransactionResult(TypedDict):
     """
     TypedDict for rpc deploy transaction result
     """
+
     transaction_hash: TxnHash
     contract_address: Felt
 
@@ -40,6 +53,7 @@ class MessageToL1(TypedDict):
     """
     TypedDict for rpc message from l2 to l1
     """
+
     to_address: Felt
     payload: List[Felt]
 
@@ -48,6 +62,7 @@ class MessageToL2(TypedDict):
     """
     TypedDict for rpc message from l1 to l2
     """
+
     from_address: str
     payload: List[Felt]
 
@@ -56,6 +71,7 @@ class Event(TypedDict):
     """
     TypedDict for rpc event
     """
+
     from_address: Address
     keys: List[Felt]
     data: List[Felt]
@@ -65,6 +81,7 @@ class RpcBaseTransactionReceipt(TypedDict):
     """
     TypedDict for rpc transaction receipt
     """
+
     # Common
     transaction_hash: TxnHash
     actual_fee: Felt
@@ -78,6 +95,7 @@ class RpcInvokeReceipt(TypedDict):
     """
     TypedDict for rpc invoke transaction receipt
     """
+
     messages_sent: List[MessageToL1]
     l1_origin_message: Optional[MessageToL2]
     events: List[Event]
@@ -94,6 +112,7 @@ class RpcDeclareReceipt(TypedDict):
     """
     TypedDict for rpc declare transaction receipt
     """
+
     # Common
     transaction_hash: TxnHash
     actual_fee: Felt
@@ -107,6 +126,7 @@ class RpcDeployReceipt(TypedDict):
     """
     TypedDict for rpc declare transaction receipt
     """
+
     # Common
     transaction_hash: TxnHash
     actual_fee: Felt
@@ -120,11 +140,15 @@ def rpc_invoke_receipt(txr: TransactionReceipt) -> RpcInvokeReceipt:
     """
     Convert rpc invoke transaction receipt to rpc format
     """
+
     def l2_to_l1_messages() -> List[MessageToL1]:
-        return [{
-            "to_address": rpc_felt(message.to_address),
-            "payload": [rpc_felt(p) for p in message.payload]
-        } for message in txr.l2_to_l1_messages]
+        return [
+            {
+                "to_address": rpc_felt(message.to_address),
+                "payload": [rpc_felt(p) for p in message.payload],
+            }
+            for message in txr.l2_to_l1_messages
+        ]
 
     def l1_to_l2_message() -> Optional[MessageToL2]:
         if txr.l1_to_l2_consumed_message is None:
@@ -132,7 +156,7 @@ def rpc_invoke_receipt(txr: TransactionReceipt) -> RpcInvokeReceipt:
 
         msg: MessageToL2 = {
             "from_address": txr.l1_to_l2_consumed_message.from_address,
-            "payload": [rpc_felt(p) for p in txr.l1_to_l2_consumed_message.payload]
+            "payload": [rpc_felt(p) for p in txr.l1_to_l2_consumed_message.payload],
         }
         return msg
 
@@ -175,6 +199,7 @@ def rpc_base_transaction_receipt(txr: TransactionReceipt) -> RpcBaseTransactionR
     """
     Convert gateway transaction receipt to rpc transaction receipt
     """
+
     def status() -> str:
         if txr.status is None:
             return "UNKNOWN"
@@ -215,6 +240,8 @@ def rpc_transaction_receipt(txr: TransactionReceipt) -> dict:
         TransactionType.INVOKE_FUNCTION: rpc_invoke_receipt,
         TransactionType.DECLARE: rpc_declare_receipt,
     }
-    transaction = state.starknet_wrapper.transactions.get_transaction(hex(txr.transaction_hash)).transaction
+    transaction = state.starknet_wrapper.transactions.get_transaction(
+        hex(txr.transaction_hash)
+    ).transaction
     tx_type = transaction.tx_type
     return tx_mapping[tx_type](txr)

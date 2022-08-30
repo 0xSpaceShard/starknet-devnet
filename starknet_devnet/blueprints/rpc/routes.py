@@ -11,16 +11,32 @@ from typing import Callable, Union, List, Tuple
 from flask import Blueprint
 from flask import request
 
-from starknet_devnet.blueprints.rpc.blocks import get_block_with_tx_hashes, get_block_with_txs, \
-    get_block_transaction_count, block_number, block_hash_and_number
+from starknet_devnet.blueprints.rpc.blocks import (
+    get_block_with_tx_hashes,
+    get_block_with_txs,
+    get_block_transaction_count,
+    block_number,
+    block_hash_and_number,
+)
 from starknet_devnet.blueprints.rpc.call import call
-from starknet_devnet.blueprints.rpc.classes import get_class, get_class_hash_at, get_class_at
+from starknet_devnet.blueprints.rpc.classes import (
+    get_class,
+    get_class_hash_at,
+    get_class_at,
+)
 from starknet_devnet.blueprints.rpc.misc import chain_id, syncing, get_events, get_nonce
 from starknet_devnet.blueprints.rpc.state import get_state_update
 from starknet_devnet.blueprints.rpc.storage import get_storage_at
-from starknet_devnet.blueprints.rpc.transactions import get_transaction_by_hash, \
-    get_transaction_by_block_id_and_index, get_transaction_receipt, estimate_fee, pending_transactions, \
-    add_invoke_transaction, add_declare_transaction, add_deploy_transaction
+from starknet_devnet.blueprints.rpc.transactions import (
+    get_transaction_by_hash,
+    get_transaction_by_block_id_and_index,
+    get_transaction_receipt,
+    estimate_fee,
+    pending_transactions,
+    add_invoke_transaction,
+    add_declare_transaction,
+    add_deploy_transaction,
+)
 from starknet_devnet.blueprints.rpc.utils import rpc_response, rpc_error
 from starknet_devnet.blueprints.rpc.structures.types import RpcError
 
@@ -63,7 +79,9 @@ async def base_route():
     try:
         result = await method(*args) if isinstance(args, list) else await method(**args)
     except NotImplementedError:
-        return rpc_error(message_id=message_id, code=-2, message="Method not implemented")
+        return rpc_error(
+            message_id=message_id, code=-2, message="Method not implemented"
+        )
     except RpcError as error:
         return rpc_error(message_id=message_id, code=error.code, message=error.message)
 

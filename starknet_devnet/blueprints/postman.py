@@ -10,6 +10,7 @@ from starknet_devnet.util import StarknetDevnetException
 
 postman = Blueprint("postman", __name__, url_prefix="/postman")
 
+
 def validate_load_messaging_contract(request_dict: dict):
     """Ensure `data` is valid Starknet function call. Returns an `InvokeFunction`."""
 
@@ -19,6 +20,7 @@ def validate_load_messaging_contract(request_dict: dict):
         raise StarknetDevnetException(message=error_message, status_code=400)
 
     return network_url
+
 
 @postman.route("/load_l1_messaging_contract", methods=["POST"])
 async def load_l1_messaging_contract():
@@ -33,8 +35,11 @@ async def load_l1_messaging_contract():
     contract_address = request_dict.get("address")
     network_id = request_dict.get("networkId")
 
-    result_dict = await state.starknet_wrapper.load_messaging_contract_in_l1(network_url, contract_address, network_id)
+    result_dict = await state.starknet_wrapper.load_messaging_contract_in_l1(
+        network_url, contract_address, network_id
+    )
     return jsonify(result_dict)
+
 
 @postman.route("/flush", methods=["POST"])
 async def flush():
@@ -42,5 +47,5 @@ async def flush():
     Handles all pending L1 <> L2 messages and sends them to the other layer
     """
 
-    result_dict= await state.starknet_wrapper.postman_flush()
+    result_dict = await state.starknet_wrapper.postman_flush()
     return jsonify(result_dict)

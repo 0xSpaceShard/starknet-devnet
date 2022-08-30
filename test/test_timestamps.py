@@ -19,30 +19,39 @@ TS_ABI_PATH = f"{ARTIFACTS_PATH}/timestamp.cairo/timestamp_abi.json"
 
 SET_TIME_ARGUMENT = 1514764800
 
+
 def deploy_ts_contract():
     """Deploys the timestamp contract"""
     return deploy(TS_CONTRACT_PATH)
 
+
 def get_ts_from_contract(address):
     """Returns the timestamp of the contract"""
-    return int(call(
-        function="get_timestamp",
-        address=address,
-        abi_path=TS_ABI_PATH,
-    ))
+    return int(
+        call(
+            function="get_timestamp",
+            address=address,
+            abi_path=TS_ABI_PATH,
+        )
+    )
+
 
 def get_ts_from_last_block():
     """Returns the timestamp of the last block"""
     return get_block(parse=True)["timestamp"]
 
+
 def increase_time(time_s):
     """Increases the block timestamp offset"""
-    increase_time_response = requests.post(f"{APP_URL}/increase_time", json={"time": time_s})
+    increase_time_response = requests.post(
+        f"{APP_URL}/increase_time", json={"time": time_s}
+    )
 
     if increase_time_response.status_code == 200:
         assert increase_time_response.json().get("timestamp_increased_by") == time_s
 
     return increase_time_response
+
 
 def set_time(time_s):
     """Sets the block timestamp and offset"""
@@ -52,6 +61,7 @@ def set_time(time_s):
         assert set_time_response.json().get("next_block_timestamp") == time_s
 
     return set_time_response
+
 
 @pytest.mark.timestamps
 @devnet_in_background()
@@ -74,6 +84,7 @@ def test_timestamps():
 
     assert ts_after_second_deploy == ts_from_second_call
     assert ts_from_second_call > ts_from_first_call
+
 
 @pytest.mark.timestamps
 @devnet_in_background()
@@ -133,6 +144,7 @@ def test_set_time():
     # check if offset is still the same
     assert third_block_ts - first_block_ts >= 86400
 
+
 @pytest.mark.timestamps
 @devnet_in_background("--start-time", str(SET_TIME_ARGUMENT))
 def test_set_time_argument():
@@ -140,6 +152,7 @@ def test_set_time_argument():
     first_block_ts = get_ts_from_last_block()
 
     assert first_block_ts == SET_TIME_ARGUMENT
+
 
 @pytest.mark.timestamps
 @devnet_in_background()
@@ -164,6 +177,7 @@ def test_set_time_errors():
 
     assert response.status_code == 400
     assert message == "time value must be an integer."
+
 
 @pytest.mark.timestamps
 @devnet_in_background()
@@ -196,11 +210,12 @@ def test_block_info_generator():
     start = int(time.time())
     block_info = BlockInfo.create_for_testing(block_number=0, block_timestamp=start)
 
-
     # Test if start time is set by the constructor
     generator = BlockInfoGenerator(start_time=10)
 
-    block_with_start_time = generator.next_block(block_info=block_info, general_config=DEFAULT_GENERAL_CONFIG)
+    block_with_start_time = generator.next_block(
+        block_info=block_info, general_config=DEFAULT_GENERAL_CONFIG
+    )
 
     assert block_with_start_time.block_timestamp == 10
 
@@ -208,7 +223,9 @@ def test_block_info_generator():
 
     generator.increase_time(22)
 
-    block_after_increase = generator.next_block(block_info=block_info, general_config=DEFAULT_GENERAL_CONFIG)
+    block_after_increase = generator.next_block(
+        block_info=block_info, general_config=DEFAULT_GENERAL_CONFIG
+    )
 
     assert block_after_increase.block_timestamp == 32
 
@@ -217,15 +234,19 @@ def test_block_info_generator():
     generator = BlockInfoGenerator()
     generator.increase_time(1_000_000_000)
 
-    block_with_increase_time = generator.next_block(block_info=block_info, general_config=DEFAULT_GENERAL_CONFIG)
+    block_with_increase_time = generator.next_block(
+        block_info=block_info, general_config=DEFAULT_GENERAL_CONFIG
+    )
 
     assert block_with_increase_time.block_timestamp >= 1_000_000_000 + int(time.time())
 
-
     generator.set_next_block_time(222)
-    block_after_set_time = generator.next_block(block_info=block_info, general_config=DEFAULT_GENERAL_CONFIG)
+    block_after_set_time = generator.next_block(
+        block_info=block_info, general_config=DEFAULT_GENERAL_CONFIG
+    )
 
     assert block_after_set_time.block_timestamp == 222
+
 
 @pytest.mark.timestamps
 @devnet_in_background("--lite-mode")

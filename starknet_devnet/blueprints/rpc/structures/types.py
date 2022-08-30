@@ -19,6 +19,7 @@ class BlockHashDict(TypedDict):
     """
     TypedDict class for BlockId with block hash
     """
+
     block_hash: BlockHash
 
 
@@ -26,6 +27,7 @@ class BlockNumberDict(TypedDict):
     """
     TypedDict class for BlockId with block number
     """
+
     block_number: BlockNumber
 
 
@@ -45,7 +47,7 @@ def rpc_block_status(block_status: BlockStatus) -> RpcBlockStatus:
         "ABORTED": "REJECTED",
         "REVERTED": "REJECTED",
         "ACCEPTED_ON_L2": "ACCEPTED_ON_L2",
-        "ACCEPTED_ON_L1": "ACCEPTED_ON_L1"
+        "ACCEPTED_ON_L1": "ACCEPTED_ON_L1",
     }
     return block_status_map[block_status]
 
@@ -69,7 +71,10 @@ def rpc_txn_type(transaction_type: str) -> TxnType:
         "INVOKE_FUNCTION": "INVOKE",
     }
     if transaction_type not in txn_type_map:
-        raise RpcError(code=-1, message=f"Current implementation does not support {transaction_type} transaction type")
+        raise RpcError(
+            code=-1,
+            message=f"Current implementation does not support {transaction_type} transaction type",
+        )
     return txn_type_map[transaction_type]
 
 

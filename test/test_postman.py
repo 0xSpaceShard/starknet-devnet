@@ -7,7 +7,15 @@ import subprocess
 
 from test.web3_util import web3_call, web3_deploy, web3_transact
 from test.settings import APP_URL, L1_HOST, L1_PORT, L1_URL
-from test.util import call, deploy, devnet_in_background, ensure_server_alive, invoke, load_file_content, terminate_and_wait
+from test.util import (
+    call,
+    deploy,
+    devnet_in_background,
+    ensure_server_alive,
+    invoke,
+    load_file_content,
+    terminate_and_wait,
+)
 
 import psutil
 import pytest
@@ -22,8 +30,11 @@ CONTRACT_PATH = f"{ARTIFACTS_PATH}/l1l2.cairo/l1l2.json"
 ABI_PATH = f"{ARTIFACTS_PATH}/l1l2.cairo/l1l2_abi.json"
 
 ETH_CONTRACTS_PATH = "artifacts/contracts/solidity"
-STARKNET_MESSAGING_PATH = f"{ETH_CONTRACTS_PATH}/MockStarknetMessaging.sol/MockStarknetMessaging.json"
+STARKNET_MESSAGING_PATH = (
+    f"{ETH_CONTRACTS_PATH}/MockStarknetMessaging.sol/MockStarknetMessaging.json"
+)
 L1L2_EXAMPLE_PATH = f"{ETH_CONTRACTS_PATH}/L1L2.sol/L1L2Example.json"
+
 
 @pytest.fixture(autouse=True)
 def run_before_and_after_test():
@@ -46,27 +57,43 @@ def run_before_and_after_test():
         print("Children after killing", wrapped_node_proc.children(recursive=True))
         terminate_and_wait(node_proc)
 
+
 def flush():
     """Flushes the postman messages. Returns response data"""
-    res = requests.post(
-        f"{APP_URL}/postman/flush"
-    )
+    res = requests.post(f"{APP_URL}/postman/flush")
 
     return res.json()
 
-def assert_flush_response(response, expected_from_l1, expected_from_l2, expected_l1_provider):
+
+def assert_flush_response(
+    response, expected_from_l1, expected_from_l2, expected_l1_provider
+):
     """Asserts that the flush response is correct"""
 
     assert response["l1_provider"] == expected_l1_provider
 
     for i, l1_message in enumerate(response["consumed_messages"]["from_l1"]):
-        assert l1_message["args"]["from_address"] == expected_from_l1[i]["args"]["from_address"]
-        assert l1_message["args"]["to_address"] == expected_from_l1[i]["args"]["to_address"]
-        assert l1_message["args"]["payload"] == [hex(x) for x in expected_from_l1[i]["args"]["payload"]]
+        assert (
+            l1_message["args"]["from_address"]
+            == expected_from_l1[i]["args"]["from_address"]
+        )
+        assert (
+            l1_message["args"]["to_address"]
+            == expected_from_l1[i]["args"]["to_address"]
+        )
+        assert l1_message["args"]["payload"] == [
+            hex(x) for x in expected_from_l1[i]["args"]["payload"]
+        ]
 
         # check if correct keys are present
         expected_keys = [
-            "block_hash", "block_number", "transaction_hash", "transaction_index", "address", "event", "log_index"
+            "block_hash",
+            "block_number",
+            "transaction_hash",
+            "transaction_index",
+            "address",
+            "event",
+            "log_index",
         ]
 
         for key in expected_keys:
@@ -86,12 +113,10 @@ def assert_flush_response(response, expected_from_l1, expected_from_l2, expected
 def init_messaging_contract():
     """Initializes the messaging contract"""
 
-    deploy_messaging_contract_request = {
-        "networkUrl": L1_URL
-    }
+    deploy_messaging_contract_request = {"networkUrl": L1_URL}
     resp = requests.post(
         f"{APP_URL}/postman/load_l1_messaging_contract",
-        json=deploy_messaging_contract_request
+        json=deploy_messaging_contract_request,
     )
     return json.loads(resp.text)
 
@@ -105,8 +130,12 @@ def deploy_l1_contracts(web3):
     # Min amount of time in seconds for a message to be able to be cancelled
     l1_message_cancellation_delay = 0
     # Deploys a new mock contract so that the feature for loading an already deployed messaging contract can be tested
-    starknet_messaging_contract = web3_deploy(web3, messaging_contract, l1_message_cancellation_delay)
-    l1l2_example = web3_deploy(web3,l1l2_example_contract,starknet_messaging_contract.address)
+    starknet_messaging_contract = web3_deploy(
+        web3, messaging_contract, l1_message_cancellation_delay
+    )
+    l1l2_example = web3_deploy(
+        web3, l1l2_example_contract, starknet_messaging_contract.address
+    )
 
     return starknet_messaging_contract, l1l2_example
 
@@ -116,18 +145,19 @@ def load_messaging_contract(starknet_messaging_contract_address):
 
     load_messaging_contract_request = {
         "networkUrl": L1_URL,
-        "address": starknet_messaging_contract_address
+        "address": starknet_messaging_contract_address,
     }
 
     resp = requests.post(
         f"{APP_URL}/postman/load_l1_messaging_contract",
-        json=load_messaging_contract_request
+        json=load_messaging_contract_request,
     )
 
     return json.loads(resp.text)
 
+
 def init_l2_contract(l1l2_example_contract_address):
-    """Deploys the L1L2Example cairo contract, returns the result of calling 'get_balance' """
+    """Deploys the L1L2Example cairo contract, returns the result of calling 'get_balance'"""
 
     deploy_info = deploy(CONTRACT_PATH)
 
@@ -136,13 +166,13 @@ def init_l2_contract(l1l2_example_contract_address):
         function="increase_balance",
         address=deploy_info["address"],
         abi_path=ABI_PATH,
-        inputs=["1","3333"]
+        inputs=["1", "3333"],
     )
     invoke(
         function="withdraw",
         address=deploy_info["address"],
         abi_path=ABI_PATH,
-        inputs=["1","1000",l1l2_example_contract_address]
+        inputs=["1", "1000", l1l2_example_contract_address],
     )
 
     # flush L2 to L1 messages
@@ -151,33 +181,33 @@ def init_l2_contract(l1l2_example_contract_address):
     assert_flush_response(
         response=flush_response,
         expected_from_l1=[],
-        expected_from_l2=[{
-            "from_address": deploy_info["address"],
-            "to_address": l1l2_example_contract_address,
-            "payload": [0, 1, 1000] # MESSAGE_WITHDRAW, user, amount
-        }],
-        expected_l1_provider=L1_URL
+        expected_from_l2=[
+            {
+                "from_address": deploy_info["address"],
+                "to_address": l1l2_example_contract_address,
+                "payload": [0, 1, 1000],  # MESSAGE_WITHDRAW, user, amount
+            }
+        ],
+        expected_l1_provider=L1_URL,
     )
 
-    #assert balance
+    # assert balance
     value = call(
         function="get_balance",
         address=deploy_info["address"],
         abi_path=ABI_PATH,
-        inputs=["1"]
+        inputs=["1"],
     )
 
     assert value == "2333"
     return deploy_info["address"]
 
+
 def l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address):
     """Tests message exchange"""
 
     # assert contract balance when starting
-    balance = web3_call(
-        "userBalances",
-        l1l2_example_contract,
-        1)
+    balance = web3_call("userBalances", l1l2_example_contract, 1)
     assert balance == 0
 
     # withdraw in l1 and assert contract balance
@@ -185,12 +215,12 @@ def l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address):
         web3,
         "withdraw",
         l1l2_example_contract,
-        int(l2_contract_address,base=16), 1, 1000)
+        int(l2_contract_address, base=16),
+        1,
+        1000,
+    )
 
-    balance = web3_call(
-        "userBalances",
-        l1l2_example_contract,
-        1)
+    balance = web3_call("userBalances", l1l2_example_contract, 1)
     assert balance == 1000
 
     # assert l2 contract balance
@@ -198,7 +228,7 @@ def l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address):
         function="get_balance",
         address=l2_contract_address,
         abi_path=ABI_PATH,
-        inputs=["1"]
+        inputs=["1"],
     )
 
     assert l2_balance == "2333"
@@ -208,12 +238,12 @@ def l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address):
         web3,
         "deposit",
         l1l2_example_contract,
-        int(l2_contract_address,base=16), 1, 600)
+        int(l2_contract_address, base=16),
+        1,
+        600,
+    )
 
-    balance = web3_call(
-        "userBalances",
-        l1l2_example_contract,
-        1)
+    balance = web3_call("userBalances", l1l2_example_contract, 1)
 
     assert balance == 400
 
@@ -222,14 +252,16 @@ def l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address):
 
     assert_flush_response(
         response=flush_response,
-        expected_from_l1=[{
-            "address": None,
-            "args": {
-                "from_address": l1l2_example_contract.address,
-                "to_address": l2_contract_address,
-                "payload": [1, 600]  # user, amount
+        expected_from_l1=[
+            {
+                "address": None,
+                "args": {
+                    "from_address": l1l2_example_contract.address,
+                    "to_address": l2_contract_address,
+                    "payload": [1, 600],  # user, amount
+                },
             }
-        }],
+        ],
         expected_from_l2=[],
         expected_l1_provider=L1_URL,
     )
@@ -239,10 +271,11 @@ def l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address):
         function="get_balance",
         address=l2_contract_address,
         abi_path=ABI_PATH,
-        inputs=["1"]
+        inputs=["1"],
     )
 
     assert l2_balance == "2933"
+
 
 @pytest.mark.web3_messaging
 @devnet_in_background()
@@ -270,15 +303,15 @@ def test_postman():
     # Test initializing the l2 example contract
     l2_contract_address = init_l2_contract(l1l2_example_contract.address)
 
-    l1_l2_message_exchange(web3,l1l2_example_contract,l2_contract_address)
+    l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address)
 
 
 def load_l1_messaging_contract(req_dict: dict):
     """Load L1 messaging contract"""
     return requests.post(
-        f"{APP_URL}/postman/load_l1_messaging_contract",
-        json=(req_dict)
+        f"{APP_URL}/postman/load_l1_messaging_contract", json=(req_dict)
     )
+
 
 @devnet_in_background()
 def test_invalid_starknet_function_call_load_l1_messaging_contract():

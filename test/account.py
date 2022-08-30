@@ -9,7 +9,7 @@ from starkware.starknet.public.abi import get_selector_from_name
 from starkware.starknet.definitions.constants import TRANSACTION_VERSION, QUERY_VERSION
 from starkware.starknet.core.os.transaction_hash.transaction_hash import (
     calculate_transaction_hash_common,
-    TransactionHashPrefix
+    TransactionHashPrefix,
 )
 from starkware.starknet.definitions.general_config import StarknetChainId
 
@@ -25,13 +25,16 @@ ACCOUNT_ABI_PATH = f"{ACCOUNT_ARTIFACTS_PATH}/{ACCOUNT_AUTHOR}/{ACCOUNT_VERSION}
 PRIVATE_KEY = 123456789987654321
 PUBLIC_KEY = private_to_stark_key(PRIVATE_KEY)
 
+
 def deploy_account_contract(salt=None):
     """Deploy account contract."""
     return deploy(ACCOUNT_PATH, inputs=[str(PUBLIC_KEY)], salt=salt)
 
+
 def get_nonce(account_address):
     """Get nonce."""
     return call("get_nonce", account_address, ACCOUNT_ABI_PATH)
+
 
 def get_execute_calldata(call_array, calldata, nonce):
     """Get calldata for __execute__."""
@@ -40,17 +43,20 @@ def get_execute_calldata(call_array, calldata, nonce):
         *[x for t in call_array for x in t],
         len(calldata),
         *calldata,
-        int(nonce)
+        int(nonce),
     ]
+
 
 def str_to_felt(text: str) -> int:
     """Converts string to felt."""
     return int.from_bytes(bytes(text, "ascii"), "big")
 
+
 def get_signature(message_hash: int, private_key: int) -> Tuple[str, str]:
     """Get signature from message hash and private key."""
     sig_r, sig_s = sign(message_hash, private_key)
     return [str(sig_r), str(sig_s)]
+
 
 def from_call_to_call_array(calls):
     """Transforms calls to call_array and calldata."""
@@ -64,16 +70,18 @@ def from_call_to_call_array(calls):
             call_tuple[0],
             get_selector_from_name(call_tuple[1]),
             len(calldata),
-            len(call_tuple[2])
+            len(call_tuple[2]),
         )
         call_array.append(entry)
         calldata.extend(call_tuple[2])
 
     return (call_array, calldata)
 
+
 def adapt_inputs(execute_calldata: List[int]) -> List[str]:
     """Get stringified inputs from execute_calldata."""
     return [str(v) for v in execute_calldata]
+
 
 # pylint: disable=too-many-arguments
 def get_execute_args(
@@ -82,7 +90,8 @@ def get_execute_args(
     private_key,
     nonce=None,
     max_fee=0,
-    version: int = TRANSACTION_VERSION):
+    version: int = TRANSACTION_VERSION,
+):
     """Returns signature and execute calldata"""
 
     if nonce is None:
@@ -97,17 +106,15 @@ def get_execute_args(
         contract_address=int(account_address, 16),
         calldata=execute_calldata,
         version=version,
-        max_fee=max_fee
+        max_fee=max_fee,
     )
     signature = get_signature(message_hash, private_key)
 
     return signature, execute_calldata
 
+
 def get_transaction_hash(
-    contract_address: int,
-    calldata: Sequence[int],
-    version: int,
-    max_fee: int = 0
+    contract_address: int, calldata: Sequence[int], version: int, max_fee: int = 0
 ) -> str:
     """Get transaction hash for execute transaction."""
     return calculate_transaction_hash_common(
@@ -121,6 +128,7 @@ def get_transaction_hash(
         additional_data=[],
     )
 
+
 def get_estimated_fee(calls, account_address, private_key, nonce=None):
     """Get estimated fee through account."""
     signature, execute_calldata = get_execute_args(
@@ -128,7 +136,7 @@ def get_estimated_fee(calls, account_address, private_key, nonce=None):
         account_address=account_address,
         private_key=private_key,
         nonce=nonce,
-        version=QUERY_VERSION
+        version=QUERY_VERSION,
     )
 
     return estimate_fee(
@@ -149,7 +157,9 @@ def execute(calls, account_address, private_key, nonce=None, max_fee=0, query=Fa
         version = TRANSACTION_VERSION
         runner = invoke
 
-    signature, execute_calldata = get_execute_args(calls, account_address, private_key, nonce, max_fee, version=version)
+    signature, execute_calldata = get_execute_args(
+        calls, account_address, private_key, nonce, max_fee, version=version
+    )
 
     return runner(
         "__execute__",
@@ -157,5 +167,5 @@ def execute(calls, account_address, private_key, nonce=None, max_fee=0, query=Fa
         address=account_address,
         abi_path=ACCOUNT_ABI_PATH,
         signature=signature,
-        max_fee=str(max_fee)
+        max_fee=str(max_fee),
     )

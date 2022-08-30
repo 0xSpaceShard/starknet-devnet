@@ -4,20 +4,26 @@ from typing import List
 import pytest
 
 from starkware.starknet.business_logic.internal_transaction import InternalDeploy
-from starkware.starknet.core.os.contract_address.contract_address import calculate_contract_address
+from starkware.starknet.core.os.contract_address.contract_address import (
+    calculate_contract_address,
+)
 from starkware.starknet.definitions import constants
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.gateway.transaction import Deploy
-from starkware.starknet.services.api.feeder_gateway.response_objects import TransactionStatus
+from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    TransactionStatus,
+)
 
 from starknet_devnet.devnet_config import parse_args, DevnetConfig
 from starknet_devnet.starknet_wrapper import StarknetWrapper
 from .shared import CONTRACT_PATH, GENESIS_BLOCK_NUMBER
 
+
 def get_contract_class():
     """Get the contract class from the contract.json file."""
     with open(CONTRACT_PATH, "r", encoding="utf-8") as contract_class_file:
         return ContractClass.loads(contract_class_file.read())
+
 
 def get_deploy_transaction(inputs: List[int], salt=0):
     """Get a Deploy transaction."""
@@ -27,8 +33,9 @@ def get_deploy_transaction(inputs: List[int], salt=0):
         contract_address_salt=salt,
         contract_definition=contract_class,
         constructor_calldata=inputs,
-        version=constants.TRANSACTION_VERSION
+        version=constants.TRANSACTION_VERSION,
     )
+
 
 @pytest.mark.asyncio
 async def test_deploy():
@@ -39,13 +46,15 @@ async def test_deploy():
     await devnet.initialize()
     deploy_transaction = get_deploy_transaction(inputs=[0])
 
-    contract_address, tx_hash = await devnet.deploy(deploy_transaction=deploy_transaction)
+    contract_address, tx_hash = await devnet.deploy(
+        deploy_transaction=deploy_transaction
+    )
 
     expected_contract_address = calculate_contract_address(
         deployer_address=0,
         constructor_calldata=deploy_transaction.constructor_calldata,
         salt=deploy_transaction.contract_address_salt,
-        contract_class=deploy_transaction.contract_definition
+        contract_class=deploy_transaction.contract_definition,
     )
 
     assert contract_address == expected_contract_address
@@ -53,11 +62,11 @@ async def test_deploy():
     state = devnet.get_state()
 
     internal_tx = InternalDeploy.from_external(
-        external_tx=deploy_transaction,
-        general_config=state.general_config
+        external_tx=deploy_transaction, general_config=state.general_config
     )
 
     assert tx_hash == internal_tx.hash_value
+
 
 @pytest.mark.asyncio
 async def test_deploy_lite():
@@ -68,12 +77,14 @@ async def test_deploy_lite():
     await devnet.initialize()
     deploy_transaction = get_deploy_transaction(inputs=[0])
 
-    contract_address, tx_hash = await devnet.deploy(deploy_transaction=deploy_transaction)
+    contract_address, tx_hash = await devnet.deploy(
+        deploy_transaction=deploy_transaction
+    )
     expected_contract_address = calculate_contract_address(
         deployer_address=0,
         constructor_calldata=deploy_transaction.constructor_calldata,
         salt=deploy_transaction.contract_address_salt,
-        contract_class=deploy_transaction.contract_definition
+        contract_class=deploy_transaction.contract_definition,
     )
 
     assert contract_address == expected_contract_address

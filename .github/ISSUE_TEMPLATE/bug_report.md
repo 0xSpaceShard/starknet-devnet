@@ -32,8 +32,9 @@ If applicable, add screenshots to help explain your problem. However, prefer pro
 - [ ] This happens with a dockerized Devnet (check the box if true).
 - This does not appear on the following Devnet version:
 
-**Machine specifications**
+**System specifications**
 
 - OS:
 - CPU:
 - Memory:
+- Python version:

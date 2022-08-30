@@ -25,7 +25,9 @@ def pad_zero_external_entry_points(contract_class: dict) -> dict:
     """
     external_entry_points = contract_class["entry_points_by_type"]["EXTERNAL"]
     for i, _ in enumerate(external_entry_points):
-        external_entry_points[i]["selector"] = pad_zero(external_entry_points[i]["selector"])
+        external_entry_points[i]["selector"] = pad_zero(
+            external_entry_points[i]["selector"]
+        )
 
     contract_class["entry_points_by_type"]["EXTERNAL"] = external_entry_points
 
@@ -43,7 +45,8 @@ def test_get_transaction_by_hash_deploy(deploy_info):
     contract_address: str = deploy_info["address"]
 
     resp = rpc_call(
-        "starknet_getTransactionByHash", params={"transaction_hash": pad_zero(transaction_hash)}
+        "starknet_getTransactionByHash",
+        params={"transaction_hash": pad_zero(transaction_hash)},
     )
     transaction = resp["result"]
 
@@ -68,13 +71,12 @@ def test_get_transaction_by_hash_invoke(invoke_info):
     transaction_hash: str = invoke_info["transaction_hash"]
     contract_address: str = invoke_info["address"]
     entry_point_selector: str = invoke_info["entry_point_selector"]
-    signature: List[str] = [pad_zero(hex(int(sig)))
-                            for sig in invoke_info["signature"]]
-    calldata: List[str] = [pad_zero(hex(int(data)))
-                           for data in invoke_info["calldata"]]
+    signature: List[str] = [pad_zero(hex(int(sig))) for sig in invoke_info["signature"]]
+    calldata: List[str] = [pad_zero(hex(int(data))) for data in invoke_info["calldata"]]
 
     resp = rpc_call(
-        "starknet_getTransactionByHash", params={"transaction_hash": pad_zero(transaction_hash)}
+        "starknet_getTransactionByHash",
+        params={"transaction_hash": pad_zero(transaction_hash)},
     )
     transaction = resp["result"]
 
@@ -99,11 +101,13 @@ def test_get_transaction_by_hash_declare(declare_info):
     block = get_block_with_transaction(declare_info["transaction_hash"])
     block_tx = block["transactions"][0]
     transaction_hash: str = declare_info["transaction_hash"]
-    signature: List[str] = [pad_zero(hex(int(sig)))
-                            for sig in declare_info["signature"]]
+    signature: List[str] = [
+        pad_zero(hex(int(sig))) for sig in declare_info["signature"]
+    ]
 
     resp = rpc_call(
-        "starknet_getTransactionByHash", params={"transaction_hash": pad_zero(transaction_hash)}
+        "starknet_getTransactionByHash",
+        params={"transaction_hash": pad_zero(transaction_hash)},
     )
     transaction = resp["result"]
 
@@ -124,14 +128,9 @@ def test_get_transaction_by_hash_raises_on_incorrect_hash():
     """
     Get transaction by incorrect hash
     """
-    ex = rpc_call(
-        "starknet_getTransactionByHash", params={"transaction_hash": "0x00"}
-    )
+    ex = rpc_call("starknet_getTransactionByHash", params={"transaction_hash": "0x00"})
 
-    assert ex["error"] == {
-        "code": 25,
-        "message": "Invalid transaction hash"
-    }
+    assert ex["error"] == {"code": 25, "message": "Invalid transaction hash"}
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -147,18 +146,21 @@ def test_get_transaction_by_block_id_and_index(deploy_info):
     index: int = 0
 
     resp = rpc_call(
-        "starknet_getTransactionByBlockIdAndIndex", params={
+        "starknet_getTransactionByBlockIdAndIndex",
+        params={
             "block_id": {
                 "block_number": block_number,
             },
-            "index": index
-        }
+            "index": index,
+        },
     )
     transaction = resp["result"]
 
     assert transaction == {
         "class_hash": pad_zero(block_tx["class_hash"]),
-        "constructor_calldata": [pad_zero(tx) for tx in block_tx["constructor_calldata"]],
+        "constructor_calldata": [
+            pad_zero(tx) for tx in block_tx["constructor_calldata"]
+        ],
         "contract_address": pad_zero(contract_address),
         "contract_address_salt": pad_zero(block_tx["contract_address_salt"]),
         "transaction_hash": pad_zero(transaction_hash),
@@ -173,18 +175,14 @@ def test_get_transaction_by_block_id_and_index_raises_on_incorrect_block_hash():
     Get transaction by incorrect block id
     """
     ex = rpc_call(
-        "starknet_getTransactionByBlockIdAndIndex", params={
-            "block_id": {
-                "block_hash": pad_zero(INCORRECT_GENESIS_BLOCK_HASH)
-            },
-            "index": 0
-        }
+        "starknet_getTransactionByBlockIdAndIndex",
+        params={
+            "block_id": {"block_hash": pad_zero(INCORRECT_GENESIS_BLOCK_HASH)},
+            "index": 0,
+        },
     )
 
-    assert ex["error"] == {
-        "code": 24,
-        "message": "Invalid block id"
-    }
+    assert ex["error"] == {"code": 24, "message": "Invalid block id"}
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -196,17 +194,18 @@ def test_get_transaction_by_block_id_and_index_raises_on_incorrect_index(deploy_
     block_hash: str = block["block_hash"]
 
     ex = rpc_call(
-        "starknet_getTransactionByBlockIdAndIndex", params={
+        "starknet_getTransactionByBlockIdAndIndex",
+        params={
             "block_id": {
                 "block_hash": pad_zero(block_hash),
             },
-            "index": 999999
-        }
+            "index": 999999,
+        },
     )
 
     assert ex["error"] == {
         "code": 27,
-        "message": "Invalid transaction index in a block"
+        "message": "Invalid transaction index in a block",
     }
 
 
@@ -219,9 +218,8 @@ def test_get_declare_transaction_receipt(declare_info):
     block = get_block_with_transaction(transaction_hash)
 
     resp = rpc_call(
-        "starknet_getTransactionReceipt", params={
-            "transaction_hash": pad_zero(transaction_hash)
-        }
+        "starknet_getTransactionReceipt",
+        params={"transaction_hash": pad_zero(transaction_hash)},
     )
     receipt = resp["result"]
 
@@ -243,9 +241,8 @@ def test_get_invoke_transaction_receipt(invoke_info):
     transaction_hash: str = invoke_info["transaction_hash"]
 
     resp = rpc_call(
-        "starknet_getTransactionReceipt", params={
-            "transaction_hash": pad_zero(transaction_hash)
-        }
+        "starknet_getTransactionReceipt",
+        params={"transaction_hash": pad_zero(transaction_hash)},
     )
     receipt = resp["result"]
 
@@ -264,15 +261,10 @@ def test_get_transaction_receipt_on_incorrect_hash():
     Get transaction receipt by incorrect hash
     """
     ex = rpc_call(
-        "starknet_getTransactionReceipt", params={
-            "transaction_hash": rpc_felt(0)
-        }
+        "starknet_getTransactionReceipt", params={"transaction_hash": rpc_felt(0)}
     )
 
-    assert ex["error"] == {
-        "code": 25,
-        "message": "Invalid transaction hash"
-    }
+    assert ex["error"] == {"code": 25, "message": "Invalid transaction hash"}
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -284,9 +276,8 @@ def test_get_deploy_transaction_receipt(deploy_info):
     block = get_block_with_transaction(transaction_hash)
 
     resp = rpc_call(
-        "starknet_getTransactionReceipt", params={
-            "transaction_hash": pad_zero(transaction_hash)
-        }
+        "starknet_getTransactionReceipt",
+        params={"transaction_hash": pad_zero(transaction_hash)},
     )
     receipt = resp["result"]
 
@@ -310,13 +301,17 @@ def test_add_invoke_transaction(invoke_content):
         params={
             "function_invocation": {
                 "contract_address": pad_zero(invoke_content["contract_address"]),
-                "entry_point_selector": pad_zero(invoke_content["entry_point_selector"]),
-                "calldata": [pad_zero(hex(int(data))) for data in invoke_content["calldata"]],
+                "entry_point_selector": pad_zero(
+                    invoke_content["entry_point_selector"]
+                ),
+                "calldata": [
+                    pad_zero(hex(int(data))) for data in invoke_content["calldata"]
+                ],
             },
             "signature": [pad_zero(sig) for sig in invoke_content["signature"]],
             "max_fee": hex(0),
             "version": hex(constants.TRANSACTION_VERSION),
-        }
+        },
     )
     receipt = resp["result"]
 
@@ -342,13 +337,10 @@ def test_add_declare_transaction_on_incorrect_contract(declare_content):
         params={
             "contract_class": rpc_contract,
             "version": hex(constants.TRANSACTION_VERSION),
-        }
+        },
     )
 
-    assert ex["error"] == {
-        "code": 50,
-        "message": "Invalid contract class"
-    }
+    assert ex["error"] == {"code": 50, "message": "Invalid contract class"}
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -369,7 +361,7 @@ def test_add_declare_transaction(declare_content):
         params={
             "contract_class": rpc_contract,
             "version": hex(constants.TRANSACTION_VERSION),
-        }
+        },
     )
     receipt = resp["result"]
 
@@ -399,13 +391,10 @@ def test_add_deploy_transaction_on_incorrect_contract(deploy_content):
             "contract_address_salt": pad_zero(salt),
             "constructor_calldata": calldata,
             "contract_definition": rpc_contract,
-        }
+        },
     )
 
-    assert ex["error"] == {
-        "code": 50,
-        "message": "Invalid contract class"
-    }
+    assert ex["error"] == {"code": 50, "message": "Invalid contract class"}
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -429,7 +418,7 @@ def test_add_deploy_transaction(deploy_content):
             "contract_address_salt": pad_zero(salt),
             "constructor_calldata": calldata,
             "contract_definition": rpc_contract,
-        }
+        },
     )
     receipt = resp["result"]
 

@@ -30,9 +30,13 @@ class DevnetL1L2:
 
         for message in l1_raw_messages:
             message["args"]["selector"] = hex(message["args"]["selector"])
-            message["args"]["to_address"] = fixed_length_hex(message["args"].pop("toAddress")) # L2 addresses need the leading 0
+            message["args"]["to_address"] = fixed_length_hex(
+                message["args"].pop("toAddress")
+            )  # L2 addresses need the leading 0
             message["args"]["from_address"] = message["args"].pop("fromAddress")
-            message["args"]["payload"] = [hex(val) for val in message["args"]["payload"]]
+            message["args"]["payload"] = [
+                hex(val) for val in message["args"]["payload"]
+            ]
 
             # change case to snake_case
             message["transaction_hash"] = message.pop("transactionHash")
@@ -44,22 +48,25 @@ class DevnetL1L2:
         l2_messages = []
         for message in l2_raw_messages:
             new_message = {
-                "from_address": fixed_length_hex(message.from_address), # L2 addresses need the leading 0
+                "from_address": fixed_length_hex(
+                    message.from_address
+                ),  # L2 addresses need the leading 0
                 "payload": [hex(val) for val in message.payload],
-                "to_address": hex(message.to_address)
+                "to_address": hex(message.to_address),
             }
             l2_messages.append(new_message)
 
         return {
             "l1_provider": self.__l1_provider,
-            "consumed_messages": {
-                "from_l1": l1_raw_messages,
-                "from_l2": l2_messages
-            }
+            "consumed_messages": {"from_l1": l1_raw_messages, "from_l2": l2_messages},
         }
 
     def load_l1_messaging_contract(
-        self, starknet: Starknet, network_url: str, contract_address: str, network_id: str
+        self,
+        starknet: Starknet,
+        network_url: str,
+        contract_address: str,
+        network_id: str,
     ) -> dict:
         """Creates a Postman Wrapper instance and loads an already deployed Messaging contract in the L1 network"""
 
@@ -68,7 +75,9 @@ class DevnetL1L2:
             try:
                 starknet.state.l2_to_l1_messages_log.clear()
                 self.__postman_wrapper = LocalPostmanWrapper(network_url)
-                self.__postman_wrapper.load_mock_messaging_contract_in_l1(starknet,contract_address)
+                self.__postman_wrapper.load_mock_messaging_contract_in_l1(
+                    starknet, contract_address
+                )
             except Exception as error:
                 message = f"""Unable to load the Starknet Messaging contract in a local testnet instance.
 Make sure you have a local testnet instance running at the provided network url ({network_url}),
@@ -82,24 +91,29 @@ and that the Messaging Contract is deployed at the provided address ({contract_a
 
         return {
             "l1_provider": network_url,
-            "address": self.__postman_wrapper.mock_starknet_messaging_contract.address
+            "address": self.__postman_wrapper.mock_starknet_messaging_contract.address,
         }
 
     async def flush(self, state) -> dict:
-        """Handles all pending L1 <> L2 messages and sends them to the other layer. """
+        """Handles all pending L1 <> L2 messages and sends them to the other layer."""
 
         if self.__postman_wrapper is None:
             return {}
 
         postman = self.__postman_wrapper.postman
 
-        l1_to_l2_messages = json.loads(Web3.toJSON(self.__postman_wrapper.l1_to_l2_message_filter.get_new_entries()))
-        l2_to_l1_messages = state.l2_to_l1_messages_log[postman.n_consumed_l2_to_l1_messages :]
+        l1_to_l2_messages = json.loads(
+            Web3.toJSON(
+                self.__postman_wrapper.l1_to_l2_message_filter.get_new_entries()
+            )
+        )
+        l2_to_l1_messages = state.l2_to_l1_messages_log[
+            postman.n_consumed_l2_to_l1_messages :
+        ]
 
         await self.__postman_wrapper.flush()
 
         return self.__parse_l1_l2_messages(l1_to_l2_messages, l2_to_l1_messages)
-
 
 
 class PostmanWrapper(ABC):
@@ -121,6 +135,7 @@ class PostmanWrapper(ABC):
         """Handles the L1 <> L2 message exchange"""
         await self.postman.flush()
 
+
 class LocalPostmanWrapper(PostmanWrapper):
     """Wrapper of Postman usage on a local testnet instantiated using a local testnet"""
 
@@ -129,20 +144,24 @@ class LocalPostmanWrapper(PostmanWrapper):
         request_kwargs = {"timeout": TIMEOUT_FOR_WEB3_REQUESTS}
         self.web3 = Web3(HTTPProvider(network_url, request_kwargs=request_kwargs))
         self.web3.middleware_onion.inject(geth_poa_middleware, layer=0)
-        self.eth_account = EthAccount(self.web3,self.web3.eth.accounts[0])
+        self.eth_account = EthAccount(self.web3, self.web3.eth.accounts[0])
 
     def load_mock_messaging_contract_in_l1(self, starknet, contract_address):
         if contract_address is None:
             self.mock_starknet_messaging_contract = self.eth_account.deploy(
                 load_nearby_contract("MockStarknetMessaging"),
-                L1_MESSAGE_CANCELLATION_DELAY
+                L1_MESSAGE_CANCELLATION_DELAY,
             )
         else:
             address = Web3.toChecksumAddress(contract_address)
             contract_json = load_nearby_contract("MockStarknetMessaging")
             abi = contract_json["abi"]
-            w3_contract = self.web3.eth.contract(abi=abi,address=address)
-            self.mock_starknet_messaging_contract = EthContract(self.web3,address,w3_contract,abi,self.eth_account)
+            w3_contract = self.web3.eth.contract(abi=abi, address=address)
+            self.mock_starknet_messaging_contract = EthContract(
+                self.web3, address, w3_contract, abi, self.eth_account
+            )
 
         self.postman = Postman(self.mock_starknet_messaging_contract, starknet)
-        self.l1_to_l2_message_filter = self.mock_starknet_messaging_contract.w3_contract.events.LogMessageToL2.createFilter(fromBlock="latest")
+        self.l1_to_l2_message_filter = self.mock_starknet_messaging_contract.w3_contract.events.LogMessageToL2.createFilter(
+            fromBlock="latest"
+        )

@@ -7,15 +7,24 @@ from __future__ import annotations
 import json
 import typing
 
-from test.util import load_file_content 
+from test.util import load_file_content
 
 from starkware.starknet.definitions import constants
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.gateway.transaction import Transaction, Deploy
 
 import pytest
-from starknet_devnet.blueprints.rpc.structures.types import BlockNumberDict, BlockHashDict, Felt
-from .rpc_utils import gateway_call, get_block_with_transaction, pad_zero, add_transaction
+from starknet_devnet.blueprints.rpc.structures.types import (
+    BlockNumberDict,
+    BlockHashDict,
+    Felt,
+)
+from .rpc_utils import (
+    gateway_call,
+    get_block_with_transaction,
+    pad_zero,
+    add_transaction,
+)
 
 DEPLOY_CONTENT = load_file_content("deploy_rpc.json")
 INVOKE_CONTENT = load_file_content("invoke_rpc.json")
@@ -36,7 +45,9 @@ def fixture_class_hash(deploy_info) -> Felt:
     """
     Class hash of deployed contract
     """
-    class_hash = gateway_call("get_class_hash_at", contractAddress=deploy_info["address"])
+    class_hash = gateway_call(
+        "get_class_hash_at", contractAddress=deploy_info["address"]
+    )
     return pad_zero(class_hash)
 
 

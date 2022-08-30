@@ -31,6 +31,7 @@ async def initialize_starknet():
     """Initialize Starknet to assert it's defined before its first use."""
     await state.starknet_wrapper.initialize()
 
+
 app.register_blueprint(base)
 app.register_blueprint(gateway)
 app.register_blueprint(feeder_gateway)
@@ -50,28 +51,31 @@ class GunicornServer(BaseApplication):
     def load_config(self):
         self.cfg.set("bind", f"{self.args.host}:{self.args.port}")
         self.cfg.set("workers", 1)
-        self.cfg.set("logconfig_dict", {
-            "loggers": {
-                "gunicorn.error": {
-                    # Disable info messages like "Starting gunicorn"
-                    "level": "WARNING",
-                    "handlers": ["error_console"],
-                    "propagate": False,
-                    "qualname": "gunicorn.error"
+        self.cfg.set(
+            "logconfig_dict",
+            {
+                "loggers": {
+                    "gunicorn.error": {
+                        # Disable info messages like "Starting gunicorn"
+                        "level": "WARNING",
+                        "handlers": ["error_console"],
+                        "propagate": False,
+                        "qualname": "gunicorn.error",
+                    },
+                    "gunicorn.access": {
+                        "level": "INFO",
+                        # Log access to stderr to maintain backward compatibility
+                        "handlers": ["error_console"],
+                        "propagate": False,
+                        "qualname": "gunicorn.access",
+                    },
                 },
-
-                "gunicorn.access": {
-                    "level": "INFO",
-                    # Log access to stderr to maintain backward compatibility
-                    "handlers": ["error_console"],
-                    "propagate": False,
-                    "qualname": "gunicorn.access"
-                }
             },
-        })
+        )
 
     def load(self):
         return self.application
+
 
 def main():
     """Runs the server."""
@@ -103,12 +107,17 @@ def main():
             state.dumper.dump()
             sys.exit(0)
 
+
 @app.errorhandler(StarkException)
 def handle(error: StarkException):
-    """Handles the error and responds in JSON. """
-    return {"message": error.message, "status_code": error.status_code}, error.status_code
+    """Handles the error and responds in JSON."""
+    return {
+        "message": error.message,
+        "status_code": error.status_code,
+    }, error.status_code
 
-@app.route("/api", methods = ["GET"])
+
+@app.route("/api", methods=["GET"])
 def api():
     """Return available endpoints."""
     routes = {}
@@ -117,9 +126,10 @@ def api():
             routes[url.rule] = {
                 "functionName": url.endpoint,
                 "methods": list(url.methods),
-                "doc": app.view_functions[url.endpoint].__doc__.strip()
+                "doc": app.view_functions[url.endpoint].__doc__.strip(),
             }
     return jsonify(routes)
+
 
 if __name__ == "__main__":
     main()

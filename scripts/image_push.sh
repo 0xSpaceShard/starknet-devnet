@@ -18,12 +18,13 @@ function tag_and_push() {
     local target_image="$IMAGE:$target_tag"
 
     docker tag "$source_image" "$target_image"
-
-    dockerhub_url="https://hub.docker.com/v2/repositories/$IMAGE/tags/$target_tag"
-    docker_image_exists "$dockerhub_url" \
-        && echo "Image $target_image already pushed. Skipping!" \
-        || docker push "$target_image"
+    docker push "$target_image"
 }
+
+DOCKERHUB_URL="https://hub.docker.com/v2/repositories/$IMAGE/tags/$LOCAL_VERSION"
+docker_image_exists "$DOCKERHUB_URL" \
+    && echo "Image with tag $LOCAL_VERSION already pushed. Skipping!" \
+    && exit 0
 
 docker login --username "$DOCKER_USER" --password "$DOCKER_PASS"
 
