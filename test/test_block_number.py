@@ -2,26 +2,13 @@
 Test block number
 """
 
-import re
 import pytest
 
 from .shared import ARTIFACTS_PATH, FAILING_CONTRACT_PATH, GENESIS_BLOCK_NUMBER
-from .util import declare, devnet_in_background, run_devnet_in_background, terminate_and_wait, deploy, call, invoke
+from .util import declare, devnet_in_background, deploy, call, invoke
 
 BLOCK_NUMBER_CONTRACT_PATH = f"{ARTIFACTS_PATH}/block_number.cairo/block_number.json"
 BLOCK_NUMBER_ABI_PATH = f"{ARTIFACTS_PATH}/block_number.cairo/block_number_abi.json"
-
-@pytest.fixture(name="run_devnet_in_background")
-def fixture_run_devnet_in_background(request) -> None:
-    """
-    Run devnet instance in background
-    """
-    args = getattr(request, "param", [])
-    proc = run_devnet_in_background(*args)
-    try:
-        yield
-    finally:
-        terminate_and_wait(proc)
 
 @pytest.fixture(name="expected_hash")
 def fixture_expected_hash(request):
@@ -40,15 +27,21 @@ def my_get_block_number(address: str):
 
 @pytest.mark.usefixtures("run_devnet_in_background")
 @pytest.mark.parametrize("run_devnet_in_background, expected_hash",
-    [([], "^0x[A-Fa-f0-9]{63}$"),(["--lite-mode"], "0x0")], indirect=True)
+    [([], "0x4f1ea446f67c1be47619444eae4d8118f6e017d0e6fe16e89b3df03da38606d"),
+    (["--lite-mode"], "0x0")], indirect=True)
 def test_block_number_incremented(expected_hash):
-    """Tests how block number is incremented in regular mode and lite mode"""
+    """
+    Tests how block number is incremented in regular mode and lite mode.
+    In regular mode with salt "0x42" our expected hash is
+    0x4f1ea446f67c1be47619444eae4d8118f6e017d0e6fe16e89b3df03da38606d.
+    In lite mode we expect 0x0 transaction hash.
+    """
 
-    deploy_info = deploy(BLOCK_NUMBER_CONTRACT_PATH)
+    deploy_info = deploy(BLOCK_NUMBER_CONTRACT_PATH, salt="0x42")
     block_number_before = my_get_block_number(deploy_info["address"])
     assert int(block_number_before) == GENESIS_BLOCK_NUMBER + 1
-    assert re.match(expected_hash, deploy_info["tx_hash"])
-
+    assert expected_hash == deploy_info["tx_hash"]
+    
     invoke(
         function="write_block_number",
         inputs=[],
