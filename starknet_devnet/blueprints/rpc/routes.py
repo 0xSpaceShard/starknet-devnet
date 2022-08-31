@@ -74,14 +74,13 @@ async def base_route():
     """
     Base route for RPC calls
     """
-    method, args, message_id = parse_body(request.json)
 
+    message_id = None
     try:
-        result = await method(*args) if isinstance(args, list) else await method(**args)
-    except NotImplementedError:
-        return rpc_error(
-            message_id=message_id, code=-2, message="Method not implemented"
-        )
+        method, args, message_id = parse_body(request.json)
+        result = await (method(*args) if isinstance(args, list) else method(**args))
+    except TypeError as type_error:
+        return rpc_error(message_id=message_id, code=-32602, message=str(type_error))
     except RpcError as error:
         return rpc_error(message_id=message_id, code=error.code, message=error.message)
 
@@ -90,13 +89,16 @@ async def base_route():
 
 def parse_body(body: dict) -> Tuple[Callable, Union[List, dict], int]:
     """
-    Parse rpc call body to function name and params
+    Parse rpc call body to function name, params and message id
     """
-    method_name = body["method"].replace("starknet_", "")
-    args: Union[List, dict] = body["params"]
-    message_id = body["id"]
+    try:
+        method_name = body["method"].replace("starknet_", "")
+        params: Union[List, dict] = body.get("params", {})
+        message_id = body["id"]
+    except RuntimeError as error:
+        raise RpcError(code=-32600, message="Invalid request") from error
 
     if method_name not in methods:
         raise RpcError(code=-1, message="Method not found")
 
-    return methods[method_name], args, message_id
+    return methods[method_name], params, message_id
