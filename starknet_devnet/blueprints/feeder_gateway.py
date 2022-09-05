@@ -7,8 +7,9 @@ from marshmallow import ValidationError
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     BlockTransactionTraces,
 )
-from starkware.starknet.services.api.gateway.transaction import AccountTransaction
-from starkware.starknet.services.api.feeder_gateway.request_objects import CallFunction, CallL1Handler
+from starkware.starknet.services.api.gateway.transaction import AccountTransaction, InvokeFunction
+from starkware.starknet.services.api.feeder_gateway.request_objects import CallFunction
+from starkware.starknet.services.api.feeder_gateway.response_objects import TransactionSimulationInfo, FeeEstimationInfo
 from werkzeug.datastructures import MultiDict
 
 from starknet_devnet.state import state
@@ -18,16 +19,13 @@ feeder_gateway = Blueprint("feeder_gateway", __name__, url_prefix="/feeder_gatew
 
 
 def validate_request(data: bytes, cls):
-    """Ensure `data` is valid Starknet function call. Returns an `InvokeFunction`."""
-
+    """Ensure `data` is valid Starknet function call. Returns an object of type specified with `cls`."""
     try:
-        call_specifications = cls.loads(data)
+        return cls.loads(data)
     except (TypeError, ValidationError) as err:
         raise StarknetDevnetException(
-            message=f"Invalid Account transaction: {err}", status_code=400
+            message=f"Invalid {cls.__name__}: {err}", status_code=400
         ) from err
-
-    return call_specifications
 
 
 def _check_block_hash(request_args: MultiDict):
@@ -91,7 +89,10 @@ async def call_contract():
     Endpoint for receiving calls (not invokes) of contract functions.
     """
 
-    call_specifications = validate_request(request.data, CallFunction)
+    try:
+        call_specifications = validate_request(request.data, InvokeFunction)
+    except:
+        call_specifications = validate_request(request.data, CallFunction) # TODO bad
 
     result_dict = await state.starknet_wrapper.call(call_specifications)
 
@@ -158,6 +159,7 @@ def get_class_hash_at():
 
     contract_address = request.args.get("contractAddress", type=custom_int)
     class_hash = state.starknet_wrapper.contracts.get_class_hash_at(contract_address)
+    print("DEBUG class_hash", class_hash)
     return jsonify(fixed_length_hex(class_hash))
 
 
@@ -266,10 +268,9 @@ def get_state_update():
 @feeder_gateway.route("/estimate_fee", methods=["POST"])
 async def estimate_fee():
     """Returns the estimated fee for a transaction."""
-    transaction = validate_request(request.data, CallL1Handler)
+    transaction = validate_request(request.data, InvokeFunction)
     _, fee_response = await state.starknet_wrapper.calculate_actual_fee(transaction)
-
-    return jsonify(fee_response)
+    return jsonify(FeeEstimationInfo.load(fee_response))
 
 
 @feeder_gateway.route("/simulate_transaction", methods=["POST"])
@@ -278,7 +279,6 @@ async def simulate_transaction():
     transaction = validate_request(request.data, AccountTransaction)
     trace, fee_response = await state.starknet_wrapper.calculate_actual_fee(transaction)
 
-    from starkware.starknet.services.api.feeder_gateway.response_objects import TransactionSimulationInfo, FeeEstimationInfo
     simulation_info = TransactionSimulationInfo(
         trace=trace,
         fee_estimation=FeeEstimationInfo.load(fee_response)

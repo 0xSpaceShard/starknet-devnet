@@ -11,9 +11,18 @@ import time
 import requests
 
 from starkware.starknet.services.api.contract_class import ContractClass
+from starkware.starknet.definitions.general_config import StarknetChainId
 
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 from .settings import HOST, PORT, APP_URL
+
+
+ACCOUNT_DIR = os.path.join(
+    os.path.dirname(__file__), "..", "starknet_devnet", "accounts_artifacts/starknet_cli_wallet"
+)
+print("DEBUG using account dir:", ACCOUNT_DIR)
+ACCOUNT_FILE = os.path.join(ACCOUNT_DIR, "starknet_open_zeppelin_accounts.json")
+ACCOUNT_IMPLEMENTATION = "starkware.starknet.wallets.open_zeppelin.OpenZeppelinAccount"
 
 
 class ReturnCodeAssertionError(AssertionError):
@@ -142,9 +151,23 @@ def extract_address(stdout):
     return extract(r"Contract address: (\w*)", stdout)
 
 
-def run_starknet(args, raise_on_nonzero=True, add_gateway_urls=True):
+DEFAULT_WALLET_ARGS = (
+    "--wallet",
+    ACCOUNT_IMPLEMENTATION,
+    "--account_dir",
+    ACCOUNT_DIR,
+    "--network_id",
+    "alpha-goerli",
+    "--chain_id",
+    hex(StarknetChainId.TESTNET.value),
+)
+
+
+def run_starknet(
+    args, raise_on_nonzero=True, add_gateway_urls=True, wallet_args=DEFAULT_WALLET_ARGS
+):
     """Wrapper around subprocess.run"""
-    my_args = ["poetry", "run", "starknet", *args, "--no_wallet"]
+    my_args = ["poetry", "run", "starknet", *args, *wallet_args]  # TODO --no_wallet
     if add_gateway_urls:
         my_args.extend(["--gateway_url", APP_URL, "--feeder_gateway_url", APP_URL])
     output = subprocess.run(my_args, encoding="utf-8", check=False, capture_output=True)
@@ -172,7 +195,7 @@ def deploy(contract, inputs=None, salt=None):
         args.extend(["--inputs", *inputs])
     if salt:
         args.extend(["--salt", salt])
-    output = run_starknet(args)
+    output = run_starknet(args, wallet_args=["--no_wallet"])
     return {
         "tx_hash": extract_tx_hash(output.stdout),
         "address": extract_address(output.stdout),

@@ -240,7 +240,7 @@ def test_insufficient_balance():
 
 @pytest.mark.account
 @devnet_in_background()
-def test_multicall():
+def test_multicall(): # TODO suppress this test
     """Test making multiple calls."""
     deploy_info = deploy_empty_contract()
     deploy_account_contract(salt=SALT)

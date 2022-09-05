@@ -4,8 +4,6 @@ Lite run of the general workflow. Tests that main functionalities don't have iss
 
 import pytest
 
-from test.account import execute_single
-
 from .util import (
     assert_block_hash,
     assert_negative_block_input,
@@ -18,7 +16,7 @@ from .util import (
     invoke,
 )
 
-from .shared import ABI_PATH, CONTRACT_PATH, GENESIS_BLOCK_NUMBER, PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_PRIVATE_KEY
+from .shared import ABI_PATH, CONTRACT_PATH, GENESIS_BLOCK_NUMBER
 
 NONEXISTENT_TX_HASH = "0x12345678910111213"
 BALANCE_KEY = (
@@ -42,12 +40,11 @@ def test_general_workflow_lite():
     assert_block_hash(GENESIS_BLOCK_NUMBER + 1, hex(GENESIS_BLOCK_NUMBER + 1))
 
     # increase and assert balance
-    invoke_hash = execute_single(
+    invoke_hash = invoke(
         function="increase_balance",
         address=deploy_info["address"],
-        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
-        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
-        inputs=[10, 20],
+        abi_path=ABI_PATH,
+        inputs=["10", "20"],
     )
     assert_tx_status(invoke_hash, "ACCEPTED_ON_L2")
     assert_transaction(invoke_hash, "ACCEPTED_ON_L2")
