@@ -41,12 +41,13 @@ from .shared import (
     NONEXISTENT_TX_HASH,
 )
 
+
 @pytest.mark.usefixtures("run_devnet_in_background")
 @pytest.mark.parametrize(
     "run_devnet_in_background, expected_hash",
     [
         ([], EXPECTED_SALTY_DEPLOY_HASH),
-        (["--lite-mode"], EXPECTED_SALTY_DEPLOY_HASH_LITE_MODE)
+        (["--lite-mode"], EXPECTED_SALTY_DEPLOY_HASH_LITE_MODE),
     ],
     indirect=True,
 )
@@ -56,7 +57,9 @@ def test_general_workflow(expected_hash):
 
     assert_tx_status(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
     assert_transaction(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
-    assert_transaction_not_received(NONEXISTENT_TX_HASH) # TODO: ask what we are doing with this assert in litemode
+    assert_transaction_not_received(
+        NONEXISTENT_TX_HASH
+    )  # TODO: ask what we are doing with this assert in litemode
 
     # check storage after deployment
     assert_storage(deploy_info["address"], BALANCE_KEY, "0x0")
@@ -66,7 +69,9 @@ def test_general_workflow(expected_hash):
 
     assert_block(GENESIS_BLOCK_NUMBER + 1, deploy_info["tx_hash"])
     assert_receipt(deploy_info["tx_hash"], "test/expected/deploy_receipt.json")
-    assert_transaction_receipt_not_received(NONEXISTENT_TX_HASH) # TODO: ask what we are doing with this assert in litemode
+    assert_transaction_receipt_not_received(
+        NONEXISTENT_TX_HASH
+    )  # TODO: ask what we are doing with this assert in litemode
 
     # check code
     assert_contract_code(deploy_info["address"])
