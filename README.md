@@ -384,8 +384,7 @@ Response:
 
 To improve Devnet performance, instead of calculating the actual hash of deployment transactions and blocks, sequential numbering can be used (0x0, 0x1, 0x2, ...).
 
-Consider passing these CLI flags on Devnet startup:
-
+Consider passing this CLI flag on Devnet startup:
 - `--lite-mode` enables optimizations
 
 ## Restart
