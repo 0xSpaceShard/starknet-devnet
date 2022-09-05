@@ -9,7 +9,6 @@ from .util import (
     assert_negative_block_input,
     assert_transaction_not_received,
     assert_transaction_receipt_not_received,
-    devnet_in_background,
     assert_block,
     assert_contract_code,
     assert_equal,
@@ -36,21 +35,28 @@ from .shared import (
     EVENTS_CONTRACT_PATH,
     EXPECTED_SALTY_DEPLOY_ADDRESS,
     EXPECTED_SALTY_DEPLOY_HASH,
+    EXPECTED_SALTY_DEPLOY_HASH_LITE_MODE,
     FAILING_CONTRACT_PATH,
     GENESIS_BLOCK_NUMBER,
     NONEXISTENT_TX_HASH,
 )
 
-
-@pytest.mark.general_workflow
-@devnet_in_background()
-def test_general_workflow():
+@pytest.mark.usefixtures("run_devnet_in_background")
+@pytest.mark.parametrize(
+    "run_devnet_in_background, expected_hash",
+    [
+        ([], EXPECTED_SALTY_DEPLOY_HASH),
+        (["--lite-mode"], EXPECTED_SALTY_DEPLOY_HASH_LITE_MODE)
+    ],
+    indirect=True,
+)
+def test_general_workflow(expected_hash):
     """Test devnet with CLI"""
     deploy_info = deploy(CONTRACT_PATH, ["0"])
 
     assert_tx_status(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
     assert_transaction(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
-    assert_transaction_not_received(NONEXISTENT_TX_HASH)
+    assert_transaction_not_received(NONEXISTENT_TX_HASH) # TODO: ask what we are doing with this assert in litemode
 
     # check storage after deployment
     assert_storage(deploy_info["address"], BALANCE_KEY, "0x0")
@@ -60,7 +66,7 @@ def test_general_workflow():
 
     assert_block(GENESIS_BLOCK_NUMBER + 1, deploy_info["tx_hash"])
     assert_receipt(deploy_info["tx_hash"], "test/expected/deploy_receipt.json")
-    assert_transaction_receipt_not_received(NONEXISTENT_TX_HASH)
+    assert_transaction_receipt_not_received(NONEXISTENT_TX_HASH) # TODO: ask what we are doing with this assert in litemode
 
     # check code
     assert_contract_code(deploy_info["address"])
@@ -107,7 +113,7 @@ def test_general_workflow():
         inputs=None,
         expected_status="ACCEPTED_ON_L2",
         expected_address=EXPECTED_SALTY_DEPLOY_ADDRESS,
-        expected_tx_hash=EXPECTED_SALTY_DEPLOY_HASH,
+        expected_tx_hash=expected_hash,
     )
 
     assert_salty_deploy(
@@ -116,7 +122,7 @@ def test_general_workflow():
         inputs=None,
         expected_status="ACCEPTED_ON_L2",
         expected_address=EXPECTED_SALTY_DEPLOY_ADDRESS,
-        expected_tx_hash=EXPECTED_SALTY_DEPLOY_HASH,
+        expected_tx_hash=expected_hash,
     )
 
     salty_invoke_tx_hash = invoke(

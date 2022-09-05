@@ -11,14 +11,6 @@ BLOCK_NUMBER_CONTRACT_PATH = f"{ARTIFACTS_PATH}/block_number.cairo/block_number.
 BLOCK_NUMBER_ABI_PATH = f"{ARTIFACTS_PATH}/block_number.cairo/block_number_abi.json"
 
 
-@pytest.fixture(name="expected_hash")
-def fixture_expected_hash(request):
-    """
-    Fixture to return values of expected hash
-    """
-    return request.param
-
-
 def my_get_block_number(address: str):
     """Execute my_get_block_number on block_number.cairo contract deployed at `address`"""
     return call(

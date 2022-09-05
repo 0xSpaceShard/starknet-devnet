@@ -8,6 +8,12 @@ from test.util import run_devnet_in_background, terminate_and_wait
 
 import pytest
 
+@pytest.fixture(name="expected_hash")
+def fixture_expected_hash(request):
+    """
+    Fixture to return values of expected hash
+    """
+    return request.param
 
 @pytest.fixture(name="run_devnet_in_background")
 def fixture_run_devnet_in_background(request) -> None:
