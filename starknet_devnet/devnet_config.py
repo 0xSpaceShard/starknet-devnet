@@ -168,4 +168,4 @@ class DevnetConfig:
         self.seed = self.args.seed
         self.start_time = self.args.start_time
         self.gas_price = self.args.gas_price
-        self.lite_mode = self.args.lite_mode9
+        self.lite_mode = self.args.lite_mode
