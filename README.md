@@ -77,10 +77,6 @@ optional arguments:
                         Specify the path to dump to
   --dump-on DUMP_ON     Specify when to dump; can dump on: exit, transaction
   --lite-mode           Applies all lite-mode-* optimizations by disabling some features.
-  --lite-mode-block-hash
-                        Disables block hash calculation
-  --lite-mode-deploy-hash
-                        Disables deploy tx hash calculation
   --accounts ACCOUNTS   Specify the number of accounts to be predeployed;
                         defaults to 10
   --initial-balance INITIAL_BALANCE, -e INITIAL_BALANCE
