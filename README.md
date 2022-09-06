@@ -76,7 +76,7 @@ optional arguments:
   --dump-path DUMP_PATH
                         Specify the path to dump to
   --dump-on DUMP_ON     Specify when to dump; can dump on: exit, transaction
-  --lite-mode           Applies all lite-mode-* optimizations by disabling some features.
+  --lite-mode           Applies lite-mode optimizations by disabling some features. (In the current version, lite-mode doesn't affect performance)
   --accounts ACCOUNTS   Specify the number of accounts to be predeployed;
                         defaults to 10
   --initial-balance INITIAL_BALANCE, -e INITIAL_BALANCE
