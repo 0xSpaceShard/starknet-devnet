@@ -106,7 +106,7 @@ def parse_args(raw_args: List[str]):
     parser.add_argument(
         "--lite-mode",
         action="store_true",
-        help="Applies all lite-mode-* optimizations by disabling some features. (In the current version, lite-mode doesn't affect performance)",
+        help="Applies lite-mode optimizations by disabling some features. (In the current version, lite-mode doesn't affect performance)",
     )
     parser.add_argument(
         "--accounts",
