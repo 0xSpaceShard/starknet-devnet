@@ -25,7 +25,7 @@ BALANCE_KEY = (
 
 
 @pytest.mark.general_workflow
-@devnet_in_background("--lite-mode-block-hash")
+@devnet_in_background("--lite-mode")
 def test_general_workflow_lite():
     """Test devnet with CLI"""
     deploy_info = deploy(CONTRACT_PATH, ["0"])
