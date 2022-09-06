@@ -2,7 +2,9 @@
 Test block number
 """
 
-from test.account import execute_single
+import pytest
+
+from .account import execute_single
 from .shared import (
     ARTIFACTS_PATH,
     FAILING_CONTRACT_PATH,
@@ -23,11 +25,28 @@ def my_get_block_number(address: str):
     )
 
 
-def base_workflow():
-    """Used by test cases to perform the test"""
-    deploy_info = deploy(BLOCK_NUMBER_CONTRACT_PATH)
+@pytest.mark.usefixtures("run_devnet_in_background")
+@pytest.mark.parametrize(
+    "run_devnet_in_background, expected_hash",
+    [
+        ([], "0x4f1ea446f67c1be47619444eae4d8118f6e017d0e6fe16e89b3df03da38606d"),
+        (["--lite-mode"], "0x0"),
+    ],
+    indirect=True,
+)
+def test_block_number_incremented(expected_hash):
+    """
+    Tests how block number is incremented in regular mode and lite mode.
+    In regular mode with salt "0x42" our expected hash is
+    0x4f1ea446f67c1be47619444eae4d8118f6e017d0e6fe16e89b3df03da38606d.
+    In lite mode we expect 0x0 transaction hash.
+    """
+
+    deploy_info = deploy(BLOCK_NUMBER_CONTRACT_PATH, salt="0x42")
     block_number_before = my_get_block_number(deploy_info["address"])
+
     assert int(block_number_before) == GENESIS_BLOCK_NUMBER + 1
+    assert expected_hash == deploy_info["tx_hash"]
 
     execute_single(
         address=deploy_info["address"],
@@ -47,18 +66,6 @@ def base_workflow():
 
     block_number_after = my_get_block_number(deploy_info["address"])
     assert int(block_number_after) == GENESIS_BLOCK_NUMBER + 2
-
-
-@devnet_in_background()
-def test_block_number_incremented():
-    """Tests how block number is incremented in regular mode"""
-    base_workflow()
-
-
-@devnet_in_background("--lite-mode")
-def test_block_number_incremented_in_lite_mode():
-    """Tests compatibility with lite mode"""
-    base_workflow()
 
 
 @devnet_in_background()

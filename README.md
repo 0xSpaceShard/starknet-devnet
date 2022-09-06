@@ -76,11 +76,7 @@ optional arguments:
   --dump-path DUMP_PATH
                         Specify the path to dump to
   --dump-on DUMP_ON     Specify when to dump; can dump on: exit, transaction
-  --lite-mode           Applies all lite-mode-* optimizations by disabling some features.
-  --lite-mode-block-hash
-                        Disables block hash calculation
-  --lite-mode-deploy-hash
-                        Disables deploy tx hash calculation
+  --lite-mode           Applies lite-mode optimizations by disabling some features. (In the current version, lite-mode doesn't affect performance)
   --accounts ACCOUNTS   Specify the number of accounts to be predeployed;
                         defaults to 10
   --initial-balance INITIAL_BALANCE, -e INITIAL_BALANCE
@@ -388,14 +384,8 @@ Response:
 
 To improve Devnet performance, instead of calculating the actual hash of deployment transactions and blocks, sequential numbering can be used (0x0, 0x1, 0x2, ...).
 
-Consider passing these CLI flags on Devnet startup:
-
-- `--lite-mode` enables all of the optimizations described below (same as using all of the flags below)
-- `--lite-mode-deploy-hash`
-  - disables the calculation of transaction hash for deploy transactions
-- `--lite-mode-block-hash`
-  - disables the calculation of block hash
-  - disables get_state_update functionality
+Consider passing this CLI flag on Devnet startup:
+- `--lite-mode` enables optimizations
 
 ## Restart
 

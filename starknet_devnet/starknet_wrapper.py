@@ -42,7 +42,6 @@ from .util import (
     DummyExecutionInfo,
     Uint256,
     enable_pickling,
-    generate_state_update,
     to_bytes,
 )
 from .contract_wrapper import ContractWrapper
@@ -68,7 +67,7 @@ class StarknetWrapper:
         """Origin chain that this devnet was forked from."""
 
         self.block_info_generator = BlockInfoGenerator()
-        self.blocks = DevnetBlocks(self.origin, lite=config.lite_mode_block_hash)
+        self.blocks = DevnetBlocks(self.origin, lite=config.lite_mode)
         self.config = config
         self.contracts = DevnetContracts(self.origin)
         self.l1l2 = DevnetL1L2()
@@ -192,7 +191,7 @@ class StarknetWrapper:
         Sets the configuration of the devnet.
         """
         self.config = config
-        self.blocks.lite = config.lite_mode_block_hash
+        self.blocks.lite = config.lite_mode
 
     async def declare(self, declare_transaction: Declare) -> Tuple[int, int]:
         """
@@ -259,7 +258,7 @@ class StarknetWrapper:
             tx_hash = self.contracts.get_by_address(contract_address).deployment_tx_hash
             return contract_address, tx_hash
 
-        if self.config.lite_mode_deploy_hash:
+        if self.config.lite_mode:
             tx_hash = self.transactions.get_count()
         else:
             tx_hash = internal_tx.hash_value

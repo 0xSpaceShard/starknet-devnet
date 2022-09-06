@@ -106,17 +106,7 @@ def parse_args(raw_args: List[str]):
     parser.add_argument(
         "--lite-mode",
         action="store_true",
-        help="Applies all lite-mode-* optimizations by disabling some features.",
-    )
-    parser.add_argument(
-        "--lite-mode-block-hash",
-        action="store_true",
-        help="Disables block hash calculation",
-    )
-    parser.add_argument(
-        "--lite-mode-deploy-hash",
-        action="store_true",
-        help="Disables deploy tx hash calculation",
+        help="Applies lite-mode optimizations by disabling some features. (In the current version, lite-mode doesn't affect performance)",
     )
     parser.add_argument(
         "--accounts",
@@ -178,10 +168,4 @@ class DevnetConfig:
         self.seed = self.args.seed
         self.start_time = self.args.start_time
         self.gas_price = self.args.gas_price
-
-        if self.args.lite_mode:
-            self.lite_mode_block_hash = True
-            self.lite_mode_deploy_hash = True
-        else:
-            self.lite_mode_block_hash = self.args.lite_mode_block_hash
-            self.lite_mode_deploy_hash = self.args.lite_mode_deploy_hash
+        self.lite_mode = self.args.lite_mode

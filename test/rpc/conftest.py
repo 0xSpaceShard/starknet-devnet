@@ -7,7 +7,7 @@ from __future__ import annotations
 import json
 import typing
 
-from test.util import load_file_content, run_devnet_in_background, terminate_and_wait
+from test.util import load_file_content
 
 from starkware.starknet.definitions import constants
 from starkware.starknet.services.api.contract_class import ContractClass
@@ -139,16 +139,3 @@ def fixture_rpc_invoke_tx_common() -> dict:
         "nonce": "0x00",
         "type": "INVOKE",
     }
-
-
-@pytest.fixture(name="run_devnet_in_background")
-def fixture_run_devnet_in_background(request) -> None:
-    """
-    Run devnet instance in background
-    """
-    args = getattr(request, "param", [])
-    proc = run_devnet_in_background(*args)
-    try:
-        yield
-    finally:
-        terminate_and_wait(proc)
