@@ -311,7 +311,8 @@ def invoke(function, inputs, address, abi_path, signature=None, max_fee=None):
 def estimate_fee(function, inputs, address, abi_path, signature=None):
     """Wrapper around starknet estimate_fee. Returns fee in wei."""
     args = [
-        "estimate_fee",
+        "invoke",
+        "--estimate_fee",
         "--function",
         function,
         "--inputs",
@@ -321,10 +322,13 @@ def estimate_fee(function, inputs, address, abi_path, signature=None):
         "--abi",
         abi_path,
     ]
+
+    kwargs = {}
     if signature:
         args.extend(["--signature", *signature])
+        kwargs["wallet_args"] = ["--no_wallet"]
 
-    output = run_starknet(args)
+    output = run_starknet(args, **kwargs)
 
     print("Estimate fee successful!")
     return extract_fee(output.stdout)

@@ -42,6 +42,10 @@ class DevnetTransaction:
     ):
         self.block = None
         self.execution_info = execution_info
+        if status != TransactionStatus.REJECTED and execution_info.call_info:
+            self.execution_resources = execution_info.call_info.execution_resources
+        else:
+            self.execution_resources = None
         self.internal_tx = internal_tx
         self.status = status
         self.transaction_failure_reason = None
@@ -125,30 +129,22 @@ class DevnetTransaction:
         """Returns the transaction receipt"""
         tx_info = self.get_tx_info()
 
-        execution_resources = (
-            self.execution_info.call_info.execution_resources
-            if not self.status == TransactionStatus.REJECTED
-            else None
-        )
-
         return TransactionReceipt.from_tx_info(
             transaction_hash=self.transaction_hash,
             tx_info=tx_info,
             actual_fee=self.__get_actual_fee(),
             events=self.__get_events(),
-            execution_resources=execution_resources,
+            execution_resources=self.execution_resources,
             l2_to_l1_messages=self.__get_l2_to_l1_messages(),
         )
 
     def get_trace(self) -> TransactionTrace:
         """Returns the transaction trace"""
-        call_info = self.execution_info.call_info  # TODO delete
-
         validate_invocation = FunctionInvocation.from_internal(
             self.execution_info.validate_info
         )
 
-        function_invocation = FunctionInvocation.from_internal(
+        function_invocation = FunctionInvocation.from_optional_internal(
             self.execution_info.call_info
         )
 
@@ -166,7 +162,7 @@ class DevnetTransaction:
             transaction_index=self.transaction_index,
             actual_fee=self.__get_actual_fee(),
             events=self.__get_events(),
-            execution_resources=self.execution_info.call_info.execution_resources,
+            execution_resources=self.execution_resources,
             l2_to_l1_messages=self.__get_l2_to_l1_messages(),
             l1_to_l2_consumed_message=None,
         )

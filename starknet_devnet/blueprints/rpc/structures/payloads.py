@@ -35,6 +35,7 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     rpc_txn_type,
 )
 from starknet_devnet.state import state
+from test.shared import SUPPORTED_TX_VERSION
 
 
 class RpcBlock(TypedDict):
@@ -178,7 +179,7 @@ def rpc_invoke_transaction(transaction: InvokeSpecificInfo) -> RpcInvokeTransact
         "calldata": [rpc_felt(data) for data in transaction.calldata],
         "transaction_hash": rpc_felt(transaction.transaction_hash),
         "max_fee": rpc_felt(transaction.max_fee),
-        "version": hex(0x0),
+        "version": hex(SUPPORTED_TX_VERSION),
         "signature": [rpc_felt(value) for value in transaction.signature],
         "nonce": rpc_felt(0),
         "type": rpc_txn_type(transaction.tx_type.name),
@@ -210,7 +211,7 @@ def rpc_deploy_transaction(transaction: DeploySpecificInfo) -> RpcDeployTransact
     txn: RpcDeployTransaction = {
         "transaction_hash": rpc_felt(transaction.transaction_hash),
         "class_hash": rpc_felt(transaction.class_hash),
-        "version": hex(0x0),
+        "version": hex(SUPPORTED_TX_VERSION),
         "type": rpc_txn_type(transaction.tx_type.name),
         "contract_address": rpc_felt(transaction.contract_address),
         "contract_address_salt": rpc_felt(transaction.contract_address_salt),

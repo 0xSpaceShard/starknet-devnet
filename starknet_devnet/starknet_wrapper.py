@@ -202,16 +202,19 @@ class StarknetWrapper:
         internal_declare: InternalDeclare = InternalDeclare.from_external(
             declare_transaction, self.get_state().general_config
         )
-        await self.starknet.state.execute_tx(internal_declare)
+        execution_info = await self.starknet.state.execute_tx(internal_declare)
         class_hash = int.from_bytes(internal_declare.class_hash, "big")
-        # TODO also add class to starknet state manually
+
         self.contracts.store_class(class_hash, declare_transaction.contract_class)
+        await self.get_state().state.set_contract_class(
+            internal_declare.class_hash, declare_transaction.contract_class
+        )
 
         tx_hash = internal_declare.hash_value
         transaction = DevnetTransaction(
             internal_tx=internal_declare,
             status=TransactionStatus.ACCEPTED_ON_L2,
-            execution_info=DummyExecutionInfo(),  # TODO use actual execution info
+            execution_info=execution_info,
             transaction_hash=tx_hash,
         )
 
@@ -366,7 +369,7 @@ class StarknetWrapper:
             if internal_call.entry_point_type == EntryPointType.CONSTRUCTOR:
                 state = self.get_state()
                 class_hash = to_bytes(internal_call.class_hash)
-                contract_class = state.state.get_contract_class(class_hash)
+                contract_class = await state.state.get_contract_class(class_hash)
 
                 contract = StarknetContract(
                     state, contract_class.abi, internal_call.contract_address, None
@@ -449,12 +452,11 @@ class StarknetWrapper:
         balance = self.config.initial_balance
         balance_uint256 = Uint256.from_felt(balance)
 
-        with open(
-            os.path.join(
-                os.path.dirname(__file__),
-                "accounts_artifacts/starknet_cli_wallet/starknet_open_zeppelin_accounts.json",
-            )
-        ) as deployment_file:
+        artifact_path = os.path.join(
+            os.path.dirname(__file__),
+            "accounts_artifacts/starknet_cli_wallet/starknet_open_zeppelin_accounts.json",
+        )
+        with open(artifact_path, encoding="utf-8") as deployment_file:
             deployment_info = json.load(deployment_file)["alpha-goerli"]["__default__"]
         public_key = int(deployment_info["public_key"], 16)
 

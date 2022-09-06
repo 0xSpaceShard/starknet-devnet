@@ -89,11 +89,7 @@ async def call_contract():
     Endpoint for receiving calls (not invokes) of contract functions.
     """
 
-    try:
-        call_specifications = validate_request(request.data, InvokeFunction)
-    except:
-        call_specifications = validate_request(request.data, CallFunction) # TODO bad
-
+    call_specifications = validate_request(request.data, CallFunction)
     result_dict = await state.starknet_wrapper.call(call_specifications)
 
     return jsonify(result_dict)

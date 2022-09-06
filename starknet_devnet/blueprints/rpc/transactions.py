@@ -108,7 +108,7 @@ async def add_invoke_transaction(
     function_invocation: FunctionCall,
     max_fee: NumAsHex,
     version: NumAsHex,
-    nonce: NumAsHex,
+    nonce: NumAsHex = None,
     signature: Optional[List[Felt]] = None,
 ) -> dict:
     """

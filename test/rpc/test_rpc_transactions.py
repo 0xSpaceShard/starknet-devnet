@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import List
 
-from test.shared import INCORRECT_GENESIS_BLOCK_HASH
+from test.shared import INCORRECT_GENESIS_BLOCK_HASH, SUPPORTED_TX_VERSION
 
 import pytest
 
@@ -53,7 +53,7 @@ def test_get_transaction_by_hash_deploy(deploy_info):
     assert transaction == {
         "transaction_hash": pad_zero(transaction_hash),
         "class_hash": pad_zero(block_tx["class_hash"]),
-        "version": hex(0),
+        "version": SUPPORTED_TX_VERSION,
         "type": rpc_txn_type(block_tx["type"]),
         "contract_address": pad_zero(contract_address),
         "contract_address_salt": pad_zero(block_tx["contract_address_salt"]),
@@ -83,7 +83,7 @@ def test_get_transaction_by_hash_invoke(invoke_info):
     assert transaction == {
         "transaction_hash": pad_zero(transaction_hash),
         "max_fee": pad_zero(block_tx["max_fee"]),
-        "version": hex(0),
+        "version": SUPPORTED_TX_VERSION,
         "signature": signature,
         "nonce": pad_zero(hex(0)),
         "type": rpc_txn_type(block_tx["type"]),
@@ -165,7 +165,7 @@ def test_get_transaction_by_block_id_and_index(deploy_info):
         "contract_address_salt": pad_zero(block_tx["contract_address_salt"]),
         "transaction_hash": pad_zero(transaction_hash),
         "type": rpc_txn_type(block_tx["type"]),
-        "version": hex(0),
+        "version": SUPPORTED_TX_VERSION,
     }
 
 
@@ -310,7 +310,7 @@ def test_add_invoke_transaction(invoke_content):
             },
             "signature": [pad_zero(sig) for sig in invoke_content["signature"]],
             "max_fee": hex(0),
-            "version": hex(constants.TRANSACTION_VERSION),
+            "version": SUPPORTED_TX_VERSION,
         },
     )
     receipt = resp["result"]
@@ -360,7 +360,7 @@ def test_add_declare_transaction(declare_content):
         "starknet_addDeclareTransaction",
         params={
             "contract_class": rpc_contract,
-            "version": hex(constants.TRANSACTION_VERSION),
+            "version": SUPPORTED_TX_VERSION,
         },
     )
     receipt = resp["result"]

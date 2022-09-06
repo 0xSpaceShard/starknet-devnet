@@ -1,15 +1,9 @@
 """
 Gateway routes
 """
-import json
 
 from flask import Blueprint, request, jsonify
 from starkware.starknet.definitions.transaction_type import TransactionType
-from starkware.starknet.services.api.gateway.transaction import (
-    Deploy,
-    Declare,
-    InvokeFunction,
-)
 from starkware.starkware_utils.error_handling import StarkErrorCode
 
 from starknet_devnet.devnet_config import DumpOn
@@ -30,28 +24,28 @@ def is_alive():
 async def add_transaction():
     """Endpoint for accepting (state-changing) transactions."""
 
-    raw_transaction = json.loads(request.data)
-    tx_type = raw_transaction["type"]
+    transaction = validate_transaction(request.data)
+    tx_type = transaction.tx_type
 
     response_dict = {
         "code": StarkErrorCode.TRANSACTION_RECEIVED.name,
     }
 
-    if tx_type == TransactionType.DECLARE.name:
+    if tx_type == TransactionType.DECLARE:
         contract_class_hash, transaction_hash = await state.starknet_wrapper.declare(
-            validate_transaction(raw_transaction, Declare)
+            transaction
         )
         response_dict["class_hash"] = hex(contract_class_hash)
 
-    elif tx_type == TransactionType.DEPLOY.name:
+    elif tx_type == TransactionType.DEPLOY:
         contract_address, transaction_hash = await state.starknet_wrapper.deploy(
-            validate_transaction(raw_transaction, Deploy)
+            transaction
         )
         response_dict["address"] = fixed_length_hex(contract_address)
 
-    elif tx_type == TransactionType.INVOKE_FUNCTION.name:
+    elif tx_type == TransactionType.INVOKE_FUNCTION:
         (contract_address, transaction_hash) = await state.starknet_wrapper.invoke(
-            validate_transaction(raw_transaction, InvokeFunction)
+            transaction
         )
         response_dict["address"] = fixed_length_hex(contract_address)
 

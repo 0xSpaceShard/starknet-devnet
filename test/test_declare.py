@@ -4,10 +4,10 @@ Tests of contract class declaration and deploy syscall.
 
 import pytest
 
-from .account import execute, execute_single
 from .shared import (
     ABI_PATH,
     CONTRACT_PATH,
+    DEPLOYER_ABI_PATH,
     DEPLOYER_CONTRACT_PATH,
     EXPECTED_CLASS_HASH,
 )
@@ -23,6 +23,7 @@ from .util import (
     get_class_by_hash,
     get_class_hash_at,
     get_transaction_receipt,
+    invoke,
 )
 
 
@@ -33,7 +34,6 @@ def assert_deployed_through_syscall(tx_hash, initial_balance: str):
     # Get deployment address from emitted event
     tx_receipt = get_transaction_receipt(tx_hash=tx_hash)
     events = tx_receipt["events"]
-    assert_equal(len(events), 1, explanation=events)
     event = events[0]
     assert_equal(len(event["data"]), 1, explanation=events)
     contract_address = event["data"][0]
@@ -71,7 +71,7 @@ def test_declare_and_deploy():
     initial_balance_in_constructor = "5"
     deployer_deploy_info = deploy(
         contract=DEPLOYER_CONTRACT_PATH,
-        inputs=[declare_info["class_hash"], initial_balance_in_constructor],
+        inputs=[class_hash, initial_balance_in_constructor],
     )
     deployer_address = deployer_deploy_info["address"]
 
@@ -81,29 +81,24 @@ def test_declare_and_deploy():
 
     # Deploy a contract of the declared class through the deployer
     initial_balance = "10"
-    invoke_tx_hash = execute_single(
+    invoke_tx_hash = invoke(
         function="deploy_contract",
         inputs=[initial_balance],
         address=deployer_address,
-        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
-        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+        abi_path=DEPLOYER_ABI_PATH
     )
     assert_deployed_through_syscall(invoke_tx_hash, str(initial_balance))
 
     # Deploy a contract of the declared class through the deployer - using an account
-    initial_balance_through_account = 15
-    invoke_through_account_tx_hash = execute(
-        calls=[
-            (
-                int(deployer_address, 16),
-                "deploy_contract",
-                [initial_balance_through_account],
-            )
-        ],
-        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
-        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    initial_balance_through_account = "15"
+    invoke_through_account_tx_hash = invoke(
+        function="deploy_contract",
+        inputs=[initial_balance_through_account],
+        address=deployer_address,
+        abi_path=DEPLOYER_ABI_PATH,
     )
+
     assert_deployed_through_syscall(
         tx_hash=invoke_through_account_tx_hash,
-        initial_balance=str(initial_balance_through_account),
+        initial_balance=initial_balance_through_account,
     )
