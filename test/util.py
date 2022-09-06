@@ -169,7 +169,7 @@ def run_starknet(
     args, raise_on_nonzero=True, add_gateway_urls=True, wallet_args=DEFAULT_WALLET_ARGS
 ):
     """Wrapper around subprocess.run"""
-    my_args = ["poetry", "run", "starknet", *args, *wallet_args]  # TODO --no_wallet
+    my_args = ["poetry", "run", "starknet", *args, *wallet_args]
     if add_gateway_urls:
         my_args.extend(["--gateway_url", APP_URL, "--feeder_gateway_url", APP_URL])
     output = subprocess.run(my_args, encoding="utf-8", check=False, capture_output=True)

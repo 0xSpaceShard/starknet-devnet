@@ -6,7 +6,6 @@ from typing import List
 
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.testing.contract import StarknetContract
-from starkware.starknet.utils.api_utils import cast_to_felts
 
 
 class ContractWrapper:

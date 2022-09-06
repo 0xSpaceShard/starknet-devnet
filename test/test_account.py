@@ -96,12 +96,7 @@ def test_invoking_another_contract():
     assert nonce == "1"
 
     # check if balance is increased
-    balance_raw = execute(
-        [(to_address, "get_balance", [])], ACCOUNT_ADDRESS, PRIVATE_KEY, query=True
-    )
-    balance_arr = balance_raw.split()
-    assert_equal(len(balance_arr), 2)
-    balance = balance_arr[1]
+    balance = call("get_balance", "to_address", ABI_PATH, [])
     assert balance == "30"
 
 

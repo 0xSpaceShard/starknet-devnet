@@ -10,8 +10,7 @@ import requests
 
 import pytest
 
-from test.account import execute_single
-
+from .account import execute_single
 from .test_account import get_account_balance
 from .test_fee_token import mint
 from .util import (

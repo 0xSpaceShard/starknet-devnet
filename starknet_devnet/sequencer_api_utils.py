@@ -2,6 +2,7 @@
 Copied from https://github.com/starkware-libs/cairo-lang/blob/v0.10.0-pre/src/starkware/starknet/services/utils/sequencer_api_utils.py
 """
 
+# pylint: disable=too-many-ancestors
 
 from typing import Optional, Tuple, Type
 
@@ -62,6 +63,7 @@ class InternalAccountTransactionForSimulate(InternalAccountTransaction):
         else:
             raise NotImplementedError(f"Unexpected type {type(external_tx).__name__}.")
 
+        # pylint: disable=protected-access
         return internal_cls._specific_from_external(
             external_tx=external_tx, general_config=general_config
         )

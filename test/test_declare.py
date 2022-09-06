@@ -8,7 +8,6 @@ from .account import execute, execute_single
 from .shared import (
     ABI_PATH,
     CONTRACT_PATH,
-    DEPLOYER_ABI_PATH,
     DEPLOYER_CONTRACT_PATH,
     EXPECTED_CLASS_HASH,
 )
@@ -24,7 +23,6 @@ from .util import (
     get_class_by_hash,
     get_class_hash_at,
     get_transaction_receipt,
-    invoke,
 )
 
 

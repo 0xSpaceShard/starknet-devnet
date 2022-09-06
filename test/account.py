@@ -142,21 +142,15 @@ def get_estimated_fee(calls, account_address, private_key, nonce=None):
         signature=signature,
     )
 
-# TODO remove query option since now making calls through an account no longer makes sense
-def execute(calls, account_address, private_key, nonce=None, max_fee=0, query=False):
+def execute(calls, account_address, private_key, nonce=None, max_fee=0):
     """Invoke __execute__ with correct calldata and signature."""
-    if query:
-        version = QUERY_VERSION
-        runner = call
-    else:
-        version = TRANSACTION_VERSION
-        runner = invoke
 
+    version = TRANSACTION_VERSION
     signature, execute_calldata = get_execute_args(
         calls, account_address, private_key, nonce, max_fee, version=version
     )
 
-    return runner(
+    return invoke(
         "__execute__",
         inputs=adapt_inputs(execute_calldata),
         address=account_address,

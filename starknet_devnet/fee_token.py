@@ -123,7 +123,6 @@ class FeeToken:
         transaction = self.get_mint_transaction(to_address, amount_uint256)
         starknet: Starknet = self.starknet_wrapper.starknet
         if lite:
-            # TODO should invoke be used here?
             internal_tx = InternalInvokeFunction.from_external(
                 transaction, starknet.state.general_config
             )
