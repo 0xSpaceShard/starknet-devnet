@@ -18,9 +18,11 @@ from .settings import HOST, PORT, APP_URL
 
 
 ACCOUNT_DIR = os.path.join(
-    os.path.dirname(__file__), "..", "starknet_devnet", "accounts_artifacts/starknet_cli_wallet"
+    os.path.dirname(__file__),
+    "..",
+    "starknet_devnet",
+    "accounts_artifacts/starknet_cli_wallet",
 )
-print("DEBUG using account dir:", ACCOUNT_DIR)
 ACCOUNT_FILE = os.path.join(ACCOUNT_DIR, "starknet_open_zeppelin_accounts.json")
 ACCOUNT_IMPLEMENTATION = "starkware.starknet.wallets.open_zeppelin.OpenZeppelinAccount"
 
@@ -230,10 +232,11 @@ def assert_transaction(tx_hash, expected_status, expected_signature=None):
             "signature",
             "transaction_hash",
             "type",
+            "nonce",
+            "version",
         ]
         assert_keys(transaction["transaction"], invoke_transaction_keys)
-
-    if tx_type == "DEPLOY":
+    elif tx_type == "DEPLOY":
         deploy_transaction_keys = [
             "class_hash",
             "constructor_calldata",
@@ -241,8 +244,11 @@ def assert_transaction(tx_hash, expected_status, expected_signature=None):
             "contract_address_salt",
             "transaction_hash",
             "type",
+            "version",
         ]
         assert_keys(transaction["transaction"], deploy_transaction_keys)
+    else:
+        raise RuntimeError(f"Unknown tx_type: {tx_type}")
 
 
 def assert_keys(dictionary, keys):
@@ -286,13 +292,17 @@ def invoke(function, inputs, address, abi_path, signature=None, max_fee=None):
         "--abi",
         abi_path,
     ]
+
+    kwargs = {}
+
     if signature:
         args.extend(["--signature", *signature])
+        kwargs["wallet_args"] = ["--no_wallet"]
 
     if max_fee:
         args.extend(["--max_fee", max_fee])
 
-    output = run_starknet(args)
+    output = run_starknet(args, **kwargs)
 
     print("Invoke successful!")
     return extract_tx_hash(output.stdout)
@@ -406,7 +416,7 @@ def get_full_contract(contract_address: str) -> ContractClass:
 def get_class_hash_at(contract_address: str) -> str:
     """Gets class hash at given contract address"""
     output = run_starknet(["get_class_hash_at", "--contract_address", contract_address])
-    return json.loads(output.stdout)
+    return output.stdout
 
 
 def get_class_by_hash(class_hash: str) -> str:

@@ -382,12 +382,9 @@ class StarknetWrapper:
         Returns the storage identified by `key`
         from the contract at `contract_address`.
         """
-        state = self.get_state()
-        contract_states = state.state.contract_states
-
-        contract_state = contract_states[contract_address]
-        if key in contract_state.storage_updates:
-            return hex(contract_state.storage_updates[key].value)
+        state = self.get_state().state
+        if self.contracts.is_deployed(contract_address):
+            return hex(await state.get_storage_at(contract_address, key))
         return self.origin.get_storage_at(contract_address, key)
 
     async def load_messaging_contract_in_l1(
@@ -467,7 +464,9 @@ class StarknetWrapper:
         class_loaded = ContractClass.load(
             load_nearby_contract("accounts_artifacts/starknet_cli_wallet/account")
         )
-        await self.starknet.state.state.set_contract_class(class_hash_bytes, class_loaded)
+        await self.starknet.state.state.set_contract_class(
+            class_hash_bytes, class_loaded
+        )
 
         wallet_address = int(deployment_info["address"], 16)
         await self.starknet.state.state.deploy_contract(
@@ -492,7 +491,7 @@ class StarknetWrapper:
             state=self.starknet.state,
             abi=class_loaded.abi,
             contract_address=wallet_address,
-            deploy_call_info=None
+            deploy_call_info=None,
         )
 
         await self.store_contract(wallet_address, contract, class_loaded)

@@ -159,7 +159,6 @@ def get_class_hash_at():
 
     contract_address = request.args.get("contractAddress", type=custom_int)
     class_hash = state.starknet_wrapper.contracts.get_class_hash_at(contract_address)
-    print("DEBUG class_hash", class_hash)
     return jsonify(fixed_length_hex(class_hash))
 
 

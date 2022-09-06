@@ -4,13 +4,7 @@
     "block_number": 1,
     "events": [],
     "execution_resources": {
-        "builtin_instance_counter": {
-            "bitwise_builtin": 0,
-            "ecdsa_builtin": 0,
-            "output_builtin": 0,
-            "pedersen_builtin": 0,
-            "range_check_builtin": 0
-        },
+        "builtin_instance_counter": {},
         "n_memory_holes": 0,
         "n_steps": 40
     },
