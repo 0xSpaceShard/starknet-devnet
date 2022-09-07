@@ -51,6 +51,7 @@ class GunicornServer(BaseApplication):
     def load_config(self):
         self.cfg.set("bind", f"{self.args.host}:{self.args.port}")
         self.cfg.set("workers", 1)
+        self.cfg.set("timeout", self.args.timeout)
         self.cfg.set(
             "logconfig_dict",
             {

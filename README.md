@@ -427,6 +427,14 @@ Devnet can be started with the `--start-time` argument.
 starknet-devnet --start-time START_TIME_IN_SECONDS
 ```
 
+### Timeout
+
+Timeout can be passed to Devnet's HTTP server.
+
+```
+starknet-devnet --timeout TIMEOUT
+```
+
 ## Contract debugging
 
 If your contract is using `print` in cairo hints (it was compiled with the `--disable-hint-validation` flag), Devnet will output those lines together with its regular server output. Read more about hints [here](https://www.cairo-lang.org/docs/how_cairo_works/hints.html). To filter out just your debug lines, redirect stderr to /dev/null when starting Devnet:
