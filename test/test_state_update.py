@@ -100,38 +100,24 @@ def test_storage_diff():
 
     state_update = get_state_update()
     storage_diffs = state_update["state_diff"]["storage_diffs"]
-    assert storage_diffs == {
-        EXPECTED_WALLET_ADDRESS: [
-            {
-                "value": "0x5fb03481e2817b56b83d16f37550cad051be51c891fd3be2365ed72d7bb5897",
-                "key": "0x3b28019ccfdbd30ffc65951d94bb85c9e2b8434111a000b5afd533ce65f57a4",
-            }
-        ],
-        EXPECTED_FEE_TOKEN_ADDRESS: [
-            {
-                "value": "0x3635c84e581be24000",
-                "key": "0x2391da516f785914b88edad340dbed865b663f0e3b6ea31336b8d7a0225a975",
-            },
-            {
-                "value": "0x15f6dc2bdc000",
-                "key": "0x4341aeb57876662f66da5a8dbe2de6d55d7b6b0affb20d100d371166b166221",
-            },
-            {
-                "value": "0x0",
-                "key": "0x2391da516f785914b88edad340dbed865b663f0e3b6ea31336b8d7a0225a976",
-            },
-            {
-                "value": "0x0",
-                "key": "0x4341aeb57876662f66da5a8dbe2de6d55d7b6b0affb20d100d371166b166222",
-            },
-        ],
-        contract_address_hex: [
-            {
-                "value": hex(value),
-                "key": "0x35fe13a5db37080bfbfae639e6c19be9719e0fbdd4db062eb83cceb4d85a7fe",
-            }
-        ],
-    }
+    assert storage_diffs.keys() == set([
+        EXPECTED_WALLET_ADDRESS,
+        EXPECTED_FEE_TOKEN_ADDRESS,
+        contract_address_hex
+    ])
+    assert storage_diffs[EXPECTED_WALLET_ADDRESS] == [
+        {
+            "value": "0x5fb03481e2817b56b83d16f37550cad051be51c891fd3be2365ed72d7bb5897",
+            "key": "0x3b28019ccfdbd30ffc65951d94bb85c9e2b8434111a000b5afd533ce65f57a4",
+        }
+    ]
+
+    assert storage_diffs[contract_address_hex] == [
+        {
+            "value": hex(value),
+            "key": "0x35fe13a5db37080bfbfae639e6c19be9719e0fbdd4db062eb83cceb4d85a7fe",
+        }
+    ]
 
 
 @pytest.mark.state_update
