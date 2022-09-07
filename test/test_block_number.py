@@ -4,15 +4,12 @@ Test block number
 
 import pytest
 
-from .account import execute_single
 from .shared import (
     ARTIFACTS_PATH,
     FAILING_CONTRACT_PATH,
     GENESIS_BLOCK_NUMBER,
-    PREDEPLOYED_ACCOUNT_ADDRESS,
-    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
-from .util import declare, devnet_in_background, deploy, call
+from .util import declare, devnet_in_background, deploy, call, get_transaction_receipt, invoke
 
 BLOCK_NUMBER_CONTRACT_PATH = f"{ARTIFACTS_PATH}/block_number.cairo/block_number.json"
 BLOCK_NUMBER_ABI_PATH = f"{ARTIFACTS_PATH}/block_number.cairo/block_number_abi.json"
@@ -52,12 +49,11 @@ def test_block_number_incremented(expected_tx_hash):
     assert int(block_number_before) == GENESIS_BLOCK_NUMBER + 1
     assert expected_tx_hash == deploy_info["tx_hash"]
 
-    execute_single(
+    invoke(
         address=deploy_info["address"],
         function="write_block_number",
         inputs=[],
-        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
-        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+        abi_path=BLOCK_NUMBER_ABI_PATH,
     )
 
     written_block_number = call(
@@ -115,12 +111,11 @@ def test_block_number_not_incremented_if_invoke_fails():
     block_number_before = my_get_block_number(deploy_info["address"])
     assert int(block_number_before) == GENESIS_BLOCK_NUMBER + 1
 
-    execute_single(
+    invoke(
         function="fail",
         inputs=[],
         address=deploy_info["address"],
-        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
-        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+        abi_path=BLOCK_NUMBER_ABI_PATH,
     )
 
     block_number_after = my_get_block_number(deploy_info["address"])

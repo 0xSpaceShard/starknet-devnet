@@ -141,18 +141,26 @@ class DevnetTransaction:
 
     def get_trace(self) -> TransactionTrace:
         """Returns the transaction trace"""
-        validate_invocation = FunctionInvocation.from_internal(
-            self.execution_info.validate_info
+        validate_invocation = FunctionInvocation.from_optional_internal(
+            getattr(self.execution_info, "validate_info", None)
         )
 
-        function_invocation = FunctionInvocation.from_optional_internal(
+        function_invocation = (
             self.execution_info.call_info
+            if isinstance(self.execution_info.call_info, FunctionInvocation)
+            else FunctionInvocation.from_optional_internal(
+                self.execution_info.call_info
+            )
+        )
+
+        fee_transfer_invocation = FunctionInvocation.from_optional_internal(
+            getattr(self.execution_info, "fee_transfer_info", None)
         )
 
         return TransactionTrace(
             validate_invocation=validate_invocation,
             function_invocation=function_invocation,
-            fee_transfer_invocation=self.execution_info.fee_transfer_info,
+            fee_transfer_invocation=fee_transfer_invocation,
             signature=self.get_signature(),
         )
 

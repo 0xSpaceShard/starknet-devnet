@@ -1,24 +1,51 @@
 {
-    "call_type": "CALL",
-    "calldata": ["0xa", "0x14"],
-    "caller_address": "0x0",
-    "class_hash": "0x757a84aa38bf4ad191a7dfea2e8146fc7f3c4aa6090a8f0bddd7b688f0b24c",
-    "contract_address": "0x24ae8c3e36aeaf5d9e8d543e86f0b59233f6f18710565f133c557158fb7f349",
-    "entry_point_type": "EXTERNAL",
-    "events": [],
     "execution_resources": {
+        "n_steps": 208,
         "builtin_instance_counter": {
-            "bitwise_builtin": 0,
-            "ecdsa_builtin": 0,
-            "output_builtin": 0,
-            "pedersen_builtin": 0,
-            "range_check_builtin": 0
+            "range_check_builtin": 2
         },
-        "n_memory_holes": 0,
-        "n_steps": 67
+        "n_memory_holes": 3
     },
-    "internal_calls": [],
     "messages": [],
+    "call_type": "CALL",
+    "class_hash": "0x5079dc27d18918ec7a81be5933620ba90d2191092d70b07110991f7d724920d",
     "result": [],
-    "selector": "0x362398bec32bc0ebb411203221a35a0301193a96f317ebe5e40be9f60d15320"
+    "events": [],
+    "calldata": [
+        "0x1",
+        "0x578a1ef00e80a278c2705b51fd5dfeef13ca3dd5b3caf0c6b6ab055b53e239",
+        "0x362398bec32bc0ebb411203221a35a0301193a96f317ebe5e40be9f60d15320",
+        "0x0",
+        "0x2",
+        "0x2",
+        "0xa",
+        "0x14"
+    ],
+    "caller_address": "0x0",
+    "entry_point_type": "EXTERNAL",
+    "selector": "0x15d40a3d6ca2ac30f4031e42be28da9b056fef9bb7357ac5e85627ee876e5ad",
+    "contract_address": "0x51743c6e5fd8c620107061292ebcad8becebc3ae57dda3c3064ece886216491",
+    "internal_calls": [
+        {
+            "execution_resources": {
+                "n_steps": 67,
+                "builtin_instance_counter": {},
+                "n_memory_holes": 0
+            },
+            "messages": [],
+            "call_type": "CALL",
+            "class_hash": "0x18272236f94c858935851a7024eff968eea3af2b8ed2ad02c16917068f23866",
+            "result": [],
+            "events": [],
+            "calldata": [
+                "0xa",
+                "0x14"
+            ],
+            "caller_address": "0x51743c6e5fd8c620107061292ebcad8becebc3ae57dda3c3064ece886216491",
+            "entry_point_type": "EXTERNAL",
+            "selector": "0x362398bec32bc0ebb411203221a35a0301193a96f317ebe5e40be9f60d15320",
+            "contract_address": "0x578a1ef00e80a278c2705b51fd5dfeef13ca3dd5b3caf0c6b6ab055b53e239",
+            "internal_calls": []
+        }
+    ]
 }
