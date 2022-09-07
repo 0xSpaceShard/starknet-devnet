@@ -77,12 +77,6 @@ def _get_block_transaction_traces(block):
     return BlockTransactionTraces.load({"traces": traces})
 
 
-@feeder_gateway.route("/is_alive", methods=["GET"])
-def is_alive():
-    """Health check endpoint."""
-    return "Alive!!!"
-
-
 @feeder_gateway.route("/get_contract_addresses", methods=["GET"])
 def get_contract_addresses():
     """Endpoint that returns an object containing the addresses of key system components."""

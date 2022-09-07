@@ -14,12 +14,6 @@ from .shared import validate_transaction
 gateway = Blueprint("gateway", __name__, url_prefix="/gateway")
 
 
-@gateway.route("/is_alive", methods=["GET"])
-def is_alive():
-    """Health check endpoint."""
-    return "Alive!!!"
-
-
 @gateway.route("/add_transaction", methods=["POST"])
 async def add_transaction():
     """Endpoint for accepting (state-changing) transactions."""
