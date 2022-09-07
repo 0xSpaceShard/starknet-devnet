@@ -257,7 +257,7 @@ def make_invoke_function(request_body: dict) -> InvokeFunction:
         max_fee=int(request_body["max_fee"], 16) if "max_fee" in request_body else 0,
         version=int(request_body["version"], 16) if "version" in request_body else 0,
         signature=[int(data, 16) for data in request_body.get("signature", [])],
-        nonce=int(nonce, 16) if nonce is not None else None
+        nonce=int(nonce, 16) if nonce is not None else None,
     )
 
 

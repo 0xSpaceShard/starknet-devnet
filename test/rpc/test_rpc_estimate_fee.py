@@ -41,7 +41,7 @@ def test_estimate_happy_path(rpc_invoke_tx_common):
         "entry_point_selector": hex(get_selector_from_name("sum_point_array")),
         "calldata": ["0x02", "0x01", "0x02", "0x03", "0x04"],
         # It is not verified and might be removed in next RPC version
-        **rpc_invoke_tx_common
+        **rpc_invoke_tx_common,
     }
     response = rpc_call_background_devnet(
         "starknet_estimateFee", {"request": txn, "block_id": "latest"}

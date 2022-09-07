@@ -12,7 +12,7 @@ from .constants import (
     DEFAULT_HOST,
     DEFAULT_INITIAL_BALANCE,
     DEFAULT_PORT,
-    DEFAULT_TIMEOUT
+    DEFAULT_TIMEOUT,
 )
 
 
@@ -147,7 +147,7 @@ def parse_args(raw_args: List[str]):
         action=NonNegativeAction,
         default=DEFAULT_TIMEOUT,
         help="Specify timeout for devnet server; "
-            + f"defaults to {DEFAULT_TIMEOUT} seconds"
+        + f"defaults to {DEFAULT_TIMEOUT} seconds",
     )
     # Uncomment this once fork support is added
     # parser.add_argument(
