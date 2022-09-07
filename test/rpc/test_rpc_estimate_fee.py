@@ -18,7 +18,6 @@ from starknet_devnet.constants import DEFAULT_GAS_PRICE
 
 def common_estimate_response(response):
     """Expected response from RPC estimate_fee request"""
-    print("DEBUG response in estimate", response)
     result = response["result"]
     gas_price: int = int(result["gas_price"], 16)
     overall_fee: int = int(result["overall_fee"], 16)
