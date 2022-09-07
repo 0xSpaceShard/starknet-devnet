@@ -90,6 +90,8 @@ optional arguments:
   --gas-price GAS_PRICE, -g GAS_PRICE
                         Specify the gas price in wei per gas unit; defaults to
                         1e+11
+  --timeout TIMEOUT, -t TIMEOUT
+                        Specify the timeout for devnet server; defaults to 60 seconds 
 ```
 
 You can run `starknet-devnet` in a separate shell, or you can run it in background with `starknet-devnet &`.
@@ -425,6 +427,14 @@ Devnet can be started with the `--start-time` argument.
 
 ```
 starknet-devnet --start-time START_TIME_IN_SECONDS
+```
+
+### Timeout
+
+Timeout can be passed to Devnet's HTTP server. This makes it easier to deploy and manage large contracts that take longer to execute and may otherwise result in an error `ServerDisconnectedError`.
+
+```
+starknet-devnet --timeout TIMEOUT
 ```
 
 ## Contract debugging
