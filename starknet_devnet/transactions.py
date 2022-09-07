@@ -30,6 +30,7 @@ from services.everest.business_logic.transaction_execution_objects import (
 from .origin import Origin
 
 
+# pylint: disable=too-many-instance-attributes
 class DevnetTransaction:
     """Represents the devnet transaction"""
 

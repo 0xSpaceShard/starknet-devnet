@@ -85,7 +85,7 @@ def test_declare_and_deploy():
         function="deploy_contract",
         inputs=[initial_balance],
         address=deployer_address,
-        abi_path=DEPLOYER_ABI_PATH
+        abi_path=DEPLOYER_ABI_PATH,
     )
     assert_deployed_through_syscall(invoke_tx_hash, str(initial_balance))
 

@@ -123,7 +123,7 @@ async def add_invoke_transaction(
         signature=[int(data, 16) for data in signature]
         if signature is not None
         else [],
-        nonce=nonce
+        nonce=nonce,
     )
 
     _, transaction_hash = await state.starknet_wrapper.invoke(

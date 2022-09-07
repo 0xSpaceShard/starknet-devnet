@@ -22,7 +22,9 @@ class DevnetContracts:
         self.__classes: Dict[int, ContractClass] = {}
         self.__class_hashes: Dict[int, int] = {}
 
-    def store(self, address: int, class_hash: int, contract_wrapper: ContractWrapper) -> None:
+    def store(
+        self, address: int, class_hash: int, contract_wrapper: ContractWrapper
+    ) -> None:
         """
         Store the contract wrapper.
         """

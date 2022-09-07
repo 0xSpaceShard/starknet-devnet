@@ -142,6 +142,7 @@ def get_estimated_fee(calls, account_address, private_key, nonce=None):
         signature=signature,
     )
 
+
 def execute(calls, account_address, private_key, nonce=None, max_fee=0):
     """Invoke __execute__ with correct calldata and signature."""
 

@@ -4,18 +4,11 @@ Utility functions used across the project.
 
 from dataclasses import dataclass
 import os
-from typing import List, Dict, Union
+from typing import Union
 
 from starkware.starkware_utils.error_handling import StarkException
 from starkware.starknet.testing.contract import StarknetContract
 from starkware.starknet.business_logic.execution.objects import CallInfo
-from starkware.starknet.business_logic.state.state import CachedSyncState
-from starkware.starknet.services.api.feeder_gateway.response_objects import (
-    BlockStateUpdate,
-    StateDiff,
-    StorageEntry,
-    DeployedContract,
-)
 
 
 def custom_int(arg: str) -> int:
@@ -96,80 +89,6 @@ def enable_pickling():
 
     StarknetContract.__getstate__ = contract_getstate
     StarknetContract.__setstate__ = contract_setstate
-
-
-def generate_storage_diff(
-    previous_storage_updates, storage_updates
-) -> List[StorageEntry]:
-    """
-    Returns storage diff between previous and current storage updates
-    """
-    storage_diff = []
-
-    for storage_key, leaf in storage_updates.items():
-        previous_leaf = (
-            previous_storage_updates.get(storage_key)
-            if previous_storage_updates
-            else None
-        )
-
-        if previous_leaf is None or previous_leaf.value != leaf.value:
-            storage_diff.append(StorageEntry(key=storage_key, value=leaf.value))
-
-    return storage_diff
-
-
-def generate_state_update(
-    previous_state: CachedSyncState, current_state: CachedSyncState
-) -> BlockStateUpdate:
-    """
-    Returns roots, deployed contracts and storage diffs between 2 states
-    """
-
-    deployed_contracts: List[DeployedContract] = []
-    declared_contracts: List[int] = []
-    storage_diffs: Dict[int, List[StorageEntry]] = {}
-    nonces: Dict[int, int] = {}
-
-    for class_hash in current_state.contract_definitions:
-        if class_hash not in previous_state.contract_definitions:
-            declared_contracts.append(int.from_bytes(class_hash, byteorder="big"))
-
-    for contract_address in current_state.contract_states:
-        if contract_address not in previous_state.contract_states:
-            class_hash = int.from_bytes(
-                current_state.contract_states[contract_address].state.contract_hash,
-                "big",
-            )
-            deployed_contracts.append(
-                DeployedContract(address=contract_address, class_hash=class_hash)
-            )
-        else:
-            previous_storage_updates = previous_state.contract_states[
-                contract_address
-            ].storage_updates
-            storage_updates = current_state.contract_states[
-                contract_address
-            ].storage_updates
-            storage_diff = generate_storage_diff(
-                previous_storage_updates, storage_updates
-            )
-
-            if len(storage_diff) > 0:
-                storage_diffs[contract_address] = storage_diff
-
-    new_root = current_state.shared_state.contract_states.root
-    old_root = previous_state.shared_state.contract_states.root
-    state_diff = StateDiff(
-        deployed_contracts=deployed_contracts,
-        declared_contracts=tuple(declared_contracts),
-        storage_diffs=storage_diffs,
-        nonces=nonces
-    )
-
-    return BlockStateUpdate(
-        block_hash=None, new_root=new_root, old_root=old_root, state_diff=state_diff
-    )
 
 
 def to_bytes(value: Union[int, bytes]) -> bytes:

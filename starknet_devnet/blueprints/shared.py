@@ -8,6 +8,7 @@ from starkware.starknet.services.api.gateway.transaction import Transaction
 from starknet_devnet.constants import CAIRO_LANG_VERSION
 from starknet_devnet.util import StarknetDevnetException
 
+
 def validate_transaction(data: bytes) -> Transaction:
     """Ensure `transaction_dict` is a valid Starknet transaction. Returns the parsed Transaction."""
     try:

@@ -53,7 +53,6 @@ from .util import (
     DummyExecutionInfo,
     Uint256,
     enable_pickling,
-    generate_storage_diff,
     to_bytes,
 )
 from .contract_wrapper import ContractWrapper
@@ -144,10 +143,10 @@ class StarknetWrapper:
 
     async def __update_state(
         self,
-        deployed_contracts: List[DeployedContract]=None,
-        declared_contracts: List[int]=None,
-        visited_storage_entries: Set[StorageEntry]=None,
-        nonces: Dict[int, int]=None,
+        deployed_contracts: List[DeployedContract] = None,
+        declared_contracts: List[int] = None,
+        visited_storage_entries: Set[StorageEntry] = None,
+        nonces: Dict[int, int] = None,
     ):
         previous_state = self.__current_carried_state
         assert previous_state is not None
@@ -165,7 +164,8 @@ class StarknetWrapper:
                 storage_diffs[address] = []
             storage_diffs[address].append(
                 StorageEntry(
-                    key=key, value=await current_carried_state.get_storage_at(address, key)
+                    key=key,
+                    value=await current_carried_state.get_storage_at(address, key),
                 )
             )
 
@@ -282,6 +282,7 @@ class StarknetWrapper:
         )
         return block_info
 
+    # pylint: disable=too-many-locals
     async def deploy(self, deploy_transaction: Deploy) -> Tuple[int, int]:
         """
         Deploys the contract specified with `deploy_transaction`.
@@ -475,7 +476,9 @@ class StarknetWrapper:
         )
 
         execution_info = await internal_tx.apply_state_updates(
-            state.state._copy(), state.general_config
+            # pylint: disable=protected-access
+            state.state._copy(),
+            state.general_config,
         )
 
         trace = TransactionTrace(

@@ -66,10 +66,14 @@ class Account:
         """Deploy this account."""
         starknet: Starknet = self.starknet_wrapper.starknet
         contract_class = Account.get_contract_class()
-        await starknet.state.state.set_contract_class(Account.HASH_BYTES, contract_class)
+        await starknet.state.state.set_contract_class(
+            Account.HASH_BYTES, contract_class
+        )
         await starknet.state.state.deploy_contract(self.address, Account.HASH_BYTES)
 
-        await starknet.state.state.set_storage_at(self.address, get_selector_from_name("Account_public_key"), self.public_key)
+        await starknet.state.state.set_storage_at(
+            self.address, get_selector_from_name("Account_public_key"), self.public_key
+        )
 
         # set initial balance
         fee_token_address = starknet.state.general_config.fee_token_address
@@ -77,14 +81,20 @@ class Account:
             get_selector_from_name("ERC20_balances"), self.address
         )
         initial_balance_uint256 = Uint256.from_felt(self.initial_balance)
-        await starknet.state.state.set_storage_at(fee_token_address, balance_address, initial_balance_uint256.low)
-        await starknet.state.state.set_storage_at(fee_token_address, balance_address + 1, initial_balance_uint256.high)
+        await starknet.state.state.set_storage_at(
+            fee_token_address, balance_address, initial_balance_uint256.low
+        )
+        await starknet.state.state.set_storage_at(
+            fee_token_address, balance_address + 1, initial_balance_uint256.high
+        )
 
         contract = StarknetContract(
             state=starknet.state,
             abi=contract_class.abi,
             contract_address=self.address,
-            deploy_call_info=None
+            deploy_call_info=None,
         )
 
-        await self.starknet_wrapper.store_contract(self.address, contract, contract_class)
+        await self.starknet_wrapper.store_contract(
+            self.address, contract, contract_class
+        )

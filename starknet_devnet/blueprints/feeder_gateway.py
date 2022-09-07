@@ -7,9 +7,15 @@ from marshmallow import ValidationError
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     BlockTransactionTraces,
 )
-from starkware.starknet.services.api.gateway.transaction import AccountTransaction, InvokeFunction
+from starkware.starknet.services.api.gateway.transaction import (
+    AccountTransaction,
+    InvokeFunction,
+)
 from starkware.starknet.services.api.feeder_gateway.request_objects import CallFunction
-from starkware.starknet.services.api.feeder_gateway.response_objects import TransactionSimulationInfo, FeeEstimationInfo
+from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    TransactionSimulationInfo,
+    FeeEstimationInfo,
+)
 from werkzeug.datastructures import MultiDict
 
 from starknet_devnet.state import state
@@ -90,9 +96,11 @@ async def call_contract():
     """
 
     try:
-        call_specifications = validate_request(request.data, CallFunction) # version 1
+        call_specifications = validate_request(request.data, CallFunction)  # version 1
     except StarknetDevnetException:
-        call_specifications = validate_request(request.data, InvokeFunction) # version 0
+        call_specifications = validate_request(
+            request.data, InvokeFunction
+        )  # version 0
 
     result_dict = await state.starknet_wrapper.call(call_specifications)
     return jsonify(result_dict)
@@ -278,8 +286,7 @@ async def simulate_transaction():
     trace, fee_response = await state.starknet_wrapper.calculate_actual_fee(transaction)
 
     simulation_info = TransactionSimulationInfo(
-        trace=trace,
-        fee_estimation=FeeEstimationInfo.load(fee_response)
+        trace=trace, fee_estimation=FeeEstimationInfo.load(fee_response)
     )
 
     return jsonify(simulation_info.dump())

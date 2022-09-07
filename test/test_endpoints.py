@@ -48,9 +48,7 @@ def assert_deploy_resp(resp: bytes):
 def assert_invoke_resp(resp: bytes):
     """Asserts the validity of invoke response body."""
     resp_dict = json.loads(resp.data.decode("utf-8"))
-    assert set(resp_dict.keys()) == set(
-        ["address", "code", "transaction_hash"]
-    )
+    assert set(resp_dict.keys()) == set(["address", "code", "transaction_hash"])
     assert resp_dict["code"] == "TRANSACTION_RECEIVED"
 
 

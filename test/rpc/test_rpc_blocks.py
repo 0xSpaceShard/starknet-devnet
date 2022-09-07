@@ -29,7 +29,6 @@ def test_get_block_with_tx_hashes(deploy_info, gateway_block, block_id):
     block = resp["result"]
     transaction_hash: str = pad_zero(deploy_info["transaction_hash"])
 
-
     assert block == {
         "block_hash": pad_zero(block_hash),
         "parent_hash": pad_zero(gateway_block["parent_block_hash"]),
