@@ -32,6 +32,9 @@ from starkware.starknet.testing.objects import FunctionInvocation
 from starkware.starknet.compiler.compile import get_selector_from_name
 from starkware.solidity.utils import load_nearby_contract
 from starkware.crypto.signature.fast_pedersen_hash import pedersen_hash
+from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    TransactionTrace,
+)
 
 from .accounts import Accounts
 from .blueprints.rpc.structures.types import Felt
@@ -414,9 +417,18 @@ class StarknetWrapper:
         execution_info = await internal_tx.apply_state_updates(
             state.state._copy(), state.general_config
         )
-        # TODO getting a gorilla with the banana?
-        devnet_tx = DevnetTransaction(
-            internal_tx, TransactionStatus.ACCEPTED_ON_L2, execution_info
+
+        trace = TransactionTrace(
+            validate_invocation=FunctionInvocation.from_optional_internal(
+                execution_info.validate_info
+            ),
+            function_invocation=FunctionInvocation.from_optional_internal(
+                execution_info.call_info
+            ),
+            fee_transfer_invocation=FunctionInvocation.from_optional_internal(
+                execution_info.fee_transfer_info
+            ),
+            signature=external_tx.signature,
         )
 
         tx_fee = execution_info.actual_fee
@@ -424,7 +436,7 @@ class StarknetWrapper:
         gas_price = state.state.block_info.gas_price
         gas_usage = tx_fee // gas_price if gas_price else 0
 
-        return devnet_tx.get_trace(), {
+        return trace, {
             "overall_fee": tx_fee,
             "unit": "wei",
             "gas_price": gas_price,

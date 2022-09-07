@@ -129,6 +129,7 @@ def generate_state_update(
     deployed_contracts: List[DeployedContract] = []
     declared_contracts: List[int] = []
     storage_diffs: Dict[int, List[StorageEntry]] = {}
+    nonces: Dict[int, int] = {}
 
     for class_hash in current_state.contract_definitions:
         if class_hash not in previous_state.contract_definitions:
@@ -163,6 +164,7 @@ def generate_state_update(
         deployed_contracts=deployed_contracts,
         declared_contracts=tuple(declared_contracts),
         storage_diffs=storage_diffs,
+        nonces=nonces
     )
 
     return BlockStateUpdate(
