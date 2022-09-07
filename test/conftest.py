@@ -9,10 +9,18 @@ from test.util import run_devnet_in_background, terminate_and_wait
 import pytest
 
 
-@pytest.fixture(name="expected_hash")
-def fixture_expected_hash(request):
+@pytest.fixture(name="expected_tx_hash")
+def fixture_expected_tx_hash(request):
     """
-    Fixture to return values of expected hash
+    Fixture to return values of expected tx hash
+    """
+    return request.param
+
+
+@pytest.fixture(name="expected_block_hash")
+def fixture_expected_block_hash(request):
+    """
+    Fixture to return values of expected block hash
     """
     return request.param
 
