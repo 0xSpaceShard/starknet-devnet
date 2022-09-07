@@ -159,22 +159,3 @@ def execute(calls, account_address, private_key, nonce=None, max_fee=0):
         signature=signature,
         max_fee=str(max_fee),
     )
-
-
-def execute_single(
-    address: str,
-    function: str,
-    inputs: List[str],
-    account_address: str,
-    private_key: int,
-    nonce=None,
-    max_fee=0,
-):
-    """`execute` for a single invoke"""
-    return execute(
-        [(int(address, 16), function, [int(el) for el in inputs])],
-        account_address,
-        private_key,
-        nonce,
-        max_fee,
-    )
