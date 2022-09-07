@@ -61,7 +61,7 @@ def test_estimate_fee_with_genesis_block():
     )
 
     assert response.status_code == 200
-    common_estimate_response(response)
+    common_estimate_response(response.json())
 
 
 @pytest.mark.estimate_fee
@@ -74,7 +74,7 @@ def test_estimate_fee_in_unknown_address():
 
     json_error_message = resp.json()["message"]
     assert resp.status_code == 500
-    assert json_error_message.startswith("Contract with address")
+    assert json_error_message.endswith("is not deployed.")
 
 
 @pytest.mark.estimate_fee
@@ -86,7 +86,7 @@ def test_estimate_fee_with_invalid_data():
 
     json_error_message = resp.json()["message"]
     assert resp.status_code == 400
-    assert "Invalid Starknet function call" in json_error_message
+    assert "Invalid InvokeFunction" in json_error_message
 
 
 @pytest.mark.estimate_fee
@@ -108,7 +108,7 @@ def test_estimate_fee_with_complete_request_data():
     )
 
     assert response.status_code == 200
-    common_estimate_response(response)
+    common_estimate_response(response.json())
 
 
 @devnet_in_background("--gas-price", str(DEFAULT_GAS_PRICE))
