@@ -87,6 +87,7 @@ async def test_deploy_lite():
         contract_class=deploy_transaction.contract_definition,
     )
 
+    # Currently in lite mode hashes are actually calculated
     assert contract_address == expected_contract_address
     assert tx_hash == 0
 
