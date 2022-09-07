@@ -3,20 +3,15 @@ Tests RPC transactions
 """
 
 from __future__ import annotations
-
 from typing import List
 
-from test.shared import INCORRECT_GENESIS_BLOCK_HASH, SUPPORTED_TX_VERSION
-
 import pytest
-
-from starkware.starknet.definitions import constants
-
 from starknet_devnet.blueprints.rpc.structures.payloads import RpcContractClass
 from starknet_devnet.blueprints.rpc.structures.types import rpc_txn_type
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 
 from .rpc_utils import rpc_call, get_block_with_transaction, pad_zero
+from ..shared import INCORRECT_GENESIS_BLOCK_HASH, SUPPORTED_TX_VERSION
 
 
 def pad_zero_external_entry_points(contract_class: dict) -> dict:
@@ -336,7 +331,7 @@ def test_add_declare_transaction_on_incorrect_contract(declare_content):
         "starknet_addDeclareTransaction",
         params={
             "contract_class": rpc_contract,
-            "version": hex(constants.TRANSACTION_VERSION),
+            "version": hex(SUPPORTED_TX_VERSION),
         },
     )
 

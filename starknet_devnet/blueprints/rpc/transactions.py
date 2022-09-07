@@ -6,7 +6,6 @@ import dataclasses
 from typing import List, Optional
 
 from marshmallow.exceptions import MarshmallowError
-from starkware.starknet.definitions import constants
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionStatus,
@@ -47,6 +46,7 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     Felt,
     RpcError,
 )
+from starknet_devnet.constants import SUPPORTED_TX_VERSION
 from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException
 
@@ -193,7 +193,7 @@ async def add_deploy_transaction(
         contract_address_salt=int(contract_address_salt, 16),
         constructor_calldata=[int(data, 16) for data in constructor_calldata],
         contract_definition=contract_class,
-        version=constants.TRANSACTION_VERSION,
+        version=SUPPORTED_TX_VERSION,
     )
 
     contract_address, transaction_hash = await state.starknet_wrapper.deploy(
@@ -219,7 +219,7 @@ async def estimate_fee(request: RpcInvokeTransaction, block_id: BlockId) -> dict
     invoke_function = make_invoke_function(request)
 
     try:
-        fee_response = await state.starknet_wrapper.calculate_actual_fee(
+        _, fee_response = await state.starknet_wrapper.calculate_actual_fee(
             invoke_function
         )
     except StarkException as ex:

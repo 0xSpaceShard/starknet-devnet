@@ -7,9 +7,6 @@ from __future__ import annotations
 import json
 import typing
 
-from test.util import load_file_content
-
-from starkware.starknet.definitions import constants
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.gateway.transaction import Transaction, Deploy
 
@@ -19,6 +16,8 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     BlockHashDict,
     Felt,
 )
+from ..util import load_file_content
+from ..shared import SUPPORTED_TX_VERSION
 from .rpc_utils import (
     gateway_call,
     get_block_with_transaction,
@@ -134,8 +133,8 @@ def fixture_rpc_invoke_tx_common() -> dict:
         # It is not verified and might be removed in next RPC version
         "transaction_hash": "0x00",
         "max_fee": "0x00",
-        "version": hex(constants.TRANSACTION_VERSION),
+        "version": hex(SUPPORTED_TX_VERSION),
         "signature": [],
-        "nonce": "0x00",
+        "nonce": None,
         "type": "INVOKE",
     }
