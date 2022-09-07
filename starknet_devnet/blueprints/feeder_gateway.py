@@ -289,7 +289,6 @@ async def simulate_transaction():
 async def get_nonce():
     """Returns the nonce of the contract whose contractAddress is provided"""
 
-    # TODO validate
     contract_address = request.args.get("contractAddress", type=custom_int)
     nonce = await state.starknet_wrapper.get_nonce(contract_address)
 

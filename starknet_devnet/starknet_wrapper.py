@@ -5,7 +5,7 @@ starkware.starknet.testing.starknet.Starknet.
 from copy import deepcopy
 import json
 import os
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Set, Tuple, Union
 
 import cloudpickle as pickle
 from starkware.starknet.business_logic.transaction.objects import (
@@ -41,6 +41,8 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     StateDiff,
     StorageEntry,
 )
+
+from starknet_devnet.constants import DUMMY_STATE_ROOT
 
 from .accounts import Accounts
 from .blueprints.rpc.structures.types import Felt
@@ -142,11 +144,11 @@ class StarknetWrapper:
 
     async def __update_state(
         self,
-        deployed_contracts=None,
-        declared_contracts=None,
-        visited_storage_entries=None,
-        nonces=None,
-    ):  # TODO type hints
+        deployed_contracts: List[DeployedContract]=None,
+        declared_contracts: List[int]=None,
+        visited_storage_entries: Set[StorageEntry]=None,
+        nonces: Dict[int, int]=None,
+    ):
         previous_state = self.__current_carried_state
         assert previous_state is not None
         current_carried_state = self.get_state().state
@@ -174,11 +176,10 @@ class StarknetWrapper:
             nonces=nonces or {},
         )
 
-        dummy_state_root = bytes()
         return BlockStateUpdate(
             block_hash=None,
-            new_root=dummy_state_root,
-            old_root=dummy_state_root,
+            new_root=DUMMY_STATE_ROOT,
+            old_root=DUMMY_STATE_ROOT,
             state_diff=state_diff,
         )
 

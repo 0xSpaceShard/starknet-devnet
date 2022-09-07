@@ -66,11 +66,8 @@ class Account:
         """Deploy this account."""
         starknet: Starknet = self.starknet_wrapper.starknet
         contract_class = Account.get_contract_class()
-        # TODO how fast is this? did it use to be faster with a more low level approach?
         await starknet.state.state.set_contract_class(Account.HASH_BYTES, contract_class)
         await starknet.state.state.deploy_contract(self.address, Account.HASH_BYTES)
-        # TODO is this assertion done in deploy_contract?
-        # assert not account_state.initialized
 
         await starknet.state.state.set_storage_at(self.address, get_selector_from_name("Account_public_key"), self.public_key)
 

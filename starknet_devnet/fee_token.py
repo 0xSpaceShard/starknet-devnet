@@ -52,10 +52,6 @@ class FeeToken:
         starknet: Starknet = self.starknet_wrapper.starknet
         contract_class = FeeToken.get_contract_class()
 
-        # TODO is this assertion done in deploy_contract?
-        # assert not fee_token_state.initialized
-
-        # TODO check if already set
         await starknet.state.state.set_contract_class(
             FeeToken.HASH_BYTES, contract_class
         )

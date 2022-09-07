@@ -29,7 +29,7 @@ DEFAULT_GENERAL_CONFIG = build_general_config(
             "chain_id": DEFAULT_CHAIN_ID.name,
             "fee_token_address": hex(FeeToken.ADDRESS),
         },
-        "tx_version": 0, # TODO
+        "tx_version": 0,
         "tx_commitment_tree_height": constants.TRANSACTION_COMMITMENT_TREE_HEIGHT,
         "validate_max_n_steps": DEFAULT_VALIDATE_MAX_STEPS,
     }
