@@ -35,6 +35,12 @@ from starkware.crypto.signature.fast_pedersen_hash import pedersen_hash
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionTrace,
 )
+from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    BlockStateUpdate,
+    DeployedContract,
+    StateDiff,
+    StorageEntry,
+)
 
 from .accounts import Accounts
 from .blueprints.rpc.structures.types import Felt
@@ -45,6 +51,7 @@ from .util import (
     DummyExecutionInfo,
     Uint256,
     enable_pickling,
+    generate_storage_diff,
     to_bytes,
 )
 from .contract_wrapper import ContractWrapper
@@ -133,7 +140,13 @@ class StarknetWrapper:
         """
         return self.starknet.state
 
-    async def __update_state(self):
+    async def __update_state(
+        self,
+        deployed_contracts=None,
+        declared_contracts=None,
+        visited_storage_entries=None,
+        nonces=None,
+    ):  # TODO type hints
         previous_state = self.__current_carried_state
         assert previous_state is not None
         current_carried_state = self.get_state().state
@@ -144,8 +157,30 @@ class StarknetWrapper:
             general_config=state.general_config,
         )
 
-        return None
-        # return generate_state_update(previous_state, current_carried_state)
+        storage_diffs: Dict[int, List[StorageEntry]] = {}
+        for address, key in visited_storage_entries or {}:
+            if address not in storage_diffs:
+                storage_diffs[address] = []
+            storage_diffs[address].append(
+                StorageEntry(
+                    key=key, value=await current_carried_state.get_storage_at(address, key)
+                )
+            )
+
+        state_diff = StateDiff(
+            deployed_contracts=deployed_contracts or [],
+            declared_contracts=tuple(declared_contracts or []),
+            storage_diffs=storage_diffs,
+            nonces=nonces or {},
+        )
+
+        dummy_state_root = bytes()
+        return BlockStateUpdate(
+            block_hash=None,
+            new_root=dummy_state_root,
+            old_root=dummy_state_root,
+            state_diff=state_diff,
+        )
 
     async def store_contract(
         self,
@@ -206,9 +241,9 @@ class StarknetWrapper:
             declare_transaction, self.get_state().general_config
         )
         execution_info = await self.starknet.state.execute_tx(internal_declare)
-        class_hash = int.from_bytes(internal_declare.class_hash, "big")
+        class_hash_int = int.from_bytes(internal_declare.class_hash, "big")
 
-        self.contracts.store_class(class_hash, declare_transaction.contract_class)
+        self.contracts.store_class(class_hash_int, declare_transaction.contract_class)
         await self.get_state().state.set_contract_class(
             internal_declare.class_hash, declare_transaction.contract_class
         )
@@ -222,7 +257,7 @@ class StarknetWrapper:
         )
 
         self.__update_block_number()
-        state_update = await self.__update_state()
+        state_update = await self.__update_state(declared_contracts=[class_hash_int])
 
         await self.__store_transaction(
             transaction=transaction,
@@ -231,7 +266,7 @@ class StarknetWrapper:
             error_message=None,
         )
 
-        return class_hash, tx_hash
+        return class_hash_int, tx_hash
 
     def __update_block_number(self):
         """Updates just the block number. Returns the old block info to allow reverting"""
@@ -254,7 +289,7 @@ class StarknetWrapper:
 
         state = self.get_state()
         contract_class = deploy_transaction.contract_definition
-
+        deployed_contracts: List[DeployedContract] = []
         internal_tx: InternalDeploy = InternalDeploy.from_external(
             deploy_transaction, state.general_config
         )
@@ -284,7 +319,23 @@ class StarknetWrapper:
             await self.store_contract(
                 contract.contract_address, contract, contract_class, tx_hash
             )
-            state_update = await self.__update_state()
+
+            class_hash_bytes = await self.starknet.state.state.get_class_hash_at(
+                contract_address
+            )
+            class_hash_int = int.from_bytes(class_hash_bytes, "big")
+            deployed_contracts.append(
+                DeployedContract(
+                    address=contract.contract_address, class_hash=class_hash_int
+                )
+            )
+
+            await self.__register_new_contracts(
+                execution_info.call_info.internal_calls, tx_hash, deployed_contracts
+            )
+            state_update = await self.__update_state(
+                deployed_contracts=deployed_contracts
+            )
         except StarkException as err:
             error_message = err.message
             status = TransactionStatus.REJECTED
@@ -308,10 +359,6 @@ class StarknetWrapper:
             tx_hash=tx_hash,
         )
 
-        await self.__register_new_contracts(
-            execution_info.call_info.internal_calls, tx_hash
-        )
-
         return contract_address, tx_hash
 
     async def invoke(self, invoke_function: InvokeFunction):
@@ -320,6 +367,7 @@ class StarknetWrapper:
         invoke_transaction: InternalInvokeFunction = (
             InternalInvokeFunction.from_external(invoke_function, state.general_config)
         )
+        tx_hash = invoke_transaction.hash_value
 
         try:
             preserved_block_info = self.__update_block_number()
@@ -327,7 +375,15 @@ class StarknetWrapper:
             execution_info = await state.execute_tx(invoke_transaction)
             status = TransactionStatus.ACCEPTED_ON_L2
             error_message = None
-            state_update = await self.__update_state()
+            deployed_contracts: List[DeployedContract] = []
+            await self.__register_new_contracts(
+                execution_info.call_info.internal_calls, tx_hash, deployed_contracts
+            )
+
+            state_update = await self.__update_state(
+                deployed_contracts=deployed_contracts,
+                visited_storage_entries=execution_info.get_visited_storage_entries(),
+            )
         except StarkException as err:
             error_message = err.message
             status = TransactionStatus.REJECTED
@@ -338,17 +394,12 @@ class StarknetWrapper:
             self.get_state().state.block_info = preserved_block_info
 
         transaction = DevnetTransaction(invoke_transaction, status, execution_info)
-        tx_hash = transaction.transaction_hash
 
         await self.__store_transaction(
             transaction=transaction,
             state_update=state_update,
             error_message=error_message,
             tx_hash=tx_hash,
-        )
-
-        await self.__register_new_contracts(
-            execution_info.call_info.internal_calls, tx_hash
         )
 
         return invoke_function.contract_address, tx_hash
@@ -366,13 +417,17 @@ class StarknetWrapper:
         return {"result": adapted_result}
 
     async def __register_new_contracts(
-        self, internal_calls: List[Union[FunctionInvocation, CallInfo]], tx_hash: int
+        self,
+        internal_calls: List[Union[FunctionInvocation, CallInfo]],
+        tx_hash: int,
+        deployed_contracts: List[DeployedContract],
     ):
         for internal_call in internal_calls:
             if internal_call.entry_point_type == EntryPointType.CONSTRUCTOR:
                 state = self.get_state()
-                class_hash = to_bytes(internal_call.class_hash)
-                contract_class = await state.state.get_contract_class(class_hash)
+                class_hash_bytes = to_bytes(internal_call.class_hash)
+                class_hash_int = int.from_bytes(class_hash_bytes, "big")
+                contract_class = await state.state.get_contract_class(class_hash_bytes)
 
                 contract = StarknetContract(
                     state, contract_class.abi, internal_call.contract_address, None
@@ -380,7 +435,14 @@ class StarknetWrapper:
                 await self.store_contract(
                     internal_call.contract_address, contract, contract_class, tx_hash
                 )
-            await self.__register_new_contracts(internal_call.internal_calls, tx_hash)
+                deployed_contracts.append(
+                    DeployedContract(
+                        address=contract.contract_address, class_hash=class_hash_int
+                    )
+                )
+            await self.__register_new_contracts(
+                internal_call.internal_calls, tx_hash, deployed_contracts
+            )
 
     async def get_storage_at(self, contract_address: int, key: int) -> Felt:
         """

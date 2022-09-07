@@ -18,6 +18,8 @@ from .util import (
 )
 from .settings import APP_URL
 from .shared import (
+    EXPECTED_FEE_TOKEN_ADDRESS,
+    EXPECTED_WALLET_ADDRESS,
     GENESIS_BLOCK_HASH,
     STORAGE_CONTRACT_PATH,
     STORAGE_ABI_PATH,
@@ -92,28 +94,44 @@ def test_deployed_contracts():
 def test_storage_diff():
     """Test storage diffs in the state update"""
     contract_address = deploy_empty_contract()
-    address = hex(int(contract_address, 16))
-    invoke("store_value", ["30"], contract_address, STORAGE_ABI_PATH)
+    contract_address_hex = hex(int(contract_address, 16))
+    value = 30
+    invoke("store_value", [str(value)], contract_address, STORAGE_ABI_PATH)
 
     state_update = get_state_update()
     storage_diffs = state_update["state_diff"]["storage_diffs"]
-    assert_equal(len(storage_diffs), 1)
-
-    contract_storage_diffs = storage_diffs[address]
-
-    assert_equal(len(contract_storage_diffs), 1)
-    assert_equal(contract_storage_diffs[0]["value"], hex(30))
-    assert_equal(contract_storage_diffs[0]["key"], STORAGE_KEY)
-
-    invoke("store_value", ["0"], contract_address, STORAGE_ABI_PATH)
-
-    state_update = get_state_update()
-    storage_diffs = state_update["state_diff"]["storage_diffs"]
-    contract_storage_diffs = storage_diffs[address]
-
-    assert_equal(len(contract_storage_diffs), 1)
-    assert_equal(contract_storage_diffs[0]["value"], hex(0))
-    assert_equal(contract_storage_diffs[0]["key"], STORAGE_KEY)
+    assert storage_diffs == {
+        EXPECTED_WALLET_ADDRESS: [
+            {
+                "value": "0x5fb03481e2817b56b83d16f37550cad051be51c891fd3be2365ed72d7bb5897",
+                "key": "0x3b28019ccfdbd30ffc65951d94bb85c9e2b8434111a000b5afd533ce65f57a4",
+            }
+        ],
+        EXPECTED_FEE_TOKEN_ADDRESS: [
+            {
+                "value": "0x3635c84e581be24000",
+                "key": "0x2391da516f785914b88edad340dbed865b663f0e3b6ea31336b8d7a0225a975",
+            },
+            {
+                "value": "0x15f6dc2bdc000",
+                "key": "0x4341aeb57876662f66da5a8dbe2de6d55d7b6b0affb20d100d371166b166221",
+            },
+            {
+                "value": "0x0",
+                "key": "0x2391da516f785914b88edad340dbed865b663f0e3b6ea31336b8d7a0225a976",
+            },
+            {
+                "value": "0x0",
+                "key": "0x4341aeb57876662f66da5a8dbe2de6d55d7b6b0affb20d100d371166b166222",
+            },
+        ],
+        contract_address_hex: [
+            {
+                "value": hex(value),
+                "key": "0x35fe13a5db37080bfbfae639e6c19be9719e0fbdd4db062eb83cceb4d85a7fe",
+            }
+        ],
+    }
 
 
 @pytest.mark.state_update
