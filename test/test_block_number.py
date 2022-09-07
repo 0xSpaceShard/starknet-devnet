@@ -20,26 +20,30 @@ def my_get_block_number(address: str):
 
 @pytest.mark.usefixtures("run_devnet_in_background")
 @pytest.mark.parametrize(
-    "run_devnet_in_background, expected_hash",
+    "run_devnet_in_background, expected_tx_hash",
     [
         ([], "0x4f1ea446f67c1be47619444eae4d8118f6e017d0e6fe16e89b3df03da38606d"),
-        (["--lite-mode"], "0x0"),
+        (
+            ["--lite-mode"],
+            "0x4f1ea446f67c1be47619444eae4d8118f6e017d0e6fe16e89b3df03da38606d",
+        ),
     ],
     indirect=True,
 )
-def test_block_number_incremented(expected_hash):
+def test_block_number_incremented(expected_tx_hash):
     """
     Tests how block number is incremented in regular mode and lite mode.
     In regular mode with salt "0x42" our expected hash is
     0x4f1ea446f67c1be47619444eae4d8118f6e017d0e6fe16e89b3df03da38606d.
-    In lite mode we expect 0x0 transaction hash.
+    In lite mode we expect 0x4f1ea446f67c1be47619444eae4d8118f6e017d0e6fe16e89b3df03da38606d
+    transaction hash because currently, we can't disable tx hash calculations.
     """
 
     deploy_info = deploy(BLOCK_NUMBER_CONTRACT_PATH, salt="0x42")
     block_number_before = my_get_block_number(deploy_info["address"])
 
     assert int(block_number_before) == GENESIS_BLOCK_NUMBER + 1
-    assert expected_hash == deploy_info["tx_hash"]
+    assert expected_tx_hash == deploy_info["tx_hash"]
 
     invoke(
         function="write_block_number",

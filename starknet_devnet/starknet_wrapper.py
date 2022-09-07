@@ -260,10 +260,7 @@ class StarknetWrapper:
             tx_hash = self.contracts.get_by_address(contract_address).deployment_tx_hash
             return contract_address, tx_hash
 
-        if self.config.lite_mode:
-            tx_hash = self.transactions.get_count()
-        else:
-            tx_hash = internal_tx.hash_value
+        tx_hash = internal_tx.hash_value
 
         try:
             preserved_block_info = self.__update_block_number()
