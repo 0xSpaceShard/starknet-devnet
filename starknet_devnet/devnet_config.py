@@ -146,7 +146,8 @@ def parse_args(raw_args: List[str]):
         "-t",
         action=NonNegativeAction,
         default=DEFAULT_TIMEOUT,
-        help="Specify timeout for the server"
+        help="Specify timeout for devnet server; "
+            + f"defaults to {DEFAULT_TIMEOUT} seconds"
     )
     # Uncomment this once fork support is added
     # parser.add_argument(
