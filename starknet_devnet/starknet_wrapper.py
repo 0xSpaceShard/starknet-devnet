@@ -14,7 +14,7 @@ from starkware.starknet.business_logic.transaction.objects import (
     InternalDeclare,
     InternalDeploy,
 )
-from starkware.starknet.business_logic.state.state import BlockInfo, CachedSyncState
+from starkware.starknet.business_logic.state.state import BlockInfo, CachedState
 from starkware.starknet.services.api.gateway.transaction import (
     InvokeFunction,
     Deploy,
@@ -53,7 +53,9 @@ from .util import (
     DummyExecutionInfo,
     Uint256,
     enable_pickling,
+    get_storage_diffs,
     to_bytes,
+    get_all_declared_contracts,
 )
 from .contract_wrapper import ContractWrapper
 from .postman_wrapper import DevnetL1L2
@@ -84,7 +86,7 @@ class StarknetWrapper:
         self.l1l2 = DevnetL1L2()
         self.transactions = DevnetTransactions(self.origin)
         self.starknet: Starknet = None
-        self.__current_carried_state = None
+        self.__current_cached_state = None
         self.__initialized = False
         self.fee_token = FeeToken(self)
         self.accounts = Accounts(self)
@@ -122,9 +124,8 @@ class StarknetWrapper:
             None, state, state_update, is_empty_block=True
         )
 
-    async def __preserve_current_state(self, state: CachedSyncState):
-        self.__current_carried_state = deepcopy(state)
-        self.__current_carried_state = state
+    async def __preserve_current_state(self, state: CachedState):
+        self.__current_cached_state = deepcopy(state)
 
     async def __init_starknet(self):
         """
@@ -144,34 +145,35 @@ class StarknetWrapper:
     async def __update_state(
         self,
         deployed_contracts: List[DeployedContract] = None,
-        declared_contracts: List[int] = None,
+        explicitly_declared_contracts: List[int] = None,
         visited_storage_entries: Set[StorageEntry] = None,
         nonces: Dict[int, int] = None,
     ):
-        previous_state = self.__current_carried_state
+        # defaulting
+        deployed_contracts = deployed_contracts or []
+        explicitly_declared_contracts = explicitly_declared_contracts or []
+        visited_storage_entries = visited_storage_entries or set()
+
+        # state update and preservation
+        previous_state = self.__current_cached_state
         assert previous_state is not None
-        current_carried_state = self.get_state().state
-        state = self.get_state()
-
-        current_carried_state.block_info = self.block_info_generator.next_block(
-            block_info=current_carried_state.block_info,
-            general_config=state.general_config,
+        current_state = self.get_state().state
+        current_state.block_info = self.block_info_generator.next_block(
+            block_info=current_state.block_info,
+            general_config=self.get_state().general_config,
         )
+        await self.__preserve_current_state(current_state)
 
-        storage_diffs: Dict[int, List[StorageEntry]] = {}
-        for address, key in visited_storage_entries or {}:
-            if address not in storage_diffs:
-                storage_diffs[address] = []
-            storage_diffs[address].append(
-                StorageEntry(
-                    key=key,
-                    value=await current_carried_state.get_storage_at(address, key),
-                )
-            )
-
+        # calculating diffs
+        declared_contracts = await get_all_declared_contracts(
+            previous_state, explicitly_declared_contracts, deployed_contracts
+        )
+        storage_diffs = await get_storage_diffs(
+            previous_state, current_state, visited_storage_entries
+        )
         state_diff = StateDiff(
-            deployed_contracts=deployed_contracts or [],
-            declared_contracts=tuple(declared_contracts or []),
+            deployed_contracts=deployed_contracts,
+            declared_contracts=declared_contracts,
             storage_diffs=storage_diffs,
             nonces=nonces or {},
         )
@@ -258,7 +260,9 @@ class StarknetWrapper:
         )
 
         self.__update_block_number()
-        state_update = await self.__update_state(declared_contracts=[class_hash_int])
+        state_update = await self.__update_state(
+            explicitly_declared_contracts=[class_hash_int]
+        )
 
         await self.__store_transaction(
             transaction=transaction,
@@ -271,9 +275,9 @@ class StarknetWrapper:
 
     def __update_block_number(self):
         """Updates just the block number. Returns the old block info to allow reverting"""
-        current_carried_state = self.get_state().state
-        block_info = current_carried_state.block_info
-        current_carried_state.block_info = BlockInfo(
+        current_cached_state = self.get_state().state
+        block_info = current_cached_state.block_info
+        current_cached_state.block_info = BlockInfo(
             gas_price=block_info.gas_price,
             block_number=block_info.block_number + 1,
             block_timestamp=block_info.block_timestamp,

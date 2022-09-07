@@ -9,6 +9,8 @@ from starkware.starknet.core.os.class_hash import compute_class_hash
 from starkware.starknet.public.abi import get_selector_from_name
 
 from .util import (
+    assert_hex_equal,
+    declare,
     deploy,
     invoke,
     load_contract_class,
@@ -18,8 +20,10 @@ from .util import (
 )
 from .settings import APP_URL
 from .shared import (
+    CONTRACT_PATH,
+    DEPLOYER_CONTRACT_PATH,
+    EXPECTED_CLASS_HASH,
     EXPECTED_FEE_TOKEN_ADDRESS,
-    EXPECTED_WALLET_ADDRESS,
     GENESIS_BLOCK_HASH,
     STORAGE_CONTRACT_PATH,
     STORAGE_ABI_PATH,
@@ -57,9 +61,9 @@ def deploy_empty_contract():
     return contract_address
 
 
-def get_contract_hash():
+def get_class_hash_at_path(contract_path: str):
     """Get contract hash of the sample contract"""
-    contract_class = load_contract_class(STORAGE_CONTRACT_PATH)
+    contract_class = load_contract_class(contract_path)
     return compute_class_hash(contract_class)
 
 
@@ -86,7 +90,9 @@ def test_deployed_contracts():
 
     deployed_contract_hash = deployed_contracts[0]["class_hash"]
 
-    assert_equal(int(deployed_contract_hash, 16), get_contract_hash())
+    assert_equal(
+        int(deployed_contract_hash, 16), get_class_hash_at_path(STORAGE_CONTRACT_PATH)
+    )
 
 
 @pytest.mark.state_update
@@ -100,16 +106,7 @@ def test_storage_diff():
 
     state_update = get_state_update()
     storage_diffs = state_update["state_diff"]["storage_diffs"]
-    assert storage_diffs.keys() == set(
-        [EXPECTED_WALLET_ADDRESS, EXPECTED_FEE_TOKEN_ADDRESS, contract_address_hex]
-    )
-    assert storage_diffs[EXPECTED_WALLET_ADDRESS] == [
-        {
-            "value": "0x5fb03481e2817b56b83d16f37550cad051be51c891fd3be2365ed72d7bb5897",
-            "key": "0x3b28019ccfdbd30ffc65951d94bb85c9e2b8434111a000b5afd533ce65f57a4",
-        }
-    ]
-
+    assert storage_diffs.keys() == {EXPECTED_FEE_TOKEN_ADDRESS, contract_address_hex}
     assert storage_diffs[contract_address_hex] == [
         {
             "value": hex(value),
@@ -195,3 +192,36 @@ def test_roots():
     old_root = state_update["old_root"]
 
     assert_equal(old_root, new_root)
+
+
+@pytest.mark.state_update
+@devnet_in_background()
+def test_declaration_and_deployment():
+    """Test if declared classes successfully registered"""
+    declare_info = declare(contract=CONTRACT_PATH)
+    contract_class_hash = declare_info["class_hash"]
+    assert_hex_equal(contract_class_hash, EXPECTED_CLASS_HASH)
+
+    diff_after_declare = get_state_update()["state_diff"]
+    assert diff_after_declare["declared_contracts"] == [contract_class_hash]
+
+    # Deploy the deployer - also deploys a contract of the declared class using the deploy syscall
+    initial_balance_in_constructor = "5"
+    deployer_deploy_info = deploy(
+        contract=DEPLOYER_CONTRACT_PATH,
+        inputs=[contract_class_hash, initial_balance_in_constructor],
+    )
+    deployer_class_hash = hex(get_class_hash_at_path(DEPLOYER_CONTRACT_PATH))
+    deployer_address = deployer_deploy_info["address"]
+
+    diff_after_deploy = get_state_update()["state_diff"]
+    deployer_diff = diff_after_deploy["deployed_contracts"][0]
+    assert_hex_equal(deployer_diff["class_hash"], deployer_class_hash)
+    assert_hex_equal(deployer_diff["address"], deployer_address)
+
+    deployed_contract_diff = diff_after_deploy["deployed_contracts"][1]
+    assert_hex_equal(deployed_contract_diff["class_hash"], contract_class_hash)
+    # deployed_contract_diff["address"] is a random value
+
+    # deployer expected to be declared
+    assert diff_after_deploy["declared_contracts"] == [deployer_class_hash]
