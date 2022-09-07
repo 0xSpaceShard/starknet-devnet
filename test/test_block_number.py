@@ -9,7 +9,7 @@ from .shared import (
     FAILING_CONTRACT_PATH,
     GENESIS_BLOCK_NUMBER,
 )
-from .util import declare, devnet_in_background, deploy, call, get_transaction_receipt, invoke
+from .util import declare, devnet_in_background, deploy, call, invoke
 
 BLOCK_NUMBER_CONTRACT_PATH = f"{ARTIFACTS_PATH}/block_number.cairo/block_number.json"
 BLOCK_NUMBER_ABI_PATH = f"{ARTIFACTS_PATH}/block_number.cairo/block_number_abi.json"
@@ -22,14 +22,17 @@ def my_get_block_number(address: str):
     )
 
 
+EXPECTED_TX_HASH = "0x4df621f3aa655224d2cbce2d00d911cc58f78ebd75c3611db2ba3abad25dd85"
+
+
 @pytest.mark.usefixtures("run_devnet_in_background")
 @pytest.mark.parametrize(
     "run_devnet_in_background, expected_tx_hash",
     [
-        ([], "0x4f1ea446f67c1be47619444eae4d8118f6e017d0e6fe16e89b3df03da38606d"),
+        ([], EXPECTED_TX_HASH),
         (
             ["--lite-mode"],
-            "0x4f1ea446f67c1be47619444eae4d8118f6e017d0e6fe16e89b3df03da38606d",
+            EXPECTED_TX_HASH,
         ),
     ],
     indirect=True,
@@ -116,6 +119,7 @@ def test_block_number_not_incremented_if_invoke_fails():
         inputs=[],
         address=deploy_info["address"],
         abi_path=BLOCK_NUMBER_ABI_PATH,
+        max_fee=10**18,  # must supply max fee so that it's not calculated implicitly
     )
 
     block_number_after = my_get_block_number(deploy_info["address"])

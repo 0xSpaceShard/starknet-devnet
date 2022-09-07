@@ -20,7 +20,6 @@ from .settings import APP_URL
 from .shared import (
     ABI_PATH,
     CONTRACT_PATH,
-    SIGNATURE,
     NONEXISTENT_TX_HASH,
     GENESIS_BLOCK_NUMBER,
 )
