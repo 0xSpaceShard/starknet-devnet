@@ -17,6 +17,7 @@ from starknet_devnet.constants import SUPPORTED_TX_VERSION
 from starknet_devnet.devnet_config import parse_args, DevnetConfig
 from starknet_devnet.starknet_wrapper import StarknetWrapper
 from .shared import CONTRACT_PATH, GENESIS_BLOCK_NUMBER
+from .util import assert_hex_equal
 
 
 def get_contract_class():
@@ -88,9 +89,8 @@ async def test_deploy_lite():
     )
 
     # Currently in lite mode hashes are actually calculated
-    assert (
-        tx_hash
-        == 2752270619830696793521877105062789569658914774062716402969223702802040233993
+    assert_hex_equal(
+        tx_hash, "0x364cc8cb61ef723ec697fe7eb7358754ecfc7273a30af3e8479acac9e42af6d"
     )
     assert contract_address == expected_contract_address
 
