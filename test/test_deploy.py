@@ -88,8 +88,11 @@ async def test_deploy_lite():
     )
 
     # Currently in lite mode hashes are actually calculated
+    assert (
+        tx_hash
+        == 2009361157170034697813403089970408499498259480420986282652588934221678003889
+    )
     assert contract_address == expected_contract_address
-    assert tx_hash == 0
 
     tx_status = devnet.transactions.get_transaction_status(hex(tx_hash))
 
