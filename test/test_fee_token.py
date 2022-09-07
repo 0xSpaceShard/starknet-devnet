@@ -3,18 +3,21 @@
 from test.settings import APP_URL
 from test.test_account import (
     deploy_empty_contract,
-    execute,
     assert_tx_status,
     get_transaction_receipt,
     get_account_balance,
 )
-from test.shared import GENESIS_BLOCK_NUMBER
+from test.shared import (
+    ABI_PATH,
+    EXPECTED_WALLET_ADDRESS,
+    GENESIS_BLOCK_NUMBER,
+)
 import json
 import pytest
 import requests
 from starknet_devnet.fee_token import FeeToken
 from starknet_devnet.server import app
-from .util import assert_equal, devnet_in_background, get_block
+from .util import assert_equal, devnet_in_background, get_block, invoke
 
 
 @pytest.mark.fee_token
@@ -165,18 +168,16 @@ def test_increase_balance():
     """Assert tx failure if insufficient funds; assert tx success after mint"""
 
     deploy_info = deploy_empty_contract()
-    account_address = (
-        "0x347be35996a21f6bf0623e75dbce52baba918ad5ae8d83b6f416045ab22961a"
-    )
-    private_key = 0xBDD640FB06671AD11C80317FA3B1799D
-    to_address = int(deploy_info["address"], 16)
+    account_address = EXPECTED_WALLET_ADDRESS
     initial_account_balance = get_account_balance(account_address)
 
-    args = [10, 20]
-    calls = [(to_address, "increase_balance", args)]
-    invoke_tx_hash = execute(
-        calls, account_address, private_key, max_fee=10**21
-    )  # big enough
+    invoke_tx_hash = invoke(
+        function="increase_balance",
+        inputs=["10", "20"],
+        address=deploy_info["address"],
+        abi_path=ABI_PATH,
+        max_fee=10**21,
+    )
 
     assert_tx_status(invoke_tx_hash, "REJECTED")
     invoke_receipt = get_transaction_receipt(invoke_tx_hash)
@@ -193,8 +194,12 @@ def test_increase_balance():
     balance_after_mint = get_account_balance(account_address)
     assert_equal(balance_after_mint, initial_account_balance + mint_amount)
 
-    invoke_tx_hash = execute(
-        calls, account_address, private_key, max_fee=10**21
+    invoke_tx_hash = invoke(
+        function="increase_balance",
+        inputs=["10", "20"],
+        address=deploy_info["address"],
+        abi_path=ABI_PATH,
+        max_fee=10**21,
     )  # big enough
     assert_tx_status(invoke_tx_hash, "ACCEPTED_ON_L2")
 

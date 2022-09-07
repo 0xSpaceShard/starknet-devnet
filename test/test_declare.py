@@ -46,12 +46,6 @@ def assert_deployed_through_syscall(tx_hash, initial_balance: str):
     assert_equal(balance, initial_balance)
 
 
-PREDEPLOYED_ACCOUNT_ADDRESS = (
-    "0x347be35996a21f6bf0623e75dbce52baba918ad5ae8d83b6f416045ab22961a"
-)
-PREDEPLOYED_ACCOUNT_PRIVATE_KEY = 0xBDD640FB06671AD11C80317FA3B1799D
-
-
 @pytest.mark.declare
 @devnet_in_background("--accounts", "1", "--seed", "42")
 def test_declare_and_deploy():

@@ -300,7 +300,7 @@ def invoke(function, inputs, address, abi_path, signature=None, max_fee=None):
         kwargs["wallet_args"] = ["--no_wallet"]
 
     if max_fee:
-        args.extend(["--max_fee", max_fee])
+        args.extend(["--max_fee", str(max_fee)])
 
     output = run_starknet(args, **kwargs)
 

@@ -90,7 +90,7 @@ async def test_deploy_lite():
     # Currently in lite mode hashes are actually calculated
     assert (
         tx_hash
-        == 2009361157170034697813403089970408499498259480420986282652588934221678003889
+        == 2752270619830696793521877105062789569658914774062716402969223702802040233993
     )
     assert contract_address == expected_contract_address
 

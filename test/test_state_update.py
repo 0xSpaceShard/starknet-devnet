@@ -100,11 +100,9 @@ def test_storage_diff():
 
     state_update = get_state_update()
     storage_diffs = state_update["state_diff"]["storage_diffs"]
-    assert storage_diffs.keys() == set([
-        EXPECTED_WALLET_ADDRESS,
-        EXPECTED_FEE_TOKEN_ADDRESS,
-        contract_address_hex
-    ])
+    assert storage_diffs.keys() == set(
+        [EXPECTED_WALLET_ADDRESS, EXPECTED_FEE_TOKEN_ADDRESS, contract_address_hex]
+    )
     assert storage_diffs[EXPECTED_WALLET_ADDRESS] == [
         {
             "value": "0x5fb03481e2817b56b83d16f37550cad051be51c891fd3be2365ed72d7bb5897",
