@@ -15,6 +15,7 @@ from starknet_devnet.blueprints.rpc.structures.types import Felt, BlockId, RpcEr
 from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException
 
+
 def _validate_calldata(calldata: List[Any]):
     for calldata_value in calldata:
         try:
