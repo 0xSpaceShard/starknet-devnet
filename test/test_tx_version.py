@@ -4,7 +4,7 @@ Test transaction version
 
 import pytest
 
-from starkware.starknet.definitions.constants import TRANSACTION_VERSION, QUERY_VERSION
+from starkware.starknet.definitions.constants import TRANSACTION_VERSION
 
 from .util import devnet_in_background, deploy, call, invoke
 from .shared import ARTIFACTS_PATH
@@ -26,5 +26,5 @@ def test_transaction_version():
     assert int(invoke_tx_version, 16) == TRANSACTION_VERSION
 
     call_tx_version = call("get_tx_version", address, ABI_PATH)
-
-    assert int(call_tx_version, 16) == QUERY_VERSION
+    # before starknet 0.10.0 it used to be QUERY_VERSION
+    assert int(call_tx_version, 16) == TRANSACTION_VERSION

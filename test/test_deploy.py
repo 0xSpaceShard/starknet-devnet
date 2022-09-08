@@ -3,20 +3,21 @@
 from typing import List
 import pytest
 
-from starkware.starknet.business_logic.internal_transaction import InternalDeploy
+from starkware.starknet.business_logic.transaction.objects import InternalDeploy
 from starkware.starknet.core.os.contract_address.contract_address import (
     calculate_contract_address,
 )
-from starkware.starknet.definitions import constants
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.gateway.transaction import Deploy
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionStatus,
 )
+from starknet_devnet.constants import SUPPORTED_TX_VERSION
 
 from starknet_devnet.devnet_config import parse_args, DevnetConfig
 from starknet_devnet.starknet_wrapper import StarknetWrapper
 from .shared import CONTRACT_PATH, GENESIS_BLOCK_NUMBER
+from .util import assert_hex_equal
 
 
 def get_contract_class():
@@ -33,7 +34,7 @@ def get_deploy_transaction(inputs: List[int], salt=0):
         contract_address_salt=salt,
         contract_definition=contract_class,
         constructor_calldata=inputs,
-        version=constants.TRANSACTION_VERSION,
+        version=SUPPORTED_TX_VERSION,
     )
 
 
@@ -87,8 +88,12 @@ async def test_deploy_lite():
         contract_class=deploy_transaction.contract_definition,
     )
 
+    # Currently in lite mode hashes are actually calculated
+    assert_hex_equal(
+        hex(tx_hash),
+        "0x364cc8cb61ef723ec697fe7eb7358754ecfc7273a30af3e8479acac9e42af6d",
+    )
     assert contract_address == expected_contract_address
-    assert tx_hash == 0
 
     tx_status = devnet.transactions.get_transaction_status(hex(tx_hash))
 

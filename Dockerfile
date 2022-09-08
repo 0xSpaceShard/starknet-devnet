@@ -1,4 +1,4 @@
-FROM python:3.7.12-alpine3.15 as builder
+FROM python:3.9.13-alpine3.16 as builder
 
 COPY . .
 
@@ -13,7 +13,7 @@ RUN poetry export -f requirements.txt --without-hashes > requirements.txt
 RUN pip3 wheel --no-cache-dir --no-deps --wheel-dir /wheels -r requirements.txt
 
 
-FROM python:3.7.12-alpine3.15
+FROM python:3.9.13-alpine3.16
 
 RUN apk add --no-cache libgmpxx
 

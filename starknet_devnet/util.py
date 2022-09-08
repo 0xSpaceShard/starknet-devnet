@@ -4,17 +4,15 @@ Utility functions used across the project.
 
 from dataclasses import dataclass
 import os
-from typing import List, Dict, Union
+from typing import Dict, Union, List, Set
 
 from starkware.starkware_utils.error_handling import StarkException
 from starkware.starknet.testing.contract import StarknetContract
 from starkware.starknet.business_logic.execution.objects import CallInfo
-from starkware.starknet.business_logic.state.state import CarriedState
+from starkware.starknet.business_logic.state.state import CachedState
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
-    BlockStateUpdate,
-    StateDiff,
-    StorageEntry,
     DeployedContract,
+    StorageEntry,
 )
 
 
@@ -98,77 +96,6 @@ def enable_pickling():
     StarknetContract.__setstate__ = contract_setstate
 
 
-def generate_storage_diff(
-    previous_storage_updates, storage_updates
-) -> List[StorageEntry]:
-    """
-    Returns storage diff between previous and current storage updates
-    """
-    storage_diff = []
-
-    for storage_key, leaf in storage_updates.items():
-        previous_leaf = (
-            previous_storage_updates.get(storage_key)
-            if previous_storage_updates
-            else None
-        )
-
-        if previous_leaf is None or previous_leaf.value != leaf.value:
-            storage_diff.append(StorageEntry(key=storage_key, value=leaf.value))
-
-    return storage_diff
-
-
-def generate_state_update(
-    previous_state: CarriedState, current_state: CarriedState
-) -> BlockStateUpdate:
-    """
-    Returns roots, deployed contracts and storage diffs between 2 states
-    """
-    deployed_contracts: List[DeployedContract] = []
-    declared_contracts: List[int] = []
-    storage_diffs: Dict[int, List[StorageEntry]] = {}
-
-    for class_hash in current_state.contract_definitions:
-        if class_hash not in previous_state.contract_definitions:
-            declared_contracts.append(int.from_bytes(class_hash, byteorder="big"))
-
-    for contract_address in current_state.contract_states:
-        if contract_address not in previous_state.contract_states:
-            class_hash = int.from_bytes(
-                current_state.contract_states[contract_address].state.contract_hash,
-                "big",
-            )
-            deployed_contracts.append(
-                DeployedContract(address=contract_address, class_hash=class_hash)
-            )
-        else:
-            previous_storage_updates = previous_state.contract_states[
-                contract_address
-            ].storage_updates
-            storage_updates = current_state.contract_states[
-                contract_address
-            ].storage_updates
-            storage_diff = generate_storage_diff(
-                previous_storage_updates, storage_updates
-            )
-
-            if len(storage_diff) > 0:
-                storage_diffs[contract_address] = storage_diff
-
-    new_root = current_state.shared_state.contract_states.root
-    old_root = previous_state.shared_state.contract_states.root
-    state_diff = StateDiff(
-        deployed_contracts=deployed_contracts,
-        declared_contracts=tuple(declared_contracts),
-        storage_diffs=storage_diffs,
-    )
-
-    return BlockStateUpdate(
-        block_hash=None, new_root=new_root, old_root=old_root, state_diff=state_diff
-    )
-
-
 def to_bytes(value: Union[int, bytes]) -> bytes:
     """
     If int, convert to 32-byte big-endian bytes instance
@@ -188,3 +115,50 @@ def check_valid_dump_path(dump_path: str):
 
     if not os.path.isdir(dump_path_dir):
         raise ValueError(f"Invalid dump path: directory '{dump_path_dir}' not found.")
+
+
+def str_to_felt(text: str) -> int:
+    """Converts string to felt."""
+    return int.from_bytes(bytes(text, "ascii"), "big")
+
+
+async def get_all_declared_contracts(
+    previous_state: CachedState,
+    explicitly_declared_contracts: List[int],
+    deployed_contracts: List[DeployedContract],
+):
+    """Returns a tuple of explicitly and implicitly declared classes"""
+    declared_contracts_set = set(explicitly_declared_contracts)
+    for deployed_contract in deployed_contracts:
+        class_hash_bytes = to_bytes(deployed_contract.class_hash)
+        try:
+            await previous_state.get_contract_class(class_hash_bytes)
+        except StarkException:
+            declared_contracts_set.add(deployed_contract.class_hash)
+    return tuple(declared_contracts_set)
+
+
+async def get_storage_diffs(
+    previous_state: CachedState,
+    current_state: CachedState,
+    visited_storage_entries: Set[StorageEntry],
+):
+    """Returns storages modified from change"""
+    assert previous_state is not current_state
+
+    storage_diffs: Dict[int, List[StorageEntry]] = {}
+
+    for address, key in visited_storage_entries or {}:
+        old_storage_value = await previous_state.get_storage_at(address, key)
+        new_storage_value = await current_state.get_storage_at(address, key)
+        if old_storage_value != new_storage_value:
+            if address not in storage_diffs:
+                storage_diffs[address] = []
+            storage_diffs[address].append(
+                StorageEntry(
+                    key=key,
+                    value=await current_state.get_storage_at(address, key),
+                )
+            )
+
+    return storage_diffs

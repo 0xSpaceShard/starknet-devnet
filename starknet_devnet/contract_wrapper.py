@@ -6,7 +6,6 @@ from typing import List
 
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.testing.contract import StarknetContract
-from starkware.starknet.utils.api_utils import cast_to_felts
 
 
 class ContractWrapper:
@@ -34,47 +33,19 @@ class ContractWrapper:
         self,
         entry_point_selector: int,
         calldata: List[int],
-        signature: List[int],
         caller_address: int,
-        max_fee: int,
     ):
         """
         Calls the function identified with `entry_point_selector`, potentially passing in `calldata` and `signature`.
         """
 
-        call_info, _ = await self.contract.state.call_raw(
+        call_info = await self.contract.state.copy().execute_entry_point_raw(
+            contract_address=self.contract.contract_address,
+            selector=entry_point_selector,
             calldata=calldata,
             caller_address=caller_address,
-            contract_address=self.contract.contract_address,
-            max_fee=max_fee,
-            selector=entry_point_selector,
-            signature=signature and cast_to_felts(values=signature),
         )
 
         result = list(map(hex, call_info.retdata))
 
         return result
-
-    async def invoke(
-        self,
-        entry_point_selector: int,
-        calldata: List[int],
-        signature: List[int],
-        caller_address: int,
-        max_fee: int,
-    ):
-        """
-        Invokes the function identified with `entry_point_selector`, potentially passing in `calldata` and `signature`.
-        """
-
-        execution_info = await self.contract.state.invoke_raw(
-            contract_address=self.contract.contract_address,
-            selector=entry_point_selector,
-            calldata=calldata,
-            caller_address=caller_address,
-            max_fee=max_fee,
-            signature=signature and cast_to_felts(values=signature),
-        )
-
-        result = list(map(hex, execution_info.call_info.retdata))
-        return result, execution_info

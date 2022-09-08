@@ -10,7 +10,6 @@ from test.util import deploy
 
 import pytest
 
-from starkware.starknet.definitions import constants
 from starkware.starknet.public.abi import get_selector_from_name
 
 from starknet_devnet.blueprints.rpc.structures.payloads import RpcInvokeTransaction
@@ -32,7 +31,7 @@ def common_estimate_response(response):
 @pytest.mark.parametrize(
     "run_devnet_in_background", [["--gas-price", str(DEFAULT_GAS_PRICE)]], indirect=True
 )
-def test_estimate_happy_path():
+def test_estimate_happy_path(rpc_invoke_tx_common):
     """Happy path estimate_fee call"""
     deploy_info = deploy(CONTRACT_PATH, ["0"])
 
@@ -41,12 +40,7 @@ def test_estimate_happy_path():
         "entry_point_selector": hex(get_selector_from_name("sum_point_array")),
         "calldata": ["0x02", "0x01", "0x02", "0x03", "0x04"],
         # It is not verified and might be removed in next RPC version
-        "transaction_hash": "0x00",
-        "max_fee": "0x00",
-        "version": hex(constants.TRANSACTION_VERSION),
-        "signature": [],
-        "nonce": "0x00",
-        "type": "INVOKE",
+        **rpc_invoke_tx_common,
     }
     response = rpc_call_background_devnet(
         "starknet_estimateFee", {"request": txn, "block_id": "latest"}

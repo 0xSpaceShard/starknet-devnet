@@ -51,6 +51,7 @@ class GunicornServer(BaseApplication):
     def load_config(self):
         self.cfg.set("bind", f"{self.args.host}:{self.args.port}")
         self.cfg.set("workers", 1)
+        self.cfg.set("timeout", self.args.timeout)
         self.cfg.set(
             "logconfig_dict",
             {
@@ -85,6 +86,13 @@ def main():
     # starknet_wrapper.origin = origin
 
     args = parse_args(sys.argv[1:])
+
+    if args.lite_mode:
+        print(
+            "Warning: In the current version, lite-mode doesn't affect performance.",
+            file=sys.stderr,
+        )
+
     try:
         if args.load_path:
             state.load(args.load_path)

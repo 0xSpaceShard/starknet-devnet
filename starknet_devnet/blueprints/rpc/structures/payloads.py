@@ -34,6 +34,7 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     TxnType,
     rpc_txn_type,
 )
+from starknet_devnet.constants import SUPPORTED_TX_VERSION
 from starknet_devnet.state import state
 
 
@@ -178,7 +179,7 @@ def rpc_invoke_transaction(transaction: InvokeSpecificInfo) -> RpcInvokeTransact
         "calldata": [rpc_felt(data) for data in transaction.calldata],
         "transaction_hash": rpc_felt(transaction.transaction_hash),
         "max_fee": rpc_felt(transaction.max_fee),
-        "version": hex(0x0),
+        "version": hex(SUPPORTED_TX_VERSION),
         "signature": [rpc_felt(value) for value in transaction.signature],
         "nonce": rpc_felt(0),
         "type": rpc_txn_type(transaction.tx_type.name),
@@ -210,7 +211,7 @@ def rpc_deploy_transaction(transaction: DeploySpecificInfo) -> RpcDeployTransact
     txn: RpcDeployTransaction = {
         "transaction_hash": rpc_felt(transaction.transaction_hash),
         "class_hash": rpc_felt(transaction.class_hash),
-        "version": hex(0x0),
+        "version": hex(SUPPORTED_TX_VERSION),
         "type": rpc_txn_type(transaction.tx_type.name),
         "contract_address": rpc_felt(transaction.contract_address),
         "contract_address_salt": rpc_felt(transaction.contract_address_salt),
@@ -247,6 +248,8 @@ def make_invoke_function(request_body: dict) -> InvokeFunction:
     """
     Convert RPC request to internal InvokeFunction
     """
+
+    nonce = request_body.get("nonce")
     return InvokeFunction(
         contract_address=int(request_body["contract_address"], 16),
         entry_point_selector=int(request_body["entry_point_selector"], 16),
@@ -254,6 +257,7 @@ def make_invoke_function(request_body: dict) -> InvokeFunction:
         max_fee=int(request_body["max_fee"], 16) if "max_fee" in request_body else 0,
         version=int(request_body["version"], 16) if "version" in request_body else 0,
         signature=[int(data, 16) for data in request_body.get("signature", [])],
+        nonce=int(nonce, 16) if nonce is not None else None,
     )
 
 

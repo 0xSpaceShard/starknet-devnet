@@ -14,7 +14,7 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     BlockStateUpdate,
 )
 
-from starknet_devnet.constants import CAIRO_LANG_VERSION
+from starknet_devnet.constants import CAIRO_LANG_VERSION, DUMMY_STATE_ROOT
 
 from .origin import Origin
 from .util import StarknetDevnetException
@@ -110,7 +110,7 @@ class DevnetBlocks:
         The `tx_wrapper.transaction` dict should contain a key `transaction`.
         Returns (block_hash, block_number).
         """
-        state_root = state.state.shared_state.contract_states.root
+        state_root = DUMMY_STATE_ROOT
         block_number = self.get_number_of_blocks()
         timestamp = state.state.block_info.block_timestamp
         if block_number == 0:

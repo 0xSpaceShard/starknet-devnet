@@ -6,7 +6,6 @@ import dataclasses
 from typing import List, Optional
 
 from marshmallow.exceptions import MarshmallowError
-from starkware.starknet.definitions import constants
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionStatus,
@@ -14,7 +13,7 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
 from starkware.starknet.services.api.gateway.transaction import (
     InvokeFunction,
     Declare,
-    DECLARE_SENDER_ADDRESS,
+    DEFAULT_DECLARE_SENDER_ADDRESS,
     Deploy,
 )
 from starkware.starknet.services.api.gateway.transaction_utils import decompress_program
@@ -47,6 +46,7 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     Felt,
     RpcError,
 )
+from starknet_devnet.constants import SUPPORTED_TX_VERSION
 from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException
 
@@ -108,6 +108,7 @@ async def add_invoke_transaction(
     function_invocation: FunctionCall,
     max_fee: NumAsHex,
     version: NumAsHex,
+    nonce: NumAsHex = None,
     signature: Optional[List[Felt]] = None,
 ) -> dict:
     """
@@ -122,9 +123,10 @@ async def add_invoke_transaction(
         signature=[int(data, 16) for data in signature]
         if signature is not None
         else [],
+        nonce=nonce,
     )
 
-    _, transaction_hash, _ = await state.starknet_wrapper.invoke(
+    _, transaction_hash = await state.starknet_wrapper.invoke(
         invoke_function=invoke_function
     )
     return RpcInvokeTransactionResult(
@@ -153,7 +155,7 @@ async def add_declare_transaction(
     declare_transaction = Declare(
         contract_class=contract_definition,
         version=int(version, 16),
-        sender_address=DECLARE_SENDER_ADDRESS,
+        sender_address=DEFAULT_DECLARE_SENDER_ADDRESS,
         max_fee=0,
         signature=[],
         nonce=0,
@@ -191,7 +193,7 @@ async def add_deploy_transaction(
         contract_address_salt=int(contract_address_salt, 16),
         constructor_calldata=[int(data, 16) for data in constructor_calldata],
         contract_definition=contract_class,
-        version=constants.TRANSACTION_VERSION,
+        version=SUPPORTED_TX_VERSION,
     )
 
     contract_address, transaction_hash = await state.starknet_wrapper.deploy(
@@ -217,7 +219,7 @@ async def estimate_fee(request: RpcInvokeTransaction, block_id: BlockId) -> dict
     invoke_function = make_invoke_function(request)
 
     try:
-        fee_response = await state.starknet_wrapper.calculate_actual_fee(
+        _, fee_response = await state.starknet_wrapper.calculate_actual_fee(
             invoke_function
         )
     except StarkException as ex:

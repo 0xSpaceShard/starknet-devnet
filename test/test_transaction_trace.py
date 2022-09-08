@@ -20,7 +20,6 @@ from .settings import APP_URL
 from .shared import (
     ABI_PATH,
     CONTRACT_PATH,
-    SIGNATURE,
     NONEXISTENT_TX_HASH,
     GENESIS_BLOCK_NUMBER,
 )
@@ -74,35 +73,13 @@ def test_invoke_transaction_hash():
     """Test invoke transaction trace"""
     contract_address = deploy_empty_contract()["address"]
     tx_hash = invoke("increase_balance", ["10", "20"], contract_address, ABI_PATH)
+
     res = get_transaction_trace_response(tx_hash)
-
     assert res.status_code == 200
-
-    transaction_trace = res.json()
-    assert transaction_trace["signature"] == []
-    assert_function_invocation(
-        transaction_trace["function_invocation"],
-        "test/expected/invoke_function_invocation.json",
-    )
-
-
-@pytest.mark.transaction_trace
-@devnet_in_background()
-def test_invoke_transaction_hash_with_signature():
-    """Test invoke transaction trace with signature"""
-    contract_address = deploy_empty_contract()["address"]
-    tx_hash = invoke(
-        "increase_balance", ["10", "20"], contract_address, ABI_PATH, SIGNATURE
-    )
-    res = get_transaction_trace_response(tx_hash)
-
-    assert res.status_code == 200
-
     transaction_trace = res.json()
 
-    expected_signature = [hex(int(s)) for s in SIGNATURE]
-    assert transaction_trace["signature"] == expected_signature
-
+    # should be some signature since invoking through wallet
+    assert transaction_trace["signature"] != []
     assert_function_invocation(
         transaction_trace["function_invocation"],
         "test/expected/invoke_function_invocation.json",
@@ -159,7 +136,7 @@ def test_get_trace_and_block_traces_after_declare():
     # assert trace
     trace_response = get_transaction_trace_response(declare_dict["tx_hash"])
     trace = trace_response.json()
-    assert "function_invocation" in trace
-    assert trace["signature"] == []
+    # should be some signature since invoking through wallet
+    assert trace["signature"] != []
 
     assert_get_block_traces_response({}, declare_dict["tx_hash"])
