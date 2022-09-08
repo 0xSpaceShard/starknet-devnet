@@ -71,7 +71,7 @@ def test_general_workflow(expected_tx_hash, expected_block_hash):
     # check block and receipt after deployment
     assert_negative_block_input()
 
-    # check if in lite mode expected block hash is 0x1
+    # check if in lite mode block hash is 0x1
     if expected_block_hash == EXPECTED_SALTY_DEPLOY_BLOCK_HASH_LITE_MODE:
         assert_equal(expected_block_hash, get_block(parse=True)["block_hash"])
 

@@ -16,7 +16,38 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
 
 from starknet_devnet.devnet_config import parse_args, DevnetConfig
 from starknet_devnet.starknet_wrapper import StarknetWrapper
-from .shared import CONTRACT_PATH, GENESIS_BLOCK_NUMBER
+
+from .util import (
+    assert_contract_class,
+    assert_negative_block_input,
+    assert_transaction_not_received,
+    assert_transaction_receipt_not_received,
+    assert_block,
+    assert_contract_code,
+    assert_equal,
+    assert_receipt,
+    assert_salty_deploy,
+    assert_storage,
+    assert_transaction,
+    assert_tx_status,
+    deploy,
+    get_class_by_hash,
+    get_class_hash_at,
+    get_full_contract,
+    get_block,
+)
+
+from .shared import (
+    BALANCE_KEY,
+    CONTRACT_PATH,
+    EVENTS_CONTRACT_PATH,
+    EXPECTED_SALTY_DEPLOY_ADDRESS,
+    EXPECTED_SALTY_DEPLOY_HASH,
+    EXPECTED_SALTY_DEPLOY_HASH_LITE_MODE,
+    EXPECTED_SALTY_DEPLOY_BLOCK_HASH_LITE_MODE,
+    GENESIS_BLOCK_NUMBER,
+    NONEXISTENT_TX_HASH,
+)
 
 
 def get_contract_class():
@@ -37,64 +68,60 @@ def get_deploy_transaction(inputs: List[int], salt=0):
     )
 
 
-@pytest.mark.asyncio
-async def test_deploy():
+@pytest.mark.usefixtures("run_devnet_in_background")
+@pytest.mark.parametrize(
+    "run_devnet_in_background, expected_tx_hash, expected_block_hash",
+    [
+        ([], EXPECTED_SALTY_DEPLOY_HASH, ""),
+        (
+            ["--lite-mode"],
+            EXPECTED_SALTY_DEPLOY_HASH_LITE_MODE,
+            EXPECTED_SALTY_DEPLOY_BLOCK_HASH_LITE_MODE,
+        ),
+    ],
+    indirect=True,
+)
+def test_deploy(expected_tx_hash, expected_block_hash):
     """
     Test the deployment of a contract.
     """
-    devnet = StarknetWrapper(config=DevnetConfig(parse_args([])))
-    await devnet.initialize()
-    deploy_transaction = get_deploy_transaction(inputs=[0])
+    deploy_info = deploy(CONTRACT_PATH, ["0"])
 
-    contract_address, tx_hash = await devnet.deploy(
-        deploy_transaction=deploy_transaction
+    assert_tx_status(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
+    assert_transaction(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
+    assert_transaction_not_received(NONEXISTENT_TX_HASH)
+
+    # check storage after deployment
+    assert_storage(deploy_info["address"], BALANCE_KEY, "0x0")
+
+    # check block and receipt after deployment
+    assert_negative_block_input()
+
+    # check if in lite mode expected block hash is 0x1
+    if expected_block_hash == EXPECTED_SALTY_DEPLOY_BLOCK_HASH_LITE_MODE:
+        assert_equal(expected_block_hash, get_block(parse=True)["block_hash"])
+
+    assert_block(GENESIS_BLOCK_NUMBER + 1, deploy_info["tx_hash"])
+    assert_receipt(deploy_info["tx_hash"], "test/expected/deploy_receipt.json")
+    assert_transaction_receipt_not_received(NONEXISTENT_TX_HASH)
+
+    # check code
+    assert_contract_code(deploy_info["address"])
+
+    # check contract class
+    class_by_address = get_full_contract(deploy_info["address"])
+    assert_contract_class(class_by_address, CONTRACT_PATH)
+
+    # check contract class through class hash
+    class_hash = get_class_hash_at(deploy_info["address"])
+    class_by_hash = get_class_by_hash(class_hash)
+    assert_equal(class_by_address, class_by_hash)
+
+    assert_salty_deploy(
+        contract_path=EVENTS_CONTRACT_PATH,
+        salt="0x99",
+        inputs=None,
+        expected_status="ACCEPTED_ON_L2",
+        expected_address=EXPECTED_SALTY_DEPLOY_ADDRESS,
+        expected_tx_hash=expected_tx_hash,
     )
-
-    expected_contract_address = calculate_contract_address(
-        deployer_address=0,
-        constructor_calldata=deploy_transaction.constructor_calldata,
-        salt=deploy_transaction.contract_address_salt,
-        contract_class=deploy_transaction.contract_definition,
-    )
-
-    assert contract_address == expected_contract_address
-
-    state = devnet.get_state()
-
-    internal_tx = InternalDeploy.from_external(
-        external_tx=deploy_transaction, general_config=state.general_config
-    )
-
-    assert tx_hash == internal_tx.hash_value
-
-
-@pytest.mark.asyncio
-async def test_deploy_lite():
-    """
-    Test the deployment of a contract with lite mode.
-    """
-    devnet = StarknetWrapper(config=DevnetConfig(parse_args(["--lite-mode"])))
-    await devnet.initialize()
-    deploy_transaction = get_deploy_transaction(inputs=[0])
-
-    contract_address, tx_hash = await devnet.deploy(
-        deploy_transaction=deploy_transaction
-    )
-    expected_contract_address = calculate_contract_address(
-        deployer_address=0,
-        constructor_calldata=deploy_transaction.constructor_calldata,
-        salt=deploy_transaction.contract_address_salt,
-        contract_class=deploy_transaction.contract_definition,
-    )
-
-    # Currently in lite mode hashes are actually calculated
-    assert (
-        tx_hash
-        == 2009361157170034697813403089970408499498259480420986282652588934221678003889
-    )
-    assert contract_address == expected_contract_address
-
-    tx_status = devnet.transactions.get_transaction_status(hex(tx_hash))
-
-    assert tx_status["tx_status"] == TransactionStatus.ACCEPTED_ON_L2.name
-    assert tx_status["block_hash"] == hex(GENESIS_BLOCK_NUMBER + 1)
