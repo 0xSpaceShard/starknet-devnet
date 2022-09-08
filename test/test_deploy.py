@@ -3,19 +3,9 @@
 from typing import List
 import pytest
 
-from starkware.starknet.business_logic.internal_transaction import InternalDeploy
-from starkware.starknet.core.os.contract_address.contract_address import (
-    calculate_contract_address,
-)
 from starkware.starknet.definitions import constants
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.gateway.transaction import Deploy
-from starkware.starknet.services.api.feeder_gateway.response_objects import (
-    TransactionStatus,
-)
-
-from starknet_devnet.devnet_config import parse_args, DevnetConfig
-from starknet_devnet.starknet_wrapper import StarknetWrapper
 
 from .util import (
     assert_contract_class,
