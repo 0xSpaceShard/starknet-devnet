@@ -27,7 +27,6 @@ async def syncing() -> Union[dict, bool]:
     return False
 
 
-# pylint: disable=unused-argument
 # pylint: disable=redefined-builtin
 async def get_events(filter: dict) -> dict:
     """
@@ -36,7 +35,6 @@ async def get_events(filter: dict) -> dict:
     raise NotImplementedError()
 
 
-# pylint: disable=unused-argument
 async def get_nonce(contract_address: Address) -> Felt:
     """
     Get the latest nonce associated with the given address
