@@ -76,7 +76,7 @@ def test_call_raises_on_incorrect_selector(deploy_info):
 @pytest.mark.usefixtures("run_devnet_in_background")
 @pytest.mark.parametrize(
     "calldata",
-    [[123], [9189418294819], ["0x123"], ["1231", "wtf", "123"], ["deadbeef"]],
+    [[123], ["1231", "wtf", "0x123"], [""]],
 )
 def test_call_raises_on_invalid_calldata(deploy_info, calldata):
     """

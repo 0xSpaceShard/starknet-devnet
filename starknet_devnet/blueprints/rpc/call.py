@@ -2,7 +2,7 @@
 RPC call endpoint
 """
 
-from typing import List
+from typing import Any, List
 
 from starkware.starkware_utils.error_handling import StarkException
 
@@ -14,6 +14,13 @@ from starknet_devnet.blueprints.rpc.structures.payloads import (
 from starknet_devnet.blueprints.rpc.structures.types import Felt, BlockId, RpcError
 from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException
+
+def _validate_calldata(calldata: List[Any]):
+    for calldata_value in calldata:
+        try:
+            int(calldata_value, 16)
+        except (ValueError, TypeError) as error:
+            raise RpcError(code=22, message="Invalid calldata") from error
 
 
 async def call(request: FunctionCall, block_id: BlockId) -> List[Felt]:
@@ -27,13 +34,7 @@ async def call(request: FunctionCall, block_id: BlockId) -> List[Felt]:
     ):
         raise RpcError(code=20, message="Contract not found")
 
-    # exception handling using [rpc_felt(int(calldata_value, 1)) for calldata_value in request["calldata"]]
-    # does not work properly, so we use the following workaround
-    for calldata_value in request["calldata"]:
-        try:
-            rpc_felt(int(calldata_value, 16))
-        except (ValueError, TypeError) as error:
-            raise RpcError(code=22, message="Invalid calldata") from error
+    _validate_calldata(request["calldata"])
     try:
         result = await state.starknet_wrapper.call(
             transaction=make_invoke_function(request)
