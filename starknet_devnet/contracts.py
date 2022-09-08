@@ -20,15 +20,18 @@ class DevnetContracts:
         self.origin = origin
         self.__instances: Dict[int, ContractWrapper] = {}
         self.__classes: Dict[int, ContractClass] = {}
+        self.__class_hashes: Dict[int, int] = {}
 
-    def store(self, address: int, contract_wrapper: ContractWrapper) -> None:
+    def store(
+        self, address: int, class_hash: int, contract_wrapper: ContractWrapper
+    ) -> None:
         """
         Store the contract wrapper.
         """
         self.__instances[address] = contract_wrapper
 
-        class_hash = self.get_class_hash_at(address)
         self.__classes[class_hash] = contract_wrapper.contract_class
+        self.__class_hashes[address] = class_hash
 
     def store_class(self, class_hash: int, contract_class: ContractClass) -> None:
         """Store contract class."""
@@ -80,6 +83,4 @@ class DevnetContracts:
         if not self.is_deployed(address):
             return self.origin.get_class_hash_at(address)
 
-        contract_states = self.__instances[address].contract.state.state.contract_states
-        class_hash_hexed = contract_states[address].state.contract_hash.hex()
-        return int(class_hash_hexed, 16)
+        return self.__class_hashes[address]

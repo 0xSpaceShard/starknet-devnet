@@ -21,7 +21,10 @@ from .util import (
     terminate_and_wait,
 )
 from .settings import APP_URL
-from .shared import CONTRACT_PATH, ABI_PATH
+from .shared import (
+    CONTRACT_PATH,
+    ABI_PATH,
+)
 
 DUMP_PATH = "dump.pkl"
 
@@ -217,7 +220,12 @@ def test_loading_via_cli():
     ACTIVE_DEVNET.start()
     contract_address = deploy_empty_contract()
 
-    invoke("increase_balance", ["10", "20"], contract_address, ABI_PATH)
+    invoke(
+        function="increase_balance",
+        inputs=["10", "20"],
+        address=contract_address,
+        abi_path=ABI_PATH,
+    )
     balance_after_invoke = call("get_balance", contract_address, ABI_PATH)
     assert balance_after_invoke == "30"
 
@@ -233,7 +241,12 @@ def test_loading_via_cli():
     assert loaded_balance == balance_after_invoke
 
     # assure that new invokes can be made
-    invoke("increase_balance", ["15", "25"], contract_address, ABI_PATH)
+    invoke(
+        function="increase_balance",
+        address=contract_address,
+        inputs=["15", "25"],
+        abi_path=ABI_PATH,
+    )
     balance_after_invoke_on_loaded = call(
         "get_balance", contract_address, abi_path=ABI_PATH
     )

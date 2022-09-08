@@ -1,6 +1,7 @@
 """
 Gateway routes
 """
+
 from flask import Blueprint, request, jsonify
 from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starkware_utils.error_handling import StarkErrorCode
@@ -13,15 +14,9 @@ from .shared import validate_transaction
 gateway = Blueprint("gateway", __name__, url_prefix="/gateway")
 
 
-@gateway.route("/is_alive", methods=["GET"])
-def is_alive():
-    """Health check endpoint."""
-    return "Alive!!!"
-
-
 @gateway.route("/add_transaction", methods=["POST"])
 async def add_transaction():
-    """Endpoint for accepting DEPLOY and INVOKE_FUNCTION transactions."""
+    """Endpoint for accepting (state-changing) transactions."""
 
     transaction = validate_transaction(request.data)
     tx_type = transaction.tx_type
@@ -43,13 +38,10 @@ async def add_transaction():
         response_dict["address"] = fixed_length_hex(contract_address)
 
     elif tx_type == TransactionType.INVOKE_FUNCTION:
-        (
-            contract_address,
-            transaction_hash,
-            result_dict,
-        ) = await state.starknet_wrapper.invoke(transaction)
+        (contract_address, transaction_hash) = await state.starknet_wrapper.invoke(
+            transaction
+        )
         response_dict["address"] = fixed_length_hex(contract_address)
-        response_dict.update(result_dict)
 
     else:
         raise StarknetDevnetException(

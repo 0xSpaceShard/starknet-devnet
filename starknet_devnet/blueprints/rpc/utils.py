@@ -80,7 +80,7 @@ def rpc_root(root: str) -> Felt:
     """
     Convert 0 prefixed root to 0x prefixed root
     """
-    return "0x0" + root.lstrip("0")
+    return "0x0" + (root.lstrip("0") or "0")
 
 
 def rpc_response(message_id: int, content: dict) -> dict:

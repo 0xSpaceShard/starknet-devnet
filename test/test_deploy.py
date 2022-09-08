@@ -3,9 +3,9 @@
 from typing import List
 import pytest
 
-from starkware.starknet.definitions import constants
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.gateway.transaction import Deploy
+from starknet_devnet.constants import SUPPORTED_TX_VERSION
 
 from .util import (
     assert_contract_class,
@@ -54,7 +54,7 @@ def get_deploy_transaction(inputs: List[int], salt=0):
         contract_address_salt=salt,
         contract_definition=contract_class,
         constructor_calldata=inputs,
-        version=constants.TRANSACTION_VERSION,
+        version=SUPPORTED_TX_VERSION,
     )
 
 

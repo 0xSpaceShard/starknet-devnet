@@ -4,11 +4,13 @@ import json
 
 import pytest
 import requests
+from starkware.starknet.public.abi import get_selector_from_name
+
 
 from starknet_devnet.constants import DEFAULT_GAS_PRICE
 from .util import deploy, devnet_in_background, load_file_content
 from .settings import APP_URL
-from .shared import CONTRACT_PATH
+from .shared import CONTRACT_PATH, EXPECTED_CLASS_HASH
 
 DEPLOY_CONTENT = load_file_content("deploy.json")
 INVOKE_CONTENT = load_file_content("invoke.json")
@@ -24,10 +26,15 @@ def send_estimate_fee_with_requests(req_dict: dict):
     return requests.post(f"{APP_URL}/feeder_gateway/estimate_fee", json=req_dict)
 
 
-def common_estimate_response(response):
+def send_simulate_tx_with_requests(req_dict: dict):
+    """Sends the simulate tx dict in a POST request and returns the response data."""
+    return requests.post(
+        f"{APP_URL}/feeder_gateway/simulate_transaction", json=req_dict
+    )
+
+
+def common_estimate_response(response_parsed: dict):
     """expected response from estimate_fee request"""
-    assert response.status_code == 200
-    response_parsed = response.json()
 
     assert response_parsed.get("gas_price") == DEFAULT_GAS_PRICE
     assert isinstance(response_parsed.get("gas_usage"), int)
@@ -53,7 +60,8 @@ def test_estimate_fee_with_genesis_block():
         }
     )
 
-    common_estimate_response(response)
+    assert response.status_code == 200
+    common_estimate_response(response.json())
 
 
 @pytest.mark.estimate_fee
@@ -66,7 +74,7 @@ def test_estimate_fee_in_unknown_address():
 
     json_error_message = resp.json()["message"]
     assert resp.status_code == 500
-    assert json_error_message.startswith("Contract with address")
+    assert json_error_message.endswith("is not deployed.")
 
 
 @pytest.mark.estimate_fee
@@ -78,7 +86,7 @@ def test_estimate_fee_with_invalid_data():
 
     json_error_message = resp.json()["message"]
     assert resp.status_code == 400
-    assert "Invalid Starknet function call" in json_error_message
+    assert "Invalid InvokeFunction" in json_error_message
 
 
 @pytest.mark.estimate_fee
@@ -99,4 +107,53 @@ def test_estimate_fee_with_complete_request_data():
         }
     )
 
-    common_estimate_response(response)
+    assert response.status_code == 200
+    common_estimate_response(response.json())
+
+
+@devnet_in_background("--gas-price", str(DEFAULT_GAS_PRICE))
+def test_simulate_transaction():
+    """Simulate tx"""
+
+    deploy_info = deploy(CONTRACT_PATH, ["0"])
+
+    calldata = ["10", "20"]
+    entry_point_selector = hex(get_selector_from_name("increase_balance"))
+    response = send_simulate_tx_with_requests(
+        {
+            "contract_address": deploy_info["address"],
+            "version": "0x100000000000000000000000000000000",
+            "signature": [],
+            "calldata": calldata,
+            "max_fee": "0x0",
+            "entry_point_selector": entry_point_selector,
+            "type": "INVOKE_FUNCTION",
+        }
+    )
+
+    response_body = response.json()
+    assert response.status_code == 200, response_body
+    common_estimate_response(response_body["fee_estimation"])
+
+    assert response_body["trace"]["function_invocation"]
+    assert response_body["trace"] == {
+        "function_invocation": {
+            "call_type": "CALL",
+            "calldata": [hex(int(piece)) for piece in calldata],
+            "caller_address": "0x0",
+            "class_hash": EXPECTED_CLASS_HASH,
+            "contract_address": hex(int(deploy_info["address"], 16)),
+            "entry_point_type": "EXTERNAL",
+            "events": [],
+            "execution_resources": {
+                "builtin_instance_counter": {},
+                "n_memory_holes": 0,
+                "n_steps": 67,
+            },
+            "internal_calls": [],
+            "messages": [],
+            "result": [],
+            "selector": entry_point_selector,
+        },
+        "signature": [],
+    }

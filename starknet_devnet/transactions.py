@@ -2,7 +2,7 @@
 Classes for storing and handling transactions.
 """
 
-from typing import Dict, List, Union
+from typing import Dict, List
 
 from web3 import Web3
 
@@ -17,10 +17,10 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     Event,
     L2ToL1Message,
 )
-from starkware.starknet.business_logic.internal_transaction import InternalTransaction
-from starkware.starknet.testing.objects import (
+from starkware.starknet.business_logic.transaction.objects import InternalTransaction
+from starkware.starknet.testing.starknet import (
     TransactionExecutionInfo,
-    StarknetTransactionExecutionInfo,
+    StarknetCallInfo,
 )
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from services.everest.business_logic.transaction_execution_objects import (
@@ -30,6 +30,7 @@ from services.everest.business_logic.transaction_execution_objects import (
 from .origin import Origin
 
 
+# pylint: disable=too-many-instance-attributes
 class DevnetTransaction:
     """Represents the devnet transaction"""
 
@@ -37,13 +38,15 @@ class DevnetTransaction:
         self,
         internal_tx: InternalTransaction,
         status: TransactionStatus,
-        execution_info: Union[
-            TransactionExecutionInfo, StarknetTransactionExecutionInfo
-        ],
+        execution_info: TransactionExecutionInfo,
         transaction_hash: int = None,
     ):
         self.block = None
         self.execution_info = execution_info
+        if status != TransactionStatus.REJECTED and execution_info.call_info:
+            self.execution_resources = execution_info.call_info.execution_resources
+        else:
+            self.execution_resources = None
         self.internal_tx = internal_tx
         self.status = status
         self.transaction_failure_reason = None
@@ -63,7 +66,7 @@ class DevnetTransaction:
 
     def __get_events(self) -> List[Event]:
         """Returns the events"""
-        if isinstance(self.execution_info, StarknetTransactionExecutionInfo):
+        if isinstance(self.execution_info, StarknetCallInfo):
             return self.execution_info.raw_events
 
         return self.execution_info.get_sorted_events()
@@ -127,33 +130,37 @@ class DevnetTransaction:
         """Returns the transaction receipt"""
         tx_info = self.get_tx_info()
 
-        execution_resources = (
-            self.execution_info.call_info.execution_resources
-            if not self.status == TransactionStatus.REJECTED
-            else None
-        )
-
         return TransactionReceipt.from_tx_info(
             transaction_hash=self.transaction_hash,
             tx_info=tx_info,
             actual_fee=self.__get_actual_fee(),
             events=self.__get_events(),
-            execution_resources=execution_resources,
+            execution_resources=self.execution_resources,
             l2_to_l1_messages=self.__get_l2_to_l1_messages(),
         )
 
     def get_trace(self) -> TransactionTrace:
         """Returns the transaction trace"""
-        call_info = self.execution_info.call_info
+        validate_invocation = FunctionInvocation.from_optional_internal(
+            getattr(self.execution_info, "validate_info", None)
+        )
+
+        function_invocation = (
+            self.execution_info.call_info
+            if isinstance(self.execution_info.call_info, FunctionInvocation)
+            else FunctionInvocation.from_optional_internal(
+                self.execution_info.call_info
+            )
+        )
+
+        fee_transfer_invocation = FunctionInvocation.from_optional_internal(
+            getattr(self.execution_info, "fee_transfer_info", None)
+        )
 
         return TransactionTrace(
-            function_invocation=(
-                call_info
-                if isinstance(call_info, FunctionInvocation)
-                else FunctionInvocation.from_internal_version(
-                    self.execution_info.call_info
-                )
-            ),
+            validate_invocation=validate_invocation,
+            function_invocation=function_invocation,
+            fee_transfer_invocation=fee_transfer_invocation,
             signature=self.get_signature(),
         )
 
@@ -164,7 +171,7 @@ class DevnetTransaction:
             transaction_index=self.transaction_index,
             actual_fee=self.__get_actual_fee(),
             events=self.__get_events(),
-            execution_resources=self.execution_info.call_info.execution_resources,
+            execution_resources=self.execution_resources,
             l2_to_l1_messages=self.__get_l2_to_l1_messages(),
             l1_to_l2_consumed_message=None,
         )

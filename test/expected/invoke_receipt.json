@@ -1,18 +1,27 @@
 {
-    "actual_fee": "0x0",
+    "actual_fee": "0x15fb39c227800",
     "block_hash": "0x2",
     "block_number": 2,
-    "events": [],
+    "events": [
+        {
+            "data": [
+                "0x51743c6e5fd8c620107061292ebcad8becebc3ae57dda3c3064ece886216491",
+                "0x6c4ae5be723ab0402cd675e7f8e1cf5a775e972e6f080ad0b842f40ec202a69",
+                "0x15fb39c227800",
+                "0x0"
+            ],
+            "from_address": "0x62230ea046a9a5fbc261ac77d03c8d41e5d442db2284587570ab46455fd2488",
+            "keys": [
+                "0x99cd8bde557814842a3121e8ddfd433a539b8c9f14bf31ebf108d12e6196e9"
+            ]
+        }
+    ],
     "execution_resources": {
         "builtin_instance_counter": {
-            "bitwise_builtin": 0,
-            "ecdsa_builtin": 0,
-            "output_builtin": 0,
-            "pedersen_builtin": 0,
-            "range_check_builtin": 0
+            "range_check_builtin": 2
         },
-        "n_memory_holes": 0,
-        "n_steps": 67
+        "n_memory_holes": 3,
+        "n_steps": 208
     },
     "l2_to_l1_messages": [],
     "status": "ACCEPTED_ON_L2",

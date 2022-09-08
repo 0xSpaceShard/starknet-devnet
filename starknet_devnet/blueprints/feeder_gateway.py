@@ -7,7 +7,15 @@ from marshmallow import ValidationError
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     BlockTransactionTraces,
 )
-from starkware.starknet.services.api.gateway.transaction import InvokeFunction
+from starkware.starknet.services.api.gateway.transaction import (
+    AccountTransaction,
+    InvokeFunction,
+)
+from starkware.starknet.services.api.feeder_gateway.request_objects import CallFunction
+from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    TransactionSimulationInfo,
+    FeeEstimationInfo,
+)
 from werkzeug.datastructures import MultiDict
 
 from starknet_devnet.state import state
@@ -16,17 +24,14 @@ from starknet_devnet.util import StarknetDevnetException, custom_int, fixed_leng
 feeder_gateway = Blueprint("feeder_gateway", __name__, url_prefix="/feeder_gateway")
 
 
-def validate_call(data: bytes):
-    """Ensure `data` is valid Starknet function call. Returns an `InvokeFunction`."""
-
+def validate_request(data: bytes, cls):
+    """Ensure `data` is valid Starknet function call. Returns an object of type specified with `cls`."""
     try:
-        call_specifications = InvokeFunction.loads(data)
+        return cls.loads(data)
     except (TypeError, ValidationError) as err:
         raise StarknetDevnetException(
-            message=f"Invalid Starknet function call: {err}", status_code=400
+            message=f"Invalid {cls.__name__}: {err}", status_code=400
         ) from err
-
-    return call_specifications
 
 
 def _check_block_hash(request_args: MultiDict):
@@ -72,12 +77,6 @@ def _get_block_transaction_traces(block):
     return BlockTransactionTraces.load({"traces": traces})
 
 
-@feeder_gateway.route("/is_alive", methods=["GET"])
-def is_alive():
-    """Health check endpoint."""
-    return "Alive!!!"
-
-
 @feeder_gateway.route("/get_contract_addresses", methods=["GET"])
 def get_contract_addresses():
     """Endpoint that returns an object containing the addresses of key system components."""
@@ -90,10 +89,14 @@ async def call_contract():
     Endpoint for receiving calls (not invokes) of contract functions.
     """
 
-    call_specifications = validate_call(request.data)
+    try:
+        call_specifications = validate_request(request.data, CallFunction)  # version 1
+    except StarknetDevnetException:
+        call_specifications = validate_request(
+            request.data, InvokeFunction
+        )  # version 0
 
     result_dict = await state.starknet_wrapper.call(call_specifications)
-
     return jsonify(result_dict)
 
 
@@ -265,7 +268,29 @@ def get_state_update():
 @feeder_gateway.route("/estimate_fee", methods=["POST"])
 async def estimate_fee():
     """Returns the estimated fee for a transaction."""
-    transaction = validate_call(request.data)
-    fee_response = await state.starknet_wrapper.calculate_actual_fee(transaction)
+    transaction = validate_request(request.data, InvokeFunction)
+    _, fee_response = await state.starknet_wrapper.calculate_actual_fee(transaction)
+    return jsonify(FeeEstimationInfo.load(fee_response))
 
-    return jsonify(fee_response)
+
+@feeder_gateway.route("/simulate_transaction", methods=["POST"])
+async def simulate_transaction():
+    """Returns the estimated fee for a transaction."""
+    transaction = validate_request(request.data, AccountTransaction)
+    trace, fee_response = await state.starknet_wrapper.calculate_actual_fee(transaction)
+
+    simulation_info = TransactionSimulationInfo(
+        trace=trace, fee_estimation=FeeEstimationInfo.load(fee_response)
+    )
+
+    return jsonify(simulation_info.dump())
+
+
+@feeder_gateway.route("/get_nonce", methods=["GET"])
+async def get_nonce():
+    """Returns the nonce of the contract whose contractAddress is provided"""
+
+    contract_address = request.args.get("contractAddress", type=custom_int)
+    nonce = await state.starknet_wrapper.get_nonce(contract_address)
+
+    return jsonify(hex(nonce))

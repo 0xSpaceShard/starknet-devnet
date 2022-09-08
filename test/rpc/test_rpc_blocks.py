@@ -35,7 +35,7 @@ def test_get_block_with_tx_hashes(deploy_info, gateway_block, block_id):
         "block_number": block_number,
         "status": "ACCEPTED_ON_L2",
         "sequencer_address": pad_zero(hex(DEFAULT_GENERAL_CONFIG.sequencer_address)),
-        "new_root": pad_zero(new_root),
+        "new_root": new_root,
         "timestamp": gateway_block["timestamp"],
         "transactions": [transaction_hash],
     }
@@ -78,7 +78,7 @@ def test_get_block_with_txs(gateway_block, block_id):
         "block_number": block_number,
         "status": "ACCEPTED_ON_L2",
         "sequencer_address": pad_zero(hex(DEFAULT_GENERAL_CONFIG.sequencer_address)),
-        "new_root": pad_zero(new_root),
+        "new_root": new_root,
         "timestamp": gateway_block["timestamp"],
         "transactions": [
             {

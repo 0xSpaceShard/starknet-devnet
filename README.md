@@ -53,6 +53,7 @@ brew install gmp
 - Specifying a block by its hash/number is not supported for contract calls. All interaction is done with the latest block.
 - There is no pending block. A new block is generated with each transaction.
 - Sending transactions with max_fee set to 0 is supported (not supported on alpha-mainnet or alpha-goerli).
+- Devnet is currently being adapted to Starknet and Cairo v0.10.0, if you spot any issues, please [report them](https://github.com/Shard-Labs/starknet-devnet/issues/new/choose)
 
 ## Run
 
@@ -90,6 +91,8 @@ optional arguments:
   --gas-price GAS_PRICE, -g GAS_PRICE
                         Specify the gas price in wei per gas unit; defaults to
                         1e+11
+  --timeout TIMEOUT, -t TIMEOUT
+                        Specify the timeout for devnet server; defaults to 60 seconds
 ```
 
 You can run `starknet-devnet` in a separate shell, or you can run it in background with `starknet-devnet &`.
@@ -181,6 +184,7 @@ If you don't specify the `HOST` part, the server will indeed be available on all
   - `get_class_hash_at`
   - `get_code`
   - `get_full_contract`
+  - `get_nonce`
   - `get_state_update`
   - `get_storage_at`
   - `get_transaction`
@@ -382,10 +386,7 @@ Response:
 
 ## Lite mode
 
-To improve Devnet performance, instead of calculating the actual hash of deployment transactions and blocks, sequential numbering can be used (0x0, 0x1, 0x2, ...).
-
-Consider passing this CLI flag on Devnet startup:
-- `--lite-mode` enables optimizations
+Since Devnet 0.3.0, the effect of lite mode is minimal and currently only skips block hash calculation (replacing it with iterative numbering: `0x0`, `0x1`, `0x2`, ...). Activate it by passing `--lite-mode` on startup.
 
 ## Restart
 
@@ -425,6 +426,14 @@ Devnet can be started with the `--start-time` argument.
 
 ```
 starknet-devnet --start-time START_TIME_IN_SECONDS
+```
+
+### Timeout
+
+Timeout can be passed to Devnet's HTTP server. This makes it easier to deploy and manage large contracts that take longer to execute and may otherwise result in an error `ServerDisconnectedError`.
+
+```
+starknet-devnet --timeout TIMEOUT
 ```
 
 ## Contract debugging

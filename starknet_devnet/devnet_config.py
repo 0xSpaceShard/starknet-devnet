@@ -12,6 +12,7 @@ from .constants import (
     DEFAULT_HOST,
     DEFAULT_INITIAL_BALANCE,
     DEFAULT_PORT,
+    DEFAULT_TIMEOUT,
 )
 
 
@@ -137,8 +138,14 @@ def parse_args(raw_args: List[str]):
         "-g",
         action=NonNegativeAction,
         default=DEFAULT_GAS_PRICE,
-        help="Specify the gas price in wei per gas unit; "
-        + f"defaults to {DEFAULT_GAS_PRICE:g}",
+        help=f"Specify the gas price in wei per gas unit; defaults to {DEFAULT_GAS_PRICE:g}",
+    )
+    parser.add_argument(
+        "--timeout",
+        "-t",
+        action=NonNegativeAction,
+        default=DEFAULT_TIMEOUT,
+        help=f"Specify timeout for devnet server; defaults to {DEFAULT_TIMEOUT} seconds",
     )
     # Uncomment this once fork support is added
     # parser.add_argument(

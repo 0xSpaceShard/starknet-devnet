@@ -11,9 +11,20 @@ import time
 import requests
 
 from starkware.starknet.services.api.contract_class import ContractClass
+from starkware.starknet.definitions.general_config import StarknetChainId
 
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 from .settings import HOST, PORT, APP_URL
+
+
+ACCOUNT_DIR = os.path.join(
+    os.path.dirname(__file__),
+    "..",
+    "starknet_devnet",
+    "accounts_artifacts/starknet_cli_wallet",
+)
+ACCOUNT_FILE = os.path.join(ACCOUNT_DIR, "starknet_open_zeppelin_accounts.json")
+ACCOUNT_IMPLEMENTATION = "starkware.starknet.wallets.open_zeppelin.OpenZeppelinAccount"
 
 
 class ReturnCodeAssertionError(AssertionError):
@@ -142,9 +153,23 @@ def extract_address(stdout):
     return extract(r"Contract address: (\w*)", stdout)
 
 
-def run_starknet(args, raise_on_nonzero=True, add_gateway_urls=True):
+DEFAULT_WALLET_ARGS = (
+    "--wallet",
+    ACCOUNT_IMPLEMENTATION,
+    "--account_dir",
+    ACCOUNT_DIR,
+    "--network_id",
+    "alpha-goerli",
+    "--chain_id",
+    hex(StarknetChainId.TESTNET.value),
+)
+
+
+def run_starknet(
+    args, raise_on_nonzero=True, add_gateway_urls=True, wallet_args=DEFAULT_WALLET_ARGS
+):
     """Wrapper around subprocess.run"""
-    my_args = ["poetry", "run", "starknet", *args, "--no_wallet"]
+    my_args = ["poetry", "run", "starknet", *args, *wallet_args]
     if add_gateway_urls:
         my_args.extend(["--gateway_url", APP_URL, "--feeder_gateway_url", APP_URL])
     output = subprocess.run(my_args, encoding="utf-8", check=False, capture_output=True)
@@ -172,7 +197,7 @@ def deploy(contract, inputs=None, salt=None):
         args.extend(["--inputs", *inputs])
     if salt:
         args.extend(["--salt", salt])
-    output = run_starknet(args)
+    output = run_starknet(args, wallet_args=["--no_wallet"])
     return {
         "tx_hash": extract_tx_hash(output.stdout),
         "address": extract_address(output.stdout),
@@ -207,10 +232,11 @@ def assert_transaction(tx_hash, expected_status, expected_signature=None):
             "signature",
             "transaction_hash",
             "type",
+            "nonce",
+            "version",
         ]
         assert_keys(transaction["transaction"], invoke_transaction_keys)
-
-    if tx_type == "DEPLOY":
+    elif tx_type == "DEPLOY":
         deploy_transaction_keys = [
             "class_hash",
             "constructor_calldata",
@@ -218,8 +244,11 @@ def assert_transaction(tx_hash, expected_status, expected_signature=None):
             "contract_address_salt",
             "transaction_hash",
             "type",
+            "version",
         ]
         assert_keys(transaction["transaction"], deploy_transaction_keys)
+    else:
+        raise RuntimeError(f"Unknown tx_type: {tx_type}")
 
 
 def assert_keys(dictionary, keys):
@@ -263,13 +292,17 @@ def invoke(function, inputs, address, abi_path, signature=None, max_fee=None):
         "--abi",
         abi_path,
     ]
+
+    kwargs = {}
+
     if signature:
         args.extend(["--signature", *signature])
+        kwargs["wallet_args"] = ["--no_wallet"]
 
     if max_fee:
-        args.extend(["--max_fee", max_fee])
+        args.extend(["--max_fee", str(max_fee)])
 
-    output = run_starknet(args)
+    output = run_starknet(args, **kwargs)
 
     print("Invoke successful!")
     return extract_tx_hash(output.stdout)
@@ -278,7 +311,8 @@ def invoke(function, inputs, address, abi_path, signature=None, max_fee=None):
 def estimate_fee(function, inputs, address, abi_path, signature=None):
     """Wrapper around starknet estimate_fee. Returns fee in wei."""
     args = [
-        "estimate_fee",
+        "invoke",
+        "--estimate_fee",
         "--function",
         function,
         "--inputs",
@@ -288,10 +322,13 @@ def estimate_fee(function, inputs, address, abi_path, signature=None):
         "--abi",
         abi_path,
     ]
+
+    kwargs = {}
     if signature:
         args.extend(["--signature", *signature])
+        kwargs["wallet_args"] = ["--no_wallet"]
 
-    output = run_starknet(args)
+    output = run_starknet(args, **kwargs)
 
     print("Estimate fee successful!")
     return extract_fee(output.stdout)
@@ -383,7 +420,7 @@ def get_full_contract(contract_address: str) -> ContractClass:
 def get_class_hash_at(contract_address: str) -> str:
     """Gets class hash at given contract address"""
     output = run_starknet(["get_class_hash_at", "--contract_address", contract_address])
-    return json.loads(output.stdout)
+    return output.stdout
 
 
 def get_class_by_hash(class_hash: str) -> str:

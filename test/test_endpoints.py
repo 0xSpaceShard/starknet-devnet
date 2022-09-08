@@ -48,11 +48,8 @@ def assert_deploy_resp(resp: bytes):
 def assert_invoke_resp(resp: bytes):
     """Asserts the validity of invoke response body."""
     resp_dict = json.loads(resp.data.decode("utf-8"))
-    assert set(resp_dict.keys()) == set(
-        ["address", "code", "transaction_hash", "result"]
-    )
+    assert set(resp_dict.keys()) == set(["address", "code", "transaction_hash"])
     assert resp_dict["code"] == "TRANSACTION_RECEIVED"
-    assert resp_dict["result"] == []
 
 
 @pytest.mark.deploy
@@ -100,10 +97,10 @@ def test_invoke_with_complete_request_data():
 
 
 @pytest.mark.call
-def test_call_without_signature():
+def test_call_with_invalid_signature():
     """Call without signature"""
     req_dict = json.loads(CALL_CONTENT)
-    del req_dict["signature"]
+    req_dict["signature"] = ["invalid_signature_obviously"]
     resp = send_call(req_dict)
     assert resp.status_code == 400
 
@@ -202,8 +199,7 @@ def test_error_response_deploy_without_calldata():
     resp = send_transaction_with_requests(req_dict)
 
     json_error_message = resp.json()["message"]
-    msg = "Invalid tx:"
-    assert msg in json_error_message
+    assert "Invalid tx:" in json_error_message
 
 
 @pytest.mark.call

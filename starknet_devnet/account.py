@@ -4,18 +4,14 @@ Account class and its predefined constants.
 
 from starkware.cairo.lang.vm.crypto import pedersen_hash
 from starkware.solidity.utils import load_nearby_contract
-from starkware.starknet.business_logic.state.objects import (
-    ContractState,
-    ContractCarriedState,
-)
 from starkware.starknet.public.abi import get_selector_from_name
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.core.os.contract_address.contract_address import (
     calculate_contract_address_from_hash,
 )
-from starkware.starknet.storage.starknet_storage import StorageLeaf
 from starkware.starknet.testing.contract import StarknetContract
 from starkware.python.utils import to_bytes
+from starkware.starknet.testing.starknet import Starknet
 
 from starknet_devnet.util import Uint256
 
@@ -68,50 +64,37 @@ class Account:
 
     async def deploy(self) -> StarknetContract:
         """Deploy this account."""
-        starknet = self.starknet_wrapper.starknet
+        starknet: Starknet = self.starknet_wrapper.starknet
         contract_class = Account.get_contract_class()
-        account_carried_state = starknet.state.state.contract_states[self.address]
-        account_state = account_carried_state.state
-        assert not account_state.initialized
-
-        starknet.state.state.contract_definitions[Account.HASH_BYTES] = contract_class
-
-        newly_deployed_account_state = await ContractState.create(
-            contract_hash=Account.HASH_BYTES,
-            storage_commitment_tree=account_state.storage_commitment_tree,
+        await starknet.state.state.set_contract_class(
+            Account.HASH_BYTES, contract_class
         )
+        await starknet.state.state.deploy_contract(self.address, Account.HASH_BYTES)
 
-        starknet.state.state.contract_states[self.address] = ContractCarriedState(
-            state=newly_deployed_account_state,
-            storage_updates={
-                get_selector_from_name("Account_public_key"): StorageLeaf(
-                    self.public_key
-                )
-            },
+        await starknet.state.state.set_storage_at(
+            self.address, get_selector_from_name("Account_public_key"), self.public_key
         )
 
         # set initial balance
         fee_token_address = starknet.state.general_config.fee_token_address
-        fee_token_storage_updates = starknet.state.state.contract_states[
-            fee_token_address
-        ].storage_updates
-
         balance_address = pedersen_hash(
             get_selector_from_name("ERC20_balances"), self.address
         )
         initial_balance_uint256 = Uint256.from_felt(self.initial_balance)
-        fee_token_storage_updates[balance_address] = StorageLeaf(
-            initial_balance_uint256.low
+        await starknet.state.state.set_storage_at(
+            fee_token_address, balance_address, initial_balance_uint256.low
         )
-        fee_token_storage_updates[balance_address + 1] = StorageLeaf(
-            initial_balance_uint256.high
+        await starknet.state.state.set_storage_at(
+            fee_token_address, balance_address + 1, initial_balance_uint256.high
         )
 
         contract = StarknetContract(
             state=starknet.state,
             abi=contract_class.abi,
             contract_address=self.address,
-            deploy_execution_info=None,
+            deploy_call_info=None,
         )
 
-        self.starknet_wrapper.store_contract(self.address, contract, contract_class)
+        await self.starknet_wrapper.store_contract(
+            self.address, contract, contract_class
+        )

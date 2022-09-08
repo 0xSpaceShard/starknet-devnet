@@ -3,16 +3,18 @@ This module introduces `StarknetWrapper`, a wrapper class of
 starkware.starknet.testing.starknet.Starknet.
 """
 from copy import deepcopy
-from typing import Dict, List, Tuple, Union
+import json
+import os
+from typing import Dict, List, Set, Tuple, Union
 
 import cloudpickle as pickle
-from starkware.starknet.business_logic.internal_transaction import (
+from starkware.starknet.business_logic.transaction.objects import (
+    CallInfo,
     InternalInvokeFunction,
     InternalDeclare,
     InternalDeploy,
 )
-from starkware.starknet.business_logic.internal_transaction import CallInfo
-from starkware.starknet.business_logic.state.state import BlockInfo, CarriedState
+from starkware.starknet.business_logic.state.state import BlockInfo, CachedState
 from starkware.starknet.services.api.gateway.transaction import (
     InvokeFunction,
     Deploy,
@@ -20,20 +22,41 @@ from starkware.starknet.services.api.gateway.transaction import (
 )
 from starkware.starknet.testing.starknet import Starknet
 from starkware.starkware_utils.error_handling import StarkException
-from starkware.starknet.business_logic.transaction_fee import calculate_tx_fee
 from starkware.starknet.services.api.contract_class import EntryPointType, ContractClass
+from starkware.starknet.services.api.feeder_gateway.request_objects import CallFunction
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionStatus,
 )
 from starkware.starknet.testing.contract import StarknetContract
 from starkware.starknet.testing.objects import FunctionInvocation
+from starkware.starknet.compiler.compile import get_selector_from_name
+from starkware.solidity.utils import load_nearby_contract
+from starkware.crypto.signature.fast_pedersen_hash import pedersen_hash
+from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    TransactionTrace,
+)
+from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    BlockStateUpdate,
+    DeployedContract,
+    StateDiff,
+    StorageEntry,
+)
+
+from starknet_devnet.constants import DUMMY_STATE_ROOT
 
 from .accounts import Accounts
 from .blueprints.rpc.structures.types import Felt
 from .fee_token import FeeToken
 from .general_config import DEFAULT_GENERAL_CONFIG
 from .origin import NullOrigin, Origin
-from .util import DummyExecutionInfo, enable_pickling, generate_state_update, to_bytes
+from .util import (
+    DummyExecutionInfo,
+    Uint256,
+    enable_pickling,
+    get_storage_diffs,
+    to_bytes,
+    get_all_declared_contracts,
+)
 from .contract_wrapper import ContractWrapper
 from .postman_wrapper import DevnetL1L2
 from .transactions import DevnetTransactions, DevnetTransaction
@@ -41,6 +64,7 @@ from .contracts import DevnetContracts
 from .blocks import DevnetBlocks
 from .block_info_generator import BlockInfoGenerator
 from .devnet_config import DevnetConfig
+from .sequencer_api_utils import InternalInvokeFunctionForSimulate
 
 enable_pickling()
 
@@ -62,7 +86,7 @@ class StarknetWrapper:
         self.l1l2 = DevnetL1L2()
         self.transactions = DevnetTransactions(self.origin)
         self.starknet: Starknet = None
-        self.__current_carried_state = None
+        self.__current_cached_state = None
         self.__initialized = False
         self.fee_token = FeeToken(self)
         self.accounts = Accounts(self)
@@ -85,6 +109,7 @@ class StarknetWrapper:
 
             await self.fee_token.deploy()
             await self.accounts.deploy()
+            await self.__deploy_wallet()
 
             await self.__preserve_current_state(starknet.state.state)
             await self.create_empty_block()
@@ -99,9 +124,8 @@ class StarknetWrapper:
             None, state, state_update, is_empty_block=True
         )
 
-    async def __preserve_current_state(self, state: CarriedState):
-        self.__current_carried_state = deepcopy(state)
-        self.__current_carried_state.shared_state = state.shared_state
+    async def __preserve_current_state(self, state: CachedState):
+        self.__current_cached_state = deepcopy(state)
 
     async def __init_starknet(self):
         """
@@ -114,41 +138,54 @@ class StarknetWrapper:
 
     def get_state(self):
         """
-        Returns the StarknetState of the underlyling Starknet instance.
+        Returns the StarknetState of the underlying Starknet instance.
         """
         return self.starknet.state
 
-    async def __update_state(self):
-        previous_state = self.__current_carried_state
-        assert previous_state is not None
-        current_carried_state = self.get_state().state
-        state = self.get_state()
+    async def __update_state(
+        self,
+        deployed_contracts: List[DeployedContract] = None,
+        explicitly_declared_contracts: List[int] = None,
+        visited_storage_entries: Set[StorageEntry] = None,
+        nonces: Dict[int, int] = None,
+    ):
+        # defaulting
+        deployed_contracts = deployed_contracts or []
+        explicitly_declared_contracts = explicitly_declared_contracts or []
+        visited_storage_entries = visited_storage_entries or set()
 
-        current_carried_state.block_info = self.block_info_generator.next_block(
-            block_info=current_carried_state.block_info,
-            general_config=state.general_config,
+        # state update and preservation
+        previous_state = self.__current_cached_state
+        assert previous_state is not None
+        current_state = self.get_state().state
+        current_state.block_info = self.block_info_generator.next_block(
+            block_info=current_state.block_info,
+            general_config=self.get_state().general_config,
+        )
+        await self.__preserve_current_state(current_state)
+
+        # calculating diffs
+        declared_contracts = await get_all_declared_contracts(
+            previous_state, explicitly_declared_contracts, deployed_contracts
+        )
+        storage_diffs = await get_storage_diffs(
+            previous_state, current_state, visited_storage_entries
+        )
+        state_diff = StateDiff(
+            deployed_contracts=deployed_contracts,
+            declared_contracts=declared_contracts,
+            storage_diffs=storage_diffs,
+            nonces=nonces or {},
         )
 
-        if not self.config.lite_mode:
-            # This is the most time-intensive part of the function.
-            # With only skipping it in lite-mode, we still get the time benefit.
-            # In regular mode it's needed for state update calculation and block state_root calculation.
-            updated_shared_state = (
-                await current_carried_state.shared_state.apply_state_updates(
-                    ffc=current_carried_state.ffc,
-                    previous_carried_state=previous_state,
-                    current_carried_state=current_carried_state,
-                )
-            )
+        return BlockStateUpdate(
+            block_hash=None,
+            new_root=DUMMY_STATE_ROOT,
+            old_root=DUMMY_STATE_ROOT,
+            state_diff=state_diff,
+        )
 
-            state.state.shared_state = updated_shared_state
-            await self.__preserve_current_state(state.state)
-
-            return generate_state_update(previous_state, current_carried_state)
-
-        return None
-
-    def store_contract(
+    async def store_contract(
         self,
         address: int,
         contract: StarknetContract,
@@ -156,8 +193,12 @@ class StarknetWrapper:
         tx_hash: int = None,
     ):
         """Store the provided data sa wrapped contract"""
+        class_hash_bytes = await self.starknet.state.state.get_class_hash_at(address)
+        class_hash = int.from_bytes(class_hash_bytes, "big")
         self.contracts.store(
-            address, ContractWrapper(contract, contract_class, tx_hash)
+            address=address,
+            class_hash=class_hash,
+            contract_wrapper=ContractWrapper(contract, contract_class, tx_hash),
         )
 
     async def __store_transaction(
@@ -202,23 +243,26 @@ class StarknetWrapper:
         internal_declare: InternalDeclare = InternalDeclare.from_external(
             declare_transaction, self.get_state().general_config
         )
-        declared_class = await self.starknet.declare(
-            contract_class=declare_transaction.contract_class,
-        )
-        self.contracts.store_class(
-            declared_class.class_hash, declare_transaction.contract_class
+        execution_info = await self.starknet.state.execute_tx(internal_declare)
+        class_hash_int = int.from_bytes(internal_declare.class_hash, "big")
+
+        self.contracts.store_class(class_hash_int, declare_transaction.contract_class)
+        await self.get_state().state.set_contract_class(
+            internal_declare.class_hash, declare_transaction.contract_class
         )
 
         tx_hash = internal_declare.hash_value
         transaction = DevnetTransaction(
             internal_tx=internal_declare,
             status=TransactionStatus.ACCEPTED_ON_L2,
-            execution_info=DummyExecutionInfo(),
+            execution_info=execution_info,
             transaction_hash=tx_hash,
         )
 
         self.__update_block_number()
-        state_update = await self.__update_state()
+        state_update = await self.__update_state(
+            explicitly_declared_contracts=[class_hash_int]
+        )
 
         await self.__store_transaction(
             transaction=transaction,
@@ -227,13 +271,13 @@ class StarknetWrapper:
             error_message=None,
         )
 
-        return declared_class.class_hash, tx_hash
+        return class_hash_int, tx_hash
 
     def __update_block_number(self):
         """Updates just the block number. Returns the old block info to allow reverting"""
-        current_carried_state = self.get_state().state
-        block_info = current_carried_state.block_info
-        current_carried_state.block_info = BlockInfo(
+        current_cached_state = self.get_state().state
+        block_info = current_cached_state.block_info
+        current_cached_state.block_info = BlockInfo(
             gas_price=block_info.gas_price,
             block_number=block_info.block_number + 1,
             block_timestamp=block_info.block_timestamp,
@@ -242,6 +286,7 @@ class StarknetWrapper:
         )
         return block_info
 
+    # pylint: disable=too-many-locals
     async def deploy(self, deploy_transaction: Deploy) -> Tuple[int, int]:
         """
         Deploys the contract specified with `deploy_transaction`.
@@ -250,7 +295,7 @@ class StarknetWrapper:
 
         state = self.get_state()
         contract_class = deploy_transaction.contract_definition
-
+        deployed_contracts: List[DeployedContract] = []
         internal_tx: InternalDeploy = InternalDeploy.from_external(
             deploy_transaction, state.general_config
         )
@@ -270,14 +315,30 @@ class StarknetWrapper:
                 constructor_calldata=deploy_transaction.constructor_calldata,
                 contract_address_salt=deploy_transaction.contract_address_salt,
             )
-            execution_info = contract.deploy_execution_info
+            execution_info = contract.deploy_call_info
             error_message = None
             status = TransactionStatus.ACCEPTED_ON_L2
 
-            self.store_contract(
+            await self.store_contract(
                 contract.contract_address, contract, contract_class, tx_hash
             )
-            state_update = await self.__update_state()
+
+            class_hash_bytes = await self.starknet.state.state.get_class_hash_at(
+                contract_address
+            )
+            class_hash_int = int.from_bytes(class_hash_bytes, "big")
+            deployed_contracts.append(
+                DeployedContract(
+                    address=contract.contract_address, class_hash=class_hash_int
+                )
+            )
+
+            await self.__register_new_contracts(
+                execution_info.call_info.internal_calls, tx_hash, deployed_contracts
+            )
+            state_update = await self.__update_state(
+                deployed_contracts=deployed_contracts
+            )
         except StarkException as err:
             error_message = err.message
             status = TransactionStatus.REJECTED
@@ -301,10 +362,6 @@ class StarknetWrapper:
             tx_hash=tx_hash,
         )
 
-        await self.__register_new_contracts(
-            execution_info.call_info.internal_calls, tx_hash
-        )
-
         return contract_address, tx_hash
 
     async def invoke(self, invoke_function: InvokeFunction):
@@ -313,35 +370,33 @@ class StarknetWrapper:
         invoke_transaction: InternalInvokeFunction = (
             InternalInvokeFunction.from_external(invoke_function, state.general_config)
         )
+        tx_hash = invoke_transaction.hash_value
 
         try:
             preserved_block_info = self.__update_block_number()
 
-            contract_wrapper = self.contracts.get_by_address(
-                invoke_transaction.contract_address
-            )
-            adapted_result, execution_info = await contract_wrapper.invoke(
-                entry_point_selector=invoke_transaction.entry_point_selector,
-                calldata=invoke_transaction.calldata,
-                signature=invoke_transaction.signature,
-                caller_address=invoke_transaction.caller_address,
-                max_fee=invoke_transaction.max_fee,
-            )
+            execution_info = await state.execute_tx(invoke_transaction)
             status = TransactionStatus.ACCEPTED_ON_L2
             error_message = None
-            state_update = await self.__update_state()
+            deployed_contracts: List[DeployedContract] = []
+            await self.__register_new_contracts(
+                execution_info.call_info.internal_calls, tx_hash, deployed_contracts
+            )
+
+            state_update = await self.__update_state(
+                deployed_contracts=deployed_contracts,
+                visited_storage_entries=execution_info.get_visited_storage_entries(),
+            )
         except StarkException as err:
             error_message = err.message
             status = TransactionStatus.REJECTED
             execution_info = DummyExecutionInfo()
-            adapted_result = []
             state_update = None
 
             # restore block info
             self.get_state().state.block_info = preserved_block_info
 
         transaction = DevnetTransaction(invoke_transaction, status, execution_info)
-        tx_hash = transaction.transaction_hash
 
         await self.__store_transaction(
             transaction=transaction,
@@ -350,54 +405,56 @@ class StarknetWrapper:
             tx_hash=tx_hash,
         )
 
-        await self.__register_new_contracts(
-            execution_info.call_info.internal_calls, tx_hash
-        )
+        return invoke_function.contract_address, tx_hash
 
-        return invoke_function.contract_address, tx_hash, {"result": adapted_result}
-
-    async def call(self, transaction: InvokeFunction):
+    async def call(self, transaction: CallFunction):
         """Perform call according to specifications in `transaction`."""
         contract_wrapper = self.contracts.get_by_address(transaction.contract_address)
 
         adapted_result = await contract_wrapper.call(
             entry_point_selector=transaction.entry_point_selector,
             calldata=transaction.calldata,
-            signature=transaction.signature,
             caller_address=0,
-            max_fee=transaction.max_fee,
         )
 
         return {"result": adapted_result}
 
     async def __register_new_contracts(
-        self, internal_calls: List[Union[FunctionInvocation, CallInfo]], tx_hash: int
+        self,
+        internal_calls: List[Union[FunctionInvocation, CallInfo]],
+        tx_hash: int,
+        deployed_contracts: List[DeployedContract],
     ):
         for internal_call in internal_calls:
             if internal_call.entry_point_type == EntryPointType.CONSTRUCTOR:
                 state = self.get_state()
-                class_hash = to_bytes(internal_call.class_hash)
-                contract_class = state.state.get_contract_class(class_hash)
+                class_hash_bytes = to_bytes(internal_call.class_hash)
+                class_hash_int = int.from_bytes(class_hash_bytes, "big")
+                contract_class = await state.state.get_contract_class(class_hash_bytes)
 
                 contract = StarknetContract(
                     state, contract_class.abi, internal_call.contract_address, None
                 )
-                self.store_contract(
+                await self.store_contract(
                     internal_call.contract_address, contract, contract_class, tx_hash
                 )
-            await self.__register_new_contracts(internal_call.internal_calls, tx_hash)
+                deployed_contracts.append(
+                    DeployedContract(
+                        address=contract.contract_address, class_hash=class_hash_int
+                    )
+                )
+            await self.__register_new_contracts(
+                internal_call.internal_calls, tx_hash, deployed_contracts
+            )
 
     async def get_storage_at(self, contract_address: int, key: int) -> Felt:
         """
         Returns the storage identified by `key`
         from the contract at `contract_address`.
         """
-        state = self.get_state()
-        contract_states = state.state.contract_states
-
-        contract_state = contract_states[contract_address]
-        if key in contract_state.storage_updates:
-            return hex(contract_state.storage_updates[key].value)
+        state = self.get_state().state
+        if self.contracts.is_deployed(contract_address):
+            return hex(await state.get_storage_at(contract_address, key))
         return self.origin.get_storage_at(contract_address, key)
 
     async def load_messaging_contract_in_l1(
@@ -417,23 +474,36 @@ class StarknetWrapper:
     async def calculate_actual_fee(self, external_tx: InvokeFunction):
         """Calculates actual fee"""
         state = self.get_state()
-        internal_tx = InternalInvokeFunction.from_external_query_tx(
+
+        internal_tx = InternalInvokeFunctionForSimulate.from_external(
             external_tx, state.general_config
         )
 
-        child_state = state.state.create_child_state_for_querying()
-        call_info = await internal_tx.execute(
-            child_state, state.general_config, only_query=True
+        execution_info = await internal_tx.apply_state_updates(
+            # pylint: disable=protected-access
+            state.state._copy(),
+            state.general_config,
         )
 
-        tx_fee = calculate_tx_fee(
-            state=child_state, call_info=call_info, general_config=state.general_config
+        trace = TransactionTrace(
+            validate_invocation=FunctionInvocation.from_optional_internal(
+                execution_info.validate_info
+            ),
+            function_invocation=FunctionInvocation.from_optional_internal(
+                execution_info.call_info
+            ),
+            fee_transfer_invocation=FunctionInvocation.from_optional_internal(
+                execution_info.fee_transfer_info
+            ),
+            signature=external_tx.signature,
         )
+
+        tx_fee = execution_info.actual_fee
 
         gas_price = state.state.block_info.gas_price
         gas_usage = tx_fee // gas_price if gas_price else 0
 
-        return {
+        return trace, {
             "overall_fee": tx_fee,
             "unit": "wei",
             "gas_price": gas_price,
@@ -451,3 +521,57 @@ class StarknetWrapper:
     def set_gas_price(self, gas_price: int):
         """Sets gas price to `gas_price`."""
         self.block_info_generator.set_gas_price(gas_price)
+
+    async def get_nonce(self, contract_address: int):
+        """Returns nonce of contract with `contract_address`"""
+        return await self.get_state().state.get_nonce_at(contract_address)
+
+    async def __deploy_wallet(self):
+        """Deploys Starknet CLI's wallet"""
+        balance = self.config.initial_balance
+        balance_uint256 = Uint256.from_felt(balance)
+
+        artifact_path = os.path.join(
+            os.path.dirname(__file__),
+            "accounts_artifacts/starknet_cli_wallet/starknet_open_zeppelin_accounts.json",
+        )
+        with open(artifact_path, encoding="utf-8") as deployment_file:
+            deployment_info = json.load(deployment_file)["alpha-goerli"]["__default__"]
+        public_key = int(deployment_info["public_key"], 16)
+
+        class_hash = 0x05079DC27D18918EC7A81BE5933620BA90D2191092D70B07110991F7D724920D
+        class_hash_bytes = to_bytes(class_hash)
+        class_loaded = ContractClass.load(
+            load_nearby_contract("accounts_artifacts/starknet_cli_wallet/account")
+        )
+        await self.starknet.state.state.set_contract_class(
+            class_hash_bytes, class_loaded
+        )
+
+        wallet_address = int(deployment_info["address"], 16)
+        await self.starknet.state.state.deploy_contract(
+            wallet_address, class_hash_bytes
+        )
+        await self.starknet.state.state.set_storage_at(
+            wallet_address, get_selector_from_name("public_key"), public_key
+        )
+
+        fee_token_address = self.starknet.state.general_config.fee_token_address
+        balance_address = pedersen_hash(
+            get_selector_from_name("ERC20_balances"), wallet_address
+        )
+        await self.starknet.state.state.set_storage_at(
+            fee_token_address, balance_address, balance_uint256.low
+        )
+        await self.starknet.state.state.set_storage_at(
+            fee_token_address, balance_address + 1, balance_uint256.high
+        )
+
+        contract = StarknetContract(
+            state=self.starknet.state,
+            abi=class_loaded.abi,
+            contract_address=wallet_address,
+            deploy_call_info=None,
+        )
+
+        await self.store_contract(wallet_address, contract, class_loaded)

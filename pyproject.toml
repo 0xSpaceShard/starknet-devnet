@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "starknet_devnet"
-version = "0.2.11"
+version = "0.3.0"
 description = "A local testnet for Starknet"
 authors = ["FabijanC <fabijan.corak@gmail.com>"]
 license = "ISC"
@@ -11,10 +11,10 @@ homepage = "https://github.com/Shard-Labs/starknet-devnet"
 keywords = ["starknet", "cairo", "testnet", "local", "server"]
 
 [tool.poetry.dependencies]
-python = ">=3.7.2,<3.10"
+python = ">=3.8,<3.10"
 Flask = {extras = ["async"], version = "~2.0.3"}
 flask-cors = "~3.0.10"
-cairo-lang = "0.9.1"
+cairo-lang = "0.10.0"
 Werkzeug = "~2.0.3"
 cloudpickle = "~2.1.0"
 crypto-cpp-py = "~1.0.4"
