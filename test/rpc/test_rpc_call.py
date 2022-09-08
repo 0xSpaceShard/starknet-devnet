@@ -28,7 +28,7 @@ def test_call(deploy_info):
     )
     result = resp["result"]
 
-    assert result["result"] == ["0x00"]
+    assert result == ["0x00"]
 
 
 @pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
