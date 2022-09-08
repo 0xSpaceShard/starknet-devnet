@@ -65,7 +65,6 @@ def fixture_invoke_info() -> dict:
     Make an invoke transaction on devnet and return invoke info dict
     """
     invoke_tx = json.loads(INVOKE_CONTENT)
-    invoke_tx["calldata"] = ["0"]
     invoke_info = add_transaction(invoke_tx)
     return {**invoke_info, **invoke_tx}
 

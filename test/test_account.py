@@ -223,7 +223,7 @@ def test_insufficient_balance():
     args = [10, 20]
     calls = [(to_address, "increase_balance", args)]
     invoke_tx_hash = execute(
-        calls, account_address, private_key, max_fee=10**21
+        calls, account_address, private_key, max_fee=10 ** 21
     )  # big enough
 
     assert_tx_status(invoke_tx_hash, "REJECTED")

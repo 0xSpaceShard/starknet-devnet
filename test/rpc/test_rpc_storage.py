@@ -27,7 +27,7 @@ def test_get_storage_at(deploy_info):
     )
     storage = resp["result"]
 
-    assert storage == "0x00"
+    assert storage == "0x045"
 
 
 @pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")

@@ -57,7 +57,7 @@ def test_get_transaction_by_hash_deploy(deploy_info):
         "type": rpc_txn_type(block_tx["type"]),
         "contract_address": pad_zero(contract_address),
         "contract_address_salt": pad_zero(block_tx["contract_address_salt"]),
-        "constructor_calldata": [],
+        "constructor_calldata": ["0x045"],
     }
 
 
@@ -377,7 +377,7 @@ def test_add_deploy_transaction_on_incorrect_contract(deploy_content):
     """
     contract_definition = deploy_content["contract_definition"]
     salt = deploy_content["contract_address_salt"]
-    calldata = [rpc_felt(data) for data in deploy_content["constructor_calldata"]]
+    calldata = [rpc_felt(int(data)) for data in deploy_content["constructor_calldata"]]
     pad_zero_external_entry_points(contract_class=contract_definition)
 
     rpc_contract = RpcContractClass(
@@ -404,7 +404,7 @@ def test_add_deploy_transaction(deploy_content):
     """
     contract_definition = deploy_content["contract_definition"]
     salt = deploy_content["contract_address_salt"]
-    calldata = [rpc_felt(data) for data in deploy_content["constructor_calldata"]]
+    calldata = [rpc_felt(int(data)) for data in deploy_content["constructor_calldata"]]
     pad_zero_external_entry_points(contract_class=contract_definition)
 
     rpc_contract = RpcContractClass(

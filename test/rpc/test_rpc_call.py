@@ -28,7 +28,7 @@ def test_call(deploy_info):
     )
     result = resp["result"]
 
-    assert result["result"] == ["0x00"]
+    assert result["result"] == ["0x045"]
 
 
 @pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
@@ -74,7 +74,11 @@ def test_call_raises_on_incorrect_selector(deploy_info):
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
-def test_call_raises_on_invalid_calldata(deploy_info):
+@pytest.mark.parametrize(
+    "calldata",
+    [[123], [9189418294819], ["0x123"], ["1231", "wtf", "123"], ["deadbeef"]],
+)
+def test_call_raises_on_invalid_calldata(deploy_info, calldata):
     """
     Call contract with incorrect calldata
     """
@@ -86,13 +90,13 @@ def test_call_raises_on_invalid_calldata(deploy_info):
             "request": {
                 "contract_address": pad_zero(contract_address),
                 "entry_point_selector": hex(get_selector_from_name("get_balance")),
-                "calldata": ["a", "b", "123"],
+                "calldata": calldata,
             },
             "block_id": "latest",
         },
     )
 
-    assert ex["error"] == {"code": 22, "message": "Invalid call data"}
+    assert ex["error"] == {"code": 22, "message": "Invalid calldata"}
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
