@@ -122,3 +122,7 @@ def test_call_raises_on_incorrect_block_hash(deploy_info):
         "code": -1,
         "message": "Calls with block_id != 'latest' are not supported currently.",
     }
+
+# TODO test method not found -32601
+# TODO test invalid data -32600
+# TODO perhaps not test, but introduce -32603 on wildcard errors

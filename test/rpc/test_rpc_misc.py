@@ -98,17 +98,17 @@ def test_chain_id():
     resp = rpc_call("starknet_chainId", params={})
     rpc_chain_id = resp["result"]
 
-    assert isinstance(rpc_chain_id, str)
     assert rpc_chain_id == hex(chain_id)
 
-
+# TODO this isn't working
+@pytest.mark.parametrize("params", [{}, None])
 @pytest.mark.usefixtures("run_devnet_in_background")
-def test_syncing():
+def test_syncing(params):
     """
     Test syncing
     """
-    resp = rpc_call("starknet_syncing", params={})
-    syncing = resp["result"]
+    resp = rpc_call("starknet_syncing", params=params)
+    assert "result" in resp, f"Unexpected response: {resp}"
 
-    assert isinstance(syncing, bool)
+    syncing = resp["result"]
     assert syncing is False
