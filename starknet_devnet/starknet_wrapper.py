@@ -245,6 +245,7 @@ class StarknetWrapper:
         )
         execution_info = await self.starknet.state.execute_tx(internal_declare)
         class_hash_int = int.from_bytes(internal_declare.class_hash, "big")
+        # alpha-goerli allows multiple declarations of the same class
 
         self.contracts.store_class(class_hash_int, declare_transaction.contract_class)
         await self.get_state().state.set_contract_class(
