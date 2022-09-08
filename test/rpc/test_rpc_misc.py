@@ -16,9 +16,6 @@ from .rpc_utils import rpc_call, gateway_call, get_block_with_transaction, pad_z
 
 
 # pylint: disable=too-many-locals
-@pytest.mark.skip(
-    reason="Currently failing, see issue https://github.com/Shard-Labs/starknet-devnet/issues/257 "
-)
 @pytest.mark.usefixtures("run_devnet_in_background")
 def test_get_state_update(deploy_info, invoke_info, contract_class):
     """
