@@ -51,6 +51,7 @@ from .general_config import DEFAULT_GENERAL_CONFIG
 from .origin import NullOrigin, Origin
 from .util import (
     DummyExecutionInfo,
+    StarknetDevnetException,
     Uint256,
     enable_pickling,
     get_storage_diffs,
@@ -476,9 +477,14 @@ class StarknetWrapper:
         """Calculates actual fee"""
         state = self.get_state()
 
-        internal_tx = InternalInvokeFunctionForSimulate.from_external(
-            external_tx, state.general_config
-        )
+        try:
+            internal_tx = InternalInvokeFunctionForSimulate.from_external(
+                external_tx, state.general_config
+            )
+        except AssertionError as error:
+            raise StarknetDevnetException(
+                status_code=400, message="Invalid format of fee estimation request"
+            ) from error
 
         execution_info = await internal_tx.apply_state_updates(
             # pylint: disable=protected-access

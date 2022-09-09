@@ -86,7 +86,7 @@ def test_estimate_fee_with_invalid_data():
 
     json_error_message = resp.json()["message"]
     assert resp.status_code == 400
-    assert "Invalid InvokeFunction" in json_error_message
+    assert "Invalid format of fee estimation request" in json_error_message
 
 
 @pytest.mark.estimate_fee
