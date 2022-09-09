@@ -219,7 +219,7 @@ async def estimate_fee(request: RpcInvokeTransaction, block_id: BlockId) -> dict
     invoke_function = make_invoke_function(request)
 
     try:
-        _, fee_response = await state.starknet_wrapper.calculate_actual_fee(
+        _, fee_response = await state.starknet_wrapper.calculate_trace_and_fee(
             invoke_function
         )
     except StarkException as ex:

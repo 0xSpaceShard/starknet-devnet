@@ -275,7 +275,7 @@ async def estimate_fee():
     except StarknetDevnetException:
         transaction = validate_request(request.data, InvokeFunction)  # version 0
 
-    _, fee_response = await state.starknet_wrapper.calculate_actual_fee(transaction)
+    _, fee_response = await state.starknet_wrapper.calculate_trace_and_fee(transaction)
     return jsonify(FeeEstimationInfo.load(fee_response))
 
 
@@ -283,7 +283,9 @@ async def estimate_fee():
 async def simulate_transaction():
     """Returns the estimated fee for a transaction."""
     transaction = validate_request(request.data, AccountTransaction)
-    trace, fee_response = await state.starknet_wrapper.calculate_actual_fee(transaction)
+    trace, fee_response = await state.starknet_wrapper.calculate_trace_and_fee(
+        transaction
+    )
 
     simulation_info = TransactionSimulationInfo(
         trace=trace, fee_estimation=FeeEstimationInfo.load(fee_response)

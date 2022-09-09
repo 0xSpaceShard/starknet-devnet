@@ -473,8 +473,8 @@ class StarknetWrapper:
         state = self.get_state()
         return await self.l1l2.flush(state)
 
-    async def calculate_actual_fee(self, external_tx: InvokeFunction):
-        """Calculates actual fee"""
+    async def calculate_trace_and_fee(self, external_tx: InvokeFunction):
+        """Calculates trace and fee by simulating tx on state copy."""
         state = self.get_state()
 
         try:
