@@ -88,19 +88,20 @@ def test_get_state_update(deploy_info, invoke_info, contract_class):
     }
 
 
+@pytest.mark.parametrize("params", [{}, None])
 @pytest.mark.usefixtures("run_devnet_in_background")
-def test_chain_id():
+def test_chain_id(params):
     """
     Test chain id
     """
     chain_id = DEFAULT_GENERAL_CONFIG.chain_id.value
 
-    resp = rpc_call("starknet_chainId", params={})
+    resp = rpc_call("starknet_chainId", params=params)
     rpc_chain_id = resp["result"]
 
     assert rpc_chain_id == hex(chain_id)
 
-# TODO this isn't working
+
 @pytest.mark.parametrize("params", [{}, None])
 @pytest.mark.usefixtures("run_devnet_in_background")
 def test_syncing(params):
@@ -109,6 +110,4 @@ def test_syncing(params):
     """
     resp = rpc_call("starknet_syncing", params=params)
     assert "result" in resp, f"Unexpected response: {resp}"
-
-    syncing = resp["result"]
-    assert syncing is False
+    assert resp["result"] is False

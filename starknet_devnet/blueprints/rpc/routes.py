@@ -93,7 +93,7 @@ def parse_body(body: dict) -> Tuple[Callable, Union[List, dict], int]:
     """
     try:
         method_name = body["method"].replace("starknet_", "")
-        params: Union[List, dict] = body.get("params", {})
+        params: Union[List, dict] = body.get("params") or {}
         message_id = body["id"]
     except RuntimeError as error:
         raise RpcError(code=-32600, message="Invalid request") from error
