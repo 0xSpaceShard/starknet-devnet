@@ -11,6 +11,7 @@ from starkware.starknet.services.api.gateway.transaction import (
     AccountTransaction,
     InvokeFunction,
 )
+from starkware.starknet.services.api.gateway.transaction import Transaction
 from starkware.starknet.services.api.feeder_gateway.request_objects import CallFunction
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionSimulationInfo,
@@ -268,7 +269,12 @@ def get_state_update():
 @feeder_gateway.route("/estimate_fee", methods=["POST"])
 async def estimate_fee():
     """Returns the estimated fee for a transaction."""
-    transaction = validate_request(request.data, InvokeFunction)
+
+    try:
+        transaction = validate_request(request.data, Transaction)  # version 1
+    except StarknetDevnetException:
+        transaction = validate_request(request.data, InvokeFunction)  # version 0
+
     _, fee_response = await state.starknet_wrapper.calculate_actual_fee(transaction)
     return jsonify(FeeEstimationInfo.load(fee_response))
 
