@@ -2,6 +2,7 @@
 RPC types
 """
 
+from enum import Enum
 from typing import Union
 from typing_extensions import Literal, TypedDict
 
@@ -87,3 +88,14 @@ class RpcError(Exception):
         super().__init__(message)
         self.code = code
         self.message = message
+
+
+class RpcErrorCode(Enum):
+    """
+    Constants used in JSON-RPC protocol
+    https://www.jsonrpc.org/specification"""
+
+    INVALID_REQUEST = -32600
+    METHOD_NOT_FOUND = -32601
+    INVALID_PARAMS = -32602
+    INTERNAL_ERROR = -32603
