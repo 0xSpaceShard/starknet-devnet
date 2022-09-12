@@ -497,6 +497,7 @@ def assert_block(latest_block_number, latest_tx_hash):
         latest_block["sequencer_address"], hex(DEFAULT_GENERAL_CONFIG.sequencer_address)
     )
     assert_equal(latest_block["gas_price"], hex(DEFAULT_GENERAL_CONFIG.min_gas_price))
+    assert re.match(r"^[a-fA-F0-9]{64}$", latest_block["state_root"])
 
 
 def assert_block_hash(latest_block_number, expected_block_hash):

@@ -2,9 +2,10 @@
 Test get_state_update endpoint
 """
 
+import re
+
 import pytest
 import requests
-
 from starkware.starknet.core.os.class_hash import compute_class_hash
 from starkware.starknet.public.abi import get_selector_from_name
 
@@ -182,7 +183,8 @@ def test_roots():
 
     new_root = state_update["new_root"]
 
-    assert new_root is not None
+    assert re.match(r"^[a-fA-F0-9]{64}$", new_root)
+    int(new_root, 16)  # should fail if not hex string
     assert state_update["old_root"] is not None
 
     # creates new block
