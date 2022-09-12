@@ -9,8 +9,8 @@ from test.test_account import (
 )
 from test.shared import (
     ABI_PATH,
-    EXPECTED_WALLET_ADDRESS,
     GENESIS_BLOCK_NUMBER,
+    PREDEPLOYED_ACCOUNT_ADDRESS,
 )
 import json
 import pytest
@@ -168,7 +168,7 @@ def test_increase_balance():
     """Assert tx failure if insufficient funds; assert tx success after mint"""
 
     deploy_info = deploy_empty_contract()
-    account_address = EXPECTED_WALLET_ADDRESS
+    account_address = PREDEPLOYED_ACCOUNT_ADDRESS
     initial_account_balance = get_account_balance(account_address)
 
     invoke_tx_hash = invoke(

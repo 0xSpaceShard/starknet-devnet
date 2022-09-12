@@ -17,16 +17,6 @@ from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 from .settings import HOST, PORT, APP_URL
 
 
-ACCOUNT_DIR = os.path.join(
-    os.path.dirname(__file__),
-    "..",
-    "starknet_devnet",
-    "accounts_artifacts/starknet_cli_wallet",
-)
-ACCOUNT_FILE = os.path.join(ACCOUNT_DIR, "starknet_open_zeppelin_accounts.json")
-ACCOUNT_IMPLEMENTATION = "starkware.starknet.wallets.open_zeppelin.OpenZeppelinAccount"
-
-
 class ReturnCodeAssertionError(AssertionError):
     """Error to be raised when the return code of an executed process is not as expected."""
 
@@ -153,23 +143,11 @@ def extract_address(stdout):
     return extract(r"Contract address: (\w*)", stdout)
 
 
-DEFAULT_WALLET_ARGS = (
-    "--wallet",
-    ACCOUNT_IMPLEMENTATION,
-    "--account_dir",
-    ACCOUNT_DIR,
-    "--network_id",
-    "alpha-goerli",
-    "--chain_id",
-    hex(StarknetChainId.TESTNET.value),
-)
-
-
 def run_starknet(
-    args, raise_on_nonzero=True, add_gateway_urls=True, wallet_args=DEFAULT_WALLET_ARGS
+    args, raise_on_nonzero=True, add_gateway_urls=True
 ):
     """Wrapper around subprocess.run"""
-    my_args = ["poetry", "run", "starknet", *args, *wallet_args]
+    my_args = ["poetry", "run", "starknet", *args, "--no_wallet"]
     if add_gateway_urls:
         my_args.extend(["--gateway_url", APP_URL, "--feeder_gateway_url", APP_URL])
     output = subprocess.run(my_args, encoding="utf-8", check=False, capture_output=True)
@@ -197,7 +175,7 @@ def deploy(contract, inputs=None, salt=None):
         args.extend(["--inputs", *inputs])
     if salt:
         args.extend(["--salt", salt])
-    output = run_starknet(args, wallet_args=["--no_wallet"])
+    output = run_starknet(args)
     return {
         "tx_hash": extract_tx_hash(output.stdout),
         "address": extract_address(output.stdout),
@@ -293,16 +271,13 @@ def invoke(function, inputs, address, abi_path, signature=None, max_fee=None):
         abi_path,
     ]
 
-    kwargs = {}
-
     if signature:
         args.extend(["--signature", *signature])
-        kwargs["wallet_args"] = ["--no_wallet"]
 
     if max_fee:
         args.extend(["--max_fee", str(max_fee)])
 
-    output = run_starknet(args, **kwargs)
+    output = run_starknet(args)
 
     print("Invoke successful!")
     return extract_tx_hash(output.stdout)
@@ -323,18 +298,16 @@ def estimate_fee(function, inputs, address, abi_path, signature=None):
         abi_path,
     ]
 
-    kwargs = {}
     if signature:
         args.extend(["--signature", *signature])
-        kwargs["wallet_args"] = ["--no_wallet"]
 
-    output = run_starknet(args, **kwargs)
+    output = run_starknet(args)
 
     print("Estimate fee successful!")
     return extract_fee(output.stdout)
 
 
-def call(function, address, abi_path, inputs=None, signature=None, max_fee=None):
+def call(function, address, abi_path, inputs=None, max_fee=None):
     """Wrapper around starknet call"""
     args = [
         "call",
@@ -347,8 +320,6 @@ def call(function, address, abi_path, inputs=None, signature=None, max_fee=None)
     ]
     if inputs:
         args.extend(["--inputs", *inputs])
-    if signature:
-        args.extend(["--signature", *signature])
     if max_fee:
         args.extend(["--max_fee", max_fee])
 

@@ -3,8 +3,6 @@ This module introduces `StarknetWrapper`, a wrapper class of
 starkware.starknet.testing.starknet.Starknet.
 """
 from copy import deepcopy
-import json
-import os
 from typing import Dict, List, Set, Tuple, Union
 
 import cloudpickle as pickle
@@ -29,9 +27,6 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
 )
 from starkware.starknet.testing.contract import StarknetContract
 from starkware.starknet.testing.objects import FunctionInvocation
-from starkware.starknet.compiler.compile import get_selector_from_name
-from starkware.solidity.utils import load_nearby_contract
-from starkware.crypto.signature.fast_pedersen_hash import pedersen_hash
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionTrace,
 )
@@ -52,7 +47,6 @@ from .origin import NullOrigin, Origin
 from .util import (
     DummyExecutionInfo,
     StarknetDevnetException,
-    Uint256,
     enable_pickling,
     get_storage_diffs,
     to_bytes,
@@ -110,7 +104,6 @@ class StarknetWrapper:
 
             await self.fee_token.deploy()
             await self.accounts.deploy()
-            await self.__deploy_wallet()
 
             await self.__preserve_current_state(starknet.state.state)
             await self.create_empty_block()
@@ -532,53 +525,3 @@ class StarknetWrapper:
     async def get_nonce(self, contract_address: int):
         """Returns nonce of contract with `contract_address`"""
         return await self.get_state().state.get_nonce_at(contract_address)
-
-    async def __deploy_wallet(self):
-        """Deploys Starknet CLI's wallet"""
-        balance = self.config.initial_balance
-        balance_uint256 = Uint256.from_felt(balance)
-
-        artifact_path = os.path.join(
-            os.path.dirname(__file__),
-            "accounts_artifacts/starknet_cli_wallet/starknet_open_zeppelin_accounts.json",
-        )
-        with open(artifact_path, encoding="utf-8") as deployment_file:
-            deployment_info = json.load(deployment_file)["alpha-goerli"]["__default__"]
-        public_key = int(deployment_info["public_key"], 16)
-
-        class_hash = 0x05079DC27D18918EC7A81BE5933620BA90D2191092D70B07110991F7D724920D
-        class_hash_bytes = to_bytes(class_hash)
-        class_loaded = ContractClass.load(
-            load_nearby_contract("accounts_artifacts/starknet_cli_wallet/account")
-        )
-        await self.starknet.state.state.set_contract_class(
-            class_hash_bytes, class_loaded
-        )
-
-        wallet_address = int(deployment_info["address"], 16)
-        await self.starknet.state.state.deploy_contract(
-            wallet_address, class_hash_bytes
-        )
-        await self.starknet.state.state.set_storage_at(
-            wallet_address, get_selector_from_name("public_key"), public_key
-        )
-
-        fee_token_address = self.starknet.state.general_config.fee_token_address
-        balance_address = pedersen_hash(
-            get_selector_from_name("ERC20_balances"), wallet_address
-        )
-        await self.starknet.state.state.set_storage_at(
-            fee_token_address, balance_address, balance_uint256.low
-        )
-        await self.starknet.state.state.set_storage_at(
-            fee_token_address, balance_address + 1, balance_uint256.high
-        )
-
-        contract = StarknetContract(
-            state=self.starknet.state,
-            abi=class_loaded.abi,
-            contract_address=wallet_address,
-            deploy_call_info=None,
-        )
-
-        await self.store_contract(wallet_address, contract, class_loaded)

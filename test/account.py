@@ -2,7 +2,7 @@
 Account test functions and utilities.
 """
 
-from typing import List, Sequence, Tuple
+from typing import List, NamedTuple, Sequence, Tuple
 
 from starkware.crypto.signature.signature import private_to_stark_key, sign
 from starkware.starknet.public.abi import get_selector_from_name
@@ -17,7 +17,7 @@ from .util import deploy, call, invoke, estimate_fee
 
 ACCOUNT_ARTIFACTS_PATH = "starknet_devnet/accounts_artifacts"
 ACCOUNT_AUTHOR = "OpenZeppelin"
-ACCOUNT_VERSION = "0.3.1"
+ACCOUNT_VERSION = "0.4.0b"
 
 ACCOUNT_PATH = f"{ACCOUNT_ARTIFACTS_PATH}/{ACCOUNT_AUTHOR}/{ACCOUNT_VERSION}/Account.cairo/Account.json"
 ACCOUNT_ABI_PATH = f"{ACCOUNT_ARTIFACTS_PATH}/{ACCOUNT_AUTHOR}/{ACCOUNT_VERSION}/Account.cairo/Account_abi.json"
@@ -53,7 +53,17 @@ def get_signature(message_hash: int, private_key: int) -> Tuple[str, str]:
     return [str(sig_r), str(sig_s)]
 
 
-def from_call_to_call_array(calls):
+class AccountCall(NamedTuple):
+    """Things needed to interact through Account"""
+
+    to_address: str
+    """The address of the called contract"""
+
+    function: str
+    inputs: List[str]
+
+
+def from_call_to_call_array(calls: List[AccountCall]):
     """Transforms calls to call_array and calldata."""
     call_array = []
     calldata = []
@@ -80,7 +90,7 @@ def adapt_inputs(execute_calldata: List[int]) -> List[str]:
 
 # pylint: disable=too-many-arguments
 def get_execute_args(
-    calls,
+    calls: List[AccountCall],
     account_address,
     private_key,
     nonce=None,
@@ -124,7 +134,9 @@ def get_transaction_hash(
     )
 
 
-def get_estimated_fee(calls, account_address, private_key, nonce=None):
+def get_estimated_fee(
+    calls: List[AccountCall], account_address: str, private_key: str, nonce=None
+):
     """Get estimated fee through account."""
     signature, execute_calldata = get_execute_args(
         calls=calls,
@@ -143,7 +155,13 @@ def get_estimated_fee(calls, account_address, private_key, nonce=None):
     )
 
 
-def execute(calls, account_address, private_key, nonce=None, max_fee=0):
+def execute(
+    calls: List[AccountCall],
+    account_address: str,
+    private_key: str,
+    nonce=None,
+    max_fee=0,
+):
     """Invoke __execute__ with correct calldata and signature."""
 
     version = TRANSACTION_VERSION
