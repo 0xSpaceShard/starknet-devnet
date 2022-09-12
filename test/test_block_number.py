@@ -32,7 +32,7 @@ EXPECTED_TX_HASH = "0x4df621f3aa655224d2cbce2d00d911cc58f78ebd75c3611db2ba3abad2
         ([], EXPECTED_TX_HASH),
         (
             ["--lite-mode"],
-            EXPECTED_TX_HASH,
+            "0x0",
         ),
     ],
     indirect=True,

@@ -463,6 +463,7 @@ class StarknetWrapper:
             preserved_block_info = self.__update_block_number()
 
             # TODO: second fix here in starknet state - actual deployment
+            # why this is not cover in test cases?
             contract = await self.starknet.deploy(
                 contract_class=contract_class,
                 constructor_calldata=deploy_transaction.constructor_calldata,
