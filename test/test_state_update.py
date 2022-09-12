@@ -184,7 +184,6 @@ def test_roots():
     new_root = state_update["new_root"]
 
     assert re.match(r"^[a-fA-F0-9]{64}$", new_root)
-    int(new_root, 16)  # should fail if not hex string
     assert state_update["old_root"] is not None
 
     # creates new block
