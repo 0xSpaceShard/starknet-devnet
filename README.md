@@ -444,10 +444,10 @@ If your contract is using `print` in cairo hints (it was compiled with the `--di
 starknet-devnet 2> /dev/null
 ```
 
-To enable printing with a dockerized version of Devnet set `PYTHONUNBUFFERED=1`:
+To disable all the python logging you have to explicitly pass `PYTHONUNBUFFERED=0`:
 
-```
-docker run -p 127.0.0.1:5050:5050 -e PYTHONUNBUFFERED=1 shardlabs/starknet-devnet
+```sh
+docker run -p 127.0.0.1:5050:5050 -e PYTHONUNBUFFERED=0 shardlabs/starknet-devnet
 ```
 
 ## Predeployed accounts
