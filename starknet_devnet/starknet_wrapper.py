@@ -23,16 +23,13 @@ from starkware.starknet.services.api.gateway.transaction import (
     Deploy,
     Declare,
     Transaction,
-    EverestTransaction
+    EverestTransaction,
 )
 from starkware.starknet.testing.starknet import (
     Starknet,
     StarknetState,
 )
-from starkware.starknet.testing.objects import (
-    StarknetCallInfo,
-    FunctionInvocation
-)
+from starkware.starknet.testing.objects import StarknetCallInfo, FunctionInvocation
 from starkware.starkware_utils.error_handling import StarkException
 from starkware.starknet.services.api.contract_class import EntryPointType, ContractClass
 from starkware.starknet.services.api.feeder_gateway.request_objects import CallFunction
@@ -86,6 +83,7 @@ enable_pickling()
 
 CastableToAddressSalt = Union[str, int]
 
+
 class LiteStarknetState(StarknetState):
     async def deploy(
         self,
@@ -103,22 +101,23 @@ class LiteStarknetState(StarknetState):
         if isinstance(contract_address_salt, str):
             contract_address_salt = int(contract_address_salt, 16)
         assert isinstance(contract_address_salt, int)
-        
+
         tx = LiteInternalDeploy.lite_create(
             contract_address_salt=contract_address_salt,
             constructor_calldata=constructor_calldata,
             contract_class=contract_class,
             chain_id=general_config.chain_id.value,
             version=constants.TRANSACTION_VERSION,
-            tx_number=0
+            tx_number=0,
         )
-    
+
         await starknet.state.state.set_contract_class(
             class_hash=tx.contract_hash, contract_class=contract_class
         )
         tx_execution_info = await starknet.state.execute_tx(tx=tx)
 
         return tx.contract_address, tx_execution_info
+
 
 class LiteStarknet(Starknet):
     async def deploy(
@@ -138,18 +137,22 @@ class LiteStarknet(Starknet):
             cairo_path=cairo_path,
             disable_hint_validation=disable_hint_validation,
         )
-        
+
         address, execution_info = await LiteStarknetState.deploy(
             self,
             contract_class=contract_class,
             contract_address_salt=contract_address_salt,
-            constructor_calldata=[] if constructor_calldata is None else constructor_calldata,
+            constructor_calldata=[]
+            if constructor_calldata is None
+            else constructor_calldata,
             general_config=general_config,
-            starknet=starknet
+            starknet=starknet,
         )
 
         deploy_call_info = StarknetCallInfo.from_internal(
-            call_info=as_non_optional(execution_info.call_info), result=(), main_call_events=[]
+            call_info=as_non_optional(execution_info.call_info),
+            result=(),
+            main_call_events=[],
         )
 
         return StarknetContract(
@@ -159,10 +162,14 @@ class LiteStarknet(Starknet):
             deploy_call_info=deploy_call_info,
         )
 
+
 class LiteInternalDeploy(InternalDeploy):
     @classmethod
     def _specific_from_external(
-        cls, external_tx: Transaction, general_config: StarknetGeneralConfig, tx_number: int
+        cls,
+        external_tx: Transaction,
+        general_config: StarknetGeneralConfig,
+        tx_number: int,
     ) -> "LiteInternalDeploy":
         assert isinstance(external_tx, Deploy)
         return cls.lite_create(
@@ -171,7 +178,7 @@ class LiteInternalDeploy(InternalDeploy):
             constructor_calldata=external_tx.constructor_calldata,
             chain_id=general_config.chain_id.value,
             version=external_tx.version,
-            tx_number = tx_number,
+            tx_number=tx_number,
         )
 
     @classmethod
@@ -184,10 +191,14 @@ class LiteInternalDeploy(InternalDeploy):
         # Downcast arguments to application-specific types.
         assert isinstance(external_tx, Transaction)
         assert isinstance(general_config, StarknetGeneralConfig)
-        
-        internal_cls = LiteInternalDeploy.external_to_internal_cls.get(type(external_tx))
+
+        internal_cls = LiteInternalDeploy.external_to_internal_cls.get(
+            type(external_tx)
+        )
         if internal_cls is None:
-            raise NotImplementedError(f"Unsupported transaction type {type(external_tx).__name__}.")
+            raise NotImplementedError(
+                f"Unsupported transaction type {type(external_tx).__name__}."
+            )
 
         return LiteInternalDeploy._specific_from_external(
             external_tx=external_tx, general_config=general_config, tx_number=tx_number
@@ -220,6 +231,7 @@ class LiteInternalDeploy(InternalDeploy):
             version=version,
             hash_value=tx_number,
         )
+
 
 # pylint: disable=too-many-instance-attributes
 class StarknetWrapper:
@@ -477,8 +489,8 @@ class StarknetWrapper:
                     contract_class=contract_class,
                     constructor_calldata=deploy_transaction.constructor_calldata,
                     contract_address_salt=deploy_transaction.contract_address_salt,
-                    general_config = state.general_config,
-                    starknet = self.starknet,
+                    general_config=state.general_config,
+                    starknet=self.starknet,
                 )
             else:
                 contract = await self.starknet.deploy(
