@@ -5,9 +5,12 @@ starkware.starknet.testing.starknet.Starknet.
 from copy import deepcopy
 import json
 import os
-from typing import Dict, List, Set, Tuple, Union
+from typing import Dict, List, Set, Tuple, Union, Optional
 
 import cloudpickle as pickle
+
+from starkware.python.utils import as_non_optional
+from starkware.starknet.definitions import constants, fields
 from starkware.starknet.business_logic.transaction.objects import (
     CallInfo,
     InternalInvokeFunction,
@@ -22,7 +25,14 @@ from starkware.starknet.services.api.gateway.transaction import (
     Transaction,
     EverestTransaction
 )
-from starkware.starknet.testing.starknet import Starknet
+from starkware.starknet.testing.starknet import (
+    Starknet,
+    StarknetState,
+)
+from starkware.starknet.testing.objects import (
+    StarknetCallInfo,
+    FunctionInvocation
+)
 from starkware.starkware_utils.error_handling import StarkException
 from starkware.starknet.services.api.contract_class import EntryPointType, ContractClass
 from starkware.starknet.services.api.feeder_gateway.request_objects import CallFunction
@@ -35,7 +45,6 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     StorageEntry,
 )
 from starkware.starknet.testing.contract import StarknetContract
-from starkware.starknet.testing.objects import FunctionInvocation
 from starkware.starknet.compiler.compile import get_selector_from_name
 from starkware.solidity.utils import load_nearby_contract
 from starkware.crypto.signature.fast_pedersen_hash import pedersen_hash
@@ -47,7 +56,10 @@ from starkware.starknet.core.os.contract_address.contract_address import (
 )
 from starkware.starknet.core.os.class_hash import compute_class_hash
 from starknet_devnet.constants import DUMMY_STATE_ROOT
-
+from starkware.starknet.testing.contract_utils import get_abi, get_contract_class
+from starkware.starknet.business_logic.execution.objects import (
+    TransactionExecutionInfo,
+)
 from .accounts import Accounts
 from .blueprints.rpc.structures.types import Felt
 from .fee_token import FeeToken
@@ -72,87 +84,87 @@ from .sequencer_api_utils import InternalInvokeFunctionForSimulate
 
 enable_pickling()
 
-# TODO: second fix here in StarknetState
-# class LiteStarknetState(StarknetState):
-#     async def deploy(
-#         self,
-#         contract_class: ContractClass,
-#         constructor_calldata: List[int],
-#         contract_address_salt: Optional[CastableToAddressSalt] = None,
-#     ) -> Tuple[int, TransactionExecutionInfo]:
-#         """
-#         Deploys a contract. Returns the contract address and the execution info.
+CastableToAddressSalt = Union[str, int]
 
-#         Args:
-#         contract_class - a compiled StarkNet contract returned by compile_starknet_files().
-#         contract_address_salt - If supplied, a hexadecimal string or an integer representing
-#         the salt to use for deploying. Otherwise, the salt is randomized.
-#         """
-#         if contract_address_salt is None:
-#             contract_address_salt = fields.ContractAddressSalt.get_random_value()
-#         if isinstance(contract_address_salt, str):
-#             contract_address_salt = int(contract_address_salt, 16)
-#         assert isinstance(contract_address_salt, int)
+class LiteStarknetState(StarknetState):
+    async def deploy(
+        self,
+        contract_class: ContractClass,
+        constructor_calldata: List[int],
+        general_config: StarknetGeneralConfig,
+        starknet: Starknet,
+        contract_address_salt: Optional[CastableToAddressSalt] = None,
+    ) -> Tuple[int, TransactionExecutionInfo]:
+        """
+        Lite version of StarknetState.
+        """
+        if contract_address_salt is None:
+            contract_address_salt = fields.ContractAddressSalt.get_random_value()
+        if isinstance(contract_address_salt, str):
+            contract_address_salt = int(contract_address_salt, 16)
+        assert isinstance(contract_address_salt, int)
+        
+        tx = LiteInternalDeploy.lite_create(
+            contract_address_salt=contract_address_salt,
+            constructor_calldata=constructor_calldata,
+            contract_class=contract_class,
+            chain_id=general_config.chain_id.value,
+            version=constants.TRANSACTION_VERSION,
+            tx_number=0
+        )
+    
+        await starknet.state.state.set_contract_class(
+            class_hash=tx.contract_hash, contract_class=contract_class
+        )
+        tx_execution_info = await starknet.state.execute_tx(tx=tx)
 
-#         print("InternalDeploy - fix this also... InternalDeploy is here so I need to override this also...")
+        return tx.contract_address, tx_execution_info
 
-#         tx = LiteInternalDeploy.create(
-#             contract_address_salt=contract_address_salt,
-#             constructor_calldata=constructor_calldata,
-#             contract_class=contract_class,
-#             chain_id=self.general_config.chain_id.value,
-#             version=constants.TRANSACTION_VERSION,
-#         )
-#         await self.state.set_contract_class(
-#             class_hash=tx.contract_hash, contract_class=contract_class
-#         )
+class LiteStarknet(Starknet):
+    async def deploy(
+        self,
+        general_config: StarknetGeneralConfig,
+        starknet: Starknet,
+        source: Optional[str] = None,
+        contract_class: Optional[ContractClass] = None,
+        contract_address_salt: Optional[CastableToAddressSalt] = None,
+        cairo_path: Optional[List[str]] = None,
+        constructor_calldata: Optional[List[int]] = None,
+        disable_hint_validation: bool = False,
+    ) -> StarknetContract:
+        contract_class = get_contract_class(
+            source=source,
+            contract_class=contract_class,
+            cairo_path=cairo_path,
+            disable_hint_validation=disable_hint_validation,
+        )
+        
+        address, execution_info = await LiteStarknetState.deploy(
+            self,
+            contract_class=contract_class,
+            contract_address_salt=contract_address_salt,
+            constructor_calldata=[] if constructor_calldata is None else constructor_calldata,
+            general_config=general_config,
+            starknet=starknet
+        )
 
-#         tx_execution_info = await self.execute_tx(tx=tx)
+        deploy_call_info = StarknetCallInfo.from_internal(
+            call_info=as_non_optional(execution_info.call_info), result=(), main_call_events=[]
+        )
 
-#         return tx.contract_address, tx_execution_info
+        return StarknetContract(
+            state=starknet.state,
+            abi=get_abi(contract_class=contract_class),
+            contract_address=address,
+            deploy_call_info=deploy_call_info,
+        )
 
-# class LiteStarknet(Starknet):
-#     async def deploy(
-#         self,
-#         source: Optional[str] = None,
-#         contract_class: Optional[ContractClass] = None,
-#         contract_address_salt: Optional[CastableToAddressSalt] = None,
-#         cairo_path: Optional[List[str]] = None,
-#         constructor_calldata: Optional[List[int]] = None,
-#         disable_hint_validation: bool = False,
-#     ) -> StarknetContract:
-#         contract_class = get_contract_class(
-#             source=source,
-#             contract_class=contract_class,
-#             cairo_path=cairo_path,
-#             disable_hint_validation=disable_hint_validation,
-#         )
-#         address, execution_info = await LiteStarknetState.deploy(
-#             contract_class=contract_class,
-#             contract_address_salt=contract_address_salt,
-#             constructor_calldata=[] if constructor_calldata is None else constructor_calldata,
-#         )
-
-#         deploy_call_info = StarknetCallInfo.from_internal(
-#             call_info=as_non_optional(execution_info.call_info), result=(), main_call_events=[]
-#         )
-#         return StarknetContract(
-#             state=self.state,
-#             abi=get_abi(contract_class=contract_class),
-#             contract_address=address,
-#             deploy_call_info=deploy_call_info,
-#         )
-
-# TODO: move this class to lite folder?
 class LiteInternalDeploy(InternalDeploy):
-
     @classmethod
     def _specific_from_external(
         cls, external_tx: Transaction, general_config: StarknetGeneralConfig, tx_number: int
     ) -> "LiteInternalDeploy":
-
         assert isinstance(external_tx, Deploy)
-
         return cls.lite_create(
             contract_address_salt=external_tx.contract_address_salt,
             contract_class=external_tx.contract_definition,
@@ -169,7 +181,6 @@ class LiteInternalDeploy(InternalDeploy):
         """
         Returns an internal transaction genearated based on an external one.
         """
-
         # Downcast arguments to application-specific types.
         assert isinstance(external_tx, Transaction)
         assert isinstance(general_config, StarknetGeneralConfig)
@@ -193,7 +204,6 @@ class LiteInternalDeploy(InternalDeploy):
         tx_number: int,
     ):
         verify_version(version=version, only_query=False)
-
         class_hash = compute_class_hash(contract_class=contract_class)
         contract_address = calculate_contract_address_from_hash(
             salt=contract_address_salt,
@@ -210,7 +220,6 @@ class LiteInternalDeploy(InternalDeploy):
             version=version,
             hash_value=tx_number,
         )
-
 
 # pylint: disable=too-many-instance-attributes
 class StarknetWrapper:
@@ -462,13 +471,22 @@ class StarknetWrapper:
         try:
             preserved_block_info = self.__update_block_number()
 
-            # TODO: second fix here in starknet state - actual deployment
-            # why this is not cover in test cases?
-            contract = await self.starknet.deploy(
-                contract_class=contract_class,
-                constructor_calldata=deploy_transaction.constructor_calldata,
-                contract_address_salt=deploy_transaction.contract_address_salt,
-            )
+            if self.config.lite_mode:
+                contract = await LiteStarknet.deploy(
+                    self,
+                    contract_class=contract_class,
+                    constructor_calldata=deploy_transaction.constructor_calldata,
+                    contract_address_salt=deploy_transaction.contract_address_salt,
+                    general_config = state.general_config,
+                    starknet = self.starknet,
+                )
+            else:
+                contract = await self.starknet.deploy(
+                    contract_class=contract_class,
+                    constructor_calldata=deploy_transaction.constructor_calldata,
+                    contract_address_salt=deploy_transaction.contract_address_salt,
+                )
+
             execution_info = contract.deploy_call_info
             error_message = None
             status = TransactionStatus.ACCEPTED_ON_L2
