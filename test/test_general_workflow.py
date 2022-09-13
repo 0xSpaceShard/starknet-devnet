@@ -4,6 +4,7 @@ Tests the general workflow of the devnet.
 
 import pytest
 
+from .account import execute
 from .util import (
     assert_contract_class,
     assert_negative_block_input,
@@ -24,7 +25,6 @@ from .util import (
     get_class_by_hash,
     get_class_hash_at,
     get_full_contract,
-    invoke,
     get_block,
 )
 
@@ -32,7 +32,6 @@ from .shared import (
     ABI_PATH,
     BALANCE_KEY,
     CONTRACT_PATH,
-    EVENTS_ABI_PATH,
     EVENTS_CONTRACT_PATH,
     EXPECTED_SALTY_DEPLOY_ADDRESS,
     EXPECTED_SALTY_DEPLOY_HASH,
@@ -41,6 +40,8 @@ from .shared import (
     FAILING_CONTRACT_PATH,
     GENESIS_BLOCK_NUMBER,
     NONEXISTENT_TX_HASH,
+    PREDEPLOYED_ACCOUNT_ADDRESS,
+    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
 
 
@@ -92,11 +93,10 @@ def test_general_workflow(expected_tx_hash, expected_block_hash):
     assert_equal(class_by_address, class_by_hash)
 
     # increase and assert balance
-    invoke_tx_hash = invoke(
-        function="increase_balance",
-        address=deploy_info["address"],
-        abi_path=ABI_PATH,
-        inputs=["10", "20"],
+    invoke_tx_hash = execute(
+        calls=[(deploy_info["address"], "increase_balance", [10, 20])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
     value = call(
         function="get_balance", address=deploy_info["address"], abi_path=ABI_PATH
@@ -136,11 +136,10 @@ def test_general_workflow(expected_tx_hash, expected_block_hash):
         expected_tx_hash=expected_tx_hash,
     )
 
-    salty_invoke_tx_hash = invoke(
-        function="increase_balance",
-        address=EXPECTED_SALTY_DEPLOY_ADDRESS,
-        abi_path=EVENTS_ABI_PATH,
-        inputs=["10"],
+    salty_invoke_tx_hash = execute(
+        calls=[(EXPECTED_SALTY_DEPLOY_ADDRESS, "increase_balance", [10])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
 
     assert_events(salty_invoke_tx_hash, "test/expected/invoke_receipt_event.json")

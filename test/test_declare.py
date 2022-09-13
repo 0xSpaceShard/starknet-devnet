@@ -4,14 +4,13 @@ Tests of contract class declaration and deploy syscall.
 
 import pytest
 
-from test.account import execute
-
+from .account import execute
 from .shared import (
     ABI_PATH,
     CONTRACT_PATH,
-    DEPLOYER_ABI_PATH,
     DEPLOYER_CONTRACT_PATH,
     EXPECTED_CLASS_HASH,
+    PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
@@ -27,7 +26,6 @@ from .util import (
     get_class_by_hash,
     get_class_hash_at,
     get_transaction_receipt,
-    invoke,
 )
 
 
@@ -51,7 +49,7 @@ def assert_deployed_through_syscall(tx_hash, initial_balance: str):
 
 
 @pytest.mark.declare
-@devnet_in_background("--accounts", "1", "--seed", "42")
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
 def test_declare_and_deploy():
     """
     Test declaring a class and deploying it through an account.

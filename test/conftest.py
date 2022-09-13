@@ -3,10 +3,9 @@ Fixtures for tests
 """
 
 from __future__ import annotations
-
-from test.util import run_devnet_in_background, terminate_and_wait
-
 import pytest
+
+from .util import run_devnet_in_background, terminate_and_wait
 
 
 @pytest.fixture(name="expected_tx_hash")

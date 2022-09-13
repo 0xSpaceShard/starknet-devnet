@@ -9,11 +9,11 @@ import requests
 from starkware.starknet.core.os.class_hash import compute_class_hash
 from starkware.starknet.public.abi import get_selector_from_name
 
+from .account import execute
 from .util import (
     assert_hex_equal,
     declare,
     deploy,
-    invoke,
     load_contract_class,
     devnet_in_background,
     get_block,
@@ -26,8 +26,9 @@ from .shared import (
     EXPECTED_CLASS_HASH,
     EXPECTED_FEE_TOKEN_ADDRESS,
     GENESIS_BLOCK_HASH,
+    PREDEPLOYED_ACCOUNT_ADDRESS,
+    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     STORAGE_CONTRACT_PATH,
-    STORAGE_ABI_PATH,
     GENESIS_BLOCK_NUMBER,
 )
 
@@ -103,7 +104,11 @@ def test_storage_diff():
     contract_address = deploy_empty_contract()
     contract_address_hex = hex(int(contract_address, 16))
     value = 30
-    invoke("store_value", [str(value)], contract_address, STORAGE_ABI_PATH)
+    execute(
+        calls=[(contract_address, "store_value", [value])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
 
     state_update = get_state_update()
     storage_diffs = state_update["state_diff"]["storage_diffs"]

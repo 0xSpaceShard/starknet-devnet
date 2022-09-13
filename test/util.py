@@ -11,7 +11,6 @@ import time
 import requests
 
 from starkware.starknet.services.api.contract_class import ContractClass
-from starkware.starknet.definitions.general_config import StarknetChainId
 
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 from .settings import HOST, PORT, APP_URL
@@ -143,9 +142,7 @@ def extract_address(stdout):
     return extract(r"Contract address: (\w*)", stdout)
 
 
-def run_starknet(
-    args, raise_on_nonzero=True, add_gateway_urls=True
-):
+def run_starknet(args, raise_on_nonzero=True, add_gateway_urls=True):
     """Wrapper around subprocess.run"""
     my_args = ["poetry", "run", "starknet", *args, "--no_wallet"]
     if add_gateway_urls:
@@ -186,7 +183,7 @@ def assert_transaction(tx_hash, expected_status, expected_signature=None):
     """Wrapper around starknet get_transaction"""
     output = run_starknet(["get_transaction", "--hash", tx_hash])
     transaction = json.loads(output.stdout)
-    assert_equal(transaction["status"], expected_status)
+    assert_equal(transaction["status"], expected_status, transaction)
     if expected_signature:
         assert_equal(transaction["transaction"]["signature"], expected_signature)
 
@@ -257,7 +254,9 @@ def assert_transaction_receipt_not_received(tx_hash):
 
 
 # pylint: disable=too-many-arguments
-def invoke(function, inputs, address, abi_path, signature=None, max_fee=None):
+def invoke(
+    function, inputs, address, abi_path, signature=None, max_fee=None, nonce=None
+):
     """Wrapper around starknet invoke. Returns tx hash."""
     args = [
         "invoke",
@@ -274,16 +273,19 @@ def invoke(function, inputs, address, abi_path, signature=None, max_fee=None):
     if signature:
         args.extend(["--signature", *signature])
 
-    if max_fee:
+    if max_fee is not None:  # TODO will changing from `if max_fee:` have impact?
         args.extend(["--max_fee", str(max_fee)])
+
+    if nonce is not None:
+        args.extend(["--nonce", str(nonce)])
 
     output = run_starknet(args)
 
-    print("Invoke successful!")
+    print("Invoke sent!")
     return extract_tx_hash(output.stdout)
 
 
-def estimate_fee(function, inputs, address, abi_path, signature=None):
+def estimate_fee(function, inputs, address, abi_path, signature=None, nonce=None):
     """Wrapper around starknet estimate_fee. Returns fee in wei."""
     args = [
         "invoke",
@@ -300,6 +302,9 @@ def estimate_fee(function, inputs, address, abi_path, signature=None):
 
     if signature:
         args.extend(["--signature", *signature])
+
+    if nonce is not None:
+        args.extend(["--nonce", str(nonce)])
 
     output = run_starknet(args)
 

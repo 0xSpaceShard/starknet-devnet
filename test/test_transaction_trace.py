@@ -8,11 +8,11 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     BlockTransactionTraces,
 )
 
+from .account import execute
 from .util import (
     declare,
     deploy,
     get_transaction_receipt,
-    invoke,
     load_json_from_path,
     devnet_in_background,
 )
@@ -22,6 +22,8 @@ from .shared import (
     CONTRACT_PATH,
     NONEXISTENT_TX_HASH,
     GENESIS_BLOCK_NUMBER,
+    PREDEPLOYED_ACCOUNT_ADDRESS,
+    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
 
 
@@ -72,7 +74,11 @@ def test_deploy_transaction_trace():
 def test_invoke_transaction_hash():
     """Test invoke transaction trace"""
     contract_address = deploy_empty_contract()["address"]
-    tx_hash = invoke("increase_balance", ["10", "20"], contract_address, ABI_PATH)
+    tx_hash = execute(
+        calls=[(contract_address, "increase_balance", [10, 20])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
 
     res = get_transaction_trace_response(tx_hash)
     assert res.status_code == 200

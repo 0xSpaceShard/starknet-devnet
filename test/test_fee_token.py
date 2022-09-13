@@ -1,23 +1,26 @@
 """Fee token related tests."""
 
-from test.settings import APP_URL
-from test.test_account import (
-    deploy_empty_contract,
-    assert_tx_status,
-    get_transaction_receipt,
-    get_account_balance,
-)
-from test.shared import (
-    ABI_PATH,
-    GENESIS_BLOCK_NUMBER,
-    PREDEPLOYED_ACCOUNT_ADDRESS,
-)
 import json
 import pytest
 import requests
 from starknet_devnet.fee_token import FeeToken
 from starknet_devnet.server import app
-from .util import assert_equal, devnet_in_background, get_block, invoke
+
+from .account import execute
+from .settings import APP_URL
+from .test_account import (
+    deploy_empty_contract,
+    assert_tx_status,
+    get_transaction_receipt,
+    get_account_balance,
+)
+from .shared import (
+    GENESIS_BLOCK_NUMBER,
+    PREDEPLOY_ACCOUNT_CLI_ARGS,
+    PREDEPLOYED_ACCOUNT_ADDRESS,
+    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+)
+from .util import assert_equal, devnet_in_background, get_block
 
 
 @pytest.mark.fee_token
@@ -155,10 +158,7 @@ def test_mint_lite():
 
 @pytest.mark.fee_token
 @devnet_in_background(
-    "--accounts",
-    "1",
-    "--seed",
-    "42",
+    *PREDEPLOY_ACCOUNT_CLI_ARGS,
     "--gas-price",
     "100_000_000",
     "--initial-balance",
@@ -171,11 +171,10 @@ def test_increase_balance():
     account_address = PREDEPLOYED_ACCOUNT_ADDRESS
     initial_account_balance = get_account_balance(account_address)
 
-    invoke_tx_hash = invoke(
-        function="increase_balance",
-        inputs=["10", "20"],
-        address=deploy_info["address"],
-        abi_path=ABI_PATH,
+    invoke_tx_hash = execute(
+        calls=[(deploy_info["address"], "increase_balance", ["10", "20"])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
         max_fee=10**21,
     )
 
@@ -194,11 +193,10 @@ def test_increase_balance():
     balance_after_mint = get_account_balance(account_address)
     assert_equal(balance_after_mint, initial_account_balance + mint_amount)
 
-    invoke_tx_hash = invoke(
-        function="increase_balance",
-        inputs=["10", "20"],
-        address=deploy_info["address"],
-        abi_path=ABI_PATH,
+    invoke_tx_hash = execute(
+        calls=[(deploy_info["address"], "increase_balance", ["10", "20"])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
         max_fee=10**21,
     )  # big enough
     assert_tx_status(invoke_tx_hash, "ACCEPTED_ON_L2")
