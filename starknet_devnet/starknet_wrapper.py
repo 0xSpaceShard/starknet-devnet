@@ -5,12 +5,10 @@ starkware.starknet.testing.starknet.Starknet.
 from copy import deepcopy
 import json
 import os
-from typing import Dict, List, Set, Tuple, Union, Optional
+from typing import Dict, List, Set, Tuple, Union
 
 import cloudpickle as pickle
 
-from starkware.python.utils import as_non_optional
-from starkware.starknet.definitions import constants, fields
 from starkware.starknet.business_logic.transaction.objects import (
     CallInfo,
     InternalInvokeFunction,
@@ -22,14 +20,9 @@ from starkware.starknet.services.api.gateway.transaction import (
     InvokeFunction,
     Deploy,
     Declare,
-    Transaction,
-    EverestTransaction,
 )
-from starkware.starknet.testing.starknet import (
-    Starknet,
-    StarknetState,
-)
-from starkware.starknet.testing.objects import StarknetCallInfo, FunctionInvocation
+from starkware.starknet.testing.starknet import Starknet
+from starkware.starknet.testing.objects import FunctionInvocation
 from starkware.starkware_utils.error_handling import StarkException
 from starkware.starknet.services.api.contract_class import EntryPointType, ContractClass
 from starkware.starknet.services.api.feeder_gateway.request_objects import CallFunction
@@ -45,19 +38,11 @@ from starkware.starknet.testing.contract import StarknetContract
 from starkware.starknet.compiler.compile import get_selector_from_name
 from starkware.solidity.utils import load_nearby_contract
 from starkware.crypto.signature.fast_pedersen_hash import pedersen_hash
-from starkware.starknet.business_logic.utils import verify_version
-from starkware.starknet.core.os.contract_address.contract_address import (
-    calculate_contract_address_from_hash,
-)
-from starkware.starknet.core.os.class_hash import compute_class_hash
-from starkware.starknet.testing.contract_utils import (
-    get_abi,
-    get_contract_class,
-)
-from starkware.starknet.business_logic.execution.objects import (
-    TransactionExecutionInfo,
-)
 from starknet_devnet.constants import DUMMY_STATE_ROOT
+
+from lite_mode.lite_internal_deploy import LiteInternalDeploy
+from lite_mode.lite_starknet import LiteStarknet
+
 from .accounts import Accounts
 from .blueprints.rpc.structures.types import Felt
 from .fee_token import FeeToken
@@ -73,7 +58,7 @@ from .util import (
 )
 from .contract_wrapper import ContractWrapper
 from .postman_wrapper import DevnetL1L2
-from .transactions import DevnetTransactions, DevnetTransaction, InternalTransaction
+from .transactions import DevnetTransactions, DevnetTransaction
 from .contracts import DevnetContracts
 from .blocks import DevnetBlocks
 from .block_info_generator import BlockInfoGenerator
@@ -82,165 +67,8 @@ from .sequencer_api_utils import InternalInvokeFunctionForSimulate
 
 enable_pickling()
 
-CastableToAddressSalt = Union[str, int]
 
 # pylint: disable=too-many-ancestors, too-many-arguments, arguments-differ, arguments-renamed
-
-
-class LiteStarknetState(StarknetState):
-    """
-    The lite version of StarknetState which avoid transaction hash a calculation in deploy.
-    """
-
-    async def deploy(
-        self,
-        contract_class: ContractClass,
-        constructor_calldata: List[int],
-        starknet: Starknet,
-        contract_address_salt: Optional[CastableToAddressSalt] = None,
-    ) -> Tuple[int, TransactionExecutionInfo]:
-        if contract_address_salt is None:
-            contract_address_salt = fields.ContractAddressSalt.get_random_value()
-        if isinstance(contract_address_salt, str):
-            contract_address_salt = int(contract_address_salt, 16)
-        assert isinstance(contract_address_salt, int)
-
-        transaction = LiteInternalDeploy.lite_create(
-            contract_address_salt=contract_address_salt,
-            constructor_calldata=constructor_calldata,
-            contract_class=contract_class,
-            version=constants.TRANSACTION_VERSION,
-            tx_number=0,  # fix this zero
-        )
-
-        await starknet.state.state.set_contract_class(
-            class_hash=transaction.contract_hash, contract_class=contract_class
-        )
-        tx_execution_info = await starknet.state.execute_tx(tx=transaction)
-
-        return transaction.contract_address, tx_execution_info
-
-
-class LiteStarknet(Starknet):
-    """
-    The lite version of Starknet which avoid transaction hash a calculation in deploy.
-    """
-
-    async def deploy(
-        self,
-        starknet: Starknet,
-        source: Optional[str] = None,
-        contract_class: Optional[ContractClass] = None,
-        contract_address_salt: Optional[CastableToAddressSalt] = None,
-        cairo_path: Optional[List[str]] = None,
-        constructor_calldata: Optional[List[int]] = None,
-        disable_hint_validation: bool = False,
-    ) -> StarknetContract:
-        contract_class = get_contract_class(
-            source=source,
-            contract_class=contract_class,
-            cairo_path=cairo_path,
-            disable_hint_validation=disable_hint_validation,
-        )
-
-        address, execution_info = await LiteStarknetState.deploy(
-            self,
-            contract_class=contract_class,
-            contract_address_salt=contract_address_salt,
-            constructor_calldata=[]
-            if constructor_calldata is None
-            else constructor_calldata,
-            starknet=starknet,
-        )
-
-        deploy_call_info = StarknetCallInfo.from_internal(
-            call_info=as_non_optional(execution_info.call_info),
-            result=(),
-            main_call_events=[],
-        )
-
-        return StarknetContract(
-            state=starknet.state,
-            abi=get_abi(contract_class=contract_class),
-            contract_address=address,
-            deploy_call_info=deploy_call_info,
-        )
-
-
-class LiteInternalDeploy(InternalDeploy):
-    """
-    The lite version of InternalDeploy which avoid transaction hash a calculation in deploy.
-    """
-
-    @classmethod
-    def _specific_from_external(
-        cls,
-        external_tx: Transaction,
-        tx_number: int,
-    ) -> "LiteInternalDeploy":
-        """
-        Lite version of _specific_from_external method.
-        """
-        assert isinstance(external_tx, Deploy)
-        return cls.lite_create(
-            contract_address_salt=external_tx.contract_address_salt,
-            contract_class=external_tx.contract_definition,
-            constructor_calldata=external_tx.constructor_calldata,
-            version=external_tx.version,
-            tx_number=tx_number,
-        )
-
-    @classmethod
-    def from_external(
-        cls, external_tx: EverestTransaction, tx_number: int
-    ) -> InternalTransaction:
-        """
-        Returns an internal transaction genearated based on an external one.
-        """
-        # Downcast arguments to application-specific types.
-        assert isinstance(external_tx, Transaction)
-
-        internal_cls = LiteInternalDeploy.external_to_internal_cls.get(
-            type(external_tx)
-        )
-        if internal_cls is None:
-            raise NotImplementedError(
-                f"Unsupported transaction type {type(external_tx).__name__}."
-            )
-
-        return LiteInternalDeploy._specific_from_external(
-            external_tx=external_tx, tx_number=tx_number
-        )
-
-    @classmethod
-    def lite_create(
-        cls,
-        contract_address_salt: int,
-        contract_class: ContractClass,
-        constructor_calldata: List[int],
-        version: int,
-        tx_number: int,
-    ):
-        """
-        Lite version of create method without hash a calculation.
-        """
-        verify_version(version=version, only_query=False)
-        class_hash = compute_class_hash(contract_class=contract_class)
-        contract_address = calculate_contract_address_from_hash(
-            salt=contract_address_salt,
-            class_hash=class_hash,
-            constructor_calldata=constructor_calldata,
-            deployer_address=0,  # fix this
-        )
-
-        return cls(
-            contract_address=contract_address,
-            contract_address_salt=contract_address_salt,
-            contract_hash=to_bytes(class_hash),
-            constructor_calldata=constructor_calldata,
-            version=version,
-            hash_value=tx_number,
-        )
 
 
 # pylint: disable=too-many-instance-attributes
