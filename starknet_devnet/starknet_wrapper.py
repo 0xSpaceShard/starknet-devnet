@@ -469,7 +469,6 @@ class StarknetWrapper:
     async def calculate_trace_and_fee(self, external_tx: InvokeFunction):
         """Calculates trace and fee by simulating tx on state copy."""
         state = self.get_state()
-
         try:
             internal_tx = InternalInvokeFunctionForSimulate.from_external(
                 external_tx, state.general_config

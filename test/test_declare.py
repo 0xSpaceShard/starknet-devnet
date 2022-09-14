@@ -4,7 +4,7 @@ Tests of contract class declaration and deploy syscall.
 
 import pytest
 
-from .account import execute
+from .account import declare, invoke
 from .shared import (
     ABI_PATH,
     CONTRACT_PATH,
@@ -20,7 +20,6 @@ from .util import (
     assert_hex_equal,
     assert_tx_status,
     call,
-    declare,
     deploy,
     devnet_in_background,
     get_class_by_hash,
@@ -56,7 +55,11 @@ def test_declare_and_deploy():
     """
 
     # Declare the class to be deployed
-    declare_info = declare(contract=CONTRACT_PATH)
+    declare_info = declare(
+        contract_path=CONTRACT_PATH,
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
     class_hash = declare_info["class_hash"]
     assert_hex_equal(class_hash, EXPECTED_CLASS_HASH)
 
@@ -77,7 +80,7 @@ def test_declare_and_deploy():
 
     # Deploy a contract of the declared class through the deployer
     initial_balance = "10"
-    invoke_tx_hash = execute(
+    invoke_tx_hash = invoke(
         calls=[(deployer_address, "deploy_contract", [initial_balance])],
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,

@@ -4,7 +4,7 @@ Tests the general workflow of the devnet.
 
 import pytest
 
-from .account import execute
+from .account import invoke
 from .util import (
     assert_contract_class,
     assert_negative_block_input,
@@ -40,6 +40,7 @@ from .shared import (
     FAILING_CONTRACT_PATH,
     GENESIS_BLOCK_NUMBER,
     NONEXISTENT_TX_HASH,
+    PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
@@ -49,9 +50,13 @@ from .shared import (
 @pytest.mark.parametrize(
     "run_devnet_in_background, expected_tx_hash, expected_block_hash",
     [
-        ([], EXPECTED_SALTY_DEPLOY_HASH, ""),
         (
-            ["--lite-mode"],
+            [*PREDEPLOY_ACCOUNT_CLI_ARGS],
+            EXPECTED_SALTY_DEPLOY_HASH,
+            "",
+        ),
+        (
+            [*PREDEPLOY_ACCOUNT_CLI_ARGS, "--lite-mode"],
             EXPECTED_SALTY_DEPLOY_HASH_LITE_MODE,
             EXPECTED_SALTY_DEPLOY_BLOCK_HASH_LITE_MODE,
         ),
@@ -93,11 +98,12 @@ def test_general_workflow(expected_tx_hash, expected_block_hash):
     assert_equal(class_by_address, class_by_hash)
 
     # increase and assert balance
-    invoke_tx_hash = execute(
+    invoke_tx_hash = invoke(
         calls=[(deploy_info["address"], "increase_balance", [10, 20])],
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
+    assert_transaction(invoke_tx_hash, "ACCEPTED_ON_L2")
     value = call(
         function="get_balance", address=deploy_info["address"], abi_path=ABI_PATH
     )
@@ -136,7 +142,7 @@ def test_general_workflow(expected_tx_hash, expected_block_hash):
         expected_tx_hash=expected_tx_hash,
     )
 
-    salty_invoke_tx_hash = execute(
+    salty_invoke_tx_hash = invoke(
         calls=[(EXPECTED_SALTY_DEPLOY_ADDRESS, "increase_balance", [10])],
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,

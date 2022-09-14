@@ -6,7 +6,7 @@ import requests
 from starknet_devnet.fee_token import FeeToken
 from starknet_devnet.server import app
 
-from .account import execute
+from .account import invoke
 from .settings import APP_URL
 from .test_account import (
     deploy_empty_contract,
@@ -171,7 +171,7 @@ def test_increase_balance():
     account_address = PREDEPLOYED_ACCOUNT_ADDRESS
     initial_account_balance = get_account_balance(account_address)
 
-    invoke_tx_hash = execute(
+    invoke_tx_hash = invoke(
         calls=[(deploy_info["address"], "increase_balance", ["10", "20"])],
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
@@ -193,7 +193,7 @@ def test_increase_balance():
     balance_after_mint = get_account_balance(account_address)
     assert_equal(balance_after_mint, initial_account_balance + mint_amount)
 
-    invoke_tx_hash = execute(
+    invoke_tx_hash = invoke(
         calls=[(deploy_info["address"], "increase_balance", ["10", "20"])],
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,

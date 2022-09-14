@@ -9,10 +9,10 @@ import requests
 from starkware.starknet.core.os.class_hash import compute_class_hash
 from starkware.starknet.public.abi import get_selector_from_name
 
-from .account import execute
+from .account import declare, invoke
 from .util import (
     assert_hex_equal,
-    declare,
+    assert_transaction,
     deploy,
     load_contract_class,
     devnet_in_background,
@@ -26,6 +26,7 @@ from .shared import (
     EXPECTED_CLASS_HASH,
     EXPECTED_FEE_TOKEN_ADDRESS,
     GENESIS_BLOCK_HASH,
+    PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     STORAGE_CONTRACT_PATH,
@@ -98,17 +99,19 @@ def test_deployed_contracts():
 
 
 @pytest.mark.state_update
-@devnet_in_background()
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
 def test_storage_diff():
     """Test storage diffs in the state update"""
     contract_address = deploy_empty_contract()
     contract_address_hex = hex(int(contract_address, 16))
+
     value = 30
-    execute(
+    invoke_tx_hash = invoke(
         calls=[(contract_address, "store_value", [value])],
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
-        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,  # TODO test this again
     )
+    assert_transaction(invoke_tx_hash, "ACCEPTED_ON_L2")
 
     state_update = get_state_update()
     storage_diffs = state_update["state_diff"]["storage_diffs"]
@@ -201,10 +204,14 @@ def test_roots():
 
 
 @pytest.mark.state_update
-@devnet_in_background()
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
 def test_declaration_and_deployment():
     """Test if declared classes successfully registered"""
-    declare_info = declare(contract=CONTRACT_PATH)
+    declare_info = declare(
+        contract_path=CONTRACT_PATH,
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
     contract_class_hash = declare_info["class_hash"]
     assert_hex_equal(contract_class_hash, EXPECTED_CLASS_HASH)
 

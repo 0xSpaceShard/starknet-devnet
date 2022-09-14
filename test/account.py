@@ -8,15 +8,24 @@ from typing import List, NamedTuple, Sequence, Tuple
 import requests
 from starkware.crypto.signature.signature import private_to_stark_key, sign
 from starkware.starknet.public.abi import get_selector_from_name
-from starkware.starknet.definitions.constants import TRANSACTION_VERSION, QUERY_VERSION
+from starkware.starknet.definitions.constants import QUERY_VERSION
 from starkware.starknet.core.os.transaction_hash.transaction_hash import (
+    calculate_declare_transaction_hash,
     calculate_transaction_hash_common,
     TransactionHashPrefix,
 )
 from starkware.starknet.definitions.general_config import StarknetChainId
 
 from .settings import APP_URL
-from .util import deploy, invoke, estimate_fee
+from .shared import SUPPORTED_TX_VERSION
+from .util import (
+    deploy,
+    estimate_fee,
+    extract_class_hash,
+    extract_tx_hash,
+    load_contract_class,
+    run_starknet,
+)
 
 ACCOUNT_ARTIFACTS_PATH = "starknet_devnet/accounts_artifacts"
 ACCOUNT_AUTHOR = "OpenZeppelin"
@@ -52,7 +61,7 @@ def _get_execute_calldata(call_array, calldata):
     ]
 
 
-def _get_signature(message_hash: int, private_key: int) -> Tuple[str, str]:
+def get_signature(message_hash: int, private_key: int) -> Tuple[str, str]:
     """Get signature from message hash and private key."""
     sig_r, sig_s = sign(message_hash, private_key)
     return [str(sig_r), str(sig_s)]
@@ -100,7 +109,7 @@ def _get_execute_args(
     private_key: int,
     nonce: int,
     version: int,
-    max_fee=0,
+    max_fee=None,
 ):
     """Returns signature and execute calldata"""
 
@@ -116,7 +125,7 @@ def _get_execute_args(
         version=version,
         max_fee=max_fee,
     )
-    signature = _get_signature(message_hash, private_key)
+    signature = get_signature(message_hash, private_key)
 
     return signature, execute_calldata
 
@@ -126,7 +135,7 @@ def _get_transaction_hash(
     calldata: Sequence[int],
     nonce: int,
     version: int,
-    max_fee: int = 0,
+    max_fee: int,
 ) -> str:
     """Get transaction hash for execute transaction."""
     return calculate_transaction_hash_common(
@@ -147,7 +156,6 @@ def get_estimated_fee(
     """Get estimated fee through account."""
 
     if nonce is None:
-        # TODO consider removing and let starknet CLI implicitly handle it
         nonce = get_nonce(account_address)
 
     signature, execute_calldata = _get_execute_args(
@@ -155,6 +163,7 @@ def get_estimated_fee(
         account_address=account_address,
         private_key=private_key,
         nonce=nonce,
+        max_fee=0,
         version=QUERY_VERSION,
     )
 
@@ -168,34 +177,92 @@ def get_estimated_fee(
     )
 
 
-def execute(
+def invoke(
     calls: List[AccountCall],
     account_address: str,
     private_key: int,
     nonce=None,
-    max_fee=0,
+    max_fee=None,
 ):
     """Invoke __execute__ with correct calldata and signature."""
 
     if nonce is None:
-        # TODO consider removing and let starknet CLI implicitly handle it
         nonce = get_nonce(account_address)
+
+    if max_fee is None:
+        max_fee = get_estimated_fee(
+            calls=calls,
+            account_address=account_address,
+            private_key=private_key,
+            nonce=nonce,
+        )
 
     signature, execute_calldata = _get_execute_args(
         calls=calls,
         account_address=account_address,
         private_key=private_key,
         nonce=nonce,
-        version=TRANSACTION_VERSION,
+        version=SUPPORTED_TX_VERSION,
         max_fee=max_fee,
     )
 
-    return invoke(
-        "__execute__",
-        inputs=_adapt_inputs(execute_calldata),
-        address=account_address,
-        abi_path=ACCOUNT_ABI_PATH,
-        signature=signature,
-        max_fee=str(max_fee),
-        nonce=nonce,
+    adapted_inputs = _adapt_inputs(execute_calldata)
+    output = run_starknet(
+        [
+            "invoke",
+            "--function",
+            "__execute__",
+            "--inputs",
+            *adapted_inputs,
+            "--address",
+            account_address,
+            "--abi",
+            ACCOUNT_ABI_PATH,
+            "--signature",
+            *signature,
+            "--max_fee",
+            str(max_fee),
+        ]
     )
+
+    print("Invoke sent!")
+    return extract_tx_hash(output.stdout)
+
+
+def declare(
+    contract_path: str, account_address: str, private_key: str, nonce: int = None
+):
+    """Wrapper around starknet declare"""
+
+    if nonce is None:
+        nonce = get_nonce(account_address)
+
+    max_fee = 0
+
+    tx_hash = calculate_declare_transaction_hash(
+        contract_class=load_contract_class(contract_path),
+        chain_id=StarknetChainId.TESTNET.value,
+        sender_address=int(account_address, 16),
+        max_fee=max_fee,
+        nonce=nonce,
+        version=SUPPORTED_TX_VERSION,
+    )
+    signature = get_signature(tx_hash, private_key)
+
+    output = run_starknet(
+        [
+            "declare",
+            "--contract",
+            contract_path,
+            "--signature",
+            *signature,
+            "--sender",
+            account_address,
+            "--max_fee",
+            str(max_fee),
+        ]
+    )
+    return {
+        "tx_hash": extract_tx_hash(output.stdout),
+        "class_hash": extract_class_hash(output.stdout),
+    }

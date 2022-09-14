@@ -11,7 +11,7 @@ import pytest
 from web3 import Web3
 import requests
 
-from .account import execute
+from .account import invoke
 from .util import (
     call,
     deploy,
@@ -166,14 +166,15 @@ def _init_l2_contract(l1l2_example_contract_address):
     l2_address = deploy_info["address"]
 
     # increase and withdraw balance
-    execute(
+    invoke(
         calls=[(l2_address, "increase_balance", [1, 3333])],
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
-    execute(
-        # TODO this might fail when on int()
-        calls=[(l2_address, "withdraw", [1, 1000, l1l2_example_contract_address])],
+    invoke(
+        calls=[
+            (l2_address, "withdraw", [1, 1000, int(l1l2_example_contract_address, 16)])
+        ],
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )

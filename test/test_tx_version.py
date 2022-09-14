@@ -6,7 +6,7 @@ import pytest
 
 from starkware.starknet.definitions.constants import TRANSACTION_VERSION
 
-from .account import execute
+from .account import invoke
 from .util import devnet_in_background, deploy, call
 from .shared import (
     ARTIFACTS_PATH,
@@ -26,7 +26,7 @@ def test_transaction_version():
     deploy_info = deploy(CONTRACT_PATH)
     address = deploy_info["address"]
 
-    execute(
+    invoke(
         calls=[(address, "set_tx_version", [])],
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,

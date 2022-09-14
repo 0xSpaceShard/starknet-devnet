@@ -155,16 +155,6 @@ def run_starknet(args, raise_on_nonzero=True, add_gateway_urls=True):
     return output
 
 
-def declare(contract):
-    """Wrapper around starknet declare"""
-    args = ["declare", "--contract", contract]
-    output = run_starknet(args)
-    return {
-        "tx_hash": extract_tx_hash(output.stdout),
-        "class_hash": extract_class_hash(output.stdout),
-    }
-
-
 def deploy(contract, inputs=None, salt=None):
     """Wrapper around starknet deploy"""
     args = ["deploy", "--contract", contract]
@@ -254,37 +244,6 @@ def assert_transaction_receipt_not_received(tx_hash):
 
 
 # pylint: disable=too-many-arguments
-def invoke(
-    function, inputs, address, abi_path, signature=None, max_fee=None, nonce=None
-):
-    """Wrapper around starknet invoke. Returns tx hash."""
-    args = [
-        "invoke",
-        "--function",
-        function,
-        "--inputs",
-        *inputs,
-        "--address",
-        address,
-        "--abi",
-        abi_path,
-    ]
-
-    if signature:
-        args.extend(["--signature", *signature])
-
-    if max_fee is not None:  # TODO will changing from `if max_fee:` have impact?
-        args.extend(["--max_fee", str(max_fee)])
-
-    if nonce is not None:
-        args.extend(["--nonce", str(nonce)])
-
-    output = run_starknet(args)
-
-    print("Invoke sent!")
-    return extract_tx_hash(output.stdout)
-
-
 def estimate_fee(function, inputs, address, abi_path, signature=None, nonce=None):
     """Wrapper around starknet estimate_fee. Returns fee in wei."""
     args = [

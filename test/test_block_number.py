@@ -4,7 +4,7 @@ Test block number
 
 import pytest
 
-from .account import execute
+from .account import declare, invoke
 from .shared import (
     ARTIFACTS_PATH,
     FAILING_CONTRACT_PATH,
@@ -13,7 +13,7 @@ from .shared import (
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
-from .util import declare, devnet_in_background, deploy, call
+from .util import devnet_in_background, deploy, call
 
 BLOCK_NUMBER_CONTRACT_PATH = f"{ARTIFACTS_PATH}/block_number.cairo/block_number.json"
 BLOCK_NUMBER_ABI_PATH = f"{ARTIFACTS_PATH}/block_number.cairo/block_number_abi.json"
@@ -53,7 +53,7 @@ def test_block_number_incremented(expected_tx_hash):
     assert int(block_number_before) == GENESIS_BLOCK_NUMBER + 1
     assert expected_tx_hash == deploy_info["tx_hash"]
 
-    execute(
+    invoke(
         calls=[(deploy_info["address"], "write_block_number", [])],
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
@@ -71,7 +71,7 @@ def test_block_number_incremented(expected_tx_hash):
     assert int(block_number_after) == GENESIS_BLOCK_NUMBER + 2
 
 
-@devnet_in_background()
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
 def test_block_number_incremented_on_declare():
     """Declare tx should increment get_block_number response"""
 
@@ -80,7 +80,11 @@ def test_block_number_incremented_on_declare():
     assert int(block_number_before) == GENESIS_BLOCK_NUMBER + 1
 
     # just to declare a new class - nothing fails here
-    declare(FAILING_CONTRACT_PATH)
+    declare(
+        FAILING_CONTRACT_PATH,
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
 
     block_number_after = my_get_block_number(deploy_info["address"])
     assert int(block_number_after) == GENESIS_BLOCK_NUMBER + 2
@@ -114,7 +118,7 @@ def test_block_number_not_incremented_if_invoke_fails():
     block_number_before = my_get_block_number(deploy_info["address"])
     assert int(block_number_before) == GENESIS_BLOCK_NUMBER + 1
 
-    execute(
+    invoke(
         calls=[(deploy_info["address"], "fail", [])],
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
