@@ -46,17 +46,18 @@ from starkware.starknet.compiler.compile import get_selector_from_name
 from starkware.solidity.utils import load_nearby_contract
 from starkware.crypto.signature.fast_pedersen_hash import pedersen_hash
 from starkware.starknet.business_logic.utils import verify_version
-from starkware.starkware_utils.config_base import Config
-from starkware.starknet.definitions.general_config import StarknetGeneralConfig
 from starkware.starknet.core.os.contract_address.contract_address import (
     calculate_contract_address_from_hash,
 )
 from starkware.starknet.core.os.class_hash import compute_class_hash
-from starknet_devnet.constants import DUMMY_STATE_ROOT
-from starkware.starknet.testing.contract_utils import get_abi, get_contract_class
+from starkware.starknet.testing.contract_utils import (
+    get_abi,
+    get_contract_class,
+)
 from starkware.starknet.business_logic.execution.objects import (
     TransactionExecutionInfo,
 )
+from starknet_devnet.constants import DUMMY_STATE_ROOT
 from .accounts import Accounts
 from .blueprints.rpc.structures.types import Felt
 from .fee_token import FeeToken
@@ -83,46 +84,50 @@ enable_pickling()
 
 CastableToAddressSalt = Union[str, int]
 
+# pylint: disable=too-many-ancestors, too-many-arguments, arguments-differ, arguments-renamed
+
 
 class LiteStarknetState(StarknetState):
+    """
+    The lite version of StarknetState which avoid transaction hash a calculation in deploy.
+    """
+
     async def deploy(
         self,
         contract_class: ContractClass,
         constructor_calldata: List[int],
-        general_config: StarknetGeneralConfig,
         starknet: Starknet,
         contract_address_salt: Optional[CastableToAddressSalt] = None,
     ) -> Tuple[int, TransactionExecutionInfo]:
-        """
-        Lite version of StarknetState.
-        """
         if contract_address_salt is None:
             contract_address_salt = fields.ContractAddressSalt.get_random_value()
         if isinstance(contract_address_salt, str):
             contract_address_salt = int(contract_address_salt, 16)
         assert isinstance(contract_address_salt, int)
 
-        tx = LiteInternalDeploy.lite_create(
+        transaction = LiteInternalDeploy.lite_create(
             contract_address_salt=contract_address_salt,
             constructor_calldata=constructor_calldata,
             contract_class=contract_class,
-            chain_id=general_config.chain_id.value,
             version=constants.TRANSACTION_VERSION,
-            tx_number=0,
+            tx_number=0,  # fix this zero
         )
 
         await starknet.state.state.set_contract_class(
-            class_hash=tx.contract_hash, contract_class=contract_class
+            class_hash=transaction.contract_hash, contract_class=contract_class
         )
-        tx_execution_info = await starknet.state.execute_tx(tx=tx)
+        tx_execution_info = await starknet.state.execute_tx(tx=transaction)
 
-        return tx.contract_address, tx_execution_info
+        return transaction.contract_address, tx_execution_info
 
 
 class LiteStarknet(Starknet):
+    """
+    The lite version of Starknet which avoid transaction hash a calculation in deploy.
+    """
+
     async def deploy(
         self,
-        general_config: StarknetGeneralConfig,
         starknet: Starknet,
         source: Optional[str] = None,
         contract_class: Optional[ContractClass] = None,
@@ -145,7 +150,6 @@ class LiteStarknet(Starknet):
             constructor_calldata=[]
             if constructor_calldata is None
             else constructor_calldata,
-            general_config=general_config,
             starknet=starknet,
         )
 
@@ -164,33 +168,37 @@ class LiteStarknet(Starknet):
 
 
 class LiteInternalDeploy(InternalDeploy):
+    """
+    The lite version of InternalDeploy which avoid transaction hash a calculation in deploy.
+    """
+
     @classmethod
     def _specific_from_external(
         cls,
         external_tx: Transaction,
-        general_config: StarknetGeneralConfig,
         tx_number: int,
     ) -> "LiteInternalDeploy":
+        """
+        Lite version of _specific_from_external method.
+        """
         assert isinstance(external_tx, Deploy)
         return cls.lite_create(
             contract_address_salt=external_tx.contract_address_salt,
             contract_class=external_tx.contract_definition,
             constructor_calldata=external_tx.constructor_calldata,
-            chain_id=general_config.chain_id.value,
             version=external_tx.version,
             tx_number=tx_number,
         )
 
     @classmethod
     def from_external(
-        cls, external_tx: EverestTransaction, general_config: Config, tx_number: int
-    ) -> "InternalTransaction":
+        cls, external_tx: EverestTransaction, tx_number: int
+    ) -> InternalTransaction:
         """
         Returns an internal transaction genearated based on an external one.
         """
         # Downcast arguments to application-specific types.
         assert isinstance(external_tx, Transaction)
-        assert isinstance(general_config, StarknetGeneralConfig)
 
         internal_cls = LiteInternalDeploy.external_to_internal_cls.get(
             type(external_tx)
@@ -201,7 +209,7 @@ class LiteInternalDeploy(InternalDeploy):
             )
 
         return LiteInternalDeploy._specific_from_external(
-            external_tx=external_tx, general_config=general_config, tx_number=tx_number
+            external_tx=external_tx, tx_number=tx_number
         )
 
     @classmethod
@@ -210,17 +218,19 @@ class LiteInternalDeploy(InternalDeploy):
         contract_address_salt: int,
         contract_class: ContractClass,
         constructor_calldata: List[int],
-        chain_id: int,
         version: int,
         tx_number: int,
     ):
+        """
+        Lite version of create method without hash a calculation.
+        """
         verify_version(version=version, only_query=False)
         class_hash = compute_class_hash(contract_class=contract_class)
         contract_address = calculate_contract_address_from_hash(
             salt=contract_address_salt,
             class_hash=class_hash,
             constructor_calldata=constructor_calldata,
-            deployer_address=0,
+            deployer_address=0,  # fix this
         )
 
         return cls(
@@ -465,7 +475,7 @@ class StarknetWrapper:
 
         if self.config.lite_mode:
             internal_tx: LiteInternalDeploy = LiteInternalDeploy.from_external(
-                deploy_transaction, state.general_config, tx_number=block_number
+                deploy_transaction, tx_number=block_number
             )
         else:
             internal_tx: InternalDeploy = InternalDeploy.from_external(
@@ -489,7 +499,6 @@ class StarknetWrapper:
                     contract_class=contract_class,
                     constructor_calldata=deploy_transaction.constructor_calldata,
                     contract_address_salt=deploy_transaction.contract_address_salt,
-                    general_config=state.general_config,
                     starknet=self.starknet,
                 )
             else:
