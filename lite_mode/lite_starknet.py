@@ -1,3 +1,6 @@
+"""
+This module introduces `LiteStarknet`, optimized lite-mode version of Starknet.
+"""
 from typing import List, Union, Optional
 
 from starkware.python.utils import as_non_optional
@@ -14,6 +17,7 @@ from lite_mode.lite_starknet_state import LiteStarknetState
 
 CastableToAddressSalt = Union[str, int]
 
+# pylint: disable=too-many-arguments, arguments-differ)
 class LiteStarknet(Starknet):
     """
     The lite version of Starknet which avoid transaction hash a calculation in deploy.

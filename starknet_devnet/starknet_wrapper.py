@@ -44,6 +44,9 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
 
 from starknet_devnet.constants import DUMMY_STATE_ROOT
 
+from lite_mode.lite_internal_deploy import LiteInternalDeploy
+from lite_mode.lite_starknet import LiteStarknet
+
 from .accounts import Accounts
 from .blueprints.rpc.structures.types import Felt
 from .fee_token import FeeToken
@@ -67,10 +70,6 @@ from .devnet_config import DevnetConfig
 from .sequencer_api_utils import InternalInvokeFunctionForSimulate
 
 enable_pickling()
-
-
-# pylint: disable=too-many-ancestors, too-many-arguments, arguments-differ, arguments-renamed
-
 
 # pylint: disable=too-many-instance-attributes
 class StarknetWrapper:

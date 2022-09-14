@@ -1,3 +1,6 @@
+"""
+This module introduces `LiteStarknetState`, optimized lite-mode version of StarknetState.
+"""
 from typing import List, Tuple, Union, Optional
 
 from starkware.starknet.definitions import constants, fields
@@ -12,6 +15,7 @@ from lite_mode.lite_internal_deploy import LiteInternalDeploy
 
 CastableToAddressSalt = Union[str, int]
 
+# pylint: disable=arguments-differ
 class LiteStarknetState(StarknetState):
     """
     The lite version of StarknetState which avoid transaction hash a calculation in deploy.
@@ -35,7 +39,7 @@ class LiteStarknetState(StarknetState):
             constructor_calldata=constructor_calldata,
             contract_class=contract_class,
             version=constants.TRANSACTION_VERSION,
-            tx_number=0,  # TODO: fix this zero
+            tx_number=0,  # TODO: fix this zero in tx_number
         )
 
         await starknet.state.state.set_contract_class(

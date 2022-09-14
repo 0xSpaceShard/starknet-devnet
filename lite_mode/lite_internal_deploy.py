@@ -1,6 +1,9 @@
+"""
+This module introduces `LiteInternalDeploy`, optimized lite-mode version of InternalDeploy.
+"""
 from typing import List
 
-from starkware.starknet.business_logic.transaction.objects import InternalDeploy 
+from starkware.starknet.business_logic.transaction.objects import InternalDeploy
 from starkware.starknet.services.api.gateway.transaction import (
     Deploy,
     Transaction,
@@ -16,6 +19,7 @@ from starkware.starknet.business_logic.transaction.objects import InternalTransa
 
 from starknet_devnet.util import to_bytes
 
+# pylint: disable=too-many-ancestors, arguments-renamed, too-many-arguments
 class LiteInternalDeploy(InternalDeploy):
     """
     The lite version of InternalDeploy which avoid transaction hash a calculation in deploy.
@@ -79,7 +83,7 @@ class LiteInternalDeploy(InternalDeploy):
             salt=contract_address_salt,
             class_hash=class_hash,
             constructor_calldata=constructor_calldata,
-            deployer_address=0,  #TODO: fix this
+            deployer_address=0,  # TODO: fix this 0 in deployer_address
         )
 
         return cls(
