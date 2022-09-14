@@ -87,14 +87,15 @@ def test_account_contract_deploy():
 @pytest.mark.account
 @devnet_in_background()
 def test_invoking_another_contract():
-    """Test invoking another contract."""
+    """Test invoking another contract through a newly deployed (not predeployed) account."""
     deploy_info = deploy_empty_contract()
     account_address = deploy_account_contract(salt=SALT)["address"]
     to_address = deploy_info["address"]
 
     # execute increase_balance call
     calls = [(to_address, "increase_balance", [10, 20])]
-    tx_hash = invoke(calls, account_address, PRIVATE_KEY, 0)
+    # setting max_fee=0 skips fee subtraction, otherwise account would need funds
+    tx_hash = invoke(calls, account_address, PRIVATE_KEY, 0, max_fee=0)
 
     assert_tx_status(tx_hash, "ACCEPTED_ON_L2")
 
@@ -239,7 +240,8 @@ def test_multicall():
         (to_address, "increase_balance", [10, 20]),
         (to_address, "increase_balance", [30, 40]),
     ]
-    tx_hash = invoke(calls, account_address, PRIVATE_KEY)
+    # setting max_fee=0 skips fee subtraction, otherwise account would need funds
+    tx_hash = invoke(calls, account_address, PRIVATE_KEY, max_fee=0)
 
     assert_tx_status(tx_hash, "ACCEPTED_ON_L2")
 

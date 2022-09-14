@@ -109,7 +109,7 @@ def test_storage_diff():
     invoke_tx_hash = invoke(
         calls=[(contract_address, "store_value", [value])],
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
-        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,  # TODO test this again
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
     assert_transaction(invoke_tx_hash, "ACCEPTED_ON_L2")
 
