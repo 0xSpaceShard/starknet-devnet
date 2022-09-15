@@ -18,6 +18,7 @@ from starknet_devnet.starknet_wrapper import StarknetWrapper
 from .util import (
     assert_equal,
     get_block,
+    assert_hex_equal
 )
 from .shared import (
     CONTRACT_PATH,
@@ -85,15 +86,18 @@ async def test_deploy(dev_net_args, expected_tx_hash, expected_block_hash):
     #     assert_equal(expected_block_hash, get_block(parse=True)["block_hash"])
     
     # state = devnet.get_state()
-    # internal_tx = InternalDeploy.from_external(
-    #     external_tx=deploy_transaction, general_config=state.general_config
-    # )
+    # if dev_net_args == "--lite-mode":
+    #     pass
+    # else
+    #     internal_tx = InternalDeploy.from_external(
+    #         external_tx=deploy_transaction, general_config=state.general_config
+    #     )
 
     # # is this needed?
-    # assert_hex_equal(
-    #     hex(tx_hash),
-    #     expected_tx_hash,
-    # )
+    assert_hex_equal(
+        hex(tx_hash),
+        expected_tx_hash,
+    )
 
     assert contract_address == expected_contract_address
 
