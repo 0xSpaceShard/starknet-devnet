@@ -59,11 +59,7 @@ def test_get_state_update(deploy_info, invoke_info, contract_class):
                 "class_hash": class_hash,
             }
         ],
-        "declared_contracts": [
-            {
-                "class_hash": class_hash,
-            }
-        ],
+        "declared_contract_hashes": [class_hash],
         "nonces": [],
     }
 
@@ -78,12 +74,16 @@ def test_get_state_update(deploy_info, invoke_info, contract_class):
         "storage_diffs": [
             {
                 "address": contract_address,
-                "key": pad_zero(hex(get_storage_var_address("balance"))),
-                "value": pad_zero(storage),
+                "storage_entries": [
+                    {
+                        "key": pad_zero(hex(get_storage_var_address("balance"))),
+                        "value": pad_zero(storage),
+                    }
+                ],
             }
         ],
         "deployed_contracts": [],
-        "declared_contracts": [],
+        "declared_contract_hashes": [],
         "nonces": [],
     }
 

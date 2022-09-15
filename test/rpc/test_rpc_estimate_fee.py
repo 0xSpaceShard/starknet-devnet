@@ -12,7 +12,7 @@ import pytest
 
 from starkware.starknet.public.abi import get_selector_from_name
 
-from starknet_devnet.blueprints.rpc.structures.payloads import RpcInvokeTransaction
+from starknet_devnet.blueprints.rpc.structures.payloads import RpcInvokeTransactionV0
 from starknet_devnet.constants import DEFAULT_GAS_PRICE
 
 
@@ -35,7 +35,7 @@ def test_estimate_happy_path(rpc_invoke_tx_common):
     """Happy path estimate_fee call"""
     deploy_info = deploy(CONTRACT_PATH, ["0"])
 
-    txn: RpcInvokeTransaction = {
+    txn: RpcInvokeTransactionV0 = {
         "contract_address": deploy_info["address"],
         "entry_point_selector": hex(get_selector_from_name("sum_point_array")),
         "calldata": ["0x02", "0x01", "0x02", "0x03", "0x04"],
@@ -52,7 +52,7 @@ def test_estimate_happy_path(rpc_invoke_tx_common):
 @pytest.mark.usefixtures("run_devnet_in_background")
 def test_estimate_fee_with_genesis_block(rpc_invoke_tx_common):
     """Call without transaction, expect pass with gas_price zero"""
-    txn: RpcInvokeTransaction = {
+    txn: RpcInvokeTransactionV0 = {
         "contract_address": "0x62230ea046a9a5fbc261ac77d03c8d41e5d442db2284587570ab46455fd2488",
         "entry_point_selector": "0x2f0b3c5710379609eb5495f1ecd348cb28167711b73609fe565a72734550354",
         "calldata": ["0x0a", "0x014", "0x00"],
@@ -70,7 +70,7 @@ def test_estimate_fee_with_invalid_call_data(rpc_invoke_tx_common):
     """Call estimate fee with invalid data on body"""
     deploy_info = deploy(CONTRACT_PATH, ["0"])
 
-    txn: RpcInvokeTransaction = {
+    txn: RpcInvokeTransactionV0 = {
         "contract_address": deploy_info["address"],
         "entry_point_selector": hex(get_selector_from_name("sum_point_array")),
         "calldata": ["10", "20"],
@@ -86,7 +86,7 @@ def test_estimate_fee_with_invalid_call_data(rpc_invoke_tx_common):
 @pytest.mark.usefixtures("run_devnet_in_background")
 def test_estimate_fee_with_invalid_contract_address(rpc_invoke_tx_common):
     """Call estimate fee with invalid data on body"""
-    txn: RpcInvokeTransaction = {
+    txn: RpcInvokeTransactionV0 = {
         "contract_address": "0x01",
         "entry_point_selector": hex(get_selector_from_name("sum_point_array")),
         "calldata": ["0x02", "0x01", "0x02", "0x03", "0x04"],
@@ -104,7 +104,7 @@ def test_estimate_fee_with_invalid_message_selector(rpc_invoke_tx_common):
     """Call estimate fee with invalid data on body"""
     deploy_info = deploy(CONTRACT_PATH, ["0"])
 
-    txn: RpcInvokeTransaction = {
+    txn: RpcInvokeTransactionV0 = {
         "contract_address": deploy_info["address"],
         "entry_point_selector": "0x01",
         "calldata": ["0x02", "0x01", "0x02", "0x03", "0x04"],
@@ -126,7 +126,7 @@ def test_estimate_fee_with_complete_request_data(rpc_invoke_tx_common):
 
     deploy_info = deploy(CONTRACT_PATH, ["0"])
 
-    txn: RpcInvokeTransaction = {
+    txn: RpcInvokeTransactionV0 = {
         "contract_address": deploy_info["address"],
         "entry_point_selector": "0x362398bec32bc0ebb411203221a35a0301193a96f317ebe5e40be9f60d15320",
         "calldata": ["0x0a", "0x014"],

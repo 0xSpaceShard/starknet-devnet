@@ -55,7 +55,7 @@ def test_get_block_with_tx_hashes_raises_on_incorrect_block_id(block_id):
     """
     ex = rpc_call("starknet_getBlockWithTxHashes", params={"block_id": block_id})
 
-    assert ex["error"] == {"code": 24, "message": "Invalid block id"}
+    assert ex["error"] == {"code": 24, "message": "Block not found"}
 
 
 @pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
@@ -110,7 +110,7 @@ def test_get_block_with_txs_raises_on_incorrect_block_id(block_id):
     """
     ex = rpc_call("starknet_getBlockWithTxHashes", params={"block_id": block_id})
 
-    assert ex["error"] == {"code": 24, "message": "Invalid block id"}
+    assert ex["error"] == {"code": 24, "message": "Block not found"}
 
 
 @pytest.mark.usefixtures("run_devnet_in_background", "deploy_info", "gateway_block")
@@ -142,7 +142,7 @@ def test_get_block_transaction_count_raises_on_incorrect_block_id(block_id):
     """
     ex = rpc_call("starknet_getBlockTransactionCount", params={"block_id": block_id})
 
-    assert ex["error"] == {"code": 24, "message": "Invalid block id"}
+    assert ex["error"] == {"code": 24, "message": "Block not found"}
 
 
 @pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")

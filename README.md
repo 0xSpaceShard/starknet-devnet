@@ -197,7 +197,7 @@ If you don't specify the `HOST` part, the server will indeed be available on all
 
 ## JSON-RPC API
 
-Devnet also partially supports JSON-RPC API v0.1.0: [specifications](https://github.com/starkware-libs/starknet-specs/releases/tag/v0.1.0) . It can be reached under `/rpc`. For an example:
+Devnet also partially supports JSON-RPC API v0.2.0: [specifications](https://github.com/starkware-libs/starknet-specs/releases/tag/v0.2.0) . It can be reached under `/rpc`. For an example:
 
 ```
 POST /rpc
@@ -223,7 +223,6 @@ Response:
 
 Methods currently not supported:
 
-- `starknet_protocolVersion` - will be removed in a future version of the specification
 - `starknet_getEvents`
 - `starknet_getNonce`
 

@@ -17,17 +17,13 @@ BlockTag = Literal["latest", "pending"]
 
 
 class BlockHashDict(TypedDict):
-    """
-    TypedDict class for BlockId with block hash
-    """
+    """TypedDict class for BlockId with block hash"""
 
     block_hash: BlockHash
 
 
 class BlockNumberDict(TypedDict):
-    """
-    TypedDict class for BlockId with block number
-    """
+    """TypedDict class for BlockId with block number"""
 
     block_number: BlockNumber
 
@@ -59,7 +55,7 @@ NumAsHex = str
 
 # Pending transactions will not be supported since it
 # doesn't make much sense with the current implementation of devnet
-TxnType = Literal["DECLARE", "DEPLOY", "INVOKE"]
+TxnType = Literal["DECLARE", "DEPLOY", "INVOKE", "L1_HANDLER"]
 
 
 def rpc_txn_type(transaction_type: str) -> TxnType:
@@ -70,6 +66,7 @@ def rpc_txn_type(transaction_type: str) -> TxnType:
         "DEPLOY": "DEPLOY",
         "DECLARE": "DECLARE",
         "INVOKE_FUNCTION": "INVOKE",
+        "L1_HANDLER": "L1_HANDLER",
     }
     if transaction_type not in txn_type_map:
         raise RpcError(
@@ -93,7 +90,8 @@ class RpcError(Exception):
 class RpcErrorCode(Enum):
     """
     Constants used in JSON-RPC protocol
-    https://www.jsonrpc.org/specification"""
+    https://www.jsonrpc.org/specification
+    """
 
     INVALID_REQUEST = -32600
     METHOD_NOT_FOUND = -32601

@@ -7,7 +7,10 @@ from __future__ import annotations
 from typing import Union
 
 from starknet_devnet.blueprints.rpc.structures.payloads import Felt, Address
+from starknet_devnet.blueprints.rpc.structures.types import BlockId, RpcError
+from starknet_devnet.blueprints.rpc.utils import assert_block_id_is_latest, rpc_felt
 from starknet_devnet.state import state
+from starknet_devnet.util import StarknetDevnetException
 
 
 async def chain_id() -> str:
@@ -35,8 +38,17 @@ async def get_events(filter: dict) -> dict:
     raise NotImplementedError()
 
 
-async def get_nonce(contract_address: Address) -> Felt:
+async def get_nonce(block_id: BlockId, contract_address: Address) -> Felt:
     """
-    Get the latest nonce associated with the given address
+    Get the nonce associated with the given address in the given block
     """
-    raise NotImplementedError()
+    assert_block_id_is_latest(block_id)
+
+    try:
+        result = await state.starknet_wrapper.get_nonce(
+            contract_address=int(contract_address, 16)
+        )
+    except StarknetDevnetException as ex:
+        raise RpcError(code=20, message="Contract not found") from ex
+
+    return rpc_felt(result)
