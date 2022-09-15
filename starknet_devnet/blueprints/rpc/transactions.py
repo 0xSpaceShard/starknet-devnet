@@ -46,7 +46,7 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     Felt,
     RpcError,
 )
-from starknet_devnet.constants import SUPPORTED_TX_VERSION
+from starknet_devnet.constants import SUPPORTED_RPC_TX_VERSION
 from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException
 
@@ -193,7 +193,7 @@ async def add_deploy_transaction(
         contract_address_salt=int(contract_address_salt, 16),
         constructor_calldata=[int(data, 16) for data in constructor_calldata],
         contract_definition=contract_class,
-        version=SUPPORTED_TX_VERSION,
+        version=SUPPORTED_RPC_TX_VERSION,
     )
 
     contract_address, transaction_hash = await state.starknet_wrapper.deploy(
