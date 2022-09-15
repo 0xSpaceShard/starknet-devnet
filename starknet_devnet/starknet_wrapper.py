@@ -83,6 +83,7 @@ class StarknetWrapper:
         self.starknet: Starknet = None
         self.__current_cached_state = None
         self.__initialized = False
+        self.hide_predeployed_accounts = config.hide_predeployed_accounts
         self.fee_token = FeeToken(self)
         self.accounts = Accounts(self)
 

@@ -23,7 +23,10 @@ class Accounts:
         self.list = []
 
         self.__generate()
-        if starknet_wrapper.config.accounts:
+        if (
+            starknet_wrapper.config.accounts
+            and not starknet_wrapper.hide_predeployed_accounts
+        ):
             self.__print()
 
     def __getitem__(self, index):
