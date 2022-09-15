@@ -29,7 +29,7 @@ from .util import (
 
 ACCOUNT_ARTIFACTS_PATH = "starknet_devnet/accounts_artifacts"
 ACCOUNT_AUTHOR = "OpenZeppelin"
-ACCOUNT_VERSION = "0.4.0b"
+ACCOUNT_VERSION = "0.4.0b-fork"
 
 ACCOUNT_PATH = f"{ACCOUNT_ARTIFACTS_PATH}/{ACCOUNT_AUTHOR}/{ACCOUNT_VERSION}/Account.cairo/Account.json"
 ACCOUNT_ABI_PATH = f"{ACCOUNT_ARTIFACTS_PATH}/{ACCOUNT_AUTHOR}/{ACCOUNT_VERSION}/Account.cairo/Account_abi.json"
@@ -61,7 +61,7 @@ def _get_execute_calldata(call_array, calldata):
     ]
 
 
-def get_signature(message_hash: int, private_key: int) -> Tuple[str, str]:
+def _get_signature(message_hash: int, private_key: int) -> Tuple[str, str]:
     """Get signature from message hash and private key."""
     sig_r, sig_s = sign(message_hash, private_key)
     return [str(sig_r), str(sig_s)]
@@ -125,7 +125,7 @@ def _get_execute_args(
         version=version,
         max_fee=max_fee,
     )
-    signature = get_signature(message_hash, private_key)
+    signature = _get_signature(message_hash, private_key)
 
     return signature, execute_calldata
 
@@ -247,7 +247,7 @@ def declare(
         nonce=nonce,
         version=SUPPORTED_TX_VERSION,
     )
-    signature = get_signature(tx_hash, private_key)
+    signature = _get_signature(tx_hash, private_key)
 
     output = run_starknet(
         [
