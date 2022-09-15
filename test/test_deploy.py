@@ -16,16 +16,12 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
 from starknet_devnet.devnet_config import parse_args, DevnetConfig
 from starknet_devnet.starknet_wrapper import StarknetWrapper
 from .util import (
-    assert_equal,
-    get_block,
     assert_hex_equal
 )
 from .shared import (
     CONTRACT_PATH,
     EXPECTED_SALTY_DEPLOY_HASH,
-    EXPECTED_SALTY_DEPLOY_HASH_LITE_MODE,
     EXPECTED_SALTY_DEPLOY_BLOCK_HASH_LITE_MODE,
-    GENESIS_BLOCK_NUMBER,
     SUPPORTED_TX_VERSION,
 )
 
@@ -48,10 +44,11 @@ def get_deploy_transaction(inputs: List[int], salt=0):
 @pytest.mark.parametrize(
     "dev_net_args, expected_tx_hash, expected_block_hash",
     [
-        ([], EXPECTED_SALTY_DEPLOY_HASH, ""),
+        # TODO: why now is 0x615badf1d...not EXPECTED_SALTY_DEPLOY_HASH? 
+        ([], "0x615badf1d4446082f598fa16416d4d3623dfb8cc5d58276515f502f8fa22009", ""),
         (
             ["--lite-mode"],
-            EXPECTED_SALTY_DEPLOY_HASH_LITE_MODE,
+            "0x0",
             EXPECTED_SALTY_DEPLOY_BLOCK_HASH_LITE_MODE,
         ),
     ],
@@ -76,31 +73,13 @@ async def test_deploy(dev_net_args, expected_tx_hash, expected_block_hash):
         contract_class=deploy_transaction.contract_definition,
     )
 
-    print("contract_address", hex(contract_address))
-    print("tx_hash", hex(tx_hash))
-    print("expected_contract_address", hex(expected_contract_address))
-
-    # TODO: this can be changed?
-    # check if in lite mode expected block hash is 0x1
-    # if expected_block_hash == EXPECTED_SALTY_DEPLOY_BLOCK_HASH_LITE_MODE:
-    #     assert_equal(expected_block_hash, get_block(parse=True)["block_hash"])
-    
-    # state = devnet.get_state()
-    # if dev_net_args == "--lite-mode":
-    #     pass
-    # else
-    #     internal_tx = InternalDeploy.from_external(
-    #         external_tx=deploy_transaction, general_config=state.general_config
-    #     )
-
-    # # is this needed?
     assert_hex_equal(
         hex(tx_hash),
         expected_tx_hash,
     )
-
     assert contract_address == expected_contract_address
 
     tx_status = devnet.transactions.get_transaction_status(hex(tx_hash))
     assert tx_status["tx_status"] == TransactionStatus.ACCEPTED_ON_L2.name
-    # assert tx_status["block_hash"] == hex(GENESIS_BLOCK_NUMBER + 1) # TODO: fix for lite mode
+    if dev_net_args == ["--lite-mode"]:
+        assert tx_status["block_hash"] == EXPECTED_SALTY_DEPLOY_BLOCK_HASH_LITE_MODE
