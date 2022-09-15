@@ -85,6 +85,8 @@ optional arguments:
                         predeployed; defaults to 1e+21 (wei)
   --seed SEED           Specify the seed for randomness of accounts to be
                         predeployed
+  --hide-predeployed-accounts
+                        Prevents from printing the predeployed accounts details
   --start-time START_TIME
                         Specify the start time of the genesis block in Unix
                         time seconds
@@ -452,7 +454,7 @@ docker run -p 127.0.0.1:5050:5050 -e PYTHONUNBUFFERED=0 shardlabs/starknet-devne
 
 ## Predeployed accounts
 
-Devnet predeploys `--accounts` with some `--initial-balance`. The accounts get charged for transactions according to the `--gas-price`. A `--seed` can be used to regenerate the same set of accounts. Read more about it in the [Run section](#run).
+Devnet predeploys `--accounts` with some `--initial-balance`. To hide the details of these accounts `--hide-predeployed-accounts`. The accounts get charged for transactions according to the `--gas-price`. A `--seed` can be used to regenerate the same set of accounts. Read more about it in the [Run section](#run).
 
 To get the code of the account (currently fork of OpenZeppelin's [v0.4.0b](https://github.com/OpenZeppelin/cairo-contracts/releases/tag/v0.4.0b)), use one of the following:
 
