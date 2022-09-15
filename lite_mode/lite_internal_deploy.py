@@ -83,7 +83,7 @@ class LiteInternalDeploy(InternalDeploy):
             salt=contract_address_salt,
             class_hash=class_hash,
             constructor_calldata=constructor_calldata,
-            deployer_address=0,  # TODO: fix this 0 in deployer_address
+            deployer_address=0,
         )
 
         return cls(

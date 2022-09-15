@@ -15,7 +15,7 @@ from lite_mode.lite_internal_deploy import LiteInternalDeploy
 
 CastableToAddressSalt = Union[str, int]
 
-# pylint: disable=arguments-differ
+# pylint: disable=arguments-differ, too-many-arguments
 class LiteStarknetState(StarknetState):
     """
     The lite version of StarknetState which avoid transaction hash a calculation in deploy.
@@ -26,6 +26,7 @@ class LiteStarknetState(StarknetState):
         contract_class: ContractClass,
         constructor_calldata: List[int],
         starknet: Starknet,
+        tx_number: int,
         contract_address_salt: Optional[CastableToAddressSalt] = None,
     ) -> Tuple[int, TransactionExecutionInfo]:
         if contract_address_salt is None:
@@ -39,7 +40,7 @@ class LiteStarknetState(StarknetState):
             constructor_calldata=constructor_calldata,
             contract_class=contract_class,
             version=constants.TRANSACTION_VERSION,
-            tx_number=0,  # TODO: fix this zero in tx_number
+            tx_number=tx_number,
         )
 
         await starknet.state.state.set_contract_class(

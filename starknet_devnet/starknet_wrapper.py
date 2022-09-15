@@ -328,6 +328,7 @@ class StarknetWrapper:
                     constructor_calldata=deploy_transaction.constructor_calldata,
                     contract_address_salt=deploy_transaction.contract_address_salt,
                     starknet=self.starknet,
+                    tx_number=block_number,
                 )
             else:
                 contract = await self.starknet.deploy(

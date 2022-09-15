@@ -26,6 +26,7 @@ class LiteStarknet(Starknet):
     async def deploy(
         self,
         starknet: Starknet,
+        tx_number: int,
         source: Optional[str] = None,
         contract_class: Optional[ContractClass] = None,
         contract_address_salt: Optional[CastableToAddressSalt] = None,
@@ -48,6 +49,7 @@ class LiteStarknet(Starknet):
             if constructor_calldata is None
             else constructor_calldata,
             starknet=starknet,
+            tx_number=tx_number,
         )
 
         deploy_call_info = StarknetCallInfo.from_internal(
