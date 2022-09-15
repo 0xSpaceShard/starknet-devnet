@@ -20,7 +20,7 @@ CastableToAddressSalt = Union[str, int]
 # pylint: disable=too-many-arguments, arguments-differ)
 class LiteStarknet(Starknet):
     """
-    The lite version of Starknet which avoid transaction hash a calculation in deploy.
+    The lite version of Starknet which avoid transaction hash calculation in deploy.
     """
 
     async def deploy(
