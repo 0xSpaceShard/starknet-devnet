@@ -25,7 +25,7 @@ class Accounts:
         self.__generate()
         if (
             starknet_wrapper.config.accounts
-            and not starknet_wrapper.hide_predeployed_accounts
+            and not starknet_wrapper.config.hide_predeployed_accounts
         ):
             self.__print()
 
