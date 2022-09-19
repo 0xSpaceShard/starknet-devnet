@@ -36,7 +36,7 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     StateDiff,
     StorageEntry,
 )
-from starknet_devnet.util import to_bytes
+from starkware.python.utils import to_bytes
 
 from starknet_devnet.constants import DUMMY_STATE_ROOT
 
