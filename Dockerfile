@@ -25,4 +25,6 @@ RUN pip3 install --no-cache /wheels/*
 
 RUN rm -rf /wheels
 
+ENV PYTHONUNBUFFERED=1
+
 ENTRYPOINT [ "starknet-devnet", "--host", "0.0.0.0", "--port", "5050" ]

@@ -17,7 +17,7 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     Felt,
 )
 from ..util import load_file_content
-from ..shared import SUPPORTED_TX_VERSION
+from ..shared import SUPPORTED_RPC_TX_VERSION
 from .rpc_utils import (
     gateway_call,
     get_block_with_transaction,
@@ -64,7 +64,6 @@ def fixture_invoke_info() -> dict:
     Make an invoke transaction on devnet and return invoke info dict
     """
     invoke_tx = json.loads(INVOKE_CONTENT)
-    invoke_tx["calldata"] = ["0"]
     invoke_info = add_transaction(invoke_tx)
     return {**invoke_info, **invoke_tx}
 
@@ -133,7 +132,7 @@ def fixture_rpc_invoke_tx_common() -> dict:
         # It is not verified and might be removed in next RPC version
         "transaction_hash": "0x00",
         "max_fee": "0x00",
-        "version": hex(SUPPORTED_TX_VERSION),
+        "version": hex(SUPPORTED_RPC_TX_VERSION),
         "signature": [],
         "nonce": None,
         "type": "INVOKE",

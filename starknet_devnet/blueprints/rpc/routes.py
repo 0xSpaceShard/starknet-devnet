@@ -6,7 +6,7 @@ https://github.com/starkware-libs/starknet-specs/releases/tag/v0.1.0
 
 from __future__ import annotations
 
-from typing import Callable, Union, List, Tuple
+from typing import Callable, Dict, Union, List, Tuple
 
 from flask import Blueprint
 from flask import request
@@ -38,7 +38,7 @@ from starknet_devnet.blueprints.rpc.transactions import (
     add_deploy_transaction,
 )
 from starknet_devnet.blueprints.rpc.utils import rpc_response, rpc_error
-from starknet_devnet.blueprints.rpc.structures.types import RpcError
+from starknet_devnet.blueprints.rpc.structures.types import RpcError, RpcErrorCode
 
 methods = {
     "getBlockWithTxHashes": get_block_with_tx_hashes,
@@ -74,14 +74,15 @@ async def base_route():
     """
     Base route for RPC calls
     """
-    method, args, message_id = parse_body(request.json)
 
+    message_id = None
     try:
-        result = await method(*args) if isinstance(args, list) else await method(**args)
-    except NotImplementedError:
-        return rpc_error(
-            message_id=message_id, code=-2, message="Method not implemented"
+        method, params, message_id = parse_body(request.json)
+        result = await (
+            method(*params) if isinstance(params, list) else method(**params)
         )
+    except TypeError as type_error:
+        return rpc_error(message_id=message_id, code=22, message=str(type_error))
     except RpcError as error:
         return rpc_error(message_id=message_id, code=error.code, message=error.message)
 
@@ -90,13 +91,23 @@ async def base_route():
 
 def parse_body(body: dict) -> Tuple[Callable, Union[List, dict], int]:
     """
-    Parse rpc call body to function name and params
+    Parse rpc call body to function name, params and message id
     """
-    method_name = body["method"].replace("starknet_", "")
-    args: Union[List, dict] = body["params"]
-    message_id = body["id"]
+    try:
+        method_name = body["method"].replace("starknet_", "")
+        params: Union[List, dict] = body.get("params") or {}
+        message_id = body["id"]
+    except RuntimeError as error:
+        raise RpcError(
+            code=RpcErrorCode.INVALID_REQUEST.value, message="Invalid request"
+        ) from error
 
     if method_name not in methods:
-        raise RpcError(code=-1, message="Method not found")
+        raise RpcError(
+            code=RpcErrorCode.METHOD_NOT_FOUND.value, message="Method not found"
+        )
 
-    return methods[method_name], args, message_id
+    if not isinstance(params, (List, Dict)):
+        raise RpcError(code=RpcErrorCode.INVALID_PARAMS.value, message="Invalid params")
+
+    return methods[method_name], params, message_id

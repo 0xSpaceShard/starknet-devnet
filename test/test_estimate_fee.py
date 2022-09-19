@@ -86,12 +86,19 @@ def test_estimate_fee_with_invalid_data():
 
     json_error_message = resp.json()["message"]
     assert resp.status_code == 400
-    assert "Invalid InvokeFunction" in json_error_message
+    assert "Invalid format of fee estimation request" in json_error_message
 
 
 @pytest.mark.estimate_fee
+@pytest.mark.parametrize(
+    "request_kwargs",
+    [
+        {},  # tx version 0
+        {"type": "INVOKE_FUNCTION"},  # tx version 1
+    ],
+)
 @devnet_in_background("--gas-price", str(DEFAULT_GAS_PRICE))
-def test_estimate_fee_with_complete_request_data():
+def test_estimate_fee_with_complete_request_data(request_kwargs):
     """Estimate fee with complete request data"""
 
     deploy_info = deploy(CONTRACT_PATH, ["0"])
@@ -104,10 +111,11 @@ def test_estimate_fee_with_complete_request_data():
             "calldata": ["10", "20"],
             "max_fee": "0x0",
             "entry_point_selector": "0x362398bec32bc0ebb411203221a35a0301193a96f317ebe5e40be9f60d15320",
+            **request_kwargs,
         }
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 200, f"Request not OK: {response.json()}"
     common_estimate_response(response.json())
 
 

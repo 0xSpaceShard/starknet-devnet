@@ -12,11 +12,10 @@ from starkware.starknet.services.api.gateway.transaction import Deploy
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionStatus,
 )
-from starknet_devnet.constants import SUPPORTED_TX_VERSION
 
 from starknet_devnet.devnet_config import parse_args, DevnetConfig
 from starknet_devnet.starknet_wrapper import StarknetWrapper
-from .shared import CONTRACT_PATH, GENESIS_BLOCK_NUMBER
+from .shared import CONTRACT_PATH, GENESIS_BLOCK_NUMBER, SUPPORTED_TX_VERSION
 from .util import assert_hex_equal
 
 

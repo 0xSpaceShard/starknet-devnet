@@ -5,26 +5,29 @@ Test postman usage. This test has one single pytest case, because the whole flow
 import json
 import subprocess
 
-from test.web3_util import web3_call, web3_deploy, web3_transact
-from test.settings import APP_URL, L1_HOST, L1_PORT, L1_URL
-from test.util import (
-    call,
-    deploy,
-    devnet_in_background,
-    ensure_server_alive,
-    invoke,
-    load_file_content,
-    terminate_and_wait,
-)
-
 import psutil
 import pytest
 
 from web3 import Web3
 import requests
 
-
-from .shared import ARTIFACTS_PATH
+from .account import invoke
+from .util import (
+    call,
+    deploy,
+    devnet_in_background,
+    ensure_server_alive,
+    load_file_content,
+    terminate_and_wait,
+)
+from .settings import APP_URL, L1_HOST, L1_PORT, L1_URL
+from .shared import (
+    ARTIFACTS_PATH,
+    PREDEPLOY_ACCOUNT_CLI_ARGS,
+    PREDEPLOYED_ACCOUNT_ADDRESS,
+    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+)
+from .web3_util import web3_call, web3_deploy, web3_transact
 
 CONTRACT_PATH = f"{ARTIFACTS_PATH}/l1l2.cairo/l1l2.json"
 ABI_PATH = f"{ARTIFACTS_PATH}/l1l2.cairo/l1l2_abi.json"
@@ -156,23 +159,24 @@ def load_messaging_contract(starknet_messaging_contract_address):
     return json.loads(resp.text)
 
 
-def init_l2_contract(l1l2_example_contract_address):
+def _init_l2_contract(l1l2_example_contract_address):
     """Deploys the L1L2Example cairo contract, returns the result of calling 'get_balance'"""
 
     deploy_info = deploy(CONTRACT_PATH)
+    l2_address = deploy_info["address"]
 
     # increase and withdraw balance
     invoke(
-        function="increase_balance",
-        address=deploy_info["address"],
-        abi_path=ABI_PATH,
-        inputs=["1", "3333"],
+        calls=[(l2_address, "increase_balance", [1, 3333])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
     invoke(
-        function="withdraw",
-        address=deploy_info["address"],
-        abi_path=ABI_PATH,
-        inputs=["1", "1000", l1l2_example_contract_address],
+        calls=[
+            (l2_address, "withdraw", [1, 1000, int(l1l2_example_contract_address, 16)])
+        ],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
 
     # flush L2 to L1 messages
@@ -203,7 +207,7 @@ def init_l2_contract(l1l2_example_contract_address):
     return deploy_info["address"]
 
 
-def l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address):
+def _l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address):
     """Tests message exchange"""
 
     # assert contract balance when starting
@@ -278,7 +282,7 @@ def l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address):
 
 
 @pytest.mark.web3_messaging
-@devnet_in_background()
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
 def test_postman():
     """Test postman with a complete L1<>L2 flow"""
     l1l2_example_contract = None
@@ -301,9 +305,9 @@ def test_postman():
     assert load_resp["l1_provider"] == L1_URL
 
     # Test initializing the l2 example contract
-    l2_contract_address = init_l2_contract(l1l2_example_contract.address)
+    l2_contract_address = _init_l2_contract(l1l2_example_contract.address)
 
-    l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address)
+    _l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address)
 
 
 def load_l1_messaging_contract(req_dict: dict):
@@ -313,7 +317,7 @@ def load_l1_messaging_contract(req_dict: dict):
     )
 
 
-@devnet_in_background()
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
 def test_invalid_starknet_function_call_load_l1_messaging_contract():
     """Call with invalid data on starknet function call"""
     load_messaging_contract_request = {}

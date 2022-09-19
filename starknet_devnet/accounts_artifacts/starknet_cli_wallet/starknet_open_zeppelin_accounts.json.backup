@@ -1,9 +1,0 @@
-{
-    "alpha-goerli": {
-        "__default__": {
-            "private_key": "0x6326be78dfa27920aa84668837171e983801a014fc80257b51c586cc96d0ea8",
-            "public_key": "0x5fb03481e2817b56b83d16f37550cad051be51c891fd3be2365ed72d7bb5897",
-            "address": "0x51743c6e5fd8c620107061292ebcad8becebc3ae57dda3c3064ece886216491"
-        }
-    }
-}

@@ -10,13 +10,13 @@ import requests
 
 import pytest
 
+from .account import invoke
 from .test_account import get_account_balance
 from .test_fee_token import mint
 from .util import (
     call,
     deploy,
     devnet_in_background,
-    invoke,
     run_devnet_in_background,
     terminate_and_wait,
 )
@@ -24,6 +24,9 @@ from .settings import APP_URL
 from .shared import (
     CONTRACT_PATH,
     ABI_PATH,
+    PREDEPLOY_ACCOUNT_CLI_ARGS,
+    PREDEPLOYED_ACCOUNT_ADDRESS,
+    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
 
 DUMP_PATH = "dump.pkl"
@@ -217,14 +220,13 @@ def test_dumping_if_path_provided_as_cli_option():
 def test_loading_via_cli():
     """Test dumping via endpoint and loading via CLI."""
     # init devnet + contract
-    ACTIVE_DEVNET.start()
+    ACTIVE_DEVNET.start(*PREDEPLOY_ACCOUNT_CLI_ARGS)
     contract_address = deploy_empty_contract()
 
     invoke(
-        function="increase_balance",
-        inputs=["10", "20"],
-        address=contract_address,
-        abi_path=ABI_PATH,
+        calls=[(contract_address, "increase_balance", [10, 20])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
     balance_after_invoke = call("get_balance", contract_address, ABI_PATH)
     assert balance_after_invoke == "30"
@@ -242,10 +244,9 @@ def test_loading_via_cli():
 
     # assure that new invokes can be made
     invoke(
-        function="increase_balance",
-        address=contract_address,
-        inputs=["15", "25"],
-        abi_path=ABI_PATH,
+        calls=[(contract_address, "increase_balance", [15, 25])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
     balance_after_invoke_on_loaded = call(
         "get_balance", contract_address, abi_path=ABI_PATH
@@ -260,10 +261,14 @@ def test_loading_via_cli():
 def test_dumping_and_loading_via_endpoint():
     """Test dumping and loading via endpoint."""
     # init devnet + contract
-    ACTIVE_DEVNET.start()
+    ACTIVE_DEVNET.start(*PREDEPLOY_ACCOUNT_CLI_ARGS)
     contract_address = deploy_empty_contract()
 
-    invoke("increase_balance", ["10", "20"], contract_address, ABI_PATH)
+    invoke(
+        calls=[(contract_address, "increase_balance", ["10", "20"])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
     balance_after_invoke = call("get_balance", contract_address, ABI_PATH)
     assert balance_after_invoke == "30"
 
@@ -273,14 +278,18 @@ def test_dumping_and_loading_via_endpoint():
     assert_not_alive()
 
     # spawn new devnet and load path via endpoint call
-    ACTIVE_DEVNET.start()
+    ACTIVE_DEVNET.start(*PREDEPLOY_ACCOUNT_CLI_ARGS)
     send_load_request(DUMP_PATH)
 
     loaded_balance = call("get_balance", contract_address, ABI_PATH)
     assert loaded_balance == balance_after_invoke
 
     # assure that new invokes can be made
-    invoke("increase_balance", ["15", "25"], contract_address, ABI_PATH)
+    invoke(
+        calls=[(contract_address, "increase_balance", ["15", "25"])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
     balance_after_invoke_on_loaded = call(
         "get_balance", contract_address, abi_path=ABI_PATH
     )
@@ -293,11 +302,17 @@ def test_dumping_and_loading_via_endpoint():
 
 def test_dumping_on_exit():
     """Test dumping on exit."""
-    devnet_proc = ACTIVE_DEVNET.start("--dump-on", "exit", "--dump-path", DUMP_PATH)
+    devnet_proc = ACTIVE_DEVNET.start(
+        *PREDEPLOY_ACCOUNT_CLI_ARGS, "--dump-on", "exit", "--dump-path", DUMP_PATH
+    )
 
     contract_address = deploy_empty_contract()
 
-    invoke("increase_balance", ["10", "20"], contract_address, ABI_PATH)
+    invoke(
+        calls=[(contract_address, "increase_balance", ["10", "20"])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
     balance_after_invoke = call("get_balance", contract_address, ABI_PATH)
     assert balance_after_invoke == "30"
 
@@ -343,7 +358,13 @@ def assert_load(dump_path: str, contract_address: str, expected_value: str):
 
 def test_dumping_on_each_tx():
     """Test dumping on each transaction."""
-    ACTIVE_DEVNET.start("--dump-on", "transaction", "--dump-path", DUMP_PATH)
+    ACTIVE_DEVNET.start(
+        *PREDEPLOY_ACCOUNT_CLI_ARGS,
+        "--dump-on",
+        "transaction",
+        "--dump-path",
+        DUMP_PATH,
+    )
 
     # deploy
     contract_address = deploy_empty_contract()
@@ -352,7 +373,11 @@ def test_dumping_on_each_tx():
     os.rename(DUMP_PATH, dump_after_deploy_path)
 
     # invoke
-    invoke("increase_balance", ["5", "5"], contract_address, ABI_PATH)
+    invoke(
+        calls=[(contract_address, "increase_balance", ["5", "5"])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
     assert_dump_present(DUMP_PATH)
     dump_after_invoke_path = "dump_after_invoke.pkl"
     os.rename(DUMP_PATH, dump_after_invoke_path)

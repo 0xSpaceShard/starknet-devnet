@@ -33,7 +33,7 @@ pip install starknet-devnet
 
 ### Requirements
 
-Works with Python versions >=3.7.2 and <3.10.
+Works with Python versions >=3.8 and <3.10.
 
 On Ubuntu/Debian, first run:
 
@@ -92,7 +92,7 @@ optional arguments:
                         Specify the gas price in wei per gas unit; defaults to
                         1e+11
   --timeout TIMEOUT, -t TIMEOUT
-                        Specify the timeout for devnet server; defaults to 60 seconds
+                        Specify the server timeout in seconds; defaults to 60
 ```
 
 You can run `starknet-devnet` in a separate shell, or you can run it in background with `starknet-devnet &`.
@@ -386,7 +386,7 @@ Response:
 
 ## Lite mode
 
-Since Devnet 0.3.0, the effect of lite mode is minimal and currently only skips block hash calculation (replacing it with iterative numbering: `0x0`, `0x1`, `0x2`, ...). Activate it by passing `--lite-mode` on startup.
+Since Devnet 0.3.0, the effect of lite mode is minimal and only skips block hash calculation (replacing it with iterative numbering: `0x0`, `0x1`, `0x2`, ...). Activate it by passing `--lite-mode` on startup.
 
 ## Restart
 
@@ -444,21 +444,21 @@ If your contract is using `print` in cairo hints (it was compiled with the `--di
 starknet-devnet 2> /dev/null
 ```
 
-To enable printing with a dockerized version of Devnet set `PYTHONUNBUFFERED=1`:
+To disable all the python logging you have to explicitly pass `PYTHONUNBUFFERED=0`:
 
-```
-docker run -p 127.0.0.1:5050:5050 -e PYTHONUNBUFFERED=1 shardlabs/starknet-devnet
+```sh
+docker run -p 127.0.0.1:5050:5050 -e PYTHONUNBUFFERED=0 shardlabs/starknet-devnet
 ```
 
 ## Predeployed accounts
 
 Devnet predeploys `--accounts` with some `--initial-balance`. The accounts get charged for transactions according to the `--gas-price`. A `--seed` can be used to regenerate the same set of accounts. Read more about it in the [Run section](#run).
 
-To get the code of the account (currently OpenZeppelin v0.3.1), use one of the following:
+To get the code of the account (currently fork of OpenZeppelin's [v0.4.0b](https://github.com/OpenZeppelin/cairo-contracts/releases/tag/v0.4.0b)), use one of the following:
 
 - `GET /get_code?contractAddress=<ACCOUNT_ADDRESS>`
 - [Starknet CLI](https://www.cairo-lang.org/docs/hello_starknet/cli.html#get-code): `starknet get_code --contract_address <ACCOUNT_ADDRESS> --feeder_gateway_url <DEVNET_URL>`
-- [OpenZeppelin's cairo-contract repository](https://github.com/OpenZeppelin/cairo-contracts/tree/v0.3.1)
+- [GitHub repository](https://github.com/Shard-Labs/cairo-contracts/tree/fix-account-query-version)
 
 You can use the accounts in e.g. [starknet-hardhat-plugin](https://github.com/Shard-Labs/starknet-hardhat-plugin) via:
 

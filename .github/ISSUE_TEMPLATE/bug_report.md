@@ -6,8 +6,9 @@ labels: ""
 assignees: ""
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+**Describe the bug (observed vs expected behavior)**
+
+A clear and concise description of what the bug is. If applicable, add screenshots to help explain your problem. However, prefer providing plain text.
 
 **Not reproducible on alpha-goerli**
 
@@ -19,12 +20,6 @@ Steps to reproduce the behavior:
 1. ...
 2. ...
    ...
-
-**Expected behavior**
-A clear and concise description of what you expected to happen.
-
-**Screenshots**
-If applicable, add screenshots to help explain your problem. However, prefer providing copyable text.
 
 **Devnet version**
 

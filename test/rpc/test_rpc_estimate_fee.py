@@ -4,16 +4,15 @@ Tests RPC estimate fee
 
 from __future__ import annotations
 
-from test.rpc.rpc_utils import rpc_call_background_devnet
-from test.shared import CONTRACT_PATH
-from test.util import deploy
-
 import pytest
 
 from starkware.starknet.public.abi import get_selector_from_name
 
 from starknet_devnet.blueprints.rpc.structures.payloads import RpcInvokeTransaction
 from starknet_devnet.constants import DEFAULT_GAS_PRICE
+from .rpc_utils import rpc_call_background_devnet
+from ..shared import CONTRACT_PATH
+from ..util import deploy
 
 
 def common_estimate_response(response):

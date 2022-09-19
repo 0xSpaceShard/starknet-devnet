@@ -16,9 +16,6 @@ from .rpc_utils import rpc_call, gateway_call, get_block_with_transaction, pad_z
 
 
 # pylint: disable=too-many-locals
-@pytest.mark.skip(
-    reason="Currently failing, see issue https://github.com/Shard-Labs/starknet-devnet/issues/257 "
-)
 @pytest.mark.usefixtures("run_devnet_in_background")
 def test_get_state_update(deploy_info, invoke_info, contract_class):
     """
@@ -91,27 +88,36 @@ def test_get_state_update(deploy_info, invoke_info, contract_class):
     }
 
 
+@pytest.mark.parametrize("params", [{}, None])
 @pytest.mark.usefixtures("run_devnet_in_background")
-def test_chain_id():
+def test_chain_id(params):
     """
     Test chain id
     """
     chain_id = DEFAULT_GENERAL_CONFIG.chain_id.value
 
-    resp = rpc_call("starknet_chainId", params={})
+    resp = rpc_call("starknet_chainId", params=params)
     rpc_chain_id = resp["result"]
 
-    assert isinstance(rpc_chain_id, str)
     assert rpc_chain_id == hex(chain_id)
 
 
+@pytest.mark.parametrize("params", [{}, None])
 @pytest.mark.usefixtures("run_devnet_in_background")
-def test_syncing():
+def test_syncing(params):
     """
     Test syncing
     """
-    resp = rpc_call("starknet_syncing", params={})
-    syncing = resp["result"]
+    resp = rpc_call("starknet_syncing", params=params)
+    assert "result" in resp, f"Unexpected response: {resp}"
+    assert resp["result"] is False
 
-    assert isinstance(syncing, bool)
-    assert syncing is False
+
+@pytest.mark.parametrize("params", [2, "random string", True])
+@pytest.mark.usefixtures("run_devnet_in_background")
+def test_call_with_invalid_params(params):
+    """Call with invalid params"""
+
+    # could be any legal method, just passing something to get params to fail
+    ex = rpc_call(method="starknet_getClass", params=params)
+    assert ex["error"] == {"code": -32602, "message": "Invalid params"}

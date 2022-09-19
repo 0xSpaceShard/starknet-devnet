@@ -28,7 +28,7 @@ def test_call(deploy_info):
     )
     result = resp["result"]
 
-    assert result["result"] == ["0x00"]
+    assert result == ["0x045"]
 
 
 @pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
@@ -74,7 +74,11 @@ def test_call_raises_on_incorrect_selector(deploy_info):
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
-def test_call_raises_on_invalid_calldata(deploy_info):
+@pytest.mark.parametrize(
+    "calldata",
+    [[123], ["1231", "wtf", "0x123"], [""]],
+)
+def test_call_raises_on_invalid_calldata(deploy_info, calldata):
     """
     Call contract with incorrect calldata
     """
@@ -86,7 +90,7 @@ def test_call_raises_on_invalid_calldata(deploy_info):
             "request": {
                 "contract_address": pad_zero(contract_address),
                 "entry_point_selector": hex(get_selector_from_name("get_balance")),
-                "calldata": ["a", "b", "123"],
+                "calldata": calldata,
             },
             "block_id": "latest",
         },
@@ -118,3 +122,10 @@ def test_call_raises_on_incorrect_block_hash(deploy_info):
         "code": -1,
         "message": "Calls with block_id != 'latest' are not supported currently.",
     }
+
+
+@pytest.mark.usefixtures("run_devnet_in_background")
+def test_call_with_invalid_method():
+    """Call with an invalid method"""
+    ex = rpc_call(method="obviously_invalid_method", params={})
+    assert ex["error"] == {"code": -32601, "message": "Method not found"}
