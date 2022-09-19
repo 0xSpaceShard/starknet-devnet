@@ -36,8 +36,8 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     StateDiff,
     StorageEntry,
 )
-from starkware.python.utils import to_bytes
 
+from starknet_devnet.util import to_bytes
 from starknet_devnet.constants import DUMMY_STATE_ROOT
 
 from lite_mode.lite_internal_deploy import LiteInternalDeploy
@@ -292,13 +292,13 @@ class StarknetWrapper:
         """
 
         state = self.get_state()
-        block_number = state.state.block_info.block_number
+        transactions_count = self.transactions.get_count()
         contract_class = deploy_transaction.contract_definition
         deployed_contracts: List[DeployedContract] = []
 
         if self.config.lite_mode:
             internal_tx: LiteInternalDeploy = LiteInternalDeploy.from_external(
-                deploy_transaction, tx_number=block_number
+                deploy_transaction, tx_number=transactions_count
             )
         else:
             internal_tx: InternalDeploy = InternalDeploy.from_external(
@@ -323,7 +323,7 @@ class StarknetWrapper:
                     constructor_calldata=deploy_transaction.constructor_calldata,
                     contract_address_salt=deploy_transaction.contract_address_salt,
                     starknet=self.starknet,
-                    tx_number=block_number,
+                    tx_number=transactions_count,
                 )
             else:
                 contract = await self.starknet.deploy(
