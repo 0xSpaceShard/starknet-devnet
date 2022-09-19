@@ -41,6 +41,7 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     StateDiff,
     StorageEntry,
 )
+from starknet_devnet.util import to_bytes
 
 from starknet_devnet.constants import DUMMY_STATE_ROOT
 
@@ -57,7 +58,6 @@ from .util import (
     Uint256,
     enable_pickling,
     get_storage_diffs,
-    to_bytes,
     get_all_declared_contracts,
 )
 from .contract_wrapper import ContractWrapper

@@ -16,8 +16,7 @@ from starkware.starknet.core.os.contract_address.contract_address import (
 )
 from starkware.starknet.core.os.class_hash import compute_class_hash
 from starkware.starknet.business_logic.transaction.objects import InternalTransaction
-
-from starknet_devnet.util import to_bytes
+from starkware.python.utils import to_bytes
 
 # pylint: disable=too-many-ancestors, arguments-renamed, too-many-arguments
 class LiteInternalDeploy(InternalDeploy):
