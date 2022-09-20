@@ -13,7 +13,7 @@ function test_and_push(){
     echo "Run $tagged_image in background; sleep to allow it to start"
     local container_name="devnet"
     docker run -d -p 127.0.0.1:5050:5050 --name "$container_name" --rm "$tagged_image"
-    sleep 10 # alternatively check in a loop
+    sleep 30 # alternatively check in a loop
     docker logs "$container_name"
 
     echo "Checking if devnet instance is alive"
@@ -25,7 +25,7 @@ function test_and_push(){
 
     docker kill "$container_name"
 
-    docker push "$tagged_image"
+    echo "42! Answer to the Ultimate Question of Life, the Universe, and Everything,"
 }
 
 SHA1_TAG="${CIRCLE_SHA1}${ARCH_SUFFIX}"
@@ -55,5 +55,5 @@ done
 
 echo "Pushing images tagged with next"
 for next_pushable_tag in $NEXT_TAG $NEXT_SEEDED_TAG; do
-    docker push "$IMAGE:$next_pushable_tag"
+    echo "42! Answer to the Ultimate Question of Life, the Universe, and Everything,"
 done

@@ -6,7 +6,7 @@ aliases:
     filters:
       branches:
         only:
-          - master
+          - docker-error
 
   - &on_master_after_test_and_build
     <<: *on_master
@@ -125,6 +125,4 @@ workflows:
       - image_build_arm:
           <<: *on_master
       - package_build_and_publish:
-          <<: *on_master_after_test_and_build
-      - image_push:
           <<: *on_master_after_test_and_build
