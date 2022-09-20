@@ -19,7 +19,7 @@ from starknet_devnet.blueprints.rpc.structures.payloads import (
 from starknet_devnet.blueprints.rpc.structures.types import rpc_txn_type
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from .rpc_utils import rpc_call, get_block_with_transaction, pad_zero
-from ..shared import INCORRECT_GENESIS_BLOCK_HASH, SUPPORTED_TX_VERSION
+from ..shared import INCORRECT_GENESIS_BLOCK_HASH, SUPPORTED_RPC_TX_VERSION
 
 
 def pad_zero_entry_points(entry_points: EntryPoints) -> None:
@@ -58,7 +58,7 @@ def test_get_transaction_by_hash_deploy(deploy_info):
     assert transaction == {
         "transaction_hash": pad_zero(transaction_hash),
         "class_hash": pad_zero(block_tx["class_hash"]),
-        "version": hex(SUPPORTED_TX_VERSION),
+        "version": hex(SUPPORTED_RPC_TX_VERSION),
         "type": rpc_txn_type(block_tx["type"]),
         "contract_address": pad_zero(contract_address),
         "contract_address_salt": pad_zero(block_tx["contract_address_salt"]),
@@ -88,7 +88,7 @@ def test_get_transaction_by_hash_invoke(invoke_info):
     assert transaction == {
         "transaction_hash": pad_zero(transaction_hash),
         "max_fee": pad_zero(block_tx["max_fee"]),
-        "version": hex(SUPPORTED_TX_VERSION),
+        "version": hex(SUPPORTED_RPC_TX_VERSION),
         "signature": signature,
         "nonce": pad_zero(hex(0)),
         "type": rpc_txn_type(block_tx["type"]),
@@ -170,7 +170,7 @@ def test_get_transaction_by_block_id_and_index(deploy_info):
         "contract_address_salt": pad_zero(block_tx["contract_address_salt"]),
         "transaction_hash": pad_zero(transaction_hash),
         "type": rpc_txn_type(block_tx["type"]),
-        "version": hex(SUPPORTED_TX_VERSION),
+        "version": hex(SUPPORTED_RPC_TX_VERSION),
     }
 
 
@@ -369,7 +369,7 @@ def test_add_declare_transaction_on_incorrect_contract(declare_content):
     declare_transaction = RpcBroadcastedDeclareTxn(
         type=declare_content["type"],
         max_fee=pad_zero(declare_content["max_fee"]),
-        version=hex(SUPPORTED_TX_VERSION),
+        version=hex(SUPPORTED_RPC_TX_VERSION),
         signature=[pad_zero(sig) for sig in declare_content["signature"]],
         nonce=pad_zero(declare_content["nonce"]),
         contract_class=rpc_contract_class,
@@ -401,7 +401,7 @@ def test_add_declare_transaction(declare_content):
     declare_transaction = RpcBroadcastedDeclareTxn(
         type=declare_content["type"],
         max_fee=pad_zero(declare_content["max_fee"]),
-        version=hex(SUPPORTED_TX_VERSION),
+        version=hex(SUPPORTED_RPC_TX_VERSION),
         signature=[pad_zero(sig) for sig in declare_content["signature"]],
         nonce=pad_zero(declare_content["nonce"]),
         contract_class=rpc_contract_class,
@@ -437,7 +437,7 @@ def test_add_deploy_transaction_on_incorrect_contract(deploy_content):
 
     deploy_transaction = RpcBroadcastedDeployTxn(
         contract_class=rpc_contract_class,
-        version=hex(SUPPORTED_TX_VERSION),
+        version=hex(SUPPORTED_RPC_TX_VERSION),
         type=deploy_content["type"],
         contract_address_salt=salt,
         constructor_calldata=calldata,
@@ -469,7 +469,7 @@ def test_add_deploy_transaction(deploy_content):
 
     deploy_transaction = RpcBroadcastedDeployTxn(
         contract_class=rpc_contract_class,
-        version=hex(SUPPORTED_TX_VERSION),
+        version=hex(SUPPORTED_RPC_TX_VERSION),
         type=deploy_content["type"],
         contract_address_salt=salt,
         constructor_calldata=calldata,

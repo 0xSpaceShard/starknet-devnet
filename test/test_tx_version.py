@@ -6,21 +6,31 @@ import pytest
 
 from starkware.starknet.definitions.constants import TRANSACTION_VERSION
 
-from .util import devnet_in_background, deploy, call, invoke
-from .shared import ARTIFACTS_PATH
+from .account import invoke
+from .util import devnet_in_background, deploy, call
+from .shared import (
+    ARTIFACTS_PATH,
+    PREDEPLOY_ACCOUNT_CLI_ARGS,
+    PREDEPLOYED_ACCOUNT_ADDRESS,
+    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+)
 
 CONTRACT_PATH = f"{ARTIFACTS_PATH}/tx_version.cairo/tx_version.json"
 ABI_PATH = f"{ARTIFACTS_PATH}/tx_version.cairo/tx_version_abi.json"
 
 
 @pytest.mark.tx_version
-@devnet_in_background()
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
 def test_transaction_version():
     """Check if transaction versions are correct"""
     deploy_info = deploy(CONTRACT_PATH)
     address = deploy_info["address"]
 
-    invoke("set_tx_version", [], address, ABI_PATH)
+    invoke(
+        calls=[(address, "set_tx_version", [])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
 
     invoke_tx_version = call("get_last_tx_version", address, ABI_PATH)
     assert int(invoke_tx_version, 16) == TRANSACTION_VERSION

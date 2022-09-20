@@ -12,11 +12,10 @@ from starkware.starknet.services.api.gateway.transaction import Deploy
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionStatus,
 )
-from starknet_devnet.constants import SUPPORTED_TX_VERSION
 
 from starknet_devnet.devnet_config import parse_args, DevnetConfig
 from starknet_devnet.starknet_wrapper import StarknetWrapper
-from .shared import CONTRACT_PATH, GENESIS_BLOCK_NUMBER
+from .shared import CONTRACT_PATH, GENESIS_BLOCK_NUMBER, SUPPORTED_TX_VERSION
 from .util import assert_hex_equal
 
 
@@ -91,7 +90,7 @@ async def test_deploy_lite():
     # Currently in lite mode hashes are actually calculated
     assert_hex_equal(
         hex(tx_hash),
-        "0x364cc8cb61ef723ec697fe7eb7358754ecfc7273a30af3e8479acac9e42af6d",
+        "0x0",
     )
     assert contract_address == expected_contract_address
 

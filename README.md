@@ -77,7 +77,7 @@ optional arguments:
   --dump-path DUMP_PATH
                         Specify the path to dump to
   --dump-on DUMP_ON     Specify when to dump; can dump on: exit, transaction
-  --lite-mode           Applies lite-mode optimizations by disabling some features. (In the current version, lite-mode doesn't affect performance)
+  --lite-mode           Introduces speed-up by skipping block hash and deploy transaction hash calculation - applies sequential numbering instead (0x0, 0x1, 0x2, ...).
   --accounts ACCOUNTS   Specify the number of accounts to be predeployed;
                         defaults to 10
   --initial-balance INITIAL_BALANCE, -e INITIAL_BALANCE
@@ -385,7 +385,7 @@ Response:
 
 ## Lite mode
 
-Since Devnet 0.3.0, the effect of lite mode is minimal and currently only skips block hash calculation (replacing it with iterative numbering: `0x0`, `0x1`, `0x2`, ...). Activate it by passing `--lite-mode` on startup.
+Since Devnet 0.3.0, the effect of lite mode is minimal and only skips block hash calculation (replacing it with iterative numbering: `0x0`, `0x1`, `0x2`, ...). Activate it by passing `--lite-mode` on startup.
 
 ## Restart
 
@@ -453,11 +453,11 @@ docker run -p 127.0.0.1:5050:5050 -e PYTHONUNBUFFERED=0 shardlabs/starknet-devne
 
 Devnet predeploys `--accounts` with some `--initial-balance`. The accounts get charged for transactions according to the `--gas-price`. A `--seed` can be used to regenerate the same set of accounts. Read more about it in the [Run section](#run).
 
-To get the code of the account (currently OpenZeppelin v0.3.1), use one of the following:
+To get the code of the account (currently fork of OpenZeppelin's [v0.4.0b](https://github.com/OpenZeppelin/cairo-contracts/releases/tag/v0.4.0b)), use one of the following:
 
 - `GET /get_code?contractAddress=<ACCOUNT_ADDRESS>`
 - [Starknet CLI](https://www.cairo-lang.org/docs/hello_starknet/cli.html#get-code): `starknet get_code --contract_address <ACCOUNT_ADDRESS> --feeder_gateway_url <DEVNET_URL>`
-- [OpenZeppelin's cairo-contract repository](https://github.com/OpenZeppelin/cairo-contracts/tree/v0.3.1)
+- [GitHub repository](https://github.com/Shard-Labs/cairo-contracts/tree/fix-account-query-version)
 
 You can use the accounts in e.g. [starknet-hardhat-plugin](https://github.com/Shard-Labs/starknet-hardhat-plugin) via:
 
