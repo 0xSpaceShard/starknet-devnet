@@ -15,7 +15,7 @@ function test_and_push(){
     echo "test 1 - docker ps -a"
     docker ps -a
     echo "test 2 - docker run"
-    docker run -d -p 127.0.0.1:5050:5050 --name "$container_name"
+    docker run -d -p 127.0.0.1:5050:5050 --name "$container_name" "$tagged_image"
     echo "test 3 - docker ps -a"
     docker ps -a
     curl --retry 10 --retry-delay 1 --retry-connrefused -s "localhost:5050/is_alive"
