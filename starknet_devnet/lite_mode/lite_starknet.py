@@ -13,7 +13,7 @@ from starkware.starknet.testing.contract_utils import (
     get_contract_class,
 )
 
-from lite_mode.lite_starknet_state import LiteStarknetState
+from .lite_starknet_state import LiteStarknetState
 
 CastableToAddressSalt = Union[str, int]
 
