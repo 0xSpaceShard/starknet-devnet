@@ -115,7 +115,5 @@ workflows:
   version: 2
   test_and_publish:
     jobs:
-      - image_build:
-          <<: *on_master
       - image_build_arm:
           <<: *on_master
