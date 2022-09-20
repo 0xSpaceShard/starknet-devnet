@@ -118,8 +118,6 @@ workflows:
   version: 2
   test_and_publish:
     jobs:
-      - test_py_min
-      - test_py_max
       - image_build:
           <<: *on_master
       - image_build_arm:

@@ -15,9 +15,12 @@ function test_and_push(){
     echo "test 1"
     docker run -d -p 127.0.0.1:5050:5050 --name "$container_name" --rm "$tagged_image"
     echo "test 2"
-    sleep 120 # alternatively check in a loop
     docker logs "$container_name"
     echo "test 3"
+    sleep 30 # alternatively check in a loop
+    echo "test 4"
+    docker logs "$container_name"
+    echo "test 5"
     echo "Checking if devnet instance is alive"
     if [ ! -z $REMOTE ]; then
         ssh remote-docker curl localhost:5050/is_alive -w "\n"
