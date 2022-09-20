@@ -13,7 +13,7 @@ function test_and_push(){
     echo "Run $tagged_image in background; sleep to allow it to start"
     local container_name="devnet"
     docker run -d -p 127.0.0.1:5050:5050 --name "$container_name" --rm "$tagged_image"
-    sleep 30 # alternatively check in a loop
+    sleep 120 # alternatively check in a loop
     docker logs "$container_name"
 
     echo "Checking if devnet instance is alive"
