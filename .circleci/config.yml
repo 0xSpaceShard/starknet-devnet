@@ -119,5 +119,3 @@ workflows:
           <<: *on_master
       - image_build_arm:
           <<: *on_master
-      - package_build_and_publish:
-          <<: *on_master_after_test_and_build
