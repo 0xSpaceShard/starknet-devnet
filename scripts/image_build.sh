@@ -13,11 +13,17 @@ function test_and_push(){
     echo "Run $tagged_image in background; sleep to allow it to start"
     local container_name="devnet"
     echo "test 1"
-    docker run -d -p 127.0.0.1:5050:5050 --name "$container_name" --rm "$tagged_image"
+    docker ps -a
+    docker kill "$container_name"
+    docker ps -a
     echo "test 2"
-    docker logs "$container_name"
+    curl --retry 10 --retry-delay 1 --retry-connrefused -s "localhost:5050/is_alive"
+    docker run -d -p 127.0.0.1:5050:5050 --name "$container_name" --rm "$tagged_image"
+    docker ps -a
+    curl --retry 10 --retry-delay 1 --retry-connrefused -s "localhost:5050/is_alive"
     echo "test 3"
-    sleep 30 # alternatively check in a loop
+    sleep 10 # alternatively check in a loop
+    docker ps -a
     echo "test 4"
     docker logs "$container_name"
     echo "test 5"
