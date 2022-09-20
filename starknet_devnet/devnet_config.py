@@ -107,8 +107,7 @@ def parse_args(raw_args: List[str]):
     parser.add_argument(
         "--lite-mode",
         action="store_true",
-        help="Introduces speed-up by skipping block hash and deploy transaction hash calculation"
-        " - applies sequential numbering instead (0x0, 0x1, 0x2, ...).",
+        help="Applies lite-mode optimizations by disabling some features. (In the current version, lite-mode doesn't affect performance)",
     )
     parser.add_argument(
         "--accounts",

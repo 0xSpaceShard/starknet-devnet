@@ -87,6 +87,12 @@ def main():
 
     args = parse_args(sys.argv[1:])
 
+    if args.lite_mode:
+        print(
+            "Warning: In the current version, lite-mode doesn't affect performance.",
+            file=sys.stderr,
+        )
+
     try:
         if args.load_path:
             state.load(args.load_path)
