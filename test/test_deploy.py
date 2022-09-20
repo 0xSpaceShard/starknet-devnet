@@ -90,7 +90,7 @@ async def test_deploy_lite():
     # Currently in lite mode hashes are actually calculated
     assert_hex_equal(
         hex(tx_hash),
-        "0x615badf1d4446082f598fa16416d4d3623dfb8cc5d58276515f502f8fa22009",
+        "0x0",
     )
     assert contract_address == expected_contract_address
 

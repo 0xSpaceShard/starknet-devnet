@@ -34,7 +34,7 @@ EXPECTED_TX_HASH = "0x4df621f3aa655224d2cbce2d00d911cc58f78ebd75c3611db2ba3abad2
     "run_devnet_in_background, expected_tx_hash",
     [
         ([*PREDEPLOY_ACCOUNT_CLI_ARGS], EXPECTED_TX_HASH),
-        ([*PREDEPLOY_ACCOUNT_CLI_ARGS, "--lite-mode"], EXPECTED_TX_HASH),
+        ([*PREDEPLOY_ACCOUNT_CLI_ARGS, "--lite-mode"], "0x0"),
     ],
     indirect=True,
 )
