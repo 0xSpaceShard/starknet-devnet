@@ -40,8 +40,16 @@ def get_deploy_transaction(inputs: List[int], salt=0):
     )
 
 
+@pytest.fixture(name="starknet_wrapper_args")
+def fixture_starknet_wrapper_args(request):
+    """
+    Fixture to return values of dev net arguments
+    """
+    return request.param
+
+
 @pytest.mark.parametrize(
-    "dev_net_args, expected_tx_hash, expected_block_hash",
+    "starknet_wrapper_args, expected_tx_hash, expected_block_hash",
     [
         (
             [*PREDEPLOY_ACCOUNT_CLI_ARGS],
@@ -57,7 +65,7 @@ def get_deploy_transaction(inputs: List[int], salt=0):
     indirect=True,
 )
 @pytest.mark.asyncio
-async def test_deploy(dev_net_args, expected_tx_hash, expected_block_hash):
+async def test_deploy(starknet_wrapper_args, expected_tx_hash, expected_block_hash):
     """
     Test the deployment of a contract.
     """
@@ -66,7 +74,7 @@ async def test_deploy(dev_net_args, expected_tx_hash, expected_block_hash):
     deploy_transaction = get_deploy_transaction(inputs=[0])
 
     contract_address, tx_hash = await devnet.deploy(
-        deploy_transaction=deploy_transaction
+        deploy_transaction=deploy_transaction,
     )
     expected_contract_address = calculate_contract_address(
         deployer_address=0,

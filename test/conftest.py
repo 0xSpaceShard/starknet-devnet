@@ -24,14 +24,6 @@ def fixture_expected_block_hash(request):
     return request.param
 
 
-@pytest.fixture(name="dev_net_args")
-def fixture_dev_net_args(request):
-    """
-    Fixture to return values of dev net arguments
-    """
-    return request.param
-
-
 @pytest.fixture(name="run_devnet_in_background")
 def fixture_run_devnet_in_background(request) -> None:
     """
