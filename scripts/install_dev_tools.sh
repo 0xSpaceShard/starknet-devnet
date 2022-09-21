@@ -13,4 +13,5 @@ echo "poetry: $(poetry --version)"
 
 # install dependencies
 poetry install
+poetry lock --check
 npm ci
