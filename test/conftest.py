@@ -31,6 +31,7 @@ def fixture_dev_net_args(request):
     """
     return request.param
 
+
 @pytest.fixture(name="run_devnet_in_background")
 def fixture_run_devnet_in_background(request) -> None:
     """
