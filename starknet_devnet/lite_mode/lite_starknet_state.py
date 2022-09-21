@@ -11,7 +11,7 @@ from starkware.starknet.testing.starknet import (
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.business_logic.execution.objects import TransactionExecutionInfo
 
-from lite_mode.lite_internal_deploy import LiteInternalDeploy
+from .lite_internal_deploy import LiteInternalDeploy
 
 CastableToAddressSalt = Union[str, int]
 

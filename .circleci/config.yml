@@ -110,9 +110,6 @@ jobs:
       - run:
           name: Push images
           command: ./scripts/image_push.sh
-          environment:
-            ARCH_SUFFIX: -arm
-            REMOTE: ""
 
 workflows:
   version: 2

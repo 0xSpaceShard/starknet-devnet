@@ -40,8 +40,8 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
 from starknet_devnet.util import to_bytes
 from starknet_devnet.constants import DUMMY_STATE_ROOT
 
-from lite_mode.lite_internal_deploy import LiteInternalDeploy
-from lite_mode.lite_starknet import LiteStarknet
+from .lite_mode.lite_internal_deploy import LiteInternalDeploy
+from .lite_mode.lite_starknet import LiteStarknet
 
 from .accounts import Accounts
 from .blueprints.rpc.structures.types import Felt
