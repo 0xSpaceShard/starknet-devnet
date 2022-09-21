@@ -69,7 +69,7 @@ async def test_deploy(starknet_wrapper_args, expected_tx_hash, expected_block_ha
     """
     Test the deployment of a contract.
     """
-    devnet = StarknetWrapper(config=DevnetConfig(parse_args(dev_net_args)))
+    devnet = StarknetWrapper(config=DevnetConfig(parse_args(starknet_wrapper_args)))
     await devnet.initialize()
     deploy_transaction = get_deploy_transaction(inputs=[0])
 
@@ -92,5 +92,5 @@ async def test_deploy(starknet_wrapper_args, expected_tx_hash, expected_block_ha
     tx_status = devnet.transactions.get_transaction_status(hex(tx_hash))
     assert tx_status["tx_status"] == TransactionStatus.ACCEPTED_ON_L2.name
 
-    if "--lite-mode" in dev_net_args:
+    if "--lite-mode" in starknet_wrapper_args:
         assert tx_status["block_hash"] == expected_block_hash
