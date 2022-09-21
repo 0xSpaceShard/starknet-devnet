@@ -48,8 +48,6 @@ class Accounts:
         random_generator = random.Random()
         random_generator.seed(self.__seed)
 
-        self.__initial_balance = self.__initial_balance
-
         for _ in range(self.__n_accounts):
             private_key = random_generator.getrandbits(128)
             public_key = private_to_stark_key(private_key)
