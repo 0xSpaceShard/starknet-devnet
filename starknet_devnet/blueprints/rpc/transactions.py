@@ -3,7 +3,7 @@ RPC transaction endpoints
 """
 
 import dataclasses
-from typing import List, Optional
+from typing import List
 
 from marshmallow.exceptions import MarshmallowError
 from starkware.starknet.services.api.contract_class import ContractClass
