@@ -313,6 +313,32 @@ def test_add_invoke_transaction(invoke_content):
     assert set(receipt.keys()) == {"transaction_hash"}
     assert receipt["transaction_hash"][:3] == "0x0"
 
+@pytest.mark.usefixtures("run_devnet_in_background")
+def test_add_invoke_transaction_positional_args(invoke_content):
+    """
+    Add invoke transaction
+    """
+    resp = rpc_call(
+        "starknet_addInvokeTransaction",
+        params=[
+            {
+                "contract_address": pad_zero(invoke_content["contract_address"]),
+                "entry_point_selector": pad_zero(
+                    invoke_content["entry_point_selector"]
+                ),
+                "calldata": [
+                    pad_zero(hex(int(data))) for data in invoke_content["calldata"]
+                ],
+            },
+            [pad_zero(sig) for sig in invoke_content["signature"]],
+            hex(0),
+            hex(SUPPORTED_RPC_TX_VERSION),
+        ],
+    )
+    receipt = resp["result"]
+
+    assert set(receipt.keys()) == {"transaction_hash"}
+    assert receipt["transaction_hash"][:3] == "0x0"
 
 @pytest.mark.usefixtures("run_devnet_in_background")
 def test_add_declare_transaction_on_incorrect_contract(declare_content):
