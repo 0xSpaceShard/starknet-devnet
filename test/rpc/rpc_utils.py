@@ -4,12 +4,19 @@ Utilities for RPC tests
 
 from __future__ import annotations
 
-from typing import Union
+from typing import Union, List
 
+from test.account import invoke
 import requests
 
 from starknet_devnet.blueprints.rpc.structures.types import Felt
 from ..settings import APP_URL
+from ..util import deploy, assert_transaction
+from ..shared import (
+    STORAGE_CONTRACT_PATH,
+    PREDEPLOYED_ACCOUNT_ADDRESS,
+    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+)
 
 
 class BackgroundDevnetClient:
@@ -88,3 +95,20 @@ def pad_zero(felt: str) -> Felt:
     if felt == "0x0":
         return "0x00"
     return "0x0" + felt.lstrip("0x")
+
+
+def deploy_and_invoke_storage_contract(value: int) -> List[str]:
+    """
+    Deploy and invoke storage contract
+    """
+    deploy_dict = deploy(STORAGE_CONTRACT_PATH)
+    contract_address = deploy_dict["address"]
+
+    invoke_tx_hash = invoke(
+        calls=[(contract_address, "store_value", [value])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
+    assert_transaction(invoke_tx_hash, "ACCEPTED_ON_L2")
+
+    return contract_address, invoke_tx_hash

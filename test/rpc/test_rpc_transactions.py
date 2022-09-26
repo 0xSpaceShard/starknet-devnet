@@ -7,19 +7,41 @@ from __future__ import annotations
 from typing import List
 
 import pytest
+from starkware.starknet.core.os.transaction_hash.transaction_hash import (
+    calculate_declare_transaction_hash,
+)
+from starkware.starknet.definitions.general_config import StarknetChainId
+from starkware.starknet.public.abi import (
+    get_storage_var_address,
+    get_selector_from_name,
+)
 
 from starknet_devnet.blueprints.rpc.structures.payloads import (
     RpcContractClass,
     RpcBroadcastedDeclareTxn,
     EntryPoints,
     RpcBroadcastedDeployTxn,
-    RpcBroadcastedInvokeTxnV0,
     RpcBroadcastedInvokeTxnV1,
+    RpcBroadcastedInvokeTxnV0,
 )
 from starknet_devnet.blueprints.rpc.structures.types import rpc_txn_type
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
-from .rpc_utils import rpc_call, get_block_with_transaction, pad_zero
-from ..shared import INCORRECT_GENESIS_BLOCK_HASH, SUPPORTED_RPC_TX_VERSION
+from .rpc_utils import (
+    rpc_call,
+    get_block_with_transaction,
+    pad_zero,
+    gateway_call,
+    deploy_and_invoke_storage_contract,
+)
+from ..account import declare, _get_execute_args, get_nonce, _get_signature
+from ..shared import (
+    INCORRECT_GENESIS_BLOCK_HASH,
+    SUPPORTED_RPC_TX_VERSION,
+    PREDEPLOYED_ACCOUNT_ADDRESS,
+    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    CONTRACT_PATH,
+)
+from ..util import deploy, load_contract_class
 
 
 def pad_zero_entry_points(entry_points: EntryPoints) -> None:
@@ -66,18 +88,51 @@ def test_get_transaction_by_hash_deploy(deploy_info):
     }
 
 
-@pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
-def test_get_transaction_by_hash_invoke(invoke_info):
+@pytest.mark.usefixtures("devnet_with_account")
+def test_get_transaction_by_hash_invoke():
     """
     Get transaction by hash
     """
-    block = get_block_with_transaction(invoke_info["transaction_hash"])
+    _, invoke_tx_hash = deploy_and_invoke_storage_contract(value=30)
+
+    block = get_block_with_transaction(invoke_tx_hash)
     block_tx = block["transactions"][0]
-    transaction_hash: str = invoke_info["transaction_hash"]
-    contract_address: str = invoke_info["address"]
-    entry_point_selector: str = invoke_info["entry_point_selector"]
-    signature: List[str] = [pad_zero(hex(int(sig))) for sig in invoke_info["signature"]]
-    calldata: List[str] = [pad_zero(hex(int(data))) for data in invoke_info["calldata"]]
+    signature: List[str] = [pad_zero(sig) for sig in block_tx["signature"]]
+    calldata: List[str] = [pad_zero(data) for data in block_tx["calldata"]]
+
+    resp = rpc_call(
+        "starknet_getTransactionByHash",
+        params={"transaction_hash": pad_zero(invoke_tx_hash)},
+    )
+    transaction = resp["result"]
+
+    assert transaction == {
+        "transaction_hash": pad_zero(invoke_tx_hash),
+        "max_fee": pad_zero(block_tx["max_fee"]),
+        "version": hex(SUPPORTED_RPC_TX_VERSION),
+        "signature": signature,
+        "nonce": rpc_felt(0),
+        "type": rpc_txn_type(block_tx["type"]),
+        "sender_address": pad_zero(PREDEPLOYED_ACCOUNT_ADDRESS),
+        "calldata": calldata,
+    }
+
+
+@pytest.mark.usefixtures("devnet_with_account")
+def test_get_transaction_by_hash_declare():
+    """
+    Get transaction by hash
+    """
+    declare_info = declare(
+        contract_path=CONTRACT_PATH,
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
+
+    block = get_block_with_transaction(declare_info["tx_hash"])
+    block_tx = block["transactions"][0]
+    transaction_hash: str = declare_info["tx_hash"]
+    signature: List[str] = [pad_zero(sig) for sig in block_tx["signature"]]
 
     resp = rpc_call(
         "starknet_getTransactionByHash",
@@ -90,45 +145,14 @@ def test_get_transaction_by_hash_invoke(invoke_info):
         "max_fee": pad_zero(block_tx["max_fee"]),
         "version": hex(SUPPORTED_RPC_TX_VERSION),
         "signature": signature,
-        "nonce": pad_zero(hex(0)),
+        "nonce": rpc_felt(0),
         "type": rpc_txn_type(block_tx["type"]),
-        "contract_address": contract_address,
-        "entry_point_selector": pad_zero(entry_point_selector),
-        "calldata": calldata,
+        "sender_address": pad_zero(PREDEPLOYED_ACCOUNT_ADDRESS),
+        "class_hash": pad_zero(block_tx["class_hash"]),
     }
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
-def test_get_transaction_by_hash_declare(declare_info):
-    """
-    Get transaction by hash
-    """
-    block = get_block_with_transaction(declare_info["transaction_hash"])
-    block_tx = block["transactions"][0]
-    transaction_hash: str = declare_info["transaction_hash"]
-    signature: List[str] = [
-        pad_zero(hex(int(sig))) for sig in declare_info["signature"]
-    ]
-
-    resp = rpc_call(
-        "starknet_getTransactionByHash",
-        params={"transaction_hash": pad_zero(transaction_hash)},
-    )
-    transaction = resp["result"]
-
-    assert transaction == {
-        "transaction_hash": pad_zero(transaction_hash),
-        "max_fee": pad_zero(block_tx["max_fee"]),
-        "version": block_tx["version"],
-        "signature": signature,
-        "nonce": pad_zero(block_tx["nonce"]),
-        "type": rpc_txn_type(block_tx["type"]),
-        "class_hash": pad_zero(block_tx["class_hash"]),
-        "sender_address": pad_zero(block_tx["sender_address"]),
-    }
-
-
-@pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
 def test_get_transaction_by_hash_raises_on_incorrect_hash():
     """
     Get transaction by incorrect hash
@@ -138,7 +162,7 @@ def test_get_transaction_by_hash_raises_on_incorrect_hash():
     assert ex["error"] == {"code": 25, "message": "Transaction hash not found"}
 
 
-@pytest.mark.usefixtures("run_devnet_in_background")
+@pytest.mark.usefixtures("devnet_with_account")
 def test_get_transaction_by_block_id_and_index(deploy_info):
     """
     Get transaction by block id and transaction index
@@ -240,26 +264,44 @@ def test_get_declare_transaction_receipt(declare_info):
     }
 
 
-@pytest.mark.usefixtures("run_devnet_in_background")
-def test_get_invoke_transaction_receipt(invoke_info):
+@pytest.mark.usefixtures("devnet_with_account")
+def test_get_invoke_transaction_receipt():
     """
     Get transaction receipt
     """
-    transaction_hash: str = invoke_info["transaction_hash"]
+
+    _, invoke_tx_hash = deploy_and_invoke_storage_contract(value=30)
+
+    gateway_receipt = gateway_call(
+        "get_transaction_receipt", transactionHash=invoke_tx_hash
+    )
+    event = gateway_receipt["events"][0]
+
+    block = get_block_with_transaction(invoke_tx_hash)
+    block_tx = block["transactions"][0]
 
     resp = rpc_call(
         "starknet_getTransactionReceipt",
-        params={"transaction_hash": pad_zero(transaction_hash)},
+        params={"transaction_hash": pad_zero(invoke_tx_hash)},
     )
     receipt = resp["result"]
 
-    # Standard == receipt dict test cannot be done here, because invoke transaction fails since no contracts
-    # are actually deployed on devnet, when running test without run_devnet_in_background fixture
-    assert receipt["transaction_hash"] == pad_zero(transaction_hash)
-    assert receipt["actual_fee"] == rpc_felt(0)
-    assert receipt["type"] == "INVOKE"
-    assert receipt["events"] == []
-    assert receipt["messages_sent"] == []
+    assert receipt == {
+        "transaction_hash": pad_zero(invoke_tx_hash),
+        "actual_fee": pad_zero(block_tx["max_fee"]),
+        "status": "ACCEPTED_ON_L2",
+        "block_hash": pad_zero(block["block_hash"]),
+        "block_number": block["block_number"],
+        "type": rpc_txn_type(block_tx["type"]),
+        "messages_sent": [],
+        "events": [
+            {
+                "from_address": pad_zero(event["from_address"]),
+                "data": [pad_zero(data) for data in event["data"]],
+                "keys": [pad_zero(key) for key in event["keys"]],
+            }
+        ],
+    }
 
 
 @pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
@@ -301,20 +343,68 @@ def test_get_deploy_transaction_receipt(deploy_info):
     }
 
 
+@pytest.mark.usefixtures("devnet_with_account")
+def test_add_invoke_transaction():
+    """
+    Add invoke transaction
+    """
+    deploy_dict = deploy(CONTRACT_PATH, ["0"])
+    contract_address = deploy_dict["address"]
+
+    calls = [(contract_address, "increase_balance", [13, 56])]
+    signature, execute_calldata = _get_execute_args(
+        calls=calls,
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+        nonce=0,
+        version=SUPPORTED_RPC_TX_VERSION,
+        max_fee=0,
+    )
+
+    invoke_transaction = RpcBroadcastedInvokeTxnV1(
+        type="INVOKE",
+        max_fee=rpc_felt(0),
+        version=hex(SUPPORTED_RPC_TX_VERSION),
+        signature=[rpc_felt(int(sig)) for sig in signature],
+        nonce=rpc_felt(0),
+        sender_address=pad_zero(PREDEPLOYED_ACCOUNT_ADDRESS),
+        calldata=[rpc_felt(data) for data in execute_calldata],
+    )
+
+    resp = rpc_call(
+        "starknet_addInvokeTransaction",
+        params={"invoke_transaction": invoke_transaction},
+    )
+    receipt = resp["result"]
+
+    assert set(receipt.keys()) == {"transaction_hash"}
+    assert receipt["transaction_hash"][:3] == "0x0"
+
+    storage = gateway_call(
+        "get_storage_at",
+        contractAddress=contract_address,
+        key=hex(get_storage_var_address("balance")),
+    )
+    assert storage == "0x45"
+
+
 @pytest.mark.usefixtures("run_devnet_in_background")
-def test_add_invoke_transaction_v0(invoke_content):
+def test_add_invoke_transaction_v0():
     """
-    Add invoke transaction version 0
+    Add invoke transaction with tx v0
     """
+    deploy_dict = deploy(CONTRACT_PATH, ["0"])
+    contract_address = deploy_dict["address"]
+
     invoke_transaction = RpcBroadcastedInvokeTxnV0(
-        type=invoke_content["type"],
+        type="INVOKE",
         max_fee=rpc_felt(0),
         version=hex(0),
         signature=[],
-        nonce=rpc_felt(0),
-        contract_address=pad_zero(invoke_content["contract_address"]),
-        entry_point_selector=pad_zero(invoke_content["entry_point_selector"]),
-        calldata=[pad_zero(hex(int(data))) for data in invoke_content["calldata"]],
+        nonce=None,
+        contract_address=pad_zero(contract_address),
+        entry_point_selector=rpc_felt(get_selector_from_name("increase_balance")),
+        calldata=["0x0d", "0x038"],
     )
 
     resp = rpc_call(
@@ -326,30 +416,12 @@ def test_add_invoke_transaction_v0(invoke_content):
     assert set(receipt.keys()) == {"transaction_hash"}
     assert receipt["transaction_hash"][:3] == "0x0"
 
-
-@pytest.mark.usefixtures("run_devnet_in_background")
-def test_add_invoke_transaction_v1(invoke_content):
-    """
-    Add invoke transaction version 1
-    """
-    invoke_transaction = RpcBroadcastedInvokeTxnV1(
-        type=invoke_content["type"],
-        max_fee=rpc_felt(0),
-        version=hex(1),
-        signature=[],
-        nonce=rpc_felt(0),
-        sender_address=pad_zero(invoke_content["contract_address"]),
-        calldata=[pad_zero(hex(int(data))) for data in invoke_content["calldata"]],
+    storage = gateway_call(
+        "get_storage_at",
+        contractAddress=contract_address,
+        key=hex(get_storage_var_address("balance")),
     )
-
-    resp = rpc_call(
-        "starknet_addInvokeTransaction",
-        params={"invoke_transaction": invoke_transaction},
-    )
-    receipt = resp["result"]
-
-    assert set(receipt.keys()) == {"transaction_hash"}
-    assert receipt["transaction_hash"][:3] == "0x0"
+    assert storage == "0x45"
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -384,7 +456,7 @@ def test_add_declare_transaction_on_incorrect_contract(declare_content):
     assert ex["error"] == {"code": 50, "message": "Invalid contract class"}
 
 
-@pytest.mark.usefixtures("run_devnet_in_background")
+@pytest.mark.usefixtures("devnet_with_account")
 def test_add_declare_transaction(declare_content):
     """
     Add declare transaction
@@ -393,7 +465,53 @@ def test_add_declare_transaction(declare_content):
     pad_zero_entry_points(contract_class["entry_points_by_type"])
 
     rpc_contract_class = RpcContractClass(
-        program=declare_content["contract_class"]["program"],
+        program=contract_class["program"],
+        entry_points_by_type=contract_class["entry_points_by_type"],
+        abi=contract_class.get("abi", []),
+    )
+
+    nonce = get_nonce(PREDEPLOYED_ACCOUNT_ADDRESS)
+    tx_hash = calculate_declare_transaction_hash(
+        contract_class=load_contract_class(CONTRACT_PATH),
+        chain_id=StarknetChainId.TESTNET.value,
+        sender_address=int(PREDEPLOYED_ACCOUNT_ADDRESS, 16),
+        max_fee=0,
+        nonce=nonce,
+        version=SUPPORTED_RPC_TX_VERSION,
+    )
+    signature = _get_signature(tx_hash, PREDEPLOYED_ACCOUNT_PRIVATE_KEY)
+
+    declare_transaction = RpcBroadcastedDeclareTxn(
+        type=declare_content["type"],
+        max_fee=pad_zero(declare_content["max_fee"]),
+        version=hex(SUPPORTED_RPC_TX_VERSION),
+        signature=[rpc_felt(int(sig)) for sig in signature],
+        nonce=rpc_felt(nonce),
+        contract_class=rpc_contract_class,
+        sender_address=pad_zero(PREDEPLOYED_ACCOUNT_ADDRESS),
+    )
+
+    resp = rpc_call(
+        "starknet_addDeclareTransaction",
+        params={"declare_transaction": declare_transaction},
+    )
+    receipt = resp["result"]
+
+    assert set(receipt.keys()) == set(["transaction_hash", "class_hash"])
+    assert receipt["transaction_hash"][:3] == "0x0"
+    assert receipt["class_hash"][:3] == "0x0"
+
+
+@pytest.mark.usefixtures("run_devnet_in_background")
+def test_add_declare_transaction_v0(declare_content):
+    """
+    Add declare transaction with tx v0
+    """
+    contract_class = declare_content["contract_class"]
+    pad_zero_entry_points(contract_class["entry_points_by_type"])
+
+    rpc_contract_class = RpcContractClass(
+        program=contract_class["program"],
         entry_points_by_type=contract_class["entry_points_by_type"],
         abi=contract_class.get("abi", []),
     )
@@ -401,11 +519,11 @@ def test_add_declare_transaction(declare_content):
     declare_transaction = RpcBroadcastedDeclareTxn(
         type=declare_content["type"],
         max_fee=pad_zero(declare_content["max_fee"]),
-        version=hex(SUPPORTED_RPC_TX_VERSION),
-        signature=[pad_zero(sig) for sig in declare_content["signature"]],
-        nonce=pad_zero(declare_content["nonce"]),
+        version=hex(0),
+        signature=[],
+        nonce=rpc_felt(0),
         contract_class=rpc_contract_class,
-        sender_address=pad_zero(declare_content["sender_address"]),
+        sender_address=rpc_felt(1),
     )
 
     resp = rpc_call(
@@ -452,24 +570,25 @@ def test_add_deploy_transaction_on_incorrect_contract(deploy_content):
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
-def test_add_deploy_transaction(deploy_content):
+@pytest.mark.parametrize("version", [0, SUPPORTED_RPC_TX_VERSION])
+def test_add_deploy_transaction(deploy_content, version):
     """
     Add deploy transaction
     """
     contract_definition = deploy_content["contract_definition"]
-    salt = pad_zero(deploy_content["contract_address_salt"])
-    calldata = [pad_zero(data) for data in deploy_content["constructor_calldata"]]
     pad_zero_entry_points(contract_definition["entry_points_by_type"])
+    salt = pad_zero(deploy_content["contract_address_salt"])
+    calldata = [rpc_felt(int(data)) for data in deploy_content["constructor_calldata"]]
 
     rpc_contract_class = RpcContractClass(
-        program=deploy_content["contract_definition"]["program"],
+        program=contract_definition["program"],
         entry_points_by_type=contract_definition["entry_points_by_type"],
         abi=contract_definition.get("abi", []),
     )
 
     deploy_transaction = RpcBroadcastedDeployTxn(
         contract_class=rpc_contract_class,
-        version=hex(SUPPORTED_RPC_TX_VERSION),
+        version=hex(version),
         type=deploy_content["type"],
         contract_address_salt=salt,
         constructor_calldata=calldata,

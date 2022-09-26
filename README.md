@@ -224,7 +224,6 @@ Response:
 Methods currently not supported:
 
 - `starknet_getEvents`
-- `starknet_getNonce`
 
 ## Hardhat integration
 

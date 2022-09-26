@@ -153,13 +153,14 @@ async def add_declare_transaction(
     except (StarkException, TypeError, MarshmallowError) as ex:
         raise RpcError(code=50, message="Invalid contract class") from ex
 
+    nonce = declare_transaction.get("nonce")
     declare_transaction = Declare(
         contract_class=contract_class,
-        version=int(declare_transaction["version"], 16),
         sender_address=int(declare_transaction["sender_address"], 16),
+        nonce=int(nonce, 16) if nonce is not None else 0,
+        version=int(declare_transaction["version"], 16),
         max_fee=int(declare_transaction["max_fee"], 16),
         signature=[int(sig, 16) for sig in declare_transaction["signature"]],
-        nonce=int(declare_transaction["nonce"], 16),
     )
 
     class_hash, transaction_hash = await state.starknet_wrapper.declare(
@@ -209,9 +210,9 @@ async def estimate_fee(request: RpcBroadcastedTxn, block_id: BlockId) -> dict:
     """
     assert_block_id_is_latest(block_id)
 
-    if not state.starknet_wrapper.contracts.is_deployed(
-        int(request["contract_address"], 16)
-    ):
+    address = request.get("contract_address", request.get("sender_address"))
+
+    if not state.starknet_wrapper.contracts.is_deployed(int(address, 16)):
         raise RpcError(code=20, message="Contract not found")
 
     invoke_function = make_invoke_function(request)
@@ -221,12 +222,12 @@ async def estimate_fee(request: RpcBroadcastedTxn, block_id: BlockId) -> dict:
             invoke_function
         )
     except StarkException as ex:
-        if (
+        if "entry_point_selector" in request and (
             f"Entry point {hex(int(request['entry_point_selector'], 16))} not found"
             in ex.message
         ):
             raise RpcError(code=21, message="Invalid message selector") from ex
-        if "While handling calldata" in ex.message:
+        if "While handling calldata" in ex.message or "Error at pc=" in ex.message:
             raise RpcError(code=22, message="Invalid call data") from ex
         raise RpcError(code=-1, message=ex.message) from ex
     return rpc_fee_estimate(fee_response)

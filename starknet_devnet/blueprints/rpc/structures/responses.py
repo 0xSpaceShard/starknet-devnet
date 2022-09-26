@@ -2,14 +2,13 @@
 RPC response structures
 """
 
-from typing import List
+from typing import List, TypedDict
 
 from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionReceipt,
     TransactionStatus,
 )
-from typing_extensions import TypedDict
 
 from starknet_devnet.blueprints.rpc.structures.types import (
     TxnHash,
