@@ -10,22 +10,33 @@ IMAGE=shardlabs/starknet-devnet
 function test_and_push(){
     local tagged_image="$IMAGE:$1"
 
-    echo "Run $tagged_image in background; sleep to allow it to start"
     local container_name="devnet"
-    docker run -d -p 127.0.0.1:5050:5050 --name "$container_name" --rm "$tagged_image"
+
+    local internal_port="5050"
+    local external_address="127.0.0.1:5050"
+
+    echo "Runing $tagged_image in background; sleeping to allow it to start"
+    docker run -d \
+        -p "$external_address:$internal_port" \
+        --name "$container_name" \
+        "$tagged_image" \
+        --port "$internal_port"
+
     sleep 10 # alternatively check in a loop
+
+    # logging can be helpful if Devnet exited early
     docker logs "$container_name"
 
     echo "Checking if devnet instance is alive"
     if [ ! -z $REMOTE ]; then
-        ssh remote-docker curl localhost:5050/is_alive -w "\n"
+        ssh remote-docker curl "$external_address/is_alive" -w "\n"
     else
-        curl localhost:5050/is_alive -w "\n"
+        curl "$external_address/is_alive" -w "\n"
     fi
 
-    docker kill "$container_name"
-
     docker push "$tagged_image"
+
+    docker rm -f "$container_name"
 }
 
 SHA1_TAG="${CIRCLE_SHA1}${ARCH_SUFFIX}"

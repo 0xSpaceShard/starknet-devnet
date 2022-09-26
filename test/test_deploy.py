@@ -3,7 +3,6 @@
 from typing import List
 import pytest
 
-from starkware.starknet.business_logic.transaction.objects import InternalDeploy
 from starkware.starknet.core.os.contract_address.contract_address import (
     calculate_contract_address,
 )
@@ -15,8 +14,12 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
 
 from starknet_devnet.devnet_config import parse_args, DevnetConfig
 from starknet_devnet.starknet_wrapper import StarknetWrapper
-from .shared import CONTRACT_PATH, GENESIS_BLOCK_NUMBER, SUPPORTED_TX_VERSION
 from .util import assert_hex_equal
+from .shared import (
+    CONTRACT_PATH,
+    SUPPORTED_TX_VERSION,
+    PREDEPLOY_ACCOUNT_CLI_ARGS,
+)
 
 
 def get_contract_class():
@@ -37,48 +40,41 @@ def get_deploy_transaction(inputs: List[int], salt=0):
     )
 
 
+@pytest.fixture(name="starknet_wrapper_args")
+def fixture_starknet_wrapper_args(request):
+    """
+    Fixture to return values of dev net arguments
+    """
+    return request.param
+
+
+@pytest.mark.parametrize(
+    "starknet_wrapper_args, expected_tx_hash, expected_block_hash",
+    [
+        (
+            [*PREDEPLOY_ACCOUNT_CLI_ARGS],
+            "0x615badf1d4446082f598fa16416d4d3623dfb8cc5d58276515f502f8fa22009",
+            "",
+        ),
+        (
+            [*PREDEPLOY_ACCOUNT_CLI_ARGS, "--lite-mode"],
+            "0x0",
+            "0x1",
+        ),
+    ],
+    indirect=True,
+)
 @pytest.mark.asyncio
-async def test_deploy():
+async def test_deploy(starknet_wrapper_args, expected_tx_hash, expected_block_hash):
     """
     Test the deployment of a contract.
     """
-    devnet = StarknetWrapper(config=DevnetConfig(parse_args([])))
+    devnet = StarknetWrapper(config=DevnetConfig(parse_args(starknet_wrapper_args)))
     await devnet.initialize()
     deploy_transaction = get_deploy_transaction(inputs=[0])
 
     contract_address, tx_hash = await devnet.deploy(
-        deploy_transaction=deploy_transaction
-    )
-
-    expected_contract_address = calculate_contract_address(
-        deployer_address=0,
-        constructor_calldata=deploy_transaction.constructor_calldata,
-        salt=deploy_transaction.contract_address_salt,
-        contract_class=deploy_transaction.contract_definition,
-    )
-
-    assert contract_address == expected_contract_address
-
-    state = devnet.get_state()
-
-    internal_tx = InternalDeploy.from_external(
-        external_tx=deploy_transaction, general_config=state.general_config
-    )
-
-    assert tx_hash == internal_tx.hash_value
-
-
-@pytest.mark.asyncio
-async def test_deploy_lite():
-    """
-    Test the deployment of a contract with lite mode.
-    """
-    devnet = StarknetWrapper(config=DevnetConfig(parse_args(["--lite-mode"])))
-    await devnet.initialize()
-    deploy_transaction = get_deploy_transaction(inputs=[0])
-
-    contract_address, tx_hash = await devnet.deploy(
-        deploy_transaction=deploy_transaction
+        deploy_transaction=deploy_transaction,
     )
     expected_contract_address = calculate_contract_address(
         deployer_address=0,
@@ -87,14 +83,14 @@ async def test_deploy_lite():
         contract_class=deploy_transaction.contract_definition,
     )
 
-    # Currently in lite mode hashes are actually calculated
     assert_hex_equal(
         hex(tx_hash),
-        "0x0",
+        expected_tx_hash,
     )
     assert contract_address == expected_contract_address
 
     tx_status = devnet.transactions.get_transaction_status(hex(tx_hash))
-
     assert tx_status["tx_status"] == TransactionStatus.ACCEPTED_ON_L2.name
-    assert tx_status["block_hash"] == hex(GENESIS_BLOCK_NUMBER + 1)
+
+    if "--lite-mode" in starknet_wrapper_args:
+        assert tx_status["block_hash"] == expected_block_hash

@@ -1,0 +1,43 @@
+.features {
+  display: flex;
+  align-items: center;
+  padding: 2rem 0;
+  width: 100%;
+}
+
+.featureSvg {
+  height: 200px;
+  width: 200px;
+}
+
+.hero {
+  display: flex;
+  padding: 4rem 0;
+  text-align: center;
+  align-items: center;
+  vertical-align: center;
+  position: relative;
+  background: #f9f9f9;
+}
+
+.hero h1 {
+  font-size: 3rem;
+  padding-bottom: 1rem;
+}
+
+.getStartedButton {
+  margin-right: 0.6rem;
+}
+
+.githubIcon {
+  vertical-align: middle;
+}
+
+.githubButtonText {
+  vertical-align: middle;
+}
+
+.logo {
+  width: 25rem;
+  height: 25rem;
+}
