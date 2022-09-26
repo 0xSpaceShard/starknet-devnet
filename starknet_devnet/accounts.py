@@ -19,7 +19,11 @@ class Accounts:
         self.starknet_wrapper = starknet_wrapper
         self.__n_accounts = starknet_wrapper.config.accounts
         self.__initial_balance = starknet_wrapper.config.initial_balance
+
         self.__seed = starknet_wrapper.config.seed
+        if self.__seed is None:
+            self.__seed = random.getrandbits(32)
+
         self.list = []
 
         self.__generate()
@@ -42,11 +46,7 @@ class Accounts:
     def __generate(self):
         """Generates accounts without deploying them"""
         random_generator = random.Random()
-        self.__initial_balance = self.__initial_balance
-
-        random_generator.seed(
-            self.__seed if self.__seed is not None else random_generator.getrandbits(32)
-        )
+        random_generator.seed(self.__seed)
 
         for _ in range(self.__n_accounts):
             private_key = random_generator.getrandbits(128)

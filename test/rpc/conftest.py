@@ -7,27 +7,26 @@ from __future__ import annotations
 import json
 import typing
 
+import pytest
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.gateway.transaction import Transaction, Deploy
 
-import pytest
 from starknet_devnet.blueprints.rpc.structures.types import (
     BlockNumberDict,
     BlockHashDict,
     Felt,
 )
-from ..util import load_file_content
-from ..shared import SUPPORTED_TX_VERSION
 from .rpc_utils import (
     gateway_call,
     get_block_with_transaction,
     pad_zero,
     add_transaction,
 )
+from ..util import load_file_content
 
 DEPLOY_CONTENT = load_file_content("deploy_rpc.json")
 INVOKE_CONTENT = load_file_content("invoke_rpc.json")
-DECLARE_CONTENT = load_file_content("declare.json")
+DECLARE_CONTENT = load_file_content("declare_rpc.json")
 
 
 @pytest.fixture(name="contract_class")
@@ -55,7 +54,9 @@ def fixture_deploy_info() -> dict:
     """
     Deploy a contract on devnet and return deployment info dict
     """
-    return add_transaction(json.loads(DEPLOY_CONTENT))
+    deploy_tx = json.loads(DEPLOY_CONTENT)
+    deploy_info = add_transaction(deploy_tx)
+    return {**deploy_info, **deploy_tx}
 
 
 @pytest.fixture(name="invoke_info")
@@ -121,19 +122,3 @@ def fixture_block_id(gateway_block, request) -> dict:
         "tag": "latest",
     }
     return block_id_map[request.param]
-
-
-@pytest.fixture(name="rpc_invoke_tx_common")
-def fixture_rpc_invoke_tx_common() -> dict:
-    """
-    Common fields on RpcInvokeTransaction
-    """
-    return {
-        # It is not verified and might be removed in next RPC version
-        "transaction_hash": "0x00",
-        "max_fee": "0x00",
-        "version": hex(SUPPORTED_TX_VERSION),
-        "signature": [],
-        "nonce": None,
-        "type": "INVOKE",
-    }

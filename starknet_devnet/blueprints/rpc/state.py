@@ -25,6 +25,6 @@ async def get_state_update(block_id: BlockId) -> dict:
                 block_number=block_id["block_number"]
             )
     except StarknetDevnetException as ex:
-        raise RpcError(code=24, message="Invalid block id") from ex
+        raise RpcError(code=24, message="Block not found") from ex
 
     return rpc_state_update(result)

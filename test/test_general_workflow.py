@@ -4,6 +4,7 @@ Tests the general workflow of the devnet.
 
 import pytest
 
+from .account import invoke
 from .util import (
     assert_contract_class,
     assert_negative_block_input,
@@ -24,7 +25,6 @@ from .util import (
     get_class_by_hash,
     get_class_hash_at,
     get_full_contract,
-    invoke,
     get_block,
 )
 
@@ -32,25 +32,32 @@ from .shared import (
     ABI_PATH,
     BALANCE_KEY,
     CONTRACT_PATH,
-    EVENTS_ABI_PATH,
     EVENTS_CONTRACT_PATH,
     EXPECTED_SALTY_DEPLOY_ADDRESS,
     EXPECTED_SALTY_DEPLOY_HASH,
-    EXPECTED_SALTY_DEPLOY_HASH_LITE_MODE,
-    EXPECTED_SALTY_DEPLOY_BLOCK_HASH_LITE_MODE,
     FAILING_CONTRACT_PATH,
     GENESIS_BLOCK_NUMBER,
     NONEXISTENT_TX_HASH,
+    PREDEPLOY_ACCOUNT_CLI_ARGS,
+    PREDEPLOYED_ACCOUNT_ADDRESS,
+    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
+
+EXPECTED_SALTY_DEPLOY_HASH_LITE_MODE = "0x2"
+EXPECTED_SALTY_DEPLOY_BLOCK_HASH_LITE_MODE = "0x1"
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
 @pytest.mark.parametrize(
     "run_devnet_in_background, expected_tx_hash, expected_block_hash",
     [
-        ([], EXPECTED_SALTY_DEPLOY_HASH, ""),
         (
-            ["--lite-mode"],
+            [*PREDEPLOY_ACCOUNT_CLI_ARGS],
+            EXPECTED_SALTY_DEPLOY_HASH,
+            "",
+        ),
+        (
+            [*PREDEPLOY_ACCOUNT_CLI_ARGS, "--lite-mode"],
             EXPECTED_SALTY_DEPLOY_HASH_LITE_MODE,
             EXPECTED_SALTY_DEPLOY_BLOCK_HASH_LITE_MODE,
         ),
@@ -93,11 +100,11 @@ def test_general_workflow(expected_tx_hash, expected_block_hash):
 
     # increase and assert balance
     invoke_tx_hash = invoke(
-        function="increase_balance",
-        address=deploy_info["address"],
-        abi_path=ABI_PATH,
-        inputs=["10", "20"],
+        calls=[(deploy_info["address"], "increase_balance", [10, 20])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
+    assert_transaction(invoke_tx_hash, "ACCEPTED_ON_L2")
     value = call(
         function="get_balance", address=deploy_info["address"], abi_path=ABI_PATH
     )
@@ -137,10 +144,9 @@ def test_general_workflow(expected_tx_hash, expected_block_hash):
     )
 
     salty_invoke_tx_hash = invoke(
-        function="increase_balance",
-        address=EXPECTED_SALTY_DEPLOY_ADDRESS,
-        abi_path=EVENTS_ABI_PATH,
-        inputs=["10"],
+        calls=[(EXPECTED_SALTY_DEPLOY_ADDRESS, "increase_balance", [10])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
 
     assert_events(salty_invoke_tx_hash, "test/expected/invoke_receipt_event.json")

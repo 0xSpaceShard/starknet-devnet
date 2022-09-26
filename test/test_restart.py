@@ -5,7 +5,7 @@ Test restart endpoint
 import pytest
 import requests
 
-from .settings import APP_URL
+from .account import invoke
 from .util import (
     devnet_in_background,
     deploy,
@@ -13,9 +13,16 @@ from .util import (
     assert_tx_status,
     call,
     get_block,
-    invoke,
 )
-from .shared import CONTRACT_PATH, ABI_PATH, GENESIS_BLOCK_HASH
+from .settings import APP_URL
+from .shared import (
+    CONTRACT_PATH,
+    ABI_PATH,
+    GENESIS_BLOCK_HASH,
+    PREDEPLOY_ACCOUNT_CLI_ARGS,
+    PREDEPLOYED_ACCOUNT_ADDRESS,
+    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+)
 
 
 def restart():
@@ -64,7 +71,7 @@ def test_transaction():
 
 
 @pytest.mark.restart
-@devnet_in_background()
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
 def test_contract():
     """Checks if contract storage is reset"""
     salt = "0x99"
@@ -73,7 +80,11 @@ def test_contract():
     balance = call("get_balance", contract_address, ABI_PATH)
     assert balance == "0"
 
-    invoke("increase_balance", ["10", "20"], contract_address, ABI_PATH)
+    invoke(
+        calls=[(contract_address, "increase_balance", [10, 20])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
     balance = call("get_balance", contract_address, ABI_PATH)
 
     assert balance == "30"

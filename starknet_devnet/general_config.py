@@ -12,6 +12,7 @@ from starkware.starknet.definitions.general_config import (
 )
 from starkware.starknet.definitions import constants
 
+from .constants import SUPPORTED_TX_VERSION
 from .fee_token import FeeToken
 
 DEFAULT_GENERAL_CONFIG = build_general_config(
@@ -29,7 +30,7 @@ DEFAULT_GENERAL_CONFIG = build_general_config(
             "chain_id": DEFAULT_CHAIN_ID.name,
             "fee_token_address": hex(FeeToken.ADDRESS),
         },
-        "tx_version": 0,
+        "tx_version": SUPPORTED_TX_VERSION,
         "tx_commitment_tree_height": constants.TRANSACTION_COMMITMENT_TREE_HEIGHT,
         "validate_max_n_steps": DEFAULT_VALIDATE_MAX_STEPS,
     }

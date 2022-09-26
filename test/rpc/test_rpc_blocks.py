@@ -1,7 +1,6 @@
 """
 Tests RPC blocks
 """
-from test.shared import GENESIS_BLOCK_NUMBER, INCORRECT_GENESIS_BLOCK_HASH
 
 import pytest
 from starknet_devnet.blueprints.rpc.structures.types import (
@@ -13,6 +12,11 @@ from starknet_devnet.blueprints.rpc.utils import rpc_root
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 
 from .rpc_utils import rpc_call, pad_zero, gateway_call
+from ..shared import (
+    GENESIS_BLOCK_NUMBER,
+    INCORRECT_GENESIS_BLOCK_HASH,
+    SUPPORTED_RPC_TX_VERSION,
+)
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -55,7 +59,7 @@ def test_get_block_with_tx_hashes_raises_on_incorrect_block_id(block_id):
     """
     ex = rpc_call("starknet_getBlockWithTxHashes", params={"block_id": block_id})
 
-    assert ex["error"] == {"code": 24, "message": "Invalid block id"}
+    assert ex["error"] == {"code": 24, "message": "Block not found"}
 
 
 @pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
@@ -90,7 +94,7 @@ def test_get_block_with_txs(gateway_block, block_id):
                 "contract_address_salt": pad_zero(block_tx["contract_address_salt"]),
                 "transaction_hash": pad_zero(block_tx["transaction_hash"]),
                 "type": rpc_txn_type(block_tx["type"]),
-                "version": "0x0",
+                "version": hex(SUPPORTED_RPC_TX_VERSION),
             }
         ],
     }
@@ -110,7 +114,7 @@ def test_get_block_with_txs_raises_on_incorrect_block_id(block_id):
     """
     ex = rpc_call("starknet_getBlockWithTxHashes", params={"block_id": block_id})
 
-    assert ex["error"] == {"code": 24, "message": "Invalid block id"}
+    assert ex["error"] == {"code": 24, "message": "Block not found"}
 
 
 @pytest.mark.usefixtures("run_devnet_in_background", "deploy_info", "gateway_block")
@@ -142,7 +146,7 @@ def test_get_block_transaction_count_raises_on_incorrect_block_id(block_id):
     """
     ex = rpc_call("starknet_getBlockTransactionCount", params={"block_id": block_id})
 
-    assert ex["error"] == {"code": 24, "message": "Invalid block id"}
+    assert ex["error"] == {"code": 24, "message": "Block not found"}
 
 
 @pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")

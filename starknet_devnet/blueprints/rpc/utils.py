@@ -23,7 +23,7 @@ def block_tag_to_block_number(block_id: BlockId) -> BlockId:
                 message="Calls with block_id == 'pending' are not supported currently.",
             )
 
-        raise RpcError(code=24, message="Invalid block id")
+        raise RpcError(code=24, message="Block not found")
 
     return block_id
 
@@ -44,7 +44,7 @@ def get_block_by_block_id(block_id: BlockId) -> dict:
             block_number=block_id["block_number"]
         )
     except StarknetDevnetException as ex:
-        raise RpcError(code=24, message="Invalid block id") from ex
+        raise RpcError(code=24, message="Block not found") from ex
 
 
 def assert_block_id_is_latest(block_id: BlockId) -> None:
