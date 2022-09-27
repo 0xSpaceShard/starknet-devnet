@@ -5,7 +5,8 @@ Tests RPC rpc_call
 import pytest
 from starkware.starknet.public.abi import get_selector_from_name
 
-from .rpc_utils import rpc_call, pad_zero
+from starknet_devnet.blueprints.rpc.utils import rpc_felt
+from .rpc_utils import rpc_call
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -19,7 +20,7 @@ def test_call(deploy_info):
         "starknet_call",
         params={
             "request": {
-                "contract_address": pad_zero(contract_address),
+                "contract_address": rpc_felt(contract_address),
                 "entry_point_selector": hex(get_selector_from_name("get_balance")),
                 "calldata": [],
             },
@@ -62,7 +63,7 @@ def test_call_raises_on_incorrect_selector(deploy_info):
         "starknet_call",
         params={
             "request": {
-                "contract_address": pad_zero(contract_address),
+                "contract_address": rpc_felt(contract_address),
                 "entry_point_selector": hex(get_selector_from_name("xxxxxxx")),
                 "calldata": [],
             },
@@ -88,7 +89,7 @@ def test_call_raises_on_invalid_calldata(deploy_info, calldata):
         "starknet_call",
         params={
             "request": {
-                "contract_address": pad_zero(contract_address),
+                "contract_address": rpc_felt(contract_address),
                 "entry_point_selector": hex(get_selector_from_name("get_balance")),
                 "calldata": calldata,
             },
@@ -110,7 +111,7 @@ def test_call_raises_on_incorrect_block_hash(deploy_info):
         "starknet_call",
         params={
             "request": {
-                "contract_address": pad_zero(contract_address),
+                "contract_address": rpc_felt(contract_address),
                 "entry_point_selector": hex(get_selector_from_name("get_balance")),
                 "calldata": [],
             },

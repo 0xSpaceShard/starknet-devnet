@@ -210,7 +210,11 @@ async def estimate_fee(request: RpcBroadcastedTxn, block_id: BlockId) -> dict:
     """
     assert_block_id_is_latest(block_id)
 
-    address = request.get("contract_address", request.get("sender_address"))
+    address = (
+        request["contract_address"]
+        if "contract_address" in request
+        else request["sender_address"]
+    )
 
     if not state.starknet_wrapper.contracts.is_deployed(int(address, 16)):
         raise RpcError(code=20, message="Contract not found")

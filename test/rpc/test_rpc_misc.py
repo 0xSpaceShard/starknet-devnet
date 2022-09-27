@@ -13,7 +13,7 @@ from starkware.starknet.public.abi import get_storage_var_address
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 
-from .rpc_utils import rpc_call, pad_zero, deploy_and_invoke_storage_contract
+from .rpc_utils import rpc_call, deploy_and_invoke_storage_contract
 
 # pylint: disable=too-many-locals
 from ..shared import (
@@ -43,7 +43,7 @@ def test_get_state_update():
     resp = rpc_call("starknet_getStateUpdate", params={"block_id": "latest"})
     diff_after_declare = resp["result"]["state_diff"]
     assert diff_after_declare["declared_contract_hashes"] == [
-        pad_zero(contract_class_hash)
+        rpc_felt(contract_class_hash)
     ]
 
     # Deploy the deployer - also deploys a contract of the declared class using the deploy syscall
@@ -68,7 +68,7 @@ def test_get_state_update():
 
     # deployer expected to be declared
     assert diff_after_deploy["declared_contract_hashes"] == [
-        pad_zero(deployer_class_hash)
+        rpc_felt(deployer_class_hash)
     ]
 
 
@@ -83,12 +83,12 @@ def test_storage_diff():
     storage_diffs = resp["result"]["state_diff"]["storage_diffs"]
 
     # list can be in different order per test run
-    if storage_diffs[0]["address"] == pad_zero(contract_address):
+    if storage_diffs[0]["address"] == rpc_felt(contract_address):
         storage_diffs[0], storage_diffs[1] = storage_diffs[1], storage_diffs[0]
 
-    assert storage_diffs[0]["address"] == pad_zero(EXPECTED_FEE_TOKEN_ADDRESS)
+    assert storage_diffs[0]["address"] == rpc_felt(EXPECTED_FEE_TOKEN_ADDRESS)
     assert storage_diffs[1] == {
-        "address": pad_zero(contract_address),
+        "address": rpc_felt(contract_address),
         "storage_entries": [
             {
                 "key": rpc_felt(get_storage_var_address("storage")),
@@ -141,7 +141,7 @@ def test_get_nonce():
 
     initial_resp = rpc_call(
         method="starknet_getNonce",
-        params={"block_id": "latest", "contract_address": pad_zero(account_address)},
+        params={"block_id": "latest", "contract_address": rpc_felt(account_address)},
     )
     assert initial_resp["result"] == "0x00"
 
@@ -156,7 +156,7 @@ def test_get_nonce():
 
     final_resp = rpc_call(
         method="starknet_getNonce",
-        params={"block_id": "latest", "contract_address": pad_zero(account_address)},
+        params={"block_id": "latest", "contract_address": rpc_felt(account_address)},
     )
     assert final_resp["result"] == "0x01"
 
@@ -169,6 +169,6 @@ def test_get_nonce_invalid_address():
 
     ex = rpc_call(
         method="starknet_getNonce",
-        params={"block_id": "latest", "contract_address": pad_zero(account_address)},
+        params={"block_id": "latest", "contract_address": rpc_felt(account_address)},
     )
     assert ex["error"] == {"code": 20, "message": "Contract not found"}

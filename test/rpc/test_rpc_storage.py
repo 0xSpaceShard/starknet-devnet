@@ -5,7 +5,8 @@ Tests RPC storage
 import pytest
 from starkware.starknet.public.abi import get_storage_var_address
 
-from .rpc_utils import rpc_call, pad_zero
+from starknet_devnet.blueprints.rpc.utils import rpc_felt
+from .rpc_utils import rpc_call
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -20,7 +21,7 @@ def test_get_storage_at(deploy_info):
     resp = rpc_call(
         "starknet_getStorageAt",
         params={
-            "contract_address": pad_zero(contract_address),
+            "contract_address": rpc_felt(contract_address),
             "key": key,
             "block_id": block_id,
         },
@@ -63,7 +64,7 @@ def test_get_storage_at_raises_on_incorrect_key(deploy_info):
     response = rpc_call(
         "starknet_getStorageAt",
         params={
-            "contract_address": pad_zero(contract_address),
+            "contract_address": rpc_felt(contract_address),
             "key": "0x00",
             "block_id": "latest",
         },
@@ -84,7 +85,7 @@ def test_get_storage_at_raises_on_incorrect_block_id(deploy_info):
     ex = rpc_call(
         "starknet_getStorageAt",
         params={
-            "contract_address": pad_zero(contract_address),
+            "contract_address": rpc_felt(contract_address),
             "key": key,
             "block_id": "0x0",
         },
