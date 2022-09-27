@@ -9,7 +9,6 @@ from typing import Union, List
 from test.account import invoke
 import requests
 
-from starknet_devnet.blueprints.rpc.structures.types import Felt
 from ..settings import APP_URL
 from ..util import deploy, assert_transaction
 from ..shared import (
@@ -86,15 +85,6 @@ def get_block_with_transaction(transaction_hash: str) -> dict:
     block_number: int = transaction["block_number"]
     block = gateway_call("get_block", blockNumber=block_number)
     return block
-
-
-def pad_zero(felt: str) -> Felt:
-    """
-    Convert felt with format `0xValue` to format `0x0Value`
-    """
-    if felt == "0x0":
-        return "0x00"
-    return "0x0" + felt.lstrip("0x")
 
 
 def deploy_and_invoke_storage_contract(value: int) -> List[str]:

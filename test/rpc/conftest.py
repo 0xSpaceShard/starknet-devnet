@@ -11,6 +11,7 @@ import pytest
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.gateway.transaction import Transaction, Deploy
 
+from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from starknet_devnet.blueprints.rpc.structures.types import (
     BlockNumberDict,
     BlockHashDict,
@@ -19,7 +20,6 @@ from starknet_devnet.blueprints.rpc.structures.types import (
 from .rpc_utils import (
     gateway_call,
     get_block_with_transaction,
-    pad_zero,
     add_transaction,
 )
 from ..util import load_file_content
@@ -46,7 +46,7 @@ def fixture_class_hash(deploy_info) -> Felt:
     class_hash = gateway_call(
         "get_class_hash_at", contractAddress=deploy_info["address"]
     )
-    return pad_zero(class_hash)
+    return rpc_felt(class_hash)
 
 
 @pytest.fixture(name="deploy_info")
@@ -118,7 +118,7 @@ def fixture_block_id(gateway_block, request) -> dict:
     """
     block_id_map = {
         "hash": BlockNumberDict(block_number=gateway_block["block_number"]),
-        "number": BlockHashDict(block_hash=pad_zero(gateway_block["block_hash"])),
+        "number": BlockHashDict(block_hash=rpc_felt(gateway_block["block_hash"])),
         "tag": "latest",
     }
     return block_id_map[request.param]

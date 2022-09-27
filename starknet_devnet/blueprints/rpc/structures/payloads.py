@@ -331,22 +331,31 @@ def make_invoke_function(request_body: dict) -> InvokeFunction:
     """
     Convert RPC request to internal InvokeFunction
     """
-
+    version = int(request_body["version"], 16) if "version" in request_body else 0
     nonce = request_body.get("nonce")
-    entry_point_selector = request_body.get("entry_point_selector")
-    return InvokeFunction(
-        contract_address=int(
-            request_body.get("contract_address", request_body.get("sender_address")), 16
-        ),
-        entry_point_selector=int(entry_point_selector, 16)
-        if entry_point_selector is not None
-        else None,
-        calldata=[int(data, 16) for data in request_body.get("calldata", [])],
-        max_fee=int(request_body["max_fee"], 16) if "max_fee" in request_body else 0,
-        version=int(request_body["version"], 16) if "version" in request_body else 0,
-        signature=[int(data, 16) for data in request_body.get("signature", [])],
-        nonce=int(nonce, 16) if nonce is not None else None,
-    )
+
+    common_data = {
+        "max_fee": int(request_body["max_fee"], 16) if "max_fee" in request_body else 0,
+        "version": version,
+        "signature": [int(data, 16) for data in request_body.get("signature", [])],
+        "nonce": int(nonce, 16) if nonce is not None else None,
+    }
+
+    if version == 0:
+        invoke_function = InvokeFunction(
+            contract_address=int(request_body["contract_address"], 16),
+            entry_point_selector=int(request_body["entry_point_selector"], 16),
+            calldata=[int(data, 16) for data in request_body.get("calldata", [])],
+            **common_data,
+        )
+    else:
+        invoke_function = InvokeFunction(
+            contract_address=int(request_body["sender_address"], 16),
+            calldata=[int(data, 16) for data in request_body.get("calldata", [])],
+            **common_data,
+        )
+
+    return invoke_function
 
 
 class EntryPoint(TypedDict):

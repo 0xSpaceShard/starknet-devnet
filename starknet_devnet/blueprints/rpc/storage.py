@@ -26,4 +26,4 @@ async def get_storage_at(
     storage = await state.starknet_wrapper.get_storage_at(
         contract_address=int(contract_address, 16), key=int(key, 16)
     )
-    return rpc_felt(int(storage, 16))
+    return rpc_felt(storage)

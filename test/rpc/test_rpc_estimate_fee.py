@@ -14,7 +14,7 @@ from starknet_devnet.blueprints.rpc.structures.payloads import (
 )
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from starknet_devnet.constants import DEFAULT_GAS_PRICE
-from .rpc_utils import rpc_call_background_devnet, pad_zero
+from .rpc_utils import rpc_call_background_devnet
 from ..account import _get_execute_args
 from ..shared import (
     PREDEPLOY_ACCOUNT_CLI_ARGS,
@@ -80,8 +80,8 @@ def test_estimate_happy_path_v0():
     [["--gas-price", str(DEFAULT_GAS_PRICE), *PREDEPLOY_ACCOUNT_CLI_ARGS]],
     indirect=True,
 )
-def test_estimate_happy_path_v1():
-    """Happy path estimate_fee call with tx v1"""
+def test_estimate_happy_path():
+    """Happy path estimate_fee call"""
     contract_address = deploy_empty_contract()["address"]
 
     calls = [(contract_address, "sum_point_array", [2, 10, 20, 30, 40])]
@@ -91,9 +91,9 @@ def test_estimate_happy_path_v1():
         type="INVOKE",
         max_fee=rpc_felt(0),
         version=hex(SUPPORTED_RPC_TX_VERSION),
-        signature=[rpc_felt(int(sig)) for sig in signature],
+        signature=[rpc_felt(sig) for sig in signature],
         nonce=rpc_felt(0),
-        sender_address=pad_zero(PREDEPLOYED_ACCOUNT_ADDRESS),
+        sender_address=rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS),
         calldata=[rpc_felt(data) for data in execute_calldata],
     )
 
@@ -121,9 +121,9 @@ def test_estimate_fee_with_invalid_call_data():
         type="INVOKE",
         max_fee=rpc_felt(0),
         version=hex(SUPPORTED_RPC_TX_VERSION),
-        signature=[rpc_felt(int(sig)) for sig in signature],
+        signature=[rpc_felt(sig) for sig in signature],
         nonce=rpc_felt(0),
-        sender_address=pad_zero(PREDEPLOYED_ACCOUNT_ADDRESS),
+        sender_address=rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS),
         calldata=[rpc_felt(data) for data in execute_calldata][:-1],
     )
     ex = rpc_call_background_devnet(

@@ -29,7 +29,6 @@ from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from .rpc_utils import (
     rpc_call,
     get_block_with_transaction,
-    pad_zero,
     gateway_call,
     deploy_and_invoke_storage_contract,
 )
@@ -52,7 +51,7 @@ def pad_zero_entry_points(entry_points: EntryPoints) -> None:
     def pad_selector(entry_point):
         return {
             "offset": entry_point["offset"],
-            "selector": pad_zero(entry_point["selector"]),
+            "selector": rpc_felt(entry_point["selector"]),
         }
 
     for entry_point_type, entry_point_list in entry_points.items():
@@ -73,17 +72,17 @@ def test_get_transaction_by_hash_deploy(deploy_info):
 
     resp = rpc_call(
         "starknet_getTransactionByHash",
-        params={"transaction_hash": pad_zero(transaction_hash)},
+        params={"transaction_hash": rpc_felt(transaction_hash)},
     )
     transaction = resp["result"]
 
     assert transaction == {
-        "transaction_hash": pad_zero(transaction_hash),
-        "class_hash": pad_zero(block_tx["class_hash"]),
+        "transaction_hash": rpc_felt(transaction_hash),
+        "class_hash": rpc_felt(block_tx["class_hash"]),
         "version": hex(SUPPORTED_RPC_TX_VERSION),
         "type": rpc_txn_type(block_tx["type"]),
-        "contract_address": pad_zero(contract_address),
-        "contract_address_salt": pad_zero(block_tx["contract_address_salt"]),
+        "contract_address": rpc_felt(contract_address),
+        "contract_address_salt": rpc_felt(block_tx["contract_address_salt"]),
         "constructor_calldata": ["0x045"],
     }
 
@@ -97,23 +96,23 @@ def test_get_transaction_by_hash_invoke():
 
     block = get_block_with_transaction(invoke_tx_hash)
     block_tx = block["transactions"][0]
-    signature: List[str] = [pad_zero(sig) for sig in block_tx["signature"]]
-    calldata: List[str] = [pad_zero(data) for data in block_tx["calldata"]]
+    signature: List[str] = [rpc_felt(sig) for sig in block_tx["signature"]]
+    calldata: List[str] = [rpc_felt(data) for data in block_tx["calldata"]]
 
     resp = rpc_call(
         "starknet_getTransactionByHash",
-        params={"transaction_hash": pad_zero(invoke_tx_hash)},
+        params={"transaction_hash": rpc_felt(invoke_tx_hash)},
     )
     transaction = resp["result"]
 
     assert transaction == {
-        "transaction_hash": pad_zero(invoke_tx_hash),
-        "max_fee": pad_zero(block_tx["max_fee"]),
+        "transaction_hash": rpc_felt(invoke_tx_hash),
+        "max_fee": rpc_felt(block_tx["max_fee"]),
         "version": hex(SUPPORTED_RPC_TX_VERSION),
         "signature": signature,
         "nonce": rpc_felt(0),
         "type": rpc_txn_type(block_tx["type"]),
-        "sender_address": pad_zero(PREDEPLOYED_ACCOUNT_ADDRESS),
+        "sender_address": rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS),
         "calldata": calldata,
     }
 
@@ -132,23 +131,23 @@ def test_get_transaction_by_hash_declare():
     block = get_block_with_transaction(declare_info["tx_hash"])
     block_tx = block["transactions"][0]
     transaction_hash: str = declare_info["tx_hash"]
-    signature: List[str] = [pad_zero(sig) for sig in block_tx["signature"]]
+    signature: List[str] = [rpc_felt(sig) for sig in block_tx["signature"]]
 
     resp = rpc_call(
         "starknet_getTransactionByHash",
-        params={"transaction_hash": pad_zero(transaction_hash)},
+        params={"transaction_hash": rpc_felt(transaction_hash)},
     )
     transaction = resp["result"]
 
     assert transaction == {
-        "transaction_hash": pad_zero(transaction_hash),
-        "max_fee": pad_zero(block_tx["max_fee"]),
+        "transaction_hash": rpc_felt(transaction_hash),
+        "max_fee": rpc_felt(block_tx["max_fee"]),
         "version": hex(SUPPORTED_RPC_TX_VERSION),
         "signature": signature,
         "nonce": rpc_felt(0),
         "type": rpc_txn_type(block_tx["type"]),
-        "sender_address": pad_zero(PREDEPLOYED_ACCOUNT_ADDRESS),
-        "class_hash": pad_zero(block_tx["class_hash"]),
+        "sender_address": rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS),
+        "class_hash": rpc_felt(block_tx["class_hash"]),
     }
 
 
@@ -186,13 +185,13 @@ def test_get_transaction_by_block_id_and_index(deploy_info):
     transaction = resp["result"]
 
     assert transaction == {
-        "class_hash": pad_zero(block_tx["class_hash"]),
+        "class_hash": rpc_felt(block_tx["class_hash"]),
         "constructor_calldata": [
-            pad_zero(tx) for tx in block_tx["constructor_calldata"]
+            rpc_felt(tx) for tx in block_tx["constructor_calldata"]
         ],
-        "contract_address": pad_zero(contract_address),
-        "contract_address_salt": pad_zero(block_tx["contract_address_salt"]),
-        "transaction_hash": pad_zero(transaction_hash),
+        "contract_address": rpc_felt(contract_address),
+        "contract_address_salt": rpc_felt(block_tx["contract_address_salt"]),
+        "transaction_hash": rpc_felt(transaction_hash),
         "type": rpc_txn_type(block_tx["type"]),
         "version": hex(SUPPORTED_RPC_TX_VERSION),
     }
@@ -206,7 +205,7 @@ def test_get_transaction_by_block_id_and_index_raises_on_incorrect_block_hash():
     ex = rpc_call(
         "starknet_getTransactionByBlockIdAndIndex",
         params={
-            "block_id": {"block_hash": pad_zero(INCORRECT_GENESIS_BLOCK_HASH)},
+            "block_id": {"block_hash": rpc_felt(INCORRECT_GENESIS_BLOCK_HASH)},
             "index": 0,
         },
     )
@@ -226,7 +225,7 @@ def test_get_transaction_by_block_id_and_index_raises_on_incorrect_index(deploy_
         "starknet_getTransactionByBlockIdAndIndex",
         params={
             "block_id": {
-                "block_hash": pad_zero(block_hash),
+                "block_hash": rpc_felt(block_hash),
             },
             "index": 999999,
         },
@@ -248,15 +247,15 @@ def test_get_declare_transaction_receipt(declare_info):
 
     resp = rpc_call(
         "starknet_getTransactionReceipt",
-        params={"transaction_hash": pad_zero(transaction_hash)},
+        params={"transaction_hash": rpc_felt(transaction_hash)},
     )
     receipt = resp["result"]
 
     assert receipt == {
-        "transaction_hash": pad_zero(transaction_hash),
+        "transaction_hash": rpc_felt(transaction_hash),
         "actual_fee": rpc_felt(0),
         "status": "ACCEPTED_ON_L2",
-        "block_hash": pad_zero(block["block_hash"]),
+        "block_hash": rpc_felt(block["block_hash"]),
         "block_number": block["block_number"],
         "type": "DECLARE",
         "messages_sent": [],
@@ -282,23 +281,23 @@ def test_get_invoke_transaction_receipt():
 
     resp = rpc_call(
         "starknet_getTransactionReceipt",
-        params={"transaction_hash": pad_zero(invoke_tx_hash)},
+        params={"transaction_hash": rpc_felt(invoke_tx_hash)},
     )
     receipt = resp["result"]
 
     assert receipt == {
-        "transaction_hash": pad_zero(invoke_tx_hash),
-        "actual_fee": pad_zero(block_tx["max_fee"]),
+        "transaction_hash": rpc_felt(invoke_tx_hash),
+        "actual_fee": rpc_felt(block_tx["max_fee"]),
         "status": "ACCEPTED_ON_L2",
-        "block_hash": pad_zero(block["block_hash"]),
+        "block_hash": rpc_felt(block["block_hash"]),
         "block_number": block["block_number"],
         "type": rpc_txn_type(block_tx["type"]),
         "messages_sent": [],
         "events": [
             {
-                "from_address": pad_zero(event["from_address"]),
-                "data": [pad_zero(data) for data in event["data"]],
-                "keys": [pad_zero(key) for key in event["keys"]],
+                "from_address": rpc_felt(event["from_address"]),
+                "data": [rpc_felt(data) for data in event["data"]],
+                "keys": [rpc_felt(key) for key in event["keys"]],
             }
         ],
     }
@@ -326,16 +325,16 @@ def test_get_deploy_transaction_receipt(deploy_info):
 
     resp = rpc_call(
         "starknet_getTransactionReceipt",
-        params={"transaction_hash": pad_zero(transaction_hash)},
+        params={"transaction_hash": rpc_felt(transaction_hash)},
     )
     receipt = resp["result"]
 
     assert receipt == {
-        "contract_address": pad_zero(deploy_info["address"]),
-        "transaction_hash": pad_zero(transaction_hash),
+        "contract_address": rpc_felt(deploy_info["address"]),
+        "transaction_hash": rpc_felt(transaction_hash),
         "actual_fee": rpc_felt(0),
         "status": "ACCEPTED_ON_L2",
-        "block_hash": pad_zero(block["block_hash"]),
+        "block_hash": rpc_felt(block["block_hash"]),
         "block_number": block["block_number"],
         "type": "DEPLOY",
         "messages_sent": [],
@@ -365,9 +364,9 @@ def test_add_invoke_transaction():
         type="INVOKE",
         max_fee=rpc_felt(0),
         version=hex(SUPPORTED_RPC_TX_VERSION),
-        signature=[rpc_felt(int(sig)) for sig in signature],
+        signature=[rpc_felt(sig) for sig in signature],
         nonce=rpc_felt(0),
-        sender_address=pad_zero(PREDEPLOYED_ACCOUNT_ADDRESS),
+        sender_address=rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS),
         calldata=[rpc_felt(data) for data in execute_calldata],
     )
 
@@ -377,14 +376,14 @@ def test_add_invoke_transaction():
     )
     receipt = resp["result"]
 
-    assert set(receipt.keys()) == {"transaction_hash"}
-    assert receipt["transaction_hash"][:3] == "0x0"
-
     storage = gateway_call(
         "get_storage_at",
         contractAddress=contract_address,
         key=hex(get_storage_var_address("balance")),
     )
+
+    assert set(receipt.keys()) == {"transaction_hash"}
+    assert receipt["transaction_hash"][:3] == "0x0"
     assert storage == "0x45"
 
 
@@ -402,7 +401,7 @@ def test_add_invoke_transaction_v0():
         version=hex(0),
         signature=[],
         nonce=None,
-        contract_address=pad_zero(contract_address),
+        contract_address=rpc_felt(contract_address),
         entry_point_selector=rpc_felt(get_selector_from_name("increase_balance")),
         calldata=["0x0d", "0x038"],
     )
@@ -413,14 +412,14 @@ def test_add_invoke_transaction_v0():
     )
     receipt = resp["result"]
 
-    assert set(receipt.keys()) == {"transaction_hash"}
-    assert receipt["transaction_hash"][:3] == "0x0"
-
     storage = gateway_call(
         "get_storage_at",
         contractAddress=contract_address,
         key=hex(get_storage_var_address("balance")),
     )
+
+    assert set(receipt.keys()) == {"transaction_hash"}
+    assert receipt["transaction_hash"][:3] == "0x0"
     assert storage == "0x45"
 
 
@@ -440,12 +439,12 @@ def test_add_declare_transaction_on_incorrect_contract(declare_content):
 
     declare_transaction = RpcBroadcastedDeclareTxn(
         type=declare_content["type"],
-        max_fee=pad_zero(declare_content["max_fee"]),
+        max_fee=rpc_felt(declare_content["max_fee"]),
         version=hex(SUPPORTED_RPC_TX_VERSION),
-        signature=[pad_zero(sig) for sig in declare_content["signature"]],
-        nonce=pad_zero(declare_content["nonce"]),
+        signature=[rpc_felt(sig) for sig in declare_content["signature"]],
+        nonce=rpc_felt(declare_content["nonce"]),
         contract_class=rpc_contract_class,
-        sender_address=pad_zero(declare_content["sender_address"]),
+        sender_address=rpc_felt(declare_content["sender_address"]),
     )
 
     ex = rpc_call(
@@ -483,12 +482,12 @@ def test_add_declare_transaction(declare_content):
 
     declare_transaction = RpcBroadcastedDeclareTxn(
         type=declare_content["type"],
-        max_fee=pad_zero(declare_content["max_fee"]),
+        max_fee=rpc_felt(declare_content["max_fee"]),
         version=hex(SUPPORTED_RPC_TX_VERSION),
-        signature=[rpc_felt(int(sig)) for sig in signature],
+        signature=[rpc_felt(sig) for sig in signature],
         nonce=rpc_felt(nonce),
         contract_class=rpc_contract_class,
-        sender_address=pad_zero(PREDEPLOYED_ACCOUNT_ADDRESS),
+        sender_address=rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS),
     )
 
     resp = rpc_call(
@@ -518,7 +517,7 @@ def test_add_declare_transaction_v0(declare_content):
 
     declare_transaction = RpcBroadcastedDeclareTxn(
         type=declare_content["type"],
-        max_fee=pad_zero(declare_content["max_fee"]),
+        max_fee=rpc_felt(declare_content["max_fee"]),
         version=hex(0),
         signature=[],
         nonce=rpc_felt(0),
@@ -543,8 +542,8 @@ def test_add_deploy_transaction_on_incorrect_contract(deploy_content):
     Add deploy transaction on incorrect class
     """
     contract_definition = deploy_content["contract_definition"]
-    salt = pad_zero(deploy_content["contract_address_salt"])
-    calldata = [pad_zero(data) for data in deploy_content["constructor_calldata"]]
+    salt = rpc_felt(deploy_content["contract_address_salt"])
+    calldata = [rpc_felt(data) for data in deploy_content["constructor_calldata"]]
     pad_zero_entry_points(contract_definition["entry_points_by_type"])
 
     rpc_contract_class = RpcContractClass(
@@ -577,8 +576,8 @@ def test_add_deploy_transaction(deploy_content, version):
     """
     contract_definition = deploy_content["contract_definition"]
     pad_zero_entry_points(contract_definition["entry_points_by_type"])
-    salt = pad_zero(deploy_content["contract_address_salt"])
-    calldata = [rpc_felt(int(data)) for data in deploy_content["constructor_calldata"]]
+    salt = rpc_felt(deploy_content["contract_address_salt"])
+    calldata = [rpc_felt(data) for data in deploy_content["constructor_calldata"]]
 
     rpc_contract_class = RpcContractClass(
         program=contract_definition["program"],
