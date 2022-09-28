@@ -683,3 +683,23 @@ Firstly let's check our current version on master with these commands:
 git checkout master
 poetry version
 ```
+
+Secondly, we need to update the version with:
+```
+poetry version patch
+```
+or explicitly specifying the version, for example:
+```
+poetry version 0.3.2
+```
+
+Also in file ```/starknet_devnet/__init__.py``` we need to manually update the version:
+```
+__version__ = "0.3.2"
+```
+
+If we did everything correctly these commands should result with the same version:
+```
+poetry version
+poetry run starknet-devnet --version
+```
