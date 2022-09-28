@@ -703,3 +703,13 @@ If we did everything correctly these commands should result with the same versio
 poetry version
 poetry run starknet-devnet --version
 ```
+
+Thirdly we need to add a tag to the version update commit (remember about ```v```):
+```
+git tag v0.3.2
+git push origin v0.3.2
+```
+
+Lastly, we need to commit changes and wait for CI. While waiting we can generate release notes with the corresponding tag version. Later we can check if CI and image publish worked. 
+
+If everything went well we can inform users on telegram and devnet channel in starkware discord.
