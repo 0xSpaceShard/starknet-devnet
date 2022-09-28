@@ -675,3 +675,11 @@ You don't need to build anything to be able to run locally, but if you need the 
 ```text
 poetry build
 ```
+
+### Development - Version release
+
+Firstly let's check our current version on master with these commands:
+```text
+git checkout master
+poetry version
+```
