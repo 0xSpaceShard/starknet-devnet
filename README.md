@@ -693,7 +693,7 @@ or explicitly specify the version:
 poetry version <VERSION>
 ```
 
-In file ```/starknet_devnet/__init__.py``` you need to manually update the version:
+In file `/starknet_devnet/__init__.py` you need to manually update the version:
 ```
 __version__ = "<VERSION>"
 ```
@@ -704,13 +704,13 @@ poetry version
 poetry run starknet-devnet --version
 ```
 
-Later, you need to add a tag to the version update commit (Notice the ```v```):
+Later, you need to add a tag to the version update commit (Notice the `v`):
 ```
-git tag v0.3.2
-git push origin v0.3.2
+git tag v<VERSION>
+git push origin v<VERSION>
 ```
 
 Lastly:
-- you need to check if CI and image publish worked after commit
-- you need to generate release notes with the corresponding tag version on GitHub
-- you can inform users on telegram, devnet channel in starkware discord, and [Starknet Shamans](https://community.starknet.io/t/starknet-devnet/69).
+- check if CI and image publish worked after commit
+- need to generate release notes with the corresponding tag version on GitHub
+- inform users on telegram, devnet channel in starkware discord, and [Starknet Shamans](https://community.starknet.io/t/starknet-devnet/69).
