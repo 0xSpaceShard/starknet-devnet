@@ -241,7 +241,7 @@ def _l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address):
         function="deposit",
         inputs=[str(USER_ID), "100"],
         to_address=l2_contract_address,
-        abi_path=L1L2_ABI_PATH
+        abi_path=L1L2_ABI_PATH,
     )
     assert int(message_fee) > 0
 
