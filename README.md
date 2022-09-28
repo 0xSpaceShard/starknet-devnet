@@ -684,7 +684,9 @@ git checkout master
 poetry version
 ```
 
-To update the version use `poetry version <VERSION>` or any other variation of that [command](https://python-poetry.org/docs/cli/#version)
+To update the version use:
+```poetry version <VERSION>```
+or any other variation of that [command](https://python-poetry.org/docs/cli/#version)
 
 In file `/starknet_devnet/__init__.py` you need to manually update the version:
 ```
