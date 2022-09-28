@@ -611,10 +611,10 @@ def rpc_state_update(state_update: BlockStateUpdate) -> RpcStateUpdate:
         return _contracts
 
     def nonces() -> List[RpcNonceDiff]:
-        _nonces = []
-        for address, nonce in state_update.state_diff.nonces.items():
-            _nonce = RpcNonceDiff(contract_address=address, nonce=nonce)
-        return _nonces
+        return [
+            RpcNonceDiff(contract_address=rpc_felt(address), nonce=rpc_felt(nonce))
+            for address, nonce in state_update.state_diff.nonces.items()
+        ]
 
     rpc_state: RpcStateUpdate = {
         "block_hash": rpc_felt(state_update.block_hash),

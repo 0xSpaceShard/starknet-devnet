@@ -7,6 +7,13 @@ from __future__ import annotations
 import json
 import typing
 
+from test.rpc.rpc_utils import (
+    gateway_call,
+    get_block_with_transaction,
+    add_transaction,
+)
+from test.util import load_file_content
+
 import pytest
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.gateway.transaction import Transaction, Deploy
@@ -17,12 +24,6 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     BlockHashDict,
     Felt,
 )
-from .rpc_utils import (
-    gateway_call,
-    get_block_with_transaction,
-    add_transaction,
-)
-from ..util import load_file_content
 
 DEPLOY_CONTENT = load_file_content("deploy_rpc.json")
 INVOKE_CONTENT = load_file_content("invoke_rpc.json")

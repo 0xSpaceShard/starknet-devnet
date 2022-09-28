@@ -4,6 +4,16 @@ Tests RPC estimate fee
 
 from __future__ import annotations
 
+from test.account import _get_execute_args, get_nonce
+from test.rpc.rpc_utils import rpc_call_background_devnet
+from test.shared import (
+    PREDEPLOY_ACCOUNT_CLI_ARGS,
+    SUPPORTED_RPC_TX_VERSION,
+    PREDEPLOYED_ACCOUNT_ADDRESS,
+    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+)
+from test.test_account import deploy_empty_contract
+
 import pytest
 from starkware.starknet.public.abi import get_selector_from_name
 
@@ -14,15 +24,6 @@ from starknet_devnet.blueprints.rpc.structures.payloads import (
 )
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from starknet_devnet.constants import DEFAULT_GAS_PRICE
-from .rpc_utils import rpc_call_background_devnet
-from ..account import _get_execute_args
-from ..shared import (
-    PREDEPLOY_ACCOUNT_CLI_ARGS,
-    SUPPORTED_RPC_TX_VERSION,
-    PREDEPLOYED_ACCOUNT_ADDRESS,
-    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
-)
-from ..test_account import deploy_empty_contract
 
 
 def common_estimate_response(response):
@@ -92,7 +93,7 @@ def test_estimate_happy_path():
         max_fee=rpc_felt(0),
         version=hex(SUPPORTED_RPC_TX_VERSION),
         signature=[rpc_felt(sig) for sig in signature],
-        nonce=rpc_felt(0),
+        nonce=rpc_felt(get_nonce(PREDEPLOYED_ACCOUNT_ADDRESS)),
         sender_address=rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS),
         calldata=[rpc_felt(data) for data in execute_calldata],
     )
@@ -122,7 +123,7 @@ def test_estimate_fee_with_invalid_call_data():
         max_fee=rpc_felt(0),
         version=hex(SUPPORTED_RPC_TX_VERSION),
         signature=[rpc_felt(sig) for sig in signature],
-        nonce=rpc_felt(0),
+        nonce=rpc_felt(get_nonce(PREDEPLOYED_ACCOUNT_ADDRESS)),
         sender_address=rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS),
         calldata=[rpc_felt(data) for data in execute_calldata][:-1],
     )

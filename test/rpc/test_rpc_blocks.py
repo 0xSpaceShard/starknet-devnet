@@ -2,7 +2,15 @@
 Tests RPC blocks
 """
 
+from test.rpc.rpc_utils import rpc_call, gateway_call
+from test.shared import (
+    GENESIS_BLOCK_NUMBER,
+    INCORRECT_GENESIS_BLOCK_HASH,
+    SUPPORTED_RPC_TX_VERSION,
+)
+
 import pytest
+
 from starknet_devnet.blueprints.rpc.structures.types import (
     BlockNumberDict,
     BlockHashDict,
@@ -10,13 +18,6 @@ from starknet_devnet.blueprints.rpc.structures.types import (
 )
 from starknet_devnet.blueprints.rpc.utils import rpc_root, rpc_felt
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
-
-from .rpc_utils import rpc_call, gateway_call
-from ..shared import (
-    GENESIS_BLOCK_NUMBER,
-    INCORRECT_GENESIS_BLOCK_HASH,
-    SUPPORTED_RPC_TX_VERSION,
-)
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
