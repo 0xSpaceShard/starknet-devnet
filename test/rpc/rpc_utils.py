@@ -4,18 +4,20 @@ Utilities for RPC tests
 
 from __future__ import annotations
 
+import re
 from typing import Union, List
 
 from test.account import invoke
-import requests
 
-from ..settings import APP_URL
-from ..util import deploy, assert_transaction
-from ..shared import (
+from test.settings import APP_URL
+from test.shared import (
     STORAGE_CONTRACT_PATH,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
+from test.util import deploy, assert_transaction
+
+import requests
 
 
 class BackgroundDevnetClient:
@@ -102,3 +104,10 @@ def deploy_and_invoke_storage_contract(value: int) -> List[str]:
     assert_transaction(invoke_tx_hash, "ACCEPTED_ON_L2")
 
     return contract_address, invoke_tx_hash
+
+
+def is_felt(value: str) -> bool:
+    """
+    Check whether value is a Felt
+    """
+    return bool(re.match(r"^0x0[a-fA-F0-9]{1,63}$", value))

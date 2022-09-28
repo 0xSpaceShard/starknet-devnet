@@ -45,8 +45,7 @@ async def call(request: FunctionCall, block_id: BlockId) -> List[Felt]:
         result = await state.starknet_wrapper.call(
             transaction=make_invoke_function(request)
         )
-        result = [rpc_felt(res) for res in result["result"]]
-        return result
+        return [rpc_felt(res) for res in result["result"]]
     except StarknetDevnetException as ex:
         raise RpcError(
             code=RpcErrorCode.INTERNAL_ERROR.value, message=ex.message

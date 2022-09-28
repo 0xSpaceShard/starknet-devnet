@@ -1,11 +1,12 @@
 """
 Tests RPC contract class
 """
+from test.rpc.rpc_utils import rpc_call
+
 import pytest
 from starkware.starknet.services.api.gateway.transaction_utils import decompress_program
 
 from starknet_devnet.blueprints.rpc.utils import BlockId, rpc_felt
-from .rpc_utils import rpc_call
 
 EXPECTED_ENTRY_POINTS = {
     "CONSTRUCTOR": [

@@ -5,18 +5,10 @@ Tests RPC miscellaneous
 from __future__ import annotations
 
 from test.account import invoke, declare
-from test.test_account import deploy_empty_contract
-import pytest
-
-from starkware.starknet.public.abi import get_storage_var_address
-
-from starknet_devnet.blueprints.rpc.utils import rpc_felt
-from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
-
-from .rpc_utils import rpc_call, deploy_and_invoke_storage_contract
+from test.rpc.rpc_utils import rpc_call, deploy_and_invoke_storage_contract
 
 # pylint: disable=too-many-locals
-from ..shared import (
+from test.shared import (
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     CONTRACT_PATH,
@@ -24,8 +16,15 @@ from ..shared import (
     DEPLOYER_CONTRACT_PATH,
     EXPECTED_FEE_TOKEN_ADDRESS,
 )
-from ..test_state_update import get_class_hash_at_path
-from ..util import assert_transaction, assert_hex_equal, deploy
+from test.test_account import deploy_empty_contract
+from test.test_state_update import get_class_hash_at_path
+from test.util import assert_transaction, assert_hex_equal, deploy
+
+import pytest
+from starkware.starknet.public.abi import get_storage_var_address
+
+from starknet_devnet.blueprints.rpc.utils import rpc_felt
+from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 
 
 @pytest.mark.usefixtures("devnet_with_account")

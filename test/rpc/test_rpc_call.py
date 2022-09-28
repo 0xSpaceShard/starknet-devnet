@@ -2,11 +2,12 @@
 Tests RPC rpc_call
 """
 
+from test.rpc.rpc_utils import rpc_call
 import pytest
+
 from starkware.starknet.public.abi import get_selector_from_name
 
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
-from .rpc_utils import rpc_call
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
