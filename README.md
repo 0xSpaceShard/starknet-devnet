@@ -678,38 +678,38 @@ poetry build
 
 ### Development - Version release
 
-Firstly let's check our current version on master with these commands:
+You can check the current version on master with these commands:
 ```text
 git checkout master
 poetry version
 ```
 
-Secondly, we need to update the version with:
+To update the version use:
 ```
 poetry version patch
 ```
-or explicitly specifying the version, for example:
+or explicitly specify the version:
 ```
-poetry version 0.3.2
-```
-
-Also in file ```/starknet_devnet/__init__.py``` we need to manually update the version:
-```
-__version__ = "0.3.2"
+poetry version <VERSION>
 ```
 
-If we did everything correctly these commands should result with the same version:
+In file ```/starknet_devnet/__init__.py``` you need to manually update the version:
+```
+__version__ = "<VERSION>"
+```
+
+If you did everything correctly these commands should result with the same version:
 ```
 poetry version
 poetry run starknet-devnet --version
 ```
 
-Thirdly we need to add a tag to the version update commit (remember about ```v```):
+Later, you need to add a tag to the version update commit (remember about ```v```):
 ```
 git tag v0.3.2
 git push origin v0.3.2
 ```
 
-Lastly, we need to commit changes and wait for CI. While waiting we can generate release notes with the corresponding tag version. Later we can check if CI and image publish worked. 
+Lastly, you need to commit changes and wait for CI. While waiting you can generate release notes with the corresponding tag version. Later you can check if CI and image publish worked. 
 
-If everything went well we can inform users on telegram and devnet channel in starkware discord.
+If everything went well you can inform users on telegram, devnet channel in starkware discord, and [Starknet Shamans](https://community.starknet.io/t/starknet-devnet/69).
