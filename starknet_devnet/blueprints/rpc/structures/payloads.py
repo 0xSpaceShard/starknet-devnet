@@ -7,6 +7,7 @@ from __future__ import annotations
 from typing import Callable, Union, List, Optional
 
 from starkware.starknet.definitions.general_config import StarknetGeneralConfig
+from starkware.starknet.public.abi import AbiEntryType
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     StarknetBlock,
@@ -16,12 +17,12 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionType,
     BlockStateUpdate,
     DeclareSpecificInfo,
+    L1HandlerSpecificInfo,
 )
 from starkware.starknet.services.api.gateway.transaction import InvokeFunction
 from starkware.starknet.services.api.gateway.transaction_utils import compress_program
-from typing_extensions import TypedDict
+from typing_extensions import TypedDict, Literal
 
-from starknet_devnet.blueprints.rpc.utils import rpc_root, rpc_felt
 from starknet_devnet.blueprints.rpc.structures.types import (
     RpcBlockStatus,
     BlockHash,
@@ -34,13 +35,12 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     TxnType,
     rpc_txn_type,
 )
+from starknet_devnet.blueprints.rpc.utils import rpc_root, rpc_felt
 from starknet_devnet.state import state
 
 
 class RpcBlock(TypedDict):
-    """
-    TypeDict for rpc block
-    """
+    """TypedDict for rpc block"""
 
     status: RpcBlockStatus
     block_hash: BlockHash
@@ -94,95 +94,163 @@ async def rpc_block(
     return block
 
 
-class RpcInvokeTransaction(TypedDict):
-    """
-    TypedDict for rpc invoke transaction
-    """
+class RpcBroadcastedTxnCommon(TypedDict):
+    """TypedDict for RpcBroadcastedTxnCommon"""
+
+    type: TxnType
+    max_fee: Felt
+    version: NumAsHex
+    signature: List[Felt]
+    nonce: Felt
+
+
+class RpcBroadcastedInvokeTxnV0(RpcBroadcastedTxnCommon):
+    """TypedDict for RpcBroadcastedInvokeTxnV0"""
 
     contract_address: Address
     entry_point_selector: Felt
     calldata: List[Felt]
-    # Common
-    transaction_hash: TxnHash
-    max_fee: Felt
+
+
+class RpcBroadcastedInvokeTxnV1(RpcBroadcastedTxnCommon):
+    """TypedDict for RpcBroadcastedInvokeTxnV1"""
+
+    sender_address: Address
+    calldata: List[Felt]
+
+
+RpcBroadcastedInvokeTxn = Union[RpcBroadcastedInvokeTxnV0, RpcBroadcastedInvokeTxnV1]
+
+
+class RpcBroadcastedDeclareTxn(RpcBroadcastedTxnCommon):
+    """TypedDict for RpcBroadcastedDeclareTxn"""
+
+    contract_class: RpcContractClass
+    sender_address: Address
+
+
+class RpcBroadcastedDeployTxn(TypedDict):
+    """TypedDict for RpcBroadcastedDeployTxn"""
+
+    contract_class: RpcContractClass
     version: NumAsHex
-    signature: List[Felt]
-    nonce: Felt
     type: TxnType
+    contract_address_salt: Felt
+    constructor_calldata: List[Felt]
 
 
-class RpcDeclareTransaction(TypedDict):
-    """
-    TypedDict for rpc declare transaction
-    """
+# rpc transaction's representation when it's sent to the sequencer (but not yet in a block)
+RpcBroadcastedTxn = Union[
+    RpcBroadcastedDeployTxn, RpcBroadcastedDeclareTxn, RpcBroadcastedInvokeTxn
+]
+
+
+class RpcTransactionCommon(RpcBroadcastedTxnCommon):
+    """TypedDict for RpcTransactionCommon"""
+
+    transaction_hash: TxnHash
+
+
+class RpcInvokeTransactionV0(RpcTransactionCommon):
+    """TypedDict for rpc invoke transaction version 0"""
+
+    contract_address: Address
+    entry_point_selector: Felt
+    calldata: List[Felt]
+
+
+class RpcInvokeTransactionV1(RpcTransactionCommon):
+    """TypedDict for rpc invoke transaction version 1"""
+
+    sender_address: Address
+    calldata: List[Felt]
+
+
+class RpcL1HandlerTransaction(TypedDict):
+    """TypedDict for rpc L1 -> L2 message transaction"""
+
+    contract_address: Address
+    entry_point_selector: Felt
+    calldata: List[Felt]
+    transaction_hash: TxnHash
+    version: NumAsHex
+    type: TxnType
+    nonce: Felt
+
+
+class RpcDeclareTransaction(RpcTransactionCommon):
+    """TypedDict for rpc declare transaction"""
 
     class_hash: Felt
     sender_address: Address
-    # Common
-    transaction_hash: TxnHash
-    max_fee: Felt
-    version: NumAsHex
-    signature: List[Felt]
-    nonce: Felt
-    type: TxnType
 
 
 class RpcDeployTransaction(TypedDict):
-    """
-    TypedDict for rpc deploy transaction
-    """
+    """TypedDict for rpc deploy transaction"""
 
     transaction_hash: TxnHash
     class_hash: Felt
     version: NumAsHex
     type: TxnType
-    contract_address: Felt
     contract_address_salt: Felt
     constructor_calldata: List[Felt]
 
 
 RpcTransaction = Union[
-    RpcInvokeTransaction, RpcDeclareTransaction, RpcDeployTransaction
+    RpcInvokeTransactionV0,
+    RpcInvokeTransactionV1,
+    RpcL1HandlerTransaction,
+    RpcDeclareTransaction,
+    RpcDeployTransaction,
 ]
 
 
 def rpc_transaction(transaction: TransactionSpecificInfo) -> RpcTransaction:
-    """
-    Convert gateway transaction to rpc transaction
-    """
+    """Convert gateway transaction to rpc transaction"""
     tx_mapping = {
         TransactionType.DEPLOY: rpc_deploy_transaction,
         TransactionType.INVOKE_FUNCTION: rpc_invoke_transaction,
         TransactionType.DECLARE: rpc_declare_transaction,
+        TransactionType.L1_HANDLER: rpc_l1_handler_transaction,
     }
     return tx_mapping[transaction.tx_type](transaction)
 
 
 class FunctionCall(TypedDict):
-    """
-    TypedDict for rpc function call
-    """
+    """TypedDict for rpc function call"""
 
     contract_address: Address
     entry_point_selector: Felt
     calldata: List[Felt]
 
 
-def rpc_invoke_transaction(transaction: InvokeSpecificInfo) -> RpcInvokeTransaction:
+def rpc_invoke_transaction(
+    transaction: InvokeSpecificInfo,
+) -> Union[RpcInvokeTransactionV0, RpcInvokeTransactionV1]:
     """
     Convert gateway invoke transaction to rpc format
     """
-    txn: RpcInvokeTransaction = {
-        "contract_address": rpc_felt(transaction.contract_address),
-        "entry_point_selector": rpc_felt(transaction.entry_point_selector),
-        "calldata": [rpc_felt(data) for data in transaction.calldata],
+    common_data = {
         "transaction_hash": rpc_felt(transaction.transaction_hash),
+        "calldata": [rpc_felt(data) for data in transaction.calldata],
         "max_fee": rpc_felt(transaction.max_fee),
         "version": hex(transaction.version),
         "signature": [rpc_felt(value) for value in transaction.signature],
-        "nonce": rpc_felt(0),
         "type": rpc_txn_type(transaction.tx_type.name),
+        "nonce": rpc_felt(transaction.nonce or 0),
     }
+
+    if transaction.version == 0:
+        txn: RpcInvokeTransactionV0 = {
+            "contract_address": rpc_felt(transaction.contract_address),
+            "entry_point_selector": rpc_felt(transaction.entry_point_selector),
+            **common_data,
+        }
+    else:
+        txn: RpcInvokeTransactionV1 = {
+            "sender_address": rpc_felt(transaction.contract_address),
+            **common_data,
+        }
     return txn
 
 
@@ -221,10 +289,26 @@ def rpc_deploy_transaction(transaction: DeploySpecificInfo) -> RpcDeployTransact
     return txn
 
 
+def rpc_l1_handler_transaction(
+    transaction: L1HandlerSpecificInfo,
+) -> RpcL1HandlerTransaction:
+    """
+    Convert gateway l1_handler transaction to rpc format
+    """
+    txn: RpcL1HandlerTransaction = {
+        "contract_address": rpc_felt(transaction.contract_address),
+        "entry_point_selector": rpc_felt(transaction.entry_point_selector),
+        "calldata": [rpc_felt(data) for data in transaction.calldata],
+        "transaction_hash": rpc_felt(transaction.transaction_hash),
+        "version": hex(transaction.version),
+        "type": rpc_txn_type(transaction.tx_type.name),
+        "nonce": rpc_felt(transaction.nonce),
+    }
+    return txn
+
+
 class RpcFeeEstimate(TypedDict):
-    """
-    Fee estimate TypedDict for rpc
-    """
+    """Fee estimate TypedDict for rpc"""
 
     gas_consumed: NumAsHex
     gas_price: NumAsHex
@@ -247,36 +331,153 @@ def make_invoke_function(request_body: dict) -> InvokeFunction:
     """
     Convert RPC request to internal InvokeFunction
     """
-
+    version = int(request_body["version"], 16) if "version" in request_body else 0
     nonce = request_body.get("nonce")
-    return InvokeFunction(
-        contract_address=int(request_body["contract_address"], 16),
-        entry_point_selector=int(request_body["entry_point_selector"], 16),
-        calldata=[int(data, 16) for data in request_body["calldata"]],
-        max_fee=int(request_body["max_fee"], 16) if "max_fee" in request_body else 0,
-        version=int(request_body["version"], 16) if "version" in request_body else 0,
-        signature=[int(data, 16) for data in request_body.get("signature", [])],
-        nonce=int(nonce, 16) if nonce is not None else None,
-    )
+
+    common_data = {
+        "max_fee": int(request_body["max_fee"], 16) if "max_fee" in request_body else 0,
+        "version": version,
+        "signature": [int(data, 16) for data in request_body.get("signature", [])],
+        "nonce": int(nonce, 16) if nonce is not None else None,
+    }
+
+    if version == 0:
+        invoke_function = InvokeFunction(
+            contract_address=int(request_body["contract_address"], 16),
+            entry_point_selector=int(request_body["entry_point_selector"], 16),
+            calldata=[int(data, 16) for data in request_body.get("calldata", [])],
+            **common_data,
+        )
+    else:
+        invoke_function = InvokeFunction(
+            contract_address=int(request_body["sender_address"], 16),
+            calldata=[int(data, 16) for data in request_body.get("calldata", [])],
+            **common_data,
+        )
+
+    return invoke_function
 
 
 class EntryPoint(TypedDict):
-    """
-    TypedDict for rpc contract class entry point
-    """
+    """TypedDict for rpc contract class entry point"""
 
     offset: NumAsHex
     selector: Felt
 
 
 class EntryPoints(TypedDict):
-    """
-    TypedDict for rpc contract class entry points
-    """
+    """TypedDict for rpc contract class entry points"""
 
     CONSTRUCTOR: List[EntryPoint]
     EXTERNAL: List[EntryPoint]
     L1_HANDLER: List[EntryPoint]
+
+
+FunctionAbiType = Literal["function", "l1_handler"]
+EventAbiType = Literal["event"]
+StructAbiType = Literal["struct"]
+
+
+class TypedParameter(TypedDict):
+    """TypedDict for TypedParameter"""
+
+    name: str
+    type: str
+
+
+class StructMember(TypedDict):
+    """TypedDict for StructMember"""
+
+    name: str
+    type: str
+    offset: int
+
+
+class FunctionAbiEntry(TypedDict):
+    """TypedDict for FunctionAbiEntry"""
+
+    type: FunctionAbiType
+    name: str
+    inputs: List[TypedParameter]
+    outputs: List[TypedParameter]
+
+
+class EventAbiEntry(TypedDict):
+    """TypedDict for EventAbiEntry"""
+
+    type: EventAbiType
+    name: str
+    keys: List[TypedParameter]
+    data: List[TypedParameter]
+
+
+class StructAbiEntry(TypedDict):
+    """TypedDict for StructAbiEntry"""
+
+    type: StructAbiType
+    name: str
+    size: int  # minimum 1
+    members: List[StructMember]
+
+
+AbiEntry = Union[FunctionAbiEntry, EventAbiEntry, StructAbiEntry]
+
+
+def function_abi_entry(abi_entry: AbiEntryType) -> FunctionAbiEntry:
+    """
+    Convert function gateway abi entry to rpc FunctionAbiEntry
+    """
+    return FunctionAbiEntry(
+        type=abi_entry["type"],
+        name=abi_entry["name"],
+        inputs=abi_entry["inputs"],
+        outputs=abi_entry["outputs"],
+    )
+
+
+def struct_abi_entry(abi_entry: AbiEntryType) -> StructAbiEntry:
+    """
+    Convert struct gateway abi entry to rpc StructAbiEntry
+    """
+    return StructAbiEntry(
+        type=abi_entry["type"],
+        name=abi_entry["name"],
+        size=abi_entry["size"],
+        members=abi_entry["members"],
+    )
+
+
+def event_abi_entry(abi_entry: AbiEntryType) -> EventAbiEntry:
+    """
+    Convert event gateway abi entry to rpc EventAbiEntry
+    """
+    return EventAbiEntry(
+        type=abi_entry["type"],
+        name=abi_entry["name"],
+        keys=abi_entry["keys"],
+        data=abi_entry["data"],
+    )
+
+
+def rpc_abi_entry(abi_entry: AbiEntryType) -> AbiEntry:
+    """
+    Convert gateway abi entry to rpc AbiEntry
+    """
+    type_map = {
+        "constructor": "function",
+    }
+
+    function_map = {
+        "l1_handler": function_abi_entry,
+        "function": function_abi_entry,
+        "struct": struct_abi_entry,
+        "event": event_abi_entry,
+    }
+
+    if abi_entry["type"] in type_map:
+        abi_entry["type"] = type_map[abi_entry["type"]]
+
+    return function_map[abi_entry["type"]](abi_entry)
 
 
 class RpcContractClass(TypedDict):
@@ -286,6 +487,7 @@ class RpcContractClass(TypedDict):
 
     program: str
     entry_points_by_type: EntryPoints
+    abi: Optional[List[AbiEntry]]
 
 
 def rpc_contract_class(contract_class: ContractClass) -> RpcContractClass:
@@ -312,64 +514,58 @@ def rpc_contract_class(contract_class: ContractClass) -> RpcContractClass:
                 _entry_points[typ.name].append(_entry_point)
         return _entry_points
 
+    def abi() -> Optional[List[AbiEntry]]:
+        if contract_class.abi is None:
+            return None
+        return [rpc_abi_entry(abi_entry_type) for abi_entry_type in contract_class.abi]
+
     _contract_class: RpcContractClass = {
         "program": program(),
         "entry_points_by_type": entry_points_by_type(),
+        "abi": abi(),
     }
     return _contract_class
 
 
-class RpcStorageDiff(TypedDict):
-    """
-    TypedDict for rpc storage diff
-    """
+class RpcStorageEntry(TypedDict):
+    """TypedDict for rpc storage entry"""
 
-    address: Felt
     key: Felt
     value: Felt
 
 
-class RpcDeclaredContractDiff(TypedDict):
-    """
-    TypedDict for rpc declared contract diff
-    """
+class RpcStorageDiff(TypedDict):
+    """TypedDict for rpc storage diff"""
 
-    class_hash: Felt
+    address: Felt
+    storage_entries: List[RpcStorageEntry]
 
 
 class RpcDeployedContractDiff(TypedDict):
-    """
-    TypedDict for rpc deployed contract diff
-    """
+    """TypedDict for rpc deployed contract diff"""
 
     address: Felt
     class_hash: Felt
 
 
 class RpcNonceDiff(TypedDict):
-    """
-    TypedDict for rpc nonce diff
-    """
+    """TypedDict for rpc nonce diff"""
 
     contract_address: Address
     nonce: Felt
 
 
 class RpcStateDiff(TypedDict):
-    """
-    TypedDict for rpc state diff
-    """
+    """TypedDict for rpc state diff"""
 
     storage_diffs: List[RpcStorageDiff]
-    declared_contracts: List[RpcDeclaredContractDiff]
+    declared_contract_hashes: List[Felt]
     deployed_contracts: List[RpcDeployedContractDiff]
     nonces: List[RpcNonceDiff]
 
 
 class RpcStateUpdate(TypedDict):
-    """
-    TypedDict for rpc state update
-    """
+    """TypedDict for rpc state update"""
 
     block_hash: BlockHash
     new_root: Felt
@@ -385,21 +581,24 @@ def rpc_state_update(state_update: BlockStateUpdate) -> RpcStateUpdate:
     def storage_diffs() -> List[RpcStorageDiff]:
         _storage_diffs = []
         for address, diffs in state_update.state_diff.storage_diffs.items():
+            storage_entries = []
             for diff in diffs:
-                _diff: RpcStorageDiff = {
-                    "address": rpc_felt(address),
-                    "key": rpc_felt(diff.key),
-                    "value": rpc_felt(diff.value),
-                }
-                _storage_diffs.append(_diff)
+                storage_entry = RpcStorageEntry(
+                    key=rpc_felt(diff.key), value=rpc_felt(diff.value)
+                )
+                storage_entries.append(storage_entry)
+
+            _diff = RpcStorageDiff(
+                address=rpc_felt(address), storage_entries=storage_entries
+            )
+            _storage_diffs.append(_diff)
         return _storage_diffs
 
-    def declared_contracts() -> List[RpcDeclaredContractDiff]:
-        _contracts = []
-        for contract in state_update.state_diff.declared_contracts:
-            diff: RpcDeclaredContractDiff = {"class_hash": rpc_felt(contract)}
-            _contracts.append(diff)
-        return _contracts
+    def declared_contract_hashes() -> List[Felt]:
+        return [
+            rpc_felt(contract)
+            for contract in state_update.state_diff.declared_contracts
+        ]
 
     def deployed_contracts() -> List[RpcDeployedContractDiff]:
         _contracts = []
@@ -411,15 +610,21 @@ def rpc_state_update(state_update: BlockStateUpdate) -> RpcStateUpdate:
             _contracts.append(diff)
         return _contracts
 
+    def nonces() -> List[RpcNonceDiff]:
+        return [
+            RpcNonceDiff(contract_address=rpc_felt(address), nonce=rpc_felt(nonce))
+            for address, nonce in state_update.state_diff.nonces.items()
+        ]
+
     rpc_state: RpcStateUpdate = {
         "block_hash": rpc_felt(state_update.block_hash),
         "new_root": rpc_root(state_update.new_root.hex()),
         "old_root": rpc_root(state_update.old_root.hex()),
         "state_diff": {
             "storage_diffs": storage_diffs(),
-            "declared_contracts": declared_contracts(),
+            "declared_contract_hashes": declared_contract_hashes(),
             "deployed_contracts": deployed_contracts(),
-            "nonces": [],
+            "nonces": nonces(),
         },
     }
     return rpc_state

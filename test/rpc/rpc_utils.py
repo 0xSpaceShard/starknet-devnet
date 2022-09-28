@@ -4,12 +4,20 @@ Utilities for RPC tests
 
 from __future__ import annotations
 
-from typing import Union
+import re
+from typing import Union, List
+
+from test.account import invoke
+
+from test.settings import APP_URL
+from test.shared import (
+    STORAGE_CONTRACT_PATH,
+    PREDEPLOYED_ACCOUNT_ADDRESS,
+    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+)
+from test.util import deploy, assert_transaction
 
 import requests
-
-from starknet_devnet.blueprints.rpc.structures.types import Felt
-from ..settings import APP_URL
 
 
 class BackgroundDevnetClient:
@@ -81,10 +89,25 @@ def get_block_with_transaction(transaction_hash: str) -> dict:
     return block
 
 
-def pad_zero(felt: str) -> Felt:
+def deploy_and_invoke_storage_contract(value: int) -> List[str]:
     """
-    Convert felt with format `0xValue` to format `0x0Value`
+    Deploy and invoke storage contract
     """
-    if felt == "0x0":
-        return "0x00"
-    return "0x0" + felt.lstrip("0x")
+    deploy_dict = deploy(STORAGE_CONTRACT_PATH)
+    contract_address = deploy_dict["address"]
+
+    invoke_tx_hash = invoke(
+        calls=[(contract_address, "store_value", [value])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
+    assert_transaction(invoke_tx_hash, "ACCEPTED_ON_L2")
+
+    return contract_address, invoke_tx_hash
+
+
+def is_felt(value: str) -> bool:
+    """
+    Check whether value is a Felt
+    """
+    return bool(re.match(r"^0x0[a-fA-F0-9]{1,63}$", value))

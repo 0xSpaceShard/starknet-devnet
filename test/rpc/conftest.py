@@ -7,27 +7,27 @@ from __future__ import annotations
 import json
 import typing
 
+from test.rpc.rpc_utils import (
+    gateway_call,
+    get_block_with_transaction,
+    add_transaction,
+)
+from test.util import load_file_content
+
+import pytest
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.gateway.transaction import Transaction, Deploy
 
-import pytest
+from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from starknet_devnet.blueprints.rpc.structures.types import (
     BlockNumberDict,
     BlockHashDict,
     Felt,
 )
-from ..util import load_file_content
-from ..shared import SUPPORTED_RPC_TX_VERSION
-from .rpc_utils import (
-    gateway_call,
-    get_block_with_transaction,
-    pad_zero,
-    add_transaction,
-)
 
 DEPLOY_CONTENT = load_file_content("deploy_rpc.json")
 INVOKE_CONTENT = load_file_content("invoke_rpc.json")
-DECLARE_CONTENT = load_file_content("declare.json")
+DECLARE_CONTENT = load_file_content("declare_rpc.json")
 
 
 @pytest.fixture(name="contract_class")
@@ -47,7 +47,7 @@ def fixture_class_hash(deploy_info) -> Felt:
     class_hash = gateway_call(
         "get_class_hash_at", contractAddress=deploy_info["address"]
     )
-    return pad_zero(class_hash)
+    return rpc_felt(class_hash)
 
 
 @pytest.fixture(name="deploy_info")
@@ -55,7 +55,9 @@ def fixture_deploy_info() -> dict:
     """
     Deploy a contract on devnet and return deployment info dict
     """
-    return add_transaction(json.loads(DEPLOY_CONTENT))
+    deploy_tx = json.loads(DEPLOY_CONTENT)
+    deploy_info = add_transaction(deploy_tx)
+    return {**deploy_info, **deploy_tx}
 
 
 @pytest.fixture(name="invoke_info")
@@ -117,23 +119,7 @@ def fixture_block_id(gateway_block, request) -> dict:
     """
     block_id_map = {
         "hash": BlockNumberDict(block_number=gateway_block["block_number"]),
-        "number": BlockHashDict(block_hash=pad_zero(gateway_block["block_hash"])),
+        "number": BlockHashDict(block_hash=rpc_felt(gateway_block["block_hash"])),
         "tag": "latest",
     }
     return block_id_map[request.param]
-
-
-@pytest.fixture(name="rpc_invoke_tx_common")
-def fixture_rpc_invoke_tx_common() -> dict:
-    """
-    Common fields on RpcInvokeTransaction
-    """
-    return {
-        # It is not verified and might be removed in next RPC version
-        "transaction_hash": "0x00",
-        "max_fee": "0x00",
-        "version": hex(SUPPORTED_RPC_TX_VERSION),
-        "signature": [],
-        "nonce": None,
-        "type": "INVOKE",
-    }

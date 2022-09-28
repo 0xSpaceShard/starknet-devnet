@@ -5,6 +5,7 @@ Fixtures for tests
 from __future__ import annotations
 import pytest
 
+from .shared import PREDEPLOY_ACCOUNT_CLI_ARGS
 from .util import run_devnet_in_background, terminate_and_wait
 
 
@@ -31,6 +32,18 @@ def fixture_run_devnet_in_background(request) -> None:
     """
     args = getattr(request, "param", [])
     proc = run_devnet_in_background(*args)
+    try:
+        yield
+    finally:
+        terminate_and_wait(proc)
+
+
+@pytest.fixture(name="devnet_with_account")
+def fixture_devnet_with_account() -> None:
+    """
+    Run devnet instance in background with predeployed account
+    """
+    proc = run_devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
     try:
         yield
     finally:
