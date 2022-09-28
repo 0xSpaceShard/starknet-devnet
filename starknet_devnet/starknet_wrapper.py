@@ -6,6 +6,7 @@ from copy import deepcopy
 from typing import Dict, List, Set, Tuple, Union
 
 import cloudpickle as pickle
+from starkware.starknet.business_logic.transaction.fee import calculate_tx_fee
 from starkware.starknet.business_logic.transaction.objects import (
     CallInfo,
     InternalInvokeFunction,
@@ -543,8 +544,14 @@ class StarknetWrapper:
             state.general_config,
         )
 
+        actual_fee = calculate_tx_fee(
+            resources=execution_info.actual_resources,
+            gas_price=state.general_config.min_gas_price,
+            general_config=state.general_config,
+        )
+
         fee_estimation_info = get_fee_estimation_info(
-            execution_info.actual_fee, state.state.block_info.gas_price
+            actual_fee, state.state.block_info.gas_price
         )
         return fee_estimation_info
 

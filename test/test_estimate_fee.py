@@ -185,10 +185,10 @@ def test_estimate_message_fee():
     )
     assert int(message_fee) > 0
 
-    balance = call(
+    balance_after = call(
         function="get_balance",
         address=l2_contract_address,
         abi_path=L1L2_ABI_PATH,
+        inputs=[user_id]
     )
-
-    assert int(balance) == 0
+    assert int(balance_after) == 0
