@@ -679,7 +679,7 @@ poetry build
 ### Development - Version release
 
 You can check the current version on master with these commands:
-```text
+```
 git checkout master
 poetry version
 ```
