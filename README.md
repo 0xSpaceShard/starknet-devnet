@@ -701,7 +701,7 @@ poetry version
 poetry run starknet-devnet --version
 ```
 
-Later, you need to add a tag to the version update commit (Notice the `v`):
+Later, add a tag to the version update commit (Notice the `v`):
 ```
 git tag v<VERSION>
 git push origin v<VERSION>
@@ -709,5 +709,5 @@ git push origin v<VERSION>
 
 Lastly:
 - check if CI and image publish worked after commit
-- need to generate release notes with the corresponding tag version on GitHub
+- generate release notes with the corresponding tag version on GitHub
 - inform users on telegram, devnet channel in starkware discord, and [Starknet Shamans](https://community.starknet.io/t/starknet-devnet/69).
