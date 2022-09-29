@@ -6,11 +6,13 @@ from copy import deepcopy
 from typing import Dict, List, Set, Tuple, Union
 
 import cloudpickle as pickle
+from starkware.starknet.business_logic.transaction.fee import calculate_tx_fee
 from starkware.starknet.business_logic.transaction.objects import (
     CallInfo,
     InternalInvokeFunction,
     InternalDeclare,
     InternalDeploy,
+    InternalL1Handler,
 )
 from starkware.starknet.business_logic.state.state import BlockInfo, CachedState
 from starkware.starknet.services.api.gateway.transaction import (
@@ -21,10 +23,14 @@ from starkware.starknet.services.api.gateway.transaction import (
 from starkware.starknet.testing.starknet import Starknet
 from starkware.starkware_utils.error_handling import StarkException
 from starkware.starknet.services.api.contract_class import EntryPointType, ContractClass
-from starkware.starknet.services.api.feeder_gateway.request_objects import CallFunction
+from starkware.starknet.services.api.feeder_gateway.request_objects import (
+    CallFunction,
+    CallL1Handler,
+)
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionStatus,
 )
+
 from starkware.starknet.testing.contract import StarknetContract
 from starkware.starknet.testing.objects import FunctionInvocation
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
@@ -37,7 +43,7 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     StorageEntry,
 )
 
-from starknet_devnet.util import to_bytes
+from starknet_devnet.util import to_bytes, get_fee_estimation_info
 from starknet_devnet.constants import DUMMY_STATE_ROOT
 
 from .lite_mode.lite_internal_deploy import LiteInternalDeploy
@@ -519,17 +525,35 @@ class StarknetWrapper:
             signature=external_tx.signature,
         )
 
-        tx_fee = execution_info.actual_fee
+        fee_estimation_info = get_fee_estimation_info(
+            execution_info.actual_fee, state.state.block_info.gas_price
+        )
 
-        gas_price = state.state.block_info.gas_price
-        gas_usage = tx_fee // gas_price if gas_price else 0
+        return trace, fee_estimation_info
 
-        return trace, {
-            "overall_fee": tx_fee,
-            "unit": "wei",
-            "gas_price": gas_price,
-            "gas_usage": gas_usage,
-        }
+    async def estimate_message_fee(self, call: CallL1Handler):
+        """Estimate fee of message from L1 to L2"""
+        state = self.get_state()
+        internal_call: InternalL1Handler = call.to_internal(
+            state.general_config.chain_id.value
+        )
+
+        execution_info = await internal_call.apply_state_updates(
+            # pylint: disable=protected-access
+            state.state._copy(),
+            state.general_config,
+        )
+
+        actual_fee = calculate_tx_fee(
+            resources=execution_info.actual_resources,
+            gas_price=state.general_config.min_gas_price,
+            general_config=state.general_config,
+        )
+
+        fee_estimation_info = get_fee_estimation_info(
+            actual_fee, state.state.block_info.gas_price
+        )
+        return fee_estimation_info
 
     def increase_block_time(self, time_s: int):
         """Increases the block time by `time_s`."""

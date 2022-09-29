@@ -8,6 +8,7 @@ import os
 import re
 import subprocess
 import time
+from typing import List
 import requests
 
 from starkware.starknet.services.api.contract_class import ContractClass
@@ -134,7 +135,7 @@ def extract_tx_hash(stdout):
 
 def extract_fee(stdout) -> int:
     """Extract fee from stdout."""
-    return int(extract(r"(\d+)", stdout))
+    return int(extract(r"The estimated fee is: (\d+) WEI", stdout))
 
 
 def extract_address(stdout):
@@ -167,6 +168,29 @@ def deploy(contract, inputs=None, salt=None):
         "tx_hash": extract_tx_hash(output.stdout),
         "address": extract_address(output.stdout),
     }
+
+
+def estimate_message_fee(
+    from_address: str, function: str, inputs: List[str], to_address: str, abi_path: str
+):
+    """Wrapper around starknet estimate_message_fee"""
+    output = run_starknet(
+        [
+            "estimate_message_fee",
+            "--from_address",
+            from_address,
+            "--function",
+            function,
+            "--inputs",
+            *inputs,
+            "--address",
+            to_address,
+            "--abi",
+            abi_path,
+        ]
+    )
+
+    return extract_fee(output.stdout)
 
 
 def assert_transaction(tx_hash, expected_status, expected_signature=None):

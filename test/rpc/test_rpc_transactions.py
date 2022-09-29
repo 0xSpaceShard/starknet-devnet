@@ -389,6 +389,7 @@ def test_add_invoke_transaction():
     assert storage == hex(initial_balance + amount1 + amount2)
 
 
+
 @pytest.mark.usefixtures("run_devnet_in_background")
 def test_add_invoke_transaction_v0():
     """
@@ -424,6 +425,7 @@ def test_add_invoke_transaction_v0():
     assert set(receipt.keys()) == {"transaction_hash"}
     assert is_felt(receipt["transaction_hash"])
     assert storage == hex(initial_balance + amount1 + amount2)
+
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")

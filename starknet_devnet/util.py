@@ -12,6 +12,7 @@ from starkware.starknet.business_logic.execution.objects import CallInfo
 from starkware.starknet.business_logic.state.state import CachedState
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     DeployedContract,
+    FeeEstimationInfo,
     StorageEntry,
 )
 
@@ -162,3 +163,18 @@ async def get_storage_diffs(
             )
 
     return storage_diffs
+
+
+def get_fee_estimation_info(tx_fee: int, gas_price: int):
+    """Construct fee estimation response"""
+
+    gas_usage = tx_fee // gas_price if gas_price else 0
+
+    return FeeEstimationInfo.load(
+        {
+            "overall_fee": tx_fee,
+            "unit": "wei",
+            "gas_price": gas_price,
+            "gas_usage": gas_usage,
+        }
+    )

@@ -178,6 +178,7 @@ If you don't specify the `HOST` part, the server will indeed be available on all
   - `declare`
   - `deploy`
   - `estimate_fee`
+  - `estimate_message_fee`
   - `get_block` (currently pending block is not supported)
   - `get_block_traces`
   - `get_class_by_hash`

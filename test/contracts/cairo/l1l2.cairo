@@ -59,7 +59,7 @@ func withdraw{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 func deposit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     from_address: felt, user: felt, amount: felt
 ) {
-    // Make sure the message was sent by the intended L1 contract.
+    // In a real case scenario, here we would assert from_address value
 
     // Read the current balance.
     let (res) = balance.read(user=user);

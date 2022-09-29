@@ -18,6 +18,7 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     BlockStateUpdate,
     DeclareSpecificInfo,
     L1HandlerSpecificInfo,
+    FeeEstimationInfo,
 )
 from starkware.starknet.services.api.gateway.transaction import InvokeFunction
 from starkware.starknet.services.api.gateway.transaction_utils import compress_program
@@ -315,14 +316,14 @@ class RpcFeeEstimate(TypedDict):
     overall_fee: NumAsHex
 
 
-def rpc_fee_estimate(fee_estimate: dict) -> dict:
+def rpc_fee_estimate(fee_estimate: FeeEstimationInfo) -> dict:
     """
     Convert gateway estimate_fee response to rpc_fee_estimate
     """
     result: RpcFeeEstimate = {
-        "gas_consumed": hex(fee_estimate["gas_usage"]),
-        "gas_price": hex(fee_estimate["gas_price"]),
-        "overall_fee": hex(fee_estimate["overall_fee"]),
+        "gas_consumed": hex(fee_estimate.gas_usage),
+        "gas_price": hex(fee_estimate.gas_price),
+        "overall_fee": hex(fee_estimate.overall_fee),
     }
     return result
 
