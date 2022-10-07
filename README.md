@@ -13,8 +13,10 @@ Aims to mimic Starknet's Alpha testnet, but with simplified functionality.
 [Click Here](https://shard-labs.github.io/starknet-devnet/) for the documentation.
 
 ## ✏️ Contributing
+
 We ❤️ and ecnourage all contributions!
 
 ## 🙌 Special Thanks
+
 Special thanks to all the [contributors](https://github.com/Shard-Labs/starknet-devnet/graphs/contributors)!
 
