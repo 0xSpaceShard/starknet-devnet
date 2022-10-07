@@ -7,7 +7,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'StarkNet Devnet',
-  tagline: 'A Flask wrapper of Starknet state. Similar in purpose to Ganache.',
+  tagline: 'A Flask wrapper of Starknet state. Similar in purpose to Ganache. \n Aims to mimic Starknet\'s Alpha testnet, but with simplified functionality.',
   url: 'https://github.com',
   baseUrl: '/starknet-devnet/',
   // baseUrl: '/',
@@ -82,23 +82,23 @@ const config = {
               },
             ],
           },
-          // {
-          //   title: 'Community',
-          //   items: [
-          //     {
-          //       label: 'Stack Overflow',
-          //       href: 'https://stackoverflow.com/questions/tagged/docusaurus',
-          //     },
-          //     {
-          //       label: 'Discord',
-          //       href: 'https://discordapp.com/invite/docusaurus',
-          //     },
-          //     {
-          //       label: 'Twitter',
-          //       href: 'https://twitter.com/docusaurus',
-          //     },
-          //   ],
-          // },
+          {
+            title: 'Community',
+            items: [
+              // {
+              //   label: 'Stack Overflow',
+              //   href: 'https://stackoverflow.com/questions/tagged/docusaurus',
+              // },
+              {
+                label: 'Discord',
+                href: 'https://discordapp.com/channels/793094838509764618/985824027950055434',
+              },
+              // {
+              //   label: 'Twitter',
+              //   href: 'https://twitter.com/docusaurus',
+              // },
+            ],
+          },
           {},{},{},{},
           {
             title: 'More',

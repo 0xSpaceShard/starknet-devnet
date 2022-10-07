@@ -91,7 +91,7 @@ You don't need to build anything to be able to run locally, but if you need the 
 poetry build
 ```
 
-### Development - Version release
+## Development - Version release
 
 You can check the current version on master with these commands:
 ```
@@ -126,4 +126,3 @@ Lastly:
 - check if CI and image publish worked after commit
 - generate release notes with the corresponding tag version on GitHub
 - inform users on telegram, devnet channel in starkware discord, and [Starknet Shamans](https://community.starknet.io/t/starknet-devnet/69).
-Footer
