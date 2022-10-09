@@ -39,4 +39,7 @@ async def get_nonce(contract_address: Address) -> Felt:
     """
     Get the latest nonce associated with the given address
     """
-    raise NotImplementedError()
+    result = await state.starknet_wrapper.get_nonce(
+        contract_address=int(contract_address, 16)
+    )
+    return hex(result)
