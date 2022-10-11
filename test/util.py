@@ -215,8 +215,6 @@ def assert_transaction(tx_hash, expected_status, expected_signature=None):
         invoke_transaction_keys = [
             "calldata",
             "contract_address",
-            "entry_point_selector",
-            "entry_point_type",
             "max_fee",
             "signature",
             "transaction_hash",
