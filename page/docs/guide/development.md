@@ -66,6 +66,8 @@ If you know the URL of the archive (e.g. ZIP) of a new cairo-lang version, you c
 poetry add <URL>
 ```
 
+After adding a new cairo-lang version, you will probably want to recompile contract artifacts.
+
 ## Development - Updating accounts
 
 1. Set up https://github.com/OpenZeppelin/cairo-contracts/ locally
