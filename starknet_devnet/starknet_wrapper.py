@@ -19,6 +19,7 @@ from starkware.starknet.business_logic.state.state import BlockInfo, CachedState
 from starkware.starknet.services.api.gateway.transaction import (
     InvokeFunction,
     Deploy,
+    DeployAccount,
     Declare,
 )
 from starkware.starknet.testing.contract_utils import get_abi
@@ -291,6 +292,17 @@ class StarknetWrapper:
             starknet_version=block_info.starknet_version,
         )
         return block_info
+
+    async def deploy_account(self, deploy_account_transaction: DeployAccount):
+        """Deploys account TODO returns"""
+        state = self.get_state()
+        account_class = ...  # TODO get class
+        execution_info = await state.deploy(
+            account_class,
+            deploy_account_transaction.constructor_calldata,
+            deploy_account_transaction.contract_address_salt,
+        )
+        # TODO returns what?
 
     # pylint: disable=too-many-locals
     async def deploy(self, deploy_transaction: Deploy) -> Tuple[int, int]:
