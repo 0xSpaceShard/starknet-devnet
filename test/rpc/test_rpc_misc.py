@@ -121,3 +121,13 @@ def test_call_with_invalid_params(params):
     # could be any legal method, just passing something to get params to fail
     ex = rpc_call(method="starknet_getClass", params=params)
     assert ex["error"] == {"code": -32602, "message": "Invalid params"}
+
+
+@pytest.mark.usefixtures("run_devnet_in_background")
+def test_call_get_nonce(deploy_info):
+    """
+    Test nonce
+    """
+    # could be any legal method, just passing something to get params to fail
+    ex = rpc_call(method="starknet_getNonce", params=[deploy_info["address"]])
+    assert ex["result"] == "0x0"

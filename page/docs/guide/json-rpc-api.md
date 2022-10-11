@@ -31,4 +31,3 @@ Response:
 Methods currently not supported:
 
 - `starknet_protocolVersion` - will be removed in a future version of the specification
-- `starknet_getNonce`
