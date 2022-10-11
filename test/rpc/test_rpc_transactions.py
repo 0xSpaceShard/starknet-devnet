@@ -329,7 +329,7 @@ def test_add_invoke_transaction_v1(invoke_content_v1):
                 ],
             },
             "signature": [pad_zero(sig) for sig in invoke_content_v1["signature"]],
-            "max_fee": hex(1),
+            "max_fee": hex(2),
             "version": hex(1),
             "nonce": hex(1),
         },
