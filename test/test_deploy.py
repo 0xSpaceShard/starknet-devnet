@@ -53,7 +53,7 @@ def fixture_starknet_wrapper_args(request):
     [
         (
             [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-            "0x615badf1d4446082f598fa16416d4d3623dfb8cc5d58276515f502f8fa22009",
+            "0x13d4b9f765587296a4f40591efe235a8caf24f0496230f0b13a87f2e4c8150a",
             "",
         ),
         (
