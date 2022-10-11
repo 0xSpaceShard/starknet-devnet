@@ -83,7 +83,7 @@ async def get_events(
     from_block: BlockId,
     to_block: BlockId,
     address: Address = "",
-    keys: List[Address] = Empty,
+    keys: List[Address] = None,
     chunk_size: int = 0,
     continuation_token: str = "",
 ) -> str:
@@ -97,7 +97,7 @@ async def get_events(
     and chunk it later which is not an optimal solution.
     """
     events = []
-    keys = [] if keys == Empty else [int(k, 0) for k in keys]
+    keys = [] if keys is None else [int(k, 0) for k in keys]
     to_block = (
         state.starknet_wrapper.blocks.get_number_of_blocks()
         if to_block == "latest"

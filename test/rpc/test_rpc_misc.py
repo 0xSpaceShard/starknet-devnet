@@ -163,12 +163,13 @@ def test_get_events(input_data, expected_data):
     Test RPC get_events.
     """
     deploy_info = deploy(EVENTS_CONTRACT_PATH)
-    for i in range(0, 2):
+    for i in range(2):
         invoke(
             calls=[(deploy_info["address"], "increase_balance", [i])],
             account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
             private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
         )
     resp = rpc_call("starknet_getEvents", params=input_data)
+    assert len(expected_data) == len(resp["result"]["events"])
     for i, data in enumerate(expected_data):
         assert str(resp["result"]["events"][i]["data"]) == data
