@@ -5,7 +5,6 @@ RPC miscellaneous endpoints
 from __future__ import annotations
 from itertools import islice
 from typing import Union, List
-import collections
 from starknet_devnet.blueprints.rpc.structures.types import (
     BlockId,
     Felt,
@@ -22,14 +21,14 @@ def check_address(address, event):
     """
     Check address.
     """
-    return bool(address == "" or event.from_address == int(address, 0))
+    return bool(address is None or event.from_address == int(address, 0))
 
 
 def check_keys(keys, event):
     """
     Check keys.
     """
-    return True if keys == [] or set(event.keys) & set(keys) else False
+    return bool(keys == [] or set(event.keys) & set(keys))
 
 
 def get_events_from_block(block, address, keys):
@@ -65,7 +64,7 @@ async def syncing() -> Union[dict, bool]:
 async def get_events(
     from_block: BlockId,
     to_block: BlockId,
-    address: Address = "",
+    address: Address = None,
     keys: List[Address] = None,
     chunk_size: int = 0,
     continuation_token: str = "",
