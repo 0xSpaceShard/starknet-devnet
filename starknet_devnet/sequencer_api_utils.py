@@ -31,6 +31,8 @@ from starkware.starknet.services.api.gateway.transaction import (
 )
 from starkware.starkware_utils.config_base import Config
 
+from starknet_devnet.constants import OLD_SUPPORTED_VERSIONS
+
 
 def format_fee_info(gas_price: int, overall_fee: int) -> FeeEstimationInfo:
     """Construct a FeeEstimationInfo object"""
@@ -69,7 +71,11 @@ class InternalAccountTransactionForSimulate(InternalAccountTransaction):
         )
 
     def verify_version(self):
-        verify_version(version=self.version, only_query=True)
+        verify_version(
+            version=self.version,
+            only_query=True,
+            old_supported_versions=OLD_SUPPORTED_VERSIONS,
+        )
 
     def charge_fee(
         self,
