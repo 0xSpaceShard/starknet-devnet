@@ -9,14 +9,19 @@ BLOCK_0_LATEST = {
     "to_block": "latest",
 }
 
-BLOCK_0_3 = {
+BLOCK_0_2 = {
     "from_block": "0",
+    "to_block": "2",
+}
+
+BLOCK_3_3 = {
+    "from_block": "3",
     "to_block": "3",
 }
 
-BLOCK_3_4 = {
-    "from_block": "3",
-    "to_block": "4",
+BLOCK_2_3 = {
+    "from_block": "2",
+    "to_block": "3",
 }
 
 BLOCK_0_LATEST_CHUNK_3_0 = {
@@ -78,13 +83,18 @@ GET_EVENTS_TEST_DATA = [
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_0_3,
+        BLOCK_0_2,
         [EVENT_DATA_0, EVENT_FEE],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_3_4,
+        BLOCK_3_3,
         [EVENT_DATA_1, EVENT_FEE],
+    ),
+    (
+        [*PREDEPLOY_ACCOUNT_CLI_ARGS],
+        BLOCK_2_3,
+        [EVENT_DATA_0, EVENT_FEE, EVENT_DATA_1, EVENT_FEE],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],

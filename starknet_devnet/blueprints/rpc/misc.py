@@ -4,7 +4,6 @@ RPC miscellaneous endpoints
 
 from __future__ import annotations
 from itertools import islice
-from queue import Empty
 from typing import Union, List
 import collections
 from starknet_devnet.blueprints.rpc.structures.types import (
@@ -19,34 +18,18 @@ from starknet_devnet.blueprints.rpc.structures.responses import (
 from starknet_devnet.state import state
 
 
-def is_empty(value):
+def check_address(address, event):
     """
-    Return true if empty.
-    """
-    return not value and isinstance(value, collections.Iterable)
-
-
-def is_not_empty(value):
-    """
-    Return true if not empty.
-    """
-    return not is_empty(value)
-
-
-def filter_address(address, event):
-    """
-    Filter by address.
+    Check address.
     """
     return bool(address == "" or event.from_address == int(address, 0))
 
 
-def filter_keys(keys, event):
+def check_keys(keys, event):
     """
-    Filter by keys.
+    Check keys.
     """
-    return bool(
-        (is_empty(keys)) or (is_not_empty(keys) and bool(set(event.keys) & set(keys)))
-    )
+    return True if keys == [] or set(event.keys) & set(keys) else False
 
 
 def get_events_from_block(block, address, keys):
@@ -55,7 +38,7 @@ def get_events_from_block(block, address, keys):
     """
     events = []
     for event in [e for r in block.transaction_receipts for e in r.events]:
-        if filter_keys(keys, event) and filter_address(address, event):
+        if check_keys(keys, event) and check_address(address, event):
             events.append(event)
 
     return events
@@ -99,12 +82,11 @@ async def get_events(
     events = []
     keys = [] if keys is None else [int(k, 0) for k in keys]
     to_block = (
-        state.starknet_wrapper.blocks.get_number_of_blocks()
+        int(state.starknet_wrapper.blocks.get_number_of_blocks())
         if to_block == "latest"
-        else to_block
+        else int(to_block) + 1
     )
-
-    for block_number in range(int(from_block), int(to_block)):
+    for block_number in range(int(from_block), to_block):
         block = state.starknet_wrapper.blocks.get_by_number(block_number)
         if block.transaction_receipts != ():
             events.extend(get_events_from_block(block, address, keys))
