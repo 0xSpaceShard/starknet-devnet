@@ -244,45 +244,29 @@ class StarknetWrapper:
         self.config = config
         self.blocks.lite = config.lite_mode
 
-    async def declare(self, declare_transaction: Declare) -> Tuple[int, int]:
+    async def declare(self, external_tx: Declare) -> Tuple[int, int]:
         """
         Declares the class specified with `declare_transaction`
         Returns (class_hash, transaction_hash)
         """
 
-        internal_declare: InternalDeclare = InternalDeclare.from_external(
-            declare_transaction, self.get_state().general_config
-        )
-        execution_info = await self.starknet.state.execute_tx(internal_declare)
-        class_hash_int = int.from_bytes(internal_declare.class_hash, "big")
+        async with self.__get_transaction_handler() as tx_handler:
+            tx_handler.internal_tx: InternalDeclare = InternalDeclare.from_external(
+                external_tx, self.get_state().general_config
+            )
+            tx_handler.execution_info = await self.starknet.state.execute_tx(
+                tx_handler.internal_tx
+            )
+
+        class_hash_int = int.from_bytes(tx_handler.internal_tx.class_hash, "big")
         # alpha-goerli allows multiple declarations of the same class
 
-        self.contracts.store_class(class_hash_int, declare_transaction.contract_class)
+        self.contracts.store_class(class_hash_int, external_tx.contract_class)
         await self.get_state().state.set_contract_class(
-            internal_declare.class_hash, declare_transaction.contract_class
+            tx_handler.internal_tx.class_hash, external_tx.contract_class
         )
 
-        tx_hash = internal_declare.hash_value
-        transaction = DevnetTransaction(
-            internal_tx=internal_declare,
-            status=TransactionStatus.ACCEPTED_ON_L2,
-            execution_info=execution_info,
-            transaction_hash=tx_hash,
-        )
-
-        self._update_block_number()
-        state_update = await self._update_state(
-            explicitly_declared_contracts=[class_hash_int]
-        )
-
-        await self._store_transaction(
-            transaction=transaction,
-            tx_hash=tx_hash,
-            state_update=state_update,
-            error_message=None,
-        )
-
-        return class_hash_int, tx_hash
+        return class_hash_int, tx_handler.internal_tx.hash_value
 
     def _update_block_number(self):
         """Updates just the block number. Returns the old block info to allow reverting"""
@@ -297,26 +281,13 @@ class StarknetWrapper:
         )
         return block_info
 
-    async def deploy_account(self, external_tx: DeployAccount):
-        """Deploys account and returns (address, tx_hash)"""
-        async with self.__get_transaction_handler() as tx_handler:
-            state = self.get_state()
-            tx_handler.internal_tx = InternalDeployAccount.from_external(
-                external_tx, state.general_config
-            )
-            tx_handler.execution_info = await state.execute_tx(tx_handler.internal_tx)
-
-        return (
-            tx_handler.execution_info.call_info.contract_address,
-            tx_handler.internal_tx.hash_value,
-        )
-
     def __get_transaction_handler(self):
         class TransactionHandler:
             """Class for with-blocks in transactions"""
 
             internal_tx: InternalTransaction
             execution_info: TransactionExecutionInfo
+            deployed_contracts: List[DeployedContract] = []
 
             def __init__(self, starknet_wrapper: StarknetWrapper):
                 self.starknet_wrapper = starknet_wrapper
@@ -349,16 +320,15 @@ class StarknetWrapper:
                     error_message = None
                     status = TransactionStatus.ACCEPTED_ON_L2
 
-                    deployed_contracts: List[DeployedContract] = []
                     assert self.execution_info is not None
                     await self.starknet_wrapper._register_new_contracts(
                         self.execution_info.call_info.internal_calls,
                         tx_hash,
-                        deployed_contracts,
+                        self.deployed_contracts,
                     )
 
                     state_update = await self.starknet_wrapper._update_state(
-                        deployed_contracts=deployed_contracts
+                        deployed_contracts=self.deployed_contracts
                     )
 
                 transaction = DevnetTransaction(
@@ -379,17 +349,29 @@ class StarknetWrapper:
 
         return TransactionHandler(self)
 
-    # pylint: disable=too-many-locals
+    async def deploy_account(self, external_tx: DeployAccount):
+        """Deploys account and returns (address, tx_hash)"""
+
+        state = self.get_state()
+        async with self.__get_transaction_handler() as tx_handler:
+            tx_handler.internal_tx = InternalDeployAccount.from_external(
+                external_tx, state.general_config
+            )
+            tx_handler.execution_info = await state.execute_tx(tx_handler.internal_tx)
+
+        return (
+            tx_handler.execution_info.call_info.contract_address,
+            tx_handler.internal_tx.hash_value,
+        )
+
     async def deploy(self, deploy_transaction: Deploy) -> Tuple[int, int]:
         """
         Deploys the contract specified with `deploy_transaction`.
         Returns (contract_address, transaction_hash).
         """
 
-        state = self.get_state()
         transactions_count = self.transactions.get_count()
         contract_class = deploy_transaction.contract_definition
-        deployed_contracts: List[DeployedContract] = []
 
         if self.config.lite_mode:
             internal_tx: LiteInternalDeploy = LiteInternalDeploy.from_external(
@@ -397,7 +379,7 @@ class StarknetWrapper:
             )
         else:
             internal_tx: InternalDeploy = InternalDeploy.from_external(
-                deploy_transaction, state.general_config
+                deploy_transaction, self.get_state().general_config
             )
 
         contract_address = internal_tx.contract_address
@@ -408,8 +390,8 @@ class StarknetWrapper:
 
         tx_hash = internal_tx.hash_value
 
-        try:
-            preserved_block_info = self._update_block_number()
+        async with self.__get_transaction_handler() as tx_handler:
+            tx_handler.internal_tx = internal_tx
 
             if self.config.lite_mode:
                 contract = await LiteStarknet.deploy(
@@ -423,9 +405,7 @@ class StarknetWrapper:
             else:
                 contract = await self.__deploy(internal_tx, contract_class)
 
-            execution_info = contract.deploy_call_info
-            error_message = None
-            status = TransactionStatus.ACCEPTED_ON_L2
+            tx_handler.execution_info = contract.deploy_call_info
 
             await self.store_contract(
                 contract.contract_address, contract, contract_class, tx_hash
@@ -435,85 +415,25 @@ class StarknetWrapper:
                 contract_address
             )
             class_hash_int = int.from_bytes(class_hash_bytes, "big")
-            deployed_contracts.append(
+            tx_handler.deployed_contracts.append(
                 DeployedContract(
                     address=contract.contract_address, class_hash=class_hash_int
                 )
             )
 
-            await self._register_new_contracts(
-                execution_info.call_info.internal_calls, tx_hash, deployed_contracts
-            )
-            state_update = await self._update_state(
-                deployed_contracts=deployed_contracts
-            )
-        except StarkException as err:
-            error_message = err.message
-            status = TransactionStatus.REJECTED
-            execution_info = DummyExecutionInfo()
-            state_update = None
-
-            # restore block info
-            self.get_state().state.block_info = preserved_block_info
-
-        transaction = DevnetTransaction(
-            internal_tx=internal_tx,
-            status=status,
-            execution_info=execution_info,
-            transaction_hash=tx_hash,
-        )
-
-        await self._store_transaction(
-            transaction=transaction,
-            state_update=state_update,
-            error_message=error_message,
-            tx_hash=tx_hash,
-        )
-
         return contract_address, tx_hash
 
-    async def invoke(self, invoke_function: InvokeFunction):
+    async def invoke(self, external_tx: InvokeFunction):
         """Perform invoke according to specifications in `transaction`."""
         state = self.get_state()
-        invoke_transaction: InternalInvokeFunction = (
-            InternalInvokeFunction.from_external(invoke_function, state.general_config)
-        )
-        tx_hash = invoke_transaction.hash_value
 
-        try:
-            preserved_block_info = self._update_block_number()
-
-            execution_info = await state.execute_tx(invoke_transaction)
-            status = TransactionStatus.ACCEPTED_ON_L2
-            error_message = None
-            deployed_contracts: List[DeployedContract] = []
-            await self._register_new_contracts(
-                execution_info.call_info.internal_calls, tx_hash, deployed_contracts
+        async with self.__get_transaction_handler() as tx_handler:
+            tx_handler.internal_tx = InternalInvokeFunction.from_external(
+                external_tx, state.general_config
             )
+            tx_handler.execution_info = await state.execute_tx(tx_handler.internal_tx)
 
-            state_update = await self._update_state(
-                deployed_contracts=deployed_contracts,
-                visited_storage_entries=execution_info.get_visited_storage_entries(),
-            )
-        except StarkException as err:
-            error_message = err.message
-            status = TransactionStatus.REJECTED
-            execution_info = DummyExecutionInfo()
-            state_update = None
-
-            # restore block info
-            self.get_state().state.block_info = preserved_block_info
-
-        transaction = DevnetTransaction(invoke_transaction, status, execution_info)
-
-        await self._store_transaction(
-            transaction=transaction,
-            state_update=state_update,
-            error_message=error_message,
-            tx_hash=tx_hash,
-        )
-
-        return invoke_function.contract_address, tx_hash
+        return external_tx.contract_address, tx_handler.internal_tx.hash_value
 
     async def call(self, transaction: CallFunction):
         """Perform call according to specifications in `transaction`."""
