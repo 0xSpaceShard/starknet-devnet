@@ -3,7 +3,6 @@ RPC miscellaneous endpoints
 """
 
 from __future__ import annotations
-from itertools import islice
 from typing import Union, List
 from starknet_devnet.blueprints.rpc.structures.types import (
     BlockId,
@@ -64,10 +63,10 @@ async def syncing() -> Union[dict, bool]:
 async def get_events(
     from_block: BlockId,
     to_block: BlockId,
+    chunk_size: int,
     address: Address = None,
     keys: List[Address] = None,
-    chunk_size: int = 0,
-    continuation_token: str = "",
+    continuation_token: str = "0",
 ) -> str:
     """
     Returns all events matching the given filters.
@@ -87,19 +86,15 @@ async def get_events(
     )
     for block_number in range(int(from_block), to_block):
         block = state.starknet_wrapper.blocks.get_by_number(block_number)
-        if block.transaction_receipts != ():
+        if block.transaction_receipts:
             events.extend(get_events_from_block(block, address, keys))
 
-    if chunk_size > 0 and continuation_token == "":
-        events = events[:chunk_size]
-    elif chunk_size > 0 and continuation_token != "":
-        events = (list(islice(events, chunk_size * (int(continuation_token)), None)))[
-            :chunk_size
-        ]
+    continuation_token = int(continuation_token)
+    start_index = continuation_token * chunk_size
+    events = events[start_index : start_index + chunk_size]
 
     return RpcEventsResult(
-        events=events,
-        continuation_token=continuation_token,
+        events=events, continuation_token=str(continuation_token + 1)
     )
 
 

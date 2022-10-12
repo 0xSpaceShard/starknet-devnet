@@ -173,3 +173,8 @@ def test_get_events(input_data, expected_data):
     assert len(expected_data) == len(resp["result"]["events"])
     for i, data in enumerate(expected_data):
         assert str(resp["result"]["events"][i]["data"]) == str(data)
+
+    if "continuation_token" in input_data:
+        assert int(input_data["continuation_token"]) + 1 == int(
+            resp["result"]["continuation_token"]
+        )
