@@ -27,6 +27,7 @@ from .rpc_utils import (
 
 DEPLOY_CONTENT = load_file_content("deploy_rpc.json")
 INVOKE_CONTENT = load_file_content("invoke_rpc.json")
+INVOKE_CONTENT_V1 = load_file_content("invoke_rpc_v1.json")
 DECLARE_CONTENT = load_file_content("declare.json")
 
 
@@ -84,6 +85,14 @@ def fixture_invoke_content() -> dict:
     Invoke content JSON object
     """
     return json.loads(INVOKE_CONTENT)
+
+
+@pytest.fixture(name="invoke_content_v1")
+def fixture_invoke_content_v1() -> dict:
+    """
+    Invoke content v1 JSON object
+    """
+    return json.loads(INVOKE_CONTENT_V1)
 
 
 @pytest.fixture(name="deploy_content")

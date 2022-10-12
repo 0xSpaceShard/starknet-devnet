@@ -24,11 +24,7 @@ optional arguments:
   --dump-path DUMP_PATH
                         Specify the path to dump to
   --dump-on DUMP_ON     Specify when to dump; can dump on: exit, transaction
-  --lite-mode           Applies all lite-mode-* optimizations by disabling some features.
-  --lite-mode-block-hash
-                        Disables block hash calculation
-  --lite-mode-deploy-hash
-                        Disables deploy tx hash calculation
+  --lite-mode           Introduces speed-up by skipping block hash and deploy transaction hash calculation - applies sequential numbering instead (0x0, 0x1, 0x2, ...).
   --accounts ACCOUNTS   Specify the number of accounts to be predeployed;
                         defaults to 10
   --initial-balance INITIAL_BALANCE, -e INITIAL_BALANCE
@@ -36,6 +32,8 @@ optional arguments:
                         predeployed; defaults to 1e+21 (wei)
   --seed SEED           Specify the seed for randomness of accounts to be
                         predeployed
+  --hide-predeployed-accounts
+                        Prevents from printing the predeployed accounts details
   --start-time START_TIME
                         Specify the start time of the genesis block in Unix
                         time seconds

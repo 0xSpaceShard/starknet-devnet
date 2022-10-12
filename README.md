@@ -14,7 +14,7 @@ Aims to mimic Starknet's Alpha testnet, but with simplified functionality.
 
 ## ✏️ Contributing
 
-We ❤️ and ecnourage all contributions!
+We ❤️ and encourage all contributions!
 
 ## 🙌 Special Thanks
 

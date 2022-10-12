@@ -178,3 +178,12 @@ def test_get_events(input_data, expected_data):
         assert int(input_data["continuation_token"]) + 1 == int(
             resp["result"]["continuation_token"]
         )
+
+
+@pytest.mark.usefixtures("run_devnet_in_background")
+def test_call_get_nonce(deploy_info):
+    """
+    Test nonce
+    """
+    ex = rpc_call(method="starknet_getNonce", params=[deploy_info["address"]])
+    assert ex["result"] == "0x0"

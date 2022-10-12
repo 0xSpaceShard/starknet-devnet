@@ -1,0 +1,12 @@
+{
+  "calldata": [
+    "10",
+    "11"
+  ],
+  "signature": [],
+  "contract_address": "0x0491c87978cb8d8a82c2a96dddd1888eb5ef8aa7209d5da86d2b703c3572032a",
+  "type": "INVOKE_FUNCTION",
+  "nonce": "0x1",
+  "version": "0x1",
+  "max_fee": "0x2"
+}
