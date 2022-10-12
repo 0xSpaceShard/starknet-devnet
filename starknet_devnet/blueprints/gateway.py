@@ -31,8 +31,12 @@ async def add_transaction():
         )
         response_dict["class_hash"] = hex(contract_class_hash)
 
-    if tx_type == TransactionType.DEPLOY_ACCOUNT:
-        transaction_hash = await state.starknet_wrapper.deploy_account(transaction)
+    elif tx_type == TransactionType.DEPLOY_ACCOUNT:
+        (
+            contract_address,
+            transaction_hash,
+        ) = await state.starknet_wrapper.deploy_account(transaction)
+        response_dict["address"] = fixed_length_hex(contract_address)
 
     elif tx_type == TransactionType.DEPLOY:
         contract_address, transaction_hash = await state.starknet_wrapper.deploy(
