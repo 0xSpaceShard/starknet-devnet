@@ -62,7 +62,6 @@ from .fee_token import FeeToken
 from .general_config import DEFAULT_GENERAL_CONFIG
 from .origin import NullOrigin, Origin
 from .util import (
-    DummyExecutionInfo,
     StarknetDevnetException,
     enable_pickling,
     get_storage_diffs,
@@ -313,7 +312,7 @@ class StarknetWrapper:
                     assert isinstance(exc, StarkException)
                     error_message = exc.message
                     status = TransactionStatus.REJECTED
-                    self.execution_info = DummyExecutionInfo()
+                    self.execution_info = TransactionExecutionInfo.empty()
                     state_update = None
 
                     # restore block info
