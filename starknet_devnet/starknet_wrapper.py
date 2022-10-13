@@ -251,20 +251,21 @@ class StarknetWrapper:
         """
 
         async with self.__get_transaction_handler() as tx_handler:
-            tx_handler.internal_tx: InternalDeclare = InternalDeclare.from_external(
+            tx_handler.internal_tx = InternalDeclare.from_external(
                 external_tx, self.get_state().general_config
             )
             tx_handler.execution_info = await self.starknet.state.execute_tx(
                 tx_handler.internal_tx
             )
 
-        class_hash_int = int.from_bytes(tx_handler.internal_tx.class_hash, "big")
-        # alpha-goerli allows multiple declarations of the same class
+            class_hash_int = int.from_bytes(tx_handler.internal_tx.class_hash, "big")
+            tx_handler.explicitly_declared.append(class_hash_int)
 
-        self.contracts.store_class(class_hash_int, external_tx.contract_class)
-        await self.get_state().state.set_contract_class(
-            tx_handler.internal_tx.class_hash, external_tx.contract_class
-        )
+            # alpha-goerli allows multiple declarations of the same class
+            self.contracts.store_class(class_hash_int, external_tx.contract_class)
+            await self.get_state().state.set_contract_class(
+                tx_handler.internal_tx.class_hash, external_tx.contract_class
+            )
 
         return class_hash_int, tx_handler.internal_tx.hash_value
 
@@ -287,7 +288,10 @@ class StarknetWrapper:
 
             internal_tx: InternalTransaction
             execution_info: TransactionExecutionInfo
+            internal_calls: List[CallInfo] = []
             deployed_contracts: List[DeployedContract] = []
+            explicitly_declared: List[int] = []
+            visited_storage_entries: Set[StorageEntry] = set()
 
             def __init__(self, starknet_wrapper: StarknetWrapper):
                 self.starknet_wrapper = starknet_wrapper
@@ -321,14 +325,17 @@ class StarknetWrapper:
                     status = TransactionStatus.ACCEPTED_ON_L2
 
                     assert self.execution_info is not None
-                    await self.starknet_wrapper._register_new_contracts(
-                        self.execution_info.call_info.internal_calls,
-                        tx_hash,
-                        self.deployed_contracts,
-                    )
+                    if self.execution_info.call_info:
+                        await self.starknet_wrapper._register_new_contracts(
+                            self.internal_calls,
+                            tx_hash,
+                            self.deployed_contracts,
+                        )
 
                     state_update = await self.starknet_wrapper._update_state(
-                        deployed_contracts=self.deployed_contracts
+                        deployed_contracts=self.deployed_contracts,
+                        visited_storage_entries=self.visited_storage_entries,
+                        explicitly_declared_contracts=self.explicitly_declared,
                     )
 
                 transaction = DevnetTransaction(
@@ -358,6 +365,9 @@ class StarknetWrapper:
                 external_tx, state.general_config
             )
             tx_handler.execution_info = await state.execute_tx(tx_handler.internal_tx)
+            tx_handler.internal_calls = (
+                tx_handler.execution_info.call_info.internal_calls
+            )
 
         return (
             tx_handler.execution_info.call_info.contract_address,
@@ -406,6 +416,9 @@ class StarknetWrapper:
                 contract = await self.__deploy(internal_tx, contract_class)
 
             tx_handler.execution_info = contract.deploy_call_info
+            tx_handler.internal_calls = (
+                contract.deploy_call_info.call_info.internal_calls
+            )
 
             await self.store_contract(
                 contract.contract_address, contract, contract_class, tx_hash
@@ -432,6 +445,12 @@ class StarknetWrapper:
                 external_tx, state.general_config
             )
             tx_handler.execution_info = await state.execute_tx(tx_handler.internal_tx)
+            tx_handler.internal_calls = (
+                tx_handler.execution_info.call_info.internal_calls
+            )
+            tx_handler.visited_storage_entries = (
+                tx_handler.execution_info.get_visited_storage_entries()
+            )
 
         return external_tx.contract_address, tx_handler.internal_tx.hash_value
 

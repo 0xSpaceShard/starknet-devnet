@@ -10,6 +10,9 @@ from starkware.starkware_utils.error_handling import StarkException
 from starkware.starknet.testing.contract import StarknetContract
 from starkware.starknet.business_logic.execution.objects import CallInfo
 from starkware.starknet.business_logic.state.state import CachedState
+from starkware.starknet.business_logic.transaction.objects import (
+    TransactionExecutionInfo,
+)
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     DeployedContract,
     FeeEstimationInfo,
@@ -61,11 +64,13 @@ class StarknetDevnetException(StarkException):
         self.status_code = status_code
 
 
-@dataclass
-class DummyExecutionInfo:
+# pylint: disable=too-many-ancestors
+@dataclass(frozen=True)
+class DummyExecutionInfo(TransactionExecutionInfo):
     """Used if tx fails, but execution info is still required."""
 
     def __init__(self):
+        super().__init__()
         self.actual_fee = 0
         self.call_info = CallInfo.empty_for_testing()
         self.retdata = []
