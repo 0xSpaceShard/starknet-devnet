@@ -20,6 +20,9 @@ from starkware.starknet.business_logic.transaction.objects import (
     TransactionExecutionInfo,
 )
 from starkware.starknet.business_logic.state.state import BlockInfo, CachedState
+from starkware.starknet.core.os.contract_address.contract_address import (
+    calculate_contract_address_from_hash,
+)
 from starkware.starknet.services.api.gateway.transaction import (
     InvokeFunction,
     Deploy,
@@ -37,9 +40,11 @@ from starkware.starknet.services.api.feeder_gateway.request_objects import (
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionStatus,
 )
-
 from starkware.starknet.testing.contract import StarknetContract
 from starkware.starknet.testing.objects import FunctionInvocation, StarknetCallInfo
+from starkware.starknet.third_party.open_zeppelin.starknet_contracts import (
+    account_contract as oz_account_class,
+)
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionTrace,
 )
@@ -51,7 +56,7 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
 )
 
 from starknet_devnet.util import to_bytes, get_fee_estimation_info
-from starknet_devnet.constants import DUMMY_STATE_ROOT
+from starknet_devnet.constants import DUMMY_STATE_ROOT, OZ_ACCOUNT_CLASS_HASH
 
 from .lite_mode.lite_internal_deploy import LiteInternalDeploy
 from .lite_mode.lite_starknet import LiteStarknet
@@ -119,6 +124,7 @@ class StarknetWrapper:
 
             await self.fee_token.deploy()
             await self.accounts.deploy()
+            await self.__predeclare_oz_account()
 
             await self.__preserve_current_state(starknet.state.state)
             await self.create_empty_block()
@@ -368,8 +374,15 @@ class StarknetWrapper:
                 tx_handler.execution_info.call_info.internal_calls
             )
 
+        account_address = calculate_contract_address_from_hash(
+            salt=external_tx.contract_address_salt,
+            class_hash=external_tx.class_hash,
+            constructor_calldata=external_tx.constructor_calldata,
+            deployer_address=0,
+        )
+
         return (
-            tx_handler.execution_info.call_info.contract_address,
+            account_address,
             tx_handler.internal_tx.hash_value,
         )
 
@@ -618,3 +631,8 @@ class StarknetWrapper:
     async def get_nonce(self, contract_address: int):
         """Returns nonce of contract with `contract_address`"""
         return await self.get_state().state.get_nonce_at(contract_address)
+
+    async def __predeclare_oz_account(self):
+        await self.get_state().state.set_contract_class(
+            to_bytes(OZ_ACCOUNT_CLASS_HASH), oz_account_class
+        )

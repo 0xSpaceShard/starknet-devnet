@@ -20,7 +20,7 @@ from .shared import (
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
-from .util import assert_equal, devnet_in_background, get_block
+from .util import assert_equal, devnet_in_background, get_block, mint
 
 
 @pytest.mark.fee_token
@@ -42,15 +42,6 @@ def test_fee_token_address():
         == "0x62230ea046a9a5fbc261ac77d03c8d41e5d442db2284587570ab46455fd2488"
     )
     assert response.json.get("symbol") == "ETH"
-
-
-def mint(address: str, amount: int, lite=False):
-    """Sends mint request; returns parsed json body"""
-    response = requests.post(
-        f"{APP_URL}/mint", json={"address": address, "amount": amount, "lite": lite}
-    )
-    assert response.status_code == 200
-    return response.json()
 
 
 def mint_client(data: dict):

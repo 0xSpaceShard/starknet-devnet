@@ -293,7 +293,7 @@ def estimate_fee(function, inputs, address, abi_path, signature=None, nonce=None
     return extract_fee(output.stdout)
 
 
-def call(function, address, abi_path, inputs=None, max_fee=None):
+def call(function, address, abi_path, inputs=None):
     """Wrapper around starknet call"""
     args = [
         "call",
@@ -306,8 +306,6 @@ def call(function, address, abi_path, inputs=None, max_fee=None):
     ]
     if inputs:
         args.extend(["--inputs", *inputs])
-    if max_fee:
-        args.extend(["--max_fee", max_fee])
 
     output = run_starknet(args)
 
@@ -495,3 +493,12 @@ def create_empty_block():
     resp = requests.post(f"{APP_URL}/create_block")
     assert resp.status_code == 200
     return resp.json()
+
+
+def mint(address: str, amount: int, lite=False):
+    """Sends mint request; returns parsed json body"""
+    response = requests.post(
+        f"{APP_URL}/mint", json={"address": address, "amount": amount, "lite": lite}
+    )
+    assert response.status_code == 200
+    return response.json()
