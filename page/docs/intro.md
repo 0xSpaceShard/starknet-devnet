@@ -12,11 +12,11 @@ Let's discover **[starknet-devnet](https://github.com/Shard-Labs/starknet-devnet
 - Specifying a block by its hash/number is not supported for contract calls. All interaction is done with the latest block.
 - There is no pending block. A new block is generated with each transaction.
 - Sending transactions with max_fee set to 0 is supported (not supported on alpha-mainnet or alpha-goerli).
-- Devnet is currently being adapted to Starknet and Cairo v0.10.0, if you spot any issues, please [report them](https://github.com/Shard-Labs/starknet-devnet/issues/new/choose)
+- Devnet is currently being adapted to Starknet and Cairo v0.10.0, if you spot any issues, please [report them](https://github.com/Shard-Labs/starknet-devnet/issues/new/choose).
 
-### Requirements
+## Requirements
 
-Works with Python versions >=3.7.2 and <3.10.
+Works with Python versions >=3.8 and <3.10.
 
 On Ubuntu/Debian, first run:
 
@@ -36,3 +36,7 @@ brew install gmp
 ```bash
 pip install starknet-devnet
 ```
+
+### Windows installation
+
+Follow this guide: https://www.spaceshard.io/blog/starknet-devnet-windows-tutorial

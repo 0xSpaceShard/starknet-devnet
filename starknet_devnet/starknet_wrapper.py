@@ -6,6 +6,7 @@ from copy import deepcopy
 from typing import Dict, List, Set, Tuple, Union
 
 import cloudpickle as pickle
+from starkware.python.utils import as_non_optional
 from starkware.starknet.business_logic.transaction.fee import calculate_tx_fee
 from starkware.starknet.business_logic.transaction.objects import (
     CallInfo,
@@ -20,6 +21,7 @@ from starkware.starknet.services.api.gateway.transaction import (
     Deploy,
     Declare,
 )
+from starkware.starknet.testing.contract_utils import get_abi
 from starkware.starknet.testing.starknet import Starknet
 from starkware.starkware_utils.error_handling import StarkException
 from starkware.starknet.services.api.contract_class import EntryPointType, ContractClass
@@ -32,7 +34,7 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
 )
 
 from starkware.starknet.testing.contract import StarknetContract
-from starkware.starknet.testing.objects import FunctionInvocation
+from starkware.starknet.testing.objects import FunctionInvocation, StarknetCallInfo
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionTrace,
 )
@@ -332,11 +334,7 @@ class StarknetWrapper:
                     tx_number=transactions_count,
                 )
             else:
-                contract = await self.starknet.deploy(
-                    contract_class=contract_class,
-                    constructor_calldata=deploy_transaction.constructor_calldata,
-                    contract_address_salt=deploy_transaction.contract_address_salt,
-                )
+                contract = await self.__deploy(internal_tx, contract_class)
 
             execution_info = contract.deploy_call_info
             error_message = None
@@ -441,6 +439,31 @@ class StarknetWrapper:
         )
 
         return {"result": adapted_result}
+
+    async def __deploy(self, deploy_tx: InternalDeploy, contract_class: ContractClass):
+        """
+        Replacement for self.starknet.deploy that allows usage of InternalDeploy right away.
+        This way InternalDeploy doesn't have to be created twice, calculating hash every time.
+        """
+        state = self.get_state()
+        await state.state.set_contract_class(
+            class_hash=deploy_tx.contract_hash, contract_class=contract_class
+        )
+
+        tx_execution_info = await state.execute_tx(tx=deploy_tx)
+
+        deploy_call_info = StarknetCallInfo.from_internal(
+            call_info=as_non_optional(tx_execution_info.call_info),
+            result=(),
+            main_call_events=[],
+        )
+
+        return StarknetContract(
+            state=state,
+            abi=get_abi(contract_class=contract_class),
+            contract_address=deploy_tx.contract_address,
+            deploy_call_info=deploy_call_info,
+        )
 
     async def __register_new_contracts(
         self,

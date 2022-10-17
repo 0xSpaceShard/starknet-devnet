@@ -130,6 +130,11 @@ def parse_args(raw_args: List[str]):
         help="Specify the seed for randomness of accounts to be predeployed",
     )
     parser.add_argument(
+        "--hide-predeployed-accounts",
+        action="store_true",
+        help="Prevents from printing the predeployed accounts details",
+    )
+    parser.add_argument(
         "--start-time",
         action=NonNegativeAction,
         help="Specify the start time of the genesis block in Unix time seconds",
@@ -184,3 +189,4 @@ class DevnetConfig:
         self.gas_price = self.args.gas_price
         self.lite_mode = self.args.lite_mode
         self.account_path = self.args.account_path
+        self.hide_predeployed_accounts = self.args.hide_predeployed_accounts

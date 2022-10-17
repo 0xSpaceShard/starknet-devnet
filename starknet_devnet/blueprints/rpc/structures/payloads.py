@@ -250,9 +250,12 @@ def make_invoke_function(request_body: dict) -> InvokeFunction:
     """
 
     nonce = request_body.get("nonce")
+    entry_point_selector = request_body.get("entry_point_selector")
     return InvokeFunction(
         contract_address=int(request_body["contract_address"], 16),
-        entry_point_selector=int(request_body["entry_point_selector"], 16),
+        entry_point_selector=int(entry_point_selector, 16)
+        if entry_point_selector is not None
+        else None,
         calldata=[int(data, 16) for data in request_body["calldata"]],
         max_fee=int(request_body["max_fee"], 16) if "max_fee" in request_body else 0,
         version=int(request_body["version"], 16) if "version" in request_body else 0,

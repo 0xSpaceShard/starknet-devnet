@@ -8,6 +8,8 @@ Devnet starts with a genesis block (with block number equal to `0` and block has
 
 A new block is generated with each new transaction. There is no pending block.
 
+### Create an empty block
+
 To create an empty block without transactions, `POST` a request to `/create_block`:
 
 ```
