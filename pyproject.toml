@@ -41,6 +41,7 @@ starknet-devnet = "starknet_devnet.server:main"
 [tool.pytest.ini_options]
 markers = [
     "account",
+    "account_custom",
     "account_predeployed",
     "call",
     "declare",

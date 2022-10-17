@@ -497,3 +497,22 @@ def create_empty_block():
     resp = requests.post(f"{APP_URL}/create_block")
     assert resp.status_code == 200
     return resp.json()
+
+
+class DevnetBackgroundProc:
+    """Helper for ensuring we always have only 1 active devnet server running in background"""
+
+    def __init__(self):
+        self.proc = None
+
+    def start(self, *args, stderr=None, stdout=None):
+        """Starts a new devnet-server instance. Previously active instance will be stopped."""
+        self.stop()
+        self.proc = run_devnet_in_background(*args, stderr=stderr, stdout=stdout)
+        return self.proc
+
+    def stop(self):
+        """Stops the currently active devnet-server instance"""
+        if self.proc:
+            terminate_and_wait(self.proc)
+            self.proc = None

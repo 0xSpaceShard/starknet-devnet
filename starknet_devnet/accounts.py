@@ -3,35 +3,12 @@ Class representing list of predefined accounts
 """
 
 import random
-import json
 import sys
 
 from typing import List
 from starkware.crypto.signature.signature import private_to_stark_key
-from starkware.python.utils import to_bytes
-from starkware.solidity.utils import load_nearby_contract
-from starkware.starknet.core.os.class_hash import compute_class_hash
-from starkware.starknet.services.api.contract_class import ContractClass
 
-from starknet_devnet.contract_class_wrapper import (
-    DEFAULT_ACCOUNT_PATH,
-    DEFAULT_ACCOUNT_HASH_BYTES,
-    ContractClassWrapper,
-)
-from starknet_devnet.util import StarknetDevnetException
 from .account import Account
-
-
-def __load_account_class(path: str) -> ContractClass:
-    """Load contract class from `path`"""
-    with open(path, mode="r", encoding="utf-8") as dict_file:
-        loaded_dict = json.load(dict_file)
-        contract_class = ContractClass.load(loaded_dict)
-        for account_method in ["__execute__", "__validate__", "__validate_declare__"]:
-            if account_method not in contract_class.abi:
-                # throw / exit with 1
-                # TODO this could be done in config.py
-        return contract_class
 
 
 class Accounts:
@@ -44,18 +21,7 @@ class Accounts:
         self.__n_accounts = starknet_wrapper.config.accounts
         self.__initial_balance = starknet_wrapper.config.initial_balance
 
-        if starknet_wrapper.config.account_path:
-            account_class = __load_account_class(starknet_wrapper.config.account_path)
-            account_class_hash_bytes = to_bytes(compute_class_hash(account_class))
-        else:
-            account_class = ContractClass.load(
-                load_nearby_contract(DEFAULT_ACCOUNT_PATH)
-            )
-            account_class_hash_bytes = DEFAULT_ACCOUNT_HASH_BYTES
-
-        self.__account_class_wrapper = ContractClassWrapper(
-            contract_class=account_class, hash_bytes=account_class_hash_bytes
-        )
+        self.__account_class_wrapper = starknet_wrapper.config.account_class
 
         self.__seed = starknet_wrapper.config.seed
         if self.__seed is None:
