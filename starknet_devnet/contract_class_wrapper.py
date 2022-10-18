@@ -15,7 +15,6 @@ class ContractClassWrapper:
     hash_bytes: bytes
 
 
-# without .json extension as required by load_nearby_contract
 DEFAULT_ACCOUNT_PATH = os.path.abspath(
     os.path.join(
         __file__,
