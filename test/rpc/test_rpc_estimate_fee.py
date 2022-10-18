@@ -32,7 +32,7 @@ def common_estimate_response(response):
 )
 def test_estimate_happy_path(rpc_invoke_tx_common):
     """Happy path estimate_fee call"""
-    deploy_info = deploy(CONTRACT_PATH, ["0"])
+    deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
 
     txn: RpcInvokeTransaction = {
         "contract_address": deploy_info["address"],
@@ -67,7 +67,7 @@ def test_estimate_fee_with_genesis_block(rpc_invoke_tx_common):
 @pytest.mark.usefixtures("run_devnet_in_background")
 def test_estimate_fee_with_invalid_call_data(rpc_invoke_tx_common):
     """Call estimate fee with invalid data on body"""
-    deploy_info = deploy(CONTRACT_PATH, ["0"])
+    deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
 
     txn: RpcInvokeTransaction = {
         "contract_address": deploy_info["address"],
@@ -101,7 +101,7 @@ def test_estimate_fee_with_invalid_contract_address(rpc_invoke_tx_common):
 @pytest.mark.usefixtures("run_devnet_in_background")
 def test_estimate_fee_with_invalid_message_selector(rpc_invoke_tx_common):
     """Call estimate fee with invalid data on body"""
-    deploy_info = deploy(CONTRACT_PATH, ["0"])
+    deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
 
     txn: RpcInvokeTransaction = {
         "contract_address": deploy_info["address"],
@@ -123,7 +123,7 @@ def test_estimate_fee_with_invalid_message_selector(rpc_invoke_tx_common):
 def test_estimate_fee_with_complete_request_data(rpc_invoke_tx_common):
     """Estimate fee with complete request data"""
 
-    deploy_info = deploy(CONTRACT_PATH, ["0"])
+    deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
 
     txn: RpcInvokeTransaction = {
         "contract_address": deploy_info["address"],

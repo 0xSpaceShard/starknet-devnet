@@ -113,7 +113,7 @@ def test_estimate_fee_with_invalid_data():
 def test_estimate_fee_with_complete_request_data(request_kwargs):
     """Estimate fee with complete request data"""
 
-    deploy_info = deploy(CONTRACT_PATH, ["0"])
+    deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
     # increase balance with 10+20
     response = send_estimate_fee_with_requests(
         {
@@ -135,7 +135,7 @@ def test_estimate_fee_with_complete_request_data(request_kwargs):
 def test_simulate_transaction():
     """Simulate tx"""
 
-    deploy_info = deploy(CONTRACT_PATH, ["0"])
+    deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
 
     calldata = ["10", "20"]
     entry_point_selector = hex(get_selector_from_name("increase_balance"))

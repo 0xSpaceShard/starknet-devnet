@@ -66,7 +66,7 @@ EXPECTED_SALTY_DEPLOY_BLOCK_HASH_LITE_MODE = "0x1"
 )
 def test_general_workflow(expected_tx_hash, expected_block_hash):
     """Test devnet with CLI"""
-    deploy_info = deploy(CONTRACT_PATH, ["0"])
+    deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
 
     assert_tx_status(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
     assert_transaction(deploy_info["tx_hash"], "ACCEPTED_ON_L2")

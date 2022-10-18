@@ -72,7 +72,7 @@ def test_providing_correct_account_class():
     )
     assert fetched_class_hash == compute_class_hash(expected_contract_class)
 
-    deploy_info = deploy(CONTRACT_PATH, ["0"])
+    deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
     invoke(
         calls=[(deploy_info["address"], "increase_balance", [10, 20])],
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,

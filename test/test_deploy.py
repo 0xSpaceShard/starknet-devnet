@@ -3,7 +3,6 @@
 from typing import List
 
 import pytest
-import requests
 from starkware.starknet.core.os.contract_address.contract_address import (
     calculate_contract_address,
     compute_class_hash,
@@ -34,8 +33,8 @@ from .util import (
     deploy,
     devnet_in_background,
     mint,
+    send_tx,
 )
-from .settings import APP_URL
 from .shared import (
     ABI_PATH,
     CONTRACT_PATH,
@@ -118,19 +117,6 @@ async def test_deploy(starknet_wrapper_args, expected_tx_hash, expected_block_ha
         assert tx_status["block_hash"] == expected_block_hash
 
 
-def send_tx(transaction: dict, tx_type: TransactionType):
-    """
-    Send transaction.
-    Returns tx hash
-    """
-    resp = requests.post(
-        url=f"{APP_URL}/gateway/add_transaction",
-        json={**transaction, "type": tx_type.name},
-    )
-    assert resp.status_code == 200
-    return resp.json()["transaction_hash"]
-
-
 def test_predeployed_oz_account():
     """Test that precomputed class matches"""
     assert OZ_ACCOUNT_CLASS_HASH == compute_class_hash(oz_account_class)
@@ -166,15 +152,15 @@ def test_deploy_account():
     ).dump()
 
     # deployment should fail if no funds
-    tx_hash_before = send_tx(deploy_account_tx, TransactionType.DEPLOY_ACCOUNT)
-    assert_tx_status(tx_hash_before, "REJECTED")
+    tx_before = send_tx(deploy_account_tx, TransactionType.DEPLOY_ACCOUNT)
+    assert_tx_status(tx_before["transaction_hash"], "REJECTED")
 
     # fund the address of the account
     mint(hex(account_address), amount=int(1e18))
 
     # deploy the account
-    tx_hash_after = send_tx(deploy_account_tx, TransactionType.DEPLOY_ACCOUNT)
-    assert_tx_status(tx_hash_after, "ACCEPTED_ON_L2")
+    tx_after = send_tx(deploy_account_tx, TransactionType.DEPLOY_ACCOUNT)
+    assert_tx_status(tx_after["transaction_hash"], "ACCEPTED_ON_L2")
 
     # deploy a contract for testing
     init_balance = 10
@@ -194,8 +180,8 @@ def test_deploy_account():
         nonce=1,
     ).dump()
 
-    invoke_tx_hash = send_tx(invoke_tx, TransactionType.INVOKE_FUNCTION)
-    assert_tx_status(invoke_tx_hash, "ACCEPTED_ON_L2")
+    invoke_tx = send_tx(invoke_tx, TransactionType.INVOKE_FUNCTION)
+    assert_tx_status(invoke_tx["transaction_hash"], "ACCEPTED_ON_L2")
 
     # get balance of test contract
     balance_after = call(

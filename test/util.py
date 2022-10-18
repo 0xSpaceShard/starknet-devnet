@@ -11,10 +11,14 @@ import time
 from typing import List
 import requests
 
+from starkware.starknet.cli.starknet_cli import get_salt
+from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starknet.services.api.contract_class import ContractClass
+from starkware.starknet.services.api.gateway.transaction import Deploy
 
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 from .settings import HOST, PORT, APP_URL
+from .shared import SUPPORTED_TX_VERSION
 
 
 class ReturnCodeAssertionError(AssertionError):
@@ -156,17 +160,34 @@ def run_starknet(args, raise_on_nonzero=True, add_gateway_urls=True):
     return output
 
 
+def send_tx(transaction: dict, tx_type: TransactionType) -> dict:
+    """
+    Send transaction.
+    Returns tx hash
+    """
+    resp = requests.post(
+        url=f"{APP_URL}/gateway/add_transaction",
+        json={**transaction, "type": tx_type.name},
+    )
+    assert resp.status_code == 200
+    return resp.json()
+
+
 def deploy(contract, inputs=None, salt=None):
     """Wrapper around starknet deploy"""
-    args = ["deploy", "--contract", contract]
-    if inputs:
-        args.extend(["--inputs", *inputs])
-    if salt:
-        args.extend(["--salt", salt])
-    output = run_starknet(args)
+
+    deploy_tx = Deploy(
+        contract_address_salt=get_salt(salt),
+        contract_definition=load_contract_class(contract),
+        constructor_calldata=[int(value, 0) for value in inputs],
+        version=SUPPORTED_TX_VERSION,
+    ).dump()
+
+    resp = send_tx(deploy_tx, TransactionType.DEPLOY)
+
     return {
-        "tx_hash": extract_tx_hash(output.stdout),
-        "address": extract_address(output.stdout),
+        "tx_hash": resp["transaction_hash"],
+        "address": resp["address"],
     }
 
 
@@ -468,7 +489,7 @@ def assert_salty_deploy(
 ):
     """Deploy with salt and assert."""
 
-    deploy_info = deploy(contract_path, inputs, salt=salt)
+    deploy_info = deploy(contract_path, inputs=inputs, salt=salt)
     assert_tx_status(deploy_info["tx_hash"], expected_status)
     assert_equal(deploy_info["address"], expected_address)
     assert_equal(deploy_info["tx_hash"], expected_tx_hash)
