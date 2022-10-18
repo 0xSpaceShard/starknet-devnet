@@ -20,7 +20,6 @@ class Accounts:
         self.starknet_wrapper = starknet_wrapper
         self.__n_accounts = starknet_wrapper.config.accounts
         self.__initial_balance = starknet_wrapper.config.initial_balance
-
         self.__account_class_wrapper = starknet_wrapper.config.account_class
 
         self.__seed = starknet_wrapper.config.seed
