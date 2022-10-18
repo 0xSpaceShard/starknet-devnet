@@ -176,6 +176,8 @@ def send_tx(transaction: dict, tx_type: TransactionType) -> dict:
 def deploy(contract, inputs=None, salt=None):
     """Wrapper around starknet deploy"""
 
+    inputs = inputs or []
+
     deploy_tx = Deploy(
         contract_address_salt=get_salt(salt),
         contract_definition=load_contract_class(contract),
