@@ -18,7 +18,7 @@ from .util import (
     deploy,
     devnet_in_background,
     terminate_and_wait,
-    DevnetBackgroundProc
+    DevnetBackgroundProc,
 )
 from .settings import APP_URL
 from .shared import (

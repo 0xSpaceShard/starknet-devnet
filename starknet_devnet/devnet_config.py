@@ -65,7 +65,7 @@ def _parse_dump_on(option: str):
 EXPECTED_ACCOUNT_METHODS = ["__execute__", "__validate__", "__validate_declare__"]
 
 
-def _parse_account_class(class_path: str) -> ContractClass:
+def _parse_account_class(class_path: str) -> ContractClassWrapper:
     """Parse account class"""
     class_path = os.path.abspath(class_path)
 
@@ -239,7 +239,5 @@ class DevnetConfig:
         self.start_time = self.args.start_time
         self.gas_price = self.args.gas_price
         self.lite_mode = self.args.lite_mode
-        self.account_class = (
-            self.args.account_class
-        )  # TODO rename to self.account_class_wrapper
+        self.account_class = self.args.account_class
         self.hide_predeployed_accounts = self.args.hide_predeployed_accounts
