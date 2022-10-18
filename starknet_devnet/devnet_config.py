@@ -2,9 +2,21 @@
 
 import argparse
 from enum import Enum, auto
+import json
+import os
 import sys
 from typing import List
 
+from marshmallow.exceptions import ValidationError
+from starkware.python.utils import to_bytes
+from starkware.starknet.core.os.class_hash import compute_class_hash
+from starkware.starknet.services.api.contract_class import ContractClass
+
+from .contract_class_wrapper import (
+    ContractClassWrapper,
+    DEFAULT_ACCOUNT_HASH_BYTES,
+    DEFAULT_ACCOUNT_PATH,
+)
 from . import __version__
 from .constants import (
     DEFAULT_ACCOUNTS,
@@ -41,13 +53,50 @@ DUMP_ON_OPTIONS = [e.name.lower() for e in DumpOn]
 DUMP_ON_OPTIONS_STRINGIFIED = ", ".join(DUMP_ON_OPTIONS)
 
 
-def parse_dump_on(option: str):
+def _parse_dump_on(option: str):
     """Parse dumping frequency option."""
     if option in DUMP_ON_OPTIONS:
         return DumpOn[option.upper()]
     sys.exit(
         f"Error: Invalid --dump-on option: {option}. Valid options: {DUMP_ON_OPTIONS_STRINGIFIED}"
     )
+
+
+EXPECTED_ACCOUNT_METHODS = ["__execute__", "__validate__", "__validate_declare__"]
+
+
+def _parse_account_class(class_path: str) -> ContractClassWrapper:
+    """Parse account class"""
+    class_path = os.path.abspath(class_path)
+
+    if not os.path.isfile(class_path):
+        sys.exit(f"Error: {class_path} is not a valid file")
+
+    with open(class_path, mode="r", encoding="utf-8") as dict_file:
+        try:
+            loaded_dict = json.load(dict_file)
+        except json.JSONDecodeError:
+            sys.exit(f"Error: {class_path} is not a valid JSON file")
+
+    try:
+        contract_class = ContractClass.load(loaded_dict)
+    except ValidationError:
+        sys.exit(f"Error: {class_path} is not a valid contract class artifact")
+
+    if class_path == DEFAULT_ACCOUNT_PATH:
+        class_hash_bytes = DEFAULT_ACCOUNT_HASH_BYTES
+    else:
+        contract_methods = [entry["name"] for entry in contract_class.abi]
+        missing_methods = [
+            m for m in EXPECTED_ACCOUNT_METHODS if m not in contract_methods
+        ]
+        if missing_methods:
+            sys.exit(
+                f"Error: {class_path} is missing account methods: {', '.join(missing_methods)}"
+            )
+        class_hash_bytes = to_bytes(compute_class_hash(contract_class))
+
+    return ContractClassWrapper(contract_class, class_hash_bytes)
 
 
 class NonNegativeAction(argparse.Action):
@@ -102,7 +151,7 @@ def parse_args(raw_args: List[str]):
     parser.add_argument(
         "--dump-on",
         help=f"Specify when to dump; can dump on: {DUMP_ON_OPTIONS_STRINGIFIED}",
-        type=parse_dump_on,
+        type=_parse_dump_on,
     )
     parser.add_argument(
         "--lite-mode",
@@ -153,6 +202,14 @@ def parse_args(raw_args: List[str]):
         default=DEFAULT_TIMEOUT,
         help=f"Specify the server timeout in seconds; defaults to {DEFAULT_TIMEOUT}",
     )
+    parser.add_argument(
+        "--account-class",
+        help="Specify the account implementation to be used for predeploying; "
+        "should be a path to the compiled JSON artifact; "
+        "defaults to a fork of OpenZeppelin v0.4.0b",
+        type=_parse_account_class,
+        default=DEFAULT_ACCOUNT_PATH,
+    )
     # Uncomment this once fork support is added
     # parser.add_argument(
     #     "--fork", "-f",
@@ -182,4 +239,5 @@ class DevnetConfig:
         self.start_time = self.args.start_time
         self.gas_price = self.args.gas_price
         self.lite_mode = self.args.lite_mode
+        self.account_class = self.args.account_class
         self.hide_predeployed_accounts = self.args.hide_predeployed_accounts

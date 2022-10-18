@@ -114,16 +114,19 @@ async def add_invoke_transaction(
     """
     Submit a new transaction to be added to the chain
     """
+    entry_point_selector = function_invocation.get("entry_point_selector")
     invoke_function = InvokeFunction(
         contract_address=int(function_invocation["contract_address"], 16),
-        entry_point_selector=int(function_invocation["entry_point_selector"], 16),
+        entry_point_selector=int(entry_point_selector, 16)
+        if entry_point_selector is not None
+        else None,
         calldata=[int(data, 16) for data in function_invocation["calldata"]],
         max_fee=int(max_fee, 16),
         version=int(version, 16),
         signature=[int(data, 16) for data in signature]
         if signature is not None
         else [],
-        nonce=nonce,
+        nonce=int(nonce, 16) if nonce is not None else None,
     )
 
     _, transaction_hash = await state.starknet_wrapper.invoke(

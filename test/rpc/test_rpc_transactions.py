@@ -315,6 +315,32 @@ def test_add_invoke_transaction(invoke_content):
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
+def test_add_invoke_transaction_v1(invoke_content_v1):
+    """
+    Add invoke transaction
+    """
+    resp = rpc_call(
+        "starknet_addInvokeTransaction",
+        params={
+            "function_invocation": {
+                "contract_address": pad_zero(invoke_content_v1["contract_address"]),
+                "calldata": [
+                    pad_zero(hex(int(data))) for data in invoke_content_v1["calldata"]
+                ],
+            },
+            "signature": [pad_zero(sig) for sig in invoke_content_v1["signature"]],
+            "max_fee": hex(2),
+            "version": hex(1),
+            "nonce": hex(1),
+        },
+    )
+    receipt = resp["result"]
+
+    assert set(receipt.keys()) == {"transaction_hash"}
+    assert receipt["transaction_hash"][:3] == "0x0"
+
+
+@pytest.mark.usefixtures("run_devnet_in_background")
 def test_add_invoke_transaction_positional_args(invoke_content):
     """
     Add invoke transaction

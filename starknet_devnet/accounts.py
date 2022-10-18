@@ -7,6 +7,7 @@ import sys
 
 from typing import List
 from starkware.crypto.signature.signature import private_to_stark_key
+
 from .account import Account
 
 
@@ -19,6 +20,7 @@ class Accounts:
         self.starknet_wrapper = starknet_wrapper
         self.__n_accounts = starknet_wrapper.config.accounts
         self.__initial_balance = starknet_wrapper.config.initial_balance
+        self.__account_class_wrapper = starknet_wrapper.config.account_class
 
         self.__seed = starknet_wrapper.config.seed
         if self.__seed is None:
@@ -61,6 +63,7 @@ class Accounts:
                     private_key=private_key,
                     public_key=public_key,
                     initial_balance=self.__initial_balance,
+                    account_class_wrapper=self.__account_class_wrapper,
                 )
             )
 

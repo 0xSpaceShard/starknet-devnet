@@ -77,6 +77,15 @@ class Event(TypedDict):
     data: List[Felt]
 
 
+class RpcEventsResult(TypedDict):
+    """
+    TypedDict for rpc get events result
+    """
+
+    events: List[Event]
+    continuation_token: str
+
+
 class RpcBaseTransactionReceipt(TypedDict):
     """
     TypedDict for rpc transaction receipt
