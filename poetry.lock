@@ -156,10 +156,6 @@ sympy = "*"
 typeguard = "*"
 Web3 = "*"
 
-[package.source]
-type = "url"
-url = "https://github.com/starkware-libs/cairo-lang/releases/download/v0.10.1-pre/cairo-lang-0.10.1.zip"
-
 [[package]]
 name = "certifi"
 version = "2022.6.15"
@@ -1203,7 +1199,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.10"
-content-hash = "1b2961dffd362b605b96bea2fe8644e05991ed41783af6058d264f3c69239ec9"
+content-hash = "11e9a1b556268b59e6090920393f69e06e20a02be8b14136891c5900533ea788"
 
 [metadata.files]
 aiohttp = [
@@ -1407,7 +1403,9 @@ cachetools = [
     {file = "cachetools-5.2.0-py3-none-any.whl", hash = "sha256:f9f17d2aec496a9aa6b76f53e3b614c965223c061982d434d160f930c698a9db"},
     {file = "cachetools-5.2.0.tar.gz", hash = "sha256:6a94c6402995a99c3970cc7e4884bb60b4a8639938157eeed436098bf9831757"},
 ]
-cairo-lang = []
+cairo-lang = [
+    {file = "cairo-lang-0.10.1.zip", hash = "sha256:6ad68e482eb5b8f0f3f5e674973bcba0815ff87fe35bec7e6a3f9b96d8335616"},
+]
 certifi = [
     {file = "certifi-2022.6.15-py3-none-any.whl", hash = "sha256:fe86415d55e84719d75f8b69414f6438ac3547d2078ab91b67e779ef69378412"},
     {file = "certifi-2022.6.15.tar.gz", hash = "sha256:84c85a9078b11105f04f3036a9482ae10e4621616db313fe045dd24743a0820d"},
