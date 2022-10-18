@@ -259,11 +259,13 @@ class StarknetWrapper:
             tx_handler.internal_tx = InternalDeclare.from_external(
                 external_tx, self.get_state().general_config
             )
+            # calculate class hash here if execution fails
+            class_hash_int = int.from_bytes(tx_handler.internal_tx.class_hash, "big")
+
             tx_handler.execution_info = await self.starknet.state.execute_tx(
                 tx_handler.internal_tx
             )
 
-            class_hash_int = int.from_bytes(tx_handler.internal_tx.class_hash, "big")
             tx_handler.explicitly_declared.append(class_hash_int)
 
             # alpha-goerli allows multiple declarations of the same class
