@@ -8,6 +8,7 @@ from web3 import HTTPProvider, Web3
 from web3.middleware import geth_poa_middleware
 
 from starkware.solidity.utils import load_nearby_contract
+from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.testing.postman import Postman
 from starkware.starknet.testing.starknet import Starknet
 from starkware.eth.eth_test_utils import EthAccount, EthContract
@@ -82,10 +83,14 @@ class DevnetL1L2:
                 message = f"""Unable to load the Starknet Messaging contract in a local testnet instance.
 Make sure you have a local testnet instance running at the provided network url ({network_url}),
 and that the Messaging Contract is deployed at the provided address ({contract_address})."""
-                raise StarknetDevnetException(message=message) from error
+                raise StarknetDevnetException(
+                    code=StarknetErrorCode.UNEXPECTED_FAILURE, message=message
+                ) from error
         else:
             message = "L1 interaction is only usable with a local running local testnet instance."
-            raise StarknetDevnetException(message=message)
+            raise StarknetDevnetException(
+                code=StarknetErrorCode.UNEXPECTED_FAILURE, message=message
+            )
 
         self.__l1_provider = network_url
 

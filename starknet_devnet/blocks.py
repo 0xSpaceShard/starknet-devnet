@@ -4,8 +4,9 @@ Class for generating and handling blocks
 
 from typing import Dict
 
-from starkware.starknet.testing.state import StarknetState
 from starkware.starknet.core.os.block_hash.block_hash import calculate_block_hash
+from starkware.starknet.definitions.error_codes import StarknetErrorCode
+from starkware.starknet.testing.state import StarknetState
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     StarknetBlock,
     BlockStatus,
@@ -13,6 +14,7 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     BlockStateUpdate,
 )
+from starkware.starkware_utils.error_handling import StarkErrorCode
 
 from starknet_devnet.constants import CAIRO_LANG_VERSION, DUMMY_STATE_ROOT
 
@@ -51,11 +53,15 @@ class DevnetBlocks:
             message = (
                 f"Block number must be a non-negative integer; got: {block_number}."
             )
-            raise StarknetDevnetException(message=message)
+            raise StarknetDevnetException(
+                code=StarkErrorCode.MALFORMED_REQUEST, message=message
+            )
 
         if block_number >= self.get_number_of_blocks():
             message = f"Block number too high. There are currently {len(self.__num2block)} blocks; got: {block_number}."
-            raise StarknetDevnetException(message=message)
+            raise StarknetDevnetException(
+                code=StarknetErrorCode.BLOCK_NOT_FOUND, message=message
+            )
 
         if block_number in self.__num2block:
             return self.__num2block[block_number]

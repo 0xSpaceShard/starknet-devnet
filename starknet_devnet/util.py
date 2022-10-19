@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import os
 from typing import Dict, Union, List, Set
 
-from starkware.starkware_utils.error_handling import StarkException
+from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.testing.contract import StarknetContract
 from starkware.starknet.business_logic.state.state import CachedState
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
@@ -14,6 +14,7 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     FeeEstimationInfo,
     StorageEntry,
 )
+from starkware.starkware_utils.error_handling import StarkException
 
 
 def custom_int(arg: str) -> int:
@@ -55,7 +56,7 @@ class StarknetDevnetException(StarkException):
     Indicates the raised issue is devnet-related.
     """
 
-    def __init__(self, status_code=500, code=None, message=None):
+    def __init__(self, code: StarknetErrorCode, status_code=500, message=None):
         super().__init__(code=code, message=message)
         self.status_code = status_code
 
