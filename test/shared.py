@@ -1,5 +1,11 @@
 """Shared values between tests"""
 
+import json
+
+from starkware.starknet.third_party.open_zeppelin.starknet_contracts import (
+    account_contract as oz_account_class,
+)
+
 ARTIFACTS_PATH = "test/artifacts/contracts/cairo"
 CONTRACT_PATH = f"{ARTIFACTS_PATH}/contract.cairo/contract.json"
 ABI_PATH = f"{ARTIFACTS_PATH}/contract.cairo/contract_abi.json"
@@ -10,6 +16,10 @@ EVENTS_ABI_PATH = f"{ARTIFACTS_PATH}/events.cairo/events_abi.json"
 FAILING_CONTRACT_PATH = f"{ARTIFACTS_PATH}/always_fail.cairo/always_fail.json"
 DEPLOYER_CONTRACT_PATH = f"{ARTIFACTS_PATH}/deployer.cairo/deployer.json"
 DEPLOYER_ABI_PATH = f"{ARTIFACTS_PATH}/deployer.cairo/deployer_abi.json"
+
+STARKNET_CLI_ACCOUNT_ABI_PATH = f"{ARTIFACTS_PATH}/starknet_cli_oz_account_abi.json"
+with open(STARKNET_CLI_ACCOUNT_ABI_PATH, "w", encoding="utf-8") as oz_account_abi_file:
+    json.dump(oz_account_class.abi, oz_account_abi_file)
 
 L1L2_CONTRACT_PATH = f"{ARTIFACTS_PATH}/l1l2.cairo/l1l2.json"
 L1L2_ABI_PATH = f"{ARTIFACTS_PATH}/l1l2.cairo/l1l2_abi.json"

@@ -316,7 +316,7 @@ def estimate_fee(function, inputs, address, abi_path, signature=None, nonce=None
     return extract_fee(output.stdout)
 
 
-def call(function, address, abi_path, inputs=None):
+def call(function: str, address: str, abi_path: str, inputs=None):
     """Wrapper around starknet call"""
     args = [
         "call",
