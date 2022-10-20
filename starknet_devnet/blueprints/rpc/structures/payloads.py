@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import Callable, Union, List, Optional
 
+from test.shared import LEGACY_RPC_TX_VERSION
 from starkware.starknet.definitions.general_config import StarknetGeneralConfig
 from starkware.starknet.public.abi import AbiEntryType
 from starkware.starknet.services.api.contract_class import ContractClass
@@ -35,6 +36,7 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     NumAsHex,
     TxnType,
     rpc_txn_type,
+    Signature,
 )
 from starknet_devnet.blueprints.rpc.utils import rpc_root, rpc_felt
 from starknet_devnet.state import state
@@ -101,7 +103,7 @@ class RpcBroadcastedTxnCommon(TypedDict):
     type: TxnType
     max_fee: Felt
     version: NumAsHex
-    signature: List[Felt]
+    signature: Signature
     nonce: Felt
 
 
@@ -241,7 +243,7 @@ def rpc_invoke_transaction(
         "nonce": rpc_felt(transaction.nonce or 0),
     }
 
-    if transaction.version == 0:
+    if transaction.version == LEGACY_RPC_TX_VERSION:
         txn: RpcInvokeTransactionV0 = {
             "contract_address": rpc_felt(transaction.contract_address),
             "entry_point_selector": rpc_felt(transaction.entry_point_selector),
@@ -332,17 +334,17 @@ def make_invoke_function(request_body: dict) -> InvokeFunction:
     """
     Convert RPC request to internal InvokeFunction
     """
-    version = int(request_body["version"], 16) if "version" in request_body else 0
+    version = int(request_body.get("version", str(LEGACY_RPC_TX_VERSION)), 16)
     nonce = request_body.get("nonce")
 
     common_data = {
-        "max_fee": int(request_body["max_fee"], 16) if "max_fee" in request_body else 0,
+        "max_fee": int(request_body.get("max_fee", "0"), 16),
         "version": version,
         "signature": [int(data, 16) for data in request_body.get("signature", [])],
         "nonce": int(nonce, 16) if nonce is not None else None,
     }
 
-    if version == 0:
+    if version == LEGACY_RPC_TX_VERSION:
         invoke_function = InvokeFunction(
             contract_address=int(request_body["contract_address"], 16),
             entry_point_selector=int(request_body["entry_point_selector"], 16),

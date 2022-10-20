@@ -4,6 +4,7 @@ RPC transaction endpoints
 
 from typing import List
 
+from test.shared import LEGACY_RPC_TX_VERSION
 from marshmallow.exceptions import MarshmallowError
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
@@ -113,7 +114,7 @@ async def add_invoke_transaction(invoke_transaction: RpcBroadcastedInvokeTxn) ->
         "signature": [int(data, 16) for data in invoke_transaction["signature"]],
     }
 
-    if version == 0:
+    if version == LEGACY_RPC_TX_VERSION:
         invoke_function = InvokeFunction(
             contract_address=int(invoke_transaction["contract_address"], 16),
             entry_point_selector=int(invoke_transaction["entry_point_selector"], 16),

@@ -11,6 +11,7 @@ from test.shared import (
     SUPPORTED_RPC_TX_VERSION,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    LEGACY_RPC_TX_VERSION,
 )
 from test.test_account import deploy_empty_contract
 
@@ -64,7 +65,7 @@ def test_estimate_happy_path_v0():
         "entry_point_selector": hex(get_selector_from_name("sum_point_array")),
         "calldata": ["0x02", "0x01", "0x02", "0x03", "0x04"],
         "max_fee": rpc_felt(0),
-        "version": hex(0),
+        "version": hex(LEGACY_RPC_TX_VERSION),
         "signature": [],
         "type": "INVOKE",
     }
@@ -147,7 +148,7 @@ def test_estimate_fee_with_invalid_contract_address():
         "entry_point_selector": hex(get_selector_from_name("sum_point_array")),
         "calldata": ["0x02", "0x01", "0x02", "0x03", "0x04"],
         "max_fee": rpc_felt(0),
-        "version": hex(0),
+        "version": hex(LEGACY_RPC_TX_VERSION),
         "signature": [],
         "type": "INVOKE",
     }
@@ -168,7 +169,7 @@ def test_estimate_fee_with_invalid_message_selector():
         "entry_point_selector": "0x01",
         "calldata": ["0x02", "0x01", "0x02", "0x03", "0x04"],
         "max_fee": rpc_felt(0),
-        "version": hex(0),
+        "version": hex(LEGACY_RPC_TX_VERSION),
         "signature": [],
         "type": "INVOKE",
     }

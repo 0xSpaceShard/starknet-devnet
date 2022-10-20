@@ -20,6 +20,7 @@ from test.shared import (
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     CONTRACT_PATH,
+    LEGACY_RPC_TX_VERSION,
 )
 from test.util import deploy, load_contract_class
 import pytest
@@ -32,7 +33,7 @@ from starkware.starknet.public.abi import (
     get_storage_var_address,
     get_selector_from_name,
 )
-from starknet_devnet.blueprints.rpc.structures.types import rpc_txn_type
+from starknet_devnet.blueprints.rpc.structures.types import rpc_txn_type, Signature
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from starknet_devnet.blueprints.rpc.structures.payloads import (
     RpcContractClass,
@@ -97,7 +98,7 @@ def test_get_transaction_by_hash_invoke():
 
     block = get_block_with_transaction(invoke_tx_hash)
     block_tx = block["transactions"][0]
-    signature: List[str] = [rpc_felt(sig) for sig in block_tx["signature"]]
+    signature: Signature = [rpc_felt(sig) for sig in block_tx["signature"]]
     calldata: List[str] = [rpc_felt(data) for data in block_tx["calldata"]]
 
     resp = rpc_call(
@@ -132,7 +133,7 @@ def test_get_transaction_by_hash_declare():
     block = get_block_with_transaction(declare_info["tx_hash"])
     block_tx = block["transactions"][0]
     transaction_hash: str = declare_info["tx_hash"]
-    signature: List[str] = [rpc_felt(sig) for sig in block_tx["signature"]]
+    signature: Signature = [rpc_felt(sig) for sig in block_tx["signature"]]
 
     resp = rpc_call(
         "starknet_getTransactionByHash",
@@ -401,7 +402,7 @@ def test_add_invoke_transaction_v0():
     invoke_transaction = RpcBroadcastedInvokeTxnV0(
         type="INVOKE",
         max_fee=rpc_felt(0),
-        version=hex(0),
+        version=hex(LEGACY_RPC_TX_VERSION),
         signature=[],
         nonce=None,
         contract_address=rpc_felt(contract_address),
@@ -437,7 +438,7 @@ def test_add_declare_transaction_on_incorrect_contract(declare_content):
     rpc_contract_class = RpcContractClass(
         program="",
         entry_points_by_type=contract_class["entry_points_by_type"],
-        abi=contract_class.get("abi", []),
+        abi=contract_class["abi"],
     )
 
     declare_transaction = RpcBroadcastedDeclareTxn(
@@ -469,7 +470,7 @@ def test_add_declare_transaction(declare_content):
     rpc_contract_class = RpcContractClass(
         program=contract_class["program"],
         entry_points_by_type=contract_class["entry_points_by_type"],
-        abi=contract_class.get("abi", []),
+        abi=contract_class["abi"],
     )
 
     nonce = get_nonce(PREDEPLOYED_ACCOUNT_ADDRESS)
@@ -515,13 +516,13 @@ def test_add_declare_transaction_v0(declare_content):
     rpc_contract_class = RpcContractClass(
         program=contract_class["program"],
         entry_points_by_type=contract_class["entry_points_by_type"],
-        abi=contract_class.get("abi", []),
+        abi=contract_class["abi"],
     )
 
     declare_transaction = RpcBroadcastedDeclareTxn(
         type=declare_content["type"],
         max_fee=rpc_felt(declare_content["max_fee"]),
-        version=hex(0),
+        version=hex(LEGACY_RPC_TX_VERSION),
         signature=[],
         nonce=rpc_felt(0),
         contract_class=rpc_contract_class,
@@ -552,7 +553,7 @@ def test_add_deploy_transaction_on_incorrect_contract(deploy_content):
     rpc_contract_class = RpcContractClass(
         program="",
         entry_points_by_type=contract_definition["entry_points_by_type"],
-        abi=contract_definition.get("abi", []),
+        abi=contract_definition["abi"],
     )
 
     deploy_transaction = RpcBroadcastedDeployTxn(
@@ -572,7 +573,7 @@ def test_add_deploy_transaction_on_incorrect_contract(deploy_content):
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
-@pytest.mark.parametrize("version", [0, SUPPORTED_RPC_TX_VERSION])
+@pytest.mark.parametrize("version", [LEGACY_RPC_TX_VERSION, SUPPORTED_RPC_TX_VERSION])
 def test_add_deploy_transaction(deploy_content, version):
     """
     Add deploy transaction
@@ -585,7 +586,7 @@ def test_add_deploy_transaction(deploy_content, version):
     rpc_contract_class = RpcContractClass(
         program=contract_definition["program"],
         entry_points_by_type=contract_definition["entry_points_by_type"],
-        abi=contract_definition.get("abi", []),
+        abi=contract_definition["abi"],
     )
 
     deploy_transaction = RpcBroadcastedDeployTxn(

@@ -3,7 +3,7 @@ RPC types
 """
 
 from enum import Enum
-from typing import Union
+from typing import Union, List
 from typing_extensions import Literal, TypedDict
 
 from starkware.starknet.services.api.feeder_gateway.response_objects import BlockStatus
@@ -14,6 +14,8 @@ Felt = str
 BlockHash = Felt
 BlockNumber = int
 BlockTag = Literal["latest", "pending"]
+
+Signature = List[Felt]
 
 
 class BlockHashDict(TypedDict):

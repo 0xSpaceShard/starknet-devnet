@@ -7,7 +7,6 @@ from __future__ import annotations
 from test.account import invoke, declare
 from test.rpc.rpc_utils import rpc_call, deploy_and_invoke_storage_contract
 
-# pylint: disable=too-many-locals
 from test.shared import (
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
