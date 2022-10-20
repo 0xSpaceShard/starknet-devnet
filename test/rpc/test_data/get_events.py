@@ -2,7 +2,7 @@
 RPC get events test data.
 """
 
-from ...shared import (
+from test.shared import (
     EXPECTED_FEE_TOKEN_ADDRESS,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
