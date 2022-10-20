@@ -27,9 +27,8 @@ from services.everest.business_logic.transaction_execution_objects import (
     TransactionFailureReason,
 )
 
-from starknet_devnet.util import StarknetDevnetException
-
 from .origin import Origin
+from .util import StarknetDevnetException
 
 
 # pylint: disable=too-many-instance-attributes
