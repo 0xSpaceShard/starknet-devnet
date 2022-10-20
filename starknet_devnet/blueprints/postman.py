@@ -5,6 +5,8 @@ Postman routes.
 import json
 
 from flask import Blueprint, jsonify, request
+from starkware.starkware_utils.error_handling import StarkErrorCode
+
 from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException
 
@@ -17,7 +19,11 @@ def validate_load_messaging_contract(request_dict: dict):
     network_url = request_dict.get("networkUrl")
     if network_url is None:
         error_message = "L1 network or StarknetMessaging contract address not specified"
-        raise StarknetDevnetException(message=error_message, status_code=400)
+        raise StarknetDevnetException(
+            code=StarkErrorCode.MALFORMED_REQUEST,
+            message=error_message,
+            status_code=400,
+        )
 
     return network_url
 

@@ -19,6 +19,7 @@ from starkware.starknet.services.api.feeder_gateway.request_objects import (
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionSimulationInfo,
 )
+from starkware.starkware_utils.error_handling import StarkErrorCode
 from werkzeug.datastructures import MultiDict
 
 from starknet_devnet.state import state
@@ -33,7 +34,9 @@ def validate_request(data: bytes, cls):
         return cls.loads(data)
     except (TypeError, ValidationError) as err:
         raise StarknetDevnetException(
-            message=f"Invalid {cls.__name__}: {err}", status_code=400
+            code=StarkErrorCode.MALFORMED_REQUEST,
+            message=f"Invalid {cls.__name__}: {err}",
+            status_code=400,
         ) from err
 
 
@@ -48,7 +51,9 @@ def _check_block_hash(request_args: MultiDict):
 def _check_block_arguments(block_hash, block_number):
     if block_hash is not None and block_number is not None:
         message = "Ambiguous criteria: only one of (block number, block hash) can be provided."
-        raise StarknetDevnetException(message=message, status_code=500)
+        raise StarknetDevnetException(
+            code=StarkErrorCode.MALFORMED_REQUEST, message=message
+        )
 
 
 def _get_block_object(block_hash: str, block_number: int):

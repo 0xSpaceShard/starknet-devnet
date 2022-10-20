@@ -2,8 +2,9 @@
 Base routes
 """
 from flask import Blueprint, Response, request, jsonify
-from starknet_devnet.fee_token import FeeToken
+from starkware.starkware_utils.error_handling import StarkErrorCode
 
+from starknet_devnet.fee_token import FeeToken
 from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException, check_valid_dump_path
 
@@ -21,17 +22,23 @@ def extract_positive(request_json, prop_name: str):
 
     if value is None:
         raise StarknetDevnetException(
-            message=f"{prop_name} value must be provided.", status_code=400
+            code=StarkErrorCode.MALFORMED_REQUEST,
+            message=f"{prop_name} value must be provided.",
+            status_code=400,
         )
 
     if not isinstance(value, int) or isinstance(value, bool):
         raise StarknetDevnetException(
-            message=f"{prop_name} value must be an integer.", status_code=400
+            code=StarkErrorCode.MALFORMED_REQUEST,
+            message=f"{prop_name} value must be an integer.",
+            status_code=400,
         )
 
     if value < 0:
         raise StarknetDevnetException(
-            message=f"{prop_name} value must be greater than 0.", status_code=400
+            code=StarkErrorCode.MALFORMED_REQUEST,
+            message=f"{prop_name} value must be greater than 0.",
+            status_code=400,
         )
 
     return value
@@ -42,14 +49,20 @@ def extract_hex_string(request_json, prop_name: str) -> int:
     value = request_json.get(prop_name)
     if value is None:
         raise StarknetDevnetException(
-            status_code=400, message=f"{prop_name} value must be provided."
+            code=StarkErrorCode.MALFORMED_REQUEST,
+            status_code=400,
+            message=f"{prop_name} value must be provided.",
         )
 
     try:
         return int(value, 16)
     except (ValueError, TypeError) as error:
         message = f"{prop_name} value must be a hex string."
-        raise StarknetDevnetException(status_code=400, message=message) from error
+        raise StarknetDevnetException(
+            code=StarkErrorCode.MALFORMED_REQUEST,
+            status_code=400,
+            message=message,
+        ) from error
 
 
 @base.route("/is_alive", methods=["GET"])
@@ -72,12 +85,20 @@ def dump():
     request_dict = request.json or {}
     dump_path = request_dict.get("path") or state.dumper.dump_path
     if not dump_path:
-        raise StarknetDevnetException(message="No path provided.", status_code=400)
+        raise StarknetDevnetException(
+            code=StarkErrorCode.MALFORMED_REQUEST,
+            message="No path provided.",
+            status_code=400,
+        )
 
     try:
         check_valid_dump_path(dump_path)
     except ValueError as error:
-        raise StarknetDevnetException(status_code=400, message=str(error)) from error
+        raise StarknetDevnetException(
+            code=StarkErrorCode.MALFORMED_REQUEST,
+            message=str(error),
+            status_code=400,
+        ) from error
 
     state.dumper.dump(dump_path)
     return Response(status=200)
@@ -90,7 +111,11 @@ def load():
     request_dict = request.json or {}
     load_path = request_dict.get("path")
     if not load_path:
-        raise StarknetDevnetException(message="No path provided.", status_code=400)
+        raise StarknetDevnetException(
+            code=StarkErrorCode.MALFORMED_REQUEST,
+            message="No path provided.",
+            status_code=400,
+        )
 
     state.load(load_path)
     return Response(status=200)

@@ -52,7 +52,9 @@ async def add_transaction():
 
     else:
         raise StarknetDevnetException(
-            message=f"Invalid tx_type: {tx_type.name}.", status_code=400
+            code=StarkErrorCode.MALFORMED_REQUEST,
+            message=f"Invalid tx_type: {tx_type.name}.",
+            status_code=400,
         )
 
     response_dict["transaction_hash"] = hex(transaction_hash)
