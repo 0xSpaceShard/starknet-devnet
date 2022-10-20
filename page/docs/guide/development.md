@@ -22,9 +22,10 @@ poetry run starknet-devnet
 ./scripts/starknet_devnet_debug.sh
 ```
 
-## Development - Lint
+## Development - Format and Lint
 
 ```text
+./scripts/format.sh
 ./scripts/lint.sh
 ```
 
@@ -32,9 +33,15 @@ poetry run starknet-devnet
 
 When running tests locally, do it from the project root:
 
-```bash
-./scripts/compile_contracts.sh # first generate the artifacts
+First generate the artifacts:
 
+```bash
+./scripts/compile_contracts.sh
+```
+
+Use one of the testing commands:
+
+```bash
 ./scripts/test.sh [TEST_CASE] # parallelized testing - using auto detected number of CPU cores
 
 poetry run pytest -s -v test/ # for more verbose output
@@ -50,13 +57,15 @@ poetry run pytest test/<TEST_FILE>::<TEST_CASE> # for a single test case
 ./scripts/check_versions.sh
 ```
 
-## Development - Working with a local version of cairo-lang
+## Development - Working with an archive of cairo-lang
 
-In `pyproject.toml` under `[tool.poetry.dependencies]` specify
+If you know the URL of the archive (e.g. ZIP) of a new cairo-lang version, you can install it with
 
 ```
-cairo-lang = { path = "your-cairo-lang-package.zip" }
+poetry add <URL>
 ```
+
+After adding a new cairo-lang version, you will probably want to recompile contract artifacts.
 
 ## Development - Updating accounts
 
@@ -82,3 +91,52 @@ You don't need to build anything to be able to run locally, but if you need the 
 ```text
 poetry build
 ```
+
+## Development - Version release
+
+You can check the current version on master with these commands:
+
+```
+git checkout master
+poetry version
+```
+
+To update the version use:
+
+```
+poetry version <VERSION>
+```
+
+or any other variation of that [command](https://python-poetry.org/docs/cli/#version)
+
+In file `/starknet_devnet/__init__.py` you need to manually update the version:
+
+```
+__version__ = "<VERSION>"
+```
+
+If you did everything correctly these commands should result with the same version:
+
+```
+poetry version
+poetry run starknet-devnet --version
+```
+
+Later, add a tag to the version update commit (Notice the `v`):
+
+```
+git tag v<VERSION>
+git push origin v<VERSION>
+```
+
+The documentation needs to be generated (assuming automatic doc deployment hasn't been implemented):
+
+```
+cd page && npm run deploy
+```
+
+Lastly:
+
+- Check if CI and image publish worked after commit
+- Generate release notes with the corresponding tag version on GitHub
+- Inform users on Telegram, [Discord Devnet channel](https://discord.com/channels/793094838509764618/985824027950055434), and [Starknet Shamans](https://community.starknet.io/t/starknet-devnet/69).

@@ -2,7 +2,6 @@
 sidebar_position: 14
 ---
 
-
 # Mint token - Local faucet
 
 Other than using prefunded predeployed accounts, you can also add funds to an account that you deployed yourself.
@@ -28,7 +27,7 @@ Response:
 
 By not setting the `lite` parameter or by setting it to `false`, new tokens will be minted in a separate transaction. You will receive the hash of this transaction, as well as the new balance after minting in the response.
 
-`amount` needs to be an integer (or a float whose fractional part is 0, e.g. `1000.0` or `1e21`)
+The value of `amount` is in WEI and needs to be an integer (or a float whose fractional part is 0, e.g. `1000.0` or `1e21`)
 
 ```
 POST /mint

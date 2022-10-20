@@ -230,14 +230,16 @@ def invoke(
 
 
 def declare(
-    contract_path: str, account_address: str, private_key: str, nonce: int = None
+    contract_path: str,
+    account_address: str,
+    private_key: str,
+    nonce: int = None,
+    max_fee: int = 0,
 ):
     """Wrapper around starknet declare"""
 
     if nonce is None:
         nonce = get_nonce(account_address)
-
-    max_fee = 0
 
     tx_hash = calculate_declare_transaction_hash(
         contract_class=load_contract_class(contract_path),

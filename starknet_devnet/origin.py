@@ -2,6 +2,7 @@
 Contains classes that provide the abstraction of L2 blockchain.
 """
 
+from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionStatus,
@@ -108,15 +109,21 @@ class NullOrigin(Origin):
     def get_transaction_trace(self, transaction_hash: str):
         tx_hash_int = int(transaction_hash, 16)
         message = f"Transaction corresponding to hash {tx_hash_int} is not found."
-        raise StarknetDevnetException(message=message)
+        raise StarknetDevnetException(
+            code=StarknetErrorCode.INVALID_TRANSACTION_HASH, message=message
+        )
 
     def get_block_by_hash(self, block_hash: str):
         message = f"Block hash not found; got: {block_hash}."
-        raise StarknetDevnetException(message=message)
+        raise StarknetDevnetException(
+            code=StarknetErrorCode.BLOCK_NOT_FOUND, message=message
+        )
 
     def get_block_by_number(self, block_number: int):
         message = "Requested the latest block, but there are no blocks so far."
-        raise StarknetDevnetException(message=message)
+        raise StarknetDevnetException(
+            code=StarknetErrorCode.BLOCK_NOT_FOUND, message=message
+        )
 
     def get_code(self, contract_address: int):
         return {"abi": {}, "bytecode": []}
@@ -125,12 +132,16 @@ class NullOrigin(Origin):
         return {"abi": {}, "entry_points_by_type": {}, "program": {}}
 
     def get_class_by_hash(self, class_hash: int) -> ContractClass:
-        message = f"Class with hash {hex(class_hash)} is not declared"
-        raise StarknetDevnetException(message=message)
+        message = f"Class with hash {hex(class_hash)} is not declared."
+        raise StarknetDevnetException(
+            code=StarknetErrorCode.UNDECLARED_CLASS, message=message
+        )
 
     def get_class_hash_at(self, contract_address: int) -> int:
-        message = f"Contract with address {hex(contract_address)} is not deployed"
-        raise StarknetDevnetException(message=message)
+        message = f"Contract with address {hex(contract_address)} is not deployed."
+        raise StarknetDevnetException(
+            code=StarknetErrorCode.UNINITIALIZED_CONTRACT, message=message
+        )
 
     def get_storage_at(self, contract_address: int, key: int) -> str:
         return hex(0)
@@ -145,13 +156,17 @@ class NullOrigin(Origin):
             error_message = (
                 f"No state updates saved for the provided block hash {block_hash}"
             )
-            raise StarknetDevnetException(message=error_message)
+            raise StarknetDevnetException(
+                code=StarknetErrorCode.BLOCK_NOT_FOUND, message=error_message
+            )
 
         if block_number is not None:
             error_message = (
                 f"No state updates saved for the provided block number {block_number}"
             )
-            raise StarknetDevnetException(message=error_message)
+            raise StarknetDevnetException(
+                code=StarknetErrorCode.BLOCK_NOT_FOUND, message=error_message
+            )
 
 
 class ForkedOrigin(Origin):

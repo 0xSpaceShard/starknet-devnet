@@ -28,6 +28,7 @@ from services.everest.business_logic.transaction_execution_objects import (
 )
 
 from .origin import Origin
+from .util import StarknetDevnetException
 
 
 # pylint: disable=too-many-instance-attributes
@@ -224,6 +225,12 @@ class DevnetTransactions:
 
         if transaction is None:
             return self.origin.get_transaction_trace(tx_hash)
+
+        if transaction.status == TransactionStatus.REJECTED:
+            raise StarknetDevnetException(
+                code=StarknetErrorCode.NO_TRACE,
+                message=f"Transaction corresponding to hash {int(tx_hash, 16)} has no trace; status: {transaction.status.name}.",
+            )
 
         return transaction.get_trace()
 

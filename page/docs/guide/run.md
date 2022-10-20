@@ -7,43 +7,39 @@ sidebar_position: 1
 Installing the package adds the `starknet-devnet` command.
 
 ```text
-usage: starknet-devnet [-h] [-v] [--host HOST] [--port PORT]
+usage: starknet-devnet [-h] [-v] [--host HOST] [--port PORT] [--load-path LOAD_PATH] [--dump-path DUMP_PATH] [--dump-on DUMP_ON] [--lite-mode] [--accounts ACCOUNTS]
+                       [--initial-balance INITIAL_BALANCE] [--seed SEED] [--hide-predeployed-accounts] [--start-time START_TIME] [--gas-price GAS_PRICE] [--timeout TIMEOUT]
+                       [--account-class ACCOUNT_CLASS]
 
 Run a local instance of Starknet Devnet
 
 optional arguments:
   -h, --help            show this help message and exit
   -v, --version         Print the version
-  --host HOST           Specify the address to listen at; defaults to
-                        127.0.0.1 (use the address the program outputs on
-                        start)
+  --host HOST           Specify the address to listen at; defaults to 127.0.0.1 (use the address the program outputs on start)
   --port PORT, -p PORT  Specify the port to listen at; defaults to 5050
   --load-path LOAD_PATH
-                        Specify the path from which the state is loaded on
-                        startup
+                        Specify the path from which the state is loaded on startup
   --dump-path DUMP_PATH
                         Specify the path to dump to
   --dump-on DUMP_ON     Specify when to dump; can dump on: exit, transaction
-  --lite-mode           Applies all lite-mode-* optimizations by disabling some features.
-  --lite-mode-block-hash
-                        Disables block hash calculation
-  --lite-mode-deploy-hash
-                        Disables deploy tx hash calculation
-  --accounts ACCOUNTS   Specify the number of accounts to be predeployed;
-                        defaults to 10
+  --lite-mode           Introduces speed-up by skipping block hash and deploy transaction hash calculation - applies sequential numbering instead (0x0, 0x1, 0x2, ...).
+  --accounts ACCOUNTS   Specify the number of accounts to be predeployed; defaults to 10
   --initial-balance INITIAL_BALANCE, -e INITIAL_BALANCE
-                        Specify the initial balance of accounts to be
-                        predeployed; defaults to 1e+21 (wei)
-  --seed SEED           Specify the seed for randomness of accounts to be
-                        predeployed
+                        Specify the initial balance of accounts to be predeployed; defaults to 1e+21
+  --seed SEED           Specify the seed for randomness of accounts to be predeployed
+  --hide-predeployed-accounts
+                        Prevents from printing the predeployed accounts details
   --start-time START_TIME
-                        Specify the start time of the genesis block in Unix
-                        time seconds
+                        Specify the start time of the genesis block in Unix time seconds
   --gas-price GAS_PRICE, -g GAS_PRICE
-                        Specify the gas price in wei per gas unit; defaults to
-                        1e+11
+                        Specify the gas price in wei per gas unit; defaults to 1e+11
   --timeout TIMEOUT, -t TIMEOUT
-                        Specify the timeout for devnet server; defaults to 60 seconds
+                        Specify the server timeout in seconds; defaults to 60
+  --account-class ACCOUNT_CLASS
+                        Specify the account implementation to be used for predeploying;
+                        should be a path to the compiled JSON artifact;
+                        defaults to a fork of OpenZeppelin v0.4.0b
 ```
 
 You can run `starknet-devnet` in a separate shell, or you can run it in background with `starknet-devnet &`.
@@ -55,7 +51,7 @@ curl http://127.0.0.1:5050/is_alive
 
 ## Run with Docker
 
-Devnet is available as a Docker image ([**shardlabs/starknet-devnet**](https://hub.docker.com/repository/docker/shardlabs/starknet-devnet)):
+Devnet is available as a Docker image `shardlabs/starknet-devnet` ([Docker Hub link](https://hub.docker.com/repository/docker/shardlabs/starknet-devnet)). Fetch it by running:
 
 ```bash
 docker pull shardlabs/starknet-devnet:<TAG>
@@ -63,27 +59,55 @@ docker pull shardlabs/starknet-devnet:<TAG>
 
 ### Versions and Tags
 
-Image tags correspond to Devnet versions as on PyPI and GitHub, with the `latest` tag used for the latest image. These images are built for linux/amd64. To use the arm64 versions, since `0.1.23` you can append `-arm` to the tag. E.g.:
+Devnet versions, as tracked on [PyPI](https://pypi.org/project/starknet-devnet/#history), are also the tags for the corresponding images:
 
-- `shardlabs/starknet-devnet:0.2.10` - image for the amd64 architecture
-- `shardlabs/starknet-devnet:0.2.10-arm` - image for the arm64 architecture
+- `shardlabs/starknet-devnet:<VERSION>`
+
+The latest stable version is also available as:
+
+- `shardlabs/starknet-devnet:latest`
+
+Commits to the `master` branch of this repository are mostly available as images tagged with their commit hash (the full 40-hex-digits SHA1 digest):
+
+- `shardlabs/starknet-devnet:<COMMIT_HASH>`
+
+The last commit is also a candidate for the next release, so it is available as:
+
+- `shardlabs/starknet-devnet:next`
+
+So far, all listed tags referred to images built for the linux/amd64 architecture. To use arm64-compatible images, append `-arm` to the tag. E.g.:
+
+- `shardlabs/starknet-devnet:<VERSION>-arm`
 - `shardlabs/starknet-devnet:latest-arm`
 
-By appending the `-seed0` suffix, you can access images which [**predeploy funded accounts**](#predeployed-accounts) with `--seed 0`, thus always deploying the same set of accounts. E.g.:
+By appending the `-seed0` suffix, you can use images which [predeploy funded accounts](#predeployed-accounts) with `--seed 0`, thus always deploying the same set of accounts. E.g.:
 
-- `shardlabs/starknet-devnet:0.2.10-seed0`
+- `shardlabs/starknet-devnet:<VERSION>-seed0`
 - `shardlabs/starknet-devnet:latest-seed0`
-- `shardlabs/starknet-devnet:0.2.10-arm-seed0`
+- `shardlabs/starknet-devnet:next-seed0`
+- `shardlabs/starknet-devnet:<VERSION>-arm-seed0`
 
-The server inside the container listens to the port 5050, which you need to publish to a desired `<PORT>` on your host machine:
+### Container port publishing
 
-```bash
+#### Linux
+
+If on a Linux host machine, you can use [`--network host`](https://docs.docker.com/network/host/). This way, the port used internally by the container is also available on your host machine. The `--port` option also has effect.
+
+```text
+docker run --network host shardlabs/starknet-devnet [--port <PORT>]
+```
+
+#### Mac, Windows
+
+If not on Linux, you need to publish the container's internally used port to a desired `<PORT>` on your host machine. The internal port is `5050` by default (can be overriden with `--port`).
+
+```text
 docker run -p [HOST:]<PORT>:5050 shardlabs/starknet-devnet
 ```
 
 E.g. if you want to use your host machine's `127.0.0.1:5050`, you need to run:
 
-```bash
+```text
 docker run -p 127.0.0.1:5050:5050 shardlabs/starknet-devnet
 ```
 

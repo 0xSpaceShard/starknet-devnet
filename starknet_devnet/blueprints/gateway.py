@@ -31,6 +31,13 @@ async def add_transaction():
         )
         response_dict["class_hash"] = hex(contract_class_hash)
 
+    elif tx_type == TransactionType.DEPLOY_ACCOUNT:
+        (
+            contract_address,
+            transaction_hash,
+        ) = await state.starknet_wrapper.deploy_account(transaction)
+        response_dict["address"] = fixed_length_hex(contract_address)
+
     elif tx_type == TransactionType.DEPLOY:
         contract_address, transaction_hash = await state.starknet_wrapper.deploy(
             transaction
@@ -45,7 +52,9 @@ async def add_transaction():
 
     else:
         raise StarknetDevnetException(
-            message=f"Invalid tx_type: {tx_type.name}.", status_code=400
+            code=StarkErrorCode.MALFORMED_REQUEST,
+            message=f"Invalid tx_type: {tx_type.name}.",
+            status_code=400,
         )
 
     response_dict["transaction_hash"] = hex(transaction_hash)

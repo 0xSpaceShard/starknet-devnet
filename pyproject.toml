@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "starknet_devnet"
-version = "0.3.1"
+version = "0.3.4"
 description = "A local testnet for Starknet"
 authors = ["FabijanC <fabijan.corak@gmail.com>"]
 license = "ISC"
@@ -14,7 +14,7 @@ keywords = ["starknet", "cairo", "testnet", "local", "server"]
 python = ">=3.8,<3.10"
 Flask = {extras = ["async"], version = "~2.0.3"}
 flask-cors = "~3.0.10"
-cairo-lang = "0.10.0"
+cairo-lang = "0.10.1"
 Werkzeug = "~2.0.3"
 cloudpickle = "~2.1.0"
 crypto-cpp-py = "~1.0.4"
@@ -41,6 +41,7 @@ starknet-devnet = "starknet_devnet.server:main"
 [tool.pytest.ini_options]
 markers = [
     "account",
+    "account_custom",
     "account_predeployed",
     "call",
     "declare",

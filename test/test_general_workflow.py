@@ -66,7 +66,7 @@ EXPECTED_SALTY_DEPLOY_BLOCK_HASH_LITE_MODE = "0x1"
 )
 def test_general_workflow(expected_tx_hash, expected_block_hash):
     """Test devnet with CLI"""
-    deploy_info = deploy(CONTRACT_PATH, ["0"])
+    deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
 
     assert_tx_status(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
     assert_transaction(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
@@ -125,23 +125,15 @@ def test_general_workflow(expected_tx_hash, expected_block_hash):
     assert_equal(value, "40 60", "Checking complex input failed!")
 
     # check deploy when a salt is provided, and use the same contract to test events
-    assert_salty_deploy(
-        contract_path=EVENTS_CONTRACT_PATH,
-        salt="0x99",
-        inputs=None,
-        expected_status="ACCEPTED_ON_L2",
-        expected_address=EXPECTED_SALTY_DEPLOY_ADDRESS,
-        expected_tx_hash=expected_tx_hash,
-    )
-
-    assert_salty_deploy(
-        contract_path=EVENTS_CONTRACT_PATH,
-        salt="0x99",
-        inputs=None,
-        expected_status="ACCEPTED_ON_L2",
-        expected_address=EXPECTED_SALTY_DEPLOY_ADDRESS,
-        expected_tx_hash=expected_tx_hash,
-    )
+    for _ in range(2):
+        assert_salty_deploy(
+            contract_path=EVENTS_CONTRACT_PATH,
+            salt="0x99",
+            inputs=None,
+            expected_status="ACCEPTED_ON_L2",
+            expected_address=EXPECTED_SALTY_DEPLOY_ADDRESS,
+            expected_tx_hash=expected_tx_hash,
+        )
 
     salty_invoke_tx_hash = invoke(
         calls=[(EXPECTED_SALTY_DEPLOY_ADDRESS, "increase_balance", [10])],

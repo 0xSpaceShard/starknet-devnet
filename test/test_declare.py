@@ -49,6 +49,22 @@ def assert_deployed_through_syscall(tx_hash, initial_balance: str):
 
 @pytest.mark.declare
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
+def test_declare_max_fee_too_low():
+    """Test declaring if max fee too low"""
+
+    declare_info = declare(
+        contract_path=CONTRACT_PATH,
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+        max_fee=1,
+    )
+    class_hash = declare_info["class_hash"]
+    assert_hex_equal(class_hash, EXPECTED_CLASS_HASH)
+    assert_tx_status(declare_info["tx_hash"], "REJECTED")
+
+
+@pytest.mark.declare
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
 def test_declare_and_deploy():
     """
     Test declaring a class and deploying it through an account.

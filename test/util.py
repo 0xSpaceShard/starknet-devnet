@@ -11,10 +11,14 @@ import time
 from typing import List
 import requests
 
+from starkware.starknet.cli.starknet_cli import get_salt
+from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starknet.services.api.contract_class import ContractClass
+from starkware.starknet.services.api.gateway.transaction import Deploy
 
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 from .settings import HOST, PORT, APP_URL
+from .shared import SUPPORTED_TX_VERSION
 
 
 class ReturnCodeAssertionError(AssertionError):
@@ -156,17 +160,36 @@ def run_starknet(args, raise_on_nonzero=True, add_gateway_urls=True):
     return output
 
 
+def send_tx(transaction: dict, tx_type: TransactionType) -> dict:
+    """
+    Send transaction.
+    Returns tx hash
+    """
+    resp = requests.post(
+        url=f"{APP_URL}/gateway/add_transaction",
+        json={**transaction, "type": tx_type.name},
+    )
+    assert resp.status_code == 200
+    return resp.json()
+
+
 def deploy(contract, inputs=None, salt=None):
     """Wrapper around starknet deploy"""
-    args = ["deploy", "--contract", contract]
-    if inputs:
-        args.extend(["--inputs", *inputs])
-    if salt:
-        args.extend(["--salt", salt])
-    output = run_starknet(args)
+
+    inputs = inputs or []
+
+    deploy_tx = Deploy(
+        contract_address_salt=get_salt(salt),
+        contract_definition=load_contract_class(contract),
+        constructor_calldata=[int(value, 0) for value in inputs],
+        version=SUPPORTED_TX_VERSION,
+    ).dump()
+
+    resp = send_tx(deploy_tx, TransactionType.DEPLOY)
+
     return {
-        "tx_hash": extract_tx_hash(output.stdout),
-        "address": extract_address(output.stdout),
+        "tx_hash": resp["transaction_hash"],
+        "address": resp["address"],
     }
 
 
@@ -215,8 +238,6 @@ def assert_transaction(tx_hash, expected_status, expected_signature=None):
         invoke_transaction_keys = [
             "calldata",
             "contract_address",
-            "entry_point_selector",
-            "entry_point_type",
             "max_fee",
             "signature",
             "transaction_hash",
@@ -295,7 +316,7 @@ def estimate_fee(function, inputs, address, abi_path, signature=None, nonce=None
     return extract_fee(output.stdout)
 
 
-def call(function, address, abi_path, inputs=None, max_fee=None):
+def call(function, address, abi_path, inputs=None):
     """Wrapper around starknet call"""
     args = [
         "call",
@@ -308,8 +329,6 @@ def call(function, address, abi_path, inputs=None, max_fee=None):
     ]
     if inputs:
         args.extend(["--inputs", *inputs])
-    if max_fee:
-        args.extend(["--max_fee", max_fee])
 
     output = run_starknet(args)
 
@@ -472,7 +491,7 @@ def assert_salty_deploy(
 ):
     """Deploy with salt and assert."""
 
-    deploy_info = deploy(contract_path, inputs, salt=salt)
+    deploy_info = deploy(contract_path, inputs=inputs, salt=salt)
     assert_tx_status(deploy_info["tx_hash"], expected_status)
     assert_equal(deploy_info["address"], expected_address)
     assert_equal(deploy_info["tx_hash"], expected_tx_hash)
@@ -497,3 +516,31 @@ def create_empty_block():
     resp = requests.post(f"{APP_URL}/create_block")
     assert resp.status_code == 200
     return resp.json()
+
+
+def mint(address: str, amount: int, lite=False):
+    """Sends mint request; returns parsed json body"""
+    response = requests.post(
+        f"{APP_URL}/mint", json={"address": address, "amount": amount, "lite": lite}
+    )
+    assert response.status_code == 200
+    return response.json()
+
+
+class DevnetBackgroundProc:
+    """Helper for ensuring we always have only 1 active devnet server running in background"""
+
+    def __init__(self):
+        self.proc = None
+
+    def start(self, *args, stderr=None, stdout=None):
+        """Starts a new devnet-server instance. Previously active instance will be stopped."""
+        self.stop()
+        self.proc = run_devnet_in_background(*args, stderr=stderr, stdout=stdout)
+        return self.proc
+
+    def stop(self):
+        """Stops the currently active devnet-server instance"""
+        if self.proc:
+            terminate_and_wait(self.proc)
+            self.proc = None

@@ -18,6 +18,8 @@ from starkware.starknet.core.os.class_hash import compute_class_hash
 from starkware.starknet.business_logic.transaction.objects import InternalTransaction
 from starkware.python.utils import to_bytes
 
+from starknet_devnet.constants import OLD_SUPPORTED_VERSIONS
+
 # pylint: disable=too-many-ancestors, arguments-renamed, too-many-arguments
 class LiteInternalDeploy(InternalDeploy):
     """
@@ -76,7 +78,11 @@ class LiteInternalDeploy(InternalDeploy):
         """
         Lite version of create method without hash a calculation.
         """
-        verify_version(version=version, only_query=False)
+        verify_version(
+            version=version,
+            only_query=False,
+            old_supported_versions=OLD_SUPPORTED_VERSIONS,
+        )
         class_hash = compute_class_hash(contract_class=contract_class)
         contract_address = calculate_contract_address_from_hash(
             salt=contract_address_salt,

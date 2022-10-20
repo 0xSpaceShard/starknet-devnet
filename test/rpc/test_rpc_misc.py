@@ -24,7 +24,36 @@ from starkware.starknet.public.abi import get_storage_var_address
 
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
+from .test_data.get_events import GET_EVENTS_TEST_DATA
 
+
+from ..account import (
+    invoke,
+)
+from ..util import (
+    deploy,
+)
+from ..shared import (
+    PREDEPLOYED_ACCOUNT_ADDRESS,
+    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    EVENTS_CONTRACT_PATH,
+)
+
+
+@pytest.fixture(name="input_data")
+def fixture_input_data(request):
+    """
+    Fixture for input data
+    """
+    return request.param
+
+
+@pytest.fixture(name="expected_data")
+def fixture_expected_data(request):
+    """
+    Fixture for return expected data
+    """
+    return request.param
 
 @pytest.mark.usefixtures("devnet_with_account")
 def test_get_state_update():
@@ -130,6 +159,33 @@ def test_call_with_invalid_params(params):
     ex = rpc_call(method="starknet_getClass", params=params)
     assert ex["error"] == {"code": -32602, "message": "Invalid params"}
 
+
+@pytest.mark.usefixtures("run_devnet_in_background")
+@pytest.mark.parametrize(
+    "run_devnet_in_background, input_data, expected_data",
+    GET_EVENTS_TEST_DATA,
+    indirect=True,
+)
+def test_get_events(input_data, expected_data):
+    """
+    Test RPC get_events.
+    """
+    deploy_info = deploy(EVENTS_CONTRACT_PATH)
+    for i in range(2):
+        invoke(
+            calls=[(deploy_info["address"], "increase_balance", [i])],
+            account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+            private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+        )
+    resp = rpc_call("starknet_getEvents", params=input_data)
+    assert len(expected_data) == len(resp["result"]["events"])
+    for i, data in enumerate(expected_data):
+        assert str(resp["result"]["events"][i]["data"]) == str(data)
+
+    if "continuation_token" in input_data:
+        assert int(input_data["continuation_token"]) + 1 == int(
+            resp["result"]["continuation_token"]
+        )
 
 @pytest.mark.usefixtures("devnet_with_account")
 def test_get_nonce():

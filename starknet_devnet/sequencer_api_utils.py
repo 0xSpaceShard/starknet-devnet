@@ -16,6 +16,7 @@ from starkware.starknet.business_logic.transaction.fee import calculate_tx_fee
 from starkware.starknet.business_logic.transaction.objects import (
     InternalAccountTransaction,
     InternalDeclare,
+    InternalDeployAccount,
     InternalInvokeFunction,
     InternalTransaction,
 )
@@ -27,9 +28,12 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
 from starkware.starknet.services.api.gateway.transaction import (
     AccountTransaction,
     Declare,
+    DeployAccount,
     InvokeFunction,
 )
 from starkware.starkware_utils.config_base import Config
+
+from starknet_devnet.constants import OLD_SUPPORTED_VERSIONS
 
 
 def format_fee_info(gas_price: int, overall_fee: int) -> FeeEstimationInfo:
@@ -60,6 +64,8 @@ class InternalAccountTransactionForSimulate(InternalAccountTransaction):
             internal_cls = InternalInvokeFunctionForSimulate
         elif isinstance(external_tx, Declare):
             internal_cls = InternalDeclareForSimulate
+        elif isinstance(external_tx, DeployAccount):
+            internal_cls = InternalDeployAccountForSimulate
         else:
             raise NotImplementedError(f"Unexpected type {type(external_tx).__name__}.")
 
@@ -69,7 +75,11 @@ class InternalAccountTransactionForSimulate(InternalAccountTransaction):
         )
 
     def verify_version(self):
-        verify_version(version=self.version, only_query=True)
+        verify_version(
+            version=self.version,
+            only_query=True,
+            old_supported_versions=OLD_SUPPORTED_VERSIONS,
+        )
 
     def charge_fee(
         self,
@@ -103,3 +113,14 @@ class InternalDeclareForSimulate(
     """
     Represents an internal declare in the StarkNet network for the simulate transaction API.
     """
+
+
+class InternalDeployAccountForSimulate(
+    InternalAccountTransactionForSimulate, InternalDeployAccount
+):
+    """
+    Represents an internal deploy account in the StarkNet network for the simulate transaction API.
+    """
+
+    def verify_version(self):
+        verify_version(version=self.version, only_query=True, old_supported_versions=[])

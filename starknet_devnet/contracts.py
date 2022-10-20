@@ -4,6 +4,7 @@ Class for storing and handling contracts
 
 from typing import Dict
 
+from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.services.api.contract_class import ContractClass
 
 from .origin import Origin
@@ -49,7 +50,9 @@ class DevnetContracts:
         """
         if not self.is_deployed(address):
             message = f"Requested contract address {hex(address)} is not deployed."
-            raise StarknetDevnetException(message=message)
+            raise StarknetDevnetException(
+                code=StarknetErrorCode.UNINITIALIZED_CONTRACT, message=message
+            )
 
         return self.__instances[address]
 

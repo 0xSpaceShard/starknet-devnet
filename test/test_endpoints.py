@@ -5,13 +5,19 @@ Test endpoints directly.
 import json
 import requests
 import pytest
+from starkware.starknet.definitions.error_codes import StarknetErrorCode
 
 from starknet_devnet.server import app
 from starknet_devnet.constants import DEFAULT_GAS_PRICE
 from .util import create_empty_block, devnet_in_background, load_file_content, deploy
 from .support.assertions import assert_valid_schema
 from .settings import APP_URL
-from .shared import GENESIS_BLOCK_HASH, GENESIS_BLOCK_NUMBER, STORAGE_CONTRACT_PATH
+from .shared import (
+    FAILING_CONTRACT_PATH,
+    GENESIS_BLOCK_HASH,
+    GENESIS_BLOCK_NUMBER,
+    STORAGE_CONTRACT_PATH,
+)
 
 DEPLOY_CONTENT = load_file_content("deploy.json")
 INVOKE_CONTENT = load_file_content("invoke.json")
@@ -268,7 +274,7 @@ def test_error_response_class_hash_at():
     error_message = resp.json()["message"]
 
     assert resp.status_code == 500
-    expected_message = f"Contract with address {INVALID_ADDRESS} is not deployed"
+    expected_message = f"Contract with address {INVALID_ADDRESS} is not deployed."
     assert expected_message == error_message
 
 
@@ -280,13 +286,13 @@ def test_error_response_class_by_hash():
     error_message = resp.json()["message"]
 
     assert resp.status_code == 500
-    expected_message = f"Class with hash {INVALID_HASH} is not declared"
+    expected_message = f"Class with hash {INVALID_HASH} is not declared."
     assert expected_message == error_message
 
 
 @devnet_in_background()
 def test_create_block_endpoint():
-    """test empty block creationn"""
+    """Test empty block creation"""
     resp = get_block_by_number({"blockNumber": "latest"}).json()
     assert resp.get("block_hash") == GENESIS_BLOCK_HASH
     assert resp.get("block_number") == GENESIS_BLOCK_NUMBER
@@ -329,3 +335,13 @@ def test_get_transaction_status():
     json_response = get_transaction_status(invalid_tx_hash)
     assert_valid_schema(json_response, "get_transaction_status.json")
     assert json_response.get("tx_status") == "NOT_RECEIVED"
+
+
+@devnet_in_background()
+def test_get_transaction_trace_of_rejected():
+    """Send a failing tx and assert its trace"""
+    deploy_info = deploy(contract=FAILING_CONTRACT_PATH)
+    resp = get_transaction_trace(deploy_info["tx_hash"])
+    resp_body = resp.json()
+    assert resp_body["code"] == str(StarknetErrorCode.NO_TRACE)
+    assert resp.status_code == 500
