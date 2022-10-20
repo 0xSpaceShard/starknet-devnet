@@ -8,15 +8,11 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     BlockId,
     Felt,
     Address,
+    RpcError,
 )
 from starknet_devnet.blueprints.rpc.structures.responses import (
     RpcEventsResult,
 )
-
-from typing import Union
-
-from starknet_devnet.blueprints.rpc.structures.payloads import Felt, Address
-from starknet_devnet.blueprints.rpc.structures.types import BlockId, RpcError
 from starknet_devnet.blueprints.rpc.utils import assert_block_id_is_latest, rpc_felt
 from starknet_devnet.state import state
 

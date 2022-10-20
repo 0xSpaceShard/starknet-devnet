@@ -55,6 +55,7 @@ def fixture_expected_data(request):
     """
     return request.param
 
+
 @pytest.mark.usefixtures("devnet_with_account")
 def test_get_state_update():
     """Test if declared classes successfully registered"""
@@ -186,6 +187,7 @@ def test_get_events(input_data, expected_data):
         assert int(input_data["continuation_token"]) + 1 == int(
             resp["result"]["continuation_token"]
         )
+
 
 @pytest.mark.usefixtures("devnet_with_account")
 def test_get_nonce():
