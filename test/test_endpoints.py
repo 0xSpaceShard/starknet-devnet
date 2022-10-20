@@ -274,7 +274,7 @@ def test_error_response_class_hash_at():
     error_message = resp.json()["message"]
 
     assert resp.status_code == 500
-    expected_message = f"Contract with address {INVALID_ADDRESS} is not deployed"
+    expected_message = f"Contract with address {INVALID_ADDRESS} is not deployed."
     assert expected_message == error_message
 
 
@@ -286,7 +286,7 @@ def test_error_response_class_by_hash():
     error_message = resp.json()["message"]
 
     assert resp.status_code == 500
-    expected_message = f"Class with hash {INVALID_HASH} is not declared"
+    expected_message = f"Class with hash {INVALID_HASH} is not declared."
     assert expected_message == error_message
 
 
