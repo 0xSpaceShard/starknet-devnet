@@ -11,7 +11,6 @@ from test.shared import (
     SUPPORTED_RPC_TX_VERSION,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
-    LEGACY_RPC_TX_VERSION,
 )
 from test.test_account import deploy_empty_contract
 
@@ -24,7 +23,7 @@ from starknet_devnet.blueprints.rpc.structures.payloads import (
     RpcBroadcastedInvokeTxnV1,
 )
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
-from starknet_devnet.constants import DEFAULT_GAS_PRICE
+from starknet_devnet.constants import DEFAULT_GAS_PRICE, LEGACY_RPC_TX_VERSION
 
 
 def common_estimate_response(response):

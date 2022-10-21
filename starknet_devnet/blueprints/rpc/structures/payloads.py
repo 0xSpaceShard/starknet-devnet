@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from typing import Callable, Union, List, Optional
 
-from test.shared import LEGACY_RPC_TX_VERSION
 from starkware.starknet.definitions.general_config import StarknetGeneralConfig
 from starkware.starknet.public.abi import AbiEntryType
 from starkware.starknet.services.api.contract_class import ContractClass
@@ -39,6 +38,7 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     Signature,
 )
 from starknet_devnet.blueprints.rpc.utils import rpc_root, rpc_felt
+from starknet_devnet.constants import LEGACY_RPC_TX_VERSION
 from starknet_devnet.state import state
 
 

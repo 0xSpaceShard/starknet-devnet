@@ -20,7 +20,6 @@ from test.shared import (
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     CONTRACT_PATH,
-    LEGACY_RPC_TX_VERSION,
 )
 from test.util import deploy, load_contract_class
 import pytest
@@ -43,6 +42,7 @@ from starknet_devnet.blueprints.rpc.structures.payloads import (
     RpcBroadcastedInvokeTxnV1,
     RpcBroadcastedInvokeTxnV0,
 )
+from starknet_devnet.constants import LEGACY_RPC_TX_VERSION
 
 
 def pad_zero_entry_points(entry_points: EntryPoints) -> None:

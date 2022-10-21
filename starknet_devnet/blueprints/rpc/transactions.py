@@ -4,7 +4,6 @@ RPC transaction endpoints
 
 from typing import List
 
-from test.shared import LEGACY_RPC_TX_VERSION
 from marshmallow.exceptions import MarshmallowError
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
@@ -44,6 +43,7 @@ from starknet_devnet.blueprints.rpc.utils import (
     rpc_felt,
     assert_block_id_is_latest_or_pending,
 )
+from starknet_devnet.constants import LEGACY_RPC_TX_VERSION
 from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException
 
