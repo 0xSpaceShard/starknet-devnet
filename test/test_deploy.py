@@ -38,8 +38,9 @@ from .util import (
 from .shared import (
     ABI_PATH,
     CONTRACT_PATH,
-    SUPPORTED_TX_VERSION,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
+    STARKNET_CLI_ACCOUNT_ABI_PATH,
+    SUPPORTED_TX_VERSION,
 )
 
 
@@ -161,6 +162,14 @@ def test_deploy_account():
     # deploy the account
     tx_after = send_tx(deploy_account_tx, TransactionType.DEPLOY_ACCOUNT)
     assert_tx_status(tx_after["transaction_hash"], "ACCEPTED_ON_L2")
+
+    # assert that contract can be interacted with
+    retrieved_public_key = call(
+        function="get_public_key",
+        address=hex(account_address),
+        abi_path=STARKNET_CLI_ACCOUNT_ABI_PATH,
+    )
+    assert int(retrieved_public_key, 16) == public_key
 
     # deploy a contract for testing
     init_balance = 10

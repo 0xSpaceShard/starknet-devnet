@@ -2,7 +2,10 @@
 RPC classes endpoints
 """
 
-from starknet_devnet.blueprints.rpc.utils import assert_block_id_is_latest, rpc_felt
+from starknet_devnet.blueprints.rpc.utils import (
+    assert_block_id_is_latest_or_pending,
+    rpc_felt,
+)
 from starknet_devnet.blueprints.rpc.structures.payloads import rpc_contract_class
 from starknet_devnet.blueprints.rpc.structures.types import (
     BlockId,
@@ -34,7 +37,7 @@ async def get_class_hash_at(block_id: BlockId, contract_address: Address) -> Fel
     """
     Get the contract class hash in the given block for the contract deployed at the given address
     """
-    assert_block_id_is_latest(block_id)
+    assert_block_id_is_latest_or_pending(block_id)
 
     try:
         result = state.starknet_wrapper.contracts.get_class_hash_at(
@@ -50,7 +53,7 @@ async def get_class_at(block_id: BlockId, contract_address: Address) -> dict:
     """
     Get the contract class definition in the given block at the given address
     """
-    assert_block_id_is_latest(block_id)
+    assert_block_id_is_latest_or_pending(block_id)
 
     try:
         class_hash = state.starknet_wrapper.contracts.get_class_hash_at(

@@ -89,6 +89,13 @@ def get_block_with_transaction(transaction_hash: str) -> dict:
     return block
 
 
+def get_latest_block() -> dict:
+    """
+    Retrive the latest block
+    """
+    return gateway_call("get_block", blockNumber="latest")
+
+
 def deploy_and_invoke_storage_contract(value: int) -> List[str]:
     """
     Deploy and invoke storage contract

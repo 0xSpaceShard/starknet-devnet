@@ -27,3 +27,32 @@ Response:
   "result": 1
 }
 ```
+
+Methods that require a `block_id` only support ids of the `latest` or `pending` block.
+Please note however, that the `pending` block will be the same block as the `latest`.
+
+```js
+// Use latest
+{
+  "block_id": "latest"
+}
+
+// or pending
+{
+  "block_id": "pending"
+}
+
+// or block number
+{
+  "block_id": {
+    "block_number": 1234  // Must be the number of the latest block
+  }
+}
+
+// or block hash
+{
+  "block_id": {
+    "block_hash": "0x1234" // Must be hash of the latest block
+  }
+}
+```

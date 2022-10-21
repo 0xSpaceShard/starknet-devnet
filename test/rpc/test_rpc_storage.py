@@ -94,5 +94,5 @@ def test_get_storage_at_raises_on_incorrect_block_id(deploy_info):
 
     assert ex["error"] == {
         "code": -1,
-        "message": "Calls with block_id != 'latest' are not supported currently.",
+        "message": "Calls must be made with block_id of the latest or pending block. Other block_id are not supported.",
     }

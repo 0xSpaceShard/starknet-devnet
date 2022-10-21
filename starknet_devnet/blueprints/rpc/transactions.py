@@ -42,7 +42,7 @@ from starknet_devnet.blueprints.rpc.structures.types import (
 from starknet_devnet.blueprints.rpc.utils import (
     get_block_by_block_id,
     rpc_felt,
-    assert_block_id_is_latest,
+    assert_block_id_is_latest_or_pending,
 )
 from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException
@@ -209,7 +209,7 @@ async def estimate_fee(request: RpcBroadcastedTxn, block_id: BlockId) -> dict:
     """
     Estimate the fee for a given StarkNet transaction
     """
-    assert_block_id_is_latest(block_id)
+    assert_block_id_is_latest_or_pending(block_id)
 
     address = (
         request["contract_address"]

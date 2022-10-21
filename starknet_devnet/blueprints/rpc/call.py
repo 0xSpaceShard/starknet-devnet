@@ -6,7 +6,10 @@ from typing import Any, List
 
 from starkware.starkware_utils.error_handling import StarkException
 
-from starknet_devnet.blueprints.rpc.utils import rpc_felt, assert_block_id_is_latest
+from starknet_devnet.blueprints.rpc.utils import (
+    rpc_felt,
+    assert_block_id_is_latest_or_pending,
+)
 from starknet_devnet.blueprints.rpc.structures.payloads import (
     make_invoke_function,
     FunctionCall,
@@ -33,7 +36,7 @@ async def call(request: FunctionCall, block_id: BlockId) -> List[Felt]:
     """
     Call a starknet function without creating a StarkNet transaction
     """
-    assert_block_id_is_latest(block_id)
+    assert_block_id_is_latest_or_pending(block_id)
 
     if not state.starknet_wrapper.contracts.is_deployed(
         int(request["contract_address"], 16)

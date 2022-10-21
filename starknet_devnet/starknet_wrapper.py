@@ -368,6 +368,13 @@ class StarknetWrapper:
         """Deploys account and returns (address, tx_hash)"""
 
         state = self.get_state()
+        account_address = calculate_contract_address_from_hash(
+            salt=external_tx.contract_address_salt,
+            class_hash=external_tx.class_hash,
+            constructor_calldata=external_tx.constructor_calldata,
+            deployer_address=0,
+        )
+
         async with self.__get_transaction_handler() as tx_handler:
             tx_handler.internal_tx = InternalDeployAccount.from_external(
                 external_tx, state.general_config
@@ -377,12 +384,20 @@ class StarknetWrapper:
                 tx_handler.execution_info.call_info.internal_calls
             )
 
-        account_address = calculate_contract_address_from_hash(
-            salt=external_tx.contract_address_salt,
-            class_hash=external_tx.class_hash,
-            constructor_calldata=external_tx.constructor_calldata,
-            deployer_address=0,
-        )
+            contract_class = await state.state.get_contract_class(
+                to_bytes(external_tx.class_hash)
+            )
+            contract = self.__create_contract(
+                contract_class,
+                tx_handler.execution_info.call_info,
+                address=account_address,
+            )
+            await self.store_contract(
+                address=account_address,
+                contract=contract,
+                contract_class=contract_class,
+                tx_hash=tx_handler.internal_tx.hash_value,
+            )
 
         return (
             account_address,
@@ -493,16 +508,26 @@ class StarknetWrapper:
 
         tx_execution_info = await state.execute_tx(tx=deploy_tx)
 
+        return self.__create_contract(
+            contract_class=contract_class,
+            call_info=tx_execution_info.call_info,
+            address=deploy_tx.contract_address,
+        )
+
+    def __create_contract(
+        self, contract_class: ContractClass, call_info: CallInfo, address: int
+    ) -> StarknetContract:
+
         deploy_call_info = StarknetCallInfo.from_internal(
-            call_info=as_non_optional(tx_execution_info.call_info),
+            call_info=as_non_optional(call_info),
             result=(),
             main_call_events=[],
         )
 
         return StarknetContract(
-            state=state,
+            state=self.get_state(),
             abi=get_abi(contract_class=contract_class),
-            contract_address=deploy_tx.contract_address,
+            contract_address=address,
             deploy_call_info=deploy_call_info,
         )
 

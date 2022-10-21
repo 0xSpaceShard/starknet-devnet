@@ -2,7 +2,10 @@
 RPC storage endpoints
 """
 
-from starknet_devnet.blueprints.rpc.utils import assert_block_id_is_latest, rpc_felt
+from starknet_devnet.blueprints.rpc.utils import (
+    assert_block_id_is_latest_or_pending,
+    rpc_felt,
+)
 from starknet_devnet.blueprints.rpc.structures.types import (
     Address,
     BlockId,
@@ -18,7 +21,7 @@ async def get_storage_at(
     """
     Get the value of the storage at the given address and key
     """
-    assert_block_id_is_latest(block_id)
+    assert_block_id_is_latest_or_pending(block_id)
 
     if not state.starknet_wrapper.contracts.is_deployed(int(contract_address, 16)):
         raise RpcError(code=20, message="Contract not found")

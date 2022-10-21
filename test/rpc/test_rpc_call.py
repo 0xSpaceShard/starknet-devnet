@@ -11,7 +11,7 @@ from starknet_devnet.blueprints.rpc.utils import rpc_felt
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
-def test_call(deploy_info):
+def test_call(deploy_info, latest_block_id):
     """
     Call contract
     """
@@ -25,9 +25,10 @@ def test_call(deploy_info):
                 "entry_point_selector": hex(get_selector_from_name("get_balance")),
                 "calldata": [],
             },
-            "block_id": "latest",
+            "block_id": latest_block_id,
         },
     )
+    assert "error" not in resp
     result = resp["result"]
 
     assert result == ["0x045"]
@@ -51,6 +52,29 @@ def test_call_raises_on_incorrect_contract_address():
     )
 
     assert ex["error"] == {"code": 20, "message": "Contract not found"}
+
+
+@pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
+def test_call_raises_on_both_hash_and_number():
+    """
+    Call contract with both block hash and block number provided at the same time
+    """
+    ex = rpc_call(
+        "starknet_call",
+        params={
+            "request": {
+                "contract_address": "0x07b529269b82f3f3ebbb2c463a9e1edaa2c6eea8fa308ff70b30398766a2e20c",
+                "entry_point_selector": hex(get_selector_from_name("get_balance")),
+                "calldata": [],
+            },
+            "block_id": {"block_hash": "0x1234", "block_number": 1234},
+        },
+    )
+
+    assert ex["error"] == {
+        "code": -1,
+        "message": "Parameters block_hash and block_number are mutually exclusive.",
+    }
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -122,7 +146,7 @@ def test_call_raises_on_incorrect_block_hash(deploy_info):
 
     assert ex["error"] == {
         "code": -1,
-        "message": "Calls with block_id != 'latest' are not supported currently.",
+        "message": "Calls must be made with block_id of the latest or pending block. Other block_id are not supported.",
     }
 
 

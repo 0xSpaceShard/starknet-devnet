@@ -33,7 +33,7 @@ class DevnetBlocks:
         self.__state_updates: Dict[int, BlockStateUpdate] = {}
         self.__hash2num: Dict[str, int] = {}
 
-    def __get_last_block(self):
+    def get_last_block(self) -> StarknetBlock:
         """Returns the last block stored so far."""
         number_of_blocks = self.get_number_of_blocks()
         return self.get_by_number(number_of_blocks - 1)
@@ -46,7 +46,7 @@ class DevnetBlocks:
         """Returns the block whose block_number is provided"""
         if block_number is None:
             if self.__num2block:
-                return self.__get_last_block()
+                return self.get_last_block()
             return self.origin.get_block_by_number(block_number)
 
         if block_number < 0:
@@ -122,7 +122,7 @@ class DevnetBlocks:
         if block_number == 0:
             parent_block_hash = 0
         else:
-            last_block = self.__get_last_block()
+            last_block = self.get_last_block()
             parent_block_hash = last_block.block_hash
 
         if is_empty_block:

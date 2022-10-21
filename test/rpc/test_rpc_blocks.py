@@ -21,7 +21,6 @@ from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
-@pytest.mark.parametrize("block_id", ["hash", "number", "tag"], indirect=True)
 def test_get_block_with_tx_hashes(deploy_info, gateway_block, block_id):
     """
     Get block with tx hashes
@@ -64,7 +63,6 @@ def test_get_block_with_tx_hashes_raises_on_incorrect_block_id(block_id):
 
 
 @pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
-@pytest.mark.parametrize("block_id", ["hash", "number", "tag"], indirect=True)
 def test_get_block_with_txs(gateway_block, block_id):
     """
     Get block with txs by block id
@@ -119,7 +117,6 @@ def test_get_block_with_txs_raises_on_incorrect_block_id(block_id):
 
 
 @pytest.mark.usefixtures("run_devnet_in_background", "deploy_info", "gateway_block")
-@pytest.mark.parametrize("block_id", ["hash", "number", "tag"], indirect=True)
 def test_get_block_transaction_count(block_id):
     """
     Get count of transactions in block by block id

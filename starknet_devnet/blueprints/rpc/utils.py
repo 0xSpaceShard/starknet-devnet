@@ -3,7 +3,11 @@ RPC utilities
 """
 from typing import Union
 
-from starknet_devnet.blueprints.rpc.structures.types import BlockId, RpcError, Felt
+from starknet_devnet.blueprints.rpc.structures.types import (
+    BlockId,
+    RpcError,
+    Felt,
+)
 from starknet_devnet.util import StarknetDevnetException
 from starknet_devnet.state import state
 
@@ -48,15 +52,35 @@ def get_block_by_block_id(block_id: BlockId) -> dict:
         raise RpcError(code=24, message="Block not found") from ex
 
 
-def assert_block_id_is_latest(block_id: BlockId) -> None:
+def assert_block_id_is_latest_or_pending(block_id: BlockId) -> None:
     """
-    Assert block_id is "latest" and throw RpcError otherwise
+    Assert block_id is "latest"/"pending" or a block hash or number of "latest"/"pending" block and throw RpcError otherwise
     """
-    if block_id != "latest":
-        raise RpcError(
-            code=-1,
-            message="Calls with block_id != 'latest' are not supported currently.",
-        )
+    if isinstance(block_id, dict):
+        last_block = state.starknet_wrapper.blocks.get_last_block()
+
+        if "block_hash" in block_id and "block_number" in block_id:
+            raise RpcError(
+                code=-1,
+                message="Parameters block_hash and block_number are mutually exclusive.",
+            )
+
+        if "block_hash" in block_id:
+            if int(block_id["block_hash"], 16) == last_block.block_hash:
+                return
+
+        if "block_number" in block_id:
+            if int(block_id["block_number"]) == last_block.block_number:
+                return
+
+    if isinstance(block_id, str):
+        if block_id in ("latest", "pending"):
+            return
+
+    raise RpcError(
+        code=-1,
+        message="Calls must be made with block_id of the latest or pending block. Other block_id are not supported.",
+    )
 
 
 def rpc_felt(value: Union[int, str]) -> Felt:
