@@ -32,6 +32,7 @@ EXPECTED_ENTRY_POINTS = {
     "L1_HANDLER": [],
 }
 
+# abi from ABI_PATH (test/shared.py), but with all stateMutability omitted and constructor mapped to function
 EXPECTED_ABI = [
     {
         "type": "struct",

@@ -21,7 +21,7 @@ async def get_class(block_id: BlockId, class_hash: Felt) -> dict:
     """
     Get the contract class definition in the given block associated with the given hash
     """
-    assert_block_id_is_latest(block_id)
+    assert_block_id_is_latest_or_pending(block_id)
 
     try:
         result = state.starknet_wrapper.contracts.get_class_by_hash(
