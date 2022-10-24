@@ -583,12 +583,10 @@ class StarknetWrapper:
         state = self.get_state()
         result = await self.l1l2.flush(state)
 
+        # Execute transactions inside StarknetWrapper
         for tx in result[1]:
-            print("!!! TX !!!", tx)
             async with self.__get_transaction_handler() as tx_handler:
-                tx_handler.internal_tx = InternalDeployAccount.from_external(
-                    tx, state.general_config
-                )
+                tx_handler.internal_tx = tx
                 tx_handler.execution_info = await state.execute_tx(tx_handler.internal_tx)
                 tx_handler.internal_calls = (
                     tx_handler.execution_info.call_info.internal_calls
@@ -598,6 +596,9 @@ class StarknetWrapper:
                 print("execution_info", tx_handler.execution_info)
                 print("internal_calls", tx_handler.internal_calls)
 
+        # TODO: Remove this later when starknet cli will work as expected
+        print("last", self.blocks.get_last_block())
+        
         return result[0]
 
     async def calculate_trace_and_fee(self, external_tx: InvokeFunction):
