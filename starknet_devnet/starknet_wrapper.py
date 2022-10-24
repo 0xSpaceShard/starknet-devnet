@@ -581,7 +581,24 @@ class StarknetWrapper:
         """Handles all pending L1 <> L2 messages and sends them to the other layer."""
 
         state = self.get_state()
-        return await self.l1l2.flush(state)
+        result = await self.l1l2.flush(state)
+
+        for tx in result[1]:
+            print("!!! TX !!!", tx)
+            async with self.__get_transaction_handler() as tx_handler:
+                tx_handler.internal_tx = InternalDeployAccount.from_external(
+                    tx, state.general_config
+                )
+                tx_handler.execution_info = await state.execute_tx(tx_handler.internal_tx)
+                tx_handler.internal_calls = (
+                    tx_handler.execution_info.call_info.internal_calls
+                )
+
+                print("internal_tx", tx_handler.internal_tx)
+                print("execution_info", tx_handler.execution_info)
+                print("internal_calls", tx_handler.internal_calls)
+
+        return result[0]
 
     async def calculate_trace_and_fee(self, external_tx: InvokeFunction):
         """Calculates trace and fee by simulating tx on state copy."""
