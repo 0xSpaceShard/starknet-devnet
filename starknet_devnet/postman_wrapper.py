@@ -3,17 +3,21 @@ This module wraps the usage of Postman for L1 <> L2 interaction.
 """
 import json
 
+#from starkware.starknet.testing.postman import Postman
+
+
+from typing import Type, TypeVar
 from abc import ABC, abstractmethod
 from web3 import HTTPProvider, Web3
 from web3.middleware import geth_poa_middleware
-
-from starkware.solidity.utils import load_nearby_contract
-from starkware.starknet.testing.postman import Postman
 from starkware.starknet.testing.starknet import Starknet
-from starkware.eth.eth_test_utils import EthAccount, EthContract
+from starkware.solidity.utils import load_nearby_contract
+from starkware.eth.eth_test_utils import EthAccount, EthContract, EthTestUtils
 
 from .constants import L1_MESSAGE_CANCELLATION_DELAY, TIMEOUT_FOR_WEB3_REQUESTS
 from .util import fixed_length_hex, StarknetDevnetException
+
+TPostman = TypeVar("TPostman", bound="Postman")
 
 
 class DevnetL1L2:
@@ -121,6 +125,8 @@ class PostmanWrapper(ABC):
 
     @abstractmethod
     def __init__(self):
+        print("!!!!!!!!!PostmanWrapper!!!!!!!!!!!!!!")
+
         self.postman: Postman = None
         self.web3: Web3 = None
         self.mock_starknet_messaging_contract: EthContract = None
@@ -133,13 +139,16 @@ class PostmanWrapper(ABC):
 
     async def flush(self):
         """Handles the L1 <> L2 message exchange"""
-        await self.postman.flush()
+        # Need to handle L1 to L2 first in case that those messages will create L2 to L1 messages.
+        await self.postman._handle_l1_to_l2_messages()
+        self.postman._handle_l2_to_l1_messages()
 
 
 class LocalPostmanWrapper(PostmanWrapper):
     """Wrapper of Postman usage on a local testnet instantiated using a local testnet"""
 
     def __init__(self, network_url: str):
+        print("!!!!!!!!!LocalPostmanWrapper!!!!!!!!!!!!!!")
         super().__init__()
         request_kwargs = {"timeout": TIMEOUT_FOR_WEB3_REQUESTS}
         self.web3 = Web3(HTTPProvider(network_url, request_kwargs=request_kwargs))
@@ -161,7 +170,133 @@ class LocalPostmanWrapper(PostmanWrapper):
                 self.web3, address, w3_contract, abi, self.eth_account
             )
 
-        self.postman = Postman(self.mock_starknet_messaging_contract, starknet)
+        print("new Postman() here")
+        latest_block_id = 100 # TODO: fix later, not important now
+        self.postman = Postman(self.mock_starknet_messaging_contract, starknet, latest_block_id)
+
+        #self.postman = Postman(self.mock_starknet_messaging_contract, starknet)
         self.l1_to_l2_message_filter = self.mock_starknet_messaging_contract.w3_contract.events.LogMessageToL2.createFilter(
             fromBlock="latest"
         )
+
+
+class Postman:
+    def __init__(
+        self,
+        mock_starknet_messaging_contract: EthContract,
+        starknet: Starknet,
+        latest_block_id: int
+    ):
+        print("!!!!!!!!!Postman!!!!!!!!!!!!!!")
+
+        self.mock_starknet_messaging_contract = mock_starknet_messaging_contract
+
+        self.starknet = starknet
+        self.n_consumed_l2_to_l1_messages = 0
+
+        # Create a filter to collect LogMessageToL2 events.
+        w3_contract = self.mock_starknet_messaging_contract.w3_contract
+        self.message_to_l2_filter = w3_contract.events.LogMessageToL2.createFilter(
+            fromBlock=latest_block_id
+        )
+
+    @classmethod
+    async def create(cls: Type[TPostman], eth_test_utils: EthTestUtils) -> TPostman:
+        print("create in Postman")
+        mock_starknet_messaging_contract = eth_test_utils.accounts[0].deploy(
+            mock_starknet_messaging_contract, 0
+        )
+        starknet = await Starknet.empty()
+        return cls(
+            mock_starknet_messaging_contract=mock_starknet_messaging_contract, starknet=starknet
+        )
+
+    async def _handle_l1_to_l2_messages(self):
+        print("_handle_l1_to_l2_messages in my postman")
+
+        for event in self.message_to_l2_filter.get_new_entries():
+            args = event.args
+
+            # here is execution of l1 to l2 tx
+            print("here is execution of l1 to l2 tx inside my postman")
+            # my code here
+
+            print("self.starknet", self.starknet)
+            result = await self.starknet.send_message_to_l2(
+                from_address=int(args["fromAddress"], 16),
+                to_address=args["toAddress"],
+                selector=args["selector"],
+                payload=args["payload"],
+                nonce=args["nonce"],
+            )
+            print("result in my postman", result)
+
+            self.mock_starknet_messaging_contract.mockConsumeMessageToL2.transact(
+                int(args["fromAddress"], 16),
+                args["toAddress"],
+                args["selector"],
+                args["payload"],
+                args["nonce"],
+            )
+
+    def _handle_l2_to_l1_messages(self):
+        print("_handle_l2_to_l1_messages in my postman")
+        l2_to_l1_messages_log = self.starknet.state.l2_to_l1_messages_log
+        assert len(l2_to_l1_messages_log) >= self.n_consumed_l2_to_l1_messages
+        for message in l2_to_l1_messages_log[self.n_consumed_l2_to_l1_messages :]:
+            self.mock_starknet_messaging_contract.mockSendMessageFromL2.transact(
+                message.from_address, message.to_address, message.payload
+            )
+            self.starknet.consume_message_from_l2(
+                from_address=message.from_address,
+                to_address=message.to_address,
+                payload=message.payload,
+            )
+        self.n_consumed_l2_to_l1_messages = len(l2_to_l1_messages_log)
+
+    async def flush(self):
+        """
+        Handles all messages and sends them to the other layer.
+        """
+        # Need to handle L1 to L2 first in case that those messages will create L2 to L1 messages.
+        print("self", self)
+        await self._handle_l1_to_l2_messages()
+        self._handle_l2_to_l1_messages()
+    
+    # async def send_message_to_l2(
+    #     self,
+    #     from_address: int,
+    #     to_address: CastableToAddress,
+    #     selector: Union[int, str],
+    #     payload: List[int],
+    #     max_fee: int = 0,
+    #     nonce: Optional[int] = None,
+    # ) -> TransactionExecutionInfo:
+    #     """
+    #     Mocks the L1 contract function sendMessageToL2.
+
+    #     Takes an optional nonce paramater to force a specific nonce, this
+    #     should only be used by the Postman class.
+    #     """
+        
+    #     if isinstance(to_address, str):
+    #         to_address = int(to_address, 16)
+    #     assert isinstance(to_address, int)
+
+    #     if isinstance(selector, str):
+    #         selector = get_selector_from_name(selector)
+    #     assert isinstance(selector, int)
+
+    #     if nonce is None:
+    #         nonce = self.l1_to_l2_nonce
+    #         self.l1_to_l2_nonce += 1
+
+    #     tx = InternalL1Handler.create(
+    #         contract_address=to_address,
+    #         entry_point_selector=selector,
+    #         calldata=[from_address, *payload],
+    #         nonce=nonce,
+    #         chain_id=self.state.general_config.chain_id.value,
+    #     )
+
+    #     return await self.state.execute_tx(tx=tx)
