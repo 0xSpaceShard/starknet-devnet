@@ -592,10 +592,6 @@ class StarknetWrapper:
                     tx_handler.execution_info.call_info.internal_calls
                 )
 
-                print("internal_tx", tx_handler.internal_tx)
-                print("execution_info", tx_handler.execution_info)
-                print("internal_calls", tx_handler.internal_calls)
-
         # TODO: Remove this later when starknet cli will work as expected
         print("last", self.blocks.get_last_block())
         
