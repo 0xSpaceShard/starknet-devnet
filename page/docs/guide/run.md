@@ -39,7 +39,7 @@ optional arguments:
   --account-class ACCOUNT_CLASS
                         Specify the account implementation to be used for predeploying;
                         should be a path to the compiled JSON artifact;
-                        defaults to a fork of OpenZeppelin v0.4.0b
+                        defaults to OpenZeppelin v0.5.0
 ```
 
 You can run `starknet-devnet` in a separate shell, or you can run it in background with `starknet-devnet &`.

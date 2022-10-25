@@ -81,8 +81,9 @@ After adding a new cairo-lang version, you will probably want to recompile contr
    - Predeployed account addresses should be intact
 
 6. Update directory/file names containing the version
-7. Update expected test paths and addresses
-8. Update docs
+7. Adapt to ABI changes
+8. Update expected test paths and addresses
+9. Update docs
 
 ## Development - Build
 
