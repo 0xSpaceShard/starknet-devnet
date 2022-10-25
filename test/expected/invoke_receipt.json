@@ -1,5 +1,5 @@
 {
-    "actual_fee": "0x15fe22d104800",
+    "actual_fee": "0x16010bdfe1800",
     "block_hash": "0x2",
     "block_number": 2,
     "events": [
@@ -7,7 +7,7 @@
             "data": [
                 "0x347be35996a21f6bf0623e75dbce52baba918ad5ae8d83b6f416045ab22961a",
                 "0x388ca486b82e20cc81965d056b4cdcaacdffe0cf08e20ed8ba10ea97a487004",
-                "0x15fe22d104800",
+                "0x16010bdfe1800",
                 "0x0"
             ],
             "from_address": "0x62230ea046a9a5fbc261ac77d03c8d41e5d442db2284587570ab46455fd2488",
@@ -18,10 +18,10 @@
     ],
     "execution_resources": {
         "builtin_instance_counter": {
-            "range_check_builtin": 3
+            "range_check_builtin": 7
         },
-        "n_memory_holes": 3,
-        "n_steps": 243
+        "n_memory_holes": 11,
+        "n_steps": 269
     },
     "l2_to_l1_messages": [],
     "status": "ACCEPTED_ON_L2",

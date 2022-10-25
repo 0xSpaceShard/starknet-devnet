@@ -38,7 +38,7 @@ from .account import (
 INVOKE_CONTENT = load_file_content("invoke.json")
 DEPLOY_CONTENT = load_file_content("deploy.json")
 SALTY_ACCOUNT_ADDRESS = (
-    "0x00e5cadfe20c4192c560a8e803f779e21775d5288697f23487d256f1013510aa"
+    "0x030dec1363f9fc6ecf36be88845e43025861a851dce1439a61c1e7b148a9892b"
 )
 INVALID_HASH = "0x58d4d4ed7580a7a98ab608883ec9fe722424ce52c19f2f369eeea301f535914"
 SALT = "0x99"
