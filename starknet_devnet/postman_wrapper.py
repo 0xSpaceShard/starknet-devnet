@@ -13,6 +13,7 @@ from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.testing.starknet import Starknet
 from starkware.eth.eth_test_utils import EthAccount, EthContract, EthTestUtils
 from starkware.starknet.business_logic.transaction.objects import InternalL1Handler
+from starkware.starknet.testing.contracts import MockStarknetMessaging
 
 from .constants import L1_MESSAGE_CANCELLATION_DELAY, TIMEOUT_FOR_WEB3_REQUESTS
 from .util import fixed_length_hex, StarknetDevnetException
@@ -179,6 +180,10 @@ class LocalPostmanWrapper(PostmanWrapper):
 
 
 class Postman:
+    """
+    Postman class copied from starknet code base.
+    Modifications were made in _handle_l1_to_l2_messages function.
+    """
     def __init__(
         self,
         mock_starknet_messaging_contract: EthContract,
@@ -196,8 +201,9 @@ class Postman:
 
     @classmethod
     async def create(cls: Type[TPostman], eth_test_utils: EthTestUtils) -> TPostman:
+        """Execution of mock_starknet_messaging_contract."""
         mock_starknet_messaging_contract = eth_test_utils.accounts[0].deploy(
-            mock_starknet_messaging_contract, 0
+            MockStarknetMessaging, 0
         )
         starknet = await Starknet.empty()
         return cls(
@@ -209,14 +215,14 @@ class Postman:
         transactions_to_execute = []
         for event in self.message_to_l2_filter.get_new_entries():
             args = event.args
-            tx = InternalL1Handler.create(
+            transaction = InternalL1Handler.create(
                 contract_address=args["toAddress"],
                 entry_point_selector=args["selector"],
                 calldata=[int(args["fromAddress"], 16), *args["payload"]],
                 nonce=args["nonce"],
                 chain_id=self.starknet.state.general_config.chain_id.value,
             )
-            transactions_to_execute.append(tx)
+            transactions_to_execute.append(transaction)
             self.mock_starknet_messaging_contract.mockConsumeMessageToL2.transact(
                 int(args["fromAddress"], 16),
                 args["toAddress"],

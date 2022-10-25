@@ -585,9 +585,9 @@ class StarknetWrapper:
         result = await self.l1l2.flush(state)
 
         # Execute transactions inside StarknetWrapper
-        for tx in result[1]:
+        for transaction in result[1]:
             async with self.__get_transaction_handler() as tx_handler:
-                tx_handler.internal_tx = tx
+                tx_handler.internal_tx = transaction
                 tx_handler.execution_info = await state.execute_tx(
                     tx_handler.internal_tx
                 )
