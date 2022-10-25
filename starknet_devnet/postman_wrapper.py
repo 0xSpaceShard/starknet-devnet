@@ -184,6 +184,7 @@ class Postman:
     Postman class copied from starknet code base.
     Modifications were made in _handle_l1_to_l2_messages function.
     """
+
     def __init__(
         self,
         mock_starknet_messaging_contract: EthContract,

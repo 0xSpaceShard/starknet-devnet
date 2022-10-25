@@ -18,6 +18,7 @@ from .util import (
     devnet_in_background,
     ensure_server_alive,
     estimate_message_fee,
+    get_block,
     load_file_content,
     terminate_and_wait,
 )
@@ -314,8 +315,11 @@ def test_postman():
 
     # Test initializing the l2 example contract
     l2_contract_address = _init_l2_contract(l1l2_example_contract.address)
-
     _l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address)
+
+    # Check if all blocks were generated
+    latest_block = get_block(parse=True)
+    assert latest_block["block_number"] == 4
 
 
 def _load_l1_messaging_contract(req_dict: dict):
