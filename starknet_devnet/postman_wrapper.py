@@ -183,11 +183,10 @@ class Postman:
         self.starknet = starknet
         self.n_consumed_l2_to_l1_messages = 0
 
-        latest_block_id = 100 # TODO: just hardcode for now
         # Create a filter to collect LogMessageToL2 events.
         w3_contract = self.mock_starknet_messaging_contract.w3_contract
         self.message_to_l2_filter = w3_contract.events.LogMessageToL2.createFilter(
-            fromBlock=latest_block_id
+            fromBlock="latest"
         )
 
     @classmethod
