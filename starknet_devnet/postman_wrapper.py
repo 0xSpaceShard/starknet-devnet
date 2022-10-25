@@ -140,7 +140,6 @@ class PostmanWrapper(ABC):
 
     async def flush(self):
         """Handles the L1 <> L2 message exchange"""
-
         return await self.postman.flush()
 
 
@@ -202,31 +201,17 @@ class Postman:
         )
 
     async def _handle_l1_to_l2_messages(self):
-
         transactions_to_execute = []
         for event in self.message_to_l2_filter.get_new_entries():
             args = event.args
-
-            # here is execution of l1 to l2 tx
-            print("here is execution of l1 to l2 tx")
-            from_address=int(args["fromAddress"], 16)
-            to_address=args["toAddress"]
-            selector=args["selector"]
-            payload=args["payload"]
-            nonce=args["nonce"]
-        
             tx = InternalL1Handler.create(
-                contract_address=to_address,
-                entry_point_selector=selector,
-                calldata=[from_address, *payload],
-                nonce=nonce,
+                contract_address=args["toAddress"],
+                entry_point_selector=args["selector"],
+                calldata=[int(args["fromAddress"], 16), *args["payload"]],
+                nonce=args["nonce"],
                 chain_id=self.starknet.state.general_config.chain_id.value,
             )
-
-            # TODO: just store for later execution
-            #await self.state.execute_tx(tx=tx)
             transactions_to_execute.append(tx)
-
             self.mock_starknet_messaging_contract.mockConsumeMessageToL2.transact(
                 int(args["fromAddress"], 16),
                 args["toAddress"],
