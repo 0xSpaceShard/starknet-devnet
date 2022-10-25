@@ -19,6 +19,7 @@ from .util import fixed_length_hex, StarknetDevnetException
 
 TPostman = TypeVar("TPostman", bound="Postman")
 
+
 class DevnetL1L2:
     """
     This class is used to interact with the L1 <> L2 interaction.
@@ -120,7 +121,10 @@ and that the Messaging Contract is deployed at the provided address ({contract_a
 
         transactions_to_execute = await self.__postman_wrapper.flush()
 
-        return self.__parse_l1_l2_messages(l1_to_l2_messages, l2_to_l1_messages), transactions_to_execute
+        return (
+            self.__parse_l1_l2_messages(l1_to_l2_messages, l2_to_l1_messages),
+            transactions_to_execute,
+        )
 
 
 class PostmanWrapper(ABC):
@@ -173,6 +177,7 @@ class LocalPostmanWrapper(PostmanWrapper):
             fromBlock="latest"
         )
 
+
 class Postman:
     def __init__(
         self,
@@ -196,7 +201,8 @@ class Postman:
         )
         starknet = await Starknet.empty()
         return cls(
-            mock_starknet_messaging_contract=mock_starknet_messaging_contract, starknet=starknet
+            mock_starknet_messaging_contract=mock_starknet_messaging_contract,
+            starknet=starknet,
         )
 
     async def _handle_l1_to_l2_messages(self):

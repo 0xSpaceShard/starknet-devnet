@@ -588,7 +588,9 @@ class StarknetWrapper:
         for tx in result[1]:
             async with self.__get_transaction_handler() as tx_handler:
                 tx_handler.internal_tx = tx
-                tx_handler.execution_info = await state.execute_tx(tx_handler.internal_tx)
+                tx_handler.execution_info = await state.execute_tx(
+                    tx_handler.internal_tx
+                )
                 tx_handler.internal_calls = (
                     tx_handler.execution_info.call_info.internal_calls
                 )
