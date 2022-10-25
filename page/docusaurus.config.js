@@ -7,7 +7,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'StarkNet Devnet',
-  tagline: 'A Flask wrapper of Starknet state. Similar in purpose to Ganache. \n Aims to mimic Starknet\'s Alpha testnet, but with simplified functionality.',
+  tagline: 'A Flask wrapper of StarkNet state. Similar in purpose to Ganache. \n Aims to mimic StarkNet\'s Alpha testnet, but with simplified functionality.',
   url: 'https://github.com',
   baseUrl: '/starknet-devnet/',
   // baseUrl: '/',
@@ -48,10 +48,10 @@ const config = {
     ({
       announcementBar: {
       id: "support_us",
-      content: `⭐️  &nbsp; If you like Starknet Devnet, give it a star on <a target="_blank" rel="noopener noreferrer" href="https://github.com/Shard-Labs/starknet-devnet">GitHub</a>! &nbsp; ⭐️`,
+      content: `⭐️  &nbsp; If you like StarkNet Devnet, give it a star on <a target="_blank" rel="noopener noreferrer" href="https://github.com/Shard-Labs/starknet-devnet">GitHub</a>! &nbsp; ⭐️`,
     },
       navbar: {
-        title: 'Starknet Devnet',
+        title: 'StarkNet Devnet',
         logo: {
           alt: 'starknet-devnet Logo',
           src: 'https://user-images.githubusercontent.com/2848732/193076972-da6fa36e-11f7-4cb3-aa29-673224f8576d.png',

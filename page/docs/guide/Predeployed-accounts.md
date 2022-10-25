@@ -9,7 +9,7 @@ Devnet predeploys `--accounts` with some `--initial-balance`. To hide the detail
 To get the code of the account (currently fork of OpenZeppelin's [v0.4.0b](https://github.com/OpenZeppelin/cairo-contracts/releases/tag/v0.4.0b)), use one of the following:
 
 - `GET /get_code?contractAddress=<ACCOUNT_ADDRESS>`
-- [Starknet CLI](https://www.cairo-lang.org/docs/hello_starknet/cli.html#get-code): `starknet get_code --contract_address <ACCOUNT_ADDRESS> --feeder_gateway_url <DEVNET_URL>`
+- [StarkNet CLI](https://www.cairo-lang.org/docs/hello_starknet/cli.html#get-code): `starknet get_code --contract_address <ACCOUNT_ADDRESS> --feeder_gateway_url <DEVNET_URL>`
 - [GitHub repository](https://github.com/Shard-Labs/cairo-contracts/tree/fix-account-query-version)
 
 You can use the accounts in e.g. [**starknet-hardhat-plugin**](https://github.com/Shard-Labs/starknet-hardhat-plugin) via:

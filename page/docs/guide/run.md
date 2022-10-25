@@ -11,7 +11,7 @@ usage: starknet-devnet [-h] [-v] [--host HOST] [--port PORT] [--load-path LOAD_P
                        [--initial-balance INITIAL_BALANCE] [--seed SEED] [--hide-predeployed-accounts] [--start-time START_TIME] [--gas-price GAS_PRICE] [--timeout TIMEOUT]
                        [--account-class ACCOUNT_CLASS]
 
-Run a local instance of Starknet Devnet
+Run a local instance of StarkNet Devnet
 
 optional arguments:
   -h, --help            show this help message and exit
