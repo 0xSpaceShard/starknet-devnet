@@ -24,12 +24,13 @@ from starknet_devnet.blueprints.rpc.structures.payloads import (
     make_declare,
     make_deploy,
     make_deploy_account,
+    RpcBroadcastedDeployAccountTxn,
 )
 from starknet_devnet.blueprints.rpc.structures.responses import (
     rpc_transaction_receipt,
     RpcInvokeTransactionResult,
     RpcDeclareTransactionResult,
-    RpcDeployTransactionResult,
+    RpcDeployTransactionResult, RpcDeployAccountTransactionResult,
 )
 from starknet_devnet.blueprints.rpc.structures.types import (
     TxnHash,
@@ -139,6 +140,21 @@ async def add_deploy_transaction(deploy_transaction: RpcBroadcastedDeployTxn) ->
         deploy_transaction=deploy_transaction
     )
     return RpcDeployTransactionResult(
+        transaction_hash=rpc_felt(transaction_hash),
+        contract_address=rpc_felt(contract_address),
+    )
+
+
+async def add_deploy_account_transaction(deploy_account_transaction: RpcBroadcastedDeployAccountTxn) -> dict:
+    """
+    Submit a new deploy account transaction
+    """
+    deploy_account_transaction = make_deploy_account(deploy_account_transaction)
+
+    contract_address, transaction_hash = await state.starknet_wrapper.deploy_account(
+        external_tx=deploy_account_transaction
+    )
+    return RpcDeployAccountTransactionResult(
         transaction_hash=rpc_felt(transaction_hash),
         contract_address=rpc_felt(contract_address),
     )

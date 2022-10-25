@@ -20,7 +20,7 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     BlockStateUpdate,
     DeclareSpecificInfo,
     L1HandlerSpecificInfo,
-    FeeEstimationInfo,
+    FeeEstimationInfo, DeployAccountSpecificInfo,
 )
 from starkware.starknet.services.api.gateway.transaction import (
     InvokeFunction,
@@ -154,9 +154,17 @@ class RpcBroadcastedDeployTxn(TypedDict):
     constructor_calldata: List[Felt]
 
 
+class RpcBroadcastedDeployAccountTxn(RpcBroadcastedTxnCommon):
+    """TypedDict for BroadcastedDeployAccountTxn"""
+
+    contract_address_salt: Felt
+    constructor_calldata: List[Felt]
+    class_hash: Felt
+
+
 # rpc transaction's representation when it's sent to the sequencer (but not yet in a block)
 RpcBroadcastedTxn = Union[
-    RpcBroadcastedDeployTxn, RpcBroadcastedDeclareTxn, RpcBroadcastedInvokeTxn
+    RpcBroadcastedDeployTxn, RpcBroadcastedDeclareTxn, RpcBroadcastedInvokeTxn, RpcBroadcastedDeployAccountTxn
 ]
 
 
@@ -211,12 +219,21 @@ class RpcDeployTransaction(TypedDict):
     constructor_calldata: List[Felt]
 
 
+class RpcDeployAccountTransaction(RpcTransactionCommon):
+    """TypedDict for rpc deploy account transaction"""
+
+    contract_address_salt: Felt
+    constructor_calldata: List[Felt]
+    class_hash: Felt
+
+
 RpcTransaction = Union[
     RpcInvokeTransactionV0,
     RpcInvokeTransactionV1,
     RpcL1HandlerTransaction,
     RpcDeclareTransaction,
     RpcDeployTransaction,
+    RpcDeployAccountTransaction,
 ]
 
 
@@ -311,6 +328,24 @@ def rpc_deploy_transaction(transaction: DeploySpecificInfo) -> RpcDeployTransact
         "constructor_calldata": [
             rpc_felt(data) for data in transaction.constructor_calldata
         ],
+    }
+    return txn
+
+
+def rpc_deploy_account_transaction(transaction: DeployAccountSpecificInfo) -> RpcDeployAccountTransaction:
+    """
+    Convert gateway deploy account transaction to rpc format
+    """
+    txn: RpcDeployAccountTransaction = {
+        "contract_address_salt": rpc_felt(transaction.contract_address_salt),
+        "constructor_calldata": [rpc_felt(data) for data in transaction.constructor_calldata],
+        "class_hash": rpc_felt(transaction.class_hash),
+        "transaction_hash": rpc_felt(transaction.transaction_hash),
+        "type": rpc_txn_type(transaction.tx_type.name),
+        "max_fee": rpc_felt(transaction.max_fee),
+        "version": hex(transaction.version),
+        "signature": [rpc_felt(value) for value in transaction.signature],
+        "nonce": rpc_felt(transaction.nonce),
     }
     return txn
 
@@ -439,11 +474,20 @@ def make_deploy(deploy_transaction: RpcDeployTransaction) -> Deploy:
     return deploy_transaction
 
 
-def make_deploy_account(txn) -> DeployAccount:
+def make_deploy_account(deploy_account_transaction: RpcDeployAccountTransaction) -> DeployAccount:
     """
-    Convert RpcDeployTransaction to DeployAccount
+    Convert RpcDeployAccountTransaction to DeployAccount
     """
-    raise NotImplementedError
+    declare_transaction = DeployAccount(
+        class_hash=int(deploy_account_transaction["class_hash"], 16),
+        contract_address_salt=int(deploy_account_transaction["contract_address_salt"], 16),
+        constructor_calldata=[int(data, 16) for data in deploy_account_transaction["constructor_calldata"]],
+        version=int(deploy_account_transaction["version"], 16),
+        nonce=int(deploy_account_transaction["nonce"], 16),
+        max_fee=int(deploy_account_transaction["max_fee"], 16),
+        signature=[int(sig, 16) for sig in deploy_account_transaction["signature"]],
+    )
+    return declare_transaction
 
 
 class EntryPoint(TypedDict):
