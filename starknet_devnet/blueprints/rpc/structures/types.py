@@ -4,10 +4,10 @@ RPC types
 
 from enum import Enum
 from typing import Union, List
-from typing_extensions import Literal, TypedDict
 
+from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starknet.services.api.feeder_gateway.response_objects import BlockStatus
-
+from typing_extensions import Literal, TypedDict
 
 Felt = str
 
@@ -37,16 +37,16 @@ TxnStatus = Literal["PENDING", "ACCEPTED_ON_L2", "ACCEPTED_ON_L1", "REJECTED"]
 RpcBlockStatus = Literal["PENDING", "ACCEPTED_ON_L2", "ACCEPTED_ON_L1", "REJECTED"]
 
 
-def rpc_block_status(block_status: BlockStatus) -> RpcBlockStatus:
+def rpc_block_status(block_status: str) -> RpcBlockStatus:
     """
     Convert gateway BlockStatus to RpcBlockStatus
     """
     block_status_map = {
-        "PENDING": "PENDING",
-        "ABORTED": "REJECTED",
-        "REVERTED": "REJECTED",
-        "ACCEPTED_ON_L2": "ACCEPTED_ON_L2",
-        "ACCEPTED_ON_L1": "ACCEPTED_ON_L1",
+        BlockStatus.PENDING.name: "PENDING",
+        BlockStatus.ABORTED.name: "REJECTED",
+        BlockStatus.REVERTED.name: "REJECTED",
+        BlockStatus.ACCEPTED_ON_L2.name: "ACCEPTED_ON_L2",
+        BlockStatus.ACCEPTED_ON_L1.name: "ACCEPTED_ON_L1",
     }
     return block_status_map[block_status]
 
@@ -57,18 +57,19 @@ NumAsHex = str
 
 # Pending transactions will not be supported since it
 # doesn't make much sense with the current implementation of devnet
-TxnType = Literal["DECLARE", "DEPLOY", "INVOKE", "L1_HANDLER"]
+RpcTxnType = Literal["DECLARE", "DEPLOY", "INVOKE", "L1_HANDLER"]
 
 
-def rpc_txn_type(transaction_type: str) -> TxnType:
+def rpc_txn_type(transaction_type: str) -> RpcTxnType:
     """
-    Convert gateway transaction type to RPC TxnType
+    Convert gateway TransactionType name to RPCTxnType
     """
     txn_type_map = {
-        "DEPLOY": "DEPLOY",
-        "DECLARE": "DECLARE",
-        "INVOKE_FUNCTION": "INVOKE",
-        "L1_HANDLER": "L1_HANDLER",
+        TransactionType.DEPLOY.name: "DEPLOY",
+        TransactionType.DECLARE.name: "DECLARE",
+        TransactionType.INVOKE_FUNCTION.name: "INVOKE",
+        TransactionType.L1_HANDLER.name: "L1_HANDLER",
+        TransactionType.DEPLOY_ACCOUNT.name: "DEPLOY_ACCOUNT",
     }
     if transaction_type not in txn_type_map:
         raise RpcError(

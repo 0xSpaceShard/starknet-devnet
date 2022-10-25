@@ -11,8 +11,8 @@ from starknet_devnet.blueprints.rpc.utils import (
     assert_block_id_is_latest_or_pending,
 )
 from starknet_devnet.blueprints.rpc.structures.payloads import (
-    make_invoke_function,
     FunctionCall,
+    make_call_function,
 )
 from starknet_devnet.blueprints.rpc.structures.types import (
     Felt,
@@ -46,7 +46,7 @@ async def call(request: FunctionCall, block_id: BlockId) -> List[Felt]:
     _validate_calldata(request["calldata"])
     try:
         result = await state.starknet_wrapper.call(
-            transaction=make_invoke_function(request)
+            transaction=make_call_function(request)
         )
         return [rpc_felt(res) for res in result["result"]]
     except StarknetDevnetException as ex:

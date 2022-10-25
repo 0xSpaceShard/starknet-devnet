@@ -28,7 +28,6 @@ from starknet_devnet.blueprints.rpc.structures.types import (
 
 DEPLOY_CONTENT = load_file_content("deploy_rpc.json")
 INVOKE_CONTENT = load_file_content("invoke_rpc.json")
-DECLARE_CONTENT = load_file_content("declare.json")
 DECLARE_CONTENT = load_file_content("declare_rpc.json")
 
 

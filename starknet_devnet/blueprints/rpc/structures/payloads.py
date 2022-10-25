@@ -6,9 +6,11 @@ from __future__ import annotations
 
 from typing import Callable, Union, List, Optional
 
+from marshmallow.exceptions import MarshmallowError
 from starkware.starknet.definitions.general_config import StarknetGeneralConfig
 from starkware.starknet.public.abi import AbiEntryType
 from starkware.starknet.services.api.contract_class import ContractClass
+from starkware.starknet.services.api.feeder_gateway.request_objects import CallFunction
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     StarknetBlock,
     InvokeSpecificInfo,
@@ -20,8 +22,17 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     L1HandlerSpecificInfo,
     FeeEstimationInfo,
 )
-from starkware.starknet.services.api.gateway.transaction import InvokeFunction
-from starkware.starknet.services.api.gateway.transaction_utils import compress_program
+from starkware.starknet.services.api.gateway.transaction import (
+    InvokeFunction,
+    Declare,
+    Deploy,
+    DeployAccount,
+)
+from starkware.starknet.services.api.gateway.transaction_utils import (
+    compress_program,
+    decompress_program,
+)
+from starkware.starkware_utils.error_handling import StarkException
 from typing_extensions import TypedDict, Literal
 
 from starknet_devnet.blueprints.rpc.structures.types import (
@@ -33,9 +44,10 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     TxnHash,
     Address,
     NumAsHex,
-    TxnType,
+    RpcTxnType,
     rpc_txn_type,
     Signature,
+    RpcError,
 )
 from starknet_devnet.blueprints.rpc.utils import rpc_root, rpc_felt
 from starknet_devnet.constants import LEGACY_RPC_TX_VERSION
@@ -100,7 +112,7 @@ async def rpc_block(
 class RpcBroadcastedTxnCommon(TypedDict):
     """TypedDict for RpcBroadcastedTxnCommon"""
 
-    type: TxnType
+    type: RpcTxnType
     max_fee: Felt
     version: NumAsHex
     signature: Signature
@@ -137,7 +149,7 @@ class RpcBroadcastedDeployTxn(TypedDict):
 
     contract_class: RpcContractClass
     version: NumAsHex
-    type: TxnType
+    type: RpcTxnType
     contract_address_salt: Felt
     constructor_calldata: List[Felt]
 
@@ -177,7 +189,7 @@ class RpcL1HandlerTransaction(TypedDict):
     calldata: List[Felt]
     transaction_hash: TxnHash
     version: NumAsHex
-    type: TxnType
+    type: RpcTxnType
     nonce: Felt
 
 
@@ -194,7 +206,7 @@ class RpcDeployTransaction(TypedDict):
     transaction_hash: TxnHash
     class_hash: Felt
     version: NumAsHex
-    type: TxnType
+    type: RpcTxnType
     contract_address_salt: Felt
     constructor_calldata: List[Felt]
 
@@ -225,6 +237,17 @@ class FunctionCall(TypedDict):
     contract_address: Address
     entry_point_selector: Felt
     calldata: List[Felt]
+
+
+def make_call_function(function_call: FunctionCall) -> CallFunction:
+    """
+    Convert RPC FunctionCall to CallFunction
+    """
+    return CallFunction(
+        contract_address=int(function_call["contract_address"], 16),
+        entry_point_selector=int(function_call["entry_point_selector"], 16),
+        calldata=[int(data, 16) for data in function_call["calldata"]],
+    )
 
 
 def rpc_invoke_transaction(
@@ -330,35 +353,97 @@ def rpc_fee_estimate(fee_estimate: FeeEstimationInfo) -> dict:
     return result
 
 
-def make_invoke_function(request_body: dict) -> InvokeFunction:
+def make_invoke_function(invoke_transaction: RpcBroadcastedInvokeTxn) -> InvokeFunction:
     """
-    Convert RPC request to internal InvokeFunction
+    Convert RpcBroadcastedInvokeTxn to InvokeFunction
     """
-    version = int(request_body.get("version", str(LEGACY_RPC_TX_VERSION)), 16)
-    nonce = request_body.get("nonce")
+    version = int(invoke_transaction["version"], 16)
+    nonce = invoke_transaction.get("nonce")
 
     common_data = {
-        "max_fee": int(request_body.get("max_fee", "0"), 16),
+        "max_fee": int(invoke_transaction.get("max_fee", "0"), 16),
         "version": version,
-        "signature": [int(data, 16) for data in request_body.get("signature", [])],
+        "signature": [
+            int(data, 16) for data in invoke_transaction.get("signature", [])
+        ],
         "nonce": int(nonce, 16) if nonce is not None else None,
     }
 
     if version == LEGACY_RPC_TX_VERSION:
         invoke_function = InvokeFunction(
-            contract_address=int(request_body["contract_address"], 16),
-            entry_point_selector=int(request_body["entry_point_selector"], 16),
-            calldata=[int(data, 16) for data in request_body.get("calldata", [])],
+            contract_address=int(invoke_transaction["contract_address"], 16),
+            entry_point_selector=int(invoke_transaction["entry_point_selector"], 16),
+            calldata=[int(data, 16) for data in invoke_transaction.get("calldata", [])],
             **common_data,
         )
     else:
         invoke_function = InvokeFunction(
-            contract_address=int(request_body["sender_address"], 16),
-            calldata=[int(data, 16) for data in request_body.get("calldata", [])],
+            contract_address=int(invoke_transaction["sender_address"], 16),
+            calldata=[int(data, 16) for data in invoke_transaction.get("calldata", [])],
             **common_data,
         )
 
     return invoke_function
+
+
+def make_declare(declare_transaction: RpcBroadcastedDeclareTxn) -> Declare:
+    """
+    Convert RpcDeclareTransaction to Declare
+    """
+    contract_class = declare_transaction["contract_class"]
+    if "abi" not in contract_class:
+        contract_class["abi"] = []
+
+    try:
+        contract_class = decompress_program(declare_transaction, False)[
+            "contract_class"
+        ]
+        contract_class = ContractClass.load(contract_class)
+    except (StarkException, TypeError, MarshmallowError) as ex:
+        raise RpcError(code=50, message="Invalid contract class") from ex
+
+    nonce = declare_transaction.get("nonce")
+    declare_transaction = Declare(
+        contract_class=contract_class,
+        sender_address=int(declare_transaction["sender_address"], 16),
+        nonce=int(nonce, 16) if nonce is not None else 0,
+        version=int(declare_transaction["version"], 16),
+        max_fee=int(declare_transaction["max_fee"], 16),
+        signature=[int(sig, 16) for sig in declare_transaction["signature"]],
+    )
+    return declare_transaction
+
+
+def make_deploy(deploy_transaction: RpcDeployTransaction) -> Deploy:
+    """
+    Convert RpcDeployTransaction to Deploy
+    """
+    contract_class = deploy_transaction["contract_class"]
+    if "abi" not in contract_class:
+        contract_class["abi"] = []
+
+    try:
+        contract_class = decompress_program(deploy_transaction, False)["contract_class"]
+        contract_class = ContractClass.load(contract_class)
+    except (StarkException, TypeError, MarshmallowError) as ex:
+        raise RpcError(code=50, message="Invalid contract class") from ex
+
+    deploy_transaction = Deploy(
+        contract_address_salt=int(deploy_transaction["contract_address_salt"], 16),
+        constructor_calldata=[
+            int(data, 16) for data in deploy_transaction["constructor_calldata"]
+        ],
+        contract_definition=contract_class,
+        version=int(deploy_transaction["version"], 16),
+    )
+    return deploy_transaction
+
+
+def make_deploy_account(txn) -> DeployAccount:
+    """
+    Convert RpcDeployTransaction to DeployAccount
+    """
+    raise NotImplementedError
 
 
 class EntryPoint(TypedDict):

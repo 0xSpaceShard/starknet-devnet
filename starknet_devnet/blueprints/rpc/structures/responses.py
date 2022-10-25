@@ -17,7 +17,7 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     BlockNumber,
     BlockHash,
     TxnStatus,
-    TxnType,
+    RpcTxnType,
     rpc_txn_type,
 )
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
@@ -76,7 +76,7 @@ class RpcBaseTransactionReceipt(TypedDict):
     status: TxnStatus
     block_hash: BlockHash
     block_number: BlockNumber
-    type: TxnType
+    type: RpcTxnType
     messages_sent: List[MessageToL1]
     events: List[Event]
 
@@ -168,7 +168,7 @@ def rpc_base_transaction_receipt(txr: TransactionReceipt) -> dict:
         }
         return mapping[txr.status]
 
-    def txn_type() -> TxnType:
+    def txn_type() -> RpcTxnType:
         transaction = state.starknet_wrapper.transactions.get_transaction(
             hex(txr.transaction_hash)
         ).transaction

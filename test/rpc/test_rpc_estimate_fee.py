@@ -4,8 +4,9 @@ Tests RPC estimate fee
 
 from __future__ import annotations
 
-from test.account import _get_execute_args, get_nonce
+from test.account import _get_execute_args, get_nonce, _get_signature
 from test.rpc.rpc_utils import rpc_call_background_devnet
+from test.rpc.test_rpc_transactions import pad_zero_entry_points
 from test.shared import (
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     SUPPORTED_RPC_TX_VERSION,
@@ -15,12 +16,20 @@ from test.shared import (
 from test.test_account import deploy_empty_contract
 
 import pytest
+from starkware.starknet.core.os.transaction_hash.transaction_hash import (
+    calculate_declare_transaction_hash,
+)
+from starkware.starknet.definitions.general_config import StarknetChainId
 from starkware.starknet.public.abi import get_selector_from_name
+from starkware.starknet.services.api.contract_class import ContractClass
+from starkware.starknet.services.api.gateway.transaction_utils import decompress_program
 
 from starknet_devnet.blueprints.rpc.structures.payloads import (
     RpcInvokeTransactionV0,
     RpcBroadcastedInvokeTxnV0,
     RpcBroadcastedInvokeTxnV1,
+    RpcContractClass,
+    RpcBroadcastedDeclareTxn,
 )
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from starknet_devnet.constants import DEFAULT_GAS_PRICE, LEGACY_RPC_TX_VERSION
@@ -106,6 +115,85 @@ def test_estimate_happy_path():
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
+def test_estimate_fee_declare_v0(declare_content):
+    """Test estimate_fee with declare transaction"""
+    contract_class = declare_content["contract_class"]
+    pad_zero_entry_points(contract_class["entry_points_by_type"])
+
+    rpc_contract_class = RpcContractClass(
+        program=contract_class["program"],
+        entry_points_by_type=contract_class["entry_points_by_type"],
+        abi=contract_class["abi"],
+    )
+
+    declare_transaction = RpcBroadcastedDeclareTxn(
+        type=declare_content["type"],
+        max_fee=rpc_felt(declare_content["max_fee"]),
+        version=hex(LEGACY_RPC_TX_VERSION),
+        signature=[],
+        nonce=rpc_felt(0),
+        contract_class=rpc_contract_class,
+        sender_address=rpc_felt(1),
+    )
+
+    response = rpc_call_background_devnet(
+        "starknet_estimateFee", {"request": declare_transaction, "block_id": "latest"}
+    )
+
+    common_estimate_response(response)
+
+
+@pytest.mark.usefixtures("run_devnet_in_background")
+@pytest.mark.parametrize(
+    "run_devnet_in_background",
+    [["--gas-price", str(DEFAULT_GAS_PRICE), *PREDEPLOY_ACCOUNT_CLI_ARGS]],
+    indirect=True,
+)
+def test_estimate_fee_declare(declare_content):
+    """Test estimate_fee with declare transaction"""
+    contract_class = declare_content["contract_class"]
+    pad_zero_entry_points(contract_class["entry_points_by_type"])
+
+    rpc_contract_class = RpcContractClass(
+        program=contract_class["program"],
+        entry_points_by_type=contract_class["entry_points_by_type"],
+        abi=contract_class["abi"],
+    )
+
+    contract_class = decompress_program({"contract_class": contract_class}, False)[
+        "contract_class"
+    ]
+    contract_class = ContractClass.load(contract_class)
+
+    nonce = get_nonce(PREDEPLOYED_ACCOUNT_ADDRESS)
+    tx_hash = calculate_declare_transaction_hash(
+        contract_class=contract_class,
+        chain_id=StarknetChainId.TESTNET.value,
+        sender_address=int(PREDEPLOYED_ACCOUNT_ADDRESS, 16),
+        max_fee=0,
+        nonce=nonce,
+        version=SUPPORTED_RPC_TX_VERSION,
+    )
+    signature = _get_signature(tx_hash, PREDEPLOYED_ACCOUNT_PRIVATE_KEY)
+
+    declare_transaction = RpcBroadcastedDeclareTxn(
+        type=declare_content["type"],
+        max_fee=rpc_felt(declare_content["max_fee"]),
+        version=hex(SUPPORTED_RPC_TX_VERSION),
+        signature=[rpc_felt(sig) for sig in signature],
+        nonce=rpc_felt(nonce),
+        contract_class=rpc_contract_class,
+        sender_address=rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS),
+    )
+
+    response = rpc_call_background_devnet(
+        "starknet_estimateFee", {"request": declare_transaction, "block_id": "latest"}
+    )
+
+    common_estimate_response(response)
+
+
+@pytest.mark.usefixtures("run_devnet_in_background")
 @pytest.mark.parametrize(
     "run_devnet_in_background",
     [["--gas-price", str(DEFAULT_GAS_PRICE), *PREDEPLOY_ACCOUNT_CLI_ARGS]],
@@ -115,7 +203,7 @@ def test_estimate_fee_with_invalid_call_data():
     """Call estimate fee with invalid data on body"""
     contract_address = deploy_empty_contract()["address"]
 
-    calls = [(contract_address, "sum_point_array", [2, 10, 20, 30, 40])]
+    calls = [(contract_address, "sum_point_array", [3, 10, 20, 30, 40])]
     signature, execute_calldata = get_execute_args(calls)
 
     invoke_transaction = RpcBroadcastedInvokeTxnV1(
@@ -125,7 +213,7 @@ def test_estimate_fee_with_invalid_call_data():
         signature=[rpc_felt(sig) for sig in signature],
         nonce=rpc_felt(get_nonce(PREDEPLOYED_ACCOUNT_ADDRESS)),
         sender_address=rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS),
-        calldata=[rpc_felt(data) for data in execute_calldata][:-1],
+        calldata=[rpc_felt(data) for data in execute_calldata],
     )
     ex = rpc_call_background_devnet(
         "starknet_estimateFee", {"request": invoke_transaction, "block_id": "latest"}

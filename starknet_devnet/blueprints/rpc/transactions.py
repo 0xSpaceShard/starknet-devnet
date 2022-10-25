@@ -4,17 +4,12 @@ RPC transaction endpoints
 
 from typing import List
 
-from marshmallow.exceptions import MarshmallowError
-from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionStatus,
 )
 from starkware.starknet.services.api.gateway.transaction import (
-    InvokeFunction,
-    Declare,
-    Deploy,
+    AccountTransaction,
 )
-from starkware.starknet.services.api.gateway.transaction_utils import decompress_program
 from starkware.starkware_utils.error_handling import StarkException
 
 from starknet_devnet.blueprints.rpc.structures.payloads import (
@@ -26,6 +21,9 @@ from starknet_devnet.blueprints.rpc.structures.payloads import (
     RpcBroadcastedDeclareTxn,
     RpcBroadcastedDeployTxn,
     RpcBroadcastedTxn,
+    make_declare,
+    make_deploy,
+    make_deploy_account,
 )
 from starknet_devnet.blueprints.rpc.structures.responses import (
     rpc_transaction_receipt,
@@ -43,7 +41,6 @@ from starknet_devnet.blueprints.rpc.utils import (
     rpc_felt,
     assert_block_id_is_latest_or_pending,
 )
-from starknet_devnet.constants import LEGACY_RPC_TX_VERSION
 from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException
 
@@ -105,28 +102,7 @@ async def add_invoke_transaction(invoke_transaction: RpcBroadcastedInvokeTxn) ->
     """
     Submit a new transaction to be added to the chain
     """
-    version = int(invoke_transaction["version"], 16)
-
-    common_data = {
-        "calldata": [int(data, 16) for data in invoke_transaction["calldata"]],
-        "max_fee": int(invoke_transaction["max_fee"], 16),
-        "version": int(invoke_transaction["version"], 16),
-        "signature": [int(data, 16) for data in invoke_transaction["signature"]],
-    }
-
-    if version == LEGACY_RPC_TX_VERSION:
-        invoke_function = InvokeFunction(
-            contract_address=int(invoke_transaction["contract_address"], 16),
-            entry_point_selector=int(invoke_transaction["entry_point_selector"], 16),
-            nonce=None,
-            **common_data,
-        )
-    else:
-        invoke_function = InvokeFunction(
-            contract_address=int(invoke_transaction["sender_address"], 16),
-            nonce=int(invoke_transaction["nonce"], 16),
-            **common_data,
-        )
+    invoke_function = make_invoke_function(invoke_transaction)
 
     _, transaction_hash = await state.starknet_wrapper.invoke(
         external_tx=invoke_function
@@ -142,27 +118,7 @@ async def add_declare_transaction(
     """
     Submit a new class declaration transaction
     """
-    contract_class = declare_transaction["contract_class"]
-    if "abi" not in contract_class:
-        contract_class["abi"] = []
-
-    try:
-        contract_class = decompress_program(declare_transaction, False)[
-            "contract_class"
-        ]
-        contract_class = ContractClass.load(contract_class)
-    except (StarkException, TypeError, MarshmallowError) as ex:
-        raise RpcError(code=50, message="Invalid contract class") from ex
-
-    nonce = declare_transaction.get("nonce")
-    declare_transaction = Declare(
-        contract_class=contract_class,
-        sender_address=int(declare_transaction["sender_address"], 16),
-        nonce=int(nonce, 16) if nonce is not None else 0,
-        version=int(declare_transaction["version"], 16),
-        max_fee=int(declare_transaction["max_fee"], 16),
-        signature=[int(sig, 16) for sig in declare_transaction["signature"]],
-    )
+    declare_transaction = make_declare(declare_transaction)
 
     class_hash, transaction_hash = await state.starknet_wrapper.declare(
         external_tx=declare_transaction
@@ -177,24 +133,7 @@ async def add_deploy_transaction(deploy_transaction: RpcBroadcastedDeployTxn) ->
     """
     Submit a new deploy contract transaction
     """
-    contract_class = deploy_transaction["contract_class"]
-    if "abi" not in contract_class:
-        contract_class["abi"] = []
-
-    try:
-        contract_class = decompress_program(deploy_transaction, False)["contract_class"]
-        contract_class = ContractClass.load(contract_class)
-    except (StarkException, TypeError, MarshmallowError) as ex:
-        raise RpcError(code=50, message="Invalid contract class") from ex
-
-    deploy_transaction = Deploy(
-        contract_address_salt=int(deploy_transaction["contract_address_salt"], 16),
-        constructor_calldata=[
-            int(data, 16) for data in deploy_transaction["constructor_calldata"]
-        ],
-        contract_definition=contract_class,
-        version=int(deploy_transaction["version"], 16),
-    )
+    deploy_transaction = make_deploy(deploy_transaction)
 
     contract_address, transaction_hash = await state.starknet_wrapper.deploy(
         deploy_transaction=deploy_transaction
@@ -205,26 +144,31 @@ async def add_deploy_transaction(deploy_transaction: RpcBroadcastedDeployTxn) ->
     )
 
 
+def make_transaction(txn: RpcBroadcastedTxn) -> AccountTransaction:
+    """
+    Convert RpcBroadcastedTxn to AccountTransaction
+    """
+    txn_type = txn["type"]
+    if txn_type == "INVOKE":
+        return make_invoke_function(txn)
+    if txn_type == "DECLARE":
+        return make_declare(txn)
+    if txn_type == "DEPLOY":
+        return make_deploy(txn)
+    if txn_type == "DEPLOY_ACCOUNT":
+        return make_deploy_account(txn)
+    raise NotImplementedError(f"Unexpected type {txn['type']}.")
+
+
 async def estimate_fee(request: RpcBroadcastedTxn, block_id: BlockId) -> dict:
     """
     Estimate the fee for a given StarkNet transaction
     """
     assert_block_id_is_latest_or_pending(block_id)
-
-    address = (
-        request["contract_address"]
-        if "contract_address" in request
-        else request["sender_address"]
-    )
-
-    if not state.starknet_wrapper.contracts.is_deployed(int(address, 16)):
-        raise RpcError(code=20, message="Contract not found")
-
-    invoke_function = make_invoke_function(request)
-
+    transaction = make_transaction(request)
     try:
         _, fee_response = await state.starknet_wrapper.calculate_trace_and_fee(
-            invoke_function
+            transaction
         )
     except StarkException as ex:
         if "entry_point_selector" in request and (
@@ -232,7 +176,10 @@ async def estimate_fee(request: RpcBroadcastedTxn, block_id: BlockId) -> dict:
             in ex.message
         ):
             raise RpcError(code=21, message="Invalid message selector") from ex
-        if "While handling calldata" in ex.message or "Error at pc=" in ex.message:
+        if "While handling calldata" in ex.message:
             raise RpcError(code=22, message="Invalid call data") from ex
+        if "is not deployed" in ex.message:
+            raise RpcError(code=20, message="Contract not found") from ex
         raise RpcError(code=-1, message=ex.message) from ex
+
     return rpc_fee_estimate(fee_response)
