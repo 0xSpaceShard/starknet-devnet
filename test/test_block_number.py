@@ -26,7 +26,7 @@ def my_get_block_number(address: str):
     )
 
 
-EXPECTED_TX_HASH = "0x4506fb016a309c8694a5c862625ba743a3ed2e248bca1ba5aa174ca06381f0f"
+EXPECTED_TX_HASH = "0x4df621f3aa655224d2cbce2d00d911cc58f78ebd75c3611db2ba3abad25dd85"
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -42,9 +42,7 @@ def test_block_number_incremented(expected_tx_hash):
     """
     Tests how block number is incremented in regular mode and lite mode.
     In regular mode with salt "0x42" our expected hash is
-    0x4f1ea446f67c1be47619444eae4d8118f6e017d0e6fe16e89b3df03da38606d.
-    In lite mode we expect 0x4f1ea446f67c1be47619444eae4d8118f6e017d0e6fe16e89b3df03da38606d
-    transaction hash because currently, we can't disable tx hash calculations.
+    0x4df621f3aa655224d2cbce2d00d911cc58f78ebd75c3611db2ba3abad25dd85.
     """
 
     deploy_info = deploy(BLOCK_NUMBER_CONTRACT_PATH, salt="0x42")
