@@ -317,9 +317,10 @@ def test_postman():
     l2_contract_address = _init_l2_contract(l1l2_example_contract.address)
     _l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address)
 
-    # Check if all blocks were generated
+    # Check if last block contains L1_HANDLER transaction and event
     latest_block = get_block(parse=True)
-    assert latest_block["block_number"] == 4
+    assert latest_block["transactions"][0]["type"] == "L1_HANDLER"
+    assert len(latest_block["transaction_receipts"][0]["events"]) == 1
 
 
 def _load_l1_messaging_contract(req_dict: dict):
