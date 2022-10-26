@@ -3,7 +3,6 @@ This module wraps the usage of Postman for L1 <> L2 interaction.
 """
 import json
 
-from typing import Type, TypeVar
 from abc import ABC, abstractmethod
 from web3 import HTTPProvider, Web3
 from web3.middleware import geth_poa_middleware
@@ -11,14 +10,11 @@ from web3.middleware import geth_poa_middleware
 from starkware.solidity.utils import load_nearby_contract
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.testing.starknet import Starknet
-from starkware.eth.eth_test_utils import EthAccount, EthContract, EthTestUtils
+from starkware.eth.eth_test_utils import EthAccount, EthContract
 from starkware.starknet.business_logic.transaction.objects import InternalL1Handler
-from starkware.starknet.testing.contracts import MockStarknetMessaging
 
 from .constants import L1_MESSAGE_CANCELLATION_DELAY, TIMEOUT_FOR_WEB3_REQUESTS
 from .util import fixed_length_hex, StarknetDevnetException
-
-TPostman = TypeVar("TPostman", bound="Postman")
 
 
 class DevnetL1L2:
