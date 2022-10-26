@@ -11,6 +11,7 @@ sidebar_position: 2
   - `call`
   - `declare`
   - `deploy`
+  - `deploy_account`
   - `estimate_fee`
   - `get_block` (currently pending block is not supported)
   - `get_block_traces`
