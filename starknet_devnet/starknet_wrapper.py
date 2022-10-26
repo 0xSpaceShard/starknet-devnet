@@ -67,6 +67,7 @@ from .blueprints.rpc.structures.types import Felt
 from .fee_token import FeeToken
 from .general_config import DEFAULT_GENERAL_CONFIG
 from .origin import NullOrigin, Origin
+from .udc import UDC
 from .util import (
     StarknetDevnetException,
     enable_pickling,
@@ -106,6 +107,7 @@ class StarknetWrapper:
         self.__initialized = False
         self.fee_token = FeeToken(self)
         self.accounts = Accounts(self)
+        self.__udc = UDC(self)
 
         if config.start_time is not None:
             self.set_block_time(config.start_time)
@@ -126,6 +128,7 @@ class StarknetWrapper:
             await self.fee_token.deploy()
             await self.accounts.deploy()
             await self.__predeclare_oz_account()
+            await self.__udc.deploy()
 
             await self.__preserve_current_state(starknet.state.state)
             await self.create_empty_block()

@@ -383,7 +383,7 @@ def load_json_from_path(path):
         return json.load(expected_file)
 
 
-def get_transaction_receipt(tx_hash):
+def get_transaction_receipt(tx_hash: str):
     """Fetches the transaction receipt of transaction with tx_hash"""
     output = run_starknet(["get_transaction_receipt", "--hash", tx_hash])
     return json.loads(output.stdout)
@@ -401,7 +401,7 @@ def get_class_hash_at(contract_address: str) -> str:
     return output.stdout
 
 
-def get_class_by_hash(class_hash: str) -> str:
+def get_class_by_hash(class_hash: str):
     """Gets contract class by contract hash"""
     output = run_starknet(["get_class_by_hash", "--class_hash", class_hash])
     return ContractClass.loads(output.stdout)
