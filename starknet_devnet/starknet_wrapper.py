@@ -582,10 +582,10 @@ class StarknetWrapper:
 
         state = self.get_state()
         # Generate transactions in PostmanWrapper
-        result = await self.l1l2.flush(state)
+        parsed_l1_l2_messages, transactions_to_execute = await self.l1l2.flush(state)
 
         # Execute transactions inside StarknetWrapper
-        for transaction in result[1]:
+        for transaction in transactions_to_execute:
             async with self.__get_transaction_handler() as tx_handler:
                 tx_handler.internal_tx = transaction
                 tx_handler.execution_info = await state.execute_tx(
@@ -595,7 +595,7 @@ class StarknetWrapper:
                     tx_handler.execution_info.call_info.internal_calls
                 )
 
-        return result[0]
+        return parsed_l1_l2_messages
 
     async def calculate_trace_and_fee(self, external_tx: InvokeFunction):
         """Calculates trace and fee by simulating tx on state copy."""
