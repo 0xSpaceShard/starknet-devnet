@@ -30,7 +30,8 @@ from starknet_devnet.blueprints.rpc.structures.responses import (
     rpc_transaction_receipt,
     RpcInvokeTransactionResult,
     RpcDeclareTransactionResult,
-    RpcDeployTransactionResult, RpcDeployAccountTransactionResult,
+    RpcDeployTransactionResult,
+    RpcDeployAccountTransactionResult,
 )
 from starknet_devnet.blueprints.rpc.structures.types import (
     TxnHash,
@@ -145,7 +146,9 @@ async def add_deploy_transaction(deploy_transaction: RpcBroadcastedDeployTxn) ->
     )
 
 
-async def add_deploy_account_transaction(deploy_account_transaction: RpcBroadcastedDeployAccountTxn) -> dict:
+async def add_deploy_account_transaction(
+    deploy_account_transaction: RpcBroadcastedDeployAccountTxn,
+) -> dict:
     """
     Submit a new deploy account transaction
     """
@@ -154,6 +157,16 @@ async def add_deploy_account_transaction(deploy_account_transaction: RpcBroadcas
     contract_address, transaction_hash = await state.starknet_wrapper.deploy_account(
         external_tx=deploy_account_transaction
     )
+
+    status_response = state.starknet_wrapper.transactions.get_transaction_status(
+        hex(transaction_hash)
+    )
+    if (
+        status_response["tx_status"] == "REJECTED"
+        and "is not declared" in status_response["tx_failure_reason"].error_message
+    ):
+        raise RpcError(code=28, message="Class hash not found")
+
     return RpcDeployAccountTransactionResult(
         transaction_hash=rpc_felt(transaction_hash),
         contract_address=rpc_felt(contract_address),

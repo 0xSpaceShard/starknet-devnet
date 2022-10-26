@@ -35,7 +35,8 @@ from starknet_devnet.blueprints.rpc.transactions import (
     pending_transactions,
     add_invoke_transaction,
     add_declare_transaction,
-    add_deploy_transaction, add_deploy_account_transaction,
+    add_deploy_transaction,
+    add_deploy_account_transaction,
 )
 from starknet_devnet.blueprints.rpc.utils import rpc_response, rpc_error
 from starknet_devnet.blueprints.rpc.structures.types import RpcError, RpcErrorCode

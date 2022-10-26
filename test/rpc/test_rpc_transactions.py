@@ -6,11 +6,6 @@ from __future__ import annotations
 
 from typing import List
 
-from starkware.starknet.core.os.class_hash import compute_class_hash
-from starkware.starknet.core.os.contract_address.contract_address import calculate_contract_address
-from starkware.starknet.definitions.transaction_type import TransactionType
-from starkware.starknet.wallets.open_zeppelin import sign_deploy_account_tx, sign_invoke_tx
-
 from test.account import declare, _get_execute_args, get_nonce, _get_signature
 from test.rpc.rpc_utils import (
     rpc_call,
@@ -31,10 +26,22 @@ from test.shared import (
 from test.util import deploy, load_contract_class, assert_tx_status, mint, call, send_tx
 import pytest
 
+from starkware.starknet.core.os.class_hash import compute_class_hash
+from starkware.starknet.core.os.contract_address.contract_address import (
+    calculate_contract_address,
+)
+from starkware.starknet.definitions.transaction_type import TransactionType
+from starkware.starknet.wallets.open_zeppelin import (
+    sign_deploy_account_tx,
+    sign_invoke_tx,
+)
 from starkware.starknet.core.os.transaction_hash.transaction_hash import (
     calculate_declare_transaction_hash,
 )
-from starkware.starknet.definitions.general_config import StarknetChainId, DEFAULT_CHAIN_ID
+from starkware.starknet.definitions.general_config import (
+    StarknetChainId,
+    DEFAULT_CHAIN_ID,
+)
 from starkware.starknet.public.abi import (
     get_storage_var_address,
     get_selector_from_name,
@@ -625,11 +632,17 @@ def test_add_deploy_account_transaction_on_incorrect_class_hash():
     """
     Add deploy transaction on incorrect class
     """
-    oz_account_class = {}
+    invalid_class_hash = 1337
 
     private_key = 0x6F9E0F15B20753CE2E2B740B182099C4ADF765D0C5A5B75C1AF3327358FBF2E
     public_key = 0x7707342F75277F32F1A0AD532E1A12016B36A3967332D31F915C889678B3DB6
     account_salt = 0x75B567ECB69C6D032982FA32C8F52D2F00DB50C5DE2C93EDDA70DE9B5109F8F
+    account_address = calculate_contract_address(
+        salt=account_salt,
+        contract_class=oz_account_class,
+        constructor_calldata=[public_key],
+        deployer_address=0,
+    )
 
     # prepare deploy account tx
     deploy_account_tx = sign_deploy_account_tx(
@@ -645,8 +658,10 @@ def test_add_deploy_account_transaction_on_incorrect_class_hash():
 
     rpc_deploy_account_tx = RpcBroadcastedDeployAccountTxn(
         contract_address_salt=rpc_felt(deploy_account_tx.contract_address_salt),
-        constructor_calldata=[rpc_felt(data) for data in deploy_account_tx.constructor_calldata],
-        class_hash=rpc_felt(deploy_account_tx.class_hash),
+        constructor_calldata=[
+            rpc_felt(data) for data in deploy_account_tx.constructor_calldata
+        ],
+        class_hash=rpc_felt(invalid_class_hash),
         type=rpc_txn_type(deploy_account_tx.tx_type.name),
         max_fee=rpc_felt(deploy_account_tx.max_fee),
         version=hex(deploy_account_tx.version),
@@ -654,16 +669,17 @@ def test_add_deploy_account_transaction_on_incorrect_class_hash():
         nonce=rpc_felt(deploy_account_tx.nonce),
     )
 
+    mint(hex(account_address), amount=int(1e18))
+
     ex = rpc_call(
         "starknet_addDeployAccountTransaction",
         params={"deploy_account_transaction": rpc_deploy_account_tx},
     )
-
     assert ex["error"] == {"code": 28, "message": "Class hash not found"}
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
-def test_add_deploy_account_transaction(deploy_content):
+def test_add_deploy_account_transaction():
     """Test the deployment of an account."""
 
     # the account class should already be declared
@@ -693,7 +709,9 @@ def test_add_deploy_account_transaction(deploy_content):
 
     rpc_deploy_account_tx = RpcBroadcastedDeployAccountTxn(
         contract_address_salt=rpc_felt(deploy_account_tx.contract_address_salt),
-        constructor_calldata=[rpc_felt(data) for data in deploy_account_tx.constructor_calldata],
+        constructor_calldata=[
+            rpc_felt(data) for data in deploy_account_tx.constructor_calldata
+        ],
         class_hash=rpc_felt(deploy_account_tx.class_hash),
         type=rpc_txn_type(deploy_account_tx.tx_type.name),
         max_fee=rpc_felt(deploy_account_tx.max_fee),
@@ -702,11 +720,11 @@ def test_add_deploy_account_transaction(deploy_content):
         nonce=rpc_felt(deploy_account_tx.nonce),
     )
 
-    resp = rpc_call(
+    tx_before = rpc_call(
         "starknet_addDeployAccountTransaction",
         params={"deploy_account_transaction": rpc_deploy_account_tx},
     )
-    tx_before = resp["result"]
+    tx_before = tx_before["result"]
 
     # deployment should fail if no funds
     assert_tx_status(tx_before["transaction_hash"], "REJECTED")
@@ -715,11 +733,11 @@ def test_add_deploy_account_transaction(deploy_content):
     mint(hex(account_address), amount=int(1e18))
 
     # deploy the account
-    resp = rpc_call(
+    tx_after = rpc_call(
         "starknet_addDeployAccountTransaction",
         params={"deploy_account_transaction": rpc_deploy_account_tx},
     )
-    tx_after = resp["result"]
+    tx_after = tx_after["result"]
     assert_tx_status(tx_after["transaction_hash"], "ACCEPTED_ON_L2")
 
     # assert that contract can be interacted with
