@@ -178,6 +178,8 @@ class LocalPostmanWrapper(PostmanWrapper):
 class Postman:
     """
     Postman class copied from starknet code base.
+    https://github.com/starkware-libs/cairo-lang/blob/v0.10.1/src/starkware/starknet/testing/postman.py
+
     Modifications were made in _handle_l1_to_l2_messages function.
     """
 
