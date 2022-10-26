@@ -200,18 +200,6 @@ class Postman:
             fromBlock="latest"
         )
 
-    @classmethod
-    async def create(cls: Type[TPostman], eth_test_utils: EthTestUtils) -> TPostman:
-        """Execution of mock_starknet_messaging_contract."""
-        mock_starknet_messaging_contract = eth_test_utils.accounts[0].deploy(
-            MockStarknetMessaging, 0
-        )
-        starknet = await Starknet.empty()
-        return cls(
-            mock_starknet_messaging_contract=mock_starknet_messaging_contract,
-            starknet=starknet,
-        )
-
     async def _handle_l1_to_l2_messages(self):
         transactions_to_execute = []
         for event in self.message_to_l2_filter.get_new_entries():
