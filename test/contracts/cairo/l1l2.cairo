@@ -56,7 +56,7 @@ func withdraw{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
 }
 
 @event
-func l1_handler_test_event() {
+func l1_handler_test_event(user: felt, new_balance: felt) {
 }
 
 @l1_handler
@@ -71,6 +71,6 @@ func deposit{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
     // Compute and update the new balance.
     tempvar new_balance = res + amount;
     balance.write(user, new_balance);
-    l1_handler_test_event.emit();
+    l1_handler_test_event.emit(user, new_balance);
     return ();
 }

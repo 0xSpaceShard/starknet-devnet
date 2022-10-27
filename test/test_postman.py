@@ -289,6 +289,13 @@ def _l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address):
 
     assert l2_balance == "2933"
 
+    # Check if last block contains L1_HANDLER transaction and event contains the correct balance
+    latest_block = get_block(parse=True)
+    assert latest_block["transactions"][0]["type"] == "L1_HANDLER"
+    assert latest_block["transaction_receipts"][0]["events"][0]["data"][1] == hex(
+        int(l2_balance)
+    )
+
 
 @pytest.mark.web3_messaging
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
@@ -316,11 +323,6 @@ def test_postman():
     # Test initializing the l2 example contract
     l2_contract_address = _init_l2_contract(l1l2_example_contract.address)
     _l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address)
-
-    # Check if last block contains L1_HANDLER transaction and event
-    latest_block = get_block(parse=True)
-    assert latest_block["transactions"][0]["type"] == "L1_HANDLER"
-    assert len(latest_block["transaction_receipts"][0]["events"]) == 1
 
 
 def _load_l1_messaging_contract(req_dict: dict):
