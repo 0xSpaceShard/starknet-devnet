@@ -26,7 +26,6 @@ from starkware.starknet.services.api.gateway.transaction import (
     InvokeFunction,
     Declare,
     Deploy,
-    DeployAccount,
 )
 from starkware.starknet.services.api.gateway.transaction_utils import (
     compress_program,
@@ -437,13 +436,6 @@ def make_deploy(deploy_transaction: RpcDeployTransaction) -> Deploy:
         version=int(deploy_transaction["version"], 16),
     )
     return deploy_transaction
-
-
-def make_deploy_account(txn) -> DeployAccount:
-    """
-    Convert RpcDeployTransaction to DeployAccount
-    """
-    raise NotImplementedError
 
 
 class EntryPoint(TypedDict):

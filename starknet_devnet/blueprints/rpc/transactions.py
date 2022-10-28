@@ -23,7 +23,6 @@ from starknet_devnet.blueprints.rpc.structures.payloads import (
     RpcBroadcastedTxn,
     make_declare,
     make_deploy,
-    make_deploy_account,
 )
 from starknet_devnet.blueprints.rpc.structures.responses import (
     rpc_transaction_receipt,
@@ -155,8 +154,6 @@ def make_transaction(txn: RpcBroadcastedTxn) -> AccountTransaction:
         return make_declare(txn)
     if txn_type == "DEPLOY":
         return make_deploy(txn)
-    if txn_type == "DEPLOY_ACCOUNT":
-        return make_deploy_account(txn)
     raise NotImplementedError(f"Unexpected type {txn['type']}.")
 
 

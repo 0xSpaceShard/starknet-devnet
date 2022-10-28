@@ -69,7 +69,6 @@ def rpc_txn_type(transaction_type: str) -> RpcTxnType:
         TransactionType.DECLARE.name: "DECLARE",
         TransactionType.INVOKE_FUNCTION.name: "INVOKE",
         TransactionType.L1_HANDLER.name: "L1_HANDLER",
-        TransactionType.DEPLOY_ACCOUNT.name: "DEPLOY_ACCOUNT",
     }
     if transaction_type not in txn_type_map:
         raise RpcError(
