@@ -31,6 +31,7 @@ from starkware.starknet.services.api.gateway.transaction import (
 )
 from starkware.starknet.testing.contract_utils import get_abi
 from starkware.starknet.testing.starknet import Starknet
+from starkware.starknet.testing.state import StarknetState
 from starkware.starkware_utils.error_handling import StarkException
 from starkware.starknet.services.api.contract_class import EntryPointType, ContractClass
 from starkware.starknet.services.api.feeder_gateway.request_objects import (
@@ -56,18 +57,17 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
 )
 from starkware.starkware_utils.error_handling import StarkErrorCode
 
-from starknet_devnet.util import to_bytes, get_fee_estimation_info
-from starknet_devnet.constants import DUMMY_STATE_ROOT, OZ_ACCOUNT_CLASS_HASH
-
-from .lite_mode.lite_internal_deploy import LiteInternalDeploy
-from .lite_mode.lite_starknet import LiteStarknet
-
 from .accounts import Accounts
 from .blueprints.rpc.structures.types import Felt
-from .fee_token import FeeToken
+from .constants import DUMMY_STATE_ROOT, OZ_ACCOUNT_CLASS_HASH
 from .general_config import DEFAULT_GENERAL_CONFIG
+from .fee_token import FeeToken
+from .forked_state import ForkedStateReader
+from .lite_mode.lite_internal_deploy import LiteInternalDeploy
+from .lite_mode.lite_starknet import LiteStarknet
 from .origin import NullOrigin, Origin
 from .udc import UDC
+from .util import to_bytes, get_fee_estimation_info
 from .util import (
     StarknetDevnetException,
     enable_pickling,
@@ -151,7 +151,16 @@ class StarknetWrapper:
         Create and return underlying Starknet instance
         """
         if not self.starknet:
-            self.starknet = await Starknet.empty(general_config=DEFAULT_GENERAL_CONFIG)
+            state_reader = await ForkedStateReader.create(DEFAULT_GENERAL_CONFIG)
+            self.starknet = Starknet(
+                state=StarknetState(
+                    state=CachedState(
+                        block_info=BlockInfo.empty(None),  # TODO empty? None?
+                        state_reader=state_reader,
+                    ),
+                    general_config=DEFAULT_GENERAL_CONFIG,
+                )
+            )
 
         return self.starknet
 
