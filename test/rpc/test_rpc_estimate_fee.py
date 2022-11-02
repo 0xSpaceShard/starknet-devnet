@@ -22,6 +22,9 @@ from starkware.starknet.core.os.transaction_hash.transaction_hash import (
 from starkware.starknet.definitions.general_config import StarknetChainId
 from starkware.starknet.public.abi import get_selector_from_name
 from starkware.starknet.services.api.contract_class import ContractClass
+from starkware.starknet.services.api.gateway.transaction import (
+    DEFAULT_DECLARE_SENDER_ADDRESS,
+)
 from starkware.starknet.services.api.gateway.transaction_utils import decompress_program
 
 from starknet_devnet.blueprints.rpc.structures.payloads import (
@@ -133,7 +136,7 @@ def test_estimate_fee_declare_v0(declare_content):
         signature=[],
         nonce=rpc_felt(0),
         contract_class=rpc_contract_class,
-        sender_address=rpc_felt(1),
+        sender_address=rpc_felt(DEFAULT_DECLARE_SENDER_ADDRESS),
     )
 
     response = rpc_call_background_devnet(

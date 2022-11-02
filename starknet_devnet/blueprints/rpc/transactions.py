@@ -154,7 +154,7 @@ def make_transaction(txn: RpcBroadcastedTxn) -> AccountTransaction:
         return make_declare(txn)
     if txn_type == "DEPLOY":
         return make_deploy(txn)
-    raise NotImplementedError(f"Unexpected type {txn['type']}.")
+    raise NotImplementedError(f"Unexpected type {txn_type}.")
 
 
 async def estimate_fee(request: RpcBroadcastedTxn, block_id: BlockId) -> dict:
