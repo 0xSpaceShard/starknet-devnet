@@ -81,7 +81,7 @@ class DevnetTransaction:
 
         contract_address = self.execution_info.call_info.contract_address
 
-        for l2_to_l1_message in self.execution_info.call_info.l2_to_l1_messages:
+        for l2_to_l1_message in self.execution_info.get_sorted_l2_to_l1_messages():
             l2_to_l1_messages.append(
                 L2ToL1Message(
                     from_address=contract_address,
