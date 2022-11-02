@@ -151,16 +151,29 @@ class StarknetWrapper:
         Create and return underlying Starknet instance
         """
         if not self.starknet:
-            state_reader = await ForkedStateReader.create(DEFAULT_GENERAL_CONFIG)
-            self.starknet = Starknet(
-                state=StarknetState(
-                    state=CachedState(
-                        block_info=BlockInfo.empty(None),  # TODO empty? None?
-                        state_reader=state_reader,
-                    ),
-                    general_config=DEFAULT_GENERAL_CONFIG,
+            if self.config.fork_network:
+                print(
+                    f"Forking {self.config.fork_network} from block {self.config.fork_block}"
                 )
-            )
+                state_reader = await ForkedStateReader.create(
+                    general_config=DEFAULT_GENERAL_CONFIG,
+                    feeder_gateway_url=self.config.fork_network,
+                    block_id=self.config.fork_block,
+                )
+                self.starknet = Starknet(
+                    state=StarknetState(
+                        state=CachedState(
+                            block_info=BlockInfo.empty(None),  # TODO empty? None?
+                            state_reader=state_reader,
+                        ),
+                        general_config=DEFAULT_GENERAL_CONFIG,
+                    )
+                )
+            else:
+                print("DEBUG NOT forking")
+                self.starknet = await Starknet.empty(
+                    general_config=DEFAULT_GENERAL_CONFIG
+                )
 
         return self.starknet
 
