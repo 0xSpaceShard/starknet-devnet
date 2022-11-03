@@ -2,15 +2,16 @@
 Fee token and its predefined constants.
 """
 
+from starkware.python.utils import to_bytes
 from starkware.solidity.utils import load_nearby_contract
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.gateway.transaction import InvokeFunction
 from starkware.starknet.testing.contract import StarknetContract
-from starkware.python.utils import to_bytes
 from starkware.starknet.compiler.compile import get_selector_from_name
 from starkware.starknet.testing.starknet import Starknet
-from starknet_devnet.sequencer_api_utils import InternalInvokeFunction
+from starkware.starkware_utils.error_handling import StarkException
 
+from starknet_devnet.sequencer_api_utils import InternalInvokeFunction
 from starknet_devnet.util import Uint256, str_to_felt
 
 
@@ -55,9 +56,13 @@ class FeeToken:
         await starknet.state.state.set_contract_class(
             FeeToken.HASH_BYTES, contract_class
         )
-        await starknet.state.state.deploy_contract(
-            FeeToken.ADDRESS, FeeToken.HASH_BYTES
-        )
+        try:
+            await starknet.state.state.deploy_contract(
+                FeeToken.ADDRESS, FeeToken.HASH_BYTES
+            )
+        except StarkException:
+            print(f"{self.__class__.__name__} already deployed")
+            return
 
         await starknet.state.state.set_storage_at(
             FeeToken.ADDRESS,
@@ -73,7 +78,7 @@ class FeeToken:
             FeeToken.ADDRESS, get_selector_from_name("ERC20_decimals"), 18
         )
 
-        self.contract = StarknetContract(
+        self.contract = StarknetContract(  # TODO never executed if forking
             state=starknet.state,
             abi=contract_class.abi,
             contract_address=FeeToken.ADDRESS,

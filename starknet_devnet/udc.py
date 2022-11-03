@@ -5,6 +5,7 @@ from starkware.solidity.utils import load_nearby_contract
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.testing.contract import StarknetContract
 from starkware.starknet.testing.starknet import Starknet
+from starkware.starkware_utils.error_handling import StarkException
 
 
 class UDC:
@@ -44,9 +45,13 @@ class UDC:
         contract_class = UDC.get_contract_class()
 
         await starknet.state.state.set_contract_class(UDC.HASH_BYTES, contract_class)
-        await starknet.state.state.deploy_contract(UDC.ADDRESS, UDC.HASH_BYTES)
+        try:
+            await starknet.state.state.deploy_contract(UDC.ADDRESS, UDC.HASH_BYTES)
+        except StarkException:
+            print(f"{self.__class__.__name__} already deployed")
+            return
 
-        self.contract = StarknetContract(
+        self.contract = StarknetContract(  # TODO this needn't be a property
             state=starknet.state,
             abi=contract_class.abi,
             contract_address=UDC.ADDRESS,

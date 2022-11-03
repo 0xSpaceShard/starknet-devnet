@@ -156,7 +156,6 @@ class StarknetWrapper:
                     f"Forking {self.config.fork_network} from block {self.config.fork_block}"
                 )
                 state_reader = await ForkedStateReader.create(
-                    general_config=DEFAULT_GENERAL_CONFIG,
                     feeder_gateway_url=self.config.fork_network,
                     block_id=self.config.fork_block,
                 )
@@ -450,6 +449,7 @@ class StarknetWrapper:
         contract_address = internal_tx.contract_address
 
         if self.contracts.is_deployed(contract_address):
+            # TODO deployment tx hash can be calculated, no need to store it
             tx_hash = self.contracts.get_by_address(contract_address).deployment_tx_hash
             return contract_address, tx_hash
 
@@ -590,9 +590,7 @@ class StarknetWrapper:
         from the contract at `contract_address`.
         """
         state = self.get_state().state
-        if self.contracts.is_deployed(contract_address):
-            return hex(await state.get_storage_at(contract_address, key))
-        return self.origin.get_storage_at(contract_address, key)
+        return hex(await state.get_storage_at(contract_address, key))
 
     async def load_messaging_contract_in_l1(
         self, network_url: str, contract_address: str, network_id: str
