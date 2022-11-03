@@ -18,6 +18,7 @@ from .util import (
     devnet_in_background,
     ensure_server_alive,
     estimate_message_fee,
+    get_block,
     load_file_content,
     terminate_and_wait,
 )
@@ -215,17 +216,24 @@ def _l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address):
     assert balance == 0
 
     # withdraw in l1 and assert contract balance
+    withdraw_amount = 1000
     web3_transact(
         web3,
         "withdraw",
         l1l2_example_contract,
         int(l2_contract_address, base=16),
         USER_ID,
-        1000,
+        withdraw_amount,
     )
 
+    # Check if l2 to l1 message is included in transaction_receipts
+    l2_to_l1_block = get_block(parse=True)
+    l2_to_l1_messages = l2_to_l1_block["transaction_receipts"][0]["l2_to_l1_messages"]
+    l2_to_l1_withdraw_amount = l2_to_l1_messages[0]["payload"][2]
+    assert l2_to_l1_withdraw_amount == hex(withdraw_amount)
+
     balance = web3_call("userBalances", l1l2_example_contract, USER_ID)
-    assert balance == 1000
+    assert balance == withdraw_amount
 
     # assert l2 contract balance
     l2_balance = call(
@@ -288,6 +296,13 @@ def _l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address):
 
     assert l2_balance == "2933"
 
+    # Check if last block contains L1_HANDLER transaction and event contains the correct balance
+    latest_block = get_block(parse=True)
+    assert latest_block["transactions"][0]["type"] == "L1_HANDLER"
+    assert latest_block["transaction_receipts"][0]["events"][0]["data"][1] == hex(
+        int(l2_balance)
+    )
+
 
 @pytest.mark.web3_messaging
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
@@ -314,7 +329,6 @@ def test_postman():
 
     # Test initializing the l2 example contract
     l2_contract_address = _init_l2_contract(l1l2_example_contract.address)
-
     _l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address)
 
 

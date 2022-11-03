@@ -4,7 +4,7 @@ sidebar_position: 6
 
 # L1-L2 Postman integration
 
-Postman is a Starknet utility that allows testing L1 <-> L2 interaction. To utilize this, you can use [**`starknet-hardhat-plugin`**](https://github.com/Shard-Labs/starknet-hardhat-plugin), as witnessed in [**this example**](https://github.com/Shard-Labs/starknet-hardhat-example/blob/master/test/postman.test.ts). Or you can directly interact with the two Postman-specific endpoints:
+Postman is a StarkNet utility that allows testing L1 <-> L2 interaction. To utilize this, you can use [**`starknet-hardhat-plugin`**](https://github.com/Shard-Labs/starknet-hardhat-plugin), as witnessed in [**this example**](https://github.com/Shard-Labs/starknet-hardhat-example/blob/master/test/postman.test.ts). Or you can directly interact with the two Postman-specific endpoints:
 
 ### Postman - Load
 
@@ -34,7 +34,7 @@ Goes through the newly enqueued messages, sending them from L1 to L2 and from L2
 
 ### Postman - disclaimer
 
-This method of L1 <-> L2 communication testing differs from Starknet Alpha networks. Taking the [**L1 L2 Example .sol**](https://www.cairo-lang.org/docs/_static/L1L2Example.sol) contract in the [**starknet documentation**](https://www.cairo-lang.org/docs/hello_starknet/l1l2.html) :
+This method of L1 <-> L2 communication testing differs from StarkNet Alpha networks. Taking the [**L1 L2 Example .sol**](https://www.cairo-lang.org/docs/_static/L1L2Example.sol) contract in the [**starknet documentation**](https://www.cairo-lang.org/docs/hello_starknet/l1l2.html) :
 
 ```
 constructor(IStarknetCore starknetCore_) public {

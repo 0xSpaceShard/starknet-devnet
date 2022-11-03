@@ -21,11 +21,11 @@ DEFAULT_ACCOUNT_PATH = os.path.abspath(
         os.pardir,
         "accounts_artifacts",
         "OpenZeppelin",
-        "0.4.0b-fork",
+        "0.5.0",
         "Account.cairo",
         "Account.json",
     )
 )
 DEFAULT_ACCOUNT_HASH_BYTES = to_bytes(
-    250058203962332945652607154704986145054927159797127109843768594742871092378
+    2308850740939678659398575035812067402979543458539300415910488838841673668983
 )

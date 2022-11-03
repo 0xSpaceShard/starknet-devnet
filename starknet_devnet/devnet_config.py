@@ -206,7 +206,7 @@ def parse_args(raw_args: List[str]):
         "--account-class",
         help="Specify the account implementation to be used for predeploying; "
         "should be a path to the compiled JSON artifact; "
-        "defaults to a fork of OpenZeppelin v0.4.0b",
+        "defaults to OpenZeppelin v0.5.0",
         type=_parse_account_class,
         default=DEFAULT_ACCOUNT_PATH,
     )

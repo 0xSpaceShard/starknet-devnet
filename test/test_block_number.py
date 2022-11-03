@@ -42,9 +42,7 @@ def test_block_number_incremented(expected_tx_hash):
     """
     Tests how block number is incremented in regular mode and lite mode.
     In regular mode with salt "0x42" our expected hash is
-    0x4f1ea446f67c1be47619444eae4d8118f6e017d0e6fe16e89b3df03da38606d.
-    In lite mode we expect 0x4f1ea446f67c1be47619444eae4d8118f6e017d0e6fe16e89b3df03da38606d
-    transaction hash because currently, we can't disable tx hash calculations.
+    0x4506fb016a309c8694a5c862625ba743a3ed2e248bca1ba5aa174ca06381f0f.
     """
 
     deploy_info = deploy(BLOCK_NUMBER_CONTRACT_PATH, salt="0x42")

@@ -9,9 +9,9 @@ from web3.middleware import geth_poa_middleware
 
 from starkware.solidity.utils import load_nearby_contract
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
-from starkware.starknet.testing.postman import Postman
 from starkware.starknet.testing.starknet import Starknet
 from starkware.eth.eth_test_utils import EthAccount, EthContract
+from starkware.starknet.business_logic.transaction.objects import InternalL1Handler
 
 from .constants import L1_MESSAGE_CANCELLATION_DELAY, TIMEOUT_FOR_WEB3_REQUESTS
 from .util import fixed_length_hex, StarknetDevnetException
@@ -116,9 +116,12 @@ and that the Messaging Contract is deployed at the provided address ({contract_a
             postman.n_consumed_l2_to_l1_messages :
         ]
 
-        await self.__postman_wrapper.flush()
+        transactions_to_execute = await self.__postman_wrapper.flush()
 
-        return self.__parse_l1_l2_messages(l1_to_l2_messages, l2_to_l1_messages)
+        return (
+            self.__parse_l1_l2_messages(l1_to_l2_messages, l2_to_l1_messages),
+            transactions_to_execute,
+        )
 
 
 class PostmanWrapper(ABC):
@@ -138,7 +141,7 @@ class PostmanWrapper(ABC):
 
     async def flush(self):
         """Handles the L1 <> L2 message exchange"""
-        await self.postman.flush()
+        return await self.postman.flush()
 
 
 class LocalPostmanWrapper(PostmanWrapper):
@@ -170,3 +173,72 @@ class LocalPostmanWrapper(PostmanWrapper):
         self.l1_to_l2_message_filter = self.mock_starknet_messaging_contract.w3_contract.events.LogMessageToL2.createFilter(
             fromBlock="latest"
         )
+
+
+class Postman:
+    """
+    Postman class copied from starknet code base.
+    https://github.com/starkware-libs/cairo-lang/blob/v0.10.1/src/starkware/starknet/testing/postman.py
+
+    Modifications were made in _handle_l1_to_l2_messages function.
+    """
+
+    def __init__(
+        self,
+        mock_starknet_messaging_contract: EthContract,
+        starknet: Starknet,
+    ):
+        self.mock_starknet_messaging_contract = mock_starknet_messaging_contract
+        self.starknet = starknet
+        self.n_consumed_l2_to_l1_messages = 0
+
+        # Create a filter to collect LogMessageToL2 events.
+        w3_contract = self.mock_starknet_messaging_contract.w3_contract
+        self.message_to_l2_filter = w3_contract.events.LogMessageToL2.createFilter(
+            fromBlock="latest"
+        )
+
+    async def _handle_l1_to_l2_messages(self):
+        transactions_to_execute = []
+        for event in self.message_to_l2_filter.get_new_entries():
+            args = event.args
+            transaction = InternalL1Handler.create(
+                contract_address=args["toAddress"],
+                entry_point_selector=args["selector"],
+                calldata=[int(args["fromAddress"], 16), *args["payload"]],
+                nonce=args["nonce"],
+                chain_id=self.starknet.state.general_config.chain_id.value,
+            )
+            transactions_to_execute.append(transaction)
+            self.mock_starknet_messaging_contract.mockConsumeMessageToL2.transact(
+                int(args["fromAddress"], 16),
+                args["toAddress"],
+                args["selector"],
+                args["payload"],
+                args["nonce"],
+            )
+
+        return transactions_to_execute
+
+    def _handle_l2_to_l1_messages(self):
+        l2_to_l1_messages_log = self.starknet.state.l2_to_l1_messages_log
+        assert len(l2_to_l1_messages_log) >= self.n_consumed_l2_to_l1_messages
+        for message in l2_to_l1_messages_log[self.n_consumed_l2_to_l1_messages :]:
+            self.mock_starknet_messaging_contract.mockSendMessageFromL2.transact(
+                message.from_address, message.to_address, message.payload
+            )
+            self.starknet.consume_message_from_l2(
+                from_address=message.from_address,
+                to_address=message.to_address,
+                payload=message.payload,
+            )
+        self.n_consumed_l2_to_l1_messages = len(l2_to_l1_messages_log)
+
+    async def flush(self):
+        """
+        Handles all messages and sends them to the other layer.
+        """
+        # Need to handle L1 to L2 first in case that those messages will create L2 to L1 messages.
+        transactions_to_execute = await self._handle_l1_to_l2_messages()
+        self._handle_l2_to_l1_messages()
+        return transactions_to_execute

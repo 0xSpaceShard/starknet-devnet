@@ -29,7 +29,7 @@ from .util import (
 
 ACCOUNT_ARTIFACTS_PATH = "starknet_devnet/accounts_artifacts"
 ACCOUNT_AUTHOR = "OpenZeppelin"
-ACCOUNT_VERSION = "0.4.0b-fork"
+ACCOUNT_VERSION = "0.5.0"
 
 ACCOUNT_PATH = f"{ACCOUNT_ARTIFACTS_PATH}/{ACCOUNT_AUTHOR}/{ACCOUNT_VERSION}/Account.cairo/Account.json"
 ACCOUNT_ABI_PATH = f"{ACCOUNT_ARTIFACTS_PATH}/{ACCOUNT_AUTHOR}/{ACCOUNT_VERSION}/Account.cairo/Account_abi.json"

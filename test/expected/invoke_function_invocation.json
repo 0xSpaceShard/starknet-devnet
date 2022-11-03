@@ -1,14 +1,14 @@
 {
     "execution_resources": {
-        "n_steps": 243,
+        "n_steps": 269,
         "builtin_instance_counter": {
-            "range_check_builtin": 3
+            "range_check_builtin": 7
         },
-        "n_memory_holes": 3
+        "n_memory_holes": 11
     },
     "messages": [],
     "call_type": "CALL",
-    "class_hash": "0x8d8726481b7b8a4a8f95aa2ce6a18932c33148600c75b1b4fe40c5987c6c9a",
+    "class_hash": "0x51ac361b170bfbaeb1f5b3a33cc8827ae9990a5060103cb11d30be8b5375977",
     "result": ["0x0"],
     "events": [],
     "calldata": [

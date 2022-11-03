@@ -252,7 +252,7 @@ def rpc_transaction(transaction: TransactionSpecificInfo) -> RpcTransaction:
     return tx_mapping[transaction.tx_type](transaction)
 
 
-class FunctionCall(TypedDict):
+class RpcFunctionCall(TypedDict):
     """TypedDict for rpc function call"""
 
     contract_address: Address
@@ -260,9 +260,9 @@ class FunctionCall(TypedDict):
     calldata: List[Felt]
 
 
-def make_call_function(function_call: FunctionCall) -> CallFunction:
+def make_call_function(function_call: RpcFunctionCall) -> CallFunction:
     """
-    Convert RPC FunctionCall to CallFunction
+    Convert RPCFunctionCall to CallFunction
     """
     return CallFunction(
         contract_address=int(function_call["contract_address"], 16),
@@ -446,7 +446,7 @@ def make_declare(declare_transaction: RpcBroadcastedDeclareTxn) -> Declare:
         raise RpcError(code=50, message="Invalid contract class") from ex
 
     nonce = declare_transaction.get("nonce")
-    declare_transaction = Declare(
+    declare_tx = Declare(
         contract_class=contract_class,
         sender_address=int(declare_transaction["sender_address"], 16),
         nonce=int(nonce, 16) if nonce is not None else 0,
@@ -454,7 +454,7 @@ def make_declare(declare_transaction: RpcBroadcastedDeclareTxn) -> Declare:
         max_fee=int(declare_transaction["max_fee"], 16),
         signature=[int(sig, 16) for sig in declare_transaction["signature"]],
     )
-    return declare_transaction
+    return declare_tx
 
 
 def make_deploy(deploy_transaction: RpcDeployTransaction) -> Deploy:
@@ -471,7 +471,7 @@ def make_deploy(deploy_transaction: RpcDeployTransaction) -> Deploy:
     except (StarkException, TypeError, MarshmallowError) as ex:
         raise RpcError(code=50, message="Invalid contract class") from ex
 
-    deploy_transaction = Deploy(
+    deploy_tx = Deploy(
         contract_address_salt=int(deploy_transaction["contract_address_salt"], 16),
         constructor_calldata=[
             int(data, 16) for data in deploy_transaction["constructor_calldata"]
@@ -479,7 +479,7 @@ def make_deploy(deploy_transaction: RpcDeployTransaction) -> Deploy:
         contract_definition=contract_class,
         version=int(deploy_transaction["version"], 16),
     )
-    return deploy_transaction
+    return deploy_tx
 
 
 def make_deploy_account(
@@ -488,7 +488,7 @@ def make_deploy_account(
     """
     Convert RpcDeployAccountTransaction to DeployAccount
     """
-    declare_transaction = DeployAccount(
+    deploy_account_tx = DeployAccount(
         class_hash=int(deploy_account_transaction["class_hash"], 16),
         contract_address_salt=int(
             deploy_account_transaction["contract_address_salt"], 16
@@ -501,7 +501,7 @@ def make_deploy_account(
         max_fee=int(deploy_account_transaction["max_fee"], 16),
         signature=[int(sig, 16) for sig in deploy_account_transaction["signature"]],
     )
-    return declare_transaction
+    return deploy_account_tx
 
 
 class EntryPoint(TypedDict):

@@ -8,58 +8,65 @@ from test.shared import (
     PREDEPLOYED_ACCOUNT_ADDRESS,
 )
 
-BLOCK_0_LATEST = {
+BLOCK_FROM_0_TO_LATEST = {
     "from_block": "0",
     "to_block": "latest",
     "chunk_size": 10,
 }
 
-BLOCK_0_2 = {
+BLOCK_FROM_0_TO_2 = {
     "from_block": "0",
     "to_block": "2",
     "chunk_size": 10,
 }
 
-BLOCK_3_3 = {
+BLOCK_FROM_3_TO_3 = {
     "from_block": "3",
     "to_block": "3",
     "chunk_size": 10,
 }
 
-BLOCK_2_3 = {
+BLOCK_FROM_2_TO_3 = {
     "from_block": "2",
     "to_block": "3",
     "chunk_size": 10,
 }
 
-BLOCK_0_LATEST_CHUNK_3_0 = {
+BLOCK_FROM_0_TO_LATEST_CHUNK_SIZE_3 = {
     "from_block": "0",
     "to_block": "latest",
     "chunk_size": 3,
 }
 
-BLOCK_0_LATEST_CHUNK_3_1 = {
+BLOCK_FROM_0_TO_LATEST_CHUNK_3_CONTINUATION_TOKEN = {
     "from_block": "0",
     "to_block": "latest",
     "chunk_size": 3,
     "continuation_token": "1",
 }
 
-BLOCK_0_LATEST_ADDRESS = {
+BLOCK_FROM_0_TO_1_CHUNK_3_CONTINUATION_TOKEN = {
+    "from_block": "0",
+    "to_block": "1",
+    "chunk_size": 3,
+    "continuation_token": "0",
+}
+
+BLOCK_FROM_0_TO_LATEST_WITH_ADDRESS = {
     "from_block": "0",
     "to_block": "latest",
     "address": EXPECTED_FEE_TOKEN_ADDRESS,
     "chunk_size": 10,
 }
 
-BLOCK_0_LATEST_KEY = {
+BLOCK_FROM_0_TO_LATEST_WITH_KEY = {
     "from_block": "0",
     "to_block": "latest",
     "keys": ["0x99cd8bde557814842a3121e8ddfd433a539b8c9f14bf31ebf108d12e6196e9"],
     "chunk_size": 10,
 }
 
-BLOCK_0_LATEST_KEYS = {
+BLOCK_FROM_0_TO_LATEST_WITH_KEYS = {
     "from_block": "0",
     "to_block": "latest",
     "keys": [
@@ -69,7 +76,7 @@ BLOCK_0_LATEST_KEYS = {
     "chunk_size": 10,
 }
 
-BLOCK_0_LATEST_ADDRESS_KEYS = {
+BLOCK_FROM_0_TO_LATEST_WITH_ADDRESS_AND_KEYS = {
     "from_block": "0",
     "to_block": "latest",
     "address": EXPECTED_FEE_TOKEN_ADDRESS,
@@ -80,73 +87,97 @@ BLOCK_0_LATEST_ADDRESS_KEYS = {
     "chunk_size": 10,
 }
 
-EVENT_DATA_0 = [0, 0]
-EVENT_DATA_1 = [0, 1]
-EVENT_FEE_ADDRESS_2 = (
+INCREASE_BALANCE_BY_0_EVENT = [0, 0]
+INCREASE_BALANCE_BY_1_EVENT = [0, 1]
+EVENT_FEE_ADDRESS = (
     1598625851760128517552627854997699631064626954749952456622017584404508471300
 )
-EVENT_FEE_1 = [
+FEE_CHARGING_IN_BLOCK_2_EVENT = [
     int(PREDEPLOYED_ACCOUNT_ADDRESS, 16),
-    EVENT_FEE_ADDRESS_2,
-    143100000000000,  # WEI
+    EVENT_FEE_ADDRESS,
+    143200000000000,  # WEI
     0,
 ]
-EVENT_FEE_2 = [
+FEE_CHARGING_IN_BLOCK_3_EVENT = [
     int(PREDEPLOYED_ACCOUNT_ADDRESS, 16),
-    EVENT_FEE_ADDRESS_2,
-    387900000000000,  # WEI
+    EVENT_FEE_ADDRESS,
+    388000000000000,  # WEI
     0,
 ]
 
 GET_EVENTS_TEST_DATA = [
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_0_LATEST,
-        [EVENT_DATA_0, EVENT_FEE_1, EVENT_DATA_1, EVENT_FEE_2],
+        BLOCK_FROM_0_TO_LATEST,
+        [
+            INCREASE_BALANCE_BY_0_EVENT,
+            FEE_CHARGING_IN_BLOCK_2_EVENT,
+            INCREASE_BALANCE_BY_1_EVENT,
+            FEE_CHARGING_IN_BLOCK_3_EVENT,
+        ],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_0_2,
-        [EVENT_DATA_0, EVENT_FEE_1],
+        BLOCK_FROM_0_TO_2,
+        [INCREASE_BALANCE_BY_0_EVENT, FEE_CHARGING_IN_BLOCK_2_EVENT],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_3_3,
-        [EVENT_DATA_1, EVENT_FEE_2],
+        BLOCK_FROM_3_TO_3,
+        [INCREASE_BALANCE_BY_1_EVENT, FEE_CHARGING_IN_BLOCK_3_EVENT],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_2_3,
-        [EVENT_DATA_0, EVENT_FEE_1, EVENT_DATA_1, EVENT_FEE_2],
+        BLOCK_FROM_2_TO_3,
+        [
+            INCREASE_BALANCE_BY_0_EVENT,
+            FEE_CHARGING_IN_BLOCK_2_EVENT,
+            INCREASE_BALANCE_BY_1_EVENT,
+            FEE_CHARGING_IN_BLOCK_3_EVENT,
+        ],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_0_LATEST_CHUNK_3_0,
-        [EVENT_DATA_0, EVENT_FEE_1, EVENT_DATA_1],
+        BLOCK_FROM_0_TO_LATEST_CHUNK_SIZE_3,
+        [
+            INCREASE_BALANCE_BY_0_EVENT,
+            FEE_CHARGING_IN_BLOCK_2_EVENT,
+            INCREASE_BALANCE_BY_1_EVENT,
+        ],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_0_LATEST_CHUNK_3_1,
-        [EVENT_FEE_2],
+        BLOCK_FROM_0_TO_LATEST_CHUNK_3_CONTINUATION_TOKEN,
+        [FEE_CHARGING_IN_BLOCK_3_EVENT],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_0_LATEST_ADDRESS,
-        [EVENT_FEE_1, EVENT_FEE_2],
+        BLOCK_FROM_0_TO_1_CHUNK_3_CONTINUATION_TOKEN,
+        [],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_0_LATEST_KEY,
-        [EVENT_FEE_1, EVENT_FEE_2],
+        BLOCK_FROM_0_TO_LATEST_WITH_ADDRESS,
+        [FEE_CHARGING_IN_BLOCK_2_EVENT, FEE_CHARGING_IN_BLOCK_3_EVENT],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_0_LATEST_KEYS,
-        [EVENT_DATA_0, EVENT_FEE_1, EVENT_DATA_1, EVENT_FEE_2],
+        BLOCK_FROM_0_TO_LATEST_WITH_KEY,
+        [FEE_CHARGING_IN_BLOCK_2_EVENT, FEE_CHARGING_IN_BLOCK_3_EVENT],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_0_LATEST_ADDRESS_KEYS,
-        [EVENT_FEE_1, EVENT_FEE_2],
+        BLOCK_FROM_0_TO_LATEST_WITH_KEYS,
+        [
+            INCREASE_BALANCE_BY_0_EVENT,
+            FEE_CHARGING_IN_BLOCK_2_EVENT,
+            INCREASE_BALANCE_BY_1_EVENT,
+            FEE_CHARGING_IN_BLOCK_3_EVENT,
+        ],
+    ),
+    (
+        [*PREDEPLOY_ACCOUNT_CLI_ARGS],
+        BLOCK_FROM_0_TO_LATEST_WITH_ADDRESS_AND_KEYS,
+        [FEE_CHARGING_IN_BLOCK_2_EVENT, FEE_CHARGING_IN_BLOCK_3_EVENT],
     ),
 ]

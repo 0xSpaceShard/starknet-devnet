@@ -171,9 +171,13 @@ def test_get_events(input_data, expected_data):
         assert str(resp["result"]["events"][i]["data"]) == str(data)
 
     if "continuation_token" in input_data:
-        assert int(input_data["continuation_token"]) + 1 == int(
-            resp["result"]["continuation_token"]
-        )
+        expected_continuation_token = int(input_data["continuation_token"])
+
+        # increase continuation_token when events are not empty
+        if resp["result"]["events"]:
+            expected_continuation_token += 1
+
+        assert expected_continuation_token == int(resp["result"]["continuation_token"])
 
 
 @pytest.mark.usefixtures("devnet_with_account")

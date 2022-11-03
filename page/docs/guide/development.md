@@ -1,5 +1,5 @@
 ---
-sidebar_position: 16
+sidebar_position: 17
 ---
 
 # Development
@@ -81,8 +81,9 @@ After adding a new cairo-lang version, you will probably want to recompile contr
    - Predeployed account addresses should be intact
 
 6. Update directory/file names containing the version
-7. Update expected test paths and addresses
-8. Update docs
+7. Adapt to ABI changes
+8. Update expected test paths and addresses
+9. Update docs
 
 ## Development - Build
 
@@ -139,4 +140,4 @@ Lastly:
 
 - Check if CI and image publish worked after commit
 - Generate release notes with the corresponding tag version on GitHub
-- Inform users on Telegram, [Discord Devnet channel](https://discord.com/channels/793094838509764618/985824027950055434), and [Starknet Shamans](https://community.starknet.io/t/starknet-devnet/69).
+- Inform users on Telegram, [Discord Devnet channel](https://discord.com/channels/793094838509764618/985824027950055434), and [StarkNet Shamans](https://community.starknet.io/t/starknet-devnet/69).

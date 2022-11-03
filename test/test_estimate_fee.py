@@ -19,6 +19,7 @@ from .settings import APP_URL
 from .shared import (
     CONTRACT_PATH,
     EXPECTED_CLASS_HASH,
+    EXPECTED_FEE_TOKEN_ADDRESS,
     L1L2_ABI_PATH,
     L1L2_CONTRACT_PATH,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
@@ -68,7 +69,7 @@ def test_estimate_fee_with_genesis_block():
                 "0",
             ],
             "signature": [],
-            "contract_address": "0x62230ea046a9a5fbc261ac77d03c8d41e5d442db2284587570ab46455fd2488",
+            "contract_address": EXPECTED_FEE_TOKEN_ADDRESS,
         }
     )
 

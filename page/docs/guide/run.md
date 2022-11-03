@@ -11,7 +11,7 @@ usage: starknet-devnet [-h] [-v] [--host HOST] [--port PORT] [--load-path LOAD_P
                        [--initial-balance INITIAL_BALANCE] [--seed SEED] [--hide-predeployed-accounts] [--start-time START_TIME] [--gas-price GAS_PRICE] [--timeout TIMEOUT]
                        [--account-class ACCOUNT_CLASS]
 
-Run a local instance of Starknet Devnet
+Run a local instance of StarkNet Devnet
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -39,7 +39,7 @@ optional arguments:
   --account-class ACCOUNT_CLASS
                         Specify the account implementation to be used for predeploying;
                         should be a path to the compiled JSON artifact;
-                        defaults to a fork of OpenZeppelin v0.4.0b
+                        defaults to OpenZeppelin v0.5.0
 ```
 
 You can run `starknet-devnet` in a separate shell, or you can run it in background with `starknet-devnet &`.

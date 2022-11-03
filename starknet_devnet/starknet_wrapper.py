@@ -67,6 +67,7 @@ from .blueprints.rpc.structures.types import Felt
 from .fee_token import FeeToken
 from .general_config import DEFAULT_GENERAL_CONFIG
 from .origin import NullOrigin, Origin
+from .udc import UDC
 from .util import (
     StarknetDevnetException,
     enable_pickling,
@@ -106,6 +107,7 @@ class StarknetWrapper:
         self.__initialized = False
         self.fee_token = FeeToken(self)
         self.accounts = Accounts(self)
+        self.__udc = UDC(self)
 
         if config.start_time is not None:
             self.set_block_time(config.start_time)
@@ -126,6 +128,7 @@ class StarknetWrapper:
             await self.fee_token.deploy()
             await self.accounts.deploy()
             await self.__predeclare_oz_account()
+            await self.__udc.deploy()
 
             await self.__preserve_current_state(starknet.state.state)
             await self.create_empty_block()
@@ -581,7 +584,21 @@ class StarknetWrapper:
         """Handles all pending L1 <> L2 messages and sends them to the other layer."""
 
         state = self.get_state()
-        return await self.l1l2.flush(state)
+        # Generate transactions in PostmanWrapper
+        parsed_l1_l2_messages, transactions_to_execute = await self.l1l2.flush(state)
+
+        # Execute transactions inside StarknetWrapper
+        for transaction in transactions_to_execute:
+            async with self.__get_transaction_handler() as tx_handler:
+                tx_handler.internal_tx = transaction
+                tx_handler.execution_info = await state.execute_tx(
+                    tx_handler.internal_tx
+                )
+                tx_handler.internal_calls = (
+                    tx_handler.execution_info.call_info.internal_calls
+                )
+
+        return parsed_l1_l2_messages
 
     async def calculate_trace_and_fee(self, external_tx: InvokeFunction):
         """Calculates trace and fee by simulating tx on state copy."""

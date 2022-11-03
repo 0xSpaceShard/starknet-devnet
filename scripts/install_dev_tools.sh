@@ -3,6 +3,7 @@
 set -e
 
 echo "npm: $(npm --version)"
+echo "npm: $(node --version)"
 echo "pip: $(pip --version)"
 echo "pip3: $(pip3 --version)"
 echo "python: $(python --version)"

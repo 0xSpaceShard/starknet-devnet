@@ -11,7 +11,7 @@ from starknet_devnet.blueprints.rpc.utils import (
     assert_block_id_is_latest_or_pending,
 )
 from starknet_devnet.blueprints.rpc.structures.payloads import (
-    FunctionCall,
+    RpcFunctionCall,
     make_call_function,
 )
 from starknet_devnet.blueprints.rpc.structures.types import (
@@ -32,7 +32,7 @@ def _validate_calldata(calldata: List[Any]):
             raise RpcError(code=22, message="Invalid call data") from error
 
 
-async def call(request: FunctionCall, block_id: BlockId) -> List[Felt]:
+async def call(request: RpcFunctionCall, block_id: BlockId) -> List[Felt]:
     """
     Call a starknet function without creating a StarkNet transaction
     """

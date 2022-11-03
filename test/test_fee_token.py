@@ -15,6 +15,7 @@ from .test_account import (
     get_account_balance,
 )
 from .shared import (
+    EXPECTED_FEE_TOKEN_ADDRESS,
     GENESIS_BLOCK_NUMBER,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
@@ -26,10 +27,7 @@ from .util import assert_equal, devnet_in_background, get_block, mint
 @pytest.mark.fee_token
 def test_precomputed_address_unchanged():
     """Assert that the precomputed fee_token address is unchanged."""
-    assert_equal(
-        FeeToken.ADDRESS,
-        2774287484619332564597403632816768868845110259953541691709975889937073775752,
-    )
+    assert_equal(FeeToken.ADDRESS, int(EXPECTED_FEE_TOKEN_ADDRESS, 16))
 
 
 @pytest.mark.fee_token
@@ -37,10 +35,7 @@ def test_fee_token_address():
     """Sends fee token request;"""
     response = app.test_client().get("/fee_token")
     assert response.status_code == 200
-    assert (
-        response.json.get("address")
-        == "0x62230ea046a9a5fbc261ac77d03c8d41e5d442db2284587570ab46455fd2488"
-    )
+    assert response.json.get("address") == EXPECTED_FEE_TOKEN_ADDRESS
     assert response.json.get("symbol") == "ETH"
 
 
