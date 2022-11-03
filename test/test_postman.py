@@ -228,9 +228,9 @@ def _l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address):
 
     # Check if l2 to l1 message is included in transaction_receipts
     l2_to_l1_block = get_block(parse=True)
-    assert l2_to_l1_block["transaction_receipts"][0]["l2_to_l1_messages"][0]["payload"][
-        2
-    ] == hex(withdraw_amount)
+    l2_to_l1_messages = l2_to_l1_block["transaction_receipts"][0]["l2_to_l1_messages"]
+    l2_to_l1_withdraw_amount = l2_to_l1_messages[0]["payload"][2]
+    assert l2_to_l1_withdraw_amount == hex(withdraw_amount)
 
     balance = web3_call("userBalances", l1l2_example_contract, USER_ID)
     assert balance == withdraw_amount
