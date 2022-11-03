@@ -41,7 +41,7 @@ class ForkedStateReader(StateReader):
         return cls(feeder_gateway_client, block.block_number)
 
     async def get_contract_class(self, class_hash: bytes) -> ContractClass:
-        class_hash_hex = class_hash.hex()
+        class_hash_hex = "0x" + class_hash.hex()
         contract_class_dict = await self.__feeder_gateway_client.get_class_by_hash(
             class_hash_hex
         )
