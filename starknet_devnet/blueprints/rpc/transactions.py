@@ -152,10 +152,10 @@ async def add_deploy_account_transaction(
     """
     Submit a new deploy account transaction
     """
-    deploy_account_transaction = make_deploy_account(deploy_account_transaction)
+    deploy_account_tx = make_deploy_account(deploy_account_transaction)
 
     contract_address, transaction_hash = await state.starknet_wrapper.deploy_account(
-        external_tx=deploy_account_transaction
+        external_tx=deploy_account_tx
     )
 
     status_response = state.starknet_wrapper.transactions.get_transaction_status(
