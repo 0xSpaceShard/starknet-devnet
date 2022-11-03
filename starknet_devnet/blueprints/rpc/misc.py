@@ -93,13 +93,16 @@ async def get_events(
         if block.transaction_receipts:
             events.extend(get_events_from_block(block, address, keys))
 
+    # chunking
     continuation_token = int(continuation_token)
     start_index = continuation_token * chunk_size
     events = events[start_index : start_index + chunk_size]
 
-    return RpcEventsResult(
-        events=events, continuation_token=str(continuation_token + 1)
-    )
+    # continuation_token should be increased only if events are not empty
+    if events:
+        continuation_token = continuation_token + 1
+
+    return RpcEventsResult(events=events, continuation_token=str(continuation_token))
 
 
 async def get_nonce(block_id: BlockId, contract_address: Address) -> Felt:
