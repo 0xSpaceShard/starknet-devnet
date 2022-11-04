@@ -2,6 +2,8 @@
 RPC classes endpoints
 """
 
+from starkware.starkware_utils.error_handling import StarkException
+
 from starknet_devnet.blueprints.rpc.utils import (
     assert_block_id_is_latest_or_pending,
     rpc_felt,
@@ -24,7 +26,7 @@ async def get_class(block_id: BlockId, class_hash: Felt) -> dict:
     assert_block_id_is_latest_or_pending(block_id)
 
     try:
-        result = state.starknet_wrapper.contracts.get_class_by_hash(
+        result = await state.starknet_wrapper.get_class_by_hash(
             class_hash=int(class_hash, 16)
         )
     except StarknetDevnetException as ex:
@@ -40,10 +42,10 @@ async def get_class_hash_at(block_id: BlockId, contract_address: Address) -> Fel
     assert_block_id_is_latest_or_pending(block_id)
 
     try:
-        result = state.starknet_wrapper.contracts.get_class_hash_at(
+        result = await state.starknet_wrapper.get_state().state.get_class_hash_at(
             address=int(contract_address, 16)
         )
-    except StarknetDevnetException as ex:
+    except StarkException as ex:
         raise RpcError(code=28, message="Class hash not found") from ex
 
     return rpc_felt(result)
@@ -56,13 +58,8 @@ async def get_class_at(block_id: BlockId, contract_address: Address) -> dict:
     assert_block_id_is_latest_or_pending(block_id)
 
     try:
-        class_hash = state.starknet_wrapper.contracts.get_class_hash_at(
-            address=int(contract_address, 16)
-        )
-        result = state.starknet_wrapper.contracts.get_class_by_hash(
-            class_hash=class_hash
-        )
-    except StarknetDevnetException as ex:
+        result = state.starknet_wrapper.get_class_by_address(contract_address)
+    except StarkException as ex:
         raise RpcError(code=20, message="Contract not found") from ex
 
     return rpc_contract_class(result)

@@ -48,7 +48,7 @@ class ForkedStateReader(StateReader):
         return ContractClass.load(contract_class_dict)
 
     async def _get_raw_contract_class(self, class_hash: bytes) -> bytes:
-        raise NotImplementedError
+        raise NotImplementedError  # TODO what with this?
 
     async def get_class_hash_at(self, contract_address: int) -> bytes:
         class_hash_hex = await self.__feeder_gateway_client.get_class_hash_at(

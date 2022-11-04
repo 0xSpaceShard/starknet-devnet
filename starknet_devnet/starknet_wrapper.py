@@ -26,6 +26,7 @@ from starkware.starknet.core.os.contract_address.contract_address import (
 from starkware.starknet.core.os.transaction_hash.transaction_hash import (
     calculate_deploy_transaction_hash,
 )
+from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.services.api.gateway.transaction import (
     InvokeFunction,
     Deploy,
@@ -234,11 +235,8 @@ class StarknetWrapper:
         contract_class: ContractClass,
     ):
         """Store the provided data sa wrapped contract"""
-        class_hash_bytes = await self.starknet.state.state.get_class_hash_at(address)
-        class_hash = int.from_bytes(class_hash_bytes, "big")
         self.contracts.store(
             address=address,
-            class_hash=class_hash,
             contract_wrapper=ContractWrapper(contract, contract_class),
         )
 
@@ -295,7 +293,11 @@ class StarknetWrapper:
             tx_handler.explicitly_declared.append(class_hash_int)
 
             # alpha-goerli allows multiple declarations of the same class
-            self.contracts.store_class(class_hash_int, external_tx.contract_class)
+            # TODO is this even necessary?
+            self.get_state().state.set_contract_class(
+                class_hash=tx_handler.internal_tx.class_hash,
+                contract_class=external_tx.contract_class,
+            )
             await self.get_state().state.set_contract_class(
                 tx_handler.internal_tx.class_hash, external_tx.contract_class
             )
@@ -591,6 +593,33 @@ class StarknetWrapper:
             await self._register_new_contracts(
                 internal_call.internal_calls, tx_hash, deployed_contracts
             )
+
+    async def get_class_by_hash(self, class_hash: int) -> ContractClass:
+        """Return contract class given class hash"""
+        cached_state = self.get_state().state
+        class_hash_bytes = to_bytes(class_hash)
+        return await cached_state.get_contract_class(class_hash_bytes)
+
+    async def get_class_by_address(self, contract_address: int) -> ContractClass:
+        """Return contract class given the contract address"""
+        cached_state = self.get_state().state
+        class_hash_bytes = await cached_state.get_class_hash_at(contract_address)
+        return await cached_state.get_contract_class(class_hash_bytes)
+
+    async def get_code(self, contract_address: int) -> dict:
+        """Return code dict given the contract address"""
+        try:
+            contract_class = await self.get_class_by_address(contract_address)
+            result_dict = {
+                "abi": contract_class.abi,
+                "bytecode": contract_class.dump()["program"]["data"],
+            }
+        except StarkException as err:
+            if err.code != StarknetErrorCode.UNDECLARED_CLASS:
+                raise StarknetDevnetException from err
+            result_dict = {"abi": {}, "bytecode": []}
+
+        return result_dict
 
     async def get_storage_at(self, contract_address: int, key: int) -> Felt:
         """

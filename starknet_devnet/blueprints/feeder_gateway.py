@@ -19,8 +19,9 @@ from starkware.starknet.services.api.feeder_gateway.request_objects import (
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionSimulationInfo,
 )
-from starkware.starkware_utils.error_handling import StarkErrorCode
+from starkware.starkware_utils.error_handling import StarkErrorCode, StarkException
 from werkzeug.datastructures import MultiDict
+
 
 from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException, custom_int, fixed_length_hex
@@ -134,7 +135,7 @@ def get_block_traces():
 
 
 @feeder_gateway.route("/get_code", methods=["GET"])
-def get_code():
+async def get_code():
     """
     Returns the ABI and bytecode of the contract whose contractAddress is provided.
     """
@@ -142,12 +143,12 @@ def get_code():
     _check_block_hash(request.args)
 
     contract_address = request.args.get("contractAddress", type=custom_int)
-    result_dict = state.starknet_wrapper.contracts.get_code(contract_address)
-    return jsonify(result_dict)
+    code_dict = state.starknet_wrapper.get_code(contract_address)
+    return jsonify(code_dict)
 
 
 @feeder_gateway.route("/get_full_contract", methods=["GET"])
-def get_full_contract():
+async def get_full_contract():
     """
     Returns the contract class of the contract whose contractAddress is provided.
     """
@@ -155,10 +156,7 @@ def get_full_contract():
 
     contract_address = request.args.get("contractAddress", type=custom_int)
 
-    contract_class = state.starknet_wrapper.contracts.get_full_contract(
-        contract_address
-    )
-
+    contract_class = await state.starknet_wrapper.get_class_by_address(contract_address)
     return jsonify(contract_class.dump())
 
 
@@ -172,11 +170,11 @@ def get_class_hash_at():
 
 
 @feeder_gateway.route("/get_class_by_hash", methods=["GET"])
-def get_class_by_hash():
+async def get_class_by_hash():
     """Get contract class by class hash"""
 
     class_hash = request.args.get("classHash", type=custom_int)
-    contract_class = state.starknet_wrapper.contracts.get_class_by_hash(class_hash)
+    contract_class = await state.starknet_wrapper.get_class_by_hash(class_hash)
     return jsonify(contract_class.dump())
 
 

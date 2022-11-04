@@ -44,26 +44,6 @@ class Origin:
         """Returns the block identified with either its number or the latest block if no number provided."""
         raise NotImplementedError
 
-    def get_code(self, contract_address: int) -> dict:
-        """Returns the code of the contract."""
-        raise NotImplementedError
-
-    def get_full_contract(self, contract_address: int) -> dict:
-        """Returns the contract class"""
-        raise NotImplementedError
-
-    def get_class_by_hash(self, class_hash: int) -> ContractClass:
-        """Returns the contract class from its hash"""
-        raise NotImplementedError
-
-    def get_class_hash_at(self, contract_address: int) -> int:
-        """Returns the class hash at the provided address"""
-        raise NotImplementedError
-
-    def get_storage_at(self, contract_address: int, key: int) -> str:
-        """Returns the storage identified with `key` at `contract_address`."""
-        raise NotImplementedError
-
     def get_number_of_blocks(self):
         """Returns the number of blocks stored so far"""
         raise NotImplementedError
@@ -125,27 +105,6 @@ class NullOrigin(Origin):
             code=StarknetErrorCode.BLOCK_NOT_FOUND, message=message
         )
 
-    def get_code(self, contract_address: int):
-        return {"abi": {}, "bytecode": []}
-
-    def get_full_contract(self, contract_address: int) -> dict:
-        return {"abi": {}, "entry_points_by_type": {}, "program": {}}
-
-    def get_class_by_hash(self, class_hash: int) -> ContractClass:
-        message = f"Class with hash {hex(class_hash)} is not declared."
-        raise StarknetDevnetException(
-            code=StarknetErrorCode.UNDECLARED_CLASS, message=message
-        )
-
-    def get_class_hash_at(self, contract_address: int) -> int:
-        message = f"Contract with address {hex(contract_address)} is not deployed."
-        raise StarknetDevnetException(
-            code=StarknetErrorCode.UNINITIALIZED_CONTRACT, message=message
-        )
-
-    def get_storage_at(self, contract_address: int, key: int) -> str:
-        return hex(0)
-
     def get_number_of_blocks(self):
         return 0
 
@@ -191,21 +150,6 @@ class ForkedOrigin(Origin):
         raise NotImplementedError
 
     def get_block_by_number(self, block_number: int):
-        raise NotImplementedError
-
-    def get_code(self, contract_address: int) -> dict:
-        raise NotImplementedError
-
-    def get_full_contract(self, contract_address: int) -> dict:
-        raise NotImplementedError
-
-    def get_class_by_hash(self, class_hash: int) -> ContractClass:
-        raise NotImplementedError
-
-    def get_class_hash_at(self, contract_address: int) -> int:
-        raise NotImplementedError
-
-    def get_storage_at(self, contract_address: int, key: int) -> str:
         raise NotImplementedError
 
     def get_number_of_blocks(self):
