@@ -63,7 +63,11 @@ class DevnetContracts:
         if not self.is_deployed(address):
             return self.origin.get_code(address)
 
-        return self.__instances[address].code
+        contract_class = self.__instances[address].contract_class
+        return {
+            "abi": contract_class.abi,
+            "bytecode": contract_class.dump()["program"]["data"],
+        }
 
     def get_full_contract(self, address: int) -> ContractClass:
         """

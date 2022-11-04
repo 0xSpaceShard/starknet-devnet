@@ -23,6 +23,9 @@ from starkware.starknet.business_logic.state.state import BlockInfo, CachedState
 from starkware.starknet.core.os.contract_address.contract_address import (
     calculate_contract_address_from_hash,
 )
+from starkware.starknet.core.os.transaction_hash.transaction_hash import (
+    calculate_deploy_transaction_hash,
+)
 from starkware.starknet.services.api.gateway.transaction import (
     InvokeFunction,
     Deploy,
@@ -230,7 +233,6 @@ class StarknetWrapper:
         address: int,
         contract: StarknetContract,
         contract_class: ContractClass,
-        tx_hash: int = None,
     ):
         """Store the provided data sa wrapped contract"""
         class_hash_bytes = await self.starknet.state.state.get_class_hash_at(address)
@@ -238,7 +240,7 @@ class StarknetWrapper:
         self.contracts.store(
             address=address,
             class_hash=class_hash,
-            contract_wrapper=ContractWrapper(contract, contract_class, tx_hash),
+            contract_wrapper=ContractWrapper(contract, contract_class),
         )
 
     async def _store_transaction(
@@ -420,7 +422,6 @@ class StarknetWrapper:
                 address=account_address,
                 contract=contract,
                 contract_class=contract_class,
-                tx_hash=tx_handler.internal_tx.hash_value,
             )
 
         return (
@@ -449,8 +450,13 @@ class StarknetWrapper:
         contract_address = internal_tx.contract_address
 
         if self.contracts.is_deployed(contract_address):
-            # TODO deployment tx hash can be calculated, no need to store it
-            tx_hash = self.contracts.get_by_address(contract_address).deployment_tx_hash
+            # TODO time this
+            tx_hash = calculate_deploy_transaction_hash(
+                version=deploy_transaction.version,
+                contract_address=contract_address,
+                constructor_calldata=deploy_transaction.constructor_calldata,
+                chain_id=self.get_state().general_config.chain_id,
+            )
             return contract_address, tx_hash
 
         tx_hash = internal_tx.hash_value
@@ -476,7 +482,7 @@ class StarknetWrapper:
             )
 
             await self.store_contract(
-                contract.contract_address, contract, contract_class, tx_hash
+                contract.contract_address, contract, contract_class
             )
 
             class_hash_bytes = await self.starknet.state.state.get_class_hash_at(
@@ -511,15 +517,18 @@ class StarknetWrapper:
 
     async def call(self, transaction: CallFunction):
         """Perform call according to specifications in `transaction`."""
-        contract_wrapper = self.contracts.get_by_address(transaction.contract_address)
 
-        adapted_result = await contract_wrapper.call(
-            entry_point_selector=transaction.entry_point_selector,
+        # TODO what if contract not found?
+        state_copy = self.get_state().copy()
+        call_info = await state_copy.execute_entry_point_raw(
+            contract_address=transaction.contract_address,
+            selector=transaction.entry_point_selector,
             calldata=transaction.calldata,
             caller_address=0,
         )
 
-        return {"result": adapted_result}
+        result = list(map(hex, call_info.retdata))
+        return {"result": result}
 
     async def __deploy(self, deploy_tx: InternalDeploy, contract_class: ContractClass):
         """
@@ -573,7 +582,7 @@ class StarknetWrapper:
                     state, contract_class.abi, internal_call.contract_address, None
                 )
                 await self.store_contract(
-                    internal_call.contract_address, contract, contract_class, tx_hash
+                    internal_call.contract_address, contract, contract_class
                 )
                 deployed_contracts.append(
                     DeployedContract(
