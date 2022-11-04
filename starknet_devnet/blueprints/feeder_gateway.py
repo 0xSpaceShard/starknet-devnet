@@ -40,6 +40,18 @@ def validate_request(data: bytes, cls):
         ) from err
 
 
+def validate_int(request_args: MultiDict, attribute: str):
+    """Validate if attribute is int."""
+    try:
+        return int(request_args.get(attribute))
+    except (ValueError) as err:
+        raise StarknetDevnetException(
+            code=StarkErrorCode.MALFORMED_REQUEST,
+            message=str(err),
+            status_code=400,
+        ) from err
+
+
 def _check_block_hash(request_args: MultiDict):
     block_hash = request_args.get("blockHash", type=custom_int)
     if block_hash is not None:
@@ -113,7 +125,7 @@ def get_block():
     """Endpoint for retrieving a block identified by its hash or number."""
 
     block_hash = request.args.get("blockHash")
-    block_number = request.args.get("blockNumber", type=custom_int)
+    block_number = validate_int(request.args, "blockNumber")
 
     block = _get_block_object(block_hash=block_hash, block_number=block_number)
 
@@ -125,7 +137,7 @@ def get_block_traces():
     """Returns the traces of the transactions in the specified block."""
 
     block_hash = request.args.get("blockHash")
-    block_number = request.args.get("blockNumber", type=custom_int)
+    block_number = validate_int(request.args, "blockNumber")
 
     block = _get_block_object(block_hash=block_hash, block_number=block_number)
     block_transaction_traces = _get_block_transaction_traces(block)
@@ -186,7 +198,7 @@ async def get_storage_at():
     _check_block_hash(request.args)
 
     contract_address = request.args.get("contractAddress", type=custom_int)
-    key = request.args.get("key", type=custom_int)
+    key = validate_int(request.args, "key")
 
     storage = await state.starknet_wrapper.get_storage_at(contract_address, key)
     return jsonify(storage)
@@ -259,7 +271,7 @@ def get_state_update():
     """
 
     block_hash = request.args.get("blockHash")
-    block_number = request.args.get("blockNumber", type=custom_int)
+    block_number = validate_int(request.args, "blockNumber")
 
     state_update = state.starknet_wrapper.blocks.get_state_update(
         block_hash=block_hash, block_number=block_number
