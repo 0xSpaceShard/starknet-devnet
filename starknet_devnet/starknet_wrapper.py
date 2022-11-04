@@ -172,7 +172,6 @@ class StarknetWrapper:
                     )
                 )
             else:
-                print("DEBUG NOT forking")
                 self.starknet = await Starknet.empty(
                     general_config=DEFAULT_GENERAL_CONFIG
                 )
