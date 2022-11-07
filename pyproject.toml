@@ -56,7 +56,11 @@ markers = [
     "timestamps",
     "transaction_trace",
     "tx_version",
-    "web3_messaging"
+    "web3_messaging",
 ]
 junit_family="xunit1"
 asyncio_mode="strict"
+filterwarnings=[
+    "ignore::DeprecationWarning:lark.*:",
+    "ignore::DeprecationWarning:frozendict.*:",
+]
