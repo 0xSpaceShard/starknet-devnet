@@ -382,7 +382,7 @@ def test_add_invoke_transaction():
     storage = gateway_call(
         "get_storage_at",
         contractAddress=contract_address,
-        key=hex(get_storage_var_address("balance")),
+        key=get_storage_var_address("balance"),
     )
 
     assert set(receipt.keys()) == {"transaction_hash"}
@@ -419,7 +419,7 @@ def test_add_invoke_transaction_v0():
     storage = gateway_call(
         "get_storage_at",
         contractAddress=contract_address,
-        key=hex(get_storage_var_address("balance")),
+        key=get_storage_var_address("balance"),
     )
 
     assert set(receipt.keys()) == {"transaction_hash"}
