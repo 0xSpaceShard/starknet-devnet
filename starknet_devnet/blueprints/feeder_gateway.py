@@ -125,7 +125,7 @@ def get_block():
     """Endpoint for retrieving a block identified by its hash or number."""
 
     block_hash = request.args.get("blockHash")
-    block_number = validate_int(request.args, "blockNumber")
+    block_number = request.args.get("blockNumber", type=custom_int)
 
     block = _get_block_object(block_hash=block_hash, block_number=block_number)
 
@@ -271,7 +271,7 @@ def get_state_update():
     """
 
     block_hash = request.args.get("blockHash")
-    block_number = validate_int(request.args, "blockNumber")
+    block_number = request.args.get("blockNumber", type=custom_int)
 
     state_update = state.starknet_wrapper.blocks.get_state_update(
         block_hash=block_hash, block_number=block_number
