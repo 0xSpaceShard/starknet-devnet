@@ -25,20 +25,12 @@ class ForkedStateReader(StateReader):
     @classmethod
     async def create(
         cls,
-        feeder_gateway_url: str,
-        block_id: int,
+        feeder_gateway_client: FeederGatewayClient,
+        block_number: int,
     ):
         """Create an instance of this class"""
 
-        feeder_gateway_client = FeederGatewayClient(
-            url=feeder_gateway_url,
-            retry_config=RetryConfig(n_retries=1),
-        )
-
-        # TODO wasn't this already done earlier?
-        block = await feeder_gateway_client.get_block(block_number=block_id)
-
-        return cls(feeder_gateway_client, block.block_number)
+        return cls(feeder_gateway_client, block_number)
 
     async def get_contract_class(self, class_hash: bytes) -> ContractClass:
         class_hash_hex = "0x" + class_hash.hex()

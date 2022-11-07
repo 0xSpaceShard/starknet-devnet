@@ -3,7 +3,9 @@ Contains classes that provide the abstraction of L2 blockchain.
 """
 
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
-from starkware.starknet.services.api.contract_class import ContractClass
+from starkware.starknet.services.api.feeder_gateway.feeder_gateway_client import (
+    FeederGatewayClient,
+)
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionStatus,
     TransactionInfo,
@@ -133,24 +135,29 @@ class ForkedOrigin(Origin):
     Abstracts an origin that the devnet was forked from.
     """
 
-    def __init__(self, url):
-        self.url = url
-        self.number_of_blocks = ...
+    def __init__(
+        self, feeder_gateway_client: FeederGatewayClient, number_of_blocks: int
+    ):
+        self.__feeder_gateway_client = feeder_gateway_client
+        self.number_of_blocks = number_of_blocks
 
     def get_transaction_status(self, transaction_hash: str):
-        raise NotImplementedError
+        return self.__feeder_gateway_client.get_transaction_status(transaction_hash)
 
     def get_transaction(self, transaction_hash: str):
-        raise NotImplementedError
+        return self.__feeder_gateway_client.get_transaction(transaction_hash)
+
+    def get_transaction_receipt(self, transaction_hash: str) -> TransactionReceipt:
+        return self.__feeder_gateway_client.get_transaction_receipt(transaction_hash)
 
     def get_transaction_trace(self, transaction_hash: str):
-        raise NotImplementedError
+        return self.__feeder_gateway_client.get_transaction_trace(transaction_hash)
 
     def get_block_by_hash(self, block_hash: str):
-        raise NotImplementedError
+        return self.__feeder_gateway_client.get_block(block_hash=block_hash)
 
     def get_block_by_number(self, block_number: int):
-        raise NotImplementedError
+        return self.__feeder_gateway_client.get_block(block_number=block_number)
 
     def get_number_of_blocks(self):
         return self.number_of_blocks
@@ -158,4 +165,7 @@ class ForkedOrigin(Origin):
     def get_state_update(
         self, block_hash: str = None, block_number: int = None
     ) -> dict or None:
-        raise NotImplementedError
+        return self.__feeder_gateway_client.get_state_update(
+            block_hash=block_hash,
+            block_number=block_number,
+        )

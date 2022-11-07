@@ -15,7 +15,7 @@ class ContractWrapper:
         self,
         contract: StarknetContract,
         contract_class: ContractClass,
-        deployment_tx_hash: int=None
+        deployment_tx_hash: int = None,
     ):
         self.contract: StarknetContract = contract
         self.contract_class = contract_class.remove_debug_info()

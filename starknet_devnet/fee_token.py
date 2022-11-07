@@ -58,7 +58,7 @@ class FeeToken:
         )
         try:
             await starknet.state.state.deploy_contract(
-                FeeToken.ADDRESS, FeeToken.HASH_BYTES
+                FeeToken.ADDRESS, FeeToken.HASH_BYTES # TODO failing if forking alpha-goerli: unify addr?
             )
         except StarkException:
             print(f"{self.__class__.__name__} already deployed")

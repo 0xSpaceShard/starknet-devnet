@@ -1,16 +1,17 @@
 """Module for configuration specified by user"""
 
 import argparse
+import asyncio
+import contextlib
 from enum import Enum, auto
 import json
 import os
 import sys
 from typing import List
 
+from aiohttp.client_exceptions import InvalidURL
 from marshmallow.exceptions import ValidationError
-from services.external_api.client import (
-    RetryConfig,
-)  # TODO add dependency in pyproject.toml
+from services.external_api.client import BadRequest, RetryConfig
 from starkware.python.utils import to_bytes
 from starkware.starknet.core.os.class_hash import compute_class_hash
 from starkware.starknet.services.api.contract_class import ContractClass
@@ -116,6 +117,28 @@ def _parse_account_class(class_path: str) -> ContractClassWrapper:
         class_hash_bytes = to_bytes(compute_class_hash(contract_class))
 
     return ContractClassWrapper(contract_class, class_hash_bytes)
+
+
+def _get_feeder_gateway_client(url: str, block_id: str):
+    """Construct a feeder gateway client at url and block"""
+
+    feeder_gateway_client = FeederGatewayClient(
+        url=url,
+        retry_config=RetryConfig(n_retries=1),
+    )
+
+    try:
+        # FeederGatewayClient is implemented in such a way that it logs and raises;
+        # this suppreses the logging
+        with contextlib.redirect_stderr(None):
+            block = asyncio.run(feeder_gateway_client.get_block(block_number=block_id))
+            block_id = block.block_number
+    except InvalidURL:
+        sys.exit(f"Error: Invalid forking URL: {url}")
+    except BadRequest as bad_request:
+        sys.exit(f"Error: {bad_request}")
+
+    return feeder_gateway_client, block_id
 
 
 class NonNegativeAction(argparse.Action):
@@ -249,22 +272,10 @@ def parse_args(raw_args: List[str]):
         sys.exit("Error: --fork-network required if --fork-block present")
 
     if parsed_args.fork_network:
-        if parsed_args.fork_block is None:
-            parsed_args.fork_block = "latest"
-        feeder_gateway_client = FeederGatewayClient(
-            url=parsed_args.fork_network,
-            retry_config=RetryConfig(n_retries=1),
+        parsed_args.fork_block = parsed_args.fork_block or "latest"
+        parsed_args.fork_network, parsed_args.fork_block = _get_feeder_gateway_client(
+            parsed_args.fork_network, parsed_args.fork_block
         )
-        try:
-            import asyncio
-
-            block = asyncio.run(
-                feeder_gateway_client.get_block(block_number=parsed_args.fork_block)
-            )
-            parsed_args.fork_block = block.block_number
-        except Exception as err:
-            print("DEBUG err type", type(err))
-            sys.exit(f"Error: Invalid forking URL: {parsed_args.fork_network}")
 
     return parsed_args
 

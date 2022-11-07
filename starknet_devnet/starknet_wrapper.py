@@ -160,8 +160,8 @@ class StarknetWrapper:
                     f"Forking {self.config.fork_network} from block {self.config.fork_block}"
                 )
                 state_reader = await ForkedStateReader.create(
-                    feeder_gateway_url=self.config.fork_network,
-                    block_id=self.config.fork_block,
+                    feeder_gateway_client=self.config.fork_network,
+                    block_number=self.config.fork_block,
                 )
                 self.starknet = Starknet(
                     state=StarknetState(
@@ -452,6 +452,7 @@ class StarknetWrapper:
         contract_address = internal_tx.contract_address
 
         if self.contracts.is_deployed(contract_address):
+            # TODO consider removing lite
             tx_hash = self.contracts.get_deployment_tx_hash(contract_address)
             # tx_hash = calculate_deploy_transaction_hash(
             #     version=deploy_transaction.version,
