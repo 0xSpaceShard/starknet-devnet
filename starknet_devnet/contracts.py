@@ -4,7 +4,6 @@ Class for storing and handling contracts
 
 from typing import Dict
 
-from .origin import Origin
 from .contract_wrapper import ContractWrapper
 
 
@@ -13,13 +12,10 @@ class DevnetContracts:
     This class is used to store the deployed contracts of the devnet.
     """
 
-    def __init__(self, origin: Origin):
-        self.origin = origin
+    def __init__(self):
         self.__instances: Dict[int, ContractWrapper] = {}
 
-    def store(
-        self, address: int, contract_wrapper: ContractWrapper
-    ) -> None:
+    def store(self, address: int, contract_wrapper: ContractWrapper) -> None:
         """
         Store the contract wrapper.
         """
@@ -31,3 +27,11 @@ class DevnetContracts:
         """
         assert isinstance(address, int)
         return address in self.__instances
+
+    def get_deployment_tx_hash(self, address: int) -> int:
+        """
+        Return deployment tx hash given the contract address
+        """
+
+        assert isinstance(address, int)
+        return self.__instances[address].deployment_tx_hash

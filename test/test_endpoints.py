@@ -274,7 +274,10 @@ def test_error_response_class_hash_at():
     error_message = resp.json()["message"]
 
     assert resp.status_code == 500
-    expected_message = f"Contract with address {INVALID_ADDRESS} is not deployed."
+    expected_message = (
+        # alpha-goerli reports a decimal address
+        f"Contract with address {int(INVALID_ADDRESS, 16)} is not deployed."
+    )
     assert expected_message == error_message
 
 

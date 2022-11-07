@@ -42,8 +42,8 @@ async def get_class_hash_at(block_id: BlockId, contract_address: Address) -> Fel
     assert_block_id_is_latest_or_pending(block_id)
 
     try:
-        result = await state.starknet_wrapper.get_state().state.get_class_hash_at(
-            address=int(contract_address, 16)
+        result = await state.starknet_wrapper.get_class_hash_at(
+            int(contract_address, 16)
         )
     except StarkException as ex:
         raise RpcError(code=28, message="Class hash not found") from ex
@@ -58,7 +58,9 @@ async def get_class_at(block_id: BlockId, contract_address: Address) -> dict:
     assert_block_id_is_latest_or_pending(block_id)
 
     try:
-        result = state.starknet_wrapper.get_class_by_address(contract_address)
+        result = await state.starknet_wrapper.get_class_by_address(
+            int(contract_address, 16)
+        )
     except StarkException as ex:
         raise RpcError(code=20, message="Contract not found") from ex
 

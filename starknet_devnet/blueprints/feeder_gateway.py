@@ -143,7 +143,7 @@ async def get_code():
     _check_block_hash(request.args)
 
     contract_address = request.args.get("contractAddress", type=custom_int)
-    code_dict = state.starknet_wrapper.get_code(contract_address)
+    code_dict = await state.starknet_wrapper.get_code(contract_address)
     return jsonify(code_dict)
 
 
@@ -157,15 +157,15 @@ async def get_full_contract():
     contract_address = request.args.get("contractAddress", type=custom_int)
 
     contract_class = await state.starknet_wrapper.get_class_by_address(contract_address)
-    return jsonify(contract_class.dump())
+    return jsonify(contract_class.remove_debug_info().dump())
 
 
 @feeder_gateway.route("/get_class_hash_at", methods=["GET"])
-def get_class_hash_at():
+async def get_class_hash_at():
     """Get contract class hash by contract address"""
 
     contract_address = request.args.get("contractAddress", type=custom_int)
-    class_hash = state.starknet_wrapper.contracts.get_class_hash_at(contract_address)
+    class_hash = await state.starknet_wrapper.get_class_hash_at(contract_address)
     return jsonify(fixed_length_hex(class_hash))
 
 
@@ -175,7 +175,7 @@ async def get_class_by_hash():
 
     class_hash = request.args.get("classHash", type=custom_int)
     contract_class = await state.starknet_wrapper.get_class_by_hash(class_hash)
-    return jsonify(contract_class.dump())
+    return jsonify(contract_class.remove_debug_info().dump())
 
 
 @feeder_gateway.route("/get_storage_at", methods=["GET"])
