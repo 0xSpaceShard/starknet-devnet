@@ -137,7 +137,7 @@ def get_block_traces():
     """Returns the traces of the transactions in the specified block."""
 
     block_hash = request.args.get("blockHash")
-    block_number = validate_int(request.args, "blockNumber")
+    block_number = request.args.get("blockNumber", type=custom_int)
 
     block = _get_block_object(block_hash=block_hash, block_number=block_number)
     block_transaction_traces = _get_block_transaction_traces(block)
