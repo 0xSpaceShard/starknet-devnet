@@ -35,7 +35,6 @@ from starkware.starknet.services.api.gateway.transaction import (
 )
 from starkware.starknet.testing.contract_utils import get_abi
 from starkware.starknet.testing.starknet import Starknet
-from starkware.starknet.testing.state import StarknetState
 from starkware.starkware_utils.error_handling import StarkException
 from starkware.starknet.services.api.contract_class import EntryPointType, ContractClass
 from starkware.starknet.services.api.feeder_gateway.request_objects import (
@@ -66,7 +65,7 @@ from .blueprints.rpc.structures.types import Felt
 from .constants import DUMMY_STATE_ROOT, OZ_ACCOUNT_CLASS_HASH
 from .general_config import DEFAULT_GENERAL_CONFIG
 from .fee_token import FeeToken
-from .forked_state import ForkedStateReader
+from .forked_state import get_forked_starknet
 from .lite_mode.lite_internal_deploy import LiteInternalDeploy
 from .lite_mode.lite_starknet import LiteStarknet
 from .origin import NullOrigin, Origin
@@ -157,20 +156,12 @@ class StarknetWrapper:
         if not self.starknet:
             if self.config.fork_network:
                 print(
-                    f"Forking {self.config.fork_network} from block {self.config.fork_block}"
+                    f"Forking {self.config.fork_network.url} from block {self.config.fork_block}"
                 )
-                state_reader = await ForkedStateReader.create(
+
+                self.starknet = get_forked_starknet(
                     feeder_gateway_client=self.config.fork_network,
                     block_number=self.config.fork_block,
-                )
-                self.starknet = Starknet(
-                    state=StarknetState(
-                        state=CachedState(
-                            block_info=BlockInfo.empty(None),  # TODO empty? None?
-                            state_reader=state_reader,
-                        ),
-                        general_config=DEFAULT_GENERAL_CONFIG,
-                    )
                 )
             else:
                 self.starknet = await Starknet.empty(
