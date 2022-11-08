@@ -7,6 +7,10 @@ from __future__ import annotations
 from typing import List
 
 from test.account import declare, _get_execute_args, get_nonce, _get_signature
+from test.rpc.conftest import (
+    _prepare_deploy_account_tx,
+    _rpc_deploy_account_from_gateway,
+)
 from test.rpc.rpc_utils import (
     rpc_call,
     get_block_with_transaction,
@@ -26,13 +30,8 @@ from test.shared import (
 from test.util import deploy, load_contract_class, assert_tx_status, mint, call, send_tx
 import pytest
 
-from starkware.starknet.core.os.class_hash import compute_class_hash
-from starkware.starknet.core.os.contract_address.contract_address import (
-    calculate_contract_address,
-)
 from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starknet.wallets.open_zeppelin import (
-    sign_deploy_account_tx,
     sign_invoke_tx,
 )
 from starkware.starknet.core.os.transaction_hash.transaction_hash import (
@@ -58,7 +57,6 @@ from starknet_devnet.blueprints.rpc.structures.payloads import (
     RpcBroadcastedDeployTxn,
     RpcBroadcastedInvokeTxnV1,
     RpcBroadcastedInvokeTxnV0,
-    RpcBroadcastedDeployAccountTxn,
 )
 from starknet_devnet.constants import LEGACY_RPC_TX_VERSION
 
@@ -168,6 +166,37 @@ def test_get_transaction_by_hash_declare():
         "type": rpc_txn_type(block_tx["type"]),
         "sender_address": rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS),
         "class_hash": rpc_felt(block_tx["class_hash"]),
+    }
+
+
+@pytest.mark.usefixtures("run_devnet_in_background")
+def test_get_transaction_by_hash_deploy_account(deploy_account_info):
+    """
+    Get transaction by hash
+    """
+    tx_hash = deploy_account_info["transaction_hash"]
+
+    block = get_block_with_transaction(tx_hash)
+    block_tx = block["transactions"][0]
+
+    resp = rpc_call(
+        "starknet_getTransactionByHash",
+        params={"transaction_hash": rpc_felt(tx_hash)},
+    )
+    transaction = resp["result"]
+
+    assert transaction == {
+        "contract_address_salt": rpc_felt(block_tx["contract_address_salt"]),
+        "constructor_calldata": [
+            rpc_felt(data) for data in block_tx["constructor_calldata"]
+        ],
+        "class_hash": rpc_felt(block_tx["class_hash"]),
+        "type": rpc_txn_type(block_tx["type"]),
+        "max_fee": rpc_felt(block_tx["max_fee"]),
+        "version": hex(SUPPORTED_RPC_TX_VERSION),
+        "signature": [rpc_felt(sig) for sig in block_tx["signature"]],
+        "nonce": rpc_felt(block_tx["nonce"]),
+        "transaction_hash": rpc_felt(tx_hash),
     }
 
 
@@ -359,6 +388,41 @@ def test_get_deploy_transaction_receipt(deploy_info):
         "type": "DEPLOY",
         "messages_sent": [],
         "events": [],
+    }
+
+
+@pytest.mark.usefixtures("run_devnet_in_background")
+def test_get_deploy_account_transaction_receipt(deploy_account_info):
+    """
+    Get transaction receipt
+    """
+    transaction_hash: str = deploy_account_info["transaction_hash"]
+    block = get_block_with_transaction(transaction_hash)
+    gateway_receipt = block["transaction_receipts"][0]
+    event = gateway_receipt["events"][0]
+
+    resp = rpc_call(
+        "starknet_getTransactionReceipt",
+        params={"transaction_hash": rpc_felt(transaction_hash)},
+    )
+    receipt = resp["result"]
+
+    assert receipt == {
+        "contract_address": rpc_felt(deploy_account_info["address"]),
+        "transaction_hash": rpc_felt(transaction_hash),
+        "actual_fee": rpc_felt(gateway_receipt["actual_fee"]),
+        "status": "ACCEPTED_ON_L2",
+        "block_hash": rpc_felt(block["block_hash"]),
+        "block_number": block["block_number"],
+        "type": "DEPLOY_ACCOUNT",
+        "messages_sent": [],
+        "events": [
+            {
+                "from_address": rpc_felt(event["from_address"]),
+                "data": [rpc_felt(data) for data in event["data"]],
+                "keys": [rpc_felt(key) for key in event["keys"]],
+            }
+        ],
     }
 
 
@@ -628,48 +692,31 @@ def test_add_deploy_transaction(deploy_content, version):
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
-def test_add_deploy_account_transaction_on_incorrect_class_hash():
+@pytest.mark.parametrize(
+    "private_key, public_key, account_salt",
+    [
+        (
+            0x6F9E0F15B20753CE2E2B740B182099C4ADF765D0C5A5B75C1AF3327358FBF2E,
+            0x7707342F75277F32F1A0AD532E1A12016B36A3967332D31F915C889678B3DB6,
+            0x75B567ECB69C6D032982FA32C8F52D2F00DB50C5DE2C93EDDA70DE9B5109F8F,
+        )
+    ],
+)
+def test_add_deploy_account_transaction_on_incorrect_class_hash(
+    private_key, public_key, account_salt
+):
     """
     Add deploy transaction on incorrect class
     """
     invalid_class_hash = 1337
 
-    private_key = 0x6F9E0F15B20753CE2E2B740B182099C4ADF765D0C5A5B75C1AF3327358FBF2E
-    public_key = 0x7707342F75277F32F1A0AD532E1A12016B36A3967332D31F915C889678B3DB6
-    account_salt = 0x75B567ECB69C6D032982FA32C8F52D2F00DB50C5DE2C93EDDA70DE9B5109F8F
-    account_address = calculate_contract_address(
-        salt=account_salt,
-        contract_class=oz_account_class,
-        constructor_calldata=[public_key],
-        deployer_address=0,
+    deploy_account_tx, address = _prepare_deploy_account_tx(
+        private_key, public_key, account_salt, oz_account_class
     )
+    rpc_deploy_account_tx = _rpc_deploy_account_from_gateway(deploy_account_tx)
+    rpc_deploy_account_tx["class_hash"] = rpc_felt(invalid_class_hash)
 
-    # prepare deploy account tx
-    deploy_account_tx = sign_deploy_account_tx(
-        private_key=private_key,
-        public_key=public_key,
-        class_hash=compute_class_hash(oz_account_class),
-        salt=account_salt,
-        max_fee=int(1e18),
-        version=SUPPORTED_RPC_TX_VERSION,
-        chain_id=DEFAULT_CHAIN_ID.value,
-        nonce=0,
-    )
-
-    rpc_deploy_account_tx = RpcBroadcastedDeployAccountTxn(
-        contract_address_salt=rpc_felt(deploy_account_tx.contract_address_salt),
-        constructor_calldata=[
-            rpc_felt(data) for data in deploy_account_tx.constructor_calldata
-        ],
-        class_hash=rpc_felt(invalid_class_hash),
-        type=rpc_txn_type(deploy_account_tx.tx_type.name),
-        max_fee=rpc_felt(deploy_account_tx.max_fee),
-        version=hex(deploy_account_tx.version),
-        signature=[rpc_felt(value) for value in deploy_account_tx.signature],
-        nonce=rpc_felt(deploy_account_tx.nonce),
-    )
-
-    mint(hex(account_address), amount=int(1e18))
+    mint(hex(address), amount=int(1e18))
 
     ex = rpc_call(
         "starknet_addDeployAccountTransaction",
@@ -679,46 +726,26 @@ def test_add_deploy_account_transaction_on_incorrect_class_hash():
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
-def test_add_deploy_account_transaction():
+@pytest.mark.parametrize(
+    "private_key, public_key, account_salt",
+    [
+        (
+            0x6F9E0F15B20753CE2E2B740B182099C4ADF765D0C5A5B75C1AF3327358FBF2E,
+            0x7707342F75277F32F1A0AD532E1A12016B36A3967332D31F915C889678B3DB6,
+            0x75B567ECB69C6D032982FA32C8F52D2F00DB50C5DE2C93EDDA70DE9B5109F8F,
+        )
+    ],
+)
+def test_add_deploy_account_transaction(private_key, public_key, account_salt):
     """Test the deployment of an account."""
 
     # the account class should already be declared
 
     # generate account with random keys and salt
-    private_key = 0x6F9E0F15B20753CE2E2B740B182099C4ADF765D0C5A5B75C1AF3327358FBF2E
-    public_key = 0x7707342F75277F32F1A0AD532E1A12016B36A3967332D31F915C889678B3DB6
-    account_salt = 0x75B567ECB69C6D032982FA32C8F52D2F00DB50C5DE2C93EDDA70DE9B5109F8F
-    account_address = calculate_contract_address(
-        salt=account_salt,
-        contract_class=oz_account_class,
-        constructor_calldata=[public_key],
-        deployer_address=0,
+    deploy_account_tx, address = _prepare_deploy_account_tx(
+        private_key, public_key, account_salt, oz_account_class
     )
-
-    # prepare deploy account tx
-    deploy_account_tx = sign_deploy_account_tx(
-        private_key=private_key,
-        public_key=public_key,
-        class_hash=compute_class_hash(oz_account_class),
-        salt=account_salt,
-        max_fee=int(1e18),
-        version=SUPPORTED_RPC_TX_VERSION,
-        chain_id=DEFAULT_CHAIN_ID.value,
-        nonce=0,
-    )
-
-    rpc_deploy_account_tx = RpcBroadcastedDeployAccountTxn(
-        contract_address_salt=rpc_felt(deploy_account_tx.contract_address_salt),
-        constructor_calldata=[
-            rpc_felt(data) for data in deploy_account_tx.constructor_calldata
-        ],
-        class_hash=rpc_felt(deploy_account_tx.class_hash),
-        type=rpc_txn_type(deploy_account_tx.tx_type.name),
-        max_fee=rpc_felt(deploy_account_tx.max_fee),
-        version=hex(deploy_account_tx.version),
-        signature=[rpc_felt(value) for value in deploy_account_tx.signature],
-        nonce=rpc_felt(deploy_account_tx.nonce),
-    )
+    rpc_deploy_account_tx = _rpc_deploy_account_from_gateway(deploy_account_tx)
 
     tx_before = rpc_call(
         "starknet_addDeployAccountTransaction",
@@ -730,7 +757,7 @@ def test_add_deploy_account_transaction():
     assert_tx_status(tx_before["transaction_hash"], "REJECTED")
 
     # fund the address of the account
-    mint(hex(account_address), amount=int(1e18))
+    mint(hex(address), amount=int(1e18))
 
     # deploy the account
     tx_after = rpc_call(
@@ -743,7 +770,7 @@ def test_add_deploy_account_transaction():
     # assert that contract can be interacted with
     retrieved_public_key = call(
         function="get_public_key",
-        address=hex(account_address),
+        address=hex(address),
         abi_path=STARKNET_CLI_ACCOUNT_ABI_PATH,
     )
     assert int(retrieved_public_key, 16) == public_key
@@ -755,7 +782,7 @@ def test_add_deploy_account_transaction():
 
     # increase balance of test contract
     invoke_tx = sign_invoke_tx(
-        signer_address=account_address,
+        signer_address=address,
         private_key=private_key,
         contract_address=int(contract_address, 16),
         selector=get_selector_from_name("increase_balance"),

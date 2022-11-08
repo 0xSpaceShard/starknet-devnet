@@ -216,6 +216,7 @@ def rpc_transaction_receipt(txr: TransactionReceipt) -> dict:
         TransactionType.INVOKE_FUNCTION: rpc_invoke_receipt,
         TransactionType.DECLARE: rpc_declare_receipt,
         TransactionType.L1_HANDLER: rpc_l1_handler_receipt,
+        TransactionType.DEPLOY_ACCOUNT: rpc_deploy_account_receipt,
     }
     transaction = state.starknet_wrapper.transactions.get_transaction(
         hex(txr.transaction_hash)

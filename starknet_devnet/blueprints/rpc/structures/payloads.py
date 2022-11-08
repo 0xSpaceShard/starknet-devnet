@@ -248,6 +248,7 @@ def rpc_transaction(transaction: TransactionSpecificInfo) -> RpcTransaction:
         TransactionType.INVOKE_FUNCTION: rpc_invoke_transaction,
         TransactionType.DECLARE: rpc_declare_transaction,
         TransactionType.L1_HANDLER: rpc_l1_handler_transaction,
+        TransactionType.DEPLOY_ACCOUNT: rpc_deploy_account_transaction,
     }
     return tx_mapping[transaction.tx_type](transaction)
 
