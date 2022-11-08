@@ -111,7 +111,7 @@ def fixture_deploy_account_info() -> dict:
     """
     Make a deploy account transaction on devnet and return deploy account info dict
     """
-    deploy_account_tx, address = _prepare_deploy_account_tx(
+    deploy_account_tx, address = prepare_deploy_account_tx(
         PRIVATE_KEY, PUBLIC_KEY, int(SALT, 16), oz_account_class
     )
     mint(hex(address), amount=int(1e18))
@@ -187,7 +187,20 @@ def fixture_latest_block_id(latest_block, request) -> dict:
     return _block_to_block_id(latest_block, request.param)
 
 
-def _prepare_deploy_account_tx(
+@pytest.fixture(
+    name="deploy_account_details",
+)
+def fixture_deploy_account_details() -> dict:
+    """Deploy account transaction details"""
+    return {
+        "private_key": 0x6F9E0F15B20753CE2E2B740B182099C4ADF765D0C5A5B75C1AF3327358FBF2E,
+        "public_key": 0x7707342F75277F32F1A0AD532E1A12016B36A3967332D31F915C889678B3DB6,
+        "account_salt": 0x75B567ECB69C6D032982FA32C8F52D2F00DB50C5DE2C93EDDA70DE9B5109F8F,
+        "contract_class": oz_account_class,
+    }
+
+
+def prepare_deploy_account_tx(
     private_key: int, public_key: int, account_salt: int, contract_class: ContractClass
 ) -> Tuple[DeployAccount, int]:
     """Return (signed deploy account tx, address)"""
@@ -212,7 +225,7 @@ def _prepare_deploy_account_tx(
     return deploy_account_tx, account_address
 
 
-def _rpc_deploy_account_from_gateway(
+def rpc_deploy_account_from_gateway(
     deploy_account_tx: DeployAccount,
 ) -> RpcDeployAccountTransaction:
     """Convert DeployAccount to RpcDeployAccountTransaction"""

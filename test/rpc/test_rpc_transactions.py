@@ -8,8 +8,8 @@ from typing import List
 
 from test.account import declare, _get_execute_args, get_nonce, _get_signature
 from test.rpc.conftest import (
-    _prepare_deploy_account_tx,
-    _rpc_deploy_account_from_gateway,
+    prepare_deploy_account_tx,
+    rpc_deploy_account_from_gateway,
 )
 from test.rpc.rpc_utils import (
     rpc_call,
@@ -44,9 +44,6 @@ from starkware.starknet.definitions.general_config import (
 from starkware.starknet.public.abi import (
     get_storage_var_address,
     get_selector_from_name,
-)
-from starkware.starknet.third_party.open_zeppelin.starknet_contracts import (
-    account_contract as oz_account_class,
 )
 from starknet_devnet.blueprints.rpc.structures.types import rpc_txn_type, Signature
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
@@ -692,28 +689,14 @@ def test_add_deploy_transaction(deploy_content, version):
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
-@pytest.mark.parametrize(
-    "private_key, public_key, account_salt",
-    [
-        (
-            0x6F9E0F15B20753CE2E2B740B182099C4ADF765D0C5A5B75C1AF3327358FBF2E,
-            0x7707342F75277F32F1A0AD532E1A12016B36A3967332D31F915C889678B3DB6,
-            0x75B567ECB69C6D032982FA32C8F52D2F00DB50C5DE2C93EDDA70DE9B5109F8F,
-        )
-    ],
-)
-def test_add_deploy_account_transaction_on_incorrect_class_hash(
-    private_key, public_key, account_salt
-):
+def test_add_deploy_account_transaction_on_incorrect_class_hash(deploy_account_details):
     """
     Add deploy transaction on incorrect class
     """
     invalid_class_hash = 1337
 
-    deploy_account_tx, address = _prepare_deploy_account_tx(
-        private_key, public_key, account_salt, oz_account_class
-    )
-    rpc_deploy_account_tx = _rpc_deploy_account_from_gateway(deploy_account_tx)
+    deploy_account_tx, address = prepare_deploy_account_tx(**deploy_account_details)
+    rpc_deploy_account_tx = rpc_deploy_account_from_gateway(deploy_account_tx)
     rpc_deploy_account_tx["class_hash"] = rpc_felt(invalid_class_hash)
 
     mint(hex(address), amount=int(1e18))
@@ -726,26 +709,14 @@ def test_add_deploy_account_transaction_on_incorrect_class_hash(
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
-@pytest.mark.parametrize(
-    "private_key, public_key, account_salt",
-    [
-        (
-            0x6F9E0F15B20753CE2E2B740B182099C4ADF765D0C5A5B75C1AF3327358FBF2E,
-            0x7707342F75277F32F1A0AD532E1A12016B36A3967332D31F915C889678B3DB6,
-            0x75B567ECB69C6D032982FA32C8F52D2F00DB50C5DE2C93EDDA70DE9B5109F8F,
-        )
-    ],
-)
-def test_add_deploy_account_transaction(private_key, public_key, account_salt):
+def test_add_deploy_account_transaction(deploy_account_details):
     """Test the deployment of an account."""
 
     # the account class should already be declared
 
     # generate account with random keys and salt
-    deploy_account_tx, address = _prepare_deploy_account_tx(
-        private_key, public_key, account_salt, oz_account_class
-    )
-    rpc_deploy_account_tx = _rpc_deploy_account_from_gateway(deploy_account_tx)
+    deploy_account_tx, address = prepare_deploy_account_tx(**deploy_account_details)
+    rpc_deploy_account_tx = rpc_deploy_account_from_gateway(deploy_account_tx)
 
     tx_before = rpc_call(
         "starknet_addDeployAccountTransaction",
@@ -773,7 +744,7 @@ def test_add_deploy_account_transaction(private_key, public_key, account_salt):
         address=hex(address),
         abi_path=STARKNET_CLI_ACCOUNT_ABI_PATH,
     )
-    assert int(retrieved_public_key, 16) == public_key
+    assert int(retrieved_public_key, 16) == deploy_account_details["public_key"]
 
     # deploy a contract for testing
     init_balance = 10
@@ -783,7 +754,7 @@ def test_add_deploy_account_transaction(private_key, public_key, account_salt):
     # increase balance of test contract
     invoke_tx = sign_invoke_tx(
         signer_address=address,
-        private_key=private_key,
+        private_key=deploy_account_details["private_key"],
         contract_address=int(contract_address, 16),
         selector=get_selector_from_name("increase_balance"),
         calldata=[10, 20],
