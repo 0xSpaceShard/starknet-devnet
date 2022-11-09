@@ -24,8 +24,6 @@ class UDC:
         "0x41a78e741e5af2fec34b695679bc6891742439f7afb8484ecd7766661ad02bf", 16
     )
 
-    contract: StarknetContract = None
-
     def __init__(self, starknet_wrapper):
         self.starknet_wrapper = starknet_wrapper
 
@@ -46,7 +44,7 @@ class UDC:
         await starknet.state.state.set_contract_class(UDC.HASH_BYTES, contract_class)
         await starknet.state.state.deploy_contract(UDC.ADDRESS, UDC.HASH_BYTES)
 
-        self.contract = StarknetContract(
+        contract = StarknetContract(
             state=starknet.state,
             abi=contract_class.abi,
             contract_address=UDC.ADDRESS,
@@ -54,5 +52,5 @@ class UDC:
         )
 
         await self.starknet_wrapper.store_contract(
-            UDC.ADDRESS, self.contract, contract_class
+            UDC.ADDRESS, contract, contract_class
         )
