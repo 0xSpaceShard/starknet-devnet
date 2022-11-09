@@ -52,6 +52,7 @@ from .util import (
     get_class_by_hash,
     get_class_hash_at,
     get_transaction_receipt,
+    load_contract_class,
     mint,
     send_tx,
 )
@@ -269,6 +270,14 @@ def test_deploy_through_deployer_constructor():
 
 def test_precomputed_udc_address():
     """Test if the precomputed address of UDC is correct."""
+    udc_contract_class = load_contract_class("starknet_devnet/UDC_OZ_0.5.0.json")
+    calculated_address = calculate_contract_address(
+        salt=0,
+        contract_class=udc_contract_class,
+        constructor_calldata=[],
+        deployer_address=0,
+    )
+    assert_equal(UDC.ADDRESS, calculated_address)
     assert_equal(UDC.ADDRESS, int(EXPECTED_UDC_ADDRESS, 16))
 
 

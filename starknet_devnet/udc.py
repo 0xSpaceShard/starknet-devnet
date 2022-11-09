@@ -18,10 +18,10 @@ class UDC:
     HASH_BYTES = to_bytes(HASH)
 
     # Precalculated to fixed address
-    # ADDRESS = calculate_contract_address_from_hash(salt=10, class_hash=HASH,
+    # ADDRESS = calculate_contract_address_from_hash(salt=0, class_hash=HASH,
     # constructor_calldata=[], deployer_address=0)
-    ADDRESS = (
-        1073880354184614071153542798898672284640862493126523554954769603345737026102
+    ADDRESS = int(
+        "0x41a78e741e5af2fec34b695679bc6891742439f7afb8484ecd7766661ad02bf", 16
     )
 
     contract: StarknetContract = None
