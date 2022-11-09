@@ -17,7 +17,6 @@ from starkware.starknet.testing.state import StarknetState
 from starkware.starkware_utils.error_handling import StarkException
 
 from .general_config import DEFAULT_GENERAL_CONFIG
-from .util import StarknetDevnetException
 
 
 class ForkedStateReader(StateReader):

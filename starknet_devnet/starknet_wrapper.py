@@ -68,7 +68,7 @@ from .fee_token import FeeToken
 from .forked_state import get_forked_starknet
 from .lite_mode.lite_internal_deploy import LiteInternalDeploy
 from .lite_mode.lite_starknet import LiteStarknet
-from .origin import NullOrigin, Origin
+from .origin import ForkedOrigin, NullOrigin, Origin
 from .udc import UDC
 from .util import to_bytes, get_fee_estimation_info
 from .util import (
@@ -96,7 +96,11 @@ class StarknetWrapper:
     """
 
     def __init__(self, config: DevnetConfig):
-        self.origin: Origin = NullOrigin()
+        self.origin = (
+            ForkedOrigin(config.fork_network, config.fork_block)
+            if config.fork_network
+            else NullOrigin()
+        )
         """Origin chain that this devnet was forked from."""
 
         self.block_info_generator = BlockInfoGenerator()

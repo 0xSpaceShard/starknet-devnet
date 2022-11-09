@@ -21,6 +21,7 @@ class DevnetContracts:
         """
         self.__instances[address] = contract_wrapper
 
+    # TODO replace with state.get_class_hash_at
     def is_deployed(self, address: int) -> bool:
         """
         Check if the contract is deployed.

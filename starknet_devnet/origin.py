@@ -2,6 +2,8 @@
 Contains classes that provide the abstraction of L2 blockchain.
 """
 
+import asyncio
+
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.services.api.feeder_gateway.feeder_gateway_client import (
     FeederGatewayClient,
@@ -142,22 +144,34 @@ class ForkedOrigin(Origin):
         self.number_of_blocks = number_of_blocks
 
     def get_transaction_status(self, transaction_hash: str):
-        return self.__feeder_gateway_client.get_transaction_status(transaction_hash)
+        return asyncio.run(
+            self.__feeder_gateway_client.get_transaction_status(transaction_hash)
+        )
 
     def get_transaction(self, transaction_hash: str):
-        return self.__feeder_gateway_client.get_transaction(transaction_hash)
+        return asyncio.run(
+            self.__feeder_gateway_client.get_transaction(transaction_hash)
+        )
 
     def get_transaction_receipt(self, transaction_hash: str) -> TransactionReceipt:
-        return self.__feeder_gateway_client.get_transaction_receipt(transaction_hash)
+        return asyncio.run(
+            self.__feeder_gateway_client.get_transaction_receipt(transaction_hash)
+        )
 
     def get_transaction_trace(self, transaction_hash: str):
-        return self.__feeder_gateway_client.get_transaction_trace(transaction_hash)
+        return asyncio.run(
+            self.__feeder_gateway_client.get_transaction_trace(transaction_hash)
+        )
 
     def get_block_by_hash(self, block_hash: str):
-        return self.__feeder_gateway_client.get_block(block_hash=block_hash)
+        return asyncio.run(
+            self.__feeder_gateway_client.get_block(block_hash=block_hash)
+        )
 
     def get_block_by_number(self, block_number: int):
-        return self.__feeder_gateway_client.get_block(block_number=block_number)
+        return asyncio.run(
+            self.__feeder_gateway_client.get_block(block_number=block_number)
+        )
 
     def get_number_of_blocks(self):
         return self.number_of_blocks
@@ -165,7 +179,9 @@ class ForkedOrigin(Origin):
     def get_state_update(
         self, block_hash: str = None, block_number: int = None
     ) -> dict or None:
-        return self.__feeder_gateway_client.get_state_update(
-            block_hash=block_hash,
-            block_number=block_number,
+        return asyncio.run(
+            self.__feeder_gateway_client.get_state_update(
+                block_hash=block_hash,
+                block_number=block_number,
+            )
         )
