@@ -11,12 +11,12 @@ PORT2=5050
 DEVNET2_URL="http://$HOST:$PORT2"
 
 
-poetry run starknet-devnet --host "$HOST" --port "$PORT1" --seed 42 --accounts 1 --hide-predeployed-accounts --lite-mode &
+poetry run starknet-devnet --host "$HOST" --port "$PORT1" --seed 42 --accounts 1 --hide-predeployed-accounts &
 DEVNET1_PID=$!
 curl --retry 20 --retry-delay 1 --retry-connrefused -s -o /dev/null "$DEVNET1_URL/is_alive"
 echo "Started up devnet1; pid: $DEVNET1_PID"
 
-poetry run starknet-devnet --host "$HOST" --port "$PORT2" --fork-network "$DEVNET1_URL" --accounts 0 --lite-mode &
+poetry run starknet-devnet --host "$HOST" --port "$PORT2" --fork-network "$DEVNET1_URL" --accounts 0 &
 DEVNET2_PID=$!
 curl --retry 20 --retry-delay 1 --retry-connrefused -s -o /dev/null "$DEVNET2_URL/is_alive"
 echo "Started up devnet2; pid: $DEVNET2_PID"
@@ -31,12 +31,15 @@ echo "Started up devnet2; pid: $DEVNET2_PID"
 # done
 
 source ~/venvs/cairo_venv-0.10.1-pre/bin/activate
+DEPLOYMENT_URL="$DEVNET1_URL"
 starknet deploy \
     --contract test/artifacts/contracts/cairo/contract.cairo/contract.json \
     --inputs 10 \
-    --gateway_url "$DEVNET1_URL" \
+    --gateway_url "$DEPLOYMENT_URL" \
+    --feeder_gateway_url "$DEPLOYMENT_URL" \
     --salt 0x99 \
     --no_wallet
+echo "Deployed contract"
 CONTRACT_ADDRESS=0x07c80f5573d4c636960b56b02a01514d487c6e6a2c6f9242490280c932a32f71
 
 export STARKNET_WALLET="starkware.starknet.wallets.open_zeppelin.OpenZeppelinAccount"
@@ -45,15 +48,16 @@ rm -rf ./starknet_open_zeppelin_accounts.json*
 
 starknet new_account --network alpha-goerli --account_dir "$ACCOUNT_DIR"
 
-DEPLOYMENT_URL="$DEVNET2_URL"
+ACCOUNT_DEPLOYMENT_URL="$DEVNET1_URL"
 starknet deploy_account \
-    --gateway_url "$DEPLOYMENT_URL" \
-    --feeder_gateway_url "$DEPLOYMENT_URL" \
+    --gateway_url "$ACCOUNT_DEPLOYMENT_URL" \
+    --feeder_gateway_url "$ACCOUNT_DEPLOYMENT_URL" \
     --network alpha-goerli \
     --account_dir "$ACCOUNT_DIR" \
     --max_fee 0
+echo "Deployed account"
 
-INVOKE_URL="$DEVNET2_URL"
+INVOKE_URL="$DEVNET1_URL"
 INVOKE_HASH=$(starknet invoke \
     --abi test/artifacts/contracts/cairo/contract.cairo/contract_abi.json \
     --function increase_balance \
@@ -66,10 +70,14 @@ INVOKE_HASH=$(starknet invoke \
     --chain_id 0x534e5f474f45524c49 \
     --account_dir "$ACCOUNT_DIR" | sed -rn 's/^Transaction hash: (.*)$/\1/p'
 )
+echo "Invoked contract"
 
+echo "Transaction on $DEVNET1_URL :"
+starknet get_transaction --hash "$INVOKE_HASH" --feeder_gateway_url "$DEVNET1_URL"
+echo "Transaction on $DEVNET2_URL :"
 starknet get_transaction --hash "$INVOKE_HASH" --feeder_gateway_url "$DEVNET2_URL"
 
-for url in "$DEVNET2_URL"; do
+for url in "$DEVNET1_URL" "$DEVNET2_URL"; do
     starknet call \
         --abi test/artifacts/contracts/cairo/contract.cairo/contract_abi.json \
         --feeder_gateway_url "$url" \
