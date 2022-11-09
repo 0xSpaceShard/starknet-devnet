@@ -5,20 +5,45 @@ Fixtures for RPC tests
 from __future__ import annotations
 
 import json
-import typing
+from typing import Tuple, cast
 
+from test.test_account import SALT
+from test.util import load_file_content, mint
+from test.account import PRIVATE_KEY, PUBLIC_KEY
 from test.rpc.rpc_utils import (
     gateway_call,
     get_block_with_transaction,
     add_transaction,
     get_latest_block,
 )
-from test.util import load_file_content
-
 import pytest
-from starkware.starknet.services.api.contract_class import ContractClass
-from starkware.starknet.services.api.gateway.transaction import Transaction, Deploy
 
+from starkware.starknet.services.api.contract_class import ContractClass
+from starkware.starknet.services.api.gateway.transaction import (
+    Transaction,
+    Deploy,
+    DeployAccount,
+)
+from starkware.starknet.business_logic.transaction.objects import InternalDeployAccount
+from starkware.starknet.core.os.class_hash import compute_class_hash
+from starkware.starknet.core.os.contract_address.contract_address import (
+    calculate_contract_address,
+)
+from starkware.starknet.definitions.general_config import DEFAULT_CHAIN_ID
+from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    DeployAccountSpecificInfo,
+)
+from starkware.starknet.wallets.open_zeppelin import sign_deploy_account_tx
+from starkware.starknet.third_party.open_zeppelin.starknet_contracts import (
+    account_contract as oz_account_class,
+)
+
+from starknet_devnet.blueprints.rpc.structures.payloads import (
+    RpcDeployAccountTransaction,
+    rpc_deploy_account_transaction,
+)
+from starknet_devnet.constants import SUPPORTED_RPC_TX_VERSION
+from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from starknet_devnet.blueprints.rpc.structures.types import (
     BlockNumberDict,
@@ -36,7 +61,7 @@ def fixture_contract_class() -> ContractClass:
     """
     Make ContractDefinition from deployment transaction used in tests
     """
-    transaction: Deploy = typing.cast(Deploy, Transaction.loads(DEPLOY_CONTENT))
+    transaction: Deploy = cast(Deploy, Transaction.loads(DEPLOY_CONTENT))
     return transaction.contract_definition
 
 
@@ -79,6 +104,21 @@ def fixture_declare_info() -> dict:
     declare_tx = json.loads(DECLARE_CONTENT)
     declare_info = add_transaction(declare_tx)
     return {**declare_info, **declare_tx}
+
+
+@pytest.fixture(name="deploy_account_info")
+def fixture_deploy_account_info() -> dict:
+    """
+    Make a deploy account transaction on devnet and return deploy account info dict
+    """
+    deploy_account_tx, address = prepare_deploy_account_tx(
+        PRIVATE_KEY, PUBLIC_KEY, int(SALT, 16), oz_account_class
+    )
+    mint(hex(address), amount=int(1e18))
+    deploy_account_json = deploy_account_tx.dump()
+    deploy_account_json["type"] = "DEPLOY_ACCOUNT"
+    declare_info = add_transaction(deploy_account_json)
+    return declare_info
 
 
 @pytest.fixture(name="invoke_content")
@@ -145,3 +185,55 @@ def fixture_latest_block_id(latest_block, request) -> dict:
     Parametrized BlockId of latest gateway_block
     """
     return _block_to_block_id(latest_block, request.param)
+
+
+@pytest.fixture(
+    name="deploy_account_details",
+)
+def fixture_deploy_account_details() -> dict:
+    """Deploy account transaction details"""
+    return {
+        "private_key": 0x6F9E0F15B20753CE2E2B740B182099C4ADF765D0C5A5B75C1AF3327358FBF2E,
+        "public_key": 0x7707342F75277F32F1A0AD532E1A12016B36A3967332D31F915C889678B3DB6,
+        "account_salt": 0x75B567ECB69C6D032982FA32C8F52D2F00DB50C5DE2C93EDDA70DE9B5109F8F,
+        "contract_class": oz_account_class,
+    }
+
+
+def prepare_deploy_account_tx(
+    private_key: int, public_key: int, account_salt: int, contract_class: ContractClass
+) -> Tuple[DeployAccount, int]:
+    """Return (signed deploy account tx, address)"""
+    deploy_account_tx = sign_deploy_account_tx(
+        private_key=private_key,
+        public_key=public_key,
+        class_hash=compute_class_hash(contract_class),
+        salt=account_salt,
+        max_fee=int(1e18),
+        version=SUPPORTED_RPC_TX_VERSION,
+        chain_id=DEFAULT_CHAIN_ID.value,
+        nonce=0,
+    )
+
+    account_address = calculate_contract_address(
+        salt=account_salt,
+        contract_class=contract_class,
+        constructor_calldata=[public_key],
+        deployer_address=0,
+    )
+
+    return deploy_account_tx, account_address
+
+
+def rpc_deploy_account_from_gateway(
+    deploy_account_tx: DeployAccount,
+) -> RpcDeployAccountTransaction:
+    """Convert DeployAccount to RpcDeployAccountTransaction"""
+    internal_deploy_account = InternalDeployAccount.from_external(
+        external_tx=deploy_account_tx, general_config=DEFAULT_GENERAL_CONFIG
+    )
+    deploy_account_specific_info = (
+        DeployAccountSpecificInfo.from_internal_deploy_account(internal_deploy_account)
+    )
+    rpc_deploy_account_tx = rpc_deploy_account_transaction(deploy_account_specific_info)
+    return rpc_deploy_account_tx

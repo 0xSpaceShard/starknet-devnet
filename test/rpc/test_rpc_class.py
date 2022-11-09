@@ -32,7 +32,7 @@ EXPECTED_ENTRY_POINTS = {
     "L1_HANDLER": [],
 }
 
-# abi from ABI_PATH (test/shared.py), but with all stateMutability omitted and constructor mapped to function
+# abi from ABI_PATH (test/shared.py), but with all stateMutability omitted
 EXPECTED_ABI = [
     {
         "type": "struct",
@@ -44,7 +44,7 @@ EXPECTED_ABI = [
         ],
     },
     {
-        "type": "function",
+        "type": "constructor",
         "name": "constructor",
         "inputs": [{"name": "initial_balance", "type": "felt"}],
         "outputs": [],

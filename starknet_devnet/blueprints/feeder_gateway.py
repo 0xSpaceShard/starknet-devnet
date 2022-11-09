@@ -41,6 +41,18 @@ def validate_request(data: bytes, cls):
         ) from err
 
 
+def validate_int(request_args: MultiDict, attribute: str):
+    """Validate if attribute is int."""
+    try:
+        return int(request_args.get(attribute))
+    except (ValueError) as err:
+        raise StarknetDevnetException(
+            code=StarkErrorCode.MALFORMED_REQUEST,
+            message=str(err),
+            status_code=400,
+        ) from err
+
+
 def _check_block_hash(request_args: MultiDict):
     block_hash = request_args.get("blockHash", type=custom_int)
     if block_hash is not None:
@@ -184,7 +196,7 @@ async def get_storage_at():
     _check_block_hash(request.args)
 
     contract_address = request.args.get("contractAddress", type=custom_int)
-    key = request.args.get("key", type=custom_int)
+    key = validate_int(request.args, "key")
 
     storage = await state.starknet_wrapper.get_storage_at(contract_address, key)
     return jsonify(storage)

@@ -19,13 +19,9 @@ class UDC:
     HASH_BYTES = to_bytes(HASH)
 
     # Precalculated to fixed address
-    # ADDRESS = calculate_contract_address_from_hash(salt=10, class_hash=HASH,
+    # ADDRESS = calculate_contract_address_from_hash(salt=0, class_hash=HASH,
     # constructor_calldata=[], deployer_address=0)
-    ADDRESS = (
-        1073880354184614071153542798898672284640862493126523554954769603345737026102
-    )
-
-    contract: StarknetContract = None
+    ADDRESS = 0x41A78E741E5AF2FEC34B695679BC6891742439F7AFB8484ECD7766661AD02BF
 
     def __init__(self, starknet_wrapper):
         self.starknet_wrapper = starknet_wrapper
@@ -51,7 +47,7 @@ class UDC:
             print(f"{self.__class__.__name__} already deployed")
             return
 
-        self.contract = StarknetContract(  # TODO this needn't be a property
+        contract = StarknetContract(
             state=starknet.state,
             abi=contract_class.abi,
             contract_address=UDC.ADDRESS,
@@ -59,5 +55,5 @@ class UDC:
         )
 
         await self.starknet_wrapper.store_contract(
-            UDC.ADDRESS, self.contract, contract_class
+            UDC.ADDRESS, contract, contract_class
         )

@@ -21,11 +21,13 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     DeclareSpecificInfo,
     L1HandlerSpecificInfo,
     FeeEstimationInfo,
+    DeployAccountSpecificInfo,
 )
 from starkware.starknet.services.api.gateway.transaction import (
     InvokeFunction,
     Declare,
     Deploy,
+    DeployAccount,
 )
 from starkware.starknet.services.api.gateway.transaction_utils import (
     compress_program,
@@ -153,9 +155,20 @@ class RpcBroadcastedDeployTxn(TypedDict):
     constructor_calldata: List[Felt]
 
 
+class RpcBroadcastedDeployAccountTxn(RpcBroadcastedTxnCommon):
+    """TypedDict for BroadcastedDeployAccountTxn"""
+
+    contract_address_salt: Felt
+    constructor_calldata: List[Felt]
+    class_hash: Felt
+
+
 # rpc transaction's representation when it's sent to the sequencer (but not yet in a block)
 RpcBroadcastedTxn = Union[
-    RpcBroadcastedDeployTxn, RpcBroadcastedDeclareTxn, RpcBroadcastedInvokeTxn
+    RpcBroadcastedDeployTxn,
+    RpcBroadcastedDeclareTxn,
+    RpcBroadcastedInvokeTxn,
+    RpcBroadcastedDeployAccountTxn,
 ]
 
 
@@ -210,12 +223,21 @@ class RpcDeployTransaction(TypedDict):
     constructor_calldata: List[Felt]
 
 
+class RpcDeployAccountTransaction(RpcTransactionCommon):
+    """TypedDict for rpc deploy account transaction"""
+
+    contract_address_salt: Felt
+    constructor_calldata: List[Felt]
+    class_hash: Felt
+
+
 RpcTransaction = Union[
     RpcInvokeTransactionV0,
     RpcInvokeTransactionV1,
     RpcL1HandlerTransaction,
     RpcDeclareTransaction,
     RpcDeployTransaction,
+    RpcDeployAccountTransaction,
 ]
 
 
@@ -226,6 +248,7 @@ def rpc_transaction(transaction: TransactionSpecificInfo) -> RpcTransaction:
         TransactionType.INVOKE_FUNCTION: rpc_invoke_transaction,
         TransactionType.DECLARE: rpc_declare_transaction,
         TransactionType.L1_HANDLER: rpc_l1_handler_transaction,
+        TransactionType.DEPLOY_ACCOUNT: rpc_deploy_account_transaction,
     }
     return tx_mapping[transaction.tx_type](transaction)
 
@@ -310,6 +333,28 @@ def rpc_deploy_transaction(transaction: DeploySpecificInfo) -> RpcDeployTransact
         "constructor_calldata": [
             rpc_felt(data) for data in transaction.constructor_calldata
         ],
+    }
+    return txn
+
+
+def rpc_deploy_account_transaction(
+    transaction: DeployAccountSpecificInfo,
+) -> RpcDeployAccountTransaction:
+    """
+    Convert gateway deploy account transaction to rpc format
+    """
+    txn: RpcDeployAccountTransaction = {
+        "contract_address_salt": rpc_felt(transaction.contract_address_salt),
+        "constructor_calldata": [
+            rpc_felt(data) for data in transaction.constructor_calldata
+        ],
+        "class_hash": rpc_felt(transaction.class_hash),
+        "transaction_hash": rpc_felt(transaction.transaction_hash),
+        "type": rpc_txn_type(transaction.tx_type.name),
+        "max_fee": rpc_felt(transaction.max_fee),
+        "version": hex(transaction.version),
+        "signature": [rpc_felt(value) for value in transaction.signature],
+        "nonce": rpc_felt(transaction.nonce),
     }
     return txn
 
@@ -438,6 +483,28 @@ def make_deploy(deploy_transaction: RpcDeployTransaction) -> Deploy:
     return deploy_tx
 
 
+def make_deploy_account(
+    deploy_account_transaction: RpcDeployAccountTransaction,
+) -> DeployAccount:
+    """
+    Convert RpcDeployAccountTransaction to DeployAccount
+    """
+    deploy_account_tx = DeployAccount(
+        class_hash=int(deploy_account_transaction["class_hash"], 16),
+        contract_address_salt=int(
+            deploy_account_transaction["contract_address_salt"], 16
+        ),
+        constructor_calldata=[
+            int(data, 16) for data in deploy_account_transaction["constructor_calldata"]
+        ],
+        version=int(deploy_account_transaction["version"], 16),
+        nonce=int(deploy_account_transaction["nonce"], 16),
+        max_fee=int(deploy_account_transaction["max_fee"], 16),
+        signature=[int(sig, 16) for sig in deploy_account_transaction["signature"]],
+    )
+    return deploy_account_tx
+
+
 class EntryPoint(TypedDict):
     """TypedDict for rpc contract class entry point"""
 
@@ -543,19 +610,14 @@ def rpc_abi_entry(abi_entry: AbiEntryType) -> AbiEntry:
     """
     Convert gateway abi entry to rpc AbiEntry
     """
-    type_map = {
-        "constructor": "function",
-    }
 
     function_map = {
         "l1_handler": function_abi_entry,
         "function": function_abi_entry,
         "struct": struct_abi_entry,
         "event": event_abi_entry,
+        "constructor": function_abi_entry,
     }
-
-    if abi_entry["type"] in type_map:
-        abi_entry["type"] = type_map[abi_entry["type"]]
 
     return function_map[abi_entry["type"]](abi_entry)
 

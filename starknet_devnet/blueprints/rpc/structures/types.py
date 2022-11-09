@@ -55,9 +55,7 @@ TxnHash = Felt
 Address = Felt
 NumAsHex = str
 
-# Pending transactions will not be supported since it
-# doesn't make much sense with the current implementation of devnet
-RpcTxnType = Literal["DECLARE", "DEPLOY", "INVOKE", "L1_HANDLER"]
+RpcTxnType = Literal["DECLARE", "DEPLOY", "INVOKE", "L1_HANDLER", "DEPLOY_ACCOUNT"]
 
 
 def rpc_txn_type(transaction_type: str) -> RpcTxnType:
@@ -69,6 +67,7 @@ def rpc_txn_type(transaction_type: str) -> RpcTxnType:
         TransactionType.DECLARE.name: "DECLARE",
         TransactionType.INVOKE_FUNCTION.name: "INVOKE",
         TransactionType.L1_HANDLER.name: "L1_HANDLER",
+        TransactionType.DEPLOY_ACCOUNT.name: "DEPLOY_ACCOUNT",
     }
     if transaction_type not in txn_type_map:
         raise RpcError(

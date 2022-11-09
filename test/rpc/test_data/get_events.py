@@ -45,6 +45,13 @@ BLOCK_FROM_0_TO_LATEST_CHUNK_3_CONTINUATION_TOKEN = {
     "continuation_token": "1",
 }
 
+BLOCK_FROM_0_TO_1_CHUNK_3_CONTINUATION_TOKEN = {
+    "from_block": "0",
+    "to_block": "1",
+    "chunk_size": 3,
+    "continuation_token": "0",
+}
+
 BLOCK_FROM_0_TO_LATEST_WITH_ADDRESS = {
     "from_block": "0",
     "to_block": "latest",
@@ -142,6 +149,11 @@ GET_EVENTS_TEST_DATA = [
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
         BLOCK_FROM_0_TO_LATEST_CHUNK_3_CONTINUATION_TOKEN,
         [FEE_CHARGING_IN_BLOCK_3_EVENT],
+    ),
+    (
+        [*PREDEPLOY_ACCOUNT_CLI_ARGS],
+        BLOCK_FROM_0_TO_1_CHUNK_3_CONTINUATION_TOKEN,
+        [],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],

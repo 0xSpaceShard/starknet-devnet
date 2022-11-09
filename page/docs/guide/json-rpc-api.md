@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # JSON-RPC API
 
-Devnet also supports JSON-RPC API v0.2.0: [specifications](https://github.com/starkware-libs/starknet-specs/releases/tag/v0.2.0) . It can be reached under `/rpc`. For an example:
+Devnet also supports JSON-RPC API v0.2.1: [specifications](https://github.com/starkware-libs/starknet-specs/releases/tag/v0.2.1) . It can be reached under `/rpc`. For an example:
 
 ```
 POST /rpc

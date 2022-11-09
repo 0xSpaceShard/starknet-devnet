@@ -44,6 +44,13 @@ class RpcDeployTransactionResult(TypedDict):
     contract_address: Felt
 
 
+class RpcDeployAccountTransactionResult(TypedDict):
+    """TypedDict for rpc deploy account transaction result"""
+
+    transaction_hash: TxnHash
+    contract_address: Felt
+
+
 class MessageToL1(TypedDict):
     """TypedDict for rpc message from l2 to l1"""
 
@@ -87,28 +94,34 @@ RpcL1HandlerReceipt = RpcBaseTransactionReceipt
 
 
 class RpcDeployReceipt(RpcBaseTransactionReceipt):
-    """TypedDict for rpc declare transaction receipt"""
+    """TypedDict for rpc deploy transaction receipt"""
+
+    contract_address: Felt
+
+
+class RpcDeployAccountReceipt(RpcBaseTransactionReceipt):
+    """TypedDict for rpc deploy account transaction receipt"""
 
     contract_address: Felt
 
 
 def rpc_invoke_receipt(txr: TransactionReceipt) -> RpcInvokeReceipt:
     """
-    Convert rpc invoke transaction receipt to rpc format
+    Convert gateway invoke transaction receipt to rpc format
     """
     return rpc_base_transaction_receipt(txr)
 
 
 def rpc_declare_receipt(txr: TransactionReceipt) -> RpcDeclareReceipt:
     """
-    Convert rpc declare transaction receipt to rpc format
+    Convert gateway declare transaction receipt to rpc format
     """
     return rpc_base_transaction_receipt(txr)
 
 
 def rpc_deploy_receipt(txr: TransactionReceipt) -> RpcDeployReceipt:
     """
-    Convert rpc deploy transaction receipt to rpc format
+    Convert gateway deploy transaction receipt to rpc format
     """
     base_receipt = rpc_base_transaction_receipt(txr)
     transaction = state.starknet_wrapper.transactions.get_transaction(
@@ -122,9 +135,16 @@ def rpc_deploy_receipt(txr: TransactionReceipt) -> RpcDeployReceipt:
     return receipt
 
 
+def rpc_deploy_account_receipt(txr: TransactionReceipt) -> RpcDeployAccountReceipt:
+    """
+    Convert gateway deploy account transaction receipt to rpc format
+    """
+    return rpc_deploy_receipt(txr)
+
+
 def rpc_l1_handler_receipt(txr: TransactionReceipt) -> RpcL1HandlerReceipt:
     """
-    Convert rpc l1 handler transaction receipt to rpc format
+    Convert gateway l1 handler transaction receipt to rpc format
     """
     return rpc_base_transaction_receipt(txr)
 
@@ -196,6 +216,7 @@ def rpc_transaction_receipt(txr: TransactionReceipt) -> dict:
         TransactionType.INVOKE_FUNCTION: rpc_invoke_receipt,
         TransactionType.DECLARE: rpc_declare_receipt,
         TransactionType.L1_HANDLER: rpc_l1_handler_receipt,
+        TransactionType.DEPLOY_ACCOUNT: rpc_deploy_account_receipt,
     }
     transaction = state.starknet_wrapper.transactions.get_transaction(
         hex(txr.transaction_hash)
