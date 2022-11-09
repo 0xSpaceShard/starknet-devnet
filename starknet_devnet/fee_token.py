@@ -27,9 +27,7 @@ class FeeToken:
     # Precalculated to fixed address
     # ADDRESS = calculate_contract_address_from_hash(salt=10, class_hash=HASH,
     # constructor_calldata=[], deployer_address=0)
-    ADDRESS = (
-        2774287484619332564597403632816768868845110259953541691709975889937073775752
-    )
+    ADDRESS = 0x62230EA046A9A5FBC261AC77D03C8D41E5D442DB2284587570AB46455FD2488
     SYMBOL = "ETH"
     NAME = "ether"
 

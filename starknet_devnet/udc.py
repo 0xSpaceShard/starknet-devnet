@@ -20,9 +20,7 @@ class UDC:
     # Precalculated to fixed address
     # ADDRESS = calculate_contract_address_from_hash(salt=0, class_hash=HASH,
     # constructor_calldata=[], deployer_address=0)
-    ADDRESS = int(
-        "0x41a78e741e5af2fec34b695679bc6891742439f7afb8484ecd7766661ad02bf", 16
-    )
+    ADDRESS = 0x41A78E741E5AF2FEC34B695679BC6891742439F7AFB8484ECD7766661AD02BF
 
     def __init__(self, starknet_wrapper):
         self.starknet_wrapper = starknet_wrapper
