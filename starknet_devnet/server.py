@@ -107,6 +107,7 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
+        # Dump only if process is worker (not main)
         if args.dump_on == DumpOn.EXIT and os.getpid() != pid:
             state.dumper.dump()
             sys.exit(0)
