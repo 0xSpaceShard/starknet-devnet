@@ -2,9 +2,7 @@
 A server exposing Starknet functionalities as API endpoints.
 """
 
-import sys
-import asyncio
-import os
+import sys, asyncio, os
 
 from flask import Flask, jsonify
 from flask_cors import CORS
