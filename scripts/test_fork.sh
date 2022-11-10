@@ -70,12 +70,14 @@ INVOKE_HASH=$(starknet invoke \
     --chain_id 0x534e5f474f45524c49 \
     --account_dir "$ACCOUNT_DIR" | sed -rn 's/^Transaction hash: (.*)$/\1/p'
 )
-echo "Invoked contract"
+echo "Invoked contract on $INVOKE_URL"
 
-echo "Transaction on $DEVNET1_URL :"
+echo "Transaction on $DEVNET1_URL"
 starknet get_transaction --hash "$INVOKE_HASH" --feeder_gateway_url "$DEVNET1_URL"
-echo "Transaction on $DEVNET2_URL :"
+echo "Transaction on $DEVNET2_URL"
 starknet get_transaction --hash "$INVOKE_HASH" --feeder_gateway_url "$DEVNET2_URL"
+echo "Block on $DEVNET2_URL"
+starknet get_block --feeder_gateway "$DEVNET2_URL"
 
 for url in "$DEVNET1_URL" "$DEVNET2_URL"; do
     starknet call \
