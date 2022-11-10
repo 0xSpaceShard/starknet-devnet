@@ -537,16 +537,7 @@ class StarknetWrapper:
         await state.state.set_contract_class(
             class_hash=deploy_tx.contract_hash, contract_class=contract_class
         )
-        print("DEBUG set contract class")
-
         tx_execution_info = await state.execute_tx(tx=deploy_tx)
-        print("DEBUG executed_tx")
-
-        # await state.state.deploy_contract(  # TODO the same in lite?
-        #     contract_address=deploy_tx.contract_address,
-        #     class_hash=to_bytes(deploy_tx.class_hash),
-        # )
-        # print("DEBUG deployed_contract")
 
         return self.__create_contract(
             contract_class=contract_class,
