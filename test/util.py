@@ -37,6 +37,8 @@ def run_devnet_in_background(*args, stderr=None, stdout=None):
     if "--accounts" not in args:
         args = [*args, "--accounts", "1"]
 
+    port = args[args.index("--port") + 1] if "--port" in args else PORT
+
     command = [
         "poetry",
         "run",
@@ -44,13 +46,14 @@ def run_devnet_in_background(*args, stderr=None, stdout=None):
         "--host",
         HOST,
         "--port",
-        PORT,
+        port,
         *args,
     ]
     # pylint: disable=consider-using-with
     proc = subprocess.Popen(command, close_fds=True, stderr=stderr, stdout=stdout)
 
-    ensure_server_alive(f"{APP_URL}/is_alive", proc)
+    healthcheck_url = f"http://{HOST}:{port}/is_alive"
+    ensure_server_alive(healthcheck_url, proc)
     return proc
 
 
@@ -147,11 +150,16 @@ def extract_address(stdout):
     return extract(r"Contract address: (\w*)", stdout)
 
 
-def run_starknet(args, raise_on_nonzero=True, add_gateway_urls=True):
+def run_starknet(
+    args, raise_on_nonzero=True, gateway_url=APP_URL, feeder_gateway_url=APP_URL
+):
     """Wrapper around subprocess.run"""
     my_args = ["poetry", "run", "starknet", *args, "--no_wallet"]
-    if add_gateway_urls:
-        my_args.extend(["--gateway_url", APP_URL, "--feeder_gateway_url", APP_URL])
+    if gateway_url:
+        my_args.extend(["--gateway_url", gateway_url])
+    if feeder_gateway_url:
+        my_args.extend(["--feeder_gateway_url", feeder_gateway_url])
+
     output = subprocess.run(my_args, encoding="utf-8", check=False, capture_output=True)
     if output.returncode != 0 and raise_on_nonzero:
         if output.stderr:
@@ -160,20 +168,20 @@ def run_starknet(args, raise_on_nonzero=True, add_gateway_urls=True):
     return output
 
 
-def send_tx(transaction: dict, tx_type: TransactionType) -> dict:
+def send_tx(transaction: dict, tx_type: TransactionType, gateway_url=APP_URL) -> dict:
     """
     Send transaction.
     Returns tx hash
     """
     resp = requests.post(
-        url=f"{APP_URL}/gateway/add_transaction",
+        url=f"{gateway_url}/gateway/add_transaction",
         json={**transaction, "type": tx_type.name},
     )
     assert resp.status_code == 200
     return resp.json()
 
 
-def deploy(contract, inputs=None, salt=None):
+def deploy(contract, inputs=None, salt=None, gateway_url=APP_URL):
     """Wrapper around starknet deploy"""
 
     inputs = inputs or []
@@ -185,7 +193,7 @@ def deploy(contract, inputs=None, salt=None):
         version=SUPPORTED_TX_VERSION,
     ).dump()
 
-    resp = send_tx(deploy_tx, TransactionType.DEPLOY)
+    resp = send_tx(deploy_tx, TransactionType.DEPLOY, gateway_url)
 
     return {
         "tx_hash": resp["transaction_hash"],
@@ -316,7 +324,9 @@ def estimate_fee(function, inputs, address, abi_path, signature=None, nonce=None
     return extract_fee(output.stdout)
 
 
-def call(function: str, address: str, abi_path: str, inputs=None):
+def call(
+    function: str, address: str, abi_path: str, inputs=None, feeder_gateway_url=APP_URL
+):
     """Wrapper around starknet call"""
     args = [
         "call",
@@ -330,7 +340,7 @@ def call(function: str, address: str, abi_path: str, inputs=None):
     if inputs:
         args.extend(["--inputs", *inputs])
 
-    output = run_starknet(args)
+    output = run_starknet(args, feeder_gateway_url=feeder_gateway_url)
 
     print("Call successful!")
     return output.stdout.rstrip()
