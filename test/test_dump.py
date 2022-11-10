@@ -315,6 +315,7 @@ def test_dumping_on_exit():
     balance_after_invoke = call("get_balance", contract_address, ABI_PATH)
     assert balance_after_invoke == "33"
 
+
 def test_invalid_dump_on_option():
     """Test behavior when invalid dump-on is provided."""
     devnet_proc = ACTIVE_DEVNET.start(
