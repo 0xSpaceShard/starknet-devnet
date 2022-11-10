@@ -38,7 +38,7 @@ async def call(request: RpcFunctionCall, block_id: BlockId) -> List[Felt]:
     """
     assert_block_id_is_latest_or_pending(block_id)
 
-    if not state.starknet_wrapper.contracts.is_deployed(
+    if not await state.starknet_wrapper.is_deployed(
         int(request["contract_address"], 16)
     ):
         raise RpcError(code=20, message="Contract not found")

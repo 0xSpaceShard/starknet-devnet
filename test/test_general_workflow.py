@@ -43,28 +43,25 @@ from .shared import (
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
 
-EXPECTED_SALTY_DEPLOY_HASH_LITE_MODE = "0x2"
 EXPECTED_SALTY_DEPLOY_BLOCK_HASH_LITE_MODE = "0x1"
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
 @pytest.mark.parametrize(
-    "run_devnet_in_background, expected_tx_hash, expected_block_hash",
+    "run_devnet_in_background, expected_block_hash",
     [
         (
             [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-            EXPECTED_SALTY_DEPLOY_HASH,
             "",
         ),
         (
             [*PREDEPLOY_ACCOUNT_CLI_ARGS, "--lite-mode"],
-            EXPECTED_SALTY_DEPLOY_HASH_LITE_MODE,
             EXPECTED_SALTY_DEPLOY_BLOCK_HASH_LITE_MODE,
         ),
     ],
     indirect=True,
 )
-def test_general_workflow(expected_tx_hash, expected_block_hash):
+def test_general_workflow(expected_block_hash):
     """Test devnet with CLI"""
     deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
 
@@ -132,7 +129,7 @@ def test_general_workflow(expected_tx_hash, expected_block_hash):
             inputs=None,
             expected_status="ACCEPTED_ON_L2",
             expected_address=EXPECTED_SALTY_DEPLOY_ADDRESS,
-            expected_tx_hash=expected_tx_hash,
+            expected_tx_hash=EXPECTED_SALTY_DEPLOY_HASH,
         )
 
     salty_invoke_tx_hash = invoke(

@@ -46,14 +46,3 @@ class UDC:
         except StarkException:
             print(f"{self.__class__.__name__} already deployed")
             return
-
-        contract = StarknetContract(
-            state=starknet.state,
-            abi=contract_class.abi,
-            contract_address=UDC.ADDRESS,
-            deploy_call_info=None,
-        )
-
-        await self.starknet_wrapper.store_contract(
-            UDC.ADDRESS, contract, contract_class
-        )

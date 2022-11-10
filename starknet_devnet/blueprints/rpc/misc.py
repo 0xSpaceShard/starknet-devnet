@@ -111,7 +111,7 @@ async def get_nonce(block_id: BlockId, contract_address: Address) -> Felt:
     """
     assert_block_id_is_latest_or_pending(block_id)
 
-    if not state.starknet_wrapper.contracts.is_deployed(int(contract_address, 16)):
+    if not await state.starknet_wrapper.is_deployed(int(contract_address, 16)):
         raise RpcError(code=20, message="Contract not found")
 
     result = await state.starknet_wrapper.get_nonce(

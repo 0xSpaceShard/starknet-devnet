@@ -85,23 +85,21 @@ def fixture_starknet_wrapper_args(request):
 
 
 @pytest.mark.parametrize(
-    "starknet_wrapper_args, expected_tx_hash, expected_block_hash",
+    "starknet_wrapper_args, expected_block_hash",
     [
         (
             [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-            "0x13d4b9f765587296a4f40591efe235a8caf24f0496230f0b13a87f2e4c8150a",
             "",
         ),
         (
             [*PREDEPLOY_ACCOUNT_CLI_ARGS, "--lite-mode"],
-            "0x0",
             "0x1",
         ),
     ],
     indirect=True,
 )
 @pytest.mark.asyncio
-async def test_deploy(starknet_wrapper_args, expected_tx_hash, expected_block_hash):
+async def test_deploy(starknet_wrapper_args, expected_block_hash):
     """
     Test the deployment of a contract.
     """
@@ -121,7 +119,7 @@ async def test_deploy(starknet_wrapper_args, expected_tx_hash, expected_block_ha
 
     assert_hex_equal(
         hex(tx_hash),
-        expected_tx_hash,
+        "0x13D4B9F765587296A4F40591EFE235A8CAF24F0496230F0B13A87F2E4C8150A",
     )
     assert contract_address == expected_contract_address
 

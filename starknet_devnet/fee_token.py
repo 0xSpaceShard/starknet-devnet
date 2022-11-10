@@ -56,7 +56,8 @@ class FeeToken:
         )
         try:
             await starknet.state.state.deploy_contract(
-                FeeToken.ADDRESS, FeeToken.HASH_BYTES # TODO failing if forking alpha-goerli: unify addr?
+                FeeToken.ADDRESS,
+                FeeToken.HASH_BYTES,  # TODO failing if forking alpha-goerli: unify addr?
             )
         except StarkException:
             print(f"{self.__class__.__name__} already deployed")
@@ -81,10 +82,6 @@ class FeeToken:
             abi=contract_class.abi,
             contract_address=FeeToken.ADDRESS,
             deploy_call_info=None,
-        )
-
-        await self.starknet_wrapper.store_contract(
-            FeeToken.ADDRESS, self.contract, contract_class
         )
 
     async def get_balance(self, address: int) -> int:

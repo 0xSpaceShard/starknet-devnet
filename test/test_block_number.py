@@ -31,25 +31,24 @@ EXPECTED_TX_HASH = "0x4506fb016a309c8694a5c862625ba743a3ed2e248bca1ba5aa174ca063
 
 @pytest.mark.usefixtures("run_devnet_in_background")
 @pytest.mark.parametrize(
-    "run_devnet_in_background, expected_tx_hash",
+    "run_devnet_in_background",
     [
-        ([*PREDEPLOY_ACCOUNT_CLI_ARGS], EXPECTED_TX_HASH),
-        ([*PREDEPLOY_ACCOUNT_CLI_ARGS, "--lite-mode"], "0x0"),
+        PREDEPLOY_ACCOUNT_CLI_ARGS,
+        [*PREDEPLOY_ACCOUNT_CLI_ARGS, "--lite-mode"],
     ],
     indirect=True,
 )
-def test_block_number_incremented(expected_tx_hash):
+def test_block_number_incremented():
     """
     Tests how block number is incremented in regular mode and lite mode.
-    In regular mode with salt "0x42" our expected hash is
-    0x4506fb016a309c8694a5c862625ba743a3ed2e248bca1ba5aa174ca06381f0f.
+    In regular mode with salt "0x42" our expected hash is {EXPECTED_TX_HASH}.
     """
 
     deploy_info = deploy(BLOCK_NUMBER_CONTRACT_PATH, salt="0x42")
     block_number_before = my_get_block_number(deploy_info["address"])
 
     assert int(block_number_before) == GENESIS_BLOCK_NUMBER + 1
-    assert expected_tx_hash == deploy_info["tx_hash"]
+    assert deploy_info["tx_hash"] == EXPECTED_TX_HASH
 
     invoke(
         calls=[(deploy_info["address"], "write_block_number", [])],

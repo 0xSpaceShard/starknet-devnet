@@ -76,14 +76,3 @@ class Account:
         await starknet.state.state.set_storage_at(
             fee_token_address, balance_address + 1, initial_balance_uint256.high
         )
-
-        contract = StarknetContract(
-            state=starknet.state,
-            abi=contract_class.abi,
-            contract_address=self.address,
-            deploy_call_info=None,
-        )
-
-        await self.starknet_wrapper.store_contract(
-            self.address, contract, contract_class
-        )

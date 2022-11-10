@@ -34,8 +34,8 @@ class ForkedStateReader(StateReader):
         try:
             with contextlib.redirect_stderr(None):
                 class_hash_hex = "0x" + class_hash.hex()
-                contract_class_dict = await self.__feeder_gateway_client.get_class_by_hash(
-                    class_hash_hex
+                contract_class_dict = (
+                    await self.__feeder_gateway_client.get_class_by_hash(class_hash_hex)
                 )
                 return ContractClass.load(contract_class_dict)
         except BadRequest as bad_request:
@@ -53,7 +53,7 @@ class ForkedStateReader(StateReader):
                     block_number=self.__block_number,
                 )
             return to_bytes(int(class_hash_hex, 16))
-        except BadRequest: # TODO perform better check here what if 404
+        except BadRequest:  # TODO perform better check here what if 404
             return UNINITIALIZED_CLASS_HASH
 
     async def get_nonce_at(self, contract_address: int) -> int:
