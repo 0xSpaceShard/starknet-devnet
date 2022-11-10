@@ -66,7 +66,7 @@ from .constants import DUMMY_STATE_ROOT, OZ_ACCOUNT_CLASS_HASH
 from .general_config import DEFAULT_GENERAL_CONFIG
 from .fee_token import FeeToken
 from .forked_state import get_forked_starknet
-from .origin import ForkedOrigin, NullOrigin, Origin
+from .origin import ForkedOrigin, NullOrigin
 from .udc import UDC
 from .util import to_bytes, get_fee_estimation_info
 from .util import (
@@ -75,7 +75,6 @@ from .util import (
     get_storage_diffs,
     get_all_declared_contracts,
 )
-from .contract_wrapper import ContractWrapper
 from .postman_wrapper import DevnetL1L2
 from .transactions import DevnetTransactions, DevnetTransaction
 from .contracts import DevnetContracts

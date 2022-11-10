@@ -19,7 +19,7 @@ from starkware.starknet.services.api.feeder_gateway.request_objects import (
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionSimulationInfo,
 )
-from starkware.starkware_utils.error_handling import StarkErrorCode, StarkException
+from starkware.starkware_utils.error_handling import StarkErrorCode
 from werkzeug.datastructures import MultiDict
 
 
