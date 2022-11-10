@@ -102,13 +102,13 @@ def main():
 
     try:
         print(f" * Listening on http://{args.host}:{args.port}/ (Press CTRL+C to quit)")
-        pid = os.getpid()
+        main_pid = os.getpid()
         GunicornServer(app, args).run()
     except KeyboardInterrupt:
         pass
     finally:
         # Dump only if process is worker (not main)
-        if args.dump_on == DumpOn.EXIT and os.getpid() != pid:
+        if args.dump_on == DumpOn.EXIT and os.getpid() != main_pid:
             state.dumper.dump()
             sys.exit(0)
 
