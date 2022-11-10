@@ -6,7 +6,7 @@ sidebar_position: 14
 
 Other than using prefunded predeployed accounts, you can also add funds to an account that you deployed yourself.
 
-The ERC20 contract used for minting ETH tokens and charging fees is at: `0x62230ea046a9a5fbc261ac77d03c8d41e5d442db2284587570ab46455fd2488`
+The ERC20 contract used for minting ETH tokens and charging fees is at: `0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7`
 
 ## Query fee token address
 
@@ -19,7 +19,7 @@ Response:
 ```
 {
   "symbol":"ETH",
-  "address":"0x62230ea046a9a5fbc261ac77d03c8d41e5d442db2284587570ab46455fd2488",
+  "address":"0x...",
 }
 ```
 

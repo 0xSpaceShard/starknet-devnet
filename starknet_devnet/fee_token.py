@@ -25,10 +25,9 @@ class FeeToken:
     HASH = 3000409729603134799471314790024123407246450023546294072844903167350593031855
     HASH_BYTES = to_bytes(HASH)
 
-    # Precalculated to fixed address
-    # ADDRESS = calculate_contract_address_from_hash(salt=10, class_hash=HASH,
-    # constructor_calldata=[], deployer_address=0)
-    ADDRESS = 0x62230EA046A9A5FBC261AC77D03C8D41E5D442DB2284587570AB46455FD2488
+    # Taken from
+    # https://github.com/starknet-community-libs/starknet-addresses/blob/df19b17d2c83f11c30e65e2373e8a0c65446f17c/bridged_tokens/goerli.json
+    ADDRESS = 0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7
     SYMBOL = "ETH"
     NAME = "ether"
 
