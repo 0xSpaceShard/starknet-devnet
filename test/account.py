@@ -43,10 +43,10 @@ def deploy_account_contract(salt=None):
     return deploy(ACCOUNT_PATH, inputs=[str(PUBLIC_KEY)], salt=salt)
 
 
-def get_nonce(account_address: str) -> int:
+def get_nonce(account_address: str, feeder_gateway_url=APP_URL) -> int:
     """Get nonce."""
     resp = requests.get(
-        f"{APP_URL}/feeder_gateway/get_nonce?contractAddress={account_address}"
+        f"{feeder_gateway_url}/feeder_gateway/get_nonce?contractAddress={account_address}"
     )
     return int(resp.json(), 16)
 
@@ -151,7 +151,11 @@ def _get_transaction_hash(
 
 
 def get_estimated_fee(
-    calls: List[AccountCall], account_address: str, private_key: str, nonce=None
+    calls: List[AccountCall],
+    account_address: str,
+    private_key: str,
+    nonce=None,
+    feeder_gateway_url=APP_URL,
 ):
     """Get estimated fee through account."""
 
@@ -174,6 +178,7 @@ def get_estimated_fee(
         abi_path=ACCOUNT_ABI_PATH,
         signature=signature,
         nonce=nonce,
+        feeder_gateway_url=feeder_gateway_url,
     )
 
 
@@ -183,11 +188,12 @@ def invoke(
     private_key: int,
     nonce=None,
     max_fee=None,
+    gateway_url=APP_URL,
 ):
     """Invoke __execute__ with correct calldata and signature."""
 
     if nonce is None:
-        nonce = get_nonce(account_address)
+        nonce = get_nonce(account_address, feeder_gateway_url=gateway_url)
 
     if max_fee is None:
         max_fee = get_estimated_fee(
@@ -195,6 +201,7 @@ def invoke(
             account_address=account_address,
             private_key=private_key,
             nonce=nonce,
+            feeder_gateway_url=gateway_url,
         )
 
     signature, execute_calldata = _get_execute_args(
@@ -222,7 +229,8 @@ def invoke(
             *signature,
             "--max_fee",
             str(max_fee),
-        ]
+        ],
+        gateway_url=gateway_url,
     )
 
     print("Invoke sent!")

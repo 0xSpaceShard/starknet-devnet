@@ -150,15 +150,11 @@ def extract_address(stdout):
     return extract(r"Contract address: (\w*)", stdout)
 
 
-def run_starknet(
-    args, raise_on_nonzero=True, gateway_url=APP_URL, feeder_gateway_url=APP_URL
-):
+def run_starknet(args, raise_on_nonzero=True, gateway_url=APP_URL):
     """Wrapper around subprocess.run"""
     my_args = ["poetry", "run", "starknet", *args, "--no_wallet"]
-    if gateway_url:
-        my_args.extend(["--gateway_url", gateway_url])
-    if feeder_gateway_url:
-        my_args.extend(["--feeder_gateway_url", feeder_gateway_url])
+    # there is no case when gateway should not be equal to feeder gateway
+    my_args.extend(["--gateway_url", gateway_url, "--feeder_gateway_url", gateway_url])
 
     output = subprocess.run(my_args, encoding="utf-8", check=False, capture_output=True)
     if output.returncode != 0 and raise_on_nonzero:
@@ -224,9 +220,13 @@ def estimate_message_fee(
     return extract_fee(output.stdout)
 
 
-def assert_transaction(tx_hash, expected_status, expected_signature=None):
+def assert_transaction(
+    tx_hash, expected_status, expected_signature=None, feeder_gateway_url=APP_URL
+):
     """Wrapper around starknet get_transaction"""
-    output = run_starknet(["get_transaction", "--hash", tx_hash])
+    output = run_starknet(
+        ["get_transaction", "--hash", tx_hash], gateway_url=feeder_gateway_url
+    )
     transaction = json.loads(output.stdout)
     assert_equal(transaction["status"], expected_status, transaction)
     if expected_signature:
@@ -297,7 +297,15 @@ def assert_transaction_receipt_not_received(tx_hash):
 
 
 # pylint: disable=too-many-arguments
-def estimate_fee(function, inputs, address, abi_path, signature=None, nonce=None):
+def estimate_fee(
+    function,
+    inputs,
+    address,
+    abi_path,
+    signature=None,
+    nonce=None,
+    feeder_gateway_url=APP_URL,
+):
     """Wrapper around starknet estimate_fee. Returns fee in wei."""
     args = [
         "invoke",
@@ -318,7 +326,7 @@ def estimate_fee(function, inputs, address, abi_path, signature=None, nonce=None
     if nonce is not None:
         args.extend(["--nonce", str(nonce)])
 
-    output = run_starknet(args)
+    output = run_starknet(args, gateway_url=feeder_gateway_url)
 
     print("Estimate fee successful!")
     return extract_fee(output.stdout)
@@ -340,7 +348,7 @@ def call(
     if inputs:
         args.extend(["--inputs", *inputs])
 
-    output = run_starknet(args, feeder_gateway_url=feeder_gateway_url)
+    output = run_starknet(args, gateway_url=feeder_gateway_url)
 
     print("Call successful!")
     return output.stdout.rstrip()
@@ -353,9 +361,11 @@ def load_contract_class(contract_path: str):
     return ContractClass.load(loaded_contract)
 
 
-def assert_tx_status(tx_hash, expected_tx_status):
+def assert_tx_status(tx_hash, expected_tx_status: str, feeder_gateway_url=APP_URL):
     """Asserts the tx_status of the tx with tx_hash."""
-    output = run_starknet(["tx_status", "--hash", tx_hash])
+    output = run_starknet(
+        ["tx_status", "--hash", tx_hash], gateway_url=feeder_gateway_url
+    )
     response = json.loads(output.stdout)
     tx_status = response["tx_status"]
     assert_equal(tx_status, expected_tx_status, response)
