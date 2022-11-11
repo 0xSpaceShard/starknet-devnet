@@ -133,13 +133,13 @@ def _get_feeder_gateway_client(url: str, block_id: str):
         # this suppreses the logging
         with contextlib.redirect_stderr(None):
             block = asyncio.run(feeder_gateway_client.get_block(block_number=block_id))
-            block_id = block.block_number
+            block_number = block.block_number
     except InvalidURL:
         sys.exit(f"Error: Invalid forking URL: {url}")
     except BadRequest as bad_request:
         sys.exit(f"Error: {bad_request}")
 
-    return feeder_gateway_client, block_id
+    return feeder_gateway_client, block_number
 
 
 class NonNegativeAction(argparse.Action):

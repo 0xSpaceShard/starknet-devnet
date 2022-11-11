@@ -105,51 +105,53 @@ class RpcDeployAccountReceipt(RpcBaseTransactionReceipt):
     contract_address: Felt
 
 
-def rpc_invoke_receipt(txr: TransactionReceipt) -> RpcInvokeReceipt:
+async def rpc_invoke_receipt(txr: TransactionReceipt) -> RpcInvokeReceipt:
     """
     Convert gateway invoke transaction receipt to rpc format
     """
-    return rpc_base_transaction_receipt(txr)
+    return await rpc_base_transaction_receipt(txr)
 
 
-def rpc_declare_receipt(txr: TransactionReceipt) -> RpcDeclareReceipt:
+async def rpc_declare_receipt(txr: TransactionReceipt) -> RpcDeclareReceipt:
     """
     Convert gateway declare transaction receipt to rpc format
     """
-    return rpc_base_transaction_receipt(txr)
+    return await rpc_base_transaction_receipt(txr)
 
 
-def rpc_deploy_receipt(txr: TransactionReceipt) -> RpcDeployReceipt:
+async def rpc_deploy_receipt(txr: TransactionReceipt) -> RpcDeployReceipt:
     """
     Convert gateway deploy transaction receipt to rpc format
     """
-    base_receipt = rpc_base_transaction_receipt(txr)
-    transaction = state.starknet_wrapper.transactions.get_transaction(
+    base_receipt = await rpc_base_transaction_receipt(txr)
+    transaction = await state.starknet_wrapper.transactions.get_transaction(
         hex(txr.transaction_hash)
-    ).transaction
+    )
 
     receipt: RpcDeployReceipt = {
-        "contract_address": rpc_felt(transaction.contract_address),
+        "contract_address": rpc_felt(transaction.transaction.contract_address),
         **base_receipt,
     }
     return receipt
 
 
-def rpc_deploy_account_receipt(txr: TransactionReceipt) -> RpcDeployAccountReceipt:
+async def rpc_deploy_account_receipt(
+    txr: TransactionReceipt,
+) -> RpcDeployAccountReceipt:
     """
     Convert gateway deploy account transaction receipt to rpc format
     """
-    return rpc_deploy_receipt(txr)
+    return await rpc_deploy_receipt(txr)
 
 
-def rpc_l1_handler_receipt(txr: TransactionReceipt) -> RpcL1HandlerReceipt:
+async def rpc_l1_handler_receipt(txr: TransactionReceipt) -> RpcL1HandlerReceipt:
     """
     Convert gateway l1 handler transaction receipt to rpc format
     """
-    return rpc_base_transaction_receipt(txr)
+    return await rpc_base_transaction_receipt(txr)
 
 
-def rpc_base_transaction_receipt(txr: TransactionReceipt) -> dict:
+async def rpc_base_transaction_receipt(txr: TransactionReceipt) -> dict:
     """
     Convert gateway transaction receipt to rpc base transaction receipt
     """
@@ -188,11 +190,11 @@ def rpc_base_transaction_receipt(txr: TransactionReceipt) -> dict:
         }
         return mapping[txr.status]
 
-    def txn_type() -> RpcTxnType:
-        transaction = state.starknet_wrapper.transactions.get_transaction(
+    async def txn_type() -> RpcTxnType:
+        transaction = await state.starknet_wrapper.transactions.get_transaction(
             hex(txr.transaction_hash)
-        ).transaction
-        return rpc_txn_type(transaction.tx_type.name)
+        )
+        return rpc_txn_type(transaction.transaction.tx_type.name)
 
     receipt: RpcBaseTransactionReceipt = {
         "transaction_hash": rpc_felt(txr.transaction_hash),
@@ -202,12 +204,12 @@ def rpc_base_transaction_receipt(txr: TransactionReceipt) -> dict:
         "block_number": txr.block_number or None,
         "messages_sent": messages_sent(),
         "events": events(),
-        "type": txn_type(),
+        "type": await txn_type(),
     }
     return receipt
 
 
-def rpc_transaction_receipt(txr: TransactionReceipt) -> dict:
+async def rpc_transaction_receipt(txr: TransactionReceipt) -> dict:
     """
     Convert gateway transaction receipt to rpc format
     """
@@ -218,8 +220,8 @@ def rpc_transaction_receipt(txr: TransactionReceipt) -> dict:
         TransactionType.L1_HANDLER: rpc_l1_handler_receipt,
         TransactionType.DEPLOY_ACCOUNT: rpc_deploy_account_receipt,
     }
-    transaction = state.starknet_wrapper.transactions.get_transaction(
+    transaction = await state.starknet_wrapper.transactions.get_transaction(
         hex(txr.transaction_hash)
-    ).transaction
-    tx_type = transaction.tx_type
-    return tx_mapping[tx_type](txr)
+    )
+    tx_type = transaction.transaction.tx_type
+    return await tx_mapping[tx_type](txr)

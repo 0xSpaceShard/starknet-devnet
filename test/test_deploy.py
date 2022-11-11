@@ -123,7 +123,7 @@ async def test_deploy(starknet_wrapper_args, expected_block_hash):
     )
     assert contract_address == expected_contract_address
 
-    tx_status = devnet.transactions.get_transaction_status(hex(tx_hash))
+    tx_status = await devnet.transactions.get_transaction_status(hex(tx_hash))
     assert tx_status["tx_status"] == TransactionStatus.ACCEPTED_ON_L2.name
 
     if "--lite-mode" in starknet_wrapper_args:

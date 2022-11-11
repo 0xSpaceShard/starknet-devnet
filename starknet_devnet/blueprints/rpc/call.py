@@ -36,7 +36,7 @@ async def call(request: RpcFunctionCall, block_id: BlockId) -> List[Felt]:
     """
     Call a starknet function without creating a StarkNet transaction
     """
-    assert_block_id_is_latest_or_pending(block_id)
+    await assert_block_id_is_latest_or_pending(block_id)
 
     if not await state.starknet_wrapper.is_deployed(
         int(request["contract_address"], 16)

@@ -52,7 +52,9 @@ async def get_transaction_by_hash(transaction_hash: TxnHash) -> dict:
     Get the details and status of a submitted transaction
     """
     try:
-        result = state.starknet_wrapper.transactions.get_transaction(transaction_hash)
+        result = await state.starknet_wrapper.transactions.get_transaction(
+            transaction_hash
+        )
     except StarknetDevnetException as ex:
         raise RpcError(code=25, message="Transaction hash not found") from ex
 
@@ -66,7 +68,7 @@ async def get_transaction_by_block_id_and_index(block_id: BlockId, index: int) -
     """
     Get the details of a transaction by a given block id and index
     """
-    block = get_block_by_block_id(block_id)
+    block = await get_block_by_block_id(block_id)
 
     try:
         transaction_hash: int = block.transactions[index].transaction_hash
@@ -81,7 +83,7 @@ async def get_transaction_receipt(transaction_hash: TxnHash) -> dict:
     Get the transaction receipt by the transaction hash
     """
     try:
-        result = state.starknet_wrapper.transactions.get_transaction_receipt(
+        result = await state.starknet_wrapper.transactions.get_transaction_receipt(
             tx_hash=transaction_hash
         )
     except StarknetDevnetException as ex:
@@ -90,7 +92,7 @@ async def get_transaction_receipt(transaction_hash: TxnHash) -> dict:
     if result.status == TransactionStatus.NOT_RECEIVED:
         raise RpcError(code=25, message="Transaction hash not found")
 
-    return rpc_transaction_receipt(result)
+    return await rpc_transaction_receipt(result)
 
 
 async def pending_transactions() -> List[RpcTransaction]:
@@ -158,7 +160,7 @@ async def add_deploy_account_transaction(
         external_tx=deploy_account_tx
     )
 
-    status_response = state.starknet_wrapper.transactions.get_transaction_status(
+    status_response = await state.starknet_wrapper.transactions.get_transaction_status(
         hex(transaction_hash)
     )
     if (
@@ -193,7 +195,7 @@ async def estimate_fee(request: RpcBroadcastedTxn, block_id: BlockId) -> dict:
     """
     Estimate the fee for a given StarkNet transaction
     """
-    assert_block_id_is_latest_or_pending(block_id)
+    await assert_block_id_is_latest_or_pending(block_id)
     transaction = make_transaction(request)
     try:
         _, fee_response = await state.starknet_wrapper.calculate_trace_and_fee(

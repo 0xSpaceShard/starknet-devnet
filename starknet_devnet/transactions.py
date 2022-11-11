@@ -206,25 +206,25 @@ class DevnetTransactions:
         """
         self.__instances[tx_hash] = transaction
 
-    def get_transaction(self, tx_hash: str):
+    async def get_transaction(self, tx_hash: str):
         """
         Get a transaction info.
         """
         transaction = self.__get_transaction_by_hash(tx_hash)
 
         if transaction is None:
-            return self.origin.get_transaction(tx_hash)
+            return await self.origin.get_transaction(tx_hash)
 
         return transaction.get_tx_info()
 
-    def get_transaction_trace(self, tx_hash: str):
+    async def get_transaction_trace(self, tx_hash: str):
         """
         Get a transaction trace.
         """
         transaction = self.__get_transaction_by_hash(tx_hash)
 
         if transaction is None:
-            return self.origin.get_transaction_trace(tx_hash)
+            return await self.origin.get_transaction_trace(tx_hash)
 
         if transaction.status == TransactionStatus.REJECTED:
             raise StarknetDevnetException(
@@ -234,25 +234,25 @@ class DevnetTransactions:
 
         return transaction.get_trace()
 
-    def get_transaction_receipt(self, tx_hash: str):
+    async def get_transaction_receipt(self, tx_hash: str):
         """
         Get a transaction receipt.
         """
         transaction = self.__get_transaction_by_hash(tx_hash)
 
         if transaction is None:
-            return self.origin.get_transaction_receipt(tx_hash)
+            return await self.origin.get_transaction_receipt(tx_hash)
 
         return transaction.get_receipt()
 
-    def get_transaction_status(self, tx_hash: str):
+    async def get_transaction_status(self, tx_hash: str):
         """
         Get a transaction status.
         """
         transaction = self.__get_transaction_by_hash(tx_hash)
 
         if transaction is None:
-            return self.origin.get_transaction_status(tx_hash)
+            return await self.origin.get_transaction_status(tx_hash)
 
         tx_info = transaction.get_tx_info()
 

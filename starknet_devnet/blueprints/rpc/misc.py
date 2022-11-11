@@ -89,7 +89,7 @@ async def get_events(
         else int(to_block) + 1
     )
     for block_number in range(int(from_block), to_block):
-        block = state.starknet_wrapper.blocks.get_by_number(block_number)
+        block = await state.starknet_wrapper.blocks.get_by_number(block_number)
         if block.transaction_receipts:
             events.extend(get_events_from_block(block, address, keys))
 
@@ -109,7 +109,7 @@ async def get_nonce(block_id: BlockId, contract_address: Address) -> Felt:
     """
     Get the nonce associated with the given address in the given block
     """
-    assert_block_id_is_latest_or_pending(block_id)
+    await assert_block_id_is_latest_or_pending(block_id)
 
     if not await state.starknet_wrapper.is_deployed(int(contract_address, 16)):
         raise RpcError(code=20, message="Contract not found")

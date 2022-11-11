@@ -12,7 +12,7 @@ async def get_block_with_tx_hashes(block_id: BlockId) -> dict:
     """
     Get block information with transaction hashes given the block id
     """
-    block = get_block_by_block_id(block_id)
+    block = await get_block_by_block_id(block_id)
     return await rpc_block(block=block)
 
 
@@ -20,7 +20,7 @@ async def get_block_with_txs(block_id: BlockId) -> dict:
     """
     Get block information with full transactions given the block id
     """
-    block = get_block_by_block_id(block_id)
+    block = await get_block_by_block_id(block_id)
     return await rpc_block(block=block, tx_type="FULL_TXNS")
 
 
@@ -44,7 +44,7 @@ async def block_hash_and_number() -> dict:
         raise RpcError(code=32, message="There are no blocks")
 
     last_block_number = number_of_blocks - 1
-    last_block = state.starknet_wrapper.blocks.get_by_number(last_block_number)
+    last_block = await state.starknet_wrapper.blocks.get_by_number(last_block_number)
 
     result = {
         "block_hash": rpc_felt(last_block.block_hash),
@@ -57,5 +57,5 @@ async def get_block_transaction_count(block_id: BlockId) -> int:
     """
     Get the number of transactions in a block given a block id
     """
-    block = get_block_by_block_id(block_id)
+    block = await get_block_by_block_id(block_id)
     return len(block.transactions)

@@ -2,8 +2,6 @@
 Contains classes that provide the abstraction of L2 blockchain.
 """
 
-import asyncio
-
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.services.api.feeder_gateway.feeder_gateway_client import (
     FeederGatewayClient,
@@ -24,27 +22,29 @@ class Origin:
     Abstraction of an L2 blockchain.
     """
 
-    def get_transaction_status(self, transaction_hash: str):
+    async def get_transaction_status(self, transaction_hash: str):
         """Returns the status of the transaction."""
         raise NotImplementedError
 
-    def get_transaction(self, transaction_hash: str) -> TransactionInfo:
+    async def get_transaction(self, transaction_hash: str) -> TransactionInfo:
         """Returns the transaction object."""
         raise NotImplementedError
 
-    def get_transaction_receipt(self, transaction_hash: str) -> TransactionReceipt:
+    async def get_transaction_receipt(
+        self, transaction_hash: str
+    ) -> TransactionReceipt:
         """Returns the transaction receipt object."""
         raise NotImplementedError
 
-    def get_transaction_trace(self, transaction_hash: str) -> TransactionTrace:
+    async def get_transaction_trace(self, transaction_hash: str) -> TransactionTrace:
         """Returns the transaction trace object."""
         raise NotImplementedError
 
-    def get_block_by_hash(self, block_hash: str) -> StarknetBlock:
+    async def get_block_by_hash(self, block_hash: str) -> StarknetBlock:
         """Returns the block identified with either its hash."""
         raise NotImplementedError
 
-    def get_block_by_number(self, block_number: int) -> StarknetBlock:
+    async def get_block_by_number(self, block_number: int) -> StarknetBlock:
         """Returns the block identified with either its number or the latest block if no number provided."""
         raise NotImplementedError
 
@@ -52,7 +52,7 @@ class Origin:
         """Returns the number of blocks stored so far"""
         raise NotImplementedError
 
-    def get_state_update(
+    async def get_state_update(
         self, block_hash: str = None, block_number: int = None
     ) -> dict or None:
         """
@@ -67,15 +67,17 @@ class NullOrigin(Origin):
     A default class to comply with the Origin interface.
     """
 
-    def get_transaction_status(self, transaction_hash: str):
+    async def get_transaction_status(self, transaction_hash: str):
         return {"tx_status": TransactionStatus.NOT_RECEIVED.name}
 
-    def get_transaction(self, transaction_hash: str) -> TransactionInfo:
+    async def get_transaction(self, transaction_hash: str) -> TransactionInfo:
         return TransactionInfo.create(
             status=TransactionStatus.NOT_RECEIVED,
         )
 
-    def get_transaction_receipt(self, transaction_hash: str) -> TransactionReceipt:
+    async def get_transaction_receipt(
+        self, transaction_hash: str
+    ) -> TransactionReceipt:
         return TransactionReceipt(
             status=TransactionStatus.NOT_RECEIVED,
             transaction_hash=int(transaction_hash, 16),
@@ -90,20 +92,20 @@ class NullOrigin(Origin):
             l1_to_l2_consumed_message=None,
         )
 
-    def get_transaction_trace(self, transaction_hash: str):
+    async def get_transaction_trace(self, transaction_hash: str):
         tx_hash_int = int(transaction_hash, 16)
         message = f"Transaction corresponding to hash {tx_hash_int} is not found."
         raise StarknetDevnetException(
             code=StarknetErrorCode.INVALID_TRANSACTION_HASH, message=message
         )
 
-    def get_block_by_hash(self, block_hash: str):
+    async def get_block_by_hash(self, block_hash: str):
         message = f"Block hash not found; got: {block_hash}."
         raise StarknetDevnetException(
             code=StarknetErrorCode.BLOCK_NOT_FOUND, message=message
         )
 
-    def get_block_by_number(self, block_number: int):
+    async def get_block_by_number(self, block_number: int):
         message = "Requested the latest block, but there are no blocks so far."
         raise StarknetDevnetException(
             code=StarknetErrorCode.BLOCK_NOT_FOUND, message=message
@@ -112,7 +114,7 @@ class NullOrigin(Origin):
     def get_number_of_blocks(self):
         return 0
 
-    def get_state_update(
+    async def get_state_update(
         self, block_hash: str = None, block_number: int = None
     ) -> dict or None:
         if block_hash:
@@ -143,45 +145,39 @@ class ForkedOrigin(Origin):
         self.__feeder_gateway_client = feeder_gateway_client
         self.number_of_blocks = number_of_blocks
 
-    def get_transaction_status(self, transaction_hash: str):
-        return asyncio.run(
-            self.__feeder_gateway_client.get_transaction_status(transaction_hash)
+    async def get_transaction_status(self, transaction_hash: str):
+        return await self.__feeder_gateway_client.get_transaction_status(
+            transaction_hash
         )
 
-    def get_transaction(self, transaction_hash: str):
-        return asyncio.run(
-            self.__feeder_gateway_client.get_transaction(transaction_hash)
+    async def get_transaction(self, transaction_hash: str):
+        return await self.__feeder_gateway_client.get_transaction(transaction_hash)
+
+    async def get_transaction_receipt(
+        self, transaction_hash: str
+    ) -> TransactionReceipt:
+        return await self.__feeder_gateway_client.get_transaction_receipt(
+            transaction_hash
         )
 
-    def get_transaction_receipt(self, transaction_hash: str) -> TransactionReceipt:
-        return asyncio.run(
-            self.__feeder_gateway_client.get_transaction_receipt(transaction_hash)
+    async def get_transaction_trace(self, transaction_hash: str):
+        return await self.__feeder_gateway_client.get_transaction_trace(
+            transaction_hash
         )
 
-    def get_transaction_trace(self, transaction_hash: str):
-        return asyncio.run(
-            self.__feeder_gateway_client.get_transaction_trace(transaction_hash)
-        )
+    async def get_block_by_hash(self, block_hash: str):
+        return await self.__feeder_gateway_client.get_block(block_hash=block_hash)
 
-    def get_block_by_hash(self, block_hash: str):
-        return asyncio.run(
-            self.__feeder_gateway_client.get_block(block_hash=block_hash)
-        )
-
-    def get_block_by_number(self, block_number: int):
-        return asyncio.run(
-            self.__feeder_gateway_client.get_block(block_number=block_number)
-        )
+    async def get_block_by_number(self, block_number: int):
+        return await self.__feeder_gateway_client.get_block(block_number=block_number)
 
     def get_number_of_blocks(self):
         return self.number_of_blocks
 
-    def get_state_update(
+    async def get_state_update(
         self, block_hash: str = None, block_number: int = None
     ) -> dict or None:
-        return asyncio.run(
-            self.__feeder_gateway_client.get_state_update(
-                block_hash=block_hash,
-                block_number=block_number,
-            )
+        return await self.__feeder_gateway_client.get_state_update(
+            block_hash=block_hash,
+            block_number=block_number,
         )

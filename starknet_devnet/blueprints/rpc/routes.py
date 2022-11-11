@@ -6,6 +6,7 @@ https://github.com/starkware-libs/starknet-specs/releases/tag/v0.1.0
 
 from __future__ import annotations
 
+import inspect
 from typing import Callable, Dict, Union, List, Tuple
 
 from flask import Blueprint
@@ -83,6 +84,8 @@ async def base_route():
         result = await (
             method(*params) if isinstance(params, list) else method(**params)
         )
+        if inspect.iscoroutinefunction(result):
+            result = await result
     except TypeError as type_error:
         return rpc_error(message_id=message_id, code=22, message=str(type_error))
     except RpcError as error:
