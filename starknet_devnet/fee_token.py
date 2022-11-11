@@ -56,27 +56,29 @@ class FeeToken:
         try:
             await starknet.state.state.deploy_contract(
                 FeeToken.ADDRESS,
-                FeeToken.HASH_BYTES,  # TODO failing if forking alpha-goerli: unify addr?
+                FeeToken.HASH_BYTES,
+            )
+
+            # mimic constructor
+            await starknet.state.state.set_storage_at(
+                FeeToken.ADDRESS,
+                get_selector_from_name("ERC20_name"),
+                str_to_felt(FeeToken.NAME),
+            )
+            await starknet.state.state.set_storage_at(
+                FeeToken.ADDRESS,
+                get_selector_from_name("ERC20_symbol"),
+                str_to_felt(FeeToken.SYMBOL),
+            )
+            await starknet.state.state.set_storage_at(
+                FeeToken.ADDRESS,
+                get_selector_from_name("ERC20_decimals"),
+                18,
             )
         except StarkException:
             print(f"{self.__class__.__name__} already deployed")
-            return
 
-        await starknet.state.state.set_storage_at(
-            FeeToken.ADDRESS,
-            get_selector_from_name("ERC20_name"),
-            str_to_felt(FeeToken.NAME),
-        )
-        await starknet.state.state.set_storage_at(
-            FeeToken.ADDRESS,
-            get_selector_from_name("ERC20_symbol"),
-            str_to_felt(FeeToken.SYMBOL),
-        )
-        await starknet.state.state.set_storage_at(
-            FeeToken.ADDRESS, get_selector_from_name("ERC20_decimals"), 18
-        )
-
-        self.contract = StarknetContract(  # TODO never executed if forking
+        self.contract = StarknetContract(
             state=starknet.state,
             abi=contract_class.abi,
             contract_address=FeeToken.ADDRESS,
