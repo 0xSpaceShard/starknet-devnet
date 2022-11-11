@@ -16,6 +16,7 @@ from starkware.starknet.testing.starknet import Starknet
 from starkware.starknet.testing.state import StarknetState
 from starkware.starkware_utils.error_handling import StarkException
 
+from .block_info_generator import now
 from .general_config import DEFAULT_GENERAL_CONFIG
 
 
@@ -72,7 +73,7 @@ class ForkedStateReader(StateReader):
 
 
 def get_forked_starknet(
-    feeder_gateway_client: FeederGatewayClient, block_number: int
+    feeder_gateway_client: FeederGatewayClient, block_number: int, gas_price: int
 ) -> Starknet:
     """Return a forked Starknet"""
     state_reader = ForkedStateReader(
@@ -82,7 +83,11 @@ def get_forked_starknet(
     return Starknet(
         state=StarknetState(
             state=CachedState(
-                block_info=BlockInfo.empty(None),  # TODO empty? None?
+                block_info=BlockInfo.create_for_testing(
+                    block_number=block_number,
+                    block_timestamp=now(),
+                    gas_price=gas_price,
+                ),
                 state_reader=state_reader,
             ),
             general_config=DEFAULT_GENERAL_CONFIG,

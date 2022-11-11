@@ -163,6 +163,7 @@ class StarknetWrapper:
                 self.starknet = get_forked_starknet(
                     feeder_gateway_client=self.config.fork_network,
                     block_number=self.config.fork_block,
+                    gas_price=self.block_info_generator.gas_price,
                 )
             else:
                 self.starknet = await Starknet.empty(
@@ -457,7 +458,6 @@ class StarknetWrapper:
     async def call(self, transaction: CallFunction):
         """Perform call according to specifications in `transaction`."""
 
-        # TODO what if contract not found?
         state_copy = self.get_state().copy()
         call_info = await state_copy.execute_entry_point_raw(
             contract_address=transaction.contract_address,

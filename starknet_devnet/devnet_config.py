@@ -196,7 +196,6 @@ def parse_args(raw_args: List[str]):
         help=f"Specify when to dump; can dump on: {DUMP_ON_OPTIONS_STRINGIFIED}",
         type=_parse_dump_on,
     )
-    # TODO consider logging a warning here for minimal impact of lite-mode
     parser.add_argument(
         "--lite-mode",
         action="store_true",
