@@ -9,7 +9,7 @@ import os
 import sys
 from typing import List
 
-from aiohttp.client_exceptions import InvalidURL
+from aiohttp.client_exceptions import ClientConnectorError, InvalidURL
 from marshmallow.exceptions import ValidationError
 from services.external_api.client import BadRequest, RetryConfig
 from starkware.python.utils import to_bytes
@@ -136,8 +136,8 @@ def _get_feeder_gateway_client(url: str, block_id: str):
             block_number = block.block_number
     except InvalidURL:
         sys.exit(f"Error: Invalid forking URL: {url}")
-    except BadRequest as bad_request:
-        sys.exit(f"Error: {bad_request}")
+    except (BadRequest, ClientConnectorError) as error:
+        sys.exit(f"Error: {error}")
 
     return feeder_gateway_client, block_number
 

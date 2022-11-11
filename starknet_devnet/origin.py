@@ -140,10 +140,10 @@ class ForkedOrigin(Origin):
     """
 
     def __init__(
-        self, feeder_gateway_client: FeederGatewayClient, number_of_blocks: int
+        self, feeder_gateway_client: FeederGatewayClient, last_block_number: int
     ):
         self.__feeder_gateway_client = feeder_gateway_client
-        self.number_of_blocks = number_of_blocks
+        self.__number_of_blocks = last_block_number + 1
 
     async def get_transaction_status(self, transaction_hash: str):
         return await self.__feeder_gateway_client.get_transaction_status(
@@ -172,7 +172,7 @@ class ForkedOrigin(Origin):
         return await self.__feeder_gateway_client.get_block(block_number=block_number)
 
     def get_number_of_blocks(self):
-        return self.number_of_blocks
+        return self.__number_of_blocks
 
     async def get_state_update(
         self, block_hash: str = None, block_number: int = None
