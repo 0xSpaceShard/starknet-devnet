@@ -36,9 +36,9 @@ def _invoke_on_fork_and_assert_only_fork_changed(
     origin_url: str,
 ):
 
-    increase_list = [1, 2]
+    increase_args = [1, 2]
     invoke_tx_hash = invoke(
-        calls=[(contract_address, "increase_balance", increase_list)],
+        calls=[(contract_address, "increase_balance", increase_args)],
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
         gateway_url=fork_url,
@@ -59,25 +59,57 @@ def _invoke_on_fork_and_assert_only_fork_changed(
         address=contract_address,
         feeder_gateway_url=fork_url,
     )
-    assert fork_balance_after == str(int(initial_balance) + sum(increase_list))
+    assert fork_balance_after == str(int(initial_balance) + sum(increase_args))
     assert_tx_status(invoke_tx_hash, "ACCEPTED_ON_L2", feeder_gateway_url=fork_url)
 
 
-@devnet_in_background("--port", ORIGIN_PORT, *PREDEPLOY_ACCOUNT_CLI_ARGS)
-@devnet_in_background("--port", FORK_PORT, "--fork-network", ORIGIN_URL)
-def test_forking_devnet():
-    """Invoke on fork, assert origin unchanged"""
+def _deploy_on_origin_invoke_on_fork_assert_only_fork_changed(
+    fork_url: str,
+    origin_url: str,
+    initial_balance="10",
+):
 
-    initial_balance = "10"
     deploy_info = deploy(
         contract=CONTRACT_PATH,
         inputs=[initial_balance],
-        gateway_url=ORIGIN_URL,
+        gateway_url=origin_url,
     )
 
     _invoke_on_fork_and_assert_only_fork_changed(
         contract_address=deploy_info["address"],
         initial_balance=initial_balance,
+        fork_url=fork_url,
+        origin_url=origin_url,
+    )
+
+
+@devnet_in_background("--port", ORIGIN_PORT, *PREDEPLOY_ACCOUNT_CLI_ARGS)
+@devnet_in_background(
+    "--port", FORK_PORT, "--fork-network", ORIGIN_URL, "--accounts", "0"
+)
+def test_forking_devnet_with_account_on_origin():
+    """
+    Deploy contract on origin, invoke on fork, rely on account on origin.
+    Assert only fork changed
+    """
+
+    _deploy_on_origin_invoke_on_fork_assert_only_fork_changed(
+        fork_url=FORK_URL,
+        origin_url=ORIGIN_URL,
+    )
+
+
+@devnet_in_background("--port", ORIGIN_PORT, "--accounts", "0")
+@devnet_in_background(
+    "--port", FORK_PORT, "--fork-network", ORIGIN_URL, *PREDEPLOY_ACCOUNT_CLI_ARGS
+)
+def test_forking_devnet_with_account_on_fork():
+    """
+    Deploy contract on origin, invoke on fork, rely on account on fork.
+    Assert only fork changed
+    """
+
+    _deploy_on_origin_invoke_on_fork_assert_only_fork_changed(
         fork_url=FORK_URL,
         origin_url=ORIGIN_URL,
     )
@@ -134,3 +166,10 @@ def test_forking_testnet_from_too_early_block():
 
     assert class_resp.json()["code"] == str(StarknetErrorCode.UNINITIALIZED_CONTRACT)
     assert class_resp.status_code == 500
+
+
+# TODO deploy on fork
+
+# TODO test other feeder gateway responses
+
+# TODO add test which asserts balance after tx
