@@ -65,3 +65,7 @@ EXPECTED_FEE_TOKEN_ADDRESS = (
 EXPECTED_UDC_ADDRESS = (
     "0x41a78e741e5af2fec34b695679bc6891742439f7afb8484ecd7766661ad02bf"
 )
+
+ALPHA_MAINNET_URL = "https://alpha-mainnet.starknet.io"
+ALPHA_GOERLI_URL = "https://alpha4.starknet.io"
+ALPHA_GOERLI_2_URL = "https://alpha4-2.starknet.io"

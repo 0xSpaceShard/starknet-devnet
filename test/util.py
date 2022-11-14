@@ -8,7 +8,7 @@ import os
 import re
 import subprocess
 import time
-from typing import List
+from typing import IO, List
 import requests
 
 from starkware.starknet.cli.starknet_cli import get_salt
@@ -564,3 +564,8 @@ class DevnetBackgroundProc:
         if self.proc:
             terminate_and_wait(self.proc)
             self.proc = None
+
+
+def read_stream(stream: IO, encoding="utf-8") -> str:
+    """Return stdout and stderr of `proc`"""
+    return stream.read().decode(encoding)

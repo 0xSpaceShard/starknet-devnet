@@ -56,11 +56,14 @@ def _fork_block(specifier: str):
         return specifier
 
     try:
-        return int(specifier)
-    except ValueError:
+        parsed = int(specifier)
+        assert parsed > 0
+    except (AssertionError, ValueError):
         sys.exit(
-            f"The value of --fork-block must be an integer or 'latest', got: {specifier}"
+            f"The value of --fork-block must be a non-negative integer or 'latest', got: {specifier}"
         )
+
+    return parsed
 
 
 class DumpOn(Enum):
@@ -135,8 +138,16 @@ def _get_feeder_gateway_client(url: str, block_id: str):
             block = asyncio.run(feeder_gateway_client.get_block(block_number=block_id))
             block_number = block.block_number
     except InvalidURL:
-        sys.exit(f"Error: Invalid forking URL: {url}")
-    except (BadRequest, ClientConnectorError) as error:
+        sys.exit(f"Error: Invalid fork-network (must be name or URL): {url}")
+    except BadRequest as bad_request:
+        msg = "Error: "
+        if bad_request.status_code == 404:
+            msg += f"{url} is not a valid StarkNet sequencer"
+        else:
+            msg += str(bad_request)
+
+        sys.exit(msg)
+    except ClientConnectorError as error:
         sys.exit(f"Error: {error}")
 
     return feeder_gateway_client, block_number
