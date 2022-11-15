@@ -5,6 +5,8 @@ Relying on the fact that devnet doesn't support specifying which block to query
 
 import pytest
 
+from starknet_devnet.constants import DEFAULT_INITIAL_BALANCE
+
 from .account import invoke
 from .shared import (
     ABI_PATH,
@@ -15,6 +17,7 @@ from .shared import (
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
 from .settings import APP_URL, bind_free_port, HOST
+from .test_account import get_account_balance
 from .util import (
     assert_contract_not_initialized,
     assert_tx_status,
@@ -92,10 +95,31 @@ def test_forking_devnet_with_account_on_origin():
     Assert only fork changed
     """
 
+    origin_balance_before = get_account_balance(
+        address=PREDEPLOYED_ACCOUNT_ADDRESS, server_url=ORIGIN_URL
+    )
+    assert origin_balance_before == DEFAULT_INITIAL_BALANCE
+
+    # fork has access to balances on origin
+    fork_balance_before = get_account_balance(
+        address=PREDEPLOYED_ACCOUNT_ADDRESS, server_url=FORK_URL
+    )
+    assert fork_balance_before == DEFAULT_INITIAL_BALANCE
+
     _deploy_on_origin_invoke_on_fork_assert_only_fork_changed(
         fork_url=FORK_URL,
         origin_url=ORIGIN_URL,
     )
+
+    origin_balance_after = get_account_balance(
+        address=PREDEPLOYED_ACCOUNT_ADDRESS, server_url=ORIGIN_URL
+    )
+    assert origin_balance_after == DEFAULT_INITIAL_BALANCE
+
+    fork_balance_after = get_account_balance(
+        address=PREDEPLOYED_ACCOUNT_ADDRESS, server_url=FORK_URL
+    )
+    assert fork_balance_after < DEFAULT_INITIAL_BALANCE
 
 
 @devnet_in_background("--port", ORIGIN_PORT, "--accounts", "0")
@@ -108,10 +132,30 @@ def test_forking_devnet_with_account_on_fork():
     Assert only fork changed
     """
 
+    origin_balance_before = get_account_balance(
+        address=PREDEPLOYED_ACCOUNT_ADDRESS, server_url=ORIGIN_URL
+    )
+    assert origin_balance_before == 0
+
+    fork_balance_before = get_account_balance(
+        address=PREDEPLOYED_ACCOUNT_ADDRESS, server_url=FORK_URL
+    )
+    assert fork_balance_before == DEFAULT_INITIAL_BALANCE
+
     _deploy_on_origin_invoke_on_fork_assert_only_fork_changed(
         fork_url=FORK_URL,
         origin_url=ORIGIN_URL,
     )
+
+    origin_balance_after = get_account_balance(
+        address=PREDEPLOYED_ACCOUNT_ADDRESS, server_url=ORIGIN_URL
+    )
+    assert origin_balance_after == 0
+
+    fork_balance_after = get_account_balance(
+        address=PREDEPLOYED_ACCOUNT_ADDRESS, server_url=FORK_URL
+    )
+    assert fork_balance_after < DEFAULT_INITIAL_BALANCE
 
 
 TESTNET_URL = ALPHA_GOERLI_2_URL
@@ -174,7 +218,7 @@ def test_deploy_on_fork():
     )
     assert balance_after == "13"
 
-    assert_contract_not_initialized(ALPHA_GOERLI_2_URL, contract_address)
+    assert_contract_not_initialized(contract_address, ALPHA_GOERLI_2_URL)
 
 
 @devnet_in_background(
@@ -190,9 +234,9 @@ def test_forking_testnet_from_too_early_block():
         max_fee=int(1e8),  # to prevent implicit fee estimation
     )
 
-    assert_tx_status(invoke_tx_hash, "REJECTED", feeder_gateway_url=TESTNET_URL)
-    assert_contract_not_initialized(APP_URL, TESTNET_CONTRACT_ADDRESS)
+    # make assertions on fork (devnet)
+    assert_tx_status(invoke_tx_hash, "REJECTED")
+    assert_contract_not_initialized(TESTNET_CONTRACT_ADDRESS)
+
 
 # TODO test other feeder gateway responses
-
-# TODO add test which asserts balance after tx

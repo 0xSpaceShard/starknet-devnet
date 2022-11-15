@@ -62,9 +62,9 @@ def deploy_events_contract():
     return deploy(EVENTS_CONTRACT_PATH, salt=SALT)
 
 
-def get_account_balance(address: str) -> int:
+def get_account_balance(address: str, server_url=APP_URL) -> int:
     """Get balance (wei) of account with `address` (hex)."""
-    resp = requests.get(f"{APP_URL}/account_balance?address={address}")
+    resp = requests.get(f"{server_url}/account_balance?address={address}")
     assert resp.status_code == 200
     return int(resp.json()["amount"])
 

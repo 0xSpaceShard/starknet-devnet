@@ -422,7 +422,7 @@ def get_class_hash_at(contract_address: str) -> str:
     return output.stdout
 
 
-def assert_contract_not_initialized(feeder_gateway_url: str, contract_address: str):
+def assert_contract_not_initialized(contract_address: str, feeder_gateway_url=APP_URL):
     """Try getting class hash at `contract_address`."""
     resp = requests.get(
         f"{feeder_gateway_url}/feeder_gateway/get_class_hash_at",
