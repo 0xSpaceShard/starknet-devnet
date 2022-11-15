@@ -4,9 +4,6 @@ Relying on the fact that devnet doesn't support specifying which block to query
 """
 
 import pytest
-import requests
-
-from starkware.starknet.definitions.error_codes import StarknetErrorCode
 
 from .account import invoke
 from .shared import (
@@ -19,6 +16,7 @@ from .shared import (
 )
 from .settings import APP_URL, bind_free_port, HOST
 from .util import (
+    assert_contract_not_initialized,
     assert_tx_status,
     call,
     deploy,
@@ -147,6 +145,39 @@ def test_forking_testnet_from_valid_block():
 
 
 @devnet_in_background(
+    *PREDEPLOY_ACCOUNT_CLI_ARGS,
+    "--fork-network",
+    "alpha-goerli-2",
+    "--fork-block",
+    str(TESTNET_DEPLOYMENT_BLOCK),
+)
+def test_deploy_on_fork():
+    """
+    Deploy on fork, invoke on fork.
+    Assert usability on fork. Assert no change on origin.
+    """
+
+    deploy_info = deploy(contract=CONTRACT_PATH, inputs=["10"])
+    contract_address = deploy_info["address"]
+
+    invoke_tx_hash = invoke(
+        calls=[(contract_address, "increase_balance", [1, 2])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
+    assert_tx_status(invoke_tx_hash, "ACCEPTED_ON_L2")
+
+    balance_after = call(
+        function="get_balance",
+        address=contract_address,
+        abi_path=ABI_PATH,
+    )
+    assert balance_after == "13"
+
+    assert_contract_not_initialized(ALPHA_GOERLI_2_URL, contract_address)
+
+
+@devnet_in_background(
     *TESTNET_FORK_PARAMS, "--fork-block", str(TESTNET_DEPLOYMENT_BLOCK - 1)
 )
 def test_forking_testnet_from_too_early_block():
@@ -160,16 +191,7 @@ def test_forking_testnet_from_too_early_block():
     )
 
     assert_tx_status(invoke_tx_hash, "REJECTED", feeder_gateway_url=TESTNET_URL)
-    class_resp = requests.get(
-        f"{APP_URL}/feeder_gateway/get_class_hash_at",
-        {"contractAddress": TESTNET_CONTRACT_ADDRESS},
-    )
-
-    assert class_resp.json()["code"] == str(StarknetErrorCode.UNINITIALIZED_CONTRACT)
-    assert class_resp.status_code == 500
-
-
-# TODO deploy on fork
+    assert_contract_not_initialized(APP_URL, TESTNET_CONTRACT_ADDRESS)
 
 # TODO test other feeder gateway responses
 

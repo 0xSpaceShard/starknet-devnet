@@ -74,7 +74,7 @@ def test_predefined_fork_network_specification(
 
 
 def test_block_provided_without_network():
-    """Should fail if one block provided and network not"""
+    """Should fail if block provided and network not"""
     proc = ACTIVE_DEVNET.start(
         "--fork-block", "123", stderr=subprocess.PIPE, stdout=subprocess.PIPE
     )

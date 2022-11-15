@@ -12,6 +12,7 @@ from typing import IO, List
 import requests
 
 from starkware.starknet.cli.starknet_cli import get_salt
+from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.gateway.transaction import Deploy
@@ -419,6 +420,16 @@ def get_class_hash_at(contract_address: str) -> str:
     """Gets class hash at given contract address"""
     output = run_starknet(["get_class_hash_at", "--contract_address", contract_address])
     return output.stdout
+
+
+def assert_contract_not_initialized(feeder_gateway_url: str, contract_address: str):
+    """Try getting class hash at `contract_address`."""
+    resp = requests.get(
+        f"{feeder_gateway_url}/feeder_gateway/get_class_hash_at",
+        {"contractAddress": contract_address},
+    )
+    assert resp.json()["code"] == str(StarknetErrorCode.UNINITIALIZED_CONTRACT)
+    assert resp.status_code == 500
 
 
 def get_class_by_hash(class_hash: str):
