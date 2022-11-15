@@ -59,7 +59,8 @@ def _invoke_on_fork_and_assert_only_fork_changed(
         address=contract_address,
         feeder_gateway_url=fork_url,
     )
-    assert fork_balance_after == str(int(initial_balance) + sum(increase_args))
+    expected_balancer_after = str(int(initial_balance) + sum(increase_args))
+    assert fork_balance_after == expected_balancer_after
     assert_tx_status(invoke_tx_hash, "ACCEPTED_ON_L2", feeder_gateway_url=fork_url)
 
 

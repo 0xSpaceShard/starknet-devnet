@@ -38,38 +38,38 @@ def test_url_not_sequencer():
         stdout=subprocess.PIPE,
     )
     assert read_stream(proc.stdout) == ""
-    assert read_stream(proc.stderr) == f"Error: {invalid_url} is not a valid StarkNet sequencer\n"
+    assert (
+        read_stream(proc.stderr)
+        == f"Error: {invalid_url} is not a valid StarkNet sequencer\n"
+    )
     assert proc.returncode == 1
 
 
 @pytest.mark.parametrize(
-    "fork_network, expected_stdout, expected_stderr",
+    "fork_network, expected_stdout",
     [
-        ("alpha-mainnet", f"Forking {ALPHA_MAINNET_URL}", ""),
-        (ALPHA_MAINNET_URL, f"Forking {ALPHA_MAINNET_URL}", ""),
-        ("alpha-goerli", f"Forking {ALPHA_GOERLI_URL}", ""),
-        (ALPHA_GOERLI_URL, f"Forking {ALPHA_GOERLI_URL}", ""),
-        ("alpha-goerli-2", f"Forking {ALPHA_GOERLI_2_URL}", ""),
-        (ALPHA_GOERLI_2_URL, f"Forking {ALPHA_GOERLI_2_URL}", ""),
+        ("alpha-mainnet", f"Forking {ALPHA_MAINNET_URL}"),
+        (ALPHA_MAINNET_URL, f"Forking {ALPHA_MAINNET_URL}"),
+        ("alpha-goerli", f"Forking {ALPHA_GOERLI_URL}"),
+        (ALPHA_GOERLI_URL, f"Forking {ALPHA_GOERLI_URL}"),
+        ("alpha-goerli-2", f"Forking {ALPHA_GOERLI_2_URL}"),
+        (ALPHA_GOERLI_2_URL, f"Forking {ALPHA_GOERLI_2_URL}"),
     ],
 )
 def test_predefined_fork_network_specification(
     fork_network: str,
     expected_stdout: str,
-    expected_stderr: str,
 ):
     """Test various happy path fork network specification scenarios"""
     proc = ACTIVE_DEVNET.start(
         "--accounts",
-        "0",
+        "0", # to reduce output
         "--fork-network",
         fork_network,
-        stderr=subprocess.PIPE,
         stdout=subprocess.PIPE,
     )
     terminate_and_wait(proc)
     assert expected_stdout in read_stream(proc.stdout)
-    assert expected_stderr in read_stream(proc.stderr)
     assert proc.returncode == 0
 
 
