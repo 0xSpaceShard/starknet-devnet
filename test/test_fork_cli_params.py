@@ -63,7 +63,7 @@ def test_predefined_fork_network_specification(
     """Test various happy path fork network specification scenarios"""
     proc = ACTIVE_DEVNET.start(
         "--accounts",
-        "0", # to reduce output
+        "0",  # to reduce output
         "--fork-network",
         fork_network,
         stdout=subprocess.PIPE,

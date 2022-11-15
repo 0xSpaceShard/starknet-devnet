@@ -37,7 +37,7 @@ from .constants import (
 
 NETWORK_TO_URL = {
     "alpha-goerli": "https://alpha4.starknet.io",
-    "alpha-goerli-2": "https://alpha4-2.starknet.io",
+    "alpha-goerli-2": "https://alpha4-2.starknet.io",  # TODO see how it's called in cairo-lang 0.10.2
     "alpha-mainnet": "https://alpha-mainnet.starknet.io",
 }
 

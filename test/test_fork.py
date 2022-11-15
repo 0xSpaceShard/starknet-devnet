@@ -106,6 +106,9 @@ def test_forking_devnet_with_account_on_origin():
     )
     assert fork_balance_before == DEFAULT_INITIAL_BALANCE
 
+    # TODO assert nonce before
+
+    # with goerli, forking would be done here, but having it done beforehand is ok with devnet
     _deploy_on_origin_invoke_on_fork_assert_only_fork_changed(
         fork_url=FORK_URL,
         origin_url=ORIGIN_URL,
@@ -120,6 +123,8 @@ def test_forking_devnet_with_account_on_origin():
         address=PREDEPLOYED_ACCOUNT_ADDRESS, server_url=FORK_URL
     )
     assert fork_balance_after < DEFAULT_INITIAL_BALANCE
+
+    # TODO assert nonce after
 
 
 @devnet_in_background("--port", ORIGIN_PORT, "--accounts", "0")
@@ -142,6 +147,9 @@ def test_forking_devnet_with_account_on_fork():
     )
     assert fork_balance_before == DEFAULT_INITIAL_BALANCE
 
+    # TODO assert nonce before
+
+    # with goerli, forking would be done here, but having it done beforehand is ok with devnet
     _deploy_on_origin_invoke_on_fork_assert_only_fork_changed(
         fork_url=FORK_URL,
         origin_url=ORIGIN_URL,
@@ -156,6 +164,8 @@ def test_forking_devnet_with_account_on_fork():
         address=PREDEPLOYED_ACCOUNT_ADDRESS, server_url=FORK_URL
     )
     assert fork_balance_after < DEFAULT_INITIAL_BALANCE
+
+    # TODO assert nonce after
 
 
 TESTNET_URL = ALPHA_GOERLI_2_URL
@@ -228,15 +238,96 @@ def test_forking_testnet_from_too_early_block():
     """Test forking testnet if not yet deployed"""
 
     invoke_tx_hash = invoke(
-        calls=[(TESTNET_CONTRACT_ADDRESS, "increase_balance", [1, 2])],
+        calls=[(TESTNET_CONTRACT_ADDRESS, "increase_balance", [2, 3])],  # random values
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
         max_fee=int(1e8),  # to prevent implicit fee estimation
     )
 
-    # make assertions on fork (devnet)
+    # assertions on fork (devnet)
     assert_tx_status(invoke_tx_hash, "REJECTED")
     assert_contract_not_initialized(TESTNET_CONTRACT_ADDRESS)
 
+    # assertions on origin (testnet)
+    # this will fail if someone invokes `increase_balance(2, 3)` because it will then be REJECTED
+    assert_tx_status(invoke_tx_hash, "NOT_RECEIVED", feeder_gateway_url=TESTNET_URL)
 
-# TODO test other feeder gateway responses
+
+@devnet_in_background(
+    *TESTNET_FORK_PARAMS, "--fork-block", str(TESTNET_DEPLOYMENT_BLOCK)
+)
+def test_feeder_gateway_responses():
+    """Assert feeder gateway calls only make sense on fork"""
+
+    contract_address = TESTNET_CONTRACT_ADDRESS
+    invoke_tx_hash = invoke(
+        calls=[(contract_address, "increase_balance", [1, 2])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
+    
+    
+
+def test_get_block():
+    raise NotImplementedError
+
+
+def test_get_block_traces():
+    raise NotImplementedError
+
+
+def test_get_code():
+    raise NotImplementedError
+
+
+def test_get_full_contract():
+    raise NotImplementedError
+
+
+def test_get_class_hash_at():
+    raise NotImplementedError
+
+
+def test_get_class_by_hash():
+    raise NotImplementedError
+
+
+def test_get_storage_at():
+    raise NotImplementedError
+
+
+def test_get_transaction_status():
+    raise NotImplementedError
+
+
+def test_get_transaction():
+    raise NotImplementedError
+
+
+def test_get_transaction_receipt():
+    raise NotImplementedError
+
+
+def test_get_transaction_trace():
+    raise NotImplementedError
+
+
+def test_get_state_update():
+    raise NotImplementedError
+
+
+def test_estimate_fee():
+    raise NotImplementedError
+
+
+def test_simulate_transaction():
+    raise NotImplementedError
+
+
+def test_estimate_message_fee():
+    raise NotImplementedError
+
+
+
+# TODO test declare
+# TODO test deploy acc
