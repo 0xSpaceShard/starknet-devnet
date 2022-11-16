@@ -140,11 +140,10 @@ def _get_feeder_gateway_client(url: str, block_id: str):
     except InvalidURL:
         sys.exit(f"Error: Invalid fork-network (must be name or URL): {url}")
     except BadRequest as bad_request:
-        msg = "Error: "
         if bad_request.status_code == 404:
-            msg += f"{url} is not a valid StarkNet sequencer"
+            msg = f"Error: {url} is not a valid StarkNet sequencer"
         else:
-            msg += str(bad_request)
+            msg = f"Error: {bad_request}"
 
         sys.exit(msg)
     except ClientConnectorError as error:

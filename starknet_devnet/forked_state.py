@@ -20,6 +20,20 @@ from .block_info_generator import now
 from .general_config import DEFAULT_GENERAL_CONFIG
 
 
+def is_originally_starknet_exception(exc: BadRequest):
+    """
+    Return `True` if `exc` matches scheme of a Starknet exception.
+    Oterhwise return `False`.
+    """
+    try:
+        loaded = json.load(exc.text)
+        assert loaded["code"]
+        assert loaded["message"]
+        return True
+    except (AssertionError, json.decoder.JSONDecodeError):
+        return False
+
+
 class ForkedStateReader(StateReader):
     """State with a fallback to a forked origin"""
 
@@ -55,10 +69,9 @@ class ForkedStateReader(StateReader):
                 )
             return to_bytes(int(class_hash_hex, 16))
         except BadRequest as bad_request:
-            if bad_request.status_code == 500:
+            if is_originally_starknet_exception(bad_request):
                 return UNINITIALIZED_CLASS_HASH
-            else:
-                raise
+            raise
 
     async def get_nonce_at(self, contract_address: int) -> int:
         return await self.__feeder_gateway_client.get_nonce(

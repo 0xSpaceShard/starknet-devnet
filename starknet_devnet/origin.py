@@ -14,6 +14,7 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionTrace,
     StarknetBlock,
 )
+from starknet_devnet.forked_state import is_originally_starknet_exception
 
 from starknet_devnet.util import StarknetDevnetException
 
@@ -168,13 +169,12 @@ class ForkedOrigin(Origin):
                 transaction_hash
             )
         except BadRequest as bad_request:
-            if bad_request.status_code == 500:
+            if is_originally_starknet_exception(bad_request):
                 raise StarknetDevnetException(
                     code=StarknetErrorCode.INVALID_TRANSACTION_HASH,
                     message=f"Transaction corresponding to hash {transaction_hash} is not found.",
                 ) from bad_request
-            else:
-                raise
+            raise
 
     async def get_block_by_hash(self, block_hash: str):
         return await self.__feeder_gateway_client.get_block(block_hash=block_hash)
