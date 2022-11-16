@@ -396,12 +396,12 @@ def assert_contract_code_not_present(address: str, feeder_gateway_url=APP_URL):
     resp = requests.get(
         f"{feeder_gateway_url}/feeder_gateway/get_code?contractAddress={address}"
     )
-    assert resp.status_code == 200
 
     code = resp.json()
     assert code["abi"] == {}
     assert code["bytecode"] == []
 
+    assert resp.status_code == 200
 
 def assert_contract_class(actual_class: ContractClass, expected_class_path: str):
     """Asserts equality between `actual_class` and class at `expected_class_path`."""
@@ -410,10 +410,13 @@ def assert_contract_class(actual_class: ContractClass, expected_class_path: str)
     assert_equal(actual_class, loaded_contract_class.remove_debug_info())
 
 
-def assert_storage(address, key, expected_value):
+def assert_storage(
+    address: str, key: str, expected_value: str, feeder_gateway_url=APP_URL
+):
     """Asserts the storage value stored at (address, key)."""
     output = run_starknet(
-        ["get_storage_at", "--contract_address", address, "--key", key]
+        ["get_storage_at", "--contract_address", address, "--key", key],
+        gateway_url=feeder_gateway_url,
     )
     assert_equal(output.stdout.rstrip(), expected_value)
 
@@ -432,10 +435,34 @@ def get_transaction_receipt(tx_hash: str, feeder_gateway_url=APP_URL):
     return json.loads(output.stdout)
 
 
-def get_full_contract(contract_address: str) -> ContractClass:
+def get_full_contract(
+    contract_address: str, feeder_gateway_url=APP_URL
+) -> ContractClass:
     """Gets contract class by contract address"""
-    output = run_starknet(["get_full_contract", "--contract_address", contract_address])
+    output = run_starknet(
+        ["get_full_contract", "--contract_address", contract_address],
+        gateway_url=feeder_gateway_url,
+    )
     return ContractClass.loads(output.stdout)
+
+
+def assert_full_contract_not_present(address: str, feeder_gateway_url=APP_URL):
+    """Assert that get_full_contract fails due to uninitialized contract"""
+    resp = requests.get(
+        f"{feeder_gateway_url}/feeder_gateway/get_full_contract",
+        {"contractAddress": address},
+    )
+
+    assert resp.json()["code"] == str(StarknetErrorCode.UNINITIALIZED_CONTRACT)
+    assert resp.status_code == 500
+
+
+def assert_full_contract(address: str, expected_path: str, feeder_gateway_url=APP_URL):
+    """Assert that the provided address has contract from `expected_path` deployed at it."""
+    class_by_address = get_full_contract(
+        contract_address=address, feeder_gateway_url=feeder_gateway_url
+    )
+    assert_contract_class(class_by_address, expected_class_path=expected_path)
 
 
 def get_class_hash_at(contract_address: str) -> str:
@@ -444,14 +471,28 @@ def get_class_hash_at(contract_address: str) -> str:
     return output.stdout
 
 
-def assert_contract_not_initialized(contract_address: str, feeder_gateway_url=APP_URL):
-    """Try getting class hash at `contract_address`."""
+def assert_address_has_no_class_hash(contract_address: str, feeder_gateway_url=APP_URL):
+    """There should be no class hash at `contract_address`."""
     resp = requests.get(
         f"{feeder_gateway_url}/feeder_gateway/get_class_hash_at",
         {"contractAddress": contract_address},
     )
     assert resp.json()["code"] == str(StarknetErrorCode.UNINITIALIZED_CONTRACT)
     assert resp.status_code == 500
+
+
+def assert_class_hash_at_address(
+    contract_address: str, expected_class_hash: str, feeder_gateway_url=APP_URL
+):
+    """The class hash at `contract_address` should be `expected_class_hash`."""
+    resp = requests.get(
+        f"{feeder_gateway_url}/feeder_gateway/get_class_hash_at",
+        {"contractAddress": contract_address},
+    )
+    received_class_hash = int(json.loads(resp.text), 16)
+    print("DEBUG received class hash", received_class_hash)
+    assert received_class_hash == int(expected_class_hash, 16)
+    assert resp.status_code == 200
 
 
 def get_class_by_hash(class_hash: str):

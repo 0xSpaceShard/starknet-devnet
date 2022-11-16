@@ -6,7 +6,7 @@ import pytest
 
 from .account import invoke
 from .util import (
-    assert_contract_class,
+    assert_full_contract,
     assert_negative_block_input,
     assert_transaction_not_received,
     assert_transaction_receipt_not_received,
@@ -24,7 +24,6 @@ from .util import (
     deploy,
     get_class_by_hash,
     get_class_hash_at,
-    get_full_contract,
     get_block,
 )
 
@@ -87,8 +86,7 @@ def test_general_workflow(expected_block_hash):
     assert_contract_code_present(deploy_info["address"])
 
     # check contract class
-    class_by_address = get_full_contract(deploy_info["address"])
-    assert_contract_class(class_by_address, CONTRACT_PATH)
+    assert_full_contract(address=deploy_info["address"], expected_path=CONTRACT_PATH)
 
     # check contract class through class hash
     class_hash = get_class_hash_at(deploy_info["address"])

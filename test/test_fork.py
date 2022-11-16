@@ -24,7 +24,7 @@ from .testnet_deployment import (
     TESTNET_URL,
 )
 from .util import (
-    assert_contract_not_initialized,
+    assert_address_has_no_class_hash,
     assert_tx_status,
     call,
     deploy,
@@ -225,7 +225,7 @@ def test_deploy_on_fork():
     )
     assert balance_after == "13"
 
-    assert_contract_not_initialized(contract_address, TESTNET_URL)
+    assert_address_has_no_class_hash(contract_address, TESTNET_URL)
 
 
 @devnet_in_background(
@@ -243,7 +243,7 @@ def test_forking_testnet_from_too_early_block():
 
     # assertions on fork (devnet)
     assert_tx_status(invoke_tx_hash, "REJECTED")
-    assert_contract_not_initialized(TESTNET_CONTRACT_ADDRESS)
+    assert_address_has_no_class_hash(TESTNET_CONTRACT_ADDRESS)
 
     # assertions on origin (testnet)
     # this will fail if someone invokes `increase_balance(2, 3)` because it will then be REJECTED

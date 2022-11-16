@@ -546,8 +546,8 @@ class StarknetWrapper:
     async def get_class_by_address(self, contract_address: int) -> ContractClass:
         """Return contract class given the contract address"""
         cached_state = self.get_state().state
-        class_hash_bytes = await cached_state.get_class_hash_at(contract_address)
-        # TODO should throw here?
+        class_hash_int = await self.get_class_hash_at(contract_address)
+        class_hash_bytes = to_bytes(class_hash_int)
         return await cached_state.get_contract_class(class_hash_bytes)
 
     async def get_code(self, contract_address: int) -> dict:
@@ -559,7 +559,7 @@ class StarknetWrapper:
                 "bytecode": contract_class.dump()["program"]["data"],
             }
         except StarkException as err:
-            if err.code != str(StarknetErrorCode.UNDECLARED_CLASS):
+            if err.code != StarknetErrorCode.UNINITIALIZED_CONTRACT:
                 raise
             result_dict = {"abi": {}, "bytecode": []}
 
