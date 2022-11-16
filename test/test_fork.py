@@ -249,6 +249,4 @@ def test_forking_testnet_from_too_early_block():
     # this will fail if someone invokes `increase_balance(2, 3)` because it will then be REJECTED
     assert_tx_status(invoke_tx_hash, "NOT_RECEIVED", feeder_gateway_url=TESTNET_URL)
 
-
-# TODO test declare
 # TODO test deploy acc

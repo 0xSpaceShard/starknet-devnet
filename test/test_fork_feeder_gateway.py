@@ -2,7 +2,7 @@
 
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 
-from .account import invoke
+from .account import declare, invoke
 from .shared import (
     BALANCE_KEY,
     CONTRACT_PATH,
@@ -20,6 +20,8 @@ from .testnet_deployment import (
 )
 from .util import (
     assert_address_has_no_class_hash,
+    assert_class_by_hash,
+    assert_class_by_hash_not_present,
     assert_class_hash_at_address,
     assert_contract_code_not_present,
     assert_contract_code_present,
@@ -154,8 +156,35 @@ def test_contract_responses():
     )
 
 
-def test_get_class_by_hash():
-    raise NotImplementedError
+@devnet_in_background(
+    *TESTNET_FORK_PARAMS, "--fork-block", str(TESTNET_DEPLOYMENT_BLOCK - 1)
+)
+def test_declare_and_get_class_by_hash():
+    """Test class declaration and class getting by hash"""
+
+    assert_class_by_hash_not_present(
+        class_hash=EXPECTED_CLASS_HASH, feeder_gateway_url=TESTNET_URL
+    )
+    assert_class_by_hash_not_present(
+        class_hash=EXPECTED_CLASS_HASH, feeder_gateway_url=APP_URL
+    )
+
+    declare_info = declare(
+        contract_path=CONTRACT_PATH,
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
+    assert int(declare_info["class_hash"], 16) == int(EXPECTED_CLASS_HASH, 16)
+    assert_tx_status(declare_info["tx_hash"], "ACCEPTED_ON_L2")
+
+    assert_class_by_hash_not_present(
+        class_hash=EXPECTED_CLASS_HASH, feeder_gateway_url=TESTNET_URL
+    )
+    assert_class_by_hash(
+        class_hash=EXPECTED_CLASS_HASH,
+        expected_path=CONTRACT_PATH,
+        feeder_gateway_url=APP_URL,
+    )
 
 
 def _assert_transaction_trace_not_present(tx_hash: str, feeder_gateway_url=APP_URL):

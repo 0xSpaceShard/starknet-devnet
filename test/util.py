@@ -403,6 +403,7 @@ def assert_contract_code_not_present(address: str, feeder_gateway_url=APP_URL):
 
     assert resp.status_code == 200
 
+
 def assert_contract_class(actual_class: ContractClass, expected_class_path: str):
     """Asserts equality between `actual_class` and class at `expected_class_path`."""
 
@@ -490,15 +491,33 @@ def assert_class_hash_at_address(
         {"contractAddress": contract_address},
     )
     received_class_hash = int(json.loads(resp.text), 16)
-    print("DEBUG received class hash", received_class_hash)
     assert received_class_hash == int(expected_class_hash, 16)
     assert resp.status_code == 200
 
 
-def get_class_by_hash(class_hash: str):
+def get_class_by_hash(class_hash: str, feeder_gateway_url=APP_URL):
     """Gets contract class by contract hash"""
-    output = run_starknet(["get_class_by_hash", "--class_hash", class_hash])
-    return ContractClass.loads(output.stdout)
+    return requests.get(
+        f"{feeder_gateway_url}/feeder_gateway/get_class_by_hash",
+        {"classHash": class_hash},
+    )
+
+
+def assert_class_by_hash(
+    class_hash: str, expected_path: str, feeder_gateway_url=APP_URL
+):
+    """Assert the class at `class_hash` matches what is at `expected_path`."""
+    resp = get_class_by_hash(class_hash, feeder_gateway_url=feeder_gateway_url)
+    class_by_hash = ContractClass.loads(resp.text)
+    assert_contract_class(class_by_hash, expected_class_path=expected_path)
+    assert resp.status_code == 200
+
+
+def assert_class_by_hash_not_present(class_hash: str, feeder_gateway_url=APP_URL):
+    """Assert the server holds no class at provided `class_hash`."""
+    resp = get_class_by_hash(class_hash, feeder_gateway_url=feeder_gateway_url)
+    assert resp.json()["code"] == str(StarknetErrorCode.UNDECLARED_CLASS)
+    assert resp.status_code == 500
 
 
 def assert_receipt(tx_hash, expected_path):

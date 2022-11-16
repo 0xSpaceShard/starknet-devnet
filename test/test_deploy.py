@@ -42,14 +42,13 @@ from .shared import (
 
 from .account import declare, invoke
 from .util import (
-    assert_contract_class,
+    assert_class_by_hash,
     assert_equal,
     assert_hex_equal,
     assert_tx_status,
     call,
     deploy,
     devnet_in_background,
-    get_class_by_hash,
     get_class_hash_at,
     get_transaction_receipt,
     load_contract_class,
@@ -249,8 +248,7 @@ def test_deploy_through_deployer_constructor():
     class_hash = declare_info["class_hash"]
     assert_hex_equal(class_hash, EXPECTED_CLASS_HASH)
 
-    contract_class = get_class_by_hash(class_hash=class_hash)
-    assert_contract_class(contract_class, CONTRACT_PATH)
+    assert_class_by_hash(class_hash, CONTRACT_PATH)
 
     # Deploy the deployer - also deploys a contract of the declared class using the deploy syscall
     initial_balance_in_constructor = "5"
@@ -292,8 +290,7 @@ def test_deploy_with_udc():
     class_hash = declare_info["class_hash"]
     assert_hex_equal(class_hash, EXPECTED_CLASS_HASH)
 
-    contract_class = get_class_by_hash(class_hash=class_hash)
-    assert_contract_class(contract_class, CONTRACT_PATH)
+    assert_class_by_hash(class_hash, CONTRACT_PATH)
 
     # Deploy a contract of the declared class through the deployer
     initial_balance = "10"

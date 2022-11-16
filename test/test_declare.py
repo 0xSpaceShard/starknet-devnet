@@ -16,11 +16,10 @@ from .shared import (
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
 from .util import (
-    assert_contract_class,
+    assert_class_by_hash,
     assert_hex_equal,
     assert_tx_status,
     devnet_in_background,
-    get_class_by_hash,
 )
 
 
@@ -60,6 +59,4 @@ def test_declare_happy_path():
     class_hash = declare_info["class_hash"]
     assert_hex_equal(class_hash, EXPECTED_CLASS_HASH)
     assert_tx_status(declare_info["tx_hash"], "ACCEPTED_ON_L2")
-
-    declared_class = get_class_by_hash(class_hash)
-    assert_contract_class(declared_class, CONTRACT_PATH)
+    assert_class_by_hash(class_hash, CONTRACT_PATH)
