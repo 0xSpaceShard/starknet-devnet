@@ -26,13 +26,15 @@ from .shared import (
 )
 
 
-def get_transaction_trace_response(tx_hash=None):
+def get_transaction_trace_response(tx_hash=None, server_url=APP_URL):
     """Get transaction trace response"""
     params = {
         "transactionHash": tx_hash,
     }
 
-    res = requests.get(f"{APP_URL}/feeder_gateway/get_transaction_trace", params=params)
+    res = requests.get(
+        f"{server_url}/feeder_gateway/get_transaction_trace", params=params
+    )
 
     return res
 

@@ -547,6 +547,7 @@ class StarknetWrapper:
         """Return contract class given the contract address"""
         cached_state = self.get_state().state
         class_hash_bytes = await cached_state.get_class_hash_at(contract_address)
+        # TODO should throw here?
         return await cached_state.get_contract_class(class_hash_bytes)
 
     async def get_code(self, contract_address: int) -> dict:
@@ -558,8 +559,8 @@ class StarknetWrapper:
                 "bytecode": contract_class.dump()["program"]["data"],
             }
         except StarkException as err:
-            if err.code != StarknetErrorCode.UNDECLARED_CLASS:
-                raise StarknetDevnetException from err
+            if err.code != str(StarknetErrorCode.UNDECLARED_CLASS):
+                raise
             result_dict = {"abi": {}, "bytecode": []}
 
         return result_dict

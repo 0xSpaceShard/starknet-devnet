@@ -11,7 +11,7 @@ from .util import (
     assert_transaction_not_received,
     assert_transaction_receipt_not_received,
     assert_block,
-    assert_contract_code,
+    assert_contract_code_present,
     assert_equal,
     assert_failing_deploy,
     assert_receipt,
@@ -84,7 +84,7 @@ def test_general_workflow(expected_block_hash):
     assert_transaction_receipt_not_received(NONEXISTENT_TX_HASH)
 
     # check code
-    assert_contract_code(deploy_info["address"])
+    assert_contract_code_present(deploy_info["address"])
 
     # check contract class
     class_by_address = get_full_contract(deploy_info["address"])

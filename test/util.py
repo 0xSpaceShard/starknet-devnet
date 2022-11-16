@@ -276,23 +276,25 @@ def assert_keys(dictionary, keys):
     assert dictionary.keys() == expected_set, f"{dictionary.keys()} != {expected_set}"
 
 
-def assert_transaction_not_received(tx_hash):
+def assert_transaction_not_received(tx_hash: str, feeder_gateway_url=APP_URL):
     """Assert correct tx response when there is no tx with `tx_hash`."""
-    output = run_starknet(["get_transaction", "--hash", tx_hash])
+    output = run_starknet(
+        ["get_transaction", "--hash", tx_hash], gateway_url=feeder_gateway_url
+    )
     transaction = json.loads(output.stdout)
     assert_equal(transaction, {"status": "NOT_RECEIVED"})
 
 
-def assert_transaction_receipt_not_received(tx_hash):
+def assert_transaction_receipt_not_received(tx_hash: str, feeder_gateway_url=APP_URL):
     """Assert correct tx receipt response when there is no tx with `tx_hash`."""
-    receipt = get_transaction_receipt(tx_hash)
+    receipt = get_transaction_receipt(tx_hash, feeder_gateway_url=feeder_gateway_url)
     assert_equal(
         receipt,
         {
             "events": [],
             "l2_to_l1_messages": [],
             "status": "NOT_RECEIVED",
-            "transaction_hash": tx_hash,
+            "transaction_hash": "0x0",
         },
     )
 
@@ -375,12 +377,30 @@ def assert_tx_status(tx_hash, expected_tx_status: str, feeder_gateway_url=APP_UR
         assert "tx_failure_reason" in response, f"Key not found in {response}"
 
 
-def assert_contract_code(address):
-    """Asserts the content of the code of a contract at address."""
-    output = run_starknet(["get_code", "--contract_address", address])
+def assert_contract_code_present(address: str, feeder_gateway_url=APP_URL):
+    """Asserts the content of the code of a contract at `address`."""
+    output = run_starknet(
+        ["get_code", "--contract_address", address], gateway_url=feeder_gateway_url
+    )
     code = json.loads(output.stdout)
-    # just checking key equality
+
+    assert code["abi"]  # assert non-empty
+    assert code["bytecode"]  # assert non-empty
+
+    # assert no other keys
     assert_equal(sorted(code.keys()), ["abi", "bytecode"])
+
+
+def assert_contract_code_not_present(address: str, feeder_gateway_url=APP_URL):
+    """Assert abi and bytecode empty"""
+    resp = requests.get(
+        f"{feeder_gateway_url}/feeder_gateway/get_code?contractAddress={address}"
+    )
+    assert resp.status_code == 200
+
+    code = resp.json()
+    assert code["abi"] == {}
+    assert code["bytecode"] == []
 
 
 def assert_contract_class(actual_class: ContractClass, expected_class_path: str):
@@ -404,9 +424,11 @@ def load_json_from_path(path):
         return json.load(expected_file)
 
 
-def get_transaction_receipt(tx_hash: str):
+def get_transaction_receipt(tx_hash: str, feeder_gateway_url=APP_URL):
     """Fetches the transaction receipt of transaction with tx_hash"""
-    output = run_starknet(["get_transaction_receipt", "--hash", tx_hash])
+    output = run_starknet(
+        ["get_transaction_receipt", "--hash", tx_hash], gateway_url=feeder_gateway_url
+    )
     return json.loads(output.stdout)
 
 
@@ -449,6 +471,15 @@ def assert_receipt(tx_hash, expected_path):
         receipt.pop(ignorable_key)
         expected_receipt.pop(ignorable_key)
     assert_equal(receipt, expected_receipt)
+
+
+def assert_receipt_present(
+    tx_hash: str, expected_status: str, feeder_gateway_url=APP_URL
+):
+    """Asserts the content of the receipt of tx with tx_hash is non-empty"""
+    receipt = get_transaction_receipt(tx_hash, feeder_gateway_url=feeder_gateway_url)
+    assert receipt["transaction_hash"] == tx_hash
+    assert receipt["status"] == expected_status
 
 
 def assert_events(tx_hash, expected_path):

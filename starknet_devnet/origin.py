@@ -80,7 +80,7 @@ class NullOrigin(Origin):
     ) -> TransactionReceipt:
         return TransactionReceipt(
             status=TransactionStatus.NOT_RECEIVED,
-            transaction_hash=int(transaction_hash, 16),
+            transaction_hash=0,  # testnet returns 0 instead of received hash
             events=[],
             l2_to_l1_messages=[],
             block_hash=None,
