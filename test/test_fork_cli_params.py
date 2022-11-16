@@ -4,7 +4,7 @@ import subprocess
 
 import pytest
 
-from .shared import ALPHA_GOERLI_URL, ALPHA_GOERLI_2_URL, ALPHA_MAINNET_URL
+from .shared import ALPHA_GOERLI_URL, ALPHA_GOERLI2_URL, ALPHA_MAINNET_URL
 from .util import DevnetBackgroundProc, read_stream, terminate_and_wait
 
 
@@ -52,8 +52,8 @@ def test_url_not_sequencer():
         (ALPHA_MAINNET_URL, f"Forking {ALPHA_MAINNET_URL}"),
         ("alpha-goerli", f"Forking {ALPHA_GOERLI_URL}"),
         (ALPHA_GOERLI_URL, f"Forking {ALPHA_GOERLI_URL}"),
-        ("alpha-goerli-2", f"Forking {ALPHA_GOERLI_2_URL}"),
-        (ALPHA_GOERLI_2_URL, f"Forking {ALPHA_GOERLI_2_URL}"),
+        ("alpha-goerli2", f"Forking {ALPHA_GOERLI2_URL}"),
+        (ALPHA_GOERLI2_URL, f"Forking {ALPHA_GOERLI2_URL}"),
     ],
 )
 def test_predefined_fork_network_specification(
@@ -110,7 +110,7 @@ def test_too_big_block_id():
     too_big_block_id = str(int(1e9))
     proc = ACTIVE_DEVNET.start(
         "--fork-network",
-        "alpha-goerli-2",
+        "alpha-goerli2",
         "--fork-block",
         too_big_block_id,
         stderr=subprocess.PIPE,
@@ -131,11 +131,11 @@ def test_valid_block_ids(fork_block: str):
     """Test some happy path fork block ids"""
     proc = ACTIVE_DEVNET.start(
         "--fork-network",
-        "alpha-goerli-2",
+        "alpha-goerli2",
         "--fork-block",
         fork_block,
         stdout=subprocess.PIPE,
     )
     terminate_and_wait(proc)
-    assert f"Forking {ALPHA_GOERLI_2_URL}" in read_stream(proc.stdout)
+    assert f"Forking {ALPHA_GOERLI2_URL}" in read_stream(proc.stdout)
     assert proc.returncode == 0

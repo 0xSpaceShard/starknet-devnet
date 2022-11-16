@@ -10,7 +10,7 @@ from starknet_devnet.constants import DEFAULT_INITIAL_BALANCE
 from .account import invoke
 from .shared import (
     ABI_PATH,
-    ALPHA_GOERLI_2_URL,
+    ALPHA_GOERLI2_URL,
     CONTRACT_PATH,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
@@ -168,12 +168,12 @@ def test_forking_devnet_with_account_on_fork():
     # TODO assert nonce after
 
 
-TESTNET_URL = ALPHA_GOERLI_2_URL
+TESTNET_URL = ALPHA_GOERLI2_URL
 TESTNET_CONTRACT_ADDRESS = (
     "0x32320dbdff79639db4ac0ff1f9f8b7450d31fee8ca1bccea7cfa0d7765fe0b2"
 )
 TESTNET_DEPLOYMENT_BLOCK = 8827  # this is when the contract was deployed
-TESTNET_FORK_PARAMS = [*PREDEPLOY_ACCOUNT_CLI_ARGS, "--fork-network", "alpha-goerli-2"]
+TESTNET_FORK_PARAMS = [*PREDEPLOY_ACCOUNT_CLI_ARGS, "--fork-network", "alpha-goerli2"]
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -201,7 +201,7 @@ def test_forking_testnet_from_valid_block():
 @devnet_in_background(
     *PREDEPLOY_ACCOUNT_CLI_ARGS,
     "--fork-network",
-    "alpha-goerli-2",
+    "alpha-goerli2",
     "--fork-block",
     str(TESTNET_DEPLOYMENT_BLOCK),
 )
@@ -228,7 +228,7 @@ def test_deploy_on_fork():
     )
     assert balance_after == "13"
 
-    assert_contract_not_initialized(contract_address, ALPHA_GOERLI_2_URL)
+    assert_contract_not_initialized(contract_address, ALPHA_GOERLI2_URL)
 
 
 @devnet_in_background(
