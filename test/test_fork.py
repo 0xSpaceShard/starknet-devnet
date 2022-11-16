@@ -7,7 +7,7 @@ import pytest
 
 from starknet_devnet.constants import DEFAULT_INITIAL_BALANCE
 
-from .account import invoke
+from .account import get_nonce, invoke
 from .shared import (
     ABI_PATH,
     CONTRACT_PATH,
@@ -42,6 +42,17 @@ def _invoke_on_fork_and_assert_only_fork_changed(
     origin_url: str,
 ):
 
+    # account nonce - before
+    origin_nonce_before = get_nonce(
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS, feeder_gateway_url=origin_url
+    )
+    assert origin_nonce_before == 0
+    fork_nonce_before = get_nonce(
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS, feeder_gateway_url=fork_url
+    )
+    assert fork_nonce_before == 0
+
+    # do the invoke
     increase_args = [1, 2]
     invoke_tx_hash = invoke(
         calls=[(contract_address, "increase_balance", increase_args)],
@@ -68,6 +79,16 @@ def _invoke_on_fork_and_assert_only_fork_changed(
     expected_balancer_after = str(int(initial_balance) + sum(increase_args))
     assert fork_balance_after == expected_balancer_after
     assert_tx_status(invoke_tx_hash, "ACCEPTED_ON_L2", feeder_gateway_url=fork_url)
+
+    # account nonce - after
+    origin_nonce_after = get_nonce(
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS, feeder_gateway_url=origin_url
+    )
+    assert origin_nonce_after == 0
+    fork_nonce_after = get_nonce(
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS, feeder_gateway_url=fork_url
+    )
+    assert fork_nonce_after == 1
 
 
 def _deploy_on_origin_invoke_on_fork_assert_only_fork_changed(
@@ -100,18 +121,18 @@ def test_forking_devnet_with_account_on_origin():
     Assert only fork changed
     """
 
+    # account balance
     origin_balance_before = get_account_balance(
         address=PREDEPLOYED_ACCOUNT_ADDRESS, server_url=ORIGIN_URL
     )
     assert origin_balance_before == DEFAULT_INITIAL_BALANCE
 
-    # fork has access to balances on origin
     fork_balance_before = get_account_balance(
-        address=PREDEPLOYED_ACCOUNT_ADDRESS, server_url=FORK_URL
+        # fork has access to balances on origin
+        address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        server_url=FORK_URL,
     )
     assert fork_balance_before == DEFAULT_INITIAL_BALANCE
-
-    # TODO assert nonce before
 
     # with goerli, forking would be done here, but having it done beforehand is ok with devnet
     _deploy_on_origin_invoke_on_fork_assert_only_fork_changed(
@@ -119,6 +140,7 @@ def test_forking_devnet_with_account_on_origin():
         origin_url=ORIGIN_URL,
     )
 
+    # account balance
     origin_balance_after = get_account_balance(
         address=PREDEPLOYED_ACCOUNT_ADDRESS, server_url=ORIGIN_URL
     )
@@ -128,8 +150,6 @@ def test_forking_devnet_with_account_on_origin():
         address=PREDEPLOYED_ACCOUNT_ADDRESS, server_url=FORK_URL
     )
     assert fork_balance_after < DEFAULT_INITIAL_BALANCE
-
-    # TODO assert nonce after
 
 
 @devnet_in_background("--port", ORIGIN_PORT, "--accounts", "0")
@@ -142,6 +162,7 @@ def test_forking_devnet_with_account_on_fork():
     Assert only fork changed
     """
 
+    # account balance
     origin_balance_before = get_account_balance(
         address=PREDEPLOYED_ACCOUNT_ADDRESS, server_url=ORIGIN_URL
     )
@@ -152,14 +173,13 @@ def test_forking_devnet_with_account_on_fork():
     )
     assert fork_balance_before == DEFAULT_INITIAL_BALANCE
 
-    # TODO assert nonce before
-
     # with goerli, forking would be done here, but having it done beforehand is ok with devnet
     _deploy_on_origin_invoke_on_fork_assert_only_fork_changed(
         fork_url=FORK_URL,
         origin_url=ORIGIN_URL,
     )
 
+    # account balance
     origin_balance_after = get_account_balance(
         address=PREDEPLOYED_ACCOUNT_ADDRESS, server_url=ORIGIN_URL
     )
@@ -169,8 +189,6 @@ def test_forking_devnet_with_account_on_fork():
         address=PREDEPLOYED_ACCOUNT_ADDRESS, server_url=FORK_URL
     )
     assert fork_balance_after < DEFAULT_INITIAL_BALANCE
-
-    # TODO assert nonce after
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -248,5 +266,6 @@ def test_forking_testnet_from_too_early_block():
     # assertions on origin (testnet)
     # this will fail if someone invokes `increase_balance(2, 3)` because it will then be REJECTED
     assert_tx_status(invoke_tx_hash, "NOT_RECEIVED", feeder_gateway_url=TESTNET_URL)
+
 
 # TODO test deploy acc
