@@ -1,5 +1,7 @@
 """Test feeder gateway responses of origin and fork"""
 
+from starkware.starknet.definitions.error_codes import StarknetErrorCode
+
 from .account import invoke
 from .shared import (
     BALANCE_KEY,
@@ -158,6 +160,7 @@ def test_get_class_by_hash():
 
 def _assert_transaction_trace_not_present(tx_hash: str, feeder_gateway_url=APP_URL):
     resp = get_transaction_trace_response(tx_hash, server_url=feeder_gateway_url)
+    assert resp.json()["code"] == str(StarknetErrorCode.INVALID_TRANSACTION_HASH)
     assert resp.status_code == 500
 
 

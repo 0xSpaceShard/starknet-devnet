@@ -54,8 +54,11 @@ class ForkedStateReader(StateReader):
                     block_number=self.__block_number,
                 )
             return to_bytes(int(class_hash_hex, 16))
-        except BadRequest:  # TODO perform better check here what if 404
-            return UNINITIALIZED_CLASS_HASH
+        except BadRequest as bad_request:
+            if bad_request.status_code == 500:
+                return UNINITIALIZED_CLASS_HASH
+            else:
+                raise
 
     async def get_nonce_at(self, contract_address: int) -> int:
         return await self.__feeder_gateway_client.get_nonce(

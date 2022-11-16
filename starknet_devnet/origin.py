@@ -2,6 +2,7 @@
 Contains classes that provide the abstraction of L2 blockchain.
 """
 
+from services.external_api.client import BadRequest
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.services.api.feeder_gateway.feeder_gateway_client import (
     FeederGatewayClient,
@@ -162,9 +163,18 @@ class ForkedOrigin(Origin):
         )
 
     async def get_transaction_trace(self, transaction_hash: str):
-        return await self.__feeder_gateway_client.get_transaction_trace(
-            transaction_hash
-        )
+        try:
+            return await self.__feeder_gateway_client.get_transaction_trace(
+                transaction_hash
+            )
+        except BadRequest as bad_request:
+            if bad_request.status_code == 500:
+                raise StarknetDevnetException(
+                    code=StarknetErrorCode.INVALID_TRANSACTION_HASH,
+                    message=f"Transaction corresponding to hash {transaction_hash} is not found.",
+                ) from bad_request
+            else:
+                raise
 
     async def get_block_by_hash(self, block_hash: str):
         return await self.__feeder_gateway_client.get_block(block_hash=block_hash)
