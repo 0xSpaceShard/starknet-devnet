@@ -4,6 +4,7 @@ Utility functions used across the project.
 
 from dataclasses import dataclass
 import os
+import sys
 from typing import Dict, Union, List, Set
 
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
@@ -157,3 +158,8 @@ def get_fee_estimation_info(tx_fee: int, gas_price: int):
             "gas_usage": gas_usage,
         }
     )
+
+
+def warn(msg: str, file=sys.stderr):
+    """Log a warning"""
+    print(f"\033[93m{msg}\033[0m", file=file)

@@ -9,6 +9,7 @@ from typing import List
 from starkware.crypto.signature.signature import private_to_stark_key
 
 from .account import Account
+from .util import warn
 
 
 class Accounts:
@@ -77,7 +78,7 @@ class Accounts:
 
         print(f"Initial balance of each account: {self.__initial_balance} WEI")
         print("Seed to replicate this account sequence:", self.__seed)
-        print(
+        warn(
             "WARNING: Use these accounts and their keys ONLY for local testing. "
             "DO NOT use them on mainnet or other live networks because you will LOSE FUNDS.\n",
             file=sys.stderr,
