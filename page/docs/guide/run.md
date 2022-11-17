@@ -9,7 +9,7 @@ Installing the package adds the `starknet-devnet` command.
 ```text
 usage: starknet-devnet [-h] [-v] [--host HOST] [--port PORT] [--load-path LOAD_PATH] [--dump-path DUMP_PATH] [--dump-on DUMP_ON] [--lite-mode] [--accounts ACCOUNTS]
                        [--initial-balance INITIAL_BALANCE] [--seed SEED] [--hide-predeployed-accounts] [--start-time START_TIME] [--gas-price GAS_PRICE] [--timeout TIMEOUT]
-                       [--account-class ACCOUNT_CLASS]
+                       [--account-class ACCOUNT_CLASS] [--fork-network FORK_NETWORK] [--fork-block FORK_BLOCK]
 
 Run a local instance of StarkNet Devnet
 
@@ -37,9 +37,11 @@ optional arguments:
   --timeout TIMEOUT, -t TIMEOUT
                         Specify the server timeout in seconds; defaults to 60
   --account-class ACCOUNT_CLASS
-                        Specify the account implementation to be used for predeploying;
-                        should be a path to the compiled JSON artifact;
-                        defaults to OpenZeppelin v0.5.0
+                        Specify the account implementation to be used for predeploying; should be a path to the compiled JSON artifact; defaults to OpenZeppelin v0.5.0
+  --fork-network FORK_NETWORK
+                        Specify the network to fork: can be a URL (e.g. https://alpha-mainnet.starknet.io) or network name (valid names: alpha-goerli, alpha-goerli2, alpha-mainnet)
+  --fork-block FORK_BLOCK
+                        Specify the block number where the --fork-network is forked; defaults to latest
 ```
 
 You can run `starknet-devnet` in a separate shell, or you can run it in background with `starknet-devnet &`.
