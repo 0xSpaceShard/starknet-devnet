@@ -303,6 +303,18 @@ def test_dumping_on_exit():
     )  # send SIGINT because devnet doesn't handle SIGKILL
     assert_dump_present(DUMP_PATH, sleep_seconds=3)
 
+    # load from path after dump
+    devnet_proc = ACTIVE_DEVNET.start(
+        *PREDEPLOY_ACCOUNT_CLI_ARGS, "--load-path", DUMP_PATH
+    )
+    invoke(
+        calls=[(contract_address, "increase_balance", ["1", "2"])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
+    balance_after_invoke = call("get_balance", contract_address, ABI_PATH)
+    assert balance_after_invoke == "33"
+
 
 def test_invalid_dump_on_option():
     """Test behavior when invalid dump-on is provided."""

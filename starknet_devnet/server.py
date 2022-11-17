@@ -2,8 +2,9 @@
 A server exposing Starknet functionalities as API endpoints.
 """
 
-import sys
 import asyncio
+import os
+import sys
 
 from flask import Flask, jsonify
 from flask_cors import CORS
@@ -97,11 +98,13 @@ def main():
 
     try:
         print(f" * Listening on http://{args.host}:{args.port}/ (Press CTRL+C to quit)")
+        main_pid = os.getpid()
         GunicornServer(app, args).run()
     except KeyboardInterrupt:
         pass
     finally:
-        if args.dump_on == DumpOn.EXIT:
+        # Dump only if process is worker (not main)
+        if args.dump_on == DumpOn.EXIT and os.getpid() != main_pid:
             state.dumper.dump()
             sys.exit(0)
 
