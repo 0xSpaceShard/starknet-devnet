@@ -9,7 +9,6 @@ from starkware.starknet.services.api.gateway.transaction import InvokeFunction
 from starkware.starknet.testing.contract import StarknetContract
 from starkware.starknet.compiler.compile import get_selector_from_name
 from starkware.starknet.testing.starknet import Starknet
-from starkware.starkware_utils.error_handling import StarkException
 
 from starknet_devnet.sequencer_api_utils import InternalInvokeFunction
 from starknet_devnet.util import Uint256, str_to_felt
@@ -53,30 +52,29 @@ class FeeToken:
         await starknet.state.state.set_contract_class(
             FeeToken.HASH_BYTES, contract_class
         )
-        try:
-            await starknet.state.state.deploy_contract(
-                FeeToken.ADDRESS,
-                FeeToken.HASH_BYTES,
-            )
 
-            # mimic constructor
-            await starknet.state.state.set_storage_at(
-                FeeToken.ADDRESS,
-                get_selector_from_name("ERC20_name"),
-                str_to_felt(FeeToken.NAME),
-            )
-            await starknet.state.state.set_storage_at(
-                FeeToken.ADDRESS,
-                get_selector_from_name("ERC20_symbol"),
-                str_to_felt(FeeToken.SYMBOL),
-            )
-            await starknet.state.state.set_storage_at(
-                FeeToken.ADDRESS,
-                get_selector_from_name("ERC20_decimals"),
-                18,
-            )
-        except StarkException:
-            print(f"{self.__class__.__name__} already deployed")
+        # pylint: disable=protected-access
+        starknet.state.state.cache._class_hash_writes[
+            FeeToken.ADDRESS
+        ] = FeeToken.HASH_BYTES
+        # replace with await starknet.state.state.deploy_contract
+
+        # mimic constructor
+        await starknet.state.state.set_storage_at(
+            FeeToken.ADDRESS,
+            get_selector_from_name("ERC20_name"),
+            str_to_felt(FeeToken.NAME),
+        )
+        await starknet.state.state.set_storage_at(
+            FeeToken.ADDRESS,
+            get_selector_from_name("ERC20_symbol"),
+            str_to_felt(FeeToken.SYMBOL),
+        )
+        await starknet.state.state.set_storage_at(
+            FeeToken.ADDRESS,
+            get_selector_from_name("ERC20_decimals"),
+            18,
+        )
 
         self.contract = StarknetContract(
             state=starknet.state,

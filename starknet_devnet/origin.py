@@ -153,7 +153,6 @@ class ForkedOrigin(Origin):
         )
 
     async def get_transaction(self, transaction_hash: str):
-        # TODO check if block number of received tx is too big, indicating the tx was created after forking
         return await self.__feeder_gateway_client.get_transaction(transaction_hash)
 
     async def get_transaction_receipt(

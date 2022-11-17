@@ -301,14 +301,6 @@ def test_transaction_responses():
     )
 
 
-def test_estimate_fee():
-    raise NotImplementedError
-
-
-def test_simulate_transaction():
-    raise NotImplementedError
-
-
 def _assert_block_artifact_not_found(
     method: str,
     block_number: BlockIdentifier = None,

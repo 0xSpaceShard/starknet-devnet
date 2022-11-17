@@ -18,6 +18,7 @@ from .shared import (
 )
 from .settings import APP_URL, bind_free_port, HOST
 from .test_account import get_account_balance
+from .test_deploy import test_deploy_account_body, test_deploy_with_udc_body
 from .testnet_deployment import (
     TESTNET_CONTRACT_ADDRESS,
     TESTNET_DEPLOYMENT_BLOCK,
@@ -30,6 +31,7 @@ from .util import (
     call,
     deploy,
     devnet_in_background,
+    mint,
 )
 
 ORIGIN_PORT, ORIGIN_URL = bind_free_port(HOST)
@@ -53,7 +55,7 @@ def _invoke_on_fork_and_assert_only_fork_changed(
     )
     assert fork_nonce_before == 0
 
-    # do the invoke
+    # do the invoke and implicitly estimate fee before that
     increase_args = [1, 2]
     invoke_tx_hash = invoke(
         calls=[(contract_address, "increase_balance", increase_args)],
@@ -275,4 +277,26 @@ def test_forking_testnet_from_too_early_block():
     assert_tx_status(invoke_tx_hash, "NOT_RECEIVED", feeder_gateway_url=TESTNET_URL)
 
 
-# TODO test deploy acc
+@devnet_in_background(*TESTNET_FORK_PARAMS)
+@pytest.mark.parametrize("lite", [True, False])
+def test_minting(lite: bool):
+    """Test minting"""
+    dummy_address = "0x123"
+    dummy_amount = 100
+
+    resp = mint(dummy_address, dummy_amount, lite=lite)
+    assert resp["new_balance"] == dummy_amount
+    resp = mint(dummy_address, dummy_amount, lite=lite)
+    assert resp["new_balance"] == dummy_amount * 2
+
+
+@devnet_in_background(*TESTNET_FORK_PARAMS)
+def test_deploy_account():
+    """Test that deploy account functionality works when forking"""
+    test_deploy_account_body()
+
+
+@devnet_in_background(*TESTNET_FORK_PARAMS)
+def test_deploy_with_udc():
+    """Test that deploying with udc works when forking"""
+    test_deploy_with_udc_body()

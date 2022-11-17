@@ -7,7 +7,6 @@ from types import TracebackType
 from typing import Dict, List, Optional, Set, Tuple, Type, Union
 
 import cloudpickle as pickle
-from starkware.python.utils import as_non_optional
 from starkware.starknet.business_logic.transaction.fee import calculate_tx_fee
 from starkware.starknet.business_logic.transaction.objects import (
     CallInfo,
@@ -33,7 +32,6 @@ from starkware.starknet.services.api.gateway.transaction import (
     DeployAccount,
     Declare,
 )
-from starkware.starknet.testing.contract_utils import get_abi
 from starkware.starknet.testing.starknet import Starknet
 from starkware.starkware_utils.error_handling import StarkException
 from starkware.starknet.services.api.contract_class import EntryPointType, ContractClass
@@ -44,8 +42,6 @@ from starkware.starknet.services.api.feeder_gateway.request_objects import (
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionStatus,
 )
-from starkware.starknet.testing.contract import StarknetContract
-from starkware.starknet.testing.objects import FunctionInvocation, StarknetCallInfo
 from starkware.starknet.third_party.open_zeppelin.starknet_contracts import (
     account_contract as oz_account_class,
 )
@@ -387,7 +383,8 @@ class StarknetWrapper:
             tx_handler.internal_tx = InternalDeployAccount.from_external(
                 external_tx, state.general_config
             )
-            tx_handler.execution_info = await state.execute_tx(tx_handler.internal_tx)
+
+            tx_handler.execution_info = await self.__deploy(tx_handler.internal_tx)
             tx_handler.internal_calls = (
                 tx_handler.execution_info.call_info.internal_calls
             )
@@ -424,16 +421,17 @@ class StarknetWrapper:
 
         async with self.__get_transaction_handler() as tx_handler:
             tx_handler.internal_tx = internal_tx
-            contract = await self.__deploy(internal_tx, contract_class)
-
-            tx_handler.execution_info = contract.deploy_call_info
+            await self.get_state().state.set_contract_class(
+                class_hash=internal_tx.class_hash, contract_class=contract_class
+            )
+            tx_handler.execution_info = await self.__deploy(internal_tx)
             tx_handler.internal_calls = (
-                contract.deploy_call_info.call_info.internal_calls
+                tx_handler.execution_info.call_info.internal_calls
             )
 
             tx_handler.deployed_contracts.append(
                 DeployedContract(
-                    address=contract.contract_address,
+                    address=contract_address,
                     class_hash=int.from_bytes(internal_tx.class_hash, "big"),
                 )
             )
@@ -472,39 +470,14 @@ class StarknetWrapper:
         result = list(map(hex, call_info.retdata))
         return {"result": result}
 
-    async def __deploy(self, deploy_tx: InternalDeploy, contract_class: ContractClass):
+    async def __deploy(self, deploy_tx: Union[InternalDeploy, InternalDeployAccount]):
         """
         Replacement for self.starknet.deploy that allows usage of InternalDeploy right away.
         This way InternalDeploy doesn't have to be created twice, calculating hash every time.
         """
         state = self.get_state()
-        await state.state.set_contract_class(
-            class_hash=deploy_tx.contract_hash, contract_class=contract_class
-        )
         tx_execution_info = await state.execute_tx(tx=deploy_tx)
-
-        return self.__create_contract(
-            contract_class=contract_class,
-            call_info=tx_execution_info.call_info,
-            address=deploy_tx.contract_address,
-        )
-
-    def __create_contract(
-        self, contract_class: ContractClass, call_info: CallInfo, address: int
-    ) -> StarknetContract:
-
-        deploy_call_info = StarknetCallInfo.from_internal(
-            call_info=as_non_optional(call_info),
-            result=(),
-            main_call_events=[],
-        )
-
-        return StarknetContract(
-            state=self.get_state(),
-            abi=get_abi(contract_class=contract_class),
-            contract_address=address,
-            deploy_call_info=deploy_call_info,
-        )
+        return tx_execution_info
 
     async def _register_new_contracts(
         self,
