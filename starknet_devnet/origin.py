@@ -177,7 +177,17 @@ class ForkedOrigin(Origin):
             raise
 
     async def get_block_by_hash(self, block_hash: str):
-        return await self.__feeder_gateway_client.get_block(block_hash=block_hash)
+        custom_exception = StarknetDevnetException(
+            code=StarknetErrorCode.BLOCK_NOT_FOUND,
+            message=f"Block hash {block_hash} does not exist.",
+        )
+        try:
+            block = await self.__feeder_gateway_client.get_block(block_hash=block_hash)
+            if block.block_number > self.get_number_of_blocks():
+                raise custom_exception
+        except BadRequest as bad_request:
+            if is_originally_starknet_exception(bad_request):
+                raise custom_exception from bad_request
 
     async def get_block_by_number(self, block_number: int):
         return await self.__feeder_gateway_client.get_block(block_number=block_number)
@@ -188,7 +198,14 @@ class ForkedOrigin(Origin):
     async def get_state_update(
         self, block_hash: str = None, block_number: int = None
     ) -> dict or None:
-        return await self.__feeder_gateway_client.get_state_update(
-            block_hash=block_hash,
-            block_number=block_number,
-        )
+        try:
+            return await self.__feeder_gateway_client.get_state_update(
+                block_hash=block_hash,
+                block_number=block_number,
+            )
+        except BadRequest as bad_request:
+            if is_originally_starknet_exception(bad_request):
+                raise StarknetDevnetException(
+                    code=StarknetErrorCode.BLOCK_NOT_FOUND,
+                    message=f"Block hash {block_hash} does not exist.",
+                ) from bad_request

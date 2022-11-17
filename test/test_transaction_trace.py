@@ -102,18 +102,23 @@ def test_nonexistent_transaction_hash():
     assert res.status_code == 500
 
 
-def assert_get_block_traces_response(params, expected_tx_hash):
-    """Assert response of get_block_traces"""
+def get_block_traces(params: dict):
+    """Get block traces"""
     block_traces = requests.get(
         f"{APP_URL}/feeder_gateway/get_block_traces", params=params
     ).json()
 
     # loading to assert valid structure
-    BlockTransactionTraces.load(block_traces)
+    return BlockTransactionTraces.load(block_traces)
+
+
+def assert_get_block_traces_response(params: dict, expected_tx_hash: str):
+    """Assert response of get_block_traces"""
+    block_traces = get_block_traces(params=params)
 
     # index 0 assuming it's the only tx in the response
-    actual_tx_hash = block_traces["traces"][0]["transaction_hash"]
-    assert actual_tx_hash == expected_tx_hash
+    actual_tx_hash = block_traces.traces[0].transaction_hash
+    assert actual_tx_hash == int(expected_tx_hash, 16)
 
 
 @pytest.mark.transaction_trace

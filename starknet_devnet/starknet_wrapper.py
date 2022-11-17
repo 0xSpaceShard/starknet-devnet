@@ -155,7 +155,7 @@ class StarknetWrapper:
         Create and return underlying Starknet instance
         """
         if not self.starknet:
-            if self.config.fork_network:
+            if self.__is_fork():
                 print(
                     f"Forking {self.config.fork_network.url} from block {self.config.fork_block}"
                 )
@@ -171,6 +171,9 @@ class StarknetWrapper:
                 )
 
         return self.starknet
+
+    def __is_fork(self):
+        return bool(self.config.fork_network)
 
     def get_state(self):
         """

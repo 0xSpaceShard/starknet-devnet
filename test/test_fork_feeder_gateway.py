@@ -1,6 +1,12 @@
 """Test feeder gateway responses of origin and fork"""
 
+import json
+
+import requests
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
+from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    BlockIdentifier,
+)
 
 from .account import declare, invoke
 from .shared import (
@@ -11,7 +17,12 @@ from .shared import (
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
 from .settings import APP_URL
-from .test_transaction_trace import get_transaction_trace_response
+from .test_state_update import get_state_update
+from .test_transaction_trace import (
+    assert_get_block_traces_response,
+    get_block_traces,
+    get_transaction_trace_response,
+)
 from .testnet_deployment import (
     TESTNET_CONTRACT_ADDRESS,
     TESTNET_DEPLOYMENT_BLOCK,
@@ -35,6 +46,7 @@ from .util import (
     assert_tx_status,
     deploy,
     devnet_in_background,
+    get_block,
 )
 
 
@@ -297,12 +309,77 @@ def test_simulate_transaction():
     raise NotImplementedError
 
 
+def _assert_block_artifact_not_found(
+    method: str,
+    block_number: BlockIdentifier = None,
+    block_hash: str = None,
+    feeder_gateway_url=APP_URL,
+):
+    resp = requests.get(
+        f"{feeder_gateway_url}/feeder_gateway/{method}",
+        {"blockNumber": block_number, "blockHash": block_hash},
+    )
+    assert json.loads(resp.text)["code"] == str(StarknetErrorCode.BLOCK_NOT_FOUND)
+    assert resp.status_code == 500
+
+
+@devnet_in_background(
+    *TESTNET_FORK_PARAMS, "--fork-block", str(TESTNET_DEPLOYMENT_BLOCK)
+)
 def test_block_responses():
-    def test_get_block():
-        raise NotImplementedError
+    """Test how block responses are handled when forking."""
 
-    def test_get_block_traces():
-        raise NotImplementedError
+    origin_block = get_block(
+        block_number=TESTNET_DEPLOYMENT_BLOCK,
+        parse=True,
+        feeder_gateway_url=TESTNET_URL,
+    )
+    fork_block = get_block(block_number=TESTNET_DEPLOYMENT_BLOCK, parse=True)
+    assert origin_block == fork_block
 
-    def test_get_state_update():
-        raise NotImplementedError
+    # assert block count incremented by one (due to genesis block)
+    latest_fork_block_before = get_block(block_number="latest", parse=True)
+    assert latest_fork_block_before["block_number"] == fork_block["block_number"] + 1
+
+    # assert next block not yet present
+    next_block_number = str(TESTNET_DEPLOYMENT_BLOCK + 2)
+    for method in "get_block", "get_block_traces", "get_state_update":
+        _assert_block_artifact_not_found(method, block_number=next_block_number)
+
+    # invoke
+    _make_expected_invoke(gateway_url=APP_URL)
+
+    # assert block count incremented by one
+    latest_fork_block_after = get_block(block_number="latest", parse=True)
+    assert (
+        latest_fork_block_after["block_number"]
+        == latest_fork_block_before["block_number"] + 1
+    )
+
+    # assert block trace
+    assert_get_block_traces_response({"blockNumber": "latest"}, EXPECTED_INVOKE_HASH)
+
+    # assert state update
+    state_update = get_state_update(block_number="latest")
+    assert TESTNET_CONTRACT_ADDRESS in state_update["state_diff"]["storage_diffs"]
+
+
+@devnet_in_background(*TESTNET_FORK_PARAMS)
+def test_block_responses_by_hash():
+    """Test error is internally properly handled and that a json is sent"""
+    dummy_hash = "0x1"
+    for method in "get_block", "get_block_traces", "get_state_update":
+        _assert_block_artifact_not_found(method, block_hash=dummy_hash)
+
+    latest_block_by_number = get_block(block_number="latest", parse=True)
+    latest_block_hash = latest_block_by_number["block_hash"]
+    latest_block_by_hash = get_block(block_hash=latest_block_hash, parse=True)
+    assert latest_block_by_number == latest_block_by_hash
+
+    block_traces_by_hash = get_block_traces({"blockHash": latest_block_hash})
+    block_traces_by_number = get_block_traces({"blockNumber": "latest"})
+    assert block_traces_by_hash == block_traces_by_number
+
+    state_update_by_hash = get_block_traces({"blockHash": latest_block_hash})
+    state_update_by_number = get_block_traces({"blockNumber": "latest"})
+    assert state_update_by_hash == state_update_by_number

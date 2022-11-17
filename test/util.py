@@ -549,16 +549,23 @@ def assert_events(tx_hash, expected_path):
     assert_equal(receipt["events"], expected_receipt["events"])
 
 
-def get_block(block_number=None, parse=False):
+def get_block(
+    block_number=None, block_hash=None, parse=False, feeder_gateway_url=APP_URL
+):
     """Get the block with block_number. If no number provided, return the last."""
     args = ["get_block"]
     if block_number:
         args.extend(["--number", str(block_number)])
+    if block_hash:
+        args.extend(["--hash", str(block_hash)])
+
     if parse:
-        output = run_starknet(args, raise_on_nonzero=True)
+        output = run_starknet(
+            args, raise_on_nonzero=True, gateway_url=feeder_gateway_url
+        )
         return json.loads(output.stdout)
 
-    return run_starknet(args, raise_on_nonzero=False)
+    return run_starknet(args, raise_on_nonzero=False, gateway_url=feeder_gateway_url)
 
 
 def assert_negative_block_input():
@@ -598,14 +605,6 @@ def assert_block(latest_block_number, latest_tx_hash):
     )
     assert_equal(latest_block["gas_price"], hex(DEFAULT_GENERAL_CONFIG.min_gas_price))
     assert re.match(r"^[a-fA-F0-9]{64}$", latest_block["state_root"])
-
-
-def assert_block_hash(latest_block_number, expected_block_hash):
-    """Asserts the content of the block with block_number."""
-
-    block = get_block(block_number=latest_block_number, parse=True)
-    assert_equal(block["block_hash"], expected_block_hash)
-    assert_equal(block["status"], "ACCEPTED_ON_L2")
 
 
 def assert_salty_deploy(

@@ -12,6 +12,7 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     BlockStatus,
 )
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    BlockIdentifier,
     BlockStateUpdate,
 )
 from starkware.starkware_utils.error_handling import StarkErrorCode
@@ -42,13 +43,7 @@ class DevnetBlocks:
         """Returns the number of blocks stored so far."""
         return len(self.__num2block) + self.origin.get_number_of_blocks()
 
-    async def get_by_number(self, block_number: int) -> StarknetBlock:
-        """Returns the block whose block_number is provided"""
-        if block_number is None:
-            if self.__num2block:
-                return await self.get_last_block()
-            return await self.origin.get_block_by_number(block_number)
-
+    def __assert_block_number_in_range(self, block_number: BlockIdentifier):
         if block_number < 0:
             message = (
                 f"Block number must be a non-negative integer; got: {block_number}."
@@ -63,6 +58,14 @@ class DevnetBlocks:
                 code=StarknetErrorCode.BLOCK_NOT_FOUND, message=message
             )
 
+    async def get_by_number(self, block_number: BlockIdentifier) -> StarknetBlock:
+        """Returns the block whose block_number is provided"""
+        if block_number is None:
+            if self.__num2block:
+                return await self.get_last_block()
+            return await self.origin.get_block_by_number(block_number)
+
+        self.__assert_block_number_in_range(block_number)
         if block_number in self.__num2block:
             return self.__num2block[block_number]
 
@@ -96,10 +99,11 @@ class DevnetBlocks:
             block_number = self.__hash2num[numeric_hash]
 
         if block_number is not None:
-            if block_number not in self.__state_updates:
-                return await self.origin.get_state_update(block_number=block_number)
+            self.__assert_block_number_in_range(block_number)
+            if block_number in self.__state_updates:
+                return self.__state_updates[block_number]
 
-            return self.__state_updates[block_number]
+            return await self.origin.get_state_update(block_number=block_number)
 
         return (
             self.__state_updates.get(self.get_number_of_blocks() - 1)
