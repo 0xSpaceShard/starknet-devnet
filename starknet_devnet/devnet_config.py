@@ -40,7 +40,7 @@ NETWORK_TO_URL = {
     "alpha-goerli2": "https://alpha4-2.starknet.io",
     "alpha-mainnet": "https://alpha-mainnet.starknet.io",
 }
-NETWORK_NAMES = ", ".join(NETWORK_TO_URL.keys())  # TODO in docs
+NETWORK_NAMES = ", ".join(NETWORK_TO_URL.keys())
 
 
 def _fork_network(network_id: str):

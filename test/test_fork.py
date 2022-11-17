@@ -18,7 +18,7 @@ from .shared import (
 )
 from .settings import APP_URL, bind_free_port, HOST
 from .test_account import get_account_balance
-from .test_deploy import test_deploy_account_body, test_deploy_with_udc_body
+from .test_deploy import deploy_account_test_body, deploy_with_udc_test_body
 from .testnet_deployment import (
     TESTNET_CONTRACT_ADDRESS,
     TESTNET_DEPLOYMENT_BLOCK,
@@ -293,10 +293,10 @@ def test_minting(lite: bool):
 @devnet_in_background(*TESTNET_FORK_PARAMS)
 def test_deploy_account():
     """Test that deploy account functionality works when forking"""
-    test_deploy_account_body()
+    deploy_account_test_body()
 
 
 @devnet_in_background(*TESTNET_FORK_PARAMS)
 def test_deploy_with_udc():
     """Test that deploying with udc works when forking"""
-    test_deploy_with_udc_body()
+    deploy_with_udc_test_body()

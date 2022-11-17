@@ -74,7 +74,6 @@ from .util import (
 )
 from .postman_wrapper import DevnetL1L2
 from .transactions import DevnetTransactions, DevnetTransaction
-from .contracts import DevnetContracts
 from .blocks import DevnetBlocks
 from .block_info_generator import BlockInfoGenerator
 from .devnet_config import DevnetConfig
@@ -83,6 +82,7 @@ from .sequencer_api_utils import InternalInvokeFunctionForSimulate
 enable_pickling()
 
 # pylint: disable=too-many-instance-attributes
+# pylint: disable=too-many-public-methods
 class StarknetWrapper:
     """
     Wraps a Starknet instance and stores data to be returned by the server:
@@ -100,7 +100,6 @@ class StarknetWrapper:
         self.block_info_generator = BlockInfoGenerator()
         self.blocks = DevnetBlocks(self.origin, lite=config.lite_mode)
         self.config = config
-        self.contracts = DevnetContracts()
         self.l1l2 = DevnetL1L2()
         self.transactions = DevnetTransactions(self.origin)
         self.starknet: Starknet = None
@@ -113,7 +112,7 @@ class StarknetWrapper:
         if config.start_time is not None:
             self.set_block_time(config.start_time)
 
-        self.set_gas_price(config.gas_price)
+        self.__set_gas_price(config.gas_price)
 
     @staticmethod
     def load(path: str) -> "StarknetWrapper":
@@ -246,13 +245,6 @@ class StarknetWrapper:
             transaction.set_block(block=block)
 
         self.transactions.store(tx_hash, transaction)
-
-    def set_config(self, config: DevnetConfig):
-        """
-        Sets the configuration of the devnet.
-        """
-        self.config = config
-        self.blocks.lite = config.lite_mode
 
     async def declare(self, external_tx: Declare) -> Tuple[int, int]:
         """
@@ -649,7 +641,7 @@ class StarknetWrapper:
         """Sets the block time to `time_s`."""
         self.block_info_generator.set_next_block_time(time_s)
 
-    def set_gas_price(self, gas_price: int):
+    def __set_gas_price(self, gas_price: int):
         """Sets gas price to `gas_price`."""
         self.block_info_generator.set_gas_price(gas_price)
 

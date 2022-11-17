@@ -137,10 +137,10 @@ def test_predeployed_oz_account():
 @devnet_in_background()
 def test_deploy_account():
     """Test the deployment of an account."""
-    test_deploy_account_body()
+    deploy_account_test_body()
 
 
-def test_deploy_account_body():
+def deploy_account_test_body():
     """The body of account deployment test."""
 
     # the account class should already be declared
@@ -285,10 +285,10 @@ def test_precomputed_udc_address():
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
 def test_deploy_with_udc():
     """Test if deploying through UDC works."""
-    test_deploy_with_udc_body()
+    deploy_with_udc_test_body()
 
 
-def test_deploy_with_udc_body():
+def deploy_with_udc_test_body():
     """The body of udc deployment test."""
     # Declare the class to be deployed
     declare_info = declare(
