@@ -40,6 +40,7 @@ NETWORK_TO_URL = {
     "alpha-goerli2": "https://alpha4-2.starknet.io",
     "alpha-mainnet": "https://alpha-mainnet.starknet.io",
 }
+NETWORK_NAMES = ", ".join(NETWORK_TO_URL.keys())
 
 
 def _fork_network(network_id: str):
@@ -138,7 +139,9 @@ def _get_feeder_gateway_client(url: str, block_id: str):
             block = asyncio.run(feeder_gateway_client.get_block(block_number=block_id))
             block_number = block.block_number
     except InvalidURL:
-        sys.exit(f"Error: Invalid fork-network (must be name or URL): {url}")
+        sys.exit(
+            f"Error: Invalid fork-network (must be a URL or one of {{{NETWORK_NAMES}}}). Received: {url}"
+        )
     except BadRequest as bad_request:
         if bad_request.status_code == 404:
             msg = f"Error: {url} is not a valid StarkNet sequencer"

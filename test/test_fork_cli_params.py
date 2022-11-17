@@ -23,7 +23,7 @@ def test_invalid_fork_network():
     assert read_stream(proc.stdout) == ""
     assert (
         read_stream(proc.stderr)
-        == f"Error: Invalid fork-network (must be name or URL): {invalid_name}\n"
+        == f"Error: Invalid fork-network (must be a URL or one of {{alpha-goerli, alpha-goerli2, alpha-mainnet}}). Received: {invalid_name}\n"
     )
     assert proc.returncode == 1
 
