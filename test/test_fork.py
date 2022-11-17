@@ -11,6 +11,7 @@ from .account import get_nonce, invoke
 from .shared import (
     ABI_PATH,
     CONTRACT_PATH,
+    ALPHA_MAINNET_URL,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
@@ -60,7 +61,10 @@ def _invoke_on_fork_and_assert_only_fork_changed(
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
         gateway_url=fork_url,
     )
-
+    # assert only received on fork
+    assert_tx_status(invoke_tx_hash, "NOT_RECEIVED", feeder_gateway_url=origin_url)
+    assert_tx_status(invoke_tx_hash, "ACCEPTED_ON_L2", feeder_gateway_url=fork_url)
+    # assert only callable
     origin_balance_after = call(
         function="get_balance",
         abi_path=ABI_PATH,
@@ -68,7 +72,6 @@ def _invoke_on_fork_and_assert_only_fork_changed(
         feeder_gateway_url=origin_url,
     )
     assert origin_balance_after == initial_balance
-    assert_tx_status(invoke_tx_hash, "NOT_RECEIVED", feeder_gateway_url=origin_url)
 
     fork_balance_after = call(
         function="get_balance",
@@ -78,7 +81,6 @@ def _invoke_on_fork_and_assert_only_fork_changed(
     )
     expected_balancer_after = str(int(initial_balance) + sum(increase_args))
     assert fork_balance_after == expected_balancer_after
-    assert_tx_status(invoke_tx_hash, "ACCEPTED_ON_L2", feeder_gateway_url=fork_url)
 
     # account nonce - after
     origin_nonce_after = get_nonce(
@@ -213,14 +215,19 @@ def test_forking_testnet_from_valid_block():
     )
 
 
-@devnet_in_background(
-    *PREDEPLOY_ACCOUNT_CLI_ARGS,
-    "--fork-network",
-    "alpha-goerli2",
-    "--fork-block",
-    str(TESTNET_DEPLOYMENT_BLOCK),
+@pytest.mark.usefixtures("run_devnet_in_background")
+@pytest.mark.parametrize(
+    "run_devnet_in_background, origin_url",
+    [
+        (
+            [*PREDEPLOY_ACCOUNT_CLI_ARGS, "--fork-network", "alpha-mainnet"],
+            ALPHA_MAINNET_URL,
+        ),
+        ([*TESTNET_FORK_PARAMS], TESTNET_URL),
+    ],
+    indirect=["run_devnet_in_background"],
 )
-def test_deploy_on_fork():
+def test_deploy_on_fork(origin_url):
     """
     Deploy on fork, invoke on fork.
     Assert usability on fork. Assert no change on origin.
@@ -243,7 +250,7 @@ def test_deploy_on_fork():
     )
     assert balance_after == "13"
 
-    assert_address_has_no_class_hash(contract_address, TESTNET_URL)
+    assert_address_has_no_class_hash(contract_address, origin_url)
 
 
 @devnet_in_background(
@@ -264,7 +271,7 @@ def test_forking_testnet_from_too_early_block():
     assert_address_has_no_class_hash(TESTNET_CONTRACT_ADDRESS)
 
     # assertions on origin (testnet)
-    # this will fail if someone invokes `increase_balance(2, 3)` because it will then be REJECTED
+    # this will fail if someone invokes `increase_balance(2, 3)` because it will then be REJECTED instead of NOT_RECEIVED
     assert_tx_status(invoke_tx_hash, "NOT_RECEIVED", feeder_gateway_url=TESTNET_URL)
 
 
