@@ -26,7 +26,7 @@ def is_originally_starknet_exception(exc: BadRequest):
     Oterhwise return `False`.
     """
     try:
-        loaded = json.load(exc.text)
+        loaded = json.loads(exc.text)
         assert loaded["code"]
         assert loaded["message"]
         return True
