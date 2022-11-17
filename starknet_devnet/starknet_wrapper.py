@@ -32,6 +32,7 @@ from starkware.starknet.services.api.gateway.transaction import (
     DeployAccount,
     Declare,
 )
+from starkware.starknet.testing.objects import FunctionInvocation
 from starkware.starknet.testing.starknet import Starknet
 from starkware.starkware_utils.error_handling import StarkException
 from starkware.starknet.services.api.contract_class import EntryPointType, ContractClass
