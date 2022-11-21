@@ -26,9 +26,6 @@ from starkware.starknet.services.api.gateway.transaction import (
 )
 from starkware.starknet.business_logic.transaction.objects import InternalDeployAccount
 from starkware.starknet.core.os.class_hash import compute_class_hash
-from starkware.starknet.core.os.contract_address.contract_address import (
-    calculate_contract_address,
-)
 from starkware.starknet.definitions.general_config import DEFAULT_CHAIN_ID
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     DeployAccountSpecificInfo,
@@ -204,7 +201,7 @@ def prepare_deploy_account_tx(
     private_key: int, public_key: int, account_salt: int, contract_class: ContractClass
 ) -> Tuple[DeployAccount, int]:
     """Return (signed deploy account tx, address)"""
-    deploy_account_tx = sign_deploy_account_tx(
+    account_address, deploy_account_tx = sign_deploy_account_tx(
         private_key=private_key,
         public_key=public_key,
         class_hash=compute_class_hash(contract_class),
@@ -213,13 +210,6 @@ def prepare_deploy_account_tx(
         version=SUPPORTED_RPC_TX_VERSION,
         chain_id=DEFAULT_CHAIN_ID.value,
         nonce=0,
-    )
-
-    account_address = calculate_contract_address(
-        salt=account_salt,
-        contract_class=contract_class,
-        constructor_calldata=[public_key],
-        deployer_address=0,
     )
 
     return deploy_account_tx, account_address
