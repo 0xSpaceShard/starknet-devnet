@@ -118,7 +118,7 @@ async def test_deploy(starknet_wrapper_args, expected_block_hash):
 
     assert_hex_equal(
         hex(tx_hash),
-        "0x13D4B9F765587296A4F40591EFE235A8CAF24F0496230F0B13A87F2E4C8150A",
+        "0x51961575e7a34772bc3f9aac0a25aaadde8545df5cf484403c728aa9d85a4b7",
     )
     assert contract_address == expected_contract_address
 
@@ -129,7 +129,7 @@ async def test_deploy(starknet_wrapper_args, expected_block_hash):
         assert tx_status["block_hash"] == expected_block_hash
 
 
-def test_predeployed_oz_account():
+def test_predeclared_oz_account():
     """Test that precomputed class matches"""
     assert OZ_ACCOUNT_CLASS_HASH == compute_class_hash(oz_account_class)
 
