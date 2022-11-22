@@ -198,8 +198,8 @@ async def estimate_fee(request: RpcBroadcastedTxn, block_id: BlockId) -> dict:
     await assert_block_id_is_latest_or_pending(block_id)
     transaction = make_transaction(request)
     try:
-        _, fee_response = await state.starknet_wrapper.calculate_trace_and_fee(
-            transaction
+        _, fee_responses = await state.starknet_wrapper.calculate_trace_and_fee(
+            [transaction]
         )
     except StarkException as ex:
         if "entry_point_selector" in request and (
@@ -213,4 +213,5 @@ async def estimate_fee(request: RpcBroadcastedTxn, block_id: BlockId) -> dict:
             raise RpcError(code=20, message="Contract not found") from ex
         raise RpcError(code=-1, message=ex.message) from ex
 
-    return rpc_fee_estimate(fee_response)
+    assert len(fee_responses) == 1, "Should be just one response"
+    return rpc_fee_estimate(fee_responses[0])
