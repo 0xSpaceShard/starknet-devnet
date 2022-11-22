@@ -1,7 +1,7 @@
 """
 Tests RPC storage
 """
-
+from starknet_devnet.blueprints.rpc.structures.types import RpcErrorCode
 from test.rpc.rpc_utils import rpc_call
 
 import pytest
@@ -93,6 +93,6 @@ def test_get_storage_at_raises_on_incorrect_block_id(deploy_info):
     )
 
     assert ex["error"] == {
-        "code": -1,
-        "message": "Calls must be made with block_id of the latest or pending block. Other block_id are not supported.",
+        "code": RpcErrorCode.INVALID_PARAMS.value,
+        "message": "Invalid params",
     }

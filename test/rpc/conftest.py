@@ -171,7 +171,7 @@ def _block_to_block_id(block: dict, key: str) -> dict:
     return block_id_map[key]
 
 
-@pytest.fixture(name="block_id", params=["hash", "number", "tag"])
+@pytest.fixture(name="block_id", params=["hash", "number", "tag", "tag_pending"])
 def fixture_block_id(gateway_block, request) -> dict:
     """
     BlockId of gateway_block depending on type in request

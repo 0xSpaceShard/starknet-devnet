@@ -85,7 +85,7 @@ async def get_events(
     keys = [] if keys is None else [int(k, 0) for k in keys]
     to_block = (
         int(state.starknet_wrapper.blocks.get_number_of_blocks())
-        if to_block == "latest"
+        if to_block in ["latest", "pending"]
         else int(to_block) + 1
     )
     for block_number in range(int(from_block), to_block):

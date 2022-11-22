@@ -7,6 +7,7 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     BlockId,
     RpcError,
     Felt,
+    RpcErrorCode,
 )
 from starknet_devnet.util import StarknetDevnetException
 from starknet_devnet.state import state
@@ -14,21 +15,14 @@ from starknet_devnet.state import state
 
 def block_tag_to_block_number(block_id: BlockId) -> BlockId:
     """
-    Changes block_id from tag to dict with "block_number" field
+    Changes block_id from "latest" / "pending" tag to dict with "block_number" field
     """
     if isinstance(block_id, str):
-        if block_id == "latest":
+        if block_id in ["latest", "pending"]:
             return {
                 "block_number": state.starknet_wrapper.blocks.get_number_of_blocks() - 1
             }
-
-        if block_id == "pending":
-            raise RpcError(
-                code=-1,
-                message="Calls with block_id == 'pending' are not supported currently.",
-            )
-
-        raise RpcError(code=24, message="Block not found")
+        raise RpcError(code=RpcErrorCode.INVALID_PARAMS.value, message="Invalid params")
 
     return block_id
 
@@ -37,8 +31,7 @@ async def get_block_by_block_id(block_id: BlockId) -> dict:
     """
     Get block using different method depending on block_id type
     """
-    if block_id in ["latest", "pending"]:
-        block_id = block_tag_to_block_number(block_id)
+    block_id = block_tag_to_block_number(block_id)
 
     try:
         if "block_hash" in block_id:
@@ -77,10 +70,7 @@ async def assert_block_id_is_latest_or_pending(block_id: BlockId) -> None:
         if block_id in ("latest", "pending"):
             return
 
-    raise RpcError(
-        code=-1,
-        message="Calls must be made with block_id of the latest or pending block. Other block_id are not supported.",
-    )
+    raise RpcError(code=RpcErrorCode.INVALID_PARAMS.value, message="Invalid params")
 
 
 def rpc_felt(value: Union[int, str]) -> Felt:
