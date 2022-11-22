@@ -1,12 +1,12 @@
 """
 Tests RPC rpc_call
 """
-from starknet_devnet.blueprints.rpc.structures.types import RpcErrorCode
 from test.rpc.rpc_utils import rpc_call
-import pytest
 
 from starkware.starknet.public.abi import get_selector_from_name
+import pytest
 
+from starknet_devnet.blueprints.rpc.structures.types import RpcErrorCode
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 
 
