@@ -571,7 +571,7 @@ class StarknetWrapper:
         return parsed_l1_l2_messages
 
     async def calculate_trace_and_fee(self, external_tx: InvokeFunction):
-        """Calculate trace and fee by simulating tx on state copy."""
+        """Calculates trace and fee by simulating tx on state copy."""
         traces, fees = await self.calculate_traces_and_fees([external_tx])
         assert len(traces) == len(fees) == 1
         return traces[0], fees[0]
