@@ -18,6 +18,8 @@ poetry run starknet-devnet
 
 ## Development - Run in debug mode
 
+This will restart Devnet on each code change:
+
 ```text
 ./scripts/starknet_devnet_debug.sh
 ```

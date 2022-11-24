@@ -30,10 +30,10 @@ from starknet_devnet.util import StarknetDevnetException, custom_int, fixed_leng
 feeder_gateway = Blueprint("feeder_gateway", __name__, url_prefix="/feeder_gateway")
 
 
-def validate_request(data: bytes, cls):
+def validate_request(data: bytes, cls, many=False):
     """Ensure `data` is valid Starknet function call. Returns an object of type specified with `cls`."""
     try:
-        return cls.loads(data)
+        return cls.Schema().loads(data, many=many)
     except (TypeError, ValidationError) as err:
         raise StarknetDevnetException(
             code=StarkErrorCode.MALFORMED_REQUEST,
@@ -295,6 +295,23 @@ async def estimate_fee():
 
     _, fee_response = await state.starknet_wrapper.calculate_trace_and_fee(transaction)
     return jsonify(fee_response)
+
+
+@feeder_gateway.route("/estimate_fee_bulk", methods=["POST"])
+async def estimate_fee_bulk():
+    """Returns the estimated fee for a bulk of transactions."""
+
+    try:
+        # version 1
+        transactions = validate_request(request.data, Transaction, many=True)
+    except StarknetDevnetException:
+        # version 0
+        transactions = validate_request(request.data, InvokeFunction, many=True)
+
+    _, fee_responses = await state.starknet_wrapper.calculate_traces_and_fees(
+        transactions
+    )
+    return jsonify(fee_responses)
 
 
 @feeder_gateway.route("/simulate_transaction", methods=["POST"])

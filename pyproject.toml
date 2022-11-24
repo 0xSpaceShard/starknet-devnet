@@ -14,7 +14,7 @@ keywords = ["starknet", "cairo", "testnet", "local", "server"]
 python = ">=3.8,<3.10"
 Flask = {extras = ["async"], version = "~2.0.3"}
 flask-cors = "~3.0.10"
-cairo-lang = "0.10.1"
+cairo-lang = "0.10.2"
 Werkzeug = "~2.0.3"
 cloudpickle = "~2.1.0"
 crypto-cpp-py = "~1.0.4"

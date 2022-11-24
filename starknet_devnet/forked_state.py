@@ -105,6 +105,7 @@ def get_forked_starknet(
                     gas_price=gas_price,
                 ),
                 state_reader=state_reader,
+                contract_class_cache={},
             ),
             general_config=DEFAULT_GENERAL_CONFIG,
         )

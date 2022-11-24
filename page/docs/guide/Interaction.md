@@ -7,12 +7,13 @@ sidebar_position: 2
 - Interact with Devnet as you would with the official StarkNet [**Alpha testnet**](https://www.cairo-lang.org/docs/hello_starknet/amm.html?highlight=alpha#interaction-examples).
 - The exact underlying API is not exposed for the same reason Alpha testnet does not expose it.
 - To use Devnet with StarkNet CLI, provide Devnet's URL to the `--gateway_url` and `--feeder_gateway_url` options of StarkNet CLI commands.
-- The following StarkNet CLI commands are supported:
+- The following StarkNet gateway endpoints are supported (mostly corresponding to StarkNet CLI commands):
   - `call`
   - `declare`
   - `deploy`
   - `deploy_account`
   - `estimate_fee`
+  - `estimate_fee_bulk`
   - `get_block` (currently pending block is not supported)
   - `get_block_traces`
   - `get_class_by_hash`

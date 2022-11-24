@@ -118,7 +118,7 @@ async def test_deploy(starknet_wrapper_args, expected_block_hash):
 
     assert_hex_equal(
         hex(tx_hash),
-        "0x13D4B9F765587296A4F40591EFE235A8CAF24F0496230F0B13A87F2E4C8150A",
+        "0x51961575e7a34772bc3f9aac0a25aaadde8545df5cf484403c728aa9d85a4b7",
     )
     assert contract_address == expected_contract_address
 
@@ -129,7 +129,7 @@ async def test_deploy(starknet_wrapper_args, expected_block_hash):
         assert tx_status["block_hash"] == expected_block_hash
 
 
-def test_predeployed_oz_account():
+def test_predeclared_oz_account():
     """Test that precomputed class matches"""
     assert OZ_ACCOUNT_CLASS_HASH == compute_class_hash(oz_account_class)
 
@@ -149,15 +149,9 @@ def deploy_account_test_body():
     private_key = 0x6F9E0F15B20753CE2E2B740B182099C4ADF765D0C5A5B75C1AF3327358FBF2E
     public_key = 0x7707342F75277F32F1A0AD532E1A12016B36A3967332D31F915C889678B3DB6
     account_salt = 0x75B567ECB69C6D032982FA32C8F52D2F00DB50C5DE2C93EDDA70DE9B5109F8F
-    account_address = calculate_contract_address(
-        salt=account_salt,
-        contract_class=oz_account_class,
-        constructor_calldata=[public_key],
-        deployer_address=0,
-    )
 
     # prepare deploy account tx
-    deploy_account_tx = sign_deploy_account_tx(
+    account_address, deploy_account_tx = sign_deploy_account_tx(
         private_key=private_key,
         public_key=public_key,
         class_hash=compute_class_hash(oz_account_class),
@@ -166,7 +160,8 @@ def deploy_account_test_body():
         version=SUPPORTED_TX_VERSION,
         chain_id=DEFAULT_CHAIN_ID.value,
         nonce=0,
-    ).dump()
+    )
+    deploy_account_tx = deploy_account_tx.dump()
 
     # deployment should fail if no funds
     tx_before = send_tx(deploy_account_tx, TransactionType.DEPLOY_ACCOUNT)

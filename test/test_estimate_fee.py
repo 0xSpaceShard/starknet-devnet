@@ -1,13 +1,20 @@
 """Fee estimation tests"""
 
 import json
+import typing
 
 import pytest
 import requests
+from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.public.abi import get_selector_from_name
+from starkware.starknet.services.api.gateway.transaction import AccountTransaction
+from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    FeeEstimationInfo,
+)
 
 
 from starknet_devnet.constants import DEFAULT_GAS_PRICE
+from .account import get_nonce
 from .util import (
     call,
     deploy,
@@ -15,14 +22,17 @@ from .util import (
     estimate_message_fee,
     load_file_content,
 )
+from .sample_tx_objects import TX_DICT1, TX_DICT2
 from .settings import APP_URL
 from .shared import (
+    ABI_PATH,
     CONTRACT_PATH,
     EXPECTED_CLASS_HASH,
     EXPECTED_FEE_TOKEN_ADDRESS,
     L1L2_ABI_PATH,
     L1L2_CONTRACT_PATH,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
+    PREDEPLOYED_ACCOUNT_ADDRESS,
 )
 
 DEPLOY_CONTENT = load_file_content("deploy.json")
@@ -46,15 +56,19 @@ def send_simulate_tx_with_requests(req_dict: dict):
     )
 
 
-def common_estimate_response(response_parsed: dict):
+def common_estimate_response(
+    fee_estimation_info: typing.Union[dict, FeeEstimationInfo]
+):
     """expected response from estimate_fee request"""
 
-    assert response_parsed.get("gas_price") == DEFAULT_GAS_PRICE
-    assert isinstance(response_parsed.get("gas_usage"), int)
-    assert response_parsed.get("overall_fee") == response_parsed.get(
-        "gas_price"
-    ) * response_parsed.get("gas_usage")
-    assert response_parsed.get("unit") == "wei"
+    if not isinstance(fee_estimation_info, FeeEstimationInfo):
+        fee_estimation_info = FeeEstimationInfo.load(fee_estimation_info)
+
+    assert fee_estimation_info.gas_price == DEFAULT_GAS_PRICE
+    assert fee_estimation_info.gas_usage > 0
+    expected_overall_fee = fee_estimation_info.gas_price * fee_estimation_info.gas_usage
+    assert expected_overall_fee == fee_estimation_info.overall_fee
+    assert fee_estimation_info.unit == "wei"
 
 
 @devnet_in_background()
@@ -205,3 +219,57 @@ def test_estimate_message_fee():
         inputs=[user_id],
     )
     assert int(balance_after) == 0
+
+
+def _send_estimate_fee_bulk_request(txs: typing.List[AccountTransaction]):
+    return requests.post(
+        f"{APP_URL}/feeder_gateway/estimate_fee_bulk",
+        json=AccountTransaction.Schema().dump(txs, many=True),
+    )
+
+
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
+def test_estimate_fee_bulk_invalid():
+    """Test estimating fee in a bulk when one tx is invalid"""
+    # skip deployment to cause failure
+
+    tx_dicts = [TX_DICT1, TX_DICT2]
+    txs = AccountTransaction.Schema().load(tx_dicts, many=True)
+
+    resp = _send_estimate_fee_bulk_request(txs)
+    assert resp.json()["code"] == str(StarknetErrorCode.UNINITIALIZED_CONTRACT)
+    assert resp.status_code == 500
+
+
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
+def test_estimate_fee_bulk():
+    """Test estimating fee in a bulk"""
+
+    # contract must be deployed for fee estimation to be possible
+    initial_balance = "10"
+    deploy_info = deploy(contract=CONTRACT_PATH, inputs=[initial_balance], salt="0x42")
+
+    tx_dicts = [TX_DICT1, TX_DICT2]  # two invokes
+    # assert that loading can be done (i.e. object is structured correctly)
+    txs = AccountTransaction.Schema().load(tx_dicts, many=True)
+
+    resp = _send_estimate_fee_bulk_request(txs)
+    assert resp.status_code == 200
+    fee_estimation_infos = FeeEstimationInfo.Schema().load(resp.json(), many=True)
+
+    # assert correct structure of response
+    assert len(fee_estimation_infos) == len(tx_dicts) == 2
+    for fee_estimation_info in fee_estimation_infos:
+        common_estimate_response(fee_estimation_info)
+
+    # tx at index 0 increases balance with [0, 0]
+    assert fee_estimation_infos[0].gas_usage < fee_estimation_infos[1].gas_usage
+
+    # assert no change done to contract
+    nonce_after = get_nonce(account_address=PREDEPLOYED_ACCOUNT_ADDRESS)
+    assert nonce_after == 0
+
+    balance_after = call(
+        function="get_balance", address=deploy_info["address"], abi_path=ABI_PATH
+    )
+    assert balance_after == initial_balance

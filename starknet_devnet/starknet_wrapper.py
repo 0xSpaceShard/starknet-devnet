@@ -572,42 +572,59 @@ class StarknetWrapper:
 
     async def calculate_trace_and_fee(self, external_tx: InvokeFunction):
         """Calculates trace and fee by simulating tx on state copy."""
+        traces, fees = await self.calculate_traces_and_fees([external_tx])
+        assert len(traces) == len(fees) == 1
+        return traces[0], fees[0]
+
+    async def calculate_traces_and_fees(self, external_txs: List[InvokeFunction]):
+        """Calculates traces and fees by simulating tx on state copy.
+        Uses the resulting state for each consecutive estimation"""
         state = self.get_state()
-        try:
-            internal_tx = InternalInvokeFunctionForSimulate.from_external(
-                external_tx, state.general_config
-            )
-        except AssertionError as error:
-            raise StarknetDevnetException(
-                code=StarkErrorCode.MALFORMED_REQUEST,
-                status_code=400,
-                message="Invalid format of fee estimation request",
-            ) from error
+        cached_state_copy = state.state
 
-        execution_info = await internal_tx.apply_state_updates(
+        traces = []
+        fee_estimation_infos = []
+
+        for external_tx in external_txs:
             # pylint: disable=protected-access
-            state.state._copy(),
-            state.general_config,
-        )
+            cached_state_copy = cached_state_copy._copy()
+            try:
+                internal_tx = InternalInvokeFunctionForSimulate.from_external(
+                    external_tx, state.general_config
+                )
+            except AssertionError as error:
+                raise StarknetDevnetException(
+                    code=StarkErrorCode.MALFORMED_REQUEST,
+                    status_code=400,
+                    message="Invalid format of fee estimation request",
+                ) from error
 
-        trace = TransactionTrace(
-            validate_invocation=FunctionInvocation.from_optional_internal(
-                execution_info.validate_info
-            ),
-            function_invocation=FunctionInvocation.from_optional_internal(
-                execution_info.call_info
-            ),
-            fee_transfer_invocation=FunctionInvocation.from_optional_internal(
-                execution_info.fee_transfer_info
-            ),
-            signature=external_tx.signature,
-        )
+            execution_info = await internal_tx.apply_state_updates(
+                cached_state_copy,
+                state.general_config,
+            )
 
-        fee_estimation_info = get_fee_estimation_info(
-            execution_info.actual_fee, state.state.block_info.gas_price
-        )
+            trace = TransactionTrace(
+                validate_invocation=FunctionInvocation.from_optional_internal(
+                    execution_info.validate_info
+                ),
+                function_invocation=FunctionInvocation.from_optional_internal(
+                    execution_info.call_info
+                ),
+                fee_transfer_invocation=FunctionInvocation.from_optional_internal(
+                    execution_info.fee_transfer_info
+                ),
+                signature=external_tx.signature,
+            )
+            traces.append(trace)
 
-        return trace, fee_estimation_info
+            fee_estimation_info = get_fee_estimation_info(
+                execution_info.actual_fee, state.state.block_info.gas_price
+            )
+            fee_estimation_infos.append(fee_estimation_info)
+
+        assert len(traces) == len(fee_estimation_infos) == len(external_txs)
+        return traces, fee_estimation_infos
 
     async def estimate_message_fee(self, call: CallL1Handler):
         """Estimate fee of message from L1 to L2"""
