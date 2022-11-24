@@ -1,10 +1,11 @@
 """
 Tests RPC storage
 """
+
 from test.rpc.rpc_utils import rpc_call
 
-from starkware.starknet.public.abi import get_storage_var_address
 import pytest
+from starkware.starknet.public.abi import get_storage_var_address
 
 from starknet_devnet.blueprints.rpc.structures.types import RpcErrorCode
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
