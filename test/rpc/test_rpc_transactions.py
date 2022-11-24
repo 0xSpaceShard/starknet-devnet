@@ -78,7 +78,6 @@ def test_get_transaction_by_hash_deploy(deploy_info):
     block = get_block_with_transaction(deploy_info["transaction_hash"])
     block_tx = block["transactions"][0]
     transaction_hash: str = deploy_info["transaction_hash"]
-    contract_address: str = deploy_info["address"]
 
     resp = rpc_call(
         "starknet_getTransactionByHash",
@@ -91,7 +90,6 @@ def test_get_transaction_by_hash_deploy(deploy_info):
         "class_hash": rpc_felt(block_tx["class_hash"]),
         "version": hex(SUPPORTED_RPC_TX_VERSION),
         "type": rpc_txn_type(block_tx["type"]),
-        "contract_address": rpc_felt(contract_address),
         "contract_address_salt": rpc_felt(block_tx["contract_address_salt"]),
         "constructor_calldata": ["0x045"],
     }
@@ -210,7 +208,6 @@ def test_get_transaction_by_block_id_and_index(deploy_info):
     block = get_block_with_transaction(deploy_info["transaction_hash"])
     block_tx = block["transactions"][0]
     transaction_hash: str = deploy_info["transaction_hash"]
-    contract_address: str = deploy_info["address"]
     block_number: str = block["block_number"]
     index: int = 0
 
@@ -230,7 +227,6 @@ def test_get_transaction_by_block_id_and_index(deploy_info):
         "constructor_calldata": [
             rpc_felt(tx) for tx in block_tx["constructor_calldata"]
         ],
-        "contract_address": rpc_felt(contract_address),
         "contract_address_salt": rpc_felt(block_tx["contract_address_salt"]),
         "transaction_hash": rpc_felt(transaction_hash),
         "type": rpc_txn_type(block_tx["type"]),

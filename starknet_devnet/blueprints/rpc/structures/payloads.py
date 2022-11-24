@@ -328,7 +328,6 @@ def rpc_deploy_transaction(transaction: DeploySpecificInfo) -> RpcDeployTransact
         "class_hash": rpc_felt(transaction.class_hash),
         "version": hex(transaction.version),
         "type": rpc_txn_type(transaction.tx_type.name),
-        "contract_address": rpc_felt(transaction.contract_address),
         "contract_address_salt": rpc_felt(transaction.contract_address_salt),
         "constructor_calldata": [
             rpc_felt(data) for data in transaction.constructor_calldata
@@ -432,7 +431,7 @@ def make_invoke_function(invoke_transaction: RpcBroadcastedInvokeTxn) -> InvokeF
 
 def make_declare(declare_transaction: RpcBroadcastedDeclareTxn) -> Declare:
     """
-    Convert RpcDeclareTransaction to Declare
+    Convert RpcBroadcastedDeclareTxn to Declare
     """
     contract_class = declare_transaction["contract_class"]
     if "abi" not in contract_class:
@@ -458,9 +457,9 @@ def make_declare(declare_transaction: RpcBroadcastedDeclareTxn) -> Declare:
     return declare_tx
 
 
-def make_deploy(deploy_transaction: RpcDeployTransaction) -> Deploy:
+def make_deploy(deploy_transaction: RpcBroadcastedDeployTxn) -> Deploy:
     """
-    Convert RpcDeployTransaction to Deploy
+    Convert RpcBroadcastedDeployTxn to Deploy
     """
     contract_class = deploy_transaction["contract_class"]
     if "abi" not in contract_class:
@@ -484,10 +483,10 @@ def make_deploy(deploy_transaction: RpcDeployTransaction) -> Deploy:
 
 
 def make_deploy_account(
-    deploy_account_transaction: RpcDeployAccountTransaction,
+    deploy_account_transaction: RpcBroadcastedDeployAccountTxn,
 ) -> DeployAccount:
     """
-    Convert RpcDeployAccountTransaction to DeployAccount
+    Convert RpcBroadcastedDeployAccountTxn to DeployAccount
     """
     deploy_account_tx = DeployAccount(
         class_hash=int(deploy_account_transaction["class_hash"], 16),

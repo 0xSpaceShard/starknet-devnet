@@ -89,7 +89,6 @@ def test_get_block_with_txs(gateway_block, block_id):
                 "constructor_calldata": [
                     rpc_felt(data) for data in block_tx["constructor_calldata"]
                 ],
-                "contract_address": rpc_felt(block_tx["contract_address"]),
                 "contract_address_salt": rpc_felt(block_tx["contract_address_salt"]),
                 "transaction_hash": rpc_felt(block_tx["transaction_hash"]),
                 "type": rpc_txn_type(block_tx["type"]),
