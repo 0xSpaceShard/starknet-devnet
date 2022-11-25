@@ -3,11 +3,11 @@ Contains the server implementation and its utility classes and functions.
 """
 import sys
 from copy import copy
+
 import starkware.cairo.lang.vm.crypto
+from crypto_cpp_py.cpp_bindings import cpp_hash
 from starkware.crypto.signature.fast_pedersen_hash import pedersen_hash
 from starkware.starknet.services.api.contract_class import ContractClass
-from crypto_cpp_py.cpp_bindings import cpp_hash
-
 
 __version__ = "0.4.1"
 

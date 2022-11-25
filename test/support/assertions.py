@@ -1,8 +1,9 @@
 """Utilities for schema validation"""
 
 import json
-from os.path import join, dirname
-from jsonschema import validate, RefResolver
+from os.path import dirname, join
+
+from jsonschema import RefResolver, validate
 
 
 def assert_valid_schema(data, schema_file):

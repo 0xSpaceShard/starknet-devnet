@@ -3,6 +3,7 @@ Global state singletone
 """
 
 from pickle import UnpicklingError
+
 from starkware.starkware_utils.error_handling import StarkErrorCode
 
 from .devnet_config import DevnetConfig

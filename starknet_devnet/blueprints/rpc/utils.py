@@ -5,12 +5,12 @@ from typing import Union
 
 from starknet_devnet.blueprints.rpc.structures.types import (
     BlockId,
-    RpcError,
     Felt,
+    RpcError,
     RpcErrorCode,
 )
-from starknet_devnet.util import StarknetDevnetException
 from starknet_devnet.state import state
+from starknet_devnet.util import StarknetDevnetException
 
 
 def block_tag_to_block_number(block_id: BlockId) -> BlockId:

@@ -9,6 +9,7 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
 )
 
 from .account import declare, invoke
+from .settings import APP_URL
 from .shared import (
     BALANCE_KEY,
     CONTRACT_PATH,
@@ -16,7 +17,6 @@ from .shared import (
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
-from .settings import APP_URL
 from .test_state_update import get_state_update
 from .test_transaction_trace import (
     assert_get_block_traces_response,
@@ -48,7 +48,6 @@ from .util import (
     devnet_in_background,
     get_block,
 )
-
 
 DEPLOYMENT_INPUT = "10"
 EXPECTED_DEPLOYMENT_ADDRESS = (

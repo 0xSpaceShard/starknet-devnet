@@ -4,8 +4,8 @@ Class representing list of predefined accounts
 
 import random
 import sys
-
 from typing import List
+
 from starkware.crypto.signature.signature import private_to_stark_key
 
 from .account import Account

@@ -6,22 +6,20 @@ from typing import Dict
 
 from starkware.starknet.core.os.block_hash.block_hash import calculate_block_hash
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
-from starkware.starknet.testing.state import StarknetState
-from starkware.starknet.services.api.feeder_gateway.response_objects import (
-    StarknetBlock,
-    BlockStatus,
-)
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     BlockIdentifier,
     BlockStateUpdate,
+    BlockStatus,
+    StarknetBlock,
 )
+from starkware.starknet.testing.state import StarknetState
 from starkware.starkware_utils.error_handling import StarkErrorCode
 
 from starknet_devnet.constants import CAIRO_LANG_VERSION, DUMMY_STATE_ROOT
 
 from .origin import Origin
-from .util import StarknetDevnetException
 from .transactions import DevnetTransaction
+from .util import StarknetDevnetException
 
 
 class DevnetBlocks:

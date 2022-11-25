@@ -5,24 +5,24 @@ Tests RPC miscellaneous
 from __future__ import annotations
 
 from test.account import declare, invoke
-from test.rpc.rpc_utils import rpc_call, deploy_and_invoke_storage_contract
+from test.rpc.rpc_utils import deploy_and_invoke_storage_contract, rpc_call
+from test.rpc.test_data.get_events import GET_EVENTS_TEST_DATA
 from test.shared import (
     CONTRACT_PATH,
-    EXPECTED_CLASS_HASH,
     DEPLOYER_CONTRACT_PATH,
+    EVENTS_CONTRACT_PATH,
+    EXPECTED_CLASS_HASH,
     EXPECTED_FEE_TOKEN_ADDRESS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
-    EVENTS_CONTRACT_PATH,
 )
 from test.test_account import deploy_empty_contract
 from test.test_state_update import get_class_hash_at_path
-from test.util import assert_transaction, assert_hex_equal, deploy
-from test.rpc.test_data.get_events import GET_EVENTS_TEST_DATA
+from test.util import assert_hex_equal, assert_transaction, deploy
 
 import pytest
-
 from starkware.starknet.public.abi import get_storage_var_address
+
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 

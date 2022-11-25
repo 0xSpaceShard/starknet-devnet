@@ -8,14 +8,14 @@ from starkware.starknet.services.api.feeder_gateway.feeder_gateway_client import
     FeederGatewayClient,
 )
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
-    TransactionStatus,
+    StarknetBlock,
     TransactionInfo,
     TransactionReceipt,
+    TransactionStatus,
     TransactionTrace,
-    StarknetBlock,
 )
-from starknet_devnet.forked_state import is_originally_starknet_exception
 
+from starknet_devnet.forked_state import is_originally_starknet_exception
 from starknet_devnet.util import StarknetDevnetException
 
 

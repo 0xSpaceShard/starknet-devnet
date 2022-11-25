@@ -4,9 +4,8 @@ import subprocess
 
 import pytest
 
-from .shared import ALPHA_GOERLI_URL, ALPHA_GOERLI2_URL, ALPHA_MAINNET_URL
+from .shared import ALPHA_GOERLI2_URL, ALPHA_GOERLI_URL, ALPHA_MAINNET_URL
 from .util import DevnetBackgroundProc, read_stream, terminate_and_wait
-
 
 ACTIVE_DEVNET = DevnetBackgroundProc()
 

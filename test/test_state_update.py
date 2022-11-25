@@ -10,15 +10,6 @@ from starkware.starknet.core.os.class_hash import compute_class_hash
 from starkware.starknet.public.abi import get_selector_from_name
 
 from .account import declare, invoke
-from .util import (
-    assert_hex_equal,
-    assert_transaction,
-    deploy,
-    load_contract_class,
-    devnet_in_background,
-    get_block,
-    assert_equal,
-)
 from .settings import APP_URL
 from .shared import (
     CONTRACT_PATH,
@@ -26,11 +17,20 @@ from .shared import (
     EXPECTED_CLASS_HASH,
     EXPECTED_FEE_TOKEN_ADDRESS,
     GENESIS_BLOCK_HASH,
+    GENESIS_BLOCK_NUMBER,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     STORAGE_CONTRACT_PATH,
-    GENESIS_BLOCK_NUMBER,
+)
+from .util import (
+    assert_equal,
+    assert_hex_equal,
+    assert_transaction,
+    deploy,
+    devnet_in_background,
+    get_block,
+    load_contract_class,
 )
 
 STORAGE_KEY = hex(get_selector_from_name("storage"))

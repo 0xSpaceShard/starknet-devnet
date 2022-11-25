@@ -1,7 +1,7 @@
 """Starknet ContractClass wrapper utilities"""
 
-from dataclasses import dataclass
 import os
+from dataclasses import dataclass
 
 from starkware.python.utils import to_bytes
 from starkware.starknet.services.api.contract_class import ContractClass

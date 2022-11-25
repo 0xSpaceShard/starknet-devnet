@@ -2,16 +2,16 @@
 
 import pytest
 import requests
-
 from starkware.starknet.core.os.class_hash import compute_class_hash
 
 from starknet_devnet.contract_class_wrapper import (
     DEFAULT_ACCOUNT_HASH_BYTES,
     DEFAULT_ACCOUNT_PATH,
 )
-from .util import assert_equal, devnet_in_background, load_contract_class
-from .support.assertions import assert_valid_schema
+
 from .settings import APP_URL
+from .support.assertions import assert_valid_schema
+from .util import assert_equal, devnet_in_background, load_contract_class
 
 ACCOUNTS_SEED_DEVNET_ARGS = [
     "--accounts",

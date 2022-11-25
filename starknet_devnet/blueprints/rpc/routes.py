@@ -7,40 +7,39 @@ https://github.com/starkware-libs/starknet-specs/releases/tag/v0.1.0
 from __future__ import annotations
 
 import inspect
-from typing import Callable, Dict, Union, List, Tuple
+from typing import Callable, Dict, List, Tuple, Union
 
-from flask import Blueprint
-from flask import request
+from flask import Blueprint, request
 
 from starknet_devnet.blueprints.rpc.blocks import (
+    block_hash_and_number,
+    block_number,
+    get_block_transaction_count,
     get_block_with_tx_hashes,
     get_block_with_txs,
-    get_block_transaction_count,
-    block_number,
-    block_hash_and_number,
 )
 from starknet_devnet.blueprints.rpc.call import call
 from starknet_devnet.blueprints.rpc.classes import (
     get_class,
-    get_class_hash_at,
     get_class_at,
+    get_class_hash_at,
 )
-from starknet_devnet.blueprints.rpc.misc import chain_id, syncing, get_events, get_nonce
+from starknet_devnet.blueprints.rpc.misc import chain_id, get_events, get_nonce, syncing
 from starknet_devnet.blueprints.rpc.state import get_state_update
 from starknet_devnet.blueprints.rpc.storage import get_storage_at
-from starknet_devnet.blueprints.rpc.transactions import (
-    get_transaction_by_hash,
-    get_transaction_by_block_id_and_index,
-    get_transaction_receipt,
-    estimate_fee,
-    pending_transactions,
-    add_invoke_transaction,
-    add_declare_transaction,
-    add_deploy_transaction,
-    add_deploy_account_transaction,
-)
-from starknet_devnet.blueprints.rpc.utils import rpc_response, rpc_error
 from starknet_devnet.blueprints.rpc.structures.types import RpcError, RpcErrorCode
+from starknet_devnet.blueprints.rpc.transactions import (
+    add_declare_transaction,
+    add_deploy_account_transaction,
+    add_deploy_transaction,
+    add_invoke_transaction,
+    estimate_fee,
+    get_transaction_by_block_id_and_index,
+    get_transaction_by_hash,
+    get_transaction_receipt,
+    pending_transactions,
+)
+from starknet_devnet.blueprints.rpc.utils import rpc_error, rpc_response
 
 methods = {
     "getBlockWithTxHashes": get_block_with_tx_hashes,

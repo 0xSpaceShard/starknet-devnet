@@ -2,27 +2,24 @@
 Feeder gateway routes.
 """
 
-from flask import request, jsonify, Blueprint, Response
+from flask import Blueprint, Response, jsonify, request
 from marshmallow import ValidationError
-from starkware.starknet.services.api.feeder_gateway.response_objects import (
-    BlockTransactionTraces,
-)
-from starkware.starknet.services.api.gateway.transaction import (
-    AccountTransaction,
-    InvokeFunction,
-)
-from starkware.starknet.services.api.gateway.transaction import Transaction
 from starkware.starknet.services.api.feeder_gateway.request_objects import (
     CallFunction,
     CallL1Handler,
 )
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    BlockTransactionTraces,
     StarknetBlock,
     TransactionSimulationInfo,
 )
+from starkware.starknet.services.api.gateway.transaction import (
+    AccountTransaction,
+    InvokeFunction,
+    Transaction,
+)
 from starkware.starkware_utils.error_handling import StarkErrorCode
 from werkzeug.datastructures import MultiDict
-
 
 from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException, custom_int, fixed_length_hex

@@ -4,10 +4,10 @@ Fee token and its predefined constants.
 
 from starkware.python.utils import to_bytes
 from starkware.solidity.utils import load_nearby_contract
+from starkware.starknet.compiler.compile import get_selector_from_name
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.gateway.transaction import InvokeFunction
 from starkware.starknet.testing.contract import StarknetContract
-from starkware.starknet.compiler.compile import get_selector_from_name
 from starkware.starknet.testing.starknet import Starknet
 
 from starknet_devnet.sequencer_api_utils import InternalInvokeFunction

@@ -5,48 +5,47 @@ Fixtures for RPC tests
 from __future__ import annotations
 
 import json
-from typing import Tuple, cast
-
-from test.test_account import SALT
-from test.util import load_file_content, mint
 from test.account import PRIVATE_KEY, PUBLIC_KEY
 from test.rpc.rpc_utils import (
+    add_transaction,
     gateway_call,
     get_block_with_transaction,
-    add_transaction,
     get_latest_block,
 )
-import pytest
+from test.test_account import SALT
+from test.util import load_file_content, mint
+from typing import Tuple, cast
 
-from starkware.starknet.services.api.contract_class import ContractClass
-from starkware.starknet.services.api.gateway.transaction import (
-    Transaction,
-    Deploy,
-    DeployAccount,
-)
+import pytest
 from starkware.starknet.business_logic.transaction.objects import InternalDeployAccount
 from starkware.starknet.core.os.class_hash import compute_class_hash
 from starkware.starknet.definitions.general_config import DEFAULT_CHAIN_ID
+from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     DeployAccountSpecificInfo,
 )
-from starkware.starknet.wallets.open_zeppelin import sign_deploy_account_tx
+from starkware.starknet.services.api.gateway.transaction import (
+    Deploy,
+    DeployAccount,
+    Transaction,
+)
 from starkware.starknet.third_party.open_zeppelin.starknet_contracts import (
     account_contract as oz_account_class,
 )
+from starkware.starknet.wallets.open_zeppelin import sign_deploy_account_tx
 
 from starknet_devnet.blueprints.rpc.structures.payloads import (
     RpcDeployAccountTransaction,
     rpc_deploy_account_transaction,
 )
-from starknet_devnet.constants import SUPPORTED_RPC_TX_VERSION
-from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
-from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from starknet_devnet.blueprints.rpc.structures.types import (
-    BlockNumberDict,
     BlockHashDict,
+    BlockNumberDict,
     Felt,
 )
+from starknet_devnet.blueprints.rpc.utils import rpc_felt
+from starknet_devnet.constants import SUPPORTED_RPC_TX_VERSION
+from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 
 DEPLOY_CONTENT = load_file_content("deploy_rpc.json")
 INVOKE_CONTENT = load_file_content("invoke_rpc.json")

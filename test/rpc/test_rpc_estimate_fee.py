@@ -4,14 +4,14 @@ Tests RPC estimate fee
 
 from __future__ import annotations
 
-from test.account import _get_execute_args, get_nonce, _get_signature
+from test.account import _get_execute_args, _get_signature, get_nonce
 from test.rpc.rpc_utils import rpc_call_background_devnet
 from test.rpc.test_rpc_transactions import pad_zero_entry_points
 from test.shared import (
     PREDEPLOY_ACCOUNT_CLI_ARGS,
-    SUPPORTED_RPC_TX_VERSION,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    SUPPORTED_RPC_TX_VERSION,
 )
 from test.test_account import deploy_empty_contract
 
@@ -28,11 +28,11 @@ from starkware.starknet.services.api.gateway.transaction import (
 from starkware.starknet.services.api.gateway.transaction_utils import decompress_program
 
 from starknet_devnet.blueprints.rpc.structures.payloads import (
-    RpcInvokeTransactionV0,
+    RpcBroadcastedDeclareTxn,
     RpcBroadcastedInvokeTxnV0,
     RpcBroadcastedInvokeTxnV1,
     RpcContractClass,
-    RpcBroadcastedDeclareTxn,
+    RpcInvokeTransactionV0,
 )
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from starknet_devnet.constants import DEFAULT_GAS_PRICE, LEGACY_RPC_TX_VERSION

@@ -3,10 +3,10 @@ Account class and its predefined constants.
 """
 
 from starkware.cairo.lang.vm.crypto import pedersen_hash
-from starkware.starknet.public.abi import get_selector_from_name
 from starkware.starknet.core.os.contract_address.contract_address import (
     calculate_contract_address_from_hash,
 )
+from starkware.starknet.public.abi import get_selector_from_name
 from starkware.starknet.testing.contract import StarknetContract
 from starkware.starknet.testing.starknet import Starknet
 

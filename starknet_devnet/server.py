@@ -11,17 +11,15 @@ from flask_cors import CORS
 from gunicorn.app.base import BaseApplication
 from starkware.starkware_utils.error_handling import StarkException
 
-from .util import StarknetDevnetException
-
-from .starknet_wrapper import StarknetWrapper
-
 from .blueprints.base import base
-from .blueprints.gateway import gateway
 from .blueprints.feeder_gateway import feeder_gateway
+from .blueprints.gateway import gateway
 from .blueprints.postman import postman
 from .blueprints.rpc.routes import rpc
-from .state import state
 from .devnet_config import DevnetConfig, DumpOn, parse_args
+from .starknet_wrapper import StarknetWrapper
+from .state import state
+from .util import StarknetDevnetException
 
 app = Flask(__name__)
 CORS(app)

@@ -11,13 +11,13 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
 )
 
 from starknet_devnet.blueprints.rpc.structures.types import (
-    TxnHash,
-    Felt,
     Address,
-    BlockNumber,
     BlockHash,
-    TxnStatus,
+    BlockNumber,
+    Felt,
     RpcTxnType,
+    TxnHash,
+    TxnStatus,
     rpc_txn_type,
 )
 from starknet_devnet.blueprints.rpc.utils import rpc_felt

@@ -5,17 +5,15 @@ Utilities for RPC tests
 from __future__ import annotations
 
 import re
-from typing import Union, List
-
 from test.account import invoke
-
 from test.settings import APP_URL
 from test.shared import (
-    STORAGE_CONTRACT_PATH,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    STORAGE_CONTRACT_PATH,
 )
-from test.util import deploy, assert_transaction
+from test.util import assert_transaction, deploy
+from typing import List, Union
 
 import requests
 

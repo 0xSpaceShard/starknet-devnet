@@ -3,10 +3,10 @@
 import argparse
 import asyncio
 import contextlib
-from enum import Enum, auto
 import json
 import os
 import sys
+from enum import Enum, auto
 from typing import List
 
 from aiohttp.client_exceptions import ClientConnectorError, InvalidURL
@@ -19,11 +19,6 @@ from starkware.starknet.services.api.feeder_gateway.feeder_gateway_client import
     FeederGatewayClient,
 )
 
-from .contract_class_wrapper import (
-    ContractClassWrapper,
-    DEFAULT_ACCOUNT_HASH_BYTES,
-    DEFAULT_ACCOUNT_PATH,
-)
 from . import __version__
 from .constants import (
     DEFAULT_ACCOUNTS,
@@ -33,7 +28,11 @@ from .constants import (
     DEFAULT_PORT,
     DEFAULT_TIMEOUT,
 )
-
+from .contract_class_wrapper import (
+    DEFAULT_ACCOUNT_HASH_BYTES,
+    DEFAULT_ACCOUNT_PATH,
+    ContractClassWrapper,
+)
 
 NETWORK_TO_URL = {
     "alpha-goerli": "https://alpha4.starknet.io",

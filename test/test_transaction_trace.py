@@ -9,20 +9,20 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
 )
 
 from .account import declare, invoke
-from .util import (
-    deploy,
-    get_transaction_receipt,
-    load_json_from_path,
-    devnet_in_background,
-)
 from .settings import APP_URL
 from .shared import (
     CONTRACT_PATH,
-    NONEXISTENT_TX_HASH,
     GENESIS_BLOCK_NUMBER,
+    NONEXISTENT_TX_HASH,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+)
+from .util import (
+    deploy,
+    devnet_in_background,
+    get_transaction_receipt,
+    load_json_from_path,
 )
 
 

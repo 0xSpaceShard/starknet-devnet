@@ -2,19 +2,19 @@
 Utility functions used across the project.
 """
 
-from dataclasses import dataclass
 import os
 import sys
-from typing import Dict, Union, List, Set
+from dataclasses import dataclass
+from typing import Dict, List, Set, Union
 
-from starkware.starknet.definitions.error_codes import StarknetErrorCode
-from starkware.starknet.testing.contract import StarknetContract
 from starkware.starknet.business_logic.state.state import CachedState
+from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     DeployedContract,
     FeeEstimationInfo,
     StorageEntry,
 )
+from starkware.starknet.testing.contract import StarknetContract
 from starkware.starkware_utils.error_handling import StarkException
 
 

@@ -1,7 +1,7 @@
 """
 Base routes
 """
-from flask import Blueprint, Response, request, jsonify
+from flask import Blueprint, Response, jsonify, request
 from starkware.starkware_utils.error_handling import StarkErrorCode
 
 from starknet_devnet.fee_token import FeeToken

@@ -1,25 +1,27 @@
 """Fee token related tests."""
 
 import json
+
 import pytest
 import requests
+
 from starknet_devnet.fee_token import FeeToken
 from starknet_devnet.server import app
 
 from .account import invoke
 from .settings import APP_URL
-from .test_account import (
-    deploy_empty_contract,
-    assert_tx_status,
-    get_transaction_receipt,
-    get_account_balance,
-)
 from .shared import (
     EXPECTED_FEE_TOKEN_ADDRESS,
     GENESIS_BLOCK_NUMBER,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+)
+from .test_account import (
+    assert_tx_status,
+    deploy_empty_contract,
+    get_account_balance,
+    get_transaction_receipt,
 )
 from .util import assert_equal, devnet_in_background, get_block, mint
 

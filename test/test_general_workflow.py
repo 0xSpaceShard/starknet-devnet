@@ -5,28 +5,6 @@ Tests the general workflow of the devnet.
 import pytest
 
 from .account import invoke
-from .util import (
-    assert_class_by_hash,
-    assert_full_contract,
-    assert_negative_block_input,
-    assert_transaction_not_received,
-    assert_transaction_receipt_not_received,
-    assert_block,
-    assert_contract_code_present,
-    assert_equal,
-    assert_failing_deploy,
-    assert_receipt,
-    assert_salty_deploy,
-    assert_storage,
-    assert_transaction,
-    assert_tx_status,
-    assert_events,
-    call,
-    deploy,
-    get_class_hash_at,
-    get_block,
-)
-
 from .shared import (
     ABI_PATH,
     BALANCE_KEY,
@@ -40,6 +18,27 @@ from .shared import (
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+)
+from .util import (
+    assert_block,
+    assert_class_by_hash,
+    assert_contract_code_present,
+    assert_equal,
+    assert_events,
+    assert_failing_deploy,
+    assert_full_contract,
+    assert_negative_block_input,
+    assert_receipt,
+    assert_salty_deploy,
+    assert_storage,
+    assert_transaction,
+    assert_transaction_not_received,
+    assert_transaction_receipt_not_received,
+    assert_tx_status,
+    call,
+    deploy,
+    get_block,
+    get_class_hash_at,
 )
 
 EXPECTED_SALTY_DEPLOY_BLOCK_HASH_LITE_MODE = "0x1"

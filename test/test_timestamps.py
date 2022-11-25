@@ -4,15 +4,16 @@ Test block timestamps
 
 import math
 import time
+
 import pytest
 import requests
 
-from starknet_devnet.block_info_generator import BlockInfoGenerator, BlockInfo
+from starknet_devnet.block_info_generator import BlockInfo, BlockInfoGenerator
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 
-from .shared import ARTIFACTS_PATH
-from .util import devnet_in_background, deploy, call, get_block
 from .settings import APP_URL
+from .shared import ARTIFACTS_PATH
+from .util import call, deploy, devnet_in_background, get_block
 
 TS_CONTRACT_PATH = f"{ARTIFACTS_PATH}/timestamp.cairo/timestamp.json"
 TS_ABI_PATH = f"{ARTIFACTS_PATH}/timestamp.cairo/timestamp_abi.json"

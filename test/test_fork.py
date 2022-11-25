@@ -8,15 +8,15 @@ import pytest
 from starknet_devnet.constants import DEFAULT_INITIAL_BALANCE
 
 from .account import get_nonce, invoke
+from .settings import APP_URL, HOST, bind_free_port
 from .shared import (
     ABI_PATH,
-    CONTRACT_PATH,
     ALPHA_MAINNET_URL,
+    CONTRACT_PATH,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
-from .settings import APP_URL, bind_free_port, HOST
 from .test_account import get_account_balance
 from .test_deploy import deploy_account_test_body, deploy_with_udc_test_body
 from .testnet_deployment import (

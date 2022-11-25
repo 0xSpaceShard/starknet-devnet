@@ -4,16 +4,16 @@ RPC classes endpoints
 
 from starkware.starkware_utils.error_handling import StarkException
 
+from starknet_devnet.blueprints.rpc.structures.payloads import rpc_contract_class
+from starknet_devnet.blueprints.rpc.structures.types import (
+    Address,
+    BlockId,
+    Felt,
+    RpcError,
+)
 from starknet_devnet.blueprints.rpc.utils import (
     assert_block_id_is_latest_or_pending,
     rpc_felt,
-)
-from starknet_devnet.blueprints.rpc.structures.payloads import rpc_contract_class
-from starknet_devnet.blueprints.rpc.structures.types import (
-    BlockId,
-    Address,
-    Felt,
-    RpcError,
 )
 from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException

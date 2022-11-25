@@ -6,19 +6,19 @@ from typing import Any, List
 
 from starkware.starkware_utils.error_handling import StarkException
 
-from starknet_devnet.blueprints.rpc.utils import (
-    rpc_felt,
-    assert_block_id_is_latest_or_pending,
-)
 from starknet_devnet.blueprints.rpc.structures.payloads import (
     RpcFunctionCall,
     make_call_function,
 )
 from starknet_devnet.blueprints.rpc.structures.types import (
-    Felt,
     BlockId,
+    Felt,
     RpcError,
     RpcErrorCode,
+)
+from starknet_devnet.blueprints.rpc.utils import (
+    assert_block_id_is_latest_or_pending,
+    rpc_felt,
 )
 from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException

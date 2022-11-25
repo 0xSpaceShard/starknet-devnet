@@ -7,21 +7,14 @@ import pytest
 import requests
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.public.abi import get_selector_from_name
-from starkware.starknet.services.api.gateway.transaction import AccountTransaction
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     FeeEstimationInfo,
 )
-
+from starkware.starknet.services.api.gateway.transaction import AccountTransaction
 
 from starknet_devnet.constants import DEFAULT_GAS_PRICE
+
 from .account import get_nonce
-from .util import (
-    call,
-    deploy,
-    devnet_in_background,
-    estimate_message_fee,
-    load_file_content,
-)
 from .sample_tx_objects import TX_DICT1, TX_DICT2
 from .settings import APP_URL
 from .shared import (
@@ -33,6 +26,13 @@ from .shared import (
     L1L2_CONTRACT_PATH,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
+)
+from .util import (
+    call,
+    deploy,
+    devnet_in_background,
+    estimate_message_fee,
+    load_file_content,
 )
 
 DEPLOY_CONTENT = load_file_content("deploy.json")

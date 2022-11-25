@@ -1,9 +1,9 @@
 """Test custom account"""
 
-import subprocess
 import os
-import pytest
+import subprocess
 
+import pytest
 from starkware.starknet.core.os.class_hash import compute_class_hash
 from starkware.starknet.services.api.contract_class import ContractClass
 
@@ -16,10 +16,10 @@ from .shared import (
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
 from .util import (
+    DevnetBackgroundProc,
     call,
     deploy,
     devnet_in_background,
-    DevnetBackgroundProc,
     get_class_hash_at,
     load_file_content,
 )

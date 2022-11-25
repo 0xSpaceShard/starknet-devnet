@@ -4,57 +4,52 @@ Tests RPC transactions
 
 from __future__ import annotations
 
-from typing import List
-
-from test.account import declare, _get_execute_args, get_nonce, _get_signature
-from test.rpc.conftest import (
-    prepare_deploy_account_tx,
-    rpc_deploy_account_from_gateway,
-)
+from test.account import _get_execute_args, _get_signature, declare, get_nonce
+from test.rpc.conftest import prepare_deploy_account_tx, rpc_deploy_account_from_gateway
 from test.rpc.rpc_utils import (
-    rpc_call,
-    get_block_with_transaction,
-    gateway_call,
     deploy_and_invoke_storage_contract,
+    gateway_call,
+    get_block_with_transaction,
     is_felt,
+    rpc_call,
 )
 from test.shared import (
+    ABI_PATH,
+    CONTRACT_PATH,
     INCORRECT_GENESIS_BLOCK_HASH,
-    SUPPORTED_RPC_TX_VERSION,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
-    CONTRACT_PATH,
     STARKNET_CLI_ACCOUNT_ABI_PATH,
-    ABI_PATH,
+    SUPPORTED_RPC_TX_VERSION,
 )
-from test.util import deploy, load_contract_class, assert_tx_status, mint, call, send_tx
-import pytest
+from test.util import assert_tx_status, call, deploy, load_contract_class, mint, send_tx
+from typing import List
 
-from starkware.starknet.definitions.transaction_type import TransactionType
-from starkware.starknet.wallets.open_zeppelin import (
-    sign_invoke_tx,
-)
+import pytest
 from starkware.starknet.core.os.transaction_hash.transaction_hash import (
     calculate_declare_transaction_hash,
 )
 from starkware.starknet.definitions.general_config import (
-    StarknetChainId,
     DEFAULT_CHAIN_ID,
+    StarknetChainId,
 )
+from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starknet.public.abi import (
-    get_storage_var_address,
     get_selector_from_name,
+    get_storage_var_address,
 )
-from starknet_devnet.blueprints.rpc.structures.types import rpc_txn_type, Signature
-from starknet_devnet.blueprints.rpc.utils import rpc_felt
+from starkware.starknet.wallets.open_zeppelin import sign_invoke_tx
+
 from starknet_devnet.blueprints.rpc.structures.payloads import (
-    RpcContractClass,
-    RpcBroadcastedDeclareTxn,
     EntryPoints,
+    RpcBroadcastedDeclareTxn,
     RpcBroadcastedDeployTxn,
-    RpcBroadcastedInvokeTxnV1,
     RpcBroadcastedInvokeTxnV0,
+    RpcBroadcastedInvokeTxnV1,
+    RpcContractClass,
 )
+from starknet_devnet.blueprints.rpc.structures.types import Signature, rpc_txn_type
+from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from starknet_devnet.constants import LEGACY_RPC_TX_VERSION
 
 

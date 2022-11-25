@@ -2,15 +2,15 @@
 Contains general_config generation functionalities.
 """
 
+from starkware.starknet.definitions import constants
 from starkware.starknet.definitions.general_config import (
-    build_general_config,
     DEFAULT_CHAIN_ID,
     DEFAULT_GAS_PRICE,
     DEFAULT_MAX_STEPS,
     DEFAULT_SEQUENCER_ADDRESS,
     DEFAULT_VALIDATE_MAX_STEPS,
+    build_general_config,
 )
-from starkware.starknet.definitions import constants
 
 from .constants import SUPPORTED_TX_VERSION
 from .fee_token import FeeToken

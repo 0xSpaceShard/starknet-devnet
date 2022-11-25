@@ -2,9 +2,18 @@
 Test account functionality.
 """
 
-import requests
 import pytest
+import requests
 
+from .account import (
+    ACCOUNT_ABI_PATH,
+    PRIVATE_KEY,
+    PUBLIC_KEY,
+    deploy_account_contract,
+    get_estimated_fee,
+    get_nonce,
+    invoke,
+)
 from .settings import APP_URL
 from .shared import (
     ABI_PATH,
@@ -19,20 +28,11 @@ from .util import (
     assert_events,
     assert_transaction,
     assert_tx_status,
+    call,
     deploy,
     devnet_in_background,
     get_transaction_receipt,
     load_file_content,
-    call,
-)
-from .account import (
-    ACCOUNT_ABI_PATH,
-    PRIVATE_KEY,
-    PUBLIC_KEY,
-    deploy_account_contract,
-    get_nonce,
-    invoke,
-    get_estimated_fee,
 )
 
 INVOKE_CONTENT = load_file_content("invoke.json")

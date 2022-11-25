@@ -9,8 +9,8 @@ import re
 import subprocess
 import time
 from typing import IO, List
-import requests
 
+import requests
 from starkware.starknet.cli.starknet_cli import get_salt
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.definitions.transaction_type import TransactionType
@@ -18,7 +18,8 @@ from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.gateway.transaction import Deploy
 
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
-from .settings import HOST, PORT, APP_URL
+
+from .settings import APP_URL, HOST, PORT
 from .shared import SUPPORTED_TX_VERSION
 
 

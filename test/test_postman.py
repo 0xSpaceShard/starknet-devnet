@@ -7,11 +7,18 @@ import subprocess
 
 import psutil
 import pytest
-
-from web3 import Web3
 import requests
+from web3 import Web3
 
 from .account import invoke
+from .settings import APP_URL, L1_HOST, L1_PORT, L1_URL
+from .shared import (
+    L1L2_ABI_PATH,
+    L1L2_CONTRACT_PATH,
+    PREDEPLOY_ACCOUNT_CLI_ARGS,
+    PREDEPLOYED_ACCOUNT_ADDRESS,
+    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+)
 from .util import (
     call,
     deploy,
@@ -21,14 +28,6 @@ from .util import (
     get_block,
     load_file_content,
     terminate_and_wait,
-)
-from .settings import APP_URL, L1_HOST, L1_PORT, L1_URL
-from .shared import (
-    L1L2_ABI_PATH,
-    L1L2_CONTRACT_PATH,
-    PREDEPLOY_ACCOUNT_CLI_ARGS,
-    PREDEPLOYED_ACCOUNT_ADDRESS,
-    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
 from .web3_util import web3_call, web3_deploy, web3_transact
 

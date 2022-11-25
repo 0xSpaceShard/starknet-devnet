@@ -3,14 +3,14 @@ Test endpoints directly.
 """
 
 import json
-import requests
+
 import pytest
+import requests
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 
-from starknet_devnet.server import app
 from starknet_devnet.constants import DEFAULT_GAS_PRICE
-from .util import create_empty_block, devnet_in_background, load_file_content, deploy
-from .support.assertions import assert_valid_schema
+from starknet_devnet.server import app
+
 from .settings import APP_URL
 from .shared import (
     FAILING_CONTRACT_PATH,
@@ -18,6 +18,8 @@ from .shared import (
     GENESIS_BLOCK_NUMBER,
     STORAGE_CONTRACT_PATH,
 )
+from .support.assertions import assert_valid_schema
+from .util import create_empty_block, deploy, devnet_in_background, load_file_content
 
 DEPLOY_CONTENT = load_file_content("deploy.json")
 INVOKE_CONTENT = load_file_content("invoke.json")

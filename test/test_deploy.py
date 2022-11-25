@@ -7,26 +7,28 @@ from starkware.starknet.core.os.contract_address.contract_address import (
     calculate_contract_address,
     compute_class_hash,
 )
+from starkware.starknet.definitions.general_config import DEFAULT_CHAIN_ID
 from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starknet.public.abi import get_selector_from_name
 from starkware.starknet.services.api.contract_class import ContractClass
-from starkware.starknet.services.api.gateway.transaction import Deploy
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionStatus,
+)
+from starkware.starknet.services.api.gateway.transaction import Deploy
+from starkware.starknet.third_party.open_zeppelin.starknet_contracts import (
+    account_contract as oz_account_class,
 )
 from starkware.starknet.wallets.open_zeppelin import (
     sign_deploy_account_tx,
     sign_invoke_tx,
 )
-from starkware.starknet.definitions.general_config import DEFAULT_CHAIN_ID
-from starkware.starknet.third_party.open_zeppelin.starknet_contracts import (
-    account_contract as oz_account_class,
-)
+
 from starknet_devnet.constants import OZ_ACCOUNT_CLASS_HASH
-from starknet_devnet.devnet_config import parse_args, DevnetConfig
+from starknet_devnet.devnet_config import DevnetConfig, parse_args
 from starknet_devnet.starknet_wrapper import StarknetWrapper
 from starknet_devnet.udc import UDC
 
+from .account import declare, invoke
 from .shared import (
     ABI_PATH,
     CONTRACT_PATH,
@@ -39,8 +41,6 @@ from .shared import (
     STARKNET_CLI_ACCOUNT_ABI_PATH,
     SUPPORTED_TX_VERSION,
 )
-
-from .account import declare, invoke
 from .util import (
     assert_class_by_hash,
     assert_equal,

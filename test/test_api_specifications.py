@@ -3,6 +3,7 @@ Test /api endpoint.
 """
 
 from starknet_devnet.server import app
+
 from .settings import APP_URL
 
 

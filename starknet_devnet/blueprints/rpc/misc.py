@@ -3,15 +3,15 @@ RPC miscellaneous endpoints
 """
 
 from __future__ import annotations
-from typing import Union, List
+
+from typing import List, Union
+
+from starknet_devnet.blueprints.rpc.structures.responses import RpcEventsResult
 from starknet_devnet.blueprints.rpc.structures.types import (
+    Address,
     BlockId,
     Felt,
-    Address,
     RpcError,
-)
-from starknet_devnet.blueprints.rpc.structures.responses import (
-    RpcEventsResult,
 )
 from starknet_devnet.blueprints.rpc.utils import (
     assert_block_id_is_latest_or_pending,

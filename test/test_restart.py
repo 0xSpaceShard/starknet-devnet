@@ -6,22 +6,22 @@ import pytest
 import requests
 
 from .account import invoke
-from .util import (
-    devnet_in_background,
-    deploy,
-    assert_transaction_not_received,
-    assert_tx_status,
-    call,
-    get_block,
-)
 from .settings import APP_URL
 from .shared import (
-    CONTRACT_PATH,
     ABI_PATH,
+    CONTRACT_PATH,
     GENESIS_BLOCK_HASH,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+)
+from .util import (
+    assert_transaction_not_received,
+    assert_tx_status,
+    call,
+    deploy,
+    devnet_in_background,
+    get_block,
 )
 
 

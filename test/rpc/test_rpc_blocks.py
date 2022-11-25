@@ -2,7 +2,7 @@
 Tests RPC blocks
 """
 
-from test.rpc.rpc_utils import rpc_call, gateway_call
+from test.rpc.rpc_utils import gateway_call, rpc_call
 from test.shared import (
     GENESIS_BLOCK_NUMBER,
     INCORRECT_GENESIS_BLOCK_HASH,
@@ -12,11 +12,11 @@ from test.shared import (
 import pytest
 
 from starknet_devnet.blueprints.rpc.structures.types import (
-    BlockNumberDict,
     BlockHashDict,
+    BlockNumberDict,
     rpc_txn_type,
 )
-from starknet_devnet.blueprints.rpc.utils import rpc_root, rpc_felt
+from starknet_devnet.blueprints.rpc.utils import rpc_felt, rpc_root
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 
 

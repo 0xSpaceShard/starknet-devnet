@@ -3,17 +3,16 @@ Test transaction version
 """
 
 import pytest
-
 from starkware.starknet.definitions.constants import TRANSACTION_VERSION
 
 from .account import invoke
-from .util import devnet_in_background, deploy, call
 from .shared import (
     ARTIFACTS_PATH,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
+from .util import call, deploy, devnet_in_background
 
 CONTRACT_PATH = f"{ARTIFACTS_PATH}/tx_version.cairo/tx_version.json"
 ABI_PATH = f"{ARTIFACTS_PATH}/tx_version.cairo/tx_version_abi.json"

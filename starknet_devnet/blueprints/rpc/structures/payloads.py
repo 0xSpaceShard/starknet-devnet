@@ -4,7 +4,7 @@ RPC payload structures
 
 from __future__ import annotations
 
-from typing import Callable, Union, List, Optional
+from typing import Callable, List, Optional, Union
 
 from marshmallow.exceptions import MarshmallowError
 from starkware.starknet.definitions.general_config import StarknetGeneralConfig
@@ -12,45 +12,45 @@ from starkware.starknet.public.abi import AbiEntryType
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.feeder_gateway.request_objects import CallFunction
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
-    StarknetBlock,
-    InvokeSpecificInfo,
-    DeploySpecificInfo,
-    TransactionSpecificInfo,
-    TransactionType,
     BlockStateUpdate,
     DeclareSpecificInfo,
-    L1HandlerSpecificInfo,
-    FeeEstimationInfo,
     DeployAccountSpecificInfo,
+    DeploySpecificInfo,
+    FeeEstimationInfo,
+    InvokeSpecificInfo,
+    L1HandlerSpecificInfo,
+    StarknetBlock,
+    TransactionSpecificInfo,
+    TransactionType,
 )
 from starkware.starknet.services.api.gateway.transaction import (
-    InvokeFunction,
     Declare,
     Deploy,
     DeployAccount,
+    InvokeFunction,
 )
 from starkware.starknet.services.api.gateway.transaction_utils import (
     compress_program,
     decompress_program,
 )
 from starkware.starkware_utils.error_handling import StarkException
-from typing_extensions import TypedDict, Literal
+from typing_extensions import Literal, TypedDict
 
 from starknet_devnet.blueprints.rpc.structures.types import (
-    RpcBlockStatus,
+    Address,
     BlockHash,
     BlockNumber,
     Felt,
-    rpc_block_status,
-    TxnHash,
-    Address,
     NumAsHex,
-    RpcTxnType,
-    rpc_txn_type,
-    Signature,
+    RpcBlockStatus,
     RpcError,
+    RpcTxnType,
+    Signature,
+    TxnHash,
+    rpc_block_status,
+    rpc_txn_type,
 )
-from starknet_devnet.blueprints.rpc.utils import rpc_root, rpc_felt
+from starknet_devnet.blueprints.rpc.utils import rpc_felt, rpc_root
 from starknet_devnet.constants import LEGACY_RPC_TX_VERSION
 from starknet_devnet.state import state
 

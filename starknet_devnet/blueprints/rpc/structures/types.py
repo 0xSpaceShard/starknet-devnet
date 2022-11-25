@@ -3,7 +3,7 @@ RPC types
 """
 
 from enum import Enum
-from typing import Union, List
+from typing import List, Union
 
 from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starknet.services.api.feeder_gateway.response_objects import BlockStatus

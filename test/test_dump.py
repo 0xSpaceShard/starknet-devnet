@@ -2,31 +2,31 @@
 Test server state serialization (dumping/loading).
 """
 
-from asyncio import subprocess
 import os
 import signal
 import time
-import requests
+from asyncio import subprocess
 
 import pytest
+import requests
 
 from .account import invoke
+from .settings import APP_URL
+from .shared import (
+    ABI_PATH,
+    CONTRACT_PATH,
+    PREDEPLOY_ACCOUNT_CLI_ARGS,
+    PREDEPLOYED_ACCOUNT_ADDRESS,
+    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+)
 from .test_account import get_account_balance
 from .test_fee_token import mint
 from .util import (
+    DevnetBackgroundProc,
     call,
     deploy,
     devnet_in_background,
     terminate_and_wait,
-    DevnetBackgroundProc,
-)
-from .settings import APP_URL
-from .shared import (
-    CONTRACT_PATH,
-    ABI_PATH,
-    PREDEPLOY_ACCOUNT_CLI_ARGS,
-    PREDEPLOYED_ACCOUNT_ADDRESS,
-    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
 
 DUMP_PATH = "dump.pkl"
