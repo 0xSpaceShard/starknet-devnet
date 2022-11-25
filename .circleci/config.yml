@@ -34,6 +34,9 @@ jobs:
           name: Lint
           command: ./scripts/lint.sh
       - run:
+          name: Check import sort
+          command: ./scripts/check_import_sort.sh
+      - run:
           name: Compile test contracts
           command: ./scripts/compile_contracts.sh
       - run:
