@@ -6,7 +6,6 @@ from enum import Enum
 from starkware.python.utils import from_bytes
 from starkware.starknet.definitions import constants
 from starkware.starknet.definitions.general_config import (
-    DEFAULT_CHAIN_ID,
     DEFAULT_GAS_PRICE,
     DEFAULT_MAX_STEPS,
     DEFAULT_SEQUENCER_ADDRESS,
@@ -41,7 +40,7 @@ def build_config(chain_id):
             "starknet_os_config": {
                 "chain_id": StarknetChainId[chain_id].name
                 if chain_id
-                else DEFAULT_CHAIN_ID.name,
+                else StarknetChainId.TESTNET.name,
                 "fee_token_address": hex(FeeToken.ADDRESS),
             },
             "tx_version": SUPPORTED_TX_VERSION,

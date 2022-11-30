@@ -89,7 +89,10 @@ class ForkedStateReader(StateReader):
 
 
 def get_forked_starknet(
-    feeder_gateway_client: FeederGatewayClient, block_number: int, gas_price: int, chain_id: str
+    feeder_gateway_client: FeederGatewayClient,
+    block_number: int,
+    gas_price: int,
+    chain_id: str,
 ) -> Starknet:
     """Return a forked Starknet"""
     state_reader = ForkedStateReader(

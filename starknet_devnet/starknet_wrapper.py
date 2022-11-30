@@ -156,7 +156,7 @@ class StarknetWrapper:
                     feeder_gateway_client=self.config.fork_network,
                     block_number=self.config.fork_block,
                     gas_price=self.block_info_generator.gas_price,
-                    chain_id=self.config.chain_id
+                    chain_id=self.config.chain_id,
                 )
             else:
                 self.starknet = await Starknet.empty(
