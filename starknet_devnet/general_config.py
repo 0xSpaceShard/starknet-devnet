@@ -24,7 +24,7 @@ class StarknetChainId(Enum):
     TESTNET = from_bytes(b"SN_GOERLI")
 
 
-def build_config(chain_id):
+def build_config(chain_id=""):
     """General config build with chain id argument."""
     return build_general_config(
         {
@@ -50,4 +50,4 @@ def build_config(chain_id):
     )
 
 
-DEFAULT_GENERAL_CONFIG = build_config("")
+DEFAULT_GENERAL_CONFIG = build_config()
