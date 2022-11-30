@@ -22,7 +22,6 @@ else
 
     cd page && npm ci
 
-    export GIT_USER=FabijanC # exporting to be visible in npm run deploy
     git config --global user.email "$GIT_USER@users.noreply.github.com"
     git config --global user.name "$GIT_USER"
     echo "machine github.com login $GIT_USER password $GITHUB_TOKEN" > ~/.netrc
