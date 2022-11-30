@@ -276,6 +276,10 @@ def parse_args(raw_args: List[str]):
         type=_fork_block,
         help="Specify the block number where the --fork-network is forked; defaults to latest",
     )
+    parser.add_argument(
+        "--chain-id",
+        help="Specify the chain id as string, MAINNET or TESTNET",
+    ) 
 
     parsed_args = parser.parse_args(raw_args)
     if parsed_args.dump_on and not parsed_args.dump_path:
@@ -311,3 +315,4 @@ class DevnetConfig:
         self.hide_predeployed_accounts = self.args.hide_predeployed_accounts
         self.fork_network = self.args.fork_network
         self.fork_block = self.args.fork_block
+        self.chain_id = self.args.chain_id
