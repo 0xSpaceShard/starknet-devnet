@@ -279,7 +279,7 @@ def parse_args(raw_args: List[str]):
     parser.add_argument(
         "--chain-id",
         help="Specify the chain id as string, MAINNET or TESTNET",
-    ) 
+    )
 
     parsed_args = parser.parse_args(raw_args)
     if parsed_args.dump_on and not parsed_args.dump_path:
