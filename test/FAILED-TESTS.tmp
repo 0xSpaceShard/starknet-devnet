@@ -1,0 +1,36 @@
+FAILED test/test_deploy.py::test_deploy[starknet_wrapper_args0-] - AssertionError
+FAILED test/test_deploy.py::test_deploy[starknet_wrapper_args1-0x1] - AssertionError
+FAILED test/test_deploy.py::test_predeclared_oz_account - AssertionError: assert 296247268998499681...5814256755745091338 == 644524626798311930...3129661358671901889
+FAILED test/test_block_number.py::test_block_number_incremented[run_devnet_in_background0] - AssertionError: assert '0x565c5f0c15...341fa9512f1ae' == '0x4b366dbf92...b9ebbcb9240df'
+FAILED test/test_declare.py::test_declare_max_fee_too_low - AssertionError
+FAILED test/test_block_number.py::test_block_number_incremented[run_devnet_in_background1] - AssertionError: assert '0x565c5f0c15...341fa9512f1ae' == '0x4b366dbf92...b9ebbcb9240df'
+FAILED test/test_deploy.py::test_deploy_account - AssertionError: 
+FAILED test/test_declare.py::test_declare_happy_path - AssertionError
+FAILED test/test_deploy.py::test_deploy_through_deployer_constructor - AssertionError
+FAILED test/test_estimate_fee.py::test_simulate_transaction - AssertionError: assert {'function_in...ignature': []} == {'function_in...ignature': []}
+FAILED test/test_deploy.py::test_deploy_with_udc - AssertionError
+FAILED test/test_estimate_fee.py::test_estimate_fee_bulk - assert 500 == 200
+FAILED test/test_fork_feeder_gateway.py::test_contract_responses - AssertionError: assert 283432316360500571...0139776884597238156 == 189943316242194658...5517185361206070561
+FAILED test/test_fork_feeder_gateway.py::test_declare_and_get_class_by_hash - AssertionError: assert 224262536298235428...2975788412939422729 == 333186133272853803...5739661274098342090
+FAILED test/test_transaction_trace.py::test_deploy_transaction_trace - AssertionError: assert {'call_type':...96a4c09', ...} == {'call_type':...91298ca', ...}
+FAILED test/test_general_workflow.py::test_general_workflow[run_devnet_in_background0-] - AssertionError: 
+FAILED test/test_transaction_trace.py::test_invoke_transaction_hash - AssertionError: assert {'call_type':...5375977', ...} == {'call_type':...5375977', ...}
+FAILED test/test_account.py::test_events - AssertionError: 
+FAILED test/test_general_workflow.py::test_general_workflow[run_devnet_in_background1-0x1] - AssertionError: 
+FAILED test/rpc/test_rpc_misc.py::test_get_state_update - AssertionError
+FAILED test/rpc/test_rpc_transactions.py::test_get_transaction_by_hash_deploy_account - KeyError: 'block_number'
+FAILED test/test_state_update.py::test_declaration_and_deployment - AssertionError
+FAILED test/test_fork.py::test_deploy_account - AssertionError: 
+FAILED test/test_fork.py::test_deploy_with_udc - AssertionError
+FAILED test/rpc/test_rpc_misc.py::test_get_events[run_devnet_in_background0-input_data0-expected_data0] - AssertionError: assert '[14836974641...000000000, 0]' == '[14836974641...000000000, 0]'
+FAILED test/rpc/test_rpc_transactions.py::test_get_deploy_account_transaction_receipt - KeyError: 'block_number'
+FAILED test/rpc/test_rpc_misc.py::test_get_events[run_devnet_in_background1-input_data1-expected_data1] - AssertionError: assert '[14836974641...000000000, 0]' == '[14836974641...000000000, 0]'
+FAILED test/rpc/test_rpc_misc.py::test_get_events[run_devnet_in_background2-input_data2-expected_data2] - AssertionError: assert '[14836974641...000000000, 0]' == '[14836974641...000000000, 0]'
+FAILED test/rpc/test_rpc_misc.py::test_get_events[run_devnet_in_background3-input_data3-expected_data3] - AssertionError: assert '[14836974641...000000000, 0]' == '[14836974641...000000000, 0]'
+FAILED test/rpc/test_rpc_transactions.py::test_add_deploy_account_transaction - KeyError: 'result'
+FAILED test/rpc/test_rpc_misc.py::test_get_events[run_devnet_in_background4-input_data4-expected_data4] - AssertionError: assert '[14836974641...000000000, 0]' == '[14836974641...000000000, 0]'
+FAILED test/rpc/test_rpc_misc.py::test_get_events[run_devnet_in_background5-input_data5-expected_data5] - AssertionError: assert '[14836974641...000000000, 0]' == '[14836974641...000000000, 0]'
+FAILED test/rpc/test_rpc_misc.py::test_get_events[run_devnet_in_background7-input_data7-expected_data7] - AssertionError: assert '[14836974641...000000000, 0]' == '[14836974641...000000000, 0]'
+FAILED test/rpc/test_rpc_misc.py::test_get_events[run_devnet_in_background8-input_data8-expected_data8] - AssertionError: assert '[14836974641...000000000, 0]' == '[14836974641...000000000, 0]'
+FAILED test/rpc/test_rpc_misc.py::test_get_events[run_devnet_in_background9-input_data9-expected_data9] - AssertionError: assert '[14836974641...000000000, 0]' == '[14836974641...000000000, 0]'
+FAILED test/rpc/test_rpc_misc.py::test_get_events[run_devnet_in_background10-input_data10-expected_data10] - AssertionError: assert '[14836974641...000000000, 0]' == '[14836974641...000000000, 0]'
