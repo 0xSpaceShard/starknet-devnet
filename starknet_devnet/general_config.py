@@ -14,7 +14,7 @@ from starkware.starknet.definitions.general_config import (
 from .constants import SUPPORTED_TX_VERSION
 from .fee_token import FeeToken
 
-def build_config(chain_id=""):
+def build_devnet_general_config(chain_id=""):
     """General config build with chain id argument."""
     return build_general_config(
         {
@@ -40,4 +40,4 @@ def build_config(chain_id=""):
     )
 
 
-DEFAULT_GENERAL_CONFIG = build_config()
+DEFAULT_GENERAL_CONFIG = build_devnet_general_config()

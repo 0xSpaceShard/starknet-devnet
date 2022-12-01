@@ -17,7 +17,7 @@ from starkware.starknet.testing.state import StarknetState
 from starkware.starkware_utils.error_handling import StarkException
 
 from .block_info_generator import now
-from .general_config import build_config
+from .general_config import build_devnet_general_config
 
 
 def is_originally_starknet_exception(exc: BadRequest):
@@ -110,6 +110,6 @@ def get_forked_starknet(
                 state_reader=state_reader,
                 contract_class_cache={},
             ),
-            general_config=build_config(chain_id),
+            general_config=build_devnet_general_config(chain_id),
         )
     )
