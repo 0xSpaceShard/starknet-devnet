@@ -1,9 +1,6 @@
 """
 Contains general_config generation functionalities.
 """
-from enum import Enum
-
-from starkware.python.utils import from_bytes
 from starkware.starknet.definitions import constants
 from starkware.starknet.definitions.general_config import (
     DEFAULT_GAS_PRICE,
@@ -11,18 +8,11 @@ from starkware.starknet.definitions.general_config import (
     DEFAULT_SEQUENCER_ADDRESS,
     DEFAULT_VALIDATE_MAX_STEPS,
     build_general_config,
+    StarknetChainId,
 )
 
 from .constants import SUPPORTED_TX_VERSION
 from .fee_token import FeeToken
-
-
-class StarknetChainId(Enum):
-    """Chain id enum used for mapping."""
-
-    MAINNET = from_bytes(b"SN_MAIN")
-    TESTNET = from_bytes(b"SN_GOERLI")
-
 
 def build_config(chain_id=""):
     """General config build with chain id argument."""
