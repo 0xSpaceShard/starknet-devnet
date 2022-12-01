@@ -7,12 +7,13 @@ from starkware.starknet.definitions.general_config import (
     DEFAULT_MAX_STEPS,
     DEFAULT_SEQUENCER_ADDRESS,
     DEFAULT_VALIDATE_MAX_STEPS,
-    build_general_config,
     StarknetChainId,
+    build_general_config,
 )
 
 from .constants import SUPPORTED_TX_VERSION
 from .fee_token import FeeToken
+
 
 def build_devnet_general_config(chain_id):
     """General config build with chain id argument."""
