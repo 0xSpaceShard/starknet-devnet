@@ -18,6 +18,7 @@ from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.feeder_gateway.feeder_gateway_client import (
     FeederGatewayClient,
 )
+from starkware.starknet.definitions.general_config import StarknetChainId
 
 from . import __version__
 from .constants import (
@@ -65,6 +66,18 @@ def _fork_block(specifier: str):
 
     return parsed
 
+def _chain_id(chain_id: str):
+    """Parse chain id.'"""
+    chain_ids = [member.name for member in StarknetChainId]
+
+    try:
+        chain_id = StarknetChainId[chain_id].name
+    except (KeyError):
+        sys.exit(
+            f"The value of --chain_id must be in {chain_ids}, got: {chain_id}"
+        )
+
+    return chain_id
 
 class DumpOn(Enum):
     """Enumerate possible dumping frequencies."""
@@ -278,6 +291,8 @@ def parse_args(raw_args: List[str]):
     )
     parser.add_argument(
         "--chain-id",
+        type=_chain_id,
+        default=StarknetChainId.TESTNET.name,
         help="Specify the chain id as string, MAINNET or TESTNET",
     )
 

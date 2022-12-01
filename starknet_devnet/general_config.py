@@ -14,7 +14,7 @@ from starkware.starknet.definitions.general_config import (
 from .constants import SUPPORTED_TX_VERSION
 from .fee_token import FeeToken
 
-def build_devnet_general_config(chain_id=""):
+def build_devnet_general_config(chain_id):
     """General config build with chain id argument."""
     return build_general_config(
         {
@@ -28,9 +28,7 @@ def build_devnet_general_config(chain_id=""):
             "min_gas_price": DEFAULT_GAS_PRICE,
             "sequencer_address": hex(DEFAULT_SEQUENCER_ADDRESS),
             "starknet_os_config": {
-                "chain_id": StarknetChainId[chain_id].name
-                if chain_id
-                else StarknetChainId.TESTNET.name,
+                "chain_id": StarknetChainId[chain_id].name,
                 "fee_token_address": hex(FeeToken.ADDRESS),
             },
             "tx_version": SUPPORTED_TX_VERSION,
@@ -40,4 +38,4 @@ def build_devnet_general_config(chain_id=""):
     )
 
 
-DEFAULT_GENERAL_CONFIG = build_devnet_general_config()
+DEFAULT_GENERAL_CONFIG = build_devnet_general_config(StarknetChainId.TESTNET.name)
