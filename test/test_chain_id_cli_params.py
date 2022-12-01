@@ -3,8 +3,8 @@
 import subprocess
 import pytest
 
-from .util import DevnetBackgroundProc, read_stream
 from starkware.starknet.definitions.general_config import StarknetChainId
+from .util import DevnetBackgroundProc, read_stream
 
 ACTIVE_DEVNET = DevnetBackgroundProc()
 
@@ -18,7 +18,7 @@ def test_chain_id_valid(chain_id):
         "--chain-id",
         chain_id,
     )
-    assert proc.returncode == None
+    assert proc.returncode is None
 
 def test_chain_id_invalid():
     """Test if the invalid chain id fails"""
@@ -29,7 +29,7 @@ def test_chain_id_invalid():
         stdout=subprocess.PIPE,
     )
     assert (
-        f"The value of --chain_id must be in {[member.name for member in StarknetChainId]}, got: " 
+        f"The value of --chain_id must be in {[member.name for member in StarknetChainId]}, got:"
         in read_stream(proc.stderr)
     )
     assert proc.returncode == 1
