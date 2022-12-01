@@ -1,9 +1,10 @@
 """Testing chain id CLI params"""
 
 import subprocess
-import pytest
 
+import pytest
 from starkware.starknet.definitions.general_config import StarknetChainId
+
 from .util import DevnetBackgroundProc, read_stream
 
 ACTIVE_DEVNET = DevnetBackgroundProc()
