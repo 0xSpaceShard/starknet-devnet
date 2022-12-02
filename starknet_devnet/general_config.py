@@ -15,7 +15,7 @@ from .constants import SUPPORTED_TX_VERSION
 from .fee_token import FeeToken
 
 
-def build_devnet_general_config(chain_id):
+def build_devnet_general_config(chain_id: str):
     """General config build with chain id argument."""
     return build_general_config(
         {
