@@ -37,7 +37,7 @@ def test_chain_id_invalid(chain_id):
     )
     terminate_and_wait(proc)
     assert (
-        f"The value of --chain_id must be in {[member.name for member in StarknetChainId]}, got:"
+        f"Error: The value of --chain_id must be in {[member.name for member in StarknetChainId]}, got:"
         in read_stream(proc.stderr)
     )
     assert proc.returncode == 1

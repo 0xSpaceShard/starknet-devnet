@@ -74,7 +74,7 @@ def _chain_id(chain_id: str):
     try:
         chain_id = StarknetChainId[chain_id].name
     except KeyError:
-        sys.exit(f"The value of --chain_id must be in {chain_ids}, got: {chain_id}")
+        sys.exit(f"Error: The value of --chain_id must be in {chain_ids}, got: {chain_id}")
 
     return chain_id
 
