@@ -26,6 +26,14 @@ def fixture_expected_block_hash(request):
     return request.param
 
 
+@pytest.fixture(name="chain_id")
+def fixture_chain_id(request):
+    """
+    Fixture to return values of chain id
+    """
+    return request.param
+
+
 @pytest.fixture(name="run_devnet_in_background")
 def fixture_run_devnet_in_background(request) -> None:
     """

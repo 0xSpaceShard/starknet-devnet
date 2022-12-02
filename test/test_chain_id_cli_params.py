@@ -5,7 +5,24 @@ import subprocess
 import pytest
 from starkware.starknet.definitions.general_config import StarknetChainId
 
-from .util import DevnetBackgroundProc, read_stream, terminate_and_wait
+from .account import invoke
+from .shared import (
+    ABI_PATH,
+    CONTRACT_PATH,
+    PREDEPLOY_ACCOUNT_CLI_ARGS,
+    PREDEPLOYED_ACCOUNT_ADDRESS,
+    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+)
+from .util import (
+    DevnetBackgroundProc,
+    assert_equal,
+    assert_transaction,
+    assert_tx_status,
+    call,
+    deploy,
+    read_stream,
+    terminate_and_wait,
+)
 
 ACTIVE_DEVNET = DevnetBackgroundProc()
 
@@ -41,3 +58,40 @@ def test_chain_id_invalid(chain_id):
         in read_stream(proc.stderr)
     )
     assert proc.returncode == 1
+
+
+@pytest.mark.usefixtures("run_devnet_in_background")
+@pytest.mark.parametrize(
+    "run_devnet_in_background, chain_id",
+    [
+        (
+            [*PREDEPLOY_ACCOUNT_CLI_ARGS, "--chain-id", StarknetChainId.TESTNET.name],
+            StarknetChainId.TESTNET,
+        ),
+        (
+            [*PREDEPLOY_ACCOUNT_CLI_ARGS, "--chain-id", StarknetChainId.MAINNET.name],
+            StarknetChainId.MAINNET,
+        ),
+    ],
+    indirect=True,
+)
+def test_deploy_and_invoke(chain_id):
+    """Test deploy and invoke with MAINNET and TESTNET chain_id"""
+    deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
+
+    assert_tx_status(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
+    assert_transaction(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
+
+    # increase and assert balance
+    invoke_tx_hash = invoke(
+        calls=[(deploy_info["address"], "increase_balance", [10, 20])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+        chain_id=chain_id,
+    )
+    assert_transaction(invoke_tx_hash, "ACCEPTED_ON_L2")
+
+    value = call(
+        function="get_balance", address=deploy_info["address"], abi_path=ABI_PATH
+    )
+    assert_equal(value, "30", "Invoke+call failed!")

@@ -109,6 +109,7 @@ def _get_execute_args(
     private_key: int,
     nonce: int,
     version: int,
+    chain_id=StarknetChainId.TESTNET,
     max_fee=None,
 ):
     """Returns signature and execute calldata"""
@@ -124,6 +125,7 @@ def _get_execute_args(
         nonce=nonce,
         version=version,
         max_fee=max_fee,
+        chain_id=chain_id,
     )
     signature = _get_signature(message_hash, private_key)
 
@@ -136,6 +138,7 @@ def _get_transaction_hash(
     nonce: int,
     version: int,
     max_fee: int,
+    chain_id=StarknetChainId.TESTNET,
 ) -> str:
     """Get transaction hash for execute transaction."""
     return calculate_transaction_hash_common(
@@ -145,7 +148,7 @@ def _get_transaction_hash(
         entry_point_selector=0,
         calldata=calldata,
         max_fee=max_fee,
-        chain_id=StarknetChainId.TESTNET.value,
+        chain_id=chain_id.value,
         additional_data=[nonce],
     )
 
@@ -154,6 +157,7 @@ def get_estimated_fee(
     calls: List[AccountCall],
     account_address: str,
     private_key: str,
+    chain_id=StarknetChainId.TESTNET,
     nonce=None,
     feeder_gateway_url=APP_URL,
 ):
@@ -169,6 +173,7 @@ def get_estimated_fee(
         nonce=nonce,
         max_fee=0,
         version=QUERY_VERSION,
+        chain_id=chain_id,
     )
 
     return estimate_fee(
@@ -186,6 +191,7 @@ def invoke(
     calls: List[AccountCall],
     account_address: str,
     private_key: int,
+    chain_id=StarknetChainId.TESTNET,
     nonce=None,
     max_fee=None,
     gateway_url=APP_URL,
@@ -202,6 +208,7 @@ def invoke(
             private_key=private_key,
             nonce=nonce,
             feeder_gateway_url=gateway_url,
+            chain_id=chain_id,
         )
 
     signature, execute_calldata = _get_execute_args(
@@ -211,6 +218,7 @@ def invoke(
         nonce=nonce,
         version=SUPPORTED_TX_VERSION,
         max_fee=max_fee,
+        chain_id=chain_id,
     )
 
     adapted_inputs = _adapt_inputs(execute_calldata)
