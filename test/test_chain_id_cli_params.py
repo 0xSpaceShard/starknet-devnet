@@ -20,6 +20,7 @@ def test_chain_id_valid(chain_id):
         "--chain-id",
         chain_id,
     )
+    terminate_and_wait(proc)
     assert proc.returncode is None
 
 
@@ -35,7 +36,6 @@ def test_chain_id_invalid(chain_id):
         stderr=subprocess.PIPE,
         stdout=subprocess.PIPE,
     )
-    terminate_and_wait(proc)
     assert (
         f"Error: The value of --chain_id must be in {[member.name for member in StarknetChainId]}, got:"
         in read_stream(proc.stderr)
