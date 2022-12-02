@@ -9,6 +9,7 @@ from .util import DevnetBackgroundProc, read_stream
 
 ACTIVE_DEVNET = DevnetBackgroundProc()
 
+
 @pytest.mark.parametrize(
     "chain_id",
     [member.name for member in StarknetChainId],
@@ -20,6 +21,7 @@ def test_chain_id_valid(chain_id):
         chain_id,
     )
     assert proc.returncode is None
+
 
 def test_chain_id_invalid():
     """Test if the invalid chain id fails"""

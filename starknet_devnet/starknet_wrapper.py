@@ -26,6 +26,7 @@ from starkware.starknet.core.os.transaction_hash.transaction_hash import (
     calculate_deploy_transaction_hash,
 )
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
+from starkware.starknet.definitions.general_config import StarknetChainId
 from starkware.starknet.services.api.contract_class import ContractClass, EntryPointType
 from starkware.starknet.services.api.feeder_gateway.request_objects import (
     CallFunction,
@@ -156,11 +157,13 @@ class StarknetWrapper:
                     feeder_gateway_client=self.config.fork_network,
                     block_number=self.config.fork_block,
                     gas_price=self.block_info_generator.gas_price,
-                    chain_id=self.config.chain_id,
+                    chain_id=StarknetChainId[self.config.chain_id],
                 )
             else:
                 self.starknet = await Starknet.empty(
-                    general_config=build_devnet_general_config(self.config.chain_id)
+                    general_config=build_devnet_general_config(
+                        StarknetChainId[self.config.chain_id]
+                    )
                 )
 
         return self.starknet

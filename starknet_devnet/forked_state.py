@@ -8,6 +8,7 @@ from starkware.python.utils import to_bytes
 from starkware.starknet.business_logic.state.state import BlockInfo, CachedState
 from starkware.starknet.business_logic.state.state_api import StateReader
 from starkware.starknet.definitions.constants import UNINITIALIZED_CLASS_HASH
+from starkware.starknet.definitions.general_config import StarknetChainId
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.feeder_gateway.feeder_gateway_client import (
     FeederGatewayClient,
@@ -92,7 +93,7 @@ def get_forked_starknet(
     feeder_gateway_client: FeederGatewayClient,
     block_number: int,
     gas_price: int,
-    chain_id: str,
+    chain_id: StarknetChainId,
 ) -> Starknet:
     """Return a forked Starknet"""
     state_reader = ForkedStateReader(
