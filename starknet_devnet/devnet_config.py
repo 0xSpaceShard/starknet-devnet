@@ -293,7 +293,7 @@ def parse_args(raw_args: List[str]):
         "--chain-id",
         type=_chain_id,
         default=StarknetChainId.TESTNET.name,
-        help="Specify the chain id as string, MAINNET or TESTNET",
+        help=f"Specify the chain id as string: {[member.name for member in StarknetChainId]}",
     )
 
     parsed_args = parser.parse_args(raw_args)
