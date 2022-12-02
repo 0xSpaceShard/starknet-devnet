@@ -21,7 +21,7 @@ def test_chain_id_valid(chain_id):
         chain_id,
     )
     terminate_and_wait(proc)
-    assert proc.returncode is None
+    assert proc.returncode == 0
 
 
 @pytest.mark.parametrize(
