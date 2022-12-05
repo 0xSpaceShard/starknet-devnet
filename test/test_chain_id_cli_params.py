@@ -66,14 +66,8 @@ def test_chain_id_invalid(chain_id):
 @pytest.mark.parametrize(
     "run_devnet_in_background, chain_id",
     [
-        (
-            [*PREDEPLOY_ACCOUNT_CLI_ARGS, "--chain-id", StarknetChainId.TESTNET.name],
-            StarknetChainId.TESTNET,
-        ),
-        (
-            [*PREDEPLOY_ACCOUNT_CLI_ARGS, "--chain-id", StarknetChainId.MAINNET.name],
-            StarknetChainId.MAINNET,
-        ),
+        ([*PREDEPLOY_ACCOUNT_CLI_ARGS, "--chain_id", chain_id.name], chain_id)
+        for chain_id in StarknetChainId
     ],
     indirect=True,
 )

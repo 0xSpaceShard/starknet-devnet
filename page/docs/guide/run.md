@@ -44,7 +44,7 @@ optional arguments:
   --fork-block FORK_BLOCK
                         Specify the block number where the --fork-network is forked; defaults to latest
   --chain_id CHAIN_ID
-                        Specify the chain id as string: ['MAINNET', 'TESTNET']
+                        Specify the chain id as string: {MAINNET, TESTNET, TESTNET2}
 ```
 
 You can run `starknet-devnet` in a separate shell, or you can run it in background with `starknet-devnet &`.
