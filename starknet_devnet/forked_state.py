@@ -8,6 +8,7 @@ from starkware.python.utils import to_bytes
 from starkware.starknet.business_logic.state.state import BlockInfo, CachedState
 from starkware.starknet.business_logic.state.state_api import StateReader
 from starkware.starknet.definitions.constants import UNINITIALIZED_CLASS_HASH
+from starkware.starknet.definitions.general_config import StarknetChainId
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.feeder_gateway.feeder_gateway_client import (
     FeederGatewayClient,
@@ -17,7 +18,7 @@ from starkware.starknet.testing.state import StarknetState
 from starkware.starkware_utils.error_handling import StarkException
 
 from .block_info_generator import now
-from .general_config import DEFAULT_GENERAL_CONFIG
+from .general_config import build_devnet_general_config
 
 
 def is_originally_starknet_exception(exc: BadRequest):
@@ -89,7 +90,10 @@ class ForkedStateReader(StateReader):
 
 
 def get_forked_starknet(
-    feeder_gateway_client: FeederGatewayClient, block_number: int, gas_price: int
+    feeder_gateway_client: FeederGatewayClient,
+    block_number: int,
+    gas_price: int,
+    chain_id: StarknetChainId,
 ) -> Starknet:
     """Return a forked Starknet"""
     state_reader = ForkedStateReader(
@@ -107,6 +111,6 @@ def get_forked_starknet(
                 state_reader=state_reader,
                 contract_class_cache={},
             ),
-            general_config=DEFAULT_GENERAL_CONFIG,
+            general_config=build_devnet_general_config(chain_id),
         )
     )

@@ -60,7 +60,7 @@ from .constants import DUMMY_STATE_ROOT, OZ_ACCOUNT_CLASS_HASH
 from .devnet_config import DevnetConfig
 from .fee_token import FeeToken
 from .forked_state import get_forked_starknet
-from .general_config import DEFAULT_GENERAL_CONFIG
+from .general_config import build_devnet_general_config
 from .origin import ForkedOrigin, NullOrigin
 from .postman_wrapper import DevnetL1L2
 from .sequencer_api_utils import InternalInvokeFunctionForSimulate
@@ -156,10 +156,11 @@ class StarknetWrapper:
                     feeder_gateway_client=self.config.fork_network,
                     block_number=self.config.fork_block,
                     gas_price=self.block_info_generator.gas_price,
+                    chain_id=self.config.chain_id,
                 )
             else:
                 self.starknet = await Starknet.empty(
-                    general_config=DEFAULT_GENERAL_CONFIG
+                    general_config=build_devnet_general_config(self.config.chain_id)
                 )
 
         return self.starknet

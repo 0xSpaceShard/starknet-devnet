@@ -14,6 +14,7 @@ from marshmallow.exceptions import ValidationError
 from services.external_api.client import BadRequest, RetryConfig
 from starkware.python.utils import to_bytes
 from starkware.starknet.core.os.class_hash import compute_class_hash
+from starkware.starknet.definitions.general_config import StarknetChainId
 from starkware.starknet.services.api.contract_class import ContractClass
 from starkware.starknet.services.api.feeder_gateway.feeder_gateway_client import (
     FeederGatewayClient,
@@ -40,6 +41,7 @@ NETWORK_TO_URL = {
     "alpha-mainnet": "https://alpha-mainnet.starknet.io",
 }
 NETWORK_NAMES = ", ".join(NETWORK_TO_URL.keys())
+CHAIN_IDS = ", ".join([member.name for member in StarknetChainId])
 
 
 def _fork_network(network_id: str):
@@ -64,6 +66,18 @@ def _fork_block(specifier: str):
         )
 
     return parsed
+
+
+def _chain_id(chain_id: str):
+    """Parse chain id.'"""
+    try:
+        chain_id = StarknetChainId[chain_id]
+    except KeyError:
+        sys.exit(
+            f"Error: The value of --chain_id must be in {{{CHAIN_IDS}}}, got: {chain_id}"
+        )
+
+    return chain_id
 
 
 class DumpOn(Enum):
@@ -276,6 +290,12 @@ def parse_args(raw_args: List[str]):
         type=_fork_block,
         help="Specify the block number where the --fork-network is forked; defaults to latest",
     )
+    parser.add_argument(
+        "--chain-id",
+        type=_chain_id,
+        default=StarknetChainId.TESTNET,
+        help=f"Specify the chain id as string: {{{CHAIN_IDS}}}",
+    )
 
     parsed_args = parser.parse_args(raw_args)
     if parsed_args.dump_on and not parsed_args.dump_path:
@@ -311,3 +331,4 @@ class DevnetConfig:
         self.hide_predeployed_accounts = self.args.hide_predeployed_accounts
         self.fork_network = self.args.fork_network
         self.fork_block = self.args.fork_block
+        self.chain_id = self.args.chain_id

@@ -10,6 +10,7 @@ Installing the package adds the `starknet-devnet` command.
 usage: starknet-devnet [-h] [-v] [--host HOST] [--port PORT] [--load-path LOAD_PATH] [--dump-path DUMP_PATH] [--dump-on DUMP_ON] [--lite-mode] [--accounts ACCOUNTS]
                        [--initial-balance INITIAL_BALANCE] [--seed SEED] [--hide-predeployed-accounts] [--start-time START_TIME] [--gas-price GAS_PRICE] [--timeout TIMEOUT]
                        [--account-class ACCOUNT_CLASS] [--fork-network FORK_NETWORK] [--fork-block FORK_BLOCK]
+                       [--chain_id CHAIN_ID]
 
 Run a local instance of StarkNet Devnet
 
@@ -42,6 +43,8 @@ optional arguments:
                         Specify the network to fork: can be a URL (e.g. https://alpha-mainnet.starknet.io) or network name (valid names: alpha-goerli, alpha-goerli2, alpha-mainnet)
   --fork-block FORK_BLOCK
                         Specify the block number where the --fork-network is forked; defaults to latest
+  --chain_id CHAIN_ID
+                        Specify the chain id as string: ['MAINNET', 'TESTNET']
 ```
 
 You can run `starknet-devnet` in a separate shell, or you can run it in background with `starknet-devnet &`.
