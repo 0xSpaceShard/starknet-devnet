@@ -5,6 +5,8 @@ import subprocess
 import pytest
 from starkware.starknet.definitions.general_config import StarknetChainId
 
+from starknet_devnet.devnet_config import CHAIN_IDS
+
 from .account import invoke
 from .shared import (
     ABI_PATH,
@@ -54,7 +56,7 @@ def test_chain_id_invalid(chain_id):
         stdout=subprocess.PIPE,
     )
     assert (
-        f"Error: The value of --chain_id must be in {[member.name for member in StarknetChainId]}, got:"
+        f"Error: The value of --chain_id must be in {{{CHAIN_IDS}}}, got:"
         in read_stream(proc.stderr)
     )
     assert proc.returncode == 1
