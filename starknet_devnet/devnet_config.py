@@ -41,6 +41,7 @@ NETWORK_TO_URL = {
     "alpha-mainnet": "https://alpha-mainnet.starknet.io",
 }
 NETWORK_NAMES = ", ".join(NETWORK_TO_URL.keys())
+CHAIN_IDS = ", ".join([member.name for member in StarknetChainId])
 
 
 def _fork_network(network_id: str):
@@ -69,13 +70,11 @@ def _fork_block(specifier: str):
 
 def _chain_id(chain_id: str):
     """Parse chain id.'"""
-    chain_ids = [member.name for member in StarknetChainId]
-
     try:
-        chain_id = StarknetChainId[chain_id].name
+        chain_id = StarknetChainId[chain_id]
     except KeyError:
         sys.exit(
-            f"Error: The value of --chain_id must be in {chain_ids}, got: {chain_id}"
+            f"Error: The value of --chain_id must be in {{{CHAIN_IDS}}}, got: {chain_id}"
         )
 
     return chain_id
@@ -294,8 +293,8 @@ def parse_args(raw_args: List[str]):
     parser.add_argument(
         "--chain-id",
         type=_chain_id,
-        default=StarknetChainId.TESTNET.name,
-        help=f"Specify the chain id as string: {[member.name for member in StarknetChainId]}",
+        default=StarknetChainId.TESTNET,
+        help=f"Specify the chain id as string: {{{CHAIN_IDS}}}",
     )
 
     parsed_args = parser.parse_args(raw_args)
