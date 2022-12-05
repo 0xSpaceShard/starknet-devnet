@@ -109,8 +109,8 @@ def _get_execute_args(
     private_key: int,
     nonce: int,
     version: int,
-    chain_id=StarknetChainId.TESTNET,
     max_fee=None,
+    chain_id=StarknetChainId.TESTNET,
 ):
     """Returns signature and execute calldata"""
 
@@ -157,9 +157,9 @@ def get_estimated_fee(
     calls: List[AccountCall],
     account_address: str,
     private_key: str,
-    chain_id=StarknetChainId.TESTNET,
     nonce=None,
     feeder_gateway_url=APP_URL,
+    chain_id=StarknetChainId.TESTNET,
 ):
     """Get estimated fee through account."""
 
@@ -191,10 +191,10 @@ def invoke(
     calls: List[AccountCall],
     account_address: str,
     private_key: int,
-    chain_id=StarknetChainId.TESTNET,
     nonce=None,
     max_fee=None,
     gateway_url=APP_URL,
+    chain_id=StarknetChainId.TESTNET,
 ):
     """Invoke __execute__ with correct calldata and signature."""
 
