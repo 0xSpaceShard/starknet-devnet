@@ -14,8 +14,7 @@ from starkware.starknet.services.api.gateway.transaction import AccountTransacti
 
 from starknet_devnet.constants import DEFAULT_GAS_PRICE
 
-from .account import get_nonce
-from .sample_tx_objects import TX_DICT1, TX_DICT2
+from .account import get_estimate_fee_request_dict, get_nonce
 from .settings import APP_URL
 from .shared import (
     ABI_PATH,
@@ -26,6 +25,7 @@ from .shared import (
     L1L2_CONTRACT_PATH,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
+    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
 from .util import (
     call,
@@ -233,7 +233,21 @@ def test_estimate_fee_bulk_invalid():
     """Test estimating fee in a bulk when one tx is invalid"""
     # skip deployment to cause failure
 
-    tx_dicts = [TX_DICT1, TX_DICT2]
+    invalid_address = "0x123"
+    tx_dicts = [
+        get_estimate_fee_request_dict(
+            calls=[(invalid_address, "increase_balance", [0, 0])],
+            account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+            private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+            nonce=0,
+        ),
+        get_estimate_fee_request_dict(
+            calls=[(invalid_address, "increase_balance", [10, 20])],
+            account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+            private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+            nonce=1,
+        ),
+    ]
     txs = AccountTransaction.Schema().load(tx_dicts, many=True)
 
     resp = _send_estimate_fee_bulk_request(txs)
@@ -248,13 +262,28 @@ def test_estimate_fee_bulk():
     # contract must be deployed for fee estimation to be possible
     initial_balance = "10"
     deploy_info = deploy(contract=CONTRACT_PATH, inputs=[initial_balance], salt="0x42")
+    contract_address = deploy_info["address"]
 
-    tx_dicts = [TX_DICT1, TX_DICT2]  # two invokes
+    tx_dicts = [
+        get_estimate_fee_request_dict(
+            calls=[(contract_address, "increase_balance", [0, 0])],
+            account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+            private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+            nonce=0,
+        ),
+        get_estimate_fee_request_dict(
+            calls=[(contract_address, "increase_balance", [10, 20])],
+            account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+            private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+            nonce=1,
+        ),
+    ]
+
     # assert that loading can be done (i.e. object is structured correctly)
     txs = AccountTransaction.Schema().load(tx_dicts, many=True)
 
     resp = _send_estimate_fee_bulk_request(txs)
-    assert resp.status_code == 200
+    assert resp.status_code == 200, resp.json()
     fee_estimation_infos = FeeEstimationInfo.Schema().load(resp.json(), many=True)
 
     # assert correct structure of response

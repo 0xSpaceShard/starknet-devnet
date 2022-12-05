@@ -150,6 +150,37 @@ def _get_transaction_hash(
     )
 
 
+def get_estimate_fee_request_dict(
+    calls: List[AccountCall],
+    account_address: str,
+    private_key: str,
+    nonce: int = None,
+):
+    """Create a mock tx to request fee estimation of an invoke"""
+    if nonce is None:
+        nonce = get_nonce(account_address)
+
+    max_fee = 0
+    signature, execute_calldata = _get_execute_args(
+        calls=calls,
+        account_address=account_address,
+        private_key=private_key,
+        nonce=nonce,
+        max_fee=max_fee,
+        version=QUERY_VERSION,
+    )
+
+    return {
+        "contract_address": account_address,
+        "max_fee": hex(max_fee),
+        "calldata": [str(element) for element in execute_calldata],
+        "version": hex(QUERY_VERSION),
+        "nonce": hex(nonce),
+        "signature": signature,
+        "type": "INVOKE_FUNCTION",
+    }
+
+
 def get_estimated_fee(
     calls: List[AccountCall],
     account_address: str,

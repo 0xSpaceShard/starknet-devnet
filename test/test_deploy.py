@@ -118,7 +118,7 @@ async def test_deploy(starknet_wrapper_args, expected_block_hash):
 
     assert_hex_equal(
         hex(tx_hash),
-        "0x51961575e7a34772bc3f9aac0a25aaadde8545df5cf484403c728aa9d85a4b7",
+        "0x58e5f41a48e756d686c1b028292d548859f71bb2763d7bbe584c50f9dc36068",
     )
     assert contract_address == expected_contract_address
 
