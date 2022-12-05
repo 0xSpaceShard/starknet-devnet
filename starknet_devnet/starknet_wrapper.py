@@ -26,7 +26,6 @@ from starkware.starknet.core.os.transaction_hash.transaction_hash import (
     calculate_deploy_transaction_hash,
 )
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
-from starkware.starknet.definitions.general_config import StarknetChainId
 from starkware.starknet.services.api.contract_class import ContractClass, EntryPointType
 from starkware.starknet.services.api.feeder_gateway.request_objects import (
     CallFunction,
