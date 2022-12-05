@@ -26,7 +26,7 @@ Devnet defaults to using the `TESTNET` chain ID (the one corresponding to Alpha 
 starknet-devnet --chain-id [MAINNET | TESTNET | TESTNET2]
 ```
 
-where `MAINNET` refers to Alpha Mainnet and `TESTNET` refers to Alpha Goerli 2.
+where `MAINNET` refers to Alpha Mainnet, `TESTNET` refers to Alpha Goerli and `TESTNET2` refers to Alpha Goerli2.
 
 ## Get fork status
 
