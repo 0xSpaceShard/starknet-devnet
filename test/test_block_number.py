@@ -26,7 +26,7 @@ def my_get_block_number(address: str):
     )
 
 
-EXPECTED_TX_HASH = "0x565c5f0c1561da745a8a929d6cab60f0e07e5dacd755d01817341fa9512f1ae"
+EXPECTED_TX_HASH = "0x2a80a6c3878fb0b68b2da38b4a488276c014d955d1bf17933aefab6cb722121"
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
