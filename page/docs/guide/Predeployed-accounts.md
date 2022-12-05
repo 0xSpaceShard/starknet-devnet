@@ -6,7 +6,7 @@ sidebar_position: 13
 
 Devnet predeploys `--accounts` with some `--initial-balance`. To hide the details of these accounts use `--hide-predeployed-accounts`. The accounts get charged for transactions according to the `--gas-price`. A `--seed` can be used to regenerate the same set of accounts. Read more about it in the [Run section](run.md).
 
-To get the code of the account (currently OpenZeppelin [v0.5.0](https://github.com/OpenZeppelin/cairo-contracts/releases/tag/v0.5.0)), use one of the following:
+To get the code of the account (currently OpenZeppelin [v0.5.1](https://github.com/OpenZeppelin/cairo-contracts/releases/tag/v0.5.1)), use one of the following:
 
 - `GET /get_code?contractAddress=<ACCOUNT_ADDRESS>`
 - [StarkNet CLI](https://www.cairo-lang.org/docs/hello_starknet/cli.html#get-code): `starknet get_code --contract_address <ACCOUNT_ADDRESS> --feeder_gateway_url <DEVNET_URL>`

@@ -38,7 +38,7 @@ optional arguments:
   --timeout TIMEOUT, -t TIMEOUT
                         Specify the server timeout in seconds; defaults to 60
   --account-class ACCOUNT_CLASS
-                        Specify the account implementation to be used for predeploying; should be a path to the compiled JSON artifact; defaults to OpenZeppelin v0.5.0
+                        Specify the account implementation to be used for predeploying; should be a path to the compiled JSON artifact; defaults to OpenZeppelin v0.5.1
   --fork-network FORK_NETWORK
                         Specify the network to fork: can be a URL (e.g. https://alpha-mainnet.starknet.io) or network name (valid names: alpha-goerli, alpha-goerli2, alpha-mainnet)
   --fork-block FORK_BLOCK
