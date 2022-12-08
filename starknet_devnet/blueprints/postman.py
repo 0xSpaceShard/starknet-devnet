@@ -7,6 +7,7 @@ import json
 from flask import Blueprint, jsonify, request
 from starkware.starkware_utils.error_handling import StarkErrorCode
 
+from starknet_devnet.blueprints.base import extract_hex_string, to_int_array
 from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException
 
@@ -55,3 +56,24 @@ async def flush():
 
     result_dict = await state.starknet_wrapper.postman_flush()
     return jsonify(result_dict)
+
+
+@postman.route("/l1_to_l2", methods=["POST"])
+async def l1_to_l2():
+    """L1 to L2 message mock endpoint"""
+    request_json = request.json or {}
+    l1_contract_address = extract_hex_string(request_json, "l1_contract_address")
+    l2_contract_address = extract_hex_string(request_json, "l2_contract_address")
+    entry_point_selector = extract_hex_string(request_json, "entry_point_selector")
+    payload = extract_hex_string(request_json, "payload", to_int_array)
+    nonce = extract_hex_string(request_json, "nonce")
+
+    result = await state.starknet_wrapper.postman_l1_to_l2(
+        l1_contract_address=l1_contract_address,
+        l2_contract_address=l2_contract_address,
+        entry_point_selector=entry_point_selector,
+        payload=payload,
+        nonce=nonce,
+    )
+
+    return jsonify({"execution_info_calldata": result})

@@ -1,6 +1,8 @@
 """
 Base routes
 """
+from typing import List
+
 from flask import Blueprint, Response, jsonify, request
 from starkware.starkware_utils.error_handling import StarkErrorCode
 
@@ -44,7 +46,17 @@ def extract_positive(request_json, prop_name: str):
     return value
 
 
-def extract_hex_string(request_json, prop_name: str) -> int:
+def to_int(value) -> int:
+    """Convert to int value"""
+    return int(value, 16)
+
+
+def to_int_array(value) -> List[int]:
+    """Convert to List of ints"""
+    return [int(numeric, 16) for numeric in value]
+
+
+def extract_hex_string(request_json, prop_name: str, fun=to_int) -> int:
     """Parse value from hex string to int"""
     value = request_json.get(prop_name)
     if value is None:
@@ -55,7 +67,7 @@ def extract_hex_string(request_json, prop_name: str) -> int:
         )
 
     try:
-        return int(value, 16)
+        return fun(value)
     except (ValueError, TypeError) as error:
         message = f"{prop_name} value must be a hex string."
         raise StarknetDevnetException(
