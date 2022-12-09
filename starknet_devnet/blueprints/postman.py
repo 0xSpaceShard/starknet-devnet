@@ -76,4 +76,9 @@ async def l1_to_l2():
         nonce=nonce,
     )
 
-    return jsonify({"execution_info_calldata": result})
+    try:
+        result_iterator = iter(result)
+        return jsonify({"execution_info_calldata": list(map(hex, result_iterator))})
+    except TypeError:
+        return jsonify({"execution_info_calldata": str(StarkErrorCode.INVALID_TRANSACTION)})
+

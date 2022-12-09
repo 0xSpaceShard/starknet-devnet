@@ -7,6 +7,7 @@ import json
 import pytest
 import requests
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
+from starkware.starkware_utils.error_handling import StarkErrorCode
 
 from starknet_devnet.constants import DEFAULT_GAS_PRICE
 from starknet_devnet.server import app
@@ -16,6 +17,7 @@ from .shared import (
     FAILING_CONTRACT_PATH,
     GENESIS_BLOCK_HASH,
     GENESIS_BLOCK_NUMBER,
+    L1L2_CONTRACT_PATH,
     STORAGE_CONTRACT_PATH,
 )
 from .support.assertions import assert_valid_schema
@@ -350,3 +352,64 @@ def test_get_transaction_trace_of_rejected():
     resp_body = resp.json()
     assert resp_body["code"] == str(StarknetErrorCode.NO_TRACE)
     assert resp.status_code == 500
+
+
+@devnet_in_background()
+def test_post_l1_to_l2_deploy_execute():
+    """Test POST l1 to l2 deploy contract and execute transaction"""
+    # Deploy L1L2 contract
+    deploy_info = deploy(contract=L1L2_CONTRACT_PATH)
+    l1_contract_address = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+    payload = ["0x1", "0x2"]
+
+    # Create l1 to l2 mock transaction
+    response = requests.post(
+        f"{APP_URL}/postman/l1_to_l2",
+        json={
+            "l2_contract_address": deploy_info["address"],
+            "entry_point_selector": "0xC73F681176FC7B3F9693986FD7B14581E8D540519E27400E88B8713932BE01",
+            "l1_contract_address": l1_contract_address,
+            "payload": payload,
+            "nonce": "0x0",
+        },
+    )
+    assert response.status_code == 200
+    assert response.json().get("execution_info_calldata") == [
+        hex.lower() for hex in [l1_contract_address, *payload]
+    ]
+
+
+@devnet_in_background()
+def test_post_l1_to_l2_execute_without_data():
+    """Test POST l1 to l2 without data"""
+    # Create l1 to l2 mock transaction
+    response = requests.post(
+        f"{APP_URL}/postman/l1_to_l2",
+        json={
+            "l2_contract_address": "",
+            "entry_point_selector": "",
+            "l1_contract_address": "",
+            "payload": "",
+            "nonce": "",
+        },
+    )
+    assert response.status_code == 400
+    assert response.json().get("code") == str(StarkErrorCode.MALFORMED_REQUEST)
+
+
+@devnet_in_background()
+def test_post_l1_to_l2_execute_without_deploy():
+    """Test POST l1 to l2 without deploy"""
+    # Create l1 to l2 mock transaction
+    response = requests.post(
+        f"{APP_URL}/postman/l1_to_l2",
+        json={
+            "l2_contract_address": "0x00285ddb7e5c777b310d806b9b2a0f7c7ba0a41f12b420219209d97a3b7f25b2",
+            "entry_point_selector": "0xC73F681176FC7B3F9693986FD7B14581E8D540519E27400E88B8713932BE01",
+            "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+            "payload": ["0x1", "0x2"],
+            "nonce": "0x0",
+        },
+    )
+    assert response.status_code == 200
+    assert response.json().get("execution_info_calldata") == str(StarkErrorCode.INVALID_TRANSACTION)
