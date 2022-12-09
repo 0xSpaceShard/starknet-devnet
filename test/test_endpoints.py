@@ -412,4 +412,6 @@ def test_post_l1_to_l2_execute_without_deploy():
         },
     )
     assert response.status_code == 200
-    assert response.json().get("execution_info_calldata") == str(StarkErrorCode.INVALID_TRANSACTION)
+    assert response.json().get("execution_info_calldata") == str(
+        StarkErrorCode.INVALID_TRANSACTION
+    )
