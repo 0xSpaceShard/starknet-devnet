@@ -359,6 +359,7 @@ def test_post_l1_to_l2_deploy_execute():
     """Test POST l1 to l2 deploy contract and execute transaction"""
     # Deploy L1L2 contract
     deploy_info = deploy(contract=L1L2_CONTRACT_PATH)
+    # Just a random example of an l1 contract address and an example payload
     l1_contract_address = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
     payload = ["0x1", "0x2"]
 
