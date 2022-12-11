@@ -400,7 +400,7 @@ def test_post_l1_to_l2_execute_without_data():
 
 @devnet_in_background()
 def test_post_l1_to_l2_execute_without_deploy():
-    """Test POST l1 to l2 without deploy"""
+    """Test POST l1 to l2 without the target contract being deploy"""
     # Create l1 to l2 mock transaction
     response = requests.post(
         f"{APP_URL}/postman/l1_to_l2",
