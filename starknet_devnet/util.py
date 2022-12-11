@@ -34,6 +34,11 @@ def fixed_length_hex(arg: int) -> str:
     return f"0x{arg:064x}"
 
 
+def to_int_array(values: List[str]) -> List[int]:
+    """Convert to List of ints"""
+    return [int(numeric, 16) for numeric in values]
+
+
 @dataclass
 class Uint256:
     """Abstraction of Uint256 type"""

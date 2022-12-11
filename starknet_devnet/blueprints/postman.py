@@ -7,9 +7,9 @@ import json
 from flask import Blueprint, jsonify, request
 from starkware.starkware_utils.error_handling import StarkErrorCode
 
-from starknet_devnet.blueprints.base import extract_hex_string, to_int_array
+from starknet_devnet.blueprints.base import extract_hex_string
 from starknet_devnet.state import state
-from starknet_devnet.util import StarknetDevnetException
+from starknet_devnet.util import StarknetDevnetException, to_int_array
 
 postman = Blueprint("postman", __name__, url_prefix="/postman")
 
