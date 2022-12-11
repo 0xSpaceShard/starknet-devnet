@@ -48,20 +48,20 @@ def extract_positive(request_json, prop_name: str):
     return value
 
 
-def extract_hex_string(request_json, prop_name: str, convert=custom_int) -> int:
-    """Parse value from hex string to int"""
+def hex_converter(request_json, prop_name: str, convert=custom_int) -> int:
+    """Parse value from hex string to int, or values from hex strings to ints"""
     value = request_json.get(prop_name)
     if value is None:
         raise StarknetDevnetException(
             code=StarkErrorCode.MALFORMED_REQUEST,
             status_code=400,
-            message=f"{prop_name} value must be provided.",
+            message=f"{prop_name} value or values must be provided.",
         )
 
     try:
         return convert(value)
     except (ValueError, TypeError) as error:
-        message = f"{prop_name} value must be a hex string."
+        message = f"{prop_name} value or values must be a hex string."
         raise StarknetDevnetException(
             code=StarkErrorCode.MALFORMED_REQUEST,
             status_code=400,
@@ -176,7 +176,7 @@ async def mint():
     """Mint token and transfer to the provided address"""
     request_json = request.json or {}
 
-    address = extract_hex_string(request_json, "address")
+    address = hex_converter(request_json, "address")
     amount = extract_positive(request_json, "amount")
     is_lite = request_json.get("lite", False)
 
