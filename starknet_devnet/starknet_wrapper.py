@@ -548,7 +548,7 @@ class StarknetWrapper:
             self.starknet, network_url, contract_address, network_id
         )
 
-    async def postman_l1_to_l2(
+    async def mock_message_to_l2(
         self,
         l1_contract_address: int,
         l2_contract_address: int,

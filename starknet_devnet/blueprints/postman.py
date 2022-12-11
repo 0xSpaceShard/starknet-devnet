@@ -68,7 +68,7 @@ async def l1_to_l2():
     payload = hex_converter(request_json, "payload", to_int_array)
     nonce = hex_converter(request_json, "nonce")
 
-    result = await state.starknet_wrapper.postman_l1_to_l2(
+    result = await state.starknet_wrapper.mock_message_to_l2(
         l1_contract_address=l1_contract_address,
         l2_contract_address=l2_contract_address,
         entry_point_selector=entry_point_selector,
