@@ -25,6 +25,8 @@ from .util import create_empty_block, deploy, devnet_in_background, load_file_co
 
 DEPLOY_CONTENT = load_file_content("deploy.json")
 INVOKE_CONTENT = load_file_content("invoke.json")
+L1_L2_CONTENT = load_file_content("l1_l2.json")
+L1_L2_EMPTY = load_file_content("l1_l2_empty.json")
 CALL_CONTENT = load_file_content("call.json")
 INVALID_HASH = "0x58d4d4ed7580a7a98ab608883ec9fe722424ce52c19f2f369eeea301f535914"
 INVALID_ADDRESS = "0x123"
@@ -45,6 +47,14 @@ def send_call(req_dict: dict):
         "/feeder_gateway/call_contract",
         content_type="application/json",
         data=json.dumps(req_dict),
+    )
+
+
+def send_l1_to_l2(req_dict: dict):
+    """Sends the dict in a POST request and returns the response data."""
+    return requests.post(
+        f"{APP_URL}/postman/l1_to_l2",
+        json=req_dict,
     )
 
 
@@ -359,24 +369,16 @@ def test_post_l1_to_l2_deploy_execute():
     """Test POST l1 to l2 deploy contract and execute transaction"""
     # Deploy L1L2 contract
     deploy_info = deploy(contract=L1L2_CONTRACT_PATH)
-    # Just a random example of an l1 contract address and an example payload
-    l1_contract_address = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
-    payload = ["0x1", "0x2"]
-
+    
     # Create l1 to l2 mock transaction
-    response = requests.post(
-        f"{APP_URL}/postman/l1_to_l2",
-        json={
-            "l2_contract_address": deploy_info["address"],
-            "entry_point_selector": "0xC73F681176FC7B3F9693986FD7B14581E8D540519E27400E88B8713932BE01",
-            "l1_contract_address": l1_contract_address,
-            "payload": payload,
-            "nonce": "0x0",
-        },
-    )
+    req_dict = json.loads(L1_L2_CONTENT)
+    req_dict["l2_contract_address"] = deploy_info["address"]
+    response = send_l1_to_l2(req_dict)
+
     assert response.status_code == 200
+    # l1_contract_address is a random example of an l1 contract address and an example payload
     assert response.json().get("execution_info_calldata") == [
-        hex.lower() for hex in [l1_contract_address, *payload]
+        hex.lower() for hex in [req_dict["l1_contract_address"], *req_dict["payload"]]
     ]
 
 
@@ -384,16 +386,9 @@ def test_post_l1_to_l2_deploy_execute():
 def test_post_l1_to_l2_execute_without_data():
     """Test POST l1 to l2 without data"""
     # Create l1 to l2 mock transaction
-    response = requests.post(
-        f"{APP_URL}/postman/l1_to_l2",
-        json={
-            "l2_contract_address": "",
-            "entry_point_selector": "",
-            "l1_contract_address": "",
-            "payload": "",
-            "nonce": "",
-        },
-    )
+    req_dict = json.loads(L1_L2_EMPTY)
+    response = send_l1_to_l2(req_dict)
+
     assert response.status_code == 400
     assert response.json().get("code") == str(StarkErrorCode.MALFORMED_REQUEST)
 
@@ -402,16 +397,9 @@ def test_post_l1_to_l2_execute_without_data():
 def test_post_l1_to_l2_execute_without_deploy():
     """Test POST l1 to l2 without the target contract being deploy"""
     # Create l1 to l2 mock transaction
-    response = requests.post(
-        f"{APP_URL}/postman/l1_to_l2",
-        json={
-            "l2_contract_address": "0x00285ddb7e5c777b310d806b9b2a0f7c7ba0a41f12b420219209d97a3b7f25b2",
-            "entry_point_selector": "0xC73F681176FC7B3F9693986FD7B14581E8D540519E27400E88B8713932BE01",
-            "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-            "payload": ["0x1", "0x2"],
-            "nonce": "0x0",
-        },
-    )
+    req_dict = json.loads(L1_L2_CONTENT)
+    response = send_l1_to_l2(req_dict)
+
     assert response.status_code == 200
     assert response.json().get("execution_info_calldata") == str(
         StarkErrorCode.INVALID_TRANSACTION
