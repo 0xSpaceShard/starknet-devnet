@@ -79,7 +79,6 @@ enable_pickling()
 
 # pylint: disable=too-many-instance-attributes
 # pylint: disable=too-many-public-methods
-# pylint: disable=too-many-arguments
 class StarknetWrapper:
     """
     Wraps a Starknet instance and stores data to be returned by the server:
@@ -548,30 +547,14 @@ class StarknetWrapper:
             self.starknet, network_url, contract_address, network_id
         )
 
-    async def mock_message_to_l2(
-        self,
-        l1_contract_address: int,
-        l2_contract_address: int,
-        entry_point_selector: int,
-        payload: List[int],
-        nonce: int,
-    ) -> dict:
+    async def mock_message_to_l2(self, call: CallL1Handler) -> dict:
         """Handles L1 to L2 message mock endpoint"""
 
         state = self.get_state()
 
-        # Generate transactions
-        transaction = InternalL1Handler.create(
-            contract_address=l2_contract_address,
-            entry_point_selector=entry_point_selector,
-            calldata=[l1_contract_address, *payload],
-            nonce=nonce,
-            chain_id=self.starknet.state.general_config.chain_id.value,
-        )
-
         # Execute transactions inside StarknetWrapper
         async with self.__get_transaction_handler() as tx_handler:
-            tx_handler.internal_tx = transaction
+            tx_handler.internal_tx = call
             tx_handler.execution_info = await state.execute_tx(tx_handler.internal_tx)
             tx_handler.internal_calls = (
                 tx_handler.execution_info.call_info.internal_calls
