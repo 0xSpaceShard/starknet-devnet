@@ -369,7 +369,7 @@ def test_post_l1_to_l2_deploy_execute():
     """Test POST l1 to l2 deploy contract and execute transaction"""
     # Deploy L1L2 contract
     deploy_info = deploy(contract=L1L2_CONTRACT_PATH)
-    
+
     # Create l1 to l2 mock transaction
     req_dict = json.loads(L1_L2_CONTENT)
     req_dict["l2_contract_address"] = deploy_info["address"]
