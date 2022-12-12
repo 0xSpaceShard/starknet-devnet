@@ -99,7 +99,7 @@ def test_wrong_mint_address_format():
     resp = mint_client({"amount": 10, "address": "invalid_address"})
 
     assert resp.status_code == 400
-    assert resp.json["message"] == "address value must be a hex string."
+    assert resp.json["message"] == "address value or values must be a hex string."
 
 
 def test_missing_mint_address():
@@ -107,7 +107,7 @@ def test_missing_mint_address():
     resp = mint_client({"amount": 10})
 
     assert resp.status_code == 400
-    assert resp.json["message"] == "address value must be provided."
+    assert resp.json["message"] == "address value or values must be provided."
 
 
 @pytest.mark.fee_token
