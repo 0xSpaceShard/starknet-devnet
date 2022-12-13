@@ -7,6 +7,7 @@ from types import TracebackType
 from typing import Dict, List, Optional, Set, Tuple, Type, Union
 
 import cloudpickle as pickle
+from starkware.starknet.services.api.messages import StarknetMessageToL1
 from starkware.starknet.business_logic.state.state import BlockInfo, CachedState
 from starkware.starknet.business_logic.transaction.fee import calculate_tx_fee
 from starkware.starknet.business_logic.transaction.objects import (
@@ -546,6 +547,22 @@ class StarknetWrapper:
         return self.l1l2.load_l1_messaging_contract(
             self.starknet, network_url, contract_address, network_id
         )
+
+    async def consume_message_from_l2(self, from_address: int, to_address: int, payload: List[int]) -> str:
+        """
+        Mocks the L1 contract function consumeMessageFromL2.
+        """
+        state = self.get_state()
+        
+        starknet_message = StarknetMessageToL1(
+            from_address=from_address,
+            to_address=to_address,
+            payload=payload,
+        )
+        message_hash = starknet_message.get_hash()
+        state.consume_message_hash(message_hash=message_hash)
+        return message_hash
+
 
     async def mock_message_to_l2(self, call: CallL1Handler) -> dict:
         """Handles L1 to L2 message mock endpoint"""

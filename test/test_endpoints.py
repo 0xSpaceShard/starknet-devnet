@@ -12,6 +12,7 @@ from starkware.starkware_utils.error_handling import StarkErrorCode
 from starknet_devnet.constants import DEFAULT_GAS_PRICE
 from starknet_devnet.server import app
 
+from .account import invoke
 from .settings import APP_URL
 from .shared import (
     FAILING_CONTRACT_PATH,
@@ -19,6 +20,9 @@ from .shared import (
     GENESIS_BLOCK_NUMBER,
     L1L2_CONTRACT_PATH,
     STORAGE_CONTRACT_PATH,
+    PREDEPLOYED_ACCOUNT_ADDRESS,
+    PREDEPLOY_ACCOUNT_CLI_ARGS,
+    PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
 from .support.assertions import assert_valid_schema
 from .util import create_empty_block, deploy, devnet_in_background, load_file_content
@@ -30,6 +34,7 @@ L1_L2_EMPTY = load_file_content("l1_l2_empty.json")
 CALL_CONTENT = load_file_content("call.json")
 INVALID_HASH = "0x58d4d4ed7580a7a98ab608883ec9fe722424ce52c19f2f369eeea301f535914"
 INVALID_ADDRESS = "0x123"
+USER_ID = 1
 
 
 def send_transaction(req_dict: dict):
@@ -404,3 +409,34 @@ def test_post_l1_to_l2_execute_without_deploy():
     assert response.json().get("execution_info_calldata") == str(
         StarkErrorCode.INVALID_TRANSACTION
     )
+
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
+def test_post_l2_to_l1():
+    """Test POST l2 to l1"""
+
+    deploy_info = deploy(L1L2_CONTRACT_PATH)
+    
+    # increase and withdraw balance
+    invoke(
+        calls=[(deploy_info["address"], "increase_balance", [USER_ID, 3333])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
+    contract_address_int = int("0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512", 16)
+    invoke(
+        calls=[(deploy_info["address"], "withdraw", [USER_ID, 1000, contract_address_int])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
+
+    response =  requests.post(
+        f"{APP_URL}/postman/l2_to_l1",
+        json={
+            "l2_contract_address": deploy_info["address"],
+            "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+            "payload": ["0x0", "0x1", "0x3e8"],
+        },
+    )
+
+    assert response.status_code == 200
+    # assert response.json().get("message_hash") == "0x20fac3dc93f9391a6be225691ec1042e65f4c44b4dd8bedcc53ac337909ae964"

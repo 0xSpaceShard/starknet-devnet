@@ -84,3 +84,16 @@ async def l1_to_l2():
         return jsonify(
             {"execution_info_calldata": str(StarkErrorCode.INVALID_TRANSACTION)}
         )
+
+
+@postman.route("/l2_to_l1", methods=["POST"])
+async def l2_to_l1():
+    """L2 to L1 message mock endpoint"""
+    request_json = request.json or {}
+
+    from_address = hex_converter(request_json, "l2_contract_address")
+    to_address = hex_converter(request_json, "l1_contract_address")
+    payload = hex_converter(request_json, "payload", to_int_array)
+    
+    result = await state.starknet_wrapper.consume_message_from_l2(from_address, to_address, payload)
+    return jsonify({"message_hash": result})
