@@ -69,6 +69,14 @@ def send_message_to_l2(req_dict: dict):
     )
 
 
+def send_message_to_l1(req_dict: dict):
+    """Sends the dict in a POST request and returns the response data."""
+    return requests.post(
+        f"{APP_URL}/postman/send_message_to_l1",
+        json=req_dict,
+    )
+
+
 def assert_deploy_resp(resp: bytes):
     """Asserts the validity of deploy response body."""
     resp_dict = json.loads(resp.data.decode("utf-8"))
@@ -382,13 +390,15 @@ def test_send_message_to_l2_deploy_execute():
     deploy_info = deploy(contract=L1L2_CONTRACT_PATH)
 
     # Create l1 to l2 mock transaction
-    response = send_message_to_l2({
-        "l2_contract_address": deploy_info["address"],
-        "entry_point_selector": "0xC73F681176FC7B3F9693986FD7B14581E8D540519E27400E88B8713932BE01",
-        "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-        "payload": ["0x1", "0x1"],
-        "nonce": "0x0"
-    })
+    response = send_message_to_l2(
+        {
+            "l2_contract_address": deploy_info["address"],
+            "entry_point_selector": "0xC73F681176FC7B3F9693986FD7B14581E8D540519E27400E88B8713932BE01",
+            "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+            "payload": ["0x1", "0x1"],
+            "nonce": "0x0",
+        }
+    )
 
     # Check balace of user
     value = call(
@@ -407,13 +417,15 @@ def test_send_message_to_l2_deploy_execute():
 def test_send_message_to_l2_execute_without_data():
     """Test POST l1 to l2 without data"""
     # Create l1 to l2 mock transaction
-    response = send_message_to_l2({
-        "l2_contract_address": "",
-        "entry_point_selector": "",
-        "l1_contract_address": "",
-        "payload": "",
-        "nonce": ""
-    })
+    response = send_message_to_l2(
+        {
+            "l2_contract_address": "",
+            "entry_point_selector": "",
+            "l1_contract_address": "",
+            "payload": "",
+            "nonce": "",
+        }
+    )
 
     assert response.status_code == 400
     assert response.json().get("code") == str(StarkErrorCode.MALFORMED_REQUEST)
@@ -423,22 +435,23 @@ def test_send_message_to_l2_execute_without_data():
 def test_send_message_to_l2_execute_without_deploy():
     """Test POST l1 to l2 without the target contract being deployed"""
     # Create l1 to l2 mock transaction
-    response = send_message_to_l2({
-        "l2_contract_address": "0x00285ddb7e5c777b310d806b9b2a0f7c7ba0a41f12b420219209d97a3b7f25b2",
-        "entry_point_selector": "0xC73F681176FC7B3F9693986FD7B14581E8D540519E27400E88B8713932BE01",
-        "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-        "payload": ["0x1", "0x1"],
-        "nonce": "0x0"
-    })
+    response = send_message_to_l2(
+        {
+            "l2_contract_address": "0x00285ddb7e5c777b310d806b9b2a0f7c7ba0a41f12b420219209d97a3b7f25b2",
+            "entry_point_selector": "0xC73F681176FC7B3F9693986FD7B14581E8D540519E27400E88B8713932BE01",
+            "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+            "payload": ["0x1", "0x1"],
+            "nonce": "0x0",
+        }
+    )
 
     assert response.status_code == 200
     assert_tx_status(hex(response.json().get("invoke_tx_hash")), "REJECTED")
 
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
-def test_send_message_to_l1():
-    """Test POST l2 to l1"""
-
+def test_send_message_to_l1_deploy_execute():
+    """Test POST l2 to l1 deploy contract and execute transaction"""
     deploy_info = deploy(L1L2_CONTRACT_PATH)
 
     # increase and withdraw balance
@@ -447,31 +460,68 @@ def test_send_message_to_l1():
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
-    contract_address_int = int("0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512", 16)
     invoke(
         calls=[
-            (deploy_info["address"], "withdraw", [USER_ID, 1000, contract_address_int])
+            (
+                deploy_info["address"],
+                "withdraw",
+                [USER_ID, 1000, 0xE7F1725E7734CE288F8367E1BB143E90BB3F0512],
+            )
         ],
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
 
-    # Check balace of user
-    balance = call(
-        function="get_balance",
-        address=deploy_info["address"],
-        abi_path=L1L2_ABI_PATH,
-        inputs=[str(USER_ID)],
-    )
-    
-    response = requests.post(
-        f"{APP_URL}/postman/send_message_to_l1",
-        json={
+    response = send_message_to_l1(
+        {
             "l2_contract_address": deploy_info["address"],
             "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
             "payload": ["0x0", "0x1", "0x3e8"],
-        },
+        }
     )
 
-    assert int(balance) == 2333
     assert response.status_code == 200
+
+
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
+def test_send_message_to_l1_deploy_execute_without_withdraw():
+    """Test POST l2 to l1 deploy contract and try to execute transaction without calling withdraw"""
+    deploy_info = deploy(L1L2_CONTRACT_PATH)
+    response = send_message_to_l1(
+        {
+            "l2_contract_address": deploy_info["address"],
+            "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+            "payload": ["0x0", "0x1", "0x3e8"],
+        }
+    )
+
+    assert response.status_code == 500
+
+
+@devnet_in_background()
+def test_send_message_to_l1_execute_without_data():
+    """Test POST l2 to l1 deploy without data"""
+    response = send_message_to_l1(
+        {
+            "l2_contract_address": "",
+            "l1_contract_address": "",
+            "payload": "",
+        }
+    )
+
+    assert response.status_code == 400
+    assert response.json().get("code") == str(StarkErrorCode.MALFORMED_REQUEST)
+
+
+@devnet_in_background()
+def test_send_message_to_l1_execute_without_deploy():
+    """Test POST l2 to l1 without contract deploy"""
+    response = send_message_to_l1(
+        {
+            "l2_contract_address": "0x00285ddb7e5c777b310d806b9b2a0f7c7ba0a41f12b420219209d97a3b7f25b2",
+            "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+            "payload": ["0x0", "0x1", "0x3e8"],
+        }
+    )
+
+    assert response.status_code == 500
