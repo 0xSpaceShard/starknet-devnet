@@ -37,8 +37,6 @@ from .util import (
 
 DEPLOY_CONTENT = load_file_content("deploy.json")
 INVOKE_CONTENT = load_file_content("invoke.json")
-L1_L2_CONTENT = load_file_content("l1_l2.json")
-L1_L2_EMPTY = load_file_content("l1_l2_empty.json")
 CALL_CONTENT = load_file_content("call.json")
 INVALID_HASH = "0x58d4d4ed7580a7a98ab608883ec9fe722424ce52c19f2f369eeea301f535914"
 INVALID_ADDRESS = "0x123"
@@ -384,9 +382,13 @@ def test_post_l1_to_l2_deploy_execute():
     deploy_info = deploy(contract=L1L2_CONTRACT_PATH)
 
     # Create l1 to l2 mock transaction
-    req_dict = json.loads(L1_L2_CONTENT)
-    req_dict["l2_contract_address"] = deploy_info["address"]
-    response = send_l1_to_l2(req_dict)
+    response = send_l1_to_l2({
+        "l2_contract_address": deploy_info["address"],
+        "entry_point_selector": "0xC73F681176FC7B3F9693986FD7B14581E8D540519E27400E88B8713932BE01",
+        "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+        "payload": ["0x1", "0x1"],
+        "nonce": "0x0"
+    })
 
     # Check balace of user
     value = call(
@@ -405,8 +407,13 @@ def test_post_l1_to_l2_deploy_execute():
 def test_post_l1_to_l2_execute_without_data():
     """Test POST l1 to l2 without data"""
     # Create l1 to l2 mock transaction
-    req_dict = json.loads(L1_L2_EMPTY)
-    response = send_l1_to_l2(req_dict)
+    response = send_l1_to_l2({
+        "l2_contract_address": "",
+        "entry_point_selector": "",
+        "l1_contract_address": "",
+        "payload": "",
+        "nonce": ""
+    })
 
     assert response.status_code == 400
     assert response.json().get("code") == str(StarkErrorCode.MALFORMED_REQUEST)
@@ -416,8 +423,13 @@ def test_post_l1_to_l2_execute_without_data():
 def test_post_l1_to_l2_execute_without_deploy():
     """Test POST l1 to l2 without the target contract being deployed"""
     # Create l1 to l2 mock transaction
-    req_dict = json.loads(L1_L2_CONTENT)
-    response = send_l1_to_l2(req_dict)
+    response = send_l1_to_l2({
+        "l2_contract_address": "0x00285ddb7e5c777b310d806b9b2a0f7c7ba0a41f12b420219209d97a3b7f25b2",
+        "entry_point_selector": "0xC73F681176FC7B3F9693986FD7B14581E8D540519E27400E88B8713932BE01",
+        "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+        "payload": ["0x1", "0x1"],
+        "nonce": "0x0"
+    })
 
     assert response.status_code == 200
     assert_tx_status(hex(response.json().get("invoke_tx_hash")), "REJECTED")
@@ -443,6 +455,8 @@ def test_post_l2_to_l1():
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
+    
+    # TODO: check balance
 
     response = requests.post(
         f"{APP_URL}/postman/l2_to_l1",
@@ -453,5 +467,9 @@ def test_post_l2_to_l1():
         },
     )
 
+    print("message_hash")
+    print(response.json().get("message_hash"))
+    
     assert response.status_code == 200
-    # assert response.json().get("message_hash") == "0x20fac3dc93f9391a6be225691ec1042e65f4c44b4dd8bedcc53ac337909ae964"
+
+#TODO: Add new test
