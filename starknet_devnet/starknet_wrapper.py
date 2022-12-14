@@ -7,7 +7,6 @@ from types import TracebackType
 from typing import Dict, List, Optional, Set, Tuple, Type, Union
 
 import cloudpickle as pickle
-from starkware.starknet.services.api.messages import StarknetMessageToL1
 from starkware.starknet.business_logic.state.state import BlockInfo, CachedState
 from starkware.starknet.business_logic.transaction.fee import calculate_tx_fee
 from starkware.starknet.business_logic.transaction.objects import (
@@ -46,6 +45,7 @@ from starkware.starknet.services.api.gateway.transaction import (
     DeployAccount,
     InvokeFunction,
 )
+from starkware.starknet.services.api.messages import StarknetMessageToL1
 from starkware.starknet.testing.objects import FunctionInvocation
 from starkware.starknet.testing.starknet import Starknet
 from starkware.starknet.third_party.open_zeppelin.starknet_contracts import (
@@ -548,12 +548,14 @@ class StarknetWrapper:
             self.starknet, network_url, contract_address, network_id
         )
 
-    async def consume_message_from_l2(self, from_address: int, to_address: int, payload: List[int]) -> str:
+    async def consume_message_from_l2(
+        self, from_address: int, to_address: int, payload: List[int]
+    ) -> str:
         """
         Mocks the L1 contract function consumeMessageFromL2.
         """
         state = self.get_state()
-        
+
         starknet_message = StarknetMessageToL1(
             from_address=from_address,
             to_address=to_address,
@@ -563,21 +565,20 @@ class StarknetWrapper:
         state.consume_message_hash(message_hash=message_hash)
         return message_hash
 
-
-    async def mock_message_to_l2(self, call: CallL1Handler) -> dict:
+    async def mock_message_to_l2(self, transaction: InternalL1Handler) -> dict:
         """Handles L1 to L2 message mock endpoint"""
 
         state = self.get_state()
 
         # Execute transactions inside StarknetWrapper
         async with self.__get_transaction_handler() as tx_handler:
-            tx_handler.internal_tx = call
+            tx_handler.internal_tx = transaction
             tx_handler.execution_info = await state.execute_tx(tx_handler.internal_tx)
             tx_handler.internal_calls = (
                 tx_handler.execution_info.call_info.internal_calls
             )
 
-            return tx_handler.execution_info.call_info.calldata
+        return transaction.hash_value
 
     async def postman_flush(self) -> dict:
         """Handles all pending L1 <> L2 messages and sends them to the other layer."""

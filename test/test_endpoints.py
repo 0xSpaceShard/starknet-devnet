@@ -18,14 +18,22 @@ from .shared import (
     FAILING_CONTRACT_PATH,
     GENESIS_BLOCK_HASH,
     GENESIS_BLOCK_NUMBER,
+    L1L2_ABI_PATH,
     L1L2_CONTRACT_PATH,
-    STORAGE_CONTRACT_PATH,
-    PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
+    PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    STORAGE_CONTRACT_PATH,
 )
 from .support.assertions import assert_valid_schema
-from .util import create_empty_block, deploy, devnet_in_background, load_file_content
+from .util import (
+    assert_tx_status,
+    call,
+    create_empty_block,
+    deploy,
+    devnet_in_background,
+    load_file_content,
+)
 
 DEPLOY_CONTENT = load_file_content("deploy.json")
 INVOKE_CONTENT = load_file_content("invoke.json")
@@ -380,11 +388,17 @@ def test_post_l1_to_l2_deploy_execute():
     req_dict["l2_contract_address"] = deploy_info["address"]
     response = send_l1_to_l2(req_dict)
 
+    # Check balace of user
+    value = call(
+        function="get_balance",
+        address=deploy_info["address"],
+        abi_path=L1L2_ABI_PATH,
+        inputs=[str(USER_ID)],
+    )
+
+    assert int(value) == 1
     assert response.status_code == 200
-    # l1_contract_address is a random example of an l1 contract address and an example payload
-    assert response.json().get("execution_info_calldata") == [
-        hex.lower() for hex in [req_dict["l1_contract_address"], *req_dict["payload"]]
-    ]
+    assert_tx_status(hex(response.json().get("invoke_tx_hash")), "ACCEPTED_ON_L2")
 
 
 @devnet_in_background()
@@ -406,16 +420,15 @@ def test_post_l1_to_l2_execute_without_deploy():
     response = send_l1_to_l2(req_dict)
 
     assert response.status_code == 200
-    assert response.json().get("execution_info_calldata") == str(
-        StarkErrorCode.INVALID_TRANSACTION
-    )
+    assert_tx_status(hex(response.json().get("invoke_tx_hash")), "REJECTED")
+
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
 def test_post_l2_to_l1():
     """Test POST l2 to l1"""
 
     deploy_info = deploy(L1L2_CONTRACT_PATH)
-    
+
     # increase and withdraw balance
     invoke(
         calls=[(deploy_info["address"], "increase_balance", [USER_ID, 3333])],
@@ -424,12 +437,14 @@ def test_post_l2_to_l1():
     )
     contract_address_int = int("0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512", 16)
     invoke(
-        calls=[(deploy_info["address"], "withdraw", [USER_ID, 1000, contract_address_int])],
+        calls=[
+            (deploy_info["address"], "withdraw", [USER_ID, 1000, contract_address_int])
+        ],
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
 
-    response =  requests.post(
+    response = requests.post(
         f"{APP_URL}/postman/l2_to_l1",
         json={
             "l2_contract_address": deploy_info["address"],

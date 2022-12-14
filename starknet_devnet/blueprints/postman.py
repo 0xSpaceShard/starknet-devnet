@@ -77,13 +77,7 @@ async def l1_to_l2():
     )
 
     result = await state.starknet_wrapper.mock_message_to_l2(transaction)
-
-    try:
-        return jsonify({"execution_info_calldata": [hex(r) for r in result]})
-    except TypeError:
-        return jsonify(
-            {"execution_info_calldata": str(StarkErrorCode.INVALID_TRANSACTION)}
-        )
+    return jsonify({"invoke_tx_hash": result})
 
 
 @postman.route("/l2_to_l1", methods=["POST"])
@@ -94,6 +88,8 @@ async def l2_to_l1():
     from_address = hex_converter(request_json, "l2_contract_address")
     to_address = hex_converter(request_json, "l1_contract_address")
     payload = hex_converter(request_json, "payload", to_int_array)
-    
-    result = await state.starknet_wrapper.consume_message_from_l2(from_address, to_address, payload)
+
+    result = await state.starknet_wrapper.consume_message_from_l2(
+        from_address, to_address, payload
+    )
     return jsonify({"message_hash": result})
