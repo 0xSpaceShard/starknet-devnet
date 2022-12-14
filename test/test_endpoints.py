@@ -414,7 +414,7 @@ def test_post_l1_to_l2_execute_without_data():
 
 @devnet_in_background()
 def test_post_l1_to_l2_execute_without_deploy():
-    """Test POST l1 to l2 without the target contract being deploy"""
+    """Test POST l1 to l2 without the target contract being deployed"""
     # Create l1 to l2 mock transaction
     req_dict = json.loads(L1_L2_CONTENT)
     response = send_l1_to_l2(req_dict)
