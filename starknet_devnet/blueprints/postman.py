@@ -59,8 +59,8 @@ async def flush():
     return jsonify(result_dict)
 
 
-@postman.route("/l1_to_l2", methods=["POST"])
-async def l1_to_l2():
+@postman.route("/send_message_to_l2", methods=["POST"])
+async def send_message_to_l2():
     """L1 to L2 message mock endpoint"""
     request_json = request.json or {}
 
@@ -80,8 +80,8 @@ async def l1_to_l2():
     return jsonify({"invoke_tx_hash": result})
 
 
-@postman.route("/l2_to_l1", methods=["POST"])
-async def l2_to_l1():
+@postman.route("/send_message_to_l1", methods=["POST"])
+async def send_message_to_l1():
     """L2 to L1 message mock endpoint"""
     request_json = request.json or {}
 

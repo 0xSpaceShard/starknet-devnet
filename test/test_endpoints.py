@@ -61,10 +61,10 @@ def send_call(req_dict: dict):
     )
 
 
-def send_l1_to_l2(req_dict: dict):
+def send_message_to_l2(req_dict: dict):
     """Sends the dict in a POST request and returns the response data."""
     return requests.post(
-        f"{APP_URL}/postman/l1_to_l2",
+        f"{APP_URL}/postman/send_message_to_l2",
         json=req_dict,
     )
 
@@ -376,13 +376,13 @@ def test_get_transaction_trace_of_rejected():
 
 
 @devnet_in_background()
-def test_post_l1_to_l2_deploy_execute():
+def test_send_message_to_l2_deploy_execute():
     """Test POST l1 to l2 deploy contract and execute transaction"""
     # Deploy L1L2 contract
     deploy_info = deploy(contract=L1L2_CONTRACT_PATH)
 
     # Create l1 to l2 mock transaction
-    response = send_l1_to_l2({
+    response = send_message_to_l2({
         "l2_contract_address": deploy_info["address"],
         "entry_point_selector": "0xC73F681176FC7B3F9693986FD7B14581E8D540519E27400E88B8713932BE01",
         "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
@@ -404,10 +404,10 @@ def test_post_l1_to_l2_deploy_execute():
 
 
 @devnet_in_background()
-def test_post_l1_to_l2_execute_without_data():
+def test_send_message_to_l2_execute_without_data():
     """Test POST l1 to l2 without data"""
     # Create l1 to l2 mock transaction
-    response = send_l1_to_l2({
+    response = send_message_to_l2({
         "l2_contract_address": "",
         "entry_point_selector": "",
         "l1_contract_address": "",
@@ -420,10 +420,10 @@ def test_post_l1_to_l2_execute_without_data():
 
 
 @devnet_in_background()
-def test_post_l1_to_l2_execute_without_deploy():
+def test_send_message_to_l2_execute_without_deploy():
     """Test POST l1 to l2 without the target contract being deployed"""
     # Create l1 to l2 mock transaction
-    response = send_l1_to_l2({
+    response = send_message_to_l2({
         "l2_contract_address": "0x00285ddb7e5c777b310d806b9b2a0f7c7ba0a41f12b420219209d97a3b7f25b2",
         "entry_point_selector": "0xC73F681176FC7B3F9693986FD7B14581E8D540519E27400E88B8713932BE01",
         "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
@@ -436,7 +436,7 @@ def test_post_l1_to_l2_execute_without_deploy():
 
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
-def test_post_l2_to_l1():
+def test_send_message_to_l1():
     """Test POST l2 to l1"""
 
     deploy_info = deploy(L1L2_CONTRACT_PATH)
@@ -455,11 +455,17 @@ def test_post_l2_to_l1():
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
-    
-    # TODO: check balance
 
+    # Check balace of user
+    balance = call(
+        function="get_balance",
+        address=deploy_info["address"],
+        abi_path=L1L2_ABI_PATH,
+        inputs=[str(USER_ID)],
+    )
+    
     response = requests.post(
-        f"{APP_URL}/postman/l2_to_l1",
+        f"{APP_URL}/postman/send_message_to_l1",
         json={
             "l2_contract_address": deploy_info["address"],
             "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
@@ -467,9 +473,5 @@ def test_post_l2_to_l1():
         },
     )
 
-    print("message_hash")
-    print(response.json().get("message_hash"))
-    
+    assert int(balance) == 2333
     assert response.status_code == 200
-
-#TODO: Add new test
