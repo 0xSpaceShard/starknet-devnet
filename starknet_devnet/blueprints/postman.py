@@ -77,7 +77,7 @@ async def send_message_to_l2():
     )
 
     result = await state.starknet_wrapper.mock_message_to_l2(transaction)
-    return jsonify({"invoke_tx_hash": result})
+    return jsonify({"transaction_hash": result})
 
 
 @postman.route("/consume_message_from_l2", methods=["POST"])

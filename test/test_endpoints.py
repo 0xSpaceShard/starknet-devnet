@@ -410,7 +410,7 @@ def test_send_message_to_l2_deploy_execute():
 
     assert int(value) == 1
     assert response.status_code == 200
-    assert_tx_status(hex(response.json().get("invoke_tx_hash")), "ACCEPTED_ON_L2")
+    assert_tx_status(hex(response.json().get("transaction_hash")), "ACCEPTED_ON_L2")
 
 
 @devnet_in_background()
@@ -446,7 +446,7 @@ def test_send_message_to_l2_execute_without_deploy():
     )
 
     assert response.status_code == 200
-    assert_tx_status(hex(response.json().get("invoke_tx_hash")), "REJECTED")
+    assert_tx_status(hex(response.json().get("transaction_hash")), "REJECTED")
 
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
