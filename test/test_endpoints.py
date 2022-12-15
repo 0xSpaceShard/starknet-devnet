@@ -400,7 +400,7 @@ def test_send_message_to_l2_deploy_execute():
         }
     )
 
-    # Check balace of user
+    # Check balance of user
     value = call(
         function="get_balance",
         address=deploy_info["address"],
