@@ -2,8 +2,8 @@
     "call_type": "CALL",
     "calldata": ["0x0"],
     "caller_address": "0x0",
-    "class_hash": "0x75dc4457c66bfb3808c67a918047b8f0973ea8b876056b72e99f651b91298ca",
-    "contract_address": "0x333c17a58a5e9d3e8f745d354fee89f83196e8fd0ded1c9766c24425276093f",
+    "class_hash": "0x71df7c871d389943e24aaaf85d41594266d12f2f9b580a9f92ba4a0bf763d67",
+    "contract_address": "0x6f47c70cfad7e0865af23e60e596e4926d557bc3fc26ce96a234d55bfb04857",
     "entry_point_type": "CONSTRUCTOR",
     "events": [],
     "execution_resources": {

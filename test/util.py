@@ -615,8 +615,9 @@ def assert_salty_deploy(
 
     deploy_info = deploy(contract_path, inputs=inputs, salt=salt)
     assert_tx_status(deploy_info["tx_hash"], expected_status)
-    assert_equal(deploy_info["address"], expected_address)
-    assert_equal(deploy_info["tx_hash"], expected_tx_hash)
+    assert_equal(
+        deploy_info, {"address": expected_address, "tx_hash": expected_tx_hash}
+    )
 
 
 def assert_failing_deploy(contract_path):

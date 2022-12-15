@@ -56,7 +56,7 @@ def test_chain_id_invalid(chain_id):
         stdout=subprocess.PIPE,
     )
     assert (
-        f"Error: The value of --chain_id must be in {{{CHAIN_IDS}}}, got:"
+        f"Error: The value of --chain-id must be in {{{CHAIN_IDS}}}, got:"
         in read_stream(proc.stderr)
     )
     assert proc.returncode == 1
@@ -66,14 +66,8 @@ def test_chain_id_invalid(chain_id):
 @pytest.mark.parametrize(
     "run_devnet_in_background, chain_id",
     [
-        (
-            [*PREDEPLOY_ACCOUNT_CLI_ARGS, "--chain-id", StarknetChainId.TESTNET.name],
-            StarknetChainId.TESTNET,
-        ),
-        (
-            [*PREDEPLOY_ACCOUNT_CLI_ARGS, "--chain-id", StarknetChainId.MAINNET.name],
-            StarknetChainId.MAINNET,
-        ),
+        ([*PREDEPLOY_ACCOUNT_CLI_ARGS, "--chain-id", chain_id.name], chain_id)
+        for chain_id in StarknetChainId
     ],
     indirect=True,
 )
