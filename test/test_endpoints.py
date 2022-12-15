@@ -7,6 +7,7 @@ import json
 import pytest
 import requests
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
+from starkware.starknet.public.abi import get_selector_from_name
 from starkware.starkware_utils.error_handling import StarkErrorCode
 
 from starknet_devnet.constants import DEFAULT_GAS_PRICE
@@ -42,8 +43,10 @@ INVALID_HASH = "0x58d4d4ed7580a7a98ab608883ec9fe722424ce52c19f2f369eeea301f53591
 INVALID_ADDRESS = "0x123"
 USER_ID = 1
 L1_CONTRACT_ADDRESS = 0xE7F1725E7734CE288F8367E1BB143E90BB3F0512
-L2_CONTRACT_ADDRESS = "0x00285ddb7e5c777b310d806b9b2a0f7c7ba0a41f12b420219209d97a3b7f25b2"
-ENTRY_POINT_SELECTOR = "0xC73F681176FC7B3F9693986FD7B14581E8D540519E27400E88B8713932BE01"
+L2_CONTRACT_ADDRESS = (
+    "0x00285ddb7e5c777b310d806b9b2a0f7c7ba0a41f12b420219209d97a3b7f25b2"
+)
+ENTRY_POINT_SELECTOR = get_selector_from_name("deposit")
 MESSAGE_TO_L2_NONCE = "0x0"
 
 # from_address, user and amount for L2 contract
@@ -51,6 +54,7 @@ CONSUME_PAYLOAD = ["0x0", "0x1", "0x3e8"]
 
 # user and amount for L1 contract
 MESSAGE_TO_L2_PAYLOAD = ["0x1", "0x1"]
+
 
 def send_transaction(req_dict: dict):
     """Sends the dict in a POST request and returns the response data."""

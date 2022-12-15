@@ -100,4 +100,4 @@ async def consume_message_from_l2():
             code=StarkErrorCode.MALFORMED_REQUEST,
             message=f"Message of hash {result} is fully consumed or does not exist.",
             status_code=500,
-        )from err
+        ) from err
