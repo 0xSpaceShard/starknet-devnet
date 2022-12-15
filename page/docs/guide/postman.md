@@ -55,8 +55,9 @@ constructor(MockStarknetMessaging mockStarknetMessaging_) public {
 ```
 POST /postman/send_message_to_l2
 ```
-Sending mock transactions from L1 to L2 without the need for running L1.
-Deployed L2 contract address `l2_contract_address` and `entry_point_selector` must be valid otherwise new block will not be created.
+Sending mock transactions from L1 to L2 without the need for running L1. Deployed L2 contract address `l2_contract_address` and `entry_point_selector` must be valid otherwise new block will not be created.
+
+Normally `nonce` is calculated by l1 StarknetContract but in this case, we need to provide it manually.
 
 Example POST json:
 ```
