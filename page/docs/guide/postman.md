@@ -52,14 +52,15 @@ constructor(MockStarknetMessaging mockStarknetMessaging_) public {
 
 ### Postman - l1 to l2 mock endpoint
 
-```
-POST /postman/send_message_to_l2
-```
 Sending mock transactions from L1 to L2 without the need for running L1. Deployed L2 contract address `l2_contract_address` and `entry_point_selector` must be valid otherwise new block will not be created.
 
 Normally `nonce` is calculated by l1 StarknetContract but in this case, we need to provide it manually.
 
-Example POST json:
+```
+POST /postman/send_message_to_l2
+```
+
+Request:
 ```
 {
     "l2_contract_address":"0x00285ddb7e5c777b310d806b9b2a0f7c7ba0a41f12b420219209d97a3b7f25b2",
@@ -73,21 +74,32 @@ Example POST json:
 }
 ```
 
+Response: 
+```
+{'transaction_hash': 1283711137402474683298514877824575801113282594306182191973277342794215646143}
+```
+
 ### Postman - l2 to l1 mock endpoint
+
+Sending mock transactions from L2 to L1.
+Deployed L2 contract address `l2_contract_address` and `l1_contract_address` must be valid.
 
 ```
 POST /postman/consume_message_from_l2
 ```
-Sending mock transactions from L2 to L1.
-Deployed L2 contract address `l2_contract_address` and `l1_contract_address` must be valid.
 
-Example POST json:
+Request:
 ```
 {
     "l2_contract_address": "0x00285ddb7e5c777b310d806b9b2a0f7c7ba0a41f12b420219209d97a3b7f25b2",
     "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
     "payload": ["0x0", "0x1", "0x3e8"],
 }
+```
+
+Response: 
+```
+{'message_hash': '0xae14f241131b524ac8d043d9cb4934253ac5c5589afef19f0d761816a9c7e26d'}
 ```
 
 ## Dumping
