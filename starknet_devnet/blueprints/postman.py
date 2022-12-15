@@ -6,6 +6,7 @@ import json
 
 from flask import Blueprint, jsonify, request
 from starkware.starknet.business_logic.transaction.objects import InternalL1Handler
+from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starkware_utils.error_handling import StarkErrorCode
 
 from starknet_devnet.blueprints.base import hex_converter
@@ -88,7 +89,6 @@ async def consume_message_from_l2():
     from_address = hex_converter(request_json, "l2_contract_address")
     to_address = hex_converter(request_json, "l1_contract_address")
     payload = hex_converter(request_json, "payload", to_int_array)
-    result = ""
 
     try:
         result = await state.starknet_wrapper.consume_message_from_l2(
@@ -97,7 +97,7 @@ async def consume_message_from_l2():
         return jsonify({"message_hash": result})
     except AssertionError as err:
         raise StarknetDevnetException(
-            code=StarkErrorCode.MALFORMED_REQUEST,
-            message=f"Message of hash {result} is fully consumed or does not exist.",
+            code=StarknetErrorCode.L1_TO_L2_MESSAGE_ZEROED_COUNTER,
+            message="Message is fully consumed or does not exist.",
             status_code=500,
         ) from err

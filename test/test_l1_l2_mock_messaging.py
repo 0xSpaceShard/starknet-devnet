@@ -3,6 +3,7 @@ Test l1 l2 mock messaging.
 """
 
 import requests
+from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.public.abi import get_selector_from_name
 from starkware.starkware_utils.error_handling import StarkErrorCode
 
@@ -171,7 +172,9 @@ def test_consume_message_from_l2_deploy_execute_without_withdraw():
     )
 
     assert response.status_code == 500
-    assert response.json().get("code") == str(StarkErrorCode.MALFORMED_REQUEST)
+    assert response.json().get("code") == str(
+        StarknetErrorCode.L1_TO_L2_MESSAGE_ZEROED_COUNTER
+    )
 
 
 @devnet_in_background()
@@ -201,4 +204,6 @@ def test_consume_message_from_l2_execute_without_deploy():
     )
 
     assert response.status_code == 500
-    assert response.json().get("code") == str(StarkErrorCode.MALFORMED_REQUEST)
+    assert response.json().get("code") == str(
+        StarknetErrorCode.L1_TO_L2_MESSAGE_ZEROED_COUNTER
+    )
