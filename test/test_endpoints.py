@@ -46,7 +46,7 @@ L1_CONTRACT_ADDRESS = 0xE7F1725E7734CE288F8367E1BB143E90BB3F0512
 L2_CONTRACT_ADDRESS = (
     "0x00285ddb7e5c777b310d806b9b2a0f7c7ba0a41f12b420219209d97a3b7f25b2"
 )
-ENTRY_POINT_SELECTOR = get_selector_from_name("deposit")
+ENTRY_POINT_SELECTOR = hex(get_selector_from_name("deposit"))
 MESSAGE_TO_L2_NONCE = "0x0"
 
 # from_address, user and amount for L2 contract
