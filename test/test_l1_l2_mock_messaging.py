@@ -1,11 +1,10 @@
-
-import json
+"""
+Test l1 l2 mock messaging.
+"""
 
 import requests
 from starkware.starknet.public.abi import get_selector_from_name
 from starkware.starkware_utils.error_handling import StarkErrorCode
-
-from starknet_devnet.server import app
 
 from .account import invoke
 from .settings import APP_URL
@@ -42,6 +41,7 @@ CONSUME_PAYLOAD = ["0x0", "0x1", "0x3e8"]
 
 # user and amount for L1 contract
 MESSAGE_TO_L2_PAYLOAD = ["0x1", "0x1"]
+
 
 def send_message_to_l2(req_dict: dict):
     """Sends the dict in a POST request and returns the response data."""
