@@ -76,7 +76,7 @@ Example POST json:
 ### Postman - l2 to l1 mock endpoint
 
 ```
-POST /postman/send_message_to_l1
+POST /postman/consume_message_from_l2
 ```
 Sending mock transactions from L2 to L1.
 Deployed L2 contract address `l2_contract_address` and `l1_contract_address` must be valid.

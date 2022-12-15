@@ -80,8 +80,8 @@ async def send_message_to_l2():
     return jsonify({"invoke_tx_hash": result})
 
 
-@postman.route("/send_message_to_l1", methods=["POST"])
-async def send_message_to_l1():
+@postman.route("/consume_message_from_l2", methods=["POST"])
+async def consume_message_from_l2():
     """L2 to L1 message mock endpoint"""
     request_json = request.json or {}
 
