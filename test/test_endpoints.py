@@ -44,9 +44,13 @@ USER_ID = 1
 L1_CONTRACT_ADDRESS = 0xE7F1725E7734CE288F8367E1BB143E90BB3F0512
 L2_CONTRACT_ADDRESS = "0x00285ddb7e5c777b310d806b9b2a0f7c7ba0a41f12b420219209d97a3b7f25b2"
 ENTRY_POINT_SELECTOR = "0xC73F681176FC7B3F9693986FD7B14581E8D540519E27400E88B8713932BE01"
+MESSAGE_TO_L2_NONCE = "0x0"
+
+# from_address, user and amount for L2 contract
 CONSUME_PAYLOAD = ["0x0", "0x1", "0x3e8"]
-MESSAGE_TO_l2_PAYLOAD = ["0x1", "0x1"]
-MESSAGE_TO_l2_NONCE = "0x0"
+
+# user and amount for L1 contract
+MESSAGE_TO_L2_PAYLOAD = ["0x1", "0x1"]
 
 def send_transaction(req_dict: dict):
     """Sends the dict in a POST request and returns the response data."""
@@ -400,8 +404,8 @@ def test_send_message_to_l2_deploy_execute():
             "l2_contract_address": deploy_info["address"],
             "entry_point_selector": ENTRY_POINT_SELECTOR,
             "l1_contract_address": str(L1_CONTRACT_ADDRESS),
-            "payload": MESSAGE_TO_l2_PAYLOAD,
-            "nonce": MESSAGE_TO_l2_NONCE,
+            "payload": MESSAGE_TO_L2_PAYLOAD,
+            "nonce": MESSAGE_TO_L2_NONCE,
         }
     )
 
@@ -444,8 +448,8 @@ def test_send_message_to_l2_execute_without_deploy():
             "l2_contract_address": L2_CONTRACT_ADDRESS,
             "entry_point_selector": ENTRY_POINT_SELECTOR,
             "l1_contract_address": str(L1_CONTRACT_ADDRESS),
-            "payload": MESSAGE_TO_l2_PAYLOAD,
-            "nonce": MESSAGE_TO_l2_NONCE,
+            "payload": MESSAGE_TO_L2_PAYLOAD,
+            "nonce": MESSAGE_TO_L2_NONCE,
         }
     )
 
@@ -500,6 +504,7 @@ def test_consume_message_from_l2_deploy_execute_without_withdraw():
     )
 
     assert response.status_code == 500
+    assert response.json().get("code") == str(StarkErrorCode.MALFORMED_REQUEST)
 
 
 @devnet_in_background()
@@ -529,3 +534,4 @@ def test_consume_message_from_l2_execute_without_deploy():
     )
 
     assert response.status_code == 500
+    assert response.json().get("code") == str(StarkErrorCode.MALFORMED_REQUEST)
