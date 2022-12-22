@@ -2,7 +2,6 @@
 Contains the server implementation and its utility classes and functions.
 """
 
-from logging import warn
 import os
 import sys
 from copy import copy

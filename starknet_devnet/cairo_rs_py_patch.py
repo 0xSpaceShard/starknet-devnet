@@ -21,7 +21,6 @@ from starkware.cairo.lang.vm.memory_segments import MemorySegmentManager
 from starkware.cairo.lang.vm.relocatable import MaybeRelocatable, RelocatableValue
 from starkware.cairo.lang.vm.utils import ResourcesError
 from starkware.cairo.lang.vm.vm_exceptions import (
-    HintException,
     SecurityError,
     VmException,
     VmExceptionBase,
@@ -32,7 +31,6 @@ from starkware.starknet.business_logic.execution.execute_entry_point import (
     ExecuteEntryPoint,
 )
 from starkware.starknet.business_logic.execution.objects import (
-    ResourcesMapping,
     TransactionExecutionContext,
 )
 from starkware.starknet.business_logic.fact_state.state import ExecutionResourcesManager
@@ -45,7 +43,6 @@ from starkware.starknet.core.os.class_hash import (
 )
 from starkware.starknet.core.os.syscall_utils import (  # get_runtime_type,
     BusinessLogicSysCallHandler,
-    HandlerException,
 )
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.definitions.general_config import StarknetGeneralConfig
