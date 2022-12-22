@@ -65,6 +65,11 @@ jobs:
     <<: *test_template
     docker:
       - image: cimg/python:3.9-node
+  
+  test_py_min_rust:
+    <<: *test_template
+    environment:
+      STARKNET_DEVNET_CAIRO_VM: "rust"
 
   package_build_and_publish:
     docker:
