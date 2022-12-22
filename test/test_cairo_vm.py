@@ -1,14 +1,11 @@
 """Test specifying cairo VM"""
 
 import os
-
 import subprocess
+
 import pytest
-from .util import (
-    DevnetBackgroundProc,
-    read_stream,
-    terminate_and_wait,
-)
+
+from .util import DevnetBackgroundProc, read_stream, terminate_and_wait
 
 ACTIVE_DEVNET = DevnetBackgroundProc()
 
