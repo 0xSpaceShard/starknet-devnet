@@ -19,7 +19,7 @@ Let's discover **[starknet-devnet](https://github.com/Shard-Labs/starknet-devnet
 
 ## Requirements
 
-Works with Python versions >=3.8 and <3.10 and also needs Cairo-rs-py source code. 
+Works with Python versions >=3.8 and <3.10.
 
 On Ubuntu/Debian, first run:
 
