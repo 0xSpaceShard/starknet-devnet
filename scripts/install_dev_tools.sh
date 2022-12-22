@@ -17,6 +17,14 @@ poetry install
 poetry lock --check
 npm ci
 
+# https://www.rust-lang.org/tools/install
+if rustc --version; then
+    echo "rustc installed"
+else
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    source "$HOME/.cargo/env"
+fi
+
 # install cairo-rs-py
 git clone git@github.com:lambdaclass/cairo-rs-py.git
 poetry run maturin develop --release -m cairo-rs-py/Cargo.toml --no-default-features --features extension
