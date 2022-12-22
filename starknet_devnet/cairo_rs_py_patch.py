@@ -11,9 +11,6 @@ import sys
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, cast
 
 import cairo_rs_py
-from starkware.starknet.business_logic.transaction.fee import (
-    calculate_l1_gas_by_cairo_usage,
-)  # TODO change?
 from starkware.cairo.common.cairo_function_runner import CairoFunctionRunner
 from starkware.cairo.common.structs import CairoStructFactory, CairoStructProxy
 
@@ -151,21 +148,16 @@ def cairo_rs_py_run(
         )
     except VmException as exception:
         code: ErrorCode = StarknetErrorCode.TRANSACTION_FAILED
-        if isinstance(exception.inner_exc, HintException):
-            hint_exception = exception.inner_exc
 
-            if isinstance(hint_exception.inner_exc, syscall_utils.HandlerException):
-                stark_exception = hint_exception.inner_exc.stark_exception
-                code = stark_exception.code
-                called_contract_address = (
-                    hint_exception.inner_exc.called_contract_address
-                )
-                message_prefix = (
-                    f"Error in the called contract ({hex(called_contract_address)}):\n"
-                )
-                # Override python's traceback and keep the Cairo one of the inner exception.
-                exception.notes = [message_prefix + str(stark_exception.message)]
-
+        if isinstance(exception.inner_exc, syscall_utils.HandlerException):
+            stark_exception = exception.inner_exc.stark_exception
+            code = stark_exception.code
+            called_contract_address = exception.inner_exc.called_contract_address
+            message_prefix = (
+                f"Error in the called contract ({hex(called_contract_address)}):\n"
+            )
+            # Override python's traceback and keep the Cairo one of the inner exception.
+            exception.notes = [message_prefix + str(stark_exception.message)]
         if isinstance(exception.inner_exc, ResourcesError):
             code = StarknetErrorCode.OUT_OF_RESOURCES
 
@@ -177,11 +169,6 @@ def cairo_rs_py_run(
     except SecurityError as exception:
         raise StarkException(
             code=StarknetErrorCode.SECURITY_ERROR, message=str(exception)
-        ) from exception
-    except HandlerException as exception:
-        raise StarkException(
-            code=exception.stark_exception.code,
-            message=str(exception.stark_exception.message),
         ) from exception
     except Exception as exception:
         logger.error("Got an unexpected exception.", exc_info=True)
@@ -431,29 +418,6 @@ def cairo_rs_py_read_and_validate_syscall_request(
     return request
 
 
-def cairo_rs_py_calculate_l1_gas_by_cairo_usage(
-    general_config: StarknetGeneralConfig,
-    cairo_resource_usage: ResourcesMapping,
-) -> float:
-    """
-    Calculates the L1 gas consumed when submitting the underlying Cairo program to SHARP.
-    I.e., returns the heaviest Cairo resource weight (in terms of L1 gas), as the size of
-    a proof is determined similarly - by the (normalized) largest segment.
-    """
-    cairo_resource_fee_weights = general_config.cairo_resource_fee_weights
-    # cairo_resource_names = set(cairo_resource_usage.keys())
-    # assert cairo_resource_names.issubset(
-    #     cairo_resource_fee_weights.keys()
-    # ), "Cairo resource names must be contained in fee weights dict."
-
-    # Convert Cairo usage to L1 gas usage.
-    cairo_l1_gas_usage = max(
-        cairo_resource_fee_weights[key] * cairo_resource_usage.get(key, 0)
-        for key in cairo_resource_fee_weights
-    )
-    return cairo_l1_gas_usage
-
-
 def cairo_rs_py_get_os_segment_ptr_range(
     runner: CairoFunctionRunner, ptr_offset: int, os_context: List[MaybeRelocatable]
 ) -> Tuple[MaybeRelocatable, MaybeRelocatable]:
@@ -563,11 +527,6 @@ def cairo_rs_py_monkeypatch():
         BusinessLogicSysCallHandler,
         "validate_read_only_segments",
         cairo_rs_py_validate_read_only_segments,
-    )
-    setattr(
-        sys.modules["starkware.starknet.business_logic.transaction.fee"],
-        "calculate_l1_gas_by_cairo_usage",
-        cairo_rs_py_calculate_l1_gas_by_cairo_usage,
     )
     setattr(
         sys.modules["starkware.starknet.core.os.syscall_utils"],
