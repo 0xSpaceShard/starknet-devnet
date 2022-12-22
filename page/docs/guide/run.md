@@ -136,8 +136,14 @@ $ clone git@github.com:lambdaclass/cairo-rs-py.git
 $ maturin develop --release -m cairo-rs-py/Cargo.toml --no-default-features --features extension
 ```
 
-2. Set `STARKNET_DEVNET_RUST_VM`
+2. Set `STARKNET_DEVNET_CAIRO_VM=rust`
 
 ```bash
-$ STARKNET_DEVNET_RUST_VM=1 starknet-devnet
+$ STARKNET_DEVNET_CAIRO_VM=rust starknet-devnet
+```
+
+To use the Python VM, unset the variable or set it to `python`
+
+```bash
+$ STARKNET_DEVNET_CAIRO_VM=python starknet-devnet
 ```

@@ -48,11 +48,18 @@ def simpler_copy(self, memo):  # pylint: disable=unused-argument
 
 setattr(ContractClass, "__deepcopy__", simpler_copy)
 
-if os.environ.get("STARKNET_DEVNET_RUST_VM"):
-    # Apply cairo-rs-py patch
+
+# Optionally apply cairo-rs-py monkey patch
+_cairo_vm = os.environ.get("STARKNET_DEVNET_CAIRO_VM")
+if _cairo_vm == "rust":
     from starknet_devnet.cairo_rs_py_patch import cairo_rs_py_monkeypatch
 
     cairo_rs_py_monkeypatch()
-    warn("Using Rust implementation of Cairo VM")
+
+elif not _cairo_vm or _cairo_vm == "python":
+    pass
+
 else:
-    warn("Using Python implementation of Cairo VM")
+    sys.exit(
+        f"Error: Invalid value of environment variable STARKNET_DEVNET_CAIRO_VM: '{_cairo_vm}'"
+    )
