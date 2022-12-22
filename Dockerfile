@@ -6,18 +6,19 @@ RUN apk add gmp-dev g++ gcc git libffi-dev
 
 RUN pip3 install poetry
 
-RUN poetry build -f wheel
-RUN poetry export -f requirements.txt --without-hashes > requirements.txt
-RUN pip3 wheel --no-cache-dir --no-deps --wheel-dir /wheels -r requirements.txt
-
 # install rust
-RUN wget https://sh.rustup.rs -O - | sh -s -- -y 
-RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
+RUN wget https://sh.rustup.rs -O - | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 # build-cairo-rs-py wheel with maturin
 RUN git clone https://github.com/lambdaclass/cairo-rs-py.git
 RUN pip3 install maturin[patchelf]
 RUN maturin build -m cairo-rs-py/Cargo.toml --no-default-features --features extension
+
+# build rest
+RUN poetry build -f wheel
+RUN poetry export -f requirements.txt --without-hashes > requirements.txt
+RUN pip3 wheel --no-cache-dir --no-deps --wheel-dir /wheels -r requirements.txt
 
 FROM python:3.9.13-alpine3.16
 
