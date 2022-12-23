@@ -2,7 +2,7 @@ FROM python:3.9.13-alpine3.16 as builder
 
 COPY . .
 
-RUN apk add gmp-dev g++ gcc git libffi-dev
+RUN apk add gmp-dev g++ gcc libffi-dev
 
 RUN pip3 install poetry
 
