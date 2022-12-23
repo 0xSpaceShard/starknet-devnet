@@ -124,25 +124,33 @@ If you don't specify the `HOST` part, the server will indeed be available on all
 
 By default, Devnet uses the [Python implementation](https://github.com/starkware-libs/cairo-lang/) of Cairo VM.
 
-Using the Rust implementation brings improvement for Cairo-VM-intensive operations, but introduces its own overhead, so it may not be useful for simple contracts and calls.
+Using the Rust implementation brings improvement for Cairo-VM-intensive operations, but introduces its own overhead, so it may not be useful for simple contracts.
 
 You can enable it by following these steps:
 
-1. Install [cairo-rs-py](https://github.com/lambdaclass/cairo-rs-py) in the [**same environment**](https://docs.python.org/3/library/venv.html) as Devnet:
+1. Install compilers
+
+Make sure you have `gcc`, `g++` and [Rust](https://www.rust-lang.org/tools/install).
+
+2. Install [cairo-rs-py](https://github.com/lambdaclass/cairo-rs-py) in the [**same environment**](https://docs.python.org/3/library/venv.html) as Devnet:
 
 ```bash
-$ pip install maturin
-$ clone git@github.com:lambdaclass/cairo-rs-py.git
-$ maturin develop --release -m cairo-rs-py/Cargo.toml --no-default-features --features extension
+$ pip install cairo-rs-py
 ```
 
-2. Set `STARKNET_DEVNET_CAIRO_VM=rust`
+3. Set `STARKNET_DEVNET_CAIRO_VM=rust`
 
 ```bash
 $ STARKNET_DEVNET_CAIRO_VM=rust starknet-devnet
 ```
 
-To use the Python VM, unset the variable or set it to `python`
+With Docker, use `-e`:
+
+```bash
+$ docker run -it [OPTIONS] -e STARKNET_DEVNET_CAIRO_VM=rust shardlabs/starknet-devnet [ARGS]
+```
+
+To use the Python VM, **unset** the variable or set it to `python`
 
 ```bash
 $ STARKNET_DEVNET_CAIRO_VM=python starknet-devnet
