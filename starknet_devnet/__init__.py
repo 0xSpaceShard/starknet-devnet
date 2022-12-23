@@ -50,7 +50,8 @@ setattr(ContractClass, "__deepcopy__", simpler_copy)
 
 
 # Optionally apply cairo-rs-py monkey patch
-_cairo_vm = os.environ.get("STARKNET_DEVNET_CAIRO_VM")
+_VM_VAR = "STARKNET_DEVNET_CAIRO_VM"
+_cairo_vm = os.environ.get(_VM_VAR)
 if _cairo_vm == "rust":
     from starknet_devnet.cairo_rs_py_patch import cairo_rs_py_monkeypatch
 
@@ -60,6 +61,4 @@ elif not _cairo_vm or _cairo_vm == "python":
     pass
 
 else:
-    sys.exit(
-        f"Error: Invalid value of environment variable STARKNET_DEVNET_CAIRO_VM: '{_cairo_vm}'"
-    )
+    sys.exit(f"Error: Invalid value of environment variable {_VM_VAR}: '{_cairo_vm}'")
