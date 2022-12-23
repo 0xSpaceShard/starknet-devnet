@@ -19,5 +19,3 @@ page/
 # Hardhat specific
 node_modules/
 hardhat-cache/
-
-cairo-rs-py/
