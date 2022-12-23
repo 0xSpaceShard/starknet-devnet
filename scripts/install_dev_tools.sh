@@ -12,12 +12,8 @@ echo "python3: $(python3 --version)"
 pip3 install -U poetry==1.2.1
 echo "poetry: $(poetry --version)"
 
-# install dependencies
-poetry install
-poetry lock --check
-npm ci
-
 # https://www.rust-lang.org/tools/install
+# need rust to install cairo-rs-py
 if rustc --version; then
     echo "rustc installed"
 else
@@ -25,6 +21,7 @@ else
     source "$HOME/.cargo/env"
 fi
 
-# install cairo-rs-py
-git clone git@github.com:lambdaclass/cairo-rs-py.git
-poetry run maturin develop --release -m cairo-rs-py/Cargo.toml --no-default-features --features extension
+# install dependencies
+poetry install
+poetry lock --check
+npm ci
