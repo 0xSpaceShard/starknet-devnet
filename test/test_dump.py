@@ -328,7 +328,7 @@ def test_invalid_dump_on_option():
 
     assert devnet_proc.returncode == 1
     expected_msg = b"Error: Invalid --dump-on option: obviously-invalid. Valid options: exit, transaction\n"
-    assert devnet_proc.stderr.read() == expected_msg
+    assert expected_msg in devnet_proc.stderr.read()
 
 
 def test_dump_path_not_present_with_dump_on_present():
