@@ -21,8 +21,8 @@ def test_invalid_fork_network():
     )
     assert read_stream(proc.stdout) == ""
     assert (
-        read_stream(proc.stderr)
-        == f"Error: Invalid fork-network (must be a URL or one of {{alpha-goerli, alpha-goerli2, alpha-mainnet}}). Received: {invalid_name}\n"
+        f"Error: Invalid fork-network (must be a URL or one of {{alpha-goerli, alpha-goerli2, alpha-mainnet}}). Received: {invalid_name}\n"
+        in read_stream(proc.stderr)
     )
     assert proc.returncode == 1
 
@@ -37,9 +37,8 @@ def test_url_not_sequencer():
         stdout=subprocess.PIPE,
     )
     assert read_stream(proc.stdout) == ""
-    assert (
-        read_stream(proc.stderr)
-        == f"Error: {invalid_url} is not a valid StarkNet sequencer\n"
+    assert f"Error: {invalid_url} is not a valid StarkNet sequencer\n" in read_stream(
+        proc.stderr
     )
     assert proc.returncode == 1
 
@@ -78,9 +77,8 @@ def test_block_provided_without_network():
         "--fork-block", "123", stderr=subprocess.PIPE, stdout=subprocess.PIPE
     )
     assert read_stream(proc.stdout) == ""
-    assert (
-        read_stream(proc.stderr)
-        == "Error: --fork-network required if --fork-block present\n"
+    assert "Error: --fork-network required if --fork-block present\n" in read_stream(
+        proc.stderr
     )
     assert proc.returncode == 1
 
@@ -98,9 +96,10 @@ def test_malformed_block_id(fork_block: str):
     )
     assert read_stream(proc.stdout) == ""
     assert (
-        read_stream(proc.stderr)
-        == f"The value of --fork-block must be a non-negative integer or 'latest', got: {fork_block}\n"
+        f"The value of --fork-block must be a non-negative integer or 'latest', got: {fork_block}\n"
+        in read_stream(proc.stderr)
     )
+
     assert proc.returncode == 1
 
 

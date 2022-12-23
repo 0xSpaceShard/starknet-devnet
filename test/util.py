@@ -52,7 +52,9 @@ def run_devnet_in_background(*args, stderr=None, stdout=None, env=None):
         *args,
     ]
     # pylint: disable=consider-using-with
-    proc = subprocess.Popen(command, close_fds=True, stderr=stderr, stdout=stdout, env=env)
+    proc = subprocess.Popen(
+        command, close_fds=True, stderr=stderr, stdout=stdout, env=env
+    )
 
     healthcheck_url = f"http://{HOST}:{port}/is_alive"
     ensure_server_alive(healthcheck_url, proc)
@@ -659,7 +661,9 @@ class DevnetBackgroundProc:
     def start(self, *args, stderr=None, stdout=None, env=None):
         """Starts a new devnet-server instance. Previously active instance will be stopped."""
         self.stop()
-        self.proc = run_devnet_in_background(*args, stderr=stderr, stdout=stdout, env=env)
+        self.proc = run_devnet_in_background(
+            *args, stderr=stderr, stdout=stdout, env=env
+        )
         return self.proc
 
     def stop(self):

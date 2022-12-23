@@ -56,8 +56,10 @@ if _cairo_vm == "rust":
     from starknet_devnet.cairo_rs_py_patch import cairo_rs_py_monkeypatch
 
     cairo_rs_py_monkeypatch()
+    warn("Using Cairo VM: Rust")
 
 elif not _cairo_vm or _cairo_vm == "python":
+    # python VM set by default
     pass
 
 else:

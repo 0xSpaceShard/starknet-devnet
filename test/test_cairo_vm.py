@@ -41,7 +41,6 @@ def test_invalid_cairo_vm(cairo_vm):
 
     env_copy = os.environ.copy()
     env_copy[_VM_VAR] = cairo_vm
-    # TODO change testing stderr in other tests - add log for rust vm
     proc = ACTIVE_DEVNET.start(stderr=subprocess.PIPE, env=env_copy)
 
     terminate_and_wait(proc)
