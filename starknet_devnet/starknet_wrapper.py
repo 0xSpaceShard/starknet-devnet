@@ -236,7 +236,7 @@ class StarknetWrapper:
             state = self.get_state()
 
             block = await self.blocks.generate(
-                transaction,
+                [transaction],
                 state,
                 state_update=state_update,
             )
