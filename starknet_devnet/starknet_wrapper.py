@@ -35,6 +35,7 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     BlockStateUpdate,
     DeployedContract,
     StateDiff,
+    StarknetBlock,
     StorageEntry,
     TransactionStatus,
     TransactionTrace,
@@ -244,6 +245,24 @@ class StarknetWrapper:
             transaction.set_block(block=block)
 
         self.transactions.store(tx_hash, transaction)
+
+    async def _store_transactions(
+        self,
+        transactions: DevnetTransactions,
+        state_update: Dict,
+    ) -> StarknetBlock:
+        """
+        Stores the provided transactions in new block.
+        """
+        # TODO: update this according to _store_transaction() method
+        state = self.get_state()
+        block = await self.blocks.generate(
+            transactions,
+            state,
+            state_update=state_update,
+        )
+
+        return block
 
     async def declare(self, external_tx: Declare) -> Tuple[int, int]:
         """
@@ -603,6 +622,18 @@ class StarknetWrapper:
                 )
 
         return parsed_l1_l2_messages
+
+    async def store_pending_transactions(self) -> dict:
+        """Generate new block with pending transactions in --blocks-on-demand mode."""
+        state = self.get_state()
+
+        # Generate new block with pending transactions
+        block = await self._store_transactions(
+            transactions=self.pending_transactions,
+            state_update=state,
+        )
+
+        return block
 
     async def calculate_trace_and_fee(self, external_tx: InvokeFunction):
         """Calculates trace and fee by simulating tx on state copy."""
