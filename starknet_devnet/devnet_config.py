@@ -229,6 +229,11 @@ def parse_args(raw_args: List[str]):
         " - applies sequential numbering instead (0x0, 0x1, 0x2, ...).",
     )
     parser.add_argument(
+        "--blocks-on-demand",
+        action="store_true",
+        help="Block generation on demand via an endpoint.",
+    )
+    parser.add_argument(
         "--accounts",
         action=NonNegativeAction,
         help=f"Specify the number of accounts to be predeployed; defaults to {DEFAULT_ACCOUNTS}",
@@ -327,6 +332,7 @@ class DevnetConfig:
         self.start_time = self.args.start_time
         self.gas_price = self.args.gas_price
         self.lite_mode = self.args.lite_mode
+        self.blocks_on_demand = self.args.blocks_on_demand
         self.account_class = self.args.account_class
         self.hide_predeployed_accounts = self.args.hide_predeployed_accounts
         self.fork_network = self.args.fork_network

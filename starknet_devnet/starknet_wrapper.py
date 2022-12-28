@@ -105,6 +105,7 @@ class StarknetWrapper:
         self.fee_token = FeeToken(self)
         self.accounts = Accounts(self)
         self.__udc = UDC(self)
+        self.pending_transactions = []
 
         if config.start_time is not None:
             self.set_block_time(config.start_time)
@@ -348,12 +349,15 @@ class StarknetWrapper:
                     transaction_hash=tx_hash,
                 )
 
-                await self.starknet_wrapper._store_transaction(
-                    transaction=transaction,
-                    state_update=state_update,
-                    error_message=error_message,
-                    tx_hash=tx_hash,
-                )
+                if self.starknet_wrapper.config.blocks_on_demand:
+                    self.starknet_wrapper.pending_transactions.append(transaction)
+                else:
+                    await self.starknet_wrapper._store_transaction(
+                        transaction=transaction,
+                        state_update=state_update,
+                        error_message=error_message,
+                        tx_hash=tx_hash,
+                    )
 
                 return True
 
