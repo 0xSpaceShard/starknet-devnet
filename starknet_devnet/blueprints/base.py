@@ -200,7 +200,7 @@ async def create_block_on_demand():
     block = await state.starknet_wrapper.store_pending_transactions()
     print(block.transactions)
 
-    return Response(block, status=200, mimetype="application/json")
+    return jsonify({"block_hash": block.block_hash})
 
 @base.route("/fork_status", methods=["GET"])
 async def fork_status():
