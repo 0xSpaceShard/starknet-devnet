@@ -248,21 +248,16 @@ class StarknetWrapper:
 
     async def _store_transactions(
         self,
-        transactions: DevnetTransactions,
-        state_update: Dict,
+        transactions: List[DevnetTransaction],
     ) -> StarknetBlock:
         """
         Stores the provided transactions in new block.
         """
-        # TODO: update this according to _store_transaction() method
-        state = self.get_state()
-        block = await self.blocks.generate(
+        # TODO: update this according to _store_transaction() method?
+        return await self.blocks.generate(
             transactions,
-            state,
-            state_update=state_update,
+            self.get_state(),
         )
-
-        return block
 
     async def declare(self, external_tx: Declare) -> Tuple[int, int]:
         """
@@ -623,17 +618,11 @@ class StarknetWrapper:
 
         return parsed_l1_l2_messages
 
-    async def store_pending_transactions(self) -> dict:
+    async def store_pending_transactions(self) -> StarknetBlock:
         """Generate new block with pending transactions in --blocks-on-demand mode."""
-        state = self.get_state()
-
-        # Generate new block with pending transactions
-        block = await self._store_transactions(
+        return await self._store_transactions(
             transactions=self.pending_transactions,
-            state_update=state,
         )
-
-        return block
 
     async def calculate_trace_and_fee(self, external_tx: InvokeFunction):
         """Calculates trace and fee by simulating tx on state copy."""

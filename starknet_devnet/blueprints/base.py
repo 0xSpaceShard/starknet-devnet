@@ -194,6 +194,13 @@ async def create_block():
     block = await state.starknet_wrapper.create_empty_block()
     return Response(block.dumps(), status=200, mimetype="application/json")
 
+@base.route("/create_block_on_demand", methods=["POST"])
+async def create_block_on_demand():
+    """Create block on demand"""
+    block = await state.starknet_wrapper.store_pending_transactions()
+    print(block.transactions)
+
+    return Response(block, status=200, mimetype="application/json")
 
 @base.route("/fork_status", methods=["GET"])
 async def fork_status():
