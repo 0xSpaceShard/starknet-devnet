@@ -1,6 +1,8 @@
 """
 Contains the server implementation and its utility classes and functions.
 """
+
+import os
 import sys
 from copy import copy
 
@@ -9,7 +11,9 @@ from crypto_cpp_py.cpp_bindings import cpp_hash
 from starkware.crypto.signature.fast_pedersen_hash import pedersen_hash
 from starkware.starknet.services.api.contract_class import ContractClass
 
-__version__ = "0.4.2"
+from .util import warn
+
+__version__ = "0.4.3"
 
 
 def patched_pedersen_hash(left: int, right: int) -> int:
@@ -43,3 +47,20 @@ def simpler_copy(self, memo):  # pylint: disable=unused-argument
 
 
 setattr(ContractClass, "__deepcopy__", simpler_copy)
+
+
+# Optionally apply cairo-rs-py monkey patch
+_VM_VAR = "STARKNET_DEVNET_CAIRO_VM"
+_cairo_vm = os.environ.get(_VM_VAR)
+if _cairo_vm == "rust":
+    from starknet_devnet.cairo_rs_py_patch import cairo_rs_py_monkeypatch
+
+    cairo_rs_py_monkeypatch()
+    warn("Using Cairo VM: Rust")
+
+elif not _cairo_vm or _cairo_vm == "python":
+    # python VM set by default
+    pass
+
+else:
+    sys.exit(f"Error: Invalid value of environment variable {_VM_VAR}: '{_cairo_vm}'")

@@ -4,9 +4,9 @@ sidebar_position: 18
 
 # Development
 
-If you're a developer willing to contribute, be sure to have installed [**Poetry**](https://pypi.org/project/poetry/) and all the dependency packages by running the following script. You are expected to have [**npm**](https://www.npmjs.com/).
+If you're a developer willing to contribute, be sure to have installed [**Poetry**](https://pypi.org/project/poetry/) and all the dependency packages by running the installation script. Prerequisites for running the script: `gcc`, `g++`, `gmp`, `npm`.
 
-```text
+```bash
 ./scripts/install_dev_tools.sh
 ```
 

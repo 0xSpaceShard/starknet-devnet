@@ -58,7 +58,7 @@ def test_invalid_path(class_path: str, expected_error: str):
     """Test behavior on providing nonexistent path"""
     proc = ACTIVE_DEVNET.start("--account-class", class_path, stderr=subprocess.PIPE)
     assert proc.returncode == 1
-    assert proc.stderr.read().decode("utf-8") == expected_error
+    assert expected_error in proc.stderr.read().decode("utf-8")
 
 
 @pytest.mark.account_custom

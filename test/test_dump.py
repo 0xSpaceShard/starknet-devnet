@@ -120,7 +120,7 @@ def test_load_via_cli_if_no_file():
     )
     assert devnet_proc.returncode == 1
     expected_msg = f"Error: Cannot load from {DUMP_PATH}. Make sure the file exists and contains a Devnet dump.\n"
-    assert expected_msg == devnet_proc.stderr.read().decode("utf-8")
+    assert expected_msg in devnet_proc.stderr.read().decode("utf-8")
 
 
 def test_mint_after_load():
@@ -174,7 +174,7 @@ def test_dumping_if_nonexistent_dir_via_cli():
     assert devnet_proc.returncode == 1
 
     expected_msg = f"Invalid dump path: directory '{NONEXISTENT_DIR}' not found.\n"
-    assert expected_msg == devnet_proc.stderr.read().decode("utf-8")
+    assert expected_msg in devnet_proc.stderr.read().decode("utf-8")
 
 
 @devnet_in_background()
@@ -328,7 +328,7 @@ def test_invalid_dump_on_option():
 
     assert devnet_proc.returncode == 1
     expected_msg = b"Error: Invalid --dump-on option: obviously-invalid. Valid options: exit, transaction\n"
-    assert devnet_proc.stderr.read() == expected_msg
+    assert expected_msg in devnet_proc.stderr.read()
 
 
 def test_dump_path_not_present_with_dump_on_present():
@@ -337,7 +337,7 @@ def test_dump_path_not_present_with_dump_on_present():
 
     assert devnet_proc.returncode == 1
     expected_msg = b"Error: --dump-path required if --dump-on present\n"
-    assert devnet_proc.stderr.read() == expected_msg
+    assert expected_msg in devnet_proc.stderr.read()
 
 
 def assert_load(dump_path: str, contract_address: str, expected_value: str):

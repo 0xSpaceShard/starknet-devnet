@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "starknet_devnet"
-version = "0.4.2"
+version = "0.4.3"
 description = "A local testnet for Starknet"
 authors = ["FabijanC <fabijan.corak@gmail.com>"]
 license = "ISC"
@@ -32,6 +32,9 @@ pylint-quotes = "~0.2.3"
 black = "~22.6"
 requests = "~2.28"
 isort = "^5.10.1"
+
+[tool.poetry.group.vm.dependencies]
+cairo-rs-py = "~0.1.0"
 
 [tool.isort]
 profile = "black"

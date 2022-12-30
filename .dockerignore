@@ -15,3 +15,7 @@ Dockerfile
 test/
 .pylintrc
 page/
+
+# Hardhat specific
+node_modules/
+hardhat-cache/

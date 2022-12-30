@@ -119,3 +119,39 @@ docker run -p 127.0.0.1:5050:5050 shardlabs/starknet-devnet
 You may ignore any address-related output logged on container startup (e.g. `Running on all addresses` or `Running on http://172.17.0.2:5050`). What you will use is what you specified with the `-p` argument.
 
 If you don't specify the `HOST` part, the server will indeed be available on all of your host machine's addresses (localhost, local network IP, etc.), which may present a security issue if you don't want anyone from the local network to access your Devnet instance.
+
+## Run with the Rust implementation of Cairo VM
+
+By default, Devnet uses the [Python implementation](https://github.com/starkware-libs/cairo-lang/) of Cairo VM.
+
+Using the Rust implementation brings improvement for Cairo-VM-intensive operations, but introduces its own overhead, so it may not be useful for simple contracts.
+
+You can enable it by following these steps:
+
+1. Install compilers
+
+Make sure you have `gcc`, `g++` and [Rust](https://www.rust-lang.org/tools/install).
+
+2. Install [cairo-rs-py](https://github.com/lambdaclass/cairo-rs-py) in the [**same environment**](https://docs.python.org/3/library/venv.html) as Devnet:
+
+```bash
+$ pip install cairo-rs-py
+```
+
+3. Set `STARKNET_DEVNET_CAIRO_VM=rust`
+
+```bash
+$ STARKNET_DEVNET_CAIRO_VM=rust starknet-devnet
+```
+
+With Docker, use `-e`:
+
+```bash
+$ docker run -it [OPTIONS] -e STARKNET_DEVNET_CAIRO_VM=rust shardlabs/starknet-devnet [ARGS]
+```
+
+To use the Python VM, **unset** the variable or set it to `python`
+
+```bash
+$ STARKNET_DEVNET_CAIRO_VM=python starknet-devnet
+```
