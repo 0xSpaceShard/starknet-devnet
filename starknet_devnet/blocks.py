@@ -137,9 +137,7 @@ class DevnetBlocks:
             transaction_receipts = ()
             transactions = []
         else:
-            transaction_receipts = (
-                transactions[0].get_execution(),
-            )  # TODO: fix this later
+            transaction_receipts = tuple(tx.get_execution() for tx in transactions)
             internal_transactions = [tx.internal_tx for tx in transactions]
             signatures = [tx.get_signature() for tx in transactions]
             tx_hashes = [tx.hash_value for tx in internal_transactions]
