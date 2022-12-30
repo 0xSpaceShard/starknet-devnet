@@ -124,7 +124,6 @@ class DevnetBlocks:
         block_number = self.get_number_of_blocks()
         timestamp = state.state.block_info.block_timestamp
         signatures = []
-        tx_hashes = []
         internal_transactions = []
 
         if block_number == 0:
@@ -140,7 +139,6 @@ class DevnetBlocks:
             transaction_receipts = tuple(tx.get_execution() for tx in transactions)
             internal_transactions = [tx.internal_tx for tx in transactions]
             signatures = [tx.get_signature() for tx in transactions]
-            tx_hashes = [tx.hash_value for tx in internal_transactions]
 
         if self.lite or is_empty_block:
             block_hash = block_number
@@ -151,7 +149,7 @@ class DevnetBlocks:
                 block_number=block_number,
                 global_state_root=state_root,
                 block_timestamp=timestamp,
-                tx_hashes=tx_hashes,
+                tx_hashes=[tx.hash_value for tx in internal_transactions],
                 tx_signatures=signatures,
                 event_hashes=[],
                 sequencer_address=state.general_config.sequencer_address,

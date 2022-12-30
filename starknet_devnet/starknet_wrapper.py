@@ -253,7 +253,8 @@ class StarknetWrapper:
         """
         Stores the provided transactions in new block.
         """
-        # TODO: update this according to _store_transaction() method?
+        # Fabijan I'm not sure about this... Let's discuss it during PR.
+        # Update this according to _store_transaction() method?
         return await self.blocks.generate(
             transactions,
             self.get_state(),
