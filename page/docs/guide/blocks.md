@@ -33,3 +33,17 @@ Response:
     "status": "ACCEPTED_ON_L2"
 }
 ```
+
+### Create a block on demand
+
+To create a block on demand with many transactions we can use `--blocks-on-demand` mode and a `POST` request to `/create_block_on_demand` which will include all pending transactions in new block:
+
+```
+POST /create_block_on_demand
+```
+
+Response:
+
+```
+{'block_hash': '0x115e1b390cafa7942b6ab141ab85040defe7dee9bef3bc31d8b5b3d01cc9c67'}
+```

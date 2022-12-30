@@ -10,7 +10,7 @@ Installing the package adds the `starknet-devnet` command.
 usage: starknet-devnet [-h] [-v] [--host HOST] [--port PORT] [--load-path LOAD_PATH] [--dump-path DUMP_PATH] [--dump-on DUMP_ON] [--lite-mode] [--accounts ACCOUNTS]
                        [--initial-balance INITIAL_BALANCE] [--seed SEED] [--hide-predeployed-accounts] [--start-time START_TIME] [--gas-price GAS_PRICE] [--timeout TIMEOUT]
                        [--account-class ACCOUNT_CLASS] [--fork-network FORK_NETWORK] [--fork-block FORK_BLOCK]
-                       [--chain-id CHAIN_ID]
+                       [--chain-id CHAIN_ID] [--blocks-on-demand]
 
 Run a local instance of StarkNet Devnet
 
@@ -25,6 +25,7 @@ optional arguments:
                         Specify the path to dump to
   --dump-on DUMP_ON     Specify when to dump; can dump on: exit, transaction
   --lite-mode           Introduces speed-up by skipping block hash calculation - applies sequential numbering instead (0x0, 0x1, 0x2, ...).
+  --blocks-on-demand    Introduces block generation on demand via /create_block_on_demand endpoint
   --accounts ACCOUNTS   Specify the number of accounts to be predeployed; defaults to 10
   --initial-balance INITIAL_BALANCE, -e INITIAL_BALANCE
                         Specify the initial balance of accounts to be predeployed; defaults to 1e+21
