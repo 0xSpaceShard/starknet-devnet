@@ -34,8 +34,8 @@ from starkware.starknet.services.api.feeder_gateway.request_objects import (
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     BlockStateUpdate,
     DeployedContract,
-    StateDiff,
     StarknetBlock,
+    StateDiff,
     StorageEntry,
     TransactionStatus,
     TransactionTrace,

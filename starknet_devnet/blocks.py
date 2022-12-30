@@ -132,12 +132,14 @@ class DevnetBlocks:
         else:
             last_block = await self.get_last_block()
             parent_block_hash = last_block.block_hash
-        
+
         if is_empty_block:
             transaction_receipts = ()
             transactions = []
         else:
-            transaction_receipts = (transactions[0].get_execution(),) #TODO: fix this later
+            transaction_receipts = (
+                transactions[0].get_execution(),
+            )  # TODO: fix this later
             internal_transactions = [tx.internal_tx for tx in transactions]
             signatures = [tx.get_signature() for tx in transactions]
             tx_hashes = [tx.hash_value for tx in internal_transactions]

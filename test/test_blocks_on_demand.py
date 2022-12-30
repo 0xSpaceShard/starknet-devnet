@@ -2,8 +2,9 @@
 Test blocks on demand mode.
 """
 
-import requests
 from test.rpc.rpc_utils import gateway_call
+
+import requests
 
 from .account import invoke
 from .settings import APP_URL
@@ -13,15 +14,17 @@ from .shared import (
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
-from .util import (
-    deploy,
-    devnet_in_background,
-)
+from .util import deploy, devnet_in_background
 
 CONTRAC_HASH_CLASS = "0x71df7c871d389943e24aaaf85d41594266d12f2f9b580a9f92ba4a0bf763d67"
 
 
-@devnet_in_background(*[*PREDEPLOY_ACCOUNT_CLI_ARGS,"--blocks-on-demand",])
+@devnet_in_background(
+    *[
+        *PREDEPLOY_ACCOUNT_CLI_ARGS,
+        "--blocks-on-demand",
+    ]
+)
 def test_blocks_on_demand():
     """Test deploy in blocks on demand mode"""
     latest_block = gateway_call("get_block", blockNumber="latest")
