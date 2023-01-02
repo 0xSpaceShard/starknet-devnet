@@ -249,16 +249,27 @@ class StarknetWrapper:
     async def _store_transactions(
         self,
         transactions: List[DevnetTransaction],
+        error_message: str = None,
     ) -> StarknetBlock:
         """
         Stores the provided transactions in new block.
         """
         # Fabijan I'm not sure about this... Let's discuss it during PR.
-        # Update this according to _store_transaction() method?
-        return await self.blocks.generate(
+        for transaction in transactions:
+            if transaction.status == TransactionStatus.REJECTED:
+                assert error_message, "error_message must be present if tx rejected"
+                transaction.set_failure_reason(error_message)
+
+        block = await self.blocks.generate(
             transactions,
             self.get_state(),
         )
+
+        for transaction in transactions:
+            transaction.set_block(block=block)            
+            self.transactions.store(transaction.transaction_hash, transaction)
+
+        return block
 
     async def declare(self, external_tx: Declare) -> Tuple[int, int]:
         """
