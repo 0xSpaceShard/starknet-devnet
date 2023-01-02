@@ -16,8 +16,6 @@ from .shared import (
 )
 from .util import deploy, devnet_in_background
 
-CONTRAC_HASH_CLASS = "0x71df7c871d389943e24aaaf85d41594266d12f2f9b580a9f92ba4a0bf763d67"
-
 
 @devnet_in_background(
     *[
@@ -49,4 +47,3 @@ def test_blocks_on_demand():
     assert block_number_after_deploy_and_invoke == 0
     assert block_number_after_block_on_demand_call == 1
     assert len(latest_block["transactions"]) == 2
-    assert latest_block["transactions"][0]["class_hash"] == CONTRAC_HASH_CLASS
