@@ -266,7 +266,7 @@ class StarknetWrapper:
         )
 
         for transaction in transactions:
-            transaction.set_block(block=block)            
+            transaction.set_block(block=block)
             self.transactions.store(transaction.transaction_hash, transaction)
 
         return block
