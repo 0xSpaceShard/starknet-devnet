@@ -475,7 +475,7 @@ def test_add_invoke_transaction_v0():
         max_fee=rpc_felt(0),
         version=hex(LEGACY_RPC_TX_VERSION),
         signature=[],
-        nonce=None,
+        nonce="0x00",
         contract_address=rpc_felt(contract_address),
         entry_point_selector=rpc_felt(get_selector_from_name("increase_balance")),
         calldata=[rpc_felt(amount1), rpc_felt(amount2)],

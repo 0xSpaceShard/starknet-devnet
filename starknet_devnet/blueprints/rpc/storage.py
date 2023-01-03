@@ -1,7 +1,7 @@
 """
 RPC storage endpoints
 """
-
+from starknet_devnet.blueprints.rpc.schema import validate_schema
 from starknet_devnet.blueprints.rpc.structures.types import (
     Address,
     BlockId,
@@ -15,6 +15,7 @@ from starknet_devnet.blueprints.rpc.utils import (
 from starknet_devnet.state import state
 
 
+@validate_schema("getStorageAt")
 async def get_storage_at(
     contract_address: Address, key: str, block_id: BlockId
 ) -> Felt:

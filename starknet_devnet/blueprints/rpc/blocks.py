@@ -1,13 +1,14 @@
 """
 RPC block endpoints
 """
-
+from starknet_devnet.blueprints.rpc.schema import validate_schema
 from starknet_devnet.blueprints.rpc.structures.payloads import rpc_block
 from starknet_devnet.blueprints.rpc.structures.types import BlockId, RpcError
 from starknet_devnet.blueprints.rpc.utils import get_block_by_block_id, rpc_felt
 from starknet_devnet.state import state
 
 
+@validate_schema("getBlockWithTxHashes")
 async def get_block_with_tx_hashes(block_id: BlockId) -> dict:
     """
     Get block information with transaction hashes given the block id
@@ -16,6 +17,7 @@ async def get_block_with_tx_hashes(block_id: BlockId) -> dict:
     return await rpc_block(block=block)
 
 
+@validate_schema("getBlockWithTxs")
 async def get_block_with_txs(block_id: BlockId) -> dict:
     """
     Get block information with full transactions given the block id
@@ -24,6 +26,7 @@ async def get_block_with_txs(block_id: BlockId) -> dict:
     return await rpc_block(block=block, tx_type="FULL_TXNS")
 
 
+@validate_schema("blockNumber")
 async def block_number() -> int:
     """
     Get the most recent accepted block number
@@ -35,6 +38,7 @@ async def block_number() -> int:
     return number_of_blocks - 1
 
 
+@validate_schema("blockHashAndNumber")
 async def block_hash_and_number() -> dict:
     """
     Get the most recent accepted block hash and number
@@ -53,6 +57,7 @@ async def block_hash_and_number() -> dict:
     return result
 
 
+@validate_schema("getBlockTransactionCount")
 async def get_block_transaction_count(block_id: BlockId) -> int:
     """
     Get the number of transactions in a block given a block id

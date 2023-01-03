@@ -409,7 +409,7 @@ def make_invoke_function(invoke_transaction: RpcBroadcastedInvokeTxn) -> InvokeF
         "signature": [
             int(data, 16) for data in invoke_transaction.get("signature", [])
         ],
-        "nonce": int(nonce, 16) if nonce is not None else None,
+        "nonce": int(nonce, 16) if version != LEGACY_RPC_TX_VERSION else None,
     }
 
     if version == LEGACY_RPC_TX_VERSION:

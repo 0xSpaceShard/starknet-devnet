@@ -25,6 +25,10 @@ from starknet_devnet.blueprints.rpc.classes import (
     get_class_hash_at,
 )
 from starknet_devnet.blueprints.rpc.misc import chain_id, get_events, get_nonce, syncing
+from starknet_devnet.blueprints.rpc.schema import (
+    ParamsValidationErrorWrapper,
+    ResponseValidationErrorWrapper,
+)
 from starknet_devnet.blueprints.rpc.state import get_state_update
 from starknet_devnet.blueprints.rpc.storage import get_storage_at
 from starknet_devnet.blueprints.rpc.structures.types import RpcError, RpcErrorCode
@@ -89,6 +93,18 @@ async def base_route():
         return rpc_error(message_id=message_id, code=22, message=str(type_error))
     except RpcError as error:
         return rpc_error(message_id=message_id, code=error.code, message=error.message)
+    except ParamsValidationErrorWrapper as error:
+        return rpc_error(
+            message_id=message_id,
+            code=RpcErrorCode.INVALID_PARAMS.value,
+            message=str(error),
+        )
+    except ResponseValidationErrorWrapper as error:
+        return rpc_error(
+            message_id=message_id,
+            code=RpcErrorCode.INTERNAL_ERROR.value,
+            message=str(error),
+        )
 
     return rpc_response(message_id=message_id, content=result)
 
@@ -112,6 +128,11 @@ def parse_body(body: dict) -> Tuple[Callable, Union[List, dict], int]:
         )
 
     if not isinstance(params, (List, Dict)):
-        raise RpcError(code=RpcErrorCode.INVALID_PARAMS.value, message="Invalid params")
+        raise RpcError(
+            code=RpcErrorCode.INVALID_PARAMS.value,
+            # fmt: off
+            message="Invalid \"params\" type. Value of \"params\" must be a dict or list",
+            # fmt: on
+        )
 
     return methods[method_name], params, message_id

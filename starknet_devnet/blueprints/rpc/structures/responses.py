@@ -1,8 +1,7 @@
 """
 RPC response structures
 """
-
-from typing import List, TypedDict
+from typing import Dict, List, TypedDict
 
 from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
@@ -176,15 +175,11 @@ async def rpc_base_transaction_receipt(txr: TransactionReceipt) -> dict:
             _events.append(event)
         return _events
 
-    def status() -> str:
-        if txr.status is None:
-            return "UNKNOWN"
-
-        mapping = {
-            TransactionStatus.NOT_RECEIVED: "UNKNOWN",
+    def status() -> TxnStatus:
+        mapping: Dict[TransactionStatus, TxnStatus] = {
             TransactionStatus.ACCEPTED_ON_L2: "ACCEPTED_ON_L2",
             TransactionStatus.ACCEPTED_ON_L1: "ACCEPTED_ON_L1",
-            TransactionStatus.RECEIVED: "RECEIVED",
+            TransactionStatus.RECEIVED: "PENDING",
             TransactionStatus.PENDING: "PENDING",
             TransactionStatus.REJECTED: "REJECTED",
         }
@@ -200,8 +195,10 @@ async def rpc_base_transaction_receipt(txr: TransactionReceipt) -> dict:
         "transaction_hash": rpc_felt(txr.transaction_hash),
         "actual_fee": rpc_felt(txr.actual_fee or 0),
         "status": status(),
-        "block_hash": rpc_felt(txr.block_hash) if txr.block_hash is not None else None,
-        "block_number": txr.block_number or None,
+        "block_hash": rpc_felt(txr.block_hash)
+        if txr.block_hash is not None
+        else rpc_felt(0),
+        "block_number": txr.block_number if txr.block_number is not None else 0,
         "messages_sent": messages_sent(),
         "events": events(),
         "type": await txn_type(),

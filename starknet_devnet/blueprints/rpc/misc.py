@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import List, Union
 
+from starknet_devnet.blueprints.rpc.schema import validate_schema
 from starknet_devnet.blueprints.rpc.structures.responses import RpcEventsResult
 from starknet_devnet.blueprints.rpc.structures.types import (
     Address,
@@ -46,6 +47,7 @@ def get_events_from_block(block, address, keys):
     return events
 
 
+@validate_schema("chainId")
 async def chain_id() -> str:
     """
     Return the currently configured StarkNet chain id
@@ -56,6 +58,7 @@ async def chain_id() -> str:
     return hex(chain)
 
 
+@validate_schema("syncing")
 async def syncing() -> Union[dict, bool]:
     """
     Returns an object about the sync status, or false if the node is not synching
@@ -64,6 +67,9 @@ async def syncing() -> Union[dict, bool]:
 
 
 # pylint: disable=too-many-arguments
+# Events response does not currently conform to RPC specs
+# and will need fixing before validation is added
+# @validate_schema("getEvents")
 async def get_events(
     from_block: BlockId,
     to_block: BlockId,
@@ -105,6 +111,7 @@ async def get_events(
     return RpcEventsResult(events=events, continuation_token=str(continuation_token))
 
 
+@validate_schema("getNonce")
 async def get_nonce(block_id: BlockId, contract_address: Address) -> Felt:
     """
     Get the nonce associated with the given address in the given block

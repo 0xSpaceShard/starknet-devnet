@@ -296,6 +296,16 @@ def parse_args(raw_args: List[str]):
         default=StarknetChainId.TESTNET,
         help=f"Specify the chain id as string: {{{CHAIN_IDS}}}",
     )
+    parser.add_argument(
+        "--disable-rpc-request-validation",
+        action="store_true",
+        help="Disable requests schema validation for RPC endpoints",
+    )
+    parser.add_argument(
+        "--disable-rpc-response-validation",
+        action="store_true",
+        help="Disable RPC schema validation for devnet responses",
+    )
 
     parsed_args = parser.parse_args(raw_args)
     if parsed_args.dump_on and not parsed_args.dump_path:
@@ -332,3 +342,5 @@ class DevnetConfig:
         self.fork_network = self.args.fork_network
         self.fork_block = self.args.fork_block
         self.chain_id = self.args.chain_id
+        self.validate_rpc_requests = not self.args.disable_rpc_request_validation
+        self.validate_rpc_responses = not self.args.disable_rpc_response_validation

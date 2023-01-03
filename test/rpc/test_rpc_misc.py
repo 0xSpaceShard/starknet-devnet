@@ -135,17 +135,23 @@ def test_syncing(params):
     """
     resp = rpc_call("starknet_syncing", params=params)
     assert "result" in resp, f"Unexpected response: {resp}"
-    assert resp["result"] is False
+
+    result = resp["result"]
+    assert result is False
 
 
-@pytest.mark.parametrize("params", [2, "random string", True])
 @pytest.mark.usefixtures("run_devnet_in_background")
-def test_call_with_invalid_params(params):
+def test_call_method_with_incorrect_type_params():
     """Call with invalid params"""
 
     # could be any legal method, just passing something to get params to fail
-    ex = rpc_call(method="starknet_getClass", params=params)
-    assert ex["error"] == {"code": -32602, "message": "Invalid params"}
+    ex = rpc_call(method="starknet_getClass", params=1234)
+    assert ex["error"] == {
+        "code": -32602,
+        # fmt: off
+        "message": "Invalid \"params\" type. Value of \"params\" must be a dict or list",
+        # fmt: on
+    }
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")

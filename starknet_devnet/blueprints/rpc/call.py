@@ -6,6 +6,7 @@ from typing import Any, List
 
 from starkware.starkware_utils.error_handling import StarkException
 
+from starknet_devnet.blueprints.rpc.schema import validate_schema
 from starknet_devnet.blueprints.rpc.structures.payloads import (
     RpcFunctionCall,
     make_call_function,
@@ -18,6 +19,7 @@ from starknet_devnet.blueprints.rpc.structures.types import (
 )
 from starknet_devnet.blueprints.rpc.utils import (
     assert_block_id_is_latest_or_pending,
+    gateway_felt,
     rpc_felt,
 )
 from starknet_devnet.state import state
@@ -32,6 +34,7 @@ def _validate_calldata(calldata: List[Any]):
             raise RpcError(code=22, message="Invalid call data") from error
 
 
+@validate_schema("call")
 async def call(request: RpcFunctionCall, block_id: BlockId) -> List[Felt]:
     """
     Call a starknet function without creating a StarkNet transaction
@@ -56,7 +59,10 @@ async def call(request: RpcFunctionCall, block_id: BlockId) -> List[Felt]:
     except StarkException as ex:
         if ex.code.name == "TRANSACTION_FAILED" and ex.code.value == 39:
             raise RpcError(code=22, message="Invalid call data") from ex
-        if f"Entry point {request['entry_point_selector']} not found" in ex.message:
+        if (
+            f"Entry point {gateway_felt(request['entry_point_selector'])} not found"
+            in ex.message
+        ):
             raise RpcError(code=21, message="Invalid message selector") from ex
         if "While handling calldata" in ex.message:
             raise RpcError(code=22, message="Invalid call data") from ex

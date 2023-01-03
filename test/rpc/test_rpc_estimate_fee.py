@@ -33,7 +33,6 @@ from starknet_devnet.blueprints.rpc.structures.payloads import (
     RpcBroadcastedInvokeTxnV0,
     RpcBroadcastedInvokeTxnV1,
     RpcContractClass,
-    RpcInvokeTransactionV0,
 )
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from starknet_devnet.constants import DEFAULT_GAS_PRICE, LEGACY_RPC_TX_VERSION
@@ -74,12 +73,13 @@ def test_estimate_happy_path_v0():
 
     txn: RpcBroadcastedInvokeTxnV0 = {
         "contract_address": contract_address,
-        "entry_point_selector": hex(get_selector_from_name("sum_point_array")),
+        "entry_point_selector": rpc_felt(get_selector_from_name("sum_point_array")),
         "calldata": ["0x02", "0x01", "0x02", "0x03", "0x04"],
         "max_fee": rpc_felt(0),
         "version": hex(LEGACY_RPC_TX_VERSION),
         "signature": [],
         "type": "INVOKE",
+        "nonce": "0x00",  # According to RPC specs it seems that nonce should be passed even with tx v0
     }
     response = rpc_call_background_devnet(
         "starknet_estimateFee", {"request": txn, "block_id": "latest"}
@@ -234,14 +234,15 @@ def test_estimate_fee_with_invalid_call_data():
 )
 def test_estimate_fee_with_invalid_contract_address():
     """Call estimate fee with invalid data on body"""
-    txn: RpcInvokeTransactionV0 = {
+    txn: RpcBroadcastedInvokeTxnV0 = {
         "contract_address": "0x01",
-        "entry_point_selector": hex(get_selector_from_name("sum_point_array")),
+        "entry_point_selector": rpc_felt(get_selector_from_name("sum_point_array")),
         "calldata": ["0x02", "0x01", "0x02", "0x03", "0x04"],
         "max_fee": rpc_felt(0),
         "version": hex(LEGACY_RPC_TX_VERSION),
         "signature": [],
         "type": "INVOKE",
+        "nonce": "0x00",
     }
     ex = rpc_call_background_devnet(
         "starknet_estimateFee", {"request": txn, "block_id": "latest"}
@@ -255,7 +256,7 @@ def test_estimate_fee_with_invalid_message_selector():
     """Call estimate fee with invalid data on body"""
     contract_address = deploy_empty_contract()["address"]
 
-    txn: RpcInvokeTransactionV0 = {
+    txn: RpcBroadcastedInvokeTxnV0 = {
         "contract_address": contract_address,
         "entry_point_selector": "0x01",
         "calldata": ["0x02", "0x01", "0x02", "0x03", "0x04"],
@@ -263,6 +264,7 @@ def test_estimate_fee_with_invalid_message_selector():
         "version": hex(LEGACY_RPC_TX_VERSION),
         "signature": [],
         "type": "INVOKE",
+        "nonce": "0x00",
     }
     ex = rpc_call_background_devnet(
         "starknet_estimateFee", {"request": txn, "block_id": "latest"}

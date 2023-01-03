@@ -1,7 +1,6 @@
 """
 Tests RPC storage
 """
-
 from test.rpc.rpc_utils import rpc_call
 
 import pytest
@@ -24,7 +23,7 @@ def test_get_storage_at(deploy_info):
         "starknet_getStorageAt",
         params={
             "contract_address": rpc_felt(contract_address),
-            "key": key,
+            "key": rpc_felt(key),
             "block_id": block_id,
         },
     )
@@ -45,7 +44,7 @@ def test_get_storage_at_raises_on_incorrect_contract():
         "starknet_getStorageAt",
         params={
             "contract_address": "0x00",
-            "key": key,
+            "key": rpc_felt(key),
             "block_id": block_id,
         },
     )
@@ -88,12 +87,12 @@ def test_get_storage_at_raises_on_incorrect_block_id(deploy_info):
         "starknet_getStorageAt",
         params={
             "contract_address": rpc_felt(contract_address),
-            "key": key,
-            "block_id": "0x0",
+            "key": rpc_felt(key),
+            "block_id": {"block_number": 99999},
         },
     )
 
     assert ex["error"] == {
         "code": RpcErrorCode.INVALID_PARAMS.value,
-        "message": "Invalid params",
+        "message": "Invalid value for block id.",
     }
