@@ -77,7 +77,7 @@ Request:
 
 Response: 
 ```
-{'transaction_hash': 1283711137402474683298514877824575801113282594306182191973277342794215646143}
+{'transaction_hash': "0x0548c761a9fd5512782998b2da6f44c42bf78fb88c3794eea330a91c9abb10bb"}
 ```
 
 ### Postman - l2 to l1 mock endpoint
