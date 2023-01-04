@@ -10,6 +10,7 @@ from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starkware_utils.error_handling import StarkErrorCode
 
 from starknet_devnet.blueprints.base import hex_converter
+from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException, to_int_array
 
@@ -78,7 +79,7 @@ async def send_message_to_l2():
     )
 
     result = await state.starknet_wrapper.mock_message_to_l2(transaction)
-    return jsonify({"transaction_hash": result})
+    return jsonify({"transaction_hash": rpc_felt(result)})
 
 
 @postman.route("/consume_message_from_l2", methods=["POST"])
