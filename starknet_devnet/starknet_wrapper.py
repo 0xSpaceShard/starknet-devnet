@@ -106,7 +106,7 @@ class StarknetWrapper:
         self.fee_token = FeeToken(self)
         self.accounts = Accounts(self)
         self.__udc = UDC(self)
-        self.pending_transactions = []
+        self.mempool = []
 
         if config.start_time is not None:
             self.set_block_time(config.start_time)
@@ -376,7 +376,7 @@ class StarknetWrapper:
                 )
 
                 if self.starknet_wrapper.config.blocks_on_demand:
-                    self.starknet_wrapper.pending_transactions.append(transaction)
+                    self.starknet_wrapper.mempool.append(transaction)
                 else:
                     await self.starknet_wrapper._store_transaction(
                         transaction=transaction,
@@ -630,10 +630,10 @@ class StarknetWrapper:
 
         return parsed_l1_l2_messages
 
-    async def store_pending_transactions(self) -> StarknetBlock:
-        """Generate new block with pending transactions in --blocks-on-demand mode."""
+    async def store_mempool_transactions(self) -> StarknetBlock:
+        """Generate new block with mempool transactions in --blocks-on-demand mode."""
         return await self._store_transactions(
-            transactions=self.pending_transactions,
+            transactions=self.mempool,
         )
 
     async def calculate_trace_and_fee(self, external_tx: InvokeFunction):
