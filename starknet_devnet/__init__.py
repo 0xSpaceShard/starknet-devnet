@@ -11,8 +11,6 @@ from crypto_cpp_py.cpp_bindings import cpp_hash
 from starkware.crypto.signature.fast_pedersen_hash import pedersen_hash
 from starkware.starknet.services.api.contract_class import ContractClass
 
-from .util import warn
-
 __version__ = "0.4.3"
 
 
@@ -56,6 +54,9 @@ if _cairo_vm == "rust":
     from starknet_devnet.cairo_rs_py_patch import cairo_rs_py_monkeypatch
 
     cairo_rs_py_monkeypatch()
+
+    from .util import warn
+
     warn("Using Cairo VM: Rust")
 
 elif not _cairo_vm or _cairo_vm == "python":
