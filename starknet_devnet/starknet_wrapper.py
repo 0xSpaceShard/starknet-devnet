@@ -254,7 +254,6 @@ class StarknetWrapper:
         """
         Stores the provided transactions in new block.
         """
-        # Fabijan I'm not sure about this... Let's discuss it during PR.
         for transaction in transactions:
             if transaction.status == TransactionStatus.REJECTED:
                 assert error_message, "error_message must be present if tx rejected"
