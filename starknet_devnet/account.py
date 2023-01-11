@@ -2,7 +2,6 @@
 Account class and its predefined constants.
 """
 
-from starkware.cairo.lang.vm.crypto import pedersen_hash
 from starkware.starknet.core.os.contract_address.contract_address import (
     calculate_contract_address_from_hash,
 )
@@ -11,7 +10,7 @@ from starkware.starknet.testing.contract import StarknetContract
 from starkware.starknet.testing.starknet import Starknet
 
 from starknet_devnet.contract_class_wrapper import ContractClassWrapper
-from starknet_devnet.util import Uint256
+from starknet_devnet.util import set_balance
 
 
 class Account:
@@ -64,15 +63,4 @@ class Account:
             self.address, get_selector_from_name("Account_public_key"), self.public_key
         )
 
-        # set initial balance
-        fee_token_address = starknet.state.general_config.fee_token_address
-        balance_address = pedersen_hash(
-            get_selector_from_name("ERC20_balances"), self.address
-        )
-        initial_balance_uint256 = Uint256.from_felt(self.initial_balance)
-        await starknet.state.state.set_storage_at(
-            fee_token_address, balance_address, initial_balance_uint256.low
-        )
-        await starknet.state.state.set_storage_at(
-            fee_token_address, balance_address + 1, initial_balance_uint256.high
-        )
+        await set_balance(starknet.state, self.address, self.initial_balance)

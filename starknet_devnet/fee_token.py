@@ -11,7 +11,7 @@ from starkware.starknet.testing.contract import StarknetContract
 from starkware.starknet.testing.starknet import Starknet
 
 from starknet_devnet.sequencer_api_utils import InternalInvokeFunction
-from starknet_devnet.util import Uint256, str_to_felt
+from starknet_devnet.util import Uint256, set_balance, str_to_felt
 
 
 class FeeToken:
@@ -75,6 +75,9 @@ class FeeToken:
             get_selector_from_name("ERC20_decimals"),
             18,
         )
+
+        # needs balance to be able to charge itself for minting fees
+        await set_balance(starknet.state, FeeToken.ADDRESS, int(1e24))
 
         self.contract = StarknetContract(
             state=starknet.state,

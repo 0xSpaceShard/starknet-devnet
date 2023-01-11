@@ -7,14 +7,17 @@ import sys
 from dataclasses import dataclass
 from typing import Dict, List, Set, Union
 
+from starkware.cairo.lang.vm.crypto import pedersen_hash
 from starkware.starknet.business_logic.state.state import CachedState
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
+from starkware.starknet.public.abi import get_selector_from_name
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     DeployedContract,
     FeeEstimationInfo,
     StorageEntry,
 )
 from starkware.starknet.testing.contract import StarknetContract
+from starkware.starknet.testing.starknet import StarknetState
 from starkware.starkware_utils.error_handling import StarkException
 
 
@@ -168,3 +171,19 @@ def get_fee_estimation_info(tx_fee: int, gas_price: int):
 def warn(msg: str, file=sys.stderr):
     """Log a warning"""
     print(f"\033[93m{msg}\033[0m", file=file)
+
+
+async def set_balance(state: StarknetState, address: int, balance: int):
+    """Modify `state` so that `address` has `balance`"""
+
+    fee_token_address = state.general_config.fee_token_address
+
+    balance_address = pedersen_hash(get_selector_from_name("ERC20_balances"), address)
+    balance_uint256 = Uint256.from_felt(balance)
+
+    await state.state.set_storage_at(
+        fee_token_address, balance_address, balance_uint256.low
+    )
+    await state.state.set_storage_at(
+        fee_token_address, balance_address + 1, balance_uint256.high
+    )
