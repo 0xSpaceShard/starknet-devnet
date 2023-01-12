@@ -107,6 +107,7 @@ class StarknetWrapper:
         self.accounts = Accounts(self)
         self.__udc = UDC(self)
         self.mempool = []
+        self.mempool_state = None
 
         if config.start_time is not None:
             self.set_block_time(config.start_time)
@@ -131,6 +132,7 @@ class StarknetWrapper:
 
             await self.__preserve_current_state(starknet.state.state)
             await self.create_empty_block()
+            self.mempool_state = self.get_state().copy()
             self.__initialized = True
 
     async def create_empty_block(self):
@@ -479,7 +481,11 @@ class StarknetWrapper:
     async def call(self, transaction: CallFunction):
         """Perform call according to specifications in `transaction`."""
 
-        state_copy = self.get_state().copy()
+        if self.config.blocks_on_demand and self.mempool_state is not None:
+            state_copy = self.mempool_state
+        else:
+            state_copy = self.get_state().copy()
+
         call_info = await state_copy.execute_entry_point_raw(
             contract_address=transaction.contract_address,
             selector=transaction.entry_point_selector,
@@ -631,6 +637,10 @@ class StarknetWrapper:
 
     async def store_mempool_transactions(self) -> StarknetBlock:
         """Generate new block with mempool transactions in --blocks-on-demand mode."""
+
+        # Update mempool state before block generation
+        self.mempool_state = self.get_state().copy()
+
         return await self._store_transactions(
             transactions=self.mempool,
         )
