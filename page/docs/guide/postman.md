@@ -30,6 +30,7 @@ Loads a `StarknetMockMessaging` contract. The `address` parameter is optional; i
 ```
 POST /postman/flush
 ```
+
 Goes through the newly enqueued messages, sending them from L1 to L2 and from L2 to L1. Requires no body.
 
 ### Postman - disclaimer
@@ -54,14 +55,14 @@ constructor(MockStarknetMessaging mockStarknetMessaging_) public {
 
 Sending mock transactions from L1 to L2 without the need for running L1. Deployed L2 contract address `l2_contract_address` and `entry_point_selector` must be valid otherwise new block will not be created.
 
-Normally `nonce` is calculated by l1 StarknetContract and it's used in L1 and L2. In this case, we need to provide it manually.
-
+Normally `nonce` is calculated by L1 StarknetContract and it's used in L1 and L2. In this case, we need to provide it manually.
 
 ```
 POST /postman/send_message_to_l2
 ```
 
 Request:
+
 ```
 {
     "l2_contract_address":"0x00285ddb7e5c777b310d806b9b2a0f7c7ba0a41f12b420219209d97a3b7f25b2",
@@ -75,9 +76,10 @@ Request:
 }
 ```
 
-Response: 
+Response:
+
 ```
-{'transaction_hash': 1283711137402474683298514877824575801113282594306182191973277342794215646143}
+{"transaction_hash": "0x0548c761a9fd5512782998b2da6f44c42bf78fb88c3794eea330a91c9abb10bb"}
 ```
 
 ### Postman - l2 to l1 mock endpoint
@@ -90,6 +92,7 @@ POST /postman/consume_message_from_l2
 ```
 
 Request:
+
 ```
 {
     "l2_contract_address": "0x00285ddb7e5c777b310d806b9b2a0f7c7ba0a41f12b420219209d97a3b7f25b2",
@@ -98,75 +101,8 @@ Request:
 }
 ```
 
-Response: 
-```
-{'message_hash': '0xae14f241131b524ac8d043d9cb4934253ac5c5589afef19f0d761816a9c7e26d'}
-```
-
-## Dumping
-
-To preserve your Devnet instance for future use, there are several options:
-
-- Dumping on exit (handles Ctrl+C, i.e. SIGINT, doesn't handle SIGKILL):
+Response:
 
 ```
-starknet-devnet --dump-on exit --dump-path <PATH>
-```
-
-- Dumping after each transaction (done in background, doesn't block):
-
-```
-starknet-devnet --dump-on transaction --dump-path <PATH>
-```
-
-- Dumping on request (replace `<HOST>`, `<PORT>` and `<PATH>` with your own):
-
-```
-curl -X POST http://<HOST>:<PORT>/dump -d '{ "path": <PATH> }' -H "Content-Type: application/json"
-```
-
-### Loading
-
-To load a preserved Devnet instance, the options are:
-
-- Loading on startup:
-
-```
-starknet-devnet --load-path <PATH>
-```
-
-- Loading on request:
-
-```
-curl -X POST http://<HOST>:<PORT>/load -d '{ "path": <PATH> }' -H "Content-Type: application/json"
-```
-
-### Enabling dumping and loading with Docker
-
-To enable dumping and loading if running Devnet in a Docker container, you must bind the container path with the path on your host machine.
-
-This example:
-
-- Relies on [**Docker bind mount**](https://docs.docker.com/storage/bind-mounts/); try [**Docker volume**](https://docs.docker.com/storage/volumes/) instead.
-- Assumes that `/actual/dumpdir` exists. If unsure, use absolute paths.
-- Assumes you are listening on `127.0.0.1:5050`.
-
-If there is `dump.pkl` inside `/actual/dumpdir`, you can load it with:
-
-```
-docker run \
-  -p 127.0.0.1:5050:5050 \
-  --mount type=bind,source=/actual/dumpdir,target=/dumpdir \
-  shardlabs/starknet-devnet \
-  --load-path /dumpdir/dump.pkl
-```
-
-To dump to `/actual/dumpdir/dump.pkl` on Devnet shutdown, run:
-
-```
-docker run \
-  -p 127.0.0.1:5050:5050 \
-  --mount type=bind,source=/actual/dumpdir,target=/dumpdir \
-  shardlabs/starknet-devnet \
-  --dump-on exit --dump-path /dumpdir/dump.pkl
+{"message_hash": "0xae14f241131b524ac8d043d9cb4934253ac5c5589afef19f0d761816a9c7e26d"}
 ```
