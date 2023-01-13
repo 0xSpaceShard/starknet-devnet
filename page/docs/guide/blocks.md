@@ -36,7 +36,7 @@ Response:
 
 ### Create a block on demand
 
-To create a block on demand with many transactions we can use `--blocks-on-demand` mode and a `POST` request to `/create_block_on_demand` which will include all mempool transactions in new block:
+To create a block on demand with many transactions we can use `--blocks-on-demand` mode and a `POST` request to `/create_block_on_demand` which will include all mempool transactions in new block. The genesis block will be added normally.
 
 ```
 POST /create_block_on_demand
