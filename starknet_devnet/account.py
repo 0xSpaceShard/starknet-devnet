@@ -63,5 +63,4 @@ class Account:
             self.address, get_selector_from_name("Account_public_key"), self.public_key
         )
 
-        # TODO hardcode instead
         await set_balance(starknet.state, self.address, self.initial_balance)

@@ -75,6 +75,7 @@ from .util import (
     get_fee_estimation_info,
     get_storage_diffs,
     to_bytes,
+    warn,
 )
 
 enable_pickling()
@@ -704,7 +705,10 @@ class StarknetWrapper:
         )
 
     async def __deploy_chargeable_account(self):
-        await ChargeableAccount(self).deploy()
+        if await self.is_deployed(ChargeableAccount.ADDRESS):
+            warn("Chargeable account already deployed")
+        else:
+            await ChargeableAccount(self).deploy()
 
     async def is_deployed(self, address: int) -> bool:
         """
