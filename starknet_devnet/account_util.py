@@ -109,7 +109,6 @@ def _get_transaction_hash(
     )
 
 
-# TODO remove duplicate functions in the testing code (in tests: import from starknet_devnet.account_util)
 def _get_signature(message_hash: int, private_key: int) -> Tuple[str, str]:
     """Get signature from message hash and private key."""
     sig_r, sig_s = sign(message_hash, private_key)

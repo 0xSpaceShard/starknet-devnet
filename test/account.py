@@ -3,18 +3,17 @@ Account test functions and utilities.
 Latest changes based on https://github.com/OpenZeppelin/nile/pull/184
 """
 
-from typing import List, NamedTuple, Sequence, Tuple
+from typing import List, Tuple
 
 import requests
 from starkware.crypto.signature.signature import private_to_stark_key, sign
 from starkware.starknet.core.os.transaction_hash.transaction_hash import (
-    TransactionHashPrefix,
     calculate_declare_transaction_hash,
-    calculate_transaction_hash_common,
 )
 from starkware.starknet.definitions.constants import QUERY_VERSION
 from starkware.starknet.definitions.general_config import StarknetChainId
-from starkware.starknet.public.abi import get_selector_from_name
+
+from starknet_devnet.account_util import AccountCall, get_execute_args
 
 from .settings import APP_URL
 from .shared import SUPPORTED_TX_VERSION
@@ -51,106 +50,15 @@ def get_nonce(account_address: str, feeder_gateway_url=APP_URL) -> int:
     return int(resp.json(), 16)
 
 
-def _get_execute_calldata(call_array, calldata):
-    """Get calldata for __execute__."""
-    return [
-        len(call_array),
-        *[x for t in call_array for x in t],
-        len(calldata),
-        *calldata,
-    ]
-
-
 def _get_signature(message_hash: int, private_key: int) -> Tuple[str, str]:
     """Get signature from message hash and private key."""
     sig_r, sig_s = sign(message_hash, private_key)
     return [str(sig_r), str(sig_s)]
 
 
-class AccountCall(NamedTuple):
-    """Things needed to interact through Account"""
-
-    to_address: str
-    """The address of the called contract"""
-
-    function: str
-    inputs: List[str]
-
-
-def _from_call_to_call_array(calls: List[AccountCall]):
-    """Transforms calls to call_array and calldata."""
-    call_array = []
-    calldata = []
-
-    for call_tuple in calls:
-        call_tuple = AccountCall(*call_tuple)
-
-        entry = (
-            int(call_tuple.to_address, 16),
-            get_selector_from_name(call_tuple.function),
-            len(calldata),
-            len(call_tuple.inputs),
-        )
-        call_array.append(entry)
-        calldata.extend(int(data) for data in call_tuple.inputs)
-
-    return (call_array, calldata)
-
-
 def _adapt_inputs(execute_calldata: List[int]) -> List[str]:
     """Get stringified inputs from execute_calldata."""
     return [str(v) for v in execute_calldata]
-
-
-# pylint: disable=too-many-arguments
-def _get_execute_args(
-    calls: List[AccountCall],
-    account_address: str,
-    private_key: int,
-    nonce: int,
-    version: int,
-    max_fee=None,
-    chain_id=StarknetChainId.TESTNET,
-):
-    """Returns signature and execute calldata"""
-
-    # get execute calldata
-    (call_array, calldata) = _from_call_to_call_array(calls)
-    execute_calldata = _get_execute_calldata(call_array, calldata)
-
-    # get signature
-    message_hash = _get_transaction_hash(
-        contract_address=int(account_address, 16),
-        calldata=execute_calldata,
-        nonce=nonce,
-        version=version,
-        max_fee=max_fee,
-        chain_id=chain_id,
-    )
-    signature = _get_signature(message_hash, private_key)
-
-    return signature, execute_calldata
-
-
-def _get_transaction_hash(
-    contract_address: int,
-    calldata: Sequence[int],
-    nonce: int,
-    version: int,
-    max_fee: int,
-    chain_id=StarknetChainId.TESTNET,
-) -> str:
-    """Get transaction hash for execute transaction."""
-    return calculate_transaction_hash_common(
-        tx_hash_prefix=TransactionHashPrefix.INVOKE,
-        version=version,
-        contract_address=contract_address,
-        entry_point_selector=0,
-        calldata=calldata,
-        max_fee=max_fee,
-        chain_id=chain_id.value,
-        additional_data=[nonce],
-    )
 
 
 def get_estimate_fee_request_dict(
@@ -164,7 +72,7 @@ def get_estimate_fee_request_dict(
         nonce = get_nonce(account_address)
 
     max_fee = 0
-    signature, execute_calldata = _get_execute_args(
+    signature, execute_calldata = get_execute_args(
         calls=calls,
         account_address=account_address,
         private_key=private_key,
@@ -183,7 +91,7 @@ def get_estimate_fee_request_dict(
         "type": "INVOKE_FUNCTION",
     }
 
-
+# pylint: disable=too-many-arguments
 def get_estimated_fee(
     calls: List[AccountCall],
     account_address: str,
@@ -197,7 +105,7 @@ def get_estimated_fee(
     if nonce is None:
         nonce = get_nonce(account_address)
 
-    signature, execute_calldata = _get_execute_args(
+    signature, execute_calldata = get_execute_args(
         calls=calls,
         account_address=account_address,
         private_key=private_key,
@@ -242,7 +150,7 @@ def invoke(
             chain_id=chain_id,
         )
 
-    signature, execute_calldata = _get_execute_args(
+    signature, execute_calldata = get_execute_args(
         calls=calls,
         account_address=account_address,
         private_key=private_key,

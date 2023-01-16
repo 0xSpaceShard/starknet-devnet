@@ -4,7 +4,7 @@ Tests RPC transactions
 
 from __future__ import annotations
 
-from test.account import _get_execute_args, _get_signature, declare, get_nonce
+from test.account import _get_signature, declare, get_nonce
 from test.rpc.conftest import prepare_deploy_account_tx, rpc_deploy_account_from_gateway
 from test.rpc.rpc_utils import (
     deploy_and_invoke_storage_contract,
@@ -40,6 +40,7 @@ from starkware.starknet.public.abi import (
 )
 from starkware.starknet.wallets.open_zeppelin import sign_invoke_tx
 
+from starknet_devnet.account_util import get_execute_args
 from starknet_devnet.blueprints.rpc.structures.payloads import (
     EntryPoints,
     RpcBroadcastedDeclareTxn,
@@ -424,7 +425,7 @@ def test_add_invoke_transaction():
     contract_address = deploy_dict["address"]
 
     calls = [(contract_address, "increase_balance", [amount1, amount2])]
-    signature, execute_calldata = _get_execute_args(
+    signature, execute_calldata = get_execute_args(
         calls=calls,
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
