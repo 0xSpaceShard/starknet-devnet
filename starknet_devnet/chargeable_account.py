@@ -14,8 +14,6 @@ class ChargeableAccount(Account):
     PUBLIC_KEY = 0x4C37AB4F0994879337BFD4EAD0800776DB57DA382B8ED8EFAA478C5D3B942A4
     ADDRESS = 0x1CAF2DF5ED5DDE1AE3FAEF4ACD72522AC3CB16E23F6DC4C7F9FAED67124C511
 
-    nonce = 0  # class variable - safe if assuming only one instance
-
     def __init__(self, starknet_wrapper):
         super().__init__(
             starknet_wrapper,
