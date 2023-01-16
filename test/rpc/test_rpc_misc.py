@@ -165,7 +165,7 @@ def test_get_events(input_data, expected_data):
             account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
             private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
         )
-    resp = rpc_call("starknet_getEvents", params=input_data)
+    resp = rpc_call("starknet_getEvents", params=input_data["params"])
     assert len(expected_data) == len(resp["result"]["events"])
     for i, data in enumerate(expected_data):
         assert str(resp["result"]["events"][i]["data"]) == str(data)
