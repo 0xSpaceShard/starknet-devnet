@@ -63,7 +63,10 @@ def test_blocks_on_demand_invoke():
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS, "--blocks-on-demand")
 def test_blocks_on_demand_invoke_call():
-    """Test deploy in blocks on demand mode for invoke and contract call"""
+    """
+    Test deploy in blocks on demand mode for invoke and contract call.
+    Balance after invoke should be 0 even when we increased it.
+    """
     # Deploy and invoke
     deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
     requests.post(f"{APP_URL}/create_block_on_demand")
