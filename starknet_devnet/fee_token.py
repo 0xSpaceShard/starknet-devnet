@@ -113,6 +113,8 @@ class FeeToken:
         version = SUPPORTED_TX_VERSION
         max_fee = int(1e18)  # big enough
 
+        # we need a funded account for this since the tx has to be signed and a fee will be charged
+        # a user-intedded predeployed account cannot be used for this
         nonce = await starknet.state.state.get_nonce_at(ChargeableAccount.ADDRESS)
         chargeable_address = hex(ChargeableAccount.ADDRESS)
         signature, execute_calldata = get_execute_args(

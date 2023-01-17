@@ -8,6 +8,7 @@ from starknet_devnet.account import Account
 class ChargeableAccount(Account):
     """
     A well-funded account that can be charged with a fee when no other account can.
+    E.g. for signing mint txs. Can also be useful in tests.
     """
 
     PRIVATE_KEY = 0x5FB2959E3011A873A7160F5BB32B0ECE
