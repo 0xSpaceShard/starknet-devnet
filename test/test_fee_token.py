@@ -5,6 +5,7 @@ import json
 import pytest
 import requests
 from starkware.starknet.public.abi import get_selector_from_name
+from starknet_devnet.chargeable_account import ChargeableAccount
 
 from starknet_devnet.fee_token import FeeToken
 from starknet_devnet.server import app
@@ -149,6 +150,17 @@ def test_mint():
 
 @pytest.mark.fee_token
 @devnet_in_background()
+def test_chargeable_account_charged_on_mint():
+    """Assert that the predeployed chargeable account is charged with the minting fee"""
+    account_address = hex(ChargeableAccount.ADDRESS)
+    balance_before = get_account_balance(account_address)
+    mint(address="0x123", amount=123)  # dummy data, but mintable
+    balance_after = get_account_balance(account_address)
+    assert balance_after < balance_before
+
+
+@pytest.mark.fee_token
+@devnet_in_background()
 def test_mint_lite():
     """Assert that mint lite will increase account balance without producing block"""
     response = mint(
@@ -156,7 +168,7 @@ def test_mint_lite():
         amount=50_000,
         lite=True,
     )
-    assert response.get("new_balance") == 50000
+    assert response.get("new_balance") == 50_000
     assert response.get("unit") == "wei"
     assert response.get("tx_hash") is None
 
