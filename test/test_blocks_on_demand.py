@@ -66,6 +66,7 @@ def test_blocks_on_demand_invoke_call():
     """
     Test deploy in blocks on demand mode for invoke and contract call.
     Balance after invoke should be 0 even when we increased it.
+    Only after calling create_block_on_demand balance should be increased in this mode.
     """
     # Deploy and invoke
     deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
