@@ -18,12 +18,7 @@ from .shared import (
 from .util import ReturnCodeAssertionError, call, deploy, devnet_in_background
 
 
-@devnet_in_background(
-    *[
-        *PREDEPLOY_ACCOUNT_CLI_ARGS,
-        "--blocks-on-demand",
-    ]
-)
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS, "--blocks-on-demand")
 def test_blocks_on_demand_invoke():
     """Test deploy in blocks on demand mode"""
     latest_block = gateway_call("get_block", blockNumber="latest")
@@ -66,12 +61,7 @@ def test_blocks_on_demand_invoke():
     assert len(latest_block["transactions"]) == 2
 
 
-@devnet_in_background(
-    *[
-        *PREDEPLOY_ACCOUNT_CLI_ARGS,
-        "--blocks-on-demand",
-    ]
-)
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS, "--blocks-on-demand")
 def test_blocks_on_demand_invoke_call():
     """Test deploy in blocks on demand mode for invoke and contract call"""
     # Deploy and invoke
