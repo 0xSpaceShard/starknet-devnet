@@ -700,6 +700,7 @@ class StarknetWrapper:
         return await self.get_state().state.get_nonce_at(contract_address)
 
     async def __predeclare_oz_account(self):
+        """Predeclares the account class used by Starknet CLI"""
         await self.get_state().state.set_contract_class(
             to_bytes(OZ_ACCOUNT_CLASS_HASH), oz_account_class
         )

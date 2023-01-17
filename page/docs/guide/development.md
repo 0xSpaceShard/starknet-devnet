@@ -87,6 +87,19 @@ After adding a new cairo-lang version, you will probably want to recompile contr
 8. Update expected test paths and addresses
 9. Update docs
 
+## Development - predeployment
+
+Several things are preconfigured on startup to be available on the first user interaction with Devnet. This is done in the `initialize` method of `StarknetWrapper`. The following is currently executed:
+
+- Deployment of
+  - Fee token contract
+  - User accounts
+  - Chargeable account
+    - for e.g. signing minting txs
+  - UDC
+    - supports contract deployment ever since deploy txs have been deprecated
+- Declaration of the account class used by Starknet CLI
+
 ## Development - Build
 
 You don't need to build anything to be able to run locally, but if you need the `*.whl` or `*.tar.gz` artifacts, run
