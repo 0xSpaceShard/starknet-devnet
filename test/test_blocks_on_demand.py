@@ -20,7 +20,7 @@ from .util import ReturnCodeAssertionError, call, deploy, devnet_in_background
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS, "--blocks-on-demand")
 def test_blocks_on_demand_invoke():
-    """Test deploy in blocks on demand mode"""
+    """Test deploy in blocks-on-demand mode"""
     latest_block = gateway_call("get_block", blockNumber="latest")
     genesis_block_number = latest_block["block_number"]
     assert genesis_block_number == 0
@@ -64,7 +64,7 @@ def test_blocks_on_demand_invoke():
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS, "--blocks-on-demand")
 def test_blocks_on_demand_invoke_call():
     """
-    Test deploy in blocks on demand mode for invoke and contract call.
+    Test deploy in blocks-on-demand mode for invoke and contract call.
     Balance after invoke should be 0 even when we increased it.
     Only after calling create_block_on_demand balance should be increased in this mode.
     """
