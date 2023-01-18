@@ -641,9 +641,13 @@ class StarknetWrapper:
         # Update mempool state before block generation
         self.__mempool_state = self.get_state().copy()
 
-        return await self._store_transactions(
+        # Store transactions and clear mempool
+        result = await self._store_transactions(
             transactions=self.mempool,
         )
+        self.mempool = []
+
+        return result
 
     async def calculate_trace_and_fee(self, external_tx: InvokeFunction):
         """Calculates trace and fee by simulating tx on state copy."""
