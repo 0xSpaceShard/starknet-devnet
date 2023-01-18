@@ -4,6 +4,7 @@ Test blocks on demand mode.
 
 from test.rpc.rpc_utils import gateway_call
 
+import pytest
 import requests
 
 from .account import invoke
@@ -40,6 +41,7 @@ def test_blocks_on_demand_invoke():
             address=deploy_info["address"],
             abi_path=ABI_PATH,
         )
+        pytest.fail("Should have failed")
     except ReturnCodeAssertionError as error:
         assert "StarknetErrorCode.UNINITIALIZED_CONTRACT" in str(error)
 
