@@ -34,16 +34,14 @@ def test_blocks_on_demand_invoke():
     deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
     assert_tx_status(deploy_info["tx_hash"], "RECEIVED")
 
-    should_fail_on_contract_call = False
     try:
         call(
             function="get_balance",
             address=deploy_info["address"],
             abi_path=ABI_PATH,
         )
-    except ReturnCodeAssertionError:
-        should_fail_on_contract_call = True
-    assert should_fail_on_contract_call is True
+    except ReturnCodeAssertionError as error:
+        assert "StarknetErrorCode.UNINITIALIZED_CONTRACT" in str(error)
 
     invoke(
         calls=[(deploy_info["address"], "increase_balance", [10, 20])],
