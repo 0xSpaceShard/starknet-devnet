@@ -15,7 +15,13 @@ from .shared import (
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
-from .util import ReturnCodeAssertionError, call, deploy, devnet_in_background
+from .util import (
+    ReturnCodeAssertionError,
+    assert_tx_status,
+    call,
+    deploy,
+    devnet_in_background,
+)
 
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS, "--blocks-on-demand")
@@ -26,6 +32,8 @@ def test_blocks_on_demand_invoke():
     assert genesis_block_number == 0
 
     deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
+    assert_tx_status(deploy_info["tx_hash"], "RECEIVED")
+
     should_fail_on_contract_call = False
     try:
         call(
