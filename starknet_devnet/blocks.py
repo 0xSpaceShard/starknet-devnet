@@ -123,8 +123,9 @@ class DevnetBlocks:
         state_root = DUMMY_STATE_ROOT
         block_number = self.get_number_of_blocks()
         timestamp = state.state.block_info.block_timestamp
-        signatures = []
-        internal_transactions = []
+        signatures = [tx.get_signature() for tx in transactions or []]
+        internal_transactions = [tx.internal_tx for tx in transactions or []]
+        transaction_receipts = tuple(tx.get_execution() for tx in transactions or ())
 
         if block_number == 0:
             parent_block_hash = 0
@@ -132,16 +133,9 @@ class DevnetBlocks:
             last_block = await self.get_last_block()
             parent_block_hash = last_block.block_hash
 
-        if is_empty_block:
-            transaction_receipts = ()
-            transactions = []
-        else:
-            transaction_receipts = tuple(tx.get_execution() for tx in transactions)
-            internal_transactions = [tx.internal_tx for tx in transactions]
-            signatures = [tx.get_signature() for tx in transactions]
-
         if self.lite or is_empty_block:
             block_hash = block_number
+            transactions = []
         else:
             block_hash = await calculate_block_hash(
                 general_config=state.general_config,
