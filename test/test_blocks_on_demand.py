@@ -45,16 +45,19 @@ def test_blocks_on_demand_invoke():
     except ReturnCodeAssertionError as error:
         assert "StarknetErrorCode.UNINITIALIZED_CONTRACT" in str(error)
 
-    invoke(
+    invoke_hash = invoke(
         calls=[(deploy_info["address"], "increase_balance", [10, 20])],
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
+    assert_tx_status(invoke_hash, "RECEIVED")
+
     latest_block = gateway_call("get_block", blockNumber="latest")
     block_number_after_deploy_and_invoke = latest_block["block_number"]
     assert block_number_after_deploy_and_invoke == 0
 
     requests.post(f"{APP_URL}/create_block_on_demand")
+    assert_tx_status(invoke_hash, "ACCEPTED_ON_L2")
 
     balance_after_create_block_on_demand = call(
         function="get_balance",
