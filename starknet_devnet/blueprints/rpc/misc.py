@@ -72,8 +72,9 @@ def try_parse_from_filter(filter_data, name):
     except KeyError:
         return None
 
-
-async def get_events(filter_data) -> RpcEventsResult:
+# pylint: disable=redefined-builtin
+# filter name is determined by current RPC implementation and starknet specification
+async def get_events(filter) -> RpcEventsResult:
     """
     Returns all events matching the given filters.
 
@@ -84,14 +85,14 @@ async def get_events(filter_data) -> RpcEventsResult:
     and chunk it later which is not an optimal solution.
     """
     # Required parameters
-    from_block = try_parse_from_filter(filter_data, "from_block")
-    to_block = try_parse_from_filter(filter_data, "to_block")
-    chunk_size = int(try_parse_from_filter(filter_data, "chunk_size"))
+    from_block = try_parse_from_filter(filter, "from_block")
+    to_block = try_parse_from_filter(filter, "to_block")
+    chunk_size = int(try_parse_from_filter(filter, "chunk_size"))
 
     # Optional parameters
-    address = try_parse_from_filter(filter_data, "address")
-    keys = try_parse_from_filter(filter_data, "keys")
-    continuation_token = try_parse_from_filter(filter_data, "continuation_token")
+    address = try_parse_from_filter(filter, "address")
+    keys = try_parse_from_filter(filter, "keys")
+    continuation_token = try_parse_from_filter(filter, "continuation_token")
 
     # Set continuation_token to default value "0" when it's not set
     if continuation_token is None:
