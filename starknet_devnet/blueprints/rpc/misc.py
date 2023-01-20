@@ -4,7 +4,7 @@ RPC miscellaneous endpoints
 
 from __future__ import annotations
 
-from typing import List, Union
+from typing import Union
 
 from starknet_devnet.blueprints.rpc.structures.responses import RpcEventsResult
 from starknet_devnet.blueprints.rpc.structures.types import (
@@ -63,7 +63,7 @@ async def syncing() -> Union[dict, bool]:
     return False
 
 
-def tryParseFromFilter(filter_data, name):
+def try_parse_from_filter(filter_data, name):
     """
     Try to parse data from filter data. Return None if there is no data for a given name.
     """
@@ -73,10 +73,7 @@ def tryParseFromFilter(filter_data, name):
         return None
 
 
-# pylint: disable=too-many-arguments
-async def get_events(
-    filter,
-) -> str:
+async def get_events(filter_data) -> str:
     """
     Returns all events matching the given filters.
 
@@ -86,22 +83,21 @@ async def get_events(
     This is why we need to iterate block by block, take all events,
     and chunk it later which is not an optimal solution.
     """
-    events = []
-    
     # Required parameters
-    from_block = tryParseFromFilter(filter, "from_block")
-    to_block = tryParseFromFilter(filter, "to_block")
-    chunk_size = int(tryParseFromFilter(filter, "chunk_size"))
+    from_block = try_parse_from_filter(filter_data, "from_block")
+    to_block = try_parse_from_filter(filter_data, "to_block")
+    chunk_size = int(try_parse_from_filter(filter_data, "chunk_size"))
 
     # Optional parameters
-    address = tryParseFromFilter(filter, "address")
-    keys = tryParseFromFilter(filter, "keys")
-    continuation_token = tryParseFromFilter(filter, "continuation_token")
+    address = try_parse_from_filter(filter_data, "address")
+    keys = try_parse_from_filter(filter_data, "keys")
+    continuation_token = try_parse_from_filter(filter_data, "continuation_token")
 
     # Set continuation_token to default value "0" when it's not set
     if continuation_token is None:
         continuation_token = "0"
 
+    events = []
     keys = [] if keys is None else [int(k, 0) for k in keys]
     to_block = (
         int(state.starknet_wrapper.blocks.get_number_of_blocks())
