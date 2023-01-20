@@ -63,14 +63,19 @@ async def syncing() -> Union[dict, bool]:
     return False
 
 
+def tryParseFromFilter(filter_data, name):
+    """
+    Try to parse data from filter data. Return None if there is no data for a given name.
+    """
+    try:
+        return filter_data[name]
+    except KeyError:
+        return None
+
+
 # pylint: disable=too-many-arguments
 async def get_events(
-    from_block: BlockId,
-    to_block: BlockId,
-    chunk_size: int,
-    address: Address = None,
-    keys: List[Address] = None,
-    continuation_token: str = "0",
+    filter,
 ) -> str:
     """
     Returns all events matching the given filters.
@@ -82,6 +87,21 @@ async def get_events(
     and chunk it later which is not an optimal solution.
     """
     events = []
+    
+    # Required parameters
+    from_block = tryParseFromFilter(filter, "from_block")
+    to_block = tryParseFromFilter(filter, "to_block")
+    chunk_size = int(tryParseFromFilter(filter, "chunk_size"))
+
+    # Optional parameters
+    address = tryParseFromFilter(filter, "address")
+    keys = tryParseFromFilter(filter, "keys")
+    continuation_token = tryParseFromFilter(filter, "continuation_token")
+
+    # Set continuation_token to default value "0" when it's not set
+    if continuation_token is None:
+        continuation_token = "0"
+
     keys = [] if keys is None else [int(k, 0) for k in keys]
     to_block = (
         int(state.starknet_wrapper.blocks.get_number_of_blocks())
@@ -93,12 +113,12 @@ async def get_events(
         if block.transaction_receipts:
             events.extend(get_events_from_block(block, address, keys))
 
-    # chunking
+    # Chunking
     continuation_token = int(continuation_token)
     start_index = continuation_token * chunk_size
     events = events[start_index : start_index + chunk_size]
 
-    # continuation_token should be increased only if events are not empty
+    # Continuation_token should be increased only if events are not empty
     if events:
         continuation_token = continuation_token + 1
 
