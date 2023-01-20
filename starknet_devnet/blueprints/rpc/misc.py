@@ -73,7 +73,7 @@ def try_parse_from_filter(filter_data, name):
         return None
 
 
-async def get_events(filter_data) -> str:
+async def get_events(filter_data) -> RpcEventsResult:
     """
     Returns all events matching the given filters.
 
