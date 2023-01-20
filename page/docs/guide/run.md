@@ -104,7 +104,7 @@ docker run --network host shardlabs/starknet-devnet [--port <PORT>]
 
 #### Mac, Windows
 
-If not on Linux, you need to publish the container's internally used port to a desired `<PORT>` on your host machine. The internal port is `5050` by default (can be overriden with `--port`).
+If not on Linux, you need to publish the container's internally used port to a desired `<PORT>` on your host machine. The internal port is `5050` by default (can be overridden with `--port`).
 
 ```text
 docker run -p [HOST:]<PORT>:5050 shardlabs/starknet-devnet

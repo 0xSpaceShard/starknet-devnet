@@ -4,6 +4,7 @@ import pytest
 import requests
 from starkware.starknet.core.os.class_hash import compute_class_hash
 
+from starknet_devnet.chargeable_account import ChargeableAccount
 from starknet_devnet.contract_class_wrapper import (
     DEFAULT_ACCOUNT_HASH_BYTES,
     DEFAULT_ACCOUNT_PATH,
@@ -41,3 +42,12 @@ def test_predeployed_accounts_predefined_values():
     response = requests.get(f"{APP_URL}/predeployed_accounts")
     assert response.status_code == 200
     assert_valid_schema(response.json(), "predeployed_accounts_fixed_seed.json")
+
+
+@pytest.mark.account_predeployed
+def test_predeployed_chageable_account():
+    """Test if chargeable account address unchanged"""
+    assert_equal(
+        ChargeableAccount.ADDRESS,
+        0x1CAF2DF5ED5DDE1AE3FAEF4ACD72522AC3CB16E23F6DC4C7F9FAED67124C511,
+    )

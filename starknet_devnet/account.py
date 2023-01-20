@@ -2,7 +2,6 @@
 Account class and its predefined constants.
 """
 
-from starkware.cairo.lang.vm.crypto import pedersen_hash
 from starkware.starknet.core.os.contract_address.contract_address import (
     calculate_contract_address_from_hash,
 )
@@ -10,8 +9,8 @@ from starkware.starknet.public.abi import get_selector_from_name
 from starkware.starknet.testing.contract import StarknetContract
 from starkware.starknet.testing.starknet import Starknet
 
+from starknet_devnet.account_util import set_balance
 from starknet_devnet.contract_class_wrapper import ContractClassWrapper
-from starknet_devnet.util import Uint256
 
 
 class Account:
@@ -36,7 +35,7 @@ class Account:
         # the only thing that affects the account address
         self.address = calculate_contract_address_from_hash(
             salt=20,
-            class_hash=1803505466663265559571280894381905521939782500874858933595227108099796801620,
+            class_hash=0x3FCBF77B28C96F4F2FB5BD2D176AB083A12A5E123ADEB0DE955D7EE228C9854,
             constructor_calldata=[public_key],
             deployer_address=0,
         )
@@ -52,7 +51,7 @@ class Account:
         }
 
     async def deploy(self) -> StarknetContract:
-        """Deploy this account."""
+        """Deploy this account and set its balance."""
         starknet: Starknet = self.starknet_wrapper.starknet
         contract_class = self.contract_class
         await starknet.state.state.set_contract_class(
@@ -64,15 +63,4 @@ class Account:
             self.address, get_selector_from_name("Account_public_key"), self.public_key
         )
 
-        # set initial balance
-        fee_token_address = starknet.state.general_config.fee_token_address
-        balance_address = pedersen_hash(
-            get_selector_from_name("ERC20_balances"), self.address
-        )
-        initial_balance_uint256 = Uint256.from_felt(self.initial_balance)
-        await starknet.state.state.set_storage_at(
-            fee_token_address, balance_address, initial_balance_uint256.low
-        )
-        await starknet.state.state.set_storage_at(
-            fee_token_address, balance_address + 1, initial_balance_uint256.high
-        )
+        await set_balance(starknet.state, self.address, self.initial_balance)

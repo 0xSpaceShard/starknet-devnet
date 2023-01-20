@@ -21,6 +21,7 @@ crypto-cpp-py = "~1.0.4"
 marshmallow = "~3.17.0"
 typing-extensions = "~4.3.0"
 gunicorn = "~20.1.0"
+marshmallow-dataclass = "~8.4"
 
 [tool.poetry.group.dev.dependencies]
 pylint = "~2.12.2"
