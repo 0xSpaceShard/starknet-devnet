@@ -35,7 +35,7 @@ requests = "~2.28"
 isort = "^5.10.1"
 
 [tool.poetry.group.vm.dependencies]
-cairo-rs-py = "~0.1.0"
+cairo-rs-py = "~0.1.1"
 
 [tool.isort]
 profile = "black"

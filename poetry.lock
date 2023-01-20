@@ -158,7 +158,7 @@ Web3 = "*"
 
 [[package]]
 name = "cairo-rs-py"
-version = "0.1.0"
+version = "0.1.1"
 description = ""
 category = "dev"
 optional = false
@@ -1218,7 +1218,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.10"
-content-hash = "8c5029e3d68f9aae446e03a11cadcb7f024cc71d6dc2d3015031d033362a1958"
+content-hash = "ad42a727561bc60b5b27b0776f312586e10cf325ae15dbdcdbab3b16fe1e008d"
 
 [metadata.files]
 aiohttp = [
@@ -1441,8 +1441,8 @@ cairo-lang = [
     {file = "cairo-lang-0.10.3.zip", hash = "sha256:3093946334590f199d99471912049c182cec1f90d4ad02029f460a0de3a27502"},
 ]
 cairo-rs-py = [
-    {file = "cairo_rs_py-0.1.0-cp39-cp39-manylinux_2_34_x86_64.whl", hash = "sha256:35c6d478a859972f6703957af3b9c9d34912a6725255d0bdf5e8c9c5de26d342"},
-    {file = "cairo_rs_py-0.1.0.tar.gz", hash = "sha256:363d11bcc5184c97a9643e440cb0a6a18443720a5c179b63a08946c7c928dea3"},
+    {file = "cairo_rs_py-0.1.1-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:c77a09e1f7b9965a9c5e9c8c03dbe450b7ef52f76043d775851166cff22da3ef"},
+    {file = "cairo_rs_py-0.1.1.tar.gz", hash = "sha256:2022cf8c5e6a5104dbfcbcf40fa2fb21d1f3aa476c43b7a93b9d57404f4ec3c1"},
 ]
 certifi = [
     {file = "certifi-2022.9.24-py3-none-any.whl", hash = "sha256:90c1a32f1d68f940488354e36370f6cca89f0f106db09518524c88d6ed83f382"},
