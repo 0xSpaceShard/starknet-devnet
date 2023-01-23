@@ -63,15 +63,6 @@ async def syncing() -> Union[dict, bool]:
     return False
 
 
-def try_parse_from_filter(filter_data, name):
-    """
-    Try to parse data from filter data. Return None if there is no data for a given name.
-    """
-    try:
-        return filter_data[name]
-    except KeyError:
-        return None
-
 # pylint: disable=redefined-builtin
 # filter name is determined by current RPC implementation and starknet specification
 async def get_events(filter) -> RpcEventsResult:
@@ -85,13 +76,13 @@ async def get_events(filter) -> RpcEventsResult:
     and chunk it later which is not an optimal solution.
     """
     # Required parameters
-    from_block = try_parse_from_filter(filter, "from_block")
-    to_block = try_parse_from_filter(filter, "to_block")
-    chunk_size = int(try_parse_from_filter(filter, "chunk_size"))
+    from_block = filter.get("from_block")
+    to_block = filter.get("to_block")
+    chunk_size = int(filter.get("chunk_size"))
 
     # Optional parameters
-    address = try_parse_from_filter(filter, "address")
-    keys = try_parse_from_filter(filter, "keys")
+    address = filter.get("address")
+    keys = filter.get("keys")
     continuation_token = filter.get("continuation_token", "0")
 
     events = []
