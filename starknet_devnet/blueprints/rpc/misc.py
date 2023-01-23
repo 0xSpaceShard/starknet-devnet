@@ -81,11 +81,11 @@ async def get_events(filter) -> RpcEventsResult:
     to_block = filter.get("to_block")
     try:
         chunk_size = int(filter.get("chunk_size"))
-    except ValueError:
+    except ValueError as ex:
         raise RpcError(
             code=RpcErrorCode.INVALID_PARAMS.value,
             message="unknown variant `0`, expected one of `block_number`, `block_hash`, `latest`, `pending`",
-        )
+        ) from ex
 
     # Optional parameters
     address = filter.get("address")

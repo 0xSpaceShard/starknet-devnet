@@ -27,9 +27,10 @@ from test.util import assert_hex_equal, assert_transaction, deploy
 import pytest
 from starkware.starknet.public.abi import get_storage_var_address
 
+from starknet_devnet.blueprints.rpc.structures.types import RpcErrorCode
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
-from starknet_devnet.blueprints.rpc.structures.types import RpcErrorCode
+
 
 @pytest.fixture(name="input_data")
 def fixture_input_data(request):
