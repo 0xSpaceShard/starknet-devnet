@@ -12,6 +12,7 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     BlockId,
     Felt,
     RpcError,
+    RpcErrorCode,
 )
 from starknet_devnet.blueprints.rpc.utils import (
     assert_block_id_is_latest_or_pending,
@@ -78,7 +79,13 @@ async def get_events(filter) -> RpcEventsResult:
     # Required parameters
     from_block = filter.get("from_block")
     to_block = filter.get("to_block")
-    chunk_size = int(filter.get("chunk_size"))
+    try:
+        chunk_size = int(filter.get("chunk_size"))
+    except ValueError:
+        raise RpcError(
+            code=RpcErrorCode.INVALID_PARAMS.value,
+            message="unknown variant `0`, expected one of `block_number`, `block_hash`, `latest`, `pending`",
+        )
 
     # Optional parameters
     address = filter.get("address")

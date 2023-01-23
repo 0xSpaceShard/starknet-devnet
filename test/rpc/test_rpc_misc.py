@@ -6,7 +6,11 @@ from __future__ import annotations
 
 from test.account import declare, invoke
 from test.rpc.rpc_utils import deploy_and_invoke_storage_contract, rpc_call
-from test.rpc.test_data.get_events import GET_EVENTS_TEST_DATA
+from test.rpc.test_data.get_events import (
+    BLOCK_FROM_0_TO_LATEST_MALFORMED_REQUEST,
+    GET_EVENTS_TEST_DATA,
+    create_get_events_rpc,
+)
 from test.shared import (
     CONTRACT_PATH,
     DEPLOYER_CONTRACT_PATH,
@@ -25,7 +29,7 @@ from starkware.starknet.public.abi import get_storage_var_address
 
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
-
+from starknet_devnet.blueprints.rpc.structures.types import RpcErrorCode
 
 @pytest.fixture(name="input_data")
 def fixture_input_data(request):
@@ -146,6 +150,20 @@ def test_call_with_invalid_params(params):
     # could be any legal method, just passing something to get params to fail
     ex = rpc_call(method="starknet_getClass", params=params)
     assert ex["error"] == {"code": -32602, "message": "Invalid params"}
+
+
+@pytest.mark.usefixtures("run_devnet_in_background")
+def test_get_events_malformed_request():
+    """
+    Test RPC get_events with malformed request.
+    """
+    resp = rpc_call(
+        "starknet_getEvents",
+        params=create_get_events_rpc(BLOCK_FROM_0_TO_LATEST_MALFORMED_REQUEST)[
+            "params"
+        ],
+    )
+    assert resp["error"]["code"] == RpcErrorCode.INVALID_PARAMS.value
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")

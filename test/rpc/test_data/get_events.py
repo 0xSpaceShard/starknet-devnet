@@ -14,6 +14,12 @@ BLOCK_FROM_0_TO_LATEST = {
     "chunk_size": 10,
 }
 
+BLOCK_FROM_0_TO_LATEST_MALFORMED_REQUEST = {
+    "from_block": "0",
+    "to_block": "latest",
+    "chunk_size": "test",
+}
+
 BLOCK_FROM_0_TO_2 = {
     "from_block": "0",
     "to_block": "2",
