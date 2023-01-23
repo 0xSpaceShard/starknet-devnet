@@ -62,9 +62,7 @@ BLOCK_FROM_0_TO_LATEST_WITH_ADDRESS = {
 BLOCK_FROM_0_TO_LATEST_WITH_KEY = {
     "from_block": "0",
     "to_block": "latest",
-    "keys": [
-        "0x99cd8bde557814842a3121e8ddfd433a539b8c9f14bf31ebf108d12e6196e9"
-    ],
+    "keys": ["0x99cd8bde557814842a3121e8ddfd433a539b8c9f14bf31ebf108d12e6196e9"],
     "chunk_size": 10,
 }
 
@@ -107,18 +105,18 @@ FEE_CHARGING_IN_BLOCK_3_EVENT = [
     0,
 ]
 
-def create_get_events_rpc(filter):
+
+def create_get_events_rpc(filter_data):
     """
     Construct JSON RPC call with filter data
     """
     return {
         "jsonrpc": "2.0",
         "method": "starknet_getEvents",
-        "params": {
-            "filter": filter
-        },
+        "params": {"filter": filter_data},
         "id": 0,
     }
+
 
 GET_EVENTS_TEST_DATA = [
     (
