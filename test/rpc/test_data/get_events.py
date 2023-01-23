@@ -9,161 +9,84 @@ from test.shared import (
 )
 
 BLOCK_FROM_0_TO_LATEST = {
-    "jsonrpc": "2.0",
-    "method": "starknet_getEvents",
-    "params": {
-        "filter": {
-            "from_block": "0",
-            "to_block": "latest",
-            "chunk_size": 10,
-        }
-    },
-    "id": 0,
+    "from_block": "0",
+    "to_block": "latest",
+    "chunk_size": 10,
 }
 
 BLOCK_FROM_0_TO_2 = {
-    "jsonrpc": "2.0",
-    "method": "starknet_getEvents",
-    "params": {
-        "filter": {
-            "from_block": "0",
-            "to_block": "2",
-            "chunk_size": 10,
-        }
-    },
-    "id": 0,
+    "from_block": "0",
+    "to_block": "2",
+    "chunk_size": 10,
 }
 
 BLOCK_FROM_3_TO_3 = {
-    "jsonrpc": "2.0",
-    "method": "starknet_getEvents",
-    "params": {
-        "filter": {
-            "from_block": "3",
-            "to_block": "3",
-            "chunk_size": 10,
-        }
-    },
-    "id": 0,
+    "from_block": "3",
+    "to_block": "3",
+    "chunk_size": 10,
 }
 
 BLOCK_FROM_2_TO_3 = {
-    "jsonrpc": "2.0",
-    "method": "starknet_getEvents",
-    "params": {
-        "filter": {
-            "from_block": "2",
-            "to_block": "3",
-            "chunk_size": 10,
-        }
-    },
-    "id": 0,
+    "from_block": "2",
+    "to_block": "3",
+    "chunk_size": 10,
 }
 
 BLOCK_FROM_0_TO_LATEST_CHUNK_SIZE_3 = {
-    "jsonrpc": "2.0",
-    "method": "starknet_getEvents",
-    "params": {
-        "filter": {
-            "from_block": "0",
-            "to_block": "latest",
-            "chunk_size": 3,
-        }
-    },
-    "id": 0,
+    "from_block": "0",
+    "to_block": "latest",
+    "chunk_size": 3,
 }
 
 BLOCK_FROM_0_TO_LATEST_CHUNK_3_CONTINUATION_TOKEN = {
-    "jsonrpc": "2.0",
-    "method": "starknet_getEvents",
-    "params": {
-        "filter": {
-            "from_block": "0",
-            "to_block": "latest",
-            "chunk_size": 3,
-            "continuation_token": "1",
-        }
-    },
-    "id": 0,
+    "from_block": "0",
+    "to_block": "latest",
+    "chunk_size": 3,
+    "continuation_token": "1",
 }
 
 BLOCK_FROM_0_TO_1_CHUNK_3_CONTINUATION_TOKEN = {
-    "jsonrpc": "2.0",
-    "method": "starknet_getEvents",
-    "params": {
-        "filter": {
-            "from_block": "0",
-            "to_block": "1",
-            "chunk_size": 3,
-            "continuation_token": "0",
-        }
-    },
-    "id": 0,
+    "from_block": "0",
+    "to_block": "1",
+    "chunk_size": 3,
+    "continuation_token": "0",
 }
 
 BLOCK_FROM_0_TO_LATEST_WITH_ADDRESS = {
-    "jsonrpc": "2.0",
-    "method": "starknet_getEvents",
-    "params": {
-        "filter": {
-            "from_block": "0",
-            "to_block": "latest",
-            "address": EXPECTED_FEE_TOKEN_ADDRESS,
-            "chunk_size": 10,
-        }
-    },
-    "id": 0,
+    "from_block": "0",
+    "to_block": "latest",
+    "address": EXPECTED_FEE_TOKEN_ADDRESS,
+    "chunk_size": 10,
 }
 
 BLOCK_FROM_0_TO_LATEST_WITH_KEY = {
-    "jsonrpc": "2.0",
-    "method": "starknet_getEvents",
-    "params": {
-        "filter": {
-            "from_block": "0",
-            "to_block": "latest",
-            "keys": [
-                "0x99cd8bde557814842a3121e8ddfd433a539b8c9f14bf31ebf108d12e6196e9"
-            ],
-            "chunk_size": 10,
-        }
-    },
-    "id": 0,
+    "from_block": "0",
+    "to_block": "latest",
+    "keys": [
+        "0x99cd8bde557814842a3121e8ddfd433a539b8c9f14bf31ebf108d12e6196e9"
+    ],
+    "chunk_size": 10,
 }
 
 BLOCK_FROM_0_TO_LATEST_WITH_KEYS = {
-    "jsonrpc": "2.0",
-    "method": "starknet_getEvents",
-    "params": {
-        "filter": {
-            "from_block": "0",
-            "to_block": "latest",
-            "keys": [
-                "0x99cd8bde557814842a3121e8ddfd433a539b8c9f14bf31ebf108d12e6196e9",
-                "0x3db3da4221c078e78bd987e54e1cc24570d89a7002cefa33e548d6c72c73f9d",
-            ],
-            "chunk_size": 10,
-        }
-    },
-    "id": 0,
+    "from_block": "0",
+    "to_block": "latest",
+    "keys": [
+        "0x99cd8bde557814842a3121e8ddfd433a539b8c9f14bf31ebf108d12e6196e9",
+        "0x3db3da4221c078e78bd987e54e1cc24570d89a7002cefa33e548d6c72c73f9d",
+    ],
+    "chunk_size": 10,
 }
 
 BLOCK_FROM_0_TO_LATEST_WITH_ADDRESS_AND_KEYS = {
-    "jsonrpc": "2.0",
-    "method": "starknet_getEvents",
-    "params": {
-        "filter": {
-            "from_block": "0",
-            "to_block": "latest",
-            "address": EXPECTED_FEE_TOKEN_ADDRESS,
-            "keys": [
-                "0x99cd8bde557814842a3121e8ddfd433a539b8c9f14bf31ebf108d12e6196e9",
-                "0x3db3da4221c078e78bd987e54e1cc24570d89a7002cefa33e548d6c72c73f9d",
-            ],
-            "chunk_size": 10,
-        }
-    },
-    "id": 0,
+    "from_block": "0",
+    "to_block": "latest",
+    "address": EXPECTED_FEE_TOKEN_ADDRESS,
+    "keys": [
+        "0x99cd8bde557814842a3121e8ddfd433a539b8c9f14bf31ebf108d12e6196e9",
+        "0x3db3da4221c078e78bd987e54e1cc24570d89a7002cefa33e548d6c72c73f9d",
+    ],
+    "chunk_size": 10,
 }
 
 INCREASE_BALANCE_BY_0_EVENT = [0, 0]
@@ -184,10 +107,23 @@ FEE_CHARGING_IN_BLOCK_3_EVENT = [
     0,
 ]
 
+def create_get_events_rpc(filter):
+    """
+    Construct JSON RPC call with filter data
+    """
+    return {
+        "jsonrpc": "2.0",
+        "method": "starknet_getEvents",
+        "params": {
+            "filter": filter
+        },
+        "id": 0,
+    }
+
 GET_EVENTS_TEST_DATA = [
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_FROM_0_TO_LATEST,
+        create_get_events_rpc(BLOCK_FROM_0_TO_LATEST),
         [
             INCREASE_BALANCE_BY_0_EVENT,
             FEE_CHARGING_IN_BLOCK_2_EVENT,
@@ -197,17 +133,17 @@ GET_EVENTS_TEST_DATA = [
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_FROM_0_TO_2,
+        create_get_events_rpc(BLOCK_FROM_0_TO_2),
         [INCREASE_BALANCE_BY_0_EVENT, FEE_CHARGING_IN_BLOCK_2_EVENT],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_FROM_3_TO_3,
+        create_get_events_rpc(BLOCK_FROM_3_TO_3),
         [INCREASE_BALANCE_BY_1_EVENT, FEE_CHARGING_IN_BLOCK_3_EVENT],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_FROM_2_TO_3,
+        create_get_events_rpc(BLOCK_FROM_2_TO_3),
         [
             INCREASE_BALANCE_BY_0_EVENT,
             FEE_CHARGING_IN_BLOCK_2_EVENT,
@@ -217,7 +153,7 @@ GET_EVENTS_TEST_DATA = [
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_FROM_0_TO_LATEST_CHUNK_SIZE_3,
+        create_get_events_rpc(BLOCK_FROM_0_TO_LATEST_CHUNK_SIZE_3),
         [
             INCREASE_BALANCE_BY_0_EVENT,
             FEE_CHARGING_IN_BLOCK_2_EVENT,
@@ -226,27 +162,27 @@ GET_EVENTS_TEST_DATA = [
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_FROM_0_TO_LATEST_CHUNK_3_CONTINUATION_TOKEN,
+        create_get_events_rpc(BLOCK_FROM_0_TO_LATEST_CHUNK_3_CONTINUATION_TOKEN),
         [FEE_CHARGING_IN_BLOCK_3_EVENT],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_FROM_0_TO_1_CHUNK_3_CONTINUATION_TOKEN,
+        create_get_events_rpc(BLOCK_FROM_0_TO_1_CHUNK_3_CONTINUATION_TOKEN),
         [],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_FROM_0_TO_LATEST_WITH_ADDRESS,
+        create_get_events_rpc(BLOCK_FROM_0_TO_LATEST_WITH_ADDRESS),
         [FEE_CHARGING_IN_BLOCK_2_EVENT, FEE_CHARGING_IN_BLOCK_3_EVENT],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_FROM_0_TO_LATEST_WITH_KEY,
+        create_get_events_rpc(BLOCK_FROM_0_TO_LATEST_WITH_KEY),
         [FEE_CHARGING_IN_BLOCK_2_EVENT, FEE_CHARGING_IN_BLOCK_3_EVENT],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_FROM_0_TO_LATEST_WITH_KEYS,
+        create_get_events_rpc(BLOCK_FROM_0_TO_LATEST_WITH_KEYS),
         [
             INCREASE_BALANCE_BY_0_EVENT,
             FEE_CHARGING_IN_BLOCK_2_EVENT,
@@ -256,7 +192,7 @@ GET_EVENTS_TEST_DATA = [
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_FROM_0_TO_LATEST_WITH_ADDRESS_AND_KEYS,
+        create_get_events_rpc(BLOCK_FROM_0_TO_LATEST_WITH_ADDRESS_AND_KEYS),
         [FEE_CHARGING_IN_BLOCK_2_EVENT, FEE_CHARGING_IN_BLOCK_3_EVENT],
     ),
 ]
