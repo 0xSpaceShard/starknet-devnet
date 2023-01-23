@@ -92,11 +92,7 @@ async def get_events(filter) -> RpcEventsResult:
     # Optional parameters
     address = try_parse_from_filter(filter, "address")
     keys = try_parse_from_filter(filter, "keys")
-    continuation_token = try_parse_from_filter(filter, "continuation_token")
-
-    # Set continuation_token to default value "0" when it's not set
-    if continuation_token is None:
-        continuation_token = "0"
+    continuation_token = filter.get("continuation_token", "0")
 
     events = []
     keys = [] if keys is None else [int(k, 0) for k in keys]
