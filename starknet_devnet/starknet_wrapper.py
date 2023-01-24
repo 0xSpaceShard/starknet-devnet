@@ -258,17 +258,18 @@ class StarknetWrapper:
         """
         for transaction in transactions:
             if transaction.status == TransactionStatus.REJECTED:
-                assert error_message, "error_message must be present if tx rejected"
                 transaction.set_failure_reason(error_message)
+        
+        for transaction in transactions:
+            transaction.set_block(block=block)
+            self.transactions.store(transaction.transaction_hash, transaction)
 
+        # Filter out rejected transactions
+        transactions = list(filter(lambda tx: tx.status != TransactionStatus.REJECTED, transactions))
         block = await self.blocks.generate(
             transactions,
             self.get_state(),
         )
-
-        for transaction in transactions:
-            transaction.set_block(block=block)
-            self.transactions.store(transaction.transaction_hash, transaction)
 
         return block
 
@@ -464,6 +465,12 @@ class StarknetWrapper:
         """Perform invoke according to specifications in `transaction`."""
         state = self.get_state()
 
+        # use mempool state to invoke and reject transaction second
+        # TODO: fix later
+        # if self.config.blocks_on_demand and self.__mempool_state is not None:
+        #     print("use mempool state to invoke and reject transaction second")
+        #     state = self.__mempool_state
+
         async with self.__get_transaction_handler() as tx_handler:
             tx_handler.internal_tx = InternalInvokeFunction.from_external(
                 external_tx, state.general_config
@@ -639,6 +646,7 @@ class StarknetWrapper:
         """Generate new block with mempool transactions in --blocks-on-demand mode."""
 
         # Update mempool state before block generation
+        # TODO: this approach is wrong because of rejected transactions
         self.__mempool_state = self.get_state().copy()
 
         # Store transactions and clear mempool
