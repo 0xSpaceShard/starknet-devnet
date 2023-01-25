@@ -218,7 +218,7 @@ async def get_transaction_status():
         and tx_status["tx_status"] == TransactionStatus.NOT_RECEIVED.name
         and any(
             hex(transaction.transaction_hash) == transaction_hash
-            for transaction in state.starknet_wrapper.mempool
+            for transaction in state.starknet_wrapper.pending_txs
         )
     ):
         tx_status["tx_status"] = TransactionStatus.RECEIVED.name

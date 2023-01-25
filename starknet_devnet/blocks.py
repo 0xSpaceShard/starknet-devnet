@@ -31,6 +31,7 @@ class DevnetBlocks:
         self.__num2block: Dict[int, StarknetBlock] = {}
         self.__state_updates: Dict[int, BlockStateUpdate] = {}
         self.__hash2num: Dict[str, int] = {}
+        self.pending_block: StarknetBlock = None
 
     async def get_last_block(self) -> StarknetBlock:
         """Returns the last block stored so far."""

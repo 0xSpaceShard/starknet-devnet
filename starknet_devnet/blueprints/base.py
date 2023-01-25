@@ -198,7 +198,7 @@ async def create_block():
 @base.route("/create_block_on_demand", methods=["POST"])
 async def create_block_on_demand():
     """Create block on demand"""
-    block = await state.starknet_wrapper.store_mempool_transactions()
+    block = await state.starknet_wrapper.generate_latest_block()
 
     return jsonify({"block_hash": hex(block.block_hash)})
 
