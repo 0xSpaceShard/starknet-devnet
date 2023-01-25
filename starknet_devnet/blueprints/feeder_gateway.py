@@ -9,6 +9,9 @@ from starkware.starknet.services.api.feeder_gateway.request_objects import (
     CallL1Handler,
 )
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    BlockIdentifier,
+    LATEST_BLOCK_ID,
+    PENDING_BLOCK_ID,
     BlockTransactionTraces,
     StarknetBlock,
     TransactionSimulationInfo,
@@ -97,6 +100,14 @@ async def _get_block_transaction_traces(block: StarknetBlock):
     return BlockTransactionTraces.load({"traces": traces})
 
 
+def _get_block_id(args: MultiDict):
+    block_number = args.get("blockNumber")
+    if block_number in [None, LATEST_BLOCK_ID, PENDING_BLOCK_ID]:
+        return block_number
+    # TODO temporary
+    raise ValueError("")
+
+
 @feeder_gateway.route("/get_contract_addresses", methods=["GET"])
 def get_contract_addresses():
     """Endpoint that returns an object containing the addresses of key system components."""
@@ -109,6 +120,8 @@ async def call_contract():
     Endpoint for receiving calls (not invokes) of contract functions.
     """
 
+    block_id = _get_block_id(request.args)
+
     try:
         call_specifications = validate_request(request.data, CallFunction)  # version 1
     except StarknetDevnetException:
@@ -116,7 +129,7 @@ async def call_contract():
             request.data, InvokeFunction
         )  # version 0
 
-    result_dict = await state.starknet_wrapper.call(call_specifications)
+    result_dict = await state.starknet_wrapper.call(call_specifications, block_id)
     return jsonify(result_dict)
 
 

@@ -339,7 +339,12 @@ def estimate_fee(
 
 
 def call(
-    function: str, address: str, abi_path: str, inputs=None, feeder_gateway_url=APP_URL
+    function: str,
+    address: str,
+    abi_path: str,
+    inputs=None,
+    block_number="latest",
+    feeder_gateway_url=APP_URL,
 ):
     """Wrapper around starknet call"""
     args = [
@@ -350,6 +355,8 @@ def call(
         address,
         "--abi",
         abi_path,
+        # "--block_number",
+        # block_number,  # TODO which is the default block?
     ]
     if inputs:
         args.extend(["--inputs", *inputs])

@@ -33,7 +33,7 @@ def test_blocks_on_demand_invoke():
     assert genesis_block_number == 0
 
     deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
-    assert_tx_status(deploy_info["tx_hash"], "RECEIVED")
+    assert_tx_status(deploy_info["tx_hash"], "PENDING")
 
     try:
         call(

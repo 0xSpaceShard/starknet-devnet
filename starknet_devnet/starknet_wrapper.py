@@ -2,11 +2,12 @@
 This module introduces `StarknetWrapper`, a wrapper class of
 starkware.starknet.testing.starknet.Starknet.
 """
+from copy import deepcopy
 from types import TracebackType
 from typing import Dict, List, Optional, Set, Tuple, Type, Union
 
 import cloudpickle as pickle
-from starkware.starknet.business_logic.state.state import BlockInfo
+from starkware.starknet.business_logic.state.state import BlockInfo, CachedState
 from starkware.starknet.business_logic.transaction.fee import calculate_tx_fee
 from starkware.starknet.business_logic.transaction.objects import (
     CallInfo,
@@ -103,7 +104,7 @@ class StarknetWrapper:
         self.l1l2 = DevnetL1L2()
         self.transactions = DevnetTransactions(self.origin)
         self.starknet: Starknet = None
-        # self.__current_cached_state = None
+        self.__current_cached_state = None
         self.__initialized = False
         self.fee_token = FeeToken(self)
         self.accounts = Accounts(self)
@@ -125,19 +126,20 @@ class StarknetWrapper:
     async def initialize(self):
         """Initialize the underlying starknet instance, fee_token and accounts."""
         if not self.__initialized:
-            await self.__init_starknet()
+            starknet = await self.__init_starknet()
 
             await self.fee_token.deploy()
             await self.accounts.deploy()
             await self.__predeclare_oz_account()
             await self.__udc.deploy()
 
-            # await self.__preserve_current_state(starknet.state.state)
+            await self.__preserve_current_state(starknet.state.state)
             self.__latest_state = self.get_state()
-            await self.create_empty_block()
+            # TODO await self.create_empty_block()
             await self.update_pending_block()
             self.__initialized = True
 
+    # TODO will this create a block with wrong hash of previous_block (if there is a pending block)
     async def create_empty_block(self):
         """create empty block"""
         self._update_block_number()
@@ -147,9 +149,8 @@ class StarknetWrapper:
             None, state, state_update, is_empty_block=True
         )
 
-    # TODO
-    # async def __preserve_current_state(self, state: CachedState):
-    #     self.__current_cached_state = deepcopy(state)
+    async def __preserve_current_state(self, state: CachedState):
+        self.__current_cached_state = deepcopy(state)
 
     async def __init_starknet(self):
         """
@@ -196,14 +197,14 @@ class StarknetWrapper:
         visited_storage_entries = visited_storage_entries or set()
 
         # state update and preservation
-        previous_state = self.__latest_state
+        previous_state = self.__current_cached_state
         assert previous_state is not None
         current_state = self.get_state().state
         current_state.block_info = self.block_info_generator.next_block(
             block_info=current_state.block_info,
             general_config=self.get_state().general_config,
         )
-        # TODO await self.__preserve_current_state(current_state)
+        await self.__preserve_current_state(current_state)
 
         # calculating diffs
         declared_contracts = await get_all_declared_contracts(
@@ -226,7 +227,7 @@ class StarknetWrapper:
             state_diff=state_diff,
         )
 
-    async def _store_transaction(
+    def _store_transaction(
         self,
         transaction: DevnetTransaction,
         error_message: str = None,
@@ -326,7 +327,7 @@ class StarknetWrapper:
                         transaction, error_message=exc.message
                     )
                 else:
-                    status = TransactionStatus.ACCEPTED_ON_L2
+                    status = TransactionStatus.PENDING
 
                     assert self.execution_info is not None
                     if self.execution_info.call_info:
@@ -351,7 +352,7 @@ class StarknetWrapper:
                     self.starknet_wrapper.pending_txs.append(transaction)
                     self.starknet_wrapper._store_transaction(transaction)
 
-                    self.starknet_wrapper.update_pending_block(state_update)
+                    await self.starknet_wrapper.update_pending_block(state_update)
 
                     if not self.starknet_wrapper.config.blocks_on_demand:
                         await self.starknet_wrapper.generate_latest_block()
@@ -454,6 +455,7 @@ class StarknetWrapper:
         """Perform call according to specifications in `transaction`."""
         # TODO considering extracting this selection to a function
         # TODO what should be the default?
+        print("DEBUG Calling at block:", block_id)
         if block_id == PENDING_BLOCK_ID:
             state = self.get_state()
         elif block_id == LATEST_BLOCK_ID:
@@ -611,6 +613,7 @@ class StarknetWrapper:
 
     async def update_pending_block(self, state_update: BlockStateUpdate = None):
         """Update pending block"""
+        # TODO potentially a problem if this stores the block
         self.blocks.pending_block = await self.blocks.generate(
             transactions=self.pending_txs,
             state=self.get_state(),
@@ -625,6 +628,7 @@ class StarknetWrapper:
         block = self.blocks.pending_block
 
         for transaction in self.pending_txs:
+            transaction.status = TransactionStatus.ACCEPTED_ON_L2
             transaction.set_block(block=block)
 
         # Update latest state before block generation
