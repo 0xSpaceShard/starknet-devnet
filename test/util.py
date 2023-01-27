@@ -343,7 +343,7 @@ def call(
     address: str,
     abi_path: str,
     inputs=None,
-    block_number="latest",
+    block_number="latest",  # Starknet CLI defaults to pending
     feeder_gateway_url=APP_URL,
 ):
     """Wrapper around starknet call"""
@@ -356,7 +356,7 @@ def call(
         "--abi",
         abi_path,
         "--block_number",
-        block_number,  # TODO which is the default block?
+        block_number,
     ]
     if inputs:
         args.extend(["--inputs", *inputs])

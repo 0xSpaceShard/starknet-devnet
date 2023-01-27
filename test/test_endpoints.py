@@ -124,7 +124,7 @@ def test_call_without_calldata():
 
 @pytest.mark.call
 def test_call_with_complete_request_data():
-    """Call with complete request data"""
+    """Call with complete request data. Previous tests (deploy+invoke) required to pass."""
     req_dict = json.loads(CALL_CONTENT)
     resp = send_call(req_dict)
     resp_dict = json.loads(resp.data.decode("utf-8"))

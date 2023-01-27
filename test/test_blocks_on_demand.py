@@ -6,6 +6,7 @@ from test.rpc.rpc_utils import gateway_call
 
 import pytest
 import requests
+from starkware.starknet.definitions.error_codes import StarknetErrorCode
 
 from .account import invoke
 from .settings import APP_URL
@@ -43,8 +44,7 @@ def test_blocks_on_demand_invoke():
         )
         pytest.fail("Should have failed")
     except ReturnCodeAssertionError as error:
-        # TODO use the actual object instead of string
-        assert "StarknetErrorCode.UNINITIALIZED_CONTRACT" in str(error)
+        assert str(StarknetErrorCode.UNINITIALIZED_CONTRACT) in str(error)
 
     invoke_hash = invoke(
         calls=[(deploy_info["address"], "increase_balance", [10, 20])],

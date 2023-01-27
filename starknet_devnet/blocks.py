@@ -10,6 +10,8 @@ from starkware.starknet.core.os.block_hash.block_hash import (
 )
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    LATEST_BLOCK_ID,
+    PENDING_BLOCK_ID,
     BlockIdentifier,
     BlockStateUpdate,
     BlockStatus,
@@ -23,6 +25,7 @@ from starknet_devnet.constants import CAIRO_LANG_VERSION, DUMMY_STATE_ROOT
 from .origin import Origin
 from .transactions import DevnetTransaction
 from .util import StarknetDevnetException
+
 
 # pylint: disable=too-many-instance-attributes
 class DevnetBlocks:
@@ -64,7 +67,19 @@ class DevnetBlocks:
 
     async def get_by_number(self, block_number: BlockIdentifier) -> StarknetBlock:
         """Returns the block whose block_number is provided"""
+        if block_number == PENDING_BLOCK_ID:
+            # TODO apply this logic to state updates?
+            if not self.pending_block:
+                # if no pending, default to latest
+                block_number = LATEST_BLOCK_ID
+            else:
+                return self.pending_block  # TODO test
+
         if block_number is None:
+            # if no number, default to latest
+            block_number = LATEST_BLOCK_ID
+
+        if block_number == LATEST_BLOCK_ID:
             if self.__num2block:
                 return await self.get_last_block()
             return await self.origin.get_block_by_number(block_number)
@@ -161,7 +176,7 @@ class DevnetBlocks:
         await self.generate_pending(
             transactions=[], state=state, state_update=state_update
         )
-        await self.store_pending(state)
+        return await self.store_pending(state, is_empty_block=True)
 
     async def __calculate_pending_block_hash(
         self, state: StarknetState, block_number: int, state_root: bytes

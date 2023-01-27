@@ -54,14 +54,6 @@ def validate_int(request_args: MultiDict, attribute: str):
         ) from err
 
 
-def _check_block_hash(request_args: MultiDict):
-    block_hash = request_args.get("blockHash", type=custom_int)
-    if block_hash is not None:
-        print(
-            "Specifying a block by its hash is not supported. All interaction is done with the latest block."
-        )
-
-
 def _check_block_arguments(block_hash, block_number):
     if block_hash is not None and block_number is not None:
         message = "Ambiguous criteria: only one of (block number, block hash) can be provided."
@@ -100,11 +92,22 @@ async def _get_block_transaction_traces(block: StarknetBlock):
 
 
 def _get_block_id(args: MultiDict):
-    block_number = args.get("blockNumber")
-    if block_number in [None, LATEST_BLOCK_ID, PENDING_BLOCK_ID]:
+    supported = [LATEST_BLOCK_ID, PENDING_BLOCK_ID]
+    supported_str = "{" + ", ".join(supported) + "}"
+
+    if "blockHash" in args:
+        raise StarknetDevnetException(
+            f"Cannot handle block hashes, supported block IDs: {supported_str}",
+            status_code=400,
+        )
+
+    block_number = args.get("blockNumber", "latest")
+    if block_number in supported:
         return block_number
-    # TODO temporary
-    raise ValueError("")
+
+    raise StarknetDevnetException(
+        f"Invalid block id: {block_number}; supported: {supported_str}", status_code=400
+    )
 
 
 @feeder_gateway.route("/get_contract_addresses", methods=["GET"])
@@ -136,6 +139,9 @@ async def call_contract():
 async def get_block():
     """Endpoint for retrieving a block identified by its hash or number."""
 
+    # TODO this should be extracted to a function and applied in other block-operating calls
+    # TODO naming should be done so that this new function and _get_block_id are intuitively distinguishable
+
     block_hash = request.args.get("blockHash")
     block_number = request.args.get("blockNumber", type=custom_int)
 
@@ -163,10 +169,10 @@ async def get_code():
     Returns the ABI and bytecode of the contract whose contractAddress is provided.
     """
 
-    _check_block_hash(request.args)
+    block_id = _get_block_id(request.args)
 
     contract_address = request.args.get("contractAddress", type=custom_int)
-    code_dict = await state.starknet_wrapper.get_code(contract_address)
+    code_dict = await state.starknet_wrapper.get_code(contract_address, block_id)
     return jsonify(code_dict)
 
 
@@ -175,11 +181,13 @@ async def get_full_contract():
     """
     Returns the contract class of the contract whose contractAddress is provided.
     """
-    _check_block_hash(request.args)
+    block_id = _get_block_id(request.args)
 
     contract_address = request.args.get("contractAddress", type=custom_int)
 
-    contract_class = await state.starknet_wrapper.get_class_by_address(contract_address)
+    contract_class = await state.starknet_wrapper.get_class_by_address(
+        contract_address, block_id
+    )
     return jsonify(contract_class.remove_debug_info().dump())
 
 
@@ -204,12 +212,14 @@ async def get_class_by_hash():
 @feeder_gateway.route("/get_storage_at", methods=["GET"])
 async def get_storage_at():
     """Endpoint for returning the storage identified by `key` from the contract at"""
-    _check_block_hash(request.args)
+    block_id = _get_block_id(request.args)
 
     contract_address = request.args.get("contractAddress", type=custom_int)
     key = validate_int(request.args, "key")
 
-    storage = await state.starknet_wrapper.get_storage_at(contract_address, key)
+    storage = await state.starknet_wrapper.get_storage_at(
+        contract_address, key, block_id
+    )
     return jsonify(storage)
 
 
@@ -315,7 +325,11 @@ async def estimate_fee():
     except StarknetDevnetException:
         transaction = validate_request(request.data, InvokeFunction)  # version 0
 
-    _, fee_response = await state.starknet_wrapper.calculate_trace_and_fee(transaction)
+    block_id = _get_block_id(request.args)
+
+    _, fee_response = await state.starknet_wrapper.calculate_trace_and_fee(
+        transaction, block_id
+    )
     return jsonify(fee_response)
 
 
@@ -330,8 +344,10 @@ async def estimate_fee_bulk():
         # version 0
         transactions = validate_request(request.data, InvokeFunction, many=True)
 
+    block_id = _get_block_id(request.args)
+
     _, fee_responses = await state.starknet_wrapper.calculate_traces_and_fees(
-        transactions
+        transactions, block_id
     )
     return jsonify(fee_responses)
 
@@ -340,8 +356,10 @@ async def estimate_fee_bulk():
 async def simulate_transaction():
     """Returns the estimated fee for a transaction."""
     transaction = validate_request(request.data, AccountTransaction)
+    block_id = _get_block_id(request.args)
+
     trace, fee_response = await state.starknet_wrapper.calculate_trace_and_fee(
-        transaction
+        transaction, block_id
     )
 
     simulation_info = TransactionSimulationInfo(
@@ -355,8 +373,9 @@ async def simulate_transaction():
 async def get_nonce():
     """Returns the nonce of the contract whose contractAddress is provided"""
 
+    block_id = _get_block_id(request.args)
     contract_address = request.args.get("contractAddress", type=custom_int)
-    nonce = await state.starknet_wrapper.get_nonce(contract_address)
+    nonce = await state.starknet_wrapper.get_nonce(contract_address, block_id)
 
     return jsonify(hex(nonce))
 
@@ -365,8 +384,8 @@ async def get_nonce():
 async def estimate_message_fee():
     """Message fee estimation endpoint"""
 
-    _check_block_hash(request.args)
+    block_id = _get_block_id(request.args)
 
     call = validate_request(request.data, CallL1Handler)
-    fee_estimation = await state.starknet_wrapper.estimate_message_fee(call)
+    fee_estimation = await state.starknet_wrapper.estimate_message_fee(call, block_id)
     return jsonify(fee_estimation)
