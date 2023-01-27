@@ -134,9 +134,8 @@ class StarknetWrapper:
             await self.__udc.deploy()
 
             await self.__preserve_current_state(starknet.state.state)
-            self.__latest_state = self.get_state()
-            # TODO await self.create_empty_block()
-            await self.update_pending_block()
+            self.__latest_state = self.get_state().copy()
+            await self.create_empty_block()
             self.__initialized = True
 
     # TODO will this create a block with wrong hash of previous_block (if there is a pending block)
@@ -144,10 +143,7 @@ class StarknetWrapper:
         """create empty block"""
         self._update_block_number()
         state_update = await self._update_state()
-        state = self.get_state()
-        return await self.blocks.generate(
-            None, state, state_update, is_empty_block=True
-        )
+        return await self.blocks.generate_empty_block(self.get_state(), state_update)
 
     async def __preserve_current_state(self, state: CachedState):
         self.__current_cached_state = deepcopy(state)
@@ -449,18 +445,21 @@ class StarknetWrapper:
 
         return external_tx.contract_address, tx_handler.internal_tx.hash_value
 
-    async def call(
-        self, transaction: CallFunction, block_id: BlockIdentifier = PENDING_BLOCK_ID
-    ):
-        """Perform call according to specifications in `transaction`."""
-        # TODO considering extracting this selection to a function
-        # TODO what should be the default?
-        print("DEBUG Calling at block:", block_id)
+    # TODO what should be the default?
+    def __get_query_state_copy(self, block_id: BlockIdentifier = PENDING_BLOCK_ID):
         if block_id == PENDING_BLOCK_ID:
             state = self.get_state()
         elif block_id == LATEST_BLOCK_ID:
             state = self.__latest_state
-        state_copy = state.copy()
+        else:
+            raise StarknetDevnetException(f"Invalid block id: {block_id}")
+        return state.copy()
+
+    async def call(
+        self, transaction: CallFunction, block_id: BlockIdentifier = PENDING_BLOCK_ID
+    ):
+        """Perform call according to specifications in `transaction`."""
+        state_copy = self.__get_query_state_copy(block_id)
 
         call_info = await state_copy.execute_entry_point_raw(
             contract_address=transaction.contract_address,
@@ -613,12 +612,10 @@ class StarknetWrapper:
 
     async def update_pending_block(self, state_update: BlockStateUpdate = None):
         """Update pending block"""
-        # TODO potentially a problem if this stores the block
-        self.blocks.pending_block = await self.blocks.generate(
+        await self.blocks.generate_pending(
             transactions=self.pending_txs,
             state=self.get_state(),
             state_update=state_update,
-            # TODO pending block should have no hash, should this be specified?
         )
 
     async def generate_latest_block(self) -> StarknetBlock:
@@ -632,10 +629,10 @@ class StarknetWrapper:
             transaction.set_block(block=block)
 
         # Update latest state before block generation
-        self.__latest_state = self.get_state()  # TODO no need to copy?
+        self.__latest_state = self.get_state().copy()
 
         self.pending_txs = []
-        await self.update_pending_block()  # reset
+        self.blocks.pending_block = None
 
         return block
 

@@ -9,7 +9,6 @@ from starkware.starknet.services.api.feeder_gateway.request_objects import (
     CallL1Handler,
 )
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
-    BlockIdentifier,
     LATEST_BLOCK_ID,
     PENDING_BLOCK_ID,
     BlockTransactionTraces,

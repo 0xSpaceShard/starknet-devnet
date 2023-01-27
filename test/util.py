@@ -355,8 +355,8 @@ def call(
         address,
         "--abi",
         abi_path,
-        # "--block_number",
-        # block_number,  # TODO which is the default block?
+        "--block_number",
+        block_number,  # TODO which is the default block?
     ]
     if inputs:
         args.extend(["--inputs", *inputs])

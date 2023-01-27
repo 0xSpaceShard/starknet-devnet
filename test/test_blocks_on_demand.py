@@ -43,6 +43,7 @@ def test_blocks_on_demand_invoke():
         )
         pytest.fail("Should have failed")
     except ReturnCodeAssertionError as error:
+        # TODO use the actual object instead of string
         assert "StarknetErrorCode.UNINITIALIZED_CONTRACT" in str(error)
 
     invoke_hash = invoke(
@@ -50,7 +51,7 @@ def test_blocks_on_demand_invoke():
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
-    assert_tx_status(invoke_hash, "RECEIVED")
+    assert_tx_status(invoke_hash, "PENDING")
 
     latest_block = gateway_call("get_block", blockNumber="latest")
     block_number_after_deploy_and_invoke = latest_block["block_number"]
