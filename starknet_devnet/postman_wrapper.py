@@ -111,7 +111,9 @@ and that the Messaging Contract is deployed at the provided address ({contract_a
                 self.__postman_wrapper.l1_to_l2_message_filter.get_new_entries()
             )
         )
-        print("Why get_new_entries() function from starkware code base doesn't return anything here?")
+        print(
+            "Why get_new_entries() function from starkware code base doesn't return anything here after L1L2Example#deposit invoke?"
+        )
         print(l1_to_l2_messages)
 
         l2_to_l1_messages = state.l2_to_l1_messages_log[
