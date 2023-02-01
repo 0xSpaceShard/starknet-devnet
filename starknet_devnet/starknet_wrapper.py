@@ -58,7 +58,7 @@ from .block_info_generator import BlockInfoGenerator
 from .blocks import DevnetBlocks
 from .blueprints.rpc.structures.types import Felt
 from .chargeable_account import ChargeableAccount
-from .constants import DUMMY_STATE_ROOT, OZ_ACCOUNT_CLASS_HASH
+from .constants import DUMMY_STATE_ROOT, STARKNET_CLI_ACCOUNT_CLASS_HASH
 from .devnet_config import DevnetConfig
 from .fee_token import FeeToken
 from .forked_state import get_forked_starknet
@@ -124,14 +124,15 @@ class StarknetWrapper:
         if not self.__initialized:
             starknet = await self.__init_starknet()
 
-            await self.fee_token.deploy()
-            await self.accounts.deploy()
-            await self.__deploy_chargeable_account()
-            await self.__predeclare_oz_account()
-            await self.__udc.deploy()
+            await self.fee_token.deploy() #erc 20 - include in genesis block
+            
+            await self.accounts.deploy() #accounts - include in genesis block
+            await self.__deploy_chargeable_account() # this also?
+            await self.__predeclare_starknet_cli_account() # this also? check if its transaction?
+            await self.__udc.deploy() # this also?
 
             await self.__preserve_current_state(starknet.state.state)
-            await self.create_empty_block()
+            await self.genesis_block()
             self.__initialized = True
 
     async def create_empty_block(self):
@@ -139,6 +140,16 @@ class StarknetWrapper:
         self._update_block_number()
         state_update = await self._update_state()
         state = self.get_state()
+        return await self.blocks.generate(
+            None, state, state_update, is_empty_block=True
+        )
+
+    async def genesis_block(self):
+        """create empty block"""
+        self._update_block_number()
+        state_update = await self._update_state()
+        state = self.get_state()
+        # TODO: pre accounts here?
         return await self.blocks.generate(
             None, state, state_update, is_empty_block=True
         )
@@ -699,10 +710,10 @@ class StarknetWrapper:
         """Returns nonce of contract with `contract_address`"""
         return await self.get_state().state.get_nonce_at(contract_address)
 
-    async def __predeclare_oz_account(self):
+    async def __predeclare_starknet_cli_account(self):
         """Predeclares the account class used by Starknet CLI"""
         await self.get_state().state.set_contract_class(
-            to_bytes(OZ_ACCOUNT_CLASS_HASH), oz_account_class
+            to_bytes(STARKNET_CLI_ACCOUNT_CLASS_HASH), oz_account_class
         )
 
     async def __deploy_chargeable_account(self):
