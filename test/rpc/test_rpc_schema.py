@@ -10,6 +10,7 @@ from starkware.starknet.public.abi import get_selector_from_name
 from starknet_devnet.blueprints.rpc.schema import _assert_valid_rpc_request
 from starknet_devnet.blueprints.rpc.structures.types import RpcErrorCode
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
+from test.util import devnet_in_background
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -172,12 +173,7 @@ def test_schema_raises_on_invalid_args(params):
     assert error["code"] == RpcErrorCode.INVALID_PARAMS.value
 
 
-@pytest.mark.usefixtures("run_devnet_in_background")
-@pytest.mark.parametrize(
-    "run_devnet_in_background",
-    [["--disable-rpc-request-validation"]],
-    indirect=True,
-)
+@devnet_in_background("--disable-rpc-request-validation")
 def test_schema_does_not_raise_on_disabled_request_validation():
     """
     Test schema validation is disabled by CLI argument
