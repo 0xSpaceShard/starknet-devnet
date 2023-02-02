@@ -272,7 +272,6 @@ def test_events():
 
 def get_nonce_with_request(address: str):
     """Do GET on /get_nonce for `address`"""
-    # TODO redundant because another get_nonce exists
     return requests.get(f"{APP_URL}/feeder_gateway/get_nonce?contractAddress={address}")
 
 

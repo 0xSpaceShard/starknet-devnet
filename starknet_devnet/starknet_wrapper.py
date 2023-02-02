@@ -139,11 +139,10 @@ class StarknetWrapper:
             await self.create_empty_block()
             self.__initialized = True
 
-    # TODO will this create a block with wrong hash of previous_block (if there is a pending block)
     async def create_empty_block(self):
-        """create empty block"""
+        """Create empty block."""
         self._update_block_number()
-        state_update = await self._update_state()
+        state_update = await self._update_pending_state()
         self.__latest_state = self.get_state().copy()
         return await self.blocks.generate_empty_block(self.get_state(), state_update)
 
@@ -176,14 +175,13 @@ class StarknetWrapper:
     def __is_fork(self):
         return bool(self.config.fork_network)
 
-    def get_state(self):  # TODO rename to get_pending_state
+    def get_state(self):
         """
         Returns the StarknetState of the underlying Starknet instance.
         """
         return self.starknet.state
 
-    # TODO rename to _update_pending_state
-    async def _update_state(
+    async def _update_pending_state(
         self,
         deployed_contracts: List[DeployedContract] = None,
         explicitly_declared_contracts: List[int] = None,
@@ -336,7 +334,7 @@ class StarknetWrapper:
                             self.deployed_contracts,
                         )
 
-                    state_update = await self.starknet_wrapper._update_state(
+                    state_update = await self.starknet_wrapper._update_pending_state(
                         deployed_contracts=self.deployed_contracts,
                         visited_storage_entries=self.visited_storage_entries,
                         explicitly_declared_contracts=self.explicitly_declared,
@@ -449,7 +447,6 @@ class StarknetWrapper:
         return external_tx.contract_address, tx_handler.internal_tx.hash_value
 
     async def __get_query_state(self, block_id: BlockIdentifier = DEFAULT_BLOCK_ID):
-        # TODO what should be the default block id?
         if block_id == PENDING_BLOCK_ID:
             return self.get_state()
         if block_id == LATEST_BLOCK_ID:
@@ -520,7 +517,8 @@ class StarknetWrapper:
         self, contract_address: int, block_id: BlockIdentifier = DEFAULT_BLOCK_ID
     ) -> int:
         """Return class hash give the contract address"""
-        cached_state = self.get_state().state
+        state = await self.__get_query_state(block_id)
+        cached_state = state.state
         class_hash_bytes = await cached_state.get_class_hash_at(contract_address)
         class_hash_int = int.from_bytes(class_hash_bytes, "big")
 
@@ -654,7 +652,6 @@ class StarknetWrapper:
         self.__latest_state = state.copy()
 
         self.pending_txs = []
-        self.blocks.pending_block = None
 
         return block
 

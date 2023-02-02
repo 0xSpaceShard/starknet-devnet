@@ -37,7 +37,7 @@ class DevnetBlocks:
         self.__num2block: Dict[int, StarknetBlock] = {}
         self.__state_updates: Dict[int, BlockStateUpdate] = {}
         self.__hash2num: Dict[str, int] = {}
-        self.pending_block: StarknetBlock = None
+        self.__pending_block: StarknetBlock = None
         self.__pending_state_update: BlockStateUpdate = None
         self.__pending_signatures: Sequence[List[int]] = None
 
@@ -68,12 +68,10 @@ class DevnetBlocks:
     async def get_by_number(self, block_number: BlockIdentifier) -> StarknetBlock:
         """Returns the block whose block_number is provided"""
         if block_number == PENDING_BLOCK_ID:
-            # TODO apply this logic to state updates?
-            if not self.pending_block:
-                # if no pending, default to latest
-                block_number = LATEST_BLOCK_ID
-            else:
-                return self.pending_block  # TODO test
+            if self.__pending_block:
+                return self.__pending_block
+            # if no pending, default to latest
+            block_number = LATEST_BLOCK_ID
 
         if block_number is None:
             # if no number, default to latest
@@ -103,7 +101,7 @@ class DevnetBlocks:
         return await self.origin.get_block_by_hash(block_hash)
 
     async def get_state_update(
-        self, block_hash=None, block_number=None
+        self, block_hash: str = None, block_number: BlockIdentifier = None
     ) -> BlockStateUpdate:
         """
         Returns state update for the provided block hash or block number.
@@ -116,6 +114,12 @@ class DevnetBlocks:
                 return await self.origin.get_state_update(block_hash=block_hash)
 
             block_number = self.__hash2num[numeric_hash]
+
+        if block_number == PENDING_BLOCK_ID:
+            if self.__pending_state_update:
+                return self.__pending_state_update
+            # if no pending, default to latest
+            block_number = LATEST_BLOCK_ID
 
         if block_number is not None:
             self.__assert_block_number_in_range(block_number)
@@ -152,7 +156,7 @@ class DevnetBlocks:
             last_block = await self.get_last_block()
             parent_block_hash = last_block.block_hash
 
-        self.pending_block = StarknetBlock.create(
+        self.__pending_block = StarknetBlock.create(
             block_hash=None,
             block_number=None,
             state_root=None,
@@ -182,7 +186,7 @@ class DevnetBlocks:
         self, state: StarknetState, block_number: int, state_root: bytes
     ):
         event_hashes: List[int] = []
-        for receipt in self.pending_block.transaction_receipts:
+        for receipt in self.__pending_block.transaction_receipts:
             for event in receipt.events:
                 event_hashes.append(
                     calculate_event_hash(
@@ -194,25 +198,26 @@ class DevnetBlocks:
 
         return await calculate_block_hash(
             general_config=state.general_config,
-            parent_hash=self.pending_block.parent_block_hash,
+            parent_hash=self.__pending_block.parent_block_hash,
             block_number=block_number,
             global_state_root=state_root,
-            block_timestamp=self.pending_block.timestamp,
-            tx_hashes=[tx.transaction_hash for tx in self.pending_block.transactions],
+            block_timestamp=self.__pending_block.timestamp,
+            tx_hashes=[tx.transaction_hash for tx in self.__pending_block.transactions],
             tx_signatures=self.__pending_signatures,
             event_hashes=event_hashes,
-            sequencer_address=self.pending_block.sequencer_address,
+            sequencer_address=self.__pending_block.sequencer_address,
         )
 
     async def store_pending(
         self, state: StarknetState, is_empty_block=False
     ) -> StarknetBlock:
         """
-        Store pending block, assign a block hash to it, effecitvely making it the latest
+        Store pending block, assign a block hash to it, effecitvely making it the latest.
+        Set pending properties to None.
         """
-        assert self.pending_block
+        assert self.__pending_block
 
-        block_dict = self.pending_block.dump()
+        block_dict = self.__pending_block.dump()
 
         block_dict["status"] = BlockStatus.ACCEPTED_ON_L2.name
         state_root = DUMMY_STATE_ROOT
@@ -244,6 +249,6 @@ class DevnetBlocks:
         block = StarknetBlock.load(block_dict)
         self.__num2block[block_number] = block
 
-        self.pending_block = None
+        self.__pending_block = None
         self.__pending_signatures = None
         return block

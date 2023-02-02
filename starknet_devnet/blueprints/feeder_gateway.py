@@ -4,14 +4,11 @@ Feeder gateway routes.
 
 from flask import Blueprint, Response, jsonify, request
 from marshmallow import ValidationError
-from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.services.api.feeder_gateway.request_objects import (
     CallFunction,
     CallL1Handler,
 )
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
-    LATEST_BLOCK_ID,
-    PENDING_BLOCK_ID,
     BlockTransactionTraces,
     StarknetBlock,
     TransactionSimulationInfo,
@@ -94,10 +91,7 @@ async def _get_block_transaction_traces(block: StarknetBlock):
 
 def _get_block_id(args: MultiDict):
     if "blockHash" in args:
-        raise StarknetDevnetException(
-            "Cannot handle block hashes",  # TODO
-            status_code=400,
-        )
+        raise StarknetDevnetException("Cannot handle block hashes", status_code=400)
 
     return args.get("blockNumber", "latest")
 
@@ -131,11 +125,8 @@ async def call_contract():
 async def get_block():
     """Endpoint for retrieving a block identified by its hash or number."""
 
-    # TODO this should be extracted to a function and applied in other block-operating calls
-    # TODO naming should be done so that this new function and _get_block_id are intuitively distinguishable
-
     block_hash = request.args.get("blockHash")
-    block_number = request.args.get("blockNumber", type=custom_int)
+    block_number = request.args.get("blockNumber")
 
     block = await _get_block_object(block_hash=block_hash, block_number=block_number)
 
@@ -147,7 +138,7 @@ async def get_block_traces():
     """Returns the traces of the transactions in the specified block."""
 
     block_hash = request.args.get("blockHash")
-    block_number = request.args.get("blockNumber", type=custom_int)
+    block_number = request.args.get("blockNumber")
 
     block = await _get_block_object(block_hash=block_hash, block_number=block_number)
     block_transaction_traces = await _get_block_transaction_traces(block)
@@ -294,7 +285,7 @@ async def get_state_update():
     """
 
     block_hash = request.args.get("blockHash")
-    block_number = request.args.get("blockNumber", type=custom_int)
+    block_number = request.args.get("blockNumber")
 
     state_update = await state.starknet_wrapper.blocks.get_state_update(
         block_hash=block_hash, block_number=block_number
