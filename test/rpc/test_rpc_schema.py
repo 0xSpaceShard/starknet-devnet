@@ -193,6 +193,13 @@ def test_schema_does_not_raise_on_disabled_request_validation():
     # Error will be raised when trying to execute function, but it shouldn't be the INVALID_PARAMS error
     error = resp["error"]
     assert error["code"] != RpcErrorCode.INVALID_PARAMS.value
+    assert error["code"] in (
+        20,
+        21,
+        22,
+        24,
+        40,
+    )  # These are possible `starknet_call` error codes as of 0.2.1 spec
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
