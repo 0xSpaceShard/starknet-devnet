@@ -4,6 +4,7 @@ Feeder gateway routes.
 
 from flask import Blueprint, Response, jsonify, request
 from marshmallow import ValidationError
+from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.services.api.feeder_gateway.request_objects import (
     CallFunction,
     CallL1Handler,
@@ -92,22 +93,13 @@ async def _get_block_transaction_traces(block: StarknetBlock):
 
 
 def _get_block_id(args: MultiDict):
-    supported = [LATEST_BLOCK_ID, PENDING_BLOCK_ID]
-    supported_str = "{" + ", ".join(supported) + "}"
-
     if "blockHash" in args:
         raise StarknetDevnetException(
-            f"Cannot handle block hashes, supported block IDs: {supported_str}",
+            "Cannot handle block hashes",  # TODO
             status_code=400,
         )
 
-    block_number = args.get("blockNumber", "latest")
-    if block_number in supported:
-        return block_number
-
-    raise StarknetDevnetException(
-        f"Invalid block id: {block_number}; supported: {supported_str}", status_code=400
-    )
+    return args.get("blockNumber", "latest")
 
 
 @feeder_gateway.route("/get_contract_addresses", methods=["GET"])

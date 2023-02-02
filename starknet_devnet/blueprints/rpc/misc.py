@@ -115,7 +115,7 @@ async def get_nonce(block_id: BlockId, contract_address: Address) -> Felt:
         raise RpcError(code=20, message="Contract not found")
 
     result = await state.starknet_wrapper.get_nonce(
-        contract_address=int(contract_address, 16)
+        contract_address=int(contract_address, 16), block_id=block_id
     )
 
     return rpc_felt(result)

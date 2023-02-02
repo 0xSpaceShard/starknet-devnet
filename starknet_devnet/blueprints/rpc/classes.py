@@ -43,7 +43,7 @@ async def get_class_hash_at(block_id: BlockId, contract_address: Address) -> Fel
 
     try:
         result = await state.starknet_wrapper.get_class_hash_at(
-            int(contract_address, 16)
+            int(contract_address, 16), block_id
         )
     except StarkException as ex:
         raise RpcError(code=28, message="Class hash not found") from ex
@@ -59,7 +59,7 @@ async def get_class_at(block_id: BlockId, contract_address: Address) -> dict:
 
     try:
         result = await state.starknet_wrapper.get_class_by_address(
-            int(contract_address, 16)
+            int(contract_address, 16), block_id
         )
     except StarkException as ex:
         raise RpcError(code=20, message="Contract not found") from ex

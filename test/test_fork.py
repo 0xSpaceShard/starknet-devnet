@@ -28,6 +28,7 @@ from .testnet_deployment import (
     TESTNET_URL,
 )
 from .util import (
+    DevnetBackgroundProc,
     assert_address_has_no_class_hash,
     assert_tx_status,
     call,
@@ -38,6 +39,18 @@ from .util import (
 
 ORIGIN_PORT, ORIGIN_URL = bind_free_port(HOST)
 FORK_PORT, FORK_URL = bind_free_port(HOST)
+
+FORKING_DEVNET = DevnetBackgroundProc()
+
+
+@pytest.fixture(autouse=True)
+def run_before_and_after_test():
+    """Cleanup after tests finish."""
+    # before test
+    FORKING_DEVNET.stop()
+    yield
+    # after test
+    FORKING_DEVNET.stop()
 
 
 def _invoke_on_fork_and_assert_only_fork_changed(
@@ -51,11 +64,9 @@ def _invoke_on_fork_and_assert_only_fork_changed(
     origin_nonce_before = get_nonce(
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS, feeder_gateway_url=origin_url
     )
-    assert origin_nonce_before == 0
     fork_nonce_before = get_nonce(
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS, feeder_gateway_url=fork_url
     )
-    assert fork_nonce_before == 0
 
     # do the invoke and implicitly estimate fee before that
     increase_args = [1, 2]
@@ -90,44 +101,34 @@ def _invoke_on_fork_and_assert_only_fork_changed(
     origin_nonce_after = get_nonce(
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS, feeder_gateway_url=origin_url
     )
-    assert origin_nonce_after == 0
+    assert origin_nonce_after == origin_nonce_before
     fork_nonce_after = get_nonce(
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS, feeder_gateway_url=fork_url
     )
-    assert fork_nonce_after == 1
-
-
-def _deploy_on_origin_invoke_on_fork_assert_only_fork_changed(
-    fork_url: str,
-    origin_url: str,
-    initial_balance="10",
-):
-
-    deploy_info = deploy(
-        contract=CONTRACT_PATH,
-        inputs=[initial_balance],
-        gateway_url=origin_url,
-    )
-
-    _invoke_on_fork_and_assert_only_fork_changed(
-        contract_address=deploy_info["address"],
-        initial_balance=initial_balance,
-        fork_url=fork_url,
-        origin_url=origin_url,
-    )
+    assert fork_nonce_after == fork_nonce_before + 1
 
 
 @devnet_in_background("--port", ORIGIN_PORT, *PREDEPLOY_ACCOUNT_CLI_ARGS)
-@devnet_in_background(
-    "--port", FORK_PORT, "--fork-network", ORIGIN_URL, "--accounts", "0"
-)
 def test_forking_devnet_with_account_on_origin():
     """
     Deploy contract on origin, invoke on fork, rely on account on origin.
     Assert only fork changed
     """
 
-    # account balance
+    # deploy on origin
+    initial_balance = "10"
+    deploy_info = deploy(
+        contract=CONTRACT_PATH,
+        inputs=[initial_balance],
+        gateway_url=ORIGIN_URL,
+    )
+
+    # fork
+    FORKING_DEVNET.start(
+        "--port", FORK_PORT, "--fork-network", ORIGIN_URL, "--accounts", "0"
+    )
+
+    # account balance - before
     origin_balance_before = get_account_balance(
         address=PREDEPLOYED_ACCOUNT_ADDRESS, server_url=ORIGIN_URL
     )
@@ -140,13 +141,14 @@ def test_forking_devnet_with_account_on_origin():
     )
     assert fork_balance_before == DEFAULT_INITIAL_BALANCE
 
-    # with goerli, forking would be done here, but having it done beforehand is ok with devnet
-    _deploy_on_origin_invoke_on_fork_assert_only_fork_changed(
+    _invoke_on_fork_and_assert_only_fork_changed(
+        contract_address=deploy_info["address"],
+        initial_balance=initial_balance,
         fork_url=FORK_URL,
         origin_url=ORIGIN_URL,
     )
 
-    # account balance
+    # account balance - after
     origin_balance_after = get_account_balance(
         address=PREDEPLOYED_ACCOUNT_ADDRESS, server_url=ORIGIN_URL
     )
@@ -159,16 +161,26 @@ def test_forking_devnet_with_account_on_origin():
 
 
 @devnet_in_background("--port", ORIGIN_PORT, "--accounts", "0")
-@devnet_in_background(
-    "--port", FORK_PORT, "--fork-network", ORIGIN_URL, *PREDEPLOY_ACCOUNT_CLI_ARGS
-)
 def test_forking_devnet_with_account_on_fork():
     """
     Deploy contract on origin, invoke on fork, rely on account on fork.
     Assert only fork changed
     """
 
-    # account balance
+    # deploy on origin
+    initial_balance = "10"
+    deploy_info = deploy(
+        contract=CONTRACT_PATH,
+        inputs=[initial_balance],
+        gateway_url=ORIGIN_URL,
+    )
+
+    # fork
+    FORKING_DEVNET.start(
+        "--port", FORK_PORT, "--fork-network", ORIGIN_URL, *PREDEPLOY_ACCOUNT_CLI_ARGS
+    )
+
+    # account balance - before
     origin_balance_before = get_account_balance(
         address=PREDEPLOYED_ACCOUNT_ADDRESS, server_url=ORIGIN_URL
     )
@@ -179,13 +191,14 @@ def test_forking_devnet_with_account_on_fork():
     )
     assert fork_balance_before == DEFAULT_INITIAL_BALANCE
 
-    # with goerli, forking would be done here, but having it done beforehand is ok with devnet
-    _deploy_on_origin_invoke_on_fork_assert_only_fork_changed(
+    _invoke_on_fork_and_assert_only_fork_changed(
+        contract_address=deploy_info["address"],
+        initial_balance=initial_balance,
         fork_url=FORK_URL,
         origin_url=ORIGIN_URL,
     )
 
-    # account balance
+    # account balance - after
     origin_balance_after = get_account_balance(
         address=PREDEPLOYED_ACCOUNT_ADDRESS, server_url=ORIGIN_URL
     )

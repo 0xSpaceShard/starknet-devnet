@@ -27,6 +27,8 @@ async def get_storage_at(
         raise RpcError(code=20, message="Contract not found")
 
     storage = await state.starknet_wrapper.get_storage_at(
-        contract_address=int(contract_address, 16), key=int(key, 16)
+        contract_address=int(contract_address, 16),
+        key=int(key, 16),
+        block_id=block_id,
     )
     return rpc_felt(storage)

@@ -193,7 +193,7 @@ async def estimate_fee(request: RpcBroadcastedTxn, block_id: BlockId) -> dict:
     transaction = make_transaction(request)
     try:
         _, fee_response = await state.starknet_wrapper.calculate_trace_and_fee(
-            transaction
+            transaction, block_id
         )
     except StarkException as ex:
         if "entry_point_selector" in request and (
