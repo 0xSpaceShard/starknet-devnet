@@ -144,9 +144,7 @@ def _assert_valid_rpc_request(*args, method_name: str, **kwargs):
 
         for name, arg in zip_longest(schemas.keys(), args, fillvalue="missing"):
             if arg == "missing":
-                # fmt: off
-                raise ValidationError(f"Missing positional argument \"{name}\".")
-                # fmt: on
+                raise ValidationError(f"""Missing positional argument \"{name}\".""")
 
             validate(arg, schemas[name])
         return
@@ -158,9 +156,7 @@ def _assert_valid_rpc_request(*args, method_name: str, **kwargs):
         for name, schema in schemas.items():
             if name not in kwargs:
                 if schema["is_required"]:
-                    # fmt: off
-                    raise ValidationError(f"Missing keyword argument \"{name}\".")
-                    # fmt: on
+                    raise ValidationError(f"""Missing keyword argument \"{name}\".""")
                 continue
 
             value = kwargs[name]
@@ -183,9 +179,9 @@ class ParamsValidationErrorWrapper(Exception):
         self.validation_error = err
 
     def __str__(self):
-        # fmt: off
-        return f"Got invalid value for parameter: \"{self.validation_error.message}\""
-        # fmt: on
+        return (
+            f"""Got invalid value for parameter: \"{self.validation_error.message}\""""
+        )
 
 
 class ResponseValidationErrorWrapper(Exception):
@@ -198,11 +194,7 @@ class ResponseValidationErrorWrapper(Exception):
         self.validation_error = err
 
     def __str__(self):
-        # fmt: off
-        return (
-            f"Devnet tried to return invalid value: \"{self.validation_error.message}\""
-        )
-        # fmt: on
+        return f"""Devnet tried to return invalid value: \"{self.validation_error.message}\""""
 
 
 def validate_schema(method_name: str):
