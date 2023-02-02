@@ -2,6 +2,7 @@
 Test RPC schema validation
 """
 from test.rpc.rpc_utils import rpc_call
+from test.util import devnet_in_background
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -10,7 +11,6 @@ from starkware.starknet.public.abi import get_selector_from_name
 from starknet_devnet.blueprints.rpc.schema import _assert_valid_rpc_request
 from starknet_devnet.blueprints.rpc.structures.types import RpcErrorCode
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
-from test.util import devnet_in_background
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
