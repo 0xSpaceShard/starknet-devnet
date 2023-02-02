@@ -167,9 +167,9 @@ def _assert_valid_rpc_request(*args, method_name: str, **kwargs):
             validate(value, schema)
         return
 
-    if length := len(schemas) != 0:
+    if len(schemas) != 0:
         raise ValidationError(
-            f"0 arguments provided to function expecting {length} arguments."
+            f"0 arguments provided to function expecting {len(schemas)} arguments."
         )
 
 
