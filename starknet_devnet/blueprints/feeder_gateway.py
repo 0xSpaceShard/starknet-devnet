@@ -52,18 +52,22 @@ def validate_int(request_args: MultiDict, attribute: str):
         ) from err
 
 
-def _check_block_arguments(block_hash, block_number):
+def _extract_raw_block_arguments(args: MultiDict):
+    block_hash = args.get("blockHash")
+    block_number = args.get("blockNumber")
+
     if block_hash is not None and block_number is not None:
         message = "Ambiguous criteria: only one of (block number, block hash) can be provided."
         raise StarknetDevnetException(
             code=StarkErrorCode.MALFORMED_REQUEST, message=message
         )
 
+    return block_hash, block_number
 
-async def _get_block_object(block_hash: str, block_number: int):
+
+async def _get_block_object(args: MultiDict):
     """Returns the block object"""
-
-    _check_block_arguments(block_hash, block_number)
+    block_hash, block_number = _extract_raw_block_arguments(args)
 
     if block_hash is not None:
         return await state.starknet_wrapper.blocks.get_by_hash(block_hash)
@@ -125,24 +129,16 @@ async def call_contract():
 async def get_block():
     """Endpoint for retrieving a block identified by its hash or number."""
 
-    block_hash = request.args.get("blockHash")
-    block_number = request.args.get("blockNumber")
-
-    block = await _get_block_object(block_hash=block_hash, block_number=block_number)
-
-    return Response(block.dumps(), status=200, mimetype="application/json")
+    block = await _get_block_object(request.args)
+    return jsonify(block.dump())
 
 
 @feeder_gateway.route("/get_block_traces", methods=["GET"])
 async def get_block_traces():
     """Returns the traces of the transactions in the specified block."""
 
-    block_hash = request.args.get("blockHash")
-    block_number = request.args.get("blockNumber")
-
-    block = await _get_block_object(block_hash=block_hash, block_number=block_number)
+    block = await _get_block_object(request.args)
     block_transaction_traces = await _get_block_transaction_traces(block)
-
     return jsonify(block_transaction_traces.dump())
 
 
@@ -284,19 +280,14 @@ async def get_state_update():
     If no block hash was provided it will default to the last block.
     """
 
-    block_hash = request.args.get("blockHash")
-    block_number = request.args.get("blockNumber")
+    block_hash, block_number = _extract_raw_block_arguments(request.args)
 
     state_update = await state.starknet_wrapper.blocks.get_state_update(
         block_hash=block_hash, block_number=block_number
     )
 
-    if state_update is not None:
-        return Response(
-            response=state_update.dumps(), status=200, mimetype="application/json"
-        )
-
-    return jsonify(state_update)
+    assert state_update is not None
+    return jsonify(state_update.dump())
 
 
 @feeder_gateway.route("/estimate_fee", methods=["POST"])

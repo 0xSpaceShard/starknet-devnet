@@ -2,7 +2,7 @@
 Class for generating and handling blocks
 """
 
-from typing import Dict, List, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 from starkware.starknet.core.os.block_hash.block_hash import (
     calculate_block_hash,
@@ -25,6 +25,40 @@ from starknet_devnet.constants import CAIRO_LANG_VERSION, DUMMY_STATE_ROOT
 from .origin import Origin
 from .transactions import DevnetTransaction
 from .util import StarknetDevnetException
+
+
+def _parse_block_hash(raw: Optional[str]):
+    if raw is None:
+        return raw
+
+    try:
+        return int(raw, 16)
+    except ValueError as error:
+        raise StarknetDevnetException(
+            code=StarkErrorCode.MALFORMED_REQUEST,
+            message=f"Invalid block hash: '{raw}'",
+        ) from error
+
+
+def _parse_block_number(raw: Optional[Union[int, str]]) -> BlockIdentifier:
+    if raw is None:
+        return LATEST_BLOCK_ID
+
+    if raw in [PENDING_BLOCK_ID, LATEST_BLOCK_ID]:
+        return raw
+
+    if isinstance(raw, int):
+        return raw
+
+    if raw.isdigit():
+        try:
+            return int(raw, 10)
+        except ValueError:
+            pass
+
+    raise StarknetDevnetException(
+        code=StarkErrorCode.MALFORMED_REQUEST, message=f"Invalid block number: '{raw}'"
+    )
 
 
 # pylint: disable=too-many-instance-attributes
@@ -65,16 +99,14 @@ class DevnetBlocks:
                 code=StarknetErrorCode.BLOCK_NOT_FOUND, message=message
             )
 
-    async def get_by_number(self, block_number: BlockIdentifier) -> StarknetBlock:
+    async def get_by_number(self, block_number: Optional[str]) -> StarknetBlock:
         """Returns the block whose block_number is provided"""
+        block_number = _parse_block_number(block_number)
+
         if block_number == PENDING_BLOCK_ID:
             if self.__pending_block:
                 return self.__pending_block
             # if no pending, default to latest
-            block_number = LATEST_BLOCK_ID
-
-        if block_number is None:
-            # if no number, default to latest
             block_number = LATEST_BLOCK_ID
 
         if block_number == LATEST_BLOCK_ID:
@@ -92,7 +124,7 @@ class DevnetBlocks:
         """
         Returns the block with the given block hash.
         """
-        numeric_hash = int(block_hash, 16)
+        numeric_hash = _parse_block_hash(block_hash)
 
         if numeric_hash in self.__hash2num:
             block_number = self.__hash2num[int(block_hash, 16)]
@@ -101,19 +133,21 @@ class DevnetBlocks:
         return await self.origin.get_block_by_hash(block_hash)
 
     async def get_state_update(
-        self, block_hash: str = None, block_number: BlockIdentifier = None
+        self, block_hash: str = None, block_number: Any = None
     ) -> BlockStateUpdate:
         """
         Returns state update for the provided block hash or block number.
         It will return the last state update if block is not provided.
         """
         if block_hash:
-            numeric_hash = int(block_hash, 16)
+            numeric_hash = _parse_block_hash(block_hash)
 
             if numeric_hash not in self.__hash2num:
                 return await self.origin.get_state_update(block_hash=block_hash)
 
             block_number = self.__hash2num[numeric_hash]
+
+        block_number = _parse_block_number(block_number)
 
         if block_number == PENDING_BLOCK_ID:
             if self.__pending_state_update:
@@ -121,13 +155,15 @@ class DevnetBlocks:
             # if no pending, default to latest
             block_number = LATEST_BLOCK_ID
 
-        if block_number is not None:
+        # now either an int or "latest"
+        if block_number != LATEST_BLOCK_ID:
             self.__assert_block_number_in_range(block_number)
             if block_number in self.__state_updates:
                 return self.__state_updates[block_number]
 
             return await self.origin.get_state_update(block_number=block_number)
 
+        # now we know the block ID is "latest"
         return (
             self.__state_updates.get(self.get_number_of_blocks() - 1)
             or await self.origin.get_state_update()
