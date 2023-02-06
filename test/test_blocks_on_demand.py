@@ -56,12 +56,15 @@ def test_blocks_on_demand_invoke():
     deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
     assert_tx_status(deploy_info["tx_hash"], "PENDING")
 
-    try:
-        call(
+    def get_contract_balance():
+        return call(
             function="get_balance",
             address=deploy_info["address"],
             abi_path=ABI_PATH,
         )
+
+    try:
+        get_contract_balance()
         pytest.fail("Should have failed")
     except ReturnCodeAssertionError as error:
         assert str(StarknetErrorCode.UNINITIALIZED_CONTRACT) in str(error)
@@ -80,11 +83,7 @@ def test_blocks_on_demand_invoke():
     _demand_block_creation()
     assert_tx_status(invoke_hash, "ACCEPTED_ON_L2")
 
-    balance_after_create_block_on_demand = call(
-        function="get_balance",
-        address=deploy_info["address"],
-        abi_path=ABI_PATH,
-    )
+    balance_after_create_block_on_demand = get_contract_balance()
     assert int(balance_after_create_block_on_demand) == 30
 
     latest_block = get_block(block_number="latest", parse=True)
@@ -104,11 +103,14 @@ def test_blocks_on_demand_invoke_call():
     deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
     _demand_block_creation()
 
-    balance_after_deploy = call(
-        function="get_balance",
-        address=deploy_info["address"],
-        abi_path=ABI_PATH,
-    )
+    def get_contract_balance():
+        return call(
+            function="get_balance",
+            address=deploy_info["address"],
+            abi_path=ABI_PATH,
+        )
+
+    balance_after_deploy = get_contract_balance()
     assert int(balance_after_deploy) == 0
 
     invoke(
@@ -116,19 +118,11 @@ def test_blocks_on_demand_invoke_call():
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
-    balance_after_invoke = call(
-        function="get_balance",
-        address=deploy_info["address"],
-        abi_path=ABI_PATH,
-    )
+    balance_after_invoke = get_contract_balance()
     assert int(balance_after_invoke) == 0
 
     _demand_block_creation()
-    balance_after_create_block_on_demand = call(
-        function="get_balance",
-        address=deploy_info["address"],
-        abi_path=ABI_PATH,
-    )
+    balance_after_create_block_on_demand = get_contract_balance()
     assert int(balance_after_create_block_on_demand) == 30
 
 
