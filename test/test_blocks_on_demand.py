@@ -2,8 +2,6 @@
 Test blocks on demand mode.
 """
 
-from test.rpc.rpc_utils import gateway_call
-
 import pytest
 import requests
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
@@ -17,19 +15,41 @@ from .shared import (
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
+from .test_state_update import get_state_update
+from .test_transaction_trace import get_block_traces
 from .util import (
     ReturnCodeAssertionError,
+    assert_equal,
+    assert_hex_equal,
     assert_tx_status,
     call,
     deploy,
     devnet_in_background,
+    get_block,
 )
+
+
+def _demand_block_creation():
+    requests.post(f"{APP_URL}/create_block_on_demand")
+
+
+def _get_block_resp(block_number):
+    return requests.get(
+        f"{APP_URL}/feeder_gateway/get_block", {"blockNumber": block_number}
+    )
+
+
+def _assert_block_is_pending(block: dict):
+    assert block["status"] == "PENDING"
+    assert "block_hash" not in block
+    assert "block_number" not in block
+    assert "state_root" not in block
 
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS, "--blocks-on-demand")
 def test_blocks_on_demand_invoke():
     """Test deploy in blocks-on-demand mode"""
-    latest_block = gateway_call("get_block", blockNumber="latest")
+    latest_block = get_block(block_number="latest", parse=True)
     genesis_block_number = latest_block["block_number"]
     assert genesis_block_number == 0
 
@@ -53,11 +73,11 @@ def test_blocks_on_demand_invoke():
     )
     assert_tx_status(invoke_hash, "PENDING")
 
-    latest_block = gateway_call("get_block", blockNumber="latest")
+    latest_block = get_block(block_number="latest", parse=True)
     block_number_after_deploy_and_invoke = latest_block["block_number"]
     assert block_number_after_deploy_and_invoke == 0
 
-    requests.post(f"{APP_URL}/create_block_on_demand")
+    _demand_block_creation()
     assert_tx_status(invoke_hash, "ACCEPTED_ON_L2")
 
     balance_after_create_block_on_demand = call(
@@ -67,7 +87,7 @@ def test_blocks_on_demand_invoke():
     )
     assert int(balance_after_create_block_on_demand) == 30
 
-    latest_block = gateway_call("get_block", blockNumber="latest")
+    latest_block = get_block(block_number="latest", parse=True)
     block_number_after_block_on_demand_call = latest_block["block_number"]
     assert block_number_after_block_on_demand_call == 1
     assert len(latest_block["transactions"]) == 2
@@ -82,7 +102,7 @@ def test_blocks_on_demand_invoke_call():
     """
     # Deploy and invoke
     deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
-    requests.post(f"{APP_URL}/create_block_on_demand")
+    _demand_block_creation()
 
     balance_after_deploy = call(
         function="get_balance",
@@ -103,10 +123,111 @@ def test_blocks_on_demand_invoke_call():
     )
     assert int(balance_after_invoke) == 0
 
-    requests.post(f"{APP_URL}/create_block_on_demand")
+    _demand_block_creation()
     balance_after_create_block_on_demand = call(
         function="get_balance",
         address=deploy_info["address"],
         abi_path=ABI_PATH,
     )
     assert int(balance_after_create_block_on_demand) == 30
+
+
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS, "--blocks-on-demand")
+def test_getting_next_block():
+    """Test that artifacts related to block 1 are available only after creating on demand"""
+
+    # some transaction, could be anything
+    deploy(CONTRACT_PATH, inputs=["0"])
+
+    # expect failure on block retrieval
+    next_block_number = 1
+    block_resp = _get_block_resp(block_number=next_block_number)
+    assert block_resp.status_code == 500
+    assert block_resp.json()["code"] == str(StarknetErrorCode.BLOCK_NOT_FOUND)
+
+    _demand_block_creation()
+
+    # expect success on block retrieval
+    block_resp = _get_block_resp(block_number=next_block_number)
+    assert block_resp.status_code == 200
+
+
+@devnet_in_background("--blocks-on-demand")
+def test_getting_pending_defaults_to_latest():
+    """Test that specifying "pending" defaults to using "latest" if no there is no pending block"""
+
+    pending_block = get_block(block_number="pending", parse=True)
+    latest_block = get_block(block_number="latest", parse=True)
+    assert_equal(pending_block, latest_block)
+
+    pending_block_traces = get_block_traces({"blockNumber": "pending"})
+    latest_block_traces = get_block_traces({"blockNumber": "latest"})
+    assert_equal(pending_block_traces, latest_block_traces)
+
+    pending_state_update = get_state_update(block_number="pending")
+    latest_state_update = get_state_update(block_number="latest")
+    assert_equal(pending_state_update, latest_state_update)
+
+
+@devnet_in_background("--blocks-on-demand")
+def test_pending_block():
+    """Test that pending block contains pending data"""
+
+    # get state of latest before the tx
+    latest_block_before = get_block(block_number="latest", parse=True)
+    assert latest_block_before["status"] == "ACCEPTED_ON_L2"
+
+    # some tx to generate a pending block, could be anything
+    deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
+
+    # assert correct pending block
+    pending_block = get_block(block_number="pending", parse=True)
+    _assert_block_is_pending(pending_block)
+    pending_tx_hashes = [tx["transaction_hash"] for tx in pending_block["transactions"]]
+    assert deploy_info["tx_hash"] in pending_tx_hashes
+
+    # assert latest unchanged
+    latest_block = get_block(block_number="latest", parse=True)
+    assert_equal(latest_block_before, latest_block)
+
+    _demand_block_creation()
+    latest_block_after = get_block(block_number="latest", parse=True)
+    assert pending_block["transactions"] == latest_block_after["transactions"]
+
+
+@devnet_in_background("--blocks-on-demand")
+def test_pending_block_traces():
+    """Test that pending block traces contain pending data"""
+
+    latest_block_traces_before = get_block_traces({"blockNumber": "latest"})
+
+    # some tx to generate a pending block, could be anything
+    deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
+
+    pending_block_traces = get_block_traces({"blockNumber": "pending"})
+    assert_hex_equal(
+        hex(pending_block_traces.traces[0].transaction_hash),
+        deploy_info["tx_hash"],
+    )
+
+    # assert latest unchanged
+    latest_block_traces = get_block_traces({"blockNumber": "latest"})
+    assert_equal(latest_block_traces_before, latest_block_traces)
+
+
+@devnet_in_background("--blocks-on-demand")
+def test_pending_state_update():
+    """Test that pending state update contains pending data"""
+
+    latest_state_update_before = get_state_update(block_number="latest")
+
+    # some tx to generate a pending block, could be anything
+    deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
+
+    pending_state_update = get_state_update(block_number="pending")
+    pending_deployed = pending_state_update["state_diff"]["deployed_contracts"]
+    assert_hex_equal(pending_deployed[0]["address"], deploy_info["address"])
+
+    # assert latest unchanged
+    latest_state_update = get_state_update(block_number="latest")
+    assert_equal(latest_state_update_before, latest_state_update)
