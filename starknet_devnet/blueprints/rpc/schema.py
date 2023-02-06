@@ -42,6 +42,7 @@ def _extract_methods(specs_json: Dict[str, Any]) -> Dict[str, Any]:
     return {method["name"]: method for method in specs_json["methods"]}
 
 
+@lru_cache
 def _response_schema_for_method(name: str) -> Dict[str, Any]:
     """
     Return a dict with correct structure for jsonschema validation.
@@ -74,6 +75,7 @@ def _response_schema_for_method(name: str) -> Dict[str, Any]:
     return {**base_schema, "components": {"schemas": schemas}}
 
 
+@lru_cache
 def _request_schemas_for_method(name: str) -> OrderedDictType[str, Any]:
     """
     Return a dict of schemas for all parameters with correct structure for jsonschema validation.
