@@ -45,6 +45,10 @@ optional arguments:
                         Specify the block number where the --fork-network is forked; defaults to latest
   --chain-id CHAIN_ID
                         Specify the chain id as string: {MAINNET, TESTNET, TESTNET2}
+  --disable-rpc-request-validation
+                        Disable requests schema validation for RPC endpoints
+  --disable-rpc-response-validation
+                        Disable RPC schema validation for devnet responses
 ```
 
 You can run `starknet-devnet` in a separate shell, or you can run it in background with `starknet-devnet &`.
