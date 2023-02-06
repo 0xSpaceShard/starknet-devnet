@@ -6,6 +6,10 @@ sidebar_position: 3
 
 Devnet also supports JSON-RPC API v0.2.1: [specifications](https://github.com/starkware-libs/starknet-specs/releases/tag/v0.2.1) . It can be reached under `/rpc`. For an example:
 
+Requests to rpc and devnet responses are automatically validated against JSON schema in runtime.
+In case of problems, this validations can be disabled by `--disable-rpc-request-validation` and
+`--disable-rpc-response-validation` run flags. If you encounter issues with validation, please [report it on github](https://github.com/Shard-Labs/starknet-devnet/issues).
+
 ```
 POST /rpc
 {
