@@ -31,7 +31,10 @@ from starknet_devnet.blueprints.rpc.schema import (
 )
 from starknet_devnet.blueprints.rpc.state import get_state_update
 from starknet_devnet.blueprints.rpc.storage import get_storage_at
-from starknet_devnet.blueprints.rpc.structures.types import RpcError, PredefinedRpcErrorCode
+from starknet_devnet.blueprints.rpc.structures.types import (
+    PredefinedRpcErrorCode,
+    RpcError,
+)
 from starknet_devnet.blueprints.rpc.transactions import (
     add_declare_transaction,
     add_deploy_account_transaction,
@@ -124,7 +127,8 @@ def parse_body(body: dict) -> Tuple[Callable, Union[List, dict], int]:
 
     if method_name not in methods:
         raise RpcError(
-            code=PredefinedRpcErrorCode.METHOD_NOT_FOUND.value, message="Method not found"
+            code=PredefinedRpcErrorCode.METHOD_NOT_FOUND.value,
+            message="Method not found",
         )
 
     if not isinstance(params, (List, Dict)):
