@@ -6,7 +6,7 @@ from test.rpc.rpc_utils import rpc_call
 import pytest
 from starkware.starknet.public.abi import get_storage_var_address
 
-from starknet_devnet.blueprints.rpc.structures.types import RpcErrorCode
+from starknet_devnet.blueprints.rpc.structures.types import PredefinedRpcErrorCode
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 
 
@@ -93,6 +93,6 @@ def test_get_storage_at_raises_on_incorrect_block_id(deploy_info):
     )
 
     assert ex["error"] == {
-        "code": RpcErrorCode.INVALID_PARAMS.value,
+        "code": PredefinedRpcErrorCode.INVALID_PARAMS.value,
         "message": "Invalid value for block id.",
     }

@@ -31,7 +31,7 @@ from starknet_devnet.blueprints.rpc.schema import (
 )
 from starknet_devnet.blueprints.rpc.state import get_state_update
 from starknet_devnet.blueprints.rpc.storage import get_storage_at
-from starknet_devnet.blueprints.rpc.structures.types import RpcError, RpcErrorCode
+from starknet_devnet.blueprints.rpc.structures.types import RpcError, PredefinedRpcErrorCode
 from starknet_devnet.blueprints.rpc.transactions import (
     add_declare_transaction,
     add_deploy_account_transaction,
@@ -96,13 +96,13 @@ async def base_route():
     except ParamsValidationErrorWrapper as error:
         return rpc_error(
             message_id=message_id,
-            code=RpcErrorCode.INVALID_PARAMS.value,
+            code=PredefinedRpcErrorCode.INVALID_PARAMS.value,
             message=str(error),
         )
     except ResponseValidationErrorWrapper as error:
         return rpc_error(
             message_id=message_id,
-            code=RpcErrorCode.INTERNAL_ERROR.value,
+            code=PredefinedRpcErrorCode.INTERNAL_ERROR.value,
             message=str(error),
         )
 
@@ -119,17 +119,17 @@ def parse_body(body: dict) -> Tuple[Callable, Union[List, dict], int]:
         message_id = body["id"]
     except RuntimeError as error:
         raise RpcError(
-            code=RpcErrorCode.INVALID_REQUEST.value, message="Invalid request"
+            code=PredefinedRpcErrorCode.INVALID_REQUEST.value, message="Invalid request"
         ) from error
 
     if method_name not in methods:
         raise RpcError(
-            code=RpcErrorCode.METHOD_NOT_FOUND.value, message="Method not found"
+            code=PredefinedRpcErrorCode.METHOD_NOT_FOUND.value, message="Method not found"
         )
 
     if not isinstance(params, (List, Dict)):
         raise RpcError(
-            code=RpcErrorCode.INVALID_PARAMS.value,
+            code=PredefinedRpcErrorCode.INVALID_PARAMS.value,
             # fmt: off
             message="Invalid \"params\" type. Value of \"params\" must be a dict or list",
             # fmt: on

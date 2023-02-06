@@ -15,7 +15,7 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     BlockId,
     Felt,
     RpcError,
-    RpcErrorCode,
+    PredefinedRpcErrorCode,
 )
 from starknet_devnet.blueprints.rpc.utils import (
     assert_block_id_is_latest_or_pending,
@@ -54,7 +54,7 @@ async def call(request: RpcFunctionCall, block_id: BlockId) -> List[Felt]:
         return [rpc_felt(res) for res in result["result"]]
     except StarknetDevnetException as ex:
         raise RpcError(
-            code=RpcErrorCode.INTERNAL_ERROR.value, message=ex.message
+            code=PredefinedRpcErrorCode.INTERNAL_ERROR.value, message=ex.message
         ) from ex
     except StarkException as ex:
         if ex.code.name == "TRANSACTION_FAILED" and ex.code.value == 39:
@@ -67,5 +67,5 @@ async def call(request: RpcFunctionCall, block_id: BlockId) -> List[Felt]:
         if "While handling calldata" in ex.message:
             raise RpcError(code=22, message="Invalid call data") from ex
         raise RpcError(
-            code=RpcErrorCode.INTERNAL_ERROR.value, message=ex.message
+            code=PredefinedRpcErrorCode.INTERNAL_ERROR.value, message=ex.message
         ) from ex

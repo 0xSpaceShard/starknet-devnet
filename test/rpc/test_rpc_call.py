@@ -6,7 +6,7 @@ from test.rpc.rpc_utils import rpc_call
 import pytest
 from starkware.starknet.public.abi import get_selector_from_name
 
-from starknet_devnet.blueprints.rpc.structures.types import RpcErrorCode
+from starknet_devnet.blueprints.rpc.structures.types import PredefinedRpcErrorCode
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 
 
@@ -122,7 +122,7 @@ def test_call_raises_on_invalid_calldata(deploy_info, calldata):
         },
     )
 
-    assert ex["error"]["code"] == RpcErrorCode.INVALID_PARAMS.value
+    assert ex["error"]["code"] == PredefinedRpcErrorCode.INVALID_PARAMS.value
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -144,7 +144,7 @@ def test_call_raises_on_incorrect_block_hash(deploy_info):
         },
     )
 
-    assert ex["error"]["code"] == RpcErrorCode.INVALID_PARAMS.value
+    assert ex["error"]["code"] == PredefinedRpcErrorCode.INVALID_PARAMS.value
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")

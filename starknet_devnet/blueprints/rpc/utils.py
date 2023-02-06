@@ -7,7 +7,7 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     BlockId,
     Felt,
     RpcError,
-    RpcErrorCode,
+    PredefinedRpcErrorCode,
 )
 from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException
@@ -22,7 +22,7 @@ def block_tag_to_block_number(block_id: BlockId) -> BlockId:
             return {
                 "block_number": state.starknet_wrapper.blocks.get_number_of_blocks() - 1
             }
-        raise RpcError(code=RpcErrorCode.INVALID_PARAMS.value, message="Invalid params")
+        raise RpcError(code=PredefinedRpcErrorCode.INVALID_PARAMS.value, message="Invalid params")
 
     return block_id
 
@@ -71,7 +71,7 @@ async def assert_block_id_is_latest_or_pending(block_id: BlockId) -> None:
             return
 
     raise RpcError(
-        code=RpcErrorCode.INVALID_PARAMS.value, message="Invalid value for block id."
+        code=PredefinedRpcErrorCode.INVALID_PARAMS.value, message="Invalid value for block id."
     )
 
 

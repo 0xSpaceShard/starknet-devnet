@@ -9,7 +9,7 @@ import pytest
 from starkware.starknet.public.abi import get_selector_from_name
 
 from starknet_devnet.blueprints.rpc.schema import _assert_valid_rpc_request
-from starknet_devnet.blueprints.rpc.structures.types import RpcErrorCode
+from starknet_devnet.blueprints.rpc.structures.types import PredefinedRpcErrorCode
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 
 
@@ -86,7 +86,7 @@ def test_schema_raises_on_invalid_kwargs(params):
     assert "error" in resp
     error = resp["error"]
 
-    assert error["code"] == RpcErrorCode.INVALID_PARAMS.value
+    assert error["code"] == PredefinedRpcErrorCode.INVALID_PARAMS.value
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -170,7 +170,7 @@ def test_schema_raises_on_invalid_args(params):
     assert "error" in resp
     error = resp["error"]
 
-    assert error["code"] == RpcErrorCode.INVALID_PARAMS.value
+    assert error["code"] == PredefinedRpcErrorCode.INVALID_PARAMS.value
 
 
 @devnet_in_background("--disable-rpc-request-validation")
@@ -192,7 +192,7 @@ def test_schema_does_not_raise_on_disabled_request_validation():
 
     # Error will be raised when trying to execute function, but it shouldn't be the INVALID_PARAMS error
     error = resp["error"]
-    assert error["code"] != RpcErrorCode.INVALID_PARAMS.value
+    assert error["code"] != PredefinedRpcErrorCode.INVALID_PARAMS.value
     assert error["code"] in (
         20,
         21,
@@ -251,7 +251,7 @@ def test_schema_does_not_raise_on_correct_kwargs(params):
 
     # Error will be raised because address is correctly formatted but incorrect
     error = resp["error"]
-    assert all(error["code"] != code.value for code in RpcErrorCode)
+    assert all(error["code"] != code.value for code in PredefinedRpcErrorCode)
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -274,7 +274,7 @@ def test_schema_does_not_raise_on_correct_args():
 
     # Error will be raised because address is correctly formatted but incorrect
     error = resp["error"]
-    assert all(error["code"] != code.value for code in RpcErrorCode)
+    assert all(error["code"] != code.value for code in PredefinedRpcErrorCode)
 
 
 def test_schema_with_optional_values():
