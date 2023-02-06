@@ -76,7 +76,7 @@ def _response_schema_for_method(name: str) -> Dict[str, Any]:
 
 def _request_schemas_for_method(name: str) -> OrderedDictType[str, Any]:
     """
-    Return a dict with correct structure for jsonschema validation.
+    Return a dict of schemas for all parameters with correct structure for jsonschema validation.
 
     {
         "param1": {
