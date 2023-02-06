@@ -6,7 +6,11 @@ from __future__ import annotations
 
 from test.account import declare, invoke
 from test.rpc.rpc_utils import deploy_and_invoke_storage_contract, rpc_call
-from test.rpc.test_data.get_events import GET_EVENTS_TEST_DATA
+from test.rpc.test_data.get_events import (
+    BLOCK_FROM_0_TO_LATEST_MALFORMED_REQUEST,
+    GET_EVENTS_TEST_DATA,
+    create_get_events_rpc,
+)
 from test.shared import (
     CONTRACT_PATH,
     DEPLOYER_CONTRACT_PATH,
@@ -23,6 +27,7 @@ from test.util import assert_hex_equal, assert_transaction, deploy
 import pytest
 from starkware.starknet.public.abi import get_storage_var_address
 
+from starknet_devnet.blueprints.rpc.structures.types import RpcErrorCode
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 
@@ -149,6 +154,20 @@ def test_call_with_invalid_params(params):
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
+def test_get_events_malformed_request():
+    """
+    Test RPC get_events with malformed request.
+    """
+    resp = rpc_call(
+        "starknet_getEvents",
+        params=create_get_events_rpc(BLOCK_FROM_0_TO_LATEST_MALFORMED_REQUEST)[
+            "params"
+        ],
+    )
+    assert resp["error"]["code"] == RpcErrorCode.INVALID_PARAMS.value
+
+
+@pytest.mark.usefixtures("run_devnet_in_background")
 @pytest.mark.parametrize(
     "run_devnet_in_background, input_data, expected_data",
     GET_EVENTS_TEST_DATA,
@@ -165,14 +184,15 @@ def test_get_events(input_data, expected_data):
             account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
             private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
         )
-    resp = rpc_call("starknet_getEvents", params=input_data)
+    resp = rpc_call("starknet_getEvents", params=input_data["params"])
     assert len(expected_data) == len(resp["result"]["events"])
     for i, data in enumerate(expected_data):
         assert str(resp["result"]["events"][i]["data"]) == str(data)
 
-    if "continuation_token" in input_data:
-        expected_continuation_token = int(input_data["continuation_token"])
-
+    if "continuation_token" in input_data["params"]["filter"]:
+        expected_continuation_token = int(
+            input_data["params"]["filter"]["continuation_token"]
+        )
         # increase continuation_token when events are not empty
         if resp["result"]["events"]:
             expected_continuation_token += 1

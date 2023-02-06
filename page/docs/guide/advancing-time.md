@@ -3,7 +3,7 @@ sidebar_position: 11
 ---
 # Advancing time
 
-Block timestamp can be manipulated by seting the exact time or seting the time offset. Timestamps methods won't generate a new block, but they will modify the time of the following blocks. All values should be set in [**Unix time**](https://en.wikipedia.org/wiki/Unix_time) and seconds.
+Block timestamp can be manipulated by setting the exact time or setting the time offset. Timestamps methods won't generate a new block, but they will modify the time of the following blocks. All values should be set in [**Unix time**](https://en.wikipedia.org/wiki/Unix_time) and seconds.
 
 ## Set time
 

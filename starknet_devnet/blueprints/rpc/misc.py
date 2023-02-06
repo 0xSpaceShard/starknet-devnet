@@ -4,7 +4,7 @@ RPC miscellaneous endpoints
 
 from __future__ import annotations
 
-from typing import List, Union
+from typing import Union
 
 from starknet_devnet.blueprints.rpc.structures.responses import RpcEventsResult
 from starknet_devnet.blueprints.rpc.structures.types import (
@@ -12,6 +12,7 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     BlockId,
     Felt,
     RpcError,
+    RpcErrorCode,
 )
 from starknet_devnet.blueprints.rpc.utils import (
     assert_block_id_is_latest_or_pending,
@@ -63,15 +64,9 @@ async def syncing() -> Union[dict, bool]:
     return False
 
 
-# pylint: disable=too-many-arguments
-async def get_events(
-    from_block: BlockId,
-    to_block: BlockId,
-    chunk_size: int,
-    address: Address = None,
-    keys: List[Address] = None,
-    continuation_token: str = "0",
-) -> str:
+# pylint: disable=redefined-builtin
+# filter name is determined by current RPC implementation and starknet specification
+async def get_events(filter) -> RpcEventsResult:
     """
     Returns all events matching the given filters.
 
@@ -81,6 +76,22 @@ async def get_events(
     This is why we need to iterate block by block, take all events,
     and chunk it later which is not an optimal solution.
     """
+    # Required parameters
+    from_block = filter.get("from_block")
+    to_block = filter.get("to_block")
+    try:
+        chunk_size = int(filter.get("chunk_size"))
+    except ValueError as ex:
+        raise RpcError(
+            code=RpcErrorCode.INVALID_PARAMS.value,
+            message=f"invalid chunk_size: '{filter.get('chunk_size')}'",
+        ) from ex
+
+    # Optional parameters
+    address = filter.get("address")
+    keys = filter.get("keys")
+    continuation_token = filter.get("continuation_token", "0")
+
     events = []
     keys = [] if keys is None else [int(k, 0) for k in keys]
     to_block = (
@@ -93,12 +104,12 @@ async def get_events(
         if block.transaction_receipts:
             events.extend(get_events_from_block(block, address, keys))
 
-    # chunking
+    # Chunking
     continuation_token = int(continuation_token)
     start_index = continuation_token * chunk_size
     events = events[start_index : start_index + chunk_size]
 
-    # continuation_token should be increased only if events are not empty
+    # Continuation_token should be increased only if events are not empty
     if events:
         continuation_token = continuation_token + 1
 

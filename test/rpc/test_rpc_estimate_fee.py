@@ -4,7 +4,7 @@ Tests RPC estimate fee
 
 from __future__ import annotations
 
-from test.account import _get_execute_args, _get_signature, get_nonce
+from test.account import _get_signature, get_nonce
 from test.rpc.rpc_utils import rpc_call_background_devnet
 from test.rpc.test_rpc_transactions import pad_zero_entry_points
 from test.shared import (
@@ -27,6 +27,7 @@ from starkware.starknet.services.api.gateway.transaction import (
 )
 from starkware.starknet.services.api.gateway.transaction_utils import decompress_program
 
+from starknet_devnet.account_util import get_execute_args
 from starknet_devnet.blueprints.rpc.structures.payloads import (
     RpcBroadcastedDeclareTxn,
     RpcBroadcastedInvokeTxnV0,
@@ -49,9 +50,9 @@ def common_estimate_response(response):
     assert overall_fee == gas_consumed * gas_price
 
 
-def get_execute_args(calls):
+def get_predeployed_acc_execute_args(calls):
     """Get execute arguments with predeployed account"""
-    return _get_execute_args(
+    return get_execute_args(
         calls=calls,
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
@@ -98,7 +99,7 @@ def test_estimate_happy_path():
     contract_address = deploy_empty_contract()["address"]
 
     calls = [(contract_address, "sum_point_array", [2, 10, 20, 30, 40])]
-    signature, execute_calldata = get_execute_args(calls)
+    signature, execute_calldata = get_predeployed_acc_execute_args(calls)
 
     invoke_transaction = RpcBroadcastedInvokeTxnV1(
         type="INVOKE",
@@ -207,7 +208,7 @@ def test_estimate_fee_with_invalid_call_data():
     contract_address = deploy_empty_contract()["address"]
 
     calls = [(contract_address, "sum_point_array", [3, 10, 20, 30, 40])]
-    signature, execute_calldata = get_execute_args(calls)
+    signature, execute_calldata = get_predeployed_acc_execute_args(calls)
 
     invoke_transaction = RpcBroadcastedInvokeTxnV1(
         type="INVOKE",

@@ -3,7 +3,6 @@ pragma solidity ^0.6.12;
 
 /*
   Library to provide basic storage, in storage location out of the low linear address space.
-
   New types of storage variables should be added here upon need.
 */
 library NamedStorage {
@@ -22,17 +21,6 @@ library NamedStorage {
         internal
         pure
         returns (mapping(bytes32 => address) storage randomVariable)
-    {
-        bytes32 location = keccak256(abi.encodePacked(tag_));
-        assembly {
-            randomVariable_slot := location
-        }
-    }
-
-    function uintToAddressMapping(string memory tag_)
-        internal
-        pure
-        returns (mapping(uint256 => address) storage randomVariable)
     {
         bytes32 location = keccak256(abi.encodePacked(tag_));
         assembly {

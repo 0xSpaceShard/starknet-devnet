@@ -4,7 +4,9 @@ import json
 
 import pytest
 import requests
+from starkware.starknet.public.abi import get_selector_from_name
 
+from starknet_devnet.chargeable_account import ChargeableAccount
 from starknet_devnet.fee_token import FeeToken
 from starknet_devnet.server import app
 
@@ -23,7 +25,7 @@ from .test_account import (
     get_account_balance,
     get_transaction_receipt,
 )
-from .util import assert_equal, devnet_in_background, get_block, mint
+from .util import assert_equal, devnet_in_background, mint
 
 
 @pytest.mark.fee_token
@@ -118,16 +120,43 @@ def test_mint():
     account_address = (
         "0x6e3205f9b7c4328f00f718fdecf56ab31acfb3cd6ffeb999dcbac4123655502"
     )
-    response = mint(address=account_address, amount=50_000)
-    assert response.get("new_balance") == 50_000
+    amount = 50_000
+
+    response = mint(address=account_address, amount=amount)
+    assert response.get("new_balance") == amount
     assert response.get("unit") == "wei"
     assert response.get("tx_hash").startswith("0x")
 
-    get_block(block_number="latest")
     response = requests.get(f"{APP_URL}/feeder_gateway/get_block?blockNumber=latest")
     assert response.status_code == 200
-    assert response.json().get("block_number") == GENESIS_BLOCK_NUMBER + 1
-    assert int(response.json().get("transactions")[0].get("calldata")[1], 16) == 50_000
+
+    block = response.json()
+    assert block["block_number"] == GENESIS_BLOCK_NUMBER + 1
+
+    transaction = block["transactions"][0]
+    calldata = transaction["calldata"]
+    assert calldata == [
+        "0x1",
+        EXPECTED_FEE_TOKEN_ADDRESS,
+        hex(get_selector_from_name("mint")),
+        "0x0",
+        "0x3",
+        "0x3",
+        account_address,
+        hex(amount),  # uint256 low
+        "0x0",  # uint256 high
+    ]
+
+
+@pytest.mark.fee_token
+@devnet_in_background()
+def test_chargeable_account_charged_on_mint():
+    """Assert that the predeployed chargeable account is charged with the minting fee"""
+    account_address = hex(ChargeableAccount.ADDRESS)
+    balance_before = get_account_balance(account_address)
+    mint(address="0x123", amount=123)  # dummy data, but mintable
+    balance_after = get_account_balance(account_address)
+    assert balance_after < balance_before
 
 
 @pytest.mark.fee_token
@@ -139,7 +168,7 @@ def test_mint_lite():
         amount=50_000,
         lite=True,
     )
-    assert response.get("new_balance") == 50000
+    assert response.get("new_balance") == 50_000
     assert response.get("unit") == "wei"
     assert response.get("tx_hash") is None
 

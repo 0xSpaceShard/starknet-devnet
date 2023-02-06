@@ -20,7 +20,6 @@ from .shared import (
     ABI_PATH,
     CONTRACT_PATH,
     EXPECTED_CLASS_HASH,
-    EXPECTED_FEE_TOKEN_ADDRESS,
     L1L2_ABI_PATH,
     L1L2_CONTRACT_PATH,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
@@ -74,20 +73,19 @@ def common_estimate_response(
 @devnet_in_background()
 def test_estimate_fee_with_genesis_block():
     """Call without transaction, expect pass with gas_price zero"""
+
+    deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
+    # increase balance with 10+20
     response = send_estimate_fee_with_requests(
         {
-            "entry_point_selector": "0x2f0b3c5710379609eb5495f1ecd348cb28167711b73609fe565a72734550354",
-            "calldata": [
-                "1786654640273905855542517570545751199272449814774211541121677632577420730552",
-                "1000000000000000000000",
-                "0",
-            ],
+            "contract_address": deploy_info["address"],
             "signature": [],
-            "contract_address": EXPECTED_FEE_TOKEN_ADDRESS,
+            "calldata": ["10", "20"],
+            "entry_point_selector": "0x362398bec32bc0ebb411203221a35a0301193a96f317ebe5e40be9f60d15320",
         }
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 200, f"Request not OK: {response.json()}"
     common_estimate_response(response.json())
 
 

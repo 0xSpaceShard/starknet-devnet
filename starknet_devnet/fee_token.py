@@ -10,6 +10,9 @@ from starkware.starknet.services.api.gateway.transaction import InvokeFunction
 from starkware.starknet.testing.contract import StarknetContract
 from starkware.starknet.testing.starknet import Starknet
 
+from starknet_devnet.account_util import get_execute_args
+from starknet_devnet.chargeable_account import ChargeableAccount
+from starknet_devnet.constants import SUPPORTED_TX_VERSION
 from starknet_devnet.sequencer_api_utils import InternalInvokeFunction
 from starknet_devnet.util import Uint256, str_to_felt
 
@@ -21,7 +24,7 @@ class FeeToken:
 
     # Precalculated
     # HASH = to_bytes(compute_class_hash(contract_class=FeeToken.get_contract_class()))
-    HASH = 3000409729603134799471314790024123407246450023546294072844903167350593031855
+    HASH = 0x6A22BF63C7BC07EFFA39A25DFBD21523D211DB0100A0AFD054D172B81840EAF
     HASH_BYTES = to_bytes(HASH)
 
     # Taken from
@@ -75,6 +78,11 @@ class FeeToken:
             get_selector_from_name("ERC20_decimals"),
             18,
         )
+        await starknet.state.state.set_storage_at(
+            FeeToken.ADDRESS,
+            get_selector_from_name("Ownable_owner"),
+            ChargeableAccount.ADDRESS,
+        )
 
         self.contract = StarknetContract(
             state=starknet.state,
@@ -92,18 +100,40 @@ class FeeToken:
         ).to_felt()
         return balance
 
-    @classmethod
-    def get_mint_transaction(cls, to_address: int, amount: Uint256):
+    async def get_mint_transaction(self, fundable_address: int, amount: Uint256):
         """Construct a transaction object representing minting request"""
+
+        starknet: Starknet = self.starknet_wrapper.starknet
+        calldata = [
+            str(fundable_address),
+            str(amount.low),
+            str(amount.high),
+        ]
+
+        version = SUPPORTED_TX_VERSION
+        max_fee = int(1e18)  # big enough
+
+        # we need a funded account for this since the tx has to be signed and a fee will be charged
+        # a user-intedded predeployed account cannot be used for this
+        nonce = await starknet.state.state.get_nonce_at(ChargeableAccount.ADDRESS)
+        chargeable_address = hex(ChargeableAccount.ADDRESS)
+        signature, execute_calldata = get_execute_args(
+            calls=[(hex(FeeToken.ADDRESS), "mint", calldata)],
+            account_address=chargeable_address,
+            private_key=ChargeableAccount.PRIVATE_KEY,
+            nonce=nonce,
+            version=version,
+            max_fee=max_fee,
+            chain_id=starknet.state.general_config.chain_id,
+        )
+
         transaction_data = {
-            "entry_point_selector": hex(get_selector_from_name("mint")),
-            "calldata": [
-                str(to_address),
-                str(amount.low),
-                str(amount.high),
-            ],
-            "signature": [],
-            "contract_address": hex(cls.ADDRESS),
+            "calldata": [str(v) for v in execute_calldata],
+            "contract_address": chargeable_address,
+            "nonce": hex(nonce),
+            "max_fee": hex(max_fee),
+            "signature": signature,
+            "version": hex(version),
         }
         return InvokeFunction.load(transaction_data)
 
@@ -115,7 +145,7 @@ class FeeToken:
         amount_uint256 = Uint256.from_felt(amount)
 
         tx_hash = None
-        transaction = self.get_mint_transaction(to_address, amount_uint256)
+        transaction = await self.get_mint_transaction(to_address, amount_uint256)
         starknet: Starknet = self.starknet_wrapper.starknet
         if lite:
             internal_tx = InternalInvokeFunction.from_external(

@@ -14,6 +14,12 @@ BLOCK_FROM_0_TO_LATEST = {
     "chunk_size": 10,
 }
 
+BLOCK_FROM_0_TO_LATEST_MALFORMED_REQUEST = {
+    "from_block": "0",
+    "to_block": "latest",
+    "chunk_size": "test",
+}
+
 BLOCK_FROM_0_TO_2 = {
     "from_block": "0",
     "to_block": "2",
@@ -105,10 +111,23 @@ FEE_CHARGING_IN_BLOCK_3_EVENT = [
     0,
 ]
 
+
+def create_get_events_rpc(filter_data):
+    """
+    Construct JSON RPC call with filter data
+    """
+    return {
+        "jsonrpc": "2.0",
+        "method": "starknet_getEvents",
+        "params": {"filter": filter_data},
+        "id": 0,
+    }
+
+
 GET_EVENTS_TEST_DATA = [
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_FROM_0_TO_LATEST,
+        create_get_events_rpc(BLOCK_FROM_0_TO_LATEST),
         [
             INCREASE_BALANCE_BY_0_EVENT,
             FEE_CHARGING_IN_BLOCK_2_EVENT,
@@ -118,17 +137,17 @@ GET_EVENTS_TEST_DATA = [
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_FROM_0_TO_2,
+        create_get_events_rpc(BLOCK_FROM_0_TO_2),
         [INCREASE_BALANCE_BY_0_EVENT, FEE_CHARGING_IN_BLOCK_2_EVENT],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_FROM_3_TO_3,
+        create_get_events_rpc(BLOCK_FROM_3_TO_3),
         [INCREASE_BALANCE_BY_1_EVENT, FEE_CHARGING_IN_BLOCK_3_EVENT],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_FROM_2_TO_3,
+        create_get_events_rpc(BLOCK_FROM_2_TO_3),
         [
             INCREASE_BALANCE_BY_0_EVENT,
             FEE_CHARGING_IN_BLOCK_2_EVENT,
@@ -138,7 +157,7 @@ GET_EVENTS_TEST_DATA = [
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_FROM_0_TO_LATEST_CHUNK_SIZE_3,
+        create_get_events_rpc(BLOCK_FROM_0_TO_LATEST_CHUNK_SIZE_3),
         [
             INCREASE_BALANCE_BY_0_EVENT,
             FEE_CHARGING_IN_BLOCK_2_EVENT,
@@ -147,27 +166,27 @@ GET_EVENTS_TEST_DATA = [
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_FROM_0_TO_LATEST_CHUNK_3_CONTINUATION_TOKEN,
+        create_get_events_rpc(BLOCK_FROM_0_TO_LATEST_CHUNK_3_CONTINUATION_TOKEN),
         [FEE_CHARGING_IN_BLOCK_3_EVENT],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_FROM_0_TO_1_CHUNK_3_CONTINUATION_TOKEN,
+        create_get_events_rpc(BLOCK_FROM_0_TO_1_CHUNK_3_CONTINUATION_TOKEN),
         [],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_FROM_0_TO_LATEST_WITH_ADDRESS,
+        create_get_events_rpc(BLOCK_FROM_0_TO_LATEST_WITH_ADDRESS),
         [FEE_CHARGING_IN_BLOCK_2_EVENT, FEE_CHARGING_IN_BLOCK_3_EVENT],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_FROM_0_TO_LATEST_WITH_KEY,
+        create_get_events_rpc(BLOCK_FROM_0_TO_LATEST_WITH_KEY),
         [FEE_CHARGING_IN_BLOCK_2_EVENT, FEE_CHARGING_IN_BLOCK_3_EVENT],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_FROM_0_TO_LATEST_WITH_KEYS,
+        create_get_events_rpc(BLOCK_FROM_0_TO_LATEST_WITH_KEYS),
         [
             INCREASE_BALANCE_BY_0_EVENT,
             FEE_CHARGING_IN_BLOCK_2_EVENT,
@@ -177,7 +196,7 @@ GET_EVENTS_TEST_DATA = [
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        BLOCK_FROM_0_TO_LATEST_WITH_ADDRESS_AND_KEYS,
+        create_get_events_rpc(BLOCK_FROM_0_TO_LATEST_WITH_ADDRESS_AND_KEYS),
         [FEE_CHARGING_IN_BLOCK_2_EVENT, FEE_CHARGING_IN_BLOCK_3_EVENT],
     ),
 ]

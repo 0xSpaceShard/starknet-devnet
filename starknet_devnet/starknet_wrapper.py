@@ -61,6 +61,7 @@ from .accounts import Accounts
 from .block_info_generator import BlockInfoGenerator
 from .blocks import DevnetBlocks
 from .blueprints.rpc.structures.types import Felt
+from .chargeable_account import ChargeableAccount
 from .constants import DUMMY_STATE_ROOT, OZ_ACCOUNT_CLASS_HASH
 from .devnet_config import DevnetConfig
 from .fee_token import FeeToken
@@ -78,6 +79,7 @@ from .util import (
     get_fee_estimation_info,
     get_storage_diffs,
     to_bytes,
+    warn,
 )
 
 enable_pickling()
@@ -132,6 +134,7 @@ class StarknetWrapper:
 
             await self.fee_token.deploy()
             await self.accounts.deploy()
+            await self.__deploy_chargeable_account()
             await self.__predeclare_oz_account()
             await self.__udc.deploy()
 
@@ -763,9 +766,16 @@ class StarknetWrapper:
         return await state.state.get_nonce_at(contract_address)
 
     async def __predeclare_oz_account(self):
+        """Predeclares the account class used by Starknet CLI"""
         await self.get_state().state.set_contract_class(
             to_bytes(OZ_ACCOUNT_CLASS_HASH), oz_account_class
         )
+
+    async def __deploy_chargeable_account(self):
+        if await self.is_deployed(ChargeableAccount.ADDRESS):
+            warn("Chargeable account already deployed")
+        else:
+            await ChargeableAccount(self).deploy()
 
     async def is_deployed(self, address: int) -> bool:
         """
