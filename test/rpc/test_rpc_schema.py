@@ -13,6 +13,17 @@ from starknet_devnet.blueprints.rpc.structures.types import PredefinedRpcErrorCo
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 
 
+def _assert_call_not_raises_predefined_error(error_code: int):
+    assert error_code != PredefinedRpcErrorCode.INVALID_PARAMS.value
+    assert error_code in (
+        20,
+        21,
+        22,
+        24,
+        40,
+    )  # These are possible `starknet_call` error codes as of 0.2.1 spec
+
+
 @pytest.mark.usefixtures("run_devnet_in_background")
 @pytest.mark.parametrize(
     "params",
@@ -192,14 +203,8 @@ def test_schema_does_not_raise_on_disabled_request_validation():
 
     # Error will be raised when trying to execute function, but it shouldn't be the INVALID_PARAMS error
     error = resp["error"]
-    assert error["code"] != PredefinedRpcErrorCode.INVALID_PARAMS.value
-    assert error["code"] in (
-        20,
-        21,
-        22,
-        24,
-        40,
-    )  # These are possible `starknet_call` error codes as of 0.2.1 spec
+    code = error["code"]
+    _assert_call_not_raises_predefined_error(code)
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -251,7 +256,8 @@ def test_schema_does_not_raise_on_correct_kwargs(params):
 
     # Error will be raised because address is correctly formatted but incorrect
     error = resp["error"]
-    assert all(error["code"] != code.value for code in PredefinedRpcErrorCode)
+    code = error["code"]
+    _assert_call_not_raises_predefined_error(code)
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -274,7 +280,8 @@ def test_schema_does_not_raise_on_correct_args():
 
     # Error will be raised because address is correctly formatted but incorrect
     error = resp["error"]
-    assert all(error["code"] != code.value for code in PredefinedRpcErrorCode)
+    code = error["code"]
+    _assert_call_not_raises_predefined_error(code)
 
 
 def test_schema_with_optional_values():
