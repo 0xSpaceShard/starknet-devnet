@@ -6,7 +6,7 @@ import pytest
 import requests
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 
-from .account import invoke
+from .account import get_estimated_fee, invoke
 from .settings import APP_URL
 from .shared import (
     ABI_PATH,
@@ -30,7 +30,7 @@ from .util import (
 
 
 def _demand_block_creation():
-    requests.post(f"{APP_URL}/create_block_on_demand")
+    return requests.post(f"{APP_URL}/create_block_on_demand")
 
 
 def _get_block_resp(block_number):
@@ -41,14 +41,13 @@ def _get_block_resp(block_number):
 
 def _assert_block_is_pending(block: dict):
     assert block["status"] == "PENDING"
-    assert "block_hash" not in block
-    assert "block_number" not in block
-    assert "state_root" not in block
+    for prop in ["block_hash", "block_number", "state_root"]:
+        assert prop not in block
 
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS, "--blocks-on-demand")
-def test_blocks_on_demand_invoke():
-    """Test deploy in blocks-on-demand mode"""
+def test_invokable_on_pending_block():
+    """Test deploy+invoke+call in blocks-on-demand mode"""
     latest_block = get_block(block_number="latest", parse=True)
     genesis_block_number = latest_block["block_number"]
     assert genesis_block_number == 0
@@ -93,7 +92,33 @@ def test_blocks_on_demand_invoke():
 
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS, "--blocks-on-demand")
-def test_blocks_on_demand_invoke_call():
+def test_estimation_works_after_block_creation():
+    """Test estimation works only after demanding block creation."""
+    deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
+    assert_tx_status(deploy_info["tx_hash"], "PENDING")
+
+    def estimate_invoke_fee():
+        return get_estimated_fee(
+            calls=[(deploy_info["address"], "increase_balance", [10, 20])],
+            account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+            private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+            block_number="latest",
+        )
+
+    try:
+        estimate_invoke_fee()
+        pytest.fail("Should have failed")
+    except ReturnCodeAssertionError as error:
+        assert str(StarknetErrorCode.UNINITIALIZED_CONTRACT) in str(error)
+
+    _demand_block_creation()
+    assert_tx_status(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
+    estimated_fee = estimate_invoke_fee()
+    assert estimated_fee > 0
+
+
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS, "--blocks-on-demand")
+def test_calling_works_after_block_creation():
     """
     Test deploy in blocks-on-demand mode for invoke and contract call.
     Balance after invoke should be 0 even when we increased it.
@@ -225,3 +250,54 @@ def test_pending_state_update():
     # assert latest unchanged
     latest_state_update = get_state_update(block_number="latest")
     assert_equal(latest_state_update_before, latest_state_update)
+
+
+def _assert_correct_block_creation_response(resp: requests.Response):
+    assert resp.status_code == 200
+    resp_block_hash = resp.json()["block_hash"]
+    latest_block = get_block(block_number="latest", parse=True)
+    assert resp_block_hash == latest_block["block_hash"]
+
+
+@devnet_in_background("--blocks-on-demand")
+def test_endpoint_if_no_pending():
+    """Test block creation if no pending txs with on-demand flag set on"""
+    resp = _demand_block_creation()
+    _assert_correct_block_creation_response(resp)
+
+
+@devnet_in_background("--blocks-on-demand")
+def test_endpoint_if_no_pending_after_creation():
+    """
+    Test block creation if no pending txs with on-demand flag set on
+    and after one block has already been created
+    """
+    deploy(CONTRACT_PATH, inputs=["10"])
+    resp = _demand_block_creation()
+    _assert_correct_block_creation_response(resp)
+
+    resp2 = _demand_block_creation()
+    _assert_correct_block_creation_response(resp2)
+
+
+@devnet_in_background("--blocks-on-demand")
+def test_endpoint_for_successive_requests():
+    """Send block creation request multiple times"""
+    for _ in range(3):
+        resp = _demand_block_creation()
+        _assert_correct_block_creation_response(resp)
+
+
+@devnet_in_background()
+def test_endpoint_without_on_demand_flag():
+    """Test block creation with on-demand flag set off"""
+    resp = _demand_block_creation()
+    _assert_correct_block_creation_response(resp)
+
+
+@devnet_in_background("--blocks-on-demand")
+def test_endpoint_if_some_pending():
+    """Test block creation if everything ok with some pending txs"""
+    deploy(CONTRACT_PATH, inputs=["10"])
+    resp = _demand_block_creation()
+    _assert_correct_block_creation_response(resp)

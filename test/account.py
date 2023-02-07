@@ -99,6 +99,7 @@ def get_estimated_fee(
     private_key: str,
     nonce=None,
     feeder_gateway_url=APP_URL,
+    block_number=None,
     chain_id=StarknetChainId.TESTNET,
 ):
     """Get estimated fee through account."""
@@ -123,6 +124,7 @@ def get_estimated_fee(
         abi_path=ACCOUNT_ABI_PATH,
         signature=signature,
         nonce=nonce,
+        block_number=block_number,
         feeder_gateway_url=feeder_gateway_url,
     )
 

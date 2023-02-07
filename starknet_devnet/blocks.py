@@ -244,6 +244,10 @@ class DevnetBlocks:
             sequencer_address=self.__pending_block.sequencer_address,
         )
 
+    def is_block_pending(self) -> bool:
+        """Return `True` if there is a pending block, oterhwise return `False`"""
+        return self.__pending_block is not None
+
     async def store_pending(
         self, state: StarknetState, is_empty_block=False
     ) -> StarknetBlock:
