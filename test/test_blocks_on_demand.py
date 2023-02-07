@@ -256,7 +256,7 @@ def _assert_correct_block_creation_response(resp: requests.Response):
     assert resp.status_code == 200
     resp_block_hash = resp.json()["block_hash"]
     latest_block = get_block(block_number="latest", parse=True)
-    assert resp_block_hash == latest_block["block_hash"]
+    assert_hex_equal(resp_block_hash, latest_block["block_hash"])
 
 
 @devnet_in_background("--blocks-on-demand")
