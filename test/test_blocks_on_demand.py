@@ -297,7 +297,7 @@ def test_endpoint_without_on_demand_flag():
 
 @devnet_in_background("--blocks-on-demand")
 def test_endpoint_if_some_pending():
-    """Test block creation if everything ok with some pending txs"""
+    """Test block creation with some pending txs"""
     deploy(CONTRACT_PATH, inputs=["10"])
     resp = _demand_block_creation()
     _assert_correct_block_creation_response(resp)
