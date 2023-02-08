@@ -12,8 +12,8 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     Address,
     BlockId,
     Felt,
-    RpcError,
     PredefinedRpcErrorCode,
+    RpcError,
 )
 from starknet_devnet.blueprints.rpc.utils import (
     assert_block_id_is_latest_or_pending,

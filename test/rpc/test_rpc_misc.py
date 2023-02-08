@@ -27,7 +27,7 @@ from test.util import assert_hex_equal, assert_transaction, deploy
 import pytest
 from starkware.starknet.public.abi import get_storage_var_address
 
-from starknet_devnet.blueprints.rpc.structures.types import RpcErrorCode
+from starknet_devnet.blueprints.rpc.structures.types import PredefinedRpcErrorCode
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 
@@ -170,7 +170,7 @@ def test_get_events_malformed_request():
             "params"
         ],
     )
-    assert resp["error"]["code"] == RpcErrorCode.INVALID_PARAMS.value
+    assert resp["error"]["code"] == PredefinedRpcErrorCode.INVALID_PARAMS.value
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
