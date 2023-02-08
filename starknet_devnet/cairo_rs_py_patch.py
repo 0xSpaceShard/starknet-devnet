@@ -8,17 +8,21 @@
 
 import logging
 import sys
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, cast
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union, cast
 
 import cairo_rs_py
+from cairo_rs_py import RelocatableValue  # pylint: disable = no-name-in-module
 from starkware.cairo.common.cairo_function_runner import CairoFunctionRunner
-from starkware.cairo.common.structs import CairoStructFactory, CairoStructProxy
-
-# from starkware.cairo.lang.compiler.identifier_definition import StructDefinition
+from starkware.cairo.common.structs import CairoStructFactory
+from starkware.cairo.lang.compiler.ast.cairo_types import (
+    CairoType,
+    TypeFelt,
+    TypePointer,
+)
 from starkware.cairo.lang.compiler.program import Program
 from starkware.cairo.lang.compiler.scoped_name import ScopedName
 from starkware.cairo.lang.vm.memory_segments import MemorySegmentManager
-from starkware.cairo.lang.vm.relocatable import MaybeRelocatable, RelocatableValue
+from starkware.cairo.lang.vm.relocatable import MaybeRelocatable
 from starkware.cairo.lang.vm.utils import ResourcesError
 from starkware.cairo.lang.vm.vm_exceptions import (
     SecurityError,
@@ -40,9 +44,6 @@ from starkware.starknet.core.os import os_utils, segment_utils, syscall_utils
 from starkware.starknet.core.os.class_hash import (
     get_contract_class_struct,
     load_program,
-)
-from starkware.starknet.core.os.syscall_utils import (  # get_runtime_type,
-    BusinessLogicSysCallHandler,
 )
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.definitions.general_config import StarknetGeneralConfig
@@ -123,7 +124,7 @@ def cairo_rs_py_run(
         os_context,
         len(self.calldata),
         # Allocate and mark the segment as read-only (to mark every input array as read-only).
-        syscall_handler._allocate_segment(segments=runner, data=self.calldata),
+        syscall_handler._allocate_segment(segments=runner.segments, data=self.calldata),
     ]
 
     try:
@@ -140,7 +141,7 @@ def cairo_rs_py_run(
                 "__usort_max_size": 2**20,
                 "__chained_ec_op_max_len": 1000,
             },
-            # run_resources=tx_execution_context.run_resources,
+            run_resources=tx_execution_context.run_resources,
             verify_secure=True,
         )
     except VmException as exception:
@@ -157,7 +158,6 @@ def cairo_rs_py_run(
             exception.notes = [message_prefix + str(stark_exception.message)]
         if isinstance(exception.inner_exc, ResourcesError):
             code = StarknetErrorCode.OUT_OF_RESOURCES
-
         raise StarkException(code=code, message=str(exception)) from exception
     except VmExceptionBase as exception:
         raise StarkException(
@@ -186,7 +186,7 @@ def cairo_rs_py_run(
 
     # The arguments are touched by the OS and should not be counted as holes, mark them
     # as accessed.
-    # assert isinstance(args_ptr, RelocatableValue)  # Downcast.
+    assert isinstance(args_ptr, RelocatableValue)  # Downcast.
     runner.mark_as_accessed(address=args_ptr, size=len(entry_points_args))
 
     return runner, syscall_handler
@@ -271,7 +271,7 @@ def run_function_runner(
             apply_modulo_to_args=apply_modulo_to_args,
         )
     except (VmException, SecurityError, AssertionError) as ex:
-        if trace_on_failure:
+        if trace_on_failure:  # Unreachable code
             print(
                 f"""\
 Got {type(ex).__name__} exception during the execution of {func_name}:
@@ -349,88 +349,30 @@ def cairo_rs_py_validate_and_process_os_context(
     )
 
     segment_utils.validate_segment_pointers(
-        segments=runner,
+        segments=runner.segments,
         segment_base_ptr=syscall_base_ptr,
         segment_stop_ptr=syscall_stop_ptr,
     )
     syscall_handler.post_run(runner=runner, syscall_stop_ptr=syscall_stop_ptr)
 
 
-def cairo_rs_py_allocate_segment(
-    self, segments: MemorySegmentManager, data: Iterable[MaybeRelocatable]
-) -> RelocatableValue:
-    try:
-        segment_start = segments.add_segment()
-    except:
-        segment_start = segments.add()
-
-    segment_end = segments.write_arg(ptr=segment_start, arg=data)
-    self.read_only_segments.append((segment_start, segment_end - segment_start))
-    return segment_start
-
-
-def cairo_rs_py_read_and_validate_syscall_request(
-    self,
-    syscall_name: str,
-    segments: MemorySegmentManager,
-    syscall_ptr: RelocatableValue,
-) -> CairoStructProxy:
+def cairo_rs_py_get_runtime_type(
+    cairo_type: CairoType,
+) -> Union[Type[int], Type[RelocatableValue]]:
     """
-    Returns the system call request written in the syscall segment, starting at syscall_ptr.
-    Performs validations on the request.
+    Given a CairoType returns the expected runtime type.
     """
-    # Update syscall count.
-    self._count_syscall(syscall_name=syscall_name)
 
-    request = self._read_syscall_request(
-        syscall_name=syscall_name, segments=segments, syscall_ptr=syscall_ptr
-    )
+    if isinstance(cairo_type, TypeFelt):
+        return int
+    if isinstance(cairo_type, TypePointer) and isinstance(cairo_type.pointee, TypeFelt):
+        return RelocatableValue
 
-    assert (
-        syscall_ptr == self.expected_syscall_ptr
-    ), f"Bad syscall_ptr, Expected {self.expected_syscall_ptr}, got {syscall_ptr}."
-
-    syscall_info = self.syscall_info[syscall_name]
-    self.expected_syscall_ptr += syscall_info.syscall_size
-
-    selector = request.selector
-    assert isinstance(selector, int), (
-        f"The selector argument to syscall {syscall_name} is of unexpected type. "
-        f"Expected: int; got: {type(selector).__name__}."
-    )
-    assert (
-        selector == syscall_info.selector
-    ), f"Bad syscall selector, expected {syscall_info.selector}. Got: {selector}"
-
-    # args_struct_def: StructDefinition = (
-    #     syscall_info.syscall_request_struct.struct_definition_
-    # )
-    # for arg, (arg_name, arg_def) in safe_zip(request, args_struct_def.members.items()):
-    #     expected_type = get_runtime_type(arg_def.cairo_type)
-    #     assert isinstance(arg, expected_type), (
-    #         f"Argument {arg_name} to syscall {syscall_name} is of unexpected type. "
-    #         f"Expected: value of type {expected_type}; got: {arg}."
-    # )
-
-    return request
+    raise NotImplementedError(f"Unexpected type: {cairo_type.format()}.")
 
 
-def cairo_rs_py_get_os_segment_ptr_range(
-    runner: CairoFunctionRunner, ptr_offset: int, os_context: List[MaybeRelocatable]
-) -> Tuple[MaybeRelocatable, MaybeRelocatable]:
-    """
-    Returns the base and stop ptr of the OS-designated segment that starts at ptr_offset.
-    """
-    allowed_offsets = (SYSCALL_PTR_OFFSET,)
-    assert (
-        ptr_offset in allowed_offsets
-    ), f"Illegal OS ptr offset; must be one of: {allowed_offsets}."
-
-    # The returned values are os_context, retdata_size, retdata_ptr.
-    os_context_end = runner.get_ap() - 2
-    final_os_context_ptr = os_context_end - len(os_context)
-
-    return os_context[ptr_offset], runner.get(final_os_context_ptr + ptr_offset)
+def handler_exception__str__(self) -> str:
+    return self.stark_exception.message
 
 
 def cairo_rs_py_validate_segment_pointers(
@@ -438,13 +380,13 @@ def cairo_rs_py_validate_segment_pointers(
     segment_base_ptr: MaybeRelocatable,
     segment_stop_ptr: MaybeRelocatable,
 ):
-    # assert isinstance(segment_base_ptr, RelocatableValue)
+    assert isinstance(segment_base_ptr, RelocatableValue)
     assert (
         segment_base_ptr.offset == 0
     ), f"Segment base pointer must be zero; got {segment_base_ptr.offset}."
 
     expected_stop_ptr = segment_base_ptr + segments.get_segment_used_size(
-        index=segment_base_ptr.segment_index
+        segment_base_ptr.segment_index
     )
 
     stark_assert(
@@ -455,44 +397,6 @@ def cairo_rs_py_validate_segment_pointers(
             f"Expected: {expected_stop_ptr}, found: {segment_stop_ptr}."
         ),
     )
-
-
-def cairo_rs_py_get_return_values(runner: CairoFunctionRunner) -> List[int]:
-    """
-    Extracts the return values of a StarkNet contract function from the Cairo runner.
-    """
-    with wrap_with_stark_exception(
-        code=StarknetErrorCode.INVALID_RETURN_DATA,
-        message="Error extracting return data.",
-        logger=logger,
-        exception_types=[Exception],
-    ):
-        ret_data_size, ret_data_ptr = runner.get_return_values(2)
-        values = runner.memory.get_range(ret_data_ptr, ret_data_size)
-        values = runner.get_range(ret_data_ptr, ret_data_size)
-        stark_assert(
-            all(isinstance(value, int) for value in values),
-            code=StarknetErrorCode.INVALID_RETURN_DATA,
-            message="Return data expected to be non-relocatable.",
-        )
-    return cast(List[int], values)
-
-
-def cairo_rs_py_validate_read_only_segments(self, runner: CairoFunctionRunner):
-    """
-    Validates that there were no out of bounds writes to read-only segments and marks
-    them as accessed.
-    """
-    segments = runner
-
-    for segment_ptr, segment_size in self.read_only_segments:
-        used_size = segments.get_segment_used_size(index=segment_ptr.segment_index)
-        stark_assert(
-            used_size == segment_size,
-            code=StarknetErrorCode.SECURITY_ERROR,
-            message="Out of bounds write to a read-only segment.",
-        )
-        runner.mark_as_accessed(address=segment_ptr, size=segment_size)
 
 
 def cairo_rs_py_monkeypatch():
@@ -513,30 +417,13 @@ def cairo_rs_py_monkeypatch():
         cairo_rs_py_validate_and_process_os_context,
     )
     setattr(
-        BusinessLogicSysCallHandler, "_allocate_segment", cairo_rs_py_allocate_segment
-    )
-    setattr(
-        BusinessLogicSysCallHandler,
-        "_read_and_validate_syscall_request",
-        cairo_rs_py_read_and_validate_syscall_request,
-    )
-    setattr(
-        BusinessLogicSysCallHandler,
-        "validate_read_only_segments",
-        cairo_rs_py_validate_read_only_segments,
-    )
-    setattr(
-        sys.modules["starkware.starknet.core.os.syscall_utils"],
-        "get_os_segment_ptr_range",
-        cairo_rs_py_get_os_segment_ptr_range,
-    )
-    setattr(
         sys.modules["starkware.starknet.core.os.segment_utils"],
         "validate_segment_pointers",
         cairo_rs_py_validate_segment_pointers,
     )
     setattr(
-        sys.modules["starkware.starknet.business_logic.utils"],
-        "get_return_values",
-        cairo_rs_py_get_return_values,
+        sys.modules["starkware.starknet.core.os.syscall_utils"],
+        "get_runtime_type",
+        cairo_rs_py_get_runtime_type,
     )
+    setattr(syscall_utils.HandlerException, "__str__", handler_exception__str__)
