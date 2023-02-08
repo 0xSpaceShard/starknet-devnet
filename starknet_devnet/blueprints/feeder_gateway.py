@@ -12,7 +12,6 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     BlockTransactionTraces,
     StarknetBlock,
     TransactionSimulationInfo,
-    TransactionStatus,
 )
 from starkware.starknet.services.api.gateway.transaction import (
     AccountTransaction,
@@ -212,18 +211,6 @@ async def get_transaction_status():
     tx_status = await state.starknet_wrapper.transactions.get_transaction_status(
         transaction_hash
     )
-
-    # In case of blocks-on-demand feature tx_status should be received
-    if (
-        state.starknet_wrapper.config.blocks_on_demand
-        and tx_status["tx_status"] == TransactionStatus.NOT_RECEIVED.name
-        and any(
-            hex(transaction.transaction_hash) == transaction_hash
-            for transaction in state.starknet_wrapper.pending_txs
-        )
-    ):
-        tx_status["tx_status"] = TransactionStatus.RECEIVED.name
-
     return jsonify(tx_status)
 
 
