@@ -4,6 +4,7 @@ RPC classes endpoints
 
 from starkware.starkware_utils.error_handling import StarkException
 
+from starknet_devnet.blueprints.rpc.schema import validate_schema
 from starknet_devnet.blueprints.rpc.structures.payloads import rpc_contract_class
 from starknet_devnet.blueprints.rpc.structures.types import (
     Address,
@@ -19,6 +20,7 @@ from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException
 
 
+@validate_schema("getClass")
 async def get_class(block_id: BlockId, class_hash: Felt) -> dict:
     """
     Get the contract class definition in the given block associated with the given hash
@@ -35,6 +37,7 @@ async def get_class(block_id: BlockId, class_hash: Felt) -> dict:
     return rpc_contract_class(result)
 
 
+@validate_schema("getClassHashAt")
 async def get_class_hash_at(block_id: BlockId, contract_address: Address) -> Felt:
     """
     Get the contract class hash in the given block for the contract deployed at the given address
@@ -51,6 +54,7 @@ async def get_class_hash_at(block_id: BlockId, contract_address: Address) -> Fel
     return rpc_felt(result)
 
 
+@validate_schema("getClassAt")
 async def get_class_at(block_id: BlockId, contract_address: Address) -> dict:
     """
     Get the contract class definition in the given block at the given address

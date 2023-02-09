@@ -6,8 +6,8 @@ from typing import Union
 from starknet_devnet.blueprints.rpc.structures.types import (
     BlockId,
     Felt,
+    PredefinedRpcErrorCode,
     RpcError,
-    RpcErrorCode,
 )
 from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException
@@ -22,7 +22,9 @@ def block_tag_to_block_number(block_id: BlockId) -> BlockId:
             return {
                 "block_number": state.starknet_wrapper.blocks.get_number_of_blocks() - 1
             }
-        raise RpcError(code=RpcErrorCode.INVALID_PARAMS.value, message="Invalid params")
+        raise RpcError(
+            code=PredefinedRpcErrorCode.INVALID_PARAMS.value, message="Invalid params"
+        )
 
     return block_id
 
@@ -70,7 +72,10 @@ async def assert_block_id_is_latest_or_pending(block_id: BlockId) -> None:
         if block_id in ("latest", "pending"):
             return
 
-    raise RpcError(code=RpcErrorCode.INVALID_PARAMS.value, message="Invalid params")
+    raise RpcError(
+        code=PredefinedRpcErrorCode.INVALID_PARAMS.value,
+        message="Invalid value for block id.",
+    )
 
 
 def rpc_felt(value: Union[int, str]) -> Felt:
@@ -84,6 +89,17 @@ def rpc_felt(value: Union[int, str]) -> Felt:
     if value == 0:
         return "0x00"
     return "0x0" + hex(value).lstrip("0x")
+
+
+def gateway_felt(value: Union[int, str]) -> str:
+    """
+    Convert value to 0x prefixed felt
+    The value can be base 10 integer, base 10 string or base 16 string
+    """
+    if isinstance(value, str):
+        value = int(value) if value.isnumeric() else int(value, 16)
+
+    return hex(value)
 
 
 def rpc_root(root: str) -> Felt:

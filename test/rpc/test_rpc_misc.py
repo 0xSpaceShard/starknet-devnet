@@ -27,7 +27,7 @@ from test.util import assert_hex_equal, assert_transaction, deploy
 import pytest
 from starkware.starknet.public.abi import get_storage_var_address
 
-from starknet_devnet.blueprints.rpc.structures.types import RpcErrorCode
+from starknet_devnet.blueprints.rpc.structures.types import PredefinedRpcErrorCode
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 
@@ -140,17 +140,23 @@ def test_syncing(params):
     """
     resp = rpc_call("starknet_syncing", params=params)
     assert "result" in resp, f"Unexpected response: {resp}"
-    assert resp["result"] is False
+
+    result = resp["result"]
+    assert result is False
 
 
-@pytest.mark.parametrize("params", [2, "random string", True])
 @pytest.mark.usefixtures("run_devnet_in_background")
-def test_call_with_invalid_params(params):
+def test_call_method_with_incorrect_type_params():
     """Call with invalid params"""
 
     # could be any legal method, just passing something to get params to fail
-    ex = rpc_call(method="starknet_getClass", params=params)
-    assert ex["error"] == {"code": -32602, "message": "Invalid params"}
+    ex = rpc_call(method="starknet_getClass", params=1234)
+    assert ex["error"] == {
+        "code": -32602,
+        # fmt: off
+        "message": "Invalid \"params\" type. Value of \"params\" must be a dict or list",
+        # fmt: on
+    }
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -164,7 +170,7 @@ def test_get_events_malformed_request():
             "params"
         ],
     )
-    assert resp["error"]["code"] == RpcErrorCode.INVALID_PARAMS.value
+    assert resp["error"]["code"] == PredefinedRpcErrorCode.INVALID_PARAMS.value
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
