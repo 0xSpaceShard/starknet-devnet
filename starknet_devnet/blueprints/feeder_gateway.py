@@ -64,7 +64,7 @@ def _extract_raw_block_arguments(args: MultiDict):
     return block_hash, block_number
 
 
-async def _get_block_object(args: MultiDict):
+async def _get_block_object(args: MultiDict) -> StarknetBlock:
     """Returns the block object"""
     block_hash, block_number = _extract_raw_block_arguments(args)
 

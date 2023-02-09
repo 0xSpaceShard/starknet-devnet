@@ -142,7 +142,7 @@ class StarknetWrapper:
             await self.create_empty_block()
             self.__initialized = True
 
-    async def create_empty_block(self):
+    async def create_empty_block(self) -> StarknetBlock:
         """Create empty block."""
         self._update_block_number()
         state_update = await self._update_pending_state()

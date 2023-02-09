@@ -210,7 +210,7 @@ class DevnetBlocks:
 
     async def generate_empty_block(
         self, state: StarknetState, state_update: BlockStateUpdate
-    ):
+    ) -> StarknetBlock:
         """Generate an empty block"""
         await self.generate_pending(
             transactions=[], state=state, state_update=state_update
