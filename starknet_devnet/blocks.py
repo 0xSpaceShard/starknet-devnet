@@ -174,11 +174,10 @@ class DevnetBlocks:
         transactions: List[DevnetTransaction],
         state: StarknetState,
         state_update=None,
-    ) -> StarknetBlock:
+    ):
         """
-        Generates a block and stores it to blocks and hash2block. The block contains just the passed transaction.
-        The `tx_wrapper.transaction` dict should contain a key `transaction`.
-        Returns (block_hash, block_number).
+        Generates pending objects (block, updates) and stores them as private properties.
+        The method `store_pending` can be used after this method.
         """
         timestamp = state.state.block_info.block_timestamp
         signatures = [tx.get_signature() for tx in transactions or []]
