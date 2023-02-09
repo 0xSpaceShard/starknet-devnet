@@ -115,6 +115,7 @@ async def get_events(filter) -> RpcEventsResult:
     )
     block_range = list(range(int(from_block), to_block))
     if include_pending:
+        # pending needs to be included separately as it is not reachable through a number
         block_range.append(PENDING_BLOCK_ID)
 
     for block_number in block_range:

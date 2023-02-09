@@ -283,9 +283,10 @@ def test_events():
     assert get_events(to_block="latest")["result"]["events"] == []
     assert get_events(to_block="1")["code"] == str(StarknetErrorCode.BLOCK_NOT_FOUND)
 
-    # the
+    # the pending block should contain the event emitted by events contract
     pending_resp = get_events(to_block="pending")
     for event in pending_resp["result"]["events"]:
+        # check if the event was emitted by events contract
         source_address = event["from_address"]
         if int(deploy_info["address"], 16) == source_address:
             assert increase_arg in event["data"]
