@@ -41,16 +41,16 @@ def _parse_block_hash(raw: Optional[str]):
 
 
 def _parse_block_number(raw: Optional[Union[int, str]]) -> BlockIdentifier:
-    if raw is None:
+    if raw is None:  # no ID provided
         return LATEST_BLOCK_ID
 
     if raw in [PENDING_BLOCK_ID, LATEST_BLOCK_ID]:
         return raw
 
-    if isinstance(raw, int):
+    if isinstance(raw, int):  # already a parsed number
         return raw
 
-    if raw.isdigit():
+    if raw.isdigit():  # string that contains a numeric ID
         try:
             return int(raw, 10)
         except ValueError:
