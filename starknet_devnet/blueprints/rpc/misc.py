@@ -6,6 +6,11 @@ from __future__ import annotations
 
 from typing import Union
 
+from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    LATEST_BLOCK_ID,
+    PENDING_BLOCK_ID,
+)
+
 from starknet_devnet.blueprints.rpc.schema import validate_schema
 from starknet_devnet.blueprints.rpc.structures.responses import RpcEventsResult
 from starknet_devnet.blueprints.rpc.structures.types import (
@@ -101,12 +106,18 @@ async def get_events(filter) -> RpcEventsResult:
 
     events = []
     keys = [] if keys is None else [int(k, 0) for k in keys]
+
+    include_pending = to_block == PENDING_BLOCK_ID
     to_block = (
         int(state.starknet_wrapper.blocks.get_number_of_blocks())
-        if to_block in ["latest", "pending"]
+        if to_block in [LATEST_BLOCK_ID, PENDING_BLOCK_ID]
         else int(to_block) + 1
     )
-    for block_number in range(int(from_block), to_block):
+    block_range = list(range(int(from_block), to_block))
+    if include_pending:
+        block_range.append(PENDING_BLOCK_ID)
+
+    for block_number in block_range:
         block = await state.starknet_wrapper.blocks.get_by_number(block_number)
         if block.transaction_receipts:
             events.extend(get_events_from_block(block, address, keys))

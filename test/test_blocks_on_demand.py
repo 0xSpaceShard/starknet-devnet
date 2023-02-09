@@ -7,10 +7,12 @@ import requests
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 
 from .account import get_estimated_fee, invoke
+from .rpc.rpc_utils import rpc_call
 from .settings import APP_URL
 from .shared import (
     ABI_PATH,
     CONTRACT_PATH,
+    EVENTS_CONTRACT_PATH,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
@@ -250,6 +252,56 @@ def test_pending_state_update():
     # assert latest unchanged
     latest_state_update = get_state_update(block_number="latest")
     assert_equal(latest_state_update_before, latest_state_update)
+
+
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS, "--blocks-on-demand")
+def test_events():
+    """Test that events are stored and returned correctly in blocks-on-demand mode"""
+
+    def get_events(to_block: str):
+        return rpc_call(
+            "starknet_getEvents",
+            params={
+                "filter": {
+                    "from_block": "0",
+                    "to_block": to_block,
+                    "chunk_size": 10,
+                }
+            },
+        )
+
+    deploy_info = deploy(contract=EVENTS_CONTRACT_PATH)
+
+    increase_arg = 123
+    invoke(
+        calls=[(deploy_info["address"], "increase_balance", [increase_arg])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
+
+    # genesis block is the latest at this point, and it is not expected to contain events
+    assert get_events(to_block="latest")["result"]["events"] == []
+    assert get_events(to_block="1")["code"] == str(StarknetErrorCode.BLOCK_NOT_FOUND)
+
+    # the
+    pending_resp = get_events(to_block="pending")
+    for event in pending_resp["result"]["events"]:
+        source_address = event["from_address"]
+        if int(deploy_info["address"], 16) == source_address:
+            assert increase_arg in event["data"]
+            break
+    else:
+        # if event_contract address not found
+        pytest.fail("Expected pending event not found")
+
+    _demand_block_creation()
+
+    # newly created block should contain the same events as the pending block before it
+    assert get_events(to_block="1") == pending_resp
+    assert get_events(to_block="latest") == pending_resp
+
+    # only one block should have been created
+    assert get_events(to_block="2")["code"] == str(StarknetErrorCode.BLOCK_NOT_FOUND)
 
 
 def _assert_correct_block_creation_response(resp: requests.Response):
