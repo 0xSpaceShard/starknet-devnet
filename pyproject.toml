@@ -73,4 +73,5 @@ filterwarnings=[
     "ignore::DeprecationWarning:lark.*:",
     "ignore::DeprecationWarning:frozendict.*:",
     "ignore::DeprecationWarning:eth_abi.codec.*:",
+    "ignore::marshmallow.warnings.RemovedInMarshmallow4Warning",
 ]
