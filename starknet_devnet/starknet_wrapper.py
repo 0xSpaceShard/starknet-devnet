@@ -103,7 +103,7 @@ class StarknetWrapper:
         """Origin chain that this devnet was forked from."""
 
         self.block_info_generator = BlockInfoGenerator()
-        self.blocks = DevnetBlocks(self.origin, lite=config.lite_mode)
+        self.blocks = None
         self.config = config
         self.l1l2 = DevnetL1L2()
         self.transactions = DevnetTransactions(self.origin)
@@ -131,6 +131,8 @@ class StarknetWrapper:
         """Initialize the underlying starknet instance, fee_token and accounts."""
         if not self.__initialized:
             starknet = await self.__init_starknet()
+
+            self.blocks = DevnetBlocks(self.origin, lite=self.config.lite_mode)
 
             await self.fee_token.deploy()
             await self.accounts.deploy()
@@ -455,9 +457,11 @@ class StarknetWrapper:
         if block_id == LATEST_BLOCK_ID:
             return self.__latest_state
         if block_id.isdigit():
-            latest_number = (await self.blocks.get_last_block()).block_number
-            if latest_number == int(block_id):
-                return self.__latest_state
+            try:
+                parsed_id = int(block_id)
+                return self.blocks.get_state(parsed_id)
+            except ValueError:
+                pass
 
         raise StarknetDevnetException(
             code=StarknetErrorCode.INVALID_BLOCK_NUMBER,
@@ -468,6 +472,12 @@ class StarknetWrapper:
         self, transaction: CallFunction, block_id: BlockIdentifier = DEFAULT_BLOCK_ID
     ):
         """Perform call according to specifications in `transaction`."""
+        # TODO check if state locally present, otherwise default to using origin
+        # if ...:
+        #     self.origin.call(
+        #         transaction
+        #     )
+
         state = await self.__get_query_state(block_id)
 
         call_info = await state.copy().execute_entry_point_raw(

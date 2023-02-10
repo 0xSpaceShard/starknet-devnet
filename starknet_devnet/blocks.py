@@ -20,9 +20,9 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
 from starkware.starknet.testing.state import StarknetState
 from starkware.starkware_utils.error_handling import StarkErrorCode
 
-from starknet_devnet.constants import CAIRO_LANG_VERSION, DUMMY_STATE_ROOT
-
+from .constants import CAIRO_LANG_VERSION, DUMMY_STATE_ROOT
 from .origin import Origin
+from .state_archive import StateArchive
 from .transactions import DevnetTransaction
 from .util import StarknetDevnetException
 
@@ -74,6 +74,7 @@ class DevnetBlocks:
         self.__pending_block: StarknetBlock = None
         self.__pending_state_update: BlockStateUpdate = None
         self.__pending_signatures: Sequence[List[int]] = None
+        self.__state_archive = StateArchive(origin)
 
     async def get_last_block(self) -> StarknetBlock:
         """Returns the last block stored so far."""
@@ -287,7 +288,13 @@ class DevnetBlocks:
 
         block = StarknetBlock.load(block_dict)
         self.__num2block[block_number] = block
+        self.__state_archive.store(block_number, state)
 
         self.__pending_block = None
         self.__pending_signatures = None
         return block
+
+    def get_state(self, number: int) -> StarknetState:
+        """Return state at block with `number`"""
+        self.__assert_block_number_in_range(number)
+        return self.__state_archive.get(number)
