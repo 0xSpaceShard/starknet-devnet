@@ -37,6 +37,7 @@ class UDC:
         """Deploy token contract for charging fees."""
         starknet: Starknet = self.starknet_wrapper.starknet
         contract_class = UDC.get_contract_class()
+
         await starknet.state.state.set_contract_class(UDC.HASH_BYTES, contract_class)
 
         # pylint: disable=protected-access
