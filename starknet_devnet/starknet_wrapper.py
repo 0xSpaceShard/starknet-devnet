@@ -128,7 +128,7 @@ class StarknetWrapper:
             await self.fee_token.deploy()
             await self.accounts.deploy()
             await self.__deploy_chargeable_account()
-            await self.__predeclare_oz_account()
+            await self.__predeclare_starknet_cli_account()
             await self.__udc.deploy()
 
             await self.__preserve_current_state(starknet.state.state)
@@ -169,6 +169,14 @@ class StarknetWrapper:
             transaction_hash=tx_hash,
         )
         # TODO: Artificial FeeToken Deploy transaction
+        # internal_deploy = InternalDeploy(tx_hash=tx_hash)
+        # transaction_execution_info.tx_type = TransactionType.DEPLOY
+        # fee_token_declare_tx = DevnetTransaction(
+        #     internal_tx=internal_deploy,
+        #     status=TransactionStatus.ACCEPTED_ON_L2,
+        #     execution_info=transaction_execution_info,
+        #     transaction_hash=tx_hash,
+        # )
         # TODO: Accounts Declare and Deploy
 
         state = self.get_state()
@@ -447,6 +455,9 @@ class StarknetWrapper:
         internal_tx: InternalDeploy = InternalDeploy.from_external(
             deploy_transaction, self.get_state().general_config
         )
+
+        print("internal_tx deploy")
+        print(internal_tx)
 
         contract_address = internal_tx.contract_address
 
