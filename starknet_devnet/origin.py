@@ -7,7 +7,6 @@ from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.services.api.feeder_gateway.feeder_gateway_client import (
     FeederGatewayClient,
 )
-from starkware.starknet.services.api.feeder_gateway.request_objects import CallFunction
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     StarknetBlock,
     TransactionInfo,
@@ -208,18 +207,4 @@ class ForkedOrigin(Origin):
                 raise StarknetDevnetException(
                     code=StarknetErrorCode.BLOCK_NOT_FOUND,
                     message=f"Block hash {block_hash} does not exist.",
-                ) from bad_request
-
-    async def call(self, call_function: CallFunction, block_hash: str = None, block_number: int = None):
-        try:
-            return await self.__feeder_gateway_client.call_contract(
-                call_function=call_function,
-                block_hash=block_hash,
-                block_number=block_number,
-            )
-        except BadRequest as bad_request:
-            if is_originally_starknet_exception(bad_request):
-                raise StarknetDevnetException(
-                    code=...,
-                    message=...,
                 ) from bad_request
