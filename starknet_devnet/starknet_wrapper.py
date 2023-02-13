@@ -125,12 +125,11 @@ class StarknetWrapper:
         if not self.__initialized:
             starknet = await self.__init_starknet()
 
-            await self.fee_token.deploy()  # erc 20 - include in genesis block
-
-            await self.accounts.deploy()  # accounts - include in genesis block
-            await self.__deploy_chargeable_account()  # this also?
-            await self.__predeclare_starknet_cli_account()  # this also? check if its transaction?
-            await self.__udc.deploy()  # this also?
+            await self.fee_token.deploy()
+            await self.accounts.deploy()
+            await self.__deploy_chargeable_account()
+            await self.__predeclare_oz_account()
+            await self.__udc.deploy()
 
             await self.__preserve_current_state(starknet.state.state)
             await self.genesis_block()

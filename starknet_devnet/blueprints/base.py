@@ -191,7 +191,7 @@ async def mint():
 @base.route("/create_block", methods=["POST"])
 async def create_block():
     """Create empty block"""
-    block = await state.starknet_wrapper.genesis_block()
+    block = await state.starknet_wrapper.create_empty_block()
     return Response(block.dumps(), status=200, mimetype="application/json")
 
 
