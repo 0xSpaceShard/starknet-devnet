@@ -74,7 +74,7 @@ class DevnetBlocks:
         self.__pending_block: StarknetBlock = None
         self.__pending_state_update: BlockStateUpdate = None
         self.__pending_signatures: Sequence[List[int]] = None
-        self.__state_archive = StateArchive(origin)
+        self.__state_archive = StateArchive(origin.get_number_of_blocks() - 1)
 
     async def get_last_block(self) -> StarknetBlock:
         """Returns the last block stored so far."""
@@ -294,7 +294,6 @@ class DevnetBlocks:
         self.__pending_signatures = None
         return block
 
-    def get_state(self, number: int) -> StarknetState:
+    def get_state(self, block_number: int) -> StarknetState:
         """Return state at block with `number`"""
-        self.__assert_block_number_in_range(number)
-        return self.__state_archive.get(number)
+        return self.__state_archive.get(block_number)

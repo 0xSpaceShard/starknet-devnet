@@ -472,12 +472,6 @@ class StarknetWrapper:
         self, transaction: CallFunction, block_id: BlockIdentifier = DEFAULT_BLOCK_ID
     ):
         """Perform call according to specifications in `transaction`."""
-        # TODO check if state locally present, otherwise default to using origin
-        # if ...:
-        #     self.origin.call(
-        #         transaction
-        #     )
-
         state = await self.__get_query_state(block_id)
 
         call_info = await state.copy().execute_entry_point_raw(
