@@ -26,6 +26,7 @@ from starkware.starknet.core.os.transaction_hash.transaction_hash import (
     calculate_deploy_transaction_hash,
 )
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
+from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starknet.services.api.contract_class import ContractClass, EntryPointType
 from starkware.starknet.services.api.feeder_gateway.request_objects import (
     CallFunction,
@@ -124,32 +125,69 @@ class StarknetWrapper:
         if not self.__initialized:
             starknet = await self.__init_starknet()
 
-            await self.fee_token.deploy() #erc 20 - include in genesis block
-            
-            await self.accounts.deploy() #accounts - include in genesis block
-            await self.__deploy_chargeable_account() # this also?
-            await self.__predeclare_starknet_cli_account() # this also? check if its transaction?
-            await self.__udc.deploy() # this also?
+            await self.fee_token.deploy()  # erc 20 - include in genesis block
+
+            await self.accounts.deploy()  # accounts - include in genesis block
+            await self.__deploy_chargeable_account()  # this also?
+            await self.__predeclare_starknet_cli_account()  # this also? check if its transaction?
+            await self.__udc.deploy()  # this also?
 
             await self.__preserve_current_state(starknet.state.state)
             await self.genesis_block()
             self.__initialized = True
+
+    async def genesis_block(self):
+        """create empty block"""
+
+        # Artificial FeeToken Declare transaction
+        tx_hash = 42
+        internal_declare = InternalDeclare(
+            hash_value=tx_hash,
+            version=0,
+            max_fee=0,
+            signature=[],
+            nonce=0,
+            class_hash=to_bytes(FeeToken.HASH),
+            sender_address=1,
+        )
+        transaction_execution_info = TransactionExecutionInfo(
+            validate_info=None,
+            call_info=None,
+            fee_transfer_info=None,
+            actual_fee=0,
+            actual_resources={
+                "l1_gas_usage": 1224,
+                "pedersen_builtin": 15,
+                "range_check_builtin": 57,
+                "n_steps": 2336,
+            },
+            tx_type=TransactionType.DECLARE,
+        )
+        fee_token_declare_tx = DevnetTransaction(
+            internal_tx=internal_declare,
+            status=TransactionStatus.ACCEPTED_ON_L2,
+            execution_info=transaction_execution_info,
+            transaction_hash=tx_hash,
+        )
+        # TODO: Artificial FeeToken Deploy transaction
+        # TODO: Accounts Declare and Deploy
+
+        state = self.get_state()
+        state_update = await self._update_state()
+
+        block = await self.blocks.generate(fee_token_declare_tx, state, state_update)
+
+        fee_token_declare_tx.set_block(block=block)
+        self.transactions.store(tx_hash, fee_token_declare_tx)
+
+        self._update_block_number()
+        return await self.blocks.generate(fee_token_declare_tx, state, state_update)
 
     async def create_empty_block(self):
         """create empty block"""
         self._update_block_number()
         state_update = await self._update_state()
         state = self.get_state()
-        return await self.blocks.generate(
-            None, state, state_update, is_empty_block=True
-        )
-
-    async def genesis_block(self):
-        """create empty block"""
-        self._update_block_number()
-        state_update = await self._update_state()
-        state = self.get_state()
-        # TODO: pre accounts here?
         return await self.blocks.generate(
             None, state, state_update, is_empty_block=True
         )
