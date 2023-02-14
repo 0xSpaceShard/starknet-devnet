@@ -88,7 +88,7 @@ class RpcError(Exception):
         self.message = message
 
 
-class RpcErrorCode(Enum):
+class PredefinedRpcErrorCode(Enum):
     """
     Constants used in JSON-RPC protocol
     https://www.jsonrpc.org/specification

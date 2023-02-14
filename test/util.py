@@ -310,6 +310,7 @@ def estimate_fee(
     abi_path,
     signature=None,
     nonce=None,
+    block_number=None,
     feeder_gateway_url=APP_URL,
 ):
     """Wrapper around starknet estimate_fee. Returns fee in wei."""
@@ -332,6 +333,9 @@ def estimate_fee(
     if nonce is not None:
         args.extend(["--nonce", str(nonce)])
 
+    if block_number is not None:
+        args.extend(["--block_number", str(block_number)])
+
     output = run_starknet(args, gateway_url=feeder_gateway_url)
 
     print("Estimate fee successful!")
@@ -339,7 +343,12 @@ def estimate_fee(
 
 
 def call(
-    function: str, address: str, abi_path: str, inputs=None, feeder_gateway_url=APP_URL
+    function: str,
+    address: str,
+    abi_path: str,
+    inputs=None,
+    block_number="latest",  # Starknet CLI defaults to pending
+    feeder_gateway_url=APP_URL,
 ):
     """Wrapper around starknet call"""
     args = [
@@ -350,6 +359,8 @@ def call(
         address,
         "--abi",
         abi_path,
+        "--block_number",
+        block_number,
     ]
     if inputs:
         args.extend(["--inputs", *inputs])

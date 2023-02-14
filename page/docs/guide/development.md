@@ -131,7 +131,7 @@ In `starknet_devnet/__init__.py` you need to manually update the version:
 __version__ = "<VERSION>"
 ```
 
-If you did everything correctly, these commands should result with the same version:
+If you did everything correctly, these commands should result in the same version:
 
 ```
 poetry version
@@ -141,15 +141,16 @@ poetry run starknet-devnet --version
 Add a tag to the version update commit (Notice the `v`):
 
 ```
+git commit -m "Bump version to v<VERSION>"
 git tag v<VERSION>
 git push origin v<VERSION>
 ```
 
-Documentation is deployed automatically to https://shard-labs.github.io/starknet-devnet.
+Documentation is deployed automatically to https://shard-labs.github.io/starknet-devnet:
 
-- This process uses the FabijanC username and its private GitHub token set in the CircleCI project env vars.
-- This is done only after a new version is released.
-- This is initiated in `scripts/package_build_and_publish.sh`.
+- Uses the FabijanC username and its private GitHub token set in the CircleCI project env vars.
+- Done only after a new version is released.
+- Initiated in `scripts/package_build_and_publish.sh`.
 
 Lastly:
 

@@ -195,6 +195,14 @@ async def create_block():
     return Response(block.dumps(), status=200, mimetype="application/json")
 
 
+@base.route("/create_block_on_demand", methods=["POST"])
+async def create_block_on_demand():
+    """Create block on demand"""
+    block = await state.starknet_wrapper.generate_latest_block()
+
+    return jsonify({"block_hash": hex(block.block_hash)})
+
+
 @base.route("/fork_status", methods=["GET"])
 async def fork_status():
     """Get fork status"""

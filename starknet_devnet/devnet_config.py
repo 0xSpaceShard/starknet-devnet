@@ -229,6 +229,11 @@ def parse_args(raw_args: List[str]):
         " - applies sequential numbering instead (0x0, 0x1, 0x2, ...).",
     )
     parser.add_argument(
+        "--blocks-on-demand",
+        action="store_true",
+        help="Block generation on demand via an endpoint.",
+    )
+    parser.add_argument(
         "--accounts",
         action=NonNegativeAction,
         help=f"Specify the number of accounts to be predeployed; defaults to {DEFAULT_ACCOUNTS}",
@@ -296,6 +301,16 @@ def parse_args(raw_args: List[str]):
         default=StarknetChainId.TESTNET,
         help=f"Specify the chain id as string: {{{CHAIN_IDS}}}",
     )
+    parser.add_argument(
+        "--disable-rpc-request-validation",
+        action="store_true",
+        help="Disable requests schema validation for RPC endpoints",
+    )
+    parser.add_argument(
+        "--disable-rpc-response-validation",
+        action="store_true",
+        help="Disable RPC schema validation for devnet responses",
+    )
 
     parsed_args = parser.parse_args(raw_args)
     if parsed_args.dump_on and not parsed_args.dump_path:
@@ -327,8 +342,11 @@ class DevnetConfig:
         self.start_time = self.args.start_time
         self.gas_price = self.args.gas_price
         self.lite_mode = self.args.lite_mode
+        self.blocks_on_demand = self.args.blocks_on_demand
         self.account_class = self.args.account_class
         self.hide_predeployed_accounts = self.args.hide_predeployed_accounts
         self.fork_network = self.args.fork_network
         self.fork_block = self.args.fork_block
         self.chain_id = self.args.chain_id
+        self.validate_rpc_requests = not self.args.disable_rpc_request_validation
+        self.validate_rpc_responses = not self.args.disable_rpc_response_validation

@@ -21,4 +21,4 @@
 - [ ] Documented the changes
 - [ ] Linked the issues which this PR resolves
 - [ ] Updated the tests
-- [ ] All tests are passing
+- [ ] All tests are passing - `./scripts/test.sh`

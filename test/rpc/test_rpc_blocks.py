@@ -1,7 +1,6 @@
 """
 Tests RPC blocks
 """
-
 from test.rpc.rpc_utils import gateway_call, rpc_call
 from test.shared import (
     GENESIS_BLOCK_NUMBER,
