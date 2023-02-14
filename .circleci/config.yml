@@ -26,6 +26,11 @@ jobs:
     steps:
       - checkout
       - run:
+          # if this was done later (e.g. just before the test) and the file wasn't present, it would fail after all the installation
+          name: Check out previous test metadata
+          command: |
+            jq . "${CIRCLE_INTERNAL_TASK_DATA}/circle-test-results/results.json"
+      - run:
           name: Install development tools
           command: ./scripts/install_dev_tools.sh
       - run:
@@ -40,10 +45,6 @@ jobs:
       - run:
           name: Compile test contracts
           command: ./scripts/compile_contracts.sh
-      - run:
-          name: Check out previous test metadata
-          command: |
-            jq . "${CIRCLE_INTERNAL_TASK_DATA}/circle-test-results/results.json"
       - run:
           name: Run pytest tests
           parallel: true
@@ -66,7 +67,7 @@ jobs:
     <<: *test_template
     docker:
       - image: cimg/python:3.8-node
-  
+
   test_py_max_rust:
     <<: *test_template
     environment:
