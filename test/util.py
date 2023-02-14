@@ -10,6 +10,7 @@ import subprocess
 import time
 from typing import IO, List
 
+import pytest
 import requests
 from starkware.starknet.cli.starknet_cli import get_salt
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
@@ -687,3 +688,26 @@ class DevnetBackgroundProc:
 def read_stream(stream: IO, encoding="utf-8") -> str:
     """Return stdout and stderr of `proc`"""
     return stream.read().decode(encoding)
+
+
+class ErrorExpector:
+    """ "
+    Use this wrapper to assert that a block of code will raise
+    a ReturnCodeAssertionError with the expected exception type
+    """
+
+    def __init__(self, expected_exc_type: Exception):
+        self.expected_exc_type = expected_exc_type
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if not exc_type:
+            pytest.fail(f"Should have failed with {self.expected_exc_type}")
+
+        if exc_type is ReturnCodeAssertionError:
+            assert str(self.expected_exc_type) in str(exc_val)
+            return True
+
+        return False
