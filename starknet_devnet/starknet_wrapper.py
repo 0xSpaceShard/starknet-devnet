@@ -139,9 +139,9 @@ class StarknetWrapper:
         """create empty block"""
 
         # Artificial FeeToken Declare transaction
-        tx_hash = 42
+        internal_declare_tx_hash = 42
         internal_declare = InternalDeclare(
-            hash_value=tx_hash,
+            hash_value=internal_declare_tx_hash,
             version=0,
             max_fee=0,
             signature=[],
@@ -149,7 +149,7 @@ class StarknetWrapper:
             class_hash=to_bytes(FeeToken.HASH),
             sender_address=1,
         )
-        transaction_execution_info = TransactionExecutionInfo(
+        internal_declare_transaction_execution_info = TransactionExecutionInfo(
             validate_info=None,
             call_info=None,
             fee_transfer_info=None,
@@ -165,30 +165,58 @@ class StarknetWrapper:
         fee_token_declare_tx = DevnetTransaction(
             internal_tx=internal_declare,
             status=TransactionStatus.ACCEPTED_ON_L2,
-            execution_info=transaction_execution_info,
-            transaction_hash=tx_hash,
+            execution_info=internal_declare_transaction_execution_info,
+            transaction_hash=internal_declare_tx_hash,
         )
-        # TODO: Artificial FeeToken Deploy transaction
-        # internal_deploy = InternalDeploy(tx_hash=tx_hash)
-        # transaction_execution_info.tx_type = TransactionType.DEPLOY
-        # fee_token_declare_tx = DevnetTransaction(
-        #     internal_tx=internal_deploy,
-        #     status=TransactionStatus.ACCEPTED_ON_L2,
-        #     execution_info=transaction_execution_info,
-        #     transaction_hash=tx_hash,
-        # )
-        # TODO: Accounts Declare and Deploy
-
-        state = self.get_state()
-        state_update = await self._update_state()
-
-        block = await self.blocks.generate(fee_token_declare_tx, state, state_update)
-
-        fee_token_declare_tx.set_block(block=block)
-        self.transactions.store(tx_hash, fee_token_declare_tx)
 
         self._update_block_number()
-        return await self.blocks.generate(fee_token_declare_tx, state, state_update)
+        state = self.get_state()
+        state_update = await self._update_state()
+        block = await self.blocks.generate(fee_token_declare_tx, state, state_update)
+        fee_token_declare_tx.set_block(block=block)
+        self.transactions.store(internal_declare_tx_hash, fee_token_declare_tx)
+
+        # TODO: Artificial FeeToken Deploy transaction
+        internal_deploy_tx_hash = 43
+        internal_deploy = InternalDeploy(
+            contract_address=FeeToken.ADDRESS,
+            contract_hash=to_bytes(FeeToken.HASH),
+            contract_address_salt=0,
+            hash_value=internal_deploy_tx_hash,
+            version=0,
+            constructor_calldata=[],
+        )
+        internal_deploy_transaction_execution_info = TransactionExecutionInfo(
+            validate_info=None,
+            call_info=None,
+            fee_transfer_info=None,
+            actual_fee=0,
+            actual_resources={
+                "l1_gas_usage": 1224,
+                "pedersen_builtin": 15,
+                "range_check_builtin": 57,
+                "n_steps": 2336,
+            },
+            tx_type=TransactionType.DEPLOY,
+        )
+        internal_deploy_tx = DevnetTransaction(
+            internal_tx=internal_deploy,
+            status=TransactionStatus.ACCEPTED_ON_L2,
+            execution_info=internal_deploy_transaction_execution_info,
+            transaction_hash=internal_deploy_tx_hash,
+        )
+
+        self._update_block_number()
+        state = self.get_state()
+        state_update = await self._update_state()
+        block = await self.blocks.generate(internal_deploy_tx, state, state_update)
+        internal_deploy_tx.set_block(block=block)
+        self.transactions.store(internal_deploy_tx_hash, internal_deploy_tx)
+
+        # TODO: Accounts Declare and Deploy
+        # TODO: Chargeable Account Declare and Deploy
+        # TODO: OZ Account_class Account Declare and Deploy
+        # TODO: UDC Declare and Deploy 
 
     async def create_empty_block(self):
         """create empty block"""
