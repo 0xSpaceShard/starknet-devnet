@@ -140,92 +140,90 @@ class StarknetWrapper:
             await self.__udc.deploy()
 
             await self.__preserve_current_state(starknet.state.state)
-            await self.genesis_block()
+            await self._create_genesis_block()
             self.__initialized = True
 
-    async def genesis_block(self):
-        """create empty block"""
-
-        # Artificial FeeToken Declare transaction
-        internal_declare_tx_hash = 42
-        internal_declare = InternalDeclare(
-            hash_value=internal_declare_tx_hash,
+    def _internal_declare(self, tx_hash, class_hash) -> InternalDeclare:
+        "TODO"
+        return InternalDeclare(
+            hash_value=tx_hash,
             version=0,
             max_fee=0,
             signature=[],
             nonce=0,
-            class_hash=to_bytes(FeeToken.HASH),
+            class_hash=class_hash,
             sender_address=1,
         )
-        internal_declare_transaction_execution_info = TransactionExecutionInfo(
-            validate_info=None,
-            call_info=None,
-            fee_transfer_info=None,
-            actual_fee=0,
-            actual_resources={
-                "l1_gas_usage": 1224,
-                "pedersen_builtin": 15,
-                "range_check_builtin": 57,
-                "n_steps": 2336,
-            },
-            tx_type=TransactionType.DECLARE,
-        )
-        fee_token_declare_tx = DevnetTransaction(
-            internal_tx=internal_declare,
-            status=TransactionStatus.ACCEPTED_ON_L2,
-            execution_info=internal_declare_transaction_execution_info,
-            transaction_hash=internal_declare_tx_hash,
-        )
 
-        # TODO: Artificial FeeToken Deploy transaction
-        internal_deploy_tx_hash = 43
-        internal_deploy = InternalDeploy(
-            contract_address=FeeToken.ADDRESS,
-            contract_hash=to_bytes(FeeToken.HASH),
+    def _internal_deploy(self, tx_hash, class_hash, contract_address) -> InternalDeploy:
+        "TODO"
+        return InternalDeploy(
+            contract_address=contract_address,
+            contract_hash=class_hash,
             contract_address_salt=0,
-            hash_value=internal_deploy_tx_hash,
+            hash_value=tx_hash,
             version=0,
             constructor_calldata=[],
         )
-        internal_deploy_transaction_execution_info = TransactionExecutionInfo(
+
+    def _create_genesis_block_transaction(self, internal_tx, tx_type) -> DevnetTransaction:
+        "TODO"
+        execution_info = TransactionExecutionInfo(
             validate_info=None,
             call_info=None,
             fee_transfer_info=None,
             actual_fee=0,
             actual_resources={
-                "l1_gas_usage": 1224,
-                "pedersen_builtin": 15,
-                "range_check_builtin": 57,
-                "n_steps": 2336,
+                "l1_gas_usage": 0,
+                "pedersen_builtin": 0,
+                "range_check_builtin": 0,
+                "n_steps": 0,
             },
-            tx_type=TransactionType.DEPLOY,
+            tx_type=tx_type,
         )
-        internal_deploy_tx = DevnetTransaction(
-            internal_tx=internal_deploy,
+        transaction = DevnetTransaction(
+            internal_tx=internal_tx,
             status=TransactionStatus.ACCEPTED_ON_L2,
-            execution_info=internal_deploy_transaction_execution_info,
-            transaction_hash=internal_deploy_tx_hash,
+            execution_info=execution_info,
+            transaction_hash=internal_tx.hash_value,
         )
+
+        return transaction
+
+    async def _create_genesis_block(self):
+        """Create genesis block"""
+        transactions: List[DevnetTransaction] = []
+
+        # Artificial FeeToken Declare transaction
+        internal_declare = self._internal_declare(42, to_bytes(FeeToken.HASH))
+        fee_token_declare_tx = self._create_genesis_block_transaction(
+            internal_declare, TransactionType.DECLARE
+        )
+        transactions.append(fee_token_declare_tx)
+
+        # Artificial FeeToken Deploy transaction
+        internal_deploy = self._internal_deploy(
+            43, to_bytes(FeeToken.HASH), FeeToken.ADDRESS
+        )
+        fee_token_deploy_tx = self._create_genesis_block_transaction(
+            internal_deploy, TransactionType.DEPLOY
+        )
+        transactions.append(fee_token_deploy_tx)
 
         self._update_block_number()
         state = self.get_state()
         state_update = await self._update_pending_state()
-        await self.blocks.generate_pending([fee_token_declare_tx, internal_deploy_tx], state, state_update)
+        await self.blocks.generate_pending(transactions, state, state_update)
         block = await self.generate_latest_block()
-        
-        print("block")
-        print(block.transactions)
-        
-        fee_token_declare_tx.set_block(block=block)
-        internal_deploy_tx.set_block(block=block)
 
-        self.transactions.store(internal_declare_tx_hash, fee_token_declare_tx)
-        self.transactions.store(internal_deploy_tx_hash, internal_deploy_tx)
+        for transaction in transactions:
+            transaction.set_block(block=block)
+            self.transactions.store(transaction.transaction_hash, transaction)
 
         # TODO: Accounts Declare and Deploy
         # TODO: Chargeable Account Declare and Deploy
         # TODO: OZ Account_class Account Declare and Deploy
-        # TODO: UDC Declare and Deploy 
+        # TODO: UDC Declare and Deploy
 
     async def create_empty_block(self) -> StarknetBlock:
         """Create empty block."""
