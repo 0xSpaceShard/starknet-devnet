@@ -177,13 +177,6 @@ class StarknetWrapper:
             transaction_hash=internal_declare_tx_hash,
         )
 
-        self._update_block_number()
-        state = self.get_state()
-        state_update = await self._update_pending_state()
-        block = await self.blocks.generate_pending([fee_token_declare_tx], state, state_update)
-        fee_token_declare_tx.set_block(block=block)
-        self.transactions.store(internal_declare_tx_hash, fee_token_declare_tx)
-
         # TODO: Artificial FeeToken Deploy transaction
         internal_deploy_tx_hash = 43
         internal_deploy = InternalDeploy(
@@ -217,8 +210,16 @@ class StarknetWrapper:
         self._update_block_number()
         state = self.get_state()
         state_update = await self._update_pending_state()
-        block = await self.blocks.generate_pending([internal_deploy_tx], state, state_update)
+        await self.blocks.generate_pending([fee_token_declare_tx, internal_deploy_tx], state, state_update)
+        block = await self.generate_latest_block()
+        
+        print("block")
+        print(block.transactions)
+        
+        fee_token_declare_tx.set_block(block=block)
         internal_deploy_tx.set_block(block=block)
+
+        self.transactions.store(internal_declare_tx_hash, fee_token_declare_tx)
         self.transactions.store(internal_deploy_tx_hash, internal_deploy_tx)
 
         # TODO: Accounts Declare and Deploy
