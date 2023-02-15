@@ -132,7 +132,7 @@ class StarknetWrapper:
         if not self.__initialized:
             starknet = await self.__init_starknet()
 
-            # TODO ok here?
+            # ok that it's here so that e.g. reset includes reset of blocks
             self.blocks = DevnetBlocks(self.origin, lite=self.config.lite_mode)
 
             await self.fee_token.deploy()

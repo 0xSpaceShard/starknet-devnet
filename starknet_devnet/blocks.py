@@ -22,7 +22,7 @@ from starkware.starkware_utils.error_handling import StarkErrorCode
 
 from .constants import CAIRO_LANG_VERSION, DUMMY_STATE_ROOT
 from .origin import Origin
-from .state_archive import MemoryStateArchive
+from .state_archive import DiskStateArchive, MemoryStateArchive
 from .transactions import DevnetTransaction
 from .util import StarknetDevnetException
 
@@ -74,7 +74,7 @@ class DevnetBlocks:
         self.__pending_block: StarknetBlock = None
         self.__pending_state_update: BlockStateUpdate = None
         self.__pending_signatures: Sequence[List[int]] = None
-        self.__state_archive = MemoryStateArchive()
+        self.__state_archive = DiskStateArchive()
 
     async def get_last_block(self) -> StarknetBlock:
         """Returns the last block stored so far."""

@@ -390,3 +390,43 @@ def test_dumping_call_with_invalid_body():
     msg = "No path provided."
     assert msg == json_error_message
     assert resp.status_code == 400
+
+
+def test_calling_old_state_after_load():
+    """Call a state at an old block after dumping and loading"""
+
+    def call_at_block(block_number: str):
+        val = call(
+            function="get_balance",
+            address=contract_address,
+            abi_path=ABI_PATH,
+            block_number=block_number,
+        )
+        return int(val)
+
+    ACTIVE_DEVNET.start(
+        *PREDEPLOY_ACCOUNT_CLI_ARGS,
+        "--dump-on",
+        "exit",
+        "--dump-path",
+        DUMP_PATH,
+    )
+
+    # deploy
+    contract_address = deploy_empty_contract()
+    increment_value = 10
+    invoke(
+        calls=[(contract_address, "increase_balance", [increment_value, 0])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
+
+    ACTIVE_DEVNET.stop()
+    assert_dump_present(DUMP_PATH)
+
+    ACTIVE_DEVNET.start("--load-path", DUMP_PATH)
+    value_after_deploy = call_at_block("1")
+    assert value_after_deploy == 0
+
+    value_after_invoke = call_at_block("2")
+    assert value_after_invoke == increment_value

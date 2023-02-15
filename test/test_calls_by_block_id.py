@@ -1,6 +1,9 @@
 """Test old block support"""
 
+import requests
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
+
+from test.settings import APP_URL
 
 from .account import invoke
 from .shared import (
@@ -79,7 +82,7 @@ FORK_BLOCK = 1000
     "--fork-network",
     "alpha-goerli",
     "--fork-block",
-    str(FORK_BLOCK)
+    str(FORK_BLOCK),
 )
 def test_forked():
     """Fork an origin. Fail if calling old, succeed if calling new state."""
@@ -115,6 +118,27 @@ def test_forked():
     assert value_after_first_invoke == initial_balance + first_increment_value
 
 
-# TODO test which restarts and attempts calling old state
-# TODO test which dumps and loads
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
+def test_after_restart():
+    """Call an old state after calling restart - expect failure"""
+
+    initial_balance = 0
+    deploy_info = deploy(contract=CONTRACT_PATH, inputs=[str(initial_balance)])
+    contract_address = deploy_info["address"]
+
+    # first assert that it's callable before the restart
+    assert _get_value(contract_address, block_number="latest") == initial_balance
+
+    requests.post(f"{APP_URL}/restart")
+
+    # assert not callable after the restart
+    with ErrorExpector(StarknetErrorCode.UNINITIALIZED_CONTRACT):
+        _get_value(contract_address, block_number="latest")
+
+
+def test_blocks_on_demand():
+    """Include several txs in the same block, then test calling"""
+    raise NotImplementedError
+
+
 # TODO test with blocks-on-demand feature

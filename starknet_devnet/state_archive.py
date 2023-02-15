@@ -17,7 +17,6 @@ class StateArchive:
 
     def __init__(self):
         # TODO handle restarts
-        # TODO state dumping
         pass
 
     def store(self, number: int, state: StarknetState):
