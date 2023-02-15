@@ -4,10 +4,13 @@ RPC miscellaneous endpoints
 
 from __future__ import annotations
 
-from typing import Union
+from typing import List, Union
 
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    LATEST_BLOCK_ID,
     PENDING_BLOCK_ID,
+    BlockStatus,
+    StarknetBlock,
 )
 
 from starknet_devnet.blueprints.rpc.schema import validate_schema
@@ -44,7 +47,7 @@ def check_keys(keys, event):
     return bool(set(event.keys) & set(keys))
 
 
-def get_events_from_block(block, address, keys):
+def _get_events_from_block(block: StarknetBlock, address, keys):
     """
     Return filtered events.
     """
@@ -57,8 +60,9 @@ def get_events_from_block(block, address, keys):
                 "from_address": rpc_felt(event.from_address),
                 "keys": [rpc_felt(e) for e in event.keys],
                 "data": [rpc_felt(d) for d in event.data],
-                "block_hash": rpc_felt(block.block_hash),
-                "block_number": block.block_number,
+                # hash and number defaulting to 0 if None (if pending)
+                "block_hash": rpc_felt(block.block_hash or "0x0"),
+                "block_number": block.block_number or 0,
                 "transaction_hash": rpc_felt(receipt.transaction_hash),
             }
             events.append(_event)
@@ -85,6 +89,26 @@ async def syncing() -> Union[dict, bool]:
     return False
 
 
+async def _get_events_range(
+    from_block: StarknetBlock, to_block: StarknetBlock
+) -> List[BlockId]:
+    if from_block.status == BlockStatus.PENDING:
+        # if from_block is pending, then to_block ought to be as well
+        if to_block.status == BlockStatus.PENDING:
+            return [PENDING_BLOCK_ID]
+        return []
+
+    include_pending = to_block.status == BlockStatus.PENDING
+    if to_block.status == BlockStatus.PENDING:
+        to_block = await get_block_by_block_id(LATEST_BLOCK_ID)
+
+    events_range = list(range(from_block.block_number, to_block.block_number + 1))
+    if include_pending:
+        events_range.append(PENDING_BLOCK_ID)
+
+    return events_range
+
+
 # pylint: disable=redefined-builtin
 # filter name is determined by current RPC implementation and starknet specification
 @validate_schema("getEvents")
@@ -101,6 +125,7 @@ async def get_events(filter) -> RpcEventsResult:
     # Required parameters
     from_block = await get_block_by_block_id(filter.get("from_block"))
     to_block = await get_block_by_block_id(filter.get("to_block"))
+    block_range = await _get_events_range(from_block, to_block)
 
     try:
         chunk_size = int(filter.get("chunk_size"))
@@ -113,24 +138,16 @@ async def get_events(filter) -> RpcEventsResult:
     address = filter.get("address")
     keys = [int(k, 0) for k in filter.get("keys")]
     # Optional parameter
-    continuation_token = filter.get("continuation_token", "0")
+    continuation_token = int(filter.get("continuation_token", "0"))
 
     events = []
-
-    include_pending = to_block == PENDING_BLOCK_ID
-    block_range = list(range(from_block.block_number, to_block.block_number + 1))
-
-    if include_pending:
-        # pending needs to be included separately as it is not reachable through a number
-        block_range.append(PENDING_BLOCK_ID)
 
     for block_number in block_range:
         block = await state.starknet_wrapper.blocks.get_by_number(block_number)
         if block.transaction_receipts:
-            events.extend(get_events_from_block(block, address, keys))
+            events.extend(_get_events_from_block(block, address, keys))
 
     # Chunking
-    continuation_token = int(continuation_token)
     start_index = continuation_token * chunk_size
     events = events[start_index : start_index + chunk_size]
 
