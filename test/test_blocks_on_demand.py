@@ -20,7 +20,7 @@ from .shared import (
 from .test_state_update import get_state_update
 from .test_transaction_trace import get_block_traces
 from .util import (
-    ReturnCodeAssertionError,
+    ErrorExpector,
     assert_equal,
     assert_hex_equal,
     assert_tx_status,
@@ -64,11 +64,8 @@ def test_invokable_on_pending_block():
             abi_path=ABI_PATH,
         )
 
-    try:
+    with ErrorExpector(StarknetErrorCode.UNINITIALIZED_CONTRACT):
         get_contract_balance()
-        pytest.fail("Should have failed")
-    except ReturnCodeAssertionError as error:
-        assert str(StarknetErrorCode.UNINITIALIZED_CONTRACT) in str(error)
 
     invoke_hash = invoke(
         calls=[(deploy_info["address"], "increase_balance", [10, 20])],
@@ -107,11 +104,8 @@ def test_estimation_works_after_block_creation():
             block_number="latest",
         )
 
-    try:
+    with ErrorExpector(StarknetErrorCode.UNINITIALIZED_CONTRACT):
         estimate_invoke_fee()
-        pytest.fail("Should have failed")
-    except ReturnCodeAssertionError as error:
-        assert str(StarknetErrorCode.UNINITIALIZED_CONTRACT) in str(error)
 
     _demand_block_creation()
     assert_tx_status(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
