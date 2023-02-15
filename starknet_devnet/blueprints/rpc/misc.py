@@ -7,12 +7,14 @@ from __future__ import annotations
 from typing import Union
 
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
-    LATEST_BLOCK_ID,
     PENDING_BLOCK_ID,
 )
 
 from starknet_devnet.blueprints.rpc.schema import validate_schema
-from starknet_devnet.blueprints.rpc.structures.responses import RpcEventsResult
+from starknet_devnet.blueprints.rpc.structures.responses import (
+    EmittedEvent,
+    RpcEventsResult,
+)
 from starknet_devnet.blueprints.rpc.structures.types import (
     Address,
     BlockId,
@@ -22,6 +24,7 @@ from starknet_devnet.blueprints.rpc.structures.types import (
 )
 from starknet_devnet.blueprints.rpc.utils import (
     assert_block_id_is_latest_or_pending,
+    get_block_by_block_id,
     rpc_felt,
 )
 from starknet_devnet.state import state
@@ -31,14 +34,14 @@ def check_address(address, event):
     """
     Check address.
     """
-    return bool(address is None or event.from_address == int(address, 0))
+    return event.from_address == int(address, 0)
 
 
 def check_keys(keys, event):
     """
     Check keys.
     """
-    return bool(keys == [] or set(event.keys) & set(keys))
+    return bool(set(event.keys) & set(keys))
 
 
 def get_events_from_block(block, address, keys):
@@ -46,9 +49,19 @@ def get_events_from_block(block, address, keys):
     Return filtered events.
     """
     events = []
-    for event in [e for r in block.transaction_receipts for e in r.events]:
+    for receipt, event in [
+        (r, e) for r in block.transaction_receipts for e in r.events
+    ]:
         if check_keys(keys, event) and check_address(address, event):
-            events.append(event)
+            _event: EmittedEvent = {
+                "from_address": rpc_felt(event.from_address),
+                "keys": [rpc_felt(e) for e in event.keys],
+                "data": [rpc_felt(d) for d in event.data],
+                "block_hash": rpc_felt(block.block_hash),
+                "block_number": block.block_number,
+                "transaction_hash": rpc_felt(receipt.transaction_hash),
+            }
+            events.append(_event)
 
     return events
 
@@ -74,10 +87,7 @@ async def syncing() -> Union[dict, bool]:
 
 # pylint: disable=redefined-builtin
 # filter name is determined by current RPC implementation and starknet specification
-#
-# Events response does not currently conform to RPC specs
-# and will need fixing before validation is added
-# @validate_schema("getEvents")
+@validate_schema("getEvents")
 async def get_events(filter) -> RpcEventsResult:
     """
     Returns all events matching the given filters.
@@ -89,8 +99,9 @@ async def get_events(filter) -> RpcEventsResult:
     and chunk it later which is not an optimal solution.
     """
     # Required parameters
-    from_block = filter.get("from_block")
-    to_block = filter.get("to_block")
+    from_block = await get_block_by_block_id(filter.get("from_block"))
+    to_block = await get_block_by_block_id(filter.get("to_block"))
+
     try:
         chunk_size = int(filter.get("chunk_size"))
     except ValueError as ex:
@@ -99,21 +110,16 @@ async def get_events(filter) -> RpcEventsResult:
             message=f"invalid chunk_size: '{filter.get('chunk_size')}'",
         ) from ex
 
-    # Optional parameters
     address = filter.get("address")
-    keys = filter.get("keys")
+    keys = [int(k, 0) for k in filter.get("keys")]
+    # Optional parameter
     continuation_token = filter.get("continuation_token", "0")
 
     events = []
-    keys = [] if keys is None else [int(k, 0) for k in keys]
 
     include_pending = to_block == PENDING_BLOCK_ID
-    to_block = (
-        int(state.starknet_wrapper.blocks.get_number_of_blocks())
-        if to_block in [LATEST_BLOCK_ID, PENDING_BLOCK_ID]
-        else int(to_block) + 1
-    )
-    block_range = list(range(int(from_block), to_block))
+    block_range = list(range(from_block.block_number, to_block.block_number + 1))
+
     if include_pending:
         # pending needs to be included separately as it is not reachable through a number
         block_range.append(PENDING_BLOCK_ID)

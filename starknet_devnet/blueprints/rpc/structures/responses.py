@@ -65,12 +65,23 @@ class Event(TypedDict):
     data: List[Felt]
 
 
+class EmittedEvent(TypedDict):
+    """TypedDict for rpc emitted event"""
+
+    from_address: Address
+    keys: List[Felt]
+    data: List[Felt]
+    block_hash: BlockHash
+    block_number: BlockNumber
+    transaction_hash: TxnHash
+
+
 class RpcEventsResult(TypedDict):
     """
     TypedDict for rpc get events result
     """
 
-    events: List[Event]
+    events: List[EmittedEvent]
     continuation_token: str
 
 

@@ -8,6 +8,8 @@ from test.account import declare, invoke
 from test.rpc.rpc_utils import deploy_and_invoke_storage_contract, rpc_call
 from test.rpc.test_data.get_events import (
     BLOCK_FROM_0_TO_LATEST_MALFORMED_REQUEST,
+    BLOCK_FROM_0_TO_LATEST_MISSING_PARAMETER,
+    BLOCK_FROM_0_TO_LATEST_WRONG_BLOCK_TYPE,
     GET_EVENTS_TEST_DATA,
     create_get_events_rpc,
 )
@@ -169,6 +171,32 @@ def test_get_events_malformed_request():
         params=create_get_events_rpc(BLOCK_FROM_0_TO_LATEST_MALFORMED_REQUEST)[
             "params"
         ],
+    )
+    assert resp["error"]["code"] == PredefinedRpcErrorCode.INVALID_PARAMS.value
+
+
+@pytest.mark.usefixtures("run_devnet_in_background")
+def test_get_events_missing_parameter():
+    """
+    Test RPC get_events with malformed request.
+    """
+    resp = rpc_call(
+        "starknet_getEvents",
+        params=create_get_events_rpc(BLOCK_FROM_0_TO_LATEST_MISSING_PARAMETER)[
+            "params"
+        ],
+    )
+    assert resp["error"]["code"] == PredefinedRpcErrorCode.INVALID_PARAMS.value
+
+
+@pytest.mark.usefixtures("run_devnet_in_background")
+def test_get_events_wrong_blockid_type():
+    """
+    Test RPC get_events with malformed request.
+    """
+    resp = rpc_call(
+        "starknet_getEvents",
+        params=create_get_events_rpc(BLOCK_FROM_0_TO_LATEST_WRONG_BLOCK_TYPE)["params"],
     )
     assert resp["error"]["code"] == PredefinedRpcErrorCode.INVALID_PARAMS.value
 
