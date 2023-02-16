@@ -135,6 +135,8 @@ class StarknetWrapper:
 
             await self.fee_token.deploy()
             await self.accounts.deploy()
+            # TODO: shouldn't it be in reverse order?
+            # __predeclare_starknet_cli_account and later __deploy_chargeable_account?
             await self.__deploy_chargeable_account()
             await self.__predeclare_starknet_cli_account()
             await self.__udc.deploy()
@@ -195,20 +197,59 @@ class StarknetWrapper:
         transactions: List[DevnetTransaction] = []
 
         # Artificial FeeToken Declare transaction
-        internal_declare = self._internal_declare(42, to_bytes(FeeToken.HASH))
+        fee_token_declare = self._internal_declare(42, to_bytes(FeeToken.HASH))
         fee_token_declare_tx = self._create_genesis_block_transaction(
-            internal_declare, TransactionType.DECLARE
+            fee_token_declare, TransactionType.DECLARE
         )
         transactions.append(fee_token_declare_tx)
 
         # Artificial FeeToken Deploy transaction
-        internal_deploy = self._internal_deploy(
+        fee_token_deploy = self._internal_deploy(
             43, to_bytes(FeeToken.HASH), FeeToken.ADDRESS
         )
-        fee_token_deploy_tx = self._create_genesis_block_transaction(
-            internal_deploy, TransactionType.DEPLOY
+        udc_deploy_tx = self._create_genesis_block_transaction(
+            fee_token_deploy, TransactionType.DEPLOY
         )
-        transactions.append(fee_token_deploy_tx)
+        transactions.append(udc_deploy_tx)
+
+        # Artificial Account Declare transaction
+        account_declare = self._internal_declare(44, ChargeableAccount(self).class_hash_bytes)
+        account_declare_tx = self._create_genesis_block_transaction(
+            account_declare, TransactionType.DECLARE
+        )
+        transactions.append(account_declare_tx)
+
+        # Artificial ChargeableAccount Deploy transaction
+        chargeable_account_deploy = self._internal_deploy(
+            45, ChargeableAccount(self).class_hash_bytes, ChargeableAccount(self).ADDRESS
+        )
+        chargeable_account_deploy_tx = self._create_genesis_block_transaction(
+            chargeable_account_deploy, TransactionType.DEPLOY
+        )
+        transactions.append(chargeable_account_deploy_tx)
+
+        # Artificial Account Class Declare used by Starknet CLI
+        cli_declare = self._internal_declare(46, to_bytes(STARKNET_CLI_ACCOUNT_CLASS_HASH))
+        cli_declare_tx = self._create_genesis_block_transaction(
+            cli_declare, TransactionType.DECLARE
+        )
+        transactions.append(cli_declare_tx)
+
+        # Artificial UDC Declare transaction
+        udc_declare = self._internal_declare(47, to_bytes(UDC.HASH))
+        udc_declare_tx = self._create_genesis_block_transaction(
+            udc_declare, TransactionType.DECLARE
+        )
+        transactions.append(udc_declare_tx)
+
+        # Artificial UDC Deploy transaction
+        udc_deploy = self._internal_deploy(
+            48, to_bytes(UDC.HASH), UDC.ADDRESS
+        )
+        udc_deploy_tx = self._create_genesis_block_transaction(
+            udc_deploy, TransactionType.DEPLOY
+        )
+        transactions.append(udc_deploy_tx)
 
         self._update_block_number()
         state = self.get_state()
@@ -222,8 +263,6 @@ class StarknetWrapper:
 
         # TODO: Accounts Declare and Deploy
         # TODO: Chargeable Account Declare and Deploy
-        # TODO: OZ Account_class Account Declare and Deploy
-        # TODO: UDC Declare and Deploy
 
     async def create_empty_block(self) -> StarknetBlock:
         """Create empty block."""
