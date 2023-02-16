@@ -25,14 +25,11 @@ from .util import (
     assert_hex_equal,
     assert_tx_status,
     call,
+    demand_block_creation,
     deploy,
     devnet_in_background,
     get_block,
 )
-
-
-def _demand_block_creation():
-    return requests.post(f"{APP_URL}/create_block_on_demand")
 
 
 def _get_block_resp(block_number):
@@ -78,7 +75,7 @@ def test_invokable_on_pending_block():
     block_number_after_deploy_and_invoke = latest_block["block_number"]
     assert block_number_after_deploy_and_invoke == 0
 
-    _demand_block_creation()
+    demand_block_creation()
     assert_tx_status(invoke_hash, "ACCEPTED_ON_L2")
 
     balance_after_create_block_on_demand = get_contract_balance()
@@ -107,7 +104,7 @@ def test_estimation_works_after_block_creation():
     with ErrorExpector(StarknetErrorCode.UNINITIALIZED_CONTRACT):
         estimate_invoke_fee()
 
-    _demand_block_creation()
+    demand_block_creation()
     assert_tx_status(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
     estimated_fee = estimate_invoke_fee()
     assert estimated_fee > 0
@@ -122,7 +119,7 @@ def test_calling_works_after_block_creation():
     """
     # Deploy and invoke
     deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
-    _demand_block_creation()
+    demand_block_creation()
 
     def get_contract_balance():
         return call(
@@ -142,7 +139,7 @@ def test_calling_works_after_block_creation():
     balance_after_invoke = get_contract_balance()
     assert int(balance_after_invoke) == 0
 
-    _demand_block_creation()
+    demand_block_creation()
     balance_after_create_block_on_demand = get_contract_balance()
     assert int(balance_after_create_block_on_demand) == 30
 
@@ -160,7 +157,7 @@ def test_getting_next_block():
     assert block_resp.status_code == 500
     assert block_resp.json()["code"] == str(StarknetErrorCode.BLOCK_NOT_FOUND)
 
-    _demand_block_creation()
+    demand_block_creation()
 
     # expect success on block retrieval
     block_resp = _get_block_resp(block_number=next_block_number)
@@ -205,7 +202,7 @@ def test_pending_block():
     latest_block = get_block(block_number="latest", parse=True)
     assert_equal(latest_block_before, latest_block)
 
-    _demand_block_creation()
+    demand_block_creation()
     latest_block_after = get_block(block_number="latest", parse=True)
     assert pending_block["transactions"] == latest_block_after["transactions"]
 
@@ -289,7 +286,7 @@ def test_events():
         # if event_contract address not found
         pytest.fail("Expected pending event not found")
 
-    _demand_block_creation()
+    demand_block_creation()
 
     # newly created block should contain the same events as the pending block before it
     assert get_events(to_block="1") == pending_resp
@@ -309,7 +306,7 @@ def _assert_correct_block_creation_response(resp: requests.Response):
 @devnet_in_background("--blocks-on-demand")
 def test_endpoint_if_no_pending():
     """Test block creation if no pending txs with on-demand flag set on"""
-    resp = _demand_block_creation()
+    resp = demand_block_creation()
     _assert_correct_block_creation_response(resp)
 
 
@@ -320,10 +317,10 @@ def test_endpoint_if_no_pending_after_creation():
     and after one block has already been created
     """
     deploy(CONTRACT_PATH, inputs=["10"])
-    resp = _demand_block_creation()
+    resp = demand_block_creation()
     _assert_correct_block_creation_response(resp)
 
-    resp2 = _demand_block_creation()
+    resp2 = demand_block_creation()
     _assert_correct_block_creation_response(resp2)
 
 
@@ -331,14 +328,14 @@ def test_endpoint_if_no_pending_after_creation():
 def test_endpoint_for_successive_requests():
     """Send block creation request multiple times"""
     for _ in range(3):
-        resp = _demand_block_creation()
+        resp = demand_block_creation()
         _assert_correct_block_creation_response(resp)
 
 
 @devnet_in_background()
 def test_endpoint_without_on_demand_flag():
     """Test block creation with on-demand flag set off"""
-    resp = _demand_block_creation()
+    resp = demand_block_creation()
     _assert_correct_block_creation_response(resp)
 
 
@@ -346,5 +343,5 @@ def test_endpoint_without_on_demand_flag():
 def test_endpoint_if_some_pending():
     """Test block creation with some pending txs"""
     deploy(CONTRACT_PATH, inputs=["10"])
-    resp = _demand_block_creation()
+    resp = demand_block_creation()
     _assert_correct_block_creation_response(resp)

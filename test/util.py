@@ -711,3 +711,8 @@ class ErrorExpector:
             return True
 
         return False
+
+
+def demand_block_creation():
+    """Demand block creation. Useful when devnet started with --blocks-on-demand"""
+    return requests.post(f"{APP_URL}/create_block_on_demand")

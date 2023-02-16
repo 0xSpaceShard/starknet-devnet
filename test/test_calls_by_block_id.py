@@ -1,9 +1,6 @@
 """Test old block support"""
 
-import requests
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
-
-from test.settings import APP_URL
 
 from .account import invoke
 from .shared import (
@@ -14,10 +11,11 @@ from .shared import (
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     SUFFICIENT_MAX_FEE,
 )
+from .test_restart import restart
 from .util import (
     ErrorExpector,
-    assert_tx_status,
     call,
+    demand_block_creation,
     deploy,
     devnet_in_background,
     get_block,
@@ -26,13 +24,12 @@ from .util import (
 
 def _increment(contract_address: str, increment_value: int):
     # increase_balance accepts two args, but the second one is here fixed to 0 for simplicity
-    tx_hash = invoke(
+    invoke(
         calls=[(contract_address, "increase_balance", [increment_value, 0])],
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
         max_fee=SUFFICIENT_MAX_FEE,
     )
-    assert_tx_status(tx_hash, "ACCEPTED_ON_L2")
 
 
 def _get_value(contract_address: str, block_number: str) -> int:
@@ -120,25 +117,47 @@ def test_forked():
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
 def test_after_restart():
-    """Call an old state after calling restart - expect failure"""
+    """Call a state after calling restart - expect failure"""
 
-    initial_balance = 0
+    initial_balance = 5
     deploy_info = deploy(contract=CONTRACT_PATH, inputs=[str(initial_balance)])
     contract_address = deploy_info["address"]
 
     # first assert that it's callable before the restart
-    assert _get_value(contract_address, block_number="latest") == initial_balance
+    assert _get_value(contract_address, block_number="1") == initial_balance
 
-    requests.post(f"{APP_URL}/restart")
+    restart()
 
     # assert not callable after the restart
     with ErrorExpector(StarknetErrorCode.UNINITIALIZED_CONTRACT):
         _get_value(contract_address, block_number="latest")
 
 
-def test_blocks_on_demand():
-    """Include several txs in the same block, then test calling"""
-    raise NotImplementedError
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS, "--blocks-on-demand")
+def test_old_block_generated_on_demand():
+    """Call old blocks generated on demand"""
 
+    initial_balance = 10
+    deploy_info = deploy(contract=CONTRACT_PATH, inputs=[str(initial_balance)])
+    contract_address = deploy_info["address"]
 
-# TODO test with blocks-on-demand feature
+    increment_value = 5
+    _increment(contract_address, increment_value)
+
+    demand_block_creation()
+
+    _increment(contract_address, increment_value)
+    demand_block_creation()
+
+    latest_block = get_block(block_number="latest", parse=True)
+    assert latest_block["block_number"] == 2  # genesis (0) + demand + demand
+
+    assert (
+        _get_value(contract_address, block_number="latest")
+        == initial_balance + 2 * increment_value
+    )
+
+    assert (
+        _get_value(contract_address, block_number="1")
+        == initial_balance + increment_value
+    )

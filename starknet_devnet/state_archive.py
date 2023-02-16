@@ -15,10 +15,6 @@ class StateArchive:
     Stores StarkNet states
     """
 
-    def __init__(self):
-        # TODO handle restarts
-        pass
-
     def store(self, number: int, state: StarknetState):
         """Store the state under the given number"""
         self._storage_write(number, state)
