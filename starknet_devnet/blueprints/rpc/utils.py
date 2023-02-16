@@ -3,6 +3,10 @@ RPC utilities
 """
 from typing import Union
 
+from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    StarknetBlock,
+)
+
 from starknet_devnet.blueprints.rpc.structures.types import (
     BlockId,
     Felt,
@@ -19,9 +23,7 @@ def block_tag_to_block_number(block_id: BlockId) -> BlockId:
     """
     if isinstance(block_id, str):
         if block_id in ["latest", "pending"]:
-            return {
-                "block_number": state.starknet_wrapper.blocks.get_number_of_blocks() - 1
-            }
+            return {"block_number": block_id}
         raise RpcError(
             code=PredefinedRpcErrorCode.INVALID_PARAMS.value, message="Invalid params"
         )
@@ -29,7 +31,7 @@ def block_tag_to_block_number(block_id: BlockId) -> BlockId:
     return block_id
 
 
-async def get_block_by_block_id(block_id: BlockId) -> dict:
+async def get_block_by_block_id(block_id: BlockId) -> StarknetBlock:
     """
     Get block using different method depending on block_id type
     """
