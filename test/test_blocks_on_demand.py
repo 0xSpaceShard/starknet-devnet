@@ -2,7 +2,6 @@
 Test blocks on demand mode.
 """
 
-import pytest
 import requests
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 
