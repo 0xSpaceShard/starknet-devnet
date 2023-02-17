@@ -21,6 +21,7 @@ from starkware.starknet.services.api.gateway.transaction import (
 from starkware.starkware_utils.error_handling import StarkErrorCode
 from werkzeug.datastructures import MultiDict
 
+from starknet_devnet.blueprints.rpc.structures.types import BlockId
 from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException, custom_int, fixed_length_hex
 
@@ -92,7 +93,7 @@ async def _get_block_transaction_traces(block: StarknetBlock):
     return BlockTransactionTraces.load({"traces": traces})
 
 
-def _get_block_id(args: MultiDict) -> dict:
+def _get_block_id(args: MultiDict) -> BlockId:
     block_number = args.get("blockNumber")
     block_hash = args.get("blockHash")
 
