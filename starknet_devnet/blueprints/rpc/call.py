@@ -38,7 +38,7 @@ async def call(request: RpcFunctionCall, block_id: BlockId) -> List[Felt]:
     """
     Call a starknet function without creating a StarkNet transaction
     """
-    await assert_block_id_is_valid(block_id) # TODO should be passed
+    await assert_block_id_is_valid(block_id)  # TODO should be passed
 
     if not await state.starknet_wrapper.is_deployed(
         int(request["contract_address"], 16)

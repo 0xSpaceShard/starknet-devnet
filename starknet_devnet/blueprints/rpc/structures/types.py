@@ -2,12 +2,16 @@
 RPC types
 """
 
+import json
 from enum import Enum
 from typing import List, Union
 
+from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starknet.services.api.feeder_gateway.response_objects import BlockStatus
 from typing_extensions import Literal, TypedDict
+
+from ..rpc_spec import RPC_SPECIFICATION
 
 Felt = str
 
@@ -87,6 +91,12 @@ class RpcError(Exception):
         self.code = code
         self.message = message
 
+    @staticmethod
+    def from_spec_name(name: str):
+        """Create an instance of this class, given only its name"""
+        error_dict = RPC_ERRORS[name]
+        return RpcError(**error_dict)
+
 
 class PredefinedRpcErrorCode(Enum):
     """
@@ -99,13 +109,9 @@ class PredefinedRpcErrorCode(Enum):
     INVALID_PARAMS = -32602
     INTERNAL_ERROR = -32603
 
-from starkware.starknet.definitions.error_codes import StarknetErrorCode
-from ..rpc_spec import RPC_SPECIFICATION
-import json
 
-# TODO measure time
-RPC_ERROR_DICT = json.loads(RPC_SPECIFICATION)["components"]["errors"]
+RPC_ERRORS = json.loads(RPC_SPECIFICATION)["components"]["errors"]
 
 GATEWAY_TO_RPC_ERROR = {
-    StarknetErrorCode.OUT_OF_RANGE_BLOCK_ID: RPC_ERROR_DICT["BLOCK_NOT_FOUND"]
+    StarknetErrorCode.OUT_OF_RANGE_BLOCK_ID: RPC_ERRORS["BLOCK_NOT_FOUND"]
 }

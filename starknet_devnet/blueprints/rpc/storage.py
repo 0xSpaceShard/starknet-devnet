@@ -8,10 +8,7 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     Felt,
     RpcError,
 )
-from starknet_devnet.blueprints.rpc.utils import (
-    assert_block_id_is_valid,
-    rpc_felt,
-)
+from starknet_devnet.blueprints.rpc.utils import assert_block_id_is_valid, rpc_felt
 from starknet_devnet.state import state
 
 
