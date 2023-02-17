@@ -34,7 +34,6 @@ from starkware.starknet.services.api.feeder_gateway.request_objects import (
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     LATEST_BLOCK_ID,
     PENDING_BLOCK_ID,
-    BlockIdentifier,
     BlockStateUpdate,
     DeployedContract,
     StarknetBlock,
@@ -60,7 +59,7 @@ from starkware.starkware_utils.error_handling import StarkErrorCode, StarkExcept
 from .accounts import Accounts
 from .block_info_generator import BlockInfoGenerator
 from .blocks import DevnetBlocks
-from .blueprints.rpc.structures.types import Felt
+from .blueprints.rpc.structures.types import BlockId, Felt
 from .chargeable_account import ChargeableAccount
 from .constants import DUMMY_STATE_ROOT, OZ_ACCOUNT_CLASS_HASH
 from .devnet_config import DevnetConfig
@@ -452,25 +451,32 @@ class StarknetWrapper:
 
         return external_tx.contract_address, tx_handler.internal_tx.hash_value
 
-    async def __get_query_state(self, block_id: BlockIdentifier = DEFAULT_BLOCK_ID):
+    async def __get_query_state(self, block_id: BlockId = DEFAULT_BLOCK_ID):
         if block_id == PENDING_BLOCK_ID:
             return self.get_state()
         if block_id == LATEST_BLOCK_ID:
             return self.__latest_state
-        if block_id.isdigit():
-            try:
-                parsed_id = int(block_id)
-                return self.blocks.get_state(parsed_id)
-            except ValueError:
-                pass
+
+        assert isinstance(block_id, dict)
+        if block_id.get("block_hash"):
+            # takes care of parsing
+            block = await self.blocks.get_by_hash(block_id["block_hash"])
+            return self.blocks.get_state(block.block_number)
+
+        block_number = block_id.get("block_number")
+        try:
+            parsed_id = int(block_number)
+            return self.blocks.get_state(parsed_id)
+        except ValueError:
+            pass
 
         raise StarknetDevnetException(
             code=StarknetErrorCode.INVALID_BLOCK_NUMBER,
-            message=f"Invalid block id: {block_id}. Must specify pending or latest block. Reported from instance with port {self.config.args.port}",
+            message=f"Invalid block id: {block_id}",
         )
 
     async def call(
-        self, transaction: CallFunction, block_id: BlockIdentifier = DEFAULT_BLOCK_ID
+        self, transaction: CallFunction, block_id: BlockId = DEFAULT_BLOCK_ID
     ):
         """Perform call according to specifications in `transaction`."""
         state = await self.__get_query_state(block_id)
@@ -522,7 +528,7 @@ class StarknetWrapper:
         return await cached_state.get_contract_class(class_hash_bytes)
 
     async def get_class_hash_at(
-        self, contract_address: int, block_id: BlockIdentifier = DEFAULT_BLOCK_ID
+        self, contract_address: int, block_id: BlockId = DEFAULT_BLOCK_ID
     ) -> int:
         """Return class hash give the contract address"""
         state = await self.__get_query_state(block_id)
@@ -538,7 +544,7 @@ class StarknetWrapper:
         return class_hash_int
 
     async def get_class_by_address(
-        self, contract_address: int, block_id: BlockIdentifier = DEFAULT_BLOCK_ID
+        self, contract_address: int, block_id: BlockId = DEFAULT_BLOCK_ID
     ) -> ContractClass:
         """Return contract class given the contract address"""
         state = await self.__get_query_state(block_id)
@@ -548,7 +554,7 @@ class StarknetWrapper:
         return await cached_state.get_contract_class(class_hash_bytes)
 
     async def get_code(
-        self, contract_address: int, block_id: BlockIdentifier = DEFAULT_BLOCK_ID
+        self, contract_address: int, block_id: BlockId = DEFAULT_BLOCK_ID
     ) -> dict:
         """Return code dict given the contract address"""
         try:
@@ -568,7 +574,7 @@ class StarknetWrapper:
         self,
         contract_address: int,
         key: int,
-        block_id: BlockIdentifier = DEFAULT_BLOCK_ID,
+        block_id: BlockId = DEFAULT_BLOCK_ID,
     ) -> Felt:
         """
         Returns the storage identified by `key`
@@ -669,7 +675,7 @@ class StarknetWrapper:
         return block
 
     async def calculate_trace_and_fee(
-        self, external_tx: InvokeFunction, block_id: BlockIdentifier = DEFAULT_BLOCK_ID
+        self, external_tx: InvokeFunction, block_id: BlockId = DEFAULT_BLOCK_ID
     ):
         """Calculates trace and fee by simulating tx on state copy."""
         traces, fees = await self.calculate_traces_and_fees([external_tx], block_id)
@@ -679,7 +685,7 @@ class StarknetWrapper:
     async def calculate_traces_and_fees(
         self,
         external_txs: List[InvokeFunction],
-        block_id: BlockIdentifier = DEFAULT_BLOCK_ID,
+        block_id: BlockId = DEFAULT_BLOCK_ID,
     ):
         """Calculates traces and fees by simulating tx on state copy.
         Uses the resulting state for each consecutive estimation"""
@@ -731,7 +737,7 @@ class StarknetWrapper:
         return traces, fee_estimation_infos
 
     async def estimate_message_fee(
-        self, call: CallL1Handler, block_id: BlockIdentifier = DEFAULT_BLOCK_ID
+        self, call: CallL1Handler, block_id: BlockId = DEFAULT_BLOCK_ID
     ):
         """Estimate fee of message from L1 to L2"""
         state = await self.__get_query_state(block_id)
@@ -769,7 +775,7 @@ class StarknetWrapper:
         self.block_info_generator.set_gas_price(gas_price)
 
     async def get_nonce(
-        self, contract_address: int, block_id: BlockIdentifier = DEFAULT_BLOCK_ID
+        self, contract_address: int, block_id: BlockId = DEFAULT_BLOCK_ID
     ):
         """Returns nonce of contract with `contract_address`"""
         state = await self.__get_query_state(block_id)
