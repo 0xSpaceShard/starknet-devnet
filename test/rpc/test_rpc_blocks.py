@@ -19,6 +19,14 @@ from starknet_devnet.blueprints.rpc.utils import rpc_felt, rpc_root
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 
 
+@pytest.fixture(name="last_tx_hash")
+def fixture_last_tx_hash(request):
+    """
+    Fixture for last tx_hash
+    """
+    return request.param
+
+
 @pytest.mark.usefixtures("run_devnet_in_background")
 def test_get_block_with_tx_hashes(deploy_info, gateway_block, block_id):
     """
@@ -158,3 +166,31 @@ def test_get_block_number():
     block_number: int = resp["result"]
 
     assert latest_block_number == block_number
+
+
+@pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
+@pytest.mark.parametrize(
+    "run_devnet_in_background, last_tx_hash",
+    [
+        (
+            ["--seed", "42", "--accounts", "1"],
+            8,
+        ),
+        (
+            ["--seed", "42", "--accounts", "10"],
+            17,
+        ),
+    ],
+    indirect=True,
+)
+def test_genesis_block_transactions(last_tx_hash):
+    """
+    Test genesis block transactions after devnet start.
+    There are 4 declare and 3 deploy transactions + accounts deploy depending on the number of accounts.
+    """
+
+    latest_block = gateway_call("get_block", blockNumber="0")
+    assert len(latest_block["transactions"]) == last_tx_hash
+
+    for i in range(0, last_tx_hash):
+        assert latest_block["transactions"][i]["transaction_hash"] == hex(i)

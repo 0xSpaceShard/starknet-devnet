@@ -241,8 +241,6 @@ class StarknetWrapper:
             transaction.set_block(block=block)
             self.transactions.store(transaction.transaction_hash, transaction)
 
-        # TODO: Accounts Deploy
-
     async def create_empty_block(self) -> StarknetBlock:
         """Create empty block."""
         self._update_block_number()
