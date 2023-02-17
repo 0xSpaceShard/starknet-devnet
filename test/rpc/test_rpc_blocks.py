@@ -192,7 +192,7 @@ def test_genesis_block_transactions(last_tx_hash):
     genesis_block = gateway_call("get_block", blockNumber="0")
     assert len(genesis_block["transactions"]) == last_tx_hash
 
-    # Move it to new file
+    # Move it to new file "test_block_genesis" or "test_genesis_block"
     # Add test class hashes of declare here not in parametrize
 
     for i in range(0, last_tx_hash):
