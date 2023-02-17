@@ -18,12 +18,11 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     RpcError,
 )
 from starknet_devnet.blueprints.rpc.utils import (
-    assert_block_id_is_latest_or_pending,
+    assert_block_id_is_valid,
     gateway_felt,
     rpc_felt,
 )
 from starknet_devnet.state import state
-from starknet_devnet.util import StarknetDevnetException
 
 
 def _validate_calldata(calldata: List[Any]):
@@ -39,7 +38,7 @@ async def call(request: RpcFunctionCall, block_id: BlockId) -> List[Felt]:
     """
     Call a starknet function without creating a StarkNet transaction
     """
-    await assert_block_id_is_latest_or_pending(block_id)
+    await assert_block_id_is_valid(block_id) # TODO should be passed
 
     if not await state.starknet_wrapper.is_deployed(
         int(request["contract_address"], 16)
@@ -52,10 +51,6 @@ async def call(request: RpcFunctionCall, block_id: BlockId) -> List[Felt]:
             transaction=make_call_function(request)
         )
         return [rpc_felt(res) for res in result["result"]]
-    except StarknetDevnetException as ex:
-        raise RpcError(
-            code=PredefinedRpcErrorCode.INTERNAL_ERROR.value, message=ex.message
-        ) from ex
     except StarkException as ex:
         if ex.code.name == "TRANSACTION_FAILED" and ex.code.value == 39:
             raise RpcError(code=22, message="Invalid call data") from ex

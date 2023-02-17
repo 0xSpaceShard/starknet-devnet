@@ -34,7 +34,7 @@ from starknet_devnet.blueprints.rpc.structures.responses import (
 )
 from starknet_devnet.blueprints.rpc.structures.types import BlockId, RpcError, TxnHash
 from starknet_devnet.blueprints.rpc.utils import (
-    assert_block_id_is_latest_or_pending,
+    assert_block_id_is_valid,
     gateway_felt,
     get_block_by_block_id,
     rpc_felt,
@@ -200,7 +200,7 @@ async def estimate_fee(request: RpcBroadcastedTxn, block_id: BlockId) -> dict:
     """
     Estimate the fee for a given StarkNet transaction
     """
-    await assert_block_id_is_latest_or_pending(block_id)
+    await assert_block_id_is_valid(block_id)
     transaction = make_transaction(request)
     try:
         _, fee_response = await state.starknet_wrapper.calculate_trace_and_fee(

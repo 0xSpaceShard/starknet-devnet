@@ -13,7 +13,7 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     RpcError,
 )
 from starknet_devnet.blueprints.rpc.utils import (
-    assert_block_id_is_latest_or_pending,
+    assert_block_id_is_valid,
     rpc_felt,
 )
 from starknet_devnet.state import state
@@ -25,7 +25,7 @@ async def get_class(block_id: BlockId, class_hash: Felt) -> dict:
     """
     Get the contract class definition in the given block associated with the given hash
     """
-    await assert_block_id_is_latest_or_pending(block_id)
+    await assert_block_id_is_valid(block_id) # TODO unused
 
     try:
         result = await state.starknet_wrapper.get_class_by_hash(
@@ -42,7 +42,7 @@ async def get_class_hash_at(block_id: BlockId, contract_address: Address) -> Fel
     """
     Get the contract class hash in the given block for the contract deployed at the given address
     """
-    await assert_block_id_is_latest_or_pending(block_id)
+    await assert_block_id_is_valid(block_id)
 
     try:
         result = await state.starknet_wrapper.get_class_hash_at(
@@ -59,7 +59,7 @@ async def get_class_at(block_id: BlockId, contract_address: Address) -> dict:
     """
     Get the contract class definition in the given block at the given address
     """
-    await assert_block_id_is_latest_or_pending(block_id)
+    await assert_block_id_is_valid(block_id)
 
     try:
         result = await state.starknet_wrapper.get_class_by_address(

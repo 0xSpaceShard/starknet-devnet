@@ -98,3 +98,14 @@ class PredefinedRpcErrorCode(Enum):
     METHOD_NOT_FOUND = -32601
     INVALID_PARAMS = -32602
     INTERNAL_ERROR = -32603
+
+from starkware.starknet.definitions.error_codes import StarknetErrorCode
+from ..rpc_spec import RPC_SPECIFICATION
+import json
+
+# TODO measure time
+RPC_ERROR_DICT = json.loads(RPC_SPECIFICATION)["components"]["errors"]
+
+GATEWAY_TO_RPC_ERROR = {
+    StarknetErrorCode.OUT_OF_RANGE_BLOCK_ID: RPC_ERROR_DICT["BLOCK_NOT_FOUND"]
+}

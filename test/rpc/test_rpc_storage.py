@@ -32,6 +32,29 @@ def test_get_storage_at(deploy_info):
     assert storage == "0x045"
 
 
+@pytest.mark.usefixtures("run_devnet_in_background")
+def test_get_storage_at_old_block(deploy_info):
+    """
+    Get storage at address
+    """
+    contract_address: str = deploy_info["address"]
+    key: str = hex(get_storage_var_address("balance"))
+
+    def get_storage(block_id):
+        resp = rpc_call(
+            "starknet_getStorageAt",
+            params={
+                "contract_address": rpc_felt(contract_address),
+                "key": rpc_felt(key),
+                "block_id": block_id,
+            },
+        )
+        return resp["result"]
+
+    assert get_storage({"block_number": 0}) == "0x00"
+    assert get_storage({"block_hash": "0x00"}) == "0x00"
+
+
 @pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
 def test_get_storage_at_raises_on_incorrect_contract():
     """
@@ -92,7 +115,8 @@ def test_get_storage_at_raises_on_incorrect_block_id(deploy_info):
         },
     )
 
+    print("DEBUG ex", ex)
     assert ex["error"] == {
-        "code": PredefinedRpcErrorCode.INVALID_PARAMS.value,
-        "message": "Invalid value for block id.",
+        "code": 24,
+        "message": "Block not found",
     }

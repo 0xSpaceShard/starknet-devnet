@@ -92,11 +92,17 @@ async def _get_block_transaction_traces(block: StarknetBlock):
     return BlockTransactionTraces.load({"traces": traces})
 
 
-def _get_block_id(args: MultiDict):
-    if "blockHash" in args:
-        raise StarknetDevnetException("Cannot handle block hashes", status_code=400)
+def _get_block_id(args: MultiDict) -> dict:
+    block_number = args.get("blockNumber")
+    block_hash = args.get("blockHash")
 
-    return args.get("blockNumber", "latest")
+    if block_number is None and block_hash is None:
+        return "latest"
+
+    return {
+        "block_number": block_number,
+        "block_hash": block_hash,
+    }
 
 
 @feeder_gateway.route("/get_contract_addresses", methods=["GET"])

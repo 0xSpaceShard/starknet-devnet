@@ -17,6 +17,7 @@ from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException
 
 
+# TODO remove
 def block_tag_to_block_number(block_id: BlockId) -> BlockId:
     """
     Changes block_id from "latest" / "pending" tag to dict with "block_number" field
@@ -49,26 +50,19 @@ async def get_block_by_block_id(block_id: BlockId) -> StarknetBlock:
         raise RpcError(code=24, message="Block not found") from ex
 
 
-async def assert_block_id_is_latest_or_pending(block_id: BlockId) -> None:
+async def assert_block_id_is_valid(block_id: BlockId) -> None:
     """
-    Assert block_id is "latest"/"pending" or a block hash or number of "latest"/"pending" block and throw RpcError otherwise
+    Assert block_id is valid
     """
     if isinstance(block_id, dict):
-        last_block = await state.starknet_wrapper.blocks.get_last_block()
-
         if "block_hash" in block_id and "block_number" in block_id:
             raise RpcError(
                 code=-1,
                 message="Parameters block_hash and block_number are mutually exclusive.",
             )
 
-        if "block_hash" in block_id:
-            if int(block_id["block_hash"], 16) == last_block.block_hash:
-                return
-
-        if "block_number" in block_id:
-            if int(block_id["block_number"]) == last_block.block_number:
-                return
+        if "block_hash" in block_id or "block_number" in block_id:
+            return
 
     if isinstance(block_id, str):
         if block_id in ("latest", "pending"):
