@@ -71,6 +71,52 @@ def test_call():
     assert_old_block_correct()
 
 
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
+def test_call_with_block_hash():
+    """Expect variable value not to be changed in the old state"""
+
+    def _get_value_by_hash(contract_address: str, block_hash: str) -> int:
+        value = call(
+            "get_balance",
+            address=contract_address,
+            abi_path=ABI_PATH,
+            block_number=None,
+            block_hash=block_hash,
+        )
+        return int(value)
+
+    def assert_old_block_correct():
+        value_at_1 = _get_value_by_hash(
+            contract_address, block_hash=deployment_block_hash
+        )
+        assert value_at_1 == initial_value
+
+        value_at_2 = _get_value_by_hash(
+            contract_address, block_hash=increment_block_hash
+        )
+        assert value_at_2 == value_at_1 + increment_value
+
+    initial_value = 5
+    deploy_info = deploy(CONTRACT_PATH, inputs=[str(initial_value)])
+    deployment_block = get_block(block_number="latest", parse=True)
+    deployment_block_hash = deployment_block["block_hash"]
+    contract_address = deploy_info["address"]
+
+    increment_value = 7
+    _increment(contract_address, increment_value)
+    increment_block = get_block(block_number="latest", parse=True)
+    increment_block_hash = increment_block["block_hash"]
+    assert increment_block_hash != deployment_block_hash
+
+    assert_old_block_correct()
+
+    # generate another transaction to make the block/state older
+    # and to change the value in the latest state
+    _increment(contract_address, increment_value)
+
+    assert_old_block_correct()
+
+
 FORK_BLOCK = 1000
 
 

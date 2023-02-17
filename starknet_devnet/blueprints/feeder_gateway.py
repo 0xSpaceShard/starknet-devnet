@@ -9,6 +9,8 @@ from starkware.starknet.services.api.feeder_gateway.request_objects import (
     CallL1Handler,
 )
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    LATEST_BLOCK_ID,
+    PENDING_BLOCK_ID,
     BlockTransactionTraces,
     StarknetBlock,
     TransactionSimulationInfo,
@@ -21,6 +23,7 @@ from starkware.starknet.services.api.gateway.transaction import (
 from starkware.starkware_utils.error_handling import StarkErrorCode
 from werkzeug.datastructures import MultiDict
 
+from starknet_devnet.blueprints.rpc.structures.types import BlockId
 from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException, custom_int, fixed_length_hex
 
@@ -92,11 +95,22 @@ async def _get_block_transaction_traces(block: StarknetBlock):
     return BlockTransactionTraces.load({"traces": traces})
 
 
-def _get_block_id(args: MultiDict):
-    if "blockHash" in args:
-        raise StarknetDevnetException("Cannot handle block hashes", status_code=400)
+def _get_block_id(args: MultiDict) -> BlockId:
+    block_number = args.get("blockNumber")
+    block_hash = args.get("blockHash")
 
-    return args.get("blockNumber", "latest")
+    if block_number is None and block_hash is None:
+        return "latest"
+
+    if block_number is None:
+        # there is some hash
+        return {"block_hash": block_hash}
+
+    if block_number in [PENDING_BLOCK_ID, LATEST_BLOCK_ID]:
+        return block_number
+
+    # there is some number and it should be an integer
+    return {"block_number": block_number}
 
 
 @feeder_gateway.route("/get_contract_addresses", methods=["GET"])
