@@ -135,8 +135,6 @@ class StarknetWrapper:
 
             await self.fee_token.deploy()
             await self.accounts.deploy()
-            # TODO: shouldn't it be in reverse order?
-            # __predeclare_starknet_cli_account and later __deploy_chargeable_account?
             await self.__deploy_chargeable_account()
             await self.__predeclare_starknet_cli_account()
             await self.__udc.deploy()
@@ -146,7 +144,7 @@ class StarknetWrapper:
             self.__initialized = True
 
     def _internal_declare(self, tx_hash, class_hash) -> InternalDeclare:
-        "TODO"
+        "Create InternalDeclare used in the genesis block"
         return InternalDeclare(
             hash_value=tx_hash,
             version=0,
@@ -158,7 +156,7 @@ class StarknetWrapper:
         )
 
     def _internal_deploy(self, tx_hash, class_hash, contract_address) -> InternalDeploy:
-        "TODO"
+        "Create InternalDeploy used in the genesis block"
         return InternalDeploy(
             contract_address=contract_address,
             contract_hash=class_hash,
@@ -171,7 +169,7 @@ class StarknetWrapper:
     def _create_genesis_block_transaction(
         self, internal_tx, tx_type
     ) -> DevnetTransaction:
-        "TODO"
+        "Create DevnetTransaction used in the genesis block"
         execution_info = TransactionExecutionInfo(
             validate_info=None,
             call_info=None,
@@ -197,7 +195,7 @@ class StarknetWrapper:
     async def _create_genesis_block(self):
         """Create genesis block"""
         transactions: List[DevnetTransaction] = []
-        transaction_hash = 42
+        transaction_hash = 0
 
         # Declare transactions
         declare_hashes = [
@@ -220,6 +218,9 @@ class StarknetWrapper:
             (to_bytes(UDC.HASH), UDC.ADDRESS),
             (ChargeableAccount(self).class_hash_bytes, ChargeableAccount(self).ADDRESS),
         ]
+        for account in self.accounts:
+            deploy_data.append((account.class_hash_bytes, account.address))
+
         for deploy_tuple in deploy_data:
             internal_deploy = self._internal_deploy(
                 transaction_hash, deploy_tuple[0], deploy_tuple[1]
