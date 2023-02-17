@@ -189,8 +189,11 @@ def test_genesis_block_transactions(last_tx_hash):
     There are 4 declare and 3 deploy transactions + accounts deploy depending on the number of accounts.
     """
 
-    latest_block = gateway_call("get_block", blockNumber="0")
-    assert len(latest_block["transactions"]) == last_tx_hash
+    genesis_block = gateway_call("get_block", blockNumber="0")
+    assert len(genesis_block["transactions"]) == last_tx_hash
+
+    # Move it to new file
+    # Add test class hashes of declare here not in parametrize
 
     for i in range(0, last_tx_hash):
-        assert latest_block["transactions"][i]["transaction_hash"] == hex(i)
+        assert genesis_block["transactions"][i]["transaction_hash"] == hex(i)

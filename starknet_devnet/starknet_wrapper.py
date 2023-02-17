@@ -71,7 +71,13 @@ from .general_config import build_devnet_general_config
 from .origin import ForkedOrigin, NullOrigin
 from .postman_wrapper import DevnetL1L2
 from .sequencer_api_utils import InternalInvokeFunctionForSimulate
-from .transactions import DevnetTransaction, DevnetTransactions
+from .transactions import (
+    DevnetTransaction,
+    DevnetTransactions,
+    create_empty_internal_declare,
+    create_empty_internal_deploy,
+    create_genesis_block_transaction,
+)
 from .udc import UDC
 from .util import (
     StarknetDevnetException,
@@ -143,55 +149,6 @@ class StarknetWrapper:
             await self._create_genesis_block()
             self.__initialized = True
 
-    def _internal_declare(self, tx_hash, class_hash) -> InternalDeclare:
-        "Create InternalDeclare used in the genesis block"
-        return InternalDeclare(
-            hash_value=tx_hash,
-            version=0,
-            max_fee=0,
-            signature=[],
-            nonce=0,
-            class_hash=class_hash,
-            sender_address=1,
-        )
-
-    def _internal_deploy(self, tx_hash, class_hash, contract_address) -> InternalDeploy:
-        "Create InternalDeploy used in the genesis block"
-        return InternalDeploy(
-            contract_address=contract_address,
-            contract_hash=class_hash,
-            contract_address_salt=0,
-            hash_value=tx_hash,
-            version=0,
-            constructor_calldata=[],
-        )
-
-    def _create_genesis_block_transaction(
-        self, internal_tx, tx_type
-    ) -> DevnetTransaction:
-        "Create DevnetTransaction used in the genesis block"
-        execution_info = TransactionExecutionInfo(
-            validate_info=None,
-            call_info=None,
-            fee_transfer_info=None,
-            actual_fee=0,
-            actual_resources={
-                "l1_gas_usage": 0,
-                "pedersen_builtin": 0,
-                "range_check_builtin": 0,
-                "n_steps": 0,
-            },
-            tx_type=tx_type,
-        )
-        transaction = DevnetTransaction(
-            internal_tx=internal_tx,
-            status=TransactionStatus.ACCEPTED_ON_L2,
-            execution_info=execution_info,
-            transaction_hash=internal_tx.hash_value,
-        )
-
-        return transaction
-
     async def _create_genesis_block(self):
         """Create genesis block"""
         transactions: List[DevnetTransaction] = []
@@ -205,8 +162,8 @@ class StarknetWrapper:
             to_bytes(STARKNET_CLI_ACCOUNT_CLASS_HASH),
         ]
         for class_hash in declare_hashes:
-            internal_declare = self._internal_declare(transaction_hash, class_hash)
-            declare_transaction = self._create_genesis_block_transaction(
+            internal_declare = create_empty_internal_declare(transaction_hash, class_hash)
+            declare_transaction = create_genesis_block_transaction(
                 internal_declare, TransactionType.DECLARE
             )
             transactions.append(declare_transaction)
@@ -222,10 +179,10 @@ class StarknetWrapper:
             deploy_data.append((account.class_hash_bytes, account.address))
 
         for deploy_tuple in deploy_data:
-            internal_deploy = self._internal_deploy(
+            internal_deploy = create_empty_internal_deploy(
                 transaction_hash, deploy_tuple[0], deploy_tuple[1]
             )
-            deploy_transaction = self._create_genesis_block_transaction(
+            deploy_transaction = create_genesis_block_transaction(
                 internal_deploy, TransactionType.DEPLOY
             )
             transactions.append(deploy_transaction)
