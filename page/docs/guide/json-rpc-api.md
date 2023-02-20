@@ -40,16 +40,19 @@ Please note however, that the `pending` block will be the same block as the `lat
 {
   "block_id": "latest"
 }
+
 // or pending
 {
   "block_id": "pending"
 }
+
 // or block number
 {
   "block_id": {
     "block_number": 1234  // Must be the number of the latest block
   }
 }
+
 // or block hash
 {
   "block_id": {
