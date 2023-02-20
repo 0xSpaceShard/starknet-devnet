@@ -6,6 +6,13 @@ sidebar_position: 8
 
 Devnet starts with a genesis block (with block number equal to `0` and block hash equal to `"0x0"`).
 
+Genesis block contains transactions for:
+- `FeeToken` contract declaration and deploy
+- Universal Deployer Contract (UDC) contract declaration and deploy
+- `ChargeableAccount` contract declaration and deploy
+- Starknet CLI account contract class declaration
+- User accounts deploy transactions (number specified by `--accounts` parameter)
+
 A new block is generated with each new transaction unless you opt for [creating blocks on demand](#create-a-block-on-demand).
 
 ### Create an empty block
