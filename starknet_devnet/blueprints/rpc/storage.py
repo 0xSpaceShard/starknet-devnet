@@ -22,7 +22,7 @@ async def get_storage_at(
     await assert_block_id_is_valid(block_id)
 
     if not await state.starknet_wrapper.is_deployed(int(contract_address, 16)):
-        raise RpcError(code=20, message="Contract not found")
+        raise RpcError.from_spec_name("CONTRACT_NOT_FOUND")
 
     # TODO wrap
     storage = await state.starknet_wrapper.get_storage_at(

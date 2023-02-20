@@ -29,7 +29,7 @@ async def get_class(block_id: BlockId, class_hash: Felt) -> dict:
             class_hash=int(class_hash, 16)
         )
     except StarknetDevnetException as ex:
-        raise RpcError(code=28, message="Class hash not found") from ex
+        raise RpcError.from_spec_name("CLASS_HASH_NOT_FOUND") from ex
 
     return rpc_contract_class(result)
 
@@ -46,7 +46,7 @@ async def get_class_hash_at(block_id: BlockId, contract_address: Address) -> Fel
             int(contract_address, 16), block_id
         )
     except StarkException as ex:
-        raise RpcError(code=28, message="Class hash not found") from ex
+        raise RpcError.from_spec_name("CLASS_HASH_NOT_FOUND") from ex
 
     return rpc_felt(result)
 
@@ -63,6 +63,6 @@ async def get_class_at(block_id: BlockId, contract_address: Address) -> dict:
             int(contract_address, 16), block_id
         )
     except StarkException as ex:
-        raise RpcError(code=20, message="Contract not found") from ex
+        raise RpcError.from_spec_name("CONTRACT_NOT_FOUND") from ex
 
     return rpc_contract_class(result)

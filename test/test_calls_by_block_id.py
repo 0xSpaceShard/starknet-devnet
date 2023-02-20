@@ -163,5 +163,4 @@ def test_old_block_generated_on_demand():
     )
 
 
-# TODO test by hash
-# TODO expand rpc testing
+# TODO expand rpc testing - in this file or in rpc tests?

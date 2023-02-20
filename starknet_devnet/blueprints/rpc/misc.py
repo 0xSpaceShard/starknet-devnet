@@ -166,7 +166,7 @@ async def get_nonce(block_id: BlockId, contract_address: Address) -> Felt:
     await assert_block_id_is_valid(block_id)
 
     if not await state.starknet_wrapper.is_deployed(int(contract_address, 16)):
-        raise RpcError(code=20, message="Contract not found")
+        raise RpcError.from_spec_name("CONTRACT_NOT_FOUND")
 
     result = await state.starknet_wrapper.get_nonce(
         contract_address=int(contract_address, 16), block_id=block_id

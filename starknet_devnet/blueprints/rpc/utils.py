@@ -17,7 +17,7 @@ from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException
 
 
-# TODO remove
+# TODO remove... or not?
 def block_tag_to_block_number(block_id: BlockId) -> BlockId:
     """
     Changes block_id from "latest" / "pending" tag to dict with "block_number" field
@@ -47,7 +47,7 @@ async def get_block_by_block_id(block_id: BlockId) -> StarknetBlock:
             block_number=block_id["block_number"]
         )
     except StarknetDevnetException as ex:
-        raise RpcError(code=24, message="Block not found") from ex
+        raise RpcError.from_spec_name("BLOCK_NOT_FOUND") from ex
 
 
 async def assert_block_id_is_valid(block_id: BlockId) -> None:

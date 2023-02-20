@@ -53,10 +53,10 @@ async def get_transaction_by_hash(transaction_hash: TxnHash) -> dict:
             transaction_hash
         )
     except StarknetDevnetException as ex:
-        raise RpcError(code=25, message="Transaction hash not found") from ex
+        raise RpcError.from_spec_name("TXN_HASH_NOT_FOUND") from ex
 
     if result.status == TransactionStatus.NOT_RECEIVED:
-        raise RpcError(code=25, message="Transaction hash not found")
+        raise RpcError.from_spec_name("TXN_HASH_NOT_FOUND")
 
     return rpc_transaction(result.transaction)
 
@@ -71,7 +71,7 @@ async def get_transaction_by_block_id_and_index(block_id: BlockId, index: int) -
     try:
         transaction_hash: int = block.transactions[index].transaction_hash
     except IndexError as ex:
-        raise RpcError(code=27, message="Invalid transaction index in a block") from ex
+        raise RpcError.from_spec_name("INVALID_TXN_INDEX") from ex
 
     return await get_transaction_by_hash(transaction_hash=rpc_felt(transaction_hash))
 
@@ -86,10 +86,10 @@ async def get_transaction_receipt(transaction_hash: TxnHash) -> dict:
             tx_hash=transaction_hash
         )
     except StarknetDevnetException as ex:
-        raise RpcError(code=25, message="Transaction hash not found") from ex
+        raise RpcError.from_spec_name("TXN_HASH_NOT_FOUND") from ex
 
     if result.status == TransactionStatus.NOT_RECEIVED:
-        raise RpcError(code=25, message="Transaction hash not found")
+        raise RpcError.from_spec_name("TXN_HASH_NOT_FOUND")
 
     return await rpc_transaction_receipt(result)
 
@@ -171,7 +171,7 @@ async def add_deploy_account_transaction(
         status_response["tx_status"] == "REJECTED"
         and "is not declared" in status_response["tx_failure_reason"].error_message
     ):
-        raise RpcError(code=28, message="Class hash not found")
+        raise RpcError.from_spec_name("CLASS_HASH_NOT_FOUND")
 
     return RpcDeployAccountTransactionResult(
         transaction_hash=rpc_felt(transaction_hash),
@@ -211,11 +211,11 @@ async def estimate_fee(request: RpcBroadcastedTxn, block_id: BlockId) -> dict:
             f"Entry point {gateway_felt(request['entry_point_selector'])} not found"
             in ex.message
         ):
-            raise RpcError(code=21, message="Invalid message selector") from ex
+            raise RpcError.from_spec_name("INVALID_MESSAGE_SELECTOR") from ex
         if "While handling calldata" in ex.message:
-            raise RpcError(code=22, message="Invalid call data") from ex
+            raise RpcError.from_spec_name("INVALID_CALL_DATA") from ex
         if "is not deployed" in ex.message:
-            raise RpcError(code=20, message="Contract not found") from ex
+            raise RpcError.from_spec_name("CONTRACT_NOT_FOUND") from ex
         raise RpcError(code=-1, message=ex.message) from ex
 
     return rpc_fee_estimate(fee_response)

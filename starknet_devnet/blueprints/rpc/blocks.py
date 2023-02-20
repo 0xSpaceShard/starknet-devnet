@@ -33,7 +33,7 @@ async def block_number() -> int:
     """
     number_of_blocks = state.starknet_wrapper.blocks.get_number_of_blocks()
     if number_of_blocks == 0:
-        raise RpcError(code=32, message="There are no blocks")
+        raise RpcError.from_spec_name("NO_BLOCKS")
 
     return number_of_blocks - 1
 
@@ -45,7 +45,7 @@ async def block_hash_and_number() -> dict:
     """
     number_of_blocks = state.starknet_wrapper.blocks.get_number_of_blocks()
     if number_of_blocks == 0:
-        raise RpcError(code=32, message="There are no blocks")
+        raise RpcError.from_spec_name("NO_BLOCKS")
 
     last_block_number = number_of_blocks - 1
     last_block = await state.starknet_wrapper.blocks.get_by_number(last_block_number)

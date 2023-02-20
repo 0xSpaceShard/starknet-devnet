@@ -30,7 +30,7 @@ def _validate_calldata(calldata: List[Any]):
         try:
             int(calldata_value, 16)
         except (ValueError, TypeError) as error:
-            raise RpcError(code=22, message="Invalid call data") from error
+            raise RpcError.from_spec_name("INVALID_CALL_DATA") from error
 
 
 @validate_schema("call")
@@ -43,7 +43,7 @@ async def call(request: RpcFunctionCall, block_id: BlockId) -> List[Felt]:
     if not await state.starknet_wrapper.is_deployed(
         int(request["contract_address"], 16)
     ):
-        raise RpcError(code=20, message="Contract not found")
+        raise RpcError.from_spec_name("CONTRACT_NOT_FOUND")
 
     _validate_calldata(request["calldata"])
     try:
@@ -53,14 +53,15 @@ async def call(request: RpcFunctionCall, block_id: BlockId) -> List[Felt]:
         return [rpc_felt(res) for res in result["result"]]
     except StarkException as ex:
         if ex.code.name == "TRANSACTION_FAILED" and ex.code.value == 39:
-            raise RpcError(code=22, message="Invalid call data") from ex
+            raise RpcError.from_spec_name("INVALID_CALL_DATA") from ex
         if (
             f"Entry point {gateway_felt(request['entry_point_selector'])} not found"
             in ex.message
         ):
-            raise RpcError(code=21, message="Invalid message selector") from ex
+            raise RpcError.from_spec_name("INVALID_MESSAGE_SELECTOR") from ex
         if "While handling calldata" in ex.message:
-            raise RpcError(code=22, message="Invalid call data") from ex
+            # TODO make this clause condition more robust (and in other similar places)
+            raise RpcError.from_spec_name("INVALID_CALL_DATA") from ex
         raise RpcError(
             code=PredefinedRpcErrorCode.INTERNAL_ERROR.value, message=ex.message
         ) from ex
