@@ -456,9 +456,6 @@ class StarknetWrapper:
             deploy_transaction, self.get_state().general_config
         )
 
-        print("internal_tx deploy")
-        print(internal_tx)
-
         contract_address = internal_tx.contract_address
 
         if await self.is_deployed(contract_address):
