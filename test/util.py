@@ -348,7 +348,7 @@ def call(
     address: str,
     abi_path: str,
     inputs=None,
-    block_number="latest",  # Starknet CLI defaults to pending
+    block_number=None,  # Starknet CLI defaults to pending
     block_hash=None,
     feeder_gateway_url=APP_URL,
 ):
@@ -364,20 +364,10 @@ def call(
     ]
 
     if block_number is not None:
-        args.extend(
-            [
-                "--block_number",
-                block_number,
-            ]
-        )
+        args.extend(["--block_number", block_number])
 
     if block_hash is not None:
-        args.extend(
-            [
-                "--block_hash",
-                block_hash,
-            ]
-        )
+        args.extend(["--block_hash", block_hash])
 
     if inputs:
         args.extend(["--inputs", *inputs])
