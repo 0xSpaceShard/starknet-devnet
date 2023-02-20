@@ -12,6 +12,7 @@ Let's discover **[starknet-devnet](https://github.com/Shard-Labs/starknet-devnet
 :::
 
 - Devnet should not be used as a replacement for Alpha testnet. After testing on Devnet, be sure to test on testnet (alpha-goerli)!
+- JSON-RPC doesn't support calling and estimating functions at the state of an old block - only `pending` and `latest` are supported.
 - Sending transactions with max_fee set to 0 is supported (not supported on alpha-mainnet or alpha-goerli).
 
 ## Requirements
