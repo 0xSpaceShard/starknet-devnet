@@ -153,7 +153,7 @@ class StarknetWrapper:
     async def __create_genesis_block(self):
         """Create genesis block"""
         transactions: List[DevnetTransaction] = []
-        transaction_hash = 0
+        transaction_hash = 1
 
         # Declare transactions
         declare_hashes = [
@@ -193,7 +193,7 @@ class StarknetWrapper:
         state = self.get_state()
         state_update = await self._update_pending_state()
         await self.blocks.generate_pending(transactions, state, state_update)
-        block = await self.generate_latest_block()
+        block = await self.generate_latest_block(block_hash=9)
 
         for transaction in transactions:
             transaction.set_block(block=block)
@@ -697,13 +697,13 @@ class StarknetWrapper:
             state_update=state_update,
         )
 
-    async def generate_latest_block(self) -> StarknetBlock:
+    async def generate_latest_block(self, block_hash=None) -> StarknetBlock:
         """Generate new block with pending transactions in --blocks-on-demand mode."""
 
         # Store transactions and clear pending txs
         state = self.get_state()
         if self.blocks.is_block_pending():
-            block = await self.blocks.store_pending(state)
+            block = await self.blocks.store_pending(state, block_hash=block_hash)
         else:
             # if no pending, default to creating an empty block
             assert not self.pending_txs

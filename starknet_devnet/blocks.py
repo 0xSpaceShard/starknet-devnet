@@ -248,7 +248,7 @@ class DevnetBlocks:
         return self.__pending_block is not None
 
     async def store_pending(
-        self, state: StarknetState, is_empty_block=False
+        self, state: StarknetState, is_empty_block=False, block_hash=None
     ) -> StarknetBlock:
         """
         Store pending block, assign a block hash to it, effecitvely making it the latest.
@@ -267,10 +267,12 @@ class DevnetBlocks:
 
         if self.lite or is_empty_block:
             block_hash = block_number
-        else:
+        elif block_hash is None:
             block_hash = await self.__calculate_pending_block_hash(
                 state, block_number, state_root
             )
+        else:
+            block_hash = block_hash
 
         block_dict["block_hash"] = hex(block_hash)
         self.__hash2num[block_hash] = block_number

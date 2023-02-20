@@ -52,4 +52,4 @@ def test_genesis_block_transactions(last_tx_hash):
 
     # Assert transaction hashes for all transactions
     for i in range(0, last_tx_hash):
-        assert genesis_block["transactions"][i]["transaction_hash"] == hex(i)
+        assert genesis_block["transactions"][i]["transaction_hash"] == hex(i + 1)
