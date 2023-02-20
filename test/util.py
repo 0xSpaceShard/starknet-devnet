@@ -303,6 +303,14 @@ def assert_transaction_receipt_not_received(tx_hash: str, feeder_gateway_url=APP
     )
 
 
+def _add_block_specifier(args: List[str], block_number=None, block_hash=None):
+    if block_number is not None:
+        args.extend(["--block_number", block_number])
+
+    if block_hash is not None:
+        args.extend(["--block_hash", block_hash])
+
+
 # pylint: disable=too-many-arguments
 def estimate_fee(
     function,
@@ -312,6 +320,7 @@ def estimate_fee(
     signature=None,
     nonce=None,
     block_number=None,
+    block_hash=None,
     feeder_gateway_url=APP_URL,
 ):
     """Wrapper around starknet estimate_fee. Returns fee in wei."""
@@ -334,8 +343,7 @@ def estimate_fee(
     if nonce is not None:
         args.extend(["--nonce", str(nonce)])
 
-    if block_number is not None:
-        args.extend(["--block_number", str(block_number)])
+    _add_block_specifier(args, block_number=block_number, block_hash=block_hash)
 
     output = run_starknet(args, gateway_url=feeder_gateway_url)
 
@@ -363,11 +371,7 @@ def call(
         abi_path,
     ]
 
-    if block_number is not None:
-        args.extend(["--block_number", block_number])
-
-    if block_hash is not None:
-        args.extend(["--block_hash", block_hash])
+    _add_block_specifier(args, block_number=block_number, block_hash=block_hash)
 
     if inputs:
         args.extend(["--inputs", *inputs])
@@ -433,11 +437,19 @@ def assert_contract_class(actual_class: ContractClass, expected_class_path: str)
 
 
 def assert_storage(
-    address: str, key: str, expected_value: str, feeder_gateway_url=APP_URL
+    address: str,
+    key: str,
+    expected_value: str,
+    block_number=None,
+    block_hash=None,
+    feeder_gateway_url=APP_URL,
 ):
     """Asserts the storage value stored at (address, key)."""
+    args = ["get_storage_at", "--contract_address", address, "--key", key]
+    _add_block_specifier(args, block_number=block_number, block_hash=block_hash)
+
     output = run_starknet(
-        ["get_storage_at", "--contract_address", address, "--key", key],
+        args,
         gateway_url=feeder_gateway_url,
     )
     assert_equal(output.stdout.rstrip(), expected_value)
@@ -697,7 +709,7 @@ def read_stream(stream: IO, encoding="utf-8") -> str:
 
 
 class ErrorExpector:
-    """ "
+    """
     Use this wrapper to assert that a block of code will raise
     a ReturnCodeAssertionError with the expected exception type
     """

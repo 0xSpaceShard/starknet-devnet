@@ -5,6 +5,7 @@ from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from .account import invoke
 from .shared import (
     ABI_PATH,
+    BALANCE_KEY,
     CONTRACT_PATH,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
@@ -14,6 +15,7 @@ from .shared import (
 from .test_restart import restart
 from .util import (
     ErrorExpector,
+    assert_storage,
     call,
     demand_block_creation,
     deploy,
@@ -80,7 +82,6 @@ def test_call_with_block_hash():
             "get_balance",
             address=contract_address,
             abi_path=ABI_PATH,
-            block_number=None,
             block_hash=block_hash,
         )
         return int(value)
@@ -206,4 +207,38 @@ def test_old_block_generated_on_demand():
     assert (
         _get_value(contract_address, block_number="1")
         == initial_balance + increment_value
+    )
+
+
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
+def test_getting_storage_at_old_block():
+    """Call get_storage_at on old block"""
+
+    initial_balance = 10
+    deploy_info = deploy(contract=CONTRACT_PATH, inputs=[str(initial_balance)])
+    deployment_block = get_block(block_number="latest", parse=True)
+    contract_address = deploy_info["address"]
+
+    increment_value = 5
+    _increment(contract_address, increment_value)
+
+    def assert_balance_in_storage(
+        expected_value: str, block_number=None, block_hash=None
+    ):
+        assert_storage(
+            address=contract_address,
+            key=BALANCE_KEY,
+            expected_value=expected_value,
+            block_number=block_number,
+            block_hash=block_hash,
+        )
+
+    assert_balance_in_storage(expected_value=hex(initial_balance), block_number="1")
+    assert_balance_in_storage(
+        expected_value=hex(initial_balance),
+        block_hash=deployment_block["block_hash"],
+    )
+    assert_balance_in_storage(
+        expected_value=hex(initial_balance + increment_value),
+        block_number="2",
     )
