@@ -11,7 +11,6 @@ from starkware.starknet.business_logic.transaction.objects import (
     InternalTransaction,
     InternalDeclare,
     InternalDeploy,
-    TransactionExecutionInfo,
 )
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.services.api.feeder_gateway.response_objects import (

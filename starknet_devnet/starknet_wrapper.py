@@ -95,6 +95,7 @@ DEFAULT_BLOCK_ID = LATEST_BLOCK_ID
 
 # pylint: disable=too-many-instance-attributes
 # pylint: disable=too-many-public-methods
+# pylint: disable=too-many-locals
 class StarknetWrapper:
     """
     Wraps a Starknet instance and stores data to be returned by the server:
@@ -146,10 +147,10 @@ class StarknetWrapper:
             await self.__udc.deploy()
 
             await self.__preserve_current_state(starknet.state.state)
-            await self._create_genesis_block()
+            await self.__create_genesis_block()
             self.__initialized = True
 
-    async def _create_genesis_block(self):
+    async def __create_genesis_block(self):
         """Create genesis block"""
         transactions: List[DevnetTransaction] = []
         transaction_hash = 0
