@@ -17,7 +17,6 @@ from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException
 
 
-# TODO test if all tests pass with and without this (delete?)
 def block_tag_to_block_number(block_id: BlockId) -> BlockId:
     """
     Changes block_id from "latest" / "pending" tag to dict with "block_number" field

@@ -719,9 +719,7 @@ class StarknetWrapper:
         # Store transactions and clear pending txs
         state = self.get_state()
         if self.blocks.is_block_pending():
-            block = await self.blocks.store_pending(
-                state, block_hash=block_hash
-            )
+            block = await self.blocks.store_pending(state, block_hash=block_hash)
         else:
             # if no pending, default to creating an empty block
             assert not self.pending_txs
