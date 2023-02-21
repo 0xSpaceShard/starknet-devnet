@@ -289,7 +289,10 @@ def create_empty_internal_declare(tx_hash, class_hash) -> InternalDeclare:
         sender_address=1,
     )
 
-def create_empty_internal_deploy(tx_hash, class_hash, contract_address) -> InternalDeploy:
+
+def create_empty_internal_deploy(
+    tx_hash, class_hash, contract_address
+) -> InternalDeploy:
     "Create InternalDeploy used in the genesis block"
     return InternalDeploy(
         contract_address=contract_address,
@@ -299,6 +302,7 @@ def create_empty_internal_deploy(tx_hash, class_hash, contract_address) -> Inter
         version=0,
         constructor_calldata=[],
     )
+
 
 def create_genesis_block_transaction(internal_tx, tx_type) -> DevnetTransaction:
     "Create DevnetTransaction used in the genesis block"

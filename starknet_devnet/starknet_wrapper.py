@@ -163,7 +163,9 @@ class StarknetWrapper:
             to_bytes(STARKNET_CLI_ACCOUNT_CLASS_HASH),
         ]
         for class_hash in declare_hashes:
-            internal_declare = create_empty_internal_declare(transaction_hash, class_hash)
+            internal_declare = create_empty_internal_declare(
+                transaction_hash, class_hash
+            )
             declare_transaction = create_genesis_block_transaction(
                 internal_declare, TransactionType.DECLARE
             )
@@ -703,7 +705,9 @@ class StarknetWrapper:
         # Store transactions and clear pending txs
         state = self.get_state()
         if self.blocks.is_block_pending():
-            block = await self.blocks.store_pending(state, pending_block_hash=block_hash)
+            block = await self.blocks.store_pending(
+                state, pending_block_hash=block_hash
+            )
         else:
             # if no pending, default to creating an empty block
             assert not self.pending_txs
