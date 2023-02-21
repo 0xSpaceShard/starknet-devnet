@@ -154,7 +154,6 @@ def test_call_on_old_block(deploy_info):
     """Correctly call contract on old state"""
 
     contract_address: str = deploy_info["address"]
-    print("DEBUG deploy_info", deploy_info)
     deployment_block = get_block_with_transaction(deploy_info["transaction_hash"])
 
     invoke_tx_hash = invoke(
@@ -185,7 +184,7 @@ def test_call_on_old_block(deploy_info):
         assert result == ["0x045"]
 
     call_and_assert({"block_number": deployment_block["block_number"]})
-    call_and_assert({"block_hash": deployment_block["block_hash"]})
+    call_and_assert({"block_hash": rpc_felt(deployment_block["block_hash"])})
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
