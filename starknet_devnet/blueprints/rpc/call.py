@@ -60,7 +60,6 @@ async def call(request: RpcFunctionCall, block_id: BlockId) -> List[Felt]:
         ):
             raise RpcError.from_spec_name("INVALID_MESSAGE_SELECTOR") from ex
         if "While handling calldata" in ex.message:
-            # TODO make this clause condition more robust (and in other similar places)
             raise RpcError.from_spec_name("INVALID_CALL_DATA") from ex
         raise RpcError(
             code=PredefinedRpcErrorCode.INTERNAL_ERROR.value, message=ex.message

@@ -24,7 +24,6 @@ async def get_storage_at(
     if not await state.starknet_wrapper.is_deployed(int(contract_address, 16)):
         raise RpcError.from_spec_name("CONTRACT_NOT_FOUND")
 
-    # TODO wrap
     storage = await state.starknet_wrapper.get_storage_at(
         contract_address=int(contract_address, 16),
         key=int(key, 16),

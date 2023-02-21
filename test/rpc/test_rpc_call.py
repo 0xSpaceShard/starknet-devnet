@@ -1,7 +1,9 @@
 """
 Tests RPC rpc_call
 """
-from test.rpc.rpc_utils import rpc_call
+from test.account import invoke
+from test.rpc.rpc_utils import get_block_with_transaction, rpc_call
+from test.shared import PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_PRIVATE_KEY
 
 import pytest
 from starkware.starknet.public.abi import get_selector_from_name
@@ -145,6 +147,45 @@ def test_call_raises_on_incorrect_block_hash(deploy_info):
     )
 
     assert ex["error"]["code"] == PredefinedRpcErrorCode.INVALID_PARAMS.value
+
+
+@pytest.mark.usefixtures("devnet_with_account")
+def test_call_on_old_block(deploy_info):
+    """Correctly call contract on old state"""
+
+    contract_address: str = deploy_info["address"]
+    print("DEBUG deploy_info", deploy_info)
+    deployment_block = get_block_with_transaction(deploy_info["transaction_hash"])
+
+    invoke_tx_hash = invoke(
+        calls=[(contract_address, "increase_balance", [10, 20])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
+    increment_block = get_block_with_transaction(invoke_tx_hash)
+    assert increment_block["block_number"] == deployment_block["block_number"] + 1
+
+    def call_and_assert(block_id):
+        resp = rpc_call(
+            "starknet_call",
+            params={
+                "request": {
+                    "contract_address": rpc_felt(contract_address),
+                    "entry_point_selector": rpc_felt(
+                        get_selector_from_name("get_balance")
+                    ),
+                    "calldata": [],
+                },
+                "block_id": block_id,
+            },
+        )
+
+        assert "error" not in resp
+        result = resp["result"]
+        assert result == ["0x045"]
+
+    call_and_assert({"block_number": deployment_block["block_number"]})
+    call_and_assert({"block_hash": deployment_block["block_hash"]})
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")

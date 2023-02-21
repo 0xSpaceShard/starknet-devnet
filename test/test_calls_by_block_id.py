@@ -161,6 +161,3 @@ def test_old_block_generated_on_demand():
         _get_value(contract_address, block_number="1")
         == initial_balance + increment_value
     )
-
-
-# TODO expand rpc testing - in this file or in rpc tests?
