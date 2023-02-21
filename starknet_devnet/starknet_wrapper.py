@@ -26,6 +26,7 @@ from starkware.starknet.core.os.transaction_hash.transaction_hash import (
     calculate_deploy_transaction_hash,
 )
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
+from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starknet.services.api.contract_class import ContractClass, EntryPointType
 from starkware.starknet.services.api.feeder_gateway.request_objects import (
     CallFunction,
@@ -61,7 +62,7 @@ from .block_info_generator import BlockInfoGenerator
 from .blocks import DevnetBlocks
 from .blueprints.rpc.structures.types import BlockId, Felt
 from .chargeable_account import ChargeableAccount
-from .constants import DUMMY_STATE_ROOT, OZ_ACCOUNT_CLASS_HASH
+from .constants import DUMMY_STATE_ROOT, STARKNET_CLI_ACCOUNT_CLASS_HASH
 from .devnet_config import DevnetConfig
 from .fee_token import FeeToken
 from .forked_state import get_forked_starknet
@@ -69,7 +70,13 @@ from .general_config import build_devnet_general_config
 from .origin import ForkedOrigin, NullOrigin
 from .postman_wrapper import DevnetL1L2
 from .sequencer_api_utils import InternalInvokeFunctionForSimulate
-from .transactions import DevnetTransaction, DevnetTransactions
+from .transactions import (
+    DevnetTransaction,
+    DevnetTransactions,
+    create_empty_internal_declare,
+    create_empty_internal_deploy,
+    create_genesis_block_transaction,
+)
 from .udc import UDC
 from .util import (
     StarknetDevnetException,
@@ -87,6 +94,7 @@ DEFAULT_BLOCK_ID = LATEST_BLOCK_ID
 
 # pylint: disable=too-many-instance-attributes
 # pylint: disable=too-many-public-methods
+# pylint: disable=too-many-locals
 class StarknetWrapper:
     """
     Wraps a Starknet instance and stores data to be returned by the server:
@@ -137,12 +145,63 @@ class StarknetWrapper:
             await self.fee_token.deploy()
             await self.accounts.deploy()
             await self.__deploy_chargeable_account()
-            await self.__predeclare_oz_account()
+            await self.__predeclare_starknet_cli_account()
             await self.__udc.deploy()
 
             await self.__preserve_current_state(starknet.state.state)
-            await self.create_empty_block()
+            await self.__create_genesis_block()
             self.__initialized = True
+
+    async def __create_genesis_block(self):
+        """Create genesis block"""
+        transactions: List[DevnetTransaction] = []
+        transaction_hash = 1
+
+        # Declare transactions
+        declare_hashes = [
+            to_bytes(FeeToken.HASH),
+            to_bytes(UDC.HASH),
+            self.config.account_class.hash_bytes,
+            to_bytes(STARKNET_CLI_ACCOUNT_CLASS_HASH),
+        ]
+        for class_hash in declare_hashes:
+            internal_declare = create_empty_internal_declare(
+                transaction_hash, class_hash
+            )
+            declare_transaction = create_genesis_block_transaction(
+                internal_declare, TransactionType.DECLARE
+            )
+            transactions.append(declare_transaction)
+            transaction_hash += 1
+
+        # Deploy transactions
+        deploy_data = [
+            (to_bytes(FeeToken.HASH), FeeToken.ADDRESS),
+            (to_bytes(UDC.HASH), UDC.ADDRESS),
+            (self.config.account_class.hash_bytes, ChargeableAccount.ADDRESS),
+        ]
+        for account in self.accounts:
+            deploy_data.append((account.class_hash_bytes, account.address))
+
+        for class_hash, contract_address in deploy_data:
+            internal_deploy = create_empty_internal_deploy(
+                transaction_hash, class_hash, contract_address
+            )
+            deploy_transaction = create_genesis_block_transaction(
+                internal_deploy, TransactionType.DEPLOY
+            )
+            transactions.append(deploy_transaction)
+            transaction_hash += 1
+
+        self._update_block_number()
+        state = self.get_state()
+        state_update = await self._update_pending_state()
+        await self.blocks.generate_pending(transactions, state, state_update)
+        block = await self.generate_latest_block(block_hash=0)
+
+        for transaction in transactions:
+            transaction.set_block(block=block)
+            self.transactions.store(transaction.transaction_hash, transaction)
 
     async def create_empty_block(self) -> StarknetBlock:
         """Create empty block."""
@@ -651,13 +710,18 @@ class StarknetWrapper:
             state_update=state_update,
         )
 
-    async def generate_latest_block(self) -> StarknetBlock:
-        """Generate new block with pending transactions in --blocks-on-demand mode."""
+    async def generate_latest_block(self, block_hash=None) -> StarknetBlock:
+        """
+        Generate new block with pending transactions in --blocks-on-demand mode.
+        Block hash can be specified in special cases.
+        """
 
         # Store transactions and clear pending txs
         state = self.get_state()
         if self.blocks.is_block_pending():
-            block = await self.blocks.store_pending(state)
+            block = await self.blocks.store_pending(
+                state, block_hash=block_hash
+            )
         else:
             # if no pending, default to creating an empty block
             assert not self.pending_txs
@@ -781,10 +845,10 @@ class StarknetWrapper:
         state = await self.__get_query_state(block_id)
         return await state.state.get_nonce_at(contract_address)
 
-    async def __predeclare_oz_account(self):
+    async def __predeclare_starknet_cli_account(self):
         """Predeclares the account class used by Starknet CLI"""
         await self.get_state().state.set_contract_class(
-            to_bytes(OZ_ACCOUNT_CLASS_HASH), oz_account_class
+            to_bytes(STARKNET_CLI_ACCOUNT_CLASS_HASH), oz_account_class
         )
 
     async def __deploy_chargeable_account(self):

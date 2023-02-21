@@ -7,7 +7,11 @@ from typing import Dict, List
 from services.everest.business_logic.transaction_execution_objects import (
     TransactionFailureReason,
 )
-from starkware.starknet.business_logic.transaction.objects import InternalTransaction
+from starkware.starknet.business_logic.transaction.objects import (
+    InternalDeclare,
+    InternalDeploy,
+    InternalTransaction,
+)
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     Event,
@@ -271,3 +275,53 @@ class DevnetTransactions:
             status_response["tx_failure_reason"] = tx_info.transaction_failure_reason
 
         return status_response
+
+
+def create_empty_internal_declare(tx_hash, class_hash) -> InternalDeclare:
+    "Create InternalDeclare used in the genesis block"
+    return InternalDeclare(
+        hash_value=tx_hash,
+        version=0,
+        max_fee=0,
+        signature=[],
+        nonce=0,
+        class_hash=class_hash,
+        sender_address=1,
+    )
+
+
+def create_empty_internal_deploy(
+    tx_hash, class_hash, contract_address
+) -> InternalDeploy:
+    "Create InternalDeploy used in the genesis block"
+    return InternalDeploy(
+        contract_address=contract_address,
+        contract_hash=class_hash,
+        contract_address_salt=0,
+        hash_value=tx_hash,
+        version=0,
+        constructor_calldata=[],
+    )
+
+
+def create_genesis_block_transaction(internal_tx, tx_type) -> DevnetTransaction:
+    "Create DevnetTransaction used in the genesis block"
+    execution_info = TransactionExecutionInfo(
+        validate_info=None,
+        call_info=None,
+        fee_transfer_info=None,
+        actual_fee=0,
+        actual_resources={
+            "l1_gas_usage": 0,
+            "pedersen_builtin": 0,
+            "range_check_builtin": 0,
+            "n_steps": 0,
+        },
+        tx_type=tx_type,
+    )
+    return DevnetTransaction(
+        internal_tx=internal_tx,
+        status=TransactionStatus.ACCEPTED_ON_L2,
+        execution_info=execution_info,
+        transaction_hash=internal_tx.hash_value,
+    )

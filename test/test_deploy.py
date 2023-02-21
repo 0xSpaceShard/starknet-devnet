@@ -23,7 +23,7 @@ from starkware.starknet.wallets.open_zeppelin import (
     sign_invoke_tx,
 )
 
-from starknet_devnet.constants import OZ_ACCOUNT_CLASS_HASH
+from starknet_devnet.constants import STARKNET_CLI_ACCOUNT_CLASS_HASH
 from starknet_devnet.devnet_config import DevnetConfig, parse_args
 from starknet_devnet.starknet_wrapper import StarknetWrapper
 from starknet_devnet.udc import UDC
@@ -131,7 +131,7 @@ async def test_deploy(starknet_wrapper_args, expected_block_hash):
 
 def test_predeclared_oz_account():
     """Test that precomputed class matches"""
-    assert OZ_ACCOUNT_CLASS_HASH == compute_class_hash(oz_account_class)
+    assert STARKNET_CLI_ACCOUNT_CLASS_HASH == compute_class_hash(oz_account_class)
 
 
 @devnet_in_background()

@@ -7,7 +7,7 @@ from starkware.starknet.testing.starknet import Starknet
 
 
 class UDC:
-    """UDC wrapper class"""
+    """Universal deployer contract wrapper class"""
 
     CONTRACT_CLASS: ContractClass = None  # loaded lazily
 
