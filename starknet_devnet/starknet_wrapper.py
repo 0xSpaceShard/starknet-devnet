@@ -700,13 +700,16 @@ class StarknetWrapper:
         )
 
     async def generate_latest_block(self, block_hash=None) -> StarknetBlock:
-        """Generate new block with pending transactions in --blocks-on-demand mode."""
+        """
+        Generate new block with pending transactions in --blocks-on-demand mode.
+        Block hash can be specified in special cases.
+        """
 
         # Store transactions and clear pending txs
         state = self.get_state()
         if self.blocks.is_block_pending():
             block = await self.blocks.store_pending(
-                state, pending_block_hash=block_hash
+                state, block_hash=block_hash
             )
         else:
             # if no pending, default to creating an empty block
