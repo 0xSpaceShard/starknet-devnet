@@ -164,7 +164,7 @@ def test_call_on_old_block(deploy_info):
     increment_block = get_block_with_transaction(invoke_tx_hash)
     assert increment_block["block_number"] == deployment_block["block_number"] + 1
 
-    def call_and_assert(block_id):
+    def call_and_assert(block_id: dict):
         resp = rpc_call(
             "starknet_call",
             params={
