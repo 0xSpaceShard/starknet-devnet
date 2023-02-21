@@ -159,7 +159,7 @@ class StarknetWrapper:
         declare_hashes = [
             to_bytes(FeeToken.HASH),
             to_bytes(UDC.HASH),
-            ChargeableAccount(self).class_hash_bytes,
+            self.config.account_class.hash_bytes,
             to_bytes(STARKNET_CLI_ACCOUNT_CLASS_HASH),
         ]
         for class_hash in declare_hashes:
@@ -176,7 +176,7 @@ class StarknetWrapper:
         deploy_data = [
             (to_bytes(FeeToken.HASH), FeeToken.ADDRESS),
             (to_bytes(UDC.HASH), UDC.ADDRESS),
-            (ChargeableAccount(self).class_hash_bytes, ChargeableAccount(self).ADDRESS),
+            (self.config.account_class.hash_bytes, ChargeableAccount(self).ADDRESS),
         ]
         for account in self.accounts:
             deploy_data.append((account.class_hash_bytes, account.address))
