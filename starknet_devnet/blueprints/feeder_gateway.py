@@ -9,6 +9,8 @@ from starkware.starknet.services.api.feeder_gateway.request_objects import (
     CallL1Handler,
 )
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    LATEST_BLOCK_ID,
+    PENDING_BLOCK_ID,
     BlockTransactionTraces,
     StarknetBlock,
     TransactionSimulationInfo,
@@ -100,10 +102,15 @@ def _get_block_id(args: MultiDict) -> BlockId:
     if block_number is None and block_hash is None:
         return "latest"
 
-    return {
-        "block_number": block_number,
-        "block_hash": block_hash,
-    }
+    if block_number is None:
+        # there is some hash
+        return {"block_hash": block_hash}
+
+    if block_number in [PENDING_BLOCK_ID, LATEST_BLOCK_ID]:
+        return block_number
+
+    # there is some number and it should be an integer
+    return {"block_number": block_number}
 
 
 @feeder_gateway.route("/get_contract_addresses", methods=["GET"])

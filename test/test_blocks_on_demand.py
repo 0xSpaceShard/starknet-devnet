@@ -61,6 +61,7 @@ def test_invokable_on_pending_block():
             function="get_balance",
             address=deploy_info["address"],
             abi_path=ABI_PATH,
+            block_number="latest",
         )
 
     with ErrorExpector(StarknetErrorCode.UNINITIALIZED_CONTRACT):
@@ -128,6 +129,7 @@ def test_calling_works_after_block_creation():
             function="get_balance",
             address=deploy_info["address"],
             abi_path=ABI_PATH,
+            block_number="latest",
         )
 
     balance_after_deploy = get_contract_balance()

@@ -5,6 +5,7 @@ from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from .account import invoke
 from .shared import (
     ABI_PATH,
+    BALANCE_KEY,
     CONTRACT_PATH,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
@@ -14,6 +15,7 @@ from .shared import (
 from .test_restart import restart
 from .util import (
     ErrorExpector,
+    assert_storage,
     call,
     demand_block_creation,
     deploy,
@@ -63,6 +65,51 @@ def test_call():
     assert_old_block_correct()
     latest_value = _get_value(contract_address, block_number="latest")
     assert latest_value == initial_value + increment_value
+
+    # generate another transaction to make the block/state older
+    # and to change the value in the latest state
+    _increment(contract_address, increment_value)
+
+    assert_old_block_correct()
+
+
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
+def test_call_with_block_hash():
+    """Expect variable value not to be changed in the old state"""
+
+    def _get_value_by_hash(contract_address: str, block_hash: str) -> int:
+        value = call(
+            "get_balance",
+            address=contract_address,
+            abi_path=ABI_PATH,
+            block_hash=block_hash,
+        )
+        return int(value)
+
+    def assert_old_block_correct():
+        value_at_1 = _get_value_by_hash(
+            contract_address, block_hash=deployment_block_hash
+        )
+        assert value_at_1 == initial_value
+
+        value_at_2 = _get_value_by_hash(
+            contract_address, block_hash=increment_block_hash
+        )
+        assert value_at_2 == value_at_1 + increment_value
+
+    initial_value = 5
+    deploy_info = deploy(CONTRACT_PATH, inputs=[str(initial_value)])
+    deployment_block = get_block(block_number="latest", parse=True)
+    deployment_block_hash = deployment_block["block_hash"]
+    contract_address = deploy_info["address"]
+
+    increment_value = 7
+    _increment(contract_address, increment_value)
+    increment_block = get_block(block_number="latest", parse=True)
+    increment_block_hash = increment_block["block_hash"]
+    assert increment_block_hash != deployment_block_hash
+
+    assert_old_block_correct()
 
     # generate another transaction to make the block/state older
     # and to change the value in the latest state
@@ -160,4 +207,38 @@ def test_old_block_generated_on_demand():
     assert (
         _get_value(contract_address, block_number="1")
         == initial_balance + increment_value
+    )
+
+
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
+def test_getting_storage_at_old_block():
+    """Call get_storage_at on old block"""
+
+    initial_balance = 10
+    deploy_info = deploy(contract=CONTRACT_PATH, inputs=[str(initial_balance)])
+    deployment_block = get_block(block_number="latest", parse=True)
+    contract_address = deploy_info["address"]
+
+    increment_value = 5
+    _increment(contract_address, increment_value)
+
+    def assert_balance_in_storage(
+        expected_value: str, block_number=None, block_hash=None
+    ):
+        assert_storage(
+            address=contract_address,
+            key=BALANCE_KEY,
+            expected_value=expected_value,
+            block_number=block_number,
+            block_hash=block_hash,
+        )
+
+    assert_balance_in_storage(expected_value=hex(initial_balance), block_number="1")
+    assert_balance_in_storage(
+        expected_value=hex(initial_balance),
+        block_hash=deployment_block["block_hash"],
+    )
+    assert_balance_in_storage(
+        expected_value=hex(initial_balance + increment_value),
+        block_number="2",
     )
