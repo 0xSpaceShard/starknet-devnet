@@ -181,9 +181,9 @@ class StarknetWrapper:
         for account in self.accounts:
             deploy_data.append((account.class_hash_bytes, account.address))
 
-        for deploy_tuple in deploy_data:
+        for class_hash, contract_address in deploy_data:
             internal_deploy = create_empty_internal_deploy(
-                transaction_hash, deploy_tuple[0], deploy_tuple[1]
+                transaction_hash, class_hash, contract_address
             )
             deploy_transaction = create_genesis_block_transaction(
                 internal_deploy, TransactionType.DEPLOY
