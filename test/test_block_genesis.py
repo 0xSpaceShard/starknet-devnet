@@ -31,11 +31,11 @@ def fixture_last_tx_hash(request):
     "run_devnet_in_background, last_tx_hash",
     [
         (
-            ["--seed", "42", "--accounts", "1"],
+            ["--accounts", "1"],
             8,
         ),
         (
-            ["--seed", "42", "--accounts", "10"],
+            ["--accounts", "10"],
             17,
         ),
     ],
