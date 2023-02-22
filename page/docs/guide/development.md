@@ -53,6 +53,13 @@ poetry run pytest test/<TEST_FILE> # for a single file
 poetry run pytest test/<TEST_FILE>::<TEST_CASE> # for a single test case
 ```
 
+:::info
+
+If you are experiencing test failures on macOS related to `fork()` command
+consider running `export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` in your shell.
+
+:::
+
 ## Development - Check versioning consistency
 
 ```
