@@ -23,7 +23,10 @@ def parse_hex_string(arg: str) -> int:
     Converts the argument to an integer only if it starts with `0x`.
     """
     if arg.startswith("0x"):
-        return int(arg, 16)
+        try:
+            return int(arg, 16)
+        except ValueError:
+            pass 
 
     raise StarknetDevnetException(
         code=StarkErrorCode.MALFORMED_REQUEST,

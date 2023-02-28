@@ -401,6 +401,13 @@ def test_get_transaction_with_tx_hash_0():
     assert resp_body["message"].startswith(INVALID_TRANSACTION_HASH_MESSAGE)
     assert resp.status_code == 500
 
+@devnet_in_background()
+def test_get_transaction_with_tx_hash_0xyz():
+    """Should fail on get_transaction with invalid hash 0xyz"""
+    resp = get_transaction("0xyz")
+    resp_body = resp.json()
+    assert resp_body["message"].startswith(INVALID_TRANSACTION_HASH_MESSAGE)
+    assert resp.status_code == 500
 
 @devnet_in_background()
 def test_get_transaction_status_with_tx_hash_0():
