@@ -195,12 +195,12 @@ class DevnetTransactions:
         """
         Get a transaction by hash.
         """
-        if tx_hash.startswith("0x"): 
+        if tx_hash.startswith("0x"):
             try:
                 return self.__instances.get(int(tx_hash, 16))
             except ValueError:
                 pass
-        
+
         raise StarknetDevnetException(
             code=StarkErrorCode.MALFORMED_REQUEST,
             message=f"Transaction hash should be a hexadecimal string starting with 0x, or 'null'; got: '{tx_hash}'.",

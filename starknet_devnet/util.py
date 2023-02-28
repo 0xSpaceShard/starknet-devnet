@@ -26,7 +26,7 @@ def parse_hex_string(arg: str) -> int:
         try:
             return int(arg, 16)
         except ValueError:
-            pass 
+            pass
 
     raise StarknetDevnetException(
         code=StarkErrorCode.MALFORMED_REQUEST,

@@ -37,7 +37,7 @@ def _parse_block_hash(raw: Optional[str]):
                 return int(raw, 16)
             except ValueError:
                 pass
-        
+
         raise StarknetDevnetException(
             code=StarkErrorCode.MALFORMED_REQUEST,
             message=f"Block hash should be a hexadecimal string starting with 0x, or 'null'; got: '{raw}'.",
