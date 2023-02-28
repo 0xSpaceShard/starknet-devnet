@@ -18,7 +18,7 @@ from starkware.starknet.testing.contract import StarknetContract
 from starkware.starkware_utils.error_handling import StarkErrorCode, StarkException
 
 
-def validate_hex_string(arg: str) -> int:
+def parse_hex_string(arg: str) -> int:
     """
     Converts the argument to an integer only if it starts with `0x`.
     """

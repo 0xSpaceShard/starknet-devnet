@@ -28,7 +28,7 @@ from starknet_devnet.state import state
 from starknet_devnet.util import (
     StarknetDevnetException,
     fixed_length_hex,
-    validate_hex_string,
+    parse_hex_string,
 )
 
 feeder_gateway = Blueprint("feeder_gateway", __name__, url_prefix="/feeder_gateway")
@@ -167,7 +167,7 @@ async def get_code():
 
     block_id = _get_block_id(request.args)
 
-    contract_address = request.args.get("contractAddress", type=validate_hex_string)
+    contract_address = request.args.get("contractAddress", type=parse_hex_string)
     code_dict = await state.starknet_wrapper.get_code(contract_address, block_id)
     return jsonify(code_dict)
 
@@ -179,7 +179,7 @@ async def get_full_contract():
     """
     block_id = _get_block_id(request.args)
 
-    contract_address = request.args.get("contractAddress", type=validate_hex_string)
+    contract_address = request.args.get("contractAddress", type=parse_hex_string)
 
     contract_class = await state.starknet_wrapper.get_class_by_address(
         contract_address, block_id
@@ -191,7 +191,7 @@ async def get_full_contract():
 async def get_class_hash_at():
     """Get contract class hash by contract address"""
 
-    contract_address = request.args.get("contractAddress", type=validate_hex_string)
+    contract_address = request.args.get("contractAddress", type=parse_hex_string)
     class_hash = await state.starknet_wrapper.get_class_hash_at(contract_address)
     return jsonify(fixed_length_hex(class_hash))
 
@@ -200,7 +200,7 @@ async def get_class_hash_at():
 async def get_class_by_hash():
     """Get contract class by class hash"""
 
-    class_hash = request.args.get("classHash", type=validate_hex_string)
+    class_hash = request.args.get("classHash", type=parse_hex_string)
     contract_class = await state.starknet_wrapper.get_class_by_hash(class_hash)
     return jsonify(contract_class.remove_debug_info().dump())
 
@@ -210,7 +210,7 @@ async def get_storage_at():
     """Endpoint for returning the storage identified by `key` from the contract at"""
     block_id = _get_block_id(request.args)
 
-    contract_address = request.args.get("contractAddress", type=validate_hex_string)
+    contract_address = request.args.get("contractAddress", type=parse_hex_string)
     key = validate_int(request.args, "key")
 
     storage = await state.starknet_wrapper.get_storage_at(
@@ -353,7 +353,7 @@ async def get_nonce():
     """Returns the nonce of the contract whose contractAddress is provided"""
 
     block_id = _get_block_id(request.args)
-    contract_address = request.args.get("contractAddress", type=validate_hex_string)
+    contract_address = request.args.get("contractAddress", type=parse_hex_string)
     nonce = await state.starknet_wrapper.get_nonce(contract_address, block_id)
 
     return jsonify(hex(nonce))

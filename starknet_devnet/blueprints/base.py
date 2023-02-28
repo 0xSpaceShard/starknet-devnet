@@ -9,7 +9,7 @@ from starknet_devnet.state import state
 from starknet_devnet.util import (
     StarknetDevnetException,
     check_valid_dump_path,
-    validate_hex_string,
+    parse_hex_string,
 )
 
 base = Blueprint("base", __name__)
@@ -48,7 +48,7 @@ def extract_positive(request_json, prop_name: str):
     return value
 
 
-def hex_converter(request_json, prop_name: str, convert=validate_hex_string) -> int:
+def hex_converter(request_json, prop_name: str, convert=parse_hex_string) -> int:
     """Parse value from hex string to int, or values from hex strings to ints"""
     value = request_json.get(prop_name)
     if value is None:
