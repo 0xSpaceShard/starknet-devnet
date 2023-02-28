@@ -157,9 +157,8 @@ def get_block_by_number(req_dict: dict):
     )
 
 
-def get_block_by_hash(req_dict: dict):
+def get_block_by_hash(block_hash: str):
     """Get block by block hash"""
-    block_hash = req_dict["blockHash"]
     return requests.get(f"{APP_URL}/feeder_gateway/get_block?blockHash={block_hash}")
 
 
@@ -259,7 +258,7 @@ def test_error_response_call_with_negative_block_number():
 @devnet_in_background()
 def test_error_response_call_with_block_hash_0():
     """Should fail on call with block hash 0 without 0x prefix"""
-    resp = get_block_by_hash({"blockHash": 0})
+    resp = get_block_by_hash(0)
 
     json_error_message = resp.json()["message"]
     assert resp.status_code == 500
