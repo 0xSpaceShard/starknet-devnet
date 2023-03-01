@@ -402,7 +402,8 @@ def test_get_transaction_trace_of_rejected():
     """Send a failing tx and assert its trace"""
     deploy_info = deploy(contract=FAILING_CONTRACT_PATH)
     resp = get_transaction_trace(deploy_info["tx_hash"])
-    assert resp.json()["code"] == str(StarknetErrorCode.NO_TRACE)
+    resp_body = resp.json()
+    assert resp_body["code"] == str(StarknetErrorCode.NO_TRACE)
     assert resp.status_code == 500
 
 
