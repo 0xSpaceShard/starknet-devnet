@@ -213,10 +213,11 @@ def get_state_update(block_hash, block_number):
 
 def get_transaction_status(tx_hash):
     """Get transaction status"""
-    return requests.get(
+    response = requests.get(
         f"{APP_URL}/feeder_gateway/get_transaction_status?transactionHash={tx_hash}"
     )
-
+    assert response.status_code == 200
+    return response.json()
 
 def get_transaction_status_test_client(tx_hash: str):
     """Get transaction status"""
