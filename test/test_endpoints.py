@@ -219,6 +219,7 @@ def get_transaction_status(tx_hash):
     assert response.status_code == 200
     return response.json()
 
+
 def get_transaction_status_test_client(tx_hash: str):
     """Get transaction status"""
     return app.test_client().get(
