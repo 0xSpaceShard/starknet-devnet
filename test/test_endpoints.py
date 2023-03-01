@@ -381,7 +381,7 @@ def test_get_transaction_status():
     assert response.status_code == 200
     tx_hash = response.json().get("tx_hash")
 
-    response = get_transaction_status(tx_hash)
+    json_response = get_transaction_status(tx_hash)
     assert response.status_code == 200
     json_response = response.json()
 
@@ -389,7 +389,7 @@ def test_get_transaction_status():
     assert json_response.get("tx_status") == "ACCEPTED_ON_L2"
 
     invalid_tx_hash = "0x443a8b3ec1f9e0c64"
-    response = get_transaction_status(invalid_tx_hash)
+    json_response = get_transaction_status(invalid_tx_hash)
     assert response.status_code == 200
     json_response = response.json()
 
