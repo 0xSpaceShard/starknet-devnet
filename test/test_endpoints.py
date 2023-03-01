@@ -211,7 +211,7 @@ def get_state_update(block_hash, block_number):
     )
 
 
-def get_transaction_status(tx_hash: str):
+def get_transaction_status(tx_hash):
     """Get transaction status"""
     return requests.get(
         f"{APP_URL}/feeder_gateway/get_transaction_status?transactionHash={tx_hash}"
