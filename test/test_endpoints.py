@@ -162,10 +162,10 @@ def get_block_by_hash(block_hash: str):
     return requests.get(f"{APP_URL}/feeder_gateway/get_block?blockHash={block_hash}")
 
 
-def get_transaction_trace(tx_hash: str):
+def get_transaction_trace(transaction_hash: str):
     """Get transaction trace from request dict"""
     return requests.get(
-        f"{APP_URL}/feeder_gateway/get_transaction_trace?transactionHash={tx_hash}"
+        f"{APP_URL}/feeder_gateway/get_transaction_trace?transactionHash={transaction_hash}"
     )
 
 
