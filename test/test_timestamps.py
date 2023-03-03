@@ -6,14 +6,12 @@ import math
 import time
 
 import pytest
-import requests
 
 from starknet_devnet.block_info_generator import BlockInfo, BlockInfoGenerator
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 
-from .settings import APP_URL
 from .shared import ARTIFACTS_PATH
-from .util import call, deploy, devnet_in_background, get_block
+from .util import call, deploy, devnet_in_background, get_block, increase_time, set_time
 
 TS_CONTRACT_PATH = f"{ARTIFACTS_PATH}/timestamp.cairo/timestamp.json"
 TS_ABI_PATH = f"{ARTIFACTS_PATH}/timestamp.cairo/timestamp_abi.json"
@@ -40,28 +38,6 @@ def get_ts_from_contract(address):
 def get_ts_from_last_block():
     """Returns the timestamp of the last block"""
     return get_block(parse=True)["timestamp"]
-
-
-def increase_time(time_s):
-    """Increases the block timestamp offset"""
-    increase_time_response = requests.post(
-        f"{APP_URL}/increase_time", json={"time": time_s}
-    )
-
-    if increase_time_response.status_code == 200:
-        assert increase_time_response.json().get("timestamp_increased_by") == time_s
-
-    return increase_time_response
-
-
-def set_time(time_s):
-    """Sets the block timestamp and offset"""
-    set_time_response = requests.post(f"{APP_URL}/set_time", json={"time": time_s})
-
-    if set_time_response == 200:
-        assert set_time_response.json().get("block_timestamp") == time_s
-
-    return set_time_response
 
 
 @pytest.mark.timestamps

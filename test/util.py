@@ -734,3 +734,25 @@ class ErrorExpector:
 def demand_block_creation():
     """Demand block creation. Useful when devnet started with --blocks-on-demand"""
     return requests.post(f"{APP_URL}/create_block")
+
+
+def increase_time(time_s):
+    """Increases the block timestamp offset"""
+    increase_time_response = requests.post(
+        f"{APP_URL}/increase_time", json={"time": time_s}
+    )
+
+    if increase_time_response.status_code == 200:
+        assert increase_time_response.json().get("timestamp_increased_by") == time_s
+
+    return increase_time_response
+
+
+def set_time(time_s):
+    """Sets the block timestamp and offset"""
+    set_time_response = requests.post(f"{APP_URL}/set_time", json={"time": time_s})
+
+    if set_time_response == 200:
+        assert set_time_response.json().get("block_timestamp") == time_s
+
+    return set_time_response

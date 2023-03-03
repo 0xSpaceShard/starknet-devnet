@@ -134,7 +134,9 @@ async def increase_time():
     state.starknet_wrapper.increase_block_time(time_s)
     block = await state.starknet_wrapper.generate_latest_block()
 
-    return jsonify({"timestamp_increased_by": time_s, "block_hash": hex(block.block_hash)})
+    return jsonify(
+        {"timestamp_increased_by": time_s, "block_hash": hex(block.block_hash)}
+    )
 
 
 @base.route("/set_time", methods=["POST"])
