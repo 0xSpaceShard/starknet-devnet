@@ -59,7 +59,7 @@ def set_time(time_s):
     set_time_response = requests.post(f"{APP_URL}/set_time", json={"time": time_s})
 
     if set_time_response == 200:
-        assert set_time_response.json().get("next_block_timestamp") == time_s
+        assert set_time_response.json().get("block_timestamp") == time_s
 
     return set_time_response
 
@@ -101,6 +101,8 @@ def test_increase_time():
 
     # increase time by 1 day
     increase_time(86400)
+    ts_after_increase_time = get_ts_from_last_block()
+    assert ts_after_increase_time >= ts_after_deploy + 86400
 
     # deploy another contract to generate a new block
     deploy_ts_contract()
@@ -128,14 +130,14 @@ def test_set_time():
 
     ts_after_set = get_ts_from_last_block()
 
-    assert ts_after_set == first_block_ts
+    assert ts_after_set == first_block_ts + 86400
 
     # generate a new block by deploying a new contract
     deploy_ts_contract()
 
     second_block_ts = get_ts_from_last_block()
 
-    assert second_block_ts == first_block_ts + 86400
+    assert second_block_ts >= first_block_ts + 86400
 
     # generate a new block by deploying a new contract
     deploy_ts_contract()

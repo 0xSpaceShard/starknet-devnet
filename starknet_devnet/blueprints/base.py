@@ -143,9 +143,9 @@ async def set_time():
     request_dict = request.json or {}
     time_s = extract_positive(request_dict, "time")
 
-    state.starknet_wrapper.set_next_block_time(time_s)
+    state.starknet_wrapper.set_block_time(time_s)
     block = await state.starknet_wrapper.generate_latest_block()
-    
+
     return jsonify({"block_timestamp": time_s, "block": hex(block.block_hash)})
 
 
