@@ -132,6 +132,8 @@ async def increase_time():
     time_s = extract_positive(request_dict, "time")
 
     state.starknet_wrapper.increase_block_time(time_s)
+    await state.starknet_wrapper._update_pending_state()
+    await state.starknet_wrapper.update_pending_block()
     block = await state.starknet_wrapper.generate_latest_block()
 
     return jsonify(
@@ -146,6 +148,8 @@ async def set_time():
     time_s = extract_positive(request_dict, "time")
 
     state.starknet_wrapper.set_block_time(time_s)
+    await state.starknet_wrapper._update_pending_state()
+    await state.starknet_wrapper.update_pending_block()
     block = await state.starknet_wrapper.generate_latest_block()
 
     return jsonify({"block_timestamp": time_s, "block_hash": hex(block.block_hash)})
