@@ -256,6 +256,9 @@ class StarknetWrapper:
         visited_storage_entries: Set[StorageEntry] = None,
         nonces: Dict[int, int] = None,
     ):
+        """
+        Update pending state.
+        """
         # defaulting
         deployed_contracts = deployed_contracts or []
         explicitly_declared_contracts = explicitly_declared_contracts or []
