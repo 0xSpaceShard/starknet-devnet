@@ -384,7 +384,7 @@ def test_increase_time_in_block_on_demand_mode():
 
 @devnet_in_background("--blocks-on-demand")
 def test_set_time_in_block_on_demand_mode():
-    """Test block creation with increase_time and pending txs"""
+    """Test block creation with set_time and pending txs"""
     deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
     assert_tx_status(deploy_info["tx_hash"], "PENDING")
     latest_block_timestamp = get_block(block_number="latest", parse=True)["timestamp"]
