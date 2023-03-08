@@ -131,14 +131,19 @@ async def increase_time():
     request_dict = request.json or {}
     time_s = extract_positive(request_dict, "time")
 
-    state.starknet_wrapper.increase_block_time(time_s)
-    await state.starknet_wrapper.update_pending_state()
-    await state.starknet_wrapper.update_pending_block()
-    block = await state.starknet_wrapper.generate_latest_block()
-
-    return jsonify(
-        {"timestamp_increased_by": time_s, "block_hash": hex(block.block_hash)}
-    )
+    # Increase block time only when there are no pending transactions
+    if not state.starknet_wrapper.pending_txs:
+        state.starknet_wrapper.increase_block_time(time_s)
+        block = await state.starknet_wrapper.generate_latest_block()
+        return jsonify(
+            {"timestamp_increased_by": time_s, "block_hash": hex(block.block_hash)}
+        )
+    else:
+        raise StarknetDevnetException(
+            code=StarkErrorCode.MALFORMED_REQUEST,
+            status_code=400,
+            message=f"Block time can be increased only if there are no pending transactions.",
+        )
 
 
 @base.route("/set_time", methods=["POST"])
@@ -147,12 +152,19 @@ async def set_time():
     request_dict = request.json or {}
     time_s = extract_positive(request_dict, "time")
 
-    state.starknet_wrapper.set_block_time(time_s)
-    await state.starknet_wrapper.update_pending_state()
-    await state.starknet_wrapper.update_pending_block()
-    block = await state.starknet_wrapper.generate_latest_block()
-
-    return jsonify({"block_timestamp": time_s, "block_hash": hex(block.block_hash)})
+    # Set block time only when there are no pending transactions
+    if not state.starknet_wrapper.pending_txs:
+        state.starknet_wrapper.set_block_time(time_s)
+        block = await state.starknet_wrapper.generate_latest_block()
+        return jsonify(
+            {"block_timestamp": time_s, "block_hash": hex(block.block_hash)}
+        )
+    else:
+        raise StarknetDevnetException(
+            code=StarkErrorCode.MALFORMED_REQUEST,
+            status_code=400,
+            message=f"Block time can be set only if there are no pending transactions.",
+        )
 
 
 @base.route("/account_balance", methods=["GET"])

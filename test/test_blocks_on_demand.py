@@ -373,9 +373,15 @@ def test_increase_time_in_block_on_demand_mode():
     assert_tx_status(deploy_info["tx_hash"], "PENDING")
     latest_block_timestamp = get_block(block_number="latest", parse=True)["timestamp"]
 
-    # increase_time which generates a new block with pending txs
+    # increase time should fail when there are pending transactions
     increase_time_response = increase_time(10000)
+    assert increase_time_response.status_code == 400
 
+    # increase time should succeed with no pending transactions
+    resp = demand_block_creation()
+    assert resp.status_code == 200
+    increase_time_response = increase_time(10000)
+    assert increase_time_response.status_code == 200
     latest_block = get_block(block_number="latest", parse=True)
     assert latest_block["timestamp"] >= latest_block_timestamp + 10000
     assert latest_block["block_hash"] == increase_time_response.json()["block_hash"]
@@ -389,9 +395,15 @@ def test_set_time_in_block_on_demand_mode():
     assert_tx_status(deploy_info["tx_hash"], "PENDING")
     latest_block_timestamp = get_block(block_number="latest", parse=True)["timestamp"]
 
-    # set_time which generates a new block with pending txs
+    # set time should fail when there are pending transactions
     set_time_response = set_time(latest_block_timestamp + 10000)
+    assert set_time_response.status_code == 400
 
+    # set time should succeed with no pending transactions
+    resp = demand_block_creation()
+    assert resp.status_code == 200
+    set_time_response = set_time(latest_block_timestamp + 10000)
+    assert set_time_response.status_code == 200
     latest_block = get_block(block_number="latest", parse=True)
     assert latest_block["timestamp"] == latest_block_timestamp + 10000
     assert latest_block["block_hash"] == set_time_response.json()["block_hash"]
