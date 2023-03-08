@@ -127,7 +127,7 @@ def load():
 
 @base.route("/increase_time", methods=["POST"])
 async def increase_time():
-    """Increases the block timestamp offset and generate block"""
+    """Increases the block timestamp offset and generate a block"""
     request_dict = request.json or {}
     time_s = extract_positive(request_dict, "time")
 
@@ -143,7 +143,7 @@ async def increase_time():
 
 @base.route("/set_time", methods=["POST"])
 async def set_time():
-    """Sets the block timestamp offset and generate block"""
+    """Sets the block timestamp offset and generate a block"""
     request_dict = request.json or {}
     time_s = extract_positive(request_dict, "time")
 
