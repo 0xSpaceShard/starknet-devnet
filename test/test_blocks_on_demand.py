@@ -393,6 +393,6 @@ def test_set_time_in_block_on_demand_mode():
     set_time_response = set_time(latest_block_timestamp + 10000)
 
     latest_block = get_block(block_number="latest", parse=True)
-    assert latest_block["timestamp"] >= latest_block_timestamp + 10000
+    assert latest_block["timestamp"] == latest_block_timestamp + 10000
     assert latest_block["block_hash"] == set_time_response.json()["block_hash"]
     assert_tx_status(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
