@@ -138,12 +138,12 @@ async def increase_time():
         return jsonify(
             {"timestamp_increased_by": time_s, "block_hash": hex(block.block_hash)}
         )
-    else:
-        raise StarknetDevnetException(
-            code=StarkErrorCode.MALFORMED_REQUEST,
-            status_code=400,
-            message=f"Block time can be increased only if there are no pending transactions.",
-        )
+
+    raise StarknetDevnetException(
+        code=StarkErrorCode.MALFORMED_REQUEST,
+        status_code=400,
+        message="Block time can be increased only if there are no pending transactions.",
+    )
 
 
 @base.route("/set_time", methods=["POST"])
@@ -156,15 +156,13 @@ async def set_time():
     if not state.starknet_wrapper.pending_txs:
         state.starknet_wrapper.set_block_time(time_s)
         block = await state.starknet_wrapper.generate_latest_block()
-        return jsonify(
-            {"block_timestamp": time_s, "block_hash": hex(block.block_hash)}
-        )
-    else:
-        raise StarknetDevnetException(
-            code=StarkErrorCode.MALFORMED_REQUEST,
-            status_code=400,
-            message=f"Block time can be set only if there are no pending transactions.",
-        )
+        return jsonify({"block_timestamp": time_s, "block_hash": hex(block.block_hash)})
+
+    raise StarknetDevnetException(
+        code=StarkErrorCode.MALFORMED_REQUEST,
+        status_code=400,
+        message="Block time can be set only if there are no pending transactions.",
+    )
 
 
 @base.route("/account_balance", methods=["GET"])
