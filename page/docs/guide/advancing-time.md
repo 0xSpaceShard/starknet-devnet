@@ -7,7 +7,7 @@ Block timestamp can be manipulated by setting the exact time or setting the time
 
 ## Set time
 
-Sets the exact time and generate a new block. All subsequent blocks will keep the set offset.
+Sets the exact time and generates a new block (only possible if there are no pending transactions). All subsequent blocks will keep the set offset.
 
 ```
 POST /set_time
@@ -20,7 +20,7 @@ Warning: block time can be set in the past and lead to unexpected behaviour!
 
 ## Increase time
 
-Increases the time offset for each generated block and generate a new block.
+Increases the block timestamp by the provided amount and generates a new block (only possible if there are no pending transactions). All subsequent blocks will keep this increment.
 
 ```
 POST /increase_time

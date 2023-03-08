@@ -127,7 +127,7 @@ def load():
 
 @base.route("/increase_time", methods=["POST"])
 async def increase_time():
-    """Increases the block timestamp offset and generate a block"""
+    """Increases the block timestamp offset and generates a new block"""
     request_dict = request.json or {}
     time_s = extract_positive(request_dict, "time")
 
@@ -140,7 +140,7 @@ async def increase_time():
         )
 
     raise StarknetDevnetException(
-        code=StarkErrorCode.MALFORMED_REQUEST,
+        code=StarkErrorCode.INVALID_REQUEST,
         status_code=400,
         message="Block time can be increased only if there are no pending transactions.",
     )
@@ -148,7 +148,7 @@ async def increase_time():
 
 @base.route("/set_time", methods=["POST"])
 async def set_time():
-    """Sets the block timestamp offset and generate a block"""
+    """Sets the block timestamp offset and generates a new block"""
     request_dict = request.json or {}
     time_s = extract_positive(request_dict, "time")
 
