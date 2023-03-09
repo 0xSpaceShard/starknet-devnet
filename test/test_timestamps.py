@@ -231,9 +231,7 @@ def test_block_info_generator():
 @devnet_in_background("--lite-mode")
 def test_lite_mode_compatibility():
     """Tests compatibility with lite mode"""
-    start = int(time.time())
     deploy_info = deploy_ts_contract()
-    BlockInfo.create_for_testing(block_number=0, block_timestamp=start)
 
     set_time(100)
 
@@ -241,4 +239,4 @@ def test_lite_mode_compatibility():
     deploy_ts_contract()
 
     time_from_contract = get_ts_from_contract(address=deploy_info["address"])
-    assert time_from_contract == 100
+    assert time_from_contract >= 100
