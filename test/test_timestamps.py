@@ -2,7 +2,6 @@
 Test block timestamps
 """
 
-import math
 import time
 
 import pytest
@@ -46,19 +45,15 @@ def test_timestamps():
     """Test timestamp"""
     deploy_info = deploy_ts_contract()
     ts_after_deploy = get_ts_from_last_block()
-
     ts_from_first_call = get_ts_from_contract(deploy_info["address"])
-
     assert ts_after_deploy == ts_from_first_call
 
     # deploy another contract to generate a new block
     deploy_ts_contract()
     ts_after_second_deploy = get_ts_from_last_block()
-
     assert ts_after_second_deploy > ts_from_first_call
 
     ts_from_second_call = get_ts_from_contract(deploy_info["address"])
-
     assert ts_after_second_deploy == ts_from_second_call
     assert ts_from_second_call > ts_from_first_call
 
@@ -67,27 +62,15 @@ def test_timestamps():
 @devnet_in_background()
 def test_increase_time():
     """Test timestamp increase time"""
-    start = time.time()
     deploy_info = deploy_ts_contract()
     ts_after_deploy = get_ts_from_last_block()
-
     first_block_ts = get_ts_from_contract(deploy_info["address"])
-
     assert ts_after_deploy == first_block_ts
 
     # increase time by 1 day
     increase_time(86400)
     ts_after_increase_time = get_ts_from_last_block()
     assert ts_after_increase_time >= ts_after_deploy + 86400
-
-    # deploy another contract to generate a new block
-    deploy_ts_contract()
-
-    second_block_ts = get_ts_from_last_block()
-
-    assert second_block_ts - first_block_ts >= 86400
-    elapsed_time = math.ceil(time.time() - start)
-    assert second_block_ts < first_block_ts + 86400 + elapsed_time
 
 
 @pytest.mark.timestamps
@@ -96,28 +79,15 @@ def test_set_time():
     """Test timestamp set time"""
     deploy_info = deploy_ts_contract()
     first_block_ts = get_ts_from_last_block()
-
     ts_from_first_call = get_ts_from_contract(deploy_info["address"])
-
     assert first_block_ts == ts_from_first_call
 
     # set time to 1 day after the deploy
     set_time(first_block_ts + 86400)
-
     ts_after_set = get_ts_from_last_block()
-
     assert ts_after_set == first_block_ts + 86400
-
-    # generate a new block by deploying a new contract
-    deploy_ts_contract()
-
     second_block_ts = get_ts_from_last_block()
-
     assert second_block_ts >= first_block_ts + 86400
-
-    # generate a new block by deploying a new contract
-    deploy_ts_contract()
-
     third_block_ts = get_ts_from_last_block()
 
     # check if offset is still the same
@@ -129,7 +99,6 @@ def test_set_time():
 def test_set_time_argument():
     """Test timestamp set time argument"""
     first_block_ts = get_ts_from_last_block()
-
     assert first_block_ts == SET_TIME_ARGUMENT
 
 
@@ -191,39 +160,29 @@ def test_block_info_generator():
 
     # Test if start time is set by the constructor
     generator = BlockInfoGenerator(start_time=10)
-
     block_with_start_time = generator.next_block(
         block_info=block_info, general_config=DEFAULT_GENERAL_CONFIG
     )
-
     assert block_with_start_time.block_timestamp == 10
 
     # Check if set time can be incrased
-
     generator.increase_time(22)
-
     block_after_increase = generator.next_block(
         block_info=block_info, general_config=DEFAULT_GENERAL_CONFIG
     )
-
     assert block_after_increase.block_timestamp == 32
 
     # Test if start time can be set after increase
-
     generator = BlockInfoGenerator()
     generator.increase_time(1_000_000_000)
-
     block_with_increase_time = generator.next_block(
         block_info=block_info, general_config=DEFAULT_GENERAL_CONFIG
     )
-
     assert block_with_increase_time.block_timestamp >= 1_000_000_000 + int(time.time())
-
     generator.set_next_block_time(222)
     block_after_set_time = generator.next_block(
         block_info=block_info, general_config=DEFAULT_GENERAL_CONFIG
     )
-
     assert block_after_set_time.block_timestamp == 222
 
 
@@ -233,10 +192,8 @@ def test_lite_mode_compatibility():
     """Tests compatibility with lite mode"""
     deploy_info = deploy_ts_contract()
 
+    deploy_ts_contract()
     set_time(100)
 
-    # deploy another contract to generate a new block
-    deploy_ts_contract()
-
     time_from_contract = get_ts_from_contract(address=deploy_info["address"])
-    assert time_from_contract >= 100
+    assert time_from_contract == 100
