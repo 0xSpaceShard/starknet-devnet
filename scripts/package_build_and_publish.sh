@@ -11,6 +11,7 @@ echo "Local version: $LOCAL_VERSION"
 
 # locate the local version inside the keys array; "null" if not present
 LOCAL_VERSION_INDEX=$(echo "$PYPI_VERSIONS" | jq "index( \"$LOCAL_VERSION\" )")
+echo "Index of local version in PyPI versions: $LOCAL_VERSION_INDEX"
 
 # Building is executed regardles of versions
 poetry build

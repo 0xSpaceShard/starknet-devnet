@@ -19,7 +19,7 @@ gateway = Blueprint("gateway", __name__, url_prefix="/gateway")
 async def add_transaction():
     """Endpoint for accepting (state-changing) transactions."""
 
-    transaction = validate_transaction(request.data)
+    transaction = validate_transaction(request.get_data())
     tx_type = transaction.tx_type
 
     response_dict = {
