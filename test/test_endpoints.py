@@ -434,12 +434,11 @@ def test_get_transaction_receipt_with_tx_hash_0():
 
 
 @pytest.mark.parametrize("address_property", ["contract_address", "sender_address"])
-def test_calling_function_with_different_address_properties(address_property: str):
+def test_calling_with_different_address_properties(address_property: str):
     """In starknet 0.11 contract_address was changed to sender_address"""
     dummy_uninitialized_address = "0x01"
     resp = app.test_client().post(
         "/feeder_gateway/call_contract",
-        content_type="a",
         data=json.dumps(
             {
                 "entry_point_selector": "0x0",
