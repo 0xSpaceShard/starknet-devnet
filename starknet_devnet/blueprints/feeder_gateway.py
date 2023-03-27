@@ -2,6 +2,8 @@
 Feeder gateway routes.
 """
 
+from typing import Type
+
 from flask import Blueprint, Response, jsonify, request
 from marshmallow import ValidationError
 from starkware.starknet.services.api.feeder_gateway.request_objects import (
@@ -21,6 +23,7 @@ from starkware.starknet.services.api.gateway.transaction import (
     Transaction,
 )
 from starkware.starkware_utils.error_handling import StarkErrorCode
+from starkware.starkware_utils.validated_dataclass import ValidatedMarshmallowDataclass
 from werkzeug.datastructures import MultiDict
 
 from starknet_devnet.blueprints.rpc.structures.types import BlockId
@@ -34,7 +37,7 @@ from starknet_devnet.util import (
 feeder_gateway = Blueprint("feeder_gateway", __name__, url_prefix="/feeder_gateway")
 
 
-def validate_request(data: bytes, cls, many=False):
+def validate_request(data: bytes, cls: Type[ValidatedMarshmallowDataclass], many=False):
     """Ensure `data` is valid Starknet function call. Returns an object of type specified with `cls`."""
     try:
         return cls.Schema().loads(data, many=many)
@@ -149,13 +152,14 @@ async def call_contract():
     """
 
     block_id = _get_block_id(request.args)
+    data = request.get_data()  # better than request.data in some edge cases
 
     try:
         # version 1
-        call_specifications = validate_request(request.data, CallFunction)
+        call_specifications = validate_request(data, CallFunction)
     except StarknetDevnetException:
         # version 0
-        call_specifications = validate_request(request.data, InvokeFunction)
+        call_specifications = validate_request(data, InvokeFunction)
 
     result_dict = await state.starknet_wrapper.call(call_specifications, block_id)
     return jsonify(result_dict)
@@ -330,11 +334,12 @@ async def get_state_update():
 @feeder_gateway.route("/estimate_fee", methods=["POST"])
 async def estimate_fee():
     """Returns the estimated fee for a transaction."""
+    data = request.get_data()
 
     try:
-        transaction = validate_request(request.data, Transaction)  # version 1
+        transaction = validate_request(data, Transaction)  # version 1
     except StarknetDevnetException:
-        transaction = validate_request(request.data, InvokeFunction)  # version 0
+        transaction = validate_request(data, InvokeFunction)  # version 0
 
     block_id = _get_block_id(request.args)
     skip_validate = _get_skip_validate(request.args)
@@ -351,10 +356,10 @@ async def estimate_fee_bulk():
 
     try:
         # version 1
-        transactions = validate_request(request.data, Transaction, many=True)
+        transactions = validate_request(request.get_data(), Transaction, many=True)
     except StarknetDevnetException:
         # version 0
-        transactions = validate_request(request.data, InvokeFunction, many=True)
+        transactions = validate_request(request.get_data(), InvokeFunction, many=True)
 
     block_id = _get_block_id(request.args)
     skip_validate = _get_skip_validate(request.args)
@@ -370,7 +375,7 @@ async def estimate_fee_bulk():
 @feeder_gateway.route("/simulate_transaction", methods=["POST"])
 async def simulate_transaction():
     """Returns the estimated fee for a transaction."""
-    transaction = validate_request(request.data, AccountTransaction)
+    transaction = validate_request(request.get_data(), AccountTransaction)
     block_id = _get_block_id(request.args)
     skip_validate = _get_skip_validate(request.args)
 
@@ -404,6 +409,6 @@ async def estimate_message_fee():
 
     block_id = _get_block_id(request.args)
 
-    call = validate_request(request.data, CallL1Handler)
+    call = validate_request(request.get_data(), CallL1Handler)
     fee_estimation = await state.starknet_wrapper.estimate_message_fee(call, block_id)
     return jsonify(fee_estimation)

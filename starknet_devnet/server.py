@@ -3,13 +3,14 @@ A server exposing Starknet functionalities as API endpoints.
 """
 
 import asyncio
+import json
 import os
 import sys
 
 from flask import Flask, jsonify
 from flask_cors import CORS
 from gunicorn.app.base import BaseApplication
-from starkware.starkware_utils.error_handling import StarkException
+from starkware.starkware_utils.error_handling import StarkErrorCode, StarkException
 
 from .blueprints.base import base
 from .blueprints.feeder_gateway import feeder_gateway
@@ -94,9 +95,9 @@ def main():
 
     asyncio.run(state.starknet_wrapper.initialize())
 
+    main_pid = os.getpid()
+    print(f" * Listening on http://{args.host}:{args.port}/ (Press CTRL+C to quit)")
     try:
-        print(f" * Listening on http://{args.host}:{args.port}/ (Press CTRL+C to quit)")
-        main_pid = os.getpid()
         GunicornServer(app, args).run()
     except KeyboardInterrupt:
         pass
@@ -108,12 +109,21 @@ def main():
 
 
 @app.errorhandler(StarkException)
-def handle(error: StarkException):
+def handle_stark_exception(error: StarkException):
     """Handles the error and responds in JSON."""
     return {
         "message": error.message,
         "code": str(error.code),
     }, error.status_code
+
+
+@app.errorhandler(json.decoder.JSONDecodeError)
+def handle_json_decode_error(error: json.decoder.JSONDecodeError):
+    """Handles json error"""
+    return {
+        "message": f"Error while decoding JSON: {error}",
+        "code": str(StarkErrorCode.MALFORMED_REQUEST),
+    }, 500
 
 
 @app.route("/api", methods=["GET"])

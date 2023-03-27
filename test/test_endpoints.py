@@ -7,6 +7,7 @@ import json
 import pytest
 import requests
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
+from starkware.starkware_utils.error_handling import StarkErrorCode
 
 from starknet_devnet.constants import DEFAULT_GAS_PRICE
 from starknet_devnet.server import app
@@ -430,3 +431,33 @@ def test_get_transaction_receipt_with_tx_hash_0():
     resp = get_transaction_receipt_test_client("0")
     assert resp.json["message"].startswith(INVALID_TRANSACTION_HASH_MESSAGE_PREFIX)
     assert resp.status_code == 500
+
+
+@pytest.mark.parametrize("address_property", ["contract_address", "sender_address"])
+def test_calling_function_with_different_address_properties(address_property: str):
+    """In starknet 0.11 contract_address was changed to sender_address"""
+    dummy_uninitialized_address = "0x01"
+    resp = app.test_client().post(
+        "/feeder_gateway/call_contract",
+        content_type="a",
+        data=json.dumps(
+            {
+                "entry_point_selector": "0x0",
+                "calldata": [],
+                "signature": [],
+                address_property: dummy_uninitialized_address,
+            }
+        ),
+    )
+
+    assert resp.status_code == 500
+    assert resp.is_json
+    assert resp.json.get("code") == str(StarknetErrorCode.UNINITIALIZED_CONTRACT)
+
+
+def test_calling_without_body():
+    """Test graceful failing without body"""
+    resp = app.test_client().post("/feeder_gateway/call_contract")
+    assert resp.status_code == 500
+    assert resp.is_json
+    assert resp.json.get("code") == str(StarkErrorCode.MALFORMED_REQUEST)

@@ -633,13 +633,22 @@ class StarknetWrapper:
         )
 
     async def call(
-        self, transaction: CallFunction, block_id: BlockId = DEFAULT_BLOCK_ID
+        self,
+        transaction: Union[CallFunction, InvokeFunction],
+        block_id: BlockId = DEFAULT_BLOCK_ID,
     ):
         """Perform call according to specifications in `transaction`."""
         state = await self.__get_query_state(block_id)
 
+        # property name different since starknet 0.11
+        address = (
+            transaction.contract_address
+            if isinstance(transaction, CallFunction)
+            else transaction.sender_address
+        )
+
         call_info = await state.copy().execute_entry_point_raw(
-            contract_address=transaction.contract_address,
+            contract_address=address,
             selector=transaction.entry_point_selector,
             calldata=transaction.calldata,
             caller_address=0,
