@@ -36,8 +36,6 @@ jobs:
       - run:
           name: Compile test contracts
           command: ./scripts/compile_contracts.sh
-          environment:
-            CAIRO_1_COMPILER_MANIFEST: cairo-compiler/Cargo.toml
       - run:
           name: Check devnet versions
           command: ./scripts/check_versions.sh
