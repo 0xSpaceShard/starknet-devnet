@@ -54,6 +54,8 @@ optional arguments:
                         Disable requests schema validation for RPC endpoints
   --disable-rpc-response-validation
                         Disable RPC schema validation for devnet responses
+  --cairo-compiler-manifest CAIRO_COMPILER_MANIFEST
+                        Specify the path to the manifest (Cargo.toml) of the Cairo 1.0 compiler to be used for contract recompilation; if omitted, the default x86-compatible compiler (from cairo-lang package) is used
 ```
 
 You can run `starknet-devnet` in a separate shell, or you can run it in background with `starknet-devnet &`.
@@ -132,6 +134,7 @@ If you don't specify the `HOST` part, the server will indeed be available on all
 ## Run with the Rust implementation of Cairo VM
 
 <!-- # TMP: rust vm -->
+
 ### ⚠️ This feature is temporarily suspended! ⚠️
 
 By default, Devnet uses the [Python implementation](https://github.com/starkware-libs/cairo-lang/) of Cairo VM.

@@ -760,8 +760,7 @@ class StarknetWrapper:
         block_id: BlockId = DEFAULT_BLOCK_ID,
     ) -> Felt:
         """
-        Returns the storage identified by `key`
-        from the contract at `contract_address`.
+        Returns the storage identified by `key` from the contract at `contract_address`.
         """
         state = await self.__get_query_state(block_id)
         return hex(await state.state.get_storage_at(contract_address, key))

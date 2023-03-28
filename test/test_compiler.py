@@ -81,7 +81,7 @@ def test_invalid_cairo_compiler_manifest(compiler_manifest: str):
 def test_valid_cairo_compiler_manifest():
     """Test valid cairo compiler manifest specified via CLI"""
 
-    assert SPECIFIED_MANIFEST
+    assert SPECIFIED_MANIFEST, "Compiler manifest not set through env var"
 
     execution = ACTIVE_DEVNET.start(
         "--cairo-compiler-manifest",

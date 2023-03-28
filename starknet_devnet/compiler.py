@@ -34,7 +34,7 @@ class DefaultContractClassCompiler(ContractClassCompiler):
 
 
 class CustomContractClassCompiler(ContractClassCompiler):
-    """Uses the compiler whose compiler_manifest is provided in initialization"""
+    """Uses the compiler according to the compiler_manifest provided in initialization"""
 
     def __init__(self, compiler_manifest: str):
         self.compiler_manifest = compiler_manifest
