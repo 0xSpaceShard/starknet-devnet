@@ -37,9 +37,6 @@ from starkware.starknet.services.api.contract_class.contract_class import (
     DeprecatedCompiledClass,
     EntryPointType,
 )
-from starkware.starknet.services.api.contract_class.contract_class_utils import (
-    compile_contract_class,
-)
 from starkware.starknet.services.api.feeder_gateway.request_objects import (
     CallFunction,
     CallL1Handler,
@@ -79,6 +76,7 @@ from .block_info_generator import BlockInfoGenerator
 from .blocks import DevnetBlocks
 from .blueprints.rpc.structures.types import BlockId, Felt
 from .chargeable_account import ChargeableAccount
+from .compiler import CustomContractClassCompiler, DefaultContractClassCompiler
 from .constants import (
     DUMMY_STATE_ROOT,
     LEGACY_TX_VERSION,
@@ -149,6 +147,12 @@ class StarknetWrapper:
         self.__latest_state = None
         self._contract_classes: Dict[int, Union[DeprecatedCompiledClass, ContractClass]]
         """If v2 - store sierra, otherwise store old class; needed for get_class_by_hash"""
+
+        self._compiler = (
+            CustomContractClassCompiler(config.cairo_compiler_manifest)
+            if config.cairo_compiler_manifest
+            else DefaultContractClassCompiler()
+        )
 
         if config.start_time is not None:
             self.set_block_time(config.start_time)
@@ -281,9 +285,7 @@ class StarknetWrapper:
         visited_storage_entries: Set[StorageEntry] = None,
         nonces: Dict[int, int] = None,
     ):
-        """
-        Update pending state.
-        """
+        """Update pending state."""
         # defaulting
         deployed_contracts = deployed_contracts or []
         explicitly_declared_old = explicitly_declared_old or []
@@ -337,9 +339,7 @@ class StarknetWrapper:
         transaction: DevnetTransaction,
         error_message: str = None,
     ) -> StarknetBlock:
-        """
-        Stores the provided transaction in the transaction storage.
-        """
+        """Stores the provided transaction in the transaction storage."""
         if transaction.status == TransactionStatus.REJECTED:
             assert error_message, "error_message must be present if tx rejected"
             transaction.set_failure_reason(error_message)
@@ -369,7 +369,9 @@ class StarknetWrapper:
             if isinstance(external_tx, Declare):
                 await assert_not_declared(class_hash, compiled_class_hash)
                 compiled_class_hash = tx_handler.internal_tx.compiled_class_hash
-                compiled_class = compile_contract_class(external_tx.contract_class)
+                compiled_class = self._compiler.compile_contract_class(
+                    external_tx.contract_class
+                )
                 compiled_class_hash_computed = compute_compiled_class_hash(
                     compiled_class
                 )
@@ -775,9 +777,7 @@ class StarknetWrapper:
     async def consume_message_from_l2(
         self, from_address: int, to_address: int, payload: List[int]
     ) -> str:
-        """
-        Mocks the L1 contract function consumeMessageFromL2.
-        """
+        """Mocks the L1 contract function consumeMessageFromL2."""
         state = self.get_state()
 
         starknet_message = StarknetMessageToL1(
@@ -987,9 +987,7 @@ class StarknetWrapper:
             await ChargeableAccount(self).deploy()
 
     async def is_deployed(self, address: int) -> bool:
-        """
-        Check if the contract is deployed.
-        """
+        """Check if the contract is deployed."""
         assert isinstance(address, int)
         cached_state = self.get_state().state
         class_hash = await cached_state.get_class_hash_at(address)
