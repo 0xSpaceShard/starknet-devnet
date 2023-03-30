@@ -47,3 +47,13 @@ For more running possibilities, see [this](https://shard-labs.github.io/starknet
 ### Windows installation
 
 Follow this guide: https://www.spaceshard.io/blog/starknet-devnet-windows-tutorial
+
+### Update to a newer version
+
+If you already have installed an older version of devnet, you will need to remove it and install the newer version:
+
+```
+pip uninstall starknet-devnet
+
+pip install starknet-devnet
+```
