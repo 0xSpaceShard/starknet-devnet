@@ -50,10 +50,6 @@ Follow this guide: https://www.spaceshard.io/blog/starknet-devnet-windows-tutori
 
 ### Update to a newer version
 
-If you already have installed an older version of devnet, you will need to remove it and install the newer version:
-
-```
-pip uninstall starknet-devnet
-
-pip install starknet-devnet
+```bash
+$ pip install --upgrade starknet-devnet
 ```
