@@ -11,6 +11,7 @@ from starkware.starknet.public.abi import get_selector_from_name
 from starknet_devnet.blueprints.rpc.structures.types import PredefinedRpcErrorCode
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 
+
 @pytest.mark.usefixtures("run_devnet_in_background")
 def test_call(deploy_info, latest_block_id):
     """
@@ -183,7 +184,6 @@ def test_call_on_old_block(deploy_info):
         assert result == ["0x045"]
 
     call_and_assert({"block_number": deployment_block["block_number"]})
-    # Fix this later
     call_and_assert({"block_hash": rpc_felt(deployment_block["block_hash"])})
 
 
