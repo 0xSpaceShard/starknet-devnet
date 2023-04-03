@@ -11,28 +11,28 @@ from starkware.starknet.public.abi import get_selector_from_name
 from starknet_devnet.blueprints.rpc.structures.types import PredefinedRpcErrorCode
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 
-# @pytest.mark.usefixtures("run_devnet_in_background")
-# def test_call(deploy_info, latest_block_id):
-#     """
-#     Call contract
-#     """
-#     contract_address: str = deploy_info["address"]
+@pytest.mark.usefixtures("run_devnet_in_background")
+def test_call(deploy_info, latest_block_id):
+    """
+    Call contract
+    """
+    contract_address: str = deploy_info["address"]
 
-#     resp = rpc_call(
-#         "starknet_call",
-#         params={
-#             "request": {
-#                 "contract_address": rpc_felt(contract_address),
-#                 "entry_point_selector": rpc_felt(get_selector_from_name("get_balance")),
-#                 "calldata": [],
-#             },
-#             "block_id": latest_block_id,
-#         },
-#     )
-    # Fix later
-    # assert "error" not in resp
-    # result = resp["result"]
-    # assert result == ["0x045"]
+    resp = rpc_call(
+        "starknet_call",
+        params={
+            "request": {
+                "contract_address": rpc_felt(contract_address),
+                "entry_point_selector": rpc_felt(get_selector_from_name("get_balance")),
+                "calldata": [],
+            },
+            "block_id": latest_block_id,
+        },
+    )
+    assert "error" not in resp
+    result = resp["result"]
+
+    assert result == ["0x045"]
 
 
 @pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
@@ -184,7 +184,7 @@ def test_call_on_old_block(deploy_info):
 
     call_and_assert({"block_number": deployment_block["block_number"]})
     # Fix this later
-    # call_and_assert({"block_hash": rpc_felt(deployment_block["block_hash"])})
+    call_and_assert({"block_hash": rpc_felt(deployment_block["block_hash"])})
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
