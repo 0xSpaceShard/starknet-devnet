@@ -1,7 +1,7 @@
 """
 Tests the abort block functionality.
 """
-from test.rpc.rpc_utils import rpc_call
+# from test.rpc.rpc_utils import rpc_call
 
 import requests
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
