@@ -41,6 +41,7 @@ async def load_l1_messaging_contract():
     """
 
     request_dict = json.loads(request.data.decode("utf-8"))
+    print("DEBUG request_dict in l1 contract loader", request_dict)
     network_url = validate_load_messaging_contract(request_dict)
     contract_address = request_dict.get("address")
     network_id = request_dict.get("networkId")

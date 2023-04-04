@@ -3,7 +3,8 @@
 from typing import List
 
 from web3 import Web3
-from web3.contract import Contract, ContractFunction
+from web3.contract import Contract
+from web3.contract.contract import ContractFunction
 
 
 def web3_deploy(web3: Web3, contract: Contract, *inputs):
