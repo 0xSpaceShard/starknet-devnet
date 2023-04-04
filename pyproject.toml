@@ -14,7 +14,7 @@ keywords = ["starknet", "cairo", "testnet", "local", "server"]
 python = ">=3.9,<3.10"
 Flask = {extras = ["async"], version = "~2.0.3"}
 flask-cors = "~3.0.10"
-cairo-lang = "0.11.0.1"
+cairo-lang = "0.11.0.2"
 Werkzeug = "~2.0.3"
 cloudpickle = "~2.1.0"
 crypto-cpp-py = "~1.2.0"
@@ -23,7 +23,7 @@ typing-extensions = "~4.3.0"
 gunicorn = "~20.1.0"
 marshmallow-dataclass = "~8.4"
 jsonschema = "~4.17.0"
-web3 = "~5.31.4"
+web3 = "~6.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pylint = "~2.12.2"
