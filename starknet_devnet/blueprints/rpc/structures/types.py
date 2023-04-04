@@ -113,5 +113,5 @@ class PredefinedRpcErrorCode(Enum):
 RPC_ERRORS = json.loads(RPC_SPECIFICATION)["components"]["errors"]
 
 GATEWAY_TO_RPC_ERROR = {
-    StarknetErrorCode.OUT_OF_RANGE_BLOCK_ID: RPC_ERRORS["BLOCK_NOT_FOUND"],
+    StarknetErrorCode.BLOCK_NOT_FOUND: RPC_ERRORS["BLOCK_NOT_FOUND"],
 }
