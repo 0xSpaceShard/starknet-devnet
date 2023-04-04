@@ -624,73 +624,9 @@ def test_add_declare_transaction_v0(declare_content):
     assert is_felt(receipt["class_hash"])
 
 
-@pytest.mark.usefixtures("run_devnet_in_background")
-def test_add_deploy_transaction_on_incorrect_contract(deploy_content):
-    """
-    Add deploy transaction on incorrect class
-    """
-    contract_definition = deploy_content["contract_definition"]
-    salt = rpc_felt(deploy_content["contract_address_salt"])
-    calldata = [rpc_felt(data) for data in deploy_content["constructor_calldata"]]
-    pad_zero_entry_points(contract_definition["entry_points_by_type"])
+# TODO def test_add_deploy_transaction_on_incorrect_contract(deploy_content):
 
-    rpc_contract_class = RpcContractClass(
-        program="",
-        entry_points_by_type=contract_definition["entry_points_by_type"],
-        abi=contract_definition["abi"],
-    )
-
-    deploy_transaction = RpcBroadcastedDeployTxn(
-        contract_class=rpc_contract_class,
-        version=hex(SUPPORTED_RPC_TX_VERSION),
-        type=deploy_content["type"],
-        contract_address_salt=salt,
-        constructor_calldata=calldata,
-    )
-
-    ex = rpc_call(
-        "starknet_addDeployTransaction",
-        params={"deploy_transaction": deploy_transaction},
-    )
-
-    assert ex["error"] == {"code": 50, "message": "Invalid contract class"}
-
-
-@pytest.mark.usefixtures("run_devnet_in_background")
-@pytest.mark.parametrize("version", [LEGACY_RPC_TX_VERSION, SUPPORTED_RPC_TX_VERSION])
-def test_add_deploy_transaction(deploy_content, version):
-    """
-    Add deploy transaction
-    """
-    contract_definition = deploy_content["contract_definition"]
-    pad_zero_entry_points(contract_definition["entry_points_by_type"])
-    salt = rpc_felt(deploy_content["contract_address_salt"])
-    calldata = [rpc_felt(data) for data in deploy_content["constructor_calldata"]]
-
-    rpc_contract_class = RpcContractClass(
-        program=contract_definition["program"],
-        entry_points_by_type=contract_definition["entry_points_by_type"],
-        abi=contract_definition["abi"],
-    )
-
-    deploy_transaction = RpcBroadcastedDeployTxn(
-        contract_class=rpc_contract_class,
-        version=hex(version),
-        type=deploy_content["type"],
-        contract_address_salt=salt,
-        constructor_calldata=calldata,
-    )
-
-    resp = rpc_call(
-        "starknet_addDeployTransaction",
-        params={"deploy_transaction": deploy_transaction},
-    )
-    receipt = resp["result"]
-
-    assert set(receipt.keys()) == set(["transaction_hash", "contract_address"])
-
-    assert is_felt(receipt["transaction_hash"])
-    assert is_felt(receipt["contract_address"])
+# TODO def test_add_deploy_transaction(deploy_content, version):
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")

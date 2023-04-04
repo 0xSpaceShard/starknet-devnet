@@ -135,22 +135,6 @@ async def add_declare_transaction(
     )
 
 
-@validate_schema("addDeployTransaction")
-async def add_deploy_transaction(deploy_transaction: RpcBroadcastedDeployTxn) -> dict:
-    """
-    Submit a new deploy contract transaction
-    """
-    deploy_transaction = make_deploy(deploy_transaction)
-
-    contract_address, transaction_hash = await state.starknet_wrapper.deploy(
-        deploy_transaction=deploy_transaction
-    )
-    return RpcDeployTransactionResult(
-        transaction_hash=rpc_felt(transaction_hash),
-        contract_address=rpc_felt(contract_address),
-    )
-
-
 @validate_schema("addDeployAccountTransaction")
 async def add_deploy_account_transaction(
     deploy_account_transaction: RpcBroadcastedDeployAccountTxn,

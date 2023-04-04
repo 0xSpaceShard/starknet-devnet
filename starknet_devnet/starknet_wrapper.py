@@ -25,9 +25,6 @@ from starkware.starknet.core.os.contract_address.contract_address import (
 from starkware.starknet.core.os.contract_class.compiled_class_hash import (
     compute_compiled_class_hash,
 )
-from starkware.starknet.core.os.transaction_hash.transaction_hash import (
-    calculate_deploy_transaction_hash,
-)
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starknet.services.api.contract_class.contract_class import (
@@ -55,7 +52,6 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
 )
 from starkware.starknet.services.api.gateway.transaction import (
     Declare,
-    Deploy,
     DeployAccount,
     DeprecatedDeclare,
     InvokeFunction,
@@ -543,53 +539,6 @@ class StarknetWrapper:
             account_address,
             tx_handler.internal_tx.hash_value,
         )
-
-    async def deploy(self, deploy_transaction: Deploy) -> Tuple[int, int]:
-        """
-        Deploys the contract specified with `deploy_transaction`.
-        Returns (contract_address, transaction_hash).
-        """
-
-        contract_class = deploy_transaction.contract_definition
-
-        internal_tx: InternalDeploy = InternalDeploy.from_external(
-            deploy_transaction, self.get_state().general_config
-        )
-
-        contract_address = internal_tx.contract_address
-
-        if await self.is_deployed(contract_address):
-            tx_hash = calculate_deploy_transaction_hash(
-                version=deploy_transaction.version,
-                contract_address=contract_address,
-                constructor_calldata=deploy_transaction.constructor_calldata,
-                chain_id=self.get_state().general_config.chain_id.value,
-            )
-            return contract_address, tx_hash
-
-        tx_hash = internal_tx.hash_value
-
-        async with self.__get_transaction_handler(
-            external_tx=deploy_transaction
-        ) as tx_handler:
-            tx_handler.internal_tx = internal_tx
-            state = self.get_state().state
-            state.contract_classes[internal_tx.class_hash] = contract_class
-            self._contract_classes[internal_tx.class_hash] = contract_class
-
-            tx_handler.execution_info = await self.__deploy(internal_tx)
-            tx_handler.internal_calls = (
-                tx_handler.execution_info.call_info.internal_calls
-            )
-
-            tx_handler.deployed_contracts.append(
-                ContractAddressHashPair(
-                    address=contract_address,
-                    class_hash=internal_tx.class_hash,
-                )
-            )
-
-        return contract_address, tx_hash
 
     async def invoke(self, external_tx: InvokeFunction):
         """Perform invoke according to specifications in `transaction`."""
