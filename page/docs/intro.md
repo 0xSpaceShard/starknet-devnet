@@ -47,3 +47,9 @@ For more running possibilities, see [this](https://shard-labs.github.io/starknet
 ### Windows installation
 
 Follow this guide: https://www.spaceshard.io/blog/starknet-devnet-windows-tutorial
+
+### Upgrade to a newer version
+
+```bash
+$ pip install --upgrade starknet-devnet
+```
