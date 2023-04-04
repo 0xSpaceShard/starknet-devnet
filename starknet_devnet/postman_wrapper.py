@@ -108,7 +108,7 @@ and that the Messaging Contract is deployed at the provided address ({contract_a
         postman = self.__postman_wrapper.postman
 
         l1_to_l2_messages = json.loads(
-            Web3.toJSON(
+            Web3.to_json(
                 self.__postman_wrapper.l1_to_l2_message_filter.get_new_entries()
             )
         )
@@ -161,7 +161,7 @@ class LocalPostmanWrapper(PostmanWrapper):
                 L1_MESSAGE_CANCELLATION_DELAY,
             )
         else:
-            address = Web3.toChecksumAddress(contract_address)
+            address = Web3.to_checksum_address(contract_address)
             contract_json = load_nearby_contract("MockStarknetMessaging")
             abi = contract_json["abi"]
             w3_contract = self.web3.eth.contract(abi=abi, address=address)

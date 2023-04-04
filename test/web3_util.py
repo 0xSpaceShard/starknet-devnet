@@ -3,13 +3,14 @@
 from typing import List
 
 from web3 import Web3
-from web3.contract import Contract, ContractFunction
+from web3.contract.base_contract import ContractFunction
+from web3.contract import Contract
 
 
 def web3_deploy(web3: Web3, contract: Contract, *inputs):
     """Deploys a Solidity contract"""
-    abi = contract["abi"]
-    bytecode = contract["bytecode"]
+    abi = contract.abi
+    bytecode = contract.bytecode
     contract = web3.eth.contract(abi=abi, bytecode=bytecode)
     tx_hash = contract.constructor(*inputs).transact()
     tx_receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
