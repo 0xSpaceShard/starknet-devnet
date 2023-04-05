@@ -107,7 +107,7 @@ def test_salty_deploy():
     """Test deploying with salt"""
 
     expected_tx_hash = (
-        "0x2fa79baaf35f083c85518ab60ef037bad5c731dc39818522798b61ab3b5f57"
+        "0x6c9b52d3297d731eaea82dbfa4d20424855d498b8594b9442a1d4d5d995a5bd"
     )
 
     def deploy(max_fee):

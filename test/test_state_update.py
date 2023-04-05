@@ -32,6 +32,7 @@ from .util import (
     devnet_in_background,
     get_block,
     load_contract_class,
+    mint,
 )
 
 STORAGE_KEY = hex(get_selector_from_name("storage"))
@@ -129,7 +130,11 @@ def test_storage_diff():
 @devnet_in_background()
 def test_block_hash():
     """Test block hash in the state update"""
-    deploy_empty_contract()
+    dummy_address = "0x1"
+    dummy_amount = 1
+
+    # generate first block
+    mint(address=dummy_address, amount=dummy_amount, lite=False)
     initial_state_update = get_state_update()
 
     first_block = get_block(parse=True)
@@ -137,8 +142,8 @@ def test_block_hash():
 
     assert_equal(first_block_hash, initial_state_update["block_hash"])
 
-    # creates new block
-    deploy_empty_contract()
+    # generate second block
+    mint(address=dummy_address, amount=dummy_amount, lite=False)
 
     new_state_update = get_state_update()
     previous_state_update = get_state_update(first_block_hash)
@@ -160,11 +165,15 @@ def test_wrong_block_hash():
 @devnet_in_background()
 def test_block_number():
     """Test block hash in the state update"""
-    deploy_empty_contract()
+    dummy_address = "0x1"
+    dummy_amount = 1
+
+    # generate first block
+    mint(address=dummy_address, amount=dummy_amount, lite=False)
     initial_state_update = get_state_update()
 
-    # creates new block
-    deploy_empty_contract()
+    # generate second block
+    mint(address=dummy_address, amount=dummy_amount, lite=False)
 
     new_state_update = get_state_update()
     first_block_state_update = get_state_update(block_number=GENESIS_BLOCK_NUMBER + 1)
@@ -187,7 +196,12 @@ def test_wrong_block_number():
 @devnet_in_background()
 def test_roots():
     """Test new root and old root in the state update"""
-    deploy_empty_contract()
+    dummy_address = "0x1"
+    dummy_amount = 1
+
+    # generate first block
+    mint(address=dummy_address, amount=dummy_amount, lite=False)
+
     state_update = get_state_update()
 
     new_root = state_update["new_root"]
@@ -195,8 +209,8 @@ def test_roots():
     assert re.match(r"^[a-fA-F0-9]{64}$", new_root)
     assert state_update["old_root"] is not None
 
-    # creates new block
-    deploy_empty_contract()
+    # generate second block
+    mint(address=dummy_address, amount=dummy_amount, lite=False)
 
     state_update = get_state_update()
     old_root = state_update["old_root"]
@@ -221,11 +235,11 @@ def test_declaration_and_deployment():
     assert diff_after_declare["old_declared_contracts"] == [contract_class_hash]
     assert diff_after_declare["declared_classes"] == []
 
-    # Deploy the deployer - also deploys a contract of the declared class using the declare_and_deploy_with_chargeable syscall
-    initial_balance_in_constructor = "5"
+    # Deploy the deployer - also deploys a contract of the declared class using the deploy syscall
+    initial_balance_in_constructor = 5
     deployer_deploy_info = declare_and_deploy_with_chargeable(
         contract=DEPLOYER_CONTRACT_PATH,
-        inputs=[contract_class_hash, initial_balance_in_constructor],
+        inputs=[int(contract_class_hash, 16), initial_balance_in_constructor],
     )
     deployer_class_hash = hex(get_class_hash_at_path(DEPLOYER_CONTRACT_PATH))
     deployer_address = deployer_deploy_info["address"]
@@ -239,5 +253,6 @@ def test_declaration_and_deployment():
     assert_hex_equal(deployed_contract_diff["class_hash"], contract_class_hash)
     # deployed_contract_diff["address"] is a random value
 
-    # deployer expected to be declared
-    assert diff_after_deploy["old_declared_contracts"] == [deployer_class_hash]
+    # no declarations in the last block
+    assert diff_after_deploy["old_declared_contracts"] == []
+    assert diff_after_deploy["declared_classes"] == []
