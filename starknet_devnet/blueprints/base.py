@@ -231,19 +231,27 @@ async def abort_blocks():
         hex(hex_converter(request_json, "startingBlockHash"))
     )
     last_block = await state.starknet_wrapper.blocks.get_last_block()
-    block_hashes = []
+    blocks_to_abort = []
+    aborted_blocks = []
+
+    # Get blocks to abort
+    for block_number in range(starting_block.block_number, last_block.block_number + 1):
+        blocks_to_abort.append(
+            await state.starknet_wrapper.blocks.get_by_number(block_number)
+        )
 
     # Abort blocks
-    for block_number in range(starting_block.block_number, last_block.block_number + 1):
-        block = await state.starknet_wrapper.blocks.get_by_number(block_number)
-        await state.starknet_wrapper.blocks.abort_block_by_hash(hex(block.block_hash))
+    for block_to_abort in blocks_to_abort:
+        await state.starknet_wrapper.blocks.abort_block_by_hash(
+            hex(block_to_abort.block_hash)
+        )
 
         # Reject transactions
-        for transaction in block.transactions:
+        for transaction in block_to_abort.transactions:
             await state.starknet_wrapper.transactions.reject_transaction(
                 tx_hash=transaction.transaction_hash
             )
 
-        block_hashes.append(hex(block.block_hash))
+        aborted_blocks.append(hex(block_to_abort.block_hash))
 
-    return jsonify({"aborted": block_hashes})
+    return jsonify({"aborted": aborted_blocks})
