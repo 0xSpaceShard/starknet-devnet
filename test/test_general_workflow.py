@@ -25,7 +25,6 @@ from .util import (
     assert_contract_code_present,
     assert_equal,
     assert_events,
-    assert_failing_deploy,
     assert_full_contract,
     assert_negative_block_input,
     assert_receipt,
@@ -42,6 +41,13 @@ from .util import (
 )
 
 EXPECTED_SALTY_DEPLOY_BLOCK_HASH_LITE_MODE = "0x1"
+
+
+def _assert_failing_deploy(contract_path):
+    """Run deployment for a contract that's expected to be rejected."""
+    deploy_info = deploy(contract_path)
+    assert_tx_status(deploy_info["tx_hash"], "REJECTED")
+    assert_transaction(deploy_info["tx_hash"], "REJECTED")
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -136,4 +142,4 @@ def test_general_workflow(expected_block_hash):
 
     assert_events(salty_invoke_tx_hash, "test/expected/invoke_receipt_event.json")
 
-    assert_failing_deploy(contract_path=FAILING_CONTRACT_PATH)
+    _assert_failing_deploy(contract_path=FAILING_CONTRACT_PATH)

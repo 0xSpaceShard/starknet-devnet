@@ -695,13 +695,6 @@ def assert_salty_deploy(
     )
 
 
-def assert_failing_deploy(contract_path):
-    """Run deployment for a contract that's expected to be rejected."""
-    deploy_info = deploy(contract_path)
-    assert_tx_status(deploy_info["tx_hash"], "REJECTED")
-    assert_transaction(deploy_info["tx_hash"], "REJECTED")
-
-
 def load_file_content(file_name: str):
     """Load content of file located in the same directory as this test file."""
     full_file_path = os.path.join(os.path.dirname(__file__), file_name)
