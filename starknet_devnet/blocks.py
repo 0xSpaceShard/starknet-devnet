@@ -316,11 +316,6 @@ class DevnetBlocks:
         """Return state at block with `number`"""
         return self.__state_archive.get(block_hash)
 
-    def set_pending_block_to_none(self):
-        """Set pending block to none"""
-        self.__pending_block = None
-        self.__pending_signatures = None
-
     async def abort_block_by_hash(self, block_hash: str) -> str:
         """
         Abort block by given block hash.
