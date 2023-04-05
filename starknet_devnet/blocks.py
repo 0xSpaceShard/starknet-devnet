@@ -87,7 +87,7 @@ class DevnetBlocks:
 
     async def get_last_block(self) -> StarknetBlock:
         """Returns the last block stored so far."""
-        number_of_blocks = self.get_number_of_blocks()
+        number_of_blocks = self.get_number_of_not_aborted_blocks()
         return await self.get_by_number(number_of_blocks - 1)
 
     def get_number_of_blocks(self) -> int:
