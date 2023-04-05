@@ -329,8 +329,8 @@ class DevnetBlocks:
             block_dict = block.dump()
             block_dict["status"] = BlockStatus.ABORTED.name
             block_dict["transaction_receipts"] = None
-            block_dict["block_number"] = None
             del self.__num2hash[block_dict["block_number"]]
+            block_dict["block_number"] = None
             self.__hash2block[numeric_hash] = StarknetBlock.load(block_dict)
 
             return block.block_hash
