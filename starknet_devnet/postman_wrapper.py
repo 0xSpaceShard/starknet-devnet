@@ -6,9 +6,13 @@ from abc import ABC, abstractmethod
 from typing import Tuple
 
 from starkware.eth.eth_test_utils import EthAccount, EthContract
+from starkware.eth.web3_wrapper import web3_contract_create_filter_fix
 from starkware.solidity.utils import load_nearby_contract
 from starkware.starknet.business_logic.transaction.objects import InternalL1Handler
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
+from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    LATEST_BLOCK_ID,
+)
 from starkware.starknet.testing.starknet import Starknet
 from web3 import HTTPProvider, Web3
 from web3.middleware import geth_poa_middleware
@@ -108,7 +112,7 @@ and that the Messaging Contract is deployed at the provided address ({contract_a
         postman = self.__postman_wrapper.postman
 
         l1_to_l2_messages = json.loads(
-            Web3.toJSON(
+            Web3.to_json(
                 self.__postman_wrapper.l1_to_l2_message_filter.get_new_entries()
             )
         )
@@ -161,7 +165,7 @@ class LocalPostmanWrapper(PostmanWrapper):
                 L1_MESSAGE_CANCELLATION_DELAY,
             )
         else:
-            address = Web3.toChecksumAddress(contract_address)
+            address = Web3.to_checksum_address(contract_address)
             contract_json = load_nearby_contract("MockStarknetMessaging")
             abi = contract_json["abi"]
             w3_contract = self.web3.eth.contract(abi=abi, address=address)
@@ -170,15 +174,16 @@ class LocalPostmanWrapper(PostmanWrapper):
             )
 
         self.postman = Postman(self.mock_starknet_messaging_contract, starknet)
-        self.l1_to_l2_message_filter = self.mock_starknet_messaging_contract.w3_contract.events.LogMessageToL2.createFilter(
-            fromBlock="latest"
+        events = self.mock_starknet_messaging_contract.w3_contract.events
+        self.l1_to_l2_message_filter = events.LogMessageToL2.create_filter(
+            fromBlock=LATEST_BLOCK_ID
         )
 
 
 class Postman:
     """
     Postman class copied from starknet code base.
-    https://github.com/starkware-libs/cairo-lang/blob/v0.10.1/src/starkware/starknet/testing/postman.py
+    https://github.com/starkware-libs/cairo-lang/blob/v0.11.0.2/src/starkware/starknet/testing/postman.py
 
     Modifications were made in _handle_l1_to_l2_messages function.
     """
@@ -194,8 +199,9 @@ class Postman:
 
         # Create a filter to collect LogMessageToL2 events.
         w3_contract = self.mock_starknet_messaging_contract.w3_contract
-        self.message_to_l2_filter = w3_contract.events.LogMessageToL2.createFilter(
-            fromBlock="latest"
+        web3_contract_create_filter_fix(w3_contract.events.LogMessageToL2)
+        self.message_to_l2_filter = w3_contract.events.LogMessageToL2.create_filter(
+            fromBlock=LATEST_BLOCK_ID
         )
 
     async def _handle_l1_to_l2_messages(self):

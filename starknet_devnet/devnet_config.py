@@ -46,6 +46,7 @@ NETWORK_TO_URL = {
 }
 NETWORK_NAMES = ", ".join(NETWORK_TO_URL.keys())
 CHAIN_IDS = ", ".join([member.name for member in StarknetChainId])
+DEFAULT_CHAIN_ID = StarknetChainId.TESTNET
 
 
 def _fork_network(network_id: str):
@@ -356,13 +357,13 @@ def parse_args(raw_args: List[str]):
         type=int,
         default=1,
         action=PositiveAction,
-        help="Specify the number of retries of failed HTTP requests sent to the network before giving up, defaults to 1",
+        help="Specify the number of retries of failed HTTP requests sent to the network before giving up; defaults to 1",
     )
     parser.add_argument(
         "--chain-id",
         type=_chain_id,
-        default=StarknetChainId.TESTNET,
-        help=f"Specify the chain id as string: {{{CHAIN_IDS}}}",
+        default=DEFAULT_CHAIN_ID,
+        help=f"Specify the chain id as one of: {{{CHAIN_IDS}}}; defaults to {DEFAULT_CHAIN_ID.name} ({hex(DEFAULT_CHAIN_ID.value)})",
     )
     parser.add_argument(
         "--disable-rpc-request-validation",

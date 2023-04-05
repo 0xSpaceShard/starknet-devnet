@@ -9,7 +9,6 @@ starknet-hardhat-example/
 .gitignore
 .env.example
 .circleci/
-scripts/
 Dockerfile
 .dockerignore
 test/

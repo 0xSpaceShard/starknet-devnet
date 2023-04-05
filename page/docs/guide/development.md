@@ -159,11 +159,17 @@ $ poetry version
 $ poetry run starknet-devnet --version
 ```
 
-Commit and tag (Notice the `v`):
+Commit (Notice the `v`):
 
 ```
 $ git add starknet_devnet/__init__.py pyproject.toml
 $ git commit -m "Bump version to v<VERSION>"
+$ git push
+```
+
+If the CI/CD pipeline ran successfully, tag the new version:
+
+```
 $ git tag v<VERSION>
 $ git push origin v<VERSION>
 ```
