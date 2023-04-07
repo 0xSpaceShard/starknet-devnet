@@ -5,6 +5,7 @@ Fixtures for RPC tests
 from __future__ import annotations
 
 import json
+from test.account import deploy
 from test.rpc.rpc_utils import (
     add_transaction,
     gateway_call,
@@ -48,11 +49,11 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     Felt,
 )
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
+from starknet_devnet.chargeable_account import ChargeableAccount
 from starknet_devnet.constants import SUPPORTED_RPC_TX_VERSION
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 
 DEPLOY_CONTENT = load_file_content("deploy_rpc.json")
-INVOKE_CONTENT = load_file_content("invoke_rpc.json")
 DECLARE_CONTENT = load_file_content("declare_rpc.json")
 
 PRIVATE_KEY = 123456789987654321
@@ -85,22 +86,18 @@ def fixture_deploy_info() -> dict:
     Deploy a contract on devnet and return deployment info dict
     """
     declare_tx = json.loads(DECLARE_CONTENT)
-    add_transaction(declare_tx)  # TODO replace DEPLOY_CONTENT
-    raise NotImplementedError("DEBUG: replace DEPLOY_CONTENT")
+    declare_info = add_transaction(declare_tx)
 
-    deploy_tx = json.loads(DEPLOY_CONTENT)
-    deploy_info = add_transaction(deploy_tx)
-    return {**deploy_info, **deploy_tx}
+    deploy_info = deploy(
+        class_hash=declare_info["class_hash"],
+        account_address=hex(ChargeableAccount.ADDRESS),
+        private_key=ChargeableAccount.PRIVATE_KEY,
+        inputs=[69],
+        salt="0x2",
+        max_fee=int(1e18),
+    )
 
-
-@pytest.fixture(name="invoke_info")
-def fixture_invoke_info() -> dict:
-    """
-    Make an invoke transaction on devnet and return invoke info dict
-    """
-    invoke_tx = json.loads(INVOKE_CONTENT)
-    invoke_info = add_transaction(invoke_tx)
-    return {**invoke_info, **invoke_tx}
+    return deploy_info
 
 
 @pytest.fixture(name="declare_info")
@@ -108,6 +105,7 @@ def fixture_declare_info() -> dict:
     """
     Make a declare transaction on devnet and return declare info dict
     """
+    # TODO how does this work? - are old (free) declares still supported?
     declare_tx = json.loads(DECLARE_CONTENT)
     declare_info = add_transaction(declare_tx)
     return {**declare_info, **declare_tx}
@@ -128,14 +126,7 @@ def fixture_deploy_account_info() -> dict:
     return declare_info
 
 
-@pytest.fixture(name="invoke_content")
-def fixture_invoke_content() -> dict:
-    """
-    Invoke content JSON object
-    """
-    return json.loads(INVOKE_CONTENT)
-
-
+# TODO delete if unused
 @pytest.fixture(name="deploy_content")
 def fixture_deploy_content() -> dict:
     """
@@ -157,7 +148,7 @@ def fixture_gateway_block(deploy_info) -> dict:
     """
     Block with Deploy transaction
     """
-    return get_block_with_transaction(deploy_info["transaction_hash"])
+    return get_block_with_transaction(deploy_info["tx_hash"])
 
 
 @pytest.fixture(name="latest_block")

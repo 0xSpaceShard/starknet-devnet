@@ -30,7 +30,7 @@ def test_get_block_with_tx_hashes(deploy_info, gateway_block, block_id):
 
     resp = rpc_call("starknet_getBlockWithTxHashes", params={"block_id": block_id})
     block = resp["result"]
-    transaction_hash: str = rpc_felt(deploy_info["transaction_hash"])
+    transaction_hash: str = rpc_felt(deploy_info["tx_hash"])
 
     assert block == {
         "block_hash": rpc_felt(block_hash),

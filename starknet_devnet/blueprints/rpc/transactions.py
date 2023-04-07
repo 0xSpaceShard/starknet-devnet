@@ -14,7 +14,6 @@ from starknet_devnet.blueprints.rpc.schema import validate_schema
 from starknet_devnet.blueprints.rpc.structures.payloads import (
     RpcBroadcastedDeclareTxn,
     RpcBroadcastedDeployAccountTxn,
-    RpcBroadcastedDeployTxn,
     RpcBroadcastedInvokeTxn,
     RpcBroadcastedTxn,
     RpcTransaction,
@@ -28,7 +27,6 @@ from starknet_devnet.blueprints.rpc.structures.payloads import (
 from starknet_devnet.blueprints.rpc.structures.responses import (
     RpcDeclareTransactionResult,
     RpcDeployAccountTransactionResult,
-    RpcDeployTransactionResult,
     RpcInvokeTransactionResult,
     rpc_transaction_receipt,
 )

@@ -22,7 +22,7 @@ from .shared import (
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
-from .util import assert_tx_status, call, devnet_in_background, load_file_content
+from .util import assert_tx_status, call, devnet_in_background
 
 USER_ID = 1
 L1_CONTRACT_ADDRESS = "0xE7F1725E7734CE288F8367E1BB143E90BB3F0512"

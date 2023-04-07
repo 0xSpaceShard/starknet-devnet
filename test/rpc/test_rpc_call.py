@@ -154,7 +154,7 @@ def test_call_on_old_block(deploy_info):
     """Correctly call contract on old state"""
 
     contract_address: str = deploy_info["address"]
-    deployment_block = get_block_with_transaction(deploy_info["transaction_hash"])
+    deployment_block = get_block_with_transaction(deploy_info["tx_hash"])
 
     invoke_tx_hash = invoke(
         calls=[(contract_address, "increase_balance", [10, 20])],

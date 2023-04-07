@@ -49,7 +49,6 @@ from starknet_devnet.account_util import get_execute_args
 from starknet_devnet.blueprints.rpc.structures.payloads import (
     EntryPoints,
     RpcBroadcastedDeclareTxn,
-    RpcBroadcastedDeployTxn,
     RpcBroadcastedInvokeTxnV0,
     RpcBroadcastedInvokeTxnV1,
     RpcContractClass,
@@ -81,9 +80,12 @@ def test_get_transaction_by_hash_deploy(deploy_info):
     """
     Get transaction by hash
     """
-    block = get_block_with_transaction(deploy_info["transaction_hash"])
+    block = get_block_with_transaction(deploy_info["tx_hash"])
     block_tx = block["transactions"][0]
-    transaction_hash: str = deploy_info["transaction_hash"]
+    transaction_hash: str = deploy_info["tx_hash"]
+
+    signature: Signature = [rpc_felt(sig) for sig in block_tx["signature"]]
+    calldata: List[str] = [rpc_felt(data) for data in block_tx["calldata"]]
 
     resp = rpc_call(
         "starknet_getTransactionByHash",
@@ -93,11 +95,13 @@ def test_get_transaction_by_hash_deploy(deploy_info):
 
     assert transaction == {
         "transaction_hash": rpc_felt(transaction_hash),
-        "class_hash": rpc_felt(block_tx["class_hash"]),
         "version": hex(SUPPORTED_RPC_TX_VERSION),
         "type": rpc_txn_type(block_tx["type"]),
-        "contract_address_salt": rpc_felt(block_tx["contract_address_salt"]),
-        "constructor_calldata": ["0x045"],
+        "calldata": calldata,
+        "max_fee": rpc_felt(block_tx["max_fee"]),
+        "nonce": rpc_felt(block_tx["nonce"]),
+        "signature": signature,
+        "sender_address": rpc_felt(block_tx["sender_address"]),
     }
 
 
@@ -213,9 +217,9 @@ def test_get_transaction_by_block_id_and_index(deploy_info):
     """
     Get transaction by block id and transaction index
     """
-    block = get_block_with_transaction(deploy_info["transaction_hash"])
+    block = get_block_with_transaction(deploy_info["tx_hash"])
     block_tx = block["transactions"][0]
-    transaction_hash: str = deploy_info["transaction_hash"]
+    transaction_hash: str = deploy_info["tx_hash"]
     block_number: str = block["block_number"]
     index: int = 0
 
@@ -263,7 +267,7 @@ def test_get_transaction_by_block_id_and_index_raises_on_incorrect_index(deploy_
     """
     Get transaction by block hash and incorrect transaction index
     """
-    block = get_block_with_transaction(deploy_info["transaction_hash"])
+    block = get_block_with_transaction(deploy_info["tx_hash"])
     block_hash: str = block["block_hash"]
 
     ex = rpc_call(
@@ -365,7 +369,7 @@ def test_get_deploy_transaction_receipt(deploy_info):
     """
     Get transaction receipt
     """
-    transaction_hash: str = deploy_info["transaction_hash"]
+    transaction_hash: str = deploy_info["tx_hash"]
     block = get_block_with_transaction(transaction_hash)
 
     resp = rpc_call(
