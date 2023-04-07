@@ -17,6 +17,7 @@ from starknet_devnet.blueprints.rpc.schema import validate_schema
 from starknet_devnet.blueprints.rpc.structures.responses import (
     EmittedEvent,
     RpcEventsResult,
+    RpcEventsResultWithoutContinuationToken,
 )
 from starknet_devnet.blueprints.rpc.structures.types import (
     Address,
@@ -112,7 +113,9 @@ async def _get_events_range(
 # pylint: disable=redefined-builtin
 # filter name is determined by current RPC implementation and starknet specification
 @validate_schema("getEvents")
-async def get_events(filter) -> RpcEventsResult:
+async def get_events(
+    filter,
+) -> Union[RpcEventsResult, RpcEventsResultWithoutContinuationToken]:
     """
     Returns all events matching the given filters.
 
@@ -149,13 +152,17 @@ async def get_events(filter) -> RpcEventsResult:
 
     # Chunking
     start_index = continuation_token * chunk_size
-    events = events[start_index : start_index + chunk_size]
+    chunked_events = events[start_index : start_index + chunk_size]
+    remaining_events_length = len(events) - start_index
 
     # Continuation_token should be increased only if events are not empty
-    if events:
+    if remaining_events_length > chunk_size:
         continuation_token = continuation_token + 1
+        return RpcEventsResult(
+            events=chunked_events, continuation_token=str(continuation_token)
+        )
 
-    return RpcEventsResult(events=events, continuation_token=str(continuation_token))
+    return RpcEventsResultWithoutContinuationToken(events=chunked_events)
 
 
 @validate_schema("getNonce")

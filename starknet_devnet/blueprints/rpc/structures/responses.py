@@ -85,6 +85,14 @@ class RpcEventsResult(TypedDict):
     continuation_token: str
 
 
+class RpcEventsResultWithoutContinuationToken(TypedDict):
+    """
+    TypedDict for rpc get events result without continuation token
+    """
+
+    events: List[EmittedEvent]
+
+
 class RpcBaseTransactionReceipt(TypedDict):
     """TypedDict for rpc transaction receipt"""
 
