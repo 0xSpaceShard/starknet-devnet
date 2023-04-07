@@ -15,7 +15,7 @@ from starkware.starknet.services.api.contract_class.contract_class_utils import 
     load_sierra,
 )
 
-from .account import deploy, invoke, send_declare_v2
+from .account import deploy, get_full_contract, invoke, send_declare_v2
 from .settings import APP_URL
 from .shared import (
     ABI_1_PATH,
@@ -224,3 +224,38 @@ def test_v2_contract_interaction():
     # call after invoke
     fetched_balance_after_invoke = _call_get_balance(deploy_info["address"])
     assert fetched_balance_after_invoke == initial_balance + increment_value
+
+
+@pytest.mark.declare
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
+def test_v2_get_full_contract():
+    """Test for declare, deploy and get full contract"""
+
+    contract_class, _, compiled_class_hash = load_cairo1_contract()
+
+    # declare
+    declaration_resp = send_declare_v2(
+        contract_class=contract_class,
+        compiled_class_hash=compiled_class_hash,
+        sender_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        sender_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
+    assert_declare_v2_accepted(declaration_resp)
+    class_hash = declaration_resp.json()["class_hash"]
+
+    # deploy
+    initial_balance = 10
+    deploy_info = deploy(
+        class_hash=class_hash,
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+        inputs=[str(initial_balance)],
+        max_fee=int(1e18),
+    )
+    assert_tx_status(
+        tx_hash=deploy_info["tx_hash"], expected_tx_status="ACCEPTED_ON_L2"
+    )
+
+    full_contract = get_full_contract(deploy_info["address"])
+    print("resp1.json()")
+    print(full_contract.json())
