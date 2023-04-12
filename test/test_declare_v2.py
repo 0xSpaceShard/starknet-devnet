@@ -257,5 +257,6 @@ def test_v2_get_full_contract():
     )
 
     full_contract = get_full_contract(deploy_info["address"])
-    print("resp1.json()")
-    print(full_contract.json())
+    assert full_contract.status_code == 200
+    sierra = ContractClass.load(full_contract.json())
+    assert load_sierra(CONTRACT_1_PATH) == sierra
