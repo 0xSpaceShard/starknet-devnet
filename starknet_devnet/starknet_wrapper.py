@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 """
 This module introduces `StarknetWrapper`, a wrapper class of
 starkware.starknet.testing.starknet.Starknet.
@@ -591,9 +592,25 @@ class StarknetWrapper:
 
         return contract_address, tx_hash
 
+    @staticmethod
+    def __is_udc_contract(external_tx: InvokeFunction) -> bool:
+        """Checks if contract is UDC contract."""
+        return bool(
+            external_tx.calldata
+            and len(external_tx.calldata) > 1
+            and external_tx.calldata[1] == UDC.ADDRESS
+        )
+
     async def invoke(self, external_tx: InvokeFunction):
         """Perform invoke according to specifications in `transaction`."""
         state = self.get_state()
+
+        if self.__is_udc_contract(external_tx):
+            # Based on UniversalDeployer.cairo contract
+            class_hash = external_tx.calldata[6]
+            contract_class = self._contract_classes[class_hash]
+            state.state.contract_classes[class_hash] = contract_class
+
         async with self.__get_transaction_handler(
             external_tx=external_tx
         ) as tx_handler:
