@@ -12,8 +12,7 @@ aliases:
     <<: *on_master
     requires:
       - test_py_max
-      # TMP: rust vm
-      # - test_py_max_rust
+      - test_py_max_rust
       - image_build
       - image_build_arm
 
@@ -128,8 +127,7 @@ workflows:
   test_and_publish:
     jobs:
       - test_py_max
-      # TMP: rust vm
-      # - test_py_max_rust
+      - test_py_max_rust
       - image_build:
           <<: *on_master
       - image_build_arm:
