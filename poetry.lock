@@ -380,14 +380,14 @@ web3 = "*"
 
 [[package]]
 name = "cairo-rs-py"
-version = "0.1.2"
+version = "0.2.0"
 description = ""
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "cairo_rs_py-0.1.2-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:04384fcbf52ca9a078c974dcdbd4fdae30953ae2cd835656e014d0a7d627076f"},
-    {file = "cairo_rs_py-0.1.2.tar.gz", hash = "sha256:0febf3554b01a80c42871e3beb4738b35d251e125fb285857951efa55cb13cc8"},
+    {file = "cairo_rs_py-0.2.0-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:98644923b4cfd92a9f684c9a2f0f570973da8931c54385dc9d830fa9f5c7eb53"},
+    {file = "cairo_rs_py-0.2.0.tar.gz", hash = "sha256:12ceb4a36e330d14400417fc97ec034876aea55e2ebad9516497a892f400158f"},
 ]
 
 [[package]]
@@ -2623,4 +2623,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.10"
-content-hash = "c686153d287538996a6c9098d191dc47093d1036f51b4d1fc43c29ff864707d4"
+content-hash = "e5d503045f3f489d99286277859be75dc5775aadfe3e094f6e9a4afec8126184"

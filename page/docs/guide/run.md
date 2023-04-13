@@ -133,10 +133,6 @@ If you don't specify the `HOST` part, the server will indeed be available on all
 
 ## Run with the Rust implementation of Cairo VM
 
-<!-- # TMP: rust vm -->
-
-### ⚠️ This feature is temporarily suspended! ⚠️
-
 By default, Devnet uses the [Python implementation](https://github.com/starkware-libs/cairo-lang/) of Cairo VM.
 
 Using the Rust implementation brings improvement for Cairo-VM-intensive operations, but introduces its own overhead, so it may not be useful for simple contracts.

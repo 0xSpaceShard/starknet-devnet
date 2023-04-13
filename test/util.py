@@ -8,7 +8,7 @@ import os
 import re
 import subprocess
 import time
-from typing import IO, List
+from typing import IO, List, Optional
 
 import pytest
 import requests
@@ -130,6 +130,20 @@ def assert_equal(actual, expected, explanation=None):
 def assert_hex_equal(actual, expected):
     """Assert that two hex strings are equal when converted to ints"""
     assert int(actual, 16) == int(expected, 16)
+
+
+def assert_get_events_response(
+    resp: dict, expected_block_length: int, expected_token: Optional[str] = None
+):
+    """
+    If expected_token is None, check that it is not present, if it's not None, check if the returned value matches
+    the one provided.
+    """
+    assert len(resp["result"]["events"]) == expected_block_length
+    if expected_token is not None:
+        assert resp["result"]["continuation_token"] == expected_token
+    else:
+        assert "continuation_token" not in resp["result"]
 
 
 def extract(regex, stdout):
