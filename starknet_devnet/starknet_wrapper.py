@@ -1,4 +1,3 @@
-# pylint: disable=too-many-lines
 """
 This module introduces `StarknetWrapper`, a wrapper class of
 starkware.starknet.testing.starknet.Starknet.
@@ -595,7 +594,6 @@ class StarknetWrapper:
     async def invoke(self, external_tx: InvokeFunction):
         """Perform invoke according to specifications in `transaction`."""
         state = self.get_state()
-
         async with self.__get_transaction_handler(
             external_tx=external_tx
         ) as tx_handler:
