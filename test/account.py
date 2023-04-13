@@ -275,7 +275,7 @@ def deploy(
 ):
     """Wrapper around starknet deploy"""
 
-    # TODO int(val) instead of int(val, 0)
+    # accepts ints or decimal strings
     ctor_args = [int(val) for val in inputs or []]
     salt = get_salt(salt)
 

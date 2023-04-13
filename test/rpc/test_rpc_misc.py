@@ -73,7 +73,7 @@ def test_get_state_update():
     initial_balance_in_constructor = "5"
     deployer_deploy_info = declare_and_deploy_with_chargeable(
         contract=DEPLOYER_CONTRACT_PATH,
-        inputs=[contract_class_hash, initial_balance_in_constructor],
+        inputs=[int(contract_class_hash, 16), initial_balance_in_constructor],
     )
     deployer_class_hash = hex(get_class_hash_at_path(DEPLOYER_CONTRACT_PATH))
     deployer_address = deployer_deploy_info["address"]
@@ -89,10 +89,8 @@ def test_get_state_update():
     assert_hex_equal(deployed_contract_diff["class_hash"], contract_class_hash)
     # deployed_contract_diff["address"] is a random value
 
-    # deployer expected to be declared
-    assert diff_after_deploy["declared_contract_hashes"] == [
-        rpc_felt(deployer_class_hash)
-    ]
+    # deployer expected to be declared one block earier, so nothing new declared
+    assert diff_after_deploy["declared_contract_hashes"] == []
 
 
 @pytest.mark.usefixtures("devnet_with_account")
