@@ -592,24 +592,9 @@ class StarknetWrapper:
 
         return contract_address, tx_hash
 
-    @staticmethod
-    def __is_udc_contract(external_tx: InvokeFunction) -> bool:
-        """Checks if contract is UDC contract."""
-        return bool(
-            external_tx.calldata
-            and len(external_tx.calldata) > 1
-            and external_tx.calldata[1] == UDC.ADDRESS
-        )
-
     async def invoke(self, external_tx: InvokeFunction):
         """Perform invoke according to specifications in `transaction`."""
         state = self.get_state()
-
-        if self.__is_udc_contract(external_tx):
-            # Based on UniversalDeployer.cairo contract
-            class_hash = external_tx.calldata[6]
-            contract_class = self._contract_classes[class_hash]
-            state.state.contract_classes[class_hash] = contract_class
 
         async with self.__get_transaction_handler(
             external_tx=external_tx
@@ -751,7 +736,11 @@ class StarknetWrapper:
         state = await self.__get_query_state(block_id)
         cached_state = state.state
         class_hash = await self.get_class_hash_at(contract_address)
-        return cached_state.contract_classes[class_hash]
+
+        if class_hash in cached_state.contract_classes:
+            return cached_state.contract_classes[class_hash]
+
+        return self._contract_classes[class_hash]
 
     async def get_code(
         self, contract_address: int, block_id: BlockId = DEFAULT_BLOCK_ID

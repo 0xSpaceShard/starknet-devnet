@@ -7,7 +7,6 @@ from typing import Type
 from flask import Blueprint, Response, jsonify, request
 from marshmallow import ValidationError
 from starkware.starknet.services.api.contract_class.contract_class import (
-    ContractClass,
     DeprecatedCompiledClass,
 )
 from starkware.starknet.services.api.feeder_gateway.request_objects import (
