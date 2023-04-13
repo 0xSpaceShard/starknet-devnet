@@ -211,13 +211,9 @@ async def get_full_contract():
     )
 
     if isinstance(contract_class, DeprecatedCompiledClass):
-        return jsonify(contract_class.remove_debug_info().dump())
-    if isinstance(contract_class, ContractClass):
-        return jsonify(contract_class.dump())
+        contract_class = contract_class.remove_debug_info()
 
-    raise StarknetDevnetException(
-        code=StarkErrorCode.MALFORMED_REQUEST, message="Contract class missing."
-    )
+    return jsonify(contract_class.dump())
 
 
 @feeder_gateway.route("/get_class_hash_at", methods=["GET"])
