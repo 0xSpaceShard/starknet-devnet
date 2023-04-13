@@ -15,7 +15,7 @@ from starkware.starknet.services.api.contract_class.contract_class_utils import 
     load_sierra,
 )
 
-from .account import deploy, get_full_contract, invoke, send_declare_v2
+from .account import deploy, invoke, send_declare_v2
 from .settings import APP_URL
 from .shared import (
     ABI_1_PATH,
@@ -34,6 +34,7 @@ from .util import (
     devnet_in_background,
     get_class_by_hash,
     get_compiled_class_by_class_hash,
+    get_full_contract_gateway,
 )
 
 
@@ -256,7 +257,7 @@ def test_v2_get_full_contract():
         tx_hash=deploy_info["tx_hash"], expected_tx_status="ACCEPTED_ON_L2"
     )
 
-    full_contract = get_full_contract(deploy_info["address"])
+    full_contract = get_full_contract_gateway(contract_address=deploy_info["address"])
     assert full_contract.status_code == 200
     sierra = ContractClass.load(full_contract.json())
     assert load_sierra(CONTRACT_1_PATH) == sierra

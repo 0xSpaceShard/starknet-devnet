@@ -489,6 +489,14 @@ def get_full_contract(
     return DeprecatedCompiledClass.loads(output.stdout)
 
 
+def get_full_contract_gateway(contract_address: str, feeder_gateway_url=APP_URL):
+    """Get full contract"""
+    return requests.get(
+        f"{feeder_gateway_url}/feeder_gateway/get_full_contract",
+        {"contractAddress": contract_address},
+    )
+
+
 def assert_full_contract_not_present(address: str, feeder_gateway_url=APP_URL):
     """Assert that get_full_contract fails due to uninitialized contract"""
     resp = requests.get(

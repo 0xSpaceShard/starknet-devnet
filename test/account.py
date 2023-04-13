@@ -290,14 +290,6 @@ def deploy(
     }
 
 
-def get_full_contract(contract_address: str):
-    """Get full contract"""
-    return requests.get(
-        f"{APP_URL}/feeder_gateway/get_full_contract",
-        {"contractAddress": contract_address},
-    )
-
-
 def send_declare_v2(
     contract_class: ContractClass,
     compiled_class_hash: int,
