@@ -741,6 +741,12 @@ class StarknetWrapper:
         if class_hash in self._contract_classes:
             return self._contract_classes[class_hash]
 
+        raise StarknetDevnetException(
+            code=StarkErrorCode.INVALID_CONTRACT_ADDRESS,
+            status_code=500,
+            message="Getting a full contract of a forked contract from previous blocks is not supported.",
+        )
+
     async def get_code(
         self, contract_address: int, block_id: BlockId = DEFAULT_BLOCK_ID
     ) -> dict:
