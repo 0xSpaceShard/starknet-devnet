@@ -738,7 +738,8 @@ class StarknetWrapper:
         if class_hash in cached_state.contract_classes:
             return cached_state.contract_classes[class_hash]
 
-        return self._contract_classes[class_hash]
+        if class_hash in self._contract_classes:
+            return self._contract_classes[class_hash]
 
     async def get_code(
         self, contract_address: int, block_id: BlockId = DEFAULT_BLOCK_ID
