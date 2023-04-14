@@ -6,9 +6,6 @@ from typing import Type
 
 from flask import Blueprint, Response, jsonify, request
 from marshmallow import ValidationError
-from starkware.starknet.services.api.contract_class.contract_class import (
-    DeprecatedCompiledClass,
-)
 from starkware.starknet.services.api.feeder_gateway.request_objects import (
     CallFunction,
     CallL1Handler,
@@ -209,10 +206,12 @@ async def get_full_contract():
         contract_address, block_id
     )
 
-    if isinstance(contract_class, DeprecatedCompiledClass):
-        contract_class = contract_class.remove_debug_info()
+    # strip debug_info if cairo 0 class
+    class_program = contract_class.get("program")
+    if class_program and class_program.get("debug_info"):
+        class_program["debug_info"] = None
 
-    return jsonify(contract_class.dump())
+    return jsonify(contract_class)
 
 
 @feeder_gateway.route("/get_class_hash_at", methods=["GET"])
