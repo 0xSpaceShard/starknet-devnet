@@ -64,10 +64,11 @@ async def get_class_at(block_id: BlockId, contract_address: Address) -> dict:
     await assert_block_id_is_valid(block_id)
 
     try:
-        result = await state.starknet_wrapper.get_class_by_address(
+        result_dict = await state.starknet_wrapper.get_class_by_address(
             int(contract_address, 16), block_id
         )
+        contract_class = DeprecatedCompiledClass.load(result_dict)
     except StarkException as ex:
         raise RpcError.from_spec_name("CONTRACT_NOT_FOUND") from ex
 
-    return rpc_contract_class(result)
+    return rpc_contract_class(contract_class)

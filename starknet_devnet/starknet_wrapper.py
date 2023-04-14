@@ -1,4 +1,3 @@
-# pylint: disable=too-many-lines
 """
 This module introduces `StarknetWrapper`, a wrapper class of
 starkware.starknet.testing.starknet.Starknet.
@@ -33,7 +32,6 @@ from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starknet.services.api.contract_class.contract_class import (
     CompiledClass,
-    CompiledClassBase,
     ContractClass,
     DeprecatedCompiledClass,
     EntryPointType,
@@ -730,23 +728,10 @@ class StarknetWrapper:
 
     async def get_class_by_address(
         self, contract_address: int, block_id: BlockId = DEFAULT_BLOCK_ID
-    ) -> CompiledClassBase:
+    ) -> dict:
         """Return contract class given the contract address"""
-        state = await self.__get_query_state(block_id)
-        cached_state = state.state
-        class_hash = await self.get_class_hash_at(contract_address)
-
-        if class_hash in cached_state.contract_classes:
-            return cached_state.contract_classes[class_hash]
-
-        if class_hash in self._contract_classes:
-            return self._contract_classes[class_hash]
-
-        raise StarknetDevnetException(
-            code=StarkErrorCode.INVALID_CONTRACT_ADDRESS,
-            status_code=500,
-            message="Getting a full contract of a forked contract from previous blocks is not supported.",
-        )
+        class_hash = await self.get_class_hash_at(contract_address, block_id)
+        return await self.get_class_by_hash(class_hash)
 
     async def get_code(
         self, contract_address: int, block_id: BlockId = DEFAULT_BLOCK_ID
@@ -755,8 +740,8 @@ class StarknetWrapper:
         try:
             contract_class = await self.get_class_by_address(contract_address, block_id)
             result_dict = {
-                "abi": contract_class.abi,
-                "bytecode": contract_class.dump()["program"]["data"],
+                "abi": contract_class["abi"],
+                "bytecode": contract_class["program"]["data"],
             }
         except StarkException as err:
             if err.code != StarknetErrorCode.UNINITIALIZED_CONTRACT:
