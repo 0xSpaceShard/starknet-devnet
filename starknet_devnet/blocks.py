@@ -87,14 +87,14 @@ class DevnetBlocks:
 
     async def get_last_block(self) -> StarknetBlock:
         """Returns the last block stored so far."""
-        number_of_blocks = self.get_number_of_not_aborted_blocks()
+        number_of_blocks = self.get_number_of_accepted_blocks()
         return await self.get_by_number(number_of_blocks - 1)
 
     def get_number_of_blocks(self) -> int:
         """Returns the number of blocks stored so far."""
         return len(self.__hash2block) + self.origin.get_number_of_blocks()
 
-    def get_number_of_not_aborted_blocks(self) -> int:
+    def get_number_of_accepted_blocks(self) -> int:
         """Returns the number of not aborted blocks."""
         not_aborted_blocks = {
             key: val
@@ -112,8 +112,8 @@ class DevnetBlocks:
                 code=StarkErrorCode.MALFORMED_REQUEST, message=message
             )
 
-        if block_number >= self.get_number_of_not_aborted_blocks():
-            message = f"Block number too high. There are currently {self.get_number_of_not_aborted_blocks()} blocks; got: {block_number}."
+        if block_number >= self.get_number_of_accepted_blocks():
+            message = f"Block number too high. There are currently {self.get_number_of_accepted_blocks()} blocks; got: {block_number}."
             raise StarknetDevnetException(
                 code=StarknetErrorCode.BLOCK_NOT_FOUND, message=message
             )
@@ -281,7 +281,7 @@ class DevnetBlocks:
         state_root = DUMMY_STATE_ROOT
         block_dict["state_root"] = state_root.hex()
 
-        block_number = self.get_number_of_not_aborted_blocks()
+        block_number = self.get_number_of_accepted_blocks()
         block_dict["block_number"] = block_number
 
         if self.lite or is_empty_block:
