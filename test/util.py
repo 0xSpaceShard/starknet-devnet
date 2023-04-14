@@ -504,7 +504,7 @@ def get_full_contract(
 
 
 def get_full_contract_raw(contract_address: str, feeder_gateway_url=APP_URL):
-    """Gets contract class raw data as dump"""
+    """Gets contract raw data as dump"""
     return requests.get(
         f"{feeder_gateway_url}/feeder_gateway/get_full_contract",
         {"contractAddress": contract_address},
