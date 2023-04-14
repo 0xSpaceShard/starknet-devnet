@@ -206,8 +206,9 @@ async def get_full_contract():
         contract_address, block_id
     )
 
-    class_program = contract_class["program"]
-    if class_program.get("debug_info"):
+    # strip debug_info if cairo 0 class
+    class_program = contract_class.get("program")
+    if class_program and class_program.get("debug_info"):
         class_program["debug_info"] = None
 
     return jsonify(contract_class)

@@ -25,6 +25,7 @@ from .test_transaction_trace import (
 )
 from .testnet_deployment import (
     TESTNET_CONTRACT_ADDRESS,
+    TESTNET_CONTRACT_CLASS_HASH,
     TESTNET_DEPLOYMENT_BLOCK,
     TESTNET_FORK_PARAMS,
     TESTNET_URL,
@@ -48,6 +49,7 @@ from .util import (
     deploy,
     devnet_in_background,
     get_block,
+    get_full_contract,
 )
 
 DEPLOYMENT_INPUT = "10"
@@ -84,8 +86,8 @@ def _make_expected_invoke(gateway_url=APP_URL):
     # starting from an earlier block; otherwise the contract class is already present
     str(TESTNET_DEPLOYMENT_BLOCK - 1),
 )
-def test_contract_responses():
-    """Assert that get_full_contract only makes sense on fork after deployment"""
+def test_contract_responses_before_deployment_on_origin():
+    """Assert that get_full_contract etc. only makes sense on fork after deployment"""
     # full contract
     assert_full_contract_not_present(
         address=EXPECTED_DEPLOYMENT_ADDRESS, feeder_gateway_url=TESTNET_URL
@@ -144,6 +146,7 @@ def test_contract_responses():
         address=EXPECTED_DEPLOYMENT_ADDRESS, feeder_gateway_url=APP_URL
     )
 
+    # class hash
     assert_address_has_no_class_hash(
         contract_address=EXPECTED_DEPLOYMENT_ADDRESS, feeder_gateway_url=TESTNET_URL
     )
@@ -164,6 +167,33 @@ def test_contract_responses():
         address=EXPECTED_DEPLOYMENT_ADDRESS,
         key=BALANCE_KEY,
         expected_value=hex(int(DEPLOYMENT_INPUT, 10)),
+        feeder_gateway_url=APP_URL,
+    )
+
+
+@devnet_in_background(
+    *TESTNET_FORK_PARAMS, "--fork-block", str(TESTNET_DEPLOYMENT_BLOCK)
+)
+def test_contract_responses_after_deployment_on_origin():
+    """Assert get_full_contract etc. works for contract deployed earlier"""
+
+    full_contract_testnet = get_full_contract(
+        contract_address=TESTNET_CONTRACT_ADDRESS,
+        feeder_gateway_url=TESTNET_URL,
+    )
+    full_contract_devnet = get_full_contract(
+        contract_address=TESTNET_CONTRACT_ADDRESS,
+        feeder_gateway_url=APP_URL,
+    )
+    assert full_contract_testnet == full_contract_devnet
+
+    assert_contract_code_present(
+        address=TESTNET_CONTRACT_ADDRESS, feeder_gateway_url=APP_URL
+    )
+
+    assert_class_hash_at_address(
+        contract_address=TESTNET_CONTRACT_ADDRESS,
+        expected_class_hash=TESTNET_CONTRACT_CLASS_HASH,
         feeder_gateway_url=APP_URL,
     )
 
