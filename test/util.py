@@ -503,8 +503,8 @@ def get_full_contract(
     return DeprecatedCompiledClass.loads(output.stdout)
 
 
-def get_full_contract_gateway(contract_address: str, feeder_gateway_url=APP_URL):
-    """Get full contract"""
+def get_full_contract_raw(contract_address: str, feeder_gateway_url=APP_URL):
+    """Gets contract class raw data as dump"""
     return requests.get(
         f"{feeder_gateway_url}/feeder_gateway/get_full_contract",
         {"contractAddress": contract_address},
