@@ -496,11 +496,8 @@ def get_full_contract(
     contract_address: str, feeder_gateway_url=APP_URL
 ) -> CompiledClassBase:
     """Gets contract class by contract address"""
-    output = run_starknet(
-        ["get_full_contract", "--contract_address", contract_address],
-        gateway_url=feeder_gateway_url,
-    )
-    return DeprecatedCompiledClass.loads(output.stdout)
+    contract = get_full_contract_raw(contract_address, feeder_gateway_url)
+    return DeprecatedCompiledClass.load(contract.json())
 
 
 def get_full_contract_raw(contract_address: str, feeder_gateway_url=APP_URL):
