@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 """
 This module introduces `StarknetWrapper`, a wrapper class of
 starkware.starknet.testing.starknet.Starknet.
