@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 """
 This module introduces `StarknetWrapper`, a wrapper class of
 starkware.starknet.testing.starknet.Starknet.
@@ -683,7 +684,18 @@ class StarknetWrapper:
         state = await self.__get_query_state(block_id)
         cached_state = state.state
         class_hash = await self.get_class_hash_at(contract_address)
-        return cached_state.contract_classes[class_hash]
+
+        if class_hash in cached_state.contract_classes:
+            return cached_state.contract_classes[class_hash]
+
+        if class_hash in self._contract_classes:
+            return self._contract_classes[class_hash]
+
+        raise StarknetDevnetException(
+            code=StarkErrorCode.INVALID_CONTRACT_ADDRESS,
+            status_code=500,
+            message="Getting a full contract of a forked contract from previous blocks is not supported.",
+        )
 
     async def get_code(
         self, contract_address: int, block_id: BlockId = DEFAULT_BLOCK_ID

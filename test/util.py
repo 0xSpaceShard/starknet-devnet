@@ -436,11 +436,16 @@ def get_full_contract(
     contract_address: str, feeder_gateway_url=APP_URL
 ) -> CompiledClassBase:
     """Gets contract class by contract address"""
-    output = run_starknet(
-        ["get_full_contract", "--contract_address", contract_address],
-        gateway_url=feeder_gateway_url,
+    contract = get_full_contract_raw(contract_address, feeder_gateway_url)
+    return DeprecatedCompiledClass.load(contract.json())
+
+
+def get_full_contract_raw(contract_address: str, feeder_gateway_url=APP_URL):
+    """Gets contract raw data as dump"""
+    return requests.get(
+        f"{feeder_gateway_url}/feeder_gateway/get_full_contract",
+        {"contractAddress": contract_address},
     )
-    return DeprecatedCompiledClass.loads(output.stdout)
 
 
 def assert_full_contract_not_present(address: str, feeder_gateway_url=APP_URL):
