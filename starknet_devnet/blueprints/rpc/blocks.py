@@ -31,7 +31,7 @@ async def block_number() -> int:
     """
     Get the most recent accepted block number
     """
-    number_of_blocks = state.starknet_wrapper.blocks.get_number_of_blocks()
+    number_of_blocks = state.starknet_wrapper.blocks.get_number_of_accepted_blocks()
     if number_of_blocks == 0:
         raise RpcError.from_spec_name("NO_BLOCKS")
 
@@ -43,7 +43,7 @@ async def block_hash_and_number() -> dict:
     """
     Get the most recent accepted block hash and number
     """
-    number_of_blocks = state.starknet_wrapper.blocks.get_number_of_blocks()
+    number_of_blocks = state.starknet_wrapper.blocks.get_number_of_accepted_blocks()
     if number_of_blocks == 0:
         raise RpcError.from_spec_name("NO_BLOCKS")
 

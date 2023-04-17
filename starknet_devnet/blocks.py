@@ -87,12 +87,7 @@ class DevnetBlocks:
 
     async def get_last_block(self) -> StarknetBlock:
         """Returns the last block stored so far."""
-        number_of_blocks = self.get_number_of_accepted_blocks()
-        return await self.get_by_number(number_of_blocks - 1)
-
-    def get_number_of_blocks(self) -> int:
-        """Returns the number of blocks stored so far."""
-        return len(self.__hash2block) + self.origin.get_number_of_blocks()
+        return await self.get_by_number(self.get_number_of_accepted_blocks() - 1)
 
     def get_number_of_accepted_blocks(self) -> int:
         """Returns the number of not aborted blocks."""
@@ -203,7 +198,7 @@ class DevnetBlocks:
         internal_transactions = [tx.internal_tx for tx in transactions or []]
         transaction_receipts = tuple(tx.get_execution() for tx in transactions or ())
 
-        block_number = self.get_number_of_blocks()
+        block_number = self.get_number_of_accepted_blocks()
         if block_number == 0:
             parent_block_hash = 0
         else:
