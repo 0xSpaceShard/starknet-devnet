@@ -2,7 +2,7 @@ version: 2.1
 
 aliases:
   - &on_master
-    context: shardlabs
+    context: spaceshard
     filters:
       branches:
         only:
