@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 """
 This module introduces `StarknetWrapper`, a wrapper class of
 starkware.starknet.testing.starknet.Starknet.
@@ -990,3 +991,31 @@ class StarknetWrapper:
         cached_state = self.get_state().state
         class_hash = await cached_state.get_class_hash_at(address)
         return bool(class_hash)
+
+    async def abort_blocks(self, starting_block: StarknetBlock) -> str:
+        """
+        Abort blocks.
+        """
+        last_block = await self.blocks.get_last_block()
+        blocks_to_abort = []
+        aborted_blocks = []
+
+        # Get blocks to abort
+        for block_number in range(
+            starting_block.block_number, last_block.block_number + 1
+        ):
+            blocks_to_abort.append(await self.blocks.get_by_number(block_number))
+
+        # Abort blocks
+        for block_to_abort in blocks_to_abort:
+            await self.blocks.abort_block_by_hash(hex(block_to_abort.block_hash))
+
+            # Reject transactions
+            for transaction in block_to_abort.transactions:
+                await self.transactions.reject_transaction(
+                    tx_hash=transaction.transaction_hash
+                )
+
+            aborted_blocks.append(hex(block_to_abort.block_hash))
+
+        return aborted_blocks
