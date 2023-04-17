@@ -177,9 +177,9 @@ class DevnetBlocks:
 
             return await self.origin.get_state_update(block_hash=numeric_hash)
 
-        # now we know the block ID is "latest"
+        # now we get state updates by block_hash or from the origin
         return (
-            self.__state_updates[(await self.get_last_block()).block_hash]
+            self.__state_updates.get((await self.get_last_block()).block_hash)
             or await self.origin.get_state_update()
         )
 
