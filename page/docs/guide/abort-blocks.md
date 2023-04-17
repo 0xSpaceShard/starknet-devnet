@@ -1,12 +1,9 @@
 ---
 sidebar_position: 19
 ---
-# Abort blocks
+# Abort Blocks After
 
 This functionality allows to simulate blocks abort that can occur on mainnet.
-
-
-## Abort Blocks After
 
 Abort blocks and reject transactions from the specified block to the currently latest block. Newly created blocks after the abortion will have accepted status and will continue with numbering where the last accepted block left off. Aborted blocks can only be queried by their hashes.
 
