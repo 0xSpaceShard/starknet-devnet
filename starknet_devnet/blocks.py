@@ -106,9 +106,9 @@ class DevnetBlocks:
             raise StarknetDevnetException(
                 code=StarkErrorCode.MALFORMED_REQUEST, message=message
             )
-
-        if block_number >= self.get_number_of_accepted_blocks():
-            message = f"Block number too high. There are currently {self.get_number_of_accepted_blocks()} blocks; got: {block_number}."
+        number_of_accepted_blocks = self.get_number_of_accepted_blocks()
+        if block_number >= number_of_accepted_blocks:
+            message = f"Block number too high. There are currently {number_of_accepted_blocks} blocks; got: {block_number}."
             raise StarknetDevnetException(
                 code=StarknetErrorCode.BLOCK_NOT_FOUND, message=message
             )
