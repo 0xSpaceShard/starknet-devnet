@@ -210,34 +210,45 @@ def test_get_events_continuation_token():
             account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
             private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
         )
+
+    first_invoke_block = (
+        3  # origin (being 0) + declare + deploy = first invoke block is 3
+    )
+
     resp = rpc_call(
         "starknet_getEvents",
-        params=create_get_events_filter(chunk_size=total_invokes),
+        params=create_get_events_filter(
+            from_block=first_invoke_block, chunk_size=total_invokes
+        ),
     )
     assert_get_events_response(resp, expected_block_length=total_invokes)
 
     resp = rpc_call(
         "starknet_getEvents",
-        params=create_get_events_filter(chunk_size=1),
+        params=create_get_events_filter(from_block=first_invoke_block, chunk_size=1),
     )
     assert_get_events_response(resp, expected_block_length=1, expected_token="1")
 
     resp = rpc_call(
         "starknet_getEvents",
-        params=create_get_events_filter(chunk_size=1, continuation_token="1"),
+        params=create_get_events_filter(
+            from_block=first_invoke_block, chunk_size=1, continuation_token="1"
+        ),
     )
     assert_get_events_response(resp, expected_block_length=1, expected_token="2")
 
     resp = rpc_call(
         "starknet_getEvents",
-        params=create_get_events_filter(chunk_size=1, continuation_token="2"),
+        params=create_get_events_filter(
+            from_block=first_invoke_block, chunk_size=1, continuation_token="2"
+        ),
     )
     assert_get_events_response(resp, expected_block_length=1)
 
     resp = rpc_call(
         "starknet_getEvents",
         params=create_get_events_filter(
-            from_block=0, to_block=1, chunk_size=3, continuation_token="0"
+            from_block=0, to_block=0, chunk_size=3, continuation_token="0"
         ),
     )
     assert_get_events_response(resp, expected_block_length=0)
@@ -260,10 +271,10 @@ def test_get_events(input_data, expected_data):
             account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
             private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
         )
-    resp = rpc_call("starknet_getEvents", params=input_data)
-    assert len(expected_data) == len(resp["result"]["events"])
-    for i, data in enumerate(expected_data):
-        assert resp["result"]["events"][i]["data"] == data
+
+    events_resp = rpc_call("starknet_getEvents", params=input_data)
+    actual_data = [data["event"] for data in events_resp["results"]["events"]]
+    assert actual_data == expected_data
 
 
 @pytest.mark.usefixtures("devnet_with_account")
