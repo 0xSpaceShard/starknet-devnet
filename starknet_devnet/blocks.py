@@ -96,7 +96,7 @@ class DevnetBlocks:
             for key, val in self.__hash2block.items()
             if val.status is not BlockStatus.ABORTED
         }
-        return len(dict(not_aborted_blocks)) + self.origin.get_number_of_blocks()
+        return len(not_aborted_blocks) + self.origin.get_number_of_blocks()
 
     def __assert_block_number_in_range(self, block_number: BlockIdentifier):
         if block_number < 0:
