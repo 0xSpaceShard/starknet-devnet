@@ -174,7 +174,7 @@ $ git tag v<VERSION>
 $ git push origin v<VERSION>
 ```
 
-Documentation is deployed automatically to https://shard-labs.github.io/starknet-devnet:
+Documentation is deployed automatically to https://0xspaceshard.github.io/starknet-devnet:
 
 - Uses the FabijanC username and its private GitHub token set in the CircleCI project env vars.
 - Done only after a new version is released.

@@ -6,8 +6,8 @@ authors = ["FabijanC <fabijan.corak@gmail.com>"]
 license = "ISC"
 
 readme = "README.md"
-repository = "https://github.com/Shard-Labs/starknet-devnet"
-homepage = "https://github.com/Shard-Labs/starknet-devnet"
+repository = "https://github.com/0xSpaceShard/starknet-devnet"
+homepage = "https://github.com/0xSpaceShard/starknet-devnet"
 keywords = ["starknet", "cairo", "testnet", "local", "server"]
 
 [tool.poetry.dependencies]
