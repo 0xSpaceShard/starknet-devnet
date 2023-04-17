@@ -14,7 +14,7 @@ const config = {
   onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
-  organizationName: 'Shard-Labs',
+  organizationName: 'SpaceShard',
   projectName: 'starknet-devnet',
   deploymentBranch: "gh-pages",
 
@@ -30,11 +30,11 @@ const config = {
       ({
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
-          editUrl: 'https://github.com/Shard-Labs/starknet-devnet/blob/master/page',
+          editUrl: 'https://github.com/0xSpaceShard/starknet-devnet/blob/master/page',
         },
         blog: {
           showReadingTime: true,
-          editUrl: 'https://github.com/Shard-Labs/starknet-devnet',
+          editUrl: 'https://github.com/0xSpaceShard/starknet-devnet',
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
@@ -48,7 +48,7 @@ const config = {
     ({
       announcementBar: {
       id: "support_us",
-      content: `⭐️  &nbsp; If you like Starknet Devnet, give it a star on <a target="_blank" rel="noopener noreferrer" href="https://github.com/Shard-Labs/starknet-devnet">GitHub</a>! &nbsp; ⭐️`,
+      content: `⭐️  &nbsp; If you like Starknet Devnet, give it a star on <a target="_blank" rel="noopener noreferrer" href="https://github.com/0xSpaceShard/starknet-devnet">GitHub</a>! &nbsp; ⭐️`,
     },
       navbar: {
         title: 'Starknet Devnet',
@@ -64,7 +64,7 @@ const config = {
             label: 'Docs',
           },
           {
-            href: 'https://github.com/Shard-Labs/starknet-devnet',
+            href: 'https://github.com/0xSpaceShard/starknet-devnet',
             label: 'GitHub',
             position: 'right',
           },
@@ -105,7 +105,7 @@ const config = {
             items: [
               {
                 label: 'GitHub',
-                href: 'https://github.com/Shard-Labs/starknet-devnet',
+                href: 'https://github.com/0xSpaceShard/starknet-devnet',
               },
             ],
           },

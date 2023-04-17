@@ -10,4 +10,4 @@ Enter your Devnet port and have the Starkscan explorer available locally on your
 
 ## Voyager
 
-A local block explorer (Voyager), as noted [**here**](https://voyager.online/local-version/), apparently cannot be set up to work with Devnet. Read more in [**this issue**](https://github.com/Shard-Labs/starknet-devnet/issues/60).
+A local block explorer (Voyager), as noted [**here**](https://voyager.online/local-version/), apparently cannot be set up to work with Devnet. Read more in [**this issue**](https://github.com/0xSpaceShard/starknet-devnet/issues/60).

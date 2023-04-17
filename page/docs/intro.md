@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Getting Started
 
-Let's discover **[starknet-devnet](https://github.com/Shard-Labs/starknet-devnet)**.
+Let's discover **[starknet-devnet](https://github.com/0xSpaceShard/starknet-devnet)**.
 :::danger Take care
 
 ## ⚠️ Disclaimer ⚠️
@@ -42,7 +42,7 @@ $ pip install starknet-devnet
 $ starknet-devnet
 ```
 
-For more running possibilities, see [this](https://shard-labs.github.io/starknet-devnet/docs/guide/run).
+For more running possibilities, see [this](https://0xspaceshard.github.io/starknet-devnet/docs/guide/run).
 
 ### Windows installation
 
