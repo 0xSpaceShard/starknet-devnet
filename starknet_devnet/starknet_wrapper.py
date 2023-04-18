@@ -211,6 +211,7 @@ class StarknetWrapper:
             deploy_data.append((account.class_hash, account.address))
 
         for class_hash, contract_address in deploy_data:
+            # TODO - replace deploy with invoke?
             internal_deploy = create_empty_internal_deploy(
                 transaction_hash, class_hash, contract_address
             )

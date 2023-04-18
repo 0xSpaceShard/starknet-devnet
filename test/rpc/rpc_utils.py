@@ -76,7 +76,7 @@ def gateway_call(method: str, **kwargs):
 
 def get_block_with_transaction(transaction_hash: str) -> dict:
     """
-    Retrieve block for given transaction
+    Retrieve block for given transaction via gateway API
     """
     transaction = gateway_call("get_transaction", transactionHash=transaction_hash)
     assert (

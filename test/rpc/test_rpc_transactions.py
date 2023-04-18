@@ -234,13 +234,16 @@ def test_get_transaction_by_block_id_and_index(deploy_info):
     )
     transaction = resp["result"]
 
+    signature: Signature = [rpc_felt(sig) for sig in block_tx["signature"]]
+    calldata: List[str] = [rpc_felt(data) for data in block_tx["calldata"]]
+
     assert transaction == {
-        "class_hash": rpc_felt(block_tx["class_hash"]),
-        "constructor_calldata": [
-            rpc_felt(tx) for tx in block_tx["constructor_calldata"]
-        ],
-        "contract_address_salt": rpc_felt(block_tx["contract_address_salt"]),
+        "calldata": calldata,
+        "signature": signature,
+        "sender_address": rpc_felt(block_tx["sender_address"]),
         "transaction_hash": rpc_felt(transaction_hash),
+        "max_fee": rpc_felt(block_tx["max_fee"]),
+        "nonce": rpc_felt(block_tx["nonce"]),
         "type": rpc_txn_type(block_tx["type"]),
         "version": hex(SUPPORTED_RPC_TX_VERSION),
     }
@@ -378,16 +381,25 @@ def test_get_deploy_transaction_receipt(deploy_info):
     )
     receipt = resp["result"]
 
+    assert len(block["transaction_receipts"]) == 1
+    block_receipt = block["transaction_receipts"][0]
+
     assert receipt == {
-        "contract_address": rpc_felt(deploy_info["address"]),
         "transaction_hash": rpc_felt(transaction_hash),
-        "actual_fee": rpc_felt(0),
+        "actual_fee": rpc_felt(block_receipt["actual_fee"]),
         "status": "ACCEPTED_ON_L2",
         "block_hash": rpc_felt(block["block_hash"]),
         "block_number": block["block_number"],
-        "type": "DEPLOY",
+        "type": "INVOKE",
         "messages_sent": [],
-        "events": [],
+        "events": [
+            {
+                "from_address": rpc_felt(event["from_address"]),
+                "data": [rpc_felt(data) for data in event["data"]],
+                "keys": [rpc_felt(key) for key in event["keys"]],
+            }
+            for event in block_receipt["events"]
+        ],
     }
 
 

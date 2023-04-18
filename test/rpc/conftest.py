@@ -83,7 +83,7 @@ def fixture_class_hash(deploy_info) -> Felt:
 @pytest.fixture(name="deploy_info")
 def fixture_deploy_info() -> dict:
     """
-    Deploy a contract on devnet and return deployment info dict
+    Deploy a contract using chargeable accout. Return deployment info dict.
     """
     declare_tx = json.loads(DECLARE_CONTENT)
     declare_info = add_transaction(declare_tx)
