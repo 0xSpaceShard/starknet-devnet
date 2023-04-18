@@ -273,7 +273,7 @@ def test_get_events(input_data, expected_data):
         )
 
     events_resp = rpc_call("starknet_getEvents", params=input_data)
-    actual_data = [data["event"] for data in events_resp["results"]["events"]]
+    actual_data = [event["data"] for event in events_resp["result"]["events"]]
     assert actual_data == expected_data
 
 

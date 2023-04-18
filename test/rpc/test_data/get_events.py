@@ -78,58 +78,67 @@ def parse_block_delimiter_parameter(
 EVENT_FEE_ADDRESS = rpc_felt(
     0xBEBE7DEC64B911AEFFECC184AFCEFA6470E3B3652A1605E42D643E1EA9093D
 )
-FEE_CHARGING_IN_BLOCK_2_EVENT = [
+INVOKE_1_FEE_CHARGING_EVENT = [
     rpc_felt(int(PREDEPLOYED_ACCOUNT_ADDRESS, 16)),
     EVENT_FEE_ADDRESS,
     rpc_felt(0x73B00ED0C000),  # WEI
     rpc_felt(0),
 ]
-FEE_CHARGING_IN_BLOCK_3_EVENT = [
+INVOKE_2_FEE_CHARGING_EVENT = [
     rpc_felt(int(PREDEPLOYED_ACCOUNT_ADDRESS, 16)),
     EVENT_FEE_ADDRESS,
     rpc_felt(0x015254FFDB4000),  # WEI
     rpc_felt(0),
 ]
 
+INVOKE_1_BLOCK_NUMBER = 3  # after (origin + declare + deploy)
+INVOKE_2_BLOCK_NUMBER = INVOKE_1_BLOCK_NUMBER + 1
 
 GET_EVENTS_TEST_DATA = [
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
         create_get_events_filter(
+            from_block=INVOKE_1_BLOCK_NUMBER,
             keys=[
                 rpc_felt(FEE_CHARGED_EVENT_KEY),
                 rpc_felt(INCREASE_BALANCE_CALLED_EVENT_KEY),
-            ]
+            ],
         ),
         [
-            FEE_CHARGING_IN_BLOCK_2_EVENT,
-            FEE_CHARGING_IN_BLOCK_3_EVENT,
+            INVOKE_1_FEE_CHARGING_EVENT,
+            INVOKE_2_FEE_CHARGING_EVENT,
         ],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        create_get_events_filter(from_block=rpc_felt("0x0")),
+        create_get_events_filter(from_block=INVOKE_1_BLOCK_NUMBER),
         [
-            FEE_CHARGING_IN_BLOCK_2_EVENT,
-            FEE_CHARGING_IN_BLOCK_3_EVENT,
+            INVOKE_1_FEE_CHARGING_EVENT,
+            INVOKE_2_FEE_CHARGING_EVENT,
         ],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        create_get_events_filter(from_block=rpc_felt("0x0"), to_block=2),
-        [FEE_CHARGING_IN_BLOCK_2_EVENT],
+        create_get_events_filter(
+            from_block=INVOKE_1_BLOCK_NUMBER, to_block=INVOKE_1_BLOCK_NUMBER
+        ),
+        [INVOKE_1_FEE_CHARGING_EVENT],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        create_get_events_filter(from_block=3, to_block=3),
-        [FEE_CHARGING_IN_BLOCK_3_EVENT],
+        create_get_events_filter(
+            from_block=INVOKE_2_BLOCK_NUMBER, to_block=INVOKE_2_BLOCK_NUMBER
+        ),
+        [INVOKE_2_FEE_CHARGING_EVENT],
     ),
     (
         [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-        create_get_events_filter(from_block=2, to_block=3),
+        create_get_events_filter(
+            from_block=INVOKE_1_BLOCK_NUMBER, to_block=INVOKE_2_BLOCK_NUMBER
+        ),
         [
-            FEE_CHARGING_IN_BLOCK_2_EVENT,
-            FEE_CHARGING_IN_BLOCK_3_EVENT,
+            INVOKE_1_FEE_CHARGING_EVENT,
+            INVOKE_2_FEE_CHARGING_EVENT,
         ],
     ),
 ]
