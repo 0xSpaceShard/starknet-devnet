@@ -4,7 +4,7 @@ sidebar_position: 6
 
 # L1-L2 Postman integration
 
-Postman is a Starknet utility that allows testing L1 <-> L2 interaction. To utilize this, you can use [**`starknet-hardhat-plugin`**](https://github.com/Shard-Labs/starknet-hardhat-plugin), as witnessed in [**this example**](https://github.com/Shard-Labs/starknet-hardhat-example/blob/master/test/postman.test.ts). Or you can directly interact with the two Postman-specific endpoints:
+Postman is a Starknet utility that allows testing L1 <-> L2 interaction. To utilize this, you can use [**`starknet-hardhat-plugin`**](https://github.com/0xSpaceShard/starknet-hardhat-plugin), as witnessed in [**this example**](https://github.com/0xSpaceShard/starknet-hardhat-example/blob/master/test/postman.test.ts). Or you can directly interact with the two Postman-specific endpoints:
 
 ### Postman - Load
 
