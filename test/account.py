@@ -325,7 +325,7 @@ def deploy(
 
 def declare_and_deploy(
     contract: str,
-    account_address: str,  # TODO why have address as hex str and private_key as int?
+    account_address: str,
     private_key: int,
     inputs=None,
     salt=None,
@@ -336,7 +336,7 @@ def declare_and_deploy(
     """
     Declare a class and deploy its instance using the provided account.
     The max_fee only refers to deployment.
-    Returns deploy info.
+    Returns deploy info with class_hash.
     """
 
     declare_info = declare(
@@ -350,7 +350,7 @@ def declare_and_deploy(
     class_hash = declare_info["class_hash"]
     # here we could benefit from asserting the status of declaration, but it would also introduce time overhead
 
-    return deploy(
+    deploy_info = deploy(
         class_hash=class_hash,
         account_address=account_address,
         private_key=private_key,
@@ -360,6 +360,10 @@ def declare_and_deploy(
         gateway_url=gateway_url,
         chain_id=chain_id,
     )
+
+    deploy_info["class_hash"] = class_hash
+
+    return deploy_info
 
 
 def declare_and_deploy_with_chargeable(
@@ -377,6 +381,27 @@ def declare_and_deploy_with_chargeable(
     """
     return declare_and_deploy(
         contract=contract,
+        account_address=hex(ChargeableAccount.ADDRESS),
+        private_key=ChargeableAccount.PRIVATE_KEY,
+        inputs=inputs,
+        salt=salt,
+        max_fee=max_fee,
+        gateway_url=gateway_url,
+        chain_id=chain_id,
+    )
+
+
+def deploy_with_chargeable(
+    class_hash: str,
+    inputs=None,
+    salt=None,
+    max_fee=None,
+    gateway_url=APP_URL,
+    chain_id=StarknetChainId.TESTNET,
+):
+    """Deploy an instance of `contract` using the chargeable account"""
+    return deploy(
+        class_hash=class_hash,
         account_address=hex(ChargeableAccount.ADDRESS),
         private_key=ChargeableAccount.PRIVATE_KEY,
         inputs=inputs,

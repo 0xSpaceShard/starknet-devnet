@@ -126,15 +126,6 @@ def fixture_deploy_account_info() -> dict:
     return declare_info
 
 
-# TODO delete if unused
-@pytest.fixture(name="deploy_content")
-def fixture_deploy_content() -> dict:
-    """
-    Deploy content JSON object
-    """
-    return json.loads(DEPLOY_CONTENT)
-
-
 @pytest.fixture(name="declare_content")
 def fixture_declare_content() -> dict:
     """

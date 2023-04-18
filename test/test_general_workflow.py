@@ -4,7 +4,7 @@ Tests the general workflow of the devnet.
 
 import pytest
 
-from .account import declare_and_deploy_with_chargeable, invoke
+from .account import declare_and_deploy_with_chargeable, deploy_with_chargeable, invoke
 from .shared import (
     ABI_PATH,
     BALANCE_KEY,
@@ -35,6 +35,7 @@ from .util import (
     devnet_in_background,
     get_block,
     get_class_hash_at,
+    get_transaction_receipt,
 )
 
 
@@ -106,26 +107,29 @@ def test_general_workflow():
 def test_salty_deploy():
     """Test deploying with salt"""
 
-    expected_tx_hash = (
+    expected_address = (
         "0x6c9b52d3297d731eaea82dbfa4d20424855d498b8594b9442a1d4d5d995a5bd"
     )
+    contract_path = EVENTS_CONTRACT_PATH
+    inputs = None
+    salt = "0x99"
 
-    def deploy(max_fee):
-        deploy_info = declare_and_deploy_with_chargeable(
-            EVENTS_CONTRACT_PATH, inputs=None, salt="0x99", max_fee=max_fee
-        )
-        assert_hex_equal(
-            actual=deploy_info["address"],
-            expected=expected_tx_hash,
-        )
-        return deploy_info
-
-    deploy_info = deploy(max_fee=int(1e18))
+    # first deploy (and declare before it)
+    deploy_info = declare_and_deploy_with_chargeable(
+        contract_path, inputs=inputs, salt=salt, max_fee=int(1e18)
+    )
+    assert_hex_equal(actual=deploy_info["address"], expected=expected_address)
     assert_tx_status(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
-    assert int(deploy_info["tx_hash"], 16) != int(expected_tx_hash, 16)
 
-    # TODO here just deploy, don't declare and deploy as per the function in L113
-    repeated_deploy_info = deploy(max_fee=(int(1e18) + 1))
+    # attempt another deploy - should be rejected since address occupied
+    repeated_deploy_info = deploy_with_chargeable(
+        class_hash=deploy_info["class_hash"],
+        inputs=inputs,
+        salt=salt,
+        # different max_fee to induce a different tx_hash
+        max_fee=int(1e18) + 1,
+    )
+    assert_hex_equal(actual=repeated_deploy_info["address"], expected=expected_address)
     assert_tx_status(repeated_deploy_info["tx_hash"], "REJECTED")
 
 
