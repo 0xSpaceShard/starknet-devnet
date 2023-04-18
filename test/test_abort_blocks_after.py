@@ -108,11 +108,13 @@ def test_abort_many_blocks_many_transactions():
     last_block = get_block(parse=True)
     assert last_block["status"] == "ACCEPTED_ON_L2"
     assert last_block["block_number"] == 0
+
     contract_deploy_block_after_abort = get_block(
         block_hash=contract_deploy_block["block_hash"], parse=True
     )
     assert contract_deploy_block_after_abort["status"] == "ABORTED"
     assert_transaction(contract_deploy_info["tx_hash"], "REJECTED")
+
     invoke_block_after_abort = get_block(
         block_hash=invoke_block["block_hash"], parse=True
     )
