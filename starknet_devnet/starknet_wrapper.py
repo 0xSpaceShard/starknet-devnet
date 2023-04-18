@@ -1028,4 +1028,14 @@ class StarknetWrapper:
 
             aborted_blocks.append(hex(block_to_abort.block_hash))
 
+        # Revert state
+        parent_block = await self.blocks.get_by_hash(
+            hex(starting_block.parent_block_hash)
+        )
+        self.starknet.state = self.blocks.get_state(parent_block.block_hash)
+
+        # Clear pending state in block on demand?
+        # self.update_pending_state()
+        # self.update_pending_block()
+
         return aborted_blocks
