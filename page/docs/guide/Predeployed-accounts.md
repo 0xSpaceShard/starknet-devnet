@@ -12,7 +12,7 @@ To get the code of the account (currently OpenZeppelin [v0.5.1](https://github.c
 - [Starknet CLI](https://www.cairo-lang.org/docs/hello_starknet/cli.html#get-code): `starknet get_code --contract_address <ACCOUNT_ADDRESS> --feeder_gateway_url <DEVNET_URL>`
 - [GitHub repository](https://github.com/0xSpaceShard/cairo-contracts/tree/fix-account-query-version)
 
-You can use the accounts in e.g. [**starknet-hardhat-plugin**](https://github.com/Shard-Labs/starknet-hardhat-plugin) via:
+You can use the accounts in e.g. [**starknet-hardhat-plugin**](https://github.com/0xSpaceShard/starknet-hardhat-plugin) via:
 
 ```typescript
 const account = await starknet.OpenZeppelin.getAccountFromAddress(
