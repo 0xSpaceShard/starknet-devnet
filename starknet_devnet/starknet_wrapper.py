@@ -1000,6 +1000,16 @@ class StarknetWrapper:
         blocks_to_abort = []
         aborted_blocks = []
 
+        # Check if blocks can be aborted in fork mode
+        if (
+            self.config.fork_block
+            and self.config.fork_block >= starting_block.block_number
+        ):
+            raise StarknetDevnetException(
+                code=StarknetErrorCode.OUT_OF_RANGE_BLOCK_ID,
+                message="Aborting forked blocks is not supported.",
+            )
+
         # Get blocks to abort
         for block_number in range(
             starting_block.block_number, last_block.block_number + 1

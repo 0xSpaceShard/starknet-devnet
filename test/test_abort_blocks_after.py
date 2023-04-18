@@ -16,6 +16,7 @@ from .shared import (
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
+from .testnet_deployment import TESTNET_DEPLOYMENT_BLOCK, TESTNET_FORK_PARAMS
 from .util import (
     assert_transaction,
     assert_tx_status,
@@ -132,6 +133,41 @@ def test_abort_many_blocks_many_transactions():
     )
     assert rpc_aborted_block_invoke["result"]["status"] == "REJECTED"
 
+
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
+def test_new_blocks_after_abortion():
+    """Test new block generation after abortion."""
+
+    # Block and transaction should be accepted on L2
+    contract_deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
+    contract_deploy_block = get_block(parse=True)
+    assert contract_deploy_block["status"] == "ACCEPTED_ON_L2"
+    assert_tx_status(contract_deploy_info["tx_hash"], "ACCEPTED_ON_L2")
+
+    # Blocks should be aborted and transactions should be rejected
+    response = abort_blocks(contract_deploy_block["block_hash"])
+    assert response.status_code == 200
+    assert response.json()["aborted"] == [
+        contract_deploy_block["block_hash"],
+    ]
+    last_block = get_block(parse=True)
+    assert last_block["status"] == "ACCEPTED_ON_L2"
+    assert last_block["block_number"] == 0
+    contract_deploy_block_after_abort = get_block(
+        block_hash=contract_deploy_block["block_hash"], parse=True
+    )
+    assert contract_deploy_block_after_abort["status"] == "ABORTED"
+    assert_transaction(contract_deploy_info["tx_hash"], "REJECTED")
+
+    # Test RPC get block status mapping from ABORTED to REJECTED
+    rpc_aborted_block = rpc_call(
+        "starknet_getBlockWithTxs",
+        params={
+            "block_id": {"block_hash": rpc_felt(contract_deploy_block["block_hash"])}
+        },
+    )
+    assert rpc_aborted_block["result"]["status"] == "REJECTED"
+
     # Block and transaction should be accepted on L2
     contract_deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
     last_block = get_block(parse=True)
@@ -141,3 +177,33 @@ def test_abort_many_blocks_many_transactions():
     assert last_block_by_number["block_number"] == last_block["block_number"]
     assert last_block_by_number["block_hash"] == last_block["block_hash"]
     assert_tx_status(contract_deploy_info["tx_hash"], "ACCEPTED_ON_L2")
+
+
+@devnet_in_background(
+    *TESTNET_FORK_PARAMS, "--fork-block", str(TESTNET_DEPLOYMENT_BLOCK)
+)
+def test_forked_at_block_with_abort_blocks():
+    """Test GET on /fork_status when forking a given block"""
+    # Get latest valid block with block hash
+    fork_status = requests.get(f"{APP_URL}/fork_status")
+    assert fork_status.status_code == 200
+    last_block_by_number = get_block(
+        block_number=fork_status.json().get("block") - 1, parse=True
+    )
+
+    # Abort Block should fail on forked blocks
+    response = abort_blocks(last_block_by_number["block_hash"])
+    assert response.status_code == 500
+    assert response.json()["message"] == "Aborting forked blocks is not supported."
+
+    # Deploy contract and mine new block
+    contract_deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
+    assert_tx_status(contract_deploy_info["tx_hash"], "ACCEPTED_ON_L2")
+
+    # Abort Block should succeed on new block
+    latest_block = get_block(parse=True)
+    response = abort_blocks(latest_block["block_hash"])
+    assert response.status_code == 200
+    assert response.json()["aborted"] == [
+        latest_block["block_hash"],
+    ]
