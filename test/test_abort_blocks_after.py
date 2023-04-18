@@ -11,6 +11,7 @@ from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from .account import invoke
 from .settings import APP_URL
 from .shared import (
+    ABI_PATH,
     CONTRACT_PATH,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
@@ -20,6 +21,7 @@ from .testnet_deployment import TESTNET_DEPLOYMENT_BLOCK, TESTNET_FORK_PARAMS
 from .util import (
     assert_transaction,
     assert_tx_status,
+    call,
     deploy,
     devnet_in_background,
     get_block,
@@ -209,3 +211,49 @@ def test_forked_at_block_with_abort_blocks():
     assert response.json()["aborted"] == [
         latest_block["block_hash"],
     ]
+
+
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
+def test_state_revert_with_abort_block():
+    """Test state revert with aborted block."""
+
+    # Block and transaction should be accepted on L2
+    contract_deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
+    contract_deploy_block = get_block(parse=True)
+    assert contract_deploy_block["status"] == "ACCEPTED_ON_L2"
+    assert_tx_status(contract_deploy_info["tx_hash"], "ACCEPTED_ON_L2")
+    value_after_deploy = call(
+        function="get_balance",
+        address=contract_deploy_info["address"],
+        abi_path=ABI_PATH,
+    )
+    assert int(value_after_deploy) == 0
+
+    # Block and transaction should be accepted on L2
+    invoke_tx_hash = invoke(
+        calls=[(contract_deploy_info["address"], "increase_balance", [10, 20])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
+    invoke_block = get_block(parse=True)
+    assert invoke_block["status"] == "ACCEPTED_ON_L2"
+    assert_transaction(invoke_tx_hash, "ACCEPTED_ON_L2")
+    value_after_invoke = call(
+        function="get_balance",
+        address=contract_deploy_info["address"],
+        abi_path=ABI_PATH,
+    )
+    assert int(value_after_invoke) == 30
+
+    # Block should be aborted and transaction should be rejected
+    response = abort_blocks(invoke_block["block_hash"])
+    assert response.status_code == 200
+    assert response.json()["aborted"] == [invoke_block["block_hash"]]
+
+    # Balance should be 0
+    value_after_abort = call(
+        function="get_balance",
+        address=contract_deploy_info["address"],
+        abi_path=ABI_PATH,
+    )
+    assert int(value_after_abort) == 0
