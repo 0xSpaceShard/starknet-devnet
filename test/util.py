@@ -8,7 +8,7 @@ import os
 import re
 import subprocess
 import time
-from typing import IO, List
+from typing import IO, List, Optional
 
 import pytest
 import requests
@@ -130,6 +130,20 @@ def assert_equal(actual, expected, explanation=None):
 def assert_hex_equal(actual, expected):
     """Assert that two hex strings are equal when converted to ints"""
     assert int(actual, 16) == int(expected, 16)
+
+
+def assert_get_events_response(
+    resp: dict, expected_block_length: int, expected_token: Optional[str] = None
+):
+    """
+    If expected_token is None, check that it is not present, if it's not None, check if the returned value matches
+    the one provided.
+    """
+    assert len(resp["result"]["events"]) == expected_block_length
+    if expected_token is not None:
+        assert resp["result"]["continuation_token"] == expected_token
+    else:
+        assert "continuation_token" not in resp["result"]
 
 
 def extract(regex, stdout):
@@ -482,11 +496,16 @@ def get_full_contract(
     contract_address: str, feeder_gateway_url=APP_URL
 ) -> CompiledClassBase:
     """Gets contract class by contract address"""
-    output = run_starknet(
-        ["get_full_contract", "--contract_address", contract_address],
-        gateway_url=feeder_gateway_url,
+    contract = get_full_contract_raw(contract_address, feeder_gateway_url)
+    return DeprecatedCompiledClass.load(contract.json())
+
+
+def get_full_contract_raw(contract_address: str, feeder_gateway_url=APP_URL):
+    """Gets contract raw data as dump"""
+    return requests.get(
+        f"{feeder_gateway_url}/feeder_gateway/get_full_contract",
+        {"contractAddress": contract_address},
     )
-    return DeprecatedCompiledClass.loads(output.stdout)
 
 
 def assert_full_contract_not_present(address: str, feeder_gateway_url=APP_URL):
@@ -693,13 +712,6 @@ def assert_salty_deploy(
     assert_equal(
         deploy_info, {"address": expected_address, "tx_hash": expected_tx_hash}
     )
-
-
-def assert_failing_deploy(contract_path):
-    """Run deployment for a contract that's expected to be rejected."""
-    deploy_info = deploy(contract_path)
-    assert_tx_status(deploy_info["tx_hash"], "REJECTED")
-    assert_transaction(deploy_info["tx_hash"], "REJECTED")
 
 
 def load_file_content(file_name: str):

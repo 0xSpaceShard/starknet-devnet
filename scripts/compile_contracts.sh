@@ -15,7 +15,7 @@ echo "Compiling Solidity contracts with Hardhat $(npx hardhat --version)"
 npx hardhat compile
 
 # compile Cairo test contracts
-echo "Compiling Cairo contracts with $(poetry run starknet-compile --version)"
+echo "Compiling Cairo contracts with $(poetry run starknet-compile-deprecated --version)"
 
 number_of_contracts=0
 for contract in "$TEST_DIRECTORY"/cairo/*.cairo; do
@@ -28,7 +28,7 @@ for contract in "$TEST_DIRECTORY"/cairo/*.cairo; do
     output=$directory/"${basename%.*}.json"
     abi=$directory/"${basename%.*}_abi.json"
 
-    poetry run starknet-compile --output "$output" --abi "$abi" "$contract"
+    poetry run starknet-compile-deprecated --output "$output" --abi "$abi" "$contract"
     number_of_contracts=$((number_of_contracts + 1))
 done
 

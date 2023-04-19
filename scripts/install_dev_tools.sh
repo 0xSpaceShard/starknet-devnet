@@ -9,7 +9,7 @@ echo "pip3: $(pip3 --version)"
 echo "python: $(python --version)"
 echo "python3: $(python3 --version)"
 
-pip3 install -U poetry==1.3
+./scripts/install_poetry.sh
 echo "poetry: $(poetry --version)"
 
 # https://www.rust-lang.org/tools/install

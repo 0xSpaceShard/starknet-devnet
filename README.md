@@ -12,15 +12,15 @@ Aims to mimic Starknet's Alpha testnet, but with simplified functionality.
 
 On the following links you can find the documentation of:
 
-- [the latest official release](https://shard-labs.github.io/starknet-devnet/)
-- [the latest master commit (not officially released)](https://github.com/Shard-Labs/starknet-devnet/tree/master/page/docs)
+- [the latest official release](https://0xspaceshard.github.io/starknet-devnet/)
+- [the latest master commit (not officially released)](https://github.com/0xSpaceShard/starknet-devnet/tree/master/page/docs)
 
 ## ✏️ Contributing
 
 We ❤️ and encourage all contributions!
 
-[Click here](https://shard-labs.github.io/starknet-devnet/docs/guide/development) for the development guide.
+[Click here](https://0xspaceshard.github.io/starknet-devnet/docs/guide/development) for the development guide.
 
 ## 🙌 Special Thanks
 
-Special thanks to all the [contributors](https://github.com/Shard-Labs/starknet-devnet/graphs/contributors)!
+Special thanks to all the [contributors](https://github.com/0xSpaceShard/starknet-devnet/graphs/contributors)!

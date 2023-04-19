@@ -48,8 +48,8 @@ optional arguments:
   --fork-block FORK_BLOCK
                         Specify the block number where the --fork-network is forked; defaults to latest
   --fork-retries FORK_RETRIES
-                        Specify the number of retries of failed HTTP requests sent to the network before giving up, defaults to 1
-  --chain-id CHAIN_ID   Specify the chain id as string: {MAINNET, TESTNET, TESTNET2}
+                        Specify the number of retries of failed HTTP requests sent to the network before giving up; defaults to 1
+  --chain-id CHAIN_ID   Specify the chain id as one of: {MAINNET, TESTNET, TESTNET2}; defaults to TESTNET (0x534e5f474f45524c49)
   --disable-rpc-request-validation
                         Disable requests schema validation for RPC endpoints
   --disable-rpc-response-validation
@@ -132,10 +132,6 @@ You may ignore any address-related output logged on container startup (e.g. `Run
 If you don't specify the `HOST` part, the server will indeed be available on all of your host machine's addresses (localhost, local network IP, etc.), which may present a security issue if you don't want anyone from the local network to access your Devnet instance.
 
 ## Run with the Rust implementation of Cairo VM
-
-<!-- # TMP: rust vm -->
-
-### ⚠️ This feature is temporarily suspended! ⚠️
 
 By default, Devnet uses the [Python implementation](https://github.com/starkware-libs/cairo-lang/) of Cairo VM.
 

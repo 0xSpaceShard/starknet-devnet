@@ -88,7 +88,9 @@ class DevnetTransaction:
             l2_to_l1_messages.append(
                 L2ToL1Message(
                     from_address=contract_address,
-                    to_address=Web3.toChecksumAddress(hex(l2_to_l1_message.to_address)),
+                    to_address=Web3.to_checksum_address(
+                        hex(l2_to_l1_message.to_address)
+                    ),
                     payload=l2_to_l1_message.payload,
                 )
             )

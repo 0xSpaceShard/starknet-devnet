@@ -207,13 +207,17 @@ async def get_full_contract():
     Returns the contract class of the contract whose contractAddress is provided.
     """
     block_id = _get_block_id(request.args)
-
     contract_address = request.args.get("contractAddress", type=parse_hex_string)
-
     contract_class = await state.starknet_wrapper.get_class_by_address(
         contract_address, block_id
     )
-    return jsonify(contract_class.remove_debug_info().dump())
+
+    # strip debug_info if cairo 0 class
+    class_program = contract_class.get("program")
+    if class_program and class_program.get("debug_info"):
+        class_program["debug_info"] = None
+
+    return jsonify(contract_class)
 
 
 @feeder_gateway.route("/get_class_hash_at", methods=["GET"])

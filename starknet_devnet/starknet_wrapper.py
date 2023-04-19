@@ -33,7 +33,6 @@ from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starknet.services.api.contract_class.contract_class import (
     CompiledClass,
-    CompiledClassBase,
     ContractClass,
     DeprecatedCompiledClass,
     EntryPointType,
@@ -728,12 +727,10 @@ class StarknetWrapper:
 
     async def get_class_by_address(
         self, contract_address: int, block_id: BlockId = DEFAULT_BLOCK_ID
-    ) -> CompiledClassBase:
+    ) -> dict:
         """Return contract class given the contract address"""
-        state = await self.__get_query_state(block_id)
-        cached_state = state.state
-        class_hash = await self.get_class_hash_at(contract_address)
-        return cached_state.contract_classes[class_hash]
+        class_hash = await self.get_class_hash_at(contract_address, block_id)
+        return await self.get_class_by_hash(class_hash)
 
     async def get_code(
         self, contract_address: int, block_id: BlockId = DEFAULT_BLOCK_ID
@@ -742,8 +739,8 @@ class StarknetWrapper:
         try:
             contract_class = await self.get_class_by_address(contract_address, block_id)
             result_dict = {
-                "abi": contract_class.abi,
-                "bytecode": contract_class.dump()["program"]["data"],
+                "abi": contract_class["abi"],
+                "bytecode": contract_class["program"]["data"],
             }
         except StarkException as err:
             if err.code != StarknetErrorCode.UNINITIALIZED_CONTRACT:
