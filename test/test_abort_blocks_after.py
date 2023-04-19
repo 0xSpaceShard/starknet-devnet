@@ -104,8 +104,8 @@ def test_abort_many_blocks_many_transactions():
     response = abort_blocks(contract_deploy_block["block_hash"])
     assert response.status_code == 200
     assert response.json()["aborted"] == [
-        contract_deploy_block["block_hash"],
         invoke_block["block_hash"],
+        contract_deploy_block["block_hash"],
     ]
     last_block = get_block(parse=True)
     assert last_block["status"] == "ACCEPTED_ON_L2"

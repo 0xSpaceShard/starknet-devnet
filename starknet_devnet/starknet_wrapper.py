@@ -995,10 +995,6 @@ class StarknetWrapper:
         """
         Abort blocks.
         """
-        last_block = await self.blocks.get_last_block()
-        blocks_to_abort = []
-        aborted_blocks = []
-
         # Check if blocks can be aborted in fork mode
         if (
             self.config.fork_block
@@ -1009,23 +1005,23 @@ class StarknetWrapper:
                 message="Aborting forked blocks is not supported.",
             )
 
-        # Get blocks to abort
-        for block_number in range(
-            starting_block.block_number, last_block.block_number + 1
-        ):
-            blocks_to_abort.append(await self.blocks.get_by_number(block_number))
+        aborted_blocks = []
+        current_block = await self.blocks.get_last_block()
 
         # Abort blocks
-        for block_to_abort in blocks_to_abort:
-            await self.blocks.abort_block_by_hash(hex(block_to_abort.block_hash))
+        while current_block.block_number + 1 != starting_block.block_number:
+            # Abort current_block
+            await self.blocks.abort_block_by_hash(hex(current_block.block_hash))
 
             # Reject transactions
-            for transaction in block_to_abort.transactions:
+            for transaction in current_block.transactions:
                 await self.transactions.reject_transaction(
                     tx_hash=transaction.transaction_hash
                 )
 
-            aborted_blocks.append(hex(block_to_abort.block_hash))
+            aborted_blocks.append(hex(current_block.block_hash))
+            parent = await self.blocks.get_by_hash(hex(current_block.parent_block_hash))
+            current_block = parent
 
         # Revert state
         parent_block = await self.blocks.get_by_hash(
