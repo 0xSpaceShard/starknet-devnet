@@ -22,6 +22,7 @@ from .util import (
     assert_transaction,
     assert_tx_status,
     call,
+    demand_block_creation,
     deploy,
     devnet_in_background,
     get_block,
@@ -198,7 +199,10 @@ def test_forked_at_block_with_abort_blocks():
     # Abort Block should fail on forked blocks
     response = abort_blocks(last_block_by_number["block_hash"])
     assert response.status_code == 500
-    assert response.json()["message"] == "Aborting forked blocks is not supported."
+    assert (
+        response.json()["message"]
+        == "Aborting genesis block or forked blocks is not supported."
+    )
 
     # Deploy contract and mine new block
     contract_deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
@@ -257,3 +261,39 @@ def test_state_revert_with_abort_block():
         abi_path=ABI_PATH,
     )
     assert int(value_after_abort) == 0
+
+
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
+def test_abort_genesis_block():
+    genesis_block = get_block(parse=True)
+    response = abort_blocks(genesis_block["block_hash"])
+    assert response.status_code == 500
+    assert (
+        response.json()["message"]
+        == "Aborting genesis block or forked blocks is not supported."
+    )
+
+
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS, "--blocks-on-demand")
+def test_pending_state_with_abort_block():
+    """Test pending state with abort_block."""
+    # Deploy the contract and create a block
+    contract_deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
+    demand_block_creation()
+
+    # Transaction should be pending
+    invoke_tx_hash = invoke(
+        calls=[(contract_deploy_info["address"], "increase_balance", [10, 20])],
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
+    assert_tx_status(invoke_tx_hash, "PENDING")
+
+    # Block should be aborted and transaction should be rejected
+    latest_block = get_block(block_number="latest", parse=True)
+    print("latest_block")
+    print(latest_block)
+    response = abort_blocks(latest_block["block_hash"])
+    assert response.status_code == 200
+    assert response.json()["aborted"] == [latest_block["block_hash"]]
+    # assert_tx_status(invoke_tx_hash, "REJECTED")

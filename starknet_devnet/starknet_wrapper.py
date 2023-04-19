@@ -999,10 +999,11 @@ class StarknetWrapper:
         if (
             self.config.fork_block
             and self.config.fork_block >= starting_block.block_number
+            or starting_block.block_number == 0
         ):
             raise StarknetDevnetException(
                 code=StarknetErrorCode.OUT_OF_RANGE_BLOCK_ID,
-                message="Aborting forked blocks is not supported.",
+                message="Aborting genesis block or forked blocks is not supported.",
             )
 
         aborted_blocks = []
