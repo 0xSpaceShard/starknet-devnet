@@ -265,6 +265,7 @@ def test_state_revert_with_abort_block():
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
 def test_abort_genesis_block():
+    """Test abort of genesis block that should fail."""
     genesis_block = get_block(parse=True)
     response = abort_blocks(genesis_block["block_hash"])
     assert response.status_code == 500
