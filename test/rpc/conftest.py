@@ -14,7 +14,7 @@ from test.rpc.rpc_utils import (
 )
 from test.test_account import SALT
 from test.util import load_file_content, mint
-from typing import Tuple, cast
+from typing import Tuple
 
 import pytest
 from starkware.crypto.signature.signature import private_to_stark_key
@@ -29,11 +29,7 @@ from starkware.starknet.services.api.contract_class.contract_class import (
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     DeployAccountSpecificInfo,
 )
-from starkware.starknet.services.api.gateway.transaction import (
-    Deploy,
-    DeployAccount,
-    Transaction,
-)
+from starkware.starknet.services.api.gateway.transaction import DeployAccount
 from starkware.starknet.third_party.open_zeppelin.starknet_contracts import (
     account_contract as oz_account_class,
 )
@@ -53,20 +49,10 @@ from starknet_devnet.chargeable_account import ChargeableAccount
 from starknet_devnet.constants import SUPPORTED_RPC_TX_VERSION
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 
-DEPLOY_CONTENT = load_file_content("deploy_rpc.json")
 DECLARE_CONTENT = load_file_content("declare_rpc.json")
 
 PRIVATE_KEY = 123456789987654321
 PUBLIC_KEY = private_to_stark_key(PRIVATE_KEY)
-
-
-@pytest.fixture(name="contract_class")
-def fixture_contract_class() -> CompiledClassBase:
-    """
-    Make ContractDefinition from deployment transaction used in tests
-    """
-    transaction: Deploy = cast(Deploy, Transaction.loads(DEPLOY_CONTENT))
-    return transaction.contract_definition
 
 
 @pytest.fixture(name="class_hash")
@@ -105,7 +91,6 @@ def fixture_declare_info() -> dict:
     """
     Make a declare transaction on devnet and return declare info dict
     """
-    # TODO how does this work? - are old (free) declares still supported?
     declare_tx = json.loads(DECLARE_CONTENT)
     declare_info = add_transaction(declare_tx)
     return {**declare_info, **declare_tx}

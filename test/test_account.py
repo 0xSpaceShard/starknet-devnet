@@ -127,9 +127,6 @@ def test_invoking_another_contract():
     assert balance == "30"
 
 
-# TODO add test which will cover how the new account deploys a contract (if this doesn't already exist)
-
-
 @pytest.mark.account
 @devnet_in_background()
 def test_estimated_fee():

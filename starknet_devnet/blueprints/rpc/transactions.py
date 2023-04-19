@@ -18,7 +18,6 @@ from starknet_devnet.blueprints.rpc.structures.payloads import (
     RpcBroadcastedTxn,
     RpcTransaction,
     make_declare,
-    make_deploy,
     make_deploy_account,
     make_invoke_function,
     rpc_fee_estimate,
@@ -171,7 +170,7 @@ def make_transaction(txn: RpcBroadcastedTxn) -> AccountTransaction:
     if txn_type == "DECLARE":
         return make_declare(txn)
     if txn_type == "DEPLOY":
-        return make_deploy(txn)
+        raise RpcError(code=-1, message="DEPLOY transactions are deprecated")
     if txn_type == "DEPLOY_ACCOUNT":
         return make_deploy_account(txn)
     raise NotImplementedError(f"Unexpected type {txn_type}.")

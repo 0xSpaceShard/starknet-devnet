@@ -110,6 +110,7 @@ enable_pickling()
 
 DEFAULT_BLOCK_ID = LATEST_BLOCK_ID
 
+
 # pylint: disable=too-many-instance-attributes
 # pylint: disable=too-many-public-methods
 # pylint: disable=too-many-locals
@@ -211,7 +212,7 @@ class StarknetWrapper:
             deploy_data.append((account.class_hash, account.address))
 
         for class_hash, contract_address in deploy_data:
-            # TODO - replace deploy with invoke?
+            # this might be the only place where DEPLOY tx is used
             internal_deploy = create_empty_internal_deploy(
                 transaction_hash, class_hash, contract_address
             )

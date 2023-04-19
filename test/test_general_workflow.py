@@ -35,7 +35,6 @@ from .util import (
     devnet_in_background,
     get_block,
     get_class_hash_at,
-    get_transaction_receipt,
 )
 
 

@@ -26,7 +26,6 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionType,
 )
 from starkware.starknet.services.api.gateway.transaction import (
-    Deploy,
     DeployAccount,
     DeprecatedDeclare,
     InvokeFunction,
@@ -455,31 +454,6 @@ def make_declare(declare_transaction: RpcBroadcastedDeclareTxn) -> DeprecatedDec
         signature=[int(sig, 16) for sig in declare_transaction["signature"]],
     )
     return declare_tx
-
-
-def make_deploy(deploy_transaction: RpcBroadcastedDeployTxn) -> Deploy:
-    """
-    Convert RpcBroadcastedDeployTxn to Deploy
-    """
-    contract_class = deploy_transaction["contract_class"]
-    if "abi" not in contract_class:
-        contract_class["abi"] = []
-
-    try:
-        contract_class["program"] = decompress_program(contract_class["program"])
-        contract_class = DeprecatedCompiledClass.load(contract_class)
-    except (StarkException, TypeError, MarshmallowError) as ex:
-        raise RpcError(code=50, message="Invalid contract class") from ex
-
-    deploy_tx = Deploy(
-        contract_address_salt=int(deploy_transaction["contract_address_salt"], 16),
-        constructor_calldata=[
-            int(data, 16) for data in deploy_transaction["constructor_calldata"]
-        ],
-        contract_definition=contract_class,
-        version=int(deploy_transaction["version"], 16),
-    )
-    return deploy_tx
 
 
 def make_deploy_account(

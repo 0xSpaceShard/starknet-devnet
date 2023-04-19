@@ -308,15 +308,6 @@ def deploy(
     )
     contract_address = hex(contract_address)
 
-    # TODO no receipt if failed tx - instead of checking here, let's have a test for this - maybe we already do
-    # tx_receipt = get_transaction_receipt(invoke_tx_hash, feeder_gateway_url=gateway_url)
-    # assert tx_receipt["status"] == TransactionStatus.ACCEPTED_ON_L2.name, tx_receipt
-    # # there can be multiple events, e.g. from fee_token, but the first one is ours
-    # event = tx_receipt["events"][0]
-    # # look at the ABI for reference, 0 is the index of the address in the event
-    # contract_address_from_event = event["data"][0]
-    # assert_hex_equal(contract_address_from_event, contract_address)
-
     return {
         "tx_hash": invoke_tx_hash,
         "address": contract_address,
@@ -329,6 +320,7 @@ def declare_and_deploy(
     private_key: int,
     inputs=None,
     salt=None,
+    declare_max_fee=int(1e18),
     max_fee=None,
     gateway_url=APP_URL,
     chain_id=StarknetChainId.TESTNET,
@@ -343,7 +335,7 @@ def declare_and_deploy(
         contract_path=contract,
         account_address=account_address,
         private_key=private_key,
-        max_fee=int(1e18),  # TODO
+        max_fee=declare_max_fee,
         gateway_url=gateway_url,
         chain_id=chain_id,
     )
