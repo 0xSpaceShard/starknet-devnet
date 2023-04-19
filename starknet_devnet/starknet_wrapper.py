@@ -1006,6 +1006,10 @@ class StarknetWrapper:
                 message="Aborting genesis block or forked blocks is not supported.",
             )
 
+        # Create new block with pending transactions if possible
+        if self.blocks.is_block_pending():
+            await self.generate_latest_block()
+
         aborted_blocks = []
         current_block = await self.blocks.get_last_block()
 
@@ -1029,9 +1033,5 @@ class StarknetWrapper:
             hex(starting_block.parent_block_hash)
         )
         self.starknet.state = self.blocks.get_state(parent_block.block_hash)
-
-        # Clear pending state in block on demand?
-        # self.update_pending_state()
-        # self.update_pending_block()
 
         return aborted_blocks

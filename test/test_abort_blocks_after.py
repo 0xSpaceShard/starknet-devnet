@@ -290,11 +290,8 @@ def test_pending_state_with_abort_block():
     )
     assert_tx_status(invoke_tx_hash, "PENDING")
 
-    # Block should be aborted and transaction should be rejected
+    # Block should be aborted and pending transaction should be rejected
     latest_block = get_block(block_number="latest", parse=True)
-    print("latest_block")
-    print(latest_block)
     response = abort_blocks(latest_block["block_hash"])
     assert response.status_code == 200
-    assert response.json()["aborted"] == [latest_block["block_hash"]]
-    # assert_tx_status(invoke_tx_hash, "REJECTED")
+    assert_tx_status(invoke_tx_hash, "REJECTED")
