@@ -147,7 +147,7 @@ class StarknetWrapper:
         self.__latest_state = None
         self._contract_classes: Dict[int, Union[DeprecatedCompiledClass, ContractClass]]
         """If v2 - store sierra, otherwise store old class; needed for get_class_by_hash"""
-
+        self.genesis_block_number = None
         self._compiler = (
             CustomContractClassCompiler(config.cairo_compiler_manifest)
             if config.cairo_compiler_manifest
@@ -230,6 +230,10 @@ class StarknetWrapper:
         state_update = await self.update_pending_state()
         await self.blocks.generate_pending(transactions, state, state_update)
         block = await self.generate_latest_block(block_hash=0)
+
+        # Set the genesis block number if devnet is not in forked mode.
+        if not self.config.fork_block:
+            self.genesis_block_number = block.block_number
 
         for transaction in transactions:
             transaction.set_block(block=block)
@@ -996,11 +1000,17 @@ class StarknetWrapper:
         if (
             self.config.fork_block
             and self.config.fork_block >= starting_block.block_number
-            or starting_block.block_number == 0
         ):
             raise StarknetDevnetException(
                 code=StarknetErrorCode.OUT_OF_RANGE_BLOCK_ID,
-                message="Aborting genesis block or forked blocks is not supported.",
+                message="Aborting forked blocks is not supported.",
+            )
+
+        # Check if genesis block can be aborted.
+        if starting_block.block_number == self.genesis_block_number:
+            raise StarknetDevnetException(
+                code=StarknetErrorCode.OUT_OF_RANGE_BLOCK_ID,
+                message="Aborting genesis block is not supported.",
             )
 
         # Create new block with pending transactions if possible

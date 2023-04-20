@@ -199,10 +199,7 @@ def test_forked_at_block_with_abort_blocks():
     # Abort Block should fail on forked blocks
     response = abort_blocks(last_block_by_number["block_hash"])
     assert response.status_code == 500
-    assert (
-        response.json()["message"]
-        == "Aborting genesis block or forked blocks is not supported."
-    )
+    assert response.json()["message"] == "Aborting forked blocks is not supported."
 
     # Deploy contract and mine new block
     contract_deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
@@ -269,10 +266,7 @@ def test_abort_genesis_block():
     genesis_block = get_block(parse=True)
     response = abort_blocks(genesis_block["block_hash"])
     assert response.status_code == 500
-    assert (
-        response.json()["message"]
-        == "Aborting genesis block or forked blocks is not supported."
-    )
+    assert response.json()["message"] == "Aborting genesis block is not supported."
 
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS, "--blocks-on-demand")
