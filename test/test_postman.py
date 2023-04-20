@@ -114,11 +114,9 @@ def assert_flush_response(
 
     for i, l2_message in enumerate(response["consumed_messages"]["from_l2"]):
         assert_hex_equal(
-            l2_message["from_address"], expected_from_l2[i]["from_address"].lower()
+            l2_message["from_address"], expected_from_l2[i]["from_address"]
         )
-        assert_hex_equal(
-            l2_message["to_address"], expected_from_l2[i]["to_address"].lower()
-        )
+        assert_hex_equal(l2_message["to_address"], expected_from_l2[i]["to_address"])
         assert l2_message["payload"] == [hex(x) for x in expected_from_l2[i]["payload"]]
 
     assert (

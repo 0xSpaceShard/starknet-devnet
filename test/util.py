@@ -128,7 +128,10 @@ def assert_equal(actual, expected, explanation=None):
 
 
 def assert_hex_equal(actual, expected):
-    """Assert that two hex strings are equal when converted to ints"""
+    """
+    Assert that two hex strings are equal when converted to ints.
+    Converting back to hex to have hex strings in error message in case of failed assertion.
+    """
     assert hex(int(actual, 16)) == hex(int(expected, 16))
 
 

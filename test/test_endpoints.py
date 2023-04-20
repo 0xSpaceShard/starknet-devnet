@@ -59,7 +59,7 @@ def assert_invoke_resp(resp: bytes):
 
 @pytest.mark.deploy
 def test_rejection_of_deprecated_deploy():
-    """Deploy without calldata"""
+    """Deprecated deploy should be rejected"""
     resp = app.test_client().post(
         "/gateway/add_transaction",
         content_type="application/json",

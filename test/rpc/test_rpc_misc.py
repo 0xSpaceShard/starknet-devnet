@@ -211,9 +211,8 @@ def test_get_events_continuation_token():
             private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
         )
 
-    first_invoke_block = (
-        3  # origin (being 0) + declare + deploy = first invoke block is 3
-    )
+    # origin (being 0) + declare + deploy = first invoke block is 3
+    first_invoke_block = 3
 
     resp = rpc_call(
         "starknet_getEvents",
