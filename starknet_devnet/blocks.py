@@ -91,12 +91,7 @@ class DevnetBlocks:
 
     def get_number_of_accepted_blocks(self) -> int:
         """Returns the number of not aborted blocks."""
-        not_aborted_blocks = {
-            key: val
-            for key, val in self.__hash2block.items()
-            if val.status is not BlockStatus.ABORTED
-        }
-        return len(not_aborted_blocks) + self.origin.get_number_of_blocks()
+        return len(self.__num2hash) + self.origin.get_number_of_blocks()
 
     def __assert_block_number_in_range(self, block_number: BlockIdentifier):
         if block_number < 0:
