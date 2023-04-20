@@ -81,6 +81,33 @@ def test_abort_single_block_single_transaction():
     assert rpc_aborted_block["result"]["status"] == "REJECTED"
 
 
+@devnet_in_background()
+def test_abort_same_block_twice():
+    """Test abort of the same block twice."""
+
+    # Block and transaction should be accepted on L2
+    contract_deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
+    contract_deploy_block = get_block(parse=True)
+    assert contract_deploy_block["status"] == "ACCEPTED_ON_L2"
+    assert_tx_status(contract_deploy_info["tx_hash"], "ACCEPTED_ON_L2")
+
+    # Blocks should be aborted and transactions should be rejected
+    response = abort_blocks(contract_deploy_block["block_hash"])
+    assert response.status_code == 200
+    assert response.json()["aborted"] == [
+        contract_deploy_block["block_hash"],
+    ]
+    contract_deploy_block_after_abort = get_block(
+        block_hash=contract_deploy_block["block_hash"], parse=True
+    )
+    assert contract_deploy_block_after_abort["status"] == "ABORTED"
+    assert_transaction(contract_deploy_info["tx_hash"], "REJECTED")
+
+    # Try to abort block again
+    response = abort_blocks(contract_deploy_block["block_hash"])
+    print("response")
+    print(response)
+
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
 def test_abort_many_blocks_many_transactions():
     """Test abort of many blocks and many transactions."""
