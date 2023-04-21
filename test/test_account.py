@@ -129,6 +129,39 @@ def test_invoking_another_contract():
 
 @pytest.mark.account
 @devnet_in_background()
+def test_invoking_with_invalid_args():
+    """Provide insufficient args. Expect failure."""
+
+    deploy_info = deploy_empty_contract()
+    to_address = deploy_info["address"]
+
+    mint(address=SALTY_ACCOUNT_ADDRESS, amount=int(1e18), lite=True)
+    deploy_account_info = deploy_account_contract(private_key=PRIVATE_KEY, salt=SALT)
+    assert_tx_status(deploy_account_info["tx_hash"], "ACCEPTED_ON_L2")
+    account_address = deploy_account_info["address"]
+    assert_hex_equal(account_address, SALTY_ACCOUNT_ADDRESS)
+
+    nonce_before = get_nonce(account_address)
+
+    # execute increase_balance call
+    invalid_args = [10]  # one param mising
+    calls = [(to_address, "increase_balance", invalid_args)]
+    tx_hash = invoke(
+        calls,
+        account_address=account_address,
+        private_key=PRIVATE_KEY,
+        max_fee=int(1e18),  # prevent estimateFee - fails due to invalid args
+    )
+
+    assert_tx_status(tx_hash, "REJECTED")
+
+    # check if nonce is increased
+    nonce_after = get_nonce(account_address)
+    assert nonce_after == nonce_before
+
+
+@pytest.mark.account
+@devnet_in_background()
 def test_estimated_fee():
     """Test estimate fees."""
     deploy_info = deploy_empty_contract()

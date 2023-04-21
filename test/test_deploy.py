@@ -24,7 +24,7 @@ from starkware.starknet.wallets.open_zeppelin import (
 from starknet_devnet.constants import STARKNET_CLI_ACCOUNT_CLASS_HASH
 from starknet_devnet.udc import UDC
 
-from .account import declare, declare_and_deploy_with_chargeable, invoke
+from .account import declare, declare_and_deploy_with_chargeable
 from .shared import (
     ABI_PATH,
     CONTRACT_PATH,
@@ -151,9 +151,7 @@ def deploy_account_test_body():
     assert balance_after == "40"
 
 
-def _assert_deployed_through_syscall(
-    tx_hash: str, address_index: int, initial_balance: str
-):
+def assert_deployed_through_syscall(tx_hash: str, initial_balance: int):
     """Asserts that a contract has been deployed using the deploy syscall"""
     assert_tx_status(tx_hash, "ACCEPTED_ON_L2")
 
@@ -163,6 +161,7 @@ def _assert_deployed_through_syscall(
 
     # there can be multiple events, e.g. from fee_token, but the first one is ours
     event = events[0]
+    address_index = 0  # position in UDC event
     contract_address = event["data"][address_index]
 
     # Test deployed contract
@@ -170,7 +169,7 @@ def _assert_deployed_through_syscall(
     assert_hex_equal(fetched_class_hash, EXPECTED_CLASS_HASH)
 
     balance = call(function="get_balance", address=contract_address, abi_path=ABI_PATH)
-    assert_equal(balance, initial_balance)
+    assert_equal(int(balance), initial_balance)
 
 
 @pytest.mark.declare
@@ -199,10 +198,9 @@ def test_deploy_through_deployer_constructor():
         inputs=[int(class_hash, 16), initial_balance_in_constructor],
     )
 
-    _assert_deployed_through_syscall(
+    assert_deployed_through_syscall(
         tx_hash=deployer_deploy_info["tx_hash"],
-        address_index=0,
-        initial_balance=str(initial_balance_in_constructor),
+        initial_balance=initial_balance_in_constructor,
     )
 
 
@@ -219,48 +217,28 @@ def test_precomputed_udc_address():
     assert_equal(UDC.ADDRESS, int(EXPECTED_UDC_ADDRESS, 16))
 
 
-@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
-def test_deploy_with_udc():
-    """Test if deploying through UDC works."""
-    deploy_with_udc_test_body()
-
-
-def deploy_with_udc_test_body():
-    """The body of udc deployment test."""
-    # Declare the class to be deployed
-    declare_info = declare(
-        contract_path=CONTRACT_PATH,
-        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
-        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
-        max_fee=int(4e16),
+@devnet_in_background()
+def test_declare_and_deploy_happy_path():
+    """Test if deploying through UDC works. Declare beforehand."""
+    initial_balance = 10
+    deploy_info = declare_and_deploy_with_chargeable(
+        contract=CONTRACT_PATH, inputs=[initial_balance], salt=hex(42)
     )
-    class_hash = declare_info["class_hash"]
-    assert_hex_equal(class_hash, EXPECTED_CLASS_HASH)
 
-    assert_class_by_hash(class_hash, CONTRACT_PATH)
-
-    # Deploy a contract of the declared class through the deployer
-    initial_balance = "10"
-    ctor_args = [initial_balance]
-    invoke_tx_hash = invoke(
-        calls=[
-            (
-                EXPECTED_UDC_ADDRESS,
-                "deployContract",
-                [
-                    int(class_hash, 16),
-                    42,  # salt
-                    0,  # unique
-                    len(ctor_args),
-                    *ctor_args,
-                ],
-            )
-        ],
-        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
-        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
-    )
-    _assert_deployed_through_syscall(
-        tx_hash=invoke_tx_hash,
-        address_index=0,
+    assert_deployed_through_syscall(
+        tx_hash=deploy_info["tx_hash"],
         initial_balance=initial_balance,
     )
+
+
+@devnet_in_background()
+def test_declare_and_deploy_with_invalid_constructor_args():
+    """Pass invalid constructor args. Expect failure."""
+    invalid_constructor_args = []  # empty when it shouldn't be
+    deploy_info = declare_and_deploy_with_chargeable(
+        contract=CONTRACT_PATH,
+        inputs=invalid_constructor_args,
+        max_fee=int(1e18),  # prevent estimateFee - fails due to invalid args
+    )
+
+    assert_tx_status(deploy_info["tx_hash"], "REJECTED")

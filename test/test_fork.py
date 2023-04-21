@@ -20,7 +20,7 @@ from .shared import (
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
 from .test_account import get_account_balance
-from .test_deploy import deploy_account_test_body, deploy_with_udc_test_body
+from .test_deploy import assert_deployed_through_syscall, deploy_account_test_body
 from .testnet_deployment import (
     TESTNET_CONTRACT_ADDRESS,
     TESTNET_DEPLOYMENT_BLOCK,
@@ -58,7 +58,6 @@ def _invoke_on_fork_and_assert_only_fork_changed(
     fork_url: str,
     origin_url: str,
 ):
-
     # account nonce - before
     origin_nonce_before = get_nonce(
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS, feeder_gateway_url=origin_url
@@ -314,9 +313,17 @@ def test_deploy_account():
 
 
 @devnet_in_background(*TESTNET_FORK_PARAMS)
-def test_deploy_with_udc():
+def test_declare_and_deploy_happy_path():
     """Test that deploying with udc works when forking"""
-    deploy_with_udc_test_body()
+    initial_balance = 10
+    deploy_info = declare_and_deploy_with_chargeable(
+        contract=CONTRACT_PATH, inputs=[initial_balance], salt=hex(42)
+    )
+
+    assert_deployed_through_syscall(
+        tx_hash=deploy_info["tx_hash"],
+        initial_balance=initial_balance,
+    )
 
 
 @devnet_in_background(*TESTNET_FORK_PARAMS)
