@@ -353,6 +353,7 @@ def declare_and_deploy(
         chain_id=chain_id,
     )
 
+    # expand the object with the hash of the class that was deployed
     deploy_info["class_hash"] = class_hash
 
     return deploy_info
