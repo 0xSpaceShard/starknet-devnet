@@ -996,7 +996,7 @@ class StarknetWrapper:
         """
         Abort blocks.
         """
-        # Check if blocks can be aborted in fork mode
+        # Check if blocks can be aborted in fork mode.
         if (
             self.config.fork_block
             and self.config.fork_block >= starting_block.block_number
@@ -1013,29 +1013,43 @@ class StarknetWrapper:
                 message="Aborting genesis block is not supported.",
             )
 
-        # Create new block with pending transactions if possible
+        # Create new block with pending transactions if possible.
         if self.blocks.is_block_pending():
             await self.generate_latest_block()
 
         aborted_blocks = []
         current_block = await self.blocks.get_last_block()
 
-        # Abort blocks from latest to starting (iterating backwards)
-        while current_block.block_number + 1 != starting_block.block_number:
-            # Abort current_block
-            await self.blocks.abort_block_by_hash(hex(current_block.block_hash))
+        # Before the while loop to abort blocks, check if the requirements are met.
+        if not (
+            current_block.block_number
+            and current_block.block_number >= starting_block.block_number
+        ):
+            return aborted_blocks
 
-            # Reject transactions
+        # Abort blocks from latest to starting (iterating backwards).
+        while current_block.block_number + 1 != starting_block.block_number:
+
+            # Abort current_block.
+            aborted_block_hash = await self.blocks.abort_block_by_hash(
+                hex(current_block.block_hash)
+            )
+
+            # Reject transactions.
             for transaction in current_block.transactions:
                 await self.transactions.reject_transaction(
                     tx_hash=transaction.transaction_hash
                 )
 
-            aborted_blocks.append(hex(current_block.block_hash))
+            aborted_blocks.append(hex(aborted_block_hash))
             parent = await self.blocks.get_by_hash(hex(current_block.parent_block_hash))
-            current_block = parent
 
-        # Revert state
+            if parent.block_number is not None:
+                current_block = parent
+            else:
+                break
+
+        # Revert state.
         parent_block = await self.blocks.get_by_hash(
             hex(starting_block.parent_block_hash)
         )

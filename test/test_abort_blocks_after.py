@@ -105,8 +105,8 @@ def test_abort_same_block_twice():
 
     # Try to abort block again
     response = abort_blocks(contract_deploy_block["block_hash"])
-    print("response")
-    print(response)
+    assert response.json()["aborted"] == []
+
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
 def test_abort_many_blocks_many_transactions():

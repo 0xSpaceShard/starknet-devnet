@@ -312,7 +312,9 @@ class DevnetBlocks:
         """
         numeric_hash = _parse_block_hash(block_hash)
 
-        if numeric_hash in self.__hash2block:
+        if numeric_hash in self.__hash2block and numeric_hash in list(
+            self.__num2hash.values()
+        ):
             block = self.__hash2block[numeric_hash]
 
             # This is done like this because the block object's properties cannot be modified
