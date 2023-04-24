@@ -306,7 +306,7 @@ class DevnetBlocks:
         """Return state at block with `number`"""
         return self.__state_archive.get(block_hash)
 
-    def get_numeric_hash(self, block_hash: int) -> StarknetState:
+    def get_numeric_hash(self, block_hash: int):
         """Get numeric hash."""
         return _parse_block_hash(block_hash)
 
