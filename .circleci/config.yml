@@ -20,7 +20,7 @@ jobs:
   test_py_max: &test_template
     docker:
       - image: cimg/python:3.9-node
-    resource_class: medium
+    resource_class: large
     parallelism: 4
     steps:
       - checkout
