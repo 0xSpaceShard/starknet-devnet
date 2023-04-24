@@ -190,7 +190,7 @@ def test_new_blocks_after_abortion():
     *TESTNET_FORK_PARAMS, "--fork-block", str(TESTNET_DEPLOYMENT_BLOCK)
 )
 def test_forked_at_block_with_abort_blocks():
-    """Test GET on /fork_status when forking a given block"""
+    """Test if abortion of forked blocks in failing."""
     # Get latest valid block with block hash
     fork_status = requests.get(f"{APP_URL}/fork_status")
     assert fork_status.status_code == 200
