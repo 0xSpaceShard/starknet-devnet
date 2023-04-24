@@ -194,12 +194,12 @@ def test_forked_at_block_with_abort_blocks():
     # Get latest valid block with block hash
     fork_status = requests.get(f"{APP_URL}/fork_status")
     assert fork_status.status_code == 200
-    last_block_by_number = get_block(
+    block_before_fork = get_block(
         block_number=fork_status.json().get("block") - 1, parse=True
     )
 
     # Abort Block should fail on forked blocks
-    response = abort_blocks(last_block_by_number["block_hash"])
+    response = abort_blocks(block_before_fork["block_hash"])
     assert response.status_code == 500
     assert response.json()["message"] == "Aborting forked blocks is not supported."
 
