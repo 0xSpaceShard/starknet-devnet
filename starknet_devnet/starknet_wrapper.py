@@ -1031,7 +1031,9 @@ class StarknetWrapper:
         # Abort blocks from latest to starting (iterating backwards).
         reached_starting_block = False
         while not reached_starting_block:
-            reached_starting_block = current_block.block_number == starting_block.block_number
+            reached_starting_block = (
+                current_block.block_number == starting_block.block_number
+            )
 
             # Abort current_block.
             aborted_block_hash = await self.blocks.abort_block_by_hash(
@@ -1052,7 +1054,7 @@ class StarknetWrapper:
             else:
                 break
 
-        # Revert state. 
+        # Revert state.
         self.starknet.state = self.blocks.get_state(current_block.block_hash)
 
         return aborted_blocks
