@@ -47,9 +47,9 @@ This functionality allows to simulate block abortion that can occur on mainnet.
 
 You can abort blocks and reject transactions from the specified block to the currently latest block. Newly created blocks after the abortion will have accepted status and will continue with numbering where the last accepted block left off.
 
-Aborted blocks can only be queried by their hashes. The state of Devnet will be reverted to the last accepted block state. In a block on demand mode, the pending state will be reverted. Aborting the genesis block or blocks in forking origin is not supported.
-
 E.g. assume there are 3 accepted blocks numbered 1, 2 and 3 and your request aborts blocks starting with block 2. This will make blocks 2 and 3 aborted and their transactions rejected. Once a new block is mined, it will be accepted and it will have number 2.
+
+Aborted blocks can only be queried by their hashes. The state of Devnet will be reverted to the last accepted block state. In a block on demand mode, the pending state will be reverted. Aborting the genesis block or blocks in forking origin is not supported.
 
 ```
 POST /abort_blocks
