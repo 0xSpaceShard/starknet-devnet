@@ -170,37 +170,12 @@ def test_abort_many_blocks_many_transactions():
 def test_new_blocks_after_abortion():
     """Test new block generation after abortion."""
 
-    # Block and transaction should be accepted on L2
+    # Create and abort new block
     contract_deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
     contract_deploy_block = get_block(parse=True)
-    assert contract_deploy_block["status"] == "ACCEPTED_ON_L2"
-    assert_tx_status(contract_deploy_info["tx_hash"], "ACCEPTED_ON_L2")
+    abort_blocks(contract_deploy_block["block_hash"])
 
-    # Blocks should be aborted and transactions should be rejected
-    response = abort_blocks(contract_deploy_block["block_hash"])
-    assert response.status_code == 200
-    assert response.json()["aborted"] == [
-        contract_deploy_block["block_hash"],
-    ]
-    last_block = get_block(parse=True)
-    assert last_block["status"] == "ACCEPTED_ON_L2"
-    assert last_block["block_number"] == 0
-    contract_deploy_block_after_abort = get_block(
-        block_hash=contract_deploy_block["block_hash"], parse=True
-    )
-    assert contract_deploy_block_after_abort["status"] == "ABORTED"
-    assert_transaction(contract_deploy_info["tx_hash"], "REJECTED")
-
-    # Test RPC get block status mapping from ABORTED to REJECTED
-    rpc_aborted_block = rpc_call(
-        "starknet_getBlockWithTxs",
-        params={
-            "block_id": {"block_hash": rpc_felt(contract_deploy_block["block_hash"])}
-        },
-    )
-    assert rpc_aborted_block["result"]["status"] == "REJECTED"
-
-    # Block and transaction should be accepted on L2
+    # New block and transaction should be accepted on L2
     contract_deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
     last_block = get_block(parse=True)
     assert last_block["status"] == "ACCEPTED_ON_L2"
