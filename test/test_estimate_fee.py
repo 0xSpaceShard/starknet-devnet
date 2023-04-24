@@ -14,7 +14,11 @@ from starkware.starknet.services.api.gateway.transaction import AccountTransacti
 
 from starknet_devnet.constants import DEFAULT_GAS_PRICE
 
-from .account import get_estimate_fee_request_dict, get_nonce
+from .account import (
+    declare_and_deploy_with_chargeable,
+    get_estimate_fee_request_dict,
+    get_nonce,
+)
 from .settings import APP_URL
 from .shared import (
     ABI_PATH,
@@ -26,15 +30,9 @@ from .shared import (
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
-from .util import (
-    call,
-    deploy,
-    devnet_in_background,
-    estimate_message_fee,
-    load_file_content,
-)
+from .util import call, devnet_in_background, estimate_message_fee, load_file_content
 
-DEPLOY_CONTENT = load_file_content("deploy.json")
+DEPRECATED_DEPLOY_CONTENT = load_file_content("deprecated_deploy.json")
 INVOKE_CONTENT = load_file_content("invoke.json")
 
 
@@ -74,7 +72,7 @@ def common_estimate_response(
 def test_estimate_fee_with_genesis_block():
     """Call without transaction, expect pass with gas_price zero"""
 
-    deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
+    deploy_info = declare_and_deploy_with_chargeable(CONTRACT_PATH, inputs=["0"])
     # increase balance with 10+20
     response = send_estimate_fee_with_requests(
         {
@@ -106,7 +104,7 @@ def test_estimate_fee_in_unknown_address():
 @devnet_in_background()
 def test_estimate_fee_with_invalid_data():
     """Call estimate fee with invalid data on body"""
-    req_dict = json.loads(DEPLOY_CONTENT)
+    req_dict = json.loads(DEPRECATED_DEPLOY_CONTENT)
     resp = estimate_fee_local(req_dict)
 
     json_error_message = resp.json()["message"]
@@ -126,7 +124,7 @@ def test_estimate_fee_with_invalid_data():
 def test_estimate_fee_with_complete_request_data(request_kwargs):
     """Estimate fee with complete request data"""
 
-    deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
+    deploy_info = declare_and_deploy_with_chargeable(CONTRACT_PATH, inputs=["0"])
     # increase balance with 10+20
     response = send_estimate_fee_with_requests(
         {
@@ -148,7 +146,7 @@ def test_estimate_fee_with_complete_request_data(request_kwargs):
 def test_simulate_transaction():
     """Simulate tx"""
 
-    deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
+    deploy_info = declare_and_deploy_with_chargeable(CONTRACT_PATH, inputs=["0"])
 
     calldata = ["10", "20"]
     entry_point_selector = hex(get_selector_from_name("increase_balance"))
@@ -199,7 +197,9 @@ def test_estimate_message_fee():
     dummy_l1_address = "0x1"
     user_id = "1"
 
-    l2_contract_address = deploy(contract=L1L2_CONTRACT_PATH)["address"]
+    l2_contract_address = declare_and_deploy_with_chargeable(
+        contract=L1L2_CONTRACT_PATH
+    )["address"]
 
     message_fee = estimate_message_fee(
         from_address=dummy_l1_address,
@@ -259,7 +259,9 @@ def test_estimate_fee_bulk():
 
     # contract must be deployed for fee estimation to be possible
     initial_balance = "10"
-    deploy_info = deploy(contract=CONTRACT_PATH, inputs=[initial_balance], salt="0x42")
+    deploy_info = declare_and_deploy_with_chargeable(
+        contract=CONTRACT_PATH, inputs=[initial_balance], salt="0x42"
+    )
     contract_address = deploy_info["address"]
 
     tx_dicts = [

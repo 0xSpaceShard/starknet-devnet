@@ -3,6 +3,7 @@ Gateway routes
 """
 
 from flask import Blueprint, jsonify, request
+from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starkware_utils.error_handling import StarkErrorCode
 
@@ -40,10 +41,10 @@ async def add_transaction():
         response_dict["address"] = fixed_length_hex(contract_address)
 
     elif tx_type == TransactionType.DEPLOY:
-        contract_address, transaction_hash = await state.starknet_wrapper.deploy(
-            transaction
+        raise StarknetDevnetException(
+            code=StarknetErrorCode.DEPRECATED_TRANSACTION,
+            message="Deploy transaction is no longer supported.",
         )
-        response_dict["address"] = fixed_length_hex(contract_address)
 
     elif tx_type == TransactionType.INVOKE_FUNCTION:
         (contract_address, transaction_hash) = await state.starknet_wrapper.invoke(

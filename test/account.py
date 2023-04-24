@@ -3,7 +3,7 @@ Account test functions and utilities.
 Latest changes based on https://github.com/OpenZeppelin/nile/pull/184
 """
 
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import requests
 from starkware.crypto.signature.signature import private_to_stark_key, sign
@@ -13,23 +13,38 @@ from starkware.starknet.core.os.contract_address.contract_address import (
 )
 from starkware.starknet.core.os.transaction_hash.transaction_hash import (
     calculate_declare_transaction_hash,
+    calculate_deploy_account_transaction_hash,
     calculate_deprecated_declare_transaction_hash,
 )
 from starkware.starknet.definitions.constants import QUERY_VERSION
-from starkware.starknet.definitions.general_config import StarknetChainId
-from starkware.starknet.services.api.gateway.transaction import ContractClass, Declare
+from starkware.starknet.definitions.general_config import (
+    DEFAULT_CHAIN_ID,
+    StarknetChainId,
+)
+from starkware.starknet.definitions.transaction_type import TransactionType
+from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    BlockIdentifier,
+)
+from starkware.starknet.services.api.gateway.transaction import (
+    ContractClass,
+    Declare,
+    DeployAccount,
+)
 
 from starknet_devnet.account_util import AccountCall, get_execute_args
+from starknet_devnet.chargeable_account import ChargeableAccount
+from starknet_devnet.contract_class_wrapper import DEFAULT_ACCOUNT_HASH
 
 from .settings import APP_URL
 from .shared import EXPECTED_UDC_ADDRESS, SUPPORTED_TX_VERSION
-from .util import deploy as deploy_contract
 from .util import (
+    assert_hex_equal,
     estimate_fee,
     extract_class_hash,
     extract_tx_hash,
     load_contract_class,
     run_starknet,
+    send_tx,
 )
 
 ACCOUNT_ARTIFACTS_PATH = "starknet_devnet/accounts_artifacts"
@@ -43,15 +58,19 @@ PRIVATE_KEY = 123456789987654321
 PUBLIC_KEY = private_to_stark_key(PRIVATE_KEY)
 
 
-def deploy_account_contract(salt=None):
-    """Deploy account contract."""
-    return deploy_contract(ACCOUNT_PATH, inputs=[str(PUBLIC_KEY)], salt=salt)
-
-
-def get_nonce(account_address: str, feeder_gateway_url=APP_URL) -> int:
+def get_nonce(
+    account_address: str,
+    feeder_gateway_url=APP_URL,
+    block_number: Optional[BlockIdentifier] = "pending",
+) -> int:
     """Get nonce."""
+    params = {"contractAddress": account_address}
+    if block_number is not None:
+        params["blockNumber"] = block_number
+
     resp = requests.get(
-        f"{feeder_gateway_url}/feeder_gateway/get_nonce?contractAddress={account_address}"
+        f"{feeder_gateway_url}/feeder_gateway/get_nonce",
+        params=params,
     )
     return int(resp.json(), 16)
 
@@ -111,7 +130,7 @@ def get_estimated_fee(
     """Get estimated fee through account."""
 
     if nonce is None:
-        nonce = get_nonce(account_address)
+        nonce = get_nonce(account_address, feeder_gateway_url=feeder_gateway_url)
 
     signature, execute_calldata = get_execute_args(
         calls=calls,
@@ -199,19 +218,20 @@ def invoke(
 def declare(
     contract_path: str,
     account_address: str,
-    private_key: str,
+    private_key: int,
     nonce: int = None,
     max_fee: int = 0,
+    gateway_url=APP_URL,
     chain_id=StarknetChainId.TESTNET,
 ):
     """Wrapper around starknet declare"""
 
     if nonce is None:
-        nonce = get_nonce(account_address)
+        nonce = get_nonce(account_address, feeder_gateway_url=gateway_url)
 
     tx_hash = calculate_deprecated_declare_transaction_hash(
         contract_class=load_contract_class(contract_path),
-        chain_id=StarknetChainId.TESTNET.value,
+        chain_id=chain_id.value,
         sender_address=int(account_address, 16),
         max_fee=max_fee,
         nonce=nonce,
@@ -233,7 +253,8 @@ def declare(
             str(max_fee),
             "--chain_id",
             hex(chain_id.value),
-        ]
+        ],
+        gateway_url=gateway_url,
     )
     return {
         "tx_hash": extract_tx_hash(output.stdout),
@@ -250,10 +271,12 @@ def deploy(
     unique=False,
     max_fee=None,
     gateway_url=APP_URL,
+    chain_id=StarknetChainId.TESTNET,
 ):
     """Wrapper around starknet deploy"""
 
-    ctor_args = [int(val, 0) for val in inputs or []]
+    # accepts ints or decimal strings
+    ctor_args = [int(val) for val in inputs or []]
     salt = get_salt(salt)
 
     invoke_tx_hash = invoke(
@@ -274,6 +297,7 @@ def deploy(
         private_key=private_key,
         max_fee=max_fee,
         gateway_url=gateway_url,
+        chain_id=chain_id,
     )
 
     contract_address = calculate_contract_address_from_hash(
@@ -288,6 +312,151 @@ def deploy(
         "tx_hash": invoke_tx_hash,
         "address": contract_address,
     }
+
+
+def declare_and_deploy(
+    contract: str,
+    account_address: str,
+    private_key: int,
+    inputs=None,
+    salt=None,
+    declare_max_fee=int(1e18),
+    max_fee=None,
+    gateway_url=APP_URL,
+    chain_id=StarknetChainId.TESTNET,
+):
+    """
+    Declare a class and deploy its instance using the provided account.
+    The max_fee only refers to deployment.
+    Returns deploy info with class_hash.
+    """
+
+    declare_info = declare(
+        contract_path=contract,
+        account_address=account_address,
+        private_key=private_key,
+        max_fee=declare_max_fee,
+        gateway_url=gateway_url,
+        chain_id=chain_id,
+    )
+    class_hash = declare_info["class_hash"]
+    # here we could benefit from asserting the status of declaration, but it would also introduce time overhead
+
+    deploy_info = deploy(
+        class_hash=class_hash,
+        account_address=account_address,
+        private_key=private_key,
+        inputs=inputs,
+        salt=salt,
+        max_fee=max_fee,
+        gateway_url=gateway_url,
+        chain_id=chain_id,
+    )
+
+    # expand the object with the hash of the class that was deployed
+    deploy_info["class_hash"] = class_hash
+
+    return deploy_info
+
+
+def declare_and_deploy_with_chargeable(
+    contract: str,
+    inputs=None,
+    salt=None,
+    max_fee=None,
+    gateway_url=APP_URL,
+    chain_id=StarknetChainId.TESTNET,
+):
+    """
+    Declare a class and deploy its instance using the chargeable account.
+    The max_fee only refers to deployment.
+    Returns deploy info.
+    """
+    return declare_and_deploy(
+        contract=contract,
+        account_address=hex(ChargeableAccount.ADDRESS),
+        private_key=ChargeableAccount.PRIVATE_KEY,
+        inputs=inputs,
+        salt=salt,
+        max_fee=max_fee,
+        gateway_url=gateway_url,
+        chain_id=chain_id,
+    )
+
+
+def deploy_with_chargeable(
+    class_hash: str,
+    inputs=None,
+    salt=None,
+    max_fee=None,
+    gateway_url=APP_URL,
+    chain_id=StarknetChainId.TESTNET,
+):
+    """Deploy an instance of `contract` using the chargeable account"""
+    return deploy(
+        class_hash=class_hash,
+        account_address=hex(ChargeableAccount.ADDRESS),
+        private_key=ChargeableAccount.PRIVATE_KEY,
+        inputs=inputs,
+        salt=salt,
+        max_fee=max_fee,
+        gateway_url=gateway_url,
+        chain_id=chain_id,
+    )
+
+
+def deploy_account_contract(
+    private_key: int,
+    class_hash=DEFAULT_ACCOUNT_HASH,
+    salt=None,
+    max_fee=int(1e18),
+):
+    """Deploy account contract. Defaults to using a pre-created key."""
+
+    constructor_calldata = [private_to_stark_key(private_key)]
+    salt = get_salt(salt)
+    account_address = calculate_contract_address_from_hash(
+        salt=salt,
+        class_hash=class_hash,
+        constructor_calldata=constructor_calldata,
+        deployer_address=0,
+    )
+
+    version = SUPPORTED_TX_VERSION
+    nonce = 0
+    tx_hash = calculate_deploy_account_transaction_hash(
+        version=version,
+        contract_address=account_address,
+        class_hash=class_hash,
+        constructor_calldata=constructor_calldata,
+        max_fee=max_fee,
+        nonce=nonce,
+        salt=salt,
+        chain_id=DEFAULT_CHAIN_ID,
+    )
+
+    deploy_tx = DeployAccount(
+        version=version,
+        max_fee=max_fee,
+        signature=[int(s) for s in _get_signature(tx_hash, private_key)],
+        nonce=nonce,
+        class_hash=class_hash,
+        contract_address_salt=salt,
+        constructor_calldata=constructor_calldata,
+    ).dump()
+
+    # basically we don't need the `resp`, but when it's here, why not make assertions
+    resp = send_tx(deploy_tx, TransactionType.DEPLOY_ACCOUNT)
+
+    deploy_info = {
+        "tx_hash": hex(tx_hash),
+        "address": hex(account_address),
+    }
+
+    assert_hex_equal(resp["transaction_hash"], deploy_info["tx_hash"])
+    assert_hex_equal(resp["address"], deploy_info["address"])
+
+    return deploy_info
 
 
 def send_declare_v2(

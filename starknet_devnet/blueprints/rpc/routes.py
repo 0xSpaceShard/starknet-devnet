@@ -39,7 +39,6 @@ from starknet_devnet.blueprints.rpc.structures.types import (
 from starknet_devnet.blueprints.rpc.transactions import (
     add_declare_transaction,
     add_deploy_account_transaction,
-    add_deploy_transaction,
     add_invoke_transaction,
     estimate_fee,
     get_transaction_by_block_id_and_index,
@@ -73,7 +72,6 @@ methods = {
     "getNonce": get_nonce,
     "addInvokeTransaction": add_invoke_transaction,
     "addDeclareTransaction": add_declare_transaction,
-    "addDeployTransaction": add_deploy_transaction,
     "addDeployAccountTransaction": add_deploy_account_transaction,
 }
 

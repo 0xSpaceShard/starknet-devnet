@@ -12,6 +12,7 @@ from starkware.starkware_utils.error_handling import StarkErrorCode
 from starknet_devnet.constants import DEFAULT_GAS_PRICE
 from starknet_devnet.server import app
 
+from .account import declare_and_deploy_with_chargeable
 from .settings import APP_URL
 from .shared import (
     FAILING_CONTRACT_PATH,
@@ -20,9 +21,8 @@ from .shared import (
     STORAGE_CONTRACT_PATH,
 )
 from .support.assertions import assert_valid_schema
-from .util import create_empty_block, deploy, devnet_in_background, load_file_content
+from .util import create_empty_block, devnet_in_background, load_file_content
 
-DEPLOY_CONTENT = load_file_content("deploy.json")
 INVOKE_CONTENT = load_file_content("invoke.json")
 CALL_CONTENT = load_file_content("call.json")
 INVALID_HASH = "0x58d4d4ed7580a7a98ab608883ec9fe722424ce52c19f2f369eeea301f535914"
@@ -50,13 +50,6 @@ def send_call(req_dict: dict):
     )
 
 
-def assert_deploy_resp(resp: bytes):
-    """Asserts the validity of deploy response body."""
-    resp_dict = json.loads(resp.data.decode("utf-8"))
-    assert set(resp_dict.keys()) == set(["address", "code", "transaction_hash"])
-    assert resp_dict["code"] == "TRANSACTION_RECEIVED"
-
-
 def assert_invoke_resp(resp: bytes):
     """Asserts the validity of invoke response body."""
     resp_dict = json.loads(resp.data.decode("utf-8"))
@@ -65,21 +58,18 @@ def assert_invoke_resp(resp: bytes):
 
 
 @pytest.mark.deploy
-def test_deploy_without_calldata():
-    """Deploy with complete request data"""
-    req_dict = json.loads(DEPLOY_CONTENT)
-    del req_dict["constructor_calldata"]
-    resp = send_transaction(req_dict)
-    assert resp.status_code == 400
-
-
-@pytest.mark.deploy
-def test_deploy_with_complete_request_data():
-    """Deploy without calldata"""
+def test_rejection_of_deprecated_deploy():
+    """Deprecated deploy should be rejected"""
     resp = app.test_client().post(
-        "/gateway/add_transaction", content_type="application/json", data=DEPLOY_CONTENT
+        "/gateway/add_transaction",
+        content_type="application/json",
+        data=load_file_content("deprecated_deploy.json"),
     )
-    assert_deploy_resp(resp)
+    assert resp.status_code == 500, resp.json
+    assert resp.json == {
+        "code": str(StarknetErrorCode.DEPRECATED_TRANSACTION),
+        "message": "Deploy transaction is no longer supported.",
+    }
 
 
 @pytest.mark.invoke
@@ -100,14 +90,6 @@ def test_invoke_without_calldata():
     assert resp.status_code == 400
 
 
-@pytest.mark.invoke
-def test_invoke_with_complete_request_data():
-    """Invoke with complete request data"""
-    req_dict = json.loads(INVOKE_CONTENT)
-    resp = send_transaction(req_dict)
-    assert_invoke_resp(resp)
-
-
 @pytest.mark.call
 def test_call_with_invalid_signature():
     """Call without signature"""
@@ -124,15 +106,6 @@ def test_call_without_calldata():
     del req_dict["calldata"]
     resp = send_call(req_dict)
     assert resp.status_code == 400
-
-
-@pytest.mark.call
-def test_call_with_complete_request_data():
-    """Call with complete request data. Previous tests (deploy+invoke) required to pass."""
-    req_dict = json.loads(CALL_CONTENT)
-    resp = send_call(req_dict)
-    resp_dict = json.loads(resp.data.decode("utf-8"))
-    assert resp_dict == {"result": ["0xa"]}
 
 
 # Error response tests
@@ -233,18 +206,6 @@ def get_transaction_receipt_test_client(tx_hash: str):
     return app.test_client().get(
         f"{APP_URL}/feeder_gateway/get_transaction_receipt?transactionHash={tx_hash}"
     )
-
-
-@pytest.mark.deploy
-@devnet_in_background()
-def test_error_response_deploy_without_calldata():
-    """Deploy with incomplete request data"""
-    req_dict = json.loads(DEPLOY_CONTENT)
-    del req_dict["constructor_calldata"]
-    resp = send_transaction_with_requests(req_dict)
-
-    json_error_message = resp.json()["message"]
-    assert "Invalid tx:" in json_error_message
 
 
 @pytest.mark.call
@@ -360,14 +321,14 @@ def test_create_block_endpoint():
     assert resp.get("gas_price") == hex(DEFAULT_GAS_PRICE)
     assert resp.get("transactions") == []
 
-    deploy(STORAGE_CONTRACT_PATH)
+    declare_and_deploy_with_chargeable(STORAGE_CONTRACT_PATH)
     resp = get_block_by_number({"blockNumber": "latest"}).json()
-    assert resp.get("block_number") == GENESIS_BLOCK_NUMBER + 2
+    assert resp.get("block_number") == GENESIS_BLOCK_NUMBER + 3
 
     create_empty_block()
     resp = get_block_by_number({"blockNumber": "latest"}).json()
-    assert resp.get("block_number") == GENESIS_BLOCK_NUMBER + 3
-    assert resp.get("block_hash") == hex(GENESIS_BLOCK_NUMBER + 3)
+    assert resp.get("block_number") == GENESIS_BLOCK_NUMBER + 4
+    assert resp.get("block_hash") == hex(GENESIS_BLOCK_NUMBER + 4)
 
 
 @devnet_in_background()
@@ -397,7 +358,9 @@ def test_get_transaction_status():
 @devnet_in_background()
 def test_get_transaction_trace_of_rejected():
     """Send a failing tx and assert its trace"""
-    deploy_info = deploy(contract=FAILING_CONTRACT_PATH)
+    deploy_info = declare_and_deploy_with_chargeable(
+        contract=FAILING_CONTRACT_PATH, max_fee=int(1e18)
+    )
     resp = get_transaction_trace(deploy_info["tx_hash"])
     resp_body = resp.json()
     assert resp_body["code"] == str(StarknetErrorCode.NO_TRACE)

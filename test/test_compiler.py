@@ -32,6 +32,8 @@ from .util import (
 )
 
 SPECIFIED_MANIFEST = os.getenv("CAIRO_1_COMPILER_MANIFEST")
+if not SPECIFIED_MANIFEST:
+    raise KeyError("CAIRO_1_COMPILER_MANIFEST env var not set")
 
 ACTIVE_DEVNET = DevnetBackgroundProc()
 
@@ -80,9 +82,6 @@ def test_invalid_cairo_compiler_manifest(compiler_manifest: str):
 
 def test_valid_cairo_compiler_manifest():
     """Test valid cairo compiler manifest specified via CLI"""
-
-    assert SPECIFIED_MANIFEST, "Compiler manifest not set through env var"
-
     execution = ACTIVE_DEVNET.start(
         "--cairo-compiler-manifest",
         SPECIFIED_MANIFEST,

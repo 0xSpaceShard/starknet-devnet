@@ -13,6 +13,7 @@ import pytest
 from starknet_devnet.blueprints.rpc.structures.types import (
     BlockHashDict,
     BlockNumberDict,
+    Signature,
     rpc_txn_type,
 )
 from starknet_devnet.blueprints.rpc.utils import rpc_felt, rpc_root
@@ -30,7 +31,7 @@ def test_get_block_with_tx_hashes(deploy_info, gateway_block, block_id):
 
     resp = rpc_call("starknet_getBlockWithTxHashes", params={"block_id": block_id})
     block = resp["result"]
-    transaction_hash: str = rpc_felt(deploy_info["transaction_hash"])
+    transaction_hash: str = rpc_felt(deploy_info["tx_hash"])
 
     assert block == {
         "block_hash": rpc_felt(block_hash),
@@ -70,6 +71,7 @@ def test_get_block_with_txs(gateway_block, block_id):
     block_number: int = gateway_block["block_number"]
     new_root: str = rpc_root(gateway_block["state_root"])
     block_tx = gateway_block["transactions"][0]
+    signature: Signature = [rpc_felt(sig) for sig in block_tx["signature"]]
 
     resp = rpc_call("starknet_getBlockWithTxs", params={"block_id": block_id})
     block = resp["result"]
@@ -84,12 +86,12 @@ def test_get_block_with_txs(gateway_block, block_id):
         "timestamp": gateway_block["timestamp"],
         "transactions": [
             {
-                "class_hash": rpc_felt(block_tx["class_hash"]),
-                "constructor_calldata": [
-                    rpc_felt(data) for data in block_tx["constructor_calldata"]
-                ],
-                "contract_address_salt": rpc_felt(block_tx["contract_address_salt"]),
+                "calldata": [rpc_felt(data) for data in block_tx["calldata"]],
+                "sender_address": rpc_felt(block_tx["sender_address"]),
+                "max_fee": rpc_felt(block_tx["max_fee"]),
+                "nonce": rpc_felt(block_tx["nonce"]),
                 "transaction_hash": rpc_felt(block_tx["transaction_hash"]),
+                "signature": signature,
                 "type": rpc_txn_type(block_tx["type"]),
                 "version": hex(SUPPORTED_RPC_TX_VERSION),
             }

@@ -4,7 +4,7 @@ Test max fee functionality.
 
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 
-from .account import declare, invoke
+from .account import declare, declare_and_deploy_with_chargeable, invoke
 from .shared import (
     CONTRACT_PATH,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
@@ -15,7 +15,6 @@ from .util import (
     ErrorExpector,
     assert_class_by_hash,
     assert_tx_status,
-    deploy,
     devnet_in_background,
 )
 
@@ -24,7 +23,9 @@ from .util import (
 def test_invoke_with_max_fee_0():
     """Test that invoke transaction with max fee 0 will fail"""
     initial_balance = 100
-    deploy_info = deploy(CONTRACT_PATH, [str(initial_balance)])
+    deploy_info = declare_and_deploy_with_chargeable(
+        CONTRACT_PATH, [str(initial_balance)]
+    )
     account_address = PREDEPLOYED_ACCOUNT_ADDRESS
     private_key = PREDEPLOYED_ACCOUNT_PRIVATE_KEY
     calls = [(deploy_info["address"], "increase_balance", [10, 20])]
@@ -36,7 +37,9 @@ def test_invoke_with_max_fee_0():
 def test_invoke_with_max_fee_0_and_allow_max_fee_zero():
     """Test that invoke transaction with max fee 0 will succeed if allow flag is set"""
     initial_balance = 100
-    deploy_info = deploy(CONTRACT_PATH, [str(initial_balance)])
+    deploy_info = declare_and_deploy_with_chargeable(
+        CONTRACT_PATH, [str(initial_balance)]
+    )
     account_address = PREDEPLOYED_ACCOUNT_ADDRESS
     private_key = PREDEPLOYED_ACCOUNT_PRIVATE_KEY
     calls = [(deploy_info["address"], "increase_balance", [10, 20])]
