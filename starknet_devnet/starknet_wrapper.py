@@ -622,7 +622,8 @@ class StarknetWrapper:
 
         assert isinstance(block_id, dict)
         if block_id.get("block_hash"):
-            return self.blocks.get_state(int(block_id.get("block_hash"), base=16))
+            numeric_hash = self.blocks.get_numeric_hash(block_id.get("block_hash"))
+            return self.blocks.get_state(numeric_hash)
 
         try:
             block_number = block_id.get("block_number")

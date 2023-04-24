@@ -172,7 +172,7 @@ class DevnetBlocks:
 
             return await self.origin.get_state_update(block_hash=numeric_hash)
 
-        # now we get state updates by block_hash or from the origin
+        # now an int
         return (
             self.__state_updates.get((await self.get_last_block()).block_hash)
             or await self.origin.get_state_update()
@@ -305,6 +305,10 @@ class DevnetBlocks:
     def get_state(self, block_hash: int) -> StarknetState:
         """Return state at block with `number`"""
         return self.__state_archive.get(block_hash)
+
+    def get_numeric_hash(self, block_hash: int) -> StarknetState:
+        """Get numeric hash."""
+        return _parse_block_hash(block_hash)
 
     async def abort_block_by_hash(self, block_hash: str) -> str:
         """
