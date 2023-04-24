@@ -1014,6 +1014,7 @@ class StarknetWrapper:
             )
 
         # Create new block with pending transactions if possible.
+        # We need to store them so later we can change the status to REJECTED.
         if self.blocks.is_block_pending():
             await self.generate_latest_block()
 
