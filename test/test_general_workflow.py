@@ -4,14 +4,12 @@ Tests the general workflow of the devnet.
 
 import pytest
 
-from .account import invoke
+from .account import declare_and_deploy_with_chargeable, deploy_with_chargeable, invoke
 from .shared import (
     ABI_PATH,
     BALANCE_KEY,
     CONTRACT_PATH,
     EVENTS_CONTRACT_PATH,
-    EXPECTED_SALTY_DEPLOY_ADDRESS,
-    EXPECTED_SALTY_DEPLOY_HASH,
     FAILING_CONTRACT_PATH,
     GENESIS_BLOCK_NUMBER,
     NONEXISTENT_TX_HASH,
@@ -24,50 +22,44 @@ from .util import (
     assert_class_by_hash,
     assert_contract_code_present,
     assert_equal,
-    assert_events,
     assert_full_contract,
+    assert_hex_equal,
     assert_negative_block_input,
     assert_receipt,
-    assert_salty_deploy,
     assert_storage,
     assert_transaction,
     assert_transaction_not_received,
     assert_transaction_receipt_not_received,
     assert_tx_status,
     call,
-    deploy,
+    devnet_in_background,
     get_block,
     get_class_hash_at,
 )
 
-EXPECTED_SALTY_DEPLOY_BLOCK_HASH_LITE_MODE = "0x1"
 
-
-def _assert_failing_deploy(contract_path):
-    """Run deployment for a contract that's expected to be rejected."""
-    deploy_info = deploy(contract_path)
-    assert_tx_status(deploy_info["tx_hash"], "REJECTED")
-    assert_transaction(deploy_info["tx_hash"], "REJECTED")
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS, "--lite-mode")
+def test_lite_mode_block_hash():
+    """Test lite mode"""
+    deploy_info = declare_and_deploy_with_chargeable(CONTRACT_PATH, inputs=["0"])
+    assert_tx_status(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
+    expected_block_hash = "0x2"  # after declare and deploy
+    assert_equal(expected_block_hash, get_block(parse=True)["block_hash"])
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
 @pytest.mark.parametrize(
-    "run_devnet_in_background, expected_block_hash",
+    "run_devnet_in_background",
     [
-        (
-            [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-            "",
-        ),
-        (
-            [*PREDEPLOY_ACCOUNT_CLI_ARGS, "--lite-mode"],
-            EXPECTED_SALTY_DEPLOY_BLOCK_HASH_LITE_MODE,
-        ),
+        PREDEPLOY_ACCOUNT_CLI_ARGS,
+        [*PREDEPLOY_ACCOUNT_CLI_ARGS, "--lite-mode"],
     ],
     indirect=True,
 )
-def test_general_workflow(expected_block_hash):
-    """Test devnet with CLI"""
-    deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS, "--lite-mode")
+def test_general_workflow():
+    """Test main feeder gateway calls"""
+    deploy_info = declare_and_deploy_with_chargeable(CONTRACT_PATH, inputs=["0"])
 
     assert_tx_status(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
     assert_transaction(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
@@ -79,12 +71,7 @@ def test_general_workflow(expected_block_hash):
     # check block and receipt after deployment
     assert_negative_block_input()
 
-    # check if in lite mode expected block hash is 0x1
-    if expected_block_hash == EXPECTED_SALTY_DEPLOY_BLOCK_HASH_LITE_MODE:
-        assert_equal(expected_block_hash, get_block(parse=True)["block_hash"])
-
-    assert_block(GENESIS_BLOCK_NUMBER + 1, deploy_info["tx_hash"])
-    assert_receipt(deploy_info["tx_hash"], "test/expected/deploy_receipt.json")
+    assert_block(GENESIS_BLOCK_NUMBER + 2, deploy_info["tx_hash"])  # declare+deploy
     assert_transaction_receipt_not_received(NONEXISTENT_TX_HASH)
 
     # check code
@@ -104,6 +91,7 @@ def test_general_workflow(expected_block_hash):
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
     assert_transaction(invoke_tx_hash, "ACCEPTED_ON_L2")
+    assert_receipt(invoke_tx_hash, "ACCEPTED_ON_L2")
     value = call(
         function="get_balance", address=deploy_info["address"], abi_path=ABI_PATH
     )
@@ -111,35 +99,45 @@ def test_general_workflow(expected_block_hash):
 
     # check storage, block and receipt after increase
     assert_storage(deploy_info["address"], BALANCE_KEY, "0x1e")
-    assert_block(GENESIS_BLOCK_NUMBER + 2, invoke_tx_hash)
-    assert_receipt(invoke_tx_hash, "test/expected/invoke_receipt.json")
+    assert_block(GENESIS_BLOCK_NUMBER + 3, invoke_tx_hash)
 
-    # check handling complex input
-    value = call(
-        function="sum_point_array",
-        address=deploy_info["address"],
-        abi_path=ABI_PATH,
-        inputs=["2", "10", "20", "30", "40"],
+
+@devnet_in_background()
+def test_salty_deploy():
+    """Test deploying with salt"""
+
+    expected_address = (
+        "0x6c9b52d3297d731eaea82dbfa4d20424855d498b8594b9442a1d4d5d995a5bd"
     )
-    assert_equal(value, "40 60", "Checking complex input failed!")
+    contract_path = EVENTS_CONTRACT_PATH
+    inputs = None
+    salt = "0x99"
 
-    # check deploy when a salt is provided, and use the same contract to test events
-    for _ in range(2):
-        assert_salty_deploy(
-            contract_path=EVENTS_CONTRACT_PATH,
-            salt="0x99",
-            inputs=None,
-            expected_status="ACCEPTED_ON_L2",
-            expected_address=EXPECTED_SALTY_DEPLOY_ADDRESS,
-            expected_tx_hash=EXPECTED_SALTY_DEPLOY_HASH,
-        )
-
-    salty_invoke_tx_hash = invoke(
-        calls=[(EXPECTED_SALTY_DEPLOY_ADDRESS, "increase_balance", [10])],
-        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
-        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    # first deploy (and declare before it)
+    deploy_info = declare_and_deploy_with_chargeable(
+        contract_path, inputs=inputs, salt=salt, max_fee=int(1e18)
     )
+    assert_hex_equal(actual=deploy_info["address"], expected=expected_address)
+    assert_tx_status(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
 
-    assert_events(salty_invoke_tx_hash, "test/expected/invoke_receipt_event.json")
+    # attempt another deploy - should be rejected since address occupied
+    repeated_deploy_info = deploy_with_chargeable(
+        class_hash=deploy_info["class_hash"],
+        inputs=inputs,
+        salt=salt,
+        # different max_fee to induce a different tx_hash
+        max_fee=int(1e18) + 1,
+    )
+    assert_hex_equal(actual=repeated_deploy_info["address"], expected=expected_address)
+    assert_tx_status(repeated_deploy_info["tx_hash"], "REJECTED")
 
-    _assert_failing_deploy(contract_path=FAILING_CONTRACT_PATH)
+
+@devnet_in_background()
+def test_failing_deploy():
+    """Test a failing deployment"""
+    deploy_info = declare_and_deploy_with_chargeable(
+        FAILING_CONTRACT_PATH,
+        max_fee=int(1e18),  # if not provided, will fail on implicit estimation
+    )
+    assert_tx_status(deploy_info["tx_hash"], "REJECTED")
+    assert_transaction(deploy_info["tx_hash"], "REJECTED")

@@ -5,7 +5,7 @@ Fixtures for RPC tests
 from __future__ import annotations
 
 import json
-from test.account import PRIVATE_KEY, PUBLIC_KEY
+from test.account import deploy
 from test.rpc.rpc_utils import (
     add_transaction,
     gateway_call,
@@ -14,9 +14,10 @@ from test.rpc.rpc_utils import (
 )
 from test.test_account import SALT
 from test.util import load_file_content, mint
-from typing import Tuple, cast
+from typing import Tuple
 
 import pytest
+from starkware.crypto.signature.signature import private_to_stark_key
 from starkware.starknet.business_logic.transaction.objects import InternalDeployAccount
 from starkware.starknet.core.os.contract_class.deprecated_class_hash import (
     compute_deprecated_class_hash,
@@ -28,11 +29,7 @@ from starkware.starknet.services.api.contract_class.contract_class import (
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     DeployAccountSpecificInfo,
 )
-from starkware.starknet.services.api.gateway.transaction import (
-    Deploy,
-    DeployAccount,
-    Transaction,
-)
+from starkware.starknet.services.api.gateway.transaction import DeployAccount
 from starkware.starknet.third_party.open_zeppelin.starknet_contracts import (
     account_contract as oz_account_class,
 )
@@ -48,21 +45,14 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     Felt,
 )
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
+from starknet_devnet.chargeable_account import ChargeableAccount
 from starknet_devnet.constants import SUPPORTED_RPC_TX_VERSION
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 
-DEPLOY_CONTENT = load_file_content("deploy_rpc.json")
-INVOKE_CONTENT = load_file_content("invoke_rpc.json")
 DECLARE_CONTENT = load_file_content("declare_rpc.json")
 
-
-@pytest.fixture(name="contract_class")
-def fixture_contract_class() -> CompiledClassBase:
-    """
-    Make ContractDefinition from deployment transaction used in tests
-    """
-    transaction: Deploy = cast(Deploy, Transaction.loads(DEPLOY_CONTENT))
-    return transaction.contract_definition
+PRIVATE_KEY = 123456789987654321
+PUBLIC_KEY = private_to_stark_key(PRIVATE_KEY)
 
 
 @pytest.fixture(name="class_hash")
@@ -79,21 +69,21 @@ def fixture_class_hash(deploy_info) -> Felt:
 @pytest.fixture(name="deploy_info")
 def fixture_deploy_info() -> dict:
     """
-    Deploy a contract on devnet and return deployment info dict
+    Deploy a contract using chargeable account. Return deployment info dict.
     """
-    deploy_tx = json.loads(DEPLOY_CONTENT)
-    deploy_info = add_transaction(deploy_tx)
-    return {**deploy_info, **deploy_tx}
+    declare_tx = json.loads(DECLARE_CONTENT)
+    declare_info = add_transaction(declare_tx)
 
+    deploy_info = deploy(
+        class_hash=declare_info["class_hash"],
+        account_address=hex(ChargeableAccount.ADDRESS),
+        private_key=ChargeableAccount.PRIVATE_KEY,
+        inputs=[69],
+        salt="0x2",
+        max_fee=int(1e18),
+    )
 
-@pytest.fixture(name="invoke_info")
-def fixture_invoke_info() -> dict:
-    """
-    Make an invoke transaction on devnet and return invoke info dict
-    """
-    invoke_tx = json.loads(INVOKE_CONTENT)
-    invoke_info = add_transaction(invoke_tx)
-    return {**invoke_info, **invoke_tx}
+    return deploy_info
 
 
 @pytest.fixture(name="declare_info")
@@ -121,22 +111,6 @@ def fixture_deploy_account_info() -> dict:
     return declare_info
 
 
-@pytest.fixture(name="invoke_content")
-def fixture_invoke_content() -> dict:
-    """
-    Invoke content JSON object
-    """
-    return json.loads(INVOKE_CONTENT)
-
-
-@pytest.fixture(name="deploy_content")
-def fixture_deploy_content() -> dict:
-    """
-    Deploy content JSON object
-    """
-    return json.loads(DEPLOY_CONTENT)
-
-
 @pytest.fixture(name="declare_content")
 def fixture_declare_content() -> dict:
     """
@@ -150,7 +124,7 @@ def fixture_gateway_block(deploy_info) -> dict:
     """
     Block with Deploy transaction
     """
-    return get_block_with_transaction(deploy_info["transaction_hash"])
+    return get_block_with_transaction(deploy_info["tx_hash"])
 
 
 @pytest.fixture(name="latest_block")

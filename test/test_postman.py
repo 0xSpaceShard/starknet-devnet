@@ -10,7 +10,7 @@ import pytest
 import requests
 from web3 import Web3
 
-from .account import invoke
+from .account import declare_and_deploy_with_chargeable, invoke
 from .settings import APP_URL, L1_HOST, L1_PORT, L1_URL
 from .shared import (
     L1L2_ABI_PATH,
@@ -20,9 +20,9 @@ from .shared import (
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
 from .util import (
+    assert_hex_equal,
     assert_tx_status,
     call,
-    deploy,
     devnet_in_background,
     ensure_server_alive,
     estimate_message_fee,
@@ -82,13 +82,12 @@ def assert_flush_response(
     assert response["l1_provider"] == expected_l1_provider
 
     for i, l1_message in enumerate(response["consumed_messages"]["from_l1"]):
-        assert (
-            l1_message["args"]["from_address"]
-            == expected_from_l1[i]["args"]["from_address"]
+        assert_hex_equal(
+            l1_message["args"]["from_address"],
+            expected_from_l1[i]["args"]["from_address"],
         )
-        assert (
-            l1_message["args"]["to_address"]
-            == expected_from_l1[i]["args"]["to_address"]
+        assert_hex_equal(
+            l1_message["args"]["to_address"], expected_from_l1[i]["args"]["to_address"]
         )
         assert l1_message["args"]["payload"] == [
             hex(x) for x in expected_from_l1[i]["args"]["payload"]
@@ -114,8 +113,10 @@ def assert_flush_response(
             assert key in l1_message["args"]
 
     for i, l2_message in enumerate(response["consumed_messages"]["from_l2"]):
-        assert l2_message["from_address"] == expected_from_l2[i]["from_address"].lower()
-        assert l2_message["to_address"] == expected_from_l2[i]["to_address"].lower()
+        assert_hex_equal(
+            l2_message["from_address"], expected_from_l2[i]["from_address"]
+        )
+        assert_hex_equal(l2_message["to_address"], expected_from_l2[i]["to_address"])
         assert l2_message["payload"] == [hex(x) for x in expected_from_l2[i]["payload"]]
 
     assert (
@@ -172,7 +173,7 @@ def load_messaging_contract(starknet_messaging_contract_address):
 def _init_l2_contract(l1l2_example_contract_address: str):
     """Deploys the L1L2Example cairo contract, returns the result of calling 'get_balance'"""
 
-    deploy_info = deploy(L1L2_CONTRACT_PATH)
+    deploy_info = declare_and_deploy_with_chargeable(L1L2_CONTRACT_PATH)
     l2_address = deploy_info["address"]
 
     # increase and withdraw balance

@@ -8,7 +8,7 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     BlockIdentifier,
 )
 
-from .account import declare, invoke
+from .account import declare, declare_and_deploy_with_chargeable, invoke
 from .settings import APP_URL
 from .shared import (
     BALANCE_KEY,
@@ -46,7 +46,6 @@ from .util import (
     assert_transaction_not_received,
     assert_transaction_receipt_not_received,
     assert_tx_status,
-    deploy,
     devnet_in_background,
     get_block,
     get_full_contract,
@@ -62,7 +61,7 @@ EXPECTED_INVOKE_HASH = (
 
 
 def _deploy_to_expected_address(contract=CONTRACT_PATH):
-    deploy_info = deploy(
+    deploy_info = declare_and_deploy_with_chargeable(
         contract=contract,
         inputs=[DEPLOYMENT_INPUT],
         salt="0x42",

@@ -14,12 +14,10 @@ from starknet_devnet.blueprints.rpc.schema import validate_schema
 from starknet_devnet.blueprints.rpc.structures.payloads import (
     RpcBroadcastedDeclareTxn,
     RpcBroadcastedDeployAccountTxn,
-    RpcBroadcastedDeployTxn,
     RpcBroadcastedInvokeTxn,
     RpcBroadcastedTxn,
     RpcTransaction,
     make_declare,
-    make_deploy,
     make_deploy_account,
     make_invoke_function,
     rpc_fee_estimate,
@@ -28,7 +26,6 @@ from starknet_devnet.blueprints.rpc.structures.payloads import (
 from starknet_devnet.blueprints.rpc.structures.responses import (
     RpcDeclareTransactionResult,
     RpcDeployAccountTransactionResult,
-    RpcDeployTransactionResult,
     RpcInvokeTransactionResult,
     rpc_transaction_receipt,
 )
@@ -135,22 +132,6 @@ async def add_declare_transaction(
     )
 
 
-@validate_schema("addDeployTransaction")
-async def add_deploy_transaction(deploy_transaction: RpcBroadcastedDeployTxn) -> dict:
-    """
-    Submit a new deploy contract transaction
-    """
-    deploy_transaction = make_deploy(deploy_transaction)
-
-    contract_address, transaction_hash = await state.starknet_wrapper.deploy(
-        deploy_transaction=deploy_transaction
-    )
-    return RpcDeployTransactionResult(
-        transaction_hash=rpc_felt(transaction_hash),
-        contract_address=rpc_felt(contract_address),
-    )
-
-
 @validate_schema("addDeployAccountTransaction")
 async def add_deploy_account_transaction(
     deploy_account_transaction: RpcBroadcastedDeployAccountTxn,
@@ -189,7 +170,7 @@ def make_transaction(txn: RpcBroadcastedTxn) -> AccountTransaction:
     if txn_type == "DECLARE":
         return make_declare(txn)
     if txn_type == "DEPLOY":
-        return make_deploy(txn)
+        raise RpcError(code=-1, message="DEPLOY transactions are deprecated")
     if txn_type == "DEPLOY_ACCOUNT":
         return make_deploy_account(txn)
     raise NotImplementedError(f"Unexpected type {txn_type}.")

@@ -7,7 +7,7 @@ from starkware.starknet.definitions.general_config import StarknetChainId
 
 from starknet_devnet.devnet_config import CHAIN_IDS
 
-from .account import invoke
+from .account import declare_and_deploy_with_chargeable, invoke
 from .shared import (
     ABI_PATH,
     CONTRACT_PATH,
@@ -21,7 +21,6 @@ from .util import (
     assert_transaction,
     assert_tx_status,
     call,
-    deploy,
     read_stream,
     terminate_and_wait,
 )
@@ -73,7 +72,9 @@ def test_chain_id_invalid(chain_id):
 )
 def test_deploy_and_invoke(chain_id):
     """Test deploy and invoke with MAINNET and TESTNET chain_id"""
-    deploy_info = deploy(CONTRACT_PATH, inputs=["0"])
+    deploy_info = declare_and_deploy_with_chargeable(
+        CONTRACT_PATH, inputs=["0"], chain_id=chain_id
+    )
 
     assert_tx_status(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
     assert_transaction(deploy_info["tx_hash"], "ACCEPTED_ON_L2")

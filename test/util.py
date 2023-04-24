@@ -12,7 +12,6 @@ from typing import IO, List, Optional
 
 import pytest
 import requests
-from starkware.starknet.cli.starknet_cli import get_salt
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.definitions.general_config import StarknetChainId
 from starkware.starknet.definitions.transaction_type import TransactionType
@@ -21,12 +20,13 @@ from starkware.starknet.services.api.contract_class.contract_class import (
     CompiledClassBase,
     DeprecatedCompiledClass,
 )
-from starkware.starknet.services.api.gateway.transaction import Deploy
+from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    TransactionInfo,
+)
 
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 
 from .settings import APP_URL, HOST, PORT
-from .shared import SUPPORTED_TX_VERSION
 
 
 class ReturnCodeAssertionError(AssertionError):
@@ -128,8 +128,11 @@ def assert_equal(actual, expected, explanation=None):
 
 
 def assert_hex_equal(actual, expected):
-    """Assert that two hex strings are equal when converted to ints"""
-    assert int(actual, 16) == int(expected, 16)
+    """
+    Assert that two hex strings are equal when converted to ints.
+    Converting back to hex to have hex strings in error message in case of failed assertion.
+    """
+    assert hex(int(actual, 16)) == hex(int(expected, 16))
 
 
 def assert_get_events_response(
@@ -197,28 +200,8 @@ def send_tx(transaction: dict, tx_type: TransactionType, gateway_url=APP_URL) ->
         url=f"{gateway_url}/gateway/add_transaction",
         json={**transaction, "type": tx_type.name},
     )
-    assert resp.status_code == 200
+    assert resp.status_code == 200, resp.json()
     return resp.json()
-
-
-def deploy(contract, inputs=None, salt=None, gateway_url=APP_URL):
-    """Wrapper around starknet deploy"""
-
-    inputs = inputs or []
-
-    deploy_tx = Deploy(
-        contract_address_salt=get_salt(salt),
-        contract_definition=load_contract_class(contract),
-        constructor_calldata=[int(value, 0) for value in inputs],
-        version=SUPPORTED_TX_VERSION,
-    ).dump()
-
-    resp = send_tx(deploy_tx, TransactionType.DEPLOY, gateway_url)
-
-    return {
-        "tx_hash": resp["transaction_hash"],
-        "address": resp["address"],
-    }
 
 
 def estimate_message_fee(
@@ -251,52 +234,12 @@ def assert_transaction(
     output = run_starknet(
         ["get_transaction", "--hash", tx_hash], gateway_url=feeder_gateway_url
     )
-    transaction = json.loads(output.stdout)
-    assert_equal(transaction["status"], expected_status, transaction)
+
+    transaction: TransactionInfo = TransactionInfo.loads(output.stdout)
+    assert_equal(transaction.status.name, expected_status, transaction)
+
     if expected_signature:
-        assert_equal(transaction["transaction"]["signature"], expected_signature)
-
-    expected_keys = ["status", "transaction", "transaction_index"]
-    if expected_status == "REJECTED":
-        expected_keys.append("transaction_failure_reason")
-    else:
-        expected_keys.extend(["block_hash", "block_number"])
-
-    assert_keys(transaction, expected_keys)
-
-    tx_type = transaction["transaction"]["type"]
-
-    if tx_type == "INVOKE_FUNCTION":
-        invoke_transaction_keys = [
-            "calldata",
-            "sender_address",
-            "max_fee",
-            "signature",
-            "transaction_hash",
-            "type",
-            "nonce",
-            "version",
-        ]
-        assert_keys(transaction["transaction"], invoke_transaction_keys)
-    elif tx_type == "DEPLOY":
-        deploy_transaction_keys = [
-            "class_hash",
-            "constructor_calldata",
-            "contract_address",
-            "contract_address_salt",
-            "transaction_hash",
-            "type",
-            "version",
-        ]
-        assert_keys(transaction["transaction"], deploy_transaction_keys)
-    else:
-        raise RuntimeError(f"Unknown tx_type: {tx_type}")
-
-
-def assert_keys(dictionary, keys):
-    """Asserts that the dict has the correct keys"""
-    expected_set = set(keys)
-    assert dictionary.keys() == expected_set, f"{dictionary.keys()} != {expected_set}"
+        assert_equal(transaction.transaction.signature, expected_signature)
 
 
 def assert_transaction_not_received(tx_hash: str, feeder_gateway_url=APP_URL):
@@ -378,7 +321,7 @@ def call(
     address: str,
     abi_path: str,
     inputs=None,
-    block_number=None,  # Starknet CLI defaults to pending
+    block_number=None,  # Starknet CLI defaults to pending - we shouldn't rely on that
     block_hash=None,
     feeder_gateway_url=APP_URL,
 ):
@@ -615,17 +558,12 @@ def assert_compiled_class_by_hash_not_present(
     assert_undeclared_class(resp)
 
 
-def assert_receipt(tx_hash, expected_path):
+def assert_receipt(tx_hash: str, expected_status: str):
     """Asserts the content of the receipt of tx with tx_hash."""
     receipt = get_transaction_receipt(tx_hash)
-    expected_receipt = load_json_from_path(expected_path)
 
     assert_equal(receipt["transaction_hash"], tx_hash)
-
-    for ignorable_key in ["block_hash", "transaction_hash"]:
-        receipt.pop(ignorable_key)
-        expected_receipt.pop(ignorable_key)
-    assert_equal(receipt, expected_receipt)
+    assert_equal(receipt["status"], expected_status)
 
 
 def assert_receipt_present(
@@ -700,18 +638,6 @@ def assert_block(latest_block_number, latest_tx_hash):
     )
     assert_equal(latest_block["gas_price"], hex(DEFAULT_GENERAL_CONFIG.min_gas_price))
     assert re.match(r"^[a-fA-F0-9]{64}$", latest_block["state_root"])
-
-
-def assert_salty_deploy(
-    contract_path, inputs, salt, expected_status, expected_address, expected_tx_hash
-):
-    """Deploy with salt and assert."""
-
-    deploy_info = deploy(contract_path, inputs=inputs, salt=salt)
-    assert_tx_status(deploy_info["tx_hash"], expected_status)
-    assert_equal(
-        deploy_info, {"address": expected_address, "tx_hash": expected_tx_hash}
-    )
 
 
 def load_file_content(file_name: str):

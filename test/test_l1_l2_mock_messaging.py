@@ -13,7 +13,7 @@ from werkzeug.test import TestResponse
 
 from starknet_devnet.server import app
 
-from .account import invoke
+from .account import declare_and_deploy_with_chargeable, invoke
 from .settings import APP_URL
 from .shared import (
     L1L2_ABI_PATH,
@@ -22,19 +22,8 @@ from .shared import (
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
-from .util import (
-    assert_tx_status,
-    call,
-    deploy,
-    devnet_in_background,
-    load_file_content,
-)
+from .util import assert_tx_status, call, devnet_in_background
 
-DEPLOY_CONTENT = load_file_content("deploy.json")
-INVOKE_CONTENT = load_file_content("invoke.json")
-CALL_CONTENT = load_file_content("call.json")
-INVALID_HASH = "0x58d4d4ed7580a7a98ab608883ec9fe722424ce52c19f2f369eeea301f535914"
-INVALID_ADDRESS = "0x123"
 USER_ID = 1
 L1_CONTRACT_ADDRESS = "0xE7F1725E7734CE288F8367E1BB143E90BB3F0512"
 L2_CONTRACT_ADDRESS = (
@@ -81,7 +70,7 @@ def _post_through_test_client(url: str, data: dict) -> TestResponse:
 def test_send_message_to_l2_deploy_execute():
     """Test POST l1 to l2 deploy contract and execute transaction"""
     # Deploy L1L2 contract
-    deploy_info = deploy(contract=L1L2_CONTRACT_PATH)
+    deploy_info = declare_and_deploy_with_chargeable(contract=L1L2_CONTRACT_PATH)
 
     # Create l1 to l2 mock transaction
     response = send_message_to_l2(
@@ -157,7 +146,7 @@ def test_send_message_to_l2_execute_without_deploy():
 @devnet_in_background()
 def test_send_message_to_l2_with_zero_message_fee():
     """Should fail if message fee is zero"""
-    deploy_info = deploy(L1L2_CONTRACT_PATH)
+    deploy_info = declare_and_deploy_with_chargeable(L1L2_CONTRACT_PATH)
 
     data = _VALID_MESSAGE_TO_L2_BODY.copy()
     data["l2_contract_address"] = deploy_info["address"]
@@ -171,7 +160,7 @@ def test_send_message_to_l2_with_zero_message_fee():
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
 def test_consume_message_from_l2_deploy_execute():
     """Test POST l2 to l1 deploy contract and execute transaction"""
-    deploy_info = deploy(L1L2_CONTRACT_PATH)
+    deploy_info = declare_and_deploy_with_chargeable(L1L2_CONTRACT_PATH)
 
     # increase and withdraw balance
     invoke(
@@ -205,7 +194,7 @@ def test_consume_message_from_l2_deploy_execute():
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
 def test_consume_message_from_l2_deploy_execute_without_withdraw():
     """Test POST l2 to l1 deploy contract and try to execute transaction without calling withdraw"""
-    deploy_info = deploy(L1L2_CONTRACT_PATH)
+    deploy_info = declare_and_deploy_with_chargeable(L1L2_CONTRACT_PATH)
     response = consume_message_from_l2(
         {
             "l2_contract_address": deploy_info["address"],

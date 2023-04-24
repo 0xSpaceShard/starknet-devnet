@@ -4,26 +4,29 @@ Test get_transaction endpoint
 
 import pytest
 import requests
+from starkware.starknet.business_logic.execution.objects import CallType
+from starkware.starknet.public.abi import get_selector_from_name
+from starkware.starknet.services.api.contract_class.contract_class import EntryPointType
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     BlockTransactionTraces,
+    TransactionTrace,
 )
 
-from .account import declare, invoke
+from starknet_devnet.chargeable_account import ChargeableAccount
+
+from .account import declare, declare_and_deploy_with_chargeable, invoke
 from .settings import APP_URL
 from .shared import (
     CONTRACT_PATH,
+    EXPECTED_FEE_TOKEN_ADDRESS,
+    EXPECTED_UDC_ADDRESS,
     GENESIS_BLOCK_NUMBER,
     NONEXISTENT_TX_HASH,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
-from .util import (
-    deploy,
-    devnet_in_background,
-    get_transaction_receipt,
-    load_json_from_path,
-)
+from .util import devnet_in_background, get_transaction_receipt, load_json_from_path
 
 
 def get_transaction_trace_response(tx_hash=None, server_url=APP_URL):
@@ -44,7 +47,7 @@ def deploy_empty_contract():
     Deploy sample contract with balance = 0.
     Returns transaction hash.
     """
-    return deploy(CONTRACT_PATH, inputs=["0"], salt="0x99")
+    return declare_and_deploy_with_chargeable(CONTRACT_PATH, inputs=["0"], salt="0x99")
 
 
 def assert_function_invocation(function_invocation, expected_path):
@@ -57,17 +60,46 @@ def assert_function_invocation(function_invocation, expected_path):
 @devnet_in_background()
 def test_deploy_transaction_trace():
     """Test deploy transaction trace"""
-    tx_hash = deploy_empty_contract()["tx_hash"]
-    res = get_transaction_trace_response(tx_hash)
+    deploy_info = deploy_empty_contract()
+    tx_hash = deploy_info["tx_hash"]
 
-    assert res.status_code == 200
+    get_trace_resp = get_transaction_trace_response(tx_hash)
+    assert get_trace_resp.status_code == 200
+    transaction_trace = TransactionTrace.load(get_trace_resp.json())
 
-    transaction_trace = res.json()
-    assert transaction_trace["signature"] == []
-    assert_function_invocation(
-        transaction_trace["function_invocation"],
-        "test/expected/deploy_function_invocation.json",
+    # assert invoking account
+    function_invocation = transaction_trace.function_invocation
+    assert function_invocation.call_type == CallType.CALL
+    assert function_invocation.contract_address == ChargeableAccount.ADDRESS
+    assert function_invocation.entry_point_type == EntryPointType.EXTERNAL
+    assert function_invocation.selector == get_selector_from_name("__execute__")
+    internal_calls = function_invocation.internal_calls
+    assert len(internal_calls) == 1
+
+    # assert deployment through UDC
+    assert internal_calls[0].call_type == CallType.CALL
+    assert internal_calls[0].contract_address == int(EXPECTED_UDC_ADDRESS, 16)
+    assert internal_calls[0].entry_point_type == EntryPointType.EXTERNAL
+    assert internal_calls[0].selector == get_selector_from_name("deployContract")
+    assert len(internal_calls[0].internal_calls) == 1
+
+    udc_internal_calls = internal_calls[0].internal_calls
+
+    # assert constructor call
+    assert udc_internal_calls[0].call_type == CallType.CALL
+    assert udc_internal_calls[0].contract_address == int(deploy_info["address"], 16)
+    assert udc_internal_calls[0].entry_point_type == EntryPointType.CONSTRUCTOR
+    assert udc_internal_calls[0].selector == get_selector_from_name("constructor")
+    assert len(udc_internal_calls[0].internal_calls) == 0
+
+    # assert fee subtraction
+    fee_transfer_invocation = transaction_trace.fee_transfer_invocation
+    assert fee_transfer_invocation.call_type == CallType.CALL
+    assert fee_transfer_invocation.contract_address == int(
+        EXPECTED_FEE_TOKEN_ADDRESS, 16
     )
+    assert fee_transfer_invocation.selector == get_selector_from_name("transfer")
+    assert fee_transfer_invocation.entry_point_type == EntryPointType.EXTERNAL
 
 
 @pytest.mark.transaction_trace
@@ -132,10 +164,9 @@ def test_get_block_traces():
     block_hash = tx_receipt["block_hash"]
 
     assert_get_block_traces_response({"blockHash": block_hash}, tx_hash)
-    assert_get_block_traces_response({"blockNumber": GENESIS_BLOCK_NUMBER + 1}, tx_hash)
-    assert_get_block_traces_response(
-        {}, tx_hash
-    )  # default behavior - no params provided
+    assert_get_block_traces_response({"blockNumber": GENESIS_BLOCK_NUMBER + 2}, tx_hash)
+    # default behavior - no params provided
+    assert_get_block_traces_response({}, tx_hash)
 
 
 @pytest.mark.transaction_trace

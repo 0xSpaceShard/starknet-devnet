@@ -10,7 +10,7 @@ from asyncio import subprocess
 import pytest
 import requests
 
-from .account import invoke
+from .account import declare_and_deploy_with_chargeable, invoke
 from .settings import APP_URL
 from .shared import (
     ABI_PATH,
@@ -21,13 +21,7 @@ from .shared import (
 )
 from .test_account import get_account_balance
 from .test_fee_token import mint
-from .util import (
-    DevnetBackgroundProc,
-    call,
-    deploy,
-    devnet_in_background,
-    terminate_and_wait,
-)
+from .util import DevnetBackgroundProc, call, devnet_in_background, terminate_and_wait
 
 DUMP_PATH = "dump.pkl"
 
@@ -100,12 +94,12 @@ def assert_not_alive():
         pass
 
 
-def deploy_empty_contract():
+def declare_and_deploy_empty_contract():
     """
     Deploy sample contract with balance = 0.
     Returns contract address.
     """
-    deploy_dict = deploy(CONTRACT_PATH, inputs=["0"])
+    deploy_dict = declare_and_deploy_with_chargeable(CONTRACT_PATH, inputs=["0"])
     contract_address = deploy_dict["address"]
     initial_balance = call("get_balance", contract_address, ABI_PATH)
     assert initial_balance == "0"
@@ -202,7 +196,7 @@ def test_loading_via_cli():
     """Test dumping via endpoint and loading via CLI."""
     # init devnet + contract
     ACTIVE_DEVNET.start(*PREDEPLOY_ACCOUNT_CLI_ARGS)
-    contract_address = deploy_empty_contract()
+    contract_address = declare_and_deploy_empty_contract()
 
     invoke(
         calls=[(contract_address, "increase_balance", [10, 20])],
@@ -243,7 +237,7 @@ def test_dumping_and_loading_via_endpoint():
     """Test dumping and loading via endpoint."""
     # init devnet + contract
     ACTIVE_DEVNET.start(*PREDEPLOY_ACCOUNT_CLI_ARGS)
-    contract_address = deploy_empty_contract()
+    contract_address = declare_and_deploy_empty_contract()
 
     invoke(
         calls=[(contract_address, "increase_balance", ["10", "20"])],
@@ -287,7 +281,7 @@ def test_dumping_on_exit():
         *PREDEPLOY_ACCOUNT_CLI_ARGS, "--dump-on", "exit", "--dump-path", DUMP_PATH
     )
 
-    contract_address = deploy_empty_contract()
+    contract_address = declare_and_deploy_empty_contract()
 
     invoke(
         calls=[(contract_address, "increase_balance", ["10", "20"])],
@@ -360,7 +354,7 @@ def test_dumping_on_each_tx():
     )
 
     # deploy
-    contract_address = deploy_empty_contract()
+    contract_address = declare_and_deploy_empty_contract()
     assert_dump_present(DUMP_PATH)
     dump_after_deploy_path = "dump_after_deploy.pkl"
     os.rename(DUMP_PATH, dump_after_deploy_path)
@@ -413,7 +407,7 @@ def test_calling_old_state_after_load():
     )
 
     # deploy
-    contract_address = deploy_empty_contract()
+    contract_address = declare_and_deploy_empty_contract()
     increment_value = 10
     invoke(
         calls=[(contract_address, "increase_balance", [increment_value, 0])],
@@ -425,8 +419,9 @@ def test_calling_old_state_after_load():
     assert_dump_present(DUMP_PATH)
 
     ACTIVE_DEVNET.start("--load-path", DUMP_PATH)
-    value_after_deploy = call_at_block("1")
+    # expected_block = genesis (0) + declare + deploy
+    value_after_deploy = call_at_block("2")
     assert value_after_deploy == 0
 
-    value_after_invoke = call_at_block("2")
+    value_after_invoke = call_at_block("3")
     assert value_after_invoke == increment_value

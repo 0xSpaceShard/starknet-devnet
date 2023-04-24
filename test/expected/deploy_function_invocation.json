@@ -1,6 +1,13 @@
 {
     "call_type": "CALL",
-    "calldata": ["0x0"],
+    "calldata": [
+        "0x1",
+        "0x41a78e741e5af2fec34b695679bc6891742439f7afb8484ecd7766661ad02bf",
+        "0x1987cbd17808b9a23693d4de7e246a443cfe37e6e7fbaeabd7d7e6532b07c3d",
+        "0x0",
+        "0x5",
+        "0x5"
+    ],
     "caller_address": "0x0",
     "class_hash": "0x2216379233d6f7c8890a730e164e069dafdd63edf0f0218dde8181b50fabd45",
     "contract_address": "0x7f50463b43a30d3a60c004ab70bbf70f8ea2d16dbf802c952e94c8ef18646b2",
@@ -14,5 +21,5 @@
     "internal_calls": [],
     "messages": [],
     "result": [],
-    "selector": "0x28ffe4ff0f226a9107253e17a904099aa4f63a02a5621de0576e5aa71bc5194"
+    "selector": "0x15d40a3d6ca2ac30f4031e42be28da9b056fef9bb7357ac5e85627ee876e5ad"
 }

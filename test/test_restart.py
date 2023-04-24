@@ -5,7 +5,7 @@ Test restart endpoint
 import pytest
 import requests
 
-from .account import invoke
+from .account import declare_and_deploy_with_chargeable, invoke
 from .settings import APP_URL
 from .shared import (
     ABI_PATH,
@@ -19,7 +19,6 @@ from .util import (
     assert_transaction_not_received,
     assert_tx_status,
     call,
-    deploy,
     devnet_in_background,
     get_block,
 )
@@ -38,7 +37,7 @@ def get_state_update():
 
 def deploy_contract(salt=None):
     """Deploy empty contract with balance of 0"""
-    return deploy(CONTRACT_PATH, inputs=["0"], salt=salt)
+    return declare_and_deploy_with_chargeable(CONTRACT_PATH, inputs=["0"], salt=salt)
 
 
 @pytest.mark.restart

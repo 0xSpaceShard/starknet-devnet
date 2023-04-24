@@ -8,7 +8,7 @@ import requests
 
 from starknet_devnet.constants import DEFAULT_INITIAL_BALANCE
 
-from .account import get_nonce, invoke
+from .account import declare_and_deploy_with_chargeable, get_nonce, invoke
 from .settings import APP_URL, HOST, bind_free_port
 from .shared import (
     ABI_PATH,
@@ -20,7 +20,7 @@ from .shared import (
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
 from .test_account import get_account_balance
-from .test_deploy import deploy_account_test_body, deploy_with_udc_test_body
+from .test_deploy import assert_deployed_through_syscall, deploy_account_test_body
 from .testnet_deployment import (
     TESTNET_CONTRACT_ADDRESS,
     TESTNET_DEPLOYMENT_BLOCK,
@@ -32,7 +32,6 @@ from .util import (
     assert_address_has_no_class_hash,
     assert_tx_status,
     call,
-    deploy,
     devnet_in_background,
     mint,
 )
@@ -59,7 +58,6 @@ def _invoke_on_fork_and_assert_only_fork_changed(
     fork_url: str,
     origin_url: str,
 ):
-
     # account nonce - before
     origin_nonce_before = get_nonce(
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS, feeder_gateway_url=origin_url
@@ -117,7 +115,7 @@ def test_forking_devnet_with_account_on_origin():
 
     # deploy on origin
     initial_balance = "10"
-    deploy_info = deploy(
+    deploy_info = declare_and_deploy_with_chargeable(
         contract=CONTRACT_PATH,
         inputs=[initial_balance],
         gateway_url=ORIGIN_URL,
@@ -167,9 +165,9 @@ def test_forking_devnet_with_account_on_fork():
     Assert only fork changed
     """
 
-    # deploy on origin
+    # declare_and_deploy_with_chargeable on origin
     initial_balance = "10"
-    deploy_info = deploy(
+    deploy_info = declare_and_deploy_with_chargeable(
         contract=CONTRACT_PATH,
         inputs=[initial_balance],
         gateway_url=ORIGIN_URL,
@@ -251,7 +249,9 @@ def test_deploy_on_fork(origin_url):
     Assert usability on fork. Assert no change on origin.
     """
 
-    deploy_info = deploy(contract=CONTRACT_PATH, inputs=["10"])
+    deploy_info = declare_and_deploy_with_chargeable(
+        contract=CONTRACT_PATH, inputs=["10"]
+    )
     contract_address = deploy_info["address"]
 
     invoke_tx_hash = invoke(
@@ -313,9 +313,17 @@ def test_deploy_account():
 
 
 @devnet_in_background(*TESTNET_FORK_PARAMS)
-def test_deploy_with_udc():
+def test_declare_and_deploy_happy_path():
     """Test that deploying with udc works when forking"""
-    deploy_with_udc_test_body()
+    initial_balance = 10
+    deploy_info = declare_and_deploy_with_chargeable(
+        contract=CONTRACT_PATH, inputs=[initial_balance], salt=hex(42)
+    )
+
+    assert_deployed_through_syscall(
+        tx_hash=deploy_info["tx_hash"],
+        initial_balance=initial_balance,
+    )
 
 
 @devnet_in_background(*TESTNET_FORK_PARAMS)
