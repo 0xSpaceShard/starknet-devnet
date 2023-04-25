@@ -976,6 +976,7 @@ class StarknetWrapper:
         # Before the while loop to abort blocks, check if the requirements are met.
         if not (
             current_block.block_number
+            and starting_block.block_number
             and current_block.block_number >= starting_block.block_number
         ):
             return aborted_blocks
