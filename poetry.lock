@@ -1740,6 +1740,37 @@ dev = ["pre-commit", "tox"]
 testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
+name = "poseidon-py"
+version = "0.1.2"
+description = "Python implementation of Poseidon hash"
+category = "main"
+optional = false
+python-versions = ">=3.9"
+files = [
+    {file = "poseidon_py-0.1.2-cp310-cp310-macosx_11_0_universal2.whl", hash = "sha256:66503ecc3a2298390116a9e89ba5b20d37b361bee7a1d4138c13e486062f8e63"},
+    {file = "poseidon_py-0.1.2-cp310-cp310-macosx_12_0_universal2.whl", hash = "sha256:458c8b1da424737e43b34dcd853b0986feb28904071faa2dee5f59b68be30747"},
+    {file = "poseidon_py-0.1.2-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:6b31101f0760afeddc384e2822424714ee75bc47fdd6d70bfc4e0108e98f3396"},
+    {file = "poseidon_py-0.1.2-cp310-cp310-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:2f33ecdbe3a022ed789725a8241e50ae7465191c23e69a78d108c97b92d8beda"},
+    {file = "poseidon_py-0.1.2-cp310-cp310-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:7c01df4696925a6aa57d909fbe5e53bcbb1e52a8374d51bfade07d4052d72ac9"},
+    {file = "poseidon_py-0.1.2-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:fc52deb56611915fe37c138f86e4d7558d936261e8088e0d818ffc2a48251d4d"},
+    {file = "poseidon_py-0.1.2-cp310-cp310-musllinux_1_1_aarch64.whl", hash = "sha256:db39de70897043c58d4ed74b3008993c9a1e441696abeca786b4f1c1017118bd"},
+    {file = "poseidon_py-0.1.2-cp310-cp310-musllinux_1_1_ppc64le.whl", hash = "sha256:e960307d3e65856ab3874881cead0a136de312a360b0607cf075118d3a4323e3"},
+    {file = "poseidon_py-0.1.2-cp310-cp310-musllinux_1_1_s390x.whl", hash = "sha256:eeb650704a82c53c41bcec528e592937bd1c3910505c37a8fa446967192c7bf9"},
+    {file = "poseidon_py-0.1.2-cp310-cp310-musllinux_1_1_x86_64.whl", hash = "sha256:f4f12151af85b92962e14c6c5320a70f290825372026d357c28e5c36dd2eaf67"},
+    {file = "poseidon_py-0.1.2-cp39-cp39-macosx_11_0_universal2.whl", hash = "sha256:3b47c2c20bfbf59545c29f45ec73256a99d0b093903906057c50a35672f74e95"},
+    {file = "poseidon_py-0.1.2-cp39-cp39-macosx_12_0_universal2.whl", hash = "sha256:cdffc119bb1ecfd0ca1b2cf4fac61d76f4852601fa69dff077b563f18a189256"},
+    {file = "poseidon_py-0.1.2-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:788ac2aa03cbc41df7e60232ec99e079bc1e43207d96158d9a6ec42e393318e1"},
+    {file = "poseidon_py-0.1.2-cp39-cp39-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:86444c5ff3e68749e57e81dbf2fc2c4c59473da048152c80d2023b3c517063dd"},
+    {file = "poseidon_py-0.1.2-cp39-cp39-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:878c8c1787c46a1d72d7e365470ba5a47a092faac8adae11f15356d7cfa735ec"},
+    {file = "poseidon_py-0.1.2-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:963d83b81113e75ac8ad65429318925a550464ee64d289d11287ef7e7bbdaebf"},
+    {file = "poseidon_py-0.1.2-cp39-cp39-musllinux_1_1_aarch64.whl", hash = "sha256:a4bc639d1ea83970dfc9d2b87ddb9a563a246df5bc405132bb0f90dffd6f46d4"},
+    {file = "poseidon_py-0.1.2-cp39-cp39-musllinux_1_1_ppc64le.whl", hash = "sha256:b80869d9dd99e5a124fed11a2b14dd6ff5961cda1b05a91a0fc9add02340c803"},
+    {file = "poseidon_py-0.1.2-cp39-cp39-musllinux_1_1_s390x.whl", hash = "sha256:0419de77a1882e48afc543b9ca9fc95f0b810d4ead50e4b5038c864b4c50f8fa"},
+    {file = "poseidon_py-0.1.2-cp39-cp39-musllinux_1_1_x86_64.whl", hash = "sha256:e051c28bb5dea0d8050ef2702b9932f49c9c4a9a65a314c3744b3a2a6dd62b22"},
+    {file = "poseidon_py-0.1.2.tar.gz", hash = "sha256:50d9a3c71414bc7b8fabbed6058e1d9bbf9da171fa6a4c7136acd81457291228"},
+]
+
+[[package]]
 name = "prometheus-client"
 version = "0.16.0"
 description = "Python client for the Prometheus monitoring system."
@@ -2231,6 +2262,38 @@ files = [
 ]
 
 [[package]]
+name = "starknet-pathfinder-crypto"
+version = "0.1.0"
+description = ""
+category = "main"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "starknet_pathfinder_crypto-0.1.0-cp310-cp310-macosx_10_7_x86_64.whl", hash = "sha256:60383da6d04237202b84cdccbee5eb70d65910897284dc2afbda739530f1151c"},
+    {file = "starknet_pathfinder_crypto-0.1.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:6adcaf3d0cba0b3ea3fc64cadabafeedd3297bef5c38bb6ea4c0ce5e178e3116"},
+    {file = "starknet_pathfinder_crypto-0.1.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:3594f01a718fd48ebbbc00c3deecdea3a411a20ee7e27455f011b1a49b498510"},
+    {file = "starknet_pathfinder_crypto-0.1.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e403db9befac494f776c226b8356bb7547a3a0a1928c2a572dd5a0a55cf42b2e"},
+    {file = "starknet_pathfinder_crypto-0.1.0-cp310-none-win_amd64.whl", hash = "sha256:4ae5cbabc69399757a311d5bb8c22ab7ce99c1c4e8ee286d30ff3c3289f5262c"},
+    {file = "starknet_pathfinder_crypto-0.1.0-cp311-cp311-macosx_10_7_x86_64.whl", hash = "sha256:3f260386cbb31c663583db3ed25f32b7dd007f2378034a88b409110fbe11300c"},
+    {file = "starknet_pathfinder_crypto-0.1.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:31c3afad328f470bb503ce3250f9e2fab88f213f95b0a2c8f8c847c593451eae"},
+    {file = "starknet_pathfinder_crypto-0.1.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:9e7595722357954e2e31fd7b30eb1168b814596f321338360f0573e390ac5b46"},
+    {file = "starknet_pathfinder_crypto-0.1.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5419d2e3d9f0f4a662d0bbb55b930ae16735a09f5658f37426baff4c217159c8"},
+    {file = "starknet_pathfinder_crypto-0.1.0-cp311-none-win_amd64.whl", hash = "sha256:bfc980e1e8745d3ce671801aa439dfa045d992791eb899103ffb3227760334ae"},
+    {file = "starknet_pathfinder_crypto-0.1.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:508a8c9737fcfbe615f5dab8fc241923a90ed8755aa95565cbe00f2ff3e22737"},
+    {file = "starknet_pathfinder_crypto-0.1.0-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:cd2f7b4b3d3acd385a63dfe1a5d836b2e363bf5dc4d02b238aa034de15c9cf07"},
+    {file = "starknet_pathfinder_crypto-0.1.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b69dfa10b2f7d146a32b69000ca17a226cebd508db1dd0f182374066449798f6"},
+    {file = "starknet_pathfinder_crypto-0.1.0-cp38-none-win_amd64.whl", hash = "sha256:50c9ab656dd69f2a7bba59ccafc21491355705e8a2bb22e41765f3fdcaf39b7d"},
+    {file = "starknet_pathfinder_crypto-0.1.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b6d923009caeefff0029aa1d467f1c6fb8e9ae39e07276b667ff224b038edddc"},
+    {file = "starknet_pathfinder_crypto-0.1.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b252f2140e199ed317793a0381cc0848a5b4960b8d7782b41fee6520f8d85663"},
+    {file = "starknet_pathfinder_crypto-0.1.0-cp39-none-win_amd64.whl", hash = "sha256:6e758f22b78d16c6fb902361146db38a0697d46b6539d0cd1261d21ae1bf01d0"},
+    {file = "starknet_pathfinder_crypto-0.1.0-pp38-pypy38_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:fecca23a6ae3578b167acbfefe1c83e11b767ae5aad35da9a06a44c7155c6561"},
+    {file = "starknet_pathfinder_crypto-0.1.0-pp38-pypy38_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:62bf85ebd97de698367631735fc9240dd6b4ea5547a279058569386e193e1bbc"},
+    {file = "starknet_pathfinder_crypto-0.1.0-pp39-pypy39_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c1e0c2fc204aa57c0b7048c5d1008856331ad89b2a44b798898f09e21adafc3f"},
+    {file = "starknet_pathfinder_crypto-0.1.0-pp39-pypy39_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a65a955b27ed6d25283b4cccb0279cd8371042085690d685467b79e2e199c5d0"},
+    {file = "starknet_pathfinder_crypto-0.1.0.tar.gz", hash = "sha256:cc2cc289ef45809afd2124fa7bfe5662d704453d84807a04b93a9720707c6b19"},
+]
+
+[[package]]
 name = "sympy"
 version = "1.11.1"
 description = "Computer algebra system (CAS) in Python"
@@ -2624,4 +2687,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.10"
-content-hash = "9a4a1c380d64710944fcad3d185620811f573f4e391d0308b886e7f307dfb892"
+content-hash = "963307dcadcf082fd399b66a89ffa75f745ab2aca322de3c8be6f9cfe28ffbf3"
