@@ -23,8 +23,8 @@ def _patch_pedersen_hash():
     instead of python implementation from cairo-lang package
     """
 
-    from crypto_cpp_py.cpp_bindings import cpp_hash as patched_pedersen_hash
     import starkware.crypto.signature.fast_pedersen_hash
+    from crypto_cpp_py.cpp_bindings import cpp_hash as patched_pedersen_hash
 
     starkware.crypto.signature.fast_pedersen_hash.pedersen_hash = patched_pedersen_hash
 
