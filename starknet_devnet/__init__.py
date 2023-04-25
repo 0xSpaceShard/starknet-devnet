@@ -16,7 +16,49 @@ import sys
 __version__ = "0.5.0"
 
 
-def _patch_poseidon_hash_rust():
+def _patch_pedersen_hash():
+    """
+    This is a monkey-patch to improve the performance of the devnet
+    We are using c++ code for calculating the pedersen hashes
+    instead of python implementation from cairo-lang package
+    """
+
+    from crypto_cpp_py.cpp_bindings import cpp_hash as patched_pedersen_hash
+    import starkware.crypto.signature.fast_pedersen_hash
+
+    starkware.crypto.signature.fast_pedersen_hash.pedersen_hash = patched_pedersen_hash
+
+
+_patch_pedersen_hash()
+
+
+def _patch_poseidon_hash():
+    """
+    Improves performance by substituting the default Python implementation of Poseidon hash
+    with swm's Python wrapper of a C implementation.
+    """
+
+    import starkware.cairo.common.poseidon_hash
+    from poseidon_py import poseidon_hash
+
+    starkware.cairo.common.poseidon_hash.poseidon_hash = getattr(
+        poseidon_hash, "poseidon_hash"
+    )
+    starkware.cairo.common.poseidon_hash.poseidon_hash_func = getattr(
+        poseidon_hash, "poseidon_hash_func"
+    )
+    starkware.cairo.common.poseidon_hash.poseidon_hash_many = getattr(
+        poseidon_hash, "poseidon_hash_many"
+    )
+    starkware.cairo.common.poseidon_hash.poseidon_perm = getattr(
+        poseidon_hash, "poseidon_perm"
+    )
+
+
+_patch_poseidon_hash()
+
+
+def _patch_hash_rust():
     """
     Monkey-patches pedersen and poseidon hashing functions
     with Equilibrium's Rust implementation
@@ -46,7 +88,7 @@ def _patch_poseidon_hash_rust():
     )
 
 
-_patch_poseidon_hash_rust()
+# _patch_hash_rust()
 
 
 def _patch_copy():
