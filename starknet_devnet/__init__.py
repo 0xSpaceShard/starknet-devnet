@@ -19,7 +19,7 @@ __version__ = "0.5.0"
 def _patch_pedersen_hash():
     """
     Improves performance by substituting the default Python implementation of Pedersen hash
-    with swm's Python wrapper of C++ implementation.
+    with Software Mansion's Python wrapper of C++ implementation.
     """
 
     import starkware.crypto.signature.fast_pedersen_hash
@@ -34,7 +34,7 @@ _patch_pedersen_hash()
 def _patch_poseidon_hash():
     """
     Improves performance by substituting the default Python implementation of Poseidon hash
-    with swm's Python wrapper of C implementation.
+    with Software Mansion's Python wrapper of C implementation.
     """
 
     import starkware.cairo.common.poseidon_hash
