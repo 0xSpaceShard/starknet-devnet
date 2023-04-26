@@ -311,9 +311,9 @@ class DevnetBlocks:
         """Get numeric hash."""
         return _parse_block_hash(block_hash)
 
-    async def abort_block_by_hash(self, block_hash: str) -> str:
+    async def abort_block_by_hash(self, block_hash: str) -> Optional[str]:
         """
-        Abort block by given block hash.
+        Abort block by given block hash. When the block can't be aborted, return None.
         """
         numeric_hash = _parse_block_hash(block_hash)
 
@@ -331,3 +331,5 @@ class DevnetBlocks:
             self.__hash2block[numeric_hash] = StarknetBlock.load(block_dict)
 
             return block.block_hash
+
+        return None
