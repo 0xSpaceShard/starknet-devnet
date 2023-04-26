@@ -20,15 +20,9 @@ jobs:
   test_py_max: &test_template
     docker:
       - image: cimg/python:3.9-node
-    resource_class: medium
-    parallelism: 4
+    resource_class: large
     steps:
       - checkout
-      - run:
-          # if this was done later (e.g. just before the test) and the file wasn't present, it would fail after all the installation
-          name: Check out previous test metadata
-          command: |
-            jq . "${CIRCLE_INTERNAL_TASK_DATA}/circle-test-results/results.json"
       - run:
           name: Install development tools
           command: ./scripts/install_dev_tools.sh
@@ -46,21 +40,7 @@ jobs:
           command: ./scripts/check_import_sort.sh
       - run:
           name: Run pytest tests
-          parallel: true
-          command: |
-            mkdir -p test-results
-            shopt -s globstar
-            SPLIT_BY_CLASS=$(
-              circleci tests glob test/**/test*.py |
-              sed  "s/\.py//g; s/\//./g" |
-              circleci tests split --split-by=timings --timings-type=classname
-            )
-            TEST_FILES=$(sed "s/\./\//g; s/ /.py /g; s/$/.py/g;" \<<< $SPLIT_BY_CLASS)
-            poetry run pytest -s -v --junitxml=test-results/junit.xml $TEST_FILES
-      - store_test_results:
-          path: test-results
-      - store_artifacts:
-          path: test-results
+          command: ./scripts/test.sh
 
   # Since cairo-lang 0.11.0, supported py_min and py_max are the same.
   # Uncomment and modify these lines if py_min and py_max stop being the same.
