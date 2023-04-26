@@ -19,6 +19,10 @@ class StateArchive:
         """Store the state under the given number"""
         self._storage_write(number, state)
 
+    def remove(self, number: int):
+        """Remove the state under the given number"""
+        self._storage_remove(number)
+
     def get(self, number: int) -> StarknetState:
         """
         Returns the state stored under `number`.
@@ -38,6 +42,9 @@ class StateArchive:
     def _storage_read(self, number: int) -> StarknetState:
         raise NotImplementedError
 
+    def _storage_remove(self, number: int) -> StarknetState:
+        raise NotImplementedError
+
 
 class MemoryStateArchive(StateArchive):
     """
@@ -50,6 +57,9 @@ class MemoryStateArchive(StateArchive):
 
     def _storage_write(self, number: int, state: StarknetState):
         self.__storage[number] = state.copy()
+
+    def _storage_remove(self, number: int):
+        del self.__storage[number]
 
     def _storage_read(self, number: int) -> StarknetState:
         return self.__storage[number]
@@ -75,3 +85,7 @@ class DiskStateArchive(StateArchive):
     def _storage_read(self, number: int) -> StarknetState:
         with shelve.open(self.PATH, flag="r") as storage:
             return storage[str(number)]
+
+    def _storage_remove(self, number: int) -> StarknetState:
+        with shelve.open(self.PATH, flag="w") as storage:
+            del storage[str(number)]

@@ -325,5 +325,6 @@ class DevnetBlocks:
         del self.__num2hash[block_dict["block_number"]]
         block_dict["block_number"] = None
         self.__hash2block[numeric_hash] = StarknetBlock.load(block_dict)
+        self.__state_archive.remove(numeric_hash)
 
         return block.block_hash
