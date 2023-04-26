@@ -111,7 +111,7 @@ def test_abort_same_block_twice():
     assert response.status_code == 400
     assert (
         response.json()["message"]
-        == "Aborting blocks must have block numbers. This can happen during abortion of the same block twice."
+        == "Block cannot be aborted. Make sure you are aborting an accepted block."
     )
 
 

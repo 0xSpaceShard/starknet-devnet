@@ -311,25 +311,19 @@ class DevnetBlocks:
         """Get numeric hash."""
         return _parse_block_hash(block_hash)
 
-    async def abort_block_by_hash(self, block_hash: str) -> Optional[str]:
+    async def abort_latest_block(self, block_hash: str) -> str:
         """
-        Abort block by given block hash. When the block can't be aborted, return None.
+        Abort latest block.
         """
         numeric_hash = _parse_block_hash(block_hash)
+        block = self.__hash2block[numeric_hash]
 
-        if numeric_hash in self.__hash2block and numeric_hash in list(
-            self.__num2hash.values()
-        ):
-            block = self.__hash2block[numeric_hash]
+        # This is done like this because the block object's properties cannot be modified
+        block_dict = block.dump()
+        block_dict["status"] = BlockStatus.ABORTED.name
+        block_dict["transaction_receipts"] = None
+        del self.__num2hash[block_dict["block_number"]]
+        block_dict["block_number"] = None
+        self.__hash2block[numeric_hash] = StarknetBlock.load(block_dict)
 
-            # This is done like this because the block object's properties cannot be modified
-            block_dict = block.dump()
-            block_dict["status"] = BlockStatus.ABORTED.name
-            block_dict["transaction_receipts"] = None
-            del self.__num2hash[block_dict["block_number"]]
-            block_dict["block_number"] = None
-            self.__hash2block[numeric_hash] = StarknetBlock.load(block_dict)
-
-            return block.block_hash
-
-        return None
+        return block.block_hash

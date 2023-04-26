@@ -970,43 +970,43 @@ class StarknetWrapper:
             await self.generate_latest_block()
 
         aborted_blocks = []
-        current_block = await self.blocks.get_last_block()
+        last_block = await self.blocks.get_last_block()
 
         # Before the while loop to abort blocks, check if block numbers are set.
-        if not (current_block.block_number and starting_block.block_number):
+        if not (last_block.block_number and starting_block.block_number):
             raise StarknetDevnetException(
                 code=StarknetErrorCode.BLOCK_NOT_FOUND,
                 status_code=400,
-                message="Aborting blocks must have block numbers. This can happen during abortion of the same block twice.",
+                message="Block cannot be aborted. Make sure you are aborting an accepted block.",
             )
 
         # Abort blocks from latest to starting (iterating backwards).
         reached_starting_block = False
         while not reached_starting_block:
             reached_starting_block = (
-                current_block.block_number == starting_block.block_number
+                last_block.block_number == starting_block.block_number
             )
 
-            # Abort current_block.
-            aborted_block_hash = await self.blocks.abort_block_by_hash(
-                hex(current_block.block_hash)
+            # Abort latest_block.
+            aborted_block_hash = await self.blocks.abort_latest_block(
+                hex(last_block.block_hash)
             )
 
             # Reject transactions.
-            for transaction in current_block.transactions:
+            for transaction in last_block.transactions:
                 await self.transactions.reject_transaction(
                     tx_hash=transaction.transaction_hash
                 )
 
             aborted_blocks.append(hex(aborted_block_hash))
-            parent = await self.blocks.get_by_hash(hex(current_block.parent_block_hash))
+            parent = await self.blocks.get_by_hash(hex(last_block.parent_block_hash))
 
             if parent.block_number is not None:
-                current_block = parent
+                last_block = parent
             else:
                 break
 
         # Revert state.
-        self.starknet.state = self.blocks.get_state(current_block.block_hash)
+        self.starknet.state = self.blocks.get_state(last_block.block_hash)
 
         return aborted_blocks
