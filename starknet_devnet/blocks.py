@@ -172,7 +172,7 @@ class DevnetBlocks:
 
             return await self.origin.get_state_update(block_hash=numeric_hash)
 
-        # now an int
+        # now it's the latest
         return (
             self.__state_updates.get((await self.get_last_block()).block_hash)
             or await self.origin.get_state_update()
