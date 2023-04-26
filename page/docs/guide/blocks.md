@@ -49,7 +49,7 @@ You can abort blocks and reject transactions from the specified block to the cur
 
 E.g. assume there are 3 accepted blocks numbered 1, 2 and 3 and your request aborts blocks starting with block 2. This will make blocks 2 and 3 aborted and their transactions rejected. Once a new block is mined, it will be accepted and it will have number 2.
 
-Aborted blocks can only be queried by their hashes. The state of Devnet will be reverted to the last accepted block state. In a block on demand mode, the pending state will be reverted. Aborting the genesis block or blocks in forking origin is not supported.
+Aborted blocks can only be queried by their hashes. The state of Devnet will be reverted to the last accepted block state. In block-on-demand mode, the pending state will be mined and aborted. Aborting the genesis block, blocks in forking origin and already aborted blocks is not supported and results in an error.
 
 ```
 POST /abort_blocks
