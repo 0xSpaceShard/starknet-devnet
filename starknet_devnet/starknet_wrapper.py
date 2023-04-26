@@ -229,9 +229,8 @@ class StarknetWrapper:
         await self.blocks.generate_pending(transactions, state, state_update)
         block = await self.generate_latest_block(block_hash=0)
 
-        # Set the genesis block number if devnet is not in forked mode.
-        if not self.config.fork_block:
-            self.genesis_block_number = block.block_number
+        # Set the genesis block number
+        self.genesis_block_number = block.block_number
 
         for transaction in transactions:
             transaction.set_block(block=block)
@@ -948,6 +947,13 @@ class StarknetWrapper:
         """
         Abort blocks.
         """
+        # Check if genesis block can be aborted.
+        if starting_block.block_number == self.genesis_block_number:
+            raise StarknetDevnetException(
+                code=StarknetErrorCode.OUT_OF_RANGE_BLOCK_ID,
+                message="Aborting genesis block is not supported.",
+            )
+
         # Check if blocks can be aborted in fork mode.
         if (
             self.config.fork_block
@@ -956,13 +962,6 @@ class StarknetWrapper:
             raise StarknetDevnetException(
                 code=StarknetErrorCode.OUT_OF_RANGE_BLOCK_ID,
                 message="Aborting forked blocks is not supported.",
-            )
-
-        # Check if genesis block can be aborted.
-        if starting_block.block_number == self.genesis_block_number:
-            raise StarknetDevnetException(
-                code=StarknetErrorCode.OUT_OF_RANGE_BLOCK_ID,
-                message="Aborting genesis block is not supported.",
             )
 
         # Create new block with pending transactions if possible.

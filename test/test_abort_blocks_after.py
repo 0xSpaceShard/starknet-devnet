@@ -204,17 +204,25 @@ def test_new_blocks_after_abortion():
 )
 def test_forked_at_block_with_abort_blocks():
     """Test if abortion of forked blocks is failing."""
-    # Get latest valid block with block hash
+    # Get fork status
     fork_status = requests.get(f"{APP_URL}/fork_status")
     assert fork_status.status_code == 200
+
+    # Abort block should fail on forked blocks
     block_before_fork = get_block(
         block_number=fork_status.json().get("block") - 1, parse=True
     )
-
-    # Abort Block should fail on forked blocks
     response = abort_blocks(block_before_fork["block_hash"])
     assert response.status_code == 500
     assert response.json()["message"] == "Aborting forked blocks is not supported."
+
+    # Abort block should fail on genesis forked blocks
+    genesis_block_fork = get_block(
+        block_number=fork_status.json().get("block") + 1, parse=True
+    )
+    response = abort_blocks(genesis_block_fork["block_hash"])
+    assert response.status_code == 500
+    assert response.json()["message"] == "Aborting genesis block is not supported."
 
     # Deploy contract and mine new block
     contract_deploy_info = declare_and_deploy_with_chargeable(
