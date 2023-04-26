@@ -973,13 +973,13 @@ class StarknetWrapper:
         aborted_blocks = []
         current_block = await self.blocks.get_last_block()
 
-        # Before the while loop to abort blocks, check if the requirements are met.
-        if not (
-            current_block.block_number
-            and starting_block.block_number
-            and current_block.block_number >= starting_block.block_number
-        ):
-            return aborted_blocks
+        # Before the while loop to abort blocks, check if block numbers are set.
+        if not (current_block.block_number and starting_block.block_number):
+            raise StarknetDevnetException(
+                code=StarknetErrorCode.BLOCK_NOT_FOUND,
+                status_code=400,
+                message="Aborting blocks must have block numbers. This can happen during abortion of the same block twice.",
+            )
 
         # Abort blocks from latest to starting (iterating backwards).
         reached_starting_block = False

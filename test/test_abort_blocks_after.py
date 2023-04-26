@@ -108,7 +108,11 @@ def test_abort_same_block_twice():
 
     # Try to abort block again
     response = abort_blocks(contract_deploy_block["block_hash"])
-    assert response.json()["aborted"] == []
+    assert response.status_code == 400
+    assert (
+        response.json()["message"]
+        == "Aborting blocks must have block numbers. This can happen during abortion of the same block twice."
+    )
 
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
