@@ -18,9 +18,8 @@ __version__ = "0.5.0"
 
 def _patch_pedersen_hash():
     """
-    This is a monkey-patch to improve the performance of the devnet
-    We are using c++ code for calculating the pedersen hashes
-    instead of python implementation from cairo-lang package
+    Improves performance by substituting the default Python implementation of Pedersen hash
+    with swm's Python wrapper of C++ implementation.
     """
 
     import starkware.crypto.signature.fast_pedersen_hash
@@ -35,7 +34,7 @@ _patch_pedersen_hash()
 def _patch_poseidon_hash():
     """
     Improves performance by substituting the default Python implementation of Poseidon hash
-    with swm's Python wrapper of a C implementation.
+    with swm's Python wrapper of C implementation.
     """
 
     import starkware.cairo.common.poseidon_hash
@@ -56,39 +55,6 @@ def _patch_poseidon_hash():
 
 
 _patch_poseidon_hash()
-
-
-def _patch_hash_rust():
-    """
-    Monkey-patches pedersen and poseidon hashing functions
-    with Equilibrium's Rust implementation
-    """
-
-    import starknet_pathfinder_crypto
-    import starkware.cairo.common.poseidon_hash
-    import starkware.crypto.signature.fast_pedersen_hash
-
-    starkware.crypto.signature.fast_pedersen_hash.pedersen_hash_func = getattr(
-        starknet_pathfinder_crypto, "pedersen_hash_func"
-    )
-    starkware.crypto.signature.fast_pedersen_hash.pedersen_hash = getattr(
-        starknet_pathfinder_crypto, "pedersen_hash"
-    )
-    starkware.cairo.common.poseidon_hash.poseidon_hash = getattr(
-        starknet_pathfinder_crypto, "poseidon_hash"
-    )
-    starkware.cairo.common.poseidon_hash.poseidon_hash_func = getattr(
-        starknet_pathfinder_crypto, "poseidon_hash_func"
-    )
-    starkware.cairo.common.poseidon_hash.poseidon_hash_many = getattr(
-        starknet_pathfinder_crypto, "poseidon_hash_many"
-    )
-    starkware.cairo.common.poseidon_hash.poseidon_perm = getattr(
-        starknet_pathfinder_crypto, "poseidon_perm"
-    )
-
-
-# _patch_hash_rust()
 
 
 def _patch_copy():
