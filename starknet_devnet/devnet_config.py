@@ -218,7 +218,7 @@ def _parse_cairo_compiler_manifest(manifest_path: str):
             "cargo",
             "run",
             "--bin",
-            "starknet-compile",
+            "starknet-sierra-compile",
             "--manifest-path",
             manifest_path,
             "--",
