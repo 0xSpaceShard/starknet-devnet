@@ -3,27 +3,35 @@ Test declare v2 in forked mode.
 The benefit of having this in a separate file is the ability to parallelize.
 """
 
+import pytest
 from starkware.starknet.services.api.contract_class.contract_class import ContractClass
 from starkware.starknet.services.api.contract_class.contract_class_utils import (
     load_sierra,
 )
 
 from .account import send_declare_v2
-from .settings import APP_URL
+from .settings import APP_URL, HOST, bind_free_port
+
 from .shared import (
     CONTRACT_1_CASM_PATH,
     CONTRACT_1_PATH,
     EXPECTED_CLASS_1_HASH,
+    PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
-from .test_declare_v2 import assert_declare_v2_accepted, load_cairo1_contract
+from .test_declare_v2 import (
+    assert_already_declared,
+    assert_declare_v2_accepted,
+    load_cairo1_contract,
+)
 from .testnet_deployment import (
     TESTNET_DEPLOYMENT_BLOCK,
     TESTNET_FORK_PARAMS,
     TESTNET_URL,
 )
 from .util import (
+    DevnetBackgroundProc,
     assert_class_by_hash_not_present,
     assert_compiled_class_by_hash,
     assert_compiled_class_by_hash_not_present,
@@ -31,6 +39,22 @@ from .util import (
     devnet_in_background,
     get_class_by_hash,
 )
+
+
+FORKING_DEVNET = DevnetBackgroundProc()
+
+ORIGIN_PORT, ORIGIN_URL = bind_free_port(HOST)
+FORK_PORT, FORK_URL = bind_free_port(HOST)
+
+
+@pytest.fixture(autouse=True)
+def run_before_and_after_test():
+    """Cleanup after tests finish."""
+    # before test
+    FORKING_DEVNET.stop()
+    yield
+    # after test
+    FORKING_DEVNET.stop()
 
 
 @devnet_in_background(
@@ -85,4 +109,54 @@ def test_declare_v2_and_get_class_by_hash():
         class_hash=EXPECTED_CLASS_1_HASH,
         expected_path=CONTRACT_1_CASM_PATH,
         feeder_gateway_url=APP_URL,
+    )
+
+
+@devnet_in_background("--port", ORIGIN_PORT, *PREDEPLOY_ACCOUNT_CLI_ARGS)
+def test_declare_v2_if_already_declared_on_origin():
+    """Declare on origin; declare on fork; assert rejected"""
+
+    # declare on origin
+    contract_class, _, compiled_class_hash = load_cairo1_contract()
+
+    declaration_resp = send_declare_v2(
+        contract_class=contract_class,
+        compiled_class_hash=compiled_class_hash,
+        sender_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        sender_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+        gateway_url=ORIGIN_URL,
+    )
+    assert_declare_v2_accepted(declaration_resp, feeder_gateway_url=ORIGIN_URL)
+
+    # fork
+    FORKING_DEVNET.start(
+        "--port", FORK_PORT, "--fork-network", ORIGIN_URL, "--accounts", "0"
+    )
+
+    assert_compiled_class_by_hash(
+        class_hash=EXPECTED_CLASS_1_HASH,
+        expected_path=CONTRACT_1_CASM_PATH,
+        feeder_gateway_url=ORIGIN_URL,
+    )
+
+    assert_compiled_class_by_hash(
+        class_hash=EXPECTED_CLASS_1_HASH,
+        expected_path=CONTRACT_1_CASM_PATH,
+        feeder_gateway_url=FORK_URL,
+    )
+
+    # attempt declaring on fork
+    redeclaration_resp = send_declare_v2(
+        contract_class=contract_class,
+        compiled_class_hash=compiled_class_hash,
+        sender_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        sender_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+        gateway_url=FORK_URL,
+    )
+    assert_already_declared(redeclaration_resp, feeder_gateway_url=FORK_URL)
+
+    assert_compiled_class_by_hash(
+        class_hash=EXPECTED_CLASS_1_HASH,
+        expected_path=CONTRACT_1_CASM_PATH,
+        feeder_gateway_url=FORK_URL,
     )

@@ -652,6 +652,7 @@ class StarknetWrapper:
         Return compiled class given the class hash (sierra hash).
         Should report an undeclared class if given the hash of a deprecated class
         """
+        print("DEBUG inside get_compiled_class_by_class_hash; is_fork?", self.__is_fork())
 
         state = self.get_state().state
 
@@ -659,10 +660,14 @@ class StarknetWrapper:
             compiled_class = await state.get_compiled_class_by_class_hash(class_hash)
             if isinstance(compiled_class, CompiledClass):
                 return compiled_class
-        except AssertionError:
+        except AssertionError as e:
             # the received hash is compiled_class_hash of a cairo1 class
-            pass
+            print("DEBUG caught exception; is_fork?", self.__is_fork())
+            print("DEBUG received hash is compiled_class_hash of a cairo1 class")
+            print("DEBUG e", e)
+            # TODO pass
 
+        print("DEBUG raising in starknet_wrapper")
         raise UndeclaredClassDevnetException(class_hash)
 
     async def get_class_hash_at(

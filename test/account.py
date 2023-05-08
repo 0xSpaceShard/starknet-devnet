@@ -464,11 +464,12 @@ def send_declare_v2(
     compiled_class_hash: int,
     sender_address: str,
     sender_key: int,
+    gateway_url=APP_URL,
 ):
     """Send a declare v2 transaction"""
     max_fee = int(1e18)  # should be enough
     version = 2
-    nonce = get_nonce(sender_address)
+    nonce = get_nonce(sender_address, feeder_gateway_url=gateway_url)
     chain_id = StarknetChainId.TESTNET.value
     hash_value = calculate_declare_transaction_hash(
         contract_class=contract_class,
@@ -491,4 +492,6 @@ def send_declare_v2(
     ).dump()
     declaration_body["type"] = "DECLARE"
 
-    return requests.post(f"{APP_URL}/gateway/add_transaction", json=declaration_body)
+    return requests.post(
+        f"{gateway_url}/gateway/add_transaction", json=declaration_body
+    )

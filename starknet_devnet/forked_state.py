@@ -74,8 +74,10 @@ class ForkedStateReader(StateReader):
                 )
             return _load_compiled_class(class_dict)
         except BadRequest as bad_request:
+            print("DEBUG got BadRequest")
             if is_originally_starknet_exception(bad_request):
                 original_error = _extract_original_stark_exception(bad_request)
+                print("DEBUG the BadRequest is originally a starknet exception:", original_error)
                 raise original_error from bad_request
             raise
 
@@ -93,6 +95,7 @@ class ForkedStateReader(StateReader):
             if is_originally_starknet_exception(bad_request):
                 original_error = _extract_original_stark_exception(bad_request)
                 if original_error.code == str(StarknetErrorCode.UNDECLARED_CLASS):
+                    print("DEBUG defaulting to _get_class_by_hash")
                     return await self._get_class_by_hash(compiled_class_hash)
                 raise original_error from bad_request
             raise
@@ -106,7 +109,7 @@ class ForkedStateReader(StateReader):
                         block_number=self.__block_number,
                     )
                 )
-            compiled_class = CompiledClassBase.load(compiled_class_dict)
+            compiled_class = _load_compiled_class(compiled_class_dict)
         except BadRequest as bad_request:
             if is_originally_starknet_exception(bad_request):
                 original_error = _extract_original_stark_exception(bad_request)
