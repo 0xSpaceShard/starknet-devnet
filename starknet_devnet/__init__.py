@@ -49,6 +49,9 @@ def _patch_poseidon_hash():
     starkware.cairo.common.poseidon_hash.poseidon_hash_many = getattr(
         poseidon_hash, "poseidon_hash_many"
     )
+    starkware.cairo.common.poseidon_hash.poseidon_hash_single = getattr(
+        poseidon_hash, "poseidon_hash_single"
+    )
     starkware.cairo.common.poseidon_hash.poseidon_perm = getattr(
         poseidon_hash, "poseidon_perm"
     )

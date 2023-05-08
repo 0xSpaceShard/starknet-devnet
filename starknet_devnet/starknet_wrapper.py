@@ -363,10 +363,10 @@ class StarknetWrapper:
             # extract class hash here if execution later fails
             class_hash = tx_handler.internal_tx.class_hash
 
-            # this is done now (before excute_tx) so that later we can assert it hasn't been deployed
+            # this is done now (before execute_tx) so that later we can assert it hasn't been deployed
             compiled_class_hash = await state.state.get_compiled_class_hash(class_hash)
 
-            # check if Declare v2
+            # check if Cairo 1 / Declare v2
             if isinstance(external_tx, Declare):
                 await assert_not_declared(class_hash, compiled_class_hash)
                 compiled_class_hash = tx_handler.internal_tx.compiled_class_hash
@@ -392,7 +392,7 @@ class StarknetWrapper:
                     ClassHashPair(class_hash, compiled_class_hash)
                 )
 
-            else:  # Cairo 0.x class
+            else:  # Cairo 0.x / Declare v1
                 tx_handler.execution_info = await state.execute_tx(
                     tx_handler.internal_tx
                 )
@@ -693,9 +693,14 @@ class StarknetWrapper:
         """Return code dict given the contract address"""
         try:
             contract_class = await self.get_class_by_address(contract_address, block_id)
+            bytecode = (
+                contract_class["program"]["data"]  # cairo 0
+                if "program" in contract_class
+                else contract_class["sierra_program"]  # cairo 1
+            )
             result_dict = {
                 "abi": contract_class["abi"],
-                "bytecode": contract_class["program"]["data"],
+                "bytecode": bytecode,
             }
         except StarkException as err:
             if err.code != StarknetErrorCode.UNINITIALIZED_CONTRACT:

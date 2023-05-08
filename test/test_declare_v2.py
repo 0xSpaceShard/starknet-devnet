@@ -27,6 +27,7 @@ from .shared import (
 )
 from .test_state_update import get_state_update
 from .util import (
+    assert_contract_code_present,
     assert_hex_equal,
     assert_tx_status,
     assert_undeclared_class,
@@ -229,7 +230,7 @@ def test_v2_contract_interaction():
 
 @pytest.mark.declare
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
-def test_v2_get_full_contract():
+def test_getting_contract_artifacts():
     """Test for declare, deploy and get full contract"""
 
     contract_class, _, compiled_class_hash = load_cairo1_contract()
@@ -257,7 +258,11 @@ def test_v2_get_full_contract():
         tx_hash=deploy_info["tx_hash"], expected_tx_status="ACCEPTED_ON_L2"
     )
 
+    # get_full_contract
     full_contract = get_full_contract_raw(contract_address=deploy_info["address"])
     assert full_contract.status_code == 200
     sierra = ContractClass.load(full_contract.json())
     assert load_sierra(CONTRACT_1_PATH) == sierra
+
+    # get_code
+    assert_contract_code_present(deploy_info["address"])
