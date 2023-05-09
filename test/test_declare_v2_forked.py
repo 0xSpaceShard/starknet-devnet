@@ -131,13 +131,9 @@ def test_declare_v2_if_already_declared_on_origin():
         "--port", FORK_PORT, "--fork-network", ORIGIN_URL, "--accounts", "0"
     )
 
-    # if forking devnet with devnet, as it currently is in this test, the following assertion would
-    # fail because of how get_compiled_class_by_class_hash is implemented
-    # assert_compiled_class_by_hash(
-    #     class_hash=EXPECTED_CLASS_1_HASH,
-    #     expected_path=CONTRACT_1_CASM_PATH,
-    #     feeder_gateway_url=FORK_URL,
-    # )
+    # if forking devnet with devnet, as it currently is in this test,
+    # asserting at this point that compiled class is present by requesting it
+    # would fail because of how get_compiled_class_by_class_hash is implemented
 
     # attempt declaring on fork
     redeclaration_resp = send_declare_v2(

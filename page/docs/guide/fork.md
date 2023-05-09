@@ -18,7 +18,7 @@ You can use the `--fork-retries` parameter to specify the number of retries of f
 
 All calls will first try Devnet's state and then fall back to the forking block.
 
-If you are forking another Devnet instance, keep in mind that it doesn't support polling specific blocks, but will always fall back to the currently latest block.
+If you are forking another Devnet instance, retrieving Cairo 1 classes might not work as expected if the class is only declared on the origin Devnet. Redeclaring it in the fork should fail (as expected).
 
 ## Chain ID
 
