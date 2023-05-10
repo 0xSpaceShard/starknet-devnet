@@ -34,7 +34,6 @@ def build_devnet_general_config(chain_id: StarknetChainId):
                 "chain_id": chain_id.value,
                 "fee_token_address": hex(FeeToken.ADDRESS),
             },
-            "tx_version": SUPPORTED_TX_VERSION,
             "tx_commitment_tree_height": constants.TRANSACTION_COMMITMENT_TREE_HEIGHT,
             "validate_max_n_steps": DEFAULT_VALIDATE_MAX_STEPS,
         }

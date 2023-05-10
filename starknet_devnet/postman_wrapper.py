@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from typing import Tuple
 
 from starkware.eth.eth_test_utils import EthAccount, EthContract
-from starkware.eth.web3_wrapper import web3_contract_create_filter_fix
+# from starkware.eth.web3_wrapper import web3_contract_create_filter_fix
 from starkware.solidity.utils import load_nearby_contract
 from starkware.starknet.business_logic.transaction.objects import InternalL1Handler
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
@@ -199,7 +199,7 @@ class Postman:
 
         # Create a filter to collect LogMessageToL2 events.
         w3_contract = self.mock_starknet_messaging_contract.w3_contract
-        web3_contract_create_filter_fix(w3_contract.events.LogMessageToL2)
+        # web3_contract_create_filter_fix(w3_contract.events.LogMessageToL2)
         self.message_to_l2_filter = w3_contract.events.LogMessageToL2.create_filter(
             fromBlock=LATEST_BLOCK_ID
         )

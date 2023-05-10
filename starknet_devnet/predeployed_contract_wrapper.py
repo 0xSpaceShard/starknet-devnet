@@ -51,5 +51,4 @@ class PredeployedContractWrapper(ABC):
             state=starknet.state,
             abi=self.contract_class.abi,
             contract_address=self.address,
-            deploy_call_info=None,
         )
