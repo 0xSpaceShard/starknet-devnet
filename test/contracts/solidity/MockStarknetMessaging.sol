@@ -20,6 +20,9 @@ contract MockStarknetMessaging is StarknetMessaging {
             abi.encodePacked(fromAddress, toAddress, payload.length, payload)
         );
         l2ToL1Messages()[msgHash] += 1;
+
+        // our modification to trigger the event
+        LogMessageToL1(fromAddress, address(toAddress), payload);
     }
 
     /**

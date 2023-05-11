@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -eu
+
 TEST_DIRECTORY=test/contracts
 ARTIFACTS_DIRECTORY=test/artifacts
 

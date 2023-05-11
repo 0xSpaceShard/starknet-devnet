@@ -218,7 +218,7 @@ def _init_l2_contract(l1l2_example_contract_address: str):
     return deploy_info["address"]
 
 
-def _l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address):
+def _l1_l2_message_exchange(web3: Web3, l1l2_example_contract, l2_contract_address):
     """Tests message exchange"""
 
     # assert contract balance when starting
@@ -351,7 +351,16 @@ def test_postman():
 
     # Test initializing the l2 example contract
     l2_contract_address = _init_l2_contract(l1l2_example_contract.address)
+
+    # assert the custom-emitted event is intercepted
+    events = starknet_messaging_contract.events.LogMessageToL1.create_filter(
+        fromBlock="latest"
+    ).get_new_entries()
+    assert len(events) == 1
+
     _l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address)
+
+    # TODO what should be the expected number of new LogMessageToL1 events at this point?
 
 
 def _load_l1_messaging_contract(req_dict: dict):
