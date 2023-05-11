@@ -328,6 +328,7 @@ class StarknetWrapper:
             nonces=nonces or {},
         )
 
+        # There is a validation error now... how to fix it properly?
         return BlockStateUpdate(
             block_hash=0,  # this is hack to omit "new_root must appear in state update for any block other than pending block."
             new_root=DUMMY_STATE_ROOT,
@@ -400,7 +401,7 @@ class StarknetWrapper:
                 compiled_class = external_tx.contract_class
                 tx_handler.explicitly_declared_old.append(class_hash)
 
-            state.state.contract_classes[compiled_class_hash] = compiled_class
+            state.state.compiled_classes[compiled_class_hash] = compiled_class
             self._contract_classes[class_hash] = external_tx.contract_class
 
         return class_hash, tx_handler.internal_tx.hash_value
