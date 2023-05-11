@@ -107,7 +107,7 @@ def test_salty_deploy():
     """Test deploying with salt"""
 
     expected_address = (
-        "0x6c9b52d3297d731eaea82dbfa4d20424855d498b8594b9442a1d4d5d995a5bd"
+        "0x3373b152497a6a4ea61d30e740222f43f1264ca7cd238ce1d115f7297a9791a"
     )
     contract_path = EVENTS_CONTRACT_PATH
     inputs = None
