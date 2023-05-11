@@ -22,7 +22,7 @@ contract MockStarknetMessaging is StarknetMessaging {
         l2ToL1Messages()[msgHash] += 1;
 
         // our modification to trigger the event
-        LogMessageToL1(fromAddress, address(toAddress), payload);
+        emit LogMessageToL1(fromAddress, address(toAddress), payload);
     }
 
     /**
