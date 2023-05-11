@@ -30,7 +30,7 @@ class PredeployedContractWrapper(ABC):
         starknet: Starknet = self.starknet_wrapper.starknet
 
         # declare
-        starknet.state.state.contract_classes[self.class_hash] = self.contract_class
+        starknet.state.state.compiled_classes[self.class_hash] = self.contract_class
 
         # pylint: disable=protected-access
         self.starknet_wrapper._contract_classes[self.class_hash] = self.contract_class

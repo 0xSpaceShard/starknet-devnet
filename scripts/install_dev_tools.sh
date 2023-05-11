@@ -25,7 +25,7 @@ fi
 if [ -z "$CAIRO_1_COMPILER_MANIFEST" ]; then
     mkdir cairo-compiler
     git clone git@github.com:starkware-libs/cairo.git cairo-compiler \
-        --branch v1.0.0-alpha.6 \
+        --branch v1.0.0-rc0 \
         --single-branch
     CAIRO_1_COMPILER_MANIFEST="cairo-compiler/Cargo.toml"
 

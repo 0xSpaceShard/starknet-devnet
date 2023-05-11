@@ -329,7 +329,7 @@ class StarknetWrapper:
         )
 
         return BlockStateUpdate(
-            block_hash=None,
+            block_hash=0,  # this is hack to omit "new_root must appear in state update for any block other than pending block."
             new_root=DUMMY_STATE_ROOT,
             old_root=DUMMY_STATE_ROOT,
             state_diff=state_diff,
@@ -932,7 +932,7 @@ class StarknetWrapper:
     async def __predeclare_starknet_cli_account(self):
         """Predeclares the account class used by Starknet CLI"""
         state = self.get_state().state
-        state.contract_classes[STARKNET_CLI_ACCOUNT_CLASS_HASH] = oz_account_class
+        state.compiled_classes[STARKNET_CLI_ACCOUNT_CLASS_HASH] = oz_account_class
 
     async def __deploy_chargeable_account(self):
         if await self.is_deployed(ChargeableAccount.ADDRESS):

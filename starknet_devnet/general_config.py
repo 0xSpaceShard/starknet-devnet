@@ -11,7 +11,6 @@ from starkware.starknet.definitions.general_config import (
     build_general_config,
 )
 
-from .constants import SUPPORTED_TX_VERSION
 from .fee_token import FeeToken
 
 
