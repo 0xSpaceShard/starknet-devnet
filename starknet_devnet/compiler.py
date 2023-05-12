@@ -4,7 +4,8 @@ import json
 import os
 import subprocess
 import tempfile
-from abc import ABC
+from abc import ABC, abstractmethod
+from typing import List
 
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.services.api.contract_class.contract_class import (
@@ -16,6 +17,7 @@ from starkware.starknet.services.api.contract_class.contract_class_utils import 
 )
 from starkware.starkware_utils.error_handling import StarkException
 
+from starknet_devnet.devnet_config import DevnetConfig
 from starknet_devnet.util import StarknetDevnetException
 
 
@@ -52,8 +54,9 @@ class DefaultContractClassCompiler(ContractClassCompiler):
 class CustomContractClassCompiler(ContractClassCompiler):
     """Uses the compiler according to the compiler_manifest provided in initialization"""
 
-    def __init__(self, compiler_manifest: str):
-        self.compiler_manifest = compiler_manifest
+    @abstractmethod
+    def get_sierra_compiler_command(self) -> List[str]:
+        """Returns the shell command of the sierra compiler"""
 
     def compile_contract_class(self, contract_class: ContractClass) -> CompiledClass:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -66,13 +69,7 @@ class CustomContractClassCompiler(ContractClassCompiler):
                 json.dump(contract_class_dumped, tmp_file)
 
             compilation_args = [
-                "cargo",
-                "run",
-                "--bin",
-                "starknet-sierra-compile",
-                "--manifest-path",
-                self.compiler_manifest,
-                "--",
+                *self.get_sierra_compiler_command(),
                 "--allowed-libfuncs-list-name",
                 "experimental_v0.1.0",
                 "--add-pythonic-hints",
@@ -92,3 +89,43 @@ class CustomContractClassCompiler(ContractClassCompiler):
             with open(contract_casm, encoding="utf-8") as casm_file:
                 compiled_class = CompiledClass.loads(casm_file.read())
             return compiled_class
+
+
+class ManifestContractClassCompiler(CustomContractClassCompiler):
+    """Sierra compiler relying on the compiler repo manifest"""
+
+    def __init__(self, compiler_manifest: str):
+        super().__init__()
+        self._compiler_command = [
+            "cargo",
+            "run",
+            "--bin",
+            "starknet-sierra-compile",
+            "--manifest-path",
+            compiler_manifest,
+            "--",
+        ]
+
+    def get_sierra_compiler_command(self) -> List[str]:
+        return self._compiler_command
+
+
+class BinaryContractClassCompiler(CustomContractClassCompiler):
+    """Sierra compiler relying on the starknet-sierra-compile binary executable"""
+
+    def __init__(self, executable_path: str):
+        self._compiler_command = [executable_path]
+
+    def get_sierra_compiler_command(self) -> List[str]:
+        return self._compiler_command
+
+
+def select_compiler(config: DevnetConfig) -> ContractClassCompiler:
+    """Selects the compiler class according to the specification in the config object"""
+    if config.cairo_compiler_manifest:
+        return ManifestContractClassCompiler(config.cairo_compiler_manifest)
+
+    if config.sierra_compiler_path:
+        return BinaryContractClassCompiler(config.sierra_compiler_path)
+
+    return DefaultContractClassCompiler()

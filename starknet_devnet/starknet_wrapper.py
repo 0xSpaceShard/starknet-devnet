@@ -72,7 +72,7 @@ from .block_info_generator import BlockInfoGenerator
 from .blocks import DevnetBlocks
 from .blueprints.rpc.structures.types import BlockId, Felt
 from .chargeable_account import ChargeableAccount
-from .compiler import CustomContractClassCompiler, DefaultContractClassCompiler
+from .compiler import select_compiler
 from .constants import (
     DUMMY_STATE_ROOT,
     LEGACY_TX_VERSION,
@@ -145,11 +145,7 @@ class StarknetWrapper:
         self._contract_classes: Dict[int, Union[DeprecatedCompiledClass, ContractClass]]
         """If v2 - store sierra, otherwise store old class; needed for get_class_by_hash"""
         self.genesis_block_number = None
-        self._compiler = (
-            CustomContractClassCompiler(config.cairo_compiler_manifest)
-            if config.cairo_compiler_manifest
-            else DefaultContractClassCompiler()
-        )
+        self._compiler = select_compiler(config)
 
         if config.start_time is not None:
             self.set_block_time(config.start_time)
