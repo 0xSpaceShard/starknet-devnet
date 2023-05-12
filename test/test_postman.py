@@ -139,6 +139,13 @@ def deploy_l1_contracts(web3):
     """Deploys Ethereum contracts in the Hardhat testnet instance, including the L1L2Example and MockStarknetMessaging contracts"""
 
     messaging_contract = json.loads(load_file_content(STARKNET_MESSAGING_PATH))
+
+    # Assert the two instances of MockMessagingContract artifact are the same
+    production_messaging_contract = json.loads(
+        load_file_content("../starknet_devnet/MockStarknetMessaging.json")
+    )
+    assert messaging_contract == production_messaging_contract
+
     l1l2_example_contract = json.loads(load_file_content(L1L2_EXAMPLE_PATH))
 
     # Min amount of time in seconds for a message to be able to be cancelled
@@ -353,14 +360,12 @@ def test_postman():
     l2_contract_address = _init_l2_contract(l1l2_example_contract.address)
 
     # assert the custom-emitted event is intercepted
-    events = starknet_messaging_contract.events.LogMessageToL1.create_filter(
-        fromBlock="latest"
-    ).get_new_entries()
-    assert len(events) == 1
+    event_filter = starknet_messaging_contract.events.LogMessageToL1.create_filter(
+        fromBlock=0, toBlock="latest"
+    )
+    assert len(event_filter.get_new_entries()) == 1
 
     _l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address)
-
-    # TODO what should be the expected number of new LogMessageToL1 events at this point?
 
 
 def _load_l1_messaging_contract(req_dict: dict):
