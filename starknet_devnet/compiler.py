@@ -14,6 +14,7 @@ from starkware.starknet.services.api.contract_class.contract_class import (
 from starkware.starknet.services.api.contract_class.contract_class_utils import (
     compile_contract_class,
 )
+from starkware.starkware_utils.error_handling import StarkException
 
 from starknet_devnet.util import StarknetDevnetException
 
@@ -30,10 +31,22 @@ class DefaultContractClassCompiler(ContractClassCompiler):
     """Uses the default internal cairo-lang compiler"""
 
     def compile_contract_class(self, contract_class: ContractClass) -> CompiledClass:
-        return compile_contract_class(
-            contract_class,
-            compiler_args="--add-pythonic-hints --allowed-libfuncs-list-name experimental_v0.1.0",
-        )
+        custom_err_msg = "\nFailed compilation from Sierra to Casm! Read more about starting Devnet with --cairo-compiler-manifest"
+
+        try:
+            return compile_contract_class(
+                contract_class,
+                compiler_args="--add-pythonic-hints --allowed-libfuncs-list-name experimental_v0.1.0",
+            )
+        except PermissionError as permission_error:
+            raise StarknetDevnetException(
+                code=StarknetErrorCode.COMPILATION_FAILED, message=custom_err_msg
+            ) from permission_error
+        except StarkException as stark_exception:
+            raise StarknetDevnetException(
+                code=stark_exception.code,
+                message=stark_exception.message + custom_err_msg,
+            ) from stark_exception
 
 
 class CustomContractClassCompiler(ContractClassCompiler):

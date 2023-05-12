@@ -58,6 +58,7 @@ from starkware.starknet.core.os.contract_class.deprecated_class_hash import (
 from starkware.starknet.core.os.syscall_handler import (
     BusinessLogicSyscallHandler,
     DeprecatedBlSyscallHandler,
+    SyscallHandlerBase,
 )
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.definitions.general_config import StarknetGeneralConfig
@@ -590,6 +591,21 @@ def cairo_rs_py_validate_read_only_segments(self, runner: CairoRunner):
         runner.mark_as_accessed(address=segment_ptr, size=segment_size)
 
 
+def cairo_rs_py_get_felt_range(self, start_addr: Any, end_addr: Any) -> List[int]:
+    assert isinstance(start_addr, RelocatableValue)
+    assert isinstance(end_addr, RelocatableValue)
+    assert start_addr.segment_index == end_addr.segment_index, (
+        "Inconsistent start and end segment indices "
+        f"({start_addr.segment_index} != {end_addr.segment_index})."
+    )
+    assert start_addr.offset <= end_addr.offset, (
+        "The start offset cannot be greater than the end offset"
+        f"({start_addr.offset} > {end_addr.offset})."
+    )
+    size = end_addr.offset - start_addr.offset
+    return self.segments.memory.get_range_as_ints(addr=start_addr, size=size)
+
+
 def cairo_rs_py_monkeypatch():
     setattr(ExecuteEntryPoint, "_execute", cairo_rs_py_execute)
     setattr(ExecuteEntryPoint, "_run", cairo_rs_py_run)
@@ -642,3 +658,4 @@ def cairo_rs_py_monkeypatch():
         cairo_rs_py_get_runtime_type,
     )
     setattr(syscall_utils.HandlerException, "__str__", handler_exception__str__)
+    setattr(SyscallHandlerBase, "_get_felt_range", cairo_rs_py_get_felt_range)
