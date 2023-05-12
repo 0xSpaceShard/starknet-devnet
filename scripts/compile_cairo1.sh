@@ -8,13 +8,11 @@ ARTIFACTS_DIRECTORY="test/artifacts/contracts/cairo1"
 rm -rf "$ARTIFACTS_DIRECTORY"
 mkdir -p "$ARTIFACTS_DIRECTORY"
 
-compiler_version=$(
-    cargo run \
-        --manifest-path "$CAIRO_1_COMPILER_MANIFEST" \
-        --bin starknet-sierra-compile \
-        -- --version
-)
-echo "Compiling Cairo 1 contracts with $compiler_version"
+echo "Compiling Cairo 1 contracts with:"
+cargo run \
+    --manifest-path "$CAIRO_1_COMPILER_MANIFEST" \
+    --bin starknet-sierra-compile \
+    -- --version
 
 number_of_contracts=0
 for contract in "test/contracts/cairo1"/*.cairo; do

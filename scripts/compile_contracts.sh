@@ -11,6 +11,9 @@ rm -rf $ARTIFACTS_DIRECTORY
 # create artifacts directory
 mkdir -p $ARTIFACTS_DIRECTORY
 
+# check now for cairo 1 compiler manifest variable to prevent failing after a minute of compilation
+echo "Using Cairo 1 compiler at $CAIRO_1_COMPILER_MANIFEST"
+
 # compile Solidity test contracts first
 # order matters as Hardhat will remove Cairo artifacts
 echo "Compiling Solidity contracts with Hardhat $(npx hardhat --version)"
