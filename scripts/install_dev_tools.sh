@@ -37,11 +37,10 @@ if [ -z "$CAIRO_1_COMPILER_MANIFEST" ]; then
 fi
 
 echo "Using Cairo compiler at $CAIRO_1_COMPILER_MANIFEST"
-
-cargo run --bin starknet-compile \
-    --manifest-path "$CAIRO_1_COMPILER_MANIFEST" \
-    -- \
-    --version
+cargo build \
+    --bin starknet-compile \
+    --bin starknet-sierra-compile \
+    --manifest-path "$CAIRO_1_COMPILER_MANIFEST"
 
 # install dependencies
 poetry install --no-ansi
