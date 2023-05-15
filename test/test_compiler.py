@@ -32,7 +32,7 @@ CAIRO_1_COMPILER_MANIFEST = os.getenv("CAIRO_1_COMPILER_MANIFEST")
 if not CAIRO_1_COMPILER_MANIFEST:
     raise KeyError("CAIRO_1_COMPILER_MANIFEST env var not set")
 
-# since the manifest file is at the root of the repo,
+# since the manifest file is at the root of the compiler repo,
 # this allows us to get the path of the repo itself
 CAIRO_1_COMPILER_REPO = os.path.dirname(CAIRO_1_COMPILER_MANIFEST)
 
