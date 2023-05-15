@@ -32,8 +32,11 @@ CAIRO_1_COMPILER_MANIFEST = os.getenv("CAIRO_1_COMPILER_MANIFEST")
 if not CAIRO_1_COMPILER_MANIFEST:
     raise KeyError("CAIRO_1_COMPILER_MANIFEST env var not set")
 
-# kind of a hack that relies on the old configuration of working with the manifest
+# since the manifest file is at the root of the repo,
+# this allows us to get the path of the repo itself
 CAIRO_1_COMPILER_REPO = os.path.dirname(CAIRO_1_COMPILER_MANIFEST)
+
+# assumes the artifacts were built in the repo with `cargo build --bin starknet-sierra-compile`
 SIERRA_COMPILER_PATH = os.path.join(
     CAIRO_1_COMPILER_REPO, "target", "debug", "starknet-sierra-compile"
 )
