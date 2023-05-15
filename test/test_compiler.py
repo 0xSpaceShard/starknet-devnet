@@ -173,23 +173,3 @@ def test_manifest_and_sierra_compiler_specified():
         "Only one of {--cairo-compiler-manifest,--sierra-compiler-path} can be provided"
         in read_stream(execution.stderr)
     )
-
-
-def test_deprecation_warning_logged_for_manifest_option():
-    """
-    Test that a deprecation warning is logged
-    when the compiler manifest option is used
-    """
-    execution = ACTIVE_DEVNET.start(
-        "--cairo-compiler-manifest",
-        CAIRO_1_COMPILER_MANIFEST,
-        stderr=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-    )
-
-    terminate_and_wait(execution)
-    assert execution.returncode == 0
-
-    stderr = read_stream(execution.stderr)
-    assert "Cairo compiler error" not in stderr
-    assert "--cairo-compiler-manifest is deprecated" in stderr

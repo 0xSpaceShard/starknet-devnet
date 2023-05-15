@@ -39,7 +39,6 @@ from .contract_class_wrapper import (
     DEFAULT_ACCOUNT_PATH,
     CompiledClassWrapper,
 )
-from .util import warn
 
 NETWORK_TO_URL = {
     "alpha-goerli": "https://alpha4.starknet.io",
@@ -228,9 +227,6 @@ def _assert_valid_compiler(command: List[str]):
 
 
 def _parse_cairo_compiler_manifest(manifest_path: str):
-    deprecation = "The option --cairo-compiler-manifest is deprecated. Use --sierra-compiler-path instead."
-    warn(deprecation)
-
     command = [
         "cargo",
         "run",
