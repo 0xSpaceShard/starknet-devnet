@@ -7,7 +7,7 @@ from web3.contract import Contract
 from web3.contract.contract import ContractFunction
 
 
-def web3_deploy(web3: Web3, contract: Contract, *inputs):
+def web3_deploy(web3: Web3, contract: Contract, *inputs) -> Contract:
     """Deploys a Solidity contract"""
     abi = contract["abi"]
     bytecode = contract["bytecode"]
