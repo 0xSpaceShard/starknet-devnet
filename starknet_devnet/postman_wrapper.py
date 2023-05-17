@@ -6,7 +6,6 @@ from abc import ABC, abstractmethod
 from typing import Tuple
 
 from starkware.eth.eth_test_utils import EthAccount, EthContract
-
 from starkware.solidity.utils import load_nearby_contract
 from starkware.starknet.business_logic.transaction.objects import InternalL1Handler
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
