@@ -7,6 +7,9 @@
 # pylint: disable=no-name-in-module
 # pylint: disable=too-many-arguments
 
+# pylint: skip-file
+# remove skip-file after cairo_rs_py_patch.py fix
+
 import logging
 import sys
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union, cast
