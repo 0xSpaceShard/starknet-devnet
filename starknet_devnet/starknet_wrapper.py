@@ -328,9 +328,8 @@ class StarknetWrapper:
             nonces=nonces or {},
         )
 
-        # There is a validation error now... how to fix it properly?
         return BlockStateUpdate(
-            block_hash=0,  # this is hack to omit "new_root must appear in state update for any block other than pending block."
+            block_hash=0,
             new_root=DUMMY_STATE_ROOT,
             old_root=DUMMY_STATE_ROOT,
             state_diff=state_diff,

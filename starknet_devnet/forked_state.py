@@ -170,6 +170,7 @@ def get_forked_starknet(
                     gas_price=gas_price,
                 ),
                 state_reader=state_reader,
+                compiled_class_cache={}
             ),
             general_config=build_devnet_general_config(chain_id),
         )
