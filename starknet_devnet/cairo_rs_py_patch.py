@@ -7,9 +7,6 @@
 # pylint: disable=no-name-in-module
 # pylint: disable=too-many-arguments
 
-# pylint: skip-file
-# remove skip-file after cairo_rs_py_patch.py fix
-
 import logging
 import sys
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union, cast
@@ -58,9 +55,11 @@ from starkware.starknet.core.os.contract_class.deprecated_class_hash import (
     get_deprecated_contract_class_struct,
     load_program,
 )
+from starkware.starknet.core.os.deprecated_syscall_handler import (
+    DeprecatedBlSyscallHandler,
+)
 from starkware.starknet.core.os.syscall_handler import (
     BusinessLogicSyscallHandler,
-    DeprecatedBlSyscallHandler,
     SyscallHandlerBase,
 )
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
