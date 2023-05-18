@@ -56,6 +56,8 @@ optional arguments:
                         Disable RPC schema validation for devnet responses
   --cairo-compiler-manifest CAIRO_COMPILER_MANIFEST
                         Specify the path to the manifest (Cargo.toml) of the Cairo 1.0 compiler to be used for contract recompilation; if omitted, the default x86-compatible compiler (from cairo-lang package) is used
+  --sierra-compiler-path SIERRA_COMPILER_PATH
+                        Specify the path to the binary executable of starknet-sierra-compile
 ```
 
 You can run `starknet-devnet` in a separate shell, or you can run it in background with `starknet-devnet &`.

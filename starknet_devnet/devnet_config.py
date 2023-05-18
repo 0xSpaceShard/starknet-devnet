@@ -210,19 +210,10 @@ class PositiveAction(argparse.Action):
         setattr(namespace, self.dest, value)
 
 
-def _parse_cairo_compiler_manifest(manifest_path: str):
+def _assert_valid_compiler(command: List[str]):
     """Assert user machine can compile with cairo 1"""
     check = subprocess.run(
-        [
-            "cargo",
-            "run",
-            "--bin",
-            "starknet-compile",
-            "--manifest-path",
-            manifest_path,
-            "--",
-            "--version",
-        ],
+        command,
         check=False,
         capture_output=True,
     )
@@ -234,7 +225,29 @@ def _parse_cairo_compiler_manifest(manifest_path: str):
     version_used = check.stdout.decode("utf-8")
     print(f"Using cairo compiler: {version_used}")
 
+
+def _parse_cairo_compiler_manifest(manifest_path: str):
+    command = [
+        "cargo",
+        "run",
+        "--bin",
+        "starknet-sierra-compile",
+        "--manifest-path",
+        manifest_path,
+        "--",
+        "--version",
+    ]
+    _assert_valid_compiler(command)
+
     return manifest_path
+
+
+def _parse_sierra_compiler_path(compiler_path: str):
+    if not (os.path.isfile(compiler_path) and os.access(compiler_path, os.X_OK)):
+        sys.exit("Error: The argument of --sierra-compiler-path must be an executable")
+
+    _assert_valid_compiler([compiler_path, "--version"])
+    return compiler_path
 
 
 def parse_args(raw_args: List[str]):
@@ -380,6 +393,11 @@ def parse_args(raw_args: List[str]):
         help="Specify the path to the manifest (Cargo.toml) of the Cairo 1.0 compiler to be used for contract recompilation; "
         "if omitted, the default x86-compatible compiler (from cairo-lang package) is used",
     )
+    parser.add_argument(
+        "--sierra-compiler-path",
+        type=_parse_sierra_compiler_path,
+        help="Specify the path to the binary executable of starknet-sierra-compile",
+    )
 
     parsed_args = parser.parse_args(raw_args)
     if parsed_args.dump_on and not parsed_args.dump_path:
@@ -392,6 +410,11 @@ def parse_args(raw_args: List[str]):
         parsed_args.fork_block = parsed_args.fork_block or "latest"
         parsed_args.fork_network, parsed_args.fork_block = _get_feeder_gateway_client(
             parsed_args.fork_network, parsed_args.fork_block, parsed_args.fork_retries
+        )
+
+    if parsed_args.cairo_compiler_manifest and parsed_args.sierra_compiler_path:
+        sys.exit(
+            "Error: Only one of {--cairo-compiler-manifest,--sierra-compiler-path} can be provided"
         )
 
     return parsed_args
@@ -421,3 +444,4 @@ class DevnetConfig:
         self.validate_rpc_requests = not self.args.disable_rpc_request_validation
         self.validate_rpc_responses = not self.args.disable_rpc_response_validation
         self.cairo_compiler_manifest = self.args.cairo_compiler_manifest
+        self.sierra_compiler_path = self.args.sierra_compiler_path
