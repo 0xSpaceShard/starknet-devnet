@@ -4,13 +4,20 @@ RPC payload structures
 
 from __future__ import annotations
 
-from typing import Callable, List, Optional, Union
+from test.shared import (
+    DEPRECATED_RPC_DECLARE_TX_VERSION,
+    SUPPORTED_RPC_DECLARE_TX_VERSION,
+)
+from typing import Callable, Dict, List, Optional, Union
 
 from marshmallow.exceptions import MarshmallowError
 from starkware.starknet.definitions.general_config import StarknetGeneralConfig
 from starkware.starknet.public.abi import AbiEntryType
 from starkware.starknet.services.api.contract_class.contract_class import (
+    ContractClass,
+    ContractEntryPoint,
     DeprecatedCompiledClass,
+    EntryPointType,
 )
 from starkware.starknet.services.api.feeder_gateway.request_objects import CallFunction
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
@@ -26,6 +33,7 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionType,
 )
 from starkware.starknet.services.api.gateway.transaction import (
+    Declare,
     DeployAccount,
     DeprecatedDeclare,
     InvokeFunction,
@@ -139,21 +147,22 @@ class RpcBroadcastedInvokeTxnV1(RpcBroadcastedTxnCommon):
 RpcBroadcastedInvokeTxn = Union[RpcBroadcastedInvokeTxnV0, RpcBroadcastedInvokeTxnV1]
 
 
-class RpcBroadcastedDeclareTxn(RpcBroadcastedTxnCommon):
-    """TypedDict for RpcBroadcastedDeclareTxn"""
+class RpcBroadcastedDeclareTxnV1(RpcBroadcastedTxnCommon):
+    """TypedDict for RpcBroadcastDeclareTxnV1"""
 
-    contract_class: RpcContractClass
+    contract_class: RpcDeprecatedContractClass
     sender_address: Address
 
 
-class RpcBroadcastedDeployTxn(TypedDict):
-    """TypedDict for RpcBroadcastedDeployTxn"""
+class RpcBroadcastedDeclareTxnV2(RpcBroadcastedTxnCommon):
+    """TypedDict for RpcBroadcastedDeclareTxnV2"""
 
     contract_class: RpcContractClass
-    version: NumAsHex
-    type: RpcTxnType
-    contract_address_salt: Felt
-    constructor_calldata: List[Felt]
+    sender_address: Address
+    compiled_class_hash: Felt
+
+
+RpcBroadcastedDeclareTxn = Union[RpcBroadcastedDeclareTxnV1, RpcBroadcastedDeclareTxnV2]
 
 
 class RpcBroadcastedDeployAccountTxn(RpcBroadcastedTxnCommon):
@@ -166,7 +175,6 @@ class RpcBroadcastedDeployAccountTxn(RpcBroadcastedTxnCommon):
 
 # rpc transaction's representation when it's sent to the sequencer (but not yet in a block)
 RpcBroadcastedTxn = Union[
-    RpcBroadcastedDeployTxn,
     RpcBroadcastedDeclareTxn,
     RpcBroadcastedInvokeTxn,
     RpcBroadcastedDeployAccountTxn,
@@ -385,15 +393,20 @@ class RpcFeeEstimate(TypedDict):
     overall_fee: NumAsHex
 
 
-def rpc_fee_estimate(fee_estimate: FeeEstimationInfo) -> dict:
+def rpc_fee_estimate(fee_estimates: List[FeeEstimationInfo]) -> list:
     """
     Convert gateway estimate_fee response to rpc_fee_estimate
     """
-    result: RpcFeeEstimate = {
-        "gas_consumed": hex(fee_estimate.gas_usage),
-        "gas_price": hex(fee_estimate.gas_price),
-        "overall_fee": hex(fee_estimate.overall_fee),
-    }
+
+    result = [
+        {
+            "gas_consumed": hex(fee_estimate.gas_usage),
+            "gas_price": hex(fee_estimate.gas_price),
+            "overall_fee": hex(fee_estimate.overall_fee),
+        }
+        for fee_estimate in fee_estimates
+    ]
+
     return result
 
 
@@ -430,9 +443,11 @@ def make_invoke_function(invoke_transaction: RpcBroadcastedInvokeTxn) -> InvokeF
     return invoke_function
 
 
-def make_declare(declare_transaction: RpcBroadcastedDeclareTxn) -> DeprecatedDeclare:
+def make_declare_v1(
+    declare_transaction: RpcBroadcastedDeclareTxnV1,
+) -> DeprecatedDeclare:
     """
-    Convert RpcBroadcastedDeclareTxn to DeprecatedDeclare
+    Convert RpcBroadcastedDeclareTxnV1 to DeprecatedDeclare
     """
     contract_class = declare_transaction["contract_class"]
     if "abi" not in contract_class:
@@ -454,6 +469,43 @@ def make_declare(declare_transaction: RpcBroadcastedDeclareTxn) -> DeprecatedDec
         signature=[int(sig, 16) for sig in declare_transaction["signature"]],
     )
     return declare_tx
+
+
+def make_declare_v2(declare_transaction: RpcBroadcastedDeclareTxnV2) -> Declare:
+    """Convert RpcBroadcastedDeclareTxnV2 to Declare"""
+    nonce = declare_transaction.get("nonce")
+
+    contract_class = declare_transaction["contract_class"]
+
+    if "abi" not in contract_class:
+        contract_class["abi"] = ""
+
+    contract_class = ContractClass.load(contract_class)
+
+    return Declare(
+        contract_class=contract_class,
+        compiled_class_hash=int(declare_transaction["compiled_class_hash"], 16),
+        sender_address=int(declare_transaction["sender_address"], 16),
+        nonce=int(nonce, 16) if nonce is not None else 0,
+        version=int(declare_transaction["version"], 16),
+        max_fee=int(declare_transaction["max_fee"], 16),
+        signature=[int(sig, 16) for sig in declare_transaction["signature"]],
+    )
+
+
+def make_declare(
+    declare_transaction: RpcBroadcastedDeclareTxn,
+) -> Union[Declare, DeprecatedDeclare]:
+    """Convert RpcBroadcastedDeclareTxn to Declare or DeprecatedDeclare"""
+    if int(declare_transaction["version"], 0) == SUPPORTED_RPC_DECLARE_TX_VERSION:
+        return make_declare_v2(declare_transaction)
+    if int(declare_transaction["version"], 0) == DEPRECATED_RPC_DECLARE_TX_VERSION:
+        return make_declare_v1(declare_transaction)
+
+    raise RpcError(
+        code=-1,
+        message=f"Declare transaction version {declare_transaction['version']} is not supported by devnet",
+    )
 
 
 def make_deploy_account(
@@ -478,19 +530,34 @@ def make_deploy_account(
     return deploy_account_tx
 
 
-class EntryPoint(TypedDict):
-    """TypedDict for rpc contract class entry point"""
+class DeprecatedEntryPoint(TypedDict):
+    """TypedDict for deprecated rpc contract class entry point"""
 
     offset: NumAsHex
     selector: Felt
 
 
+class DeprecatedEntryPoints(TypedDict):
+    """TypedDict for deprecated rpc contract class entry points"""
+
+    CONSTRUCTOR: List[DeprecatedEntryPoint]
+    EXTERNAL: List[DeprecatedEntryPoint]
+    L1_HANDLER: List[DeprecatedEntryPoint]
+
+
+class SierraEntryPoint(TypedDict):
+    """TypedDict for sierra entry point"""
+
+    selector: Felt
+    function_idx: int
+
+
 class EntryPoints(TypedDict):
     """TypedDict for rpc contract class entry points"""
 
-    CONSTRUCTOR: List[EntryPoint]
-    EXTERNAL: List[EntryPoint]
-    L1_HANDLER: List[EntryPoint]
+    CONSTRUCTOR: List[SierraEntryPoint]
+    EXTERNAL: List[SierraEntryPoint]
+    L1_HANDLER: List[SierraEntryPoint]
 
 
 FunctionAbiType = Literal["function", "l1_handler"]
@@ -595,17 +662,30 @@ def rpc_abi_entry(abi_entry: AbiEntryType) -> AbiEntry:
     return function_map[abi_entry["type"]](abi_entry)
 
 
+class RpcDeprecatedContractClass(TypedDict):
+    """
+    TypedDict for deprecated rpc contract class
+    """
+
+    program: str
+    entry_points_by_type: DeprecatedEntryPoints
+    abi: Optional[List[AbiEntry]]
+
+
 class RpcContractClass(TypedDict):
     """
     TypedDict for rpc contract class
     """
 
-    program: str
+    sierra_program: List[Felt]
+    contract_class_version: str
     entry_points_by_type: EntryPoints
-    abi: Optional[List[AbiEntry]]
+    abi: Optional[str]
 
 
-def rpc_contract_class(contract_class: DeprecatedCompiledClass) -> RpcContractClass:
+def rpc_deprecated_contract_class(
+    contract_class: DeprecatedCompiledClass,
+) -> RpcDeprecatedContractClass:
     """
     Convert gateway contract class to rpc contract class
     """
@@ -614,15 +694,15 @@ def rpc_contract_class(contract_class: DeprecatedCompiledClass) -> RpcContractCl
         _program = contract_class.program.Schema().dump(contract_class.program)
         return compress_program(_program)
 
-    def entry_points_by_type() -> EntryPoints:
-        _entry_points: EntryPoints = {
+    def entry_points_by_type() -> DeprecatedEntryPoints:
+        _entry_points: DeprecatedEntryPoints = {
             "CONSTRUCTOR": [],
             "EXTERNAL": [],
             "L1_HANDLER": [],
         }
         for typ, entry_points in contract_class.entry_points_by_type.items():
             for entry_point in entry_points:
-                _entry_point: EntryPoint = {
+                _entry_point: DeprecatedEntryPoint = {
                     "selector": rpc_felt(entry_point.selector),
                     "offset": hex(entry_point.offset),
                 }
@@ -634,12 +714,67 @@ def rpc_contract_class(contract_class: DeprecatedCompiledClass) -> RpcContractCl
             return None
         return [rpc_abi_entry(abi_entry_type) for abi_entry_type in contract_class.abi]
 
-    _contract_class: RpcContractClass = {
+    _contract_class: RpcDeprecatedContractClass = {
         "program": program(),
         "entry_points_by_type": entry_points_by_type(),
         "abi": abi(),
     }
     return _contract_class
+
+
+def rpc_contract_class(contract_class: ContractClass) -> RpcContractClass:
+    """
+    Convert gateway contract class v1 to rpc contract class v1
+    """
+
+    def program() -> List[Felt]:
+        return list(map(rpc_felt, contract_class.sierra_program))
+
+    def entry_points_by_type() -> EntryPoints:
+        def map_entry_point(entry_point: ContractEntryPoint) -> SierraEntryPoint:
+            return SierraEntryPoint(
+                selector=rpc_felt(entry_point.selector),
+                function_idx=entry_point.function_idx,
+            )
+
+        def get_entry_points_of_type(
+            entry_point_type: EntryPointType,
+        ) -> List[SierraEntryPoint]:
+            return list(
+                map(
+                    map_entry_point,
+                    contract_class.entry_points_by_type[entry_point_type],
+                )
+            )
+
+        _entry_points: EntryPoints = {
+            "CONSTRUCTOR": get_entry_points_of_type(EntryPointType.CONSTRUCTOR),
+            "EXTERNAL": get_entry_points_of_type(EntryPointType.EXTERNAL),
+            "L1_HANDLER": get_entry_points_of_type(EntryPointType.L1_HANDLER),
+        }
+
+        return _entry_points
+
+    _contract_class: RpcContractClass = {
+        "sierra_program": program(),
+        "entry_points_by_type": entry_points_by_type(),
+        "abi": contract_class.abi,
+        "contract_class_version": contract_class.contract_class_version,
+    }
+
+    return _contract_class
+
+
+def contract_class_from_dict(
+    contract_class_dict: Dict,
+) -> Union[RpcContractClass, RpcDeprecatedContractClass]:
+    """Convert contract class dict to RpcContractClass or RpcDeprecatedContractClass"""
+    if "sierra_program" in contract_class_dict.keys():
+        loaded_class = ContractClass.load(contract_class_dict)
+        return rpc_contract_class(loaded_class)
+
+    loaded_class = DeprecatedCompiledClass.load(contract_class_dict)
+    return rpc_deprecated_contract_class(loaded_class)
 
 
 class RpcStorageEntry(TypedDict):
@@ -670,25 +805,48 @@ class RpcNonceDiff(TypedDict):
     nonce: Felt
 
 
+class RpcDeclaredClass(TypedDict):
+    """TypedDict for rpc declared class"""
+
+    class_hash: Felt
+    compiled_class_hash: Felt
+
+
+class RpcReplacedClass(TypedDict):
+    """TypedDict for contract which class was replaced"""
+
+    contract_address: Felt
+    class_hash: Felt
+
+
 class RpcStateDiff(TypedDict):
     """TypedDict for rpc state diff"""
 
     storage_diffs: List[RpcStorageDiff]
-    declared_contract_hashes: List[Felt]
+    deprecated_declared_classes: List[Felt]
+    declared_classes: List[RpcDeclaredClass]
     deployed_contracts: List[RpcDeployedContractDiff]
+    replaced_classes: List[RpcReplacedClass]
     nonces: List[RpcNonceDiff]
 
 
-class RpcStateUpdate(TypedDict):
-    """TypedDict for rpc state update"""
+class RpcPendingStateUpdate(TypedDict):
+    """TypedDict for pending rpc state update"""
 
-    block_hash: BlockHash
-    new_root: Felt
     old_root: Felt
     state_diff: RpcStateDiff
 
 
-def rpc_state_update(state_update: BlockStateUpdate) -> RpcStateUpdate:
+class RpcStateUpdate(RpcPendingStateUpdate):
+    """TypedDict for rpc state update"""
+
+    block_hash: BlockHash
+    new_root: Felt
+
+
+def rpc_state_update(
+    state_update: BlockStateUpdate,
+) -> Union[RpcStateUpdate, RpcPendingStateUpdate]:
     """
     Convert gateway state update to rpc state update
     """
@@ -709,12 +867,18 @@ def rpc_state_update(state_update: BlockStateUpdate) -> RpcStateUpdate:
             _storage_diffs.append(_diff)
         return _storage_diffs
 
-    def declared_contract_hashes() -> List[Felt]:
+    def deprecated_declared_classes() -> List[Felt]:
         return [
             rpc_felt(contract)
             for contract in state_update.state_diff.old_declared_contracts
-        ] + [
-            rpc_felt(class_hash_pair.compiled_class_hash)
+        ]
+
+    def declared_classes() -> List[RpcDeclaredClass]:
+        return [
+            RpcDeclaredClass(
+                class_hash=rpc_felt(class_hash_pair.class_hash),
+                compiled_class_hash=rpc_felt(class_hash_pair.compiled_class_hash),
+            )
             for class_hash_pair in state_update.state_diff.declared_classes
         ]
 
@@ -728,21 +892,41 @@ def rpc_state_update(state_update: BlockStateUpdate) -> RpcStateUpdate:
             _contracts.append(diff)
         return _contracts
 
+    def replaced_classes() -> List[RpcReplacedClass]:
+        return [
+            RpcReplacedClass(
+                contract_address=rpc_felt(replaced_class.address),
+                class_hash=rpc_felt(replaced_class.class_hash),
+            )
+            for replaced_class in state_update.state_diff.replaced_classes
+        ]
+
     def nonces() -> List[RpcNonceDiff]:
         return [
             RpcNonceDiff(contract_address=rpc_felt(address), nonce=rpc_felt(nonce))
             for address, nonce in state_update.state_diff.nonces.items()
         ]
 
+    state_diff: RpcStateDiff = {
+        "storage_diffs": storage_diffs(),
+        "deprecated_declared_classes": deprecated_declared_classes(),
+        "declared_classes": declared_classes(),
+        "deployed_contracts": deployed_contracts(),
+        "replaced_classes": replaced_classes(),
+        "nonces": nonces(),
+    }
+
+    if state_update.block_hash is None or state_update.block_hash == 0:
+        pending_rpc_state: RpcPendingStateUpdate = {
+            "old_root": rpc_root(state_update.old_root.hex()),
+            "state_diff": state_diff,
+        }
+        return pending_rpc_state
+
     rpc_state: RpcStateUpdate = {
         "block_hash": rpc_felt(state_update.block_hash),
         "new_root": rpc_root(state_update.new_root.hex()),
         "old_root": rpc_root(state_update.old_root.hex()),
-        "state_diff": {
-            "storage_diffs": storage_diffs(),
-            "declared_contract_hashes": declared_contract_hashes(),
-            "deployed_contracts": deployed_contracts(),
-            "nonces": nonces(),
-        },
+        "state_diff": state_diff,
     }
     return rpc_state

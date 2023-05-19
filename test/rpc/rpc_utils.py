@@ -17,6 +17,8 @@ from typing import List, Union
 
 import requests
 
+from starknet_devnet.blueprints.rpc.schema import felt_pattern_from_schema
+
 
 class BackgroundDevnetClient:
     """A thin wrapper for requests, to interact with a background devnet instance"""
@@ -115,4 +117,4 @@ def is_felt(value: str) -> bool:
     """
     Check whether value is a Felt
     """
-    return bool(re.match(r"^0x0[a-fA-F0-9]{1,63}$", value))
+    return bool(re.match(felt_pattern_from_schema(), value))

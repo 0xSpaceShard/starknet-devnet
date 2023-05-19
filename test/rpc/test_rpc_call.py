@@ -33,7 +33,7 @@ def test_call(deploy_info, latest_block_id):
     assert "error" not in resp
     result = resp["result"]
 
-    assert result == ["0x045"]
+    assert result == ["0x45"]
 
 
 @pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
@@ -45,7 +45,7 @@ def test_call_raises_on_incorrect_contract_address():
         "starknet_call",
         params={
             "request": {
-                "contract_address": "0x07b529269b82f3f3ebbb2c463a9e1edaa2c6eea8fa308ff70b30398766a2e20c",
+                "contract_address": "0x7b529269b82f3f3ebbb2c463a9e1edaa2c6eea8fa308ff70b30398766a2e20c",
                 "entry_point_selector": rpc_felt(get_selector_from_name("get_balance")),
                 "calldata": [],
             },
@@ -65,7 +65,7 @@ def test_call_raises_on_both_hash_and_number():
         "starknet_call",
         params={
             "request": {
-                "contract_address": "0x07b529269b82f3f3ebbb2c463a9e1edaa2c6eea8fa308ff70b30398766a2e20c",
+                "contract_address": "0x7b529269b82f3f3ebbb2c463a9e1edaa2c6eea8fa308ff70b30398766a2e20c",
                 "entry_point_selector": rpc_felt(get_selector_from_name("get_balance")),
                 "calldata": [],
             },
@@ -181,7 +181,7 @@ def test_call_on_old_block(deploy_info):
 
         assert "error" not in resp
         result = resp["result"]
-        assert result == ["0x045"]
+        assert result == ["0x45"]
 
     call_and_assert({"block_number": deployment_block["block_number"]})
     call_and_assert({"block_hash": rpc_felt(deployment_block["block_hash"])})

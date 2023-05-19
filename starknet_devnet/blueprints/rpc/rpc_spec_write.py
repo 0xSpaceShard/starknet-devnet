@@ -4,7 +4,7 @@ RPC_SPECIFICATION_WRITE = r"""
     "openrpc": "1.0.0-rc1",
     "info": {
         "version": "0.4.0",
-        "title": "Starknet Node Write API",
+        "title": "StarkNet Node Write API",
         "license": {}
     },
     "servers": [],
@@ -33,8 +33,7 @@ RPC_SPECIFICATION_WRITE = r"""
                             "$ref": "#/components/schemas/TXN_HASH"
                         }
                     }
-                },
-                "required": ["transaction_hash"]
+                }
             },
             "errors": []
         },
@@ -44,6 +43,7 @@ RPC_SPECIFICATION_WRITE = r"""
             "params": [
                 {
                     "name": "declare_transaction",
+                    "required": true,
                     "schema": {
                         "$ref": "#/components/schemas/BROADCASTED_DECLARE_TXN"
                     }
@@ -64,43 +64,6 @@ RPC_SPECIFICATION_WRITE = r"""
                             "$ref": "#/components/schemas/FELT"
                         }
                     }
-                },
-                "required": ["transaction_hash", "class_hash"]
-            },
-            "errors": [
-                {
-                    "$ref": "#/components/errors/INVALID_CONTRACT_CLASS"
-                }
-            ]
-        },
-        {
-            "name": "starknet_addDeployTransaction",
-            "summary": "Submit a new deploy contract transaction",
-            "params": [
-                {
-                    "name": "deploy_transaction",
-                    "description": "The deploy transaction",
-                    "schema": {
-                        "$ref": "#/components/schemas/BROADCASTED_DEPLOY_TXN"
-                    }
-                }
-            ],
-            "result": {
-                "name": "result",
-                "description": "The result of the transaction submission",
-                "schema": {
-                    "type": "object",
-                    "properties": {
-                        "transaction_hash": {
-                            "title": "The hash of the deploy transaction",
-                            "$ref": "#/components/schemas/TXN_HASH"
-                        },
-                        "contract_address": {
-                            "title": "The address of the new contract",
-                            "$ref": "#/components/schemas/FELT"
-                        }
-                    },
-                    "required": ["transaction_hash", "contract_address"]
                 }
             },
             "errors": [
@@ -116,6 +79,7 @@ RPC_SPECIFICATION_WRITE = r"""
                 {
                     "name": "deploy_account_transaction",
                     "description": "The deploy account transaction",
+                    "required": true,
                     "schema": {
                         "$ref": "#/components/schemas/BROADCASTED_DEPLOY_ACCOUNT_TXN"
                     }
@@ -135,8 +99,7 @@ RPC_SPECIFICATION_WRITE = r"""
                             "title": "The address of the new contract",
                             "$ref": "#/components/schemas/FELT"
                         }
-                    },
-                    "required": ["transaction_hash", "contract_address"]
+                    }
                 }
             },
             "errors": [
@@ -171,9 +134,6 @@ RPC_SPECIFICATION_WRITE = r"""
             },
             "BROADCASTED_DECLARE_TXN": {
                 "$ref": "./api/starknet_api_openrpc.json#/components/schemas/BROADCASTED_DECLARE_TXN"
-            },
-            "BROADCASTED_DEPLOY_TXN": {
-                "$ref": "./api/starknet_api_openrpc.json#/components/schemas/BROADCASTED_DEPLOY_TXN"
             },
             "BROADCASTED_DEPLOY_ACCOUNT_TXN": {
                 "$ref": "./api/starknet_api_openrpc.json#/components/schemas/BROADCASTED_DEPLOY_ACCOUNT_TXN"

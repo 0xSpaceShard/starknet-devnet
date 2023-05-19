@@ -26,15 +26,6 @@ def _load_schemas() -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     methods = {**_extract_methods(specs_json), **_extract_methods(write_specs_json)}
 
-    for schema in schemas.values():
-        # Newer version of the RPC (above 0.45.0) has properly defined `required` fields.
-        # Once we start targeting them, this can be removed.
-        #
-        # NOTE: This does not add `required` to all schemas that should have it, i.e. it fails to add `required`
-        # to nested objects. This causes validation to be incomplete in these cases.
-        if "required" not in schema and "properties" in schema:
-            schema["required"] = list(schema["properties"].keys())
-
     return methods, schemas
 
 
@@ -197,6 +188,16 @@ class ResponseValidationErrorWrapper(Exception):
 
     def __str__(self):
         return f"""Devnet tried to return invalid value: \"{self.validation_error.message}\""""
+
+
+@lru_cache
+def felt_pattern_from_schema() -> str:
+    """
+    Load regex pattern of felt from rpc schema.
+    """
+    _, schemas = _load_schemas()
+
+    return schemas["FELT"]["pattern"]
 
 
 def validate_schema(method_name: str):

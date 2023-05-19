@@ -6,7 +6,7 @@ from test.rpc.rpc_utils import rpc_call
 import pytest
 from starkware.starknet.public.abi import get_storage_var_address
 
-from starknet_devnet.blueprints.rpc.utils import rpc_felt
+from starknet_devnet.blueprints.rpc.utils import rpc_felt, rpc_storage_key
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -22,13 +22,13 @@ def test_get_storage_at(deploy_info):
         "starknet_getStorageAt",
         params={
             "contract_address": rpc_felt(contract_address),
-            "key": rpc_felt(key),
+            "key": rpc_storage_key(key),
             "block_id": block_id,
         },
     )
     storage = resp["result"]
 
-    assert storage == "0x045"
+    assert storage == "0x45"
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -44,14 +44,14 @@ def test_get_storage_at_old_block(deploy_info):
             "starknet_getStorageAt",
             params={
                 "contract_address": rpc_felt(contract_address),
-                "key": rpc_felt(key),
+                "key": rpc_storage_key(key),
                 "block_id": block_id,
             },
         )
         return resp["result"]
 
-    assert get_storage({"block_number": 0}) == "0x00"
-    assert get_storage({"block_hash": "0x00"}) == "0x00"
+    assert get_storage({"block_number": 0}) == "0x0"
+    assert get_storage({"block_hash": "0x0"}) == "0x0"
 
 
 @pytest.mark.usefixtures("run_devnet_in_background", "deploy_info")
@@ -65,8 +65,8 @@ def test_get_storage_at_raises_on_incorrect_contract():
     ex = rpc_call(
         "starknet_getStorageAt",
         params={
-            "contract_address": "0x00",
-            "key": rpc_felt(key),
+            "contract_address": "0x0",
+            "key": rpc_storage_key(key),
             "block_id": block_id,
         },
     )
@@ -75,7 +75,7 @@ def test_get_storage_at_raises_on_incorrect_contract():
 
 
 # internal workings of get_storage_at would have to be changed for this to work properly
-# since currently it will (correctly) return 0x00 for any incorrect key
+# since currently it will (correctly) return 0x0 for any incorrect key
 # and it should throw exception with code=23 and message="Invalid storage key"
 @pytest.mark.usefixtures("run_devnet_in_background")
 def test_get_storage_at_raises_on_incorrect_key(deploy_info):
@@ -93,7 +93,7 @@ def test_get_storage_at_raises_on_incorrect_key(deploy_info):
         },
     )
 
-    assert response["result"] == "0x00"
+    assert response["result"] == "0x0"
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -109,7 +109,7 @@ def test_get_storage_at_raises_on_incorrect_block_id(deploy_info):
         "starknet_getStorageAt",
         params={
             "contract_address": rpc_felt(contract_address),
-            "key": rpc_felt(key),
+            "key": rpc_storage_key(key),
             "block_id": {"block_number": 99999},
         },
     )

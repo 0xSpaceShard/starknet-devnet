@@ -36,13 +36,6 @@ class RpcDeclareTransactionResult(TypedDict):
     class_hash: Felt
 
 
-class RpcDeployTransactionResult(TypedDict):
-    """TypedDict for rpc deploy transaction result"""
-
-    transaction_hash: TxnHash
-    contract_address: Felt
-
-
 class RpcDeployAccountTransactionResult(TypedDict):
     """TypedDict for rpc deploy account transaction result"""
 

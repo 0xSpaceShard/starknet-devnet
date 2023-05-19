@@ -41,11 +41,20 @@ def check_address(address, event):
     return event.from_address == int(address, 0)
 
 
-def check_keys(keys, event):
+def _check_keys(keys: List[List[Felt]], event):
     """
     Check keys.
+
+    Check every key in an event against related list of accepted values.
+    n-th array in keys (keys[n]) lists all possible values of n-th key in an
+    event (event.keys[n]). Empty list of accepted_keys, means that all keys
+    should be accepted.
     """
-    return bool(set(event.keys) & set(keys))
+    for event_key, accepted_keys in zip(event.keys, keys):
+        if len(accepted_keys) > 0 and event_key not in accepted_keys:
+            return False
+
+    return True
 
 
 def _get_events_from_block(block: StarknetBlock, address, keys):
@@ -56,7 +65,7 @@ def _get_events_from_block(block: StarknetBlock, address, keys):
     for receipt, event in [
         (r, e) for r in block.transaction_receipts for e in r.events
     ]:
-        if check_keys(keys, event) and check_address(address, event):
+        if _check_keys(keys, event) and check_address(address, event):
             _event: EmittedEvent = {
                 "from_address": rpc_felt(event.from_address),
                 "keys": [rpc_felt(e) for e in event.keys],
@@ -139,7 +148,11 @@ async def get_events(
         ) from ex
 
     address = filter.get("address")
-    keys = [int(k, 0) for k in filter.get("keys")]
+
+    if filter.get("keys") is not None:
+        keys = [[int(key, 0) for key in keys] for keys in filter.get("keys")]
+    else:
+        keys = []
     # Optional parameter
     continuation_token = int(filter.get("continuation_token", "0"))
 

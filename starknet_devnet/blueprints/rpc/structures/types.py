@@ -12,6 +12,7 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import Bloc
 from typing_extensions import Literal, TypedDict
 
 from ..rpc_spec import RPC_SPECIFICATION
+from ..rpc_spec_write import RPC_SPECIFICATION_WRITE
 
 Felt = str
 
@@ -110,7 +111,19 @@ class PredefinedRpcErrorCode(Enum):
     INTERNAL_ERROR = -32603
 
 
-RPC_ERRORS = json.loads(RPC_SPECIFICATION)["components"]["errors"]
+def _combine_rpc_errors():
+    """
+    Merge write api errors with main api errors.
+
+    All references from write api will be shadowed by errors from main api.
+    """
+    rpc_errors = json.loads(RPC_SPECIFICATION)["components"]["errors"]
+    rpc_write_errors = json.loads(RPC_SPECIFICATION_WRITE)["components"]["errors"]
+
+    return rpc_write_errors | rpc_errors
+
+
+RPC_ERRORS = _combine_rpc_errors()
 
 GATEWAY_TO_RPC_ERROR = {
     StarknetErrorCode.BLOCK_NOT_FOUND: RPC_ERRORS["BLOCK_NOT_FOUND"],

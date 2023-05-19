@@ -1,13 +1,12 @@
 # pylint: disable=too-many-lines, missing-module-docstring
-# NOTE: This is modified version of 0.2.1 spec
-# Some usages of "oneOf" has been replaced by "anyOf"
-# and one method has been fixed
+# NOTE: This is modified version of 0.3.0-rc1 spec
+# All usages of "oneOf" have been replaced by "anyOf"
 RPC_SPECIFICATION = r"""
 {
     "openrpc": "1.0.0-rc1",
     "info": {
-        "version": "0.45.0",
-        "title": "Starknet Node API",
+        "version": "0.50.0",
+        "title": "StarkNet Node API",
         "license": {}
     },
     "servers": [],
@@ -95,7 +94,14 @@ RPC_SPECIFICATION = r"""
                 "name": "result",
                 "description": "The information about the state update of the requested block",
                 "schema": {
-                    "$ref": "#/components/schemas/STATE_UPDATE"
+                    "anyOf": [
+                        {
+                            "$ref": "#/components/schemas/STATE_UPDATE"
+                        },
+                        {
+                            "$ref": "#/components/schemas/PENDING_STATE_UPDATE"
+                        }
+                    ]
                 }
             },
             "errors": [
@@ -267,7 +273,14 @@ RPC_SPECIFICATION = r"""
                 "name": "result",
                 "description": "The contract class, if found",
                 "schema": {
-                    "$ref": "#/components/schemas/CONTRACT_CLASS"
+                    "anyOf": [
+                        {
+                            "$ref": "#/components/schemas/DEPRECATED_CONTRACT_CLASS"
+                        },
+                        {
+                            "$ref": "#/components/schemas/CONTRACT_CLASS"
+                        }
+                    ]
                 }
             },
             "errors": [
@@ -341,7 +354,14 @@ RPC_SPECIFICATION = r"""
                 "name": "result",
                 "description": "The contract class",
                 "schema": {
-                    "$ref": "#/components/schemas/CONTRACT_CLASS"
+                    "anyOf": [
+                        {
+                            "$ref": "#/components/schemas/DEPRECATED_CONTRACT_CLASS"
+                        },
+                        {
+                            "$ref": "#/components/schemas/CONTRACT_CLASS"
+                        }
+                    ]
                 }
             },
             "errors": [
@@ -384,7 +404,7 @@ RPC_SPECIFICATION = r"""
         },
         {
             "name": "starknet_call",
-            "summary": "call a starknet function without creating a Starknet transaction",
+            "summary": "call a starknet function without creating a StarkNet transaction",
             "description": "Calls a function in a contract and returns the return value.  Using this call will not create a transaction; hence, will not change the state",
             "params": [
                 {
@@ -435,14 +455,18 @@ RPC_SPECIFICATION = r"""
         },
         {
             "name": "starknet_estimateFee",
-            "summary": "estimate the fee for a given Starknet transaction",
-            "description": "estimates the resources required by a transaction relative to a given state",
+            "summary": "estimate the fee for of StarkNet transactions",
+            "description": "estimates the resources required by transactions when applyed on a given state",
             "params": [
                 {
                     "name": "request",
                     "summary": "The transaction to estimate",
                     "schema": {
-                        "$ref": "#/components/schemas/BROADCASTED_TXN"
+                        "type": "array",
+                        "description": "a sequence of transactions to estimate, running each transaction on the state resulting from applying all the previous ones",
+                        "items": {
+                            "$ref": "#/components/schemas/BROADCASTED_TXN"
+                        }
                     },
                     "required": true
                 },
@@ -457,9 +481,13 @@ RPC_SPECIFICATION = r"""
             ],
             "result": {
                 "name": "result",
-                "description": "the fee estimation",
+                "description": "the fee estimations",
                 "schema": {
-                    "$ref": "#/components/schemas/FEE_ESTIMATE"
+                    "type": "array",
+                    "description": "a sequence of fee estimatione where the i'th estimate corresponds to the i'th transaction",
+                    "items": {
+                        "$ref": "#/components/schemas/FEE_ESTIMATE"
+                    }
                 }
             },
             "errors": [
@@ -524,7 +552,7 @@ RPC_SPECIFICATION = r"""
         },
         {
             "name": "starknet_chainId",
-            "summary": "Return the currently configured Starknet chain id",
+            "summary": "Return the currently configured StarkNet chain id",
             "params": [],
             "result": {
                 "name": "result",
@@ -558,7 +586,7 @@ RPC_SPECIFICATION = r"""
                 "summary": "The state of the synchronization, or false if the node is not synchronizing",
                 "description": "The status of the node, if it is currently synchronizing state. FALSE otherwise",
                 "schema": {
-                    "oneOf": [
+                    "anyOf": [
                         {
                             "type": "boolean",
                             "description": "only legal value is FALSE here"
@@ -595,23 +623,7 @@ RPC_SPECIFICATION = r"""
                 "name": "events",
                 "description": "All the event objects matching the filter",
                 "schema": {
-                    "type": "object",
-                    "properties": {
-                        "events": {
-                            "type": "array",
-                            "title": "Matching Events",
-                            "items": {
-                                "$ref": "#/components/schemas/EMITTED_EVENT"
-                            }
-                        },
-                        "continuation_token": {
-                            "description": "a pointer to the last element of the delivered page, use this token in a subsequent query to obtain the next page",
-                            "type": "string"
-                        }
-                    },
-                    "required": [
-                        "events"
-                    ]
+                    "$ref": "#/components/schemas/EVENTS_CHUNK"
                 }
             },
             "errors": [
@@ -623,6 +635,9 @@ RPC_SPECIFICATION = r"""
                 },
                 {
                     "$ref": "#/components/errors/BLOCK_NOT_FOUND"
+                },
+                {
+                    "$ref": "#/components/errors/TOO_MANY_KEYS_IN_FILTER"
                 }
             ]
         },
@@ -667,11 +682,30 @@ RPC_SPECIFICATION = r"""
     "components": {
         "contentDescriptors": {},
         "schemas": {
+            "EVENTS_CHUNK": {
+                "type": "object",
+                "properties": {
+                    "events": {
+                        "type": "array",
+                        "title": "Matching Events",
+                        "items": {
+                            "$ref": "#/components/schemas/EMITTED_EVENT"
+                        }
+                    },
+                    "continuation_token": {
+                        "description": "Use this token in a subsequent query to obtain the next page. Should not appear if there are no more pages.",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "events"
+                ]
+            },
             "RESULT_PAGE_REQUEST": {
                 "type": "object",
                 "properties": {
                     "continuation_token": {
-                        "description": "a pointer to the last element of the delivered page, use this token in a subsequent query to obtain the next page",
+                        "description": "The token returned from the previous query. If no token is provided the first page is returned.",
                         "type": "string"
                     },
                     "chunk_size": {
@@ -707,12 +741,17 @@ RPC_SPECIFICATION = r"""
                                 "title": "The transaction that emitted the event",
                                 "$ref": "#/components/schemas/TXN_HASH"
                             }
-                        }
+                        },
+                        "required": [
+                            "block_hash",
+                            "block_number",
+                            "transaction_hash"
+                        ]
                     }
                 ]
             },
             "EVENT": {
-                "title": "A Starknet event",
+                "title": "A StarkNet event",
                 "allOf": [
                     {
                         "type": "object",
@@ -720,7 +759,10 @@ RPC_SPECIFICATION = r"""
                             "from_address": {
                                 "$ref": "#/components/schemas/ADDRESS"
                             }
-                        }
+                        },
+                        "required": [
+                            "from_address"
+                        ]
                     },
                     {
                         "$ref": "#/components/schemas/EVENT_CONTENT"
@@ -744,7 +786,11 @@ RPC_SPECIFICATION = r"""
                             "$ref": "#/components/schemas/FELT"
                         }
                     }
-                }
+                },
+                "required": [
+                    "keys",
+                    "data"
+                ]
             },
             "EVENT_FILTER": {
                 "title": "An event filter/query",
@@ -767,15 +813,25 @@ RPC_SPECIFICATION = r"""
                         "description": "The values used to filter the events",
                         "type": "array",
                         "items": {
-                            "title": "event key value",
-                            "$ref": "#/components/schemas/FELT"
+                            "title": "Possible values, per key",
+                            "description": "Per key (by position), designate the possible values to be matched for events to be returned. Empty array designates 'any' value",
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/components/schemas/FELT"
+                            }
                         }
                     }
-                }
+                },
+                "required": [
+                    "from_block",
+                    "to_block",
+                    "address",
+                    "keys"
+                ]
             },
             "BLOCK_ID": {
                 "title": "Block hash, number or tag",
-                "oneOf": [
+                "anyOf": [
                     {
                         "type": "object",
                         "properties": {
@@ -783,7 +839,9 @@ RPC_SPECIFICATION = r"""
                                 "$ref": "#/components/schemas/BLOCK_HASH"
                             }
                         },
-                        "required": ["block_hash"]
+                        "required": [
+                            "block_hash"
+                        ]
                     },
                     {
                         "type": "object",
@@ -792,7 +850,9 @@ RPC_SPECIFICATION = r"""
                                 "$ref": "#/components/schemas/BLOCK_NUMBER"
                             }
                         },
-                        "required": ["block_number"]
+                        "required": [
+                            "block_number"
+                        ]
                     },
                     {
                         "$ref": "#/components/schemas/BLOCK_TAG"
@@ -835,7 +895,15 @@ RPC_SPECIFICATION = r"""
                         "description": "The number (height) of the estimated highest block to be synchronized",
                         "$ref": "#/components/schemas/NUM_AS_HEX"
                     }
-                }
+                },
+                "required": [
+                    "starting_block_hash",
+                    "starting_block_num",
+                    "current_block_hash",
+                    "current_block_num",
+                    "highest_block_hash",
+                    "highest_block_num"
+                ]
             },
             "NUM_AS_HEX": {
                 "title": "An integer number in hex format (0x...)",
@@ -844,20 +912,37 @@ RPC_SPECIFICATION = r"""
             },
             "CHAIN_ID": {
                 "title": "chainId",
-                "description": "Starknet chain id, given in hex representation.",
+                "description": "StarkNet chain id, given in hex representation.",
                 "type": "string",
                 "pattern": "^0x[a-fA-F0-9]+$"
             },
             "STATE_UPDATE": {
                 "type": "object",
+                "allOf": [
+                    {
+                        "type": "object",
+                        "properties": {
+                            "block_hash": {
+                                "$ref": "#/components/schemas/BLOCK_HASH"
+                            },
+                            "new_root": {
+                                "description": "The new global state root",
+                                "$ref": "#/components/schemas/FELT"
+                            }
+                        },
+                        "required": [
+                            "block_hash",
+                            "new_root"
+                        ]
+                    },
+                    {
+                        "$ref": "#/components/schemas/PENDING_STATE_UPDATE"
+                    }
+                ]
+            },
+            "PENDING_STATE_UPDATE": {
+                "type": "object",
                 "properties": {
-                    "block_hash": {
-                        "$ref": "#/components/schemas/BLOCK_HASH"
-                    },
-                    "new_root": {
-                        "description": "The new global state root",
-                        "$ref": "#/components/schemas/FELT"
-                    },
                     "old_root": {
                         "description": "The previous global state root",
                         "$ref": "#/components/schemas/FELT"
@@ -873,18 +958,52 @@ RPC_SPECIFICATION = r"""
                                     "$ref": "#/components/schemas/CONTRACT_STORAGE_DIFF_ITEM"
                                 }
                             },
-                            "declared_contract_hashes": {
+                            "deprecated_declared_classes": {
                                 "type": "array",
                                 "items": {
-                                    "description": "The hash of a new contract declared as part of the new state",
+                                    "description": "The hash of the declared class",
                                     "$ref": "#/components/schemas/FELT"
+                                }
+                            },
+                            "declared_classes": {
+                                "type": "array",
+                                "items": {
+                                    "description": "The declared class hash and compiled class hash",
+                                    "type": "object",
+                                    "properties": {
+                                        "class_hash": {
+                                            "description": "The hash of the declared class",
+                                            "$ref": "#/components/schemas/FELT"
+                                        },
+                                        "compiled_class_hash": {
+                                            "description": "The Cairo assembly hash corresponding to the declared class",
+                                            "$ref": "#/components/schemas/FELT"
+                                        }
+                                    }
                                 }
                             },
                             "deployed_contracts": {
                                 "type": "array",
                                 "items": {
-                                    "description": "A new contract deployed as part of the new state",
+                                    "description": "A new contract deployed as part of the state update",
                                     "$ref": "#/components/schemas/DEPLOYED_CONTRACT_ITEM"
+                                }
+                            },
+                            "replaced_classes": {
+                                "type": "array",
+                                "items": {
+                                    "description": "The list of contracts whose class was replaced",
+                                    "type": "object",
+                                    "properties": {
+                                        "contract_address": {
+                                            "description": "The address of the contract whose class was replaced",
+                                            "$ref": "#/components/schemas/ADDRESS"
+                                        },
+                                        "class_hash": {
+                                            "description": "The new class hash",
+                                            "$ref": "#/components/schemas/FELT"
+                                        }
+                                    }
                                 }
                             },
                             "nonces": {
@@ -904,9 +1023,21 @@ RPC_SPECIFICATION = r"""
                                     }
                                 }
                             }
-                        }
+                        },
+                        "required": [
+                            "storage_diffs",
+                            "deprecated_declared_classes",
+                            "declared_classes",
+                            "replaced_classes",
+                            "deployed_contracts",
+                            "nonces"
+                        ]
                     }
-                }
+                },
+                "required": [
+                    "old_root",
+                    "state_diff"
+                ]
             },
             "ADDRESS": {
                 "$ref": "#/components/schemas/FELT"
@@ -926,15 +1057,14 @@ RPC_SPECIFICATION = r"""
             },
             "TXN_HASH": {
                 "$ref": "#/components/schemas/FELT",
-                "description": "The transaction hash, as assigned in Starknet",
+                "description": "The transaction hash, as assigned in StarkNet",
                 "title": "A transaction's hash"
             },
             "FELT": {
                 "type": "string",
                 "title": "Field element",
-                "$comment": "A field element, represented as a string of hex digits",
-                "description": "A field element. Represented as up to 63 hex digits and leading 4 bits zeroed.",
-                "pattern": "^0x0[a-fA-F0-9]{1,63}$"
+                "description": "A field element. represented by at most 63 hex digits",
+                "pattern": "^0x(0|[a-fA-F1-9]{1}[a-fA-F0-9]{0,62})$"
             },
             "BLOCK_NUMBER": {
                 "description": "The block's number (its height)",
@@ -955,7 +1085,10 @@ RPC_SPECIFICATION = r"""
                             "$ref": "#/components/schemas/TXN_HASH"
                         }
                     }
-                }
+                },
+                "required": [
+                    "transactions"
+                ]
             },
             "BLOCK_BODY_WITH_TXS": {
                 "type": "object",
@@ -967,10 +1100,13 @@ RPC_SPECIFICATION = r"""
                             "$ref": "#/components/schemas/TXN"
                         }
                     }
-                }
+                },
+                "required": [
+                    "transactions"
+                ]
             },
             "BLOCK_HEADER": {
-                "title": "Block header",
+                "type": "object",
                 "properties": {
                     "block_hash": {
                         "$ref": "#/components/schemas/BLOCK_HASH"
@@ -993,10 +1129,18 @@ RPC_SPECIFICATION = r"""
                         "minimum": 0
                     },
                     "sequencer_address": {
-                        "description": "The Starknet identity of the sequencer submitting this block",
+                        "description": "The StarkNet identity of the sequencer submitting this block",
                         "$ref": "#/components/schemas/FELT"
                     }
-                }
+                },
+                "required": [
+                    "block_hash",
+                    "parent_hash",
+                    "block_number",
+                    "new_root",
+                    "timestamp",
+                    "sequencer_address"
+                ]
             },
             "BLOCK_WITH_TX_HASHES": {
                 "title": "The block object",
@@ -1007,7 +1151,10 @@ RPC_SPECIFICATION = r"""
                             "status": {
                                 "$ref": "#/components/schemas/BLOCK_STATUS"
                             }
-                        }
+                        },
+                        "required": [
+                            "status"
+                        ]
                     },
                     {
                         "$ref": "#/components/schemas/BLOCK_HEADER"
@@ -1054,7 +1201,7 @@ RPC_SPECIFICATION = r"""
                                 "minimum": 0
                             },
                             "sequencer_address": {
-                                "description": "The Starknet identity of the sequencer submitting this block",
+                                "description": "The StarkNet identity of the sequencer submitting this block",
                                 "$ref": "#/components/schemas/FELT"
                             },
                             "parent_hash": {
@@ -1080,7 +1227,7 @@ RPC_SPECIFICATION = r"""
                                 "minimum": 0
                             },
                             "sequencer_address": {
-                                "description": "The Starknet identity of the sequencer submitting this block",
+                                "description": "The StarkNet identity of the sequencer submitting this block",
                                 "$ref": "#/components/schemas/FELT"
                             },
                             "parent_hash": {
@@ -1102,7 +1249,11 @@ RPC_SPECIFICATION = r"""
                         "description": "The hash of the contract code",
                         "$ref": "#/components/schemas/FELT"
                     }
-                }
+                },
+                "required": [
+                    "address",
+                    "class_hash"
+                ]
             },
             "CONTRACT_STORAGE_DIFF_ITEM": {
                 "type": "object",
@@ -1128,7 +1279,11 @@ RPC_SPECIFICATION = r"""
                             }
                         }
                     }
-                }
+                },
+                "required": [
+                    "address",
+                    "storage_entries"
+                ]
             },
             "TXN": {
                 "title": "Transaction",
@@ -1147,7 +1302,7 @@ RPC_SPECIFICATION = r"""
                         "$ref": "#/components/schemas/DEPLOY_TXN"
                     },
                     {
-                        "ref": "#/components/schemas/DEPLOY_ACCOUNT_TXN"
+                        "$ref": "#/components/schemas/DEPLOY_ACCOUNT_TXN"
                     }
                 ]
             },
@@ -1160,9 +1315,6 @@ RPC_SPECIFICATION = r"""
                     },
                     {
                         "$ref": "#/components/schemas/BROADCASTED_DECLARE_TXN"
-                    },
-                    {
-                        "$ref": "#/components/schemas/BROADCASTED_DEPLOY_TXN"
                     },
                     {
                         "$ref": "#/components/schemas/BROADCASTED_DEPLOY_ACCOUNT_TXN"
@@ -1180,9 +1332,6 @@ RPC_SPECIFICATION = r"""
                 "type": "object",
                 "description": "common properties of a transaction that is sent to the sequencer (but is not yet in a block)",
                 "properties": {
-                    "type": {
-                        "$ref": "#/components/schemas/TXN_TYPE"
-                    },
                     "max_fee": {
                         "$ref": "#/components/schemas/FELT",
                         "description": "The maximal fee that can be charged for including the transaction"
@@ -1197,7 +1346,13 @@ RPC_SPECIFICATION = r"""
                     "nonce": {
                         "$ref": "#/components/schemas/FELT"
                     }
-                }
+                },
+                "required": [
+                    "max_fee",
+                    "version",
+                    "signature",
+                    "nonce"
+                ]
             },
             "COMMON_TXN_PROPERTIES": {
                 "allOf": [
@@ -1208,7 +1363,10 @@ RPC_SPECIFICATION = r"""
                                 "$ref": "#/components/schemas/TXN_HASH",
                                 "description": "The hash identifying the transaction"
                             }
-                        }
+                        },
+                        "required": [
+                            "transaction_hash"
+                        ]
                     },
                     {
                         "$ref": "#/components/schemas/BROADCASTED_TXN_COMMON_PROPERTIES"
@@ -1216,6 +1374,16 @@ RPC_SPECIFICATION = r"""
                 ]
             },
             "DECLARE_TXN": {
+                "anyOf": [
+                    {
+                        "$ref": "#/components/schemas/DECLARE_TXN_V1"
+                    },
+                    {
+                        "$ref": "#/components/schemas/DECLARE_TXN_V2"
+                    }
+                ]
+            },
+            "DECLARE_TXN_V1": {
                 "title": "Declare Contract Transaction",
                 "allOf": [
                     {
@@ -1224,6 +1392,12 @@ RPC_SPECIFICATION = r"""
                     {
                         "type": "object",
                         "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "DECLARE"
+                                ]
+                            },
                             "class_hash": {
                                 "description": "The hash of the declared class",
                                 "$ref": "#/components/schemas/FELT"
@@ -1232,11 +1406,43 @@ RPC_SPECIFICATION = r"""
                                 "description": "The address of the account contract sending the declaration transaction",
                                 "$ref": "#/components/schemas/ADDRESS"
                             }
+                        },
+                        "required": [
+                            "type",
+                            "class_hash",
+                            "sender_address"
+                        ]
+                    }
+                ]
+            },
+            "DECLARE_TXN_V2": {
+                "title": "Declare Contract Transaction",
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/DECLARE_TXN_V1"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "compiled_class_hash": {
+                                "description": "The hash of the Cairo assembly resulting from the Sierra compilation",
+                                "$ref": "#/components/schemas/FELT"
+                            }
                         }
                     }
                 ]
             },
             "BROADCASTED_DECLARE_TXN": {
+                "anyOf": [
+                    {
+                        "$ref": "#/components/schemas/BROADCASTED_DECLARE_TXN_V1"
+                    },
+                    {
+                        "$ref": "#/components/schemas/BROADCASTED_DECLARE_TXN_V2"
+                    }
+                ]
+            },
+            "BROADCASTED_DECLARE_TXN_V1": {
                 "title": "mempool representation of a declare transaction",
                 "allOf": [
                     {
@@ -1247,15 +1453,49 @@ RPC_SPECIFICATION = r"""
                         "properties": {
                             "contract_class": {
                                 "description": "The class to be declared",
-                                "schema": {
-                                    "$ref": "#/components/schemas/CONTRACT_CLASS"
-                                }
+                                "$ref": "#/components/schemas/DEPRECATED_CONTRACT_CLASS"
                             },
                             "sender_address": {
                                 "description": "The address of the account contract sending the declaration transaction",
                                 "$ref": "#/components/schemas/ADDRESS"
                             }
                         }
+                    }
+                ]
+            },
+            "BROADCASTED_DECLARE_TXN_V2": {
+                "title": "mempool representation of a declare transaction",
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/BROADCASTED_TXN_COMMON_PROPERTIES"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "DECLARE"
+                                ]
+                            },
+                            "contract_class": {
+                                "description": "The class to be declared",
+                                "$ref": "#/components/schemas/CONTRACT_CLASS"
+                            },
+                            "sender_address": {
+                                "description": "The address of the account contract sending the declaration transaction",
+                                "$ref": "#/components/schemas/ADDRESS"
+                            },
+                            "compiled_class_hash": {
+                                "description": "The hash of the Cairo assembly resulting from the Sierra compilation",
+                                "$ref": "#/components/schemas/FELT"
+                            }
+                        },
+                        "required": [
+                            "type",
+                            "contract_class",
+                            "sender_address"
+                        ]
                     }
                 ]
             },
@@ -1285,6 +1525,12 @@ RPC_SPECIFICATION = r"""
             "DEPLOY_ACCOUNT_TXN_PROPERTIES": {
                 "type": "object",
                 "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "DEPLOY_ACCOUNT"
+                        ]
+                    },
                     "contract_address_salt": {
                         "description": "The salt for the address of the deployed contract",
                         "$ref": "#/components/schemas/FELT"
@@ -1300,7 +1546,13 @@ RPC_SPECIFICATION = r"""
                         "description": "The hash of the deployed contract's class",
                         "$ref": "#/components/schemas/FELT"
                     }
-                }
+                },
+                "required": [
+                    "type",
+                    "contract_address_salt",
+                    "constructor_calldata",
+                    "class_hash"
+                ]
             },
             "DEPLOY_TXN": {
                 "title": "Deploy Contract Transaction",
@@ -1317,27 +1569,11 @@ RPC_SPECIFICATION = r"""
                                 "description": "The hash of the deployed contract's class",
                                 "$ref": "#/components/schemas/FELT"
                             }
-                        }
-                    },
-                    {
-                        "$ref": "#/components/schemas/DEPLOY_TXN_PROPERTIES"
-                    }
-                ]
-            },
-            "BROADCASTED_DEPLOY_TXN": {
-                "title": "mempool representation of a deploy transaction",
-                "description": "The structure of a deploy transaction. Note that this transaction type is deprecated and will no longer be supported in future versions",
-                "allOf": [
-                    {
-                        "type": "object",
-                        "properties": {
-                            "contract_class": {
-                                "description": "The class of the contract that will be deployed",
-                                "schema": {
-                                    "$ref": "#/components/schemas/CONTRACT_CLASS"
-                                }
-                            }
-                        }
+                        },
+                        "required": [
+                            "transaction_hash",
+                            "class_hash"
+                        ]
                     },
                     {
                         "$ref": "#/components/schemas/DEPLOY_TXN_PROPERTIES"
@@ -1352,7 +1588,10 @@ RPC_SPECIFICATION = r"""
                         "$ref": "#/components/schemas/NUM_AS_HEX"
                     },
                     "type": {
-                        "$ref": "#/components/schemas/TXN_TYPE"
+                        "type": "string",
+                        "enum": [
+                            "DEPLOY"
+                        ]
                     },
                     "contract_address_salt": {
                         "description": "The salt for the address of the deployed contract",
@@ -1365,7 +1604,13 @@ RPC_SPECIFICATION = r"""
                             "$ref": "#/components/schemas/FELT"
                         }
                     }
-                }
+                },
+                "required": [
+                    "version",
+                    "type",
+                    "contract_address_salt",
+                    "constructor_calldata"
+                ]
             },
             "INVOKE_TXN_V0": {
                 "title": "version 0 invoke transaction",
@@ -1387,7 +1632,11 @@ RPC_SPECIFICATION = r"""
                             "$ref": "#/components/schemas/FELT"
                         }
                     }
-                }
+                },
+                "required": [
+                    "sender_address",
+                    "calldata"
+                ]
             },
             "INVOKE_TXN": {
                 "title": "Initiate a transaction from an account",
@@ -1396,7 +1645,21 @@ RPC_SPECIFICATION = r"""
                         "$ref": "#/components/schemas/COMMON_TXN_PROPERTIES"
                     },
                     {
-                        "oneOf": [
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "INVOKE"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "type"
+                        ]
+                    },
+                    {
+                        "anyOf": [
                             {
                                 "$ref": "#/components/schemas/INVOKE_TXN_V0"
                             },
@@ -1414,7 +1677,21 @@ RPC_SPECIFICATION = r"""
                         "$ref": "#/components/schemas/BROADCASTED_TXN_COMMON_PROPERTIES"
                     },
                     {
-                        "oneOf": [
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "INVOKE"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "type"
+                        ]
+                    },
+                    {
+                        "anyOf": [
                             {
                                 "$ref": "#/components/schemas/INVOKE_TXN_V0"
                             },
@@ -1450,7 +1727,13 @@ RPC_SPECIFICATION = r"""
                                 "description": "The L1->L2 message nonce field of the SN Core L1 contract at the time the transaction was sent",
                                 "$ref": "#/components/schemas/NUM_AS_HEX"
                             }
-                        }
+                        },
+                        "required": [
+                            "transaction_hash",
+                            "version",
+                            "type",
+                            "nonce"
+                        ]
                     },
                     {
                         "$ref": "#/components/schemas/FUNCTION_CALL"
@@ -1478,9 +1761,6 @@ RPC_SPECIFICATION = r"""
                     "block_number": {
                         "$ref": "#/components/schemas/BLOCK_NUMBER"
                     },
-                    "type": {
-                        "$ref": "#/components/schemas/TXN_TYPE"
-                    },
                     "messages_sent": {
                         "type": "array",
                         "items": {
@@ -1501,22 +1781,80 @@ RPC_SPECIFICATION = r"""
                     "status",
                     "block_hash",
                     "block_number",
-                    "type",
                     "messages_sent",
                     "events"
                 ]
             },
             "INVOKE_TXN_RECEIPT": {
                 "title": "Invoke Transaction Receipt",
-                "$ref": "#/components/schemas/COMMON_RECEIPT_PROPERTIES"
+                "allOf": [
+                    {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "INVOKE"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "type"
+                        ]
+                    },
+                    {
+                        "$ref": "#/components/schemas/COMMON_RECEIPT_PROPERTIES"
+                    }
+                ]
             },
             "DECLARE_TXN_RECEIPT": {
                 "title": "Declare Transaction Receipt",
-                "$ref": "#/components/schemas/COMMON_RECEIPT_PROPERTIES"
+                "allOf": [
+                    {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "DECLARE"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "type"
+                        ]
+                    },
+                    {
+                        "$ref": "#/components/schemas/COMMON_RECEIPT_PROPERTIES"
+                    }
+                ]
             },
             "DEPLOY_ACCOUNT_TXN_RECEIPT": {
                 "title": "Deploy Account Transaction Receipt",
-                "$ref": "#/components/schemas/DEPLOY_TXN_RECEIPT"
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/COMMON_RECEIPT_PROPERTIES"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "DEPLOY_ACCOUNT"
+                                ]
+                            },
+                            "contract_address": {
+                                "description": "The address of the deployed contract",
+                                "$ref": "#/components/schemas/FELT"
+                            }
+                        },
+                        "required": [
+                            "type",
+                            "contract_address"
+                        ]
+                    }
+                ]
             },
             "DEPLOY_TXN_RECEIPT": {
                 "title": "Deploy Transaction Receipt",
@@ -1527,17 +1865,45 @@ RPC_SPECIFICATION = r"""
                     {
                         "type": "object",
                         "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "DEPLOY"
+                                ]
+                            },
                             "contract_address": {
                                 "description": "The address of the deployed contract",
                                 "$ref": "#/components/schemas/FELT"
                             }
-                        }
+                        },
+                        "required": [
+                            "type",
+                            "contract_address"
+                        ]
                     }
                 ]
             },
             "L1_HANDLER_TXN_RECEIPT": {
                 "title": "receipt for l1 handler transaction",
-                "$ref": "#/components/schemas/COMMON_RECEIPT_PROPERTIES"
+                "allOf": [
+                    {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "L1_HANDLER"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "type"
+                        ]
+                    },
+                    {
+                        "$ref": "#/components/schemas/COMMON_RECEIPT_PROPERTIES"
+                    }
+                ]
             },
             "TXN_RECEIPT": {
                 "anyOf": [
@@ -1639,7 +2005,11 @@ RPC_SPECIFICATION = r"""
                             "$ref": "#/components/schemas/FELT"
                         }
                     }
-                }
+                },
+                "required": [
+                    "to_address",
+                    "payload"
+                ]
             },
             "TXN_STATUS": {
                 "type": "string",
@@ -1689,10 +2059,63 @@ RPC_SPECIFICATION = r"""
                             "$ref": "#/components/schemas/FELT"
                         }
                     }
-                }
+                },
+                "required": [
+                    "contract_address",
+                    "entry_point_selector",
+                    "calldata"
+                ]
             },
             "CONTRACT_CLASS": {
-                "title": "The definition of a Starknet contract class",
+                "type": "object",
+                "properties": {
+                    "sierra_program": {
+                        "type": "array",
+                        "description": "The list of Sierra instructions of which the program consists",
+                        "items": {
+                            "$ref": "#/components/schemas/FELT"
+                        }
+                    },
+                    "contract_class_version": {
+                        "type": "string",
+                        "description": "The version of the contract class object. Currently, the Starknet OS supports version 0.1.0"
+                    },
+                    "entry_points_by_type": {
+                        "type": "object",
+                        "properties": {
+                            "CONSTRUCTOR": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/SIERRA_ENTRY_POINT"
+                                }
+                            },
+                            "EXTERNAL": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/SIERRA_ENTRY_POINT"
+                                }
+                            },
+                            "L1_HANDLER": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/SIERRA_ENTRY_POINT"
+                                }
+                            }
+                        }
+                    },
+                    "abi": {
+                        "type": "string",
+                        "descripition": "The class ABI, as supplied by the user declaring the class"
+                    }
+                },
+                "required": [
+                    "sierra_program",
+                    "contract_class_version",
+                    "entry_points_by_type"
+                ]
+            },
+            "DEPRECATED_CONTRACT_CLASS": {
+                "title": "The definition of a StarkNet contract class",
                 "type": "object",
                 "properties": {
                     "program": {
@@ -1704,26 +2127,27 @@ RPC_SPECIFICATION = r"""
                         "type": "object",
                         "properties": {
                             "CONSTRUCTOR": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/CONTRACT_ENTRY_POINT_LIST"
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
                                 }
                             },
                             "EXTERNAL": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/CONTRACT_ENTRY_POINT_LIST"
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
                                 }
                             },
                             "L1_HANDLER": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/CONTRACT_ENTRY_POINT_LIST"
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/DEPRECATED_CAIRO_ENTRY_POINT"
                                 }
                             }
                         }
                     },
                     "abi": {
-                        "schema": {
-                            "$ref": "#/components/schemas/CONTRACT_ABI"
-                        }
+                        "$ref": "#/components/schemas/CONTRACT_ABI"
                     }
                 },
                 "required": [
@@ -1731,26 +2155,29 @@ RPC_SPECIFICATION = r"""
                     "entry_points_by_type"
                 ]
             },
-            "CONTRACT_ENTRY_POINT_LIST": {
-                "type": "array",
-                "items": {
-                    "$ref": "#/components/schemas/CONTRACT_ENTRY_POINT"
-                }
-            },
-            "CONTRACT_ENTRY_POINT": {
+            "DEPRECATED_CAIRO_ENTRY_POINT": {
                 "type": "object",
                 "properties": {
                     "offset": {
                         "description": "The offset of the entry point in the program",
-                        "schema": {
-                            "$ref": "#/components/schemas/NUM_AS_HEX"
-                        }
+                        "$ref": "#/components/schemas/NUM_AS_HEX"
                     },
                     "selector": {
                         "description": "A unique identifier of the entry point (function) in the program",
-                        "schema": {
-                            "$ref": "#/components/schemas/FELT"
-                        }
+                        "$ref": "#/components/schemas/FELT"
+                    }
+                }
+            },
+            "SIERRA_ENTRY_POINT": {
+                "type": "object",
+                "properties": {
+                    "selector": {
+                        "description": "A unique identifier of the entry point (function) in the program",
+                        "$ref": "#/components/schemas/FELT"
+                    },
+                    "function_idx": {
+                        "description": "The index of the function in the program",
+                        "type": "integer"
                     }
                 }
             },
@@ -1761,8 +2188,7 @@ RPC_SPECIFICATION = r"""
                 }
             },
             "CONTRACT_ABI_ENTRY": {
-                "type": "object",
-                "oneOf": [
+                "anyOf": [
                     {
                         "$ref": "#/components/schemas/FUNCTION_ABI_ENTRY"
                     },
@@ -1795,11 +2221,10 @@ RPC_SPECIFICATION = r"""
                 ]
             },
             "STRUCT_ABI_ENTRY": {
+                "type": "object",
                 "properties": {
                     "type": {
-                        "schema": {
-                            "$ref": "#/components/schemas/STRUCT_ABI_TYPE"
-                        }
+                        "$ref": "#/components/schemas/STRUCT_ABI_TYPE"
                     },
                     "name": {
                         "description": "The struct name",
@@ -1818,7 +2243,6 @@ RPC_SPECIFICATION = r"""
                 }
             },
             "STRUCT_MEMBER": {
-                "type": "object",
                 "allOf": [
                     {
                         "$ref": "#/components/schemas/TYPED_PARAMETER"
@@ -1838,9 +2262,7 @@ RPC_SPECIFICATION = r"""
                 "type": "object",
                 "properties": {
                     "type": {
-                        "schema": {
-                            "$ref": "#/components/schemas/EVENT_ABI_TYPE"
-                        }
+                        "$ref": "#/components/schemas/EVENT_ABI_TYPE"
                     },
                     "name": {
                         "description": "The event name",
@@ -1864,9 +2286,7 @@ RPC_SPECIFICATION = r"""
                 "type": "object",
                 "properties": {
                     "type": {
-                        "schema": {
-                            "$ref": "#/components/schemas/FUNCTION_ABI_TYPE"
-                        }
+                        "$ref": "#/components/schemas/FUNCTION_ABI_TYPE"
                     },
                     "name": {
                         "description": "The function name",
@@ -1904,21 +2324,15 @@ RPC_SPECIFICATION = r"""
                 "properties": {
                     "gas_consumed": {
                         "description": "The Ethereum gas cost of the transaction (see https://docs.starknet.io/docs/Fees/fee-mechanism for more info)",
-                        "schema": {
-                            "$ref": "#/components/schemas/NUM_AS_HEX"
-                        }
+                        "$ref": "#/components/schemas/NUM_AS_HEX"
                     },
                     "gas_price": {
                         "description": "The gas price (in gwei) that was used in the cost estimation",
-                        "schema": {
-                            "$ref": "#/components/schemas/NUM_AS_HEX"
-                        }
+                        "$ref": "#/components/schemas/NUM_AS_HEX"
                     },
                     "overall_fee": {
                         "description": "The estimated fee for the transaction (in gwei), product of gas_consumed and gas_price",
-                        "schema": {
-                            "$ref": "#/components/schemas/NUM_AS_HEX"
-                        }
+                        "$ref": "#/components/schemas/NUM_AS_HEX"
                     }
                 }
             }
@@ -1967,6 +2381,10 @@ RPC_SPECIFICATION = r"""
             "INVALID_CONTINUATION_TOKEN": {
                 "code": 33,
                 "message": "The supplied continuation token is invalid or unknown"
+            },
+            "TOO_MANY_KEYS_IN_FILTER": {
+                "code": 34,
+                "message": "Too many keys provided in a filter"
             },
             "CONTRACT_ERROR": {
                 "code": 40,

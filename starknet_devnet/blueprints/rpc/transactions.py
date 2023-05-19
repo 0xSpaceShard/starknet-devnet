@@ -32,10 +32,10 @@ from starknet_devnet.blueprints.rpc.structures.responses import (
 from starknet_devnet.blueprints.rpc.structures.types import BlockId, RpcError, TxnHash
 from starknet_devnet.blueprints.rpc.utils import (
     assert_block_id_is_valid,
-    gateway_felt,
     get_block_by_block_id,
     rpc_felt,
 )
+from starknet_devnet.constants import LEGACY_TX_VERSION
 from starknet_devnet.state import state
 from starknet_devnet.util import StarknetDevnetException
 
@@ -121,10 +121,11 @@ async def add_declare_transaction(
     """
     Submit a new class declaration transaction
     """
-    declare_transaction = make_declare(declare_transaction)
+    if int(declare_transaction["version"], 0) == LEGACY_TX_VERSION:
+        raise RpcError.from_spec_name("INVALID_CONTRACT_CLASS")
 
     class_hash, transaction_hash = await state.starknet_wrapper.declare(
-        external_tx=declare_transaction
+        external_tx=make_declare(declare_transaction)
     )
     return RpcDeclareTransactionResult(
         transaction_hash=rpc_felt(transaction_hash),
@@ -177,23 +178,21 @@ def make_transaction(txn: RpcBroadcastedTxn) -> AccountTransaction:
 
 
 @validate_schema("estimateFee")
-async def estimate_fee(request: RpcBroadcastedTxn, block_id: BlockId) -> dict:
+async def estimate_fee(request: List[RpcBroadcastedTxn], block_id: BlockId) -> list:
     """
     Estimate the fee for a given Starknet transaction
     """
     await assert_block_id_is_valid(block_id)
-    transaction = make_transaction(request)
+    transactions = list(map(make_transaction, request))
+
     try:
-        _, fee_response = await state.starknet_wrapper.calculate_trace_and_fee(
-            transaction,
+        _, fee_response = await state.starknet_wrapper.calculate_traces_and_fees(
+            transactions,
             skip_validate=False,
             block_id=block_id,
         )
     except StarkException as ex:
-        if "entry_point_selector" in request and (
-            f"Entry point {gateway_felt(request['entry_point_selector'])} not found"
-            in ex.message
-        ):
+        if "Entry point" in ex.message and "not found" in ex.message:
             raise RpcError.from_spec_name("INVALID_MESSAGE_SELECTOR") from ex
         if "While handling calldata" in ex.message:
             raise RpcError.from_spec_name("INVALID_CALL_DATA") from ex

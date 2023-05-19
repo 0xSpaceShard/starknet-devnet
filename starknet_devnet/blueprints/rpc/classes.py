@@ -1,14 +1,10 @@
 """
 RPC classes endpoints
 """
-
-from starkware.starknet.services.api.contract_class.contract_class import (
-    DeprecatedCompiledClass,
-)
 from starkware.starkware_utils.error_handling import StarkException
 
 from starknet_devnet.blueprints.rpc.schema import validate_schema
-from starknet_devnet.blueprints.rpc.structures.payloads import rpc_contract_class
+from starknet_devnet.blueprints.rpc.structures.payloads import contract_class_from_dict
 from starknet_devnet.blueprints.rpc.structures.types import (
     Address,
     BlockId,
@@ -34,9 +30,7 @@ async def get_class(block_id: BlockId, class_hash: Felt) -> dict:
     except StarknetDevnetException as ex:
         raise RpcError.from_spec_name("CLASS_HASH_NOT_FOUND") from ex
 
-    # only works with cairo 0 classes
-    loaded_class = DeprecatedCompiledClass.load(result_dict)
-    return rpc_contract_class(loaded_class)
+    return contract_class_from_dict(result_dict)
 
 
 @validate_schema("getClassHashAt")
@@ -67,8 +61,7 @@ async def get_class_at(block_id: BlockId, contract_address: Address) -> dict:
         result_dict = await state.starknet_wrapper.get_class_by_address(
             int(contract_address, 16), block_id
         )
-        contract_class = DeprecatedCompiledClass.load(result_dict)
     except StarkException as ex:
         raise RpcError.from_spec_name("CONTRACT_NOT_FOUND") from ex
 
-    return rpc_contract_class(contract_class)
+    return contract_class_from_dict(result_dict)

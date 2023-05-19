@@ -4,7 +4,12 @@ Tests RPC miscellaneous
 
 from __future__ import annotations
 
-from test.account import declare, declare_and_deploy_with_chargeable, invoke
+from test.account import (
+    declare,
+    declare_and_deploy_with_chargeable,
+    invoke,
+    send_declare_v2,
+)
 from test.rpc.rpc_utils import deploy_and_invoke_storage_contract, rpc_call
 from test.rpc.test_data.get_events import GET_EVENTS_TEST_DATA, create_get_events_filter
 from test.shared import (
@@ -18,6 +23,7 @@ from test.shared import (
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
 from test.test_account import deploy_empty_contract
+from test.test_declare_v2 import load_cairo1_contract
 from test.test_state_update import get_class_hash_at_path
 from test.util import (
     assert_get_events_response,
@@ -27,6 +33,7 @@ from test.util import (
 )
 
 import pytest
+from starkware.starknet.business_logic.transaction.objects import compute_class_hash
 from starkware.starknet.public.abi import get_storage_var_address
 
 from starknet_devnet.blueprints.rpc.structures.types import PredefinedRpcErrorCode
@@ -65,7 +72,8 @@ def test_get_state_update():
 
     resp = rpc_call("starknet_getStateUpdate", params={"block_id": "latest"})
     diff_after_declare = resp["result"]["state_diff"]
-    assert diff_after_declare["declared_contract_hashes"] == [
+
+    assert diff_after_declare["deprecated_declared_classes"] == [
         rpc_felt(contract_class_hash)
     ]
 
@@ -79,6 +87,7 @@ def test_get_state_update():
     deployer_address = deployer_deploy_info["address"]
 
     resp = rpc_call("starknet_getStateUpdate", params={"block_id": "latest"})
+
     diff_after_deploy = resp["result"]["state_diff"]
 
     deployer_diff = diff_after_deploy["deployed_contracts"][0]
@@ -90,7 +99,52 @@ def test_get_state_update():
     # deployed_contract_diff["address"] is a random value
 
     # deployer expected to be declared one block earier, so nothing new declared
-    assert diff_after_deploy["declared_contract_hashes"] == []
+    assert diff_after_deploy["deprecated_declared_classes"] == []
+
+
+@pytest.mark.usefixtures("devnet_with_account")
+def test_get_state_update_declare_v2():
+    """Test if declared classes with new declare v2 succesfully registered"""
+
+    contract_class, _, compiled_class_hash = load_cairo1_contract()
+
+    send_declare_v2(
+        contract_class=contract_class,
+        compiled_class_hash=compiled_class_hash,
+        sender_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        sender_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
+
+    resp = rpc_call("starknet_getStateUpdate", params={"block_id": "latest"})
+
+    declared_class = resp["result"]["state_diff"]["declared_classes"][0]
+    computed_class_hash = compute_class_hash(contract_class)
+
+    assert declared_class["class_hash"] == rpc_felt(computed_class_hash)
+    assert declared_class["compiled_class_hash"] == rpc_felt(compiled_class_hash)
+
+
+@pytest.mark.usefixtures("devnet_with_account")
+def test_get_pending_state_update():
+    """
+    Test if getStateUpdate returns correct update for a pending state.
+    """
+    resp = rpc_call("starknet_getStateUpdate", params={"block_id": "pending"})
+    pending_state_update = resp["result"]
+    keys = pending_state_update.keys()
+
+    assert set(keys) == set(["old_root", "state_diff"])
+
+    state_diff = pending_state_update["state_diff"]
+
+    assert state_diff == {
+        "declared_classes": [],
+        "deployed_contracts": [],
+        "deprecated_declared_classes": [],
+        "nonces": [],
+        "replaced_classes": [],
+        "storage_diffs": [],
+    }
 
 
 @pytest.mark.usefixtures("devnet_with_account")
@@ -286,7 +340,7 @@ def test_get_nonce():
         method="starknet_getNonce",
         params={"block_id": "latest", "contract_address": rpc_felt(account_address)},
     )
-    assert initial_resp["result"] == "0x00"
+    assert initial_resp["result"] == "0x0"
 
     deployment_info = deploy_empty_contract()
 
@@ -301,7 +355,7 @@ def test_get_nonce():
         method="starknet_getNonce",
         params={"block_id": "latest", "contract_address": rpc_felt(account_address)},
     )
-    assert final_resp["result"] == "0x01"
+    assert final_resp["result"] == "0x1"
 
 
 @pytest.mark.usefixtures("devnet_with_account")

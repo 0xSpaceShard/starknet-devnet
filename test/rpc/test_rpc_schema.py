@@ -8,7 +8,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 from starkware.starknet.public.abi import get_selector_from_name
 
-from starknet_devnet.blueprints.rpc.schema import _assert_valid_rpc_request
+from starknet_devnet.blueprints.rpc.schema import (
+    _assert_valid_rpc_request,
+    felt_pattern_from_schema,
+)
 from starknet_devnet.blueprints.rpc.structures.types import PredefinedRpcErrorCode
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 
@@ -30,14 +33,14 @@ def _assert_call_does_not_raise_predefined_error(error_code: int):
     (
         {
             "request": {
-                "contract_address": "0x01",
+                "contract_address": "0x1",
                 "entry_point_selector": rpc_felt(get_selector_from_name("get_balance")),
                 "calldata": [],
             },
         },
         {
             "request": {
-                "contract_address": "0x01",
+                "contract_address": "0x1",
                 "entry_point_selector": rpc_felt(get_selector_from_name("get_balance")),
                 "calldata": [],
             },
@@ -45,7 +48,7 @@ def _assert_call_does_not_raise_predefined_error(error_code: int):
         },
         {
             "request": {
-                "contract_address": "0x01",
+                "contract_address": "0x1",
                 "entry_point_selector": rpc_felt(get_selector_from_name("get_balance")),
                 "calldata": [],
             },
@@ -64,7 +67,7 @@ def _assert_call_does_not_raise_predefined_error(error_code: int):
         },
         {
             "request": {
-                "contract_address": "0x01",
+                "contract_address": "0x1",
                 "entry_point_selector": rpc_felt(get_selector_from_name("get_balance")),
                 "calldata": "0x1234",
             },
@@ -80,8 +83,8 @@ def _assert_call_does_not_raise_predefined_error(error_code: int):
         },
         {
             "request": {
-                "contract_address": "0x01",
-                "entry_point_selector": ["0x01", "0x02"],
+                "contract_address": "0x1",
+                "entry_point_selector": ["0x1", "0x2"],
                 "calldata": [],
             },
             "block_id": "latest",
@@ -106,7 +109,7 @@ def test_schema_raises_on_invalid_kwargs(params):
     (
         [
             {
-                "contract_address": "0x01",
+                "contract_address": "0x1",
                 "entry_point_selector": rpc_felt(get_selector_from_name("get_balance")),
                 "calldata": [],
             }
@@ -116,7 +119,7 @@ def test_schema_raises_on_invalid_kwargs(params):
         ],
         [
             {
-                "contract_address": "0x01",
+                "contract_address": "0x1",
                 "entry_point_selector": rpc_felt(get_selector_from_name("get_balance")),
                 "calldata": [],
             },
@@ -124,7 +127,7 @@ def test_schema_raises_on_invalid_kwargs(params):
         ],
         [
             {
-                "contract_address": "0x01",
+                "contract_address": "0x1",
                 "entry_point_selector": rpc_felt(get_selector_from_name("get_balance")),
                 "calldata": [],
             },
@@ -140,7 +143,7 @@ def test_schema_raises_on_invalid_kwargs(params):
         ],
         [
             {
-                "contract_address": "0x01",
+                "contract_address": "0x1",
                 "entry_point_selector": rpc_felt(get_selector_from_name("get_balance")),
                 "calldata": "0x1234",
             },
@@ -156,8 +159,8 @@ def test_schema_raises_on_invalid_kwargs(params):
         ],
         [
             {
-                "contract_address": "0x01",
-                "entry_point_selector": ["0x01", "0x02"],
+                "contract_address": "0x1",
+                "entry_point_selector": ["0x1", "0x2"],
                 "calldata": [],
             },
             "latest",
@@ -165,8 +168,8 @@ def test_schema_raises_on_invalid_kwargs(params):
         [
             "latest",
             {
-                "contract_address": "0x01",
-                "entry_point_selector": "0x01",
+                "contract_address": "0x1",
+                "entry_point_selector": "0x1",
                 "calldata": [],
             },
         ],
@@ -213,7 +216,7 @@ def test_schema_does_not_raise_on_disabled_request_validation():
     (
         {
             "request": {
-                "contract_address": "0x01",
+                "contract_address": "0x1",
                 "entry_point_selector": rpc_felt(get_selector_from_name("get_balance")),
                 "calldata": [],
             },
@@ -222,22 +225,22 @@ def test_schema_does_not_raise_on_disabled_request_validation():
         {
             "block_id": "latest",
             "request": {
-                "contract_address": "0x01",
+                "contract_address": "0x1",
                 "entry_point_selector": rpc_felt(get_selector_from_name("get_balance")),
                 "calldata": [],
             },
         },
         {
             "request": {
-                "contract_address": "0x01",
+                "contract_address": "0x1",
                 "entry_point_selector": rpc_felt(get_selector_from_name("get_balance")),
                 "calldata": [],
             },
-            "block_id": {"block_hash": "0x00"},
+            "block_id": {"block_hash": "0x0"},
         },
         {
             "request": {
-                "contract_address": "0x01",
+                "contract_address": "0x1",
                 "entry_point_selector": rpc_felt(get_selector_from_name("get_balance")),
                 "calldata": [],
             },
@@ -270,7 +273,7 @@ def test_schema_does_not_raise_on_correct_args():
         "starknet_call",
         params=[
             {
-                "contract_address": "0x01",
+                "contract_address": "0x1",
                 "entry_point_selector": rpc_felt(get_selector_from_name("get_balance")),
                 "calldata": [],
             },
@@ -333,3 +336,12 @@ def test_schema_with_optional_values():
 
         params = {"key": "0x01"}
         _assert_valid_rpc_request(**params, method_name="starknet_method")
+
+
+def test_felt_pattern_from_schema():
+    """
+    Test getting the felt pattern from the rpc spec.
+    """
+    pattern = felt_pattern_from_schema()
+
+    assert pattern != ""
