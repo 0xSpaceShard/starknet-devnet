@@ -116,6 +116,7 @@ def test_too_big_block_id():
     )
     assert read_stream(proc.stdout) == ""
     assert f"Block number {too_big_block_id} was not found." in read_stream(proc.stderr)
+    assert proc.returncode != 0
 
 
 @pytest.mark.parametrize(

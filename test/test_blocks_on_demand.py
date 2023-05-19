@@ -265,7 +265,7 @@ def test_events():
                     "from_block": {"block_number": 0},
                     "to_block": to_block,
                     "chunk_size": 10,
-                    "keys": [rpc_felt(INCREASE_BALANCE_CALLED_EVENT_KEY)],
+                    "keys": [[rpc_felt(INCREASE_BALANCE_CALLED_EVENT_KEY)]],
                 }
             },
         )

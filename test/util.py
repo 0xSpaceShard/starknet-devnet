@@ -45,13 +45,6 @@ def run_devnet_in_background(*args, stderr=None, stdout=None, env=None):
     if "--accounts" not in args:
         args = [*args, "--accounts", "1"]
 
-    if (
-        "--cairo-compiler-manifest" not in args
-        and os.getenv("CAIRO_1_COMPILER_MANIFEST") is not None
-    ):
-        manifest = os.getenv("CAIRO_1_COMPILER_MANIFEST")
-        args = [*args, "--cairo-compiler-manifest", manifest]
-
     port = args[args.index("--port") + 1] if "--port" in args else PORT
 
     command = [
