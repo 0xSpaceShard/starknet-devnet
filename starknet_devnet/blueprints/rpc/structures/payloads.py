@@ -4,10 +4,6 @@ RPC payload structures
 
 from __future__ import annotations
 
-from test.shared import (
-    DEPRECATED_RPC_DECLARE_TX_VERSION,
-    SUPPORTED_RPC_DECLARE_TX_VERSION,
-)
 from typing import Callable, Dict, List, Optional, Union
 
 from marshmallow.exceptions import MarshmallowError
@@ -60,7 +56,11 @@ from starknet_devnet.blueprints.rpc.structures.types import (
     rpc_txn_type,
 )
 from starknet_devnet.blueprints.rpc.utils import rpc_felt, rpc_root
-from starknet_devnet.constants import LEGACY_RPC_TX_VERSION
+from starknet_devnet.constants import (
+    DEPRECATED_RPC_DECLARE_TX_VERSION,
+    LEGACY_RPC_TX_VERSION,
+    SUPPORTED_RPC_DECLARE_TX_VERSION,
+)
 from starknet_devnet.state import state
 
 

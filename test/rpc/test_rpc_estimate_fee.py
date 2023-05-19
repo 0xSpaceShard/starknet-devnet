@@ -9,11 +9,9 @@ from test.account import _get_signature, get_nonce
 from test.rpc.rpc_utils import rpc_call_background_devnet
 from test.rpc.test_rpc_transactions import pad_zero_entry_points
 from test.shared import (
-    DEPRECATED_RPC_DECLARE_TX_VERSION,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
-    SUPPORTED_RPC_DECLARE_TX_VERSION,
     SUPPORTED_RPC_TX_VERSION,
 )
 from test.test_account import deploy_empty_contract
@@ -41,7 +39,12 @@ from starknet_devnet.blueprints.rpc.structures.payloads import (
     rpc_contract_class,
 )
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
-from starknet_devnet.constants import DEFAULT_GAS_PRICE, LEGACY_RPC_TX_VERSION
+from starknet_devnet.constants import (
+    DEFAULT_GAS_PRICE,
+    DEPRECATED_RPC_DECLARE_TX_VERSION,
+    LEGACY_RPC_TX_VERSION,
+    SUPPORTED_RPC_DECLARE_TX_VERSION,
+)
 
 
 def common_estimate_response(response):

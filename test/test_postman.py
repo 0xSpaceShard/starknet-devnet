@@ -9,6 +9,7 @@ import psutil
 import pytest
 import requests
 from web3 import Web3
+from web3.contract import Contract as Web3Contract
 
 from .account import declare_and_deploy_with_chargeable, invoke
 from .settings import APP_URL, L1_HOST, L1_PORT, L1_URL
@@ -139,6 +140,13 @@ def deploy_l1_contracts(web3):
     """Deploys Ethereum contracts in the Hardhat testnet instance, including the L1L2Example and MockStarknetMessaging contracts"""
 
     messaging_contract = json.loads(load_file_content(STARKNET_MESSAGING_PATH))
+
+    # Assert the two instances of MockMessagingContract artifact are the same
+    production_messaging_contract = json.loads(
+        load_file_content("../starknet_devnet/MockStarknetMessaging.json")
+    )
+    assert messaging_contract == production_messaging_contract
+
     l1l2_example_contract = json.loads(load_file_content(L1L2_EXAMPLE_PATH))
 
     # Min amount of time in seconds for a message to be able to be cancelled
@@ -170,28 +178,35 @@ def load_messaging_contract(starknet_messaging_contract_address):
     return json.loads(resp.text)
 
 
-def _init_l2_contract(l1l2_example_contract_address: str):
+def _init_l2_contract(
+    starknet_messaging_contract: Web3Contract, l1l2_example_contract_address: str
+):
     """Deploys the L1L2Example cairo contract, returns the result of calling 'get_balance'"""
 
     deploy_info = declare_and_deploy_with_chargeable(L1L2_CONTRACT_PATH)
     l2_address = deploy_info["address"]
 
-    # increase and withdraw balance
+    # increase on L2
     invoke(
         calls=[(l2_address, "increase_balance", [USER_ID, 3333])],
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
+
+    # withdraw from L2 to L1
     contract_address_int = int(l1l2_example_contract_address, 16)
+    withdraw_amount = 1000
     invoke(
-        calls=[(l2_address, "withdraw", [USER_ID, 1000, contract_address_int])],
+        calls=[
+            (l2_address, "withdraw", [USER_ID, withdraw_amount, contract_address_int])
+        ],
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
 
     # flush L2 to L1 messages
     flush_response = flush()
-
+    expected_payload = [0, USER_ID, withdraw_amount]  # 0 = MESSAGE_WITHDRAW
     assert_flush_response(
         response=flush_response,
         expected_from_l1=[],
@@ -199,12 +214,23 @@ def _init_l2_contract(l1l2_example_contract_address: str):
             {
                 "from_address": deploy_info["address"],
                 "to_address": l1l2_example_contract_address,
-                "payload": [0, USER_ID, 1000],  # MESSAGE_WITHDRAW, user, amount
+                "payload": expected_payload,
             }
         ],
         expected_l1_provider=L1_URL,
         expected_generated_l2_transactions=0,
     )
+
+    # assert the custom-emitted event is intercepted
+    event_filter = starknet_messaging_contract.events.LogMessageToL1.create_filter(
+        fromBlock=0, toBlock="latest"
+    )
+    new_event_entries = event_filter.get_new_entries()
+    assert len(new_event_entries) == 1, f"Wrong entries: {new_event_entries}"
+    event = new_event_entries[0].args
+    assert event.fromAddress == int(deploy_info["address"], 16)
+    assert event.toAddress == l1l2_example_contract_address
+    assert event.payload == expected_payload
 
     # assert balance
     value = call(
@@ -213,12 +239,12 @@ def _init_l2_contract(l1l2_example_contract_address: str):
         abi_path=L1L2_ABI_PATH,
         inputs=[str(USER_ID)],
     )
-
     assert value == "2333"
+
     return deploy_info["address"]
 
 
-def _l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address):
+def _l1_l2_message_exchange(web3: Web3, l1l2_example_contract, l2_contract_address):
     """Tests message exchange"""
 
     # assert contract balance when starting
@@ -350,7 +376,10 @@ def test_postman():
     assert load_resp["l1_provider"] == L1_URL
 
     # Test initializing the l2 example contract
-    l2_contract_address = _init_l2_contract(l1l2_example_contract.address)
+    l2_contract_address = _init_l2_contract(
+        starknet_messaging_contract, l1l2_example_contract.address
+    )
+
     _l1_l2_message_exchange(web3, l1l2_example_contract, l2_contract_address)
 
 

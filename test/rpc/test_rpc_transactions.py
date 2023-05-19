@@ -21,13 +21,11 @@ from test.rpc.rpc_utils import (
 from test.shared import (
     ABI_PATH,
     CONTRACT_PATH,
-    DEPRECATED_RPC_DECLARE_TX_VERSION,
     EXPECTED_UDC_ADDRESS,
     INCORRECT_GENESIS_BLOCK_HASH,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     STARKNET_CLI_ACCOUNT_ABI_PATH,
-    SUPPORTED_RPC_DECLARE_TX_VERSION,
     SUPPORTED_RPC_TX_VERSION,
 )
 from test.test_declare_v2 import load_cairo1_contract
@@ -63,7 +61,11 @@ from starknet_devnet.blueprints.rpc.structures.payloads import (
 )
 from starknet_devnet.blueprints.rpc.structures.types import Signature, rpc_txn_type
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
-from starknet_devnet.constants import LEGACY_RPC_TX_VERSION
+from starknet_devnet.constants import (
+    DEPRECATED_RPC_DECLARE_TX_VERSION,
+    LEGACY_RPC_TX_VERSION,
+    SUPPORTED_RPC_DECLARE_TX_VERSION,
+)
 
 
 def pad_zero_entry_points(entry_points: DeprecatedEntryPoints) -> None:
