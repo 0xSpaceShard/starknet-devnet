@@ -44,12 +44,12 @@ Failed compilation from Sierra to Casm! Read more about starting Devnet with --c
         except PermissionError as permission_error:
             raise StarknetDevnetException(
                 code=StarknetErrorCode.COMPILATION_FAILED,
-                message=permission_error + custom_err_msg,
+                message=str(permission_error) + custom_err_msg,
             ) from permission_error
         except StarkException as stark_exception:
             raise StarknetDevnetException(
-                code=stark_exception.code,
-                message=stark_exception.message + custom_err_msg,
+                code=StarknetErrorCode.COMPILATION_FAILED,
+                message=(stark_exception.message or "") + custom_err_msg,
             ) from stark_exception
 
 
