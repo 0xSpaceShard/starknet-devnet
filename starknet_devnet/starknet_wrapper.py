@@ -176,6 +176,7 @@ class StarknetWrapper:
 
             await self.__preserve_current_state(starknet.state.state)
             await self.__create_genesis_block()
+            self.__latest_state = self.get_state().copy()
             self.__initialized = True
 
     async def __create_genesis_block(self):
