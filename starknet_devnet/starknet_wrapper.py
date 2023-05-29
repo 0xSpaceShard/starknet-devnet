@@ -755,26 +755,28 @@ class StarknetWrapper:
         return transaction.hash_value
 
     async def postman_flush(self) -> dict:
-        """Handles all pending L1 <> L2 messages and sends them to the other layer."""
+        """Handles all pending L1 <> L2 messages if such exists and sends them to the other layer."""
 
         state = self.get_state()
         # Generate transactions in PostmanWrapper
         parsed_l1_l2_messages, transactions_to_execute = await self.l1l2.flush(state)
 
         # Execute transactions inside StarknetWrapper
-        tx_hashes = []
-        for transaction in transactions_to_execute:
-            tx_hashes.append(hex(transaction.hash_value))
-            async with self.__get_transaction_handler() as tx_handler:
-                tx_handler.internal_tx = transaction
-                tx_handler.execution_info = await state.execute_tx(
-                    tx_handler.internal_tx
-                )
-                tx_handler.internal_calls = (
-                    tx_handler.execution_info.call_info.internal_calls
-                )
+        if parsed_l1_l2_messages and transactions_to_execute:
+            tx_hashes = []
+            for transaction in transactions_to_execute:
+                tx_hashes.append(hex(transaction.hash_value))
+                async with self.__get_transaction_handler() as tx_handler:
+                    tx_handler.internal_tx = transaction
+                    tx_handler.execution_info = await state.execute_tx(
+                        tx_handler.internal_tx
+                    )
+                    tx_handler.internal_calls = (
+                        tx_handler.execution_info.call_info.internal_calls
+                    )
 
-        parsed_l1_l2_messages["generated_l2_transactions"] = tx_hashes
+            parsed_l1_l2_messages["generated_l2_transactions"] = tx_hashes
+
         return parsed_l1_l2_messages
 
     async def update_pending_block(self, state_update: BlockStateUpdate = None):
