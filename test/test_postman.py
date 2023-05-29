@@ -405,6 +405,6 @@ def test_invalid_starknet_function_call_load_l1_messaging_contract():
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
 def test_postman_flush():
-    # Test flush without load l1 contract
+    """Test flush without load l1 contract"""
     flush_response = flush()
     assert flush_response["generated_l2_transactions"] == []
