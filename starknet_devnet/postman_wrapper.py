@@ -106,7 +106,7 @@ and that the Messaging Contract is deployed at the provided address ({contract_a
         """Handles all pending L1 <> L2 messages and sends them to the other layer."""
 
         if self.__postman_wrapper is None:
-            return ([],[])
+            return ([], [])
 
         postman = self.__postman_wrapper.postman
 
