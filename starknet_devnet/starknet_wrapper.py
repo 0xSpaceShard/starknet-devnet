@@ -755,7 +755,7 @@ class StarknetWrapper:
         return transaction.hash_value
 
     async def postman_flush(self) -> dict:
-        """Handles all pending L1 <> L2 messages if such exists and sends them to the other layer."""
+        """Handles all pending L1 <> L2 messages and sends them to the other layer."""
 
         state = self.get_state()
         # Generate transactions in PostmanWrapper
