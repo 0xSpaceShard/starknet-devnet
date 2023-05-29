@@ -760,10 +760,10 @@ class StarknetWrapper:
         state = self.get_state()
         # Generate transactions in PostmanWrapper
         parsed_l1_l2_messages, transactions_to_execute = await self.l1l2.flush(state)
+        tx_hashes = []
 
         # Execute transactions inside StarknetWrapper
         if parsed_l1_l2_messages and transactions_to_execute:
-            tx_hashes = []
             for transaction in transactions_to_execute:
                 tx_hashes.append(hex(transaction.hash_value))
                 async with self.__get_transaction_handler() as tx_handler:
@@ -775,8 +775,7 @@ class StarknetWrapper:
                         tx_handler.execution_info.call_info.internal_calls
                     )
 
-            parsed_l1_l2_messages["generated_l2_transactions"] = tx_hashes
-
+        parsed_l1_l2_messages["generated_l2_transactions"] = tx_hashes
         return parsed_l1_l2_messages
 
     async def update_pending_block(self, state_update: BlockStateUpdate = None):
