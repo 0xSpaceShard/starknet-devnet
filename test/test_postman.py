@@ -401,3 +401,10 @@ def test_invalid_starknet_function_call_load_l1_messaging_contract():
     msg = "L1 network or StarknetMessaging contract address not specified"
     assert resp.status_code == 400
     assert msg in json_error_message
+
+
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
+def test_postman_flush():
+    # Test flush without load l1 contract
+    flush_response = flush()
+    assert flush_response["generated_l2_transactions"] == []
