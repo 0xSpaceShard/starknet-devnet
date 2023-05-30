@@ -14,6 +14,7 @@ from jsonschema.exceptions import ValidationError
 
 from starknet_devnet.blueprints.rpc.rpc_spec import RPC_SPECIFICATION
 from starknet_devnet.blueprints.rpc.rpc_spec_write import RPC_SPECIFICATION_WRITE
+from starknet_devnet.blueprints.rpc.rpc_trace_spec import RPC_SPECIFICATION_TRACE
 from starknet_devnet.state import state
 
 
@@ -22,9 +23,14 @@ from starknet_devnet.state import state
 def _load_schemas() -> Tuple[Dict[str, Any], Dict[str, Any]]:
     specs_json = json.loads(RPC_SPECIFICATION)
     write_specs_json = json.loads(RPC_SPECIFICATION_WRITE)
+    trace_specs_json = json.loads(RPC_SPECIFICATION_TRACE)
     schemas = specs_json["components"]["schemas"]
 
-    methods = {**_extract_methods(specs_json), **_extract_methods(write_specs_json)}
+    methods = {
+        **_extract_methods(specs_json),
+        **_extract_methods(write_specs_json),
+        **_extract_methods(trace_specs_json),
+    }
 
     return methods, schemas
 
