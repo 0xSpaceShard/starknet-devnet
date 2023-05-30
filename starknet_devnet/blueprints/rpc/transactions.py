@@ -17,6 +17,7 @@ from starknet_devnet.blueprints.rpc.structures.payloads import (
     RpcBroadcastedInvokeTxn,
     RpcBroadcastedTxn,
     RpcTransaction,
+    SimulationFlag,
     make_declare,
     make_deploy_account,
     make_invoke_function,
@@ -201,3 +202,48 @@ async def estimate_fee(request: List[RpcBroadcastedTxn], block_id: BlockId) -> l
         raise RpcError(code=-1, message=ex.message) from ex
 
     return rpc_fee_estimate(fee_response)
+
+
+@validate_schema("simulateTransaction")
+async def simulate_transaction(
+    block_id: BlockId,
+    transaction: List[RpcTransaction],
+    simulation_flags: List[SimulationFlag],
+) -> list:
+    """
+    Simulate transactions.
+    - I'm not sure if return type is compliant with specification
+    - SKIP_EXECUTE SimulationFlag is not supported yet.
+    """
+    await assert_block_id_is_valid(block_id)
+    transactions = list(map(make_transaction, transaction))
+    skip_validate = (
+        True if SimulationFlag.SKIP_VALIDATE.name in simulation_flags else False
+    )
+    simulated_transactions = []
+
+    try:
+        traces, fee = await state.starknet_wrapper.calculate_traces_and_fees(
+            transactions,
+            skip_validate=skip_validate,
+            block_id=block_id,
+        )
+        simulated_transactions.append(
+            {
+                "transaction_trace": traces,
+                "fee_estimation": fee,
+            }
+        )
+    except StarkException as ex:
+        if "Entry point" in ex.message and "not found" in ex.message:
+            raise RpcError.from_spec_name("INVALID_MESSAGE_SELECTOR") from ex
+        if "While handling calldata" in ex.message:
+            raise RpcError.from_spec_name("INVALID_CALL_DATA") from ex
+        if "is not deployed" in ex.message:
+            raise RpcError.from_spec_name("CONTRACT_NOT_FOUND") from ex
+        raise RpcError(code=-1, message=ex.message) from ex
+
+    print("simulated_transactions")
+    print(simulated_transactions)
+
+    return simulated_transactions

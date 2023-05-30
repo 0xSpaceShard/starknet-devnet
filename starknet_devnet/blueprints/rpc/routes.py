@@ -45,6 +45,7 @@ from starknet_devnet.blueprints.rpc.transactions import (
     get_transaction_by_hash,
     get_transaction_receipt,
     pending_transactions,
+    simulate_transaction,
 )
 from starknet_devnet.blueprints.rpc.utils import rpc_error, rpc_response
 from starknet_devnet.util import StarknetDevnetException
@@ -73,6 +74,7 @@ methods = {
     "addInvokeTransaction": add_invoke_transaction,
     "addDeclareTransaction": add_declare_transaction,
     "addDeployAccountTransaction": add_deploy_account_transaction,
+    "simulateTransaction": simulate_transaction,
 }
 
 rpc = Blueprint("rpc", __name__, url_prefix="/rpc")

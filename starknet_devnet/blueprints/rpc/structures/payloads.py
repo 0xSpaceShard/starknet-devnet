@@ -4,6 +4,7 @@ RPC payload structures
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import Callable, Dict, List, Optional, Union
 
 from marshmallow.exceptions import MarshmallowError
@@ -616,6 +617,11 @@ class StructAbiEntry(TypedDict):
 
 
 AbiEntry = Union[FunctionAbiEntry, EventAbiEntry, StructAbiEntry]
+
+
+class SimulationFlag(Enum):
+    SKIP_VALIDATE = 1
+    SKIP_EXECUTE = 2
 
 
 def function_abi_entry(abi_entry: AbiEntryType) -> FunctionAbiEntry:
