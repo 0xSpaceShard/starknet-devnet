@@ -620,6 +620,7 @@ AbiEntry = Union[FunctionAbiEntry, EventAbiEntry, StructAbiEntry]
 
 
 class SimulationFlag(Enum):
+    """Enum with flags for simulate transaction"""
     SKIP_VALIDATE = 1
     SKIP_EXECUTE = 2
 

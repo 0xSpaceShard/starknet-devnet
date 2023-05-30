@@ -217,9 +217,7 @@ async def simulate_transaction(
     """
     await assert_block_id_is_valid(block_id)
     transactions = list(map(make_transaction, transaction))
-    skip_validate = (
-        True if SimulationFlag.SKIP_VALIDATE.name in simulation_flags else False
-    )
+    skip_validate = SimulationFlag.SKIP_VALIDATE.name in simulation_flags
     simulated_transactions = []
 
     try:
