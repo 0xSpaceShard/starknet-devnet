@@ -651,11 +651,11 @@ class StarknetWrapper:
         """
         state = self.get_state().state
 
+        # first handle the case of artifact being locally present
         if class_hash in self._contract_classes:
             compiled_class_hash = await state.get_compiled_class_hash(class_hash)
             return await state.get_compiled_class(compiled_class_hash)
 
-        # potentially check if forking
         try:
             # directly on state_reader to ensure overriden method is called if forking
             compiled_class = await state.state_reader.get_compiled_class_by_class_hash(
