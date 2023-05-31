@@ -212,8 +212,7 @@ async def simulate_transaction(
 ) -> list:
     """
     Simulate transactions.
-    - I'm not sure if return type is compliant with specification
-    - SKIP_EXECUTE SimulationFlag is not supported yet.
+    SKIP_EXECUTE SimulationFlag is not supported yet.
     """
     await assert_block_id_is_valid(block_id)
     transactions = list(map(make_transaction, transaction))
@@ -226,10 +225,33 @@ async def simulate_transaction(
             skip_validate=skip_validate,
             block_id=block_id,
         )
+
+        # Mapping logic needs to be added, ask starkware if this is the correct way.
+
+        # INVOKE_TXN_TRACE
+        # validate_invocation: (TransactionTrace.validate_invocation from trace?)
+        # execute_invocation: (ExecutionResources.function_invocation from trace?)
+        # fee_transfer_invocation: (ExecutionResources.fee_transfer_invocation from trace?)
+
+        # DECLARE_TXN_TRACE
+        # validate_invocation: (TransactionTrace.validate_invocation from trace?)
+        # fee_transfer_invocation: (ExecutionResources.fee_transfer_invocation from trace?)
+
+        # DEPLOY_ACCOUNT_TXN_TRACE
+        # validate_invocation: (TransactionTrace.validate_invocation from trace?)
+        # constructor_invocation: ?
+        # fee_transfer_invocation: (ExecutionResources.fee_transfer_invocation from trace?)
+        
+        # L1_HANDLER_TXN_TRACE
+        # function_invocation: ?
+
+        print("traces")
+        print(traces)
+
         simulated_transactions.append(
             {
                 "transaction_trace": traces,
-                "fee_estimation": fee,
+                "fee_estimation": rpc_fee_estimate(fee),
             }
         )
     except StarkException as ex:
