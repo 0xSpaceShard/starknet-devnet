@@ -11,7 +11,7 @@ To successfully declare a contract compiled with Cairo v1.0.0-rc0, if on an x86 
 - `--cairo-compiler-manifest <PATH_TO_CARGO_TOML>`
 - `--sierra-compiler-path <PATH_TO_SIERRA_EXECUTABLE>`
 
-Other than cloning [the compiler repo](https://github.com/starkware-libs/cairo) and checking out and building the desired version, you can find **prebuilt** executable binaries under `Assets` of every release [on the GitHub release page](https://github.com/starkware-libs/cairo/releases) (usually x86 and Apple sillicon compatible binaries are included).
+Other than cloning [the compiler repo](https://github.com/starkware-libs/cairo) and checking out and building the desired version, you can find statically linked **prebuilt** executable binaries under `Assets` of every release [on the GitHub release page](https://github.com/starkware-libs/cairo/releases) (usually x86 and Apple sillicon compatible binaries are included).
 
 ## Docker support
 
