@@ -1,0 +1,31 @@
+[workspace]
+
+resolver = "2"
+members = [
+	"crates/lib",
+	"crates/starknet",
+]
+
+[profile.release]
+panic = "unwind"
+
+[workspace.package]
+authors = ["Mario"]
+version = "0.1.0"
+edition = "2021"
+repository = ""
+
+[workspace.dependencies]
+# Starknet dependencies
+starknet_api = { git = "https://github.com/starkware-libs/starknet-api", rev = "24a7249" }
+starknet-in-rust = { git = "https://github.com/lambdaclass/starknet_in_rust", rev = "3b5fce6", package="starknet-rs" }
+starknet-rs-signers = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "a6cbfa3", package = "starknet-signers" }
+starknet-rs-ff = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "a6cbfa3", package = "starknet-ff" }
+starknet-rs-core = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "a6cbfa3", package = "starknet-core" }
+
+blockifier = { git = "https://github.com/starkware-libs/blockifier", rev= "3d2f8c3" }
+
+# Rist depencencies
+thiserror = { version = "1.0.32" }
+serde = { version = "1.0.130", features = ["derive"] }
+serde_json = { version = "1.0.81" }
