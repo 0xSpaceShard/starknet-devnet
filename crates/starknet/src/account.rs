@@ -53,7 +53,7 @@ impl Account {
 }
 
 impl Accounted for Account {
-    fn deploy(&self, state: impl StateChanger) -> Result<(), Error> {
+    fn deploy(&self, _state: impl StateChanger) -> Result<(), Error> {
         Ok(())
     }
 

@@ -2,7 +2,7 @@ use starknet_in_rust::services::api::contract_classes::deprecated_contract_class
 
 use crate::{
     error::Error,
-    types::{ClassHash, DevnetResult, Key},
+    types::{ClassHash, DevnetResult},
 };
 
 pub trait HashIdentified {

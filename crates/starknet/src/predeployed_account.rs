@@ -1,12 +1,11 @@
-use starknet_api::hash::StarkFelt;
+
 use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::SigningKey;
 
 use crate::{
     account::Account,
-    error::Error,
     traits::AccountGenerator,
-    types::{Balance, DevnetResult, Felt, Key},
+    types::{DevnetResult, Key},
     utils::generate_u128_random_numbers,
 };
 
@@ -41,7 +40,7 @@ impl PredeployedAccount {
 impl AccountGenerator for PredeployedAccount {
     type Acc = Account;
 
-    fn generate_accounts(&self, number_of_accounts: u8) -> DevnetResult<Vec<Self::Acc>>
+    fn generate_accounts(&self, _number_of_accounts: u8) -> DevnetResult<Vec<Self::Acc>>
     where
         Self::Acc: crate::traits::Accounted,
     {
