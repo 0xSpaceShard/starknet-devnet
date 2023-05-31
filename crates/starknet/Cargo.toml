@@ -1,0 +1,20 @@
+[package]
+name = "starknet"
+version.workspace = true
+edition.workspace = true
+repository.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+starknet_api = { workspace = true }
+thiserror = { workspace = true }
+starknet-in-rust = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+blockifier = { workspace = true }
+hex = { version = "0.4.3", default-features = false }
+pyo3 = { version = "0.18.3", features = ["auto-initialize"] }
+starknet-rs-signers = { workspace = true }
+starknet-rs-ff = { workspace = true }
+starknet-rs-core = { workspace = true }
