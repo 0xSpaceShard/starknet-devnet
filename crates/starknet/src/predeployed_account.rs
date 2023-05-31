@@ -23,7 +23,7 @@ impl PredeployedAccount {
 impl PredeployedAccount {
     fn generate_private_keys(&self, number_of_accounts: u8) -> DevnetResult<Vec<Key>> {
         let random_numbers = generate_u128_random_numbers(self.seed, number_of_accounts)?;
-        let private_keys = random_numbers.into_iter().map(|num| Key::from(num)).collect::<Vec<Key>>();
+        let private_keys = random_numbers.into_iter().map(Key::from).collect::<Vec<Key>>();
 
         Ok(private_keys)
     }
@@ -101,7 +101,7 @@ mod tests {
             .map(|pk| predeployed_acc.generate_public_key(&pk).unwrap())
             .collect::<Vec<Key>>();
 
-        let mut expected_public_keys = PUBLIC_KEYS_IN_HEX
+        let expected_public_keys = PUBLIC_KEYS_IN_HEX
             .into_iter()
             .map(|public_key_hex| Felt::from_prefixed_hex_str(public_key_hex).unwrap())
             .collect::<Vec<Key>>();

@@ -39,6 +39,6 @@ impl HashIdentified for StarknetTransactions {
     type Hash = TransactionHash;
 
     fn get_by_hash(&self, hash: Self::Hash) -> Self::Element {
-        self.transactions.get(&hash).map(|el| el.clone())
+        self.transactions.get(&hash).cloned()
     }
 }

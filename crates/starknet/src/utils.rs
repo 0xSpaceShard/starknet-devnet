@@ -41,7 +41,7 @@ pub(crate) fn generate_u128_random_numbers(seed: u32, random_numbers_count: u8) 
         .to_string()
         .trim_start_matches('[')
         .trim_end_matches(']')
-        .split(",")
+        .split(',')
         .map(|el| el.trim().parse::<u128>().unwrap())
         .collect::<Vec<u128>>();
 
@@ -49,7 +49,7 @@ pub(crate) fn generate_u128_random_numbers(seed: u32, random_numbers_count: u8) 
 }
 
 pub(crate) fn load_cairo_0_contract_class(path: &str) -> DevnetResult<LegacyContractClass> {
-    let contract_class_str = fs::read_to_string(&path).map_err(crate::error::Error::IOError)?;
+    let contract_class_str = fs::read_to_string(path).map_err(crate::error::Error::IOError)?;
     let contract_class: LegacyContractClass =
         serde_json::from_str(&contract_class_str).map_err(JsonError::SerdeJsonError)?;
 
@@ -65,13 +65,10 @@ pub(crate) fn compute_cairo_0_class_hash(contract_class: &ContractClass) -> Devn
 
 #[cfg(test)]
 mod tests {
-    use starknet_in_rust::core::contract_address::{
-        starknet_contract_address::compute_deprecated_class_hash,
-        v2::starknet_sierra_contract_address::compute_sierra_class_hash,
-    };
-    use starknet_rs_core::types::contract::legacy::LegacyContractClass;
+    
+    
 
-    use crate::utils::{compute_cairo_0_class_hash, CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH};
+    use crate::utils::{CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH};
 
     use super::{generate_u128_random_numbers, get_bytes_from_u32, load_cairo_0_contract_class};
     use crate::types::Felt;
