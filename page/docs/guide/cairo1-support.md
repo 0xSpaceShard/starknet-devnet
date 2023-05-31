@@ -6,7 +6,7 @@ sidebar_position: 18
 
 Declaring, deploying and interacting with Cairo 1 contracts is supported in the latest version of starknet-devnet. Declaration body only includes the [Sierra](https://docs.starknet.io/documentation/architecture_and_concepts/Contracts/cairo-1-and-sierra/) of your contract class, so Devnet needs to compile it to Casm.
 
-Make sure your Devnet is using the same compiler version that you used for the compilation of the contract class being declared. To successfully declare a contract compiled with Cairo v1.0.0-rc0, if on an x86 machine, you don't have to do anything. On another architecture, or if you want to specify a custom version of the Cairo 1 compiler, you need to specify your local compiler. Use one of:
+Make sure your Devnet is using the same compiler version that you used for the compilation of the contract class being declared. To successfully declare a contract compiled with Cairo v1.1.0, if on an x86 machine, you don't have to do anything. On another architecture, or if you want to specify a custom version of the Cairo 1 compiler, you need to specify your local compiler. Use one of:
 
 - `--cairo-compiler-manifest <PATH_TO_CARGO_TOML>`
 - `--sierra-compiler-path <PATH_TO_SIERRA_EXECUTABLE>`
