@@ -657,7 +657,7 @@ class StarknetWrapper:
             return await state.get_compiled_class(compiled_class_hash)
 
         try:
-            # directly on state_reader to ensure overriden method is called if forking
+            # directly on state_reader to ensure overridden method is called if forking
             compiled_class = await state.state_reader.get_compiled_class_by_class_hash(
                 class_hash
             )

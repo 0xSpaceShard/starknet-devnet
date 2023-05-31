@@ -251,7 +251,7 @@ def test_cairo1_class_declared_on_origin():
     resp = get_compiled_class_by_class_hash(class_hash=TESTNET_CAIRO1_CONTRACT_CLASS)
     assert resp.status_code == 200
     resp_body = resp.json()
-    CompiledClass.load(resp_body)
+    CompiledClass.load(resp_body)  # will fail in not valid casm
 
 
 def _assert_transaction_trace_not_present(tx_hash: str, feeder_gateway_url=APP_URL):
