@@ -29,13 +29,15 @@ class ContractClassCompiler(ABC):
         raise NotImplementedError
 
 
+COMPILATION_ERROR_MSG = """
+Failed compilation from Sierra to Casm! Make sure you compiled the contract with the same compiler version Devnet is using for recompilation.
+Find more info in https://0xspaceshard.github.io/starknet-devnet/docs/guide/cairo1-support/"""
+
+
 class DefaultContractClassCompiler(ContractClassCompiler):
     """Uses the default internal cairo-lang compiler"""
 
     def compile_contract_class(self, contract_class: ContractClass) -> CompiledClass:
-        custom_err_msg = """
-Failed compilation from Sierra to Casm! Read more about starting Devnet with --cairo-compiler-manifest or --sierra-compiler-path"""
-
         try:
             return compile_contract_class(
                 contract_class,
@@ -44,12 +46,12 @@ Failed compilation from Sierra to Casm! Read more about starting Devnet with --c
         except PermissionError as permission_error:
             raise StarknetDevnetException(
                 code=StarknetErrorCode.COMPILATION_FAILED,
-                message=str(permission_error) + custom_err_msg,
+                message=str(permission_error) + COMPILATION_ERROR_MSG,
             ) from permission_error
         except StarkException as stark_exception:
             raise StarknetDevnetException(
                 code=StarknetErrorCode.COMPILATION_FAILED,
-                message=(stark_exception.message or "") + custom_err_msg,
+                message=(stark_exception.message or "") + COMPILATION_ERROR_MSG,
             ) from stark_exception
 
 
@@ -85,7 +87,7 @@ class CustomContractClassCompiler(ContractClassCompiler):
                 stderr = compilation.stderr.decode("utf-8")
                 raise StarknetDevnetException(
                     code=StarknetErrorCode.UNEXPECTED_FAILURE,
-                    message=f"Failed compilation to casm! {stderr}",
+                    message=f"{stderr} {COMPILATION_ERROR_MSG}",
                 )
 
             with open(contract_casm, encoding="utf-8") as casm_file:
