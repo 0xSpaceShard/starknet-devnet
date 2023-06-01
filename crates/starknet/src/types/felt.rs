@@ -1,22 +1,14 @@
 use serde::{Deserialize, Serialize};
 use starknet_api::serde_utils::{bytes_from_hex_str, hex_str_from_bytes};
 
-use crate::error::Error;
+use crate::{error::Error, traits::ToHexString};
 
-pub type DevnetResult<T> = Result<T, Error>;
+use super::DevnetResult;
 
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Hash, Deserialize, Serialize, PartialOrd, Ord)]
 pub struct Felt(pub(crate) [u8; 32]);
 
 impl Felt {
-    pub(crate) fn to_prefixed_hex_str(&self) -> String {
-        hex_str_from_bytes::<32, true>(self.0)
-    }
-
-    pub(crate) fn to_nonprefixed_hex_str(&self) -> String {
-        hex_str_from_bytes::<32, false>(self.0)
-    }
-
     pub(crate) fn to_field_element(&self) -> DevnetResult<starknet_rs_ff::FieldElement> {
         starknet_rs_ff::FieldElement::from_bytes_be(&self.0)
             .map_err(|_| Error::ConversionError(crate::error::ConversionError::FromByteArrayError))
@@ -27,6 +19,16 @@ impl Felt {
             .map_err(|err| Error::StarknetApiError(starknet_api::StarknetApiError::InnerDeserialization(err)))?;
 
         Ok(Self(bytes))
+    }
+}
+
+impl ToHexString for Felt {
+    fn to_prefixed_hex_str(&self) -> String {
+        hex_str_from_bytes::<32, true>(self.0)
+    }
+
+    fn to_nonprefixed_hex_str(&self) -> String {
+        hex_str_from_bytes::<32, false>(self.0)
     }
 }
 
@@ -102,18 +104,18 @@ impl TryFrom<Felt> for starknet_api::core::PatriciaKey {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy)]
-pub struct ContractAddress(Felt);
-
-impl From<starknet_api::core::ContractAddress> for ContractAddress {
-    fn from(value: starknet_api::core::ContractAddress) -> Self {
-        Self(value.0.into())
-    }
-}
-
 pub type ClassHash = Felt;
 pub type Key = Felt;
 pub type Balance = Felt;
 
-#[derive(Debug, Default, Clone, Copy)]
-pub struct ContractStorageKey(ContractAddress, Felt);
+#[cfg(test)]
+mod tests {
+    use super::Felt;
+    #[test]
+    fn correct_conversion_from_bytes_to_felt() {
+        println!(
+            "{:?}",
+            Felt::from_prefixed_hex_str("0x3FCBF77B28C96F4F2FB5BD2D176AB083A12A5E123ADEB0DE955D7EE228C9854").unwrap()
+        );
+    }
+}

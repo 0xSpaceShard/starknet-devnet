@@ -1,20 +1,19 @@
 use std::fs;
 
 use pyo3::{types::PyModule, Py, PyAny, PyResult, Python};
+use serde::Deserialize;
 use starknet_in_rust::core::contract_address::starknet_contract_address::compute_deprecated_class_hash;
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass;
 use starknet_rs_core::types::contract::legacy::LegacyContractClass;
 
 use crate::error::{Error, JsonError};
-use crate::types::{ClassHash, DevnetResult, Felt};
+use crate::types::{
+    felt::{ClassHash, Felt},
+    DevnetResult,
+};
 
 const PY_RANDOM_NUMBER_GENERATOR_SCRIPT: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/scripts/random_number_generator.py"));
-
-const CAIRO_0_ACCOUNT_CONTRACT_PATH: &str =
-    concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/OpenZeppelin/0.5.1/Account.cairo/Account.json");
-
-const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str = "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f";
 
 pub(crate) fn get_bytes_from_u32(num: u32) -> [u8; 32] {
     let num_bytes = num.to_be_bytes();
@@ -48,10 +47,12 @@ pub(crate) fn generate_u128_random_numbers(seed: u32, random_numbers_count: u8) 
     Ok(result)
 }
 
-pub(crate) fn load_cairo_0_contract_class(path: &str) -> DevnetResult<LegacyContractClass> {
+pub(crate) fn load_cairo_0_contract_class<T>(path: &str) -> DevnetResult<T>
+where
+    T: for<'a> Deserialize<'a>,
+{
     let contract_class_str = fs::read_to_string(path).map_err(crate::error::Error::IOError)?;
-    let contract_class: LegacyContractClass =
-        serde_json::from_str(&contract_class_str).map_err(JsonError::SerdeJsonError)?;
+    let contract_class = serde_json::from_str(&contract_class_str).map_err(JsonError::SerdeJsonError)?;
 
     Ok(contract_class)
 }
@@ -65,13 +66,12 @@ pub(crate) fn compute_cairo_0_class_hash(contract_class: &ContractClass) -> Devn
 
 #[cfg(test)]
 mod tests {
-    
-    
-
-    use crate::utils::{CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH};
+    use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass;
+    use starknet_rs_core::types::contract::legacy::LegacyContractClass;
 
     use super::{generate_u128_random_numbers, get_bytes_from_u32, load_cairo_0_contract_class};
-    use crate::types::Felt;
+    use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH};
+    use crate::types::felt::Felt;
 
     #[test]
     fn correct_bytes_from_number() {
@@ -88,13 +88,18 @@ mod tests {
     }
 
     #[test]
+    /// Test for correct loading of Contract Class from JSON file
     fn cairo_0_loading_should_be_successful() {
-        assert!(load_cairo_0_contract_class(CAIRO_0_ACCOUNT_CONTRACT_PATH).is_ok());
+        assert!(load_cairo_0_contract_class::<LegacyContractClass>(CAIRO_0_ACCOUNT_CONTRACT_PATH).is_ok());
+        assert!(load_cairo_0_contract_class::<starknet_api::deprecated_contract_class::ContractClass>(
+            CAIRO_0_ACCOUNT_CONTRACT_PATH
+        )
+        .is_ok());
     }
 
     #[test]
     fn correct_cairo_0_class_hash_computation() {
-        let contract_class = load_cairo_0_contract_class(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
+        let contract_class = load_cairo_0_contract_class::<LegacyContractClass>(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
         let class_hash = contract_class.class_hash().unwrap();
         assert_eq!(Felt::from(class_hash), Felt::from_prefixed_hex_str(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap());
     }

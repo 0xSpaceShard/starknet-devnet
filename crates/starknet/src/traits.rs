@@ -1,9 +1,15 @@
-use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass;
-
 use crate::{
     error::Error,
-    types::{ClassHash, DevnetResult},
+    types::{
+        felt::{ClassHash, Felt, Key},
+        DevnetResult, contract_class::ContractClass,
+    },
 };
+
+pub(crate) trait ToHexString {
+    fn to_prefixed_hex_str(&self) -> String;
+    fn to_nonprefixed_hex_str(&self) -> String;
+}
 
 pub trait HashIdentified {
     type Element;
@@ -22,8 +28,15 @@ pub trait StateChanger {
 }
 
 pub trait AccountGenerator {
-    type Acc;
-    fn generate_accounts(&self, number_of_accounts: u8) -> DevnetResult<Vec<Self::Acc>>
-    where
-        Self::Acc: Accounted;
+    type Acc: Accounted;
+    fn generate_accounts(
+        &self,
+        number_of_accounts: u8,
+        class_hash: ClassHash,
+        contract_class: ContractClass,
+    ) -> DevnetResult<Vec<Self::Acc>>;
+}
+
+pub trait HashProducer {
+    fn generate_hash(&self) -> DevnetResult<Felt>;
 }

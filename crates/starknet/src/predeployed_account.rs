@@ -1,3 +1,4 @@
+use std::vec;
 
 use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::SigningKey;
@@ -5,7 +6,11 @@ use starknet_rs_signers::SigningKey;
 use crate::{
     account::Account,
     traits::AccountGenerator,
-    types::{DevnetResult, Key},
+    types::{
+        felt::{ClassHash, Felt, Key},
+        DevnetResult,
+        contract_class::ContractClass
+    },
     utils::generate_u128_random_numbers,
 };
 
@@ -40,22 +45,48 @@ impl PredeployedAccount {
 impl AccountGenerator for PredeployedAccount {
     type Acc = Account;
 
-    fn generate_accounts(&self, _number_of_accounts: u8) -> DevnetResult<Vec<Self::Acc>>
-    where
-        Self::Acc: crate::traits::Accounted,
-    {
-        todo!()
+    fn generate_accounts(
+        &self,
+        number_of_accounts: u8,
+        class_hash: ClassHash,
+        contract_class: ContractClass,
+    ) -> DevnetResult<Vec<Self::Acc>> {
+        let mut result = Vec::<Account>::new();
+        let private_keys = self.generate_private_keys(number_of_accounts)?;
+
+        for private_key in private_keys {
+            let account = Account::new(
+                Felt::from(self.initial_balance as u128),
+                self.generate_public_key(&private_key)?,
+                private_key,
+                class_hash,
+                contract_class.clone(),
+            )?;
+
+            result.push(account);
+        }
+
+        Ok(result)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use jsonschema::JSONSchema;
+    use serde_json::json;
     use starknet_api::serde_utils::bytes_from_hex_str;
+    use starknet_rs_core::types::contract::legacy::LegacyContractClass;
 
     use crate::{
+        account::Account,
+        constants::{self, CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH},
         predeployed_account::PredeployedAccount,
-        types::{Felt, Key},
+        traits::{AccountGenerator, ToHexString},
+        types::{felt::{Felt, Key}, contract_class::ContractClass},
+        utils,
     };
+
+    const SEED: u32 = 123;
 
     const PRIVATE_KEYS_IN_HEX: [&str; 3] = [
         "0xc4da537c1651ddae44867db30d67b366",
@@ -63,13 +94,14 @@ mod tests {
         "0x610e4ad509c47055dff4948fe6b4f832",
     ];
 
-    const SEED: u32 = 123;
-
     const PUBLIC_KEYS_IN_HEX: [&str; 3] = [
         "0x60dea6c1228f1db4ca1f9db11c01b6e9cce5e627f7181dcaa27d69cbdbe57b5",
         "0x5a91f0ea25312accb20d8041b12260bff31a3490e5730a690b0ec8fe10ffbb",
         "0x2b45af00df833ea1a4895c49a18ebd84309b79d658cae05e274a7b1cac47016",
     ];
+
+    const PREDEPLOYED_ACCOUNTS_JSON_SCHEMA_WITH_DATA_FILE_PATH: &str =
+        concat!(env!("CARGO_MANIFEST_DIR"), "/schemas/predeployed_accounts_fixed_seed.json");
 
     /// Test correct generation of private keys
     /// Test expected results are taken from https://github.com/0xSpaceShard/starknet-devnet/blob/master/test/support/schemas/predeployed_accounts_fixed_seed.json
@@ -92,6 +124,18 @@ mod tests {
     }
 
     #[test]
+    fn private_key_from_different_seeds_should_be_different() {
+        let predeployed_acc = PredeployedAccount::new(999, 1);
+        let generated_private_key = predeployed_acc.generate_private_keys(1).unwrap()[0];
+
+        let non_expected_result = Felt::from_prefixed_hex_str(PRIVATE_KEYS_IN_HEX[0]).unwrap();
+
+        assert_ne!(generated_private_key, non_expected_result);
+    }
+
+    /// Test correct generation of public keys
+    /// Test expected results are taken from https://github.com/0xSpaceShard/starknet-devnet/blob/master/test/support/schemas/predeployed_accounts_fixed_seed.json
+    #[test]
     fn correct_public_key_from_private_key() {
         let predeployed_acc = predeployed_account_instance();
         let generated_private_keys = predeployed_acc.generate_private_keys(3).unwrap();
@@ -107,6 +151,36 @@ mod tests {
             .collect::<Vec<Key>>();
 
         assert_eq!(generated_public_keys, expected_public_keys);
+    }
+
+    #[test]
+    fn check_generated_predeployed_accounts_against_json_schema() {
+        let predeployed_acc = predeployed_account_instance();
+        let class_hash = Felt::from_prefixed_hex_str(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap();
+        let contract_class = ContractClass::load_from_file(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
+
+        let generated_accounts: Vec<Account> = predeployed_acc.generate_accounts(3, class_hash, contract_class).unwrap();
+        let schema_json: serde_json::Value = serde_json::from_str(
+            std::fs::read_to_string(PREDEPLOYED_ACCOUNTS_JSON_SCHEMA_WITH_DATA_FILE_PATH).unwrap().as_str(),
+        )
+        .unwrap();
+        let schema = JSONSchema::compile(&schema_json).unwrap();
+
+        let generated_accounts_json = generated_accounts
+            .iter()
+            .map(|acc| {
+                json!({
+                    "address": acc.account_address.to_prefixed_hex_str(),
+                    "initial_balance": u64::from_str_radix(&acc.balance.to_prefixed_hex_str(), 16).unwrap(),
+                    "private_key": acc.private_key.to_prefixed_hex_str(),
+                    "public_key": acc.public_key.to_prefixed_hex_str()
+                })
+                .to_string()
+            })
+            .collect::<Vec<String>>();
+
+        println!("{:?}", generated_accounts_json);
+        assert!(schema.is_valid(&serde_json::to_value(&generated_accounts_json).unwrap()));
     }
 
     fn predeployed_account_instance() -> PredeployedAccount {

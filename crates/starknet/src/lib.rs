@@ -4,6 +4,7 @@ use transaction::StarknetTransactions;
 
 mod account;
 mod block;
+mod constants;
 mod error;
 mod predeployed_account;
 mod state;
