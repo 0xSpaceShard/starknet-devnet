@@ -214,6 +214,10 @@ async def simulate_transaction(
     """
     Simulate transactions.
     SKIP_EXECUTE SimulationFlag is not supported yet.
+    - add test for v2 tx
+    - add test with simulation_flags
+    - add DEPLOY_ACCOUNT_TXN_TRACE
+    - add L1_HANDLER_TXN_TRACE
     """
     await assert_block_id_is_valid(block_id)
     transactions = list(map(make_transaction, transaction))

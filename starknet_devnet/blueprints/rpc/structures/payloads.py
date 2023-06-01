@@ -962,16 +962,11 @@ def rpc_map_traces(
 
     result = []
     for i, trace in enumerate(traces):
-
         trace_dict = trace.dump()
-
-        # match lang:
-        #     case "JavaScript":
-        #         print("You can become a web developer.")
 
         if types[i] == TransactionType.INVOKE_FUNCTION:
             trace = rpc_invoke_txn_trace(trace_dict)
-        if types[i] == TransactionType.DECLARE:
+        elif types[i] == TransactionType.DECLARE:
             trace = rpc_declare_txn_trace(trace_dict)
 
         # DEPLOY_ACCOUNT_TXN_TRACE
