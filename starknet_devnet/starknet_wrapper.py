@@ -819,7 +819,7 @@ class StarknetWrapper:
         block_id: BlockId = DEFAULT_BLOCK_ID,
     ):
         """Calculates trace and fee by simulating tx on state copy."""
-        traces, fees = await self.calculate_traces_and_fees(
+        traces, fees, _ = await self.calculate_traces_and_fees(
             [external_tx], skip_validate=skip_validate, block_id=block_id
         )
         assert len(traces) == len(fees) == 1
@@ -838,6 +838,7 @@ class StarknetWrapper:
 
         traces = []
         fee_estimation_infos = []
+        transaction_types = []
 
         for external_tx in external_txs:
             # pylint: disable=protected-access
@@ -879,8 +880,10 @@ class StarknetWrapper:
             )
             fee_estimation_infos.append(fee_estimation_info)
 
+            transaction_types.append(internal_tx.tx_type)
+
         assert len(traces) == len(fee_estimation_infos) == len(external_txs)
-        return traces, fee_estimation_infos
+        return traces, fee_estimation_infos, transaction_types
 
     async def estimate_message_fee(
         self, call: CallL1Handler, block_id: BlockId = DEFAULT_BLOCK_ID

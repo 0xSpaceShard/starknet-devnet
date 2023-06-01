@@ -22,6 +22,7 @@ from starknet_devnet.blueprints.rpc.structures.payloads import (
     make_deploy_account,
     make_invoke_function,
     rpc_fee_estimate,
+    rpc_map_traces,
     rpc_transaction,
 )
 from starknet_devnet.blueprints.rpc.structures.responses import (
@@ -187,7 +188,7 @@ async def estimate_fee(request: List[RpcBroadcastedTxn], block_id: BlockId) -> l
     transactions = list(map(make_transaction, request))
 
     try:
-        _, fee_response = await state.starknet_wrapper.calculate_traces_and_fees(
+        _, fee_response, _ = await state.starknet_wrapper.calculate_traces_and_fees(
             transactions,
             skip_validate=False,
             block_id=block_id,
@@ -220,37 +221,18 @@ async def simulate_transaction(
     simulated_transactions = []
 
     try:
-        traces, fee = await state.starknet_wrapper.calculate_traces_and_fees(
+        (
+            traces,
+            fee,
+            transaction_types,
+        ) = await state.starknet_wrapper.calculate_traces_and_fees(
             transactions,
             skip_validate=skip_validate,
             block_id=block_id,
         )
-
-        # Mapping logic needs to be added, ask starkware if this is the correct way.
-
-        # INVOKE_TXN_TRACE
-        # validate_invocation: (TransactionTrace.validate_invocation from trace?)
-        # execute_invocation: (ExecutionResources.function_invocation from trace?)
-        # fee_transfer_invocation: (ExecutionResources.fee_transfer_invocation from trace?)
-
-        # DECLARE_TXN_TRACE
-        # validate_invocation: (TransactionTrace.validate_invocation from trace?)
-        # fee_transfer_invocation: (ExecutionResources.fee_transfer_invocation from trace?)
-
-        # DEPLOY_ACCOUNT_TXN_TRACE
-        # validate_invocation: (TransactionTrace.validate_invocation from trace?)
-        # constructor_invocation: ?
-        # fee_transfer_invocation: (ExecutionResources.fee_transfer_invocation from trace?)
-        
-        # L1_HANDLER_TXN_TRACE
-        # function_invocation: ?
-
-        print("traces")
-        print(traces)
-
         simulated_transactions.append(
             {
-                "transaction_trace": traces,
+                "transaction_trace": rpc_map_traces(traces, transaction_types),
                 "fee_estimation": rpc_fee_estimate(fee),
             }
         )
@@ -262,8 +244,5 @@ async def simulate_transaction(
         if "is not deployed" in ex.message:
             raise RpcError.from_spec_name("CONTRACT_NOT_FOUND") from ex
         raise RpcError(code=-1, message=ex.message) from ex
-
-    print("simulated_transactions")
-    print(simulated_transactions)
 
     return simulated_transactions

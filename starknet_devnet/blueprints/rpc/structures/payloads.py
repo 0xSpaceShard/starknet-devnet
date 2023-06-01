@@ -1,3 +1,5 @@
+# pylint: disable=too-many-lines
+
 """
 RPC payload structures
 """
@@ -28,6 +30,7 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     L1HandlerSpecificInfo,
     StarknetBlock,
     TransactionSpecificInfo,
+    TransactionTrace,
     TransactionType,
 )
 from starkware.starknet.services.api.gateway.transaction import (
@@ -621,6 +624,7 @@ AbiEntry = Union[FunctionAbiEntry, EventAbiEntry, StructAbiEntry]
 
 class SimulationFlag(Enum):
     """Enum with flags for simulate transaction"""
+
     SKIP_VALIDATE = 1
     SKIP_EXECUTE = 2
 
@@ -945,3 +949,60 @@ def rpc_state_update(
         "state_diff": state_diff,
     }
     return rpc_state
+
+
+def rpc_map_traces(
+    traces: List[TransactionTrace], types: List[TransactionType]
+) -> list:
+    """
+    Mapping for traces based on transaction types.
+    """
+    # traces number must be equal to types to properly map objects
+    assert len(traces) == len(types)
+
+    result = []
+    for i, trace in enumerate(traces):
+
+        trace_dict = trace.dump()
+
+        # match lang:
+        #     case "JavaScript":
+        #         print("You can become a web developer.")
+
+        if types[i] == TransactionType.INVOKE_FUNCTION:
+            trace = rpc_invoke_txn_trace(trace_dict)
+        if types[i] == TransactionType.DECLARE:
+            trace = rpc_declare_txn_trace(trace_dict)
+
+        # DEPLOY_ACCOUNT_TXN_TRACE
+        # validate_invocation: (TransactionTrace.validate_invocation from trace?)
+        # constructor_invocation: ?
+        # fee_transfer_invocation: (ExecutionResources.fee_transfer_invocation from trace?)
+
+        # L1_HANDLER_TXN_TRACE
+        # function_invocation: ?
+
+        result.append(trace)
+
+    return result
+
+
+def rpc_invoke_txn_trace(trace_dict: dict):
+    """
+    Mapping for the execution trace of an invoke transaction.
+    """
+    return {
+        "validate_invocation": trace_dict.get("validate_invocation", None),
+        "execute_invocation": trace_dict.get("function_invocation", None),
+        "fee_transfer_invocation": trace_dict.get("fee_transfer_invocation", None),
+    }
+
+
+def rpc_declare_txn_trace(trace_dict: dict):
+    """
+    Mapping for the execution trace of an declare transaction.
+    """
+    return {
+        "validate_invocation": trace_dict.get("validate_invocation", None),
+        "fee_transfer_invocation": trace_dict.get("fee_transfer_invocation", None),
+    }

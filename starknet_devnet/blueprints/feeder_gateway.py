@@ -374,7 +374,7 @@ async def estimate_fee_bulk():
     block_id = _get_block_id(request.args)
     skip_validate = _get_skip_validate(request.args)
 
-    _, fee_responses = await state.starknet_wrapper.calculate_traces_and_fees(
+    _, fee_responses, _ = await state.starknet_wrapper.calculate_traces_and_fees(
         transactions,
         block_id=block_id,
         skip_validate=skip_validate,
