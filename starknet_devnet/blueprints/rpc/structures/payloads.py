@@ -966,6 +966,8 @@ def rpc_map_traces(
 
         print("trace_dict")
         print(trace_dict)
+        print("types[i]")
+        print(types[i])
 
         if types[i] == TransactionType.INVOKE_FUNCTION:
             trace = rpc_invoke_txn_trace(trace_dict)
@@ -1018,5 +1020,5 @@ def rpc_l1_handler_txn_trace(trace_dict: dict):
     Mapping for the execution trace of an l1 handler transaction.
     """
     return {
-        "function_invocation": "?",
+        "function_invocation": trace_dict.get("validate_invocation?", None),
     }

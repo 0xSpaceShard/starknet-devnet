@@ -214,8 +214,6 @@ async def simulate_transaction(
     """
     Simulate transactions.
     SKIP_EXECUTE SimulationFlag is not supported yet.
-    - add test for v2 tx
-    - add test with simulation_flags
     - add DEPLOY_ACCOUNT_TXN_TRACE
     - add L1_HANDLER_TXN_TRACE
     """
