@@ -254,4 +254,6 @@ def test_simulate_transaction_declare_v2(simulation_flags):
         )
 
     assert response["result"][0]["transaction_trace"][0]["validate_invocation"] is None
-    assert response["result"][0]["transaction_trace"][0]["fee_transfer_invocation"] is None
+    assert (
+        response["result"][0]["transaction_trace"][0]["fee_transfer_invocation"] is None
+    )

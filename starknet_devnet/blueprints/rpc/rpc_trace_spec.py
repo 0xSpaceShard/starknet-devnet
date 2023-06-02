@@ -1,5 +1,11 @@
 # pylint: disable=too-many-lines, missing-module-docstring
 # This is trace specification version of 0.3.0
+# Reference to SIMULATION_FLAG was causing this error:
+# jsonschema.exceptions.RefResolutionError:
+# Unresolvable JSON pointer: 'components/schemas/SIMULATION_FLAG'
+# To fix it reference was copied
+# "$ref": "#/components/schemas/SIMULATION_FLAG"
+# Seems it is a bug on our side because schema looks valid
 RPC_SPECIFICATION_TRACE = r"""
 {
     "openrpc": "1.0.0-rc1",
@@ -71,7 +77,12 @@ RPC_SPECIFICATION_TRACE = r"""
                     "schema": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/SIMULATION_FLAG"
+                            "type": "string",
+                            "enum": [
+                                "SKIP_VALIDATE",
+                                "SKIP_EXECUTE"
+                            ],
+                            "description": "Flags that indicate how to simulate a given transaction"
                         }
                     }
                 }
