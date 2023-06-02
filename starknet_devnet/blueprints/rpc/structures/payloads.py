@@ -964,18 +964,17 @@ def rpc_map_traces(
     for i, trace in enumerate(traces):
         trace_dict = trace.dump()
 
+        print("trace_dict")
+        print(trace_dict)
+
         if types[i] == TransactionType.INVOKE_FUNCTION:
             trace = rpc_invoke_txn_trace(trace_dict)
         elif types[i] == TransactionType.DECLARE:
             trace = rpc_declare_txn_trace(trace_dict)
-
-        # DEPLOY_ACCOUNT_TXN_TRACE
-        # validate_invocation: (TransactionTrace.validate_invocation from trace?)
-        # constructor_invocation: ?
-        # fee_transfer_invocation: (ExecutionResources.fee_transfer_invocation from trace?)
-
-        # L1_HANDLER_TXN_TRACE
-        # function_invocation: ?
+        elif types[i] == TransactionType.DEPLOY_ACCOUNT:
+            trace = rpc_deploy_account_txn_trace(trace_dict)
+        elif types[i] == TransactionType.L1_HANDLER:
+            trace = rpc_l1_handler_txn_trace(trace_dict)
 
         result.append(trace)
 
@@ -1000,4 +999,24 @@ def rpc_declare_txn_trace(trace_dict: dict):
     return {
         "validate_invocation": trace_dict.get("validate_invocation", None),
         "fee_transfer_invocation": trace_dict.get("fee_transfer_invocation", None),
+    }
+
+
+def rpc_deploy_account_txn_trace(trace_dict: dict):
+    """
+    Mapping for the execution trace of an deploy account transaction.
+    """
+    return {
+        "validate_invocation": trace_dict.get("validate_invocation", None),
+        "constructor_invocation": "?",
+        "fee_transfer_invocation": trace_dict.get("fee_transfer_invocation", None),
+    }
+
+
+def rpc_l1_handler_txn_trace(trace_dict: dict):
+    """
+    Mapping for the execution trace of an l1 handler transaction.
+    """
+    return {
+        "function_invocation": "?",
     }
