@@ -17,6 +17,8 @@ from test.shared import (
 from test.test_account import deploy_empty_contract
 from test.test_declare_v2 import load_cairo1_contract
 from test.util import devnet_in_background
+
+import pytest
 from starkware.starknet.core.os.transaction_hash.transaction_hash import (
     calculate_declare_transaction_hash,
     calculate_deprecated_declare_transaction_hash,
@@ -31,9 +33,10 @@ from starkware.starknet.services.api.gateway.transaction_utils import decompress
 from starknet_devnet.account_util import get_execute_args
 from starknet_devnet.blueprints.rpc.structures.payloads import (
     RpcBroadcastedDeclareTxnV1,
+    RpcBroadcastedDeclareTxnV2,
     RpcBroadcastedInvokeTxnV1,
     RpcDeprecatedContractClass,
-    RpcBroadcastedDeclareTxnV2,
+    SimulationFlag,
     rpc_contract_class,
 )
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
@@ -41,6 +44,7 @@ from starknet_devnet.constants import (
     DEPRECATED_RPC_DECLARE_TX_VERSION,
     SUPPORTED_RPC_DECLARE_TX_VERSION,
 )
+
 
 # move to common file
 def get_predeployed_acc_execute_args(calls):
@@ -55,9 +59,20 @@ def get_predeployed_acc_execute_args(calls):
     )
 
 
-@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
-def test_simulate_transaction_invoke():
-    """Happy path simulate_transaction call"""
+@pytest.mark.usefixtures("run_devnet_in_background")
+@pytest.mark.parametrize(
+    "run_devnet_in_background, simulation_flags",
+    [
+        (
+            [*PREDEPLOY_ACCOUNT_CLI_ARGS],
+            [],
+        ),
+        ([*PREDEPLOY_ACCOUNT_CLI_ARGS], [SimulationFlag.SKIP_VALIDATE.name]),
+    ],
+    indirect=["run_devnet_in_background"],
+)
+def test_simulate_transaction_invoke(simulation_flags):
+    """Happy path for simulate_transaction call with invoke transaction"""
     contract_address = deploy_empty_contract()["address"]
 
     calls = [(contract_address, "sum_point_array", [2, 10, 20, 30, 40])]
@@ -74,13 +89,35 @@ def test_simulate_transaction_invoke():
     )
 
     response = rpc_call_background_devnet(
-        "starknet_simulateTransaction", {"block_id": "latest", "transaction": [invoke_transaction], "simulation_flags": []}
+        "starknet_simulateTransaction",
+        {
+            "block_id": "latest",
+            "transaction": [invoke_transaction],
+            "simulation_flags": simulation_flags,
+        },
     )
 
-    assert response["result"][0]["fee_estimation"][0]["overall_fee"] == "0x1d91ca3600"
-    assert response["result"][0]["transaction_trace"][0]["execute_invocation"]["contract_address"] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
-    assert response["result"][0]["transaction_trace"][0]["fee_transfer_invocation"] == None
-    assert response["result"][0]["transaction_trace"][0]["validate_invocation"]["contract_address"] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
+    if not simulation_flags:
+        assert (
+            response["result"][0]["fee_estimation"][0]["overall_fee"] == "0x1d91ca3600"
+        )
+        assert response["result"][0]["transaction_trace"][0]["validate_invocation"][
+            "contract_address"
+        ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
+    else:
+        assert (
+            response["result"][0]["fee_estimation"][0]["overall_fee"] == "0x1d85de7400"
+        )
+        assert (
+            response["result"][0]["transaction_trace"][0]["validate_invocation"] == None
+        )
+
+    assert response["result"][0]["transaction_trace"][0]["execute_invocation"][
+        "contract_address"
+    ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
+    assert (
+        response["result"][0]["transaction_trace"][0]["fee_transfer_invocation"] == None
+    )
 
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
@@ -120,9 +157,18 @@ def test_simulate_transaction_declare_v1(declare_content):
     )
 
     response = rpc_call_background_devnet(
-        "starknet_simulateTransaction", {"block_id": "latest", "transaction": [declare_transaction], "simulation_flags": []}
+        "starknet_simulateTransaction",
+        {
+            "block_id": "latest",
+            "transaction": [declare_transaction],
+            "simulation_flags": [],
+        },
     )
 
     assert response["result"][0]["fee_estimation"][0]["overall_fee"] == "0x1d2c764500"
-    assert response["result"][0]["transaction_trace"][0]["fee_transfer_invocation"] == None
-    assert response["result"][0]["transaction_trace"][0]["validate_invocation"]["contract_address"] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
+    assert (
+        response["result"][0]["transaction_trace"][0]["fee_transfer_invocation"] == None
+    )
+    assert response["result"][0]["transaction_trace"][0]["validate_invocation"][
+        "contract_address"
+    ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
