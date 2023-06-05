@@ -59,7 +59,7 @@ def get_predeployed_acc_execute_args(calls):
 
 
 # rename
-TEST = "0x5f15e904f97d4f5d1b370181bb6bfba57d12c2b5a031d7ec486645f0bb8522d"
+TEST = "0x7412af0af3a90314611a2dfda06ec2f252c46b341c87be51d049045a91eaf28"
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")

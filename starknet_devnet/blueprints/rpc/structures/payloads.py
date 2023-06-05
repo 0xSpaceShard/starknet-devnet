@@ -970,11 +970,6 @@ def rpc_map_traces(
     for i, trace in enumerate(traces):
         trace_dict = trace.dump()
 
-        print("trace_dict")
-        print(trace_dict)
-        print("types[i]")
-        print(types[i])
-
         if types[i] == TransactionType.INVOKE_FUNCTION:
             trace = rpc_invoke_txn_trace(trace_dict)
         elif types[i] == TransactionType.DECLARE:
