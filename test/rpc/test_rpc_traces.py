@@ -8,6 +8,7 @@ import copy
 from test.account import _get_signature, get_nonce
 from test.rpc.rpc_utils import rpc_call_background_devnet
 from test.rpc.test_rpc_transactions import pad_zero_entry_points
+from test.rpc.conftest import prepare_deploy_account_tx, rpc_deploy_account_from_gateway
 from test.shared import (
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
@@ -37,6 +38,7 @@ from starknet_devnet.blueprints.rpc.structures.payloads import (
     SimulationFlag,
     rpc_contract_class,
 )
+
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from starknet_devnet.constants import (
     DEPRECATED_RPC_DECLARE_TX_VERSION,
@@ -56,6 +58,8 @@ def get_predeployed_acc_execute_args(calls):
         max_fee=0,
     )
 
+# rename
+TEST = "0x5f15e904f97d4f5d1b370181bb6bfba57d12c2b5a031d7ec486645f0bb8522d"
 
 @pytest.mark.usefixtures("run_devnet_in_background")
 @pytest.mark.parametrize(
@@ -116,7 +120,7 @@ def test_simulate_transaction_invoke(simulation_flags):
     assert (
         response["result"][0]["transaction_trace"][0]["fee_transfer_invocation"] is None
     )
-
+    
 
 @pytest.mark.usefixtures("run_devnet_in_background")
 @pytest.mark.parametrize(
@@ -262,3 +266,52 @@ def test_simulate_transaction_declare_v2(simulation_flags):
     assert (
         response["result"][0]["transaction_trace"][0]["fee_transfer_invocation"] is None
     )
+
+
+@pytest.mark.usefixtures("run_devnet_in_background")
+@pytest.mark.parametrize(
+    "run_devnet_in_background, simulation_flags",
+    [
+        (
+            [*PREDEPLOY_ACCOUNT_CLI_ARGS],
+            [],
+        ),
+        ([*PREDEPLOY_ACCOUNT_CLI_ARGS], [SimulationFlag.SKIP_VALIDATE.name]),
+    ],
+    indirect=["run_devnet_in_background"],
+)
+def test_simulate_transaction_deploy_account(simulation_flags, deploy_account_details):
+    """Test simulate_transaction with deploy account transaction"""
+    deploy_account_tx, _ = prepare_deploy_account_tx(**deploy_account_details)
+    rpc_deploy_account_tx = rpc_deploy_account_from_gateway(deploy_account_tx)
+
+    response = rpc_call_background_devnet(
+        "starknet_simulateTransaction",
+        {
+            "block_id": "latest",
+            "transaction": [rpc_deploy_account_tx],
+            "simulation_flags": simulation_flags,
+        },
+    )
+
+    if not simulation_flags:
+        assert (
+            response["result"][0]["fee_estimation"][0]["overall_fee"] == "0x64a7168300"
+        )
+        assert response["result"][0]["transaction_trace"][0]["validate_invocation"][
+            "contract_address"
+        ] == rpc_felt(TEST)
+    else:
+        assert (
+            response["result"][0]["fee_estimation"][0]["overall_fee"] == "0x649b2ac100"
+        )
+        assert (
+            response["result"][0]["transaction_trace"][0]["validate_invocation"] is None
+        )
+
+    assert (
+        response["result"][0]["transaction_trace"][0]["fee_transfer_invocation"] is None
+    )
+    assert response["result"][0]["transaction_trace"][0]["constructor_invocation"][
+        "contract_address"
+    ] == rpc_felt(TEST)

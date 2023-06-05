@@ -1010,7 +1010,7 @@ def rpc_deploy_account_txn_trace(trace_dict: dict):
     """
     return {
         "validate_invocation": trace_dict.get("validate_invocation", None),
-        "constructor_invocation": "?",
+        "constructor_invocation": trace_dict.get("function_invocation", None),
         "fee_transfer_invocation": trace_dict.get("fee_transfer_invocation", None),
     }
 
