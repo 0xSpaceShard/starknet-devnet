@@ -6,9 +6,9 @@ from __future__ import annotations
 
 import copy
 from test.account import _get_signature, get_nonce
+from test.rpc.conftest import prepare_deploy_account_tx, rpc_deploy_account_from_gateway
 from test.rpc.rpc_utils import rpc_call_background_devnet
 from test.rpc.test_rpc_transactions import pad_zero_entry_points
-from test.rpc.conftest import prepare_deploy_account_tx, rpc_deploy_account_from_gateway
 from test.shared import (
     PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
@@ -38,7 +38,6 @@ from starknet_devnet.blueprints.rpc.structures.payloads import (
     SimulationFlag,
     rpc_contract_class,
 )
-
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 from starknet_devnet.constants import (
     DEPRECATED_RPC_DECLARE_TX_VERSION,
@@ -58,8 +57,10 @@ def get_predeployed_acc_execute_args(calls):
         max_fee=0,
     )
 
+
 # rename
 TEST = "0x5f15e904f97d4f5d1b370181bb6bfba57d12c2b5a031d7ec486645f0bb8522d"
+
 
 @pytest.mark.usefixtures("run_devnet_in_background")
 @pytest.mark.parametrize(
@@ -120,7 +121,7 @@ def test_simulate_transaction_invoke(simulation_flags):
     assert (
         response["result"][0]["transaction_trace"][0]["fee_transfer_invocation"] is None
     )
-    
+
 
 @pytest.mark.usefixtures("run_devnet_in_background")
 @pytest.mark.parametrize(
