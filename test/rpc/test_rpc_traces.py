@@ -248,12 +248,17 @@ def test_simulate_transaction_declare_v2(simulation_flags):
         assert (
             response["result"][0]["fee_estimation"][0]["overall_fee"] == "0x1d2c764500"
         )
+        assert response["result"][0]["transaction_trace"][0]["validate_invocation"][
+            "contract_address"
+        ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
     else:
         assert (
             response["result"][0]["fee_estimation"][0]["overall_fee"] == "0x1d208a8300"
         )
+        assert (
+            response["result"][0]["transaction_trace"][0]["validate_invocation"] is None
+        )
 
-    assert response["result"][0]["transaction_trace"][0]["validate_invocation"] is None
     assert (
         response["result"][0]["transaction_trace"][0]["fee_transfer_invocation"] is None
     )
