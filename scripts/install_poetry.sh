@@ -1,3 +1,3 @@
 set -eu
 
-pip3 install -U poetry==1.3
+pip3 install -U poetry==1.4.2
