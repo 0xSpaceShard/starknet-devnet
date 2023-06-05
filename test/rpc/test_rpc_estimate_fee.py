@@ -293,7 +293,7 @@ def test_estimate_fee_with_invalid_call_data():
         "starknet_estimateFee", {"request": [invoke_transaction], "block_id": "latest"}
     )
 
-    assert ex["error"] == {"code": 22, "message": "Invalid call data"}
+    assert ex["error"] == {"code": 40, "message": "Contract error"}
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -340,4 +340,4 @@ def test_estimate_fee_with_invalid_message_selector():
         "starknet_estimateFee", {"request": [txn], "block_id": "latest"}
     )
 
-    assert ex["error"] == {"code": 21, "message": "Invalid message selector"}
+    assert ex["error"] == {"code": 40, "message": "Contract error"}

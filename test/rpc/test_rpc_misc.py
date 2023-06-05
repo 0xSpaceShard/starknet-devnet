@@ -213,6 +213,21 @@ def test_call_method_with_incorrect_type_params():
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
+def test_get_events_empty_filter():
+    """
+    Test RPC get_events with empty filter.
+
+    Only required field in filter is chunk_size, so it should
+    work with just that.
+    """
+
+    params = {"filter": {"chunk_size": 100}}
+    resp = rpc_call("starknet_getEvents", params=params)
+
+    assert "result" in resp and "events" in resp["result"]
+
+
+@pytest.mark.usefixtures("run_devnet_in_background")
 def test_get_events_malformed_request():
     """
     Test RPC get_events with malformed request.
@@ -223,17 +238,6 @@ def test_get_events_malformed_request():
         "starknet_getEvents",
         params=params,
     )
-    assert resp["error"]["code"] == PredefinedRpcErrorCode.INVALID_PARAMS.value
-
-
-@pytest.mark.usefixtures("run_devnet_in_background")
-def test_get_events_missing_parameter():
-    """
-    Test RPC get_events with malformed request.
-    """
-    params = create_get_events_filter()
-    del params["filter"]["address"]
-    resp = rpc_call("starknet_getEvents", params=params)
     assert resp["error"]["code"] == PredefinedRpcErrorCode.INVALID_PARAMS.value
 
 

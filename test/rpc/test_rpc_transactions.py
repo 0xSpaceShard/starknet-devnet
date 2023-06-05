@@ -611,6 +611,50 @@ def test_add_declare_transaction_v2():
     assert is_felt(receipt["class_hash"])
 
 
+@pytest.mark.usefixtures("devnet_with_account")
+def test_declare_transaction_v2_already_declared():
+    """Add declare transaction v2"""
+    contract_class, _, compiled_class_hash = load_cairo1_contract()
+
+    max_fee = int(4e16)
+
+    def declare_tx():
+        nonce = get_nonce(PREDEPLOYED_ACCOUNT_ADDRESS)
+
+        tx_hash = calculate_declare_transaction_hash(
+            contract_class=contract_class,
+            compiled_class_hash=compiled_class_hash,
+            chain_id=StarknetChainId.TESTNET.value,
+            sender_address=int(PREDEPLOYED_ACCOUNT_ADDRESS, 16),
+            max_fee=max_fee,
+            version=SUPPORTED_RPC_DECLARE_TX_VERSION,
+            nonce=nonce,
+        )
+
+        signature = _get_signature(tx_hash, PREDEPLOYED_ACCOUNT_PRIVATE_KEY)
+
+        declare_transaction = RpcBroadcastedDeclareTxnV2(
+            contract_class=rpc_contract_class(contract_class),
+            sender_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+            compiled_class_hash=rpc_felt(compiled_class_hash),
+            type="DECLARE",
+            version=rpc_felt(SUPPORTED_RPC_DECLARE_TX_VERSION),
+            nonce=rpc_felt(nonce),
+            max_fee=rpc_felt(max_fee),
+            signature=list(map(rpc_felt, signature)),
+        )
+
+        return rpc_call(
+            "starknet_addDeclareTransaction",
+            params={"declare_transaction": declare_transaction},
+        )
+
+    declare_tx()
+    ex = declare_tx()
+
+    assert ex["error"] == {"code": 51, "message": "Class already declared"}
+
+
 def _add_declare_transaction():
     contract_class = load_contract_class(CONTRACT_PATH)
     contract_class_dump = contract_class.dump()

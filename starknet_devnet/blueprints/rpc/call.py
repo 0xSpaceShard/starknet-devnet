@@ -54,14 +54,14 @@ async def call(request: RpcFunctionCall, block_id: BlockId) -> List[Felt]:
         return [rpc_felt(res) for res in result["result"]]
     except StarkException as ex:
         if ex.code.name == "TRANSACTION_FAILED" and ex.code.value == 39:
-            raise RpcError.from_spec_name("INVALID_CALL_DATA") from ex
+            raise RpcError.from_spec_name("CONTRACT_ERROR") from ex
         if (
             f"Entry point {gateway_felt(request['entry_point_selector'])} not found"
             in ex.message
         ):
-            raise RpcError.from_spec_name("INVALID_MESSAGE_SELECTOR") from ex
+            raise RpcError.from_spec_name("CONTRACT_ERROR") from ex
         if "While handling calldata" in ex.message:
-            raise RpcError.from_spec_name("INVALID_CALL_DATA") from ex
+            raise RpcError.from_spec_name("CONTRACT_ERROR") from ex
         raise RpcError(
             code=PredefinedRpcErrorCode.INTERNAL_ERROR.value, message=ex.message
         ) from ex

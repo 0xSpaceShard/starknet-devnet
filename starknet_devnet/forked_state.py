@@ -65,6 +65,33 @@ class ForkedStateReader(StateReader):
         self.__feeder_gateway_client = feeder_gateway_client
         self.__block_number = block_number
 
+    async def get_compiled_class_by_class_hash(
+        self, class_hash: int
+    ) -> CompiledClassBase:
+        """
+        Returns the compiled class of the given class hash. Handles both class versions.
+        """
+        # nothing is fetched by this value, it's just used to determine if cairo 0 or 1
+        compiled_class_hash = await self.get_compiled_class_hash(class_hash=class_hash)
+        if compiled_class_hash != 0:
+            # The class appears in the class commitment tree, it must be of version > 0.
+            # But it's not present locally if we are here
+            compiled_class = await self.get_compiled_class(
+                compiled_class_hash=class_hash
+            )
+            assert isinstance(
+                compiled_class, CompiledClass
+            ), "Class of version 0 cannot be committed."
+        else:
+            # The class is not committed; treat it as version 0.
+            # Note that 'get_compiled_class' should fail if it's not declared.
+            compiled_class = await self._get_class_by_hash(class_hash=class_hash)
+            assert isinstance(
+                compiled_class, DeprecatedCompiledClass
+            ), "Class of version > 0 must be committed."
+
+        return compiled_class
+
     async def _get_class_by_hash(self, class_hash: int) -> CompiledClassBase:
         try:
             with suppress_feeder_gateway_client_logger:

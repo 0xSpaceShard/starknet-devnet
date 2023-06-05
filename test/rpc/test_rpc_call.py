@@ -98,7 +98,7 @@ def test_call_raises_on_incorrect_selector(deploy_info):
         },
     )
 
-    assert ex["error"] == {"code": 21, "message": "Invalid message selector"}
+    assert ex["error"] == {"code": 40, "message": "Contract error"}
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")

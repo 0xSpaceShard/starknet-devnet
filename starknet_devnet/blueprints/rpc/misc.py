@@ -37,8 +37,10 @@ from starknet_devnet.state import state
 def check_address(address, event):
     """
     Check address.
+
+    If no address is set in the filter, it returns True.
     """
-    return event.from_address == int(address, 0)
+    return address is None or event.from_address == int(address, 0)
 
 
 def _check_keys(keys: List[List[Felt]], event):
@@ -135,8 +137,10 @@ async def get_events(
     and chunk it later which is not an optimal solution.
     """
     # Required parameters
-    from_block = await get_block_by_block_id(filter.get("from_block"))
-    to_block = await get_block_by_block_id(filter.get("to_block"))
+    from_block = await get_block_by_block_id(
+        filter.get("from_block", {"block_number": 0})
+    )
+    to_block = await get_block_by_block_id(filter.get("to_block", "latest"))
     block_range = await _get_events_range(from_block, to_block)
 
     try:

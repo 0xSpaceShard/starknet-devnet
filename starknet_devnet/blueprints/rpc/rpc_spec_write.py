@@ -69,6 +69,9 @@ RPC_SPECIFICATION_WRITE = r"""
             "errors": [
                 {
                     "$ref": "#/components/errors/INVALID_CONTRACT_CLASS"
+                },
+                {
+                    "$ref": "#/components/errors/CLASS_ALREADY_DECLARED"
                 }
             ]
         },
@@ -149,6 +152,10 @@ RPC_SPECIFICATION_WRITE = r"""
             },
             "CLASS_HASH_NOT_FOUND": {
                 "$ref": "./api/starknet_api_openrpc.json#/components/errors/CLASS_HASH_NOT_FOUND"
+            },
+            "CLASS_ALREADY_DECLARED": {
+                "code": 51,
+                "message": "Class already declared"
             }
         }
     }

@@ -176,6 +176,7 @@ class StarknetWrapper:
 
             await self.__preserve_current_state(starknet.state.state)
             await self.__create_genesis_block()
+            self.__latest_state = self.get_state().copy()
             self.__initialized = True
 
     async def __create_genesis_block(self):
@@ -651,8 +652,16 @@ class StarknetWrapper:
         """
         state = self.get_state().state
 
+        # first handle the case of artifact being locally present
+        if class_hash in self._contract_classes:
+            compiled_class_hash = await state.get_compiled_class_hash(class_hash)
+            return await state.get_compiled_class(compiled_class_hash)
+
         try:
-            compiled_class = await state.get_compiled_class_by_class_hash(class_hash)
+            # directly on state_reader to ensure overridden method is called if forking
+            compiled_class = await state.state_reader.get_compiled_class_by_class_hash(
+                class_hash
+            )
             if isinstance(compiled_class, CompiledClass):
                 return compiled_class
         except AssertionError:

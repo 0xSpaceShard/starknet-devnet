@@ -129,6 +129,18 @@ async def add_declare_transaction(
     class_hash, transaction_hash = await state.starknet_wrapper.declare(
         external_tx=make_declare(declare_transaction)
     )
+    status_response = await state.starknet_wrapper.transactions.get_transaction_status(
+        hex(transaction_hash)
+    )
+
+    if status_response["tx_status"] == "REJECTED":
+        error_message = status_response["tx_failure_reason"].error_message
+        if (
+            "Class with hash" in error_message
+            and "is already declared" in error_message
+        ):
+            raise RpcError.from_spec_name("CLASS_ALREADY_DECLARED")
+
     return RpcDeclareTransactionResult(
         transaction_hash=rpc_felt(transaction_hash),
         class_hash=rpc_felt(class_hash),
@@ -195,9 +207,9 @@ async def estimate_fee(request: List[RpcBroadcastedTxn], block_id: BlockId) -> l
         )
     except StarkException as ex:
         if "Entry point" in ex.message and "not found" in ex.message:
-            raise RpcError.from_spec_name("INVALID_MESSAGE_SELECTOR") from ex
+            raise RpcError.from_spec_name("CONTRACT_ERROR") from ex
         if "While handling calldata" in ex.message:
-            raise RpcError.from_spec_name("INVALID_CALL_DATA") from ex
+            raise RpcError.from_spec_name("CONTRACT_ERROR") from ex
         if "is not deployed" in ex.message:
             raise RpcError.from_spec_name("CONTRACT_NOT_FOUND") from ex
         raise RpcError(code=-1, message=ex.message) from ex

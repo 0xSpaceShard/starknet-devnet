@@ -84,9 +84,13 @@ If you only know the URL of the archive (e.g. ZIP) of a new cairo-lang version, 
 $ poetry add <URL>
 ```
 
-After adding a new cairo-lang version, you will probably want to recompile contract artifacts.
+Why are we installing the exact version? We depend on Starknet's internal code, and any minor change might make Devnet unusable. E.g. a missing or moved function in a patch version of cairo-lang.
 
-Why are we installing the exact version? We depend on Starknet's internal code, and any minor change might make Devnet unusable.
+The cairo compiler version (git tag) might need to be changed, both for your local development (git checkout in your compiler repo) and in the CI (in install_dev_tools.sh).
+
+After adding a new cairo-lang version, you need to recompile contract artifacts.
+
+Check if the Solidity contracts have been updated.
 
 When adapting to a new cairo-lang version, to make the tests pass, some hashes will need to be replaced (at least a different version string is stored in the compilation artifacts, leading to a different hash). This is the main argument for keeping the hardcoded hash values in tests: they are only expected to change if a new version cairo-lang version is being added or there is a change with the smart contracts themselves, otherwise a change in the expected hash values probably indicates a bug.
 

@@ -4,6 +4,7 @@ import json
 
 import requests
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
+from starkware.starknet.services.api.contract_class.contract_class import CompiledClass
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     BlockIdentifier,
 )
@@ -24,6 +25,7 @@ from .test_transaction_trace import (
     get_transaction_trace_response,
 )
 from .testnet_deployment import (
+    TESTNET_CAIRO1_CONTRACT_CLASS,
     TESTNET_CONTRACT_ADDRESS,
     TESTNET_CONTRACT_CLASS_HASH,
     TESTNET_DEPLOYMENT_BLOCK,
@@ -48,12 +50,13 @@ from .util import (
     assert_tx_status,
     devnet_in_background,
     get_block,
+    get_compiled_class_by_class_hash,
     get_full_contract,
 )
 
 DEPLOYMENT_INPUT = "10"
 EXPECTED_DEPLOYMENT_ADDRESS = (
-    "0x1377433bcc53c639d2203c164d2004ba2522c59f902eab2662199a2c78b8e3f"
+    "0x33dd92d6c43ba552eec47842e35d578012929ed4672a42aa5727f8a3a9471b6"
 )
 EXPECTED_INVOKE_HASH = (
     "0x26f966f10eb28d442650fb6f3829d3d9298812e00ef60583a496ece0bb45082"
@@ -240,6 +243,15 @@ def test_declare_and_get_class_by_hash():
         class_hash=EXPECTED_CLASS_HASH,
         feeder_gateway_url=APP_URL,
     )
+
+
+@devnet_in_background(*TESTNET_FORK_PARAMS)
+def test_cairo1_class_declared_on_origin():
+    """Cairo1 class declared on origin; should be retrievable in fork"""
+    resp = get_compiled_class_by_class_hash(class_hash=TESTNET_CAIRO1_CONTRACT_CLASS)
+    assert resp.status_code == 200
+    resp_body = resp.json()
+    CompiledClass.load(resp_body)  # will fail in not valid casm
 
 
 def _assert_transaction_trace_not_present(tx_hash: str, feeder_gateway_url=APP_URL):
