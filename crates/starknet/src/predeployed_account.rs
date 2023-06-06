@@ -158,7 +158,7 @@ mod tests {
 
     #[test]
     fn check_generated_predeployed_accounts_against_json_schema() {
-        let predeployed_acc = predeployed_account_instance();
+        let predeployed_acc = PredeployedAccount::new(123, 1000);
         let class_hash = Felt::from_prefixed_hex_str(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap();
         let json_str = std::fs::read_to_string(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
 
@@ -177,17 +177,16 @@ mod tests {
             .map(|acc| {
                 json!({
                     "address": acc.account_address.to_prefixed_hex_str(),
-                    "initial_balance": u64::from_str_radix(&acc.balance.to_prefixed_hex_str(), 16).unwrap(),
+                    "initial_balance": u64::from_str_radix(&acc.balance.to_nonprefixed_hex_str(), 16).unwrap(),
                     "private_key": acc.private_key.to_prefixed_hex_str(),
                     "public_key": acc.public_key.to_prefixed_hex_str()
                 })
-                .to_string()
             })
-            .collect::<Vec<String>>();
+            .collect::<Vec<serde_json::Value>>();
 
-        println!("{:?}", generated_accounts_json);
         assert!(schema.is_valid(&serde_json::to_value(&generated_accounts_json).unwrap()));
     }
+
 
     fn predeployed_account_instance() -> PredeployedAccount {
         PredeployedAccount::new(SEED, 100)
