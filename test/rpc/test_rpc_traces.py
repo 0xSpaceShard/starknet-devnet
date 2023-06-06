@@ -56,7 +56,7 @@ DEPLOY_ACCOUNT_CONTRACT_ADDRESS = (
     "run_devnet_in_background, simulation_flags",
     [
         (
-            [*PREDEPLOY_ACCOUNT_CLI_ARGS, "--disable-rpc-request-validation"],
+            [*PREDEPLOY_ACCOUNT_CLI_ARGS],
             [],
         ),
         ([*PREDEPLOY_ACCOUNT_CLI_ARGS], [SimulationFlag.SKIP_VALIDATE.name]),
