@@ -64,7 +64,7 @@ DEPLOY_ACCOUNT_CONTRACT_ADDRESS = (
     indirect=["run_devnet_in_background"],
 )
 def test_simulate_transaction_invoke(simulation_flags):
-    """Happy path for simulate_transaction call with invoke transaction"""
+    """Test simulate_transaction with invoke transaction"""
     contract_address = deploy_empty_contract()["address"]
 
     calls = [(contract_address, "sum_point_array", [2, 10, 20, 30, 40])]
