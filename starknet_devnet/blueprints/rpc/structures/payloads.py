@@ -1021,5 +1021,5 @@ def rpc_l1_handler_txn_trace(trace_dict: dict):
     Mapping for the execution trace of an l1 handler transaction.
     """
     return {
-        "function_invocation": trace_dict.get("validate_invocation?", None),
+        "function_invocation": trace_dict.get("validate_invocation", None),
     }
