@@ -11,12 +11,14 @@ from test.shared import (
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     STORAGE_CONTRACT_PATH,
+    SUPPORTED_RPC_TX_VERSION,
 )
 from test.util import assert_transaction
 from typing import List, Union
 
 import requests
 
+from starknet_devnet.account_util import get_execute_args
 from starknet_devnet.blueprints.rpc.schema import felt_pattern_from_schema
 
 
@@ -118,3 +120,15 @@ def is_felt(value: str) -> bool:
     Check whether value is a Felt
     """
     return bool(re.match(felt_pattern_from_schema(), value))
+
+
+def get_predeployed_acc_execute_args(calls):
+    """Get execute arguments with predeployed account"""
+    return get_execute_args(
+        calls=calls,
+        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+        nonce=0,
+        version=SUPPORTED_RPC_TX_VERSION,
+        max_fee=0,
+    )

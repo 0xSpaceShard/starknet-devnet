@@ -6,7 +6,10 @@ from __future__ import annotations
 
 import copy
 from test.account import _get_signature, get_nonce
-from test.rpc.rpc_utils import rpc_call_background_devnet
+from test.rpc.rpc_utils import (
+    get_predeployed_acc_execute_args,
+    rpc_call_background_devnet,
+)
 from test.rpc.test_rpc_transactions import pad_zero_entry_points
 from test.shared import (
     PREDEPLOY_ACCOUNT_CLI_ARGS,
@@ -29,7 +32,6 @@ from starkware.starknet.services.api.contract_class.contract_class import (
 )
 from starkware.starknet.services.api.gateway.transaction_utils import decompress_program
 
-from starknet_devnet.account_util import get_execute_args
 from starknet_devnet.blueprints.rpc.structures.payloads import (
     RpcBroadcastedDeclareTxnV1,
     RpcBroadcastedDeclareTxnV2,
@@ -56,18 +58,6 @@ def common_estimate_response(response):
 
         assert gas_price == DEFAULT_GAS_PRICE
         assert overall_fee == gas_consumed * gas_price
-
-
-def get_predeployed_acc_execute_args(calls):
-    """Get execute arguments with predeployed account"""
-    return get_execute_args(
-        calls=calls,
-        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
-        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
-        nonce=0,
-        version=SUPPORTED_RPC_TX_VERSION,
-        max_fee=0,
-    )
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")

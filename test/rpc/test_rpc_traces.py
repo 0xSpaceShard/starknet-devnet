@@ -7,7 +7,10 @@ from __future__ import annotations
 import copy
 from test.account import _get_signature, get_nonce
 from test.rpc.conftest import prepare_deploy_account_tx, rpc_deploy_account_from_gateway
-from test.rpc.rpc_utils import rpc_call_background_devnet
+from test.rpc.rpc_utils import (
+    get_predeployed_acc_execute_args,
+    rpc_call_background_devnet,
+)
 from test.rpc.test_rpc_transactions import pad_zero_entry_points
 from test.shared import (
     PREDEPLOY_ACCOUNT_CLI_ARGS,
@@ -44,22 +47,9 @@ from starknet_devnet.constants import (
     SUPPORTED_RPC_DECLARE_TX_VERSION,
 )
 
-
-# move to common file - taken from estimate fee
-def get_predeployed_acc_execute_args(calls):
-    """Get execute arguments with predeployed account"""
-    return get_execute_args(
-        calls=calls,
-        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
-        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
-        nonce=0,
-        version=SUPPORTED_RPC_TX_VERSION,
-        max_fee=0,
-    )
-
-
-# rename
-TEST = "0x7412af0af3a90314611a2dfda06ec2f252c46b341c87be51d049045a91eaf28"
+DEPLOY_ACCOUNT_CONTRACT_ADDRESS = (
+    "0x7412af0af3a90314611a2dfda06ec2f252c46b341c87be51d049045a91eaf28"
+)
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -301,7 +291,7 @@ def test_simulate_transaction_deploy_account(simulation_flags, deploy_account_de
         )
         assert response["result"][0]["transaction_trace"][0]["validate_invocation"][
             "contract_address"
-        ] == rpc_felt(TEST)
+        ] == rpc_felt(DEPLOY_ACCOUNT_CONTRACT_ADDRESS)
     else:
         assert (
             response["result"][0]["fee_estimation"][0]["overall_fee"] == "0x649b2ac100"
@@ -315,4 +305,4 @@ def test_simulate_transaction_deploy_account(simulation_flags, deploy_account_de
     )
     assert response["result"][0]["transaction_trace"][0]["constructor_invocation"][
         "contract_address"
-    ] == rpc_felt(TEST)
+    ] == rpc_felt(DEPLOY_ACCOUNT_CONTRACT_ADDRESS)
