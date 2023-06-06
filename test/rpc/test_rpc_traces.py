@@ -32,7 +32,6 @@ from starkware.starknet.services.api.contract_class.contract_class import (
 )
 from starkware.starknet.services.api.gateway.transaction_utils import decompress_program
 
-from starknet_devnet.account_util import get_execute_args
 from starknet_devnet.blueprints.rpc.structures.payloads import (
     RpcBroadcastedDeclareTxnV1,
     RpcBroadcastedDeclareTxnV2,
@@ -57,7 +56,7 @@ DEPLOY_ACCOUNT_CONTRACT_ADDRESS = (
     "run_devnet_in_background, simulation_flags",
     [
         (
-            [*PREDEPLOY_ACCOUNT_CLI_ARGS],
+            [*PREDEPLOY_ACCOUNT_CLI_ARGS, "--disable-rpc-request-validation"],
             [],
         ),
         ([*PREDEPLOY_ACCOUNT_CLI_ARGS], [SimulationFlag.SKIP_VALIDATE.name]),
