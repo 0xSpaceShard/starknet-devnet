@@ -4,10 +4,6 @@ version.workspace = true
 edition.workspace = true
 repository.workspace = true
 
-[profile.release]
-debug = 1
-incremental = true
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -18,10 +14,11 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 blockifier = { workspace = true }
 hex = { version = "0.4.3", default-features = false }
-pyo3 = { version = "0.18.3", features = ["auto-initialize"] }
 starknet-rs-signers = { workspace = true }
 starknet-rs-ff = { workspace = true }
 starknet-rs-core = { workspace = true }
+starknet-types = { workspace = true }
+random-number-generator = { workspace = true }
 
 [dev-dependencies]
 jsonschema = "0.16.0"

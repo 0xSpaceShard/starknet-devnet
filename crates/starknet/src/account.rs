@@ -4,26 +4,27 @@ use starknet_api::core::PatriciaKey;
 use starknet_api::hash::StarkHash;
 
 use starknet_api::{
-    core::calculate_contract_address,
+    core::{calculate_contract_address},
     hash::StarkFelt,
     patricia_key, stark_felt,
     transaction::{Calldata, ContractAddressSalt},
 };
 
-use crate::error::Error;
 use crate::traits::{Accounted, StateChanger};
-use crate::types::{
+use starknet_types::{
     contract_address::ContractAddress,
+    contract_class::ContractClass,
+    error::Error,
     felt::{Balance, ClassHash, Felt, Key},
-    DevnetResult, contract_class::ContractClass
+    DevnetResult,
 };
 
 /// in hex it equals 0x3FCBF77B28C96F4F2FB5BD2D176AB083A12A5E123ADEB0DE955D7EE228C9854
 /// data taken from https://github.com/0xSpaceShard/starknet-devnet/blob/fb96e0cc3c1c31fb29892ecefd2a670cf8a32b51/starknet_devnet/account.py
-const ACCOUNT_CLASS_HASH_FOR_ADDRESS_COMPUTATION: Felt = Felt([
+const ACCOUNT_CLASS_HASH_FOR_ADDRESS_COMPUTATION: [u8;32] = [
     3, 252, 191, 119, 178, 140, 150, 244, 242, 251, 91, 210, 209, 118, 171, 8, 58, 18, 165, 225, 35, 173, 235, 13, 233,
     85, 215, 238, 34, 140, 152, 84,
-]);
+];
 
 #[derive(Debug, Clone)]
 pub struct Account {
@@ -56,7 +57,7 @@ impl Account {
     fn compute_account_address(public_key: &Key) -> DevnetResult<ContractAddress> {
         let account_address = calculate_contract_address(
             ContractAddressSalt(stark_felt!(20u32)),
-            ACCOUNT_CLASS_HASH_FOR_ADDRESS_COMPUTATION.into(),
+            Felt::new(ACCOUNT_CLASS_HASH_FOR_ADDRESS_COMPUTATION).into(),
             &Calldata(Arc::new(vec![(*public_key).into()])),
             starknet_api::core::ContractAddress(patricia_key!(0u32)),
         )
@@ -78,7 +79,7 @@ impl Accounted for Account {
 
 #[cfg(test)]
 mod tests {
-    use crate::types::{contract_address::ContractAddress, felt::Felt};
+    use starknet_types::{contract_address::ContractAddress, felt::Felt};
 
     use super::Account;
 

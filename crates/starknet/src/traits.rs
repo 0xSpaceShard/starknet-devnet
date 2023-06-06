@@ -1,15 +1,4 @@
-use crate::{
-    error::Error,
-    types::{
-        felt::{ClassHash, Felt, Key},
-        DevnetResult, contract_class::ContractClass,
-    },
-};
-
-pub(crate) trait ToHexString {
-    fn to_prefixed_hex_str(&self) -> String;
-    fn to_nonprefixed_hex_str(&self) -> String;
-}
+use starknet_types::{contract_class::ContractClass, error::Error, felt::ClassHash, DevnetResult};
 
 pub trait HashIdentified {
     type Element;
@@ -35,8 +24,4 @@ pub trait AccountGenerator {
         class_hash: ClassHash,
         contract_class: ContractClass,
     ) -> DevnetResult<Vec<Self::Acc>>;
-}
-
-pub trait HashProducer {
-    fn generate_hash(&self) -> DevnetResult<Felt>;
 }
