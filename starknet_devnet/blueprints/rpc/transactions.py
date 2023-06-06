@@ -225,8 +225,7 @@ async def simulate_transaction(
 ) -> list:
     """
     Simulate transactions.
-    SKIP_EXECUTE SimulationFlag is not supported yet.
-    - add L1_HANDLER_TXN_TRACE test (use RpcBroadcastedTxn?)
+    SKIP_EXECUTE SimulationFlag is not supported.
     """
     await assert_block_id_is_valid(block_id)
     transactions = list(map(make_transaction, transaction))
