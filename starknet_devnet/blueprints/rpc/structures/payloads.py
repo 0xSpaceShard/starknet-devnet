@@ -999,7 +999,7 @@ def rpc_invoke_txn_trace(trace_dict: dict):
 
 def rpc_declare_txn_trace(trace_dict: dict):
     """
-    Mapping for the execution trace of an declare transaction.
+    Mapping for the execution trace of a declare transaction.
     """
     return {
         "validate_invocation": trace_dict.get("validate_invocation", None),
