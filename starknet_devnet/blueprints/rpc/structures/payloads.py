@@ -959,7 +959,7 @@ def rpc_state_update(
 
 def rpc_map_traces(
     traces: List[TransactionTrace], types: List[TransactionType]
-) -> list:
+) -> List[Dict[Dict, None]]:
     """
     Mapping for traces responses based on transaction types.
     """
