@@ -961,7 +961,7 @@ def rpc_map_traces(
     traces: List[TransactionTrace], types: List[TransactionType]
 ) -> list:
     """
-    Mapping for traces based on transaction types.
+    Mapping for traces responses based on transaction types.
     """
     # traces number must be equal to types to properly map objects
     assert len(traces) == len(types)
