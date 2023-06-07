@@ -988,7 +988,7 @@ def rpc_map_traces(
 
 def rpc_invoke_txn_trace(trace_dict: dict):
     """
-    Mapping for the execution trace of an invoke transaction.
+    Mapping for the execution trace of a invoke transaction.
     """
     return {
         "validate_invocation": trace_dict.get("validate_invocation", None),
@@ -1009,7 +1009,7 @@ def rpc_declare_txn_trace(trace_dict: dict):
 
 def rpc_deploy_account_txn_trace(trace_dict: dict):
     """
-    Mapping for the execution trace of an deploy account transaction.
+    Mapping for the execution trace of a deploy account transaction.
     """
     return {
         "validate_invocation": trace_dict.get("validate_invocation", None),
