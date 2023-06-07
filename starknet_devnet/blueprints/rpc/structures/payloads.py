@@ -991,9 +991,9 @@ def rpc_invoke_txn_trace(trace_dict: dict):
     Mapping for the execution trace of a invoke transaction.
     """
     return {
-        "validate_invocation": trace_dict.get("validate_invocation", None),
-        "execute_invocation": trace_dict.get("function_invocation", None),
-        "fee_transfer_invocation": trace_dict.get("fee_transfer_invocation", None),
+        "validate_invocation": trace_dict.get("validate_invocation"),
+        "execute_invocation": trace_dict.get("function_invocation"),
+        "fee_transfer_invocation": trace_dict.get("fee_transfer_invocation"),
     }
 
 
@@ -1002,8 +1002,8 @@ def rpc_declare_txn_trace(trace_dict: dict):
     Mapping for the execution trace of a declare transaction.
     """
     return {
-        "validate_invocation": trace_dict.get("validate_invocation", None),
-        "fee_transfer_invocation": trace_dict.get("fee_transfer_invocation", None),
+        "validate_invocation": trace_dict.get("validate_invocation"),
+        "fee_transfer_invocation": trace_dict.get("fee_transfer_invocation"),
     }
 
 
@@ -1012,7 +1012,7 @@ def rpc_deploy_account_txn_trace(trace_dict: dict):
     Mapping for the execution trace of a deploy account transaction.
     """
     return {
-        "validate_invocation": trace_dict.get("validate_invocation", None),
-        "constructor_invocation": trace_dict.get("function_invocation", None),
-        "fee_transfer_invocation": trace_dict.get("fee_transfer_invocation", None),
+        "validate_invocation": trace_dict.get("validate_invocation"),
+        "constructor_invocation": trace_dict.get("function_invocation"),
+        "fee_transfer_invocation": trace_dict.get("fee_transfer_invocation"),
     }
