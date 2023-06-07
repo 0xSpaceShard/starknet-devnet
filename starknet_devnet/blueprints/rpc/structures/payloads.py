@@ -978,7 +978,7 @@ def rpc_map_traces(
             trace = rpc_deploy_account_txn_trace(trace_dict)
         else:
             raise RpcError(
-                code=-1, message=f"Transaction type '{types[i]} is not supported."
+                code=-1, message=f"Transaction type '{types[i]}' is not supported."
             )
 
         result.append(trace)
