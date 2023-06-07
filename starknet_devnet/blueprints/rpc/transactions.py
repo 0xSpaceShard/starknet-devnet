@@ -250,9 +250,9 @@ async def simulate_transaction(
         )
     except StarkException as ex:
         if "Entry point" in ex.message and "not found" in ex.message:
-            raise RpcError.from_spec_name("INVALID_MESSAGE_SELECTOR") from ex
+            raise RpcError.from_spec_name("CONTRACT_ERROR") from ex
         if "While handling calldata" in ex.message:
-            raise RpcError.from_spec_name("INVALID_CALL_DATA") from ex
+            raise RpcError.from_spec_name("CONTRACT_ERROR") from ex
         if "is not deployed" in ex.message:
             raise RpcError.from_spec_name("CONTRACT_NOT_FOUND") from ex
         raise RpcError(code=-1, message=ex.message) from ex
