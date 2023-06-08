@@ -1,5 +1,4 @@
-use rand::Rng;
-use rand::SeedableRng;
+use rand::{Rng, SeedableRng};
 use rand_mt::Mt64;
 
 const PREDEFINED_U128_NUMBERS: [u128; 20] = [
@@ -28,9 +27,9 @@ const PREDEFINED_U128_NUMBERS: [u128; 20] = [
 // pub fn generate_u128_random_numbers(seed: u32, random_numbers_count: u8) -> Vec<u128> {
 //     let from_python = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
 //         let app: Py<PyAny> =
-//             PyModule::from_code(py, PY_RANDOM_NUMBER_GENERATOR_SCRIPT, "", "")?.getattr("generate")?.into();
-//         app.call(py, (seed, random_numbers_count), Option::None)
-//     });
+//             PyModule::from_code(py, PY_RANDOM_NUMBER_GENERATOR_SCRIPT, "",
+// "")?.getattr("generate")?.into();         app.call(py, (seed, random_numbers_count),
+// Option::None)     });
 
 //     let result = from_python
 //         .map_err(|_| Error::PyModuleError)?
@@ -64,7 +63,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_works() {
+    fn correct_random_numbers_generated() {
         assert_eq!(
             generate_u128_random_numbers(123, 2),
             vec![261662301160200998434711212977610535782, 285327960644938307249498422906269531911]
