@@ -1,6 +1,7 @@
 use std::io;
 
-use serde_json::{ser::Formatter, Value};
+use serde_json::ser::Formatter;
+use serde_json::Value;
 
 /// because of the preserve_order feature enabled in the serde_json crate
 /// removing a key from the object changes the order of the keys
@@ -40,7 +41,9 @@ where
                 let mut inner_obj = serde_json::Map::new();
                 let inner_val = traverse_and_exclude_recursively(value, &mut inner_obj, condition);
 
-                if !(inner_val.is_object() && inner_val.as_object().expect("Not a valid JSON object").is_empty()) {
+                if !(inner_val.is_object()
+                    && inner_val.as_object().expect("Not a valid JSON object").is_empty())
+                {
                     inner_arr.push(inner_val)
                 }
             }
@@ -54,8 +57,8 @@ where
 
 /// JSON Formatter that serializes an object with the desired spaces
 /// So the serialized object can match the object structure when compiling cairo program.
-/// When serializing with the default formatter, the JSON string is without any spaces between elements.
-/// Example here <https://www.cairo-lang.org/docs/hello_starknet/intro.html#>.
+/// When serializing with the default formatter, the JSON string is without any spaces between
+/// elements. Example here <https://www.cairo-lang.org/docs/hello_starknet/intro.html#>.
 pub struct StarknetFormatter;
 
 impl Formatter for StarknetFormatter {
