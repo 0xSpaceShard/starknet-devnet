@@ -12,8 +12,6 @@ thiserror = { workspace = true }
 starknet-in-rust = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-blockifier = { workspace = true }
-hex = { version = "0.4.3", default-features = false }
 starknet-rs-signers = { workspace = true }
 starknet-rs-ff = { workspace = true }
 starknet-rs-core = { workspace = true }
@@ -22,3 +20,4 @@ random-number-generator = { workspace = true }
 
 [dev-dependencies]
 jsonschema = "0.16.0"
+blockifier = { git = "https://github.com/starkware-libs/blockifier" }
