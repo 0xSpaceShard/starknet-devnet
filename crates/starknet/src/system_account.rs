@@ -82,7 +82,7 @@ mod tests {
         let sys_account = SystemAccount::new(
             ERC20_OZ_ACCOUNT_HASH,
             ERC20_OZ_ACCOUNT_ADDRESS,
-            &dummy_contract_class_json_str(),
+            std::fs::read_to_string(ERC20_OZ_ACCOUNT_PATH).unwrap().as_str(),
         )
         .unwrap();
 
