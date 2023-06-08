@@ -1,15 +1,22 @@
 use starknet_api::serde_utils::{bytes_from_hex_str, hex_str_from_bytes};
+use starknet_api::StarknetApiError;
 
-use crate::{error::Error, traits::ToHexString};
-
+use crate::contract_address::ContractAddress;
+use crate::error::Error;
+use crate::traits::ToHexString;
 use crate::DevnetResult;
 
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Hash, PartialOrd, Ord)]
 pub struct Felt(pub(crate) [u8; 32]);
 
 impl Felt {
-    pub fn new(bytes: [u8; 32]) -> Self {
-        Self(bytes)
+    pub fn new(bytes: [u8; 32]) -> DevnetResult<Self> {
+        if bytes[0] < 0x10 {
+            return Ok(Self(bytes));
+        }
+        Err(Error::StarknetApiError(StarknetApiError::OutOfRange {
+            string: hex_str_from_bytes::<32, true>(bytes),
+        }))
     }
 
     pub fn to_field_element(&self) -> DevnetResult<starknet_rs_ff::FieldElement> {
@@ -18,8 +25,9 @@ impl Felt {
     }
 
     pub fn from_prefixed_hex_str(hex_str: &str) -> DevnetResult<Self> {
-        let bytes = bytes_from_hex_str::<32, true>(hex_str)
-            .map_err(|err| Error::StarknetApiError(starknet_api::StarknetApiError::InnerDeserialization(err)))?;
+        let bytes = bytes_from_hex_str::<32, true>(hex_str).map_err(|err| {
+            Error::StarknetApiError(starknet_api::StarknetApiError::InnerDeserialization(err))
+        })?;
 
         Ok(Self(bytes))
     }
@@ -41,7 +49,8 @@ impl ToHexString for Felt {
 
 impl From<Felt> for starknet_rs_ff::FieldElement {
     fn from(value: Felt) -> Self {
-        starknet_rs_ff::FieldElement::from_bytes_be(&value.0).expect("Convert Felt to FieldElement, should be the same")
+        starknet_rs_ff::FieldElement::from_bytes_be(&value.0)
+            .expect("Convert Felt to FieldElement, should be the same")
     }
 }
 
@@ -59,6 +68,12 @@ impl From<u128> for Felt {
     }
 }
 
+impl From<ContractAddress> for Felt {
+    fn from(value: ContractAddress) -> Self {
+        value.0 .0
+    }
+}
+
 impl From<starknet_api::hash::StarkFelt> for Felt {
     fn from(value: starknet_api::hash::StarkFelt) -> Self {
         let arr: [u8; 32] = value.bytes().try_into().expect("slice of incorrect length");
@@ -68,6 +83,12 @@ impl From<starknet_api::hash::StarkFelt> for Felt {
 
 impl From<Felt> for starknet_api::hash::StarkFelt {
     fn from(value: Felt) -> Self {
+        starknet_api::hash::StarkFelt::new(value.0).expect("Invalid bytes")
+    }
+}
+
+impl From<&Felt> for starknet_api::hash::StarkFelt {
+    fn from(value: &Felt) -> Self {
         starknet_api::hash::StarkFelt::new(value.0).expect("Invalid bytes")
     }
 }
@@ -96,6 +117,24 @@ impl From<Felt> for starknet_in_rust::utils::ClassHash {
     }
 }
 
+impl From<cairo_felt::Felt252> for Felt {
+    fn from(value: cairo_felt::Felt252) -> Self {
+        Self(value.to_be_bytes())
+    }
+}
+
+impl From<Felt> for cairo_felt::Felt252 {
+    fn from(value: Felt) -> Self {
+        Self::from_bytes_be(&value.0)
+    }
+}
+
+impl From<&Felt> for cairo_felt::Felt252 {
+    fn from(value: &Felt) -> Self {
+        Self::from_bytes_be(&value.0)
+    }
+}
+
 impl From<starknet_api::core::PatriciaKey> for Felt {
     fn from(value: starknet_api::core::PatriciaKey) -> Self {
         let arr: [u8; 32] = value.key().bytes().try_into().expect("slice of incorrect length");
@@ -119,10 +158,16 @@ pub type Balance = Felt;
 mod tests {
     use super::Felt;
     #[test]
-    fn correct_conversion_from_bytes_to_felt() {
-        println!(
-            "{:?}",
-            Felt::from_prefixed_hex_str("0x3FCBF77B28C96F4F2FB5BD2D176AB083A12A5E123ADEB0DE955D7EE228C9854").unwrap()
-        );
+    fn correct_conversion_from_hex_str_to_felt() {
+        assert!(Felt::from_prefixed_hex_str(
+            "0x3FCBF77B28C96F4F2FB5BD2D176AB083A12A5E123ADEB0DE955D7EE228C9854"
+        )
+        .is_ok())
+    }
+
+    #[test]
+    fn correct_value_after_hex_str_to_felt() {
+        let felt = Felt::from_prefixed_hex_str("0xAA").unwrap();
+        assert_eq!(felt.0[31], 170);
     }
 }
