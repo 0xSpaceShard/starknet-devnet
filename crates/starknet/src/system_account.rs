@@ -51,7 +51,10 @@ impl Accounted for SystemAccount {
         self.address
     }
 
-    fn get_balance(&self, _state: &mut impl crate::traits::StateExtractor) -> DevnetResult<Balance> {
+    fn get_balance(
+        &self,
+        _state: &mut impl crate::traits::StateExtractor,
+    ) -> DevnetResult<Balance> {
         Ok(Felt::default())
     }
 }

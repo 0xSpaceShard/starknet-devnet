@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use starknet_api::{
-    block::{Block, BlockBody, BlockHash, BlockHeader, BlockNumber, BlockStatus, BlockTimestamp, GasPrice},
-    core::{ContractAddress, GlobalRoot},
-    transaction::{Transaction, TransactionOutput},
+use starknet_api::block::{
+    Block, BlockBody, BlockHash, BlockHeader, BlockNumber, BlockStatus, BlockTimestamp, GasPrice,
 };
+use starknet_api::core::{ContractAddress, GlobalRoot};
+use starknet_api::transaction::{Transaction, TransactionOutput};
 
 #[derive(Debug, Clone)]
 pub(crate) struct StarknetBlock {

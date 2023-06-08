@@ -104,12 +104,14 @@ mod tests {
         assert!(state.deploy_contract(address, felt).is_ok());
         assert!(state.state.address_to_class_hash.len() == 1);
         assert!(state.state.address_to_class_hash.contains_key(&(address.try_into().unwrap())));
-        assert!(state
-            .state
-            .address_to_nonce
-            .get(&(address.try_into().unwrap()))
-            .unwrap()
-            .eq(&Felt252::from(0)));
+        assert!(
+            state
+                .state
+                .address_to_nonce
+                .get(&(address.try_into().unwrap()))
+                .unwrap()
+                .eq(&Felt252::from(0))
+        );
     }
 
     #[test]
