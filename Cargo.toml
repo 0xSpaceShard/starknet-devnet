@@ -6,6 +6,7 @@ members = [
 	"crates/types",
 	"crates/random-number-generator",
 	"crates/starknet",
+	"crates/cli",
 ]
 
 [profile.release]
@@ -28,6 +29,7 @@ cairo-felt = { git = "https://github.com/lambdaclass/cairo-rs", package="cairo-f
 
 # Inner dependencies
 starknet-types = { path = "crates/types", package = "types" }
+starknet-core = { path = "crates/starknet", package = "starknet" }
 random-number-generator = { path = "crates/random-number-generator", package = "random-number-generator" }
 
 # Rust depencencies

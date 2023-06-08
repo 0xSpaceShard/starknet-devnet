@@ -43,9 +43,9 @@ pub trait StateExtractor {
 pub trait AccountGenerator {
     type Acc: Accounted;
     fn generate_accounts(
-        &self,
+        &mut self,
         number_of_accounts: u8,
         class_hash: ClassHash,
         contract_class: ContractClass,
-    ) -> DevnetResult<Vec<Self::Acc>>;
+    ) -> DevnetResult<&Vec<Self::Acc>>;
 }

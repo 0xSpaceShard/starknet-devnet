@@ -23,22 +23,30 @@ mod traits;
 mod transaction;
 mod utils;
 
+#[derive(Debug)]
 pub struct StarknetConfig {
     pub seed: u32,
     pub total_accounts: u8,
-    pub predeployed_accounts_initial_balance: u32,
+    pub predeployed_accounts_initial_balance: u128,
+}
+
+impl Default for StarknetConfig {
+    fn default() -> Self {
+        Self { seed: 123, total_accounts: 3, predeployed_accounts_initial_balance: 100 }
+    }
 }
 #[derive(Default)]
-pub(crate) struct Starknet {
-    pub blocks: StarknetBlocks,
+pub struct Starknet {
+    blocks: StarknetBlocks,
     // pub block_context: BlockContext,
-    pub state: StarknetState,
-    pub transactions: StarknetTransactions,
+    state: StarknetState,
+    transactions: StarknetTransactions,
+    predeployed_accounts: PredeployedAccount,
 }
 
 impl Starknet {
-    fn new(config: &StarknetConfig) -> DevnetResult<Self> {
-        let mut this = Self::default();
+    pub fn new(config: &StarknetConfig) -> DevnetResult<Self> {
+        let mut state = StarknetState::default();
         // deploy udc and erc20 contracts
         let erc20_contract_class_json_str = std::fs::read_to_string(ERC20_OZ_ACCOUNT_PATH)?;
         let erc20_fee_account = SystemAccount::new(
@@ -53,10 +61,10 @@ impl Starknet {
             UDC_OZ_ACCOUNT_ADDRESS,
             &udc_contract_class_json_str,
         )?;
-        erc20_fee_account.deploy(&mut this.state)?;
-        udc_account.deploy(&mut this.state)?;
+        erc20_fee_account.deploy(&mut state)?;
+        udc_account.deploy(&mut state)?;
 
-        let predeployed_accounts = PredeployedAccount::new(
+        let mut predeployed_accounts = PredeployedAccount::new(
             config.seed,
             config.predeployed_accounts_initial_balance,
             erc20_fee_account.get_address(),
@@ -71,10 +79,42 @@ impl Starknet {
             contract_class,
         )?;
         for account in accounts {
-            account.deploy(&mut this.state)?;
-            account.set_initial_balance(&mut this.state)?;
+            account.deploy(&mut state)?;
+            account.set_initial_balance(&mut state)?;
         }
 
-        Ok(this)
+        Ok(Self { 
+            blocks: StarknetBlocks::default(), 
+            state: state, 
+            transactions: StarknetTransactions::default(), 
+            predeployed_accounts: predeployed_accounts
+        })
+    }
+
+    pub fn get_predeployed_accounts(&self) -> Vec<Account> {
+        self.predeployed_accounts.get_accounts().to_vec()
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use starknet_types::{DevnetResult, felt::Felt};
+
+    use crate::{StarknetConfig, Starknet, traits::Accounted};
+
+    #[test]
+    fn correct_initial_state_with_default_config() -> DevnetResult<()>{
+        let config = StarknetConfig::default();
+        let mut starknet = Starknet::new(&config)?;
+        let predeployed_accounts = starknet.predeployed_accounts.get_accounts();
+        let expected_balance = Felt::from(config.predeployed_accounts_initial_balance as u128);
+
+        for account in predeployed_accounts {
+            let account_balance = account.get_balance(&mut starknet.state)?;
+            assert_eq!(expected_balance, account_balance);
+        }
+
+        Ok(())
     }
 }

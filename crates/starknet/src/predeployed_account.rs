@@ -11,15 +11,17 @@ use crate::account::Account;
 use crate::traits::AccountGenerator;
 use crate::utils::generate_u128_random_numbers;
 
+#[derive(Default)]
 pub(crate) struct PredeployedAccount {
     seed: u32,
-    initial_balance: u32,
+    initial_balance: u128,
     fee_token_address: ContractAddress,
+    accounts: Vec<Account>
 }
 
 impl PredeployedAccount {
-    pub(crate) fn new(seed: u32, initial_balance: u32, fee_token_address: ContractAddress) -> Self {
-        Self { seed, initial_balance, fee_token_address }
+    pub(crate) fn new(seed: u32, initial_balance: u128, fee_token_address: ContractAddress) -> Self {
+        Self { seed, initial_balance, fee_token_address, accounts: Vec::<Account>::new() }
     }
 }
 
@@ -40,18 +42,21 @@ impl PredeployedAccount {
 
         Ok(public_key)
     }
+
+    pub fn get_accounts(&self) -> &Vec<Account> {
+        &self.accounts
+    }
 }
 
 impl AccountGenerator for PredeployedAccount {
     type Acc = Account;
 
     fn generate_accounts(
-        &self,
+        &mut self,
         number_of_accounts: u8,
         class_hash: ClassHash,
         contract_class: ContractClass,
-    ) -> DevnetResult<Vec<Self::Acc>> {
-        let mut result = Vec::<Account>::new();
+    ) -> DevnetResult<&Vec<Self::Acc>> {
         let private_keys = self.generate_private_keys(number_of_accounts)?;
 
         for private_key in private_keys {
@@ -63,11 +68,10 @@ impl AccountGenerator for PredeployedAccount {
                 contract_class.clone(),
                 self.fee_token_address,
             )?;
-
-            result.push(account);
+            self.accounts.push(account);
         }
 
-        Ok(result)
+        Ok(&self.accounts)
     }
 }
 
@@ -158,13 +162,13 @@ mod tests {
 
     #[test]
     fn check_generated_predeployed_accounts_against_json_schema() {
-        let predeployed_acc = PredeployedAccount::new(123, 1000, dummy_contract_address());
+        let mut predeployed_acc = PredeployedAccount::new(123, 1000, dummy_contract_address());
         let class_hash = Felt::from_prefixed_hex_str(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap();
         let json_str = std::fs::read_to_string(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
 
         let contract_class = ContractClass::from_json_str(&json_str).unwrap();
 
-        let generated_accounts: Vec<Account> =
+        let generated_accounts =
             predeployed_acc.generate_accounts(3, class_hash, contract_class).unwrap();
         let schema_json: serde_json::Value = serde_json::from_str(
             std::fs::read_to_string(PREDEPLOYED_ACCOUNTS_JSON_SCHEMA_WITH_DATA_FILE_PATH)
