@@ -42,9 +42,7 @@ pub(crate) mod test_utils {
         let starting_idx = result.len() - num_bytes.len();
         let ending_idx = result.len();
 
-        for idx in starting_idx..ending_idx {
-            result[idx] = num_bytes[idx - starting_idx];
-        }
+        result[starting_idx..ending_idx].copy_from_slice(&num_bytes[..(ending_idx - starting_idx)]);
 
         result
     }
