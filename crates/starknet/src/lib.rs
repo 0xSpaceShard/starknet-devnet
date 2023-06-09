@@ -1,5 +1,4 @@
 use account::Account;
-use block::StarknetBlocks;
 use constants::{
     ERC20_OZ_ACCOUNT_ADDRESS, ERC20_OZ_ACCOUNT_HASH, ERC20_OZ_ACCOUNT_PATH, UDC_OZ_ACCOUNT_ADDRESS,
     UDC_OZ_ACCOUNT_HASH, UDC_OZ_ACCOUNT_PATH,
@@ -10,17 +9,14 @@ use starknet_types::DevnetResult;
 use state::StarknetState;
 use system_account::SystemAccount;
 use traits::{AccountGenerator, Accounted};
-use transaction::StarknetTransactions;
 
 mod account;
-mod block;
 mod constants;
 mod predeployed_account;
 mod state;
 mod system_account;
 mod test_utils;
 mod traits;
-mod transaction;
 mod utils;
 
 #[derive(Debug)]
@@ -37,10 +33,7 @@ impl Default for StarknetConfig {
 }
 #[derive(Default)]
 pub struct Starknet {
-    blocks: StarknetBlocks,
-    // pub block_context: BlockContext,
     state: StarknetState,
-    transactions: StarknetTransactions,
     predeployed_accounts: PredeployedAccount,
 }
 
@@ -83,11 +76,9 @@ impl Starknet {
             account.set_initial_balance(&mut state)?;
         }
 
-        Ok(Self { 
-            blocks: StarknetBlocks::default(), 
-            state, 
-            transactions: StarknetTransactions::default(), 
-            predeployed_accounts
+        Ok(Self {
+            state,
+            predeployed_accounts,
         })
     }
 
@@ -96,15 +87,14 @@ impl Starknet {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use starknet_types::{DevnetResult, felt::Felt};
+    use starknet_types::{felt::Felt, DevnetResult};
 
-    use crate::{StarknetConfig, Starknet, traits::Accounted};
+    use crate::{traits::Accounted, Starknet, StarknetConfig};
 
     #[test]
-    fn correct_initial_state_with_default_config() -> DevnetResult<()>{
+    fn correct_initial_state_with_default_config() -> DevnetResult<()> {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config)?;
         let predeployed_accounts = starknet.predeployed_accounts.get_accounts();

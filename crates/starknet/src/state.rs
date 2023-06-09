@@ -66,10 +66,7 @@ impl StateChanger for StarknetState {
 
 impl StateExtractor for StarknetState {
     fn get_storage(&mut self, storage_key: ContractStorageKey) -> DevnetResult<Felt> {
-        Ok(self
-            .state
-            .get_storage_at(&storage_key.try_into()?)
-            .map(Felt::from)?)
+        Ok(self.state.get_storage_at(&storage_key.try_into()?).map(Felt::from)?)
     }
 }
 
@@ -80,7 +77,7 @@ mod tests {
     use starknet_types::felt::Felt;
 
     use super::StarknetState;
-    use crate::test_utils::{
+    use crate::test_utils::test_utils::{
         dummy_contract_address, dummy_contract_class, dummy_contract_storage_key, dummy_felt,
     };
     use crate::traits::{StateChanger, StateExtractor};
@@ -104,14 +101,12 @@ mod tests {
         assert!(state.deploy_contract(address, felt).is_ok());
         assert!(state.state.address_to_class_hash.len() == 1);
         assert!(state.state.address_to_class_hash.contains_key(&(address.try_into().unwrap())));
-        assert!(
-            state
-                .state
-                .address_to_nonce
-                .get(&(address.try_into().unwrap()))
-                .unwrap()
-                .eq(&Felt252::from(0))
-        );
+        assert!(state
+            .state
+            .address_to_nonce
+            .get(&(address.try_into().unwrap()))
+            .unwrap()
+            .eq(&Felt252::from(0)));
     }
 
     #[test]

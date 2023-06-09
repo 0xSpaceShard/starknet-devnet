@@ -46,15 +46,13 @@ mod tests {
 
     #[test]
     fn creation_of_patricia_key_should_be_successful() {
-        assert!(
-            PatriciaKey::new(
-                Felt::from_prefixed_hex_str(
-                    "0x7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-                )
-                .unwrap()
+        assert!(PatriciaKey::new(
+            Felt::from_prefixed_hex_str(
+                "0x7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
             )
-            .is_ok()
-        );
+            .unwrap()
+        )
+        .is_ok());
     }
 
     #[test]

@@ -1,31 +1,14 @@
 use std::fs;
 
-
 use starknet_api::hash::{pedersen_hash, StarkFelt};
 use starknet_in_rust::utils::calculate_sn_keccak;
 use starknet_types::cairo_felt::Felt252;
 use starknet_types::contract_class::ContractClass;
-use starknet_types::error::{Error};
-use starknet_types::felt::{Felt};
+use starknet_types::error::Error;
+use starknet_types::felt::Felt;
 use starknet_types::num_integer::Integer;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 use starknet_types::DevnetResult;
-
-const PY_RANDOM_NUMBER_GENERATOR_SCRIPT: &str =
-    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/scripts/random_number_generator.py"));
-
-pub(crate) fn get_bytes_from_u32(num: u32) -> [u8; 32] {
-    let num_bytes = num.to_be_bytes();
-    let mut result = [0u8; 32];
-    let starting_idx = result.len() - num_bytes.len();
-    let ending_idx = result.len();
-
-    for idx in starting_idx..ending_idx {
-        result[idx] = num_bytes[idx - starting_idx];
-    }
-
-    result
-}
 
 pub(crate) fn generate_u128_random_numbers(
     seed: u32,
@@ -60,12 +43,10 @@ pub(crate) fn get_storage_var_address(
 
 #[cfg(test)]
 mod tests {
-
-    
+    use crate::test_utils::test_utils::{self, get_bytes_from_u32};
     use starknet_types::traits::ToHexString;
 
-    use super::{generate_u128_random_numbers, get_bytes_from_u32, get_storage_var_address};
-    use crate::test_utils;
+    use super::get_storage_var_address;
 
     #[test]
     fn correct_bytes_from_number() {
@@ -75,7 +56,7 @@ mod tests {
 
     #[test]
     fn correct_number_generated_based_on_fixed_seed() {
-        let generated_numbers = generate_u128_random_numbers(123, 2).unwrap();
+        let generated_numbers = random_number_generator::generate_u128_random_numbers(123, 2);
         let expected_output: Vec<u128> =
             vec![261662301160200998434711212977610535782, 285327960644938307249498422906269531911];
         assert_eq!(generated_numbers, expected_output);

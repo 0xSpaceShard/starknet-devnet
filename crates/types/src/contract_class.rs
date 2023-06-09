@@ -197,9 +197,9 @@ impl HashProducer for ContractClass {
 #[cfg(test)]
 mod tests {
     use super::ContractClass;
-    use crate::utils::test_utils::{CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH};
     use crate::felt::Felt;
     use crate::traits::HashProducer;
+    use crate::utils::test_utils::{CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH};
 
     #[test]
     fn cairo_0_contract_class_hash_generated_successfully() {

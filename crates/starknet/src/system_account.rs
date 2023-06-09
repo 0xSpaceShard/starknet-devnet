@@ -3,7 +3,6 @@ use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{Balance, ClassHash, Felt};
 use starknet_types::DevnetResult;
 
-
 use crate::traits::Accounted;
 
 pub(crate) struct SystemAccount {
@@ -68,7 +67,7 @@ mod tests {
         ERC20_OZ_ACCOUNT_ADDRESS, ERC20_OZ_ACCOUNT_HASH, ERC20_OZ_ACCOUNT_PATH,
     };
     use crate::state::StarknetState;
-    
+
     use crate::traits::Accounted;
     #[test]
     fn load_erc20_contract() {

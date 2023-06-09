@@ -1,5 +1,3 @@
-
-
 use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::SigningKey;
 use starknet_types::contract_address::ContractAddress;
@@ -16,11 +14,15 @@ pub(crate) struct PredeployedAccount {
     seed: u32,
     initial_balance: u128,
     fee_token_address: ContractAddress,
-    accounts: Vec<Account>
+    accounts: Vec<Account>,
 }
 
 impl PredeployedAccount {
-    pub(crate) fn new(seed: u32, initial_balance: u128, fee_token_address: ContractAddress) -> Self {
+    pub(crate) fn new(
+        seed: u32,
+        initial_balance: u128,
+        fee_token_address: ContractAddress,
+    ) -> Self {
         Self { seed, initial_balance, fee_token_address, accounts: Vec::<Account>::new() }
     }
 }
@@ -79,17 +81,16 @@ impl AccountGenerator for PredeployedAccount {
 mod tests {
     use jsonschema::JSONSchema;
     use serde_json::json;
-    
+
     use starknet_types::contract_class::ContractClass;
     use starknet_types::felt::{Felt, Key};
     use starknet_types::traits::ToHexString;
 
-    
-    use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH};
+    use crate::constants::CAIRO_0_ACCOUNT_CONTRACT_PATH;
+    use crate::test_utils::test_utils::{CAIRO_0_ACCOUNT_CONTRACT_HASH};
     use crate::predeployed_account::PredeployedAccount;
-    use crate::test_utils::dummy_contract_address;
+    use crate::test_utils::test_utils::dummy_contract_address;
     use crate::traits::AccountGenerator;
-    
 
     const SEED: u32 = 123;
 
