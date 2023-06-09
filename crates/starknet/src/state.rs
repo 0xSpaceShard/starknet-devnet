@@ -69,7 +69,7 @@ impl StateExtractor for StarknetState {
         Ok(self
             .state
             .get_storage_at(&storage_key.try_into()?)
-            .map(|felt252| Felt::from(felt252))?)
+            .map(Felt::from)?)
     }
 }
 

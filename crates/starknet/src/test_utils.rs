@@ -4,7 +4,7 @@ use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::felt::Felt;
 use starknet_types::patricia_key::StorageKey;
 
-use crate::account::Account;
+
 use crate::constants;
 
 pub(crate) fn dummy_felt() -> Felt {

@@ -85,9 +85,9 @@ impl Starknet {
 
         Ok(Self { 
             blocks: StarknetBlocks::default(), 
-            state: state, 
+            state, 
             transactions: StarknetTransactions::default(), 
-            predeployed_accounts: predeployed_accounts
+            predeployed_accounts
         })
     }
 
@@ -108,7 +108,7 @@ mod tests {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config)?;
         let predeployed_accounts = starknet.predeployed_accounts.get_accounts();
-        let expected_balance = Felt::from(config.predeployed_accounts_initial_balance as u128);
+        let expected_balance = Felt::from(config.predeployed_accounts_initial_balance);
 
         for account in predeployed_accounts {
             let account_balance = account.get_balance(&mut starknet.state)?;

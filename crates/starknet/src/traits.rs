@@ -1,4 +1,4 @@
-use starknet_in_rust::business_logic::state::state_api::State;
+
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::contract_storage_key::ContractStorageKey;

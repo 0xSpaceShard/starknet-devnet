@@ -1,12 +1,12 @@
 use std::fs;
 
-use serde::Deserialize;
+
 use starknet_api::hash::{pedersen_hash, StarkFelt};
 use starknet_in_rust::utils::calculate_sn_keccak;
 use starknet_types::cairo_felt::Felt252;
 use starknet_types::contract_class::ContractClass;
-use starknet_types::error::{Error, JsonError};
-use starknet_types::felt::{ClassHash, Felt};
+use starknet_types::error::{Error};
+use starknet_types::felt::{Felt};
 use starknet_types::num_integer::Integer;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 use starknet_types::DevnetResult;
@@ -36,7 +36,7 @@ pub(crate) fn generate_u128_random_numbers(
 
 pub(crate) fn load_cairo_0_contract_class(path: &str) -> DevnetResult<ContractClass> {
     let contract_class_str = fs::read_to_string(path).map_err(Error::IOError)?;
-    Ok(ContractClass::from_json_str(&contract_class_str)?)
+    ContractClass::from_json_str(&contract_class_str)
 }
 
 /// Returns the storage address of a StarkNet storage variable given its name and arguments.
@@ -61,7 +61,7 @@ pub(crate) fn get_storage_var_address(
 #[cfg(test)]
 mod tests {
 
-    use starknet_api::hash::StarkFelt;
+    
     use starknet_types::traits::ToHexString;
 
     use super::{generate_u128_random_numbers, get_bytes_from_u32, get_storage_var_address};

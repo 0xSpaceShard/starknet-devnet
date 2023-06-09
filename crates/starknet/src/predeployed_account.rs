@@ -1,4 +1,4 @@
-use std::vec;
+
 
 use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::SigningKey;
@@ -34,7 +34,7 @@ impl PredeployedAccount {
     }
 
     fn generate_public_key(&self, private_key: &Key) -> DevnetResult<Key> {
-        let private_key_field_element = FieldElement::from(private_key.clone());
+        let private_key_field_element = FieldElement::from(*private_key);
 
         let public_key = Key::from(
             SigningKey::from_secret_scalar(private_key_field_element).verifying_key().scalar(),
@@ -61,7 +61,7 @@ impl AccountGenerator for PredeployedAccount {
 
         for private_key in private_keys {
             let account = Account::new(
-                Felt::from(self.initial_balance as u128),
+                Felt::from(self.initial_balance),
                 self.generate_public_key(&private_key)?,
                 private_key,
                 class_hash,
@@ -79,17 +79,17 @@ impl AccountGenerator for PredeployedAccount {
 mod tests {
     use jsonschema::JSONSchema;
     use serde_json::json;
-    use starknet_api::serde_utils::bytes_from_hex_str;
+    
     use starknet_types::contract_class::ContractClass;
     use starknet_types::felt::{Felt, Key};
     use starknet_types::traits::ToHexString;
 
-    use crate::account::Account;
-    use crate::constants::{self, CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH};
+    
+    use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH};
     use crate::predeployed_account::PredeployedAccount;
     use crate::test_utils::dummy_contract_address;
     use crate::traits::AccountGenerator;
-    use crate::utils;
+    
 
     const SEED: u32 = 123;
 

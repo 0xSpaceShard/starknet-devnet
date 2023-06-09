@@ -103,7 +103,7 @@ impl HashProducer for ContractClass {
     fn generate_hash(&self) -> crate::DevnetResult<crate::felt::Felt> {
         match &self.0 {
             ContractClassInner::StarknetInRust(class) => {
-                let hash = compute_deprecated_class_hash(&class)
+                let hash = compute_deprecated_class_hash(class)
                     .map_err(Error::StarknetInRustContractAddressError)?;
                 Ok(Felt(hash.to_be_bytes()))
             }

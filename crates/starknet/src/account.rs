@@ -217,7 +217,7 @@ mod tests {
 
     #[test]
     fn account_changed_balance_successfully_without_deployment() {
-        let (mut account, mut state) = setup();
+        let (account, mut state) = setup();
         assert!(account.set_initial_balance(&mut state).is_ok());
     }
 
