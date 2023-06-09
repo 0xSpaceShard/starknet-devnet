@@ -24,25 +24,6 @@ const PREDEFINED_U128_NUMBERS: [u128; 20] = [
     147814125101532749435588302881764112760,
 ];
 
-// pub fn generate_u128_random_numbers(seed: u32, random_numbers_count: u8) -> Vec<u128> {
-//     let from_python = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
-//         let app: Py<PyAny> =
-//             PyModule::from_code(py, PY_RANDOM_NUMBER_GENERATOR_SCRIPT, "",
-// "")?.getattr("generate")?.into();         app.call(py, (seed, random_numbers_count),
-// Option::None)     });
-
-//     let result = from_python
-//         .map_err(|_| Error::PyModuleError)?
-//         .to_string()
-//         .trim_start_matches('[')
-//         .trim_end_matches(']')
-//         .split(',')
-//         .map(|el| el.trim().parse::<u128>().unwrap())
-//         .collect::<Vec<u128>>();
-
-//     Ok(result)
-// }
-
 pub fn generate_u128_random_numbers(seed: u32, random_numbers_count: u8) -> Vec<u128> {
     if seed == 123 && usize::from(random_numbers_count) <= PREDEFINED_U128_NUMBERS.len() {
         PREDEFINED_U128_NUMBERS[..usize::from(random_numbers_count)].to_vec()
