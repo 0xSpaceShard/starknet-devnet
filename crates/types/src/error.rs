@@ -12,6 +12,8 @@ pub enum Error {
     ConversionError(#[from] ConversionError),
     #[error(transparent)]
     IOError(#[from] std::io::Error),
+    #[error("Error when reading file {path}")]
+    ReadFileError { source: std::io::Error, path: String },
     #[error(transparent)]
     JsonError(#[from] JsonError),
     #[error(transparent)]
