@@ -28,7 +28,7 @@ pub fn generate_u128_random_numbers(seed: u32, random_numbers_count: u8) -> Vec<
     if seed == 123 && usize::from(random_numbers_count) <= PREDEFINED_U128_NUMBERS.len() {
         PREDEFINED_U128_NUMBERS[..usize::from(random_numbers_count)].to_vec()
     } else {
-        let mut result = Vec::<u128>::new();
+        let mut result: Vec<u128> = Vec::new();
         let mut rng: Mt64 = SeedableRng::seed_from_u64(seed as u64);
 
         for _ in 0..random_numbers_count {

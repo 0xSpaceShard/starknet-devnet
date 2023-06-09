@@ -23,7 +23,7 @@ impl PredeployedAccount {
         initial_balance: u128,
         fee_token_address: ContractAddress,
     ) -> Self {
-        Self { seed, initial_balance, fee_token_address, accounts: Vec::<Account>::new() }
+        Self { seed, initial_balance, fee_token_address, accounts: Vec::new() }
     }
 }
 
