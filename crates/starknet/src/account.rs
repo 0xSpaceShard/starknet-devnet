@@ -23,12 +23,12 @@ const ACCOUNT_CLASS_HASH_FOR_ADDRESS_COMPUTATION: [u8; 32] = [
 
 #[derive(Clone)]
 pub struct Account {
-    pub(crate) balance: Balance,
-    pub(crate) class_hash: ClassHash,
     pub public_key: Key,
     pub private_key: Key,
-    pub(crate) contract_class: ContractClass,
     pub account_address: ContractAddress,
+    pub(crate) balance: Balance,
+    pub(crate) class_hash: ClassHash,
+    pub(crate) contract_class: ContractClass,
     pub(crate) fee_token_address: ContractAddress,
 }
 

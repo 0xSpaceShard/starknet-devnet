@@ -18,7 +18,8 @@ pub(crate) fn generate_u128_random_numbers(
 }
 
 pub(crate) fn load_cairo_0_contract_class(path: &str) -> DevnetResult<ContractClass> {
-    let contract_class_str = fs::read_to_string(path).map_err(Error::IOError)?;
+    let contract_class_str = fs::read_to_string(path)
+        .map_err(|err| Error::ReadFileError { source: err, path: path.to_string() })?;
     ContractClass::from_json_str(&contract_class_str)
 }
 

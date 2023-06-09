@@ -87,9 +87,9 @@ mod tests {
     use starknet_types::traits::ToHexString;
 
     use crate::constants::CAIRO_0_ACCOUNT_CONTRACT_PATH;
-    use crate::test_utils::test_utils::{CAIRO_0_ACCOUNT_CONTRACT_HASH};
     use crate::predeployed_account::PredeployedAccount;
     use crate::test_utils::test_utils::dummy_contract_address;
+    use crate::test_utils::test_utils::CAIRO_0_ACCOUNT_CONTRACT_HASH;
     use crate::traits::AccountGenerator;
 
     const SEED: u32 = 123;

@@ -4,8 +4,8 @@ use constants::{
     UDC_OZ_ACCOUNT_HASH, UDC_OZ_ACCOUNT_PATH,
 };
 use predeployed_account::PredeployedAccount;
-use starknet_types::traits::HashProducer;
 use starknet_types::DevnetResult;
+use starknet_types::{error::Error, traits::HashProducer};
 use state::StarknetState;
 use system_account::SystemAccount;
 use traits::{AccountGenerator, Accounted};
@@ -41,14 +41,22 @@ impl Starknet {
     pub fn new(config: &StarknetConfig) -> DevnetResult<Self> {
         let mut state = StarknetState::default();
         // deploy udc and erc20 contracts
-        let erc20_contract_class_json_str = std::fs::read_to_string(ERC20_OZ_ACCOUNT_PATH)?;
+        let erc20_contract_class_json_str = std::fs::read_to_string(ERC20_OZ_ACCOUNT_PATH)
+            .map_err(|err| Error::ReadFileError {
+                source: err,
+                path: ERC20_OZ_ACCOUNT_PATH.to_string(),
+            })?;
         let erc20_fee_account = SystemAccount::new(
             ERC20_OZ_ACCOUNT_HASH,
             ERC20_OZ_ACCOUNT_ADDRESS,
             &erc20_contract_class_json_str,
         )?;
 
-        let udc_contract_class_json_str = std::fs::read_to_string(UDC_OZ_ACCOUNT_PATH)?;
+        let udc_contract_class_json_str =
+            std::fs::read_to_string(UDC_OZ_ACCOUNT_PATH).map_err(|err| Error::ReadFileError {
+                source: err,
+                path: UDC_OZ_ACCOUNT_PATH.to_string(),
+            })?;
         let udc_account = SystemAccount::new(
             UDC_OZ_ACCOUNT_HASH,
             UDC_OZ_ACCOUNT_ADDRESS,
@@ -76,10 +84,7 @@ impl Starknet {
             account.set_initial_balance(&mut state)?;
         }
 
-        Ok(Self {
-            state,
-            predeployed_accounts,
-        })
+        Ok(Self { state, predeployed_accounts })
     }
 
     pub fn get_predeployed_accounts(&self) -> Vec<Account> {
