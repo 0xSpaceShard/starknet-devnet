@@ -28,10 +28,6 @@ pub(crate) mod test_utils {
         ContractClass::from_json_str(&json_str).unwrap()
     }
 
-    pub(crate) fn dummy_contract_class_json_str() -> String {
-        std::fs::read_to_string(constants::CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap()
-    }
-
     pub(crate) fn dummy_contract_address() -> ContractAddress {
         ContractAddress::new(Felt::from_prefixed_hex_str("0xADD4E55").unwrap()).unwrap()
     }
