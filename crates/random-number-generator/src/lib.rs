@@ -1,4 +1,4 @@
-use rand::{Rng, SeedableRng};
+use rand::{thread_rng, Rng, SeedableRng};
 use rand_mt::Mt64;
 
 const PREDEFINED_U128_NUMBERS: [u128; 20] = [
@@ -56,6 +56,10 @@ pub fn generate_u128_random_numbers(seed: u32, random_numbers_count: u8) -> Vec<
 
         result
     }
+}
+
+pub fn generate_u32_random_number() -> u32 {
+    thread_rng().gen()
 }
 
 #[cfg(test)]
