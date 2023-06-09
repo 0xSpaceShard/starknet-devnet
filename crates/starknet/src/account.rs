@@ -118,7 +118,7 @@ mod tests {
 
     use super::Account;
     use crate::state::StarknetState;
-    use crate::test_utils::test_utils::{dummy_contract_address, dummy_contract_class, dummy_felt};
+    use crate::utils::test_utils::{dummy_contract_address, dummy_contract_class, dummy_felt};
     use crate::traits::Accounted;
     use crate::utils::get_storage_var_address;
 

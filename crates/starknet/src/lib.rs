@@ -15,7 +15,6 @@ mod constants;
 mod predeployed_account;
 mod state;
 mod system_account;
-mod test_utils;
 mod traits;
 mod utils;
 

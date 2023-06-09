@@ -77,7 +77,7 @@ mod tests {
     use starknet_types::felt::Felt;
 
     use super::StarknetState;
-    use crate::test_utils::test_utils::{
+    use crate::utils::test_utils::{
         dummy_contract_address, dummy_contract_class, dummy_contract_storage_key, dummy_felt,
     };
     use crate::traits::{StateChanger, StateExtractor};
