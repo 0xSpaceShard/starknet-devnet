@@ -39,7 +39,7 @@ mod tests {
     use crate::contract_address::{test_utils, ContractAddress};
     use crate::felt::Felt;
     use crate::patricia_key::PatriciaKey;
-    use crate::test_utils::dummy_felt;
+    use crate::utils::test_utils::dummy_felt;
 
     #[test]
     fn correct_convertion_to_starknet_in_rust_storage_entry() {

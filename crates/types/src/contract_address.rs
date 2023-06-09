@@ -53,7 +53,7 @@ mod tests {
 
     use super::ContractAddress;
     use crate::contract_address::test_utils;
-    use crate::test_utils::dummy_felt;
+    use crate::utils::test_utils::dummy_felt;
 
     #[test]
     fn correct_convertion_to_starknet_in_rust_address() {
@@ -64,6 +64,7 @@ mod tests {
     }
 }
 
+#[cfg(test)]
 pub(crate) mod test_utils {
     use starknet_in_rust::utils::Address;
 
