@@ -111,28 +111,28 @@ def test_simulate_transaction_invoke(simulation_flags):
             "transaction": [invoke_transaction],
             "simulation_flags": simulation_flags,
         },
-    )
+    )["result"][0]
 
     if not simulation_flags:
         assert (
-            response["result"][0]["fee_estimation"][0]["overall_fee"] == "0x1d91ca3600"
+            response["fee_estimation"][0]["overall_fee"] == "0x1d91ca3600"
         )
-        assert response["result"][0]["transaction_trace"][0]["validate_invocation"][
+        assert response["transaction_trace"][0]["validate_invocation"][
             "contract_address"
         ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
     else:
         assert (
-            response["result"][0]["fee_estimation"][0]["overall_fee"] == "0x1d85de7400"
+            response["fee_estimation"][0]["overall_fee"] == "0x1d85de7400"
         )
         assert (
-            response["result"][0]["transaction_trace"][0]["validate_invocation"] is None
+            response["transaction_trace"][0]["validate_invocation"] is None
         )
 
-    assert response["result"][0]["transaction_trace"][0]["execute_invocation"][
+    assert response["transaction_trace"][0]["execute_invocation"][
         "contract_address"
     ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
     assert (
-        response["result"][0]["transaction_trace"][0]["fee_transfer_invocation"] is None
+        response["transaction_trace"][0]["fee_transfer_invocation"] is None
     )
 
 
@@ -190,25 +190,25 @@ def test_simulate_transaction_declare_v1(simulation_flags, declare_content):
             "transaction": [declare_transaction],
             "simulation_flags": simulation_flags,
         },
-    )
+    )["result"][0]
 
     if not simulation_flags:
         assert (
-            response["result"][0]["fee_estimation"][0]["overall_fee"] == "0x1d2c764500"
+            response["fee_estimation"][0]["overall_fee"] == "0x1d2c764500"
         )
-        assert response["result"][0]["transaction_trace"][0]["validate_invocation"][
+        assert response["transaction_trace"][0]["validate_invocation"][
             "contract_address"
         ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
     else:
         assert (
-            response["result"][0]["fee_estimation"][0]["overall_fee"] == "0x1d208a8300"
+            response["fee_estimation"][0]["overall_fee"] == "0x1d208a8300"
         )
         assert (
-            response["result"][0]["transaction_trace"][0]["validate_invocation"] is None
+            response["transaction_trace"][0]["validate_invocation"] is None
         )
 
     assert (
-        response["result"][0]["transaction_trace"][0]["fee_transfer_invocation"] is None
+        response["transaction_trace"][0]["fee_transfer_invocation"] is None
     )
 
 
@@ -260,25 +260,25 @@ def test_simulate_transaction_declare_v2(simulation_flags):
             "transaction": [declare_transaction],
             "simulation_flags": simulation_flags,
         },
-    )
+    )["result"][0]
 
     if not simulation_flags:
         assert (
-            response["result"][0]["fee_estimation"][0]["overall_fee"] == "0x1d2c764500"
+            response["fee_estimation"][0]["overall_fee"] == "0x1d2c764500"
         )
-        assert response["result"][0]["transaction_trace"][0]["validate_invocation"][
+        assert response["transaction_trace"][0]["validate_invocation"][
             "contract_address"
         ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
     else:
         assert (
-            response["result"][0]["fee_estimation"][0]["overall_fee"] == "0x1d208a8300"
+            response["fee_estimation"][0]["overall_fee"] == "0x1d208a8300"
         )
         assert (
-            response["result"][0]["transaction_trace"][0]["validate_invocation"] is None
+            response["transaction_trace"][0]["validate_invocation"] is None
         )
 
     assert (
-        response["result"][0]["transaction_trace"][0]["fee_transfer_invocation"] is None
+        response["transaction_trace"][0]["fee_transfer_invocation"] is None
     )
 
 
@@ -306,26 +306,26 @@ def test_simulate_transaction_deploy_account(simulation_flags, deploy_account_de
             "transaction": [rpc_deploy_account_tx],
             "simulation_flags": simulation_flags,
         },
-    )
+    )["result"][0]
 
     if not simulation_flags:
         assert (
-            response["result"][0]["fee_estimation"][0]["overall_fee"] == "0x64a7168300"
+            response["fee_estimation"][0]["overall_fee"] == "0x64a7168300"
         )
-        assert response["result"][0]["transaction_trace"][0]["validate_invocation"][
+        assert response["transaction_trace"][0]["validate_invocation"][
             "contract_address"
         ] == rpc_felt(DEPLOY_ACCOUNT_CONTRACT_ADDRESS)
     else:
         assert (
-            response["result"][0]["fee_estimation"][0]["overall_fee"] == "0x649b2ac100"
+            response["fee_estimation"][0]["overall_fee"] == "0x649b2ac100"
         )
         assert (
-            response["result"][0]["transaction_trace"][0]["validate_invocation"] is None
+            response["transaction_trace"][0]["validate_invocation"] is None
         )
 
     assert (
-        response["result"][0]["transaction_trace"][0]["fee_transfer_invocation"] is None
+        response["transaction_trace"][0]["fee_transfer_invocation"] is None
     )
-    assert response["result"][0]["transaction_trace"][0]["constructor_invocation"][
+    assert response["transaction_trace"][0]["constructor_invocation"][
         "contract_address"
     ] == rpc_felt(DEPLOY_ACCOUNT_CONTRACT_ADDRESS)
