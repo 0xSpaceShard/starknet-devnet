@@ -46,10 +46,6 @@ from starknet_devnet.constants import (
     SUPPORTED_RPC_DECLARE_TX_VERSION,
 )
 
-DEPLOY_ACCOUNT_CONTRACT_ADDRESS = (
-    "0x7412af0af3a90314611a2dfda06ec2f252c46b341c87be51d049045a91eaf28"
-)
-
 
 @pytest.mark.usefixtures("run_devnet_in_background")
 @pytest.mark.parametrize(
@@ -114,26 +110,18 @@ def test_simulate_transaction_invoke(simulation_flags):
     )["result"][0]
 
     if not simulation_flags:
-        assert (
-            response["fee_estimation"][0]["overall_fee"] == "0x1d91ca3600"
-        )
+        assert response["fee_estimation"][0]["overall_fee"] == "0x1d91ca3600"
         assert response["transaction_trace"][0]["validate_invocation"][
             "contract_address"
         ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
     else:
-        assert (
-            response["fee_estimation"][0]["overall_fee"] == "0x1d85de7400"
-        )
-        assert (
-            response["transaction_trace"][0]["validate_invocation"] is None
-        )
+        assert response["fee_estimation"][0]["overall_fee"] == "0x1d85de7400"
+        assert response["transaction_trace"][0]["validate_invocation"] is None
 
     assert response["transaction_trace"][0]["execute_invocation"][
         "contract_address"
     ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
-    assert (
-        response["transaction_trace"][0]["fee_transfer_invocation"] is None
-    )
+    assert response["transaction_trace"][0]["fee_transfer_invocation"] is None
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -193,23 +181,15 @@ def test_simulate_transaction_declare_v1(simulation_flags, declare_content):
     )["result"][0]
 
     if not simulation_flags:
-        assert (
-            response["fee_estimation"][0]["overall_fee"] == "0x1d2c764500"
-        )
+        assert response["fee_estimation"][0]["overall_fee"] == "0x1d2c764500"
         assert response["transaction_trace"][0]["validate_invocation"][
             "contract_address"
         ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
     else:
-        assert (
-            response["fee_estimation"][0]["overall_fee"] == "0x1d208a8300"
-        )
-        assert (
-            response["transaction_trace"][0]["validate_invocation"] is None
-        )
+        assert response["fee_estimation"][0]["overall_fee"] == "0x1d208a8300"
+        assert response["transaction_trace"][0]["validate_invocation"] is None
 
-    assert (
-        response["transaction_trace"][0]["fee_transfer_invocation"] is None
-    )
+    assert response["transaction_trace"][0]["fee_transfer_invocation"] is None
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -263,23 +243,15 @@ def test_simulate_transaction_declare_v2(simulation_flags):
     )["result"][0]
 
     if not simulation_flags:
-        assert (
-            response["fee_estimation"][0]["overall_fee"] == "0x1d2c764500"
-        )
+        assert response["fee_estimation"][0]["overall_fee"] == "0x1d2c764500"
         assert response["transaction_trace"][0]["validate_invocation"][
             "contract_address"
         ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
     else:
-        assert (
-            response["fee_estimation"][0]["overall_fee"] == "0x1d208a8300"
-        )
-        assert (
-            response["transaction_trace"][0]["validate_invocation"] is None
-        )
+        assert response["fee_estimation"][0]["overall_fee"] == "0x1d208a8300"
+        assert response["transaction_trace"][0]["validate_invocation"] is None
 
-    assert (
-        response["transaction_trace"][0]["fee_transfer_invocation"] is None
-    )
+    assert response["transaction_trace"][0]["fee_transfer_invocation"] is None
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -296,7 +268,9 @@ def test_simulate_transaction_declare_v2(simulation_flags):
 )
 def test_simulate_transaction_deploy_account(simulation_flags, deploy_account_details):
     """Test simulate_transaction with deploy account transaction"""
-    deploy_account_tx, _ = prepare_deploy_account_tx(**deploy_account_details)
+    deploy_account_tx, deploy_account_contract_address = prepare_deploy_account_tx(
+        **deploy_account_details
+    )
     rpc_deploy_account_tx = rpc_deploy_account_from_gateway(deploy_account_tx)
 
     response = rpc_call_background_devnet(
@@ -309,23 +283,15 @@ def test_simulate_transaction_deploy_account(simulation_flags, deploy_account_de
     )["result"][0]
 
     if not simulation_flags:
-        assert (
-            response["fee_estimation"][0]["overall_fee"] == "0x64a7168300"
-        )
+        assert response["fee_estimation"][0]["overall_fee"] == "0x64a7168300"
         assert response["transaction_trace"][0]["validate_invocation"][
             "contract_address"
-        ] == rpc_felt(DEPLOY_ACCOUNT_CONTRACT_ADDRESS)
+        ] == rpc_felt(deploy_account_contract_address)
     else:
-        assert (
-            response["fee_estimation"][0]["overall_fee"] == "0x649b2ac100"
-        )
-        assert (
-            response["transaction_trace"][0]["validate_invocation"] is None
-        )
+        assert response["fee_estimation"][0]["overall_fee"] == "0x649b2ac100"
+        assert response["transaction_trace"][0]["validate_invocation"] is None
 
-    assert (
-        response["transaction_trace"][0]["fee_transfer_invocation"] is None
-    )
+    assert response["transaction_trace"][0]["fee_transfer_invocation"] is None
     assert response["transaction_trace"][0]["constructor_invocation"][
         "contract_address"
-    ] == rpc_felt(DEPLOY_ACCOUNT_CONTRACT_ADDRESS)
+    ] == rpc_felt(deploy_account_contract_address)
