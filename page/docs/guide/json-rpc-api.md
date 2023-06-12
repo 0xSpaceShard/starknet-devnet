@@ -32,6 +32,10 @@ Response:
 }
 ```
 
+## starknet_simulateTransaction 
+
+The official specification of `starknet_simulateTransaction` supports `simulation_flags` which can be `SKIP_VALIDATE` and `SKIP_EXECUTE`. At the moment, only `SKIP_VALIDATE` is supported. Dev info: `SKIP_EXECUTE` support is blocked by `InternalInvokeFunctionForSimulate.create_for_simulate` not supporting it.
+
 ## starknet_getEvents
 
 **Disclaimer!** JSON-RPC specifications are not completely in sync with those of gateway. While `starknet_getEvents` is supported for the pending block, the official schema does not allow the block hash and the block number in the response to be empty or anything other than a number. Since these values are undefined for the pending block and since they must be set to something, we decided to go with the compromise of setting them to zero-values.
