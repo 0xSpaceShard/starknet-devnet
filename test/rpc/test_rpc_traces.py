@@ -55,6 +55,30 @@ DEPLOY_ACCOUNT_CONTRACT_ADDRESS = (
 @pytest.mark.parametrize(
     "run_devnet_in_background, simulation_flags",
     [
+        ([*PREDEPLOY_ACCOUNT_CLI_ARGS], [SimulationFlag.SKIP_EXECUTE.name]),
+    ],
+    indirect=["run_devnet_in_background"],
+)
+def test_skip_execute_flag(simulation_flags, deploy_account_details):
+    """Test if simulate_transaction with SKIP_EXECUTE flag is raising an exception."""
+    deploy_account_tx, _ = prepare_deploy_account_tx(**deploy_account_details)
+    rpc_deploy_account_tx = rpc_deploy_account_from_gateway(deploy_account_tx)
+
+    response = rpc_call_background_devnet(
+        "starknet_simulateTransaction",
+        {
+            "block_id": "latest",
+            "transaction": [rpc_deploy_account_tx],
+            "simulation_flags": simulation_flags,
+        },
+    )
+    assert response["error"]["message"] == "SKIP_EXECUTE flag is not supported"
+
+
+@pytest.mark.usefixtures("run_devnet_in_background")
+@pytest.mark.parametrize(
+    "run_devnet_in_background, simulation_flags",
+    [
         (
             [*PREDEPLOY_ACCOUNT_CLI_ARGS],
             [],

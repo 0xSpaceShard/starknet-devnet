@@ -230,7 +230,11 @@ async def simulate_transaction(
     await assert_block_id_is_valid(block_id)
     transactions = list(map(make_transaction, transaction))
     skip_validate = SimulationFlag.SKIP_VALIDATE.name in simulation_flags
+    skip_execute = SimulationFlag.SKIP_EXECUTE.name in simulation_flags
     simulated_transactions = []
+
+    if skip_execute:
+        raise RpcError(code=-1, message="SKIP_EXECUTE flag is not supported")
 
     try:
         (
