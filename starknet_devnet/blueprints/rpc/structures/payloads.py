@@ -961,7 +961,7 @@ def rpc_map_traces(
     traces: List[TransactionTrace], types: List[TransactionType]
 ) -> List[Dict[Dict, None]]:
     """
-    Mapping for traces responses based on transaction types.
+    The purpose of this method is to map RPC trace responses based on different transaction types.
     """
     # traces number must be equal to types to properly map objects
     assert len(traces) == len(types)
