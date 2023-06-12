@@ -959,7 +959,7 @@ def rpc_state_update(
 
 def rpc_map_traces(
     traces: List[TransactionTrace], types: List[TransactionType]
-) -> List[Dict[Dict, None]]:
+) -> List[Dict[str, Dict]]:
     """
     The purpose of this method is to map RPC trace responses based on different transaction types.
     """
@@ -986,7 +986,7 @@ def rpc_map_traces(
     return result
 
 
-def rpc_invoke_txn_trace(trace_dict: dict):
+def rpc_invoke_txn_trace(trace_dict: dict) -> Dict[str, Dict]:
     """
     Mapping for the execution trace of a invoke transaction.
     """
@@ -997,7 +997,7 @@ def rpc_invoke_txn_trace(trace_dict: dict):
     }
 
 
-def rpc_declare_txn_trace(trace_dict: dict):
+def rpc_declare_txn_trace(trace_dict: dict) -> Dict[str, Dict]:
     """
     Mapping for the execution trace of a declare transaction.
     """
@@ -1007,7 +1007,7 @@ def rpc_declare_txn_trace(trace_dict: dict):
     }
 
 
-def rpc_deploy_account_txn_trace(trace_dict: dict):
+def rpc_deploy_account_txn_trace(trace_dict: dict) -> Dict[str, Dict]:
     """
     Mapping for the execution trace of a deploy account transaction.
     """
