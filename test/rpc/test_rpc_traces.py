@@ -100,9 +100,6 @@ def test_simulate_transaction_invoke():
         },
     )["result"][0]
 
-    print("response_skip_flag")
-    print(response_skip_flag)
-
     assert int(response_no_flags["fee_estimation"][0]["overall_fee"], 0) > int(
         response_skip_flag["fee_estimation"][0]["overall_fee"], 0
     )
