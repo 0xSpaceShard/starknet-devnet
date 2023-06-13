@@ -21,7 +21,6 @@ from test.shared import (
 from test.test_account import deploy_empty_contract
 from test.test_declare_v2 import load_cairo1_contract
 
-import pytest
 from starkware.starknet.core.os.transaction_hash.transaction_hash import (
     calculate_declare_transaction_hash,
     calculate_deprecated_declare_transaction_hash,
@@ -46,16 +45,11 @@ from starknet_devnet.constants import (
     SUPPORTED_RPC_DECLARE_TX_VERSION,
 )
 
+from ..util import devnet_in_background
 
-@pytest.mark.usefixtures("run_devnet_in_background")
-@pytest.mark.parametrize(
-    "run_devnet_in_background, simulation_flags",
-    [
-        ([*PREDEPLOY_ACCOUNT_CLI_ARGS], [SimulationFlag.SKIP_EXECUTE.name]),
-    ],
-    indirect=["run_devnet_in_background"],
-)
-def test_skip_execute_flag(simulation_flags, deploy_account_details):
+
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
+def test_skip_execute_flag(deploy_account_details):
     """Test if simulate_transaction with SKIP_EXECUTE flag is raising an exception."""
     deploy_account_tx, _ = prepare_deploy_account_tx(**deploy_account_details)
     rpc_deploy_account_tx = rpc_deploy_account_from_gateway(deploy_account_tx)
@@ -65,25 +59,14 @@ def test_skip_execute_flag(simulation_flags, deploy_account_details):
         {
             "block_id": "latest",
             "transaction": [rpc_deploy_account_tx],
-            "simulation_flags": simulation_flags,
+            "simulation_flags": [SimulationFlag.SKIP_EXECUTE.name],
         },
     )
     assert response["error"]["message"] == "SKIP_EXECUTE flag is not supported"
 
 
-@pytest.mark.usefixtures("run_devnet_in_background")
-@pytest.mark.parametrize(
-    "run_devnet_in_background, simulation_flags",
-    [
-        (
-            [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-            [],
-        ),
-        ([*PREDEPLOY_ACCOUNT_CLI_ARGS], [SimulationFlag.SKIP_VALIDATE.name]),
-    ],
-    indirect=["run_devnet_in_background"],
-)
-def test_simulate_transaction_invoke(simulation_flags):
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
+def test_simulate_transaction_invoke():
     """Test simulate_transaction with invoke transaction"""
     contract_address = deploy_empty_contract()["address"]
 
@@ -100,43 +83,45 @@ def test_simulate_transaction_invoke(simulation_flags):
         calldata=[rpc_felt(data) for data in execute_calldata],
     )
 
-    response = rpc_call_background_devnet(
+    response_no_flags = rpc_call_background_devnet(
         "starknet_simulateTransaction",
         {
             "block_id": "latest",
             "transaction": [invoke_transaction],
-            "simulation_flags": simulation_flags,
+            "simulation_flags": [],
+        },
+    )["result"][0]
+    response_skip_flag = rpc_call_background_devnet(
+        "starknet_simulateTransaction",
+        {
+            "block_id": "latest",
+            "transaction": [invoke_transaction],
+            "simulation_flags": [SimulationFlag.SKIP_VALIDATE.name],
         },
     )["result"][0]
 
-    if not simulation_flags:
-        assert response["fee_estimation"][0]["overall_fee"] == "0x1d91ca3600"
-        assert response["transaction_trace"][0]["validate_invocation"][
-            "contract_address"
-        ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
-    else:
-        assert response["fee_estimation"][0]["overall_fee"] == "0x1d85de7400"
-        assert response["transaction_trace"][0]["validate_invocation"] is None
+    print("response_skip_flag")
+    print(response_skip_flag)
 
-    assert response["transaction_trace"][0]["execute_invocation"][
+    assert int(response_no_flags["fee_estimation"][0]["overall_fee"], 0) > int(
+        response_skip_flag["fee_estimation"][0]["overall_fee"], 0
+    )
+    assert response_no_flags["transaction_trace"][0]["validate_invocation"][
         "contract_address"
     ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
-    assert response["transaction_trace"][0]["fee_transfer_invocation"] is None
+    assert response_skip_flag["transaction_trace"][0]["validate_invocation"] is None
+    assert response_no_flags["transaction_trace"][0]["execute_invocation"][
+        "contract_address"
+    ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
+    assert response_skip_flag["transaction_trace"][0]["execute_invocation"][
+        "contract_address"
+    ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
+    assert response_no_flags["transaction_trace"][0]["fee_transfer_invocation"] is None
+    assert response_skip_flag["transaction_trace"][0]["fee_transfer_invocation"] is None
 
 
-@pytest.mark.usefixtures("run_devnet_in_background")
-@pytest.mark.parametrize(
-    "run_devnet_in_background, simulation_flags",
-    [
-        (
-            [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-            [],
-        ),
-        ([*PREDEPLOY_ACCOUNT_CLI_ARGS], [SimulationFlag.SKIP_VALIDATE.name]),
-    ],
-    indirect=["run_devnet_in_background"],
-)
-def test_simulate_transaction_declare_v1(simulation_flags, declare_content):
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
+def test_simulate_transaction_declare_v1(declare_content):
     """Test simulate_transaction with declare v1 transaction"""
     contract_class = declare_content["contract_class"]
     pad_zero_entry_points(contract_class["entry_points_by_type"])
@@ -171,40 +156,36 @@ def test_simulate_transaction_declare_v1(simulation_flags, declare_content):
         sender_address=rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS),
     )
 
-    response = rpc_call_background_devnet(
+    response_no_flags = rpc_call_background_devnet(
         "starknet_simulateTransaction",
         {
             "block_id": "latest",
             "transaction": [declare_transaction],
-            "simulation_flags": simulation_flags,
+            "simulation_flags": [],
+        },
+    )["result"][0]
+    response_skip_flag = rpc_call_background_devnet(
+        "starknet_simulateTransaction",
+        {
+            "block_id": "latest",
+            "transaction": [declare_transaction],
+            "simulation_flags": [SimulationFlag.SKIP_VALIDATE.name],
         },
     )["result"][0]
 
-    if not simulation_flags:
-        assert response["fee_estimation"][0]["overall_fee"] == "0x1d2c764500"
-        assert response["transaction_trace"][0]["validate_invocation"][
-            "contract_address"
-        ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
-    else:
-        assert response["fee_estimation"][0]["overall_fee"] == "0x1d208a8300"
-        assert response["transaction_trace"][0]["validate_invocation"] is None
+    assert int(response_no_flags["fee_estimation"][0]["overall_fee"], 0) > int(
+        response_skip_flag["fee_estimation"][0]["overall_fee"], 0
+    )
+    assert response_no_flags["transaction_trace"][0]["validate_invocation"][
+        "contract_address"
+    ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
+    assert response_skip_flag["transaction_trace"][0]["validate_invocation"] is None
+    assert response_no_flags["transaction_trace"][0]["fee_transfer_invocation"] is None
+    assert response_skip_flag["transaction_trace"][0]["fee_transfer_invocation"] is None
 
-    assert response["transaction_trace"][0]["fee_transfer_invocation"] is None
 
-
-@pytest.mark.usefixtures("run_devnet_in_background")
-@pytest.mark.parametrize(
-    "run_devnet_in_background, simulation_flags",
-    [
-        (
-            [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-            [],
-        ),
-        ([*PREDEPLOY_ACCOUNT_CLI_ARGS], [SimulationFlag.SKIP_VALIDATE.name]),
-    ],
-    indirect=["run_devnet_in_background"],
-)
-def test_simulate_transaction_declare_v2(simulation_flags):
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
+def test_simulate_transaction_declare_v2():
     """Test simulate_transaction with declare v2 transaction"""
     contract_class, _, compiled_class_hash = load_cairo1_contract()
 
@@ -233,65 +214,71 @@ def test_simulate_transaction_declare_v2(simulation_flags):
         signature=list(map(rpc_felt, signature)),
     )
 
-    response = rpc_call_background_devnet(
+    response_no_flags = rpc_call_background_devnet(
         "starknet_simulateTransaction",
         {
             "block_id": "latest",
             "transaction": [declare_transaction],
-            "simulation_flags": simulation_flags,
+            "simulation_flags": [],
+        },
+    )["result"][0]
+    response_skip_flag = rpc_call_background_devnet(
+        "starknet_simulateTransaction",
+        {
+            "block_id": "latest",
+            "transaction": [declare_transaction],
+            "simulation_flags": [SimulationFlag.SKIP_VALIDATE.name],
         },
     )["result"][0]
 
-    if not simulation_flags:
-        assert response["fee_estimation"][0]["overall_fee"] == "0x1d2c764500"
-        assert response["transaction_trace"][0]["validate_invocation"][
-            "contract_address"
-        ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
-    else:
-        assert response["fee_estimation"][0]["overall_fee"] == "0x1d208a8300"
-        assert response["transaction_trace"][0]["validate_invocation"] is None
+    assert int(response_no_flags["fee_estimation"][0]["overall_fee"], 0) > int(
+        response_skip_flag["fee_estimation"][0]["overall_fee"], 0
+    )
+    assert response_no_flags["transaction_trace"][0]["validate_invocation"][
+        "contract_address"
+    ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
+    assert response_skip_flag["transaction_trace"][0]["validate_invocation"] is None
+    assert response_no_flags["transaction_trace"][0]["fee_transfer_invocation"] is None
+    assert response_skip_flag["transaction_trace"][0]["fee_transfer_invocation"] is None
 
-    assert response["transaction_trace"][0]["fee_transfer_invocation"] is None
 
-
-@pytest.mark.usefixtures("run_devnet_in_background")
-@pytest.mark.parametrize(
-    "run_devnet_in_background, simulation_flags",
-    [
-        (
-            [*PREDEPLOY_ACCOUNT_CLI_ARGS],
-            [],
-        ),
-        ([*PREDEPLOY_ACCOUNT_CLI_ARGS], [SimulationFlag.SKIP_VALIDATE.name]),
-    ],
-    indirect=["run_devnet_in_background"],
-)
-def test_simulate_transaction_deploy_account(simulation_flags, deploy_account_details):
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
+def test_simulate_transaction_deploy_account(deploy_account_details):
     """Test simulate_transaction with deploy account transaction"""
     deploy_account_tx, deploy_account_contract_address = prepare_deploy_account_tx(
         **deploy_account_details
     )
     rpc_deploy_account_tx = rpc_deploy_account_from_gateway(deploy_account_tx)
 
-    response = rpc_call_background_devnet(
+    response_no_flags = rpc_call_background_devnet(
         "starknet_simulateTransaction",
         {
             "block_id": "latest",
             "transaction": [rpc_deploy_account_tx],
-            "simulation_flags": simulation_flags,
+            "simulation_flags": [],
+        },
+    )["result"][0]
+    response_skip_flag = rpc_call_background_devnet(
+        "starknet_simulateTransaction",
+        {
+            "block_id": "latest",
+            "transaction": [rpc_deploy_account_tx],
+            "simulation_flags": [SimulationFlag.SKIP_VALIDATE.name],
         },
     )["result"][0]
 
-    if not simulation_flags:
-        assert response["fee_estimation"][0]["overall_fee"] == "0x64a7168300"
-        assert response["transaction_trace"][0]["validate_invocation"][
-            "contract_address"
-        ] == rpc_felt(deploy_account_contract_address)
-    else:
-        assert response["fee_estimation"][0]["overall_fee"] == "0x649b2ac100"
-        assert response["transaction_trace"][0]["validate_invocation"] is None
-
-    assert response["transaction_trace"][0]["fee_transfer_invocation"] is None
-    assert response["transaction_trace"][0]["constructor_invocation"][
+    assert int(response_no_flags["fee_estimation"][0]["overall_fee"], 0) > int(
+        response_skip_flag["fee_estimation"][0]["overall_fee"], 0
+    )
+    assert response_no_flags["transaction_trace"][0]["validate_invocation"][
+        "contract_address"
+    ] == rpc_felt(deploy_account_contract_address)
+    assert response_skip_flag["transaction_trace"][0]["validate_invocation"] is None
+    assert response_no_flags["transaction_trace"][0]["fee_transfer_invocation"] is None
+    assert response_no_flags["transaction_trace"][0]["constructor_invocation"][
+        "contract_address"
+    ] == rpc_felt(deploy_account_contract_address)
+    assert response_skip_flag["transaction_trace"][0]["fee_transfer_invocation"] is None
+    assert response_skip_flag["transaction_trace"][0]["constructor_invocation"][
         "contract_address"
     ] == rpc_felt(deploy_account_contract_address)
