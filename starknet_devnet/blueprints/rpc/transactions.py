@@ -220,7 +220,7 @@ async def estimate_fee(request: List[RpcBroadcastedTxn], block_id: BlockId) -> l
 @validate_schema("simulateTransaction")
 async def simulate_transaction(
     block_id: BlockId,
-    transaction: List[RpcTransaction],
+    transactions: List[RpcTransaction],
     simulation_flags: List[SimulationFlag],
 ) -> list:
     """

@@ -58,7 +58,7 @@ def test_skip_execute_flag(deploy_account_details):
         "starknet_simulateTransaction",
         {
             "block_id": "latest",
-            "transaction": [rpc_deploy_account_tx],
+            "transactions": [rpc_deploy_account_tx],
             "simulation_flags": [SimulationFlag.SKIP_EXECUTE.name],
         },
     )
@@ -87,7 +87,7 @@ def test_simulate_transaction_invoke():
         "starknet_simulateTransaction",
         {
             "block_id": "latest",
-            "transaction": [invoke_transaction],
+            "transactions": [invoke_transaction],
             "simulation_flags": [],
         },
     )["result"][0]
@@ -95,7 +95,7 @@ def test_simulate_transaction_invoke():
         "starknet_simulateTransaction",
         {
             "block_id": "latest",
-            "transaction": [invoke_transaction],
+            "transactions": [invoke_transaction],
             "simulation_flags": [SimulationFlag.SKIP_VALIDATE.name],
         },
     )["result"][0]
@@ -157,7 +157,7 @@ def test_simulate_transaction_declare_v1(declare_content):
         "starknet_simulateTransaction",
         {
             "block_id": "latest",
-            "transaction": [declare_transaction],
+            "transactions": [declare_transaction],
             "simulation_flags": [],
         },
     )["result"][0]
@@ -165,7 +165,7 @@ def test_simulate_transaction_declare_v1(declare_content):
         "starknet_simulateTransaction",
         {
             "block_id": "latest",
-            "transaction": [declare_transaction],
+            "transactions": [declare_transaction],
             "simulation_flags": [SimulationFlag.SKIP_VALIDATE.name],
         },
     )["result"][0]
@@ -215,7 +215,7 @@ def test_simulate_transaction_declare_v2():
         "starknet_simulateTransaction",
         {
             "block_id": "latest",
-            "transaction": [declare_transaction],
+            "transactions": [declare_transaction],
             "simulation_flags": [],
         },
     )["result"][0]
@@ -223,7 +223,7 @@ def test_simulate_transaction_declare_v2():
         "starknet_simulateTransaction",
         {
             "block_id": "latest",
-            "transaction": [declare_transaction],
+            "transactions": [declare_transaction],
             "simulation_flags": [SimulationFlag.SKIP_VALIDATE.name],
         },
     )["result"][0]
@@ -251,7 +251,7 @@ def test_simulate_transaction_deploy_account(deploy_account_details):
         "starknet_simulateTransaction",
         {
             "block_id": "latest",
-            "transaction": [rpc_deploy_account_tx],
+            "transactions": [rpc_deploy_account_tx],
             "simulation_flags": [],
         },
     )["result"][0]
@@ -259,7 +259,7 @@ def test_simulate_transaction_deploy_account(deploy_account_details):
         "starknet_simulateTransaction",
         {
             "block_id": "latest",
-            "transaction": [rpc_deploy_account_tx],
+            "transactions": [rpc_deploy_account_tx],
             "simulation_flags": [SimulationFlag.SKIP_VALIDATE.name],
         },
     )["result"][0]

@@ -59,8 +59,8 @@ RPC_SPECIFICATION_TRACE = r"""
                     }
                 },
                 {
-                    "name": "transaction",
-                    "description": "The transaction to simulate",
+                    "name": "transactions",
+                    "description": "The transactions to simulate",
                     "required": true,
                     "schema": {
                         "type": "array",
