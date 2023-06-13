@@ -19,7 +19,7 @@ aliases:
 jobs:
   test_py_max: &test_template
     docker:
-      - image: cimg/python:3.9-node
+      - image: cimg/python:3.9.16-node
     resource_class: large
     steps:
       - checkout
@@ -56,7 +56,7 @@ jobs:
 
   package_build_and_publish:
     docker:
-      - image: cimg/python:3.9-node # need npm to publish docs
+      - image: cimg/python:3.9.16-node # need npm to publish docs
     resource_class: medium
     steps:
       - checkout
