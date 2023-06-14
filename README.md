@@ -10,5 +10,5 @@ Install and run a project with:
 cargo run
 ```
 
-## Development
+## Development - Visual Studio Code
 It's highly recommended to get familiar with [Visual Studio Code Dev Containers](https://code.visualstudio.com/docs/devcontainers/create-dev-container#_dockerfile) and install [rust-analyzer](https://code.visualstudio.com/docs/languages/rust) extension.
