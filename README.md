@@ -12,3 +12,9 @@ cargo run
 
 ## Development - Visual Studio Code
 It's highly recommended to get familiar with [Visual Studio Code Dev Containers](https://code.visualstudio.com/docs/devcontainers/create-dev-container#_dockerfile) and install [rust-analyzer](https://code.visualstudio.com/docs/languages/rust) extension.
+
+## Development - Formatter
+Run formatter with:
+```
+cargo fmt --all
+```
