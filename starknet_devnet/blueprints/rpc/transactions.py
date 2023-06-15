@@ -245,12 +245,19 @@ async def simulate_transaction(
             skip_validate=skip_validate,
             block_id=block_id,
         )
-        simulated_transactions.append(
-            {
-                "transaction_trace": rpc_map_traces(traces, transaction_types),
-                "fee_estimation": rpc_fee_estimate(fee),
-            }
-        )
+        rpc_traces = rpc_map_traces(traces, transaction_types)
+        rpc_estimations = rpc_fee_estimate(fee)
+
+        # traces number must be equal to estimations
+        assert len(rpc_traces) == len(rpc_estimations)
+        for i in range(len(rpc_traces)):
+            simulated_transactions.append(
+                {
+                    "transaction_trace": rpc_traces[i],
+                    "fee_estimation": rpc_estimations[i],
+                }
+            )
+
     except StarkException as ex:
         if "Entry point" in ex.message and "not found" in ex.message:
             raise RpcError.from_spec_name("CONTRACT_ERROR") from ex

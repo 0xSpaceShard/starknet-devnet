@@ -100,21 +100,21 @@ def test_simulate_transaction_invoke():
         },
     )["result"][0]
 
-    assert int(response_no_flags["fee_estimation"][0]["overall_fee"], 0) > int(
-        response_skip_flag["fee_estimation"][0]["overall_fee"], 0
+    assert int(response_no_flags["fee_estimation"]["overall_fee"], 0) > int(
+        response_skip_flag["fee_estimation"]["overall_fee"], 0
     )
-    assert response_no_flags["transaction_trace"][0]["validate_invocation"][
+    assert response_no_flags["transaction_trace"]["validate_invocation"][
         "contract_address"
     ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
-    assert response_skip_flag["transaction_trace"][0]["validate_invocation"] is None
-    assert response_no_flags["transaction_trace"][0]["execute_invocation"][
+    assert response_skip_flag["transaction_trace"]["validate_invocation"] is None
+    assert response_no_flags["transaction_trace"]["execute_invocation"][
         "contract_address"
     ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
-    assert response_skip_flag["transaction_trace"][0]["execute_invocation"][
+    assert response_skip_flag["transaction_trace"]["execute_invocation"][
         "contract_address"
     ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
-    assert response_no_flags["transaction_trace"][0]["fee_transfer_invocation"] is None
-    assert response_skip_flag["transaction_trace"][0]["fee_transfer_invocation"] is None
+    assert response_no_flags["transaction_trace"]["fee_transfer_invocation"] is None
+    assert response_skip_flag["transaction_trace"]["fee_transfer_invocation"] is None
 
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
@@ -170,15 +170,15 @@ def test_simulate_transaction_declare_v1(declare_content):
         },
     )["result"][0]
 
-    assert int(response_no_flags["fee_estimation"][0]["overall_fee"], 0) > int(
-        response_skip_flag["fee_estimation"][0]["overall_fee"], 0
+    assert int(response_no_flags["fee_estimation"]["overall_fee"], 0) > int(
+        response_skip_flag["fee_estimation"]["overall_fee"], 0
     )
-    assert response_no_flags["transaction_trace"][0]["validate_invocation"][
+    assert response_no_flags["transaction_trace"]["validate_invocation"][
         "contract_address"
     ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
-    assert response_skip_flag["transaction_trace"][0]["validate_invocation"] is None
-    assert response_no_flags["transaction_trace"][0]["fee_transfer_invocation"] is None
-    assert response_skip_flag["transaction_trace"][0]["fee_transfer_invocation"] is None
+    assert response_skip_flag["transaction_trace"]["validate_invocation"] is None
+    assert response_no_flags["transaction_trace"]["fee_transfer_invocation"] is None
+    assert response_skip_flag["transaction_trace"]["fee_transfer_invocation"] is None
 
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
@@ -228,15 +228,15 @@ def test_simulate_transaction_declare_v2():
         },
     )["result"][0]
 
-    assert int(response_no_flags["fee_estimation"][0]["overall_fee"], 0) > int(
-        response_skip_flag["fee_estimation"][0]["overall_fee"], 0
+    assert int(response_no_flags["fee_estimation"]["overall_fee"], 0) > int(
+        response_skip_flag["fee_estimation"]["overall_fee"], 0
     )
-    assert response_no_flags["transaction_trace"][0]["validate_invocation"][
+    assert response_no_flags["transaction_trace"]["validate_invocation"][
         "contract_address"
     ] == rpc_felt(PREDEPLOYED_ACCOUNT_ADDRESS)
-    assert response_skip_flag["transaction_trace"][0]["validate_invocation"] is None
-    assert response_no_flags["transaction_trace"][0]["fee_transfer_invocation"] is None
-    assert response_skip_flag["transaction_trace"][0]["fee_transfer_invocation"] is None
+    assert response_skip_flag["transaction_trace"]["validate_invocation"] is None
+    assert response_no_flags["transaction_trace"]["fee_transfer_invocation"] is None
+    assert response_skip_flag["transaction_trace"]["fee_transfer_invocation"] is None
 
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
@@ -264,18 +264,18 @@ def test_simulate_transaction_deploy_account(deploy_account_details):
         },
     )["result"][0]
 
-    assert int(response_no_flags["fee_estimation"][0]["overall_fee"], 0) > int(
-        response_skip_flag["fee_estimation"][0]["overall_fee"], 0
+    assert int(response_no_flags["fee_estimation"]["overall_fee"], 0) > int(
+        response_skip_flag["fee_estimation"]["overall_fee"], 0
     )
-    assert response_no_flags["transaction_trace"][0]["validate_invocation"][
+    assert response_no_flags["transaction_trace"]["validate_invocation"][
         "contract_address"
     ] == rpc_felt(deploy_account_contract_address)
-    assert response_skip_flag["transaction_trace"][0]["validate_invocation"] is None
-    assert response_no_flags["transaction_trace"][0]["fee_transfer_invocation"] is None
-    assert response_no_flags["transaction_trace"][0]["constructor_invocation"][
+    assert response_skip_flag["transaction_trace"]["validate_invocation"] is None
+    assert response_no_flags["transaction_trace"]["fee_transfer_invocation"] is None
+    assert response_no_flags["transaction_trace"]["constructor_invocation"][
         "contract_address"
     ] == rpc_felt(deploy_account_contract_address)
-    assert response_skip_flag["transaction_trace"][0]["fee_transfer_invocation"] is None
-    assert response_skip_flag["transaction_trace"][0]["constructor_invocation"][
+    assert response_skip_flag["transaction_trace"]["fee_transfer_invocation"] is None
+    assert response_skip_flag["transaction_trace"]["constructor_invocation"][
         "contract_address"
     ] == rpc_felt(deploy_account_contract_address)
