@@ -250,11 +250,11 @@ async def simulate_transaction(
 
         # traces number must be equal to estimations
         assert len(rpc_traces) == len(rpc_estimations)
-        for i, _ in enumerate(rpc_traces):
+        for trace, estimation in zip(rpc_traces, rpc_estimations):
             simulated_transactions.append(
                 {
-                    "transaction_trace": rpc_traces[i],
-                    "fee_estimation": rpc_estimations[i],
+                    "transaction_trace": trace,
+                    "fee_estimation": estimation,
                 }
             )
 
