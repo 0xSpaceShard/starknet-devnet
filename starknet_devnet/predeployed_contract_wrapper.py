@@ -60,5 +60,5 @@ class PredeployedContractWrapper(ABC):
             self.print()
 
     def print(self):
-        "Prints contract info"
+        """Prints contract info"""
         raise NotImplementedError()
