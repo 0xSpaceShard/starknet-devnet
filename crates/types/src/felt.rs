@@ -29,7 +29,7 @@ impl Felt {
             Error::StarknetApiError(starknet_api::StarknetApiError::InnerDeserialization(err))
         })?;
 
-        Ok(Self(bytes))
+        Self::new(bytes)
     }
 
     pub fn bytes(&self) -> [u8; 32] {
