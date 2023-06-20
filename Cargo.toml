@@ -1,0 +1,19 @@
+[workspace]
+
+resolver = "2"
+members = [
+	"crates/server",
+	"crates/starknet"
+]
+
+[profile.release]
+panic = "unwind"
+
+[workspace.package]
+authors = [""]
+version = "0.1.0"
+edition = "2021"
+repository = ""
+
+
+[workspace.dependencies]
