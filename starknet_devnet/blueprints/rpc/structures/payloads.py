@@ -1006,14 +1006,48 @@ def rpc_map_traces(
     return result
 
 
+def gateway_to_rpc_invocation(invocation_dict: dict) -> Dict[str, Dict]:
+    """
+    Prepare rpc function invocation, remove unnecessary properties.
+    """
+    if invocation_dict is None:
+        return invocation_dict
+
+    accepted_function_invocation = {
+        "contract_address",
+        "entry_point_selector",
+        "calldata",
+        "caller_address",
+        "entry_point_type",
+        "class_hash",
+        "result",
+        "calls",
+        "events",
+        "messages",
+    }
+
+    keys = invocation_dict.copy().keys()
+    for key in keys:
+        if key not in accepted_function_invocation:
+            del invocation_dict[key]
+
+    return invocation_dict
+
+
 def rpc_invoke_txn_trace(trace_dict: dict) -> Dict[str, Dict]:
     """
     Mapping for the execution trace of a invoke transaction.
     """
     return {
-        "validate_invocation": trace_dict.get("validate_invocation"),
-        "execute_invocation": trace_dict.get("function_invocation"),
-        "fee_transfer_invocation": trace_dict.get("fee_transfer_invocation"),
+        "validate_invocation": gateway_to_rpc_invocation(
+            trace_dict.get("validate_invocation")
+        ),
+        "execute_invocation": gateway_to_rpc_invocation(
+            trace_dict.get("function_invocation")
+        ),
+        "fee_transfer_invocation": gateway_to_rpc_invocation(
+            trace_dict.get("fee_transfer_invocation")
+        ),
     }
 
 
@@ -1022,8 +1056,12 @@ def rpc_declare_txn_trace(trace_dict: dict) -> Dict[str, Dict]:
     Mapping for the execution trace of a declare transaction.
     """
     return {
-        "validate_invocation": trace_dict.get("validate_invocation"),
-        "fee_transfer_invocation": trace_dict.get("fee_transfer_invocation"),
+        "validate_invocation": gateway_to_rpc_invocation(
+            trace_dict.get("validate_invocation")
+        ),
+        "fee_transfer_invocation": gateway_to_rpc_invocation(
+            trace_dict.get("fee_transfer_invocation")
+        ),
     }
 
 
@@ -1032,7 +1070,13 @@ def rpc_deploy_account_txn_trace(trace_dict: dict) -> Dict[str, Dict]:
     Mapping for the execution trace of a deploy account transaction.
     """
     return {
-        "validate_invocation": trace_dict.get("validate_invocation"),
-        "constructor_invocation": trace_dict.get("function_invocation"),
-        "fee_transfer_invocation": trace_dict.get("fee_transfer_invocation"),
+        "validate_invocation": gateway_to_rpc_invocation(
+            trace_dict.get("validate_invocation")
+        ),
+        "constructor_invocation": gateway_to_rpc_invocation(
+            trace_dict.get("function_invocation")
+        ),
+        "fee_transfer_invocation": gateway_to_rpc_invocation(
+            trace_dict.get("fee_transfer_invocation")
+        ),
     }
