@@ -34,7 +34,7 @@ Response:
 
 ## starknet_simulateTransaction 
 
-The official specification of `starknet_simulateTransaction` supports `simulation_flags` which can be `SKIP_VALIDATE` and `SKIP_EXECUTE`. At the moment, only `SKIP_VALIDATE` is supported. Dev info: `SKIP_EXECUTE` support is blocked by `InternalInvokeFunctionForSimulate.create_for_simulate` not supporting it. Return type `FUNCTION_INVOCATION` was modified according to the starkware team, `code_address` and `call_type` was replaced with `class_hash`.
+The official specification of `starknet_simulateTransaction` supports `simulation_flags` which can be `SKIP_VALIDATE` and `SKIP_EXECUTE`. At the moment, only `SKIP_VALIDATE` is supported. Dev info: `SKIP_EXECUTE` support is blocked by `InternalInvokeFunctionForSimulate.create_for_simulate` not supporting it. Return type `FUNCTION_INVOCATION` is modified according to suggestions by the Starkware team: `code_address` and `call_type` are replaced with `class_hash`.
 
 ## starknet_getEvents
 
