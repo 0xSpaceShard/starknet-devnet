@@ -1008,12 +1008,13 @@ def rpc_map_traces(
 
 def gateway_to_rpc_invocation(invocation_dict: dict) -> Dict[str, Dict]:
     """
-    Prepare rpc function invocation, remove unnecessary properties.
+    Convert function invocation result from gateway to RPC.
     """
     if invocation_dict is None:
         return invocation_dict
 
-    accepted_function_invocation = {
+    # All unnecessary properties should be removed except this mentioned here.
+    accepted_properties = {
         "contract_address",
         "entry_point_selector",
         "calldata",
@@ -1025,10 +1026,9 @@ def gateway_to_rpc_invocation(invocation_dict: dict) -> Dict[str, Dict]:
         "events",
         "messages",
     }
-
     keys = invocation_dict.copy().keys()
     for key in keys:
-        if key not in accepted_function_invocation:
+        if key not in accepted_properties:
             del invocation_dict[key]
 
     return invocation_dict
