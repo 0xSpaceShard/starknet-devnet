@@ -9,7 +9,7 @@ use self::{
         AbortedBlocks, AbortingBlocks, Balance, ContractAddress, ContractCode, CreatedBlock,
         FeeToken, ForkStatus, MessageFromL2, MessageHash, MessageToL2, MintTokens,
         MintTokensResponse, Path, PostmanLoadL1MessagingContract, PredeployedAccount, Time,
-        TransactionHash,
+        TransactionHashHex,
     },
 };
 use super::Api;
@@ -53,7 +53,7 @@ pub(crate) async fn postman_flush() -> HttpApiResult<()> {
 
 pub(crate) async fn postman_send_message_to_l2(
     Json(_data): Json<MessageToL2>,
-) -> HttpApiResult<Json<TransactionHash>> {
+) -> HttpApiResult<Json<TransactionHashHex>> {
     Err(HttpApiError::GeneralError)
 }
 

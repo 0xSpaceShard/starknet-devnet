@@ -18,7 +18,7 @@ pub(crate) struct Output {
 }
 
 #[derive(Serialize)]
-pub(crate) struct TransactionHash {
+pub(crate) struct TransactionHashHex {
     pub(crate) transaction_hash: String,
 }
 
