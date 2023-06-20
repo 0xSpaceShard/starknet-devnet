@@ -11,6 +11,8 @@ Make sure your Devnet is using the same compiler version that you used for the c
 - `--cairo-compiler-manifest <PATH_TO_CARGO_TOML>`
 - `--sierra-compiler-path <PATH_TO_SIERRA_EXECUTABLE>`
 
+By default, Devnet runs the compiler with `--add-pythonic-hints` and `--allowed-libfuncs-list-name experimental_v0.1.0`. Modify this with Devnet's `--compiler-args` CLI argument.
+
 ## Compiler binaries
 
 Other than cloning [the compiler repo](https://github.com/starkware-libs/cairo) and checking out and building the desired version, you can find statically linked **prebuilt** executable binaries under `Assets` of every release [on the GitHub release page](https://github.com/starkware-libs/cairo/releases) (usually x86 and Apple sillicon binaries are included).

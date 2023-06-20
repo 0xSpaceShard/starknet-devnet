@@ -16,6 +16,7 @@ from starknet_devnet.compiler import (
     DefaultContractClassCompiler,
     ManifestContractClassCompiler,
 )
+from starknet_devnet.devnet_config import DEFAULT_COMPILER_ARGS
 
 from .account import send_declare_v2
 from .shared import (
@@ -26,7 +27,13 @@ from .shared import (
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
 from .test_declare_v2 import assert_declare_v2_accepted, load_cairo1_contract
-from .util import DevnetBackgroundProc, read_stream, terminate_and_wait
+from .util import (
+    DevnetBackgroundProc,
+    assert_tx_status,
+    devnet_in_background,
+    read_stream,
+    terminate_and_wait,
+)
 
 CAIRO_1_COMPILER_MANIFEST = os.getenv("CAIRO_1_COMPILER_MANIFEST")
 if not CAIRO_1_COMPILER_MANIFEST:
@@ -58,9 +65,9 @@ def run_before_and_after_test():
 @pytest.mark.parametrize(
     "compiler",
     [
-        DefaultContractClassCompiler(),
-        ManifestContractClassCompiler(CAIRO_1_COMPILER_MANIFEST),
-        BinaryContractClassCompiler(SIERRA_COMPILER_PATH),
+        DefaultContractClassCompiler(DEFAULT_COMPILER_ARGS),
+        ManifestContractClassCompiler(CAIRO_1_COMPILER_MANIFEST, DEFAULT_COMPILER_ARGS),
+        BinaryContractClassCompiler(SIERRA_COMPILER_PATH, DEFAULT_COMPILER_ARGS),
     ],
 )
 def test_contract_class_compiler_happy_path(compiler: ContractClassCompiler):
@@ -176,3 +183,61 @@ def test_manifest_and_sierra_compiler_specified():
         "Only one of {--cairo-compiler-manifest,--sierra-compiler-path} can be provided"
         in read_stream(execution.stderr)
     )
+
+
+@pytest.mark.usefixtures("run_devnet_in_background")
+@pytest.mark.parametrize(
+    "run_devnet_in_background",
+    [
+        (
+            *PREDEPLOY_ACCOUNT_CLI_ARGS,
+            "--cairo-compiler-manifest",
+            CAIRO_1_COMPILER_MANIFEST,
+            "--compiler-args",
+            " ".join(DEFAULT_COMPILER_ARGS),
+        ),
+        (
+            *PREDEPLOY_ACCOUNT_CLI_ARGS,
+            "--sierra-compiler-path",
+            SIERRA_COMPILER_PATH,
+            "--compiler-args",
+            " ".join(DEFAULT_COMPILER_ARGS),
+        ),
+        (
+            *PREDEPLOY_ACCOUNT_CLI_ARGS,
+            "--compiler-args",
+            " ".join(DEFAULT_COMPILER_ARGS),
+        ),
+    ],
+    indirect=True,
+)
+def test_compiler_args_happy_path():
+    """Expect success with the default compiler args"""
+    contract_class, _, compiled_class_hash = load_cairo1_contract()
+    resp = send_declare_v2(
+        contract_class=contract_class,
+        compiled_class_hash=compiled_class_hash,
+        sender_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        sender_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
+    assert_declare_v2_accepted(resp)
+
+
+@devnet_in_background(
+    *PREDEPLOY_ACCOUNT_CLI_ARGS,
+    "--compiler-args",
+    "--allowed-libfuncs-list-name experimental_v0.1.0",
+)
+def test_compiler_args_without_pythonic_hints():
+    """Expect failure if --add-pythonic-hints is not provided"""
+    contract_class, _, compiled_class_hash = load_cairo1_contract()
+    resp = send_declare_v2(
+        contract_class=contract_class,
+        compiled_class_hash=compiled_class_hash,
+        sender_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+        sender_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+    )
+
+    assert resp.status_code == 200
+    resp_body = resp.json()
+    assert_tx_status(resp_body["transaction_hash"], "REJECTED")

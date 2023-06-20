@@ -36,7 +36,7 @@ optional arguments:
                         Specify the initial balance of accounts to be predeployed; defaults to 1e+21
   --seed SEED           Specify the seed for randomness of accounts to be predeployed
   --hide-predeployed-contracts, --hide-predeployed-accounts
-                        Prevents from printing the predeployed contracts details. Argument --hide-predeployed-accounts is deprecated 
+                        Prevents from printing the predeployed contracts details. Argument --hide-predeployed-accounts is deprecated
   --start-time START_TIME
                         Specify the start time of the genesis block in Unix time seconds
   --gas-price GAS_PRICE, -g GAS_PRICE
@@ -61,8 +61,9 @@ optional arguments:
                         Specify the path to the manifest (Cargo.toml) of the Cairo 1.0 compiler to be used for contract recompilation; if omitted, the default x86-compatible compiler (from cairo-lang package) is used
   --sierra-compiler-path SIERRA_COMPILER_PATH
                         Specify the path to the binary executable of starknet-sierra-compile
-
   --hide-server-logs    Hide server access logging
+  --compiler-args COMPILER_ARGS
+                        Specify the CLI args used internally by the Cairo 1.0 compiler for recompiling. Provide them as a single space-separated string. No validation is done on the arguments on Devnet startup, only when they are put to use. Defaults to '--add-pythonic-hints --allowed-libfuncs-list-name experimental_v0.1.0'
 ```
 
 <!-- Developer note: the previous section should be a copy-paste of `starknet-devnet --help` -->

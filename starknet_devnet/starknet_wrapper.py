@@ -838,7 +838,7 @@ class StarknetWrapper:
         block_id: BlockId = DEFAULT_BLOCK_ID,
     ):
         """Calculates trace and fee by simulating tx on state copy."""
-        traces, fees, _ = await self.calculate_traces_and_fees(
+        traces, fees = await self.calculate_traces_and_fees(
             [external_tx], skip_validate=skip_validate, block_id=block_id
         )
         assert len(traces) == len(fees) == 1
@@ -857,7 +857,6 @@ class StarknetWrapper:
 
         traces = []
         fee_estimation_infos = []
-        transaction_types = []
 
         for external_tx in external_txs:
             # pylint: disable=protected-access
@@ -899,10 +898,8 @@ class StarknetWrapper:
             )
             fee_estimation_infos.append(fee_estimation_info)
 
-            transaction_types.append(internal_tx.tx_type)
-
         assert len(traces) == len(fee_estimation_infos) == len(external_txs)
-        return traces, fee_estimation_infos, transaction_types
+        return traces, fee_estimation_infos
 
     async def estimate_message_fee(
         self, call: CallL1Handler, block_id: BlockId = DEFAULT_BLOCK_ID
@@ -954,7 +951,7 @@ class StarknetWrapper:
         state = self.get_state().state
         state.compiled_classes[STARKNET_CLI_ACCOUNT_CLASS_HASH] = oz_account_class
         if self.config.verbose or not self.config.hide_predeployed_contracts:
-            print("Predeclared STARKNET CLI account: ", flush=True)
+            print("Predeclared Starknet CLI account: ", flush=True)
             print(f"Class hash: {hex(STARKNET_CLI_ACCOUNT_CLASS_HASH)}\n", flush=True)
 
     async def __deploy_chargeable_account(self):

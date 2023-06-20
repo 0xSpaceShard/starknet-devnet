@@ -155,7 +155,7 @@ async def add_deploy_account_transaction(
     """
     Submit a new deploy account transaction
     """
-    (contract_address, transaction_hash,) = await state.starknet_wrapper.deploy_account(
+    contract_address, transaction_hash = await state.starknet_wrapper.deploy_account(
         external_tx=make_deploy_account(deploy_account_transaction)
     )
 
@@ -190,18 +190,17 @@ def make_transaction(txn: RpcBroadcastedTxn) -> AccountTransaction:
     raise NotImplementedError(f"Unexpected type {txn_type}.")
 
 
-@validate_schema("estimateFee")
-async def estimate_fee(request: List[RpcBroadcastedTxn], block_id: BlockId) -> list:
-    """
-    Estimate the fee for a given Starknet transaction
-    """
+async def _calculate_traces_and_fees(
+    transactions: List[AccountTransaction], block_id: BlockId, skip_validate: bool
+):
+    """Common for estimate_fee and simulate_transaction. Handles errors."""
+
     await assert_block_id_is_valid(block_id)
-    transactions = list(map(make_transaction, request))
 
     try:
-        _, fee_response, _ = await state.starknet_wrapper.calculate_traces_and_fees(
+        return await state.starknet_wrapper.calculate_traces_and_fees(
             transactions,
-            skip_validate=False,
+            skip_validate=skip_validate,
             block_id=block_id,
         )
     except StarkException as ex:
@@ -213,51 +212,51 @@ async def estimate_fee(request: List[RpcBroadcastedTxn], block_id: BlockId) -> l
             raise RpcError.from_spec_name("CONTRACT_NOT_FOUND") from ex
         raise RpcError(code=-1, message=ex.message) from ex
 
-    return rpc_fee_estimate(fee_response)
+
+@validate_schema("estimateFee")
+async def estimate_fee(request: List[RpcBroadcastedTxn], block_id: BlockId) -> list:
+    """Estimate the fee for the given Starknet transaction"""
+
+    gateway_transactions = list(map(make_transaction, request))
+    _, fee_responses = await _calculate_traces_and_fees(
+        gateway_transactions, block_id, skip_validate=False
+    )
+    return rpc_fee_estimate(fee_responses)
 
 
 @validate_schema("simulateTransaction")
 async def simulate_transaction(
     block_id: BlockId,
-    transactions: List[RpcTransaction],
+    transactions: List[RpcBroadcastedTxn],
     simulation_flags: List[SimulationFlag],
 ) -> list:
     """
     Simulate transactions.
     SKIP_EXECUTE SimulationFlag is not supported.
     """
-    await assert_block_id_is_valid(block_id)
-    transactions = list(map(make_transaction, transactions))
     skip_validate = SimulationFlag.SKIP_VALIDATE.name in simulation_flags
     skip_execute = SimulationFlag.SKIP_EXECUTE.name in simulation_flags
-    simulated_transactions = []
 
     if skip_execute:
         raise RpcError(code=-1, message="SKIP_EXECUTE flag is not supported")
 
-    try:
-        (
-            traces,
-            fee,
-            transaction_types,
-        ) = await state.starknet_wrapper.calculate_traces_and_fees(
-            transactions,
-            skip_validate=skip_validate,
-            block_id=block_id,
-        )
-        simulated_transactions.append(
-            {
-                "transaction_trace": rpc_map_traces(traces, transaction_types),
-                "fee_estimation": rpc_fee_estimate(fee),
-            }
-        )
-    except StarkException as ex:
-        if "Entry point" in ex.message and "not found" in ex.message:
-            raise RpcError.from_spec_name("CONTRACT_ERROR") from ex
-        if "While handling calldata" in ex.message:
-            raise RpcError.from_spec_name("CONTRACT_ERROR") from ex
-        if "is not deployed" in ex.message:
-            raise RpcError.from_spec_name("CONTRACT_NOT_FOUND") from ex
-        raise RpcError(code=-1, message=ex.message) from ex
+    gateway_transactions = list(map(make_transaction, transactions))
+    traces, fees = await _calculate_traces_and_fees(
+        gateway_transactions, block_id, skip_validate
+    )
+
+    tx_types = [tx.tx_type for tx in gateway_transactions]
+    rpc_traces = rpc_map_traces(traces, tx_types)
+    rpc_estimations = rpc_fee_estimate(fees)
+
+    # traces number must be equal to estimations
+    assert len(rpc_traces) == len(rpc_estimations)
+    simulated_transactions = [
+        {
+            "transaction_trace": trace,
+            "fee_estimation": estimation,
+        }
+        for trace, estimation in zip(rpc_traces, rpc_estimations)
+    ]
 
     return simulated_transactions

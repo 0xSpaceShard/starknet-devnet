@@ -2,7 +2,7 @@
 Account class and its predefined constants.
 """
 
-import sys
+from typing import Optional
 
 from starkware.starknet.core.os.contract_address.contract_address import (
     calculate_contract_address_from_hash,
@@ -15,6 +15,7 @@ from starknet_devnet.contract_class_wrapper import CompiledClassWrapper
 from starknet_devnet.predeployed_contract_wrapper import PredeployedContractWrapper
 
 
+# pylint: disable=too-many-instance-attributes
 class Account(PredeployedContractWrapper):
     """Account contract wrapper."""
 
@@ -26,6 +27,7 @@ class Account(PredeployedContractWrapper):
         public_key: int,
         initial_balance: int,
         account_class_wrapper: CompiledClassWrapper,
+        index: Optional[int] = None,
     ):
         self.starknet_wrapper = starknet_wrapper
         self.private_key = private_key
@@ -42,6 +44,9 @@ class Account(PredeployedContractWrapper):
             deployer_address=0,
         )
         self.initial_balance = initial_balance
+
+        self.__index = index
+        """Index used when logging/displaying account to user on startup"""
 
     def to_json(self):
         """Return json account"""
@@ -62,9 +67,8 @@ class Account(PredeployedContractWrapper):
         await set_balance(starknet.state, self.address, self.initial_balance)
 
     def print(self):
-        print("Account:")
+        print(f"Account #{self.__index}:")
         print(f"Address: {hex(self.address)}")
         print(f"Public key: {hex(self.public_key)}")
         print(f"Private key: {hex(self.private_key)}")
-        print(f"Initial balance: {self.initial_balance} WEI")
-        sys.stdout.flush()
+        print(flush=True)

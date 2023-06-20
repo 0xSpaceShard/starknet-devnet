@@ -24,6 +24,9 @@ from starknet_devnet.util import StarknetDevnetException
 class ContractClassCompiler(ABC):
     """Base class of contract class compilers"""
 
+    def __init__(self, compiler_args: List[str]):
+        self._compiler_args = compiler_args
+
     def compile_contract_class(self, contract_class: ContractClass) -> CompiledClass:
         """Take the sierra and return the compiled instance"""
         raise NotImplementedError
@@ -41,7 +44,7 @@ class DefaultContractClassCompiler(ContractClassCompiler):
         try:
             return compile_contract_class(
                 contract_class,
-                compiler_args="--add-pythonic-hints --allowed-libfuncs-list-name experimental_v0.1.0",
+                compiler_args=" ".join(self._compiler_args),
             )
         except PermissionError as permission_error:
             raise StarknetDevnetException(
@@ -74,9 +77,7 @@ class CustomContractClassCompiler(ContractClassCompiler):
 
             compilation_args = [
                 *self.get_sierra_compiler_command(),
-                "--allowed-libfuncs-list-name",
-                "experimental_v0.1.0",
-                "--add-pythonic-hints",
+                *self._compiler_args,
                 contract_json,
                 contract_casm,
             ]
@@ -98,8 +99,8 @@ class CustomContractClassCompiler(ContractClassCompiler):
 class ManifestContractClassCompiler(CustomContractClassCompiler):
     """Sierra compiler relying on the compiler repo manifest"""
 
-    def __init__(self, compiler_manifest: str):
-        super().__init__()
+    def __init__(self, compiler_manifest: str, compiler_args: List[str]):
+        super().__init__(compiler_args)
         self._compiler_command = [
             "cargo",
             "run",
@@ -117,7 +118,8 @@ class ManifestContractClassCompiler(CustomContractClassCompiler):
 class BinaryContractClassCompiler(CustomContractClassCompiler):
     """Sierra compiler relying on the starknet-sierra-compile binary executable"""
 
-    def __init__(self, executable_path: str):
+    def __init__(self, executable_path: str, compiler_args: List[str]):
+        super().__init__(compiler_args)
         self._compiler_command = [executable_path]
 
     def get_sierra_compiler_command(self) -> List[str]:
@@ -127,9 +129,13 @@ class BinaryContractClassCompiler(CustomContractClassCompiler):
 def select_compiler(config: DevnetConfig) -> ContractClassCompiler:
     """Selects the compiler class according to the specification in the config object"""
     if config.cairo_compiler_manifest:
-        return ManifestContractClassCompiler(config.cairo_compiler_manifest)
+        return ManifestContractClassCompiler(
+            config.cairo_compiler_manifest, config.compiler_args
+        )
 
     if config.sierra_compiler_path:
-        return BinaryContractClassCompiler(config.sierra_compiler_path)
+        return BinaryContractClassCompiler(
+            config.sierra_compiler_path, config.compiler_args
+        )
 
-    return DefaultContractClassCompiler()
+    return DefaultContractClassCompiler(config.compiler_args)

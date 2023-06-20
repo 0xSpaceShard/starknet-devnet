@@ -54,7 +54,7 @@ class Accounts:
         random_generator = random.Random()
         random_generator.seed(self.__seed)
 
-        for _ in range(self.__n_accounts):
+        for i in range(self.__n_accounts):
             private_key = random_generator.getrandbits(128)
             public_key = private_to_stark_key(private_key)
 
@@ -65,11 +65,13 @@ class Accounts:
                     public_key=public_key,
                     initial_balance=self.__initial_balance,
                     account_class_wrapper=self.__account_class_wrapper,
+                    index=i,
                 )
             )
 
     def __print(self):
         """stdout accounts list"""
+        print(f"Initial balance of each account: {self.__initial_balance} WEI")
         print("Seed to replicate this account sequence:", self.__seed)
         warn(
             "WARNING: Use these accounts and their keys ONLY for local testing. "

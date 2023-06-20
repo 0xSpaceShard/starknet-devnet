@@ -49,6 +49,12 @@ NETWORK_NAMES = ", ".join(NETWORK_TO_URL.keys())
 CHAIN_IDS = ", ".join([member.name for member in StarknetChainId])
 DEFAULT_CHAIN_ID = StarknetChainId.TESTNET
 
+DEFAULT_COMPILER_ARGS = [
+    "--add-pythonic-hints",
+    "--allowed-libfuncs-list-name",
+    "experimental_v0.1.0",
+]
+
 
 def _fork_network(network_id: str):
     """
@@ -267,6 +273,10 @@ def _parse_sierra_compiler_path(compiler_path: str):
     return compiler_path
 
 
+def _parse_compiler_args(compiler_args: str):
+    return compiler_args.split()
+
+
 def parse_args(raw_args: List[str]):
     """
     Parses CLI arguments.
@@ -426,6 +436,15 @@ def parse_args(raw_args: List[str]):
         type=_parse_sierra_compiler_path,
         help="Specify the path to the binary executable of starknet-sierra-compile",
     )
+    parser.add_argument(
+        "--compiler-args",
+        type=_parse_compiler_args,
+        default=DEFAULT_COMPILER_ARGS,
+        help="Specify the CLI args used internally by the Cairo 1.0 compiler for recompiling. "
+        "Provide them as a single space-separated string. "
+        "No validation is done on the arguments on Devnet startup, only when they are put to use. "
+        f"Defaults to '{' '.join(DEFAULT_COMPILER_ARGS)}'",
+    )
 
     parsed_args = parser.parse_args(raw_args)
     if parsed_args.dump_on and not parsed_args.dump_path:
@@ -473,4 +492,5 @@ class DevnetConfig:
         self.validate_rpc_responses = not self.args.disable_rpc_response_validation
         self.cairo_compiler_manifest = self.args.cairo_compiler_manifest
         self.sierra_compiler_path = self.args.sierra_compiler_path
+        self.compiler_args = self.args.compiler_args
         self.verbose = self.args.verbose

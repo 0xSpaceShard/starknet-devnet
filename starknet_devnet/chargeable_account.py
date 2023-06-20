@@ -1,5 +1,6 @@
 """
-Account that is charged with a fee when nobody else can be charged.
+Account that can be charged with a fee when nothing else can be charged.
+Intended for development and internal testing purposes.
 """
 
 from starknet_devnet.account import Account
@@ -25,4 +26,4 @@ class ChargeableAccount(Account):
         )
 
     def print(self):
-        pass
+        """Since this is a development/testing class, it needn't be logged"""
