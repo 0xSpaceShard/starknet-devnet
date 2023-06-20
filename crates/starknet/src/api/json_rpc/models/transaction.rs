@@ -1,7 +1,12 @@
-use serde::{Deserialize, Serialize};
-use starknet_types::starknet_api::{transaction::{Fee, EthAddress}, block::BlockNumber};
+use std::collections::HashSet;
 
-use super::{ContractAddressHex, FeltHex, block::BlockHashHex};
+use serde::{Deserialize, Serialize};
+use starknet_types::starknet_api::{
+    block::BlockNumber,
+    transaction::{EthAddress, Fee},
+};
+
+use super::{block::BlockHashHex, BlockId, ContractAddressHex, FeltHex};
 
 pub type TransactionHashHex = FeltHex;
 pub type ClassHashHex = FeltHex;
@@ -148,9 +153,7 @@ pub struct L1HandlerTransaction {
 }
 
 /// A transaction status in StarkNet.
-#[derive(
-    Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize, Default,
-)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize, Default)]
 pub enum TransactionStatus {
     /// The transaction passed the validation and entered the pending block.
     #[serde(rename = "PENDING")]
@@ -166,7 +169,6 @@ pub enum TransactionStatus {
     #[serde(rename = "REJECTED")]
     Rejected,
 }
-
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct TransactionReceiptWithStatus {
@@ -231,4 +233,28 @@ pub type EventData = Vec<FeltHex>;
 pub struct EventContent {
     pub keys: Vec<EventKeyHex>,
     pub data: EventData,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+pub struct EventFilter {
+    pub from_block: Option<BlockId>,
+    pub to_block: Option<BlockId>,
+    pub continuation_token: Option<String>,
+    pub chunk_size: usize,
+    pub address: Option<ContractAddressHex>,
+    #[serde(default)]
+    pub keys: Vec<HashSet<FeltHex>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+pub struct EventsChunk {
+    pub events: Vec<Event>,
+    pub continuation_token: Option<String>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+pub struct FunctionCall {
+    pub contract_address: ContractAddressHex,
+    pub entry_point_selector: EntryPointSelectorHex,
+    pub calldata: Calldata,
 }

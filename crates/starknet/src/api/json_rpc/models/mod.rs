@@ -1,5 +1,6 @@
 pub(crate) mod block;
-pub(crate) mod request_input;
+pub(crate) mod contract_class;
+pub(crate) mod request_response;
 pub(crate) mod state;
 pub(crate) mod transaction;
 
@@ -47,7 +48,7 @@ pub enum BlockId {
 }
 
 /// Felt serialized/deserialized from/to prefixed hex string
-#[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, Hash, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct FeltHex(
     #[serde(
         serialize_with = "serialize_to_prefixed_hex",

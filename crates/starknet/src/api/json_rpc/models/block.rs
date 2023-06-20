@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use starknet_types::starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp};
 
-use super::{transaction::Transactions, ContractAddressHex, FeltHex};
+use super::{transaction::Transactions, BlockId, ContractAddressHex, FeltHex};
 
 pub type BlockHashHex = FeltHex;
 pub type GlobalRootHex = FeltHex;
@@ -22,4 +22,14 @@ pub struct BlockHeader {
     pub sequencer_address: ContractAddressHex,
     pub new_root: GlobalRootHex,
     pub timestamp: BlockTimestamp,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+pub struct SyncStatus {
+    pub starting_block_hash: BlockHashHex,
+    pub starting_block_num: BlockNumber,
+    pub current_block_hash: BlockHashHex,
+    pub current_block_num: BlockNumber,
+    pub highest_block_hash: BlockHashHex,
+    pub highest_block_num: BlockNumber,
 }

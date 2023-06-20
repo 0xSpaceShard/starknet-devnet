@@ -1,8 +1,12 @@
 use serde::Serialize;
 use server::rpc_core::{error::RpcError, response::ResponseResult};
+use starknet_types::starknet_api::block::BlockNumber;
 use tracing::error;
 
-use super::models::{transaction::TransactionHashHex, BlockId};
+use super::models::{
+    transaction::{ClassHashHex, TransactionHashHex},
+    BlockId,
+};
 
 #[derive(thiserror::Error, Debug)]
 pub enum ApiError {
@@ -12,10 +16,22 @@ pub enum ApiError {
     BlockNotFound,
     #[error("Contract not found")]
     ContractNotFound,
-    #[error("Transaction {0} not found")]
+    #[error("Transaction hash {0} not found")]
     TransactionNotFound(TransactionHashHex),
     #[error("Transaction idx {0:?} not found in block {1:?}")]
-    InvalidTransactionIndexInBlock(usize, BlockId),
+    InvalidTransactionIndexInBlock(BlockNumber, BlockId),
+    #[error("Class hash {0} not found")]
+    ClassHashNotFound(ClassHashHex),
+    #[error("Contract error")]
+    ContractError,
+    #[error("There are no blocks")]
+    NoBlocks,
+    #[error("Requested page size is too big")]
+    RequestPageSizeTooBig,
+    #[error("The supplied continuation token is invalid or unknown")]
+    InvalidContinuationToken,
+    #[error("Too many keys provided in a filter")]
+    TooManyKeysInFilter,
 }
 
 pub(crate) type RpcResult<T> = std::result::Result<T, ApiError>;
@@ -57,8 +73,38 @@ impl<T: Serialize> ToRpcResponseResult for RpcResult<T> {
                     message: err.to_string().into(),
                     data: None,
                 },
-                ApiError::InvalidTransactionIndexInBlock(_, _) => RpcError {
+                err @ ApiError::InvalidTransactionIndexInBlock(_, _) => RpcError {
                     code: server::rpc_core::error::ErrorCode::ServerError(27),
+                    message: err.to_string().into(),
+                    data: None,
+                },
+                err @ ApiError::ClassHashNotFound(_) => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(28),
+                    message: err.to_string().into(),
+                    data: None,
+                },
+                err @ ApiError::ContractError => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(40),
+                    message: err.to_string().into(),
+                    data: None,
+                },
+                err @ ApiError::NoBlocks => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(32),
+                    message: err.to_string().into(),
+                    data: None,
+                },
+                err @ ApiError::RequestPageSizeTooBig => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(31),
+                    message: err.to_string().into(),
+                    data: None,
+                },
+                err @ ApiError::InvalidContinuationToken => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(33),
+                    message: err.to_string().into(),
+                    data: None,
+                },
+                err @ ApiError::TooManyKeysInFilter => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(34),
                     message: err.to_string().into(),
                     data: None,
                 },
