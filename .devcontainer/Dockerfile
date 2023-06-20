@@ -4,9 +4,6 @@ RUN apt update && apt upgrade -y
 
 # install packages to the container
 RUN apt install -y gcc curl wget git vim zip sqlite3 libdigest-sha-perl zsh build-essential make
-# install python 3.9
-RUN apt update
-RUN apt -y install python3 python3-dev
 
 RUN apt update
 RUN apt -y install pkg-config libssl-dev
