@@ -13,11 +13,6 @@ pub(crate) struct PostmanLoadL1MessagingContract {
 }
 
 #[derive(Serialize)]
-pub(crate) struct Output {
-    pub data: u32,
-}
-
-#[derive(Serialize)]
 pub(crate) struct TransactionHashHex {
     pub(crate) transaction_hash: String,
 }
