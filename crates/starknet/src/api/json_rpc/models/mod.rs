@@ -30,12 +30,8 @@ pub enum Tag {
 
 #[derive(Copy, Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum BlockHashOrNumber {
-    #[serde(
-        rename = "block_hash",
-        deserialize_with = "deserialize_prefixed_hex_string_to_felt",
-        serialize_with = "serialize_to_prefixed_hex"
-    )]
-    Hash(starknet_types::felt::Felt),
+    #[serde(rename = "block_hash")]
+    Hash(FeltHex),
     #[serde(rename = "block_number")]
     Number(BlockNumber),
 }

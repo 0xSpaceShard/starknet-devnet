@@ -48,7 +48,6 @@ impl JsonRpcHandler {
         trace!(target: "JsonRpcHandler::execute", "executing starknet request");
 
         match request {
-            StarknetRequest::StarknetServerVersion => self.version().to_rpc_result(),
             StarknetRequest::BlockWithTransactionHashes(block) => self
                 .get_block_with_tx_hashes(block.block_id)
                 .await
@@ -77,7 +76,6 @@ impl JsonRpcHandler {
                     .await
                     .to_rpc_result()
             }
-            StarknetRequest::Test(_) => todo!(),
             StarknetRequest::TransactionReceiptByTransactionHash(TransactionHashInput {
                 transaction_hash,
             }) => self
@@ -136,10 +134,6 @@ impl JsonRpcHandler {
 }
 
 impl JsonRpcHandler {
-    fn version(&self) -> RpcResult<String> {
-        Ok(env!("CARGO_PKG_VERSION").to_string())
-    }
-
     async fn get_block_with_tx_hashes(&self, block_id: BlockId) -> RpcResult<Block> {
         Err(error::ApiError::BlockNotFound)
     }
@@ -234,7 +228,8 @@ impl JsonRpcHandler {
     }
 
     fn chain_id(&self) -> RpcResult<String> {
-        Ok("0xAA".to_string())
+        // DEVNET
+        Ok("0x4445564e4554".to_string())
     }
 
     async fn pending_transactions(&self) -> RpcResult<Vec<Transaction>> {
@@ -261,8 +256,6 @@ impl JsonRpcHandler {
 #[derive(Clone, Debug, PartialEq, Deserialize, Eq)]
 #[serde(tag = "method", content = "params")]
 pub enum StarknetRequest {
-    #[serde(rename = "starknet_clientVersion", with = "empty_params")]
-    StarknetServerVersion,
     #[serde(rename = "starknet_getBlockWithTxHashes")]
     BlockWithTransactionHashes(models::request_response::BlockIdInput),
     #[serde(rename = "starknet_getBlockWithTxs")]
@@ -303,54 +296,61 @@ pub enum StarknetRequest {
     Events(models::request_response::EventsInput),
     #[serde(rename = "starknet_getNonce")]
     ContractNonce(models::request_response::BlockAndContractAddressInput),
-    #[serde(rename = "test_string")]
-    Test(String),
 }
 
 #[cfg(test)]
 mod tests {
-    use serde_json::Value;
+    use starknet_types::{
+        felt::Felt,
+        starknet_api::block::{Block, BlockNumber},
+    };
 
-    use super::StarknetRequest;
+    use crate::api::json_rpc::models::{request_response::BlockIdInput, FeltHex};
 
-    #[test]
-    fn deserialize_to_no_params_web3_client_version() {
-        let json_obj = r#"{"method":"starknet_clientVersion","params":[]}"#;
-        let call: Value = serde_json::from_str(json_obj).unwrap();
-
-        let x: StarknetRequest = serde_json::from_value(call).unwrap();
-        println!("{:?}", x);
-
-        assert_deserialize_to_expected_enum_type(json_obj, StarknetRequest::StarknetServerVersion);
-    }
+    use super::{
+        models::{BlockHashOrNumber, BlockId, Tag},
+        StarknetRequest,
+    };
 
     #[test]
-    fn deserialize_to_params_test_string() {
-        let json_obj = r#"{"method":"test_string","params":"aa"}"#;
-        let call: Value = serde_json::from_str(json_obj).unwrap();
-
-        let x: StarknetRequest = serde_json::from_value(call).unwrap();
-        assert_eq!(x, StarknetRequest::Test("aa".to_string()));
-
-        assert_deserialize_to_expected_enum_type(json_obj, StarknetRequest::Test("aa".to_string()));
+    fn deserialize_block_with_transaction_hashes_request() {
+        let json_str =
+            r#"{"method":"starknet_getBlockWithTxHashes","params":{"block_id":"latest"}}"#;
+        let request = serde_json::from_str::<StarknetRequest>(json_str).unwrap();
+        assert!(false);
+        //assert_block_id_tag_is_correct(Tag::Latest, generated_block_id)
     }
 
     #[test]
     fn deserialize_get_transaction_by_hash_request() {
         let json_str = r#"{"method":"starknet_getTransactionByHash","params":{"transaction_hash":"0x134134"}}"#;
-        let json_str = r#"{"method":"starknet_getTransactionByHash","params":"0x134134"}"#;
-        let call: Value = serde_json::from_str(json_str).unwrap();
 
-        let x = serde_json::from_value::<StarknetRequest>(call);
-        println!("{:?}", x);
+        let request = serde_json::from_str::<StarknetRequest>(json_str).unwrap();
+
+        match request {
+            StarknetRequest::TransactionByHash(input) => {
+                assert!(
+                    input.transaction_hash.0 == Felt::from_prefixed_hex_str("0x134134").unwrap()
+                );
+            }
+            _ => assert!(false),
+        }
+
+        // Errored json, there is no object just string is passed
+        assert_deserialization_fails(
+            r#"{"method":"starknet_getTransactionByHash","params":"0x134134"}"#,
+        );
+        // Errored json, hash is not prefixed with 0x
+        assert_deserialization_fails(
+            r#"{"method":"starknet_getTransactionByHash","params":{"transaction_hash":"134134"}}"#,
+        );
+        // Errored json, hex is longer than 64 chars
+        assert_deserialization_fails(
+            r#"{"method":"starknet_getTransactionByHash","params":{"transaction_hash":"0x004134134134134134134134134134134134134134134134134134134134134134"}}"#,
+        );
     }
 
-    fn assert_deserialize_to_expected_enum_type(
-        json_str: &str,
-        expected_enum_type: StarknetRequest,
-    ) {
-        let generated: StarknetRequest = serde_json::from_str(json_str).unwrap();
-
-        assert!(matches!(generated, expected_enum_type));
+    fn assert_deserialization_fails(json_str: &str) {
+        assert!(serde_json::from_str::<StarknetRequest>(json_str).is_err());
     }
 }
