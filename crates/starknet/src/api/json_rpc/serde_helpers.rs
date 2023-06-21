@@ -175,7 +175,7 @@ pub mod hex_string {
         fn deserialization_of_prefixed_hex_str() {
             check_prefixed_hex_string_and_expected_result("0x0001", true);
             check_prefixed_hex_string_and_expected_result(
-                "0x10000000000000000000000000000001",
+                "0x1000000000000000000000000000000000000000000000000000000000000001",
                 false,
             );
         }
@@ -184,7 +184,7 @@ pub mod hex_string {
         fn deserialization_of_non_prefixed_hex_str() {
             check_non_prefixed_hex_string_and_expected_result("0001", true);
             check_non_prefixed_hex_string_and_expected_result(
-                "10000000000000000000000000000001",
+                "1000000000000000000000000000000000000000000000000000000000000001",
                 false,
             );
         }
