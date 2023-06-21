@@ -1006,7 +1006,7 @@ def rpc_map_traces(
     return result
 
 
-def gateway_to_rpc_invocation(invocation_dict: dict) -> Dict[str, Dict]:
+def gateway_to_rpc_invocation(invocation_dict: Optional[dict]) -> Optional[Dict[str, Dict]]:
     """
     Convert function invocation result from gateway to RPC.
     """
