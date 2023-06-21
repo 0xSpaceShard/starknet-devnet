@@ -1013,7 +1013,7 @@ def gateway_to_rpc_invocation(invocation_dict: dict) -> Dict[str, Dict]:
     if invocation_dict is None:
         return invocation_dict
 
-    # All unnecessary properties should be removed except this mentioned here.
+    # All unnecessary properties should be removed except these mentioned here.
     accepted_properties = {
         "contract_address",
         "entry_point_selector",
@@ -1026,12 +1026,12 @@ def gateway_to_rpc_invocation(invocation_dict: dict) -> Dict[str, Dict]:
         "events",
         "messages",
     }
-    keys = invocation_dict.copy().keys()
-    for key in keys:
-        if key not in accepted_properties:
-            del invocation_dict[key]
 
-    return invocation_dict
+    return {
+        key: invocation_dict[key]
+        for key in invocation_dict
+        if key in accepted_properties
+    }
 
 
 def rpc_invoke_txn_trace(trace_dict: dict) -> Dict[str, Dict]:
