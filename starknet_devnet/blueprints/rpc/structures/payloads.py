@@ -1027,6 +1027,19 @@ def gateway_to_rpc_invocation(invocation_dict: Optional[dict]) -> Optional[Dict[
         "messages",
     }
 
+    # Map calls from internal_calls and process recursively
+    invocation_dict["calls"] = invocation_dict["internal_calls"]
+    if invocation_dict["calls"]:
+        for i in range(len(invocation_dict["calls"])):
+            invocation_dict["calls"][i] = gateway_to_rpc_invocation(invocation_dict["calls"][i])
+
+    for event in invocation_dict["events"]:
+        del event["order"]
+
+    for message in invocation_dict["messages"]:
+        del message["order"]
+        message["from_address"] = invocation_dict["caller_address"]
+
     return {
         key: invocation_dict[key]
         for key in invocation_dict
