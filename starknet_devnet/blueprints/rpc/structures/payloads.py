@@ -1042,6 +1042,8 @@ def gateway_to_rpc_invocation(
         del message["order"]
         message["from_address"] = invocation_dict["caller_address"]
 
+    invocation_dict["entry_point_selector"] = invocation_dict["selector"]
+
     return {
         key: invocation_dict[key]
         for key in invocation_dict
