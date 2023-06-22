@@ -6,7 +6,11 @@ use starknet_types::starknet_api::{
     transaction::{EthAddress, Fee},
 };
 
-use super::{block::BlockHashHex, BlockId, ContractAddressHex, FeltHex};
+use super::{
+    block::BlockHashHex,
+    contract_class::{DeprecatedContractClass, SierraContractClass},
+    BlockId, ContractAddressHex, FeltHex,
+};
 
 pub type TransactionHashHex = FeltHex;
 pub type ClassHashHex = FeltHex;
@@ -127,7 +131,6 @@ pub struct DeployAccountTransaction {
     pub signature: TransactionSignature,
     pub nonce: Nonce,
     pub class_hash: ClassHashHex,
-    pub contract_address: ContractAddressHex,
     pub contract_address_salt: ContractAddressSaltHex,
     pub constructor_calldata: Calldata,
 }
@@ -137,7 +140,6 @@ pub struct DeployTransaction {
     pub transaction_hash: TransactionHashHex,
     pub version: TransactionVersionHex,
     pub class_hash: ClassHashHex,
-    pub contract_address: ContractAddressHex,
     pub contract_address_salt: ContractAddressSaltHex,
     pub constructor_calldata: Calldata,
 }
@@ -257,4 +259,90 @@ pub struct FunctionCall {
     pub contract_address: ContractAddressHex,
     pub entry_point_selector: EntryPointSelectorHex,
     pub calldata: Calldata,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct BroadcastedTransactionCommon {
+    pub max_fee: Fee,
+    pub version: TransactionVersionHex,
+    pub signature: TransactionSignature,
+    pub nonce: Nonce,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+pub struct BroadcastedTransactionWithType {
+    pub r#type: TransactionType,
+    #[serde(flatten)]
+    pub transaction: BroadcastedTransaction,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum BroadcastedTransaction {
+    Invoke(BroadcastedInvokeTransaction),
+    Declare(BroadcastedDeclareTransaction),
+    DeployAccount(BroadcastedDeployAccountTransaction),
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum BroadcastedInvokeTransaction {
+    V0(BroadcastedInvokeTransactionV0),
+    V1(BroadcastedInvokeTransactionV1),
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum BroadcastedDeclareTransaction {
+    V1(BroadcastedDeclareTransactionV1),
+    V2(BroadcastedDeclareTransactionV2),
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct BroadcastedInvokeTransactionV0 {
+    #[serde(flatten)]
+    pub common: BroadcastedTransactionCommon,
+    pub contract_address: ContractAddressHex,
+    pub entry_point_selector: EntryPointSelectorHex,
+    pub calldata: Calldata,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct BroadcastedInvokeTransactionV1 {
+    #[serde(flatten)]
+    pub common: BroadcastedTransactionCommon,
+    pub sender_address: ContractAddressHex,
+    pub calldata: Calldata,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct BroadcastedDeclareTransactionV1 {
+    #[serde(flatten)]
+    pub common: BroadcastedTransactionCommon,
+    pub contract_class: DeprecatedContractClass,
+    pub sender_address: ContractAddressHex,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct BroadcastedDeclareTransactionV2 {
+    #[serde(flatten)]
+    pub common: BroadcastedTransactionCommon,
+    pub contract_class: SierraContractClass,
+    pub sender_address: ContractAddressHex,
+    pub compiled_class_hash: CompiledClassHashHex,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct BroadcastedDeployAccountTransaction {
+    #[serde(flatten)]
+    pub common: BroadcastedTransactionCommon,
+    pub contract_address_salt: ContractAddressSaltHex,
+    pub constructor_calldata: Calldata,
+    pub class_hash: ClassHashHex,
 }

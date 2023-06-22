@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use super::FeltHex;
+use super::{
+    abi_entry::{AbiEntry, AbiEntryType},
+    FeltHex,
+};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
@@ -36,34 +39,214 @@ pub struct DeprecatedContractClass {
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct ContractClassAbiEntryWithType {
-    pub r#type: ContractClassAbiEntryType,
+    pub r#type: AbiEntryType,
     #[serde(flatten)]
-    pub entry: ContractClassAbiEntry,
+    pub entry: AbiEntry,
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize, Default)]
-pub enum ContractClassAbiEntryType {
-    #[serde(rename(deserialize = "constructor", serialize = "constructor"))]
-    Constructor,
-    #[serde(rename(deserialize = "event", serialize = "event"))]
-    Event,
-    #[serde(rename(deserialize = "function", serialize = "function"))]
-    #[default]
-    Function,
-    #[serde(rename(deserialize = "l1_handler", serialize = "l1_handler"))]
-    L1Handler,
-    #[serde(rename(deserialize = "struct", serialize = "struct"))]
-    Struct,
-}
+#[cfg(test)]
+mod tests {
+    use starknet_types::felt::Felt;
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-#[serde(untagged)]
-pub enum ContractClassAbiEntry {
-    /// An event abi entry.
-    Event(starknet_types::starknet_api::deprecated_contract_class::EventAbiEntry),
-    /// A function abi entry.
-    Function(starknet_types::starknet_api::deprecated_contract_class::FunctionAbiEntry),
-    /// A struct abi entry.
-    Struct(starknet_types::starknet_api::deprecated_contract_class::StructAbiEntry),
+    use crate::api::json_rpc::models::abi_entry::FunctionAbiEntry;
+
+    #[test]
+    fn deserialize_contract_class_abi_entry_with_type() {
+        let json_str = r#"{
+            "inputs": [],
+            "name": "getPublicKey",
+            "outputs": [
+                {
+                    "name": "publicKey",
+                    "type": "felt"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        }"#;
+
+        let obj = serde_json::from_str::<super::ContractClassAbiEntryWithType>(json_str).unwrap();
+        assert_eq!(obj.r#type, super::AbiEntryType::Function);
+        assert_eq!(
+            obj.entry,
+            super::AbiEntry::Function(FunctionAbiEntry {
+                name: "getPublicKey".to_string(),
+                inputs: vec![],
+                outputs: vec![
+                    starknet_types::starknet_api::deprecated_contract_class::TypedParameter {
+                        name: "publicKey".to_string(),
+                        r#type: "felt".to_string(),
+                    }
+                ],
+                state_mutability: Some("view".to_string()),
+            })
+        );
+
+        let json_str = r#"{
+            "inputs": [
+                {
+                    "name": "newPublicKey",
+                    "type": "felt"
+                }
+            ],
+            "name": "setPublicKey",
+            "outputs": [],
+            "type": "function"
+        }"#;
+
+        let obj = serde_json::from_str::<super::ContractClassAbiEntryWithType>(json_str).unwrap();
+        assert_eq!(obj.r#type, super::AbiEntryType::Function);
+        assert_eq!(
+            obj.entry,
+            super::AbiEntry::Function(FunctionAbiEntry {
+                name: "setPublicKey".to_string(),
+                inputs: vec![
+                    starknet_types::starknet_api::deprecated_contract_class::TypedParameter {
+                        name: "newPublicKey".to_string(),
+                        r#type: "felt".to_string(),
+                    }
+                ],
+                outputs: vec![],
+                state_mutability: None,
+            })
+        );
+
+        let json_str = r#"{
+            "inputs": [
+                {
+                    "name": "publicKey",
+                    "type": "felt"
+                }
+            ],
+            "name": "constructor",
+            "outputs": [],
+            "type": "constructor"
+        }"#;
+
+        let obj = serde_json::from_str::<super::ContractClassAbiEntryWithType>(json_str).unwrap();
+        assert_eq!(obj.r#type, super::AbiEntryType::Constructor);
+        assert_eq!(
+            obj.entry,
+            super::AbiEntry::Function(FunctionAbiEntry {
+                name: "constructor".to_string(),
+                inputs: vec![
+                    starknet_types::starknet_api::deprecated_contract_class::TypedParameter {
+                        name: "publicKey".to_string(),
+                        r#type: "felt".to_string(),
+                    }
+                ],
+                outputs: vec![],
+                state_mutability: None,
+            })
+        );
+    }
+    #[test]
+    fn deserialize_deprecated_contract_class() {
+        let json_str = r#"{
+            "abi": [
+                {
+                    "inputs": [],
+                    "name": "getPublicKey",
+                    "outputs": [
+                        {
+                            "name": "publicKey",
+                            "type": "felt"
+                        }
+                    ],
+                    "stateMutability": "view",
+                    "type": "function"
+                },
+                {
+                    "inputs": [
+                        {
+                            "name": "newPublicKey",
+                            "type": "felt"
+                        }
+                    ],
+                    "name": "setPublicKey",
+                    "outputs": [],
+                    "type": "function"
+                },
+                {
+                    "inputs": [
+                        {
+                            "name": "publicKey",
+                            "type": "felt"
+                        }
+                    ],
+                    "name": "constructor",
+                    "outputs": [],
+                    "type": "constructor"
+                }
+            ],
+            "program": "H4sIAAAAAAAA/8tIzcnJVyjPL8pJUQQAlQYXAAAA",
+            "entry_points_by_type": {
+                "EXTERNAL": [
+                    {
+                        "selector": "0xAAE3B5E8",
+                        "offset": "0x1"
+                    },
+                    {
+                        "selector": "0xAAE3B5E9",
+                        "offset": "0x2"
+                    }
+                ]
+            }
+        }"#;
+
+        let obj = serde_json::from_str::<super::DeprecatedContractClass>(json_str).unwrap();
+        assert_eq!(obj.abi.len(), 3);
+        assert_eq!(
+            obj.program,
+            "H4sIAAAAAAAA/8tIzcnJVyjPL8pJUQQAlQYXAAAA".to_string()
+        );
+        assert_eq!(obj.entry_points_by_type.len(), 1);
+        assert_eq!(obj.entry_points_by_type.get(&starknet_types::starknet_api::deprecated_contract_class::EntryPointType::External).unwrap().len(), 2);
+    }
+
+    #[test]
+    fn deserialize_sierra_contract_class() {
+        let json_str = r#"{
+            "sierra_program": ["0xAA", "0xBB"],
+            "contract_class_version": "1.0",
+            "entry_points_by_type": {
+                "EXTERNAL": [
+                    {
+                        "selector": "0xAAE3B5E8",
+                        "function_idx": 1
+                    },
+                    {
+                        "selector": "0xAAE3B5E9",
+                        "function_idx": 2
+                    }
+                ]
+            },
+            "abi": "H4sIAAAAAAAA/8tIzcnJVyjPL8pJUQQAlQYXAAAA"
+        }"#;
+        let obj = serde_json::from_str::<super::SierraContractClass>(json_str).unwrap();
+        assert_eq!(obj.sierra_program.len(), 2);
+        assert_eq!(obj.contract_class_version, "1.0".to_string());
+        assert_eq!(obj.entry_points_by_type.len(), 1);
+        assert_eq!(
+            obj.entry_points_by_type
+                .get(&starknet_types::starknet_api::state::EntryPointType::External)
+                .unwrap()
+                .len(),
+            2
+        );
+        assert_eq!(
+            obj.abi,
+            "H4sIAAAAAAAA/8tIzcnJVyjPL8pJUQQAlQYXAAAA".to_string()
+        );
+        assert_eq!(
+            obj.entry_points_by_type
+                .get(&starknet_types::starknet_api::state::EntryPointType::External)
+                .unwrap()[0]
+                .selector
+                .0,
+            starknet_types::starknet_api::hash::StarkFelt::from(
+                Felt::from_prefixed_hex_str("0xAAE3B5E8").unwrap()
+            )
+        );
+    }
 }

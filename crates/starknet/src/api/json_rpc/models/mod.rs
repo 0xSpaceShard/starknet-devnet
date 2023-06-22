@@ -1,3 +1,4 @@
+pub(crate) mod abi_entry;
 pub(crate) mod block;
 pub(crate) mod contract_class;
 pub(crate) mod request_response;
