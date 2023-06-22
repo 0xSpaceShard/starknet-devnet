@@ -1006,7 +1006,9 @@ def rpc_map_traces(
     return result
 
 
-def gateway_to_rpc_invocation(invocation_dict: Optional[dict]) -> Optional[Dict[str, Dict]]:
+def gateway_to_rpc_invocation(
+    invocation_dict: Optional[dict],
+) -> Optional[Dict[str, Dict]]:
     """
     Convert function invocation result from gateway to RPC.
     """
@@ -1028,10 +1030,10 @@ def gateway_to_rpc_invocation(invocation_dict: Optional[dict]) -> Optional[Dict[
     }
 
     # Map calls from internal_calls and process recursively
-    invocation_dict["calls"] = invocation_dict["internal_calls"]
-    if invocation_dict["calls"]:
-        for i in range(len(invocation_dict["calls"])):
-            invocation_dict["calls"][i] = gateway_to_rpc_invocation(invocation_dict["calls"][i])
+    invocation_dict["calls"] = [
+        gateway_to_rpc_invocation(nested_call)
+        for nested_call in invocation_dict["internal_calls"]
+    ]
 
     for event in invocation_dict["events"]:
         del event["order"]
