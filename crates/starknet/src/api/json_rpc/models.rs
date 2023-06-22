@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use starknet_types::starknet_api::block::BlockNumber;
 
-use super::{
+use crate::api::models::{
     block::{BlockHashHex, SyncStatus},
     transaction::{
         BroadcastedTransactionWithType, ClassHashHex, EventFilter, FunctionCall, TransactionHashHex,
@@ -87,8 +87,8 @@ mod tests {
         starknet_api::block::BlockNumber,
     };
 
-    use crate::api::json_rpc::models::{
-        request_response::{EstimateFeeInput, GetStorageInput},
+    use super::{ EstimateFeeInput, GetStorageInput};
+    use crate::api::models::{
         transaction::{
             BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
         },

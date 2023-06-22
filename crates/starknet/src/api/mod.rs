@@ -1,5 +1,7 @@
 pub(crate) mod http;
 pub(crate) mod json_rpc;
+pub(crate) mod models;
+pub(crate) mod serde_helpers;
 
 use std::sync::Arc;
 use tokio::sync::RwLock;

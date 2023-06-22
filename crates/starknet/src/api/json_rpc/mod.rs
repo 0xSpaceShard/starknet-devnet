@@ -1,23 +1,22 @@
 mod error;
 mod models;
-mod serde_helpers;
 
-use crate::api::json_rpc::models::request_response::{
+use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
     EstimateFeeInput, EventsInput, GetStorageInput, TransactionHashInput,
 };
 
 use self::error::RpcResult;
-use self::models::block::Block;
-use self::models::contract_class::ContractClass;
-use self::models::request_response::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
-use self::models::state::ThinStateDiff;
-use self::models::transaction::{
+use crate::api::models::{block::Block, contract_class::ContractClass};
+use models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
+use crate::api::models::state::ThinStateDiff;
+use crate::api::models::transaction::{
     BroadcastedTransactionWithType, ClassHashHex, EventFilter, EventsChunk, FunctionCall,
     Transaction, TransactionHashHex, TransactionReceipt, TransactionWithType,
 };
-use self::models::{BlockId, ContractAddressHex, FeltHex, PatriciaKeyHex};
+use crate::api::models::{BlockId, ContractAddressHex, FeltHex, PatriciaKeyHex};
 use super::Api;
+use models::BlockIdInput;
 
 use serde::Deserialize;
 use server::rpc_core::response::ResponseResult;
@@ -26,7 +25,7 @@ use starknet_types::starknet_api::block::BlockNumber;
 use tracing::{info, trace};
 
 use self::error::ToRpcResponseResult;
-use self::serde_helpers::empty_params;
+use crate::api::serde_helpers::empty_params;
 
 #[async_trait::async_trait]
 impl RpcHandler for JsonRpcHandler {
@@ -257,31 +256,31 @@ impl JsonRpcHandler {
 #[serde(tag = "method", content = "params")]
 pub enum StarknetRequest {
     #[serde(rename = "starknet_getBlockWithTxHashes")]
-    BlockWithTransactionHashes(models::request_response::BlockIdInput),
+    BlockWithTransactionHashes(BlockIdInput),
     #[serde(rename = "starknet_getBlockWithTxs")]
-    BlockWithFullTransactions(models::request_response::BlockIdInput),
+    BlockWithFullTransactions(BlockIdInput),
     #[serde(rename = "starknet_getStateUpdate")]
-    StateUpdate(models::request_response::BlockIdInput),
+    StateUpdate(BlockIdInput),
     #[serde(rename = "starknet_getStorageAt")]
-    StorageAt(models::request_response::GetStorageInput),
+    StorageAt(GetStorageInput),
     #[serde(rename = "starknet_getTransactionByHash")]
-    TransactionByHash(models::request_response::TransactionHashInput),
+    TransactionByHash(TransactionHashInput),
     #[serde(rename = "starknet_getTransactionByBlockIdAndIndex")]
-    TransactionByBlockAndIndex(models::request_response::BlockAndIndexInput),
+    TransactionByBlockAndIndex(BlockAndIndexInput),
     #[serde(rename = "starknet_getTransactionReceipt")]
-    TransactionReceiptByTransactionHash(models::request_response::TransactionHashInput),
+    TransactionReceiptByTransactionHash(TransactionHashInput),
     #[serde(rename = "starknet_getClass")]
-    ClassByHash(models::request_response::BlockAndClassHashInput),
+    ClassByHash(BlockAndClassHashInput),
     #[serde(rename = "starknet_getClassHashAt")]
-    ClassHashAtContractAddress(models::request_response::BlockAndContractAddressInput),
+    ClassHashAtContractAddress(BlockAndContractAddressInput),
     #[serde(rename = "starknet_getClassAt")]
-    ClassAtContractAddress(models::request_response::BlockAndContractAddressInput),
+    ClassAtContractAddress(BlockAndContractAddressInput),
     #[serde(rename = "starknet_getBlockTransactionCount")]
-    BlockTransactionCount(models::request_response::BlockIdInput),
+    BlockTransactionCount(BlockIdInput),
     #[serde(rename = "starknet_call")]
-    Call(models::request_response::CallInput),
+    Call(CallInput),
     #[serde(rename = "starknet_estimateFee")]
-    EsimateFee(models::request_response::EstimateFeeInput),
+    EsimateFee(EstimateFeeInput),
     #[serde(rename = "starknet_blockNumber", with = "empty_params")]
     BlockNumber,
     #[serde(rename = "starknet_blockHashAndNumber", with = "empty_params")]
@@ -293,9 +292,9 @@ pub enum StarknetRequest {
     #[serde(rename = "starknet_syncing", with = "empty_params")]
     Syncing,
     #[serde(rename = "starknet_getEvents")]
-    Events(models::request_response::EventsInput),
+    Events(EventsInput),
     #[serde(rename = "starknet_getNonce")]
-    ContractNonce(models::request_response::BlockAndContractAddressInput),
+    ContractNonce(BlockAndContractAddressInput),
 }
 
 #[cfg(test)]

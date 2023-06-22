@@ -1,4 +1,7 @@
 use serde::{Deserialize, Serialize};
+use starknet_types::starknet_api::transaction::Fee;
+
+use crate::api::models::{ContractAddressHex, transaction::{EntryPointSelectorHex, Calldata, Nonce, TransactionHashHex}, FeltHex, block::BlockHashHex};
 
 #[derive(Deserialize, Debug)]
 pub(crate) struct Path {
@@ -9,50 +12,45 @@ pub(crate) struct Path {
 pub(crate) struct PostmanLoadL1MessagingContract {
     #[serde(rename = "networkUrl")]
     network_url: String,
-    address: String,
-}
-
-#[derive(Serialize)]
-pub(crate) struct TransactionHashHex {
-    pub(crate) transaction_hash: String,
+    address: ContractAddressHex,
 }
 
 #[derive(Deserialize)]
 pub(crate) struct MessageToL2 {
-    l2_contract_address: String,
-    entry_point_selector: String,
-    l1_contract_addresss: String,
-    payload: Vec<String>,
-    paid_fee_on_l1: String,
-    nonce: String,
+    l2_contract_address: ContractAddressHex,
+    entry_point_selector: EntryPointSelectorHex,
+    l1_contract_addresss: ContractAddressHex,
+    payload: Calldata,
+    paid_fee_on_l1: Fee,
+    nonce: Nonce,
 }
 
 #[derive(Deserialize)]
 pub(crate) struct MessageFromL2 {
-    l2_contract_address: String,
-    l1_contract_addresss: String,
-    payload: Vec<String>,
+    l2_contract_address: ContractAddressHex,
+    l1_contract_addresss: ContractAddressHex,
+    payload: Calldata,
 }
 
 #[derive(Serialize)]
 pub(crate) struct MessageHash {
-    message_hash: String,
+    message_hash: FeltHex,
 }
 
 #[derive(Serialize)]
 pub(crate) struct CreatedBlock {
-    block_hash: String,
+    block_hash: BlockHashHex,
 }
 
 #[derive(Deserialize)]
 pub(crate) struct AbortingBlocks {
     #[serde(rename = "startingBlockHash")]
-    starting_block_hash: String,
+    starting_block_hash: BlockHashHex,
 }
 
 #[derive(Serialize)]
 pub(crate) struct AbortedBlocks {
-    aborted: Vec<String>,
+    aborted: Vec<BlockHashHex>,
 }
 
 #[derive(Deserialize)]
@@ -70,7 +68,7 @@ pub(crate) struct PredeployedAccount {
 
 #[derive(Deserialize)]
 pub(crate) struct ContractAddress {
-    contract_address: String,
+    contract_address: ContractAddressHex,
 }
 
 #[derive(Serialize)]
@@ -87,12 +85,12 @@ pub(crate) struct Balance {
 #[derive(Serialize)]
 pub(crate) struct FeeToken {
     symbol: String,
-    address: String,
+    address: ContractAddressHex,
 }
 
 #[derive(Deserialize)]
 pub(crate) struct MintTokens {
-    address: String,
+    address: ContractAddressHex,
     amount: u128,
     lite: Option<bool>,
 }
@@ -101,7 +99,7 @@ pub(crate) struct MintTokens {
 pub(crate) struct MintTokensResponse {
     new_balance: u128,
     unit: String,
-    tx_hash: String,
+    tx_hash: TransactionHashHex,
 }
 
 #[derive(Serialize)]

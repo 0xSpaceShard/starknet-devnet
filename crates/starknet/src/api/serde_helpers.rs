@@ -104,7 +104,7 @@ pub mod hex_string {
             starknet_api::serde_utils::bytes_from_hex_str,
         };
 
-        use crate::api::json_rpc::serde_helpers::hex_string::{
+        use crate::api::serde_helpers::hex_string::{
             deserialize_non_prefixed_hex_string_to_felt, deserialize_prefixed_hex_string_to_felt,
             deserialize_to_prefixed_contract_address, deserialize_to_prefixed_patricia_key,
             serialize_contract_address_to_prefixed_hex, serialize_to_prefixed_hex,

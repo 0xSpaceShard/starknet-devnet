@@ -48,7 +48,7 @@ pub struct ContractClassAbiEntryWithType {
 mod tests {
     use starknet_types::felt::Felt;
 
-    use crate::api::json_rpc::models::abi_entry::FunctionAbiEntry;
+    use crate::api::models::abi_entry::FunctionAbiEntry;
 
     #[test]
     fn deserialize_contract_class_abi_entry_with_type() {

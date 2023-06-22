@@ -9,10 +9,9 @@ use self::{
         AbortedBlocks, AbortingBlocks, Balance, ContractAddress, ContractCode, CreatedBlock,
         FeeToken, ForkStatus, MessageFromL2, MessageHash, MessageToL2, MintTokens,
         MintTokensResponse, Path, PostmanLoadL1MessagingContract, PredeployedAccount, Time,
-        TransactionHashHex,
     },
 };
-use super::Api;
+use super::{Api, models::transaction::TransactionHashHex};
 
 type HttpApiResult<T> = Result<T, HttpApiError>;
 
