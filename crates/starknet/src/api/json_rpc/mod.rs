@@ -134,23 +134,23 @@ impl JsonRpcHandler {
 }
 
 impl JsonRpcHandler {
-    async fn get_block_with_tx_hashes(&self, block_id: BlockId) -> RpcResult<Block> {
+    async fn get_block_with_tx_hashes(&self, _block_id: BlockId) -> RpcResult<Block> {
         Err(error::ApiError::BlockNotFound)
     }
 
-    async fn get_block_with_full_txs(&self, block_id: BlockId) -> RpcResult<Block> {
+    async fn get_block_with_full_txs(&self, _block_id: BlockId) -> RpcResult<Block> {
         Err(error::ApiError::BlockNotFound)
     }
 
-    async fn get_state_update(&self, block_id: BlockId) -> RpcResult<ThinStateDiff> {
+    async fn get_state_update(&self, _block_id: BlockId) -> RpcResult<ThinStateDiff> {
         Err(error::ApiError::BlockNotFound)
     }
 
     async fn get_storage_at(
         &self,
-        contract_address: ContractAddressHex,
-        key: PatriciaKeyHex,
-        block_id: BlockId,
+        _contract_address: ContractAddressHex,
+        _key: PatriciaKeyHex,
+        _block_id: BlockId,
     ) -> RpcResult<PatriciaKeyHex> {
         Err(error::ApiError::ContractNotFound)
     }
@@ -181,7 +181,7 @@ impl JsonRpcHandler {
 
     async fn get_class(
         &self,
-        block_id: BlockId,
+        _block_id: BlockId,
         class_hash: ClassHashHex,
     ) -> RpcResult<ContractClass> {
         Err(error::ApiError::ClassHashNotFound(class_hash))
@@ -189,32 +189,32 @@ impl JsonRpcHandler {
 
     async fn get_class_hash_at(
         &self,
-        block_id: BlockId,
-        contract_address: ContractAddressHex,
+        _block_id: BlockId,
+        _contract_address: ContractAddressHex,
     ) -> RpcResult<ClassHashHex> {
         Err(error::ApiError::ContractNotFound)
     }
 
     async fn get_class_at(
         &self,
-        block_id: BlockId,
-        contract_address: ContractAddressHex,
+        _block_id: BlockId,
+        _contract_address: ContractAddressHex,
     ) -> RpcResult<ContractClass> {
         Err(error::ApiError::ContractNotFound)
     }
 
-    async fn get_block_txs_count(&self, block_id: BlockId) -> RpcResult<BlockNumber> {
+    async fn get_block_txs_count(&self, _block_id: BlockId) -> RpcResult<BlockNumber> {
         Err(error::ApiError::BlockNotFound)
     }
 
-    async fn call(&self, block_id: BlockId, request: FunctionCall) -> RpcResult<Vec<FeltHex>> {
+    async fn call(&self, _block_id: BlockId, _request: FunctionCall) -> RpcResult<Vec<FeltHex>> {
         Err(error::ApiError::ContractError)
     }
 
     async fn estimate_fee(
         &self,
-        block_id: BlockId,
-        request: Vec<BroadcastedTransactionWithType>,
+        _block_id: BlockId,
+        _request: Vec<BroadcastedTransactionWithType>,
     ) -> RpcResult<Vec<EstimateFeeOutput>> {
         Err(error::ApiError::ContractError)
     }
@@ -240,14 +240,14 @@ impl JsonRpcHandler {
         Ok(SyncingOutput::False(false))
     }
 
-    async fn get_events(&self, filter: EventFilter) -> RpcResult<EventsChunk> {
+    async fn get_events(&self, _filter: EventFilter) -> RpcResult<EventsChunk> {
         Err(error::ApiError::InvalidContinuationToken)
     }
 
     async fn get_nonce(
         &self,
-        block_id: BlockId,
-        contract_address: ContractAddressHex,
+        _block_id: BlockId,
+        _contract_address: ContractAddressHex,
     ) -> RpcResult<FeltHex> {
         Err(error::ApiError::BlockNotFound)
     }
@@ -310,7 +310,7 @@ mod requests_tests {
             r#"{"method":"starknet_getBlockWithTxHashes","params":{"block_id":"latest"}}"#;
         assert_deserialization_succeeds(json_str);
 
-        assert_deserialization_fails(&json_str.replace("latest", "0x134134").to_string());
+        assert_deserialization_fails(&json_str.replace("latest", "0x134134"));
     }
 
     #[test]
@@ -326,7 +326,7 @@ mod requests_tests {
         let json_str = r#"{"method":"starknet_getStateUpdate","params":{"block_id":"latest"}}"#;
         assert_deserialization_succeeds(json_str);
 
-        assert_deserialization_fails(&json_str.replace("latest", "0x134134").to_string());
+        assert_deserialization_fails(&json_str.replace("latest", "0x134134"));
     }
 
     #[test]
@@ -334,7 +334,7 @@ mod requests_tests {
         let json_str = r#"{"method":"starknet_getStorageAt","params":{"contract_address":"0x134134","key":"0x134134","block_id":"latest"}}"#;
         assert_deserialization_succeeds(json_str);
 
-        assert_deserialization_fails(&json_str.replace("0x134134", "134134").to_string());
+        assert_deserialization_fails(&json_str.replace("0x134134", "134134"));
     }
 
     #[test]
@@ -371,7 +371,7 @@ mod requests_tests {
         let json_str = r#"{"method":"starknet_getTransactionByBlockIdAndIndex","params":{"block_id":"latest","index":0}}"#;
         assert_deserialization_succeeds(json_str);
 
-        assert_deserialization_fails(json_str.replace("0", "0x134134").as_str());
+        assert_deserialization_fails(json_str.replace('0', "0x134134").as_str());
     }
 
     #[test]

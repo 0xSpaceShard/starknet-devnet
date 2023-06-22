@@ -94,13 +94,13 @@ pub(crate) async fn predeployed_accounts() -> HttpApiResult<Json<Vec<Predeployed
 }
 
 pub(crate) async fn get_contract_code(
-    Query(contract_address): Query<ContractAddress>,
+    Query(_contract_address): Query<ContractAddress>,
 ) -> HttpApiResult<Json<ContractCode>> {
     Err(HttpApiError::GeneralError)
 }
 
 pub(crate) async fn get_account_balance(
-    Query(contract_address): Query<ContractAddress>,
+    Query(_contract_address): Query<ContractAddress>,
 ) -> HttpApiResult<Json<Balance>> {
     Err(HttpApiError::GeneralError)
 }
@@ -111,7 +111,7 @@ pub(crate) async fn get_fee_token() -> HttpApiResult<Json<FeeToken>> {
     Err(HttpApiError::GeneralError)
 }
 
-pub(crate) async fn mint(Json(data): Json<MintTokens>) -> HttpApiResult<Json<MintTokensResponse>> {
+pub(crate) async fn mint(Json(_data): Json<MintTokens>) -> HttpApiResult<Json<MintTokensResponse>> {
     Err(HttpApiError::GeneralError)
 }
 

@@ -338,7 +338,7 @@ mod tests {
         // Incorrect key key
         assert_get_storage_input_correctness(
             false,
-            expected_storage_input.clone(),
+            expected_storage_input,
             r#"{"block_id": {"block_hash": "0x01"}, "contract_address": "0x02", "keyy": "0x03"}"#,
         );
     }
