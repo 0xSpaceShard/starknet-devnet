@@ -11,7 +11,7 @@ use self::{
         MintTokensResponse, Path, PostmanLoadL1MessagingContract, PredeployedAccount, Time,
     },
 };
-use super::{Api, models::transaction::TransactionHashHex};
+use super::{models::transaction::TransactionHashHex, Api};
 
 type HttpApiResult<T> = Result<T, HttpApiError>;
 

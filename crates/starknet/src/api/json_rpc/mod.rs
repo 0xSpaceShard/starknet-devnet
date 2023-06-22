@@ -7,16 +7,16 @@ use models::{
 };
 
 use self::error::RpcResult;
-use crate::api::models::{block::Block, contract_class::ContractClass};
-use models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
+use super::Api;
 use crate::api::models::state::ThinStateDiff;
 use crate::api::models::transaction::{
     BroadcastedTransactionWithType, ClassHashHex, EventFilter, EventsChunk, FunctionCall,
     Transaction, TransactionHashHex, TransactionReceipt, TransactionWithType,
 };
+use crate::api::models::{block::Block, contract_class::ContractClass};
 use crate::api::models::{BlockId, ContractAddressHex, FeltHex, PatriciaKeyHex};
-use super::Api;
 use models::BlockIdInput;
+use models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
 
 use serde::Deserialize;
 use server::rpc_core::response::ResponseResult;

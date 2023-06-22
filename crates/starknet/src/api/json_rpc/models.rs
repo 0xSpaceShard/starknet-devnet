@@ -87,7 +87,7 @@ mod tests {
         starknet_api::block::BlockNumber,
     };
 
-    use super::{ EstimateFeeInput, GetStorageInput};
+    use super::{EstimateFeeInput, GetStorageInput};
     use crate::api::models::{
         transaction::{
             BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,

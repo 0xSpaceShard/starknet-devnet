@@ -17,8 +17,6 @@ pub fn serve_http_api_json_rpc(addr: SocketAddr, config: ServerConfig) -> Starkn
     let http = api::http::HttpApiHandler { api: api.clone() };
     let json_rpc = api::json_rpc::JsonRpcHandler { api };
 
-    
-
     server::builder::Builder::<JsonRpcHandler, HttpApiHandler>::new(addr)
         .set_config(config)
         .json_rpc_route("/rpc", json_rpc)

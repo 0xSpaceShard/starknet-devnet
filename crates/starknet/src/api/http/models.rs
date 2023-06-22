@@ -1,7 +1,11 @@
 use serde::{Deserialize, Serialize};
 use starknet_types::starknet_api::transaction::Fee;
 
-use crate::api::models::{ContractAddressHex, transaction::{EntryPointSelectorHex, Calldata, Nonce, TransactionHashHex}, FeltHex, block::BlockHashHex};
+use crate::api::models::{
+    block::BlockHashHex,
+    transaction::{Calldata, EntryPointSelectorHex, Nonce, TransactionHashHex},
+    ContractAddressHex, FeltHex,
+};
 
 #[derive(Deserialize, Debug)]
 pub(crate) struct Path {
