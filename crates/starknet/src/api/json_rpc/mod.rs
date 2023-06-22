@@ -13,8 +13,8 @@ use self::models::contract_class::ContractClass;
 use self::models::request_response::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
 use self::models::state::ThinStateDiff;
 use self::models::transaction::{
-    ClassHashHex, EventFilter, EventsChunk, FunctionCall, Transaction, TransactionHashHex,
-    TransactionReceipt, TransactionWithType,
+    BroadcastedTransactionWithType, ClassHashHex, EventFilter, EventsChunk, FunctionCall,
+    Transaction, TransactionHashHex, TransactionReceipt, TransactionWithType,
 };
 use self::models::{BlockId, ContractAddressHex, FeltHex, PatriciaKeyHex};
 use super::Api;
@@ -214,7 +214,7 @@ impl JsonRpcHandler {
     async fn estimate_fee(
         &self,
         block_id: BlockId,
-        request: Vec<Transaction>,
+        request: Vec<BroadcastedTransactionWithType>,
     ) -> RpcResult<Vec<EstimateFeeOutput>> {
         Err(error::ApiError::ContractError)
     }
@@ -276,7 +276,7 @@ pub enum StarknetRequest {
     ClassHashAtContractAddress(models::request_response::BlockAndContractAddressInput),
     #[serde(rename = "starknet_getClassAt")]
     ClassAtContractAddress(models::request_response::BlockAndContractAddressInput),
-    #[serde(rename = "starknet_getBlockTransactionsCount")]
+    #[serde(rename = "starknet_getBlockTransactionCount")]
     BlockTransactionCount(models::request_response::BlockIdInput),
     #[serde(rename = "starknet_call")]
     Call(models::request_response::CallInput),
@@ -299,26 +299,42 @@ pub enum StarknetRequest {
 }
 
 #[cfg(test)]
-mod tests {
-    use starknet_types::{
-        felt::Felt,
-        starknet_api::block::{Block, BlockNumber},
-    };
+mod requests_tests {
+    use starknet_types::felt::Felt;
 
-    use crate::api::json_rpc::models::{request_response::BlockIdInput, FeltHex};
-
-    use super::{
-        models::{BlockHashOrNumber, BlockId, Tag},
-        StarknetRequest,
-    };
+    use super::StarknetRequest;
 
     #[test]
-    fn deserialize_block_with_transaction_hashes_request() {
+    fn deserialize_get_block_with_transaction_hashes_request() {
         let json_str =
             r#"{"method":"starknet_getBlockWithTxHashes","params":{"block_id":"latest"}}"#;
-        let request = serde_json::from_str::<StarknetRequest>(json_str).unwrap();
-        assert!(false);
-        //assert_block_id_tag_is_correct(Tag::Latest, generated_block_id)
+        assert_deserialization_succeeds(json_str);
+
+        assert_deserialization_fails(&json_str.replace("latest", "0x134134").to_string());
+    }
+
+    #[test]
+    fn deserialize_get_block_with_transactions_request() {
+        let json_str = r#"{"method":"starknet_getBlockWithTxs","params":{"block_id":"pending"}}"#;
+        assert_deserialization_succeeds(json_str);
+
+        assert_deserialization_fails(json_str.replace("pending", "0x134134").as_str());
+    }
+
+    #[test]
+    fn deserialize_get_state_update_request() {
+        let json_str = r#"{"method":"starknet_getStateUpdate","params":{"block_id":"latest"}}"#;
+        assert_deserialization_succeeds(json_str);
+
+        assert_deserialization_fails(&json_str.replace("latest", "0x134134").to_string());
+    }
+
+    #[test]
+    fn deserialize_get_storage_at_request() {
+        let json_str = r#"{"method":"starknet_getStorageAt","params":{"contract_address":"0x134134","key":"0x134134","block_id":"latest"}}"#;
+        assert_deserialization_succeeds(json_str);
+
+        assert_deserialization_fails(&json_str.replace("0x134134", "134134").to_string());
     }
 
     #[test]
@@ -348,6 +364,142 @@ mod tests {
         assert_deserialization_fails(
             r#"{"method":"starknet_getTransactionByHash","params":{"transaction_hash":"0x004134134134134134134134134134134134134134134134134134134134134134"}}"#,
         );
+    }
+
+    #[test]
+    fn deserialize_get_transaction_by_block_and_index_request() {
+        let json_str = r#"{"method":"starknet_getTransactionByBlockIdAndIndex","params":{"block_id":"latest","index":0}}"#;
+        assert_deserialization_succeeds(json_str);
+
+        assert_deserialization_fails(json_str.replace("0", "0x134134").as_str());
+    }
+
+    #[test]
+    fn deserialize_get_transaction_receipt_request() {
+        let json_str = r#"{"method":"starknet_getTransactionReceipt","params":{"transaction_hash":"0xAAABB"}}"#;
+        assert_deserialization_succeeds(json_str);
+
+        assert_deserialization_fails(json_str.replace("0xAAABB", "134134").as_str());
+    }
+
+    #[test]
+    fn deserialize_get_class_request() {
+        let json_str = r#"{"method":"starknet_getClass","params":{"block_id":"latest","class_hash":"0xAAABB"}}"#;
+        assert_deserialization_succeeds(json_str);
+
+        assert_deserialization_fails(json_str.replace("0xAAABB", "134134").as_str());
+    }
+
+    #[test]
+    fn deserialize_get_class_hash_at_request() {
+        let json_str = r#"{"method":"starknet_getClassHashAt","params":{"block_id":"latest","contract_address":"0xAAABB"}}"#;
+        assert_deserialization_succeeds(json_str);
+
+        assert_deserialization_fails(json_str.replace("0xAAABB", "134134").as_str());
+    }
+
+    #[test]
+    fn deserialize_get_class_at_request() {
+        let json_str = r#"{"method":"starknet_getClassAt","params":{"block_id":"latest","contract_address":"0xAAABB"}}"#;
+        assert_deserialization_succeeds(json_str);
+
+        assert_deserialization_fails(json_str.replace("0xAAABB", "134134").as_str());
+    }
+
+    #[test]
+    fn deserialize_get_block_transaction_count_request() {
+        let json_str =
+            r#"{"method":"starknet_getBlockTransactionCount","params":{"block_id":"latest"}}"#;
+        assert_deserialization_succeeds(json_str);
+
+        assert_deserialization_fails(json_str.replace("latest", "0x134134").as_str());
+    }
+
+    #[test]
+    fn deserialize_call_request() {
+        let json_str = r#"{
+            "method":"starknet_call",
+            "params":{
+                "block_id":"latest",
+                "request":{
+                    "contract_address":"0xAAABB",
+                    "entry_point_selector":"0x134134",
+                    "calldata":["0x134134"]
+                }
+            }
+        }"#;
+
+        assert_deserialization_succeeds(json_str);
+
+        assert_deserialization_fails(json_str.replace("starknet_call", "starknet_Call").as_str());
+
+        assert_deserialization_fails(json_str.replace("0xAAABB", "134134").as_str());
+    }
+
+    #[test]
+    fn deserialize_estimate_fee_request() {
+        let json_str = r#"{
+            "method":"starknet_estimateFee",
+            "params":{
+                "block_id":"latest",
+                "request":[
+                    {
+                        "type":"DEPLOY_ACCOUNT",
+                        "max_fee": "0xA",
+                        "version": "0x1",
+                        "signature": ["0xFF", "0xAA"],
+                        "nonce": "0x0",
+                        "contract_address_salt": "0x01",
+                        "constructor_calldata": ["0x01"],
+                        "class_hash": "0x01"
+                    }
+                ]
+            }
+        }"#;
+
+        assert_deserialization_succeeds(json_str);
+
+        assert_deserialization_fails(json_str.replace("estimateFee", "estimate_fee").as_str());
+    }
+
+    #[test]
+    fn deserialize_get_events_request() {
+        let json_str = r#"{
+            "method":"starknet_getEvents",
+            "params":{
+                "filter":{
+                    "chunk_size": 1,
+                    "address":"0xAAABB",
+                    "keys":[["0xFF"], ["0xAA"]],
+                    "from_block": "latest",
+                    "to_block": "pending",
+                    "continuation_token": "0x11"
+                }
+            }
+        }"#;
+
+        assert_deserialization_succeeds(json_str);
+        assert_deserialization_succeeds(json_str.replace(r#""to_block": "pending","#, "").as_str());
+
+        assert_deserialization_fails(json_str.replace(r#""chunk_size": 1,"#, "").as_str());
+    }
+
+    #[test]
+    fn deserialize_get_nonce_request() {
+        let json_str = r#"{
+            "method":"starknet_getNonce",
+            "params":{
+                "block_id":"latest",
+                "contract_address":"0xAAABB"
+            }
+        }"#;
+
+        assert_deserialization_succeeds(json_str);
+        assert_deserialization_fails(json_str.replace(r#""block_id":"latest","#, "").as_str());
+    }
+
+    fn assert_deserialization_succeeds(json_str: &str) {
+        serde_json::from_str::<StarknetRequest>(json_str).unwrap();
     }
 
     fn assert_deserialization_fails(json_str: &str) {
