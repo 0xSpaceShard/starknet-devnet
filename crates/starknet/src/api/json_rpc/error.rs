@@ -3,7 +3,6 @@ use server::rpc_core::{error::RpcError, response::ResponseResult};
 
 use tracing::error;
 
-
 #[allow(unused)]
 #[derive(thiserror::Error, Debug)]
 pub enum ApiError {
@@ -111,11 +110,10 @@ impl<T: Serialize> ToRpcResponseResult for RpcResult<T> {
     }
 }
 
-
 #[cfg(test)]
-mod tests{
+mod tests {
 
-    use crate::api::{json_rpc::error::{ApiError, RpcResult, ToRpcResponseResult}};
+    use crate::api::json_rpc::error::{ApiError, RpcResult, ToRpcResponseResult};
 
     #[test]
     fn contract_not_found_error() {
@@ -129,12 +127,20 @@ mod tests{
 
     #[test]
     fn transaction_not_found_error() {
-        error_expected_code_and_message(ApiError::TransactionNotFound, 25, "Transaction hash not found");
+        error_expected_code_and_message(
+            ApiError::TransactionNotFound,
+            25,
+            "Transaction hash not found",
+        );
     }
 
     #[test]
     fn invalid_transaction_index_error() {
-        error_expected_code_and_message(ApiError::InvalidTransactionIndexInBlock, 27, "Invalid transaction index in a block");
+        error_expected_code_and_message(
+            ApiError::InvalidTransactionIndexInBlock,
+            27,
+            "Invalid transaction index in a block",
+        );
     }
 
     #[test]
@@ -144,7 +150,11 @@ mod tests{
 
     #[test]
     fn page_size_too_big_error() {
-        error_expected_code_and_message(ApiError::RequestPageSizeTooBig, 31, "Requested page size is too big");
+        error_expected_code_and_message(
+            ApiError::RequestPageSizeTooBig,
+            31,
+            "Requested page size is too big",
+        );
     }
 
     #[test]
@@ -154,12 +164,20 @@ mod tests{
 
     #[test]
     fn invalid_continuation_token_error() {
-        error_expected_code_and_message(ApiError::InvalidContinuationToken, 33, "The supplied continuation token is invalid or unknown");
+        error_expected_code_and_message(
+            ApiError::InvalidContinuationToken,
+            33,
+            "The supplied continuation token is invalid or unknown",
+        );
     }
 
     #[test]
     fn too_many_keys_in_filter_error() {
-        error_expected_code_and_message(ApiError::TooManyKeysInFilter, 34, "Too many keys provided in a filter");
+        error_expected_code_and_message(
+            ApiError::TooManyKeysInFilter,
+            34,
+            "Too many keys provided in a filter",
+        );
     }
 
     #[test]
@@ -169,12 +187,15 @@ mod tests{
 
     fn error_expected_code_and_message(err: ApiError, expected_code: i64, expected_message: &str) {
         let error_result = RpcResult::<()>::Err(err).to_rpc_result();
-        match error_result  {
+        match error_result {
             server::rpc_core::response::ResponseResult::Success(_) => assert!(false),
             server::rpc_core::response::ResponseResult::Error(err) => {
                 assert_eq!(err.message, expected_message);
-                assert_eq!(err.code, server::rpc_core::error::ErrorCode::ServerError(expected_code))
-            },
+                assert_eq!(
+                    err.code,
+                    server::rpc_core::error::ErrorCode::ServerError(expected_code)
+                )
+            }
         }
     }
 }

@@ -489,13 +489,10 @@ mod tests {
             serde_json::from_str::<BlockIdInput>(json_str_block_id)
         {
             match block_id {
-                BlockId::HashOrNumber(hash_or_number) => match hash_or_number {
-                    BlockHashOrNumber::Hash(generated_block_hash) => {
-                        generated_block_hash
-                            == FeltHex(Felt::from_prefixed_hex_str(expected_block_hash).unwrap())
-                    }
-                    _ => false,
-                },
+                BlockId::HashOrNumber(BlockHashOrNumber::Hash(generated_block_hash)) => {
+                    generated_block_hash
+                        == FeltHex(Felt::from_prefixed_hex_str(expected_block_hash).unwrap())
+                }
                 _ => false,
             }
         } else {

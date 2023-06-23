@@ -4,10 +4,8 @@ use std::{
 };
 
 use ::server::ServerConfig;
-use tracing::{info};
-use tracing_subscriber::{
-    EnvFilter,
-};
+use tracing::info;
+use tracing_subscriber::EnvFilter;
 
 mod api;
 mod server;

@@ -346,7 +346,7 @@ mod requests_tests {
                     input.transaction_hash.0 == Felt::from_prefixed_hex_str("0x134134").unwrap()
                 );
             }
-            _ => assert!(false),
+            _ => panic!("Wrong request type"),
         }
 
         // Errored json, there is no object just string is passed
