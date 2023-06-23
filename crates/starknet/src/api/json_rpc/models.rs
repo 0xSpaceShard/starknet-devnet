@@ -442,13 +442,11 @@ mod tests {
         expected_tag: Tag,
         json_str_block_id: &str,
     ) {
-        let is_correct = if let Ok(BlockIdInput { block_id }) =
-            serde_json::from_str::<BlockIdInput>(json_str_block_id)
+        let is_correct = if let Ok(BlockIdInput {
+            block_id: BlockId::Tag(generated_tag),
+        }) = serde_json::from_str::<BlockIdInput>(json_str_block_id)
         {
-            match block_id {
-                BlockId::Tag(generated_tag) => generated_tag == expected_tag,
-                _ => false,
-            }
+            generated_tag == expected_tag
         } else {
             false
         };
@@ -461,18 +459,11 @@ mod tests {
         expected_block_number: u64,
         json_str_block_id: &str,
     ) {
-        let is_correct = if let Ok(BlockIdInput { block_id }) =
-            serde_json::from_str::<BlockIdInput>(json_str_block_id)
+        let is_correct = if let Ok(BlockIdInput {
+            block_id: BlockId::HashOrNumber(BlockHashOrNumber::Number(generated_block_number)),
+        }) = serde_json::from_str::<BlockIdInput>(json_str_block_id)
         {
-            match block_id {
-                BlockId::HashOrNumber(hash_or_number) => match hash_or_number {
-                    BlockHashOrNumber::Number(generated_block_number) => {
-                        generated_block_number == BlockNumber(expected_block_number)
-                    }
-                    _ => false,
-                },
-                _ => false,
-            }
+            generated_block_number == BlockNumber(expected_block_number)
         } else {
             false
         };
@@ -485,16 +476,12 @@ mod tests {
         expected_block_hash: &str,
         json_str_block_id: &str,
     ) {
-        let is_correct = if let Ok(BlockIdInput { block_id }) =
-            serde_json::from_str::<BlockIdInput>(json_str_block_id)
+        let is_correct = if let Ok(BlockIdInput {
+            block_id: BlockId::HashOrNumber(BlockHashOrNumber::Hash(generated_block_hash)),
+        }) = serde_json::from_str::<BlockIdInput>(json_str_block_id)
         {
-            match block_id {
-                BlockId::HashOrNumber(BlockHashOrNumber::Hash(generated_block_hash)) => {
-                    generated_block_hash
-                        == FeltHex(Felt::from_prefixed_hex_str(expected_block_hash).unwrap())
-                }
-                _ => false,
-            }
+            generated_block_hash
+                == FeltHex(Felt::from_prefixed_hex_str(expected_block_hash).unwrap())
         } else {
             false
         };

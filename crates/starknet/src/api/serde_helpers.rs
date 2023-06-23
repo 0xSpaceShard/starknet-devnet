@@ -135,6 +135,7 @@ pub mod hex_string {
         fn deserialization_of_prefixed_hex_patricia_key_should_return_error() {
             #[derive(Deserialize)]
             struct TestDeserialization {
+                #[allow(unused)]
                 #[serde(deserialize_with = "deserialize_to_prefixed_patricia_key")]
                 data: PatriciaKey,
             }
@@ -148,6 +149,7 @@ pub mod hex_string {
         fn deserialization_of_prefixed_hex_contract_address_should_return_error() {
             #[derive(Deserialize)]
             struct TestDeserialization {
+                #[allow(unused)]
                 #[serde(deserialize_with = "deserialize_to_prefixed_contract_address")]
                 data: ContractAddress,
             }

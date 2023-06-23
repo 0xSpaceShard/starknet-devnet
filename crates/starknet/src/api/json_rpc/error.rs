@@ -188,7 +188,7 @@ mod tests {
     fn error_expected_code_and_message(err: ApiError, expected_code: i64, expected_message: &str) {
         let error_result = RpcResult::<()>::Err(err).to_rpc_result();
         match error_result {
-            server::rpc_core::response::ResponseResult::Success(_) => assert!(false),
+            server::rpc_core::response::ResponseResult::Success(_) => panic!("Expected error"),
             server::rpc_core::response::ResponseResult::Error(err) => {
                 assert_eq!(err.message, expected_message);
                 assert_eq!(
