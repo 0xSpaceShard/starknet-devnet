@@ -4,7 +4,7 @@ use server::rpc_core::{error::RpcError, response::ResponseResult};
 use tracing::error;
 
 
-
+#[allow(unused)]
 #[derive(thiserror::Error, Debug)]
 pub enum ApiError {
     #[error("Rpc error {0:?}")]
