@@ -1,12 +1,9 @@
 use serde::Serialize;
 use server::rpc_core::{error::RpcError, response::ResponseResult};
-use starknet_types::starknet_api::block::BlockNumber;
+
 use tracing::error;
 
-use crate::api::models::{
-    transaction::{ClassHashHex, TransactionHashHex},
-    BlockId,
-};
+
 
 #[derive(thiserror::Error, Debug)]
 pub enum ApiError {
