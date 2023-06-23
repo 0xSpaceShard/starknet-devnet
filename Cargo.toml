@@ -17,3 +17,27 @@ repository = ""
 
 
 [workspace.dependencies]
+
+# axum
+axum = { version = "0.5" }
+hyper = "0.14"
+tower-http = { version = "0.4", features = ["trace", "cors"] }
+tower = { version = "0.4", features = ["full"] }
+
+# rpc
+rpc-core = { git = "https://github.com/foundry-rs/foundry.git", package = "anvil-rpc" }
+
+# async
+tokio = { version = "1", features = ["time", "macros", "rt-multi-thread"] }
+futures = "0.3"
+async-trait = "0.1"
+
+# tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+# misc
+serde_json = "1"
+serde = { version = "1", features = ["derive"] }
+thiserror = "1"
+anyhow = "1"
