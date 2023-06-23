@@ -158,7 +158,7 @@ impl JsonRpcHandler {
         &self,
         transaction_hash: TransactionHashHex,
     ) -> RpcResult<TransactionWithType> {
-        Err(error::ApiError::TransactionNotFound(transaction_hash))
+        Err(error::ApiError::TransactionNotFound)
     }
 
     async fn get_transaction_by_block_id_and_index(
@@ -166,16 +166,14 @@ impl JsonRpcHandler {
         block_id: BlockId,
         index: BlockNumber,
     ) -> RpcResult<TransactionWithType> {
-        Err(error::ApiError::InvalidTransactionIndexInBlock(
-            index, block_id,
-        ))
+        Err(error::ApiError::InvalidTransactionIndexInBlock)
     }
 
     async fn get_transaction_receipt_by_hash(
         &self,
         transaction_hash: TransactionHashHex,
     ) -> RpcResult<TransactionReceipt> {
-        Err(error::ApiError::TransactionNotFound(transaction_hash))
+        Err(error::ApiError::TransactionNotFound)
     }
 
     async fn get_class(
@@ -183,7 +181,7 @@ impl JsonRpcHandler {
         _block_id: BlockId,
         class_hash: ClassHashHex,
     ) -> RpcResult<ContractClass> {
-        Err(error::ApiError::ClassHashNotFound(class_hash))
+        Err(error::ApiError::ClassHashNotFound)
     }
 
     async fn get_class_hash_at(
