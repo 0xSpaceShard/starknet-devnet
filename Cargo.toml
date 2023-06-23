@@ -18,13 +18,14 @@ edition = "2021"
 repository = ""
 
 [workspace.dependencies]
+
 # Starknet dependencies
 starknet_api = { git = "https://github.com/starkware-libs/starknet-api", rev = "a891109ecc9c269e91b1afd2d44bc597728e1172" }
-starknet-in-rust = { git = "https://github.com/lambdaclass/starknet_in_rust", rev = "3a22f0", package="starknet-rs" }
+starknet-in-rust = { git = "https://github.com/lambdaclass/starknet_in_rust", rev = "2870277", package="starknet-rs" }
 starknet-rs-signers = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "a6cbfa3", package = "starknet-signers" }
 starknet-rs-ff = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "a6cbfa3", package = "starknet-ff" }
 starknet-rs-core = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "a6cbfa3", package = "starknet-core" }
-cairo-felt = { git = "https://github.com/lambdaclass/cairo-rs", package="cairo-felt", rev = "5db2e656d46a97d89563a74f8fc3abd595e8befb" }
+cairo-felt = { version = "0.5.2", package = "cairo-felt" }
 
 # Inner dependencies
 starknet-types = { path = "crates/types", package = "types" }

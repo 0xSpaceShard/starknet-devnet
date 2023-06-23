@@ -1,6 +1,6 @@
-use starknet_in_rust::business_logic::fact_state::in_memory_state_reader::InMemoryStateReader;
-use starknet_in_rust::business_logic::state::state_api::StateReader;
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
+use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
+use starknet_in_rust::state::state_api::StateReader;
 use starknet_in_rust::utils::Address;
 use starknet_types::cairo_felt::Felt252;
 use starknet_types::contract_address::ContractAddress;
