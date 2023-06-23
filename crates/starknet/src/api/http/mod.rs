@@ -1,4 +1,5 @@
 mod error;
+#[allow(unused)]
 mod models;
 
 use axum::{extract::Query, Extension, Json};
@@ -36,7 +37,7 @@ pub(crate) async fn load(
     Json(_path): Json<Path>,
     Extension(_state): Extension<HttpApiHandler>,
 ) -> HttpApiResult<()> {
-    Err(HttpApiError::GeneralError)
+    Err(HttpApiError::PathNotFound)
 }
 
 /// Postman
