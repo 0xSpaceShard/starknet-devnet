@@ -84,6 +84,7 @@ pub mod hex_string {
         Felt::from_prefixed_hex_str(&buf).map_err(serde::de::Error::custom)
     }
 
+    #[allow(unused)]
     pub fn deserialize_non_prefixed_hex_string_to_felt<'de, D>(
         deserializer: D,
     ) -> Result<Felt, D::Error>
