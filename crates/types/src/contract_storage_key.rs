@@ -14,7 +14,7 @@ impl ContractStorageKey {
 }
 
 impl TryFrom<&ContractStorageKey>
-    for starknet_in_rust::business_logic::state::state_cache::StorageEntry
+    for starknet_in_rust::state::state_cache::StorageEntry
 {
     type Error = Error;
     fn try_from(value: &ContractStorageKey) -> Result<Self, Self::Error> {
@@ -23,7 +23,7 @@ impl TryFrom<&ContractStorageKey>
 }
 
 impl TryFrom<ContractStorageKey>
-    for starknet_in_rust::business_logic::state::state_cache::StorageEntry
+    for starknet_in_rust::state::state_cache::StorageEntry
 {
     type Error = Error;
     fn try_from(value: ContractStorageKey) -> Result<Self, Self::Error> {
@@ -33,7 +33,7 @@ impl TryFrom<ContractStorageKey>
 
 #[cfg(test)]
 mod tests {
-    use starknet_in_rust::business_logic::state::state_cache::StorageEntry as StarknetInRustStorageEntry;
+    use starknet_in_rust::state::state_cache::StorageEntry as StarknetInRustStorageEntry;
 
     use super::ContractStorageKey;
     use crate::contract_address::{test_utils, ContractAddress};
