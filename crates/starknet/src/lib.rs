@@ -69,14 +69,14 @@ impl Starknet {
             config.predeployed_accounts_initial_balance,
             erc20_fee_contract.get_address(),
         );
-        let contract_class =
+        let account_contract_class =
             utils::load_cairo_0_contract_class(constants::CAIRO_0_ACCOUNT_CONTRACT_PATH)?;
-        let class_hash = contract_class.generate_hash()?;
+        let class_hash = account_contract_class.generate_hash()?;
 
         let accounts = predeployed_accounts.generate_accounts(
             config.total_accounts,
             class_hash,
-            contract_class,
+            account_contract_class,
         )?;
         for account in accounts {
             account.deploy(&mut state)?;
