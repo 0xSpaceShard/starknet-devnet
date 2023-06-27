@@ -5,6 +5,7 @@ use starknet_types::error::Error;
 use starknet_types::felt::{Balance, ClassHash, Felt};
 use starknet_types::DevnetResult;
 
+/// This trait should be implemented by structures that internally have collections and each element could be found by a hash
 pub trait HashIdentified {
     type Element;
     type Hash;
@@ -12,6 +13,7 @@ pub trait HashIdentified {
     fn get_by_hash(&self, hash: Self::Hash) -> Self::Element;
 }
 
+/// This trait sets the interface for the account
 pub trait Accounted {
     fn deploy(&self, state: &mut impl StateChanger) -> Result<(), Error>;
     fn set_initial_balance(&self, state: &mut impl StateChanger) -> DevnetResult<()>;
@@ -19,6 +21,7 @@ pub trait Accounted {
     fn get_address(&self) -> ContractAddress;
 }
 
+/// Interface for modifying the state
 pub trait StateChanger {
     fn declare_contract_class(
         &mut self,
@@ -35,10 +38,12 @@ pub trait StateChanger {
     fn is_contract_declared(&mut self, class_hash: &ClassHash) -> DevnetResult<bool>;
 }
 
+/// Interface for extracting data from the state
 pub trait StateExtractor {
     fn get_storage(&mut self, storage_key: ContractStorageKey) -> DevnetResult<Felt>;
 }
 
+/// This trait should be implemented by structures that generate accounts
 pub trait AccountGenerator {
     type Acc: Accounted;
     fn generate_accounts(
