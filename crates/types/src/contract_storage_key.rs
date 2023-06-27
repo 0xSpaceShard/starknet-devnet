@@ -13,18 +13,14 @@ impl ContractStorageKey {
     }
 }
 
-impl TryFrom<&ContractStorageKey>
-    for starknet_in_rust::state::state_cache::StorageEntry
-{
+impl TryFrom<&ContractStorageKey> for starknet_in_rust::state::state_cache::StorageEntry {
     type Error = Error;
     fn try_from(value: &ContractStorageKey) -> Result<Self, Self::Error> {
         Ok((Address::try_from(&value.0)?, value.1 .0.bytes()))
     }
 }
 
-impl TryFrom<ContractStorageKey>
-    for starknet_in_rust::state::state_cache::StorageEntry
-{
+impl TryFrom<ContractStorageKey> for starknet_in_rust::state::state_cache::StorageEntry {
     type Error = Error;
     fn try_from(value: ContractStorageKey) -> Result<Self, Self::Error> {
         Ok((Address::try_from(value.0)?, value.1 .0.bytes()))

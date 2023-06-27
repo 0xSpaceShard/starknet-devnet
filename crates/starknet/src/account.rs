@@ -118,9 +118,9 @@ mod tests {
 
     use super::Account;
     use crate::state::StarknetState;
-    use crate::utils::test_utils::{dummy_contract_address, dummy_contract_class, dummy_felt};
     use crate::traits::Accounted;
     use crate::utils::get_storage_var_address;
+    use crate::utils::test_utils::{dummy_contract_address, dummy_contract_class, dummy_felt};
 
     /// Testing if generated account address has the same value as the first account in
     /// https://github.com/0xSpaceShard/starknet-devnet/blob/9d867e38e6d465e568e82a47e82e40608f6d220f/test/support/schemas/predeployed_accounts_fixed_seed.json

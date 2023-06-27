@@ -88,9 +88,9 @@ mod tests {
 
     use crate::constants::CAIRO_0_ACCOUNT_CONTRACT_PATH;
     use crate::predeployed_account::PredeployedAccount;
+    use crate::traits::AccountGenerator;
     use crate::utils::test_utils::dummy_contract_address;
     use crate::utils::test_utils::CAIRO_0_ACCOUNT_CONTRACT_HASH;
-    use crate::traits::AccountGenerator;
 
     const SEED: u32 = 123;
 

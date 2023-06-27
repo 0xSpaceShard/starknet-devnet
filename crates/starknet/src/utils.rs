@@ -88,7 +88,6 @@ pub(crate) mod test_utils {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::test_utils::{self, get_bytes_from_u32};
