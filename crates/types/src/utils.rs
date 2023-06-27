@@ -1,7 +1,7 @@
 use std::io;
 
 use serde_json::ser::Formatter;
-use serde_json::Value;
+use serde_json::{Value, Map};
 
 /// because of the preserve_order feature enabled in the serde_json crate
 /// removing a key from the object changes the order of the keys
@@ -13,7 +13,6 @@ use serde_json::Value;
 /// Empty objects are not included
 pub fn traverse_and_exclude_recursively<F>(
     value: &Value,
-    new_object: &mut serde_json::Map<String, Value>,
     condition: &F,
 ) -> serde_json::Value
 where
@@ -21,13 +20,13 @@ where
 {
     match value {
         Value::Object(object) => {
-            for (key, value) in object {
-                let mut inner_obj = serde_json::Map::new();
+            let mut new_object = Map::new();
 
+            for (key, value) in object {
                 if condition(key, value) {
                     continue;
                 }
-                let inner_val = traverse_and_exclude_recursively(value, &mut inner_obj, condition);
+                let inner_val = traverse_and_exclude_recursively(value, condition);
                 new_object.insert(key.to_string(), inner_val);
             }
 
@@ -38,8 +37,7 @@ where
             let mut inner_arr = Vec::<Value>::new();
 
             for value in array {
-                let mut inner_obj = serde_json::Map::new();
-                let inner_val = traverse_and_exclude_recursively(value, &mut inner_obj, condition);
+                let inner_val = traverse_and_exclude_recursively(value, condition);
 
                 if !(inner_val.is_object()
                     && inner_val.as_object().expect("Not a valid JSON object").is_empty())
@@ -105,4 +103,72 @@ pub(crate) mod test_utils {
     pub(crate) fn dummy_felt() -> Felt {
         Felt::from_prefixed_hex_str("0xF9").unwrap()
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::Value;
+
+    #[test]
+    fn serde_remove_elements_from_json() {
+        let input = r#"
+            {
+                "name": "John Doe",
+                "isStudent": true,
+                "age":30,
+                "address": {
+                    "street": "Vlvo",
+                    "city": "Anytown",
+                    "state": "Any"
+                },
+                "should_be_removed": [],
+                "scores": 
+                [
+                    {
+                        "street": "AAA",
+                        "age": 5,
+                        "should_be_removed": []
+                    },
+                    {
+                        "age": 5
+                    }
+                ],
+                "arr": [90, 85, 95]
+            }
+        "#;
+        let expected_output = r#"
+            {
+                "name": "John Doe",
+                "isStudent": true,
+                "age":30,
+                "address": {
+                    "street": "Vlvo",
+                    "city": "Anytown",
+                    "state": "Any"
+                },
+                "scores": 
+                [
+                    {
+                        "street": "AAA",
+                        "age": 5
+                    },
+                    {
+                        "age": 5
+                    }
+                ],
+                "arr": [90, 85, 95]
+            }
+        "#;
+        let value: Value = serde_json::from_str(input).unwrap();
+
+        let res =
+            crate::utils::traverse_and_exclude_recursively(&value, &|key, val| {
+                return key == "should_be_removed"
+                    && val.is_array()
+                    && val.as_array().unwrap().is_empty();
+            });
+
+        assert_eq!(res, serde_json::from_str::<serde_json::Value>(expected_output).unwrap());
+    }
+
 }

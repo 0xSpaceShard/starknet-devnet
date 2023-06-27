@@ -76,10 +76,8 @@ impl ContractClass {
                 .insert("debug_info".to_string(), serde_json::Value::Null);
         }
 
-        let mut new_object = serde_json::Map::<String, Value>::new();
         let res = crate::utils::traverse_and_exclude_recursively(
             &abi_json,
-            &mut new_object,
             &|key, value| {
                 return (key == "attributes" || key == "accessible_scopes")
                     && value.is_array()
