@@ -3,7 +3,7 @@ use std::io;
 use serde_json::ser::Formatter;
 use serde_json::{Value, Map};
 
-/// because of the preserve_order feature enabled in the serde_json crate
+/// The preserve_order feature enabled in the serde_json crate
 /// removing a key from the object changes the order of the keys
 /// When serde_json is not being used with the preserver order feature
 /// deserializing to a serde_json::Value changes the order of the keys
