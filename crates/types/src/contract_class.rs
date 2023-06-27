@@ -100,7 +100,7 @@ impl ContractClass {
         res.serialize(&mut serializer).map_err(JsonError::SerdeJsonError)?;
 
         let str_json = String::from_utf8(writer).map_err(|_| JsonError::Custom {
-            msg: "Cant convert from bytes to UTF-8 JSON string".to_string(),
+            msg: "Cannot convert from bytes to UTF-8 JSON string".to_string(),
         })?;
 
         Ok(StarkFelt::new(calculate_sn_keccak(str_json.as_bytes()))?)
