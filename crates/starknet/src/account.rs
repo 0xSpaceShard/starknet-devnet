@@ -15,7 +15,8 @@ use crate::traits::{Accounted, StateChanger, StateExtractor};
 use crate::utils::get_storage_var_address;
 
 /// data taken from https://github.com/0xSpaceShard/starknet-devnet/blob/fb96e0cc3c1c31fb29892ecefd2a670cf8a32b51/starknet_devnet/account.py
-const ACCOUNT_CLASS_HASH_HEX_FOR_ADDRESS_COMPUTATION: &str = "0x3FCBF77B28C96F4F2FB5BD2D176AB083A12A5E123ADEB0DE955D7EE228C9854";
+const ACCOUNT_CLASS_HASH_HEX_FOR_ADDRESS_COMPUTATION: &str =
+    "0x3FCBF77B28C96F4F2FB5BD2D176AB083A12A5E123ADEB0DE955D7EE228C9854";
 
 #[derive(Clone)]
 pub struct Account {

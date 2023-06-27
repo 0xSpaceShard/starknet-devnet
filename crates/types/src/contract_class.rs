@@ -61,8 +61,8 @@ impl ContractClass {
     /// Computes the hinted class hash of the contract class.
     /// The parameter is a JSON object representing the contract class.
     /// Pythonic hinted class hash computation is based on a JSON artifact produced by the cairo-lang compiler.
-    /// The JSON object contains his keys in alphabetical order. But when those keys are made of digits only, they are sorted in ascending order. 
-    /// For example keys "1", "10", "2" are sorted as "1", "2", "10" and keys "b", "a", "c" are sorted as "a", "b", "c". 
+    /// The JSON object contains his keys in alphabetical order. But when those keys are made of digits only, they are sorted in ascending order.
+    /// For example keys "1", "10", "2" are sorted as "1", "2", "10" and keys "b", "a", "c" are sorted as "a", "b", "c".
     /// The resulting object is being serialized to a string and then hashed.
     /// In rust serde_json library when deserializing a JSON object, internally it uses a Map either HashMap or IndexMap. Depending on the feature enabled if [preserver_order] is not enabled HashMap will be used.
     /// In HashMap the keys order of insertion is not preserved and they are sorted alphabetically, which doesnt work for our case, because the contract artifact contains keys under the "hints" property that are only number_of_accounts
@@ -89,14 +89,11 @@ impl ContractClass {
 
         // Traverse the JSON and remove all entries with key attributes and accessible_scopes
         // if they are empty arrays.
-        let res = crate::utils::traverse_and_exclude_recursively(
-            &abi_json,
-            &|key, value| {
-                return (key == "attributes" || key == "accessible_scopes")
-                    && value.is_array()
-                    && value.as_array().expect("Not a valid JSON array").is_empty();
-            },
-        );
+        let res = crate::utils::traverse_and_exclude_recursively(&abi_json, &|key, value| {
+            return (key == "attributes" || key == "accessible_scopes")
+                && value.is_array()
+                && value.as_array().expect("Not a valid JSON array").is_empty();
+        });
 
         let mut writer = Vec::with_capacity(128);
         let mut serializer = Serializer::with_formatter(&mut writer, utils::StarknetFormatter);

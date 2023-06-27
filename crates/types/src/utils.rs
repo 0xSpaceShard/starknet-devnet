@@ -1,7 +1,7 @@
 use std::io;
 
 use serde_json::ser::Formatter;
-use serde_json::{Value, Map};
+use serde_json::{Map, Value};
 
 /// The preserve_order feature enabled in the serde_json crate
 /// removing a key from the object changes the order of the keys
@@ -163,14 +163,12 @@ mod tests {
         "#;
         let value: Value = serde_json::from_str(input).unwrap();
 
-        let res =
-            crate::utils::traverse_and_exclude_recursively(&value, &|key, val| {
-                return key == "should_be_removed"
-                    && val.is_array()
-                    && val.as_array().unwrap().is_empty();
-            });
+        let res = crate::utils::traverse_and_exclude_recursively(&value, &|key, val| {
+            return key == "should_be_removed"
+                && val.is_array()
+                && val.as_array().unwrap().is_empty();
+        });
 
         assert_eq!(res, serde_json::from_str::<serde_json::Value>(expected_output).unwrap());
     }
-
 }
