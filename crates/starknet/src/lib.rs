@@ -45,7 +45,7 @@ impl Starknet {
                 source: err,
                 path: ERC20_CONTRACT_PATH.to_string(),
             })?;
-        let erc20_fee_account = SystemContract::new(
+        let erc20_fee_contract = SystemContract::new(
             ERC20_CONTRACT_CLASS_HASH,
             ERC20_CONTRACT_ADDRESS,
             &erc20_contract_class_json_str,
@@ -56,18 +56,18 @@ impl Starknet {
                 source: err,
                 path: UDC_CONTRACT_PATH.to_string(),
             })?;
-        let udc_account = SystemContract::new(
+        let udc_contract = SystemContract::new(
             UDC_CONTRACT_CLASS_HASH,
             UDC_CONTRACT_ADDRESS,
             &udc_contract_class_json_str,
         )?;
-        erc20_fee_account.deploy(&mut state)?;
-        udc_account.deploy(&mut state)?;
+        erc20_fee_contract.deploy(&mut state)?;
+        udc_contract.deploy(&mut state)?;
 
         let mut predeployed_accounts = PredeployedAccounts::new(
             config.seed,
             config.predeployed_accounts_initial_balance,
-            erc20_fee_account.get_address(),
+            erc20_fee_contract.get_address(),
         );
         let contract_class =
             utils::load_cairo_0_contract_class(constants::CAIRO_0_ACCOUNT_CONTRACT_PATH)?;

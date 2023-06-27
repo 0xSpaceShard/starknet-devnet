@@ -78,13 +78,13 @@ mod tests {
     #[test]
     fn system_account_deployed_successfully() {
         let mut state = StarknetState::default();
-        let sys_account = SystemContract::new(
+        let sys_contract = SystemContract::new(
             ERC20_CONTRACT_CLASS_HASH,
             ERC20_CONTRACT_ADDRESS,
             std::fs::read_to_string(ERC20_CONTRACT_PATH).unwrap().as_str(),
         )
         .unwrap();
 
-        assert!(sys_account.deploy(&mut state).is_ok());
+        assert!(sys_contract.deploy(&mut state).is_ok());
     }
 }
