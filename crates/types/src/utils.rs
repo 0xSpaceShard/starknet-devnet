@@ -13,7 +13,7 @@ use serde_json::{Value, Map};
 /// Empty objects are not included
 pub fn traverse_and_exclude_recursively<F>(
     value: &Value,
-    condition: &F,
+    exclude_condition: &F,
 ) -> serde_json::Value
 where
     F: Fn(&String, &Value) -> bool,
@@ -23,10 +23,10 @@ where
             let mut new_object = Map::new();
 
             for (key, value) in object {
-                if condition(key, value) {
+                if exclude_condition(key, value) {
                     continue;
                 }
-                let inner_val = traverse_and_exclude_recursively(value, condition);
+                let inner_val = traverse_and_exclude_recursively(value, exclude_condition);
                 new_object.insert(key.to_string(), inner_val);
             }
 
@@ -37,7 +37,7 @@ where
             let mut inner_arr = Vec::<Value>::new();
 
             for value in array {
-                let inner_val = traverse_and_exclude_recursively(value, condition);
+                let inner_val = traverse_and_exclude_recursively(value, exclude_condition);
 
                 if !(inner_val.is_object()
                     && inner_val.as_object().expect("Not a valid JSON object").is_empty())
