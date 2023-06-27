@@ -64,14 +64,14 @@ mod tests {
 
     use super::SystemAccount;
     use crate::constants::{
-        ERC20_OZ_ACCOUNT_ADDRESS, ERC20_OZ_ACCOUNT_HASH, ERC20_OZ_ACCOUNT_PATH,
+        ERC20_CONTRACT_ADDRESS, ERC20_CONTRACT_CLASS_HASH, ERC20_CONTRACT_PATH,
     };
     use crate::state::StarknetState;
 
     use crate::traits::Accounted;
     #[test]
     fn load_erc20_contract() {
-        let json_str = std::fs::read_to_string(ERC20_OZ_ACCOUNT_PATH).unwrap();
+        let json_str = std::fs::read_to_string(ERC20_CONTRACT_PATH).unwrap();
         assert!(ContractClass::from_json_str(&json_str).is_ok());
     }
 
@@ -79,9 +79,9 @@ mod tests {
     fn system_account_deployed_successfully() {
         let mut state = StarknetState::default();
         let sys_account = SystemAccount::new(
-            ERC20_OZ_ACCOUNT_HASH,
-            ERC20_OZ_ACCOUNT_ADDRESS,
-            std::fs::read_to_string(ERC20_OZ_ACCOUNT_PATH).unwrap().as_str(),
+            ERC20_CONTRACT_CLASS_HASH,
+            ERC20_CONTRACT_ADDRESS,
+            std::fs::read_to_string(ERC20_CONTRACT_PATH).unwrap().as_str(),
         )
         .unwrap();
 
