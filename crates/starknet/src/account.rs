@@ -14,12 +14,8 @@ use starknet_types::DevnetResult;
 use crate::traits::{Accounted, StateChanger, StateExtractor};
 use crate::utils::get_storage_var_address;
 
-/// in hex it equals 0x3FCBF77B28C96F4F2FB5BD2D176AB083A12A5E123ADEB0DE955D7EE228C9854
 /// data taken from https://github.com/0xSpaceShard/starknet-devnet/blob/fb96e0cc3c1c31fb29892ecefd2a670cf8a32b51/starknet_devnet/account.py
-const ACCOUNT_CLASS_HASH_FOR_ADDRESS_COMPUTATION: [u8; 32] = [
-    3, 252, 191, 119, 178, 140, 150, 244, 242, 251, 91, 210, 209, 118, 171, 8, 58, 18, 165, 225,
-    35, 173, 235, 13, 233, 85, 215, 238, 34, 140, 152, 84,
-];
+const ACCOUNT_CLASS_HASH_HEX_FOR_ADDRESS_COMPUTATION: &str = "0x3FCBF77B28C96F4F2FB5BD2D176AB083A12A5E123ADEB0DE955D7EE228C9854";
 
 #[derive(Clone)]
 pub struct Account {
@@ -55,7 +51,7 @@ impl Account {
     fn compute_account_address(public_key: &Key) -> DevnetResult<ContractAddress> {
         let account_address = calculate_contract_address(
             ContractAddressSalt(stark_felt!(20u32)),
-            Felt::new(ACCOUNT_CLASS_HASH_FOR_ADDRESS_COMPUTATION)?.into(),
+            Felt::from_prefixed_hex_str(ACCOUNT_CLASS_HASH_HEX_FOR_ADDRESS_COMPUTATION)?.into(),
             &Calldata(Arc::new(vec![(*public_key).into()])),
             starknet_api::core::ContractAddress(patricia_key!(0u32)),
         )
