@@ -10,14 +10,14 @@ use crate::traits::AccountGenerator;
 use crate::utils::generate_u128_random_numbers;
 
 #[derive(Default)]
-pub(crate) struct PredeployedAccount {
+pub(crate) struct PredeployedAccounts {
     seed: u32,
     initial_balance: u128,
     fee_token_address: ContractAddress,
     accounts: Vec<Account>,
 }
 
-impl PredeployedAccount {
+impl PredeployedAccounts {
     pub(crate) fn new(
         seed: u32,
         initial_balance: u128,
@@ -27,7 +27,7 @@ impl PredeployedAccount {
     }
 }
 
-impl PredeployedAccount {
+impl PredeployedAccounts {
     fn generate_private_keys(&self, number_of_accounts: u8) -> DevnetResult<Vec<Key>> {
         let random_numbers = generate_u128_random_numbers(self.seed, number_of_accounts)?;
         let private_keys = random_numbers.into_iter().map(Key::from).collect::<Vec<Key>>();
@@ -50,7 +50,7 @@ impl PredeployedAccount {
     }
 }
 
-impl AccountGenerator for PredeployedAccount {
+impl AccountGenerator for PredeployedAccounts {
     type Acc = Account;
 
     fn generate_accounts(
@@ -87,7 +87,7 @@ mod tests {
     use starknet_types::traits::ToHexString;
 
     use crate::constants::CAIRO_0_ACCOUNT_CONTRACT_PATH;
-    use crate::predeployed_account::PredeployedAccount;
+    use crate::predeployed_accounts::PredeployedAccounts;
     use crate::traits::AccountGenerator;
     use crate::utils::test_utils::dummy_contract_address;
     use crate::utils::test_utils::CAIRO_0_ACCOUNT_CONTRACT_HASH;
@@ -133,7 +133,7 @@ mod tests {
 
     #[test]
     fn private_key_from_different_seeds_should_be_different() {
-        let predeployed_acc = PredeployedAccount::new(999, 1, dummy_contract_address());
+        let predeployed_acc = PredeployedAccounts::new(999, 1, dummy_contract_address());
         let generated_private_key = predeployed_acc.generate_private_keys(1).unwrap()[0];
 
         let non_expected_result = Felt::from_prefixed_hex_str(PRIVATE_KEYS_IN_HEX[0]).unwrap();
@@ -163,7 +163,7 @@ mod tests {
 
     #[test]
     fn check_generated_predeployed_accounts_against_json_schema() {
-        let mut predeployed_acc = PredeployedAccount::new(123, 1000, dummy_contract_address());
+        let mut predeployed_acc = PredeployedAccounts::new(123, 1000, dummy_contract_address());
         let class_hash = Felt::from_prefixed_hex_str(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap();
         let json_str = std::fs::read_to_string(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
 
@@ -194,7 +194,7 @@ mod tests {
         assert!(schema.is_valid(&serde_json::to_value(&generated_accounts_json).unwrap()));
     }
 
-    fn predeployed_account_instance() -> PredeployedAccount {
-        PredeployedAccount::new(SEED, 100, dummy_contract_address())
+    fn predeployed_account_instance() -> PredeployedAccounts {
+        PredeployedAccounts::new(SEED, 100, dummy_contract_address())
     }
 }

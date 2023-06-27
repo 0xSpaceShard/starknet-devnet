@@ -3,7 +3,7 @@ use constants::{
     ERC20_CONTRACT_ADDRESS, ERC20_CONTRACT_CLASS_HASH, ERC20_CONTRACT_PATH, UDC_CONTRACT_ADDRESS,
     UDC_CONTRACT_CLASS_HASH, UDC_CONTRACT_PATH,
 };
-use predeployed_account::PredeployedAccount;
+use predeployed_accounts::PredeployedAccounts;
 use starknet_types::DevnetResult;
 use starknet_types::{error::Error, traits::HashProducer};
 use state::StarknetState;
@@ -12,7 +12,7 @@ use traits::{AccountGenerator, Accounted};
 
 mod account;
 mod constants;
-mod predeployed_account;
+mod predeployed_accounts;
 mod state;
 mod system_contract;
 mod traits;
@@ -33,7 +33,7 @@ impl Default for StarknetConfig {
 #[derive(Default)]
 pub struct Starknet {
     state: StarknetState,
-    predeployed_accounts: PredeployedAccount,
+    predeployed_accounts: PredeployedAccounts,
 }
 
 impl Starknet {
@@ -64,7 +64,7 @@ impl Starknet {
         erc20_fee_account.deploy(&mut state)?;
         udc_account.deploy(&mut state)?;
 
-        let mut predeployed_accounts = PredeployedAccount::new(
+        let mut predeployed_accounts = PredeployedAccounts::new(
             config.seed,
             config.predeployed_accounts_initial_balance,
             erc20_fee_account.get_address(),
