@@ -5,13 +5,13 @@ use starknet_types::DevnetResult;
 
 use crate::traits::Accounted;
 
-pub(crate) struct SystemAccount {
+pub(crate) struct SystemContract {
     class_hash: ClassHash,
     address: ContractAddress,
     contract_class: ContractClass,
 }
 
-impl SystemAccount {
+impl SystemContract {
     pub(crate) fn new(
         class_hash: &str,
         address: &str,
@@ -25,7 +25,7 @@ impl SystemAccount {
     }
 }
 
-impl Accounted for SystemAccount {
+impl Accounted for SystemContract {
     fn deploy(
         &self,
         state: &mut impl crate::traits::StateChanger,
@@ -62,7 +62,7 @@ impl Accounted for SystemAccount {
 mod tests {
     use starknet_types::contract_class::ContractClass;
 
-    use super::SystemAccount;
+    use super::SystemContract;
     use crate::constants::{
         ERC20_CONTRACT_ADDRESS, ERC20_CONTRACT_CLASS_HASH, ERC20_CONTRACT_PATH,
     };
@@ -78,7 +78,7 @@ mod tests {
     #[test]
     fn system_account_deployed_successfully() {
         let mut state = StarknetState::default();
-        let sys_account = SystemAccount::new(
+        let sys_account = SystemContract::new(
             ERC20_CONTRACT_CLASS_HASH,
             ERC20_CONTRACT_ADDRESS,
             std::fs::read_to_string(ERC20_CONTRACT_PATH).unwrap().as_str(),

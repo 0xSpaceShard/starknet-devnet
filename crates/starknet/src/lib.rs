@@ -7,14 +7,14 @@ use predeployed_account::PredeployedAccount;
 use starknet_types::DevnetResult;
 use starknet_types::{error::Error, traits::HashProducer};
 use state::StarknetState;
-use system_account::SystemAccount;
+use system_contract::SystemContract;
 use traits::{AccountGenerator, Accounted};
 
 mod account;
 mod constants;
 mod predeployed_account;
 mod state;
-mod system_account;
+mod system_contract;
 mod traits;
 mod utils;
 
@@ -45,7 +45,7 @@ impl Starknet {
                 source: err,
                 path: ERC20_CONTRACT_PATH.to_string(),
             })?;
-        let erc20_fee_account = SystemAccount::new(
+        let erc20_fee_account = SystemContract::new(
             ERC20_CONTRACT_CLASS_HASH,
             ERC20_CONTRACT_ADDRESS,
             &erc20_contract_class_json_str,
@@ -56,7 +56,7 @@ impl Starknet {
                 source: err,
                 path: UDC_CONTRACT_PATH.to_string(),
             })?;
-        let udc_account = SystemAccount::new(
+        let udc_account = SystemContract::new(
             UDC_CONTRACT_CLASS_HASH,
             UDC_CONTRACT_ADDRESS,
             &udc_contract_class_json_str,
