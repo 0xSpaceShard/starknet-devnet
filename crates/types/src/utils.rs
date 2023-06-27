@@ -12,7 +12,7 @@ use serde_json::{Value, Map};
 /// and not including them into a new json obj if the condition is met
 /// Empty objects are not included
 /// Exclude_condition is a function that takes a key and a value and returns a bool
-/// If the bool is true, the key and value are not included in the new object
+/// If the exclude_condition evaluates to true, the key and value are not included in the new object
 pub fn traverse_and_exclude_recursively<F>(
     value: &Value,
     exclude_condition: &F,
