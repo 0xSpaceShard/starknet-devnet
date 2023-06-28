@@ -97,7 +97,7 @@ impl ContractClass {
         let mut serializer = Serializer::with_formatter(&mut buffer, utils::StarknetFormatter);
         modified_abi_program_json.serialize(&mut serializer).map_err(JsonError::SerdeJsonError)?;
 
-        Ok(StarkFelt::new(calculate_sn_keccak(&buffer[..]))?)
+        Ok(StarkFelt::new(calculate_sn_keccak(&buffer))?)
     }
 }
 
