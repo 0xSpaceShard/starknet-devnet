@@ -62,9 +62,9 @@ pub trait RpcHandler: Clone + Send + Sync + 'static {
 }
 
 /// Handles incoming JSON-RPC Request
-pub async fn handle<Handler: RpcHandler>(
+pub async fn handle<THandler: RpcHandler>(
     request: Result<Json<Request>, JsonRejection>,
-    Extension(handler): Extension<Handler>,
+    Extension(handler): Extension<THandler>,
 ) -> Json<Response> {
     match request {
         Err(err) => {
@@ -81,10 +81,10 @@ pub async fn handle<Handler: RpcHandler>(
 /// Handle the JSON-RPC [Request]
 ///
 /// This will try to deserialize the payload into the request type of the handler and if successful
-/// invoke the handler
-pub async fn handle_request<Handler: RpcHandler>(
+/// invoke the handler.
+pub async fn handle_request<THandler: RpcHandler>(
     req: Request,
-    handler: Handler,
+    handler: THandler,
 ) -> Option<Response> {
     /// processes batch calls
     fn responses_as_batch(outs: Vec<Option<RpcResponse>>) -> Option<Response> {
@@ -107,7 +107,10 @@ pub async fn handle_request<Handler: RpcHandler>(
 }
 
 /// handle a single RPC method call
-async fn handle_call<Handler: RpcHandler>(call: RpcCall, handler: Handler) -> Option<RpcResponse> {
+async fn handle_call<THandler: RpcHandler>(
+    call: RpcCall,
+    handler: THandler,
+) -> Option<RpcResponse> {
     match call {
         RpcCall::MethodCall(call) => {
             trace!(target: "rpc", id = ?call.id , method = ?call.method,  "handling call");
