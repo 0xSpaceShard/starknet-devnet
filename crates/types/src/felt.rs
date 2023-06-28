@@ -154,6 +154,7 @@ impl TryFrom<Felt> for starknet_api::core::PatriciaKey {
     }
 }
 
+pub type TransactionHash = Felt;
 pub type ClassHash = Felt;
 pub type Key = Felt;
 pub type Balance = Felt;
