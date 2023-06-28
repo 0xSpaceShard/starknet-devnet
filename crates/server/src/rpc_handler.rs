@@ -13,7 +13,7 @@ use rpc_core::{
 use serde::de::DeserializeOwned;
 use tracing::{error, trace, warn};
 
-/// Helper trait that is used to execute ethereum rpc calls
+/// Helper trait that is used to execute starknet rpc calls
 #[async_trait::async_trait]
 pub trait RpcHandler: Clone + Send + Sync + 'static {
     /// The request type to expect
