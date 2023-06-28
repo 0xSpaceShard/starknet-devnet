@@ -21,11 +21,6 @@ pub struct StarknetConfig {
     pub predeployed_accounts_initial_balance: u128,
 }
 
-impl Default for StarknetConfig {
-    fn default() -> Self {
-        Self { seed: 123, total_accounts: 3, predeployed_accounts_initial_balance: 100 }
-    }
-}
 #[derive(Default)]
 pub struct Starknet {
     state: StarknetState,
@@ -75,9 +70,13 @@ mod tests {
 
     use crate::{traits::Accounted, Starknet, StarknetConfig};
 
+    fn starknet_config_for_test() -> StarknetConfig {
+        StarknetConfig { seed: 123, total_accounts: 3, predeployed_accounts_initial_balance: 100 }
+    }
+
     #[test]
-    fn correct_initial_state_with_default_config() -> DevnetResult<()> {
-        let config = StarknetConfig::default();
+    fn correct_initial_state_with_test_config() -> DevnetResult<()> {
+        let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config)?;
         let predeployed_accounts = starknet.predeployed_accounts.get_accounts();
         let expected_balance = Felt::from(config.predeployed_accounts_initial_balance);
