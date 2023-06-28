@@ -10,7 +10,7 @@ pub trait HashIdentified {
     type Element;
     type Hash;
 
-    fn get_by_hash(&self, hash: Self::Hash) -> Self::Element;
+    fn get_by_hash(&self, hash: Self::Hash) -> Option<&Self::Element>;
 }
 
 /// This trait sets the interface for the account
