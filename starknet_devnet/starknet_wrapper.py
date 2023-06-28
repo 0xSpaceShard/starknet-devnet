@@ -482,7 +482,7 @@ class StarknetWrapper:
                         transaction, error_message=exc.message
                     )
                 else:
-                    status = TransactionStatus.PENDING
+                    status = TransactionStatus.ACCEPTED_ON_L2
 
                     assert self.execution_info is not None
                     if self.execution_info.call_info:

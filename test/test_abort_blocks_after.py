@@ -311,7 +311,7 @@ def test_pending_state_with_abort_block():
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
-    assert_tx_status(invoke_tx_hash, "PENDING")
+    assert_tx_status(invoke_tx_hash, "ACCEPTED_ON_L2")
 
     # Block should be aborted and pending transaction should be rejected
     latest_block = get_block(block_number="latest", parse=True)
