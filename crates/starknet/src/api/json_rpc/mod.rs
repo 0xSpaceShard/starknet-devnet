@@ -37,12 +37,15 @@ impl RpcHandler for JsonRpcHandler {
     }
 }
 
+/// This object will be used as a shared state between HTTP calls.
+/// Is simillar to the HttpApiHandler but is with extended functionality and is used for JSON-RPC methods
 #[derive(Clone)]
 pub struct JsonRpcHandler {
     pub api: Api,
 }
 
 impl JsonRpcHandler {
+    /// The method matches the request to the corresponding enum variant and executes the request
     async fn execute(&self, request: StarknetRequest) -> ResponseResult {
         trace!(target: "JsonRpcHandler::execute", "executing starknet request");
 
