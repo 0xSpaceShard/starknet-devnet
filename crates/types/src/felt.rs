@@ -35,6 +35,10 @@ impl Felt {
     pub fn bytes(&self) -> [u8; 32] {
         self.0
     }
+
+    pub fn is_zero(&self) -> bool {
+        self.0.iter().all(|&x| x == 0)
+    }
 }
 
 impl ToHexString for Felt {
