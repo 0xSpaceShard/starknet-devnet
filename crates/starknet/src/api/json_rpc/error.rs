@@ -1,5 +1,4 @@
-use serde::Serialize;
-use server::rpc_core::{error::RpcError, response::ResponseResult};
+use server::rpc_core::{error::RpcError};
 
 use tracing::error;
 
@@ -30,90 +29,10 @@ pub enum ApiError {
     TooManyKeysInFilter,
 }
 
-pub(crate) type RpcResult<T> = std::result::Result<T, ApiError>;
-
-/// Helper trait to easily convert results to rpc results
-pub(crate) trait ToRpcResponseResult {
-    fn to_rpc_result(self) -> ResponseResult;
-}
-
-/// Converts a serializable value into a `ResponseResult`
-pub fn to_rpc_result<T: Serialize>(val: T) -> ResponseResult {
-    match serde_json::to_value(val) {
-        Ok(success) => ResponseResult::Success(success),
-        Err(err) => {
-            error!("Failed serialize rpc response: {:?}", err);
-            ResponseResult::error(RpcError::internal_error())
-        }
-    }
-}
-
-impl<T: Serialize> ToRpcResponseResult for RpcResult<T> {
-    fn to_rpc_result(self) -> ResponseResult {
-        match self {
-            Ok(data) => to_rpc_result(data),
-            Err(err) => match err {
-                ApiError::RpcError(rpc_error) => rpc_error,
-                err @ ApiError::BlockNotFound => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(24),
-                    message: err.to_string().into(),
-                    data: None,
-                },
-                err @ ApiError::ContractNotFound => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(20),
-                    message: err.to_string().into(),
-                    data: None,
-                },
-                err @ ApiError::TransactionNotFound => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(25),
-                    message: err.to_string().into(),
-                    data: None,
-                },
-                err @ ApiError::InvalidTransactionIndexInBlock => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(27),
-                    message: err.to_string().into(),
-                    data: None,
-                },
-                err @ ApiError::ClassHashNotFound => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(28),
-                    message: err.to_string().into(),
-                    data: None,
-                },
-                err @ ApiError::ContractError => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(40),
-                    message: err.to_string().into(),
-                    data: None,
-                },
-                err @ ApiError::NoBlocks => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(32),
-                    message: err.to_string().into(),
-                    data: None,
-                },
-                err @ ApiError::RequestPageSizeTooBig => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(31),
-                    message: err.to_string().into(),
-                    data: None,
-                },
-                err @ ApiError::InvalidContinuationToken => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(33),
-                    message: err.to_string().into(),
-                    data: None,
-                },
-                err @ ApiError::TooManyKeysInFilter => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(34),
-                    message: err.to_string().into(),
-                    data: None,
-                },
-            }
-            .into(),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
 
-    use crate::api::json_rpc::error::{ApiError, RpcResult, ToRpcResponseResult};
+    use crate::api::json_rpc::{error::{ApiError}, RpcResult, ToRpcResponseResult};
 
     #[test]
     fn contract_not_found_error() {

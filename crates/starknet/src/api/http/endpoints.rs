@@ -6,7 +6,8 @@ use super::{
         AbortedBlocks, AbortingBlocks, Balance, ContractAddress, ContractCode, CreatedBlock,
         FeeToken, ForkStatus, MessageFromL2, MessageHash, MessageToL2, MintTokens,
         MintTokensResponse, Path, PostmanLoadL1MessagingContract, PredeployedAccount, Time,
-    }, HttpApiResult, HttpApiHandler,
+    },
+    HttpApiHandler, HttpApiResult,
 };
 
 use axum::{extract::Query, Extension, Json};

@@ -1,12 +1,10 @@
-mod error;
 pub(crate) mod endpoints;
+mod error;
 #[allow(unused)]
 mod models;
 
-use self::{
-    error::HttpApiError,
-};
-use super::{Api};
+use self::error::HttpApiError;
+use super::Api;
 
 /// Helper type for the result of the http api calls and reducing typing HttpApiError
 type HttpApiResult<T> = Result<T, HttpApiError>;

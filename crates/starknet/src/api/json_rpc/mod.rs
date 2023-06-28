@@ -1,3 +1,4 @@
+mod endpoints;
 mod error;
 mod models;
 
@@ -6,26 +7,97 @@ use models::{
     EstimateFeeInput, EventsInput, GetStorageInput, TransactionHashInput,
 };
 
-use self::error::RpcResult;
 use super::Api;
-use crate::api::models::state::ThinStateDiff;
-use crate::api::models::transaction::{
-    BroadcastedTransactionWithType, ClassHashHex, EventFilter, EventsChunk, FunctionCall,
-    Transaction, TransactionHashHex, TransactionReceipt, TransactionWithType,
-};
-use crate::api::models::{block::Block, contract_class::ContractClass};
-use crate::api::models::{BlockId, ContractAddressHex, FeltHex, PatriciaKeyHex};
-use models::BlockIdInput;
-use models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
+use tracing::error;
 
-use serde::Deserialize;
-use server::rpc_core::response::ResponseResult;
+use serde::{Deserialize, Serialize};
+use server::rpc_core::{response::ResponseResult, error::RpcError};
 use server::rpc_handler::RpcHandler;
-use starknet_types::starknet_api::block::BlockNumber;
 use tracing::{info, trace};
 
-use self::error::ToRpcResponseResult;
+use self::{error::{ApiError}, models::BlockIdInput};
 use crate::api::serde_helpers::empty_params;
+
+
+pub(crate) type RpcResult<T> = std::result::Result<T, ApiError>;
+
+/// Helper trait to easily convert results to rpc results
+pub(crate) trait ToRpcResponseResult {
+    fn to_rpc_result(self) -> ResponseResult;
+}
+
+/// Converts a serializable value into a `ResponseResult`
+pub fn to_rpc_result<T: Serialize>(val: T) -> ResponseResult {
+    match serde_json::to_value(val) {
+        Ok(success) => ResponseResult::Success(success),
+        Err(err) => {
+            error!("Failed serialize rpc response: {:?}", err);
+            ResponseResult::error(RpcError::internal_error())
+        }
+    }
+}
+
+impl<T: Serialize> ToRpcResponseResult for RpcResult<T> {
+    fn to_rpc_result(self) -> ResponseResult {
+        match self {
+            Ok(data) => to_rpc_result(data),
+            Err(err) => match err {
+                ApiError::RpcError(rpc_error) => rpc_error,
+                err @ ApiError::BlockNotFound => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(24),
+                    message: err.to_string().into(),
+                    data: None,
+                },
+                err @ ApiError::ContractNotFound => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(20),
+                    message: err.to_string().into(),
+                    data: None,
+                },
+                err @ ApiError::TransactionNotFound => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(25),
+                    message: err.to_string().into(),
+                    data: None,
+                },
+                err @ ApiError::InvalidTransactionIndexInBlock => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(27),
+                    message: err.to_string().into(),
+                    data: None,
+                },
+                err @ ApiError::ClassHashNotFound => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(28),
+                    message: err.to_string().into(),
+                    data: None,
+                },
+                err @ ApiError::ContractError => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(40),
+                    message: err.to_string().into(),
+                    data: None,
+                },
+                err @ ApiError::NoBlocks => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(32),
+                    message: err.to_string().into(),
+                    data: None,
+                },
+                err @ ApiError::RequestPageSizeTooBig => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(31),
+                    message: err.to_string().into(),
+                    data: None,
+                },
+                err @ ApiError::InvalidContinuationToken => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(33),
+                    message: err.to_string().into(),
+                    data: None,
+                },
+                err @ ApiError::TooManyKeysInFilter => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(34),
+                    message: err.to_string().into(),
+                    data: None,
+                },
+            }
+            .into(),
+        }
+    }
+}
 
 #[async_trait::async_trait]
 impl RpcHandler for JsonRpcHandler {
@@ -132,124 +204,6 @@ impl JsonRpcHandler {
                 .await
                 .to_rpc_result(),
         }
-    }
-}
-
-impl JsonRpcHandler {
-    async fn get_block_with_tx_hashes(&self, _block_id: BlockId) -> RpcResult<Block> {
-        Err(error::ApiError::BlockNotFound)
-    }
-
-    async fn get_block_with_full_txs(&self, _block_id: BlockId) -> RpcResult<Block> {
-        Err(error::ApiError::BlockNotFound)
-    }
-
-    async fn get_state_update(&self, _block_id: BlockId) -> RpcResult<ThinStateDiff> {
-        Err(error::ApiError::BlockNotFound)
-    }
-
-    async fn get_storage_at(
-        &self,
-        _contract_address: ContractAddressHex,
-        _key: PatriciaKeyHex,
-        _block_id: BlockId,
-    ) -> RpcResult<PatriciaKeyHex> {
-        Err(error::ApiError::ContractNotFound)
-    }
-
-    async fn get_transaction_by_hash(
-        &self,
-        _transaction_hash: TransactionHashHex,
-    ) -> RpcResult<TransactionWithType> {
-        Err(error::ApiError::TransactionNotFound)
-    }
-
-    async fn get_transaction_by_block_id_and_index(
-        &self,
-        _block_id: BlockId,
-        _index: BlockNumber,
-    ) -> RpcResult<TransactionWithType> {
-        Err(error::ApiError::InvalidTransactionIndexInBlock)
-    }
-
-    async fn get_transaction_receipt_by_hash(
-        &self,
-        _transaction_hash: TransactionHashHex,
-    ) -> RpcResult<TransactionReceipt> {
-        Err(error::ApiError::TransactionNotFound)
-    }
-
-    async fn get_class(
-        &self,
-        _block_id: BlockId,
-        _class_hash: ClassHashHex,
-    ) -> RpcResult<ContractClass> {
-        Err(error::ApiError::ClassHashNotFound)
-    }
-
-    async fn get_class_hash_at(
-        &self,
-        _block_id: BlockId,
-        _contract_address: ContractAddressHex,
-    ) -> RpcResult<ClassHashHex> {
-        Err(error::ApiError::ContractNotFound)
-    }
-
-    async fn get_class_at(
-        &self,
-        _block_id: BlockId,
-        _contract_address: ContractAddressHex,
-    ) -> RpcResult<ContractClass> {
-        Err(error::ApiError::ContractNotFound)
-    }
-
-    async fn get_block_txs_count(&self, _block_id: BlockId) -> RpcResult<BlockNumber> {
-        Err(error::ApiError::BlockNotFound)
-    }
-
-    async fn call(&self, _block_id: BlockId, _request: FunctionCall) -> RpcResult<Vec<FeltHex>> {
-        Err(error::ApiError::ContractError)
-    }
-
-    async fn estimate_fee(
-        &self,
-        _block_id: BlockId,
-        _request: Vec<BroadcastedTransactionWithType>,
-    ) -> RpcResult<Vec<EstimateFeeOutput>> {
-        Err(error::ApiError::ContractError)
-    }
-
-    async fn block_number(&self) -> RpcResult<BlockNumber> {
-        Err(error::ApiError::NoBlocks)
-    }
-
-    async fn block_hash_and_number(&self) -> RpcResult<BlockHashAndNumberOutput> {
-        Err(error::ApiError::NoBlocks)
-    }
-
-    fn chain_id(&self) -> RpcResult<String> {
-        // DEVNET
-        Ok("0x4445564e4554".to_string())
-    }
-
-    async fn pending_transactions(&self) -> RpcResult<Vec<Transaction>> {
-        Ok(vec![])
-    }
-
-    async fn syncing(&self) -> RpcResult<SyncingOutput> {
-        Ok(SyncingOutput::False(false))
-    }
-
-    async fn get_events(&self, _filter: EventFilter) -> RpcResult<EventsChunk> {
-        Err(error::ApiError::InvalidContinuationToken)
-    }
-
-    async fn get_nonce(
-        &self,
-        _block_id: BlockId,
-        _contract_address: ContractAddressHex,
-    ) -> RpcResult<FeltHex> {
-        Err(error::ApiError::BlockNotFound)
     }
 }
 
