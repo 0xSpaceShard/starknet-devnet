@@ -1,9 +1,14 @@
+use std::collections::HashMap;
+
 use account::Account;
+use constants::{ERC20_CONTRACT_ADDRESS, CHAIN_ID};
 use predeployed_accounts::PredeployedAccounts;
-use starknet_types::traits::HashProducer;
+use starknet_in_rust::{definitions::{block_context::{BlockContext, StarknetOsConfig}, constants::DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS}, testing::TEST_SEQUENCER_ADDRESS, state::BlockInfo, transaction::Declare};
+use starknet_types::{traits::HashProducer, felt::{Felt}};
 use starknet_types::DevnetResult;
 use state::StarknetState;
 use traits::{AccountGenerator, Accounted};
+use transactions::{StarknetTransactions};
 
 mod account;
 mod constants;
@@ -12,6 +17,7 @@ mod services;
 mod state;
 mod system_contract;
 mod traits;
+mod transactions;
 mod utils;
 
 #[derive(Debug)]
@@ -25,6 +31,8 @@ pub struct StarknetConfig {
 pub struct Starknet {
     state: StarknetState,
     predeployed_accounts: PredeployedAccounts,
+    block_context: BlockContext,
+    transactions: StarknetTransactions,
 }
 
 impl Starknet {
@@ -56,11 +64,42 @@ impl Starknet {
             account.set_initial_balance(&mut state)?;
         }
 
-        Ok(Self { state, predeployed_accounts })
+        let block_context = Self::get_block_context(0)?;
+
+        Ok(Self {
+            state,
+            predeployed_accounts,
+            block_context,
+            transactions: StarknetTransactions::default(),
+        })
     }
 
     pub fn get_predeployed_accounts(&self) -> Vec<Account> {
         self.predeployed_accounts.get_accounts().to_vec()
+    }
+
+    pub fn get_block_context(gas_price: u128) -> DevnetResult<BlockContext> {
+        let starknet_os_config = StarknetOsConfig::new(
+            CHAIN_ID,
+            starknet_in_rust::utils::Address(
+                Felt::from_prefixed_hex_str(ERC20_CONTRACT_ADDRESS)?.into(),
+            ),
+            gas_price,
+        );
+
+        let block_context = BlockContext::new(
+            starknet_os_config,
+            0,
+            0,
+            DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS.clone(),
+            1_000_000,
+            0,
+            BlockInfo::empty(TEST_SEQUENCER_ADDRESS.clone()),
+            HashMap::default(),
+            true,
+        );
+
+        Ok(block_context)
     }
 }
 
