@@ -1,4 +1,5 @@
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
+use starknet_in_rust::state::cached_state::CachedState;
 use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
 use starknet_in_rust::state::state_api::StateReader;
 use starknet_in_rust::utils::Address;
@@ -11,9 +12,20 @@ use starknet_types::DevnetResult;
 
 use crate::traits::{StateChanger, StateExtractor};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub(crate) struct StarknetState {
     state: InMemoryStateReader,
+    pub pending_state: CachedState<InMemoryStateReader>,
+}
+
+impl Default for StarknetState {
+    fn default() -> Self {
+        let in_memory_state = InMemoryStateReader::default();
+        Self {
+            state: in_memory_state.clone(),
+            pending_state: CachedState::new(in_memory_state, None, None),
+        }
+    }
 }
 
 impl StateChanger for StarknetState {
