@@ -11,13 +11,12 @@ use super::Api;
 use tracing::error;
 
 use serde::{Deserialize, Serialize};
-use server::rpc_core::{response::ResponseResult, error::RpcError};
+use server::rpc_core::{error::RpcError, response::ResponseResult};
 use server::rpc_handler::RpcHandler;
 use tracing::{info, trace};
 
-use self::{error::{ApiError}, models::BlockIdInput};
+use self::{error::ApiError, models::BlockIdInput};
 use crate::api::serde_helpers::empty_params;
-
 
 pub(crate) type RpcResult<T> = std::result::Result<T, ApiError>;
 

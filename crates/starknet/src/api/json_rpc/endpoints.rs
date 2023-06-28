@@ -1,15 +1,15 @@
-use crate::api::models::{block::Block, state::ThinStateDiff, BlockId};
 use crate::api::models::contract_class::ContractClass;
 use crate::api::models::transaction::{
     BroadcastedTransactionWithType, ClassHashHex, EventFilter, EventsChunk, FunctionCall,
     Transaction, TransactionHashHex, TransactionReceipt, TransactionWithType,
 };
+use crate::api::models::{block::Block, state::ThinStateDiff, BlockId};
 use crate::api::models::{ContractAddressHex, FeltHex, PatriciaKeyHex};
 
 use starknet_types::starknet_api::block::BlockNumber;
 
-use super::RpcResult;
 use super::models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
+use super::RpcResult;
 
 use super::{
     error::{self},
