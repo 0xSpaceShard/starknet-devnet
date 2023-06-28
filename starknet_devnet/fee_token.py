@@ -5,6 +5,7 @@ import pprint
 import sys
 
 from starkware.solidity.utils import load_nearby_contract
+from starkware.starknet.business_logic.state.storage_domain import StorageDomain
 from starkware.starknet.business_logic.transaction.objects import InternalInvokeFunction
 from starkware.starknet.compiler.compile import get_selector_from_name
 from starkware.starknet.services.api.contract_class.contract_class import (
@@ -102,7 +103,9 @@ class FeeToken(PredeployedContractWrapper):
 
         # we need a funded account for this since the tx has to be signed and a fee will be charged
         # a user-intedded predeployed account cannot be used for this
-        nonce = await starknet.state.state.get_nonce_at(ChargeableAccount.ADDRESS)
+        nonce = await starknet.state.state.get_nonce_at(
+            StorageDomain.ON_CHAIN, ChargeableAccount.ADDRESS
+        )
         chargeable_address = hex(ChargeableAccount.ADDRESS)
         signature, execute_calldata = get_execute_args(
             calls=[(hex(FeeToken.ADDRESS), "mint", calldata)],

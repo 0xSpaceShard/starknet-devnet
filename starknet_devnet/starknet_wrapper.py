@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Set, Tuple, Type, Union
 
 import cloudpickle as pickle
 from starkware.starknet.business_logic.state.state import BlockInfo, CachedState
+from starkware.starknet.business_logic.state.storage_domain import StorageDomain
 from starkware.starknet.business_logic.transaction.fee import calculate_tx_fee
 from starkware.starknet.business_logic.transaction.objects import (
     CallInfo,
@@ -734,7 +735,7 @@ class StarknetWrapper:
         Returns the storage identified by `key` from the contract at `contract_address`.
         """
         state = await self.__get_query_state(block_id)
-        return hex(await state.state.get_storage_at(contract_address, key))
+        return hex(await state.state.get_storage_at(StorageDomain.ON_CHAIN, contract_address, key))
 
     async def load_messaging_contract_in_l1(
         self, network_url: str, contract_address: str, network_id: str
@@ -944,7 +945,7 @@ class StarknetWrapper:
     ):
         """Returns nonce of contract with `contract_address`"""
         state = await self.__get_query_state(block_id)
-        return await state.state.get_nonce_at(contract_address)
+        return await state.state.get_nonce_at(StorageDomain.ON_CHAIN, contract_address)
 
     async def __predeclare_starknet_cli_account(self):
         """Predeclares the account class used by Starknet CLI"""

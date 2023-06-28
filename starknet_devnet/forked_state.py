@@ -5,6 +5,7 @@ import json
 from services.external_api.client import BadRequest
 from starkware.starknet.business_logic.state.state import BlockInfo, CachedState
 from starkware.starknet.business_logic.state.state_api import StateReader
+from starkware.starknet.business_logic.state.storage_domain import StorageDomain
 from starkware.starknet.core.os.contract_class.compiled_class_hash import (
     compute_compiled_class_hash,
 )
@@ -162,13 +163,17 @@ class ForkedStateReader(StateReader):
                 return int.from_bytes(UNINITIALIZED_CLASS_HASH, "big")
             raise
 
-    async def get_nonce_at(self, contract_address: int) -> int:
+    async def get_nonce_at(
+        self, storage_domain: StorageDomain, contract_address: int
+    ) -> int:
         return await self.__feeder_gateway_client.get_nonce(
             contract_address=contract_address,
             block_number=self.__block_number,
         )
 
-    async def get_storage_at(self, contract_address: int, key: int) -> int:
+    async def get_storage_at(
+        self, storage_domain: StorageDomain, contract_address: int, key: int
+    ) -> int:
         storage_hex = await self.__feeder_gateway_client.get_storage_at(
             contract_address=contract_address,
             key=key,
