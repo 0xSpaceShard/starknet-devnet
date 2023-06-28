@@ -10,3 +10,7 @@ DEVNET_PORT=<port> cargo run
 By default logging level is INFO, but this can be changed via RUST_LOG environment variable.
 
 All logging levels: TRACE, DEBUG, INFO, WARN, ERROR
+
+If you want to provide Log level then command looks like:
+
+RUST_LOG=<level> DEVNET_PORT=<port> cargo run
