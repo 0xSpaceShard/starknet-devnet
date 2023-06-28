@@ -14,18 +14,27 @@ use crate::{
     ServerConfig,
 };
 
+/// Helper type for naming the [`Server`]
 pub type StarknetDevnetServer = Server<AddrIncoming, IntoMakeService<Router>>;
 
-pub struct Builder<JsonRpcHandler: RpcHandler, HttpApiHandler: Clone + Send + Sync + 'static> {
+/// Helper for constructing a [`Server`].
+/// [`Builder`] is a convenience wrapper around [`Router`] with added support for JSON-RPC and HTTP
+/// The main purpose of [`Builder`] is to provide with the essentials elements for the server to run:
+/// address, routes, shared state (if any) and additional configuration
+/// [`Builder`] uses 2 generic types (TJsonRpcHandler, THttpApiHandler) representing objects that will
+/// be available on every http request like a shared state.
+/// Take a look at https://docs.rs/axum/latest/axum/#using-request-extensions
+
+pub struct Builder<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static> {
     address: SocketAddr,
     routes: Router,
-    json_rpc_handler: Option<JsonRpcHandler>,
-    http_api_handler: Option<HttpApiHandler>,
+    json_rpc_handler: Option<TJsonRpcHandler>,
+    http_api_handler: Option<THttpApiHandler>,
     config: Option<ServerConfig>,
 }
 
-impl<JsonRpcHandler: RpcHandler, HttpApiHandler: Clone + Send + Sync + 'static>
-    Builder<JsonRpcHandler, HttpApiHandler>
+impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static>
+    Builder<TJsonRpcHandler, THttpApiHandler>
 {
     pub fn new(addr: SocketAddr) -> Self {
         Builder {
@@ -37,37 +46,45 @@ impl<JsonRpcHandler: RpcHandler, HttpApiHandler: Clone + Send + Sync + 'static>
         }
     }
 
-    pub fn http_api_route<T>(self, path: &str, service: T) -> Self
+    /// Adds an HTTP endpoint to a specific route
+    pub fn http_api_route<THttpMethodService>(
+        self,
+        path: &str,
+        http_service: THttpMethodService,
+    ) -> Self
     where
-        T: Service<Request<hyper::Body>, Response = Response, Error = Infallible>
+        THttpMethodService: Service<Request<hyper::Body>, Response = Response, Error = Infallible>
             + Clone
             + Send
             + 'static,
-        T::Future: Send + 'static,
+        THttpMethodService::Future: Send + 'static,
     {
         Self {
-            routes: self.routes.route(path, service),
+            routes: self.routes.route(path, http_service),
             ..self
         }
     }
 
-    pub fn set_http_api_handler(self, handler: HttpApiHandler) -> Self {
+    /// Adds the object that will be available on every HTTP request
+    pub fn set_http_api_handler(self, handler: THttpApiHandler) -> Self {
         Self {
             http_api_handler: Some(handler),
             ..self
         }
     }
 
-    pub fn json_rpc_route(self, path: &str, handler: JsonRpcHandler) -> Self {
+    /// Sets the path to the JSON-RPC endpoint and adds the object that will be available on every request
+    pub fn json_rpc_route(self, path: &str, handler: TJsonRpcHandler) -> Self {
         Self {
             routes: self
                 .routes
-                .route(path, post(rpc_handler::handle::<JsonRpcHandler>)),
+                .route(path, post(rpc_handler::handle::<TJsonRpcHandler>)),
             json_rpc_handler: Some(handler),
             ..self
         }
     }
 
+    /// Sets additional configuration for the [`StarknetDevnetServer`]
     pub fn set_config(self, config: ServerConfig) -> Self {
         Self {
             config: Some(config),
@@ -75,6 +92,10 @@ impl<JsonRpcHandler: RpcHandler, HttpApiHandler: Clone + Send + Sync + 'static>
         }
     }
 
+    /// Creates the http server - [`StarknetDevnetServer`] from all the configured routes, provided [`ServerConfig`]
+    /// and all handlers that have Some value. If TJsonRpcHandler and/or THttpApiHandler are set
+    /// each methods that serves the route will be able to use it.
+    /// https://docs.rs/axum/latest/axum/#using-request-extensions
     pub fn build(self) -> StarknetDevnetServer {
         let mut svc = self.routes;
 
