@@ -69,11 +69,11 @@ impl ContractClass {
     /// So we use IndexMap to preserve order of the keys, but its disadvantage is removing entries from the json object, because it uses swap_remove method on IndexMap, which doesnt preserve order.
     /// So we traverse the JSON object and remove all entries with key - attributes or accessible_scopes if they are empty arrays.
     fn compute_hinted_class_hash(contract_class: &Value) -> crate::DevnetResult<StarkFelt> {
-        let mut abi_json = json!({
+        let mut abi_program_json = json!({
             "abi": contract_class.get("abi").unwrap_or(&Value::Null),
             "program": contract_class.get("program").unwrap_or(&Value::Null)
         });
-        let program_json = abi_json
+        let program_json = abi_program_json
             .get_mut("program")
             .ok_or(JsonError::Custom { msg: "missing program entry".to_string() })?;
 
@@ -87,21 +87,17 @@ impl ContractClass {
 
         // Traverse the JSON and remove all entries with key attributes and accessible_scopes
         // if they are empty arrays.
-        let res = crate::utils::traverse_and_exclude_recursively(&abi_json, &|key, value| {
+        let modified_abi_program_json = crate::utils::traverse_and_exclude_recursively(&abi_program_json, &|key, value| {
             return (key == "attributes" || key == "accessible_scopes")
                 && value.is_array()
                 && value.as_array().expect("Not a valid JSON array").is_empty();
         });
 
-        let mut writer = Vec::with_capacity(128);
-        let mut serializer = Serializer::with_formatter(&mut writer, utils::StarknetFormatter);
-        res.serialize(&mut serializer).map_err(JsonError::SerdeJsonError)?;
+        let mut buffer = Vec::with_capacity(128);
+        let mut serializer = Serializer::with_formatter(&mut buffer, utils::StarknetFormatter);
+        modified_abi_program_json.serialize(&mut serializer).map_err(JsonError::SerdeJsonError)?;
 
-        let str_json = String::from_utf8(writer).map_err(|_| JsonError::Custom {
-            msg: "Cannot convert from bytes to UTF-8 JSON string".to_string(),
-        })?;
-
-        Ok(StarkFelt::new(calculate_sn_keccak(str_json.as_bytes()))?)
+        Ok(StarkFelt::new(calculate_sn_keccak(&buffer[..]))?)
     }
 }
 
