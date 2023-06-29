@@ -1,21 +1,43 @@
-#[contract]
-mod Contract {
-    struct Storage {
-        balance: felt252,
+#[starknet::interface]
+trait IBalanceContract<TContractState> {
+   fn increase_balance(ref self: TContractState, amount: u128);
+   fn get_balance(self: @TContractState) -> u128;
+}
+
+#[starknet::contract]
+mod BalanceContract {
+
+   #[storage]
+   struct Storage {
+      balance: u128,
+   }
+
+   #[event]
+   #[derive(Drop, starknet::Event)]
+    enum Event {
+        BalanceIncreased: BalanceIncreased
     }
 
-    #[constructor]
-    fn constructor(initial_balance: felt252) {
-        balance::write(initial_balance);
+    #[derive(Drop, starknet::Event)]
+    struct BalanceIncreased {
+        amount: u128
     }
 
-    #[external]
-    fn increase_balance(amount1: felt252, amount2: felt252) {
-        balance::write(balance::read() + amount1 + amount2);
-    }
+   #[constructor]
+   fn constructor(ref self: ContractState, initial_balance: u128) {
+      self.balance.write(initial_balance);
+   }
 
-    #[view]
-    fn get_balance() -> felt252 {
-        balance::read()
-    }
+   #[external(v0)]
+   impl BalanceContract of super::IBalanceContract<ContractState> {
+      fn get_balance(self: @ContractState) -> u128 {
+         self.balance.read()
+      }
+
+      fn increase_balance(ref self: ContractState, amount: u128) {
+         let current = self.balance.read();
+         self.balance.write(current + amount);
+         self.emit(Event::BalanceIncreased(BalanceIncreased { amount }));
+      }
+   }
 }

@@ -7,6 +7,7 @@ from typing import List, NamedTuple, Sequence, Tuple
 
 from starkware.cairo.lang.vm.crypto import pedersen_hash
 from starkware.crypto.signature.signature import sign
+from starkware.starknet.business_logic.state.storage_domain import StorageDomain
 from starkware.starknet.core.os.transaction_hash.transaction_hash import (
     TransactionHashPrefix,
     calculate_transaction_hash_common,
@@ -120,12 +121,18 @@ async def set_balance(state: StarknetState, address: int, balance: int):
 
     fee_token_address = state.general_config.fee_token_address
 
-    balance_address = pedersen_hash(get_selector_from_name("ERC20_balances"), address)
+    balance_key = pedersen_hash(get_selector_from_name("ERC20_balances"), address)
     balance_uint256 = Uint256.from_felt(balance)
 
     await state.state.set_storage_at(
-        fee_token_address, balance_address, balance_uint256.low
+        storage_domain=StorageDomain.ON_CHAIN,
+        contract_address=fee_token_address,
+        key=balance_key,
+        value=balance_uint256.low,
     )
     await state.state.set_storage_at(
-        fee_token_address, balance_address + 1, balance_uint256.high
+        storage_domain=StorageDomain.ON_CHAIN,
+        contract_address=fee_token_address,
+        key=balance_key + 1,
+        value=balance_uint256.high,
     )

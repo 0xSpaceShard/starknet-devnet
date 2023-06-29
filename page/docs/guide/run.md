@@ -66,7 +66,7 @@ optional arguments:
                         Specify the CLI args used internally by the Cairo 1.0 compiler for recompiling.
                         Provide them as a single space-separated string.
                         No validation is done on the arguments on Devnet startup, only when they are put to use.
-                        Defaults to '--add-pythonic-hints --allowed-libfuncs-list-name experimental_v0.1.0'
+                        Defaults to '--add-pythonic-hints'
 ```
 
 <!-- Developer note: the previous section should be a copy-paste of `starknet-devnet --help` -->

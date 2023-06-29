@@ -59,24 +59,28 @@ class FeeToken(PredeployedContractWrapper):
     async def _mimic_constructor(self):
         starknet: Starknet = self.starknet_wrapper.starknet
         await starknet.state.state.set_storage_at(
-            FeeToken.ADDRESS,
-            get_selector_from_name("ERC20_name"),
-            str_to_felt(FeeToken.NAME),
+            storage_domain=StorageDomain.ON_CHAIN,
+            contract_address=FeeToken.ADDRESS,
+            key=get_selector_from_name("ERC20_name"),
+            value=str_to_felt(FeeToken.NAME),
         )
         await starknet.state.state.set_storage_at(
-            FeeToken.ADDRESS,
-            get_selector_from_name("ERC20_symbol"),
-            str_to_felt(FeeToken.SYMBOL),
+            storage_domain=StorageDomain.ON_CHAIN,
+            contract_address=FeeToken.ADDRESS,
+            key=get_selector_from_name("ERC20_symbol"),
+            value=str_to_felt(FeeToken.SYMBOL),
         )
         await starknet.state.state.set_storage_at(
-            FeeToken.ADDRESS,
-            get_selector_from_name("ERC20_decimals"),
-            18,
+            storage_domain=StorageDomain.ON_CHAIN,
+            contract_address=FeeToken.ADDRESS,
+            key=get_selector_from_name("ERC20_decimals"),
+            value=18,
         )
         await starknet.state.state.set_storage_at(
-            FeeToken.ADDRESS,
-            get_selector_from_name("Ownable_owner"),
-            ChargeableAccount.ADDRESS,
+            storage_domain=StorageDomain.ON_CHAIN,
+            contract_address=FeeToken.ADDRESS,
+            key=get_selector_from_name("Ownable_owner"),
+            value=ChargeableAccount.ADDRESS,
         )
 
     async def get_balance(self, address: int) -> int:

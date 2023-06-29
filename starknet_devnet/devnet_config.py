@@ -51,8 +51,6 @@ DEFAULT_CHAIN_ID = StarknetChainId.TESTNET
 
 DEFAULT_COMPILER_ARGS = [
     "--add-pythonic-hints",
-    "--allowed-libfuncs-list-name",
-    "experimental_v0.1.0",
 ]
 
 
@@ -274,7 +272,7 @@ def _parse_sierra_compiler_path(compiler_path: str):
 
 
 def _parse_compiler_args(compiler_args: str):
-    return compiler_args.split()
+    return compiler_args.strip().split()
 
 
 def parse_args(raw_args: List[str]):

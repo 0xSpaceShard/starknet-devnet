@@ -4,6 +4,7 @@ Account class and its predefined constants.
 
 from typing import Optional
 
+from starkware.starknet.business_logic.state.storage_domain import StorageDomain
 from starkware.starknet.core.os.contract_address.contract_address import (
     calculate_contract_address_from_hash,
 )
@@ -61,7 +62,10 @@ class Account(PredeployedContractWrapper):
         starknet: Starknet = self.starknet_wrapper.starknet
 
         await starknet.state.state.set_storage_at(
-            self.address, get_selector_from_name("Account_public_key"), self.public_key
+            storage_domain=StorageDomain.ON_CHAIN,
+            contract_address=self.address,
+            key=get_selector_from_name("Account_public_key"),
+            value=self.public_key,
         )
 
         await set_balance(starknet.state, self.address, self.initial_balance)

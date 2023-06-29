@@ -25,22 +25,17 @@ for contract in "test/contracts/cairo1"/*.cairo; do
     without_extension="${basename%.*}"
     sierra_output="$directory/$without_extension.json"
     casm_output="$directory/$without_extension.casm"
-    abi_output="$directory/${without_extension}_abi.json"
 
     # compile to sierra
     cargo run --bin starknet-compile \
         --manifest-path "$CAIRO_1_COMPILER_MANIFEST" \
         -- \
-        --allowed-libfuncs-list-name experimental_v0.1.0 \
         "$contract" "$sierra_output"
-
-    jq ".abi" "$sierra_output" >"$abi_output"
 
     # compile to casm
     cargo run --bin starknet-sierra-compile \
         --manifest-path "$CAIRO_1_COMPILER_MANIFEST" \
         -- \
-        --allowed-libfuncs-list-name experimental_v0.1.0 \
         --add-pythonic-hints \
         "$sierra_output" "$casm_output"
 

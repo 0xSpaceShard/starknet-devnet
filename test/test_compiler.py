@@ -226,7 +226,7 @@ def test_compiler_args_happy_path():
 @devnet_in_background(
     *PREDEPLOY_ACCOUNT_CLI_ARGS,
     "--compiler-args",
-    "--allowed-libfuncs-list-name experimental_v0.1.0",
+    "", # TODO
 )
 def test_compiler_args_without_pythonic_hints():
     """Expect failure if --add-pythonic-hints is not provided"""

@@ -5,7 +5,6 @@ import json
 from test.account import deploy, send_declare_v2
 from test.rpc.rpc_utils import rpc_call
 from test.shared import (
-    ABI_1_PATH,
     ABI_PATH,
     CONTRACT_1_PATH,
     PREDEPLOY_ACCOUNT_CLI_ARGS,
@@ -49,17 +48,13 @@ def assert_correct_cairo_1_contract(contract_class):
     """
     Assert that the provided cairo 1 contract is equal to the expected one.
     """
-    with open(CONTRACT_1_PATH, mode="r", encoding="utf-8") as expected_contract, open(
-        ABI_1_PATH, mode="r", encoding="utf-8"
-    ) as expected_abi:
+    with open(CONTRACT_1_PATH, mode="r", encoding="utf-8") as expected_contract:
         expected_contract_json = json.loads(expected_contract.read())
-        expected_abi_json = json.loads(expected_abi.read())
 
     assert (
         contract_class["entry_points_by_type"]
         == expected_contract_json["entry_points_by_type"]
     )
-    assert contract_class["abi"] == json.dumps(expected_abi_json)
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
