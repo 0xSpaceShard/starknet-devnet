@@ -154,6 +154,12 @@ impl TryFrom<Felt> for starknet_api::core::PatriciaKey {
     }
 }
 
+impl From<Felt> for starknet_api::block::BlockHash {
+    fn from(value: Felt) -> Self {
+        Self(value.into())
+    }
+}
+
 pub type BlockHash = Felt;
 pub type TransactionHash = Felt;
 pub type ClassHash = Felt;
