@@ -19,6 +19,15 @@ impl From<starknet_api::core::ContractAddress> for ContractAddress {
     }
 }
 
+impl TryFrom<ContractAddress> for starknet_api::core::ContractAddress {
+    type Error = Error;
+
+    fn try_from(value: ContractAddress) -> DevnetResult<Self> {
+        let patricia_key: starknet_api::core::PatriciaKey = value.0.try_into()?;
+        Ok(starknet_api::core::ContractAddress(patricia_key))
+    }
+}
+
 impl TryFrom<ContractAddress> for starknet_in_rust::utils::Address {
     type Error = Error;
 
