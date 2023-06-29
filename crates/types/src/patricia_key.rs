@@ -34,8 +34,7 @@ impl TryFrom<PatriciaKey> for starknet_api::core::PatriciaKey {
 
     fn try_from(value: PatriciaKey) -> Result<Self, Self::Error> {
         let stark_hash: starknet_api::hash::StarkFelt = value.0.into();
-        starknet_api::core::PatriciaKey::try_from(stark_hash)
-            .map_err(Error::StarknetApiError)
+        starknet_api::core::PatriciaKey::try_from(stark_hash).map_err(Error::StarknetApiError)
     }
 }
 

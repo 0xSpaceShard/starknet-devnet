@@ -160,6 +160,12 @@ impl From<Felt> for starknet_api::block::BlockHash {
     }
 }
 
+impl From<starknet_api::block::BlockHash> for Felt {
+    fn from(value: starknet_api::block::BlockHash) -> Self {
+        value.0.into()
+    }
+}
+
 pub type BlockHash = Felt;
 pub type TransactionHash = Felt;
 pub type ClassHash = Felt;
