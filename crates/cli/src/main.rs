@@ -28,6 +28,22 @@ struct Args {
     #[arg(help = "Specify the seed for randomness of accounts to be predeployed;")]
     seed: Option<u32>,
 
+    // Host address.
+    #[arg(long = "host")]
+    #[arg(value_name = "DEFAULT_HOST")]
+    #[arg(default_value = "127.0.0.1")]
+    #[arg(
+        help = "Specify the address to listen at; (use the address the program outputs on start)"
+    )]
+    host: String,
+
+    // Port number.
+    #[arg(long = "port")]
+    #[arg(value_name = "DEFAULT_PORT")]
+    #[arg(default_value = "5050")]
+    #[arg(help = "Specify the port to listen at;")]
+    port: u16,
+
     // Server timeout in seconds.
     #[arg(long = "timeout")]
     #[arg(value_name = "DEFAULT_TIMEOUT")]
@@ -45,6 +61,8 @@ impl Args {
             },
             total_accounts: self.accounts_count,
             predeployed_accounts_initial_balance: self.initial_balance,
+            host: self.host.clone(),
+            port: self.port,
             timeout: self.timeout,
         }
     }
