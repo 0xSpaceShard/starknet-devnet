@@ -1,8 +1,9 @@
+use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass;
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
 use starknet_in_rust::state::cached_state::CachedState;
 use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
 use starknet_in_rust::state::state_api::StateReader;
-use starknet_in_rust::utils::Address;
+use starknet_in_rust::utils::{Address, subtract_mappings, to_state_diff_storage_mapping};
 use starknet_types::cairo_felt::Felt252;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
@@ -14,8 +15,14 @@ use crate::traits::{StateChanger, StateExtractor};
 
 #[derive(Debug)]
 pub(crate) struct StarknetState {
-    state: InMemoryStateReader,
+    pub state: InMemoryStateReader,
     pub pending_state: CachedState<InMemoryStateReader>,
+}
+
+impl StarknetState {
+    pub(crate) fn equalize_states(&mut self) {
+        self.pending_state = CachedState::new(self.state.clone(), None, None);
+    }
 }
 
 impl Default for StarknetState {
@@ -74,6 +81,69 @@ impl StateChanger for StarknetState {
     fn is_contract_declared(&mut self, class_hash: &ClassHash) -> DevnetResult<bool> {
         Ok(self.state.class_hash_to_contract_class.contains_key(&(class_hash.bytes())))
     }
+
+    fn apply_cached_state(&mut self) -> DevnetResult<()> {
+        // get differences
+        let state_cache = self.pending_state.cache_mut();
+
+        let substracted_maps = subtract_mappings(
+            state_cache.storage_writes().clone(),
+            state_cache.storage_initial_values_mut().clone(),
+        );
+
+        let storage_updates = to_state_diff_storage_mapping(substracted_maps);
+
+        let address_to_nonce = subtract_mappings(
+            state_cache.nonce_writes_mut().clone(),
+            state_cache.nonce_initial_values().clone(),
+        );
+
+        let class_hash_to_compiled_class = subtract_mappings(
+            state_cache.compiled_class_hash_writes_mut().clone(),
+            state_cache.compiled_class_hash_initial_values_mut().clone(),
+        );
+
+        let address_to_class_hash = subtract_mappings(
+            state_cache.class_hash_writes_mut().clone(),
+            state_cache.class_hash_initial_values_mut().clone(),
+        );
+
+        let old_state = &mut self.state;
+
+        // update contract storages
+        storage_updates.into_iter().for_each(|(contract_address, storages)| {
+            storages.into_iter().for_each(|(key, value)| {
+                //old_state.storage_view.insert((contract_address, key), value);
+                let key = (contract_address.clone(), key.to_be_bytes());
+                old_state.address_to_storage_mut().insert(key, value);
+            })
+        });
+
+        // update declared contracts
+        // apply newly declared classses
+        for (class_hash, contract_class) in class_hash_to_compiled_class {
+            match contract_class {
+                CompiledClass::Deprecated(artifact) => {
+                    old_state.class_hash_to_contract_class_mut().insert(class_hash, *artifact);
+                },
+                CompiledClass::Casm(artifact) => {
+                    old_state.casm_contract_classes_mut().insert(class_hash, *artifact);
+                },
+            }
+        }
+
+        // update deployed contracts
+        address_to_class_hash.into_iter().for_each(|(contract_address, class_hash)| {
+            old_state.address_to_class_hash_mut().insert(contract_address, class_hash);
+        });
+
+        // // update accounts nonce
+        address_to_nonce.into_iter().for_each(|(contract_address, nonce)| {
+            old_state.address_to_nonce_mut().insert(contract_address, nonce);
+        });
+
+        Ok(())
+    }
 }
 
 impl StateExtractor for StarknetState {
@@ -84,6 +154,7 @@ impl StateExtractor for StarknetState {
 
 #[cfg(test)]
 mod tests {
+    use starknet_in_rust::state::state_api::State;
     use starknet_types::cairo_felt::Felt252;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
@@ -93,6 +164,22 @@ mod tests {
     use crate::utils::test_utils::{
         dummy_contract_address, dummy_contract_class, dummy_contract_storage_key, dummy_felt,
     };
+
+    #[test]
+    fn apply_state_updates_for_address_nonce_successfully() {
+        let mut state = StarknetState::default();
+        state.deploy_contract(dummy_contract_address(), dummy_felt()).unwrap();
+        let starknet_in_rust_address: starknet_in_rust::utils::Address = dummy_contract_address().try_into().unwrap();
+        // check if current nonce is 0
+        assert!(state.state.address_to_nonce.get(&starknet_in_rust_address).unwrap().eq(&Felt252::from(0)));
+        state.equalize_states();
+        state.pending_state.increment_nonce(&starknet_in_rust_address).unwrap();
+        state.apply_cached_state().unwrap();
+
+        // check if nonce update was correct
+        assert!(state.state.address_to_nonce.get(&starknet_in_rust_address).unwrap().eq(&Felt252::from(1)));
+    }
+
     #[test]
     fn declare_contract_class_successfully() {
         let mut state = StarknetState::default();
