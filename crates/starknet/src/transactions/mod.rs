@@ -2,11 +2,12 @@ pub(crate) mod declare_transaction;
 
 use std::collections::HashMap;
 
+use starknet_api::block::BlockNumber;
 use starknet_in_rust::{execution::TransactionExecutionInfo, transaction::error::TransactionError};
 use starknet_rs_core::types::TransactionStatus;
-use starknet_types::{felt::TransactionHash};
+use starknet_types::felt::{BlockHash, TransactionHash};
 
-use crate::traits::HashIdentified;
+use crate::traits::HashIdentifiedMut;
 
 use self::declare_transaction::DeclareTransactionV1;
 
@@ -19,11 +20,11 @@ impl StarknetTransactions {
     }
 }
 
-impl HashIdentified for StarknetTransactions {
+impl HashIdentifiedMut for StarknetTransactions {
     type Hash = TransactionHash;
     type Element = StarknetTransaction;
-    fn get_by_hash(&self, hash: Self::Hash) -> Option<&StarknetTransaction> {
-        let result = self.0.get(&hash);
+    fn get_by_hash_mut(&mut self, hash: Self::Hash) -> Option<&mut StarknetTransaction> {
+        let result = self.0.get_mut(&hash);
 
         result
     }
@@ -32,38 +33,35 @@ impl HashIdentified for StarknetTransactions {
 pub struct StarknetTransaction {
     status: TransactionStatus,
     inner: Transaction,
+    pub(crate) block_hash: Option<BlockHash>,
+    pub(crate) block_number: Option<BlockNumber>,
     execution_info: Option<starknet_in_rust::execution::TransactionExecutionInfo>,
     execution_error: Option<TransactionError>,
 }
 
 impl StarknetTransaction {
-    pub fn create_pending(
-        transaction: Transaction,
-        execution_info: TransactionExecutionInfo,
-    ) -> Self {
-        Self {
-            status: TransactionStatus::Pending,
-            inner: transaction,
-            execution_info: Some(execution_info),
-            execution_error: None,
-        }
-    }
-
     pub fn create_rejected(transaction: Transaction, execution_error: TransactionError) -> Self {
         Self {
             status: TransactionStatus::Rejected,
             inner: transaction,
             execution_info: None,
             execution_error: Some(execution_error),
+            block_hash: None,
+            block_number: None,
         }
     }
 
-    pub fn create_accepted(transaction: Transaction, execution_info: TransactionExecutionInfo) -> Self {
+    pub fn create_accepted(
+        transaction: Transaction,
+        execution_info: TransactionExecutionInfo,
+    ) -> Self {
         Self {
             status: TransactionStatus::AcceptedOnL2,
             inner: transaction,
             execution_info: Some(execution_info),
             execution_error: None,
+            block_hash: None,
+            block_number: None,
         }
     }
 }
@@ -71,4 +69,12 @@ impl StarknetTransaction {
 #[derive(Clone)]
 pub enum Transaction {
     Declare(DeclareTransactionV1),
+}
+
+impl Transaction {
+    pub(crate) fn get_hash(&self) -> Option<TransactionHash> {
+        match self {
+            Transaction::Declare(tx) => tx.transaction_hash,
+        }
+    }
 }

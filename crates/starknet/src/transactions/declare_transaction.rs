@@ -1,9 +1,7 @@
 use starknet_in_rust::{
     core::transaction_hash::{calculate_transaction_hash_common, TransactionHashPrefix},
-    definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR,
 };
 use starknet_types::{
-    cairo_felt::Felt252,
     contract_address::ContractAddress,
     contract_class::ContractClass,
     error::Error,
@@ -57,7 +55,7 @@ impl HashProducer for DeclareTransactionV1 {
             (Vec::new(), vec![class_hash.into()])
         };
 
-        let transaction_hash = calculate_transaction_hash_common(
+        let transaction_hash: Felt = calculate_transaction_hash_common(
             TransactionHashPrefix::Declare,
             self.version.into(),
             &self.sender_address.try_into()?,
@@ -71,8 +69,9 @@ impl HashProducer for DeclareTransactionV1 {
             Error::StarknetInRustTransactionError(
                 starknet_in_rust::transaction::error::TransactionError::Syscall(err),
             )
-        })?;
+        })?
+        .into();
 
-        Ok(transaction_hash.into())
+        Ok(transaction_hash)
     }
 }
