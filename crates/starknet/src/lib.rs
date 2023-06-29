@@ -22,6 +22,7 @@ pub struct StarknetConfig {
     pub host: String,
     pub port: u16,
     pub timeout: u16,
+    pub gas_price: u64,
 }
 
 #[derive(Default)]

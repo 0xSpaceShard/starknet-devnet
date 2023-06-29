@@ -30,7 +30,7 @@ struct Args {
 
     // Host address.
     #[arg(long = "host")]
-    #[arg(value_name = "DEFAULT_HOST")]
+    #[arg(value_name = "HOST")]
     #[arg(default_value = "127.0.0.1")]
     #[arg(
         help = "Specify the address to listen at; (use the address the program outputs on start)"
@@ -39,17 +39,24 @@ struct Args {
 
     // Port number.
     #[arg(long = "port")]
-    #[arg(value_name = "DEFAULT_PORT")]
+    #[arg(value_name = "PORT")]
     #[arg(default_value = "5050")]
     #[arg(help = "Specify the port to listen at;")]
     port: u16,
 
     // Server timeout in seconds.
     #[arg(long = "timeout")]
-    #[arg(value_name = "DEFAULT_TIMEOUT")]
+    #[arg(value_name = "TIMEOUT")]
     #[arg(default_value = "120")]
     #[arg(help = "Specify the server timeout in seconds;")]
     timeout: u16,
+
+    // Gas price in wei.
+    #[arg(long = "gas-price")]
+    #[arg(value_name = "GAS_PRICE")]
+    #[arg(default_value = "100000000")]
+    #[arg(help = "Specify the gas price in wei per gas unit;")]
+    gas_price: u64,
 }
 
 impl Args {
@@ -64,6 +71,7 @@ impl Args {
             host: self.host.clone(),
             port: self.port,
             timeout: self.timeout,
+            gas_price: self.gas_price,
         }
     }
 }
