@@ -13,6 +13,13 @@ pub trait HashIdentified {
     fn get_by_hash(&self, hash: Self::Hash) -> Option<&Self::Element>;
 }
 
+pub trait HashIdentifiedMut {
+    type Element;
+    type Hash;
+
+    fn get_by_hash_mut(&mut self, hash: Self::Hash) -> Option<&mut Self::Element>;
+}
+
 /// This trait sets the interface for the account
 pub trait Accounted {
     fn deploy(&self, state: &mut impl StateChanger) -> Result<(), Error>;
