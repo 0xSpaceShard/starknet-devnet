@@ -37,6 +37,14 @@ impl TryFrom<&ContractAddress> for starknet_in_rust::utils::Address {
     }
 }
 
+impl TryFrom<starknet_in_rust::utils::Address> for ContractAddress {
+    type Error = Error;
+
+    fn try_from(value: starknet_in_rust::utils::Address) -> DevnetResult<Self> {
+        Self::new(Felt::from(value.0))
+    }
+}
+
 impl ToHexString for ContractAddress {
     fn to_prefixed_hex_str(&self) -> String {
         self.0 .0.to_prefixed_hex_str()
