@@ -19,6 +19,7 @@ pub struct StarknetConfig {
     pub seed: u32,
     pub total_accounts: u8,
     pub predeployed_accounts_initial_balance: u128,
+    pub timeout: u16,
 }
 
 #[derive(Default)]
