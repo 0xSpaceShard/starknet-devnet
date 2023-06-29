@@ -3,7 +3,7 @@ use starknet_in_rust::services::api::contract_classes::deprecated_contract_class
 use starknet_in_rust::state::cached_state::CachedState;
 use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
 use starknet_in_rust::state::state_api::StateReader;
-use starknet_in_rust::utils::{Address, subtract_mappings, to_state_diff_storage_mapping};
+use starknet_in_rust::utils::{subtract_mappings, to_state_diff_storage_mapping, Address};
 use starknet_types::cairo_felt::Felt252;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
@@ -20,6 +20,8 @@ pub(crate) struct StarknetState {
 }
 
 impl StarknetState {
+    // this is used to copy "persistent" data that is present in "state" variable into "pending_state"
+    // this is done, because "pending_state" doesnt hold a reference to state, but rather a copy.
     pub(crate) fn equalize_states(&mut self) {
         self.pending_state = CachedState::new(self.state.clone(), None, None);
     }
@@ -125,10 +127,10 @@ impl StateChanger for StarknetState {
             match contract_class {
                 CompiledClass::Deprecated(artifact) => {
                     old_state.class_hash_to_contract_class_mut().insert(class_hash, *artifact);
-                },
+                }
                 CompiledClass::Casm(artifact) => {
                     old_state.casm_contract_classes_mut().insert(class_hash, *artifact);
-                },
+                }
             }
         }
 
@@ -168,16 +170,29 @@ mod tests {
     #[test]
     fn apply_state_updates_for_address_nonce_successfully() {
         let mut state = StarknetState::default();
+
         state.deploy_contract(dummy_contract_address(), dummy_felt()).unwrap();
-        let starknet_in_rust_address: starknet_in_rust::utils::Address = dummy_contract_address().try_into().unwrap();
+        let starknet_in_rust_address: starknet_in_rust::utils::Address =
+            dummy_contract_address().try_into().unwrap();
+
         // check if current nonce is 0
-        assert!(state.state.address_to_nonce.get(&starknet_in_rust_address).unwrap().eq(&Felt252::from(0)));
+        assert!(state
+            .state
+            .address_to_nonce
+            .get(&starknet_in_rust_address)
+            .unwrap()
+            .eq(&Felt252::from(0)));
         state.equalize_states();
         state.pending_state.increment_nonce(&starknet_in_rust_address).unwrap();
         state.apply_cached_state().unwrap();
 
         // check if nonce update was correct
-        assert!(state.state.address_to_nonce.get(&starknet_in_rust_address).unwrap().eq(&Felt252::from(1)));
+        assert!(state
+            .state
+            .address_to_nonce
+            .get(&starknet_in_rust_address)
+            .unwrap()
+            .eq(&Felt252::from(1)));
     }
 
     #[test]
