@@ -677,6 +677,11 @@ class StarknetWrapper:
 
         # first handle the case of artifact being locally present
         if class_hash in self._contract_classes:
+            contract_class = self._contract_classes[class_hash]
+            if isinstance(contract_class, DeprecatedCompiledClass):
+                # should raise if class hash does not belong to sierra of a cairo 1 contract
+                raise UndeclaredClassDevnetException(class_hash)
+
             compiled_class_hash = await state.get_compiled_class_hash(class_hash)
             return await state.get_compiled_class(compiled_class_hash)
 
@@ -690,7 +695,6 @@ class StarknetWrapper:
         except AssertionError:
             # the received hash is compiled_class_hash of a cairo1 class
             pass
-
         raise UndeclaredClassDevnetException(class_hash)
 
     async def get_class_hash_at(

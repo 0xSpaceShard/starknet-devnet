@@ -95,9 +95,9 @@ def test_estimate_fee_in_unknown_address():
     del req_dict["type"]
     resp = estimate_fee_local(req_dict)
 
-    json_error_message = resp.json()["message"]
-    assert resp.status_code == 500
-    assert json_error_message.endswith("is not deployed.")
+    resp_body = resp.json()
+    assert resp.status_code == 400
+    assert resp_body["code"] == str(StarknetErrorCode.UNINITIALIZED_CONTRACT)
 
 
 @pytest.mark.estimate_fee
@@ -250,7 +250,7 @@ def test_estimate_fee_bulk_invalid():
 
     resp = _send_estimate_fee_bulk_request(txs)
     assert resp.json()["code"] == str(StarknetErrorCode.UNINITIALIZED_CONTRACT)
-    assert resp.status_code == 500
+    assert resp.status_code == 400
 
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)

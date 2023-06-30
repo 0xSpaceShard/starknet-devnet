@@ -412,7 +412,7 @@ def test_calling_with_different_address_properties(address_property: str):
         ),
     )
 
-    assert resp.status_code == 500
+    assert resp.status_code == 400
     assert resp.is_json
     assert resp.json.get("code") == str(StarknetErrorCode.UNINITIALIZED_CONTRACT)
 

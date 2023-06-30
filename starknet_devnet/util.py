@@ -75,6 +75,7 @@ class StarknetDevnetException(StarkException):
     Indicates the raised issue is devnet-related.
     """
 
+    # TODO change status_code to 400
     def __init__(self, code: StarknetErrorCode, status_code=500, message=None):
         super().__init__(code=code, message=message)
         self.status_code = status_code
@@ -86,6 +87,7 @@ class UndeclaredClassDevnetException(StarknetDevnetException):
     def __init__(self, class_hash: int):
         super().__init__(
             code=StarknetErrorCode.UNDECLARED_CLASS,
+            status_code=400,
             message=f"Class with hash {class_hash:#x} is not declared.",
         )
 
