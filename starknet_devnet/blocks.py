@@ -93,6 +93,10 @@ class DevnetBlocks:
         """Returns the number of not aborted blocks."""
         return len(self.__num2hash) + self.origin.get_number_of_blocks()
 
+    def get_next_block_number(self) -> int:
+        """Returns the block_number of the next block"""
+        return self.get_number_of_accepted_blocks()
+
     def __assert_block_number_in_range(self, block_number: BlockIdentifier):
         if block_number < 0:
             message = (
@@ -271,7 +275,7 @@ class DevnetBlocks:
         state_root = DUMMY_STATE_ROOT
         block_dict["state_root"] = state_root.hex()
 
-        block_number = self.get_number_of_accepted_blocks()
+        block_number = self.get_next_block_number()
         block_dict["block_number"] = block_number
 
         if self.lite or is_empty_block:

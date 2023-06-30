@@ -2,7 +2,7 @@
 Classes for storing and handling transactions.
 """
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from services.everest.business_logic.transaction_execution_objects import (
     TransactionFailureReason,
@@ -14,6 +14,7 @@ from starkware.starknet.business_logic.transaction.objects import (
     InternalDeploy,
     InternalTransaction,
 )
+from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     Event,
@@ -38,14 +39,17 @@ from .util import StarknetDevnetException
 class DevnetTransaction:
     """Represents the devnet transaction"""
 
+    # pylint: disable=too-many-arguments
     def __init__(
         self,
         internal_tx: InternalTransaction,
         status: TransactionStatus,
         execution_info: TransactionExecutionInfo,
-        transaction_hash: int = None,
+        block_number: Optional[int],
+        transaction_index: int = 0,
+        transaction_hash: Optional[int] = None,
     ):
-        self.block = None
+        self.block: Optional[StarknetBlock] = None
         self.execution_info = execution_info
         if status != TransactionStatus.REJECTED and execution_info.call_info:
             self.execution_resources = execution_info.call_info.execution_resources
@@ -54,7 +58,8 @@ class DevnetTransaction:
         self.internal_tx = internal_tx
         self.status = status
         self.transaction_failure_reason = None
-        self.transaction_index = 0
+        self.transaction_index = transaction_index
+        self.__block_number = block_number
         self.transaction_hash = transaction_hash
 
         if transaction_hash is None:
@@ -101,10 +106,6 @@ class DevnetTransaction:
         """Returns the block hash"""
         return self.block.block_hash if self.block else None
 
-    def __get_block_number(self) -> int:
-        """Returns the block number"""
-        return self.block.block_number if self.block else None
-
     def set_block(self, block: StarknetBlock):
         """Sets the block hash and number of the transaction"""
         self.block = block
@@ -128,7 +129,7 @@ class DevnetTransaction:
             transaction=self.internal_tx,
             transaction_index=self.transaction_index,
             block_hash=self.__get_block_hash(),
-            block_number=self.__get_block_number(),
+            block_number=self.__block_number,
             transaction_failure_reason=self.transaction_failure_reason,
         )
 
@@ -326,7 +327,12 @@ def create_empty_internal_deploy(
     )
 
 
-def create_genesis_block_transaction(internal_tx, tx_type) -> DevnetTransaction:
+def create_genesis_block_transaction(
+    internal_tx: InternalTransaction,
+    tx_type: TransactionType,
+    block_number: int,
+    transaction_index: int,
+) -> DevnetTransaction:
     "Create DevnetTransaction used in the genesis block"
     execution_info = TransactionExecutionInfo(
         validate_info=None,
@@ -345,5 +351,7 @@ def create_genesis_block_transaction(internal_tx, tx_type) -> DevnetTransaction:
         internal_tx=internal_tx,
         status=TransactionStatus.ACCEPTED_ON_L2,
         execution_info=execution_info,
+        block_number=block_number,
+        transaction_index=transaction_index,
         transaction_hash=internal_tx.hash_value,
     )

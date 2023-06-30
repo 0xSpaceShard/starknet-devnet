@@ -187,6 +187,8 @@ class StarknetWrapper:
         transactions: List[DevnetTransaction] = []
         transaction_hash = 1
 
+        self.genesis_block_number = self.blocks.get_next_block_number()
+
         # Declare transactions
         declare_hashes = [
             FeeToken.HASH,
@@ -199,7 +201,10 @@ class StarknetWrapper:
                 transaction_hash, class_hash
             )
             declare_transaction = create_genesis_block_transaction(
-                internal_declare, TransactionType.DECLARE
+                internal_declare,
+                TransactionType.DECLARE,
+                block_number=self.genesis_block_number,
+                transaction_index=len(transactions),
             )
             transactions.append(declare_transaction)
             transaction_hash += 1
@@ -219,7 +224,10 @@ class StarknetWrapper:
                 transaction_hash, class_hash, contract_address
             )
             deploy_transaction = create_genesis_block_transaction(
-                internal_deploy, TransactionType.DEPLOY
+                internal_deploy,
+                TransactionType.DEPLOY,
+                block_number=self.genesis_block_number,
+                transaction_index=len(transactions),
             )
             transactions.append(deploy_transaction)
             transaction_hash += 1
@@ -230,11 +238,9 @@ class StarknetWrapper:
         await self.blocks.generate_pending(transactions, state, state_update)
         block = await self.generate_latest_block(block_hash=0)
 
-        # Set the genesis block number
-        self.genesis_block_number = block.block_number
-
         for transaction in transactions:
-            transaction.set_block(block=block)
+            transaction.set_block(block=block)  # TODO necessary?
+            # TODO change transactions.store to only accept transaction and extract hash from it
             self.transactions.store(transaction.transaction_hash, transaction)
 
     async def create_empty_block(self) -> StarknetBlock:
@@ -478,6 +484,7 @@ class StarknetWrapper:
                         status=status,
                         execution_info=TransactionExecutionInfo.empty(),
                         transaction_hash=tx_hash,
+                        block_number=None,  # Rejected txs have no block number
                     )
                     self.starknet_wrapper._store_transaction(
                         transaction, error_message=exc.message
@@ -500,11 +507,16 @@ class StarknetWrapper:
                         visited_storage_entries=self.visited_storage_entries,
                     )
 
+                    next_block_number = (
+                        self.starknet_wrapper.blocks.get_next_block_number()
+                    )
+
                     transaction = DevnetTransaction(
                         internal_tx=self.internal_tx,
                         status=status,
                         execution_info=self.execution_info,
                         transaction_hash=tx_hash,
+                        block_number=next_block_number,
                     )
                     self.starknet_wrapper.pending_txs.append(transaction)
                     self.starknet_wrapper._store_transaction(transaction)
@@ -735,7 +747,11 @@ class StarknetWrapper:
         Returns the storage identified by `key` from the contract at `contract_address`.
         """
         state = await self.__get_query_state(block_id)
-        return hex(await state.state.get_storage_at(StorageDomain.ON_CHAIN, contract_address, key))
+        return hex(
+            await state.state.get_storage_at(
+                StorageDomain.ON_CHAIN, contract_address, key
+            )
+        )
 
     async def load_messaging_contract_in_l1(
         self, network_url: str, contract_address: str, network_id: str

@@ -212,6 +212,8 @@ def test_pending_block():
     latest_block_after = get_block(block_number="latest", parse=True)
     assert pending_block["transactions"] == latest_block_after["transactions"]
 
+    # TODO test block number present in pending tx (and maybe that tx index is correct)
+
 
 @devnet_in_background("--blocks-on-demand")
 def test_pending_block_traces():
