@@ -17,7 +17,7 @@ pub trait HashIdentifiedMut {
     type Element;
     type Hash;
 
-    fn get_by_hash_mut(&mut self, hash: Self::Hash) -> Option<&mut Self::Element>;
+    fn get_by_hash_mut(&mut self, hash: &Self::Hash) -> Option<&mut Self::Element>;
 }
 
 /// This trait sets the interface for the account
