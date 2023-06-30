@@ -62,11 +62,7 @@ impl StateChanger for StarknetState {
         Ok(())
     }
 
-    fn change_storage(
-        &mut self,
-        storage_key: ContractStorageKey,
-        data: starknet_types::felt::Felt,
-    ) -> DevnetResult<()> {
+    fn change_storage(&mut self, storage_key: ContractStorageKey, data: Felt) -> DevnetResult<()> {
         self.state.address_to_storage_mut().insert(storage_key.try_into()?, data.into());
 
         Ok(())
@@ -156,9 +152,11 @@ impl StateExtractor for StarknetState {
 
 #[cfg(test)]
 mod tests {
-    use starknet_in_rust::state::state_api::State;
+    use starknet_in_rust::core::errors::state_errors::StateError;
+    use starknet_in_rust::state::state_api::{State, StateReader};
     use starknet_types::cairo_felt::Felt252;
     use starknet_types::contract_address::ContractAddress;
+    use starknet_types::error::Error;
     use starknet_types::felt::Felt;
 
     use super::StarknetState;
@@ -166,6 +164,47 @@ mod tests {
     use crate::utils::test_utils::{
         dummy_contract_address, dummy_contract_class, dummy_contract_storage_key, dummy_felt,
     };
+
+    #[test]
+    fn equalize_states_after_changing_pending_state_it_should_be_empty() {
+        let mut state = StarknetState::default();
+        state
+            .pending_state
+            .set_storage_at(&dummy_contract_storage_key().try_into().unwrap(), dummy_felt().into());
+
+        state
+            .pending_state
+            .get_storage_at(&dummy_contract_storage_key().try_into().unwrap())
+            .unwrap();
+
+        state.equalize_states();
+
+        assert_eq!(
+            state
+                .pending_state
+                .get_storage_at(&dummy_contract_storage_key().try_into().unwrap())
+                .unwrap(),
+            Felt::default().into()
+        );
+    }
+
+    #[test]
+    fn apply_state_updates_for_storage_successfully() {
+        let mut state = StarknetState::default();
+        state
+            .pending_state
+            .set_storage_at(&dummy_contract_storage_key().try_into().unwrap(), dummy_felt().into());
+
+        let get_storage_result = state.get_storage(dummy_contract_storage_key());
+        assert!(matches!(
+            get_storage_result.unwrap_err(),
+            Error::StarknetInRustStateError(StateError::NoneStorage((_, _)))
+        ));
+
+        // apply changes to persistent state
+        state.apply_cached_state().unwrap();
+        assert_eq!(state.get_storage(dummy_contract_storage_key()).unwrap(), dummy_felt());
+    }
 
     #[test]
     fn apply_state_updates_for_address_nonce_successfully() {
@@ -182,6 +221,7 @@ mod tests {
             .get(&starknet_in_rust_address)
             .unwrap()
             .eq(&Felt252::from(0)));
+
         state.equalize_states();
         state.pending_state.increment_nonce(&starknet_in_rust_address).unwrap();
         state.apply_cached_state().unwrap();
