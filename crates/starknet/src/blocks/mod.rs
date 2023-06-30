@@ -99,7 +99,7 @@ impl HashProducer for StarknetBlock {
 
 #[cfg(test)]
 mod tests {
-    use starknet_api::block::{BlockNumber, BlockStatus};
+    use starknet_api::block::{BlockHeader, BlockNumber, BlockStatus};
     use starknet_types::traits::HashProducer;
 
     use crate::traits::HashIdentified;
@@ -129,5 +129,6 @@ mod tests {
         let block = StarknetBlock::create_pending_block();
         assert!(block.status == BlockStatus::Pending);
         assert!(block.transactions.is_empty());
+        assert_eq!(block.header, BlockHeader::default());
     }
 }
