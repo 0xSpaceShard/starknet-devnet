@@ -1,4 +1,4 @@
-use starknet_in_rust::{state::StateDiff, transaction::Declare};
+use starknet_in_rust::transaction::Declare;
 use starknet_types::{
     felt::{ClassHash, TransactionHash},
     traits::HashProducer,
@@ -6,6 +6,7 @@ use starknet_types::{
 };
 
 use crate::{
+    traits::StateChanger,
     transactions::{declare_transaction::DeclareTransactionV1, StarknetTransaction, Transaction},
     Starknet,
 };
@@ -39,20 +40,27 @@ impl Starknet {
 
         match transaction.execute(&mut self.state.pending_state, &self.block_context) {
             Ok(tx_info) => {
-                let transaction_to_add = StarknetTransaction::create_accepted(
+                let transaction_to_add = StarknetTransaction::create_successful(
                     Transaction::Declare(declare_transaction.clone()),
-                tx_info,
+                    tx_info,
                 );
 
                 // add accepted transaction to pending block
                 self.blocks
                     .pending_block
                     .add_transaction(Transaction::Declare(declare_transaction));
+
                 // add transaction to transactions
                 self.transactions.insert(&transaction_hash, transaction_to_add);
 
+                // create new block from pending one
                 self.generate_new_block()?;
-                self.create_pending_block()?;
+                // apply state changes from cached state
+                self.state.apply_cached_state()?;
+                // make cached state part of "persistent" state
+                self.state.equalize_states();
+                // clear pending block information
+                self.generate_pending_block()?;
             }
             Err(tx_err) => {
                 let transaction_to_add = StarknetTransaction::create_rejected(
@@ -60,7 +68,7 @@ impl Starknet {
                     tx_err,
                 );
 
-        self.transactions.insert(&transaction_hash, transaction_to_add);
+                self.transactions.insert(&transaction_hash, transaction_to_add);
             }
         }
 
@@ -72,6 +80,6 @@ impl Starknet {
 mod tests {
     #[test]
     fn add_declare_transaction_successful_execution() {
-
+        assert!(false)
     }
 }
