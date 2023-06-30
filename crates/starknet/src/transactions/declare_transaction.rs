@@ -1,5 +1,5 @@
-use starknet_in_rust::{
-    core::transaction_hash::{calculate_transaction_hash_common, TransactionHashPrefix},
+use starknet_in_rust::core::transaction_hash::{
+    calculate_transaction_hash_common, TransactionHashPrefix,
 };
 use starknet_types::{
     contract_address::ContractAddress,
@@ -11,7 +11,7 @@ use starknet_types::{
 
 use crate::constants;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct DeclareTransactionV1 {
     pub sender_address: ContractAddress,
     pub version: Felt,
@@ -73,5 +73,13 @@ impl HashProducer for DeclareTransactionV1 {
         .into();
 
         Ok(transaction_hash)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn correct_transaction_hash_computation() {
+        assert!(false)
     }
 }
