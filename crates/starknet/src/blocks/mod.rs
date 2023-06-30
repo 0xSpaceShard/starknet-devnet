@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use starknet_api::{
-    block::{Block, BlockHeader, BlockNumber, BlockStatus},
+    block::{BlockHeader, BlockNumber, BlockStatus},
     hash::{pedersen_hash_array, StarkFelt},
     stark_felt,
 };
