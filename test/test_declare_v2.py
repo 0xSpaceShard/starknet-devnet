@@ -35,6 +35,7 @@ from .util import (
     get_class_by_hash,
     get_compiled_class_by_class_hash,
     get_full_contract_raw,
+    get_transaction,
 )
 
 
@@ -57,10 +58,7 @@ def assert_already_declared(
     assert declaration_resp.status_code == 200, declaration_resp.json()
     declare_tx_hash = declaration_resp.json()["transaction_hash"]
 
-    tx_resp = requests.get(
-        f"{feeder_gateway_url}/feeder_gateway/get_transaction",
-        params={"transactionHash": declare_tx_hash},
-    )
+    tx_resp = get_transaction(declare_tx_hash, feeder_gateway_url)
     assert tx_resp.status_code == 200, tx_resp.json()
     tx_resp_body = tx_resp.json()
 

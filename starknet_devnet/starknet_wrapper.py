@@ -485,6 +485,7 @@ class StarknetWrapper:
                         execution_info=TransactionExecutionInfo.empty(),
                         transaction_hash=tx_hash,
                         block_number=None,  # Rejected txs have no block number
+                        transaction_index=None,  # Rejected txs have no tx index
                     )
                     self.starknet_wrapper._store_transaction(
                         transaction, error_message=exc.message
@@ -517,6 +518,7 @@ class StarknetWrapper:
                         execution_info=self.execution_info,
                         transaction_hash=tx_hash,
                         block_number=next_block_number,
+                        transaction_index=len(self.starknet_wrapper.pending_txs)
                     )
                     self.starknet_wrapper.pending_txs.append(transaction)
                     self.starknet_wrapper._store_transaction(transaction)

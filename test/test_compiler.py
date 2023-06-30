@@ -226,10 +226,13 @@ def test_compiler_args_happy_path():
 @devnet_in_background(
     *PREDEPLOY_ACCOUNT_CLI_ARGS,
     "--compiler-args",
-    "", # TODO
+    "",
 )
 def test_compiler_args_without_pythonic_hints():
-    """Expect failure if --add-pythonic-hints is not provided"""
+    """
+    Since originally in our compilation script compiled with --add-pythonic-hints,
+    we now expect failure if it is not provided on Devnet startup for later recopmilation.
+    """
     contract_class, _, compiled_class_hash = load_cairo1_contract()
     resp = send_declare_v2(
         contract_class=contract_class,

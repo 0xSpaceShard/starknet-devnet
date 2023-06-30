@@ -746,3 +746,10 @@ def assert_undeclared_class(resp=requests.Response):
     resp_body = resp.json()
     assert "code" in resp_body
     assert resp_body["code"] == str(StarknetErrorCode.UNDECLARED_CLASS)
+
+def get_transaction(tx_hash: str, feeder_gateway_url=APP_URL):
+    """Return response of get_transaction request"""
+    return requests.get(
+        f"{feeder_gateway_url}/feeder_gateway/get_transaction",
+        params={"transactionHash": tx_hash},
+    )

@@ -14,8 +14,8 @@ from starkware.starknet.business_logic.transaction.objects import (
     InternalDeploy,
     InternalTransaction,
 )
-from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
+from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     Event,
     FunctionInvocation,
@@ -46,7 +46,7 @@ class DevnetTransaction:
         status: TransactionStatus,
         execution_info: TransactionExecutionInfo,
         block_number: Optional[int],
-        transaction_index: int = 0,
+        transaction_index: Optional[int],
         transaction_hash: Optional[int] = None,
     ):
         self.block: Optional[StarknetBlock] = None

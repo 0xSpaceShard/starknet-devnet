@@ -4,7 +4,10 @@ Test blocks on demand mode.
 
 import requests
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
-from starkware.starknet.services.api.feeder_gateway.response_objects import BlockStatus
+from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    BlockStatus,
+    TransactionStatus,
+)
 
 from starknet_devnet.blueprints.rpc.utils import rpc_felt
 
@@ -31,6 +34,7 @@ from .util import (
     demand_block_creation,
     devnet_in_background,
     get_block,
+    get_transaction_receipt,
     increase_time,
     set_time,
 )
@@ -201,8 +205,10 @@ def test_pending_block():
     # assert correct pending block
     pending_block = get_block(block_number="pending", parse=True)
     _assert_block_is_pending(pending_block)
-    pending_tx_hashes = [tx["transaction_hash"] for tx in pending_block["transactions"]]
-    assert deploy_info["tx_hash"] in pending_tx_hashes
+
+    assert len(pending_block["transactions"]) == 2
+    retrieved_pending_deploy_tx = pending_block["transactions"][1]
+    assert deploy_info["tx_hash"] == retrieved_pending_deploy_tx["transaction_hash"]
 
     # assert latest unchanged
     latest_block = get_block(block_number="latest", parse=True)
@@ -212,7 +218,19 @@ def test_pending_block():
     latest_block_after = get_block(block_number="latest", parse=True)
     assert pending_block["transactions"] == latest_block_after["transactions"]
 
-    # TODO test block number present in pending tx (and maybe that tx index is correct)
+
+@devnet_in_background("--blocks-on-demand")
+def test_pending_block_transactions_are_accepted():
+    """Test that pending block txs are accepted, have block number and have tx index"""
+    deploy_info = declare_and_deploy_with_chargeable(CONTRACT_PATH, inputs=["0"])
+
+    deploy_tx_receipt = get_transaction_receipt(deploy_info["tx_hash"])
+    assert deploy_tx_receipt["status"] == TransactionStatus.ACCEPTED_ON_L2.name
+
+    assert deploy_tx_receipt["block_number"] == 1  # one after genesis
+
+    # one after declare, which is also in pending block
+    assert deploy_tx_receipt["transaction_index"] == 1
 
 
 @devnet_in_background("--blocks-on-demand")
