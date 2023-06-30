@@ -98,7 +98,7 @@ $ poetry add <URL>
 
 Why are we installing the exact version? We depend on Starknet's internal code, and any minor change might make Devnet unusable. E.g. a missing or moved function in a patch version of cairo-lang.
 
-The cairo compiler version (git tag) might need to be changed, both for your local development (git checkout in your compiler repo) and in the CI (in install_dev_tools.sh).
+The cairo compiler version (git tag) might need to be changed, both for your local development (git checkout in your compiler repo) and in the CI (in install_dev_tools.sh). Also, change the mentions of the old compiler version in the documentation (e.g. cairo1-support.md).
 
 After adding a new cairo-lang version, you need to recompile contract artifacts.
 
