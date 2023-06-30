@@ -5,6 +5,7 @@ use starknet_types::DevnetResult;
 use state::StarknetState;
 use traits::{AccountGenerator, Accounted};
 
+use starknet_in_rust::definitions::block_context::StarknetChainId;
 mod account;
 mod constants;
 mod predeployed_accounts;
@@ -23,6 +24,7 @@ pub struct StarknetConfig {
     pub port: u16,
     pub timeout: u16,
     pub gas_price: u64,
+    pub chain_id: StarknetChainId,
 }
 
 #[derive(Default)]

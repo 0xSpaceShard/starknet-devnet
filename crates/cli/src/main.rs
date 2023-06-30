@@ -1,6 +1,7 @@
 use clap::Parser;
 use starknet_core::StarknetConfig;
 use starknet_types::traits::ToHexString;
+use starknet_in_rust::definitions::block_context::StarknetChainId;
 
 /// Run a local instance of Starknet Devnet
 #[derive(Parser, Debug)]
@@ -57,6 +58,12 @@ struct Args {
     #[arg(default_value = "100000000")]
     #[arg(help = "Specify the gas price in wei per gas unit;")]
     gas_price: u64,
+
+    #[arg(long = "chain-id")]
+    #[arg(value_name = "CHAIN_ID")]
+    #[arg(default_value = "TESTNET")]
+    #[arg(help = "Specify the chain id as one of: {MAINNET, TESTNET, TESTNET2};")]
+    chain_id: String,
 }
 
 impl Args {
@@ -72,6 +79,12 @@ impl Args {
             port: self.port,
             timeout: self.timeout,
             gas_price: self.gas_price,
+            chain_id: match self.chain_id.as_str() {
+                "MAINNET" => StarknetChainId::MainNet,
+                "TESTNET" => StarknetChainId::TestNet,
+                "TESTNET2" => StarknetChainId::TestNet2,
+                _      => StarknetChainId::TestNet,
+            },
         }
     }
 }
