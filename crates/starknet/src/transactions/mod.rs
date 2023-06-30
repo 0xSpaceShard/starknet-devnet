@@ -85,15 +85,9 @@ mod tests {
     use starknet_rs_core::types::TransactionStatus;
     use starknet_types::{felt::Felt, traits::HashProducer};
 
-    use crate::{
-        traits::HashIdentifiedMut,
-        utils::test_utils::{dummy_contract_address, dummy_contract_class, dummy_felt},
-    };
+    use crate::{traits::HashIdentifiedMut, utils::test_utils::dummy_declare_transaction_v1};
 
-    use super::{
-        declare_transaction::DeclareTransactionV1, StarknetTransaction, StarknetTransactions,
-        Transaction,
-    };
+    use super::{StarknetTransaction, StarknetTransactions, Transaction};
 
     #[test]
     fn get_transaction_by_hash() {
@@ -161,16 +155,5 @@ mod tests {
         assert!(sn_tran.block_hash.is_none());
         assert!(sn_tran.block_number.is_none());
         assert!(sn_tran.inner == tran);
-    }
-
-    fn dummy_declare_transaction_v1() -> DeclareTransactionV1 {
-        DeclareTransactionV1::new(
-            dummy_contract_address(),
-            Felt::from_prefixed_hex_str("0x0").unwrap(),
-            100,
-            vec![],
-            dummy_felt(),
-            dummy_contract_class(),
-        )
     }
 }
