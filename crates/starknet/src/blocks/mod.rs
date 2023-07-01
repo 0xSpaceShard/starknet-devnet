@@ -1,7 +1,8 @@
+use core::time;
 use std::collections::HashMap;
 
 use starknet_api::{
-    block::{BlockHeader, BlockNumber, BlockStatus},
+    block::{BlockHeader, BlockNumber, BlockStatus, BlockTimestamp, GasPrice},
     hash::{pedersen_hash_array, StarkFelt},
     stark_felt,
 };
@@ -16,6 +17,7 @@ pub(crate) struct StarknetBlocks {
     pub hash_to_num: HashMap<BlockHash, BlockNumber>,
     pub num_to_block: HashMap<BlockNumber, StarknetBlock>,
     pub pending_block: StarknetBlock,
+    last_block_hash: Option<BlockHash>,
 }
 
 impl HashIdentified for StarknetBlocks {
@@ -36,15 +38,24 @@ impl Default for StarknetBlocks {
             hash_to_num: HashMap::new(),
             num_to_block: HashMap::new(),
             pending_block: StarknetBlock::create_pending_block(),
+            last_block_hash: None,
         }
     }
 }
 
 impl StarknetBlocks {
-    pub fn insert(&mut self, block: StarknetBlock) {
-        let block_number = block.header.block_number;
-        self.hash_to_num.insert(block.block_hash(), block_number);
+    /// Inserts a block in the collection and modifies the block parent hash to match the last block hash
+    pub fn insert(&mut self, mut block: StarknetBlock) {
+        if self.last_block_hash.is_some() {
+            block.header.parent_hash = self.last_block_hash.unwrap().into();
+        }
+
+        let hash = block.block_hash();
+        let block_number = block.block_number();
+
+        self.hash_to_num.insert(hash, block_number);
         self.num_to_block.insert(block_number, block);
+        self.last_block_hash = Some(hash);
     }
 }
 
@@ -66,6 +77,14 @@ impl StarknetBlock {
 
     pub(crate) fn block_hash(&self) -> BlockHash {
         self.header.block_hash.into()
+    }
+
+    pub(crate) fn set_block_hash(&mut self, block_hash: BlockHash) {
+        self.header.block_hash = block_hash.into();
+    }
+
+    pub(crate) fn block_number(&self) -> BlockNumber {
+        self.header.block_number
     }
 
     pub(crate) fn create_pending_block() -> Self {
@@ -99,7 +118,7 @@ impl HashProducer for StarknetBlock {
 
 #[cfg(test)]
 mod tests {
-    use starknet_api::block::{BlockHeader, BlockNumber, BlockStatus};
+    use starknet_api::block::{BlockHeader, BlockNumber, BlockStatus, BlockHash};
     use starknet_types::traits::HashProducer;
 
     use crate::traits::HashIdentified;
@@ -107,8 +126,29 @@ mod tests {
     use super::{StarknetBlock, StarknetBlocks};
 
     #[test]
-    fn correct_block_hash_computation() {
-        assert!(false)
+    fn block_hash_computation_doesnt_affect_internal_block_state() {
+        let block = StarknetBlock::create_pending_block();
+        assert!(block.generate_hash().unwrap() == block.generate_hash().unwrap());
+    }
+
+    #[test]
+    fn correct_block_linking_via_parent_hash() {
+        let mut blocks = StarknetBlocks::default();
+        
+
+        for block_number in 0..3 {
+            let mut block = StarknetBlock::create_pending_block();
+
+            block.status = BlockStatus::AcceptedOnL2;
+            block.set_block_hash(block.generate_hash().unwrap());
+            block.header.block_number = BlockNumber(block_number);
+
+            blocks.insert(block);
+        }
+
+        assert!(blocks.num_to_block.get(&BlockNumber(0)).unwrap().header.parent_hash == BlockHash::default().into());
+        assert!(blocks.num_to_block.get(&BlockNumber(0)).unwrap().header.block_hash == blocks.num_to_block.get(&BlockNumber(1)).unwrap().header.parent_hash);
+        assert!(blocks.num_to_block.get(&BlockNumber(1)).unwrap().header.block_hash == blocks.num_to_block.get(&BlockNumber(2)).unwrap().header.parent_hash);
     }
 
     #[test]
