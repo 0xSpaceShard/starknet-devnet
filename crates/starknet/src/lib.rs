@@ -329,6 +329,6 @@ mod tests {
         let initial_block_number = block_ctx.block_info().block_number;
         Starknet::update_block_context(&mut block_ctx);
 
-        assert_ne!(block_ctx.block_info().block_number, initial_block_number);
+        assert_eq!(block_ctx.block_info().block_number, initial_block_number+1);
     }
 }
