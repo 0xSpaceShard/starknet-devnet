@@ -206,11 +206,11 @@ mod tests {
             .set_contract_class(&class_hash, &dummy_contract_class().try_into().unwrap())
             .unwrap();
 
-        assert_eq!(state.is_contract_declared(&dummy_felt()).unwrap(), false);
+        assert!(!state.is_contract_declared(&dummy_felt()).unwrap());
         state.pending_state.get_contract_class(&class_hash).unwrap();
         state.apply_cached_state().unwrap();
 
-        assert_eq!(state.is_contract_declared(&dummy_felt()).unwrap(), true);
+        assert!(state.is_contract_declared(&dummy_felt()).unwrap());
     }
 
     #[test]

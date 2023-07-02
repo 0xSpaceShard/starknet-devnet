@@ -83,7 +83,7 @@ impl Transaction {
 mod tests {
     use starknet_in_rust::execution::TransactionExecutionInfo;
     use starknet_rs_core::types::TransactionStatus;
-    use starknet_types::{felt::Felt, traits::HashProducer};
+    use starknet_types::{traits::HashProducer};
 
     use crate::{traits::HashIdentifiedMut, utils::test_utils::dummy_declare_transaction_v1};
 

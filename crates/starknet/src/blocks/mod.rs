@@ -146,7 +146,7 @@ mod tests {
 
         assert!(
             blocks.num_to_block.get(&BlockNumber(0)).unwrap().header.parent_hash
-                == BlockHash::default().into()
+                == BlockHash::default()
         );
         assert!(
             blocks.num_to_block.get(&BlockNumber(0)).unwrap().header.block_hash

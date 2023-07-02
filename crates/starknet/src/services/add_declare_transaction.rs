@@ -18,7 +18,7 @@ impl Starknet {
     ) -> DevnetResult<(TransactionHash, ClassHash)> {
         let mut declare_transaction = declare_transaction;
 
-        let class_hash = declare_transaction.contract_class.clone().generate_hash()?;
+        let class_hash = declare_transaction.contract_class.generate_hash()?;
         declare_transaction.class_hash = Some(class_hash);
 
         let transaction_hash = declare_transaction.generate_hash()?;
@@ -67,7 +67,7 @@ impl Starknet {
             }
             Err(tx_err) => {
                 let transaction_to_add = StarknetTransaction::create_rejected(
-                    Transaction::Declare(declare_transaction.clone()),
+                    Transaction::Declare(declare_transaction),
                     tx_err,
                 );
 

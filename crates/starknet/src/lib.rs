@@ -173,7 +173,7 @@ impl Starknet {
         let current_timestamp_secs = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .expect("should get current UNIX timestamp")
-            .as_secs() as u64;
+            .as_secs();
 
         block_context.block_info_mut().block_number = block_context.block_info().block_number + 1;
         block_context.block_info_mut().block_timestamp = current_timestamp_secs;
@@ -210,7 +210,7 @@ mod tests {
     use starknet_types::{contract_address::ContractAddress, felt::Felt, traits::HashProducer};
 
     use crate::{
-        blocks::StarknetBlock, traits::Accounted, transactions::StarknetTransaction,
+        blocks::StarknetBlock, traits::Accounted,
         utils::test_utils::dummy_declare_transaction_v1, Starknet, StarknetConfig,
     };
 
