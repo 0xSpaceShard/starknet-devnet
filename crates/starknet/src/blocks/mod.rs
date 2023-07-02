@@ -1,8 +1,7 @@
-use core::time;
 use std::collections::HashMap;
 
 use starknet_api::{
-    block::{BlockHeader, BlockNumber, BlockStatus, BlockTimestamp, GasPrice},
+    block::{BlockHeader, BlockNumber, BlockStatus},
     hash::{pedersen_hash_array, StarkFelt},
     stark_felt,
 };
@@ -118,7 +117,7 @@ impl HashProducer for StarknetBlock {
 
 #[cfg(test)]
 mod tests {
-    use starknet_api::block::{BlockHeader, BlockNumber, BlockStatus, BlockHash};
+    use starknet_api::block::{BlockHash, BlockHeader, BlockNumber, BlockStatus};
     use starknet_types::traits::HashProducer;
 
     use crate::traits::HashIdentified;
@@ -134,21 +133,33 @@ mod tests {
     #[test]
     fn correct_block_linking_via_parent_hash() {
         let mut blocks = StarknetBlocks::default();
-        
 
         for block_number in 0..3 {
             let mut block = StarknetBlock::create_pending_block();
 
             block.status = BlockStatus::AcceptedOnL2;
-            block.set_block_hash(block.generate_hash().unwrap());
             block.header.block_number = BlockNumber(block_number);
+            block.set_block_hash(block.generate_hash().unwrap());
 
             blocks.insert(block);
         }
 
-        assert!(blocks.num_to_block.get(&BlockNumber(0)).unwrap().header.parent_hash == BlockHash::default().into());
-        assert!(blocks.num_to_block.get(&BlockNumber(0)).unwrap().header.block_hash == blocks.num_to_block.get(&BlockNumber(1)).unwrap().header.parent_hash);
-        assert!(blocks.num_to_block.get(&BlockNumber(1)).unwrap().header.block_hash == blocks.num_to_block.get(&BlockNumber(2)).unwrap().header.parent_hash);
+        assert!(
+            blocks.num_to_block.get(&BlockNumber(0)).unwrap().header.parent_hash
+                == BlockHash::default().into()
+        );
+        assert!(
+            blocks.num_to_block.get(&BlockNumber(0)).unwrap().header.block_hash
+                == blocks.num_to_block.get(&BlockNumber(1)).unwrap().header.parent_hash
+        );
+        assert!(
+            blocks.num_to_block.get(&BlockNumber(1)).unwrap().header.block_hash
+                == blocks.num_to_block.get(&BlockNumber(2)).unwrap().header.parent_hash
+        );
+        assert!(
+            blocks.num_to_block.get(&BlockNumber(1)).unwrap().header.parent_hash
+                != blocks.num_to_block.get(&BlockNumber(2)).unwrap().header.parent_hash
+        )
     }
 
     #[test]
