@@ -85,8 +85,8 @@ impl StateChanger for StarknetState {
     }
 
     fn apply_cached_state(&mut self) -> DevnetResult<()> {
-
-        let new_casm_classes = self.pending_state.casm_contract_classes().clone().unwrap_or_default();
+        let new_casm_classes =
+            self.pending_state.casm_contract_classes().clone().unwrap_or_default();
 
         // get differences
         let state_cache = self.pending_state.cache_mut();
@@ -110,10 +110,8 @@ impl StateChanger for StarknetState {
         );
 
         // // Cairo 1 differences
-        let class_hash_to_cairo_1_casm = subtract_mappings(
-            new_casm_classes,
-            self.state.casm_contract_classes_mut().clone(),
-        );
+        let class_hash_to_cairo_1_casm =
+            subtract_mappings(new_casm_classes, self.state.casm_contract_classes_mut().clone());
 
         let address_to_class_hash = subtract_mappings(
             state_cache.class_hash_writes_mut().clone(),
