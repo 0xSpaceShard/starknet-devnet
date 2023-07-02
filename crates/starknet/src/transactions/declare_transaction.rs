@@ -80,6 +80,6 @@ impl HashProducer for DeclareTransactionV1 {
 mod tests {
     #[test]
     fn correct_transaction_hash_computation() {
-        assert!(false)
+        panic!("Transaction hash computation should be checked")
     }
 }

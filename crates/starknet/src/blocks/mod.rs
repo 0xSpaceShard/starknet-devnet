@@ -13,9 +13,9 @@ use starknet_types::{
 use crate::{traits::HashIdentified, transactions::Transaction};
 
 pub(crate) struct StarknetBlocks {
-    pub hash_to_num: HashMap<BlockHash, BlockNumber>,
-    pub num_to_block: HashMap<BlockNumber, StarknetBlock>,
-    pub pending_block: StarknetBlock,
+    pub(crate) hash_to_num: HashMap<BlockHash, BlockNumber>,
+    pub(crate) num_to_block: HashMap<BlockNumber, StarknetBlock>,
+    pub(crate) pending_block: StarknetBlock,
     last_block_hash: Option<BlockHash>,
 }
 

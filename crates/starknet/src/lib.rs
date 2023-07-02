@@ -115,8 +115,7 @@ impl Starknet {
         let mut new_block = self.pending_block().clone();
 
         // set new block header
-        new_block.header.block_hash = new_block.generate_hash()?.into();
-        new_block.header.block_number = new_block.header.block_number;
+        new_block.set_block_hash(new_block.generate_hash()?);
         new_block.status = BlockStatus::AcceptedOnL2;
 
         // update txs block hash block number for each transaction in the pending block
@@ -181,10 +180,6 @@ impl Starknet {
 
     fn pending_block(&self) -> &StarknetBlock {
         &self.blocks.pending_block
-    }
-
-    fn pending_block_mut(&mut self) -> &mut StarknetBlock {
-        &mut self.blocks.pending_block
     }
 
     /// Restarts pending block with information from block_context
@@ -268,7 +263,7 @@ mod tests {
         tx.transaction_hash = Some(tx_hash);
 
         // add transaction to pending block
-        starknet.pending_block_mut().add_transaction(crate::transactions::Transaction::Declare(tx));
+        starknet.blocks.pending_block.add_transaction(crate::transactions::Transaction::Declare(tx));
 
         // pending block has some transactions
         assert!(!starknet.pending_block().get_transactions().is_empty());
