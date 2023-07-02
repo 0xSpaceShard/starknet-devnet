@@ -47,7 +47,7 @@ impl DeclareTransactionV1 {
 
 impl HashProducer for DeclareTransactionV1 {
     fn generate_hash(&self) -> starknet_types::DevnetResult<Felt> {
-        let class_hash = self.contract_class.generate_hash()?;
+        let class_hash = self.class_hash.unwrap_or(self.contract_class.generate_hash()?);
 
         let (calldata, additional_data) = if self.version.is_zero() {
             (vec![class_hash.into()], vec![self.nonce.into()])
