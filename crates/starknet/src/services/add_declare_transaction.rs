@@ -17,7 +17,10 @@ impl Starknet {
         declare_transaction: DeclareTransactionV1,
     ) -> DevnetResult<(TransactionHash, ClassHash)> {
         let mut declare_transaction = declare_transaction;
+
         let class_hash = declare_transaction.contract_class.clone().generate_hash()?;
+        declare_transaction.class_hash = Some(class_hash);
+
         let transaction_hash = declare_transaction.generate_hash()?;
         declare_transaction.transaction_hash = Some(transaction_hash);
 
@@ -72,14 +75,101 @@ impl Starknet {
             }
         }
 
-        Ok((class_hash, class_hash))
+        Ok((transaction_hash, class_hash))
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use starknet_api::block::BlockNumber;
+    use starknet_rs_core::types::TransactionStatus;
+    use starknet_types::{
+        contract_address::ContractAddress, contract_class::ContractClass, felt::Felt,
+        traits::HashProducer,
+    };
+
+    use crate::{
+        constants,
+        traits::{HashIdentifiedMut, StateChanger},
+        transactions::declare_transaction::DeclareTransactionV1,
+        utils::test_utils::dummy_contract_address,
+        Starknet,
+    };
+
+    fn test_declare_transaction_v1(sender_address: ContractAddress) -> DeclareTransactionV1 {
+        let contract_json_path =
+            concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/declare/declare_test.json");
+        let contract_class =
+            ContractClass::from_json_str(&std::fs::read_to_string(contract_json_path).unwrap())
+                .unwrap();
+        DeclareTransactionV1 {
+            sender_address,
+            version: Felt::from(1),
+            max_fee: 0,
+            signature: Vec::new(),
+            nonce: Felt::from(0),
+            contract_class,
+            class_hash: None,
+            transaction_hash: None,
+        }
+    }
+
     #[test]
     fn add_declare_transaction_successful_execution() {
-        assert!(false)
+        let (mut starknet, sender) = setup();
+
+        let declare_txn = test_declare_transaction_v1(sender);
+        let (tx_hash, class_hash) = starknet.add_declare_transaction(declare_txn.clone()).unwrap();
+
+        let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
+
+        // check if generated class hash is expected one
+        assert_eq!(class_hash, declare_txn.contract_class.generate_hash().unwrap());
+        // check if txn is with status accepted
+        assert_eq!(tx.status, TransactionStatus::AcceptedOnL2);
+        // check if contract is successfully declared
+        assert!(starknet.state.is_contract_declared(&class_hash).unwrap());
+        // check if pending block is resetted
+        assert!(starknet.pending_block().get_transactions().is_empty());
+        // check if there is generated block
+        assert_eq!(starknet.blocks.num_to_block.len(), 1);
+        // check if transaction is in generated block
+        assert_eq!(
+            starknet
+                .blocks
+                .num_to_block
+                .get(&BlockNumber(0))
+                .unwrap()
+                .get_transactions()
+                .first()
+                .unwrap()
+                .get_hash()
+                .unwrap(),
+            tx_hash
+        );
+    }
+
+    /// Initializes starknet with 1 account - account without validations
+    fn setup() -> (Starknet, ContractAddress) {
+        let mut starknet = Starknet::default();
+        let account_json_path =
+            concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/simple_account/account.json");
+        let contract_class =
+            ContractClass::from_json_str(&std::fs::read_to_string(account_json_path).unwrap())
+                .unwrap();
+
+        let class_hash = contract_class.generate_hash().unwrap();
+        let address = dummy_contract_address();
+
+        starknet.state.declare_contract_class(class_hash, contract_class).unwrap();
+        starknet.state.deploy_contract(address, class_hash).unwrap();
+
+        starknet.state.equalize_states();
+        starknet.block_context =
+            Starknet::get_block_context(0, constants::ERC20_CONTRACT_ADDRESS).unwrap();
+
+        starknet.empty_pending_block().unwrap();
+
+        (starknet, address)
     }
 }
