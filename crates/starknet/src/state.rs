@@ -23,7 +23,11 @@ impl StarknetState {
     // this is used to copy "persistent" data that is present in "state" variable into "pending_state"
     // this is done, because "pending_state" doesnt hold a reference to state, but rather a copy.
     pub(crate) fn equalize_states(&mut self) {
-        self.pending_state = CachedState::new(self.state.clone(), None, None);
+        self.pending_state = CachedState::new(
+            self.state.clone(),
+            Some(self.state.class_hash_to_contract_class.clone()),
+            Some(self.state.casm_contract_classes_mut().clone()),
+        );
     }
 }
 
@@ -81,6 +85,9 @@ impl StateChanger for StarknetState {
     }
 
     fn apply_cached_state(&mut self) -> DevnetResult<()> {
+
+        let new_casm_classes = self.pending_state.casm_contract_classes().clone().unwrap_or_default();
+
         // get differences
         let state_cache = self.pending_state.cache_mut();
 
@@ -96,14 +103,27 @@ impl StateChanger for StarknetState {
             state_cache.nonce_initial_values().clone(),
         );
 
+        // Cairo 1 compiled class hash
         let class_hash_to_compiled_class = subtract_mappings(
             state_cache.compiled_class_hash_writes_mut().clone(),
             state_cache.compiled_class_hash_initial_values_mut().clone(),
         );
 
+        // // Cairo 1 differences
+        let class_hash_to_cairo_1_casm = subtract_mappings(
+            new_casm_classes,
+            self.state.casm_contract_classes_mut().clone(),
+        );
+
         let address_to_class_hash = subtract_mappings(
             state_cache.class_hash_writes_mut().clone(),
             state_cache.class_hash_initial_values_mut().clone(),
+        );
+
+        // Cairo 0 differences
+        let class_hash_to_cairo_0_contract_class = subtract_mappings(
+            self.pending_state.contract_classes().clone().unwrap_or_default(),
+            self.state.class_hash_to_contract_class.clone(),
         );
 
         let old_state = &mut self.state;
@@ -129,6 +149,18 @@ impl StateChanger for StarknetState {
                 }
             }
         }
+
+        // update cairo 0 differences
+        class_hash_to_cairo_0_contract_class.into_iter().for_each(
+            |(class_hash, cairo_0_contract_class)| {
+                old_state.class_hash_to_contract_class.insert(class_hash, cairo_0_contract_class);
+            },
+        );
+
+        // // update cairo 1 differences
+        class_hash_to_cairo_1_casm.into_iter().for_each(|(class_hash, cairo_1_casm)| {
+            old_state.casm_contract_classes_mut().insert(class_hash, cairo_1_casm);
+        });
 
         // update deployed contracts
         address_to_class_hash.into_iter().for_each(|(contract_address, class_hash)| {
@@ -164,6 +196,24 @@ mod tests {
     use crate::utils::test_utils::{
         dummy_contract_address, dummy_contract_class, dummy_contract_storage_key, dummy_felt,
     };
+
+    #[test]
+    fn apply_state_update_for_contract_class_successfully() {
+        let mut state = StarknetState::default();
+
+        let class_hash = dummy_felt().bytes();
+
+        state
+            .pending_state
+            .set_contract_class(&class_hash, &dummy_contract_class().try_into().unwrap())
+            .unwrap();
+
+        assert_eq!(state.is_contract_declared(&dummy_felt()).unwrap(), false);
+        state.pending_state.get_contract_class(&class_hash).unwrap();
+        state.apply_cached_state().unwrap();
+
+        assert_eq!(state.is_contract_declared(&dummy_felt()).unwrap(), true);
+    }
 
     #[test]
     fn equalize_states_after_changing_pending_state_it_should_be_empty() {
