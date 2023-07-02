@@ -8,7 +8,11 @@ use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
 use starknet_in_rust::{
     definitions::{
         block_context::{BlockContext, StarknetOsConfig},
-        constants::DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS,
+        constants::{
+            DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS, DEFAULT_CONTRACT_STORAGE_COMMITMENT_TREE_HEIGHT,
+            DEFAULT_GLOBAL_STATE_COMMITMENT_TREE_HEIGHT, DEFAULT_INVOKE_TX_MAX_N_STEPS,
+            DEFAULT_VALIDATE_MAX_N_STEPS,
+        },
     },
     state::BlockInfo,
     testing::TEST_SEQUENCER_ADDRESS,
@@ -150,11 +154,11 @@ impl Starknet {
 
         let block_context = BlockContext::new(
             starknet_os_config,
-            0,
-            0,
+            DEFAULT_CONTRACT_STORAGE_COMMITMENT_TREE_HEIGHT,
+            DEFAULT_GLOBAL_STATE_COMMITMENT_TREE_HEIGHT,
             DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS.clone(),
-            1_000_000,
-            0,
+            DEFAULT_INVOKE_TX_MAX_N_STEPS,
+            DEFAULT_VALIDATE_MAX_N_STEPS,
             block_info,
             HashMap::default(),
             true,
@@ -210,7 +214,7 @@ mod tests {
         utils::test_utils::dummy_declare_transaction_v1, Starknet, StarknetConfig,
     };
 
-    fn starknet_config_for_test() -> StarknetConfig {
+    pub(crate) fn starknet_config_for_test() -> StarknetConfig {
         StarknetConfig { seed: 123, total_accounts: 3, predeployed_accounts_initial_balance: 100 }
     }
 
@@ -329,6 +333,6 @@ mod tests {
         let initial_block_number = block_ctx.block_info().block_number;
         Starknet::update_block_context(&mut block_ctx);
 
-        assert_eq!(block_ctx.block_info().block_number, initial_block_number+1);
+        assert_eq!(block_ctx.block_info().block_number, initial_block_number + 1);
     }
 }
