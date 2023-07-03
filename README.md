@@ -1,35 +1,16 @@
 # starknet-devnet-rs
-
 A local testnet for Starknet... in Rust
 
-## Requirements
 
-It's required to install the latest version of [Rust](https://www.rust-lang.org/tools/install).
+# Starting Devnet
+When starting devnet 'DEVNET_PORT' environment variable needs to be set
 
-## Run
+DEVNET_PORT=<port> cargo run
 
-Install and run the project with:
+By default logging level is INFO, but this can be changed via RUST_LOG environment variable.
 
-```
-cargo run
-```
+All logging levels: TRACE, DEBUG, INFO, WARN, ERROR
 
-## Development - Visual Studio Code
+If you want to provide Log level then command looks like:
 
-It's highly recommended to get familiar with [Visual Studio Code Dev Containers](https://code.visualstudio.com/docs/devcontainers/create-dev-container#_dockerfile) and install [rust-analyzer](https://code.visualstudio.com/docs/languages/rust) extension.
-
-## Development - Linter
-
-Run the linter with:
-
-```
-./scripts/clippy_check.sh
-```
-
-## Development - Formatter
-
-Run the formatter with:
-
-```
-./scripts/format.sh
-```
+RUST_LOG=<level> DEVNET_PORT=<port> cargo run
