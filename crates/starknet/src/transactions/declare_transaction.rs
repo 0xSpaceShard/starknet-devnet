@@ -1,6 +1,6 @@
-use starknet_in_rust::core::transaction_hash::{
+use starknet_in_rust::{core::transaction_hash::{
     calculate_transaction_hash_common, TransactionHashPrefix,
-};
+}, definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR};
 use starknet_types::{
     contract_address::ContractAddress,
     contract_class::ContractClass,
@@ -59,7 +59,7 @@ impl HashProducer for DeclareTransactionV1 {
             TransactionHashPrefix::Declare,
             self.version.into(),
             &self.sender_address.try_into()?,
-            Felt::from(0u128).into(),
+            VALIDATE_DECLARE_ENTRY_POINT_SELECTOR.clone(),
             &calldata,
             self.max_fee,
             constants::CHAIN_ID.to_felt(),
