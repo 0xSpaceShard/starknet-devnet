@@ -9,7 +9,7 @@ edition = "2021"
 
 # devnet
 server = { path = "../server" }
-starknet_types = { git = "ssh://git@github.com/0xSpaceShard/starknet-devnet-rs.git", branch = "core/predeployed_accounts", package = "types" }
+starknet_types = { git = "https://github.com/0xSpaceShard/starknet-devnet-rs.git", package = "types" }
 
 # axum
 axum = { workspace = true }
