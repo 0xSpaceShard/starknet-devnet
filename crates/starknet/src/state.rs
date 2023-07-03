@@ -4,6 +4,7 @@ use starknet_in_rust::state::cached_state::CachedState;
 use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
 use starknet_in_rust::state::state_api::StateReader;
 use starknet_in_rust::utils::{subtract_mappings, to_state_diff_storage_mapping, Address};
+use starknet_in_rust::CasmContractClass;
 use starknet_types::cairo_felt::Felt252;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
@@ -47,9 +48,19 @@ impl StateChanger for StarknetState {
         class_hash: ClassHash,
         contract_class: ContractClass,
     ) -> DevnetResult<()> {
-        self.state
-            .class_hash_to_contract_class_mut()
-            .insert(class_hash.bytes(), StarknetInRustContractClass::try_from(contract_class)?);
+        match contract_class {
+            ContractClass::Cairo0(_) => {
+                self.state.class_hash_to_contract_class_mut().insert(
+                    class_hash.bytes(),
+                    StarknetInRustContractClass::try_from(contract_class)?,
+                );
+            }
+            ContractClass::Cairo1(_) => {
+                self.state
+                    .casm_contract_classes_mut()
+                    .insert(class_hash.bytes(), CasmContractClass::try_from(contract_class)?);
+            }
+        }
 
         Ok(())
     }
