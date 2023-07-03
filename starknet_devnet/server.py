@@ -124,7 +124,7 @@ def handle_json_decode_error(error: json.decoder.JSONDecodeError):
     return {
         "message": f"Error while decoding JSON: {error}",
         "code": str(StarkErrorCode.MALFORMED_REQUEST),
-    }, 500
+    }, 400
 
 
 @app.route("/api", methods=["GET"])

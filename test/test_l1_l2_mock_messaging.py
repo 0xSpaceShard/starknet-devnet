@@ -129,7 +129,7 @@ def test_send_message_to_l2_execute_with_data_set_to_empty_string(prop: str):
     data[prop] = ""
     response = _post_through_test_client("/postman/send_message_to_l2", data)
 
-    assert response.status_code == 500, response.json
+    assert response.status_code == 400, response.json
     assert response.json.get("code") == str(StarkErrorCode.MALFORMED_REQUEST)
 
 
@@ -203,7 +203,7 @@ def test_consume_message_from_l2_deploy_execute_without_withdraw():
         }
     )
 
-    assert response.status_code == 500
+    assert response.status_code == 400
     assert response.json().get("code") == str(
         StarknetErrorCode.L1_TO_L2_MESSAGE_ZEROED_COUNTER
     )
@@ -220,7 +220,7 @@ def test_consume_message_from_l2_execute_without_data():
         },
     )
 
-    assert response.status_code == 500
+    assert response.status_code == 400
     assert response.json.get("code") == str(StarkErrorCode.MALFORMED_REQUEST)
 
 
@@ -235,7 +235,7 @@ def test_consume_message_from_l2_execute_without_deploy():
         },
     )
 
-    assert response.status_code == 500
+    assert response.status_code == 400
     assert response.json.get("code") == str(
         StarknetErrorCode.L1_TO_L2_MESSAGE_ZEROED_COUNTER
     )

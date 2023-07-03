@@ -42,7 +42,7 @@ def test_abort_not_existing_block():
     """Test abort of not existing block."""
     response = abort_blocks(NON_EXISTENT_BLOCK)
     assert response.json()["code"] == str(StarknetErrorCode.BLOCK_NOT_FOUND)
-    assert response.status_code == 500
+    assert response.status_code == 400
 
 
 @devnet_in_background()
@@ -213,7 +213,7 @@ def test_forked_at_block_with_abort_blocks():
         block_number=fork_status.json().get("block") - 1, parse=True
     )
     response = abort_blocks(block_before_fork["block_hash"])
-    assert response.status_code == 500
+    assert response.status_code == 400
     assert response.json()["message"] == "Aborting forked blocks is not supported."
 
     # Abort block should fail on genesis forked blocks
@@ -221,7 +221,7 @@ def test_forked_at_block_with_abort_blocks():
         block_number=fork_status.json().get("block") + 1, parse=True
     )
     response = abort_blocks(genesis_block_fork["block_hash"])
-    assert response.status_code == 500
+    assert response.status_code == 400
     assert response.json()["message"] == "Aborting genesis block is not supported."
 
     # Deploy contract and mine new block
@@ -292,7 +292,7 @@ def test_abort_genesis_block():
     """Test abort of genesis block that should fail."""
     genesis_block = get_block(parse=True)
     response = abort_blocks(genesis_block["block_hash"])
-    assert response.status_code == 500
+    assert response.status_code == 400
     assert response.json()["message"] == "Aborting genesis block is not supported."
 
 

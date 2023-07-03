@@ -65,7 +65,7 @@ def test_rejection_of_deprecated_deploy():
         content_type="application/json",
         data=load_file_content("deprecated_deploy.json"),
     )
-    assert resp.status_code == 500, resp.json
+    assert resp.status_code == 400, resp.json
     assert resp.json == {
         "code": str(StarknetErrorCode.DEPRECATED_TRANSACTION),
         "message": "Deploy transaction is no longer supported.",
@@ -228,7 +228,7 @@ def test_error_response_call_with_negative_block_number():
     resp = get_block_by_number({"blockNumber": -1})
 
     json_error_message = resp.json()["message"]
-    assert resp.status_code == 500
+    assert resp.status_code == 400
     assert json_error_message is not None
 
 
@@ -239,7 +239,7 @@ def test_error_response_call_with_block_hash_0():
     resp = get_block_by_hash("0")
 
     json_error_message = resp.json()["message"]
-    assert resp.status_code == 500
+    assert resp.status_code == 400
     assert json_error_message.startswith(
         "Block hash should be a hexadecimal string starting with 0x, or 'null';"
     )
@@ -253,7 +253,7 @@ def test_error_response_call_with_invalid_transaction_hash():
 
     json_error_message = resp.json()["message"]
     msg = "Transaction corresponding to hash"
-    assert resp.status_code == 500
+    assert resp.status_code == 400
     assert json_error_message.startswith(msg)
 
 
@@ -264,7 +264,7 @@ def test_error_response_call_with_unavailable_contract():
     resp = get_full_contract(INVALID_HASH)
 
     json_error_message = resp.json()["message"]
-    assert resp.status_code == 500
+    assert resp.status_code == 400
     assert json_error_message is not None
 
 
@@ -275,7 +275,7 @@ def test_error_response_call_with_state_update():
     resp = get_state_update(INVALID_HASH, -1)
 
     json_error_message = resp.json()["message"]
-    assert resp.status_code == 500
+    assert resp.status_code == 400
     assert json_error_message is not None
 
 
@@ -286,7 +286,7 @@ def test_error_response_class_hash_at():
     resp = get_class_hash_at(INVALID_ADDRESS)
     error_message = resp.json()["message"]
 
-    assert resp.status_code == 500
+    assert resp.status_code == 400
     expected_message = (
         # alpha-goerli reports a decimal address
         f"Contract with address {int(INVALID_ADDRESS, 16)} is not deployed."
@@ -364,7 +364,7 @@ def test_get_transaction_trace_of_rejected():
     resp = get_transaction_trace(deploy_info["tx_hash"])
     resp_body = resp.json()
     assert resp_body["code"] == str(StarknetErrorCode.NO_TRACE)
-    assert resp.status_code == 500
+    assert resp.status_code == 400
 
 
 @pytest.mark.parametrize("tx_hash", ["0xyz", "0"])
@@ -372,28 +372,28 @@ def test_get_transaction_with_tx_hash(tx_hash):
     """Should fail on get_transaction with invalid hash"""
     resp = get_transaction_test_client(tx_hash)
     assert resp.json["message"].startswith(INVALID_TRANSACTION_HASH_MESSAGE_PREFIX)
-    assert resp.status_code == 500
+    assert resp.status_code == 400
 
 
 def test_get_transaction_status_with_tx_hash_0():
     """Should fail on get_transaction_status with hash 0 without 0x prefix"""
     resp = get_transaction_status_test_client("0")
     assert resp.json["message"].startswith(INVALID_TRANSACTION_HASH_MESSAGE_PREFIX)
-    assert resp.status_code == 500
+    assert resp.status_code == 400
 
 
 def test_get_transaction_trace_with_tx_hash_0():
     """Should fail on get_transaction_trace with hash 0 without 0x prefix"""
     resp = get_transaction_trace_test_client("0")
     assert resp.json["message"].startswith(INVALID_TRANSACTION_HASH_MESSAGE_PREFIX)
-    assert resp.status_code == 500
+    assert resp.status_code == 400
 
 
 def test_get_transaction_receipt_with_tx_hash_0():
     """Should fail on get_transaction_receipt with hash 0 without 0x prefix"""
     resp = get_transaction_receipt_test_client("0")
     assert resp.json["message"].startswith(INVALID_TRANSACTION_HASH_MESSAGE_PREFIX)
-    assert resp.status_code == 500
+    assert resp.status_code == 400
 
 
 @pytest.mark.parametrize("address_property", ["contract_address", "sender_address"])
@@ -420,6 +420,6 @@ def test_calling_with_different_address_properties(address_property: str):
 def test_calling_without_body():
     """Test graceful failing without body"""
     resp = app.test_client().post("/feeder_gateway/call_contract")
-    assert resp.status_code == 500
+    assert resp.status_code == 400
     assert resp.is_json
     assert resp.json.get("code") == str(StarkErrorCode.MALFORMED_REQUEST)

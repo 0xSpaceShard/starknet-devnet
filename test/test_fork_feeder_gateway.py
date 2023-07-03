@@ -257,7 +257,7 @@ def test_cairo1_class_declared_on_origin():
 def _assert_transaction_trace_not_present(tx_hash: str, feeder_gateway_url=APP_URL):
     resp = get_transaction_trace_response(tx_hash, server_url=feeder_gateway_url)
     assert resp.json()["code"] == str(StarknetErrorCode.INVALID_TRANSACTION_HASH)
-    assert resp.status_code == 500
+    assert resp.status_code == 400
 
 
 def _assert_transaction_trace_present(
@@ -367,7 +367,7 @@ def _assert_block_artifact_not_found(
         {"blockNumber": block_number, "blockHash": block_hash},
     )
     assert json.loads(resp.text)["code"] == str(StarknetErrorCode.BLOCK_NOT_FOUND)
-    assert resp.status_code == 500
+    assert resp.status_code == 400
 
 
 @devnet_in_background(

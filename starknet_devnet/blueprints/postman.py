@@ -101,5 +101,5 @@ async def consume_message_from_l2():
         raise StarknetDevnetException(
             code=StarknetErrorCode.L1_TO_L2_MESSAGE_ZEROED_COUNTER,
             message="Message is fully consumed or does not exist.",
-            status_code=500,
+            status_code=400,
         ) from err

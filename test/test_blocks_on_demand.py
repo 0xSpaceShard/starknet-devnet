@@ -164,7 +164,7 @@ def test_getting_next_block():
     # expect failure on block retrieval
     next_block_number = 1
     block_resp = _get_block_resp(block_number=next_block_number)
-    assert block_resp.status_code == 500
+    assert block_resp.status_code == 400
     assert block_resp.json()["code"] == str(StarknetErrorCode.BLOCK_NOT_FOUND)
 
     demand_block_creation()

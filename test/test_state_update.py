@@ -158,7 +158,7 @@ def test_wrong_block_hash():
     """Test wrong block hash in the state update"""
     state_update_response = get_state_update_response(block_hash="WRONG_HASH")
 
-    assert_equal(state_update_response.status_code, 500)
+    assert_equal(state_update_response.status_code, 400)
 
 
 @pytest.mark.state_update
@@ -189,7 +189,7 @@ def test_wrong_block_number():
     """Test wrong block hash in the state update"""
     state_update_response = get_state_update_response(block_number=42)
 
-    assert_equal(state_update_response.status_code, 500)
+    assert_equal(state_update_response.status_code, 400)
 
 
 @pytest.mark.state_update

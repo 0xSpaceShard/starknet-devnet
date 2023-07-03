@@ -460,7 +460,7 @@ def assert_full_contract_not_present(address: str, feeder_gateway_url=APP_URL):
     )
 
     assert resp.json()["code"] == str(StarknetErrorCode.UNINITIALIZED_CONTRACT)
-    assert resp.status_code == 500
+    assert resp.status_code == 400
 
 
 def assert_full_contract(address: str, expected_path: str, feeder_gateway_url=APP_URL):
@@ -484,7 +484,7 @@ def assert_address_has_no_class_hash(contract_address: str, feeder_gateway_url=A
         {"contractAddress": contract_address},
     )
     assert resp.json()["code"] == str(StarknetErrorCode.UNINITIALIZED_CONTRACT)
-    assert resp.status_code == 500
+    assert resp.status_code == 400
 
 
 def assert_class_hash_at_address(

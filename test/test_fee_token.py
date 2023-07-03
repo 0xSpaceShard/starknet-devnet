@@ -100,7 +100,7 @@ def test_wrong_mint_address_format():
     """Assert failure if mint address of wrong format"""
     resp = mint_client({"amount": 10, "address": "invalid_address"})
 
-    assert resp.status_code == 500
+    assert resp.status_code == 400
     assert resp.json["message"].startswith(
         "Hash should be a hexadecimal string starting with 0x, or 'null';"
     )

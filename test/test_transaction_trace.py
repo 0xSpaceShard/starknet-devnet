@@ -128,10 +128,10 @@ def test_invoke_transaction_hash():
 @pytest.mark.transaction_trace
 @devnet_in_background()
 def test_nonexistent_transaction_hash():
-    """Test if it throws 500 for nonexistent transaction trace"""
+    """Test if it throws 400 for nonexistent transaction trace"""
 
     res = get_transaction_trace_response(NONEXISTENT_TX_HASH)
-    assert res.status_code == 500
+    assert res.status_code == 400
 
 
 def get_block_traces(params: dict):

@@ -75,8 +75,7 @@ class StarknetDevnetException(StarkException):
     Indicates the raised issue is devnet-related.
     """
 
-    # TODO change status_code to 400
-    def __init__(self, code: StarknetErrorCode, status_code=500, message=None):
+    def __init__(self, code: StarknetErrorCode, status_code=400, message=None):
         super().__init__(code=code, message=message)
         self.status_code = status_code
 
