@@ -1,7 +1,7 @@
 use clap::Parser;
 use starknet_core::StarknetConfig;
-use starknet_types::traits::ToHexString;
 use starknet_in_rust::definitions::block_context::StarknetChainId;
+use starknet_types::traits::ToHexString;
 
 /// Run a local instance of Starknet Devnet
 #[derive(Parser, Debug)]
@@ -33,9 +33,7 @@ struct Args {
     #[arg(long = "host")]
     #[arg(value_name = "HOST")]
     #[arg(default_value = "127.0.0.1")]
-    #[arg(
-        help = "Specify the address to listen at; (use the address the program outputs on start)"
-    )]
+    #[arg(help = "Specify the address to listen at;")]
     host: String,
 
     // Port number.
@@ -83,7 +81,7 @@ impl Args {
                 "MAINNET" => StarknetChainId::MainNet,
                 "TESTNET" => StarknetChainId::TestNet,
                 "TESTNET2" => StarknetChainId::TestNet2,
-                _      => StarknetChainId::TestNet,
+                _ => StarknetChainId::TestNet,
             },
         }
     }
