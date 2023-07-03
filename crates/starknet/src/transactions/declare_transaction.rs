@@ -1,6 +1,7 @@
-use starknet_in_rust::{core::transaction_hash::{
-    calculate_transaction_hash_common, TransactionHashPrefix,
-}, definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR};
+use starknet_in_rust::{
+    core::transaction_hash::{calculate_transaction_hash_common, TransactionHashPrefix},
+    definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR,
+};
 use starknet_types::{
     contract_address::ContractAddress,
     contract_class::ContractClass,

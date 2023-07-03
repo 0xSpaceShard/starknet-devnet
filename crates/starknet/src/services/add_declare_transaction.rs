@@ -119,7 +119,8 @@ mod tests {
         let (mut starknet, sender) = setup();
 
         let declare_txn = test_declare_transaction_v1(sender);
-        let (tx_hash, class_hash) = starknet.add_declare_transaction_v1(declare_txn.clone()).unwrap();
+        let (tx_hash, class_hash) =
+            starknet.add_declare_transaction_v1(declare_txn.clone()).unwrap();
 
         let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
 

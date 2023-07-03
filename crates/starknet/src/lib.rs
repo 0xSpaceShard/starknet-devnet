@@ -205,8 +205,8 @@ mod tests {
     use starknet_types::{contract_address::ContractAddress, felt::Felt, traits::HashProducer};
 
     use crate::{
-        blocks::StarknetBlock, traits::Accounted,
-        utils::test_utils::dummy_declare_transaction_v1, Starknet, StarknetConfig,
+        blocks::StarknetBlock, traits::Accounted, utils::test_utils::dummy_declare_transaction_v1,
+        Starknet, StarknetConfig,
     };
 
     pub(crate) fn starknet_config_for_test() -> StarknetConfig {
@@ -263,7 +263,10 @@ mod tests {
         tx.transaction_hash = Some(tx_hash);
 
         // add transaction to pending block
-        starknet.blocks.pending_block.add_transaction(crate::transactions::Transaction::Declare(tx));
+        starknet
+            .blocks
+            .pending_block
+            .add_transaction(crate::transactions::Transaction::Declare(tx));
 
         // pending block has some transactions
         assert!(!starknet.pending_block().get_transactions().is_empty());
