@@ -20,7 +20,7 @@ pub(crate) fn generate_u128_random_numbers(
 pub(crate) fn load_cairo_0_contract_class(path: &str) -> DevnetResult<ContractClass> {
     let contract_class_str = fs::read_to_string(path)
         .map_err(|err| Error::ReadFileError { source: err, path: path.to_string() })?;
-    ContractClass::from_json_str(&contract_class_str)
+    ContractClass::cairo_0_from_json_str(&contract_class_str)
 }
 
 /// Returns the storage address of a StarkNet storage variable given its name and arguments.
@@ -70,7 +70,7 @@ pub(crate) mod test_utils {
     pub(crate) fn dummy_contract_class() -> ContractClass {
         let json_str = std::fs::read_to_string(constants::CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
 
-        ContractClass::from_json_str(&json_str).unwrap()
+        ContractClass::cairo_0_from_json_str(&json_str).unwrap()
     }
 
     pub(crate) fn dummy_contract_address() -> ContractAddress {

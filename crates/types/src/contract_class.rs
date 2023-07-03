@@ -24,7 +24,7 @@ pub enum ContractClassInner {
 pub struct ContractClass(ContractClassInner);
 
 impl ContractClass {
-    pub fn from_json_str(json_str: &str) -> DevnetResult<Self> {
+    pub fn cairo_0_from_json_str(json_str: &str) -> DevnetResult<Self> {
         let res: serde_json::Value =
             serde_json::from_str(json_str).map_err(JsonError::SerdeJsonError)?;
         if res.is_object() {
@@ -207,7 +207,7 @@ mod tests {
     #[test]
     fn cairo_0_contract_class_hash_generated_successfully() {
         let json_str = std::fs::read_to_string(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
-        let contract_class = ContractClass::from_json_str(&json_str).unwrap();
+        let contract_class = ContractClass::cairo_0_from_json_str(&json_str).unwrap();
         let class_hash = contract_class.generate_hash().unwrap();
         let expected_class_hash =
             Felt::from_prefixed_hex_str(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap();
@@ -215,7 +215,7 @@ mod tests {
     }
 
     #[test]
-    fn contract_class_from_json_str_doesnt_accept_string_different_from_json() {
-        assert!(ContractClass::from_json_str(" not JSON string").is_err());
+    fn contract_class_cairo_0_from_json_str_doesnt_accept_string_different_from_json() {
+        assert!(ContractClass::cairo_0_from_json_str(" not JSON string").is_err());
     }
 }

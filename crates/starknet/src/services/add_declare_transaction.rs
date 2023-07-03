@@ -100,7 +100,7 @@ mod tests {
         let contract_json_path =
             concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/declare/declare_test.json");
         let contract_class =
-            ContractClass::from_json_str(&std::fs::read_to_string(contract_json_path).unwrap())
+            ContractClass::cairo_0_from_json_str(&std::fs::read_to_string(contract_json_path).unwrap())
                 .unwrap();
         DeclareTransactionV1 {
             sender_address,
@@ -156,7 +156,7 @@ mod tests {
         let account_json_path =
             concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/simple_account/account.json");
         let contract_class =
-            ContractClass::from_json_str(&std::fs::read_to_string(account_json_path).unwrap())
+            ContractClass::cairo_0_from_json_str(&std::fs::read_to_string(account_json_path).unwrap())
                 .unwrap();
 
         let class_hash = contract_class.generate_hash().unwrap();
