@@ -14,7 +14,7 @@ use starknet_in_rust::CasmContractClass;
 use starknet_in_rust::SierraContractClass;
 
 use crate::error::{Error, JsonError};
-use crate::felt::{Felt};
+use crate::felt::Felt;
 use crate::traits::HashProducer;
 use crate::{utils, DevnetResult};
 
@@ -101,7 +101,7 @@ impl TryFrom<ContractClass> for CasmContractClass {
 impl TryFrom<ContractClass> for SierraContractClass {
     type Error = Error;
     fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
-        match value{
+        match value {
             ContractClass::Cairo1(sierra) => Ok(sierra),
             _ => Err(Error::ConversionError(crate::error::ConversionError::InvalidFormat)),
         }
