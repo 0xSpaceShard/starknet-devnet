@@ -1,6 +1,5 @@
 use std::{collections::HashMap, time::SystemTime};
 
-use account::Account;
 use blocks::{StarknetBlock, StarknetBlocks};
 use constants::{CHAIN_ID, ERC20_CONTRACT_ADDRESS};
 use predeployed_accounts::PredeployedAccounts;
@@ -95,10 +94,6 @@ impl Starknet {
         this.empty_pending_block()?;
 
         Ok(this)
-    }
-
-    pub fn get_predeployed_accounts(&self) -> Vec<Account> {
-        self.predeployed_accounts.get_accounts().to_vec()
     }
 
     // Update block context
