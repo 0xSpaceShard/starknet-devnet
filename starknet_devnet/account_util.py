@@ -133,6 +133,8 @@ async def set_balance(state: StarknetState, address: int, balance: int):
     await state.state.set_storage_at(
         storage_domain=StorageDomain.ON_CHAIN,
         contract_address=fee_token_address,
+        # uint256 takes up two memory places, uint256.high goes to
+        # the memory address after uint256.low, hence the +1
         key=balance_key + 1,
         value=balance_uint256.high,
     )
