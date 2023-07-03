@@ -284,7 +284,7 @@ mod tests {
     }
 
     #[test]
-    fn declare_contract_class_successfully() {
+    fn declare_cairo_0_contract_class_successfully() {
         let mut state = StarknetState::default();
         let class_hash = Felt::from_prefixed_hex_str("0xFE").unwrap();
 
@@ -296,7 +296,7 @@ mod tests {
     }
 
     #[test]
-    fn deploy_contract_class_successfully() {
+    fn deploy_cairo_0_contract_class_successfully() {
         let (mut state, address) = setup();
         let felt = dummy_felt();
 
