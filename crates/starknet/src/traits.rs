@@ -43,6 +43,7 @@ pub trait StateChanger {
     fn change_storage(&mut self, storage_key: ContractStorageKey, data: Felt) -> DevnetResult<()>;
     fn increment_nonce(&mut self, address: ContractAddress) -> DevnetResult<()>;
     fn is_contract_declared(&mut self, class_hash: &ClassHash) -> DevnetResult<bool>;
+    // get differences from pending state and apply them to "persistent" state
     fn apply_cached_state(&mut self) -> DevnetResult<()>;
 }
 
