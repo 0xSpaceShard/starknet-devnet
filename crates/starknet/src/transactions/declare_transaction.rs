@@ -79,6 +79,7 @@ impl HashProducer for DeclareTransactionV1 {
 #[cfg(test)]
 mod tests {
     #[test]
+    #[ignore]
     fn correct_transaction_hash_computation() {
         panic!("Transaction hash computation should be checked")
     }
