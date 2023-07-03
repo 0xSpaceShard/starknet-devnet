@@ -50,8 +50,6 @@ CHAIN_IDS = ", ".join([member.name for member in StarknetChainId])
 DEFAULT_CHAIN_ID = StarknetChainId.TESTNET
 
 DEFAULT_COMPILER_ARGS = [
-    # without the space at the beginning, our tests fail because it gets
-    # interpreted as a separate CLI arg
     "--add-pythonic-hints",
 ]
 
