@@ -236,11 +236,9 @@ class StarknetWrapper:
         state = self.get_state()
         state_update = await self.update_pending_state()
         await self.blocks.generate_pending(transactions, state, state_update)
-        block = await self.generate_latest_block(block_hash=0)
+        await self.generate_latest_block(block_hash=0)
 
         for transaction in transactions:
-            transaction.set_block(block=block)  # TODO necessary?
-            # TODO change transactions.store to only accept transaction and extract hash from it
             self.transactions.store(transaction.transaction_hash, transaction)
 
     async def create_empty_block(self) -> StarknetBlock:
@@ -518,7 +516,7 @@ class StarknetWrapper:
                         execution_info=self.execution_info,
                         transaction_hash=tx_hash,
                         block_number=next_block_number,
-                        transaction_index=len(self.starknet_wrapper.pending_txs)
+                        transaction_index=len(self.starknet_wrapper.pending_txs),
                     )
                     self.starknet_wrapper.pending_txs.append(transaction)
                     self.starknet_wrapper._store_transaction(transaction)

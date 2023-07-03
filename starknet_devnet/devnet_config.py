@@ -52,7 +52,7 @@ DEFAULT_CHAIN_ID = StarknetChainId.TESTNET
 DEFAULT_COMPILER_ARGS = [
     # without the space at the beginning, our tests fail because it gets
     # interpreted as a separate CLI arg
-    " --add-pythonic-hints",
+    "--add-pythonic-hints",
 ]
 
 

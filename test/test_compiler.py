@@ -48,6 +48,10 @@ SIERRA_COMPILER_PATH = os.path.join(
     CAIRO_1_COMPILER_REPO, "target", "debug", "starknet-sierra-compile"
 )
 
+# if it's just one argument, we append a space so that it doesn't get parsed as a separate CLI arg
+DEFAULT_COMPILER_ARGS_STRINGIFIED = " ".join(DEFAULT_COMPILER_ARGS) + " "
+
+
 ACTIVE_DEVNET = DevnetBackgroundProc()
 
 
@@ -194,19 +198,19 @@ def test_manifest_and_sierra_compiler_specified():
             "--cairo-compiler-manifest",
             CAIRO_1_COMPILER_MANIFEST,
             "--compiler-args",
-            " ".join(DEFAULT_COMPILER_ARGS),
+            DEFAULT_COMPILER_ARGS_STRINGIFIED,
         ),
         (
             *PREDEPLOY_ACCOUNT_CLI_ARGS,
             "--sierra-compiler-path",
             SIERRA_COMPILER_PATH,
             "--compiler-args",
-            " ".join(DEFAULT_COMPILER_ARGS),
+            DEFAULT_COMPILER_ARGS_STRINGIFIED,
         ),
         (
             *PREDEPLOY_ACCOUNT_CLI_ARGS,
             "--compiler-args",
-            " ".join(DEFAULT_COMPILER_ARGS),
+            DEFAULT_COMPILER_ARGS_STRINGIFIED,
         ),
     ],
     indirect=True,

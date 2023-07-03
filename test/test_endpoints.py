@@ -301,7 +301,7 @@ def test_error_response_class_by_hash():
     resp = get_class_by_hash(INVALID_HASH)
     error_message = resp.json()["message"]
 
-    assert resp.status_code == 500
+    assert resp.status_code == 400
     expected_message = f"Class with hash {INVALID_HASH} is not declared."
     assert expected_message == error_message
 

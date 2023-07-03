@@ -742,10 +742,11 @@ def set_time(time_s):
 
 def assert_undeclared_class(resp=requests.Response):
     """Assert that the provided response indicates a failure due to an undeclared class"""
-    assert resp.status_code == 400, resp.json()
+    assert resp.status_code == 400, f"Invalid status code of {resp.json()}"
     resp_body = resp.json()
     assert "code" in resp_body
     assert resp_body["code"] == str(StarknetErrorCode.UNDECLARED_CLASS)
+
 
 def get_transaction(tx_hash: str, feeder_gateway_url=APP_URL):
     """Return response of get_transaction request"""
