@@ -84,7 +84,7 @@ mod tests {
     use starknet_api::block::BlockNumber;
     use starknet_rs_core::types::TransactionStatus;
     use starknet_types::{
-        contract_address::ContractAddress, contract_class::ContractClass, felt::Felt,
+        contract_address::ContractAddress, felt::Felt,
         traits::HashProducer,
     };
 
@@ -92,16 +92,15 @@ mod tests {
         constants,
         traits::{HashIdentifiedMut, StateChanger},
         transactions::declare_transaction::DeclareTransactionV1,
-        utils::test_utils::dummy_contract_address,
+        utils::{test_utils::dummy_contract_address, load_cairo_0_contract_class},
         Starknet,
     };
 
     fn test_declare_transaction_v1(sender_address: ContractAddress) -> DeclareTransactionV1 {
         let contract_json_path =
             concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/declare/declare_test.json");
-        let contract_class =
-            ContractClass::cairo_0_from_json_str(&std::fs::read_to_string(contract_json_path).unwrap())
-                .unwrap();
+            
+        let contract_class = load_cairo_0_contract_class(contract_json_path).unwrap();
         DeclareTransactionV1 {
             sender_address,
             version: Felt::from(1),
@@ -155,9 +154,8 @@ mod tests {
         let mut starknet = Starknet::default();
         let account_json_path =
             concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/simple_account/account.json");
-        let contract_class =
-            ContractClass::cairo_0_from_json_str(&std::fs::read_to_string(account_json_path).unwrap())
-                .unwrap();
+        let contract_class = load_cairo_0_contract_class(account_json_path)
+            .unwrap();
 
         let class_hash = contract_class.generate_hash().unwrap();
         let address = dummy_contract_address();

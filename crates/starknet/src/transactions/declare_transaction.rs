@@ -67,7 +67,7 @@ impl HashProducer for DeclareTransactionV1 {
             &additional_data,
         )
         .map_err(|err| {
-            Error::StarknetInRustTransactionError(
+            Error::TransactionError(
                 starknet_in_rust::transaction::error::TransactionError::Syscall(err),
             )
         })?

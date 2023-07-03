@@ -5,12 +5,16 @@ use serde_json::{json, Serializer, Value};
 use starknet_api::deprecated_contract_class::{EntryPoint, EntryPointType};
 use starknet_api::hash::{pedersen_hash_array, StarkFelt};
 use starknet_in_rust::core::contract_address::compute_deprecated_class_hash;
+use starknet_in_rust::core::contract_address::v2::sierra_contract_address::compute_sierra_class_hash;
+
 use starknet_in_rust::core::errors::contract_address_errors::ContractAddressError;
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
 use starknet_in_rust::utils::calculate_sn_keccak;
+use starknet_in_rust::CasmContractClass;
+use starknet_in_rust::SierraContractClass;
 
 use crate::error::{Error, JsonError};
-use crate::felt::Felt;
+use crate::felt::{Felt};
 use crate::traits::HashProducer;
 use crate::{utils, DevnetResult};
 
@@ -23,6 +27,7 @@ pub enum Cairo0ContractClass {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ContractClass {
     Cairo0(Cairo0ContractClass),
+    Cairo1(SierraContractClass),
 }
 
 impl ContractClass {
@@ -46,6 +51,12 @@ impl From<StarknetInRustContractClass> for ContractClass {
     }
 }
 
+impl From<SierraContractClass> for ContractClass {
+    fn from(value: SierraContractClass) -> Self {
+        ContractClass::Cairo1(value)
+    }
+}
+
 impl TryFrom<ContractClass> for StarknetInRustContractClass {
     type Error = Error;
     fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
@@ -57,13 +68,42 @@ impl TryFrom<ContractClass> for StarknetInRustContractClass {
 
                 let starknet_in_rust_contract_class = StarknetInRustContractClass::try_from(sn_api)
                     .map_err(|err| {
-                        Error::StarknetInRustContractAddressError(ContractAddressError::Program(
-                            err,
-                        ))
+                        Error::ContractAddressError(ContractAddressError::Program(err))
                     })?;
 
                 Ok(starknet_in_rust_contract_class)
             }
+            ContractClass::Cairo1(_) => {
+                Err(Error::ConversionError(crate::error::ConversionError::InvalidFormat))
+            }
+        }
+    }
+}
+
+impl TryFrom<ContractClass> for CasmContractClass {
+    type Error = Error;
+    fn try_from(value: ContractClass) -> DevnetResult<Self> {
+        match value {
+            ContractClass::Cairo1(sierra) => {
+                let casm = CasmContractClass::from_contract_class(sierra, true).map_err(|err| {
+                    starknet_in_rust::transaction::error::TransactionError::SierraCompileError(
+                        err.to_string(),
+                    )
+                })?;
+
+                Ok(casm)
+            }
+            _ => Err(Error::ConversionError(crate::error::ConversionError::InvalidFormat)),
+        }
+    }
+}
+
+impl TryFrom<ContractClass> for SierraContractClass {
+    type Error = Error;
+    fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
+        match value{
+            ContractClass::Cairo1(sierra) => Ok(sierra),
+            _ => Err(Error::ConversionError(crate::error::ConversionError::InvalidFormat)),
         }
     }
 }
@@ -197,13 +237,17 @@ impl HashProducer for ContractClass {
     fn generate_hash(&self) -> crate::DevnetResult<crate::felt::Felt> {
         match &self {
             ContractClass::Cairo0(Cairo0ContractClass::Obj(obj)) => {
-                let stark_hash = compute_deprecated_class_hash(obj)
-                    .map_err(Error::StarknetInRustContractAddressError)?;
+                let stark_hash =
+                    compute_deprecated_class_hash(obj).map_err(Error::ContractAddressError)?;
 
-                Ok(Felt(stark_hash.to_be_bytes()))
+                Ok(Felt::from(stark_hash))
             }
             ContractClass::Cairo0(Cairo0ContractClass::Json(json_class)) => {
                 Ok(ContractClass::compute_cairo_0_contract_class_hash(json_class)?)
+            }
+            ContractClass::Cairo1(sierra) => {
+                let sierra_felt252_hash = compute_sierra_class_hash(sierra)?;
+                Ok(Felt::from(sierra_felt252_hash))
             }
         }
     }
@@ -211,10 +255,17 @@ impl HashProducer for ContractClass {
 
 #[cfg(test)]
 mod tests {
+    use core::panic;
+
     use super::ContractClass;
     use crate::felt::Felt;
     use crate::traits::HashProducer;
     use crate::utils::test_utils::{CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH};
+
+    #[test]
+    fn cairo_1_contract_class_hash_generated_successfully() {
+        panic!("Add check with expected class hash generated from sierra");
+    }
 
     #[test]
     fn cairo_0_contract_class_hash_generated_successfully() {

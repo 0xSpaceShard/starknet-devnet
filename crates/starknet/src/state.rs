@@ -192,7 +192,8 @@ mod tests {
     use super::StarknetState;
     use crate::traits::{StateChanger, StateExtractor};
     use crate::utils::test_utils::{
-        dummy_contract_address, dummy_contract_class, dummy_contract_storage_key, dummy_felt,
+        dummy_cairo_0_contract_class, dummy_contract_address, dummy_contract_storage_key,
+        dummy_felt,
     };
 
     #[test]
@@ -203,7 +204,7 @@ mod tests {
 
         state
             .pending_state
-            .set_contract_class(&class_hash, &dummy_contract_class().try_into().unwrap())
+            .set_contract_class(&class_hash, &dummy_cairo_0_contract_class().try_into().unwrap())
             .unwrap();
 
         assert!(!state.is_contract_declared(&dummy_felt()).unwrap());
@@ -246,7 +247,7 @@ mod tests {
         let get_storage_result = state.get_storage(dummy_contract_storage_key());
         assert!(matches!(
             get_storage_result.unwrap_err(),
-            Error::StarknetInRustStateError(StateError::NoneStorage((_, _)))
+            Error::StateError(StateError::NoneStorage((_, _)))
         ));
 
         // apply changes to persistent state
@@ -288,11 +289,11 @@ mod tests {
         let mut state = StarknetState::default();
         let class_hash = Felt::from_prefixed_hex_str("0xFE").unwrap();
 
-        assert!(state.declare_contract_class(class_hash, dummy_contract_class()).is_ok());
+        assert!(state.declare_contract_class(class_hash, dummy_cairo_0_contract_class()).is_ok());
         assert!(state.state.class_hash_to_contract_class.len() == 1);
         let contract_class = state.state.class_hash_to_contract_class.get(&class_hash.bytes());
         assert!(contract_class.is_some());
-        assert_eq!(*contract_class.unwrap(), dummy_contract_class().try_into().unwrap());
+        assert_eq!(*contract_class.unwrap(), dummy_cairo_0_contract_class().try_into().unwrap());
     }
 
     #[test]
@@ -345,7 +346,7 @@ mod tests {
     fn setup() -> (StarknetState, ContractAddress) {
         let mut state = StarknetState::default();
         let address = dummy_contract_address();
-        let contract_class = dummy_contract_class();
+        let contract_class = dummy_cairo_0_contract_class();
         let class_hash = dummy_felt();
 
         state.declare_contract_class(class_hash, contract_class).unwrap();
