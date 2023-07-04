@@ -218,7 +218,7 @@ mod tests {
         starknet.block_context =
             Starknet::get_block_context(1, constants::ERC20_CONTRACT_ADDRESS).unwrap();
 
-        starknet.empty_pending_block().unwrap();
+        starknet.restart_pending_block().unwrap();
 
         (starknet, acc.get_address())
     }
