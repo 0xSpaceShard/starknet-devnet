@@ -1,33 +1,23 @@
 [package]
 name = "starknet"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+repository.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-
-# devnet
-server = { path = "../server" }
-starknet_types = { git = "https://github.com/0xSpaceShard/starknet-devnet-rs.git", package = "types" }
-
-# axum
-axum = { workspace = true }
-hyper = { workspace = true }
-tower-http = { workspace = true }
-tower = { workspace = true }
-
-# async
-tokio = { workspace = true }
-futures = { workspace = true }
-async-trait = { workspace = true }
-
-# tracing
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
-
-# misc
-serde_json = { workspace = true }
-serde = { workspace = true }
+starknet_api = { workspace = true }
 thiserror = { workspace = true }
-anyhow = { workspace = true }
+starknet-in-rust = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+starknet-rs-signers = { workspace = true }
+starknet-rs-ff = { workspace = true }
+starknet-rs-core = { workspace = true }
+starknet-types = { workspace = true }
+random-number-generator = { workspace = true }
+
+[dev-dependencies]
+jsonschema = "0.16.0"
+blockifier = { git = "https://github.com/starkware-libs/blockifier", rev = "f2d237b" }
