@@ -174,7 +174,7 @@ mod tests {
 
     fn test_declare_transaction_v1(sender_address: ContractAddress) -> DeclareTransactionV1 {
         let contract_json_path =
-            concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/declare/declare_test.json");
+            concat!(env!("CARGO_MANIFEST_DIR"), "/test_artifacts/declare/declare_cairo_0_test.json");
 
         let contract_class = load_cairo_0_contract_class(contract_json_path).unwrap();
         DeclareTransactionV1 {
@@ -255,7 +255,7 @@ mod tests {
     fn setup(acc_balance: Option<u128>) -> (Starknet, ContractAddress) {
         let mut starknet = Starknet::default();
         let account_json_path =
-            concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/account_without_validations/account.json");
+            concat!(env!("CARGO_MANIFEST_DIR"), "/test_artifacts/account_without_validations/account.json");
         let contract_class = load_cairo_0_contract_class(account_json_path).unwrap();
 
         let erc_20_contract = Starknet::create_erc20().unwrap();
