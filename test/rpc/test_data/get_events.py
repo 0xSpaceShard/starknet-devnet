@@ -82,13 +82,13 @@ EVENT_FEE_ADDRESS = rpc_felt(
 INVOKE_1_FEE_CHARGING_EVENT = [
     rpc_felt(int(PREDEPLOYED_ACCOUNT_ADDRESS, 16)),
     EVENT_FEE_ADDRESS,
-    rpc_felt(0x1DA3ABD900),  # WEI
+    rpc_felt(0x3A2347A100),  # WEI
     rpc_felt(0),
 ]
 INVOKE_2_FEE_CHARGING_EVENT = [
     rpc_felt(int(PREDEPLOYED_ACCOUNT_ADDRESS, 16)),
     EVENT_FEE_ADDRESS,
-    rpc_felt(0x56A2E36900),  # WEI
+    rpc_felt(0x73227F3100),  # WEI
     rpc_felt(0),
 ]
 

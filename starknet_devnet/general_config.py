@@ -28,6 +28,7 @@ def build_devnet_general_config(chain_id: StarknetChainId):
             "global_state_commitment_tree_height": constants.CONTRACT_ADDRESS_BITS,
             "invoke_tx_max_n_steps": DEFAULT_MAX_STEPS,
             "min_gas_price": DEFAULT_GAS_PRICE,
+            "constant_gas_price": True,
             "sequencer_address": hex(DEFAULT_SEQUENCER_ADDRESS),
             "starknet_os_config": {
                 "chain_id": chain_id.value,

@@ -32,7 +32,7 @@ OLD_SUPPORTED_VERSIONS = [0]
 # poetry run python scripts/compute_compiled_class_hash.py \
 #   ~/.cache/pypoetry/virtualenvs/<YOUR_VENV>/lib/python3.9/site-packages/starkware/starknet/third_party/open_zeppelin/account.json
 STARKNET_CLI_ACCOUNT_CLASS_HASH = (
-    0x2AF01407D426B1FFF03A6982813EA9F3E9467B2B19EDCC9FB612C3B5B6FFCEB
+    0x646A72E2AAB2FCA75D713FBE4A58F2D12CBD64105621B89DC9CE7045B5BF02B
 )
 
 # starkware.starknet.public.abi.get_selector_from_name("replace_class")

@@ -68,9 +68,11 @@ def fixture_starknet_wrapper_args(request):
 
 def test_predeclared_oz_account():
     """Test that precomputed class matches"""
-    assert STARKNET_CLI_ACCOUNT_CLASS_HASH == compute_deprecated_class_hash(
+    expected = compute_deprecated_class_hash(
         oz_account_class
     )
+    print("DEBUG expected", expected)
+    assert STARKNET_CLI_ACCOUNT_CLASS_HASH == expected
 
 
 @devnet_in_background()
