@@ -10,7 +10,7 @@ use starknet_types::felt::{BlockHash, TransactionHash};
 
 use crate::traits::HashIdentifiedMut;
 
-use self::declare_transaction::DeclareTransactionV1;
+use self::{declare_transaction::DeclareTransactionV1, declare_transaction_v2::DeclareTransactionV2};
 
 #[derive(Default)]
 pub struct StarknetTransactions(HashMap<TransactionHash, StarknetTransaction>);
@@ -71,12 +71,14 @@ impl StarknetTransaction {
 #[derive(Clone, PartialEq, Eq)]
 pub enum Transaction {
     Declare(DeclareTransactionV1),
+    DeclareV2(DeclareTransactionV2)
 }
 
 impl Transaction {
     pub(crate) fn get_hash(&self) -> Option<TransactionHash> {
         match self {
             Transaction::Declare(tx) => tx.transaction_hash,
+            Transaction::DeclareV2(tx) => tx.transaction_hash,
         }
     }
 }
