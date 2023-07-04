@@ -81,7 +81,7 @@ impl Starknet {
         }
 
         // copy already modified state to cached state
-        state.equalize_states();
+        state.synchronize_states();
 
         let mut this = Self {
             state,
@@ -91,7 +91,7 @@ impl Starknet {
             transactions: StarknetTransactions::default(),
         };
 
-        this.empty_pending_block()?;
+        this.restart_pending_block()?;
 
         Ok(this)
     }
@@ -100,7 +100,7 @@ impl Starknet {
     // Initialize values for new pending block
     pub(crate) fn generate_pending_block(&mut self) -> DevnetResult<()> {
         Self::update_block_context(&mut self.block_context);
-        self.empty_pending_block()?;
+        self.restart_pending_block()?;
 
         Ok(())
     }
@@ -178,7 +178,7 @@ impl Starknet {
     }
 
     /// Restarts pending block with information from block_context
-    fn empty_pending_block(&mut self) -> DevnetResult<()> {
+    fn restart_pending_block(&mut self) -> DevnetResult<()> {
         let mut block = StarknetBlock::create_pending_block();
 
         block.header.block_number = BlockNumber(self.block_context.block_info().block_number);
@@ -302,7 +302,7 @@ mod tests {
         assert!(*starknet.pending_block() == pending_block);
 
         // empty the pending to block and check if it is in starting state
-        starknet.empty_pending_block().unwrap();
+        starknet.restart_pending_block().unwrap();
 
         assert!(*starknet.pending_block() != pending_block);
         assert_eq!(starknet.pending_block().status, BlockStatus::Pending);

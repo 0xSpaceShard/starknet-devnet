@@ -25,9 +25,7 @@ impl HashIdentifiedMut for StarknetTransactions {
     type Hash = TransactionHash;
     type Element = StarknetTransaction;
     fn get_by_hash_mut(&mut self, hash: &Self::Hash) -> Option<&mut StarknetTransaction> {
-        let result = self.0.get_mut(hash);
-
-        result
+        self.0.get_mut(hash)
     }
 }
 
