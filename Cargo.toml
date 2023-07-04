@@ -3,7 +3,7 @@
 resolver = "2"
 members = [
 	"crates/server",
-	"crates/starknet"
+	"crates/starknet-server"
 ]
 
 [profile.release]
