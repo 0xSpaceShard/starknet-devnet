@@ -15,7 +15,6 @@ use crate::constants;
 #[derive(Clone, PartialEq, Eq)]
 pub struct DeclareTransactionV1 {
     pub sender_address: ContractAddress,
-    pub version: Felt,
     pub max_fee: u128,
     pub signature: Vec<Felt>,
     pub nonce: Felt,
@@ -27,7 +26,6 @@ pub struct DeclareTransactionV1 {
 impl DeclareTransactionV1 {
     pub fn new(
         sender_address: ContractAddress,
-        version: Felt,
         max_fee: u128,
         signature: Vec<Felt>,
         nonce: Felt,
@@ -35,7 +33,6 @@ impl DeclareTransactionV1 {
     ) -> Self {
         Self {
             sender_address,
-            version,
             max_fee,
             signature,
             nonce,
@@ -44,21 +41,21 @@ impl DeclareTransactionV1 {
             transaction_hash: None,
         }
     }
+
+    pub(crate) fn version(&self) -> Felt {
+        Felt::from(1)
+    }
 }
 
 impl HashProducer for DeclareTransactionV1 {
     fn generate_hash(&self) -> starknet_types::DevnetResult<Felt> {
         let class_hash = self.class_hash.unwrap_or(self.contract_class.generate_hash()?);
 
-        let (calldata, additional_data) = if self.version.is_zero() {
-            (vec![class_hash.into()], vec![self.nonce.into()])
-        } else {
-            (Vec::new(), vec![class_hash.into()])
-        };
+        let (calldata, additional_data) = (Vec::new(), vec![class_hash.into()]);
 
         let transaction_hash: Felt = calculate_transaction_hash_common(
             TransactionHashPrefix::Declare,
-            self.version.into(),
+            self.version().into(),
             &self.sender_address.try_into()?,
             VALIDATE_DECLARE_ENTRY_POINT_SELECTOR.clone(),
             &calldata,

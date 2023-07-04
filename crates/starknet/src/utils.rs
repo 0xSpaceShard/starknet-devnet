@@ -80,7 +80,6 @@ pub(crate) mod test_utils {
     pub(crate) fn dummy_declare_transaction_v1() -> DeclareTransactionV1 {
         DeclareTransactionV1::new(
             dummy_contract_address(),
-            Felt::from_prefixed_hex_str("0x0").unwrap(),
             100,
             vec![],
             dummy_felt(),
