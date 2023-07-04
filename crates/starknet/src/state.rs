@@ -22,7 +22,7 @@ pub(crate) struct StarknetState {
 impl StarknetState {
     // this is used to copy "persistent" data that is present in "state" variable into "pending_state"
     // this is done, because "pending_state" doesnt hold a reference to state, but rather a copy.
-    pub(crate) fn equalize_states(&mut self) {
+    pub(crate) fn synchronize_states(&mut self) {
         self.pending_state = CachedState::new(
             self.state.clone(),
             Some(self.state.class_hash_to_contract_class.clone()),
@@ -214,7 +214,7 @@ mod tests {
     }
 
     #[test]
-    fn equalize_states_after_changing_pending_state_it_should_be_empty() {
+    fn synchronize_states_after_changing_pending_state_it_should_be_empty() {
         let mut state = StarknetState::default();
         state
             .pending_state
@@ -225,7 +225,7 @@ mod tests {
             .get_storage_at(&dummy_contract_storage_key().try_into().unwrap())
             .unwrap();
 
-        state.equalize_states();
+        state.synchronize_states();
 
         assert_eq!(
             state
@@ -270,7 +270,7 @@ mod tests {
             .unwrap()
             .eq(&Felt252::from(0)));
 
-        state.equalize_states();
+        state.synchronize_states();
         state.pending_state.increment_nonce(&starknet_in_rust_address).unwrap();
         state.apply_cached_state().unwrap();
 

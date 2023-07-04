@@ -71,7 +71,7 @@ impl Starknet {
                 // apply state changes from cached state
                 self.state.apply_cached_state()?;
                 // make cached state part of "persistent" state
-                self.state.equalize_states();
+                self.state.synchronize_states();
                 // clear pending block information
                 self.generate_pending_block()?;
             }
@@ -214,7 +214,7 @@ mod tests {
         acc.deploy(&mut starknet.state).unwrap();
         acc.set_initial_balance(&mut starknet.state).unwrap();
 
-        starknet.state.equalize_states();
+        starknet.state.synchronize_states();
         starknet.block_context =
             Starknet::get_block_context(1, constants::ERC20_CONTRACT_ADDRESS).unwrap();
 

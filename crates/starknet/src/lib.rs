@@ -81,7 +81,7 @@ impl Starknet {
         }
 
         // copy already modified state to cached state
-        state.equalize_states();
+        state.synchronize_states();
 
         let mut this = Self {
             state,
