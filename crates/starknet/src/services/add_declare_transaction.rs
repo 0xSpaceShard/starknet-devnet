@@ -193,7 +193,7 @@ mod tests {
     fn setup(acc_balance: Option<u128>) -> (Starknet, ContractAddress) {
         let mut starknet = Starknet::default();
         let account_json_path =
-            concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/simple_account/account.json");
+            concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/account_without_validations/account.json");
         let contract_class =
             ContractClass::from_json_str(&std::fs::read_to_string(account_json_path).unwrap())
                 .unwrap();
