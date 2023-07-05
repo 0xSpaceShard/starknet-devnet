@@ -34,7 +34,7 @@ impl Starknet {
             validate_entry_point_selector:
                 starknet_in_rust::definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR
                     .clone(),
-            version: declare_transaction.version.into(),
+            version: declare_transaction.version().into(),
             max_fee: declare_transaction.max_fee,
             signature: declare_transaction.signature.iter().map(|felt| felt.into()).collect(),
             nonce: declare_transaction.nonce.into(),
@@ -161,16 +161,35 @@ mod tests {
     use starknet_api::block::BlockNumber;
     use starknet_in_rust::transaction::error::TransactionError;
     use starknet_rs_core::types::TransactionStatus;
-    use starknet_types::{contract_address::ContractAddress, felt::Felt, traits::HashProducer};
+    use starknet_types::{contract_address::ContractAddress, felt::Felt, traits::HashProducer, contract_class::ContractClass};
 
     use crate::{
         account::Account,
         constants::{self},
         traits::{Accounted, HashIdentifiedMut, StateChanger},
-        transactions::declare_transaction::DeclareTransactionV1,
+        transactions::{declare_transaction::DeclareTransactionV1, declare_transaction_v2::DeclareTransactionV2},
         utils::{load_cairo_0_contract_class, test_utils::{dummy_felt}},
         Starknet,
     };
+
+    fn test_declare_transaction_v2(sender_address: ContractAddress) -> DeclareTransactionV2 {
+        let contract_json_path =
+            concat!(env!("CARGO_MANIFEST_DIR"), "/test_artifacts/declare/declare_cairo_1_test.json");
+        let json_str = std::fs::read_to_string(contract_json_path).unwrap();
+        let contract_class = ContractClass::cairo_1_from_sierra_json_str(&json_str).unwrap();
+        
+
+        DeclareTransactionV2 {
+            sierra_contract_class: contract_class,
+            compiled_class_hash: dummy_felt(),
+            sender_address,
+            max_fee: 10000,
+            signature: Vec::new(),
+            nonce: Felt::from(0),
+            class_hash: None,
+            transaction_hash: None,
+        }
+    }
 
     fn test_declare_transaction_v1(sender_address: ContractAddress) -> DeclareTransactionV1 {
         let contract_json_path =
@@ -189,7 +208,22 @@ mod tests {
     }
 
     #[test]
-    fn add_declare_transaction_should_return_rejected_txn_and_not_be_part_of_pending_state() {
+    fn add_declare_v2_transaction_is_successful() {
+        let (mut starknet, sender) = setup(None);
+        let declare_txn = test_declare_transaction_v2(sender);
+        let (tx_hash, class_hash) =
+            starknet.add_declare_transaction_v2(declare_txn.clone()).unwrap();
+
+        let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
+
+        // check if generated class hash is expected one
+        assert_eq!(class_hash, declare_txn.sierra_contract_class.generate_hash().unwrap());
+        // check if txn is with status accepted
+        assert_eq!(tx.status, TransactionStatus::AcceptedOnL2);
+    }
+
+    #[test]
+    fn add_declare_v1_transaction_should_return_rejected_txn_and_not_be_part_of_pending_state() {
         let (mut starknet, sender) = setup(Some(1));
         let initial_cached_state = starknet.state.pending_state.contract_classes().as_ref().unwrap().len();
         let declare_txn = test_declare_transaction_v1(sender);
@@ -201,7 +235,7 @@ mod tests {
     }
 
     #[test]
-    fn add_declare_transaction_with_zero_max_fee_should_be_errored() {
+    fn add_declare_v1_transaction_with_zero_max_fee_should_be_errored() {
         let (mut starknet, sender) = setup(None);
         let mut declare_txn = test_declare_transaction_v1(sender);
         declare_txn.max_fee = 0;
@@ -216,7 +250,7 @@ mod tests {
     }
 
     #[test]
-    fn add_declare_transaction_successful_execution() {
+    fn add_declare_v1_transaction_successful_execution() {
         let (mut starknet, sender) = setup(None);
 
         let declare_txn = test_declare_transaction_v1(sender);

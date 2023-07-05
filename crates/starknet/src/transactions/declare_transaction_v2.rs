@@ -20,11 +20,16 @@ pub struct DeclareTransactionV2 {
     pub compiled_class_hash: ClassHash,
     pub sender_address: ContractAddress,
     pub max_fee: u128,
-    pub version: Felt,
     pub signature: Vec<Felt>,
     pub nonce: Felt,
     pub class_hash: Option<ClassHash>,
     pub transaction_hash: Option<TransactionHash>,
+}
+
+impl DeclareTransactionV2 {
+    pub(crate) fn version(&self) -> Felt {
+        Felt::from(2)
+    }
 }
 
 impl HashProducer for DeclareTransactionV2 {
@@ -36,7 +41,7 @@ impl HashProducer for DeclareTransactionV2 {
 
         let transaction_hash: Felt = calculate_transaction_hash_common(
             TransactionHashPrefix::Declare,
-            self.version.into(),
+            self.version().into(),
             &self.sender_address.try_into()?,
             Felt::from(0).into(),
             &calldata,

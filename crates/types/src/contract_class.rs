@@ -43,6 +43,12 @@ impl ContractClass {
             }))
         }
     }
+
+    pub fn cairo_1_from_sierra_json_str(json_str: &str) -> DevnetResult<Self> {
+        let sierra_contract_class: SierraContractClass = serde_json::from_str(json_str).map_err(JsonError::SerdeJsonError)?;
+
+        Ok(ContractClass::Cairo1(sierra_contract_class))
+    }
 }
 
 impl From<StarknetInRustContractClass> for ContractClass {
