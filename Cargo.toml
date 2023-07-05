@@ -2,12 +2,12 @@
 
 resolver = "2"
 members = [
+	"crates/server",
+	"crates/starknet-server",
 	"crates/types",
 	"crates/random-number-generator",
 	"crates/starknet",
 	"crates/cli",
-	"crates/server",
-	"crates/starknet-server",
 ]
 
 [profile.release]
