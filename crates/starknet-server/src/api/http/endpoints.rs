@@ -66,7 +66,7 @@ pub(crate) async fn abort_blocks(
 }
 
 /// Restart
-pub(crate) async fn retart() -> HttpApiResult<()> {
+pub(crate) async fn restart() -> HttpApiResult<()> {
     Err(HttpApiError::GeneralError)
 }
 

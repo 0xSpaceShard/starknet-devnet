@@ -38,7 +38,7 @@ pub fn serve_http_api_json_rpc(addr: SocketAddr, config: ServerConfig) -> Starkn
         )
         .http_api_route("/create_block", post(http::create_block))
         .http_api_route("/abort_blocks", post(http::abort_blocks))
-        .http_api_route("/restart", post(http::retart))
+        .http_api_route("/restart", post(http::restart))
         .http_api_route("/set_time", post(http::set_time))
         .http_api_route("/increase_time", post(http::increase_time))
         .http_api_route("/predeployed_accounts", get(http::predeployed_accounts))
