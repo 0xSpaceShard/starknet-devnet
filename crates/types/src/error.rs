@@ -20,6 +20,8 @@ pub enum Error {
     StarknetInRustContractAddressError(
         #[from] starknet_in_rust::core::errors::contract_address_errors::ContractAddressError,
     ),
+    #[error(transparent)]
+    StarknetInRustTransactionError(#[from] starknet_in_rust::transaction::error::TransactionError),
 }
 
 #[derive(Error, Debug)]

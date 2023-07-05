@@ -51,6 +51,7 @@ pub(crate) mod test_utils {
     use starknet_types::patricia_key::StorageKey;
 
     use crate::constants;
+    use crate::transactions::declare_transaction::DeclareTransactionV1;
 
     pub(crate) const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str =
         "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f";
@@ -74,6 +75,16 @@ pub(crate) mod test_utils {
 
     pub(crate) fn dummy_contract_address() -> ContractAddress {
         ContractAddress::new(Felt::from_prefixed_hex_str("0xADD4E55").unwrap()).unwrap()
+    }
+
+    pub(crate) fn dummy_declare_transaction_v1() -> DeclareTransactionV1 {
+        DeclareTransactionV1::new(
+            dummy_contract_address(),
+            100,
+            vec![],
+            dummy_felt(),
+            dummy_contract_class(),
+        )
     }
 
     pub(crate) fn get_bytes_from_u32(num: u32) -> [u8; 32] {

@@ -17,6 +17,7 @@ starknet-rs-ff = { workspace = true }
 starknet-rs-core = { workspace = true }
 starknet-types = { workspace = true }
 random-number-generator = { workspace = true }
+tracing = { workspace = true }
 
 [dev-dependencies]
 jsonschema = "0.16.0"
