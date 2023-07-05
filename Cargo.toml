@@ -40,3 +40,14 @@ serde_json = { version = "1.0.81" }
 # tracing
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+# rpc
+rpc-core = { git = "https://github.com/foundry-rs/foundry.git", package = "anvil-rpc" }
+
+# async
+tokio = { version = "1", features = ["time", "macros", "rt-multi-thread"] }
+futures = "0.3"
+async-trait = "0.1"
+
+# misc
+anyhow = "1"
