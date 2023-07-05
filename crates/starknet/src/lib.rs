@@ -141,11 +141,11 @@ impl Starknet {
 
     fn get_block_context(config: &StarknetConfig, fee_token_address: &str) -> DevnetResult<BlockContext> {
         let starknet_os_config = StarknetOsConfig::new(
-            CHAIN_ID,
+            config.chain_id,
             starknet_in_rust::utils::Address(
                 Felt::from_prefixed_hex_str(fee_token_address)?.into(),
             ),
-            config. as u128,
+            config.gas_price as u128,
         );
 
         let mut block_info = BlockInfo::empty(TEST_SEQUENCER_ADDRESS.clone());
