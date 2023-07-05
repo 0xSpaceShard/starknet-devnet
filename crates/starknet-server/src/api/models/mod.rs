@@ -4,12 +4,10 @@ pub(crate) mod contract_class;
 pub(crate) mod state;
 pub(crate) mod transaction;
 
-use std::fmt::Display;
-
 use serde::{Deserialize, Serialize};
 use starknet_types::{
     contract_address::ContractAddress, felt::Felt, patricia_key::PatriciaKey,
-    starknet_api::block::BlockNumber, traits::ToHexString,
+    starknet_api::block::BlockNumber,
 };
 
 use super::serde_helpers::hex_string::{
