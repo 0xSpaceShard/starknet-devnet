@@ -31,14 +31,14 @@ struct Args {
 
     // Host address.
     #[arg(long = "host")]
-    #[arg(value_name = "HOST")]
+    #[arg(value_name = "DEVNET_HOST")]
     #[arg(default_value = "127.0.0.1")]
     #[arg(help = "Specify the address to listen at;")]
     host: String,
 
     // Port number.
     #[arg(long = "port")]
-    #[arg(value_name = "PORT")]
+    #[arg(value_name = "DEVNET_PORT")]
     #[arg(default_value = "5050")]
     #[arg(help = "Specify the port to listen at;")]
     port: u16,
@@ -87,7 +87,8 @@ impl Args {
     }
 }
 
-fn main() -> anyhow::Result<()> {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     let starknet_config = args.to_starknet_config();
 
@@ -107,5 +108,6 @@ fn main() -> anyhow::Result<()> {
         println!("{}", formatted_str);
     }
 
+    starknet_server::start_server(starknet_config.host, starknet_config.port).await;
     Ok(())
 }

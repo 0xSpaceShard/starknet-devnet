@@ -73,11 +73,12 @@ impl Starknet {
 #[cfg(test)]
 mod tests {
     use starknet_types::{felt::Felt, DevnetResult};
+    use starknet_in_rust::definitions::block_context::StarknetChainId;
 
     use crate::{traits::Accounted, Starknet, StarknetConfig};
 
     fn starknet_config_for_test() -> StarknetConfig {
-        StarknetConfig { seed: 123, total_accounts: 3, predeployed_accounts_initial_balance: 100 }
+        StarknetConfig { seed: 123, total_accounts: 3, predeployed_accounts_initial_balance: 100, chain_id: StarknetChainId::MainNet, gas_price: 0, host: String::from("127.0.0.1"), port: 5050, timeout: 0 }
     }
 
     #[test]

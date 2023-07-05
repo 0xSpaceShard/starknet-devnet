@@ -1,6 +1,5 @@
 use std::{
-    env,
-    net::{IpAddr, Ipv4Addr, SocketAddr},
+    net::{IpAddr, Ipv4Addr, SocketAddr}, str::FromStr,
 };
 
 use ::server::ServerConfig;
@@ -22,17 +21,9 @@ fn configure_tracing() {
         .init();
 }
 
-#[tokio::main]
-async fn main() -> Result<(), anyhow::Error> {
+pub async fn start_server(address: String, port: u16) -> Result<(), anyhow::Error> {
     configure_tracing();
-
-    let port = env::var("DEVNET_PORT")
-        .expect("DEVNET_PORT must be set")
-        .parse::<u16>()
-        .expect("DEVNET_PORT must be a valid port number");
-
-    let host = IpAddr::V4(Ipv4Addr::LOCALHOST);
-
+    let host = IpAddr::from_str(address.as_str()).unwrap();
     let mut addr = SocketAddr::new(host, port);
     let server = server::serve_http_api_json_rpc(addr, ServerConfig::default());
     addr = server.local_addr();

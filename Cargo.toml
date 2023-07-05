@@ -58,3 +58,4 @@ cairo-felt = { version = "0.5.2", package = "cairo-felt" }
 starknet-types = { path = "crates/types", package = "types" }
 starknet-core = { path = "crates/starknet", package = "starknet" }
 random-number-generator = { path = "crates/random-number-generator", package = "random-number-generator" }
+starknet-server = { path = "crates/starknet-server", package = "starknet-server" }

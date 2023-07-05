@@ -16,3 +16,6 @@ starknet-types = { workspace = true }
 random-number-generator = { workspace = true }
 anyhow = { version = "1.0" }
 starknet-in-rust = { workspace = true }
+starknet-server = { workspace = true }
+tokio = { workspace = true }
+futures = { workspace = true }
