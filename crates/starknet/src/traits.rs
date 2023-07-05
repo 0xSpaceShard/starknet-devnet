@@ -10,7 +10,14 @@ pub trait HashIdentified {
     type Element;
     type Hash;
 
-    fn get_by_hash(&self, hash: Self::Hash) -> Self::Element;
+    fn get_by_hash(&self, hash: Self::Hash) -> Option<&Self::Element>;
+}
+
+pub trait HashIdentifiedMut {
+    type Element;
+    type Hash;
+
+    fn get_by_hash_mut(&mut self, hash: &Self::Hash) -> Option<&mut Self::Element>;
 }
 
 /// This trait sets the interface for the account
@@ -36,6 +43,8 @@ pub trait StateChanger {
     fn change_storage(&mut self, storage_key: ContractStorageKey, data: Felt) -> DevnetResult<()>;
     fn increment_nonce(&mut self, address: ContractAddress) -> DevnetResult<()>;
     fn is_contract_declared(&mut self, class_hash: &ClassHash) -> DevnetResult<bool>;
+    // get differences from pending state and apply them to "persistent" state
+    fn apply_cached_state(&mut self) -> DevnetResult<()>;
 }
 
 /// Interface for extracting data from the state

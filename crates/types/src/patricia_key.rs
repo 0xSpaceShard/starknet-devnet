@@ -29,6 +29,15 @@ impl From<starknet_api::core::PatriciaKey> for PatriciaKey {
     }
 }
 
+impl TryFrom<PatriciaKey> for starknet_api::core::PatriciaKey {
+    type Error = Error;
+
+    fn try_from(value: PatriciaKey) -> Result<Self, Self::Error> {
+        let stark_hash: starknet_api::hash::StarkFelt = value.0.into();
+        starknet_api::core::PatriciaKey::try_from(stark_hash).map_err(Error::StarknetApiError)
+    }
+}
+
 impl TryFrom<Felt> for PatriciaKey {
     type Error = Error;
 
