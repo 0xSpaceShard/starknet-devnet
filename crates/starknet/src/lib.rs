@@ -6,7 +6,7 @@ use predeployed_accounts::PredeployedAccounts;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
 use starknet_in_rust::{
     definitions::{
-        block_context::{BlockContext, StarknetOsConfig},
+        block_context::{BlockContext, StarknetOsConfig, StarknetChainId},
         constants::{
             DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS, DEFAULT_CONTRACT_STORAGE_COMMITMENT_TREE_HEIGHT,
             DEFAULT_GLOBAL_STATE_COMMITMENT_TREE_HEIGHT, DEFAULT_INVOKE_TX_MAX_N_STEPS,
@@ -40,6 +40,11 @@ pub struct StarknetConfig {
     pub seed: u32,
     pub total_accounts: u8,
     pub predeployed_accounts_initial_balance: u128,
+    pub host: String,
+    pub port: u16,
+    pub timeout: u16,
+    pub gas_price: u64,
+    pub chain_id: StarknetChainId,
 }
 
 #[derive(Default)]
@@ -134,13 +139,13 @@ impl Starknet {
         Ok(())
     }
 
-    fn get_block_context(gas_price: u64, fee_token_address: &str) -> DevnetResult<BlockContext> {
+    fn get_block_context(config: &StarknetConfig, fee_token_address: &str) -> DevnetResult<BlockContext> {
         let starknet_os_config = StarknetOsConfig::new(
             CHAIN_ID,
             starknet_in_rust::utils::Address(
                 Felt::from_prefixed_hex_str(fee_token_address)?.into(),
             ),
-            gas_price as u128,
+            config. as u128,
         );
 
         let mut block_info = BlockInfo::empty(TEST_SEQUENCER_ADDRESS.clone());
