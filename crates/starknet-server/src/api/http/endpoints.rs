@@ -12,8 +12,8 @@ use super::{
 
 use axum::{extract::Query, Extension, Json};
 
-pub(crate) async fn is_alive() -> HttpApiResult<()> {
-    Ok(())
+pub(crate) async fn is_alive() -> HttpApiResult<String> {
+    Ok("Alive!!!".to_string())
 }
 
 /// Dumping and loading
