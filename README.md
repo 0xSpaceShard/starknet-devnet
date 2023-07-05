@@ -33,3 +33,7 @@ Run the formatter with:
 ```
 ./scripts/format.sh
 ```
+
+## Things to note
+
+1. Devnet supports only Testnet chain id.

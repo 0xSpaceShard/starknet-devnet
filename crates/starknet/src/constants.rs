@@ -1,3 +1,5 @@
+use starknet_in_rust::definitions::block_context::StarknetChainId;
+
 pub(crate) const CAIRO_0_ACCOUNT_CONTRACT_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/accounts_artifacts/OpenZeppelin/0.5.1/Account.cairo/Account.json"
@@ -20,3 +22,5 @@ pub(crate) const UDC_CONTRACT_CLASS_HASH: &str =
 
 pub(crate) const UDC_CONTRACT_ADDRESS: &str =
     "0x41A78E741E5AF2FEC34B695679BC6891742439F7AFB8484ECD7766661AD02BF";
+
+pub(crate) const CHAIN_ID: StarknetChainId = StarknetChainId::TestNet;

@@ -35,6 +35,10 @@ impl Felt {
     pub fn bytes(&self) -> [u8; 32] {
         self.0
     }
+
+    pub fn is_zero(&self) -> bool {
+        self.0.iter().all(|&x| x == 0)
+    }
 }
 
 impl ToHexString for Felt {
@@ -150,6 +154,20 @@ impl TryFrom<Felt> for starknet_api::core::PatriciaKey {
     }
 }
 
+impl From<Felt> for starknet_api::block::BlockHash {
+    fn from(value: Felt) -> Self {
+        Self(value.into())
+    }
+}
+
+impl From<starknet_api::block::BlockHash> for Felt {
+    fn from(value: starknet_api::block::BlockHash) -> Self {
+        value.0.into()
+    }
+}
+
+pub type BlockHash = Felt;
+pub type TransactionHash = Felt;
 pub type ClassHash = Felt;
 pub type Key = Felt;
 pub type Balance = Felt;
