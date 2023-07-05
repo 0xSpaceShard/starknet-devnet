@@ -216,7 +216,7 @@ mod tests {
 
         starknet.state.synchronize_states();
         starknet.block_context =
-            Starknet::get_block_context(1, constants::ERC20_CONTRACT_ADDRESS).unwrap();
+            Starknet::get_block_context(1, constants::ERC20_CONTRACT_ADDRESS, starknet_in_rust::definitions::block_context::StarknetChainId::TestNet).unwrap();
 
         starknet.restart_pending_block().unwrap();
 
