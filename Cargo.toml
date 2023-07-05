@@ -6,6 +6,8 @@ members = [
 	"crates/random-number-generator",
 	"crates/starknet",
 	"crates/cli",
+	"crates/server",
+	"crates/starknet-server",
 ]
 
 [profile.release]
@@ -36,6 +38,12 @@ random-number-generator = { path = "crates/random-number-generator", package = "
 thiserror = { version = "1.0.32" }
 serde = { version = "1.0.130", features = ["derive"] }
 serde_json = { version = "1.0.81" }
+
+# axum
+axum = { version = "0.5" }
+hyper = "0.14"
+tower-http = { version = "0.4", features = ["trace", "cors"] }
+tower = { version = "0.4", features = ["full"] }
 
 # tracing
 tracing = "0.1"
