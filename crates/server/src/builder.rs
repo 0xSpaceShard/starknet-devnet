@@ -101,11 +101,9 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
         let svc = if self.config.is_none() {
             svc
         } else {
-            let ServerConfig { allow_origin, no_cors } = self.config.unwrap();
+            let ServerConfig { allow_origin, use_cors } = self.config.unwrap();
 
-            if no_cors {
-                svc
-            } else {
+            if use_cors {
                 svc.layer(
                     // see https://docs.rs/tower-http/latest/tower_http/cors/index.html
                     // for more details
@@ -114,6 +112,8 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
                         .allow_headers(vec![header::CONTENT_TYPE])
                         .allow_methods(vec![Method::GET, Method::POST]),
                 )
+            } else {
+                svc
             }
         };
 
