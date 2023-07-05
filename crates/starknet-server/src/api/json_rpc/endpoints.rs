@@ -114,8 +114,7 @@ impl JsonRpcHandler {
     }
 
     pub(crate) fn chain_id(&self) -> RpcResult<String> {
-        // DEVNET
-        Ok("0x4445564e4554".to_string())
+        Ok("TESTNET".to_string())
     }
 
     pub(crate) async fn pending_transactions(&self) -> RpcResult<Vec<Transaction>> {
