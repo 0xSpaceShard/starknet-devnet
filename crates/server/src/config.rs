@@ -29,10 +29,7 @@ impl ServerConfig {
 
 impl Default for ServerConfig {
     fn default() -> Self {
-        Self {
-            allow_origin: "*".parse::<HeaderValue>().unwrap().into(),
-            no_cors: false,
-        }
+        Self { allow_origin: "*".parse::<HeaderValue>().unwrap().into(), no_cors: false }
     }
 }
 

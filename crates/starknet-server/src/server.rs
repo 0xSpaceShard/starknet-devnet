@@ -23,15 +23,9 @@ pub fn serve_http_api_json_rpc(addr: SocketAddr, config: ServerConfig) -> Starkn
         .http_api_route("/is_alive", get(http::is_alive))
         .http_api_route("/dump", post(http::dump))
         .http_api_route("/load", post(http::load))
-        .http_api_route(
-            "/postman/load_l1_messaging_contract",
-            post(http::postman_load),
-        )
+        .http_api_route("/postman/load_l1_messaging_contract", post(http::postman_load))
         .http_api_route("/postman/flush", post(http::postman_flush))
-        .http_api_route(
-            "/postman/send_message_to_l2",
-            post(http::postman_send_message_to_l2),
-        )
+        .http_api_route("/postman/send_message_to_l2", post(http::postman_send_message_to_l2))
         .http_api_route(
             "/postman/consume_message_from_l2",
             post(http::postman_consume_message_from_l2),

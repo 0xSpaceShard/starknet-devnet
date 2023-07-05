@@ -121,62 +121,41 @@ impl JsonRpcHandler {
         trace!(target: "JsonRpcHandler::execute", "executing starknet request");
 
         match request {
-            StarknetRequest::BlockWithTransactionHashes(block) => self
-                .get_block_with_tx_hashes(block.block_id)
-                .await
-                .to_rpc_result(),
-            StarknetRequest::BlockWithFullTransactions(block) => self
-                .get_block_with_full_txs(block.block_id)
-                .await
-                .to_rpc_result(),
+            StarknetRequest::BlockWithTransactionHashes(block) => {
+                self.get_block_with_tx_hashes(block.block_id).await.to_rpc_result()
+            }
+            StarknetRequest::BlockWithFullTransactions(block) => {
+                self.get_block_with_full_txs(block.block_id).await.to_rpc_result()
+            }
             StarknetRequest::StateUpdate(block) => {
                 self.get_state_update(block.block_id).await.to_rpc_result()
             }
-            StarknetRequest::StorageAt(GetStorageInput {
-                contract_address,
-                key,
-                block_id,
-            }) => self
-                .get_storage_at(contract_address, key, block_id)
-                .await
-                .to_rpc_result(),
-            StarknetRequest::TransactionByHash(TransactionHashInput { transaction_hash }) => self
-                .get_transaction_by_hash(transaction_hash)
-                .await
-                .to_rpc_result(),
+            StarknetRequest::StorageAt(GetStorageInput { contract_address, key, block_id }) => {
+                self.get_storage_at(contract_address, key, block_id).await.to_rpc_result()
+            }
+            StarknetRequest::TransactionByHash(TransactionHashInput { transaction_hash }) => {
+                self.get_transaction_by_hash(transaction_hash).await.to_rpc_result()
+            }
             StarknetRequest::TransactionByBlockAndIndex(BlockAndIndexInput { block_id, index }) => {
-                self.get_transaction_by_block_id_and_index(block_id, index)
-                    .await
-                    .to_rpc_result()
+                self.get_transaction_by_block_id_and_index(block_id, index).await.to_rpc_result()
             }
             StarknetRequest::TransactionReceiptByTransactionHash(TransactionHashInput {
                 transaction_hash,
-            }) => self
-                .get_transaction_receipt_by_hash(transaction_hash)
-                .await
-                .to_rpc_result(),
-            StarknetRequest::ClassByHash(BlockAndClassHashInput {
-                block_id,
-                class_hash,
-            }) => self.get_class(block_id, class_hash).await.to_rpc_result(),
+            }) => self.get_transaction_receipt_by_hash(transaction_hash).await.to_rpc_result(),
+            StarknetRequest::ClassByHash(BlockAndClassHashInput { block_id, class_hash }) => {
+                self.get_class(block_id, class_hash).await.to_rpc_result()
+            }
             StarknetRequest::ClassHashAtContractAddress(BlockAndContractAddressInput {
                 block_id,
                 contract_address,
-            }) => self
-                .get_class_hash_at(block_id, contract_address)
-                .await
-                .to_rpc_result(),
+            }) => self.get_class_hash_at(block_id, contract_address).await.to_rpc_result(),
             StarknetRequest::ClassAtContractAddress(BlockAndContractAddressInput {
                 block_id,
                 contract_address,
-            }) => self
-                .get_class_at(block_id, contract_address)
-                .await
-                .to_rpc_result(),
-            StarknetRequest::BlockTransactionCount(block) => self
-                .get_block_txs_count(block.block_id)
-                .await
-                .to_rpc_result(),
+            }) => self.get_class_at(block_id, contract_address).await.to_rpc_result(),
+            StarknetRequest::BlockTransactionCount(block) => {
+                self.get_block_txs_count(block.block_id).await.to_rpc_result()
+            }
             StarknetRequest::Call(CallInput { request, block_id }) => {
                 self.call(block_id, request).await.to_rpc_result()
             }
@@ -198,10 +177,7 @@ impl JsonRpcHandler {
             StarknetRequest::ContractNonce(BlockAndContractAddressInput {
                 block_id,
                 contract_address,
-            }) => self
-                .get_nonce(block_id, contract_address)
-                .await
-                .to_rpc_result(),
+            }) => self.get_nonce(block_id, contract_address).await.to_rpc_result(),
         }
     }
 }

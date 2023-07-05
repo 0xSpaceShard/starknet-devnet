@@ -59,26 +59,18 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
             + 'static,
         THttpMethodService::Future: Send + 'static,
     {
-        Self {
-            routes: self.routes.route(path, http_service),
-            ..self
-        }
+        Self { routes: self.routes.route(path, http_service), ..self }
     }
 
     /// Adds the object that will be available on every HTTP request
     pub fn set_http_api_handler(self, handler: THttpApiHandler) -> Self {
-        Self {
-            http_api_handler: Some(handler),
-            ..self
-        }
+        Self { http_api_handler: Some(handler), ..self }
     }
 
     /// Sets the path to the JSON-RPC endpoint and adds the object that will be available on every request
     pub fn json_rpc_route(self, path: &str, handler: TJsonRpcHandler) -> Self {
         Self {
-            routes: self
-                .routes
-                .route(path, post(rpc_handler::handle::<TJsonRpcHandler>)),
+            routes: self.routes.route(path, post(rpc_handler::handle::<TJsonRpcHandler>)),
             json_rpc_handler: Some(handler),
             ..self
         }
@@ -86,10 +78,7 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
 
     /// Sets additional configuration for the [`StarknetDevnetServer`]
     pub fn set_config(self, config: ServerConfig) -> Self {
-        Self {
-            config: Some(config),
-            ..self
-        }
+        Self { config: Some(config), ..self }
     }
 
     /// Creates the http server - [`StarknetDevnetServer`] from all the configured routes, provided [`ServerConfig`]
@@ -112,10 +101,7 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
         let svc = if self.config.is_none() {
             svc
         } else {
-            let ServerConfig {
-                allow_origin,
-                no_cors,
-            } = self.config.unwrap();
+            let ServerConfig { allow_origin, no_cors } = self.config.unwrap();
 
             if no_cors {
                 svc
