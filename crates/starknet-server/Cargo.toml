@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 
 # devnet
+random-number-generator = { workspace = true }
 server = { path = "../server" }
 starknet-core = { workspace = true }
 starknet-types = { workspace = true }
