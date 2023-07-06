@@ -3,7 +3,7 @@ use crate::api::models::transaction::TransactionHashHex;
 use super::{
     error::HttpApiError,
     models::{
-        AbortedBlocks, AbortingBlocks, Balance, ContractAddress, ContractCode, CreatedBlock,
+        AbortedBlocks, AbortingBlocks, Balance, ContractAddress, CreatedBlock,
         FeeToken, ForkStatus, MessageFromL2, MessageHash, MessageToL2, MintTokens,
         MintTokensResponse, Path, PostmanLoadL1MessagingContract, PredeployedAccount, Time,
     },
@@ -81,12 +81,6 @@ pub(crate) async fn increase_time(Json(_data): Json<Time>) -> HttpApiResult<()> 
 
 /// Accounts
 pub(crate) async fn predeployed_accounts() -> HttpApiResult<Json<Vec<PredeployedAccount>>> {
-    Err(HttpApiError::GeneralError)
-}
-
-pub(crate) async fn get_contract_code(
-    Query(_contract_address): Query<ContractAddress>,
-) -> HttpApiResult<Json<ContractCode>> {
     Err(HttpApiError::GeneralError)
 }
 

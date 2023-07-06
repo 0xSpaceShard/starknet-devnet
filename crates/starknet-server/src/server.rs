@@ -36,7 +36,6 @@ pub fn serve_http_api_json_rpc(addr: SocketAddr, config: ServerConfig) -> Starkn
         .http_api_route("/set_time", post(http::set_time))
         .http_api_route("/increase_time", post(http::increase_time))
         .http_api_route("/predeployed_accounts", get(http::predeployed_accounts))
-        .http_api_route("/get_code", get(http::get_contract_code))
         .http_api_route("/account_balance", get(http::get_account_balance))
         .http_api_route("/fee_token", get(http::get_fee_token))
         .http_api_route("/mint", post(http::mint))
