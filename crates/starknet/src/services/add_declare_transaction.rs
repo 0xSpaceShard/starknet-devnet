@@ -8,7 +8,10 @@ use starknet_types::{
 
 use crate::{
     traits::StateChanger,
-    transactions::{declare_transaction::DeclareTransactionV1, StarknetTransaction, Transaction, declare_transaction_v2::DeclareTransactionV2},
+    transactions::{
+        declare_transaction::DeclareTransactionV1, declare_transaction_v2::DeclareTransactionV2,
+        StarknetTransaction, Transaction,
+    },
     Starknet,
 };
 
@@ -121,31 +124,16 @@ impl Starknet {
         }
 
         let state_before_txn = self.state.pending_state.clone();
+
         match transaction.execute(&mut self.state.pending_state, &self.block_context) {
             Ok(tx_info) => {
                 declare_transaction.class_hash = Some(class_hash);
 
-                let transaction_to_add = StarknetTransaction::create_successful(
-                    Transaction::Declare(declare_transaction.clone()),
+                self.handle_successful_transaction(
+                    &transaction_hash,
+                    Transaction::Declare(declare_transaction),
                     tx_info,
-                );
-
-                // add accepted transaction to pending block
-                self.blocks
-                    .pending_block
-                    .add_transaction(Transaction::Declare(declare_transaction));
-
-                // add transaction to transactions
-                self.transactions.insert(&transaction_hash, transaction_to_add);
-
-                // create new block from pending one
-                self.generate_new_block()?;
-                // apply state changes from cached state
-                self.state.apply_cached_state()?;
-                // make cached state part of "persistent" state
-                self.state.synchronize_states();
-                // clear pending block information
-                self.generate_pending_block()?;
+                )?;
             }
             Err(tx_err) => {
                 let transaction_to_add = StarknetTransaction::create_rejected(
@@ -154,6 +142,7 @@ impl Starknet {
                 );
 
                 self.transactions.insert(&transaction_hash, transaction_to_add);
+                // Revert to previous pending state
                 self.state.pending_state = state_before_txn;
             }
         }
@@ -167,23 +156,29 @@ mod tests {
     use starknet_api::block::BlockNumber;
     use starknet_in_rust::transaction::error::TransactionError;
     use starknet_rs_core::types::TransactionStatus;
-    use starknet_types::{contract_address::ContractAddress, felt::Felt, traits::HashProducer, contract_class::ContractClass};
+    use starknet_types::{
+        contract_address::ContractAddress, contract_class::ContractClass, felt::Felt,
+        traits::HashProducer,
+    };
 
     use crate::{
         account::Account,
         constants::{self},
         traits::{Accounted, HashIdentifiedMut, StateChanger},
-        transactions::{declare_transaction::DeclareTransactionV1, declare_transaction_v2::DeclareTransactionV2},
+        transactions::{
+            declare_transaction::DeclareTransactionV1, declare_transaction_v2::DeclareTransactionV2,
+        },
         utils::{load_cairo_0_contract_class, test_utils::dummy_felt},
         Starknet,
     };
 
     fn test_declare_transaction_v2(sender_address: ContractAddress) -> DeclareTransactionV2 {
-        let contract_json_path =
-            concat!(env!("CARGO_MANIFEST_DIR"), "/test_artifacts/declare/declare_cairo_1_test.json");
+        let contract_json_path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test_artifacts/declare/declare_cairo_1_test.json"
+        );
         let json_str = std::fs::read_to_string(contract_json_path).unwrap();
         let contract_class = ContractClass::cairo_1_from_sierra_json_str(&json_str).unwrap();
-        
 
         DeclareTransactionV2 {
             sierra_contract_class: contract_class,
@@ -198,8 +193,10 @@ mod tests {
     }
 
     fn test_declare_transaction_v1(sender_address: ContractAddress) -> DeclareTransactionV1 {
-        let contract_json_path =
-            concat!(env!("CARGO_MANIFEST_DIR"), "/test_artifacts/declare/declare_cairo_0_test.json");
+        let contract_json_path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test_artifacts/declare/declare_cairo_0_test.json"
+        );
 
         let contract_class = load_cairo_0_contract_class(contract_json_path).unwrap();
         DeclareTransactionV1 {
@@ -250,7 +247,7 @@ mod tests {
         let mut declare_txn = test_declare_transaction_v1(sender);
         declare_txn.max_fee = 0;
         let expected_error = TransactionError::FeeError(String::from(
-            "For declare transaction version 1 fee should not be 0",
+            "For declare transaction version 1, max fee cannot be 0",
         ));
 
         match starknet.add_declare_transaction_v1(declare_txn).err().unwrap() {
@@ -300,8 +297,10 @@ mod tests {
     /// Initializes starknet with 1 account - account without validations
     fn setup(acc_balance: Option<u128>) -> (Starknet, ContractAddress) {
         let mut starknet = Starknet::default();
-        let account_json_path =
-            concat!(env!("CARGO_MANIFEST_DIR"), "/test_artifacts/account_without_validations/account.json");
+        let account_json_path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test_artifacts/account_without_validations/account.json"
+        );
         let contract_class = load_cairo_0_contract_class(account_json_path).unwrap();
 
         let erc_20_contract = Starknet::create_erc20().unwrap();

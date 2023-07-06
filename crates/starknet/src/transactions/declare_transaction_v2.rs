@@ -1,8 +1,5 @@
-use starknet_in_rust::core::{
-    transaction_hash::{
-        calculate_transaction_hash_common,
-        TransactionHashPrefix,
-    },
+use starknet_in_rust::core::transaction_hash::{
+    calculate_transaction_hash_common, TransactionHashPrefix,
 };
 use starknet_types::{
     contract_address::ContractAddress,
