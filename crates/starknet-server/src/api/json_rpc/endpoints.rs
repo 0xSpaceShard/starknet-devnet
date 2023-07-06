@@ -18,18 +18,22 @@ use super::{
 
 /// here is definiton and stub implementation of all JSON-RPC endpoints
 impl JsonRpcHandler {
+    /// starknet_getBlockWithTxHashes
     pub(crate) async fn get_block_with_tx_hashes(&self, _block_id: BlockId) -> RpcResult<Block> {
         Err(error::ApiError::BlockNotFound)
     }
 
+    /// starknet_getBlockWithTxs
     pub(crate) async fn get_block_with_full_txs(&self, _block_id: BlockId) -> RpcResult<Block> {
         Err(error::ApiError::BlockNotFound)
     }
 
+    /// starknet_getStateUpdate
     pub(crate) async fn get_state_update(&self, _block_id: BlockId) -> RpcResult<ThinStateDiff> {
         Err(error::ApiError::BlockNotFound)
     }
 
+    /// starknet_getStorageAt
     pub(crate) async fn get_storage_at(
         &self,
         _contract_address: ContractAddressHex,
@@ -39,6 +43,7 @@ impl JsonRpcHandler {
         Err(error::ApiError::ContractNotFound)
     }
 
+    /// starknet_getTransactionByHash
     pub(crate) async fn get_transaction_by_hash(
         &self,
         _transaction_hash: TransactionHashHex,
@@ -46,6 +51,7 @@ impl JsonRpcHandler {
         Err(error::ApiError::TransactionNotFound)
     }
 
+    /// starknet_getTransactionByBlockIdAndIndex
     pub(crate) async fn get_transaction_by_block_id_and_index(
         &self,
         _block_id: BlockId,
@@ -54,6 +60,7 @@ impl JsonRpcHandler {
         Err(error::ApiError::InvalidTransactionIndexInBlock)
     }
 
+    /// starknet_getTransactionReceipt
     pub(crate) async fn get_transaction_receipt_by_hash(
         &self,
         _transaction_hash: TransactionHashHex,
@@ -61,6 +68,7 @@ impl JsonRpcHandler {
         Err(error::ApiError::TransactionNotFound)
     }
 
+    /// starknet_getClass
     pub(crate) async fn get_class(
         &self,
         _block_id: BlockId,
@@ -69,6 +77,7 @@ impl JsonRpcHandler {
         Err(error::ApiError::ClassHashNotFound)
     }
 
+    /// starknet_getClassHashAt
     pub(crate) async fn get_class_hash_at(
         &self,
         _block_id: BlockId,
@@ -77,6 +86,7 @@ impl JsonRpcHandler {
         Err(error::ApiError::ContractNotFound)
     }
 
+    /// starknet_getClassAt
     pub(crate) async fn get_class_at(
         &self,
         _block_id: BlockId,
@@ -85,10 +95,12 @@ impl JsonRpcHandler {
         Err(error::ApiError::ContractNotFound)
     }
 
+    /// starknet_getBlockTransactionCount
     pub(crate) async fn get_block_txs_count(&self, _block_id: BlockId) -> RpcResult<BlockNumber> {
         Err(error::ApiError::BlockNotFound)
     }
 
+    /// starknet_call
     pub(crate) async fn call(
         &self,
         _block_id: BlockId,
@@ -97,6 +109,7 @@ impl JsonRpcHandler {
         Err(error::ApiError::ContractError)
     }
 
+    /// starknet_estimateFee
     pub(crate) async fn estimate_fee(
         &self,
         _block_id: BlockId,
@@ -105,30 +118,37 @@ impl JsonRpcHandler {
         Err(error::ApiError::ContractError)
     }
 
+    /// starknet_blockNumber
     pub(crate) async fn block_number(&self) -> RpcResult<BlockNumber> {
         Err(error::ApiError::NoBlocks)
     }
-
+    
+    /// starknet_blockHashAndNumber
     pub(crate) async fn block_hash_and_number(&self) -> RpcResult<BlockHashAndNumberOutput> {
         Err(error::ApiError::NoBlocks)
     }
 
+    /// starknet_chainId
     pub(crate) fn chain_id(&self) -> RpcResult<String> {
         Ok("TESTNET".to_string())
     }
 
+    /// starknet_pendingTransactions
     pub(crate) async fn pending_transactions(&self) -> RpcResult<Vec<Transaction>> {
         Ok(vec![])
     }
 
+    /// starknet_syncing
     pub(crate) async fn syncing(&self) -> RpcResult<SyncingOutput> {
         Ok(SyncingOutput::False(false))
     }
 
+    /// starknet_getEvents
     pub(crate) async fn get_events(&self, _filter: EventFilter) -> RpcResult<EventsChunk> {
         Err(error::ApiError::InvalidContinuationToken)
     }
 
+    /// starknet_getNonce
     pub(crate) async fn get_nonce(
         &self,
         _block_id: BlockId,
