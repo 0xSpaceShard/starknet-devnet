@@ -64,10 +64,10 @@ pub(crate) struct Time {
 
 #[derive(Serialize)]
 pub(crate) struct PredeployedAccount {
-    initial_balance: u128,
-    address: String,
-    public_key: String,
-    private_key: String,
+    pub(crate) initial_balance: u128,
+    pub(crate) address: String,
+    pub(crate) public_key: String,
+    pub(crate) private_key: String,
 }
 
 #[derive(Deserialize)]
