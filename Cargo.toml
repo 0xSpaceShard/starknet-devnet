@@ -7,7 +7,6 @@ members = [
 	"crates/types",
 	"crates/random-number-generator",
 	"crates/starknet",
-	"crates/cli"
 ]
 
 default-members = ["crates/starknet-server"]
