@@ -442,9 +442,8 @@ mod tests {
         expected_tag: Tag,
         json_str_block_id: &str,
     ) {
-        let is_correct = if let Ok(BlockIdInput {
-            block_id: BlockId::Tag(generated_tag),
-        }) = serde_json::from_str::<BlockIdInput>(json_str_block_id)
+        let is_correct = if let Ok(BlockIdInput { block_id: BlockId::Tag(generated_tag) }) =
+            serde_json::from_str::<BlockIdInput>(json_str_block_id)
         {
             generated_tag == expected_tag
         } else {

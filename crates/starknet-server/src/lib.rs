@@ -12,13 +12,10 @@ mod server;
 /// Configures tracing with default level INFO,
 /// If the environment variable `RUST_LOG` is set, it will be used instead.
 fn configure_tracing() {
-    let level_filter_layer = EnvFilter::builder()
-        .with_default_directive(tracing::Level::INFO.into())
-        .from_env_lossy();
+    let level_filter_layer =
+        EnvFilter::builder().with_default_directive(tracing::Level::INFO.into()).from_env_lossy();
 
-    tracing_subscriber::fmt()
-        .with_env_filter(level_filter_layer)
-        .init();
+    tracing_subscriber::fmt().with_env_filter(level_filter_layer).init();
 }
 
 pub async fn start_server(address: String, port: u16) -> Result<(), anyhow::Error> {

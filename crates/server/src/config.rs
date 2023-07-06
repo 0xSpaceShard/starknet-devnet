@@ -7,32 +7,11 @@ use std::str::FromStr;
 pub struct ServerConfig {
     /// The cors `allow_origin` header
     pub allow_origin: HeaderValueWrapper,
-    /// Whether to enable CORS
-    pub no_cors: bool,
-}
-
-// === impl ServerConfig ===
-
-impl ServerConfig {
-    /// Sets the "allow origin" header for cors
-    pub fn with_allow_origin(mut self, allow_origin: impl Into<HeaderValueWrapper>) -> Self {
-        self.allow_origin = allow_origin.into();
-        self
-    }
-
-    /// Whether to enable CORS
-    pub fn set_cors(mut self, cors: bool) -> Self {
-        self.no_cors = cors;
-        self
-    }
 }
 
 impl Default for ServerConfig {
     fn default() -> Self {
-        Self {
-            allow_origin: "*".parse::<HeaderValue>().unwrap().into(),
-            no_cors: false,
-        }
+        Self { allow_origin: "*".parse::<HeaderValue>().unwrap().into() }
     }
 }
 

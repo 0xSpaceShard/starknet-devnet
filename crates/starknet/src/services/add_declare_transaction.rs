@@ -106,7 +106,7 @@ mod tests {
         constants::{self},
         traits::{Accounted, HashIdentifiedMut, StateChanger},
         transactions::declare_transaction::DeclareTransactionV1,
-        utils::test_utils::{dummy_felt},
+        utils::test_utils::dummy_felt,
         Starknet,
     };
 
@@ -131,13 +131,17 @@ mod tests {
     #[test]
     fn add_declare_transaction_should_return_rejected_txn_and_not_be_part_of_pending_state() {
         let (mut starknet, sender) = setup(Some(1));
-        let initial_cached_state = starknet.state.pending_state.contract_classes().as_ref().unwrap().len();
+        let initial_cached_state =
+            starknet.state.pending_state.contract_classes().as_ref().unwrap().len();
         let declare_txn = test_declare_transaction_v1(sender);
         let (txn_hash, _) = starknet.add_declare_transaction_v1(declare_txn).unwrap();
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
 
         assert_eq!(txn.status, TransactionStatus::Rejected);
-        assert_eq!(initial_cached_state, starknet.state.pending_state.contract_classes().as_ref().unwrap().len());
+        assert_eq!(
+            initial_cached_state,
+            starknet.state.pending_state.contract_classes().as_ref().unwrap().len()
+        );
     }
 
     #[test]
@@ -145,12 +149,14 @@ mod tests {
         let (mut starknet, sender) = setup(None);
         let mut declare_txn = test_declare_transaction_v1(sender);
         declare_txn.max_fee = 0;
-        let expected_error = TransactionError::FeeError(String::from("For declare transaction version 1 fee should not be 0"));
+        let expected_error = TransactionError::FeeError(String::from(
+            "For declare transaction version 1 fee should not be 0",
+        ));
 
         match starknet.add_declare_transaction_v1(declare_txn).err().unwrap() {
             starknet_types::error::Error::StarknetInRustTransactionError(generated_error) => {
                 assert_eq!(generated_error.to_string(), expected_error.to_string());
-            },
+            }
             _ => panic!("Wrong error type"),
         }
     }
@@ -194,8 +200,10 @@ mod tests {
     /// Initializes starknet with 1 account - account without validations
     fn setup(acc_balance: Option<u128>) -> (Starknet, ContractAddress) {
         let mut starknet = Starknet::default();
-        let account_json_path =
-            concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/account_without_validations/account.json");
+        let account_json_path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/accounts_artifacts/account_without_validations/account.json"
+        );
         let contract_class =
             ContractClass::from_json_str(&std::fs::read_to_string(account_json_path).unwrap())
                 .unwrap();

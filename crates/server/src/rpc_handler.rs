@@ -32,9 +32,7 @@ pub trait RpcHandler: Clone + Send + Sync + 'static {
     /// "<name>", "params": "<params>" }`
     async fn on_call(&self, call: RpcMethodCall) -> RpcResponse {
         trace!(target: "rpc",  id = ?call.id , method = ?call.method, "received method call");
-        let RpcMethodCall {
-            method, params, id, ..
-        } = call;
+        let RpcMethodCall { method, params, id, .. } = call;
 
         let params: serde_json::Value = params.into();
         let call = serde_json::json!({
@@ -95,13 +93,9 @@ pub async fn handle_request<THandler: RpcHandler>(
     match req {
         Request::Single(call) => handle_call(call, handler).await.map(Response::Single),
         Request::Batch(calls) => {
-            future::join_all(
-                calls
-                    .into_iter()
-                    .map(move |call| handle_call(call, handler.clone())),
-            )
-            .map(responses_as_batch)
-            .await
+            future::join_all(calls.into_iter().map(move |call| handle_call(call, handler.clone())))
+                .map(responses_as_batch)
+                .await
         }
     }
 }

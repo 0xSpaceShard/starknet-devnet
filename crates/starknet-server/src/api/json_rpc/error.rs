@@ -110,10 +110,7 @@ mod tests {
             server::rpc_core::response::ResponseResult::Success(_) => panic!("Expected error"),
             server::rpc_core::response::ResponseResult::Error(err) => {
                 assert_eq!(err.message, expected_message);
-                assert_eq!(
-                    err.code,
-                    server::rpc_core::error::ErrorCode::ServerError(expected_code)
-                )
+                assert_eq!(err.code, server::rpc_core::error::ErrorCode::ServerError(expected_code))
             }
         }
     }

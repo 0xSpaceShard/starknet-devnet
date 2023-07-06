@@ -4,12 +4,10 @@ pub(crate) mod contract_class;
 pub(crate) mod state;
 pub(crate) mod transaction;
 
-use std::fmt::Display;
-
 use serde::{Deserialize, Serialize};
 use starknet_types::{
     contract_address::ContractAddress, felt::Felt, patricia_key::PatriciaKey,
-    starknet_api::block::BlockNumber, traits::ToHexString,
+    starknet_api::block::BlockNumber,
 };
 
 use super::serde_helpers::hex_string::{
@@ -52,12 +50,6 @@ pub struct FeltHex(
     )]
     pub Felt,
 );
-
-impl Display for FeltHex {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.0.to_prefixed_hex_str().as_str())
-    }
-}
 
 /// Contract address serialized/deserialized from/to prefixed hex string
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]

@@ -196,10 +196,7 @@ mod tests {
 
         let obj = serde_json::from_str::<super::DeprecatedContractClass>(json_str).unwrap();
         assert_eq!(obj.abi.len(), 3);
-        assert_eq!(
-            obj.program,
-            "H4sIAAAAAAAA/8tIzcnJVyjPL8pJUQQAlQYXAAAA".to_string()
-        );
+        assert_eq!(obj.program, "H4sIAAAAAAAA/8tIzcnJVyjPL8pJUQQAlQYXAAAA".to_string());
         assert_eq!(obj.entry_points_by_type.len(), 1);
         assert_eq!(obj.entry_points_by_type.get(&starknet_types::starknet_api::deprecated_contract_class::EntryPointType::External).unwrap().len(), 2);
     }
@@ -234,10 +231,7 @@ mod tests {
                 .len(),
             2
         );
-        assert_eq!(
-            obj.abi,
-            "H4sIAAAAAAAA/8tIzcnJVyjPL8pJUQQAlQYXAAAA".to_string()
-        );
+        assert_eq!(obj.abi, "H4sIAAAAAAAA/8tIzcnJVyjPL8pJUQQAlQYXAAAA".to_string());
         assert_eq!(
             obj.entry_points_by_type
                 .get(&starknet_types::starknet_api::state::EntryPointType::External)

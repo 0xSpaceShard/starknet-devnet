@@ -200,9 +200,7 @@ pub mod hex_string {
                 felt: Felt,
             }
 
-            let felt = TestSerialzation {
-                felt: Felt::from(256),
-            };
+            let felt = TestSerialzation { felt: Felt::from(256) };
 
             assert_eq!(serde_json::to_string(&felt).unwrap(), r#"{"felt":"0x100"}"#);
         }

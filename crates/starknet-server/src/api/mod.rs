@@ -14,8 +14,6 @@ pub struct Api {
 
 impl Api {
     pub fn new() -> Self {
-        Self {
-            data: Arc::new(RwLock::new(Vec::new())),
-        }
+        Self { data: Arc::new(RwLock::new(Vec::new())) }
     }
 }
