@@ -1,13 +1,13 @@
-use std::{
-    env,
-    net::{IpAddr, Ipv4Addr, SocketAddr},
-};
+use std::env;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use ::server::ServerConfig;
 use clap::Parser;
 use cli::Args;
-use starknet_core::{account::Account, Starknet};
-use starknet_types::{felt::Felt, traits::ToHexString};
+use starknet_core::account::Account;
+use starknet_core::Starknet;
+use starknet_types::felt::Felt;
+use starknet_types::traits::ToHexString;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 

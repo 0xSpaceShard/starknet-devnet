@@ -81,7 +81,6 @@ impl AccountGenerator for PredeployedAccounts {
 mod tests {
     use jsonschema::JSONSchema;
     use serde_json::json;
-
     use starknet_types::contract_class::ContractClass;
     use starknet_types::felt::{Felt, Key};
     use starknet_types::traits::ToHexString;
@@ -89,8 +88,7 @@ mod tests {
     use crate::constants::CAIRO_0_ACCOUNT_CONTRACT_PATH;
     use crate::predeployed_accounts::PredeployedAccounts;
     use crate::traits::AccountGenerator;
-    use crate::utils::test_utils::dummy_contract_address;
-    use crate::utils::test_utils::CAIRO_0_ACCOUNT_CONTRACT_HASH;
+    use crate::utils::test_utils::{dummy_contract_address, CAIRO_0_ACCOUNT_CONTRACT_HASH};
 
     const SEED: u32 = 123;
 
