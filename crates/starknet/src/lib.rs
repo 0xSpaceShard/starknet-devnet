@@ -1,7 +1,7 @@
 use std::{collections::HashMap, time::SystemTime};
 
 use blocks::{StarknetBlock, StarknetBlocks};
-use constants::{CHAIN_ID, ERC20_CONTRACT_ADDRESS};
+use constants::{ERC20_CONTRACT_ADDRESS};
 use predeployed_accounts::PredeployedAccounts;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
 use starknet_in_rust::{

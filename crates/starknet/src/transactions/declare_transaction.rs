@@ -10,8 +10,6 @@ use starknet_types::{
     traits::HashProducer,
 };
 
-use crate::constants;
-
 #[derive(Clone, PartialEq, Eq)]
 pub struct DeclareTransactionV1 {
     pub sender_address: ContractAddress,
@@ -21,6 +19,7 @@ pub struct DeclareTransactionV1 {
     pub contract_class: ContractClass,
     pub class_hash: Option<ClassHash>,
     pub transaction_hash: Option<TransactionHash>,
+    pub chain_id: Felt,
 }
 
 impl DeclareTransactionV1 {
@@ -30,6 +29,7 @@ impl DeclareTransactionV1 {
         signature: Vec<Felt>,
         nonce: Felt,
         contract_class: ContractClass,
+        chain_id: Felt,
     ) -> Self {
         Self {
             sender_address,
@@ -39,6 +39,7 @@ impl DeclareTransactionV1 {
             contract_class,
             class_hash: None,
             transaction_hash: None,
+            chain_id,
         }
     }
 
@@ -60,7 +61,7 @@ impl HashProducer for DeclareTransactionV1 {
             VALIDATE_DECLARE_ENTRY_POINT_SELECTOR.clone(),
             &calldata,
             self.max_fee,
-            constants::CHAIN_ID.to_felt(),
+            self.chain_id.into(),
             &additional_data,
         )
         .map_err(|err| {

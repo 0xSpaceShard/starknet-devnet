@@ -44,6 +44,7 @@ pub(crate) fn get_storage_var_address(
 
 #[cfg(test)]
 pub(crate) mod test_utils {
+    use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::contract_storage_key::ContractStorageKey;
@@ -84,6 +85,7 @@ pub(crate) mod test_utils {
             vec![],
             dummy_felt(),
             dummy_contract_class(),
+            StarknetChainId::TestNet.to_felt().into(),
         )
     }
 

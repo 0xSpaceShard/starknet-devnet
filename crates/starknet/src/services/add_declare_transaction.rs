@@ -1,4 +1,5 @@
 use starknet_in_rust::transaction::Declare;
+use starknet_in_rust::definitions::block_context::StarknetChainId;
 use starknet_types::{
     error::Error,
     felt::{ClassHash, TransactionHash},
@@ -94,6 +95,7 @@ impl Starknet {
 mod tests {
     use starknet_api::block::BlockNumber;
     use starknet_in_rust::transaction::error::TransactionError;
+    use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_rs_core::types::TransactionStatus;
     use starknet_types::{
         contract_address::ContractAddress, contract_class::ContractClass, felt::Felt,
@@ -123,6 +125,7 @@ mod tests {
             contract_class,
             class_hash: None,
             transaction_hash: None,
+            chain_id: StarknetChainId::TestNet.to_felt().into(),
         }
     }
 
