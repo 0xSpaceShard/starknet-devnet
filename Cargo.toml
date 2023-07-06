@@ -7,7 +7,6 @@ members = [
 	"crates/types",
 	"crates/random-number-generator",
 	"crates/starknet",
-	"crates/cli"
 ]
 
 [profile.release]
@@ -41,6 +40,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 
 # misc
+clap = { version = "4.3.2", features = ["derive"] }
 serde = { version = "1.0.130", features = ["derive"] }
 serde_json = { version = "1.0.81" }
 thiserror = { version = "1.0.32" }
