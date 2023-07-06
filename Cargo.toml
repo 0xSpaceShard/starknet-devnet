@@ -10,6 +10,8 @@ members = [
 	"crates/cli"
 ]
 
+default-members = ["crates/starknet-server"]
+
 [profile.release]
 panic = "unwind"
 
