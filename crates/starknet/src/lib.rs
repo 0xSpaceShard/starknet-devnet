@@ -23,7 +23,7 @@ use tracing::error;
 use traits::{AccountGenerator, Accounted, HashIdentifiedMut};
 use transactions::StarknetTransactions;
 
-pub mod account; // TODO
+pub mod account;
 mod blocks;
 mod constants;
 mod predeployed_accounts;
