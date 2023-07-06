@@ -4,8 +4,7 @@ use serde::Serialize;
 use serde_json::{json, Serializer, Value};
 use starknet_api::deprecated_contract_class::{EntryPoint, EntryPointType};
 use starknet_api::hash::{pedersen_hash_array, StarkFelt};
-use starknet_in_rust::core::contract_address::compute_deprecated_class_hash;
-use starknet_in_rust::core::contract_address::v2::sierra_contract_address::compute_sierra_class_hash;
+use starknet_in_rust::core::contract_address::{compute_deprecated_class_hash, compute_sierra_class_hash};
 
 use starknet_in_rust::core::errors::contract_address_errors::ContractAddressError;
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;

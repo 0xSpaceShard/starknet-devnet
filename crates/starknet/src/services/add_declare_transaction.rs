@@ -39,6 +39,9 @@ impl Starknet {
             signature: declare_transaction.signature.iter().map(|felt| felt.into()).collect(),
             nonce: declare_transaction.nonce.into(),
             hash_value: transaction_hash.into(),
+            skip_execute: false,
+            skip_validate: false,
+            skip_fee_transfer: false,
         };
 
         transaction.verify_version()?;
@@ -102,6 +105,9 @@ impl Starknet {
             nonce: declare_transaction.nonce.into(),
             hash_value: transaction_hash.into(),
             contract_class: declare_transaction.contract_class.clone().try_into()?,
+            skip_execute: false,
+            skip_fee_transfer: false,
+            skip_validate: false,
         };
 
         transaction.verify_version()?;
@@ -183,7 +189,7 @@ mod tests {
             sierra_contract_class: contract_class,
             compiled_class_hash: dummy_felt(),
             sender_address,
-            max_fee: 10000,
+            max_fee: 100,
             signature: Vec::new(),
             nonce: Felt::from(0),
             class_hash: None,
@@ -209,7 +215,7 @@ mod tests {
 
     #[test]
     fn add_declare_v2_transaction_is_successful() {
-        let (mut starknet, sender) = setup(None);
+        let (mut starknet, sender) = setup(Some(100000000));
         let declare_txn = test_declare_transaction_v2(sender);
         let (tx_hash, class_hash) =
             starknet.add_declare_transaction_v2(declare_txn.clone()).unwrap();
@@ -218,6 +224,7 @@ mod tests {
 
         // check if generated class hash is expected one
         assert_eq!(class_hash, declare_txn.sierra_contract_class.generate_hash().unwrap());
+        println!("{:?}", tx.execution_error);
         // check if txn is with status accepted
         assert_eq!(tx.status, TransactionStatus::AcceptedOnL2);
     }
