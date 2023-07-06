@@ -1,0 +1,29 @@
+[package]
+name = "server"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+# axum
+axum = { workspace = true }
+hyper = { workspace = true }
+tower-http = { workspace = true }
+tower = { workspace = true }
+
+# rpc
+rpc-core = { workspace = true }
+
+# tracing
+tracing = { workspace = true }
+
+# async
+futures = { workspace = true }
+async-trait = { workspace = true }
+
+# misc
+serde_json = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }

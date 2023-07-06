@@ -34,6 +34,18 @@ Run the formatter with:
 ./scripts/format.sh
 ```
 
+# Starting Devnet
+When starting devnet 'DEVNET_PORT' environment variable needs to be set
+
+DEVNET_PORT=<port> cargo run
+
+By default logging level is INFO, but this can be changed via RUST_LOG environment variable.
+
+All logging levels: TRACE, DEBUG, INFO, WARN, ERROR
+
+If you want to provide Log level then command looks like:
+
+RUST_LOG=<level> DEVNET_PORT=<port> cargo run
 ## Things to note
 
 1. Devnet supports only Testnet chain id.
