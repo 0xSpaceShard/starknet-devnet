@@ -108,6 +108,6 @@ async fn main() -> anyhow::Result<()> {
         println!("{}", formatted_str);
     }
 
-    starknet_server::start_server(starknet_config.host, starknet_config.port).await;
+    starknet_server::start_server(starknet_config.host, starknet_config.port).await?;
     Ok(())
 }
