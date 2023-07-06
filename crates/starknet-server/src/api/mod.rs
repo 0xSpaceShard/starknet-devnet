@@ -3,12 +3,13 @@ pub(crate) mod json_rpc;
 pub(crate) mod models;
 pub(crate) mod serde_helpers;
 
-use starknet_core::{Starknet};
+use starknet_core::Starknet;
 
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 /// Data that can be shared between threads with read write lock access
+/// Whatever needs to be accessed as information outside of Starknet could be added to this struct
 #[derive(Clone)]
 pub struct Api {
     pub data: Arc<RwLock<Vec<u32>>>,

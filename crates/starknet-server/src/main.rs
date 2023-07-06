@@ -6,7 +6,7 @@ use std::{
 use ::server::ServerConfig;
 use clap::Parser;
 use cli::Args;
-use starknet_core::{Starknet};
+use starknet_core::Starknet;
 use starknet_types::traits::ToHexString;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
