@@ -3,13 +3,13 @@ use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
 };
 
+use ::server::ServerConfig;
 use clap::Parser;
 use cli::Args;
-use ::server::ServerConfig;
+use starknet_core::{Starknet, StarknetConfig};
+use starknet_types::traits::ToHexString;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
-use starknet_types::traits::ToHexString;
-use starknet_core::StarknetConfig;
 
 mod api;
 mod cli;
@@ -41,8 +41,9 @@ async fn main() -> Result<(), anyhow::Error> {
     let host = IpAddr::V4(Ipv4Addr::LOCALHOST);
     let mut addr = SocketAddr::new(host, port);
 
-    let starknet = starknet_core::Starknet::new(&starknet_config)?;
-    let predeployed_accounts = starknet.get_predeployed_accounts();
+    let api = api::Api::new(Starknet::new(&starknet_config)?);
+
+    let predeployed_accounts = api.starknet.read().await.get_predeployed_accounts();
     for account in predeployed_accounts {
         let formatted_str = format!(
             r"
@@ -57,7 +58,7 @@ async fn main() -> Result<(), anyhow::Error> {
         println!("{}", formatted_str);
     }
 
-    let server = server::serve_http_api_json_rpc(addr, ServerConfig::default());
+    let server = server::serve_http_api_json_rpc(addr, ServerConfig::default(), api.clone());
     addr = server.local_addr();
 
     info!("StarkNet Devnet listening on {}", addr);

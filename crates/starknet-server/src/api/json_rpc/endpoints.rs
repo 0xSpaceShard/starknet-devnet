@@ -122,7 +122,7 @@ impl JsonRpcHandler {
     pub(crate) async fn block_number(&self) -> RpcResult<BlockNumber> {
         Err(error::ApiError::NoBlocks)
     }
-    
+
     /// starknet_blockHashAndNumber
     pub(crate) async fn block_hash_and_number(&self) -> RpcResult<BlockHashAndNumberOutput> {
         Err(error::ApiError::NoBlocks)
