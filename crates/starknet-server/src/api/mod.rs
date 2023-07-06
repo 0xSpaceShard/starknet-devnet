@@ -12,12 +12,12 @@ use tokio::sync::RwLock;
 /// Whatever needs to be accessed as information outside of Starknet could be added to this struct
 #[derive(Clone)]
 pub struct Api {
-    pub data: Arc<RwLock<Vec<u32>>>,
+    // maybe the config should be added here next to the starknet instance
     pub starknet: Arc<RwLock<Starknet>>,
 }
 
 impl Api {
     pub fn new(starknet: Starknet) -> Self {
-        Self { data: Arc::new(RwLock::new(Vec::new())), starknet: Arc::new(RwLock::new(starknet)) }
+        Self { starknet: Arc::new(RwLock::new(starknet)) }
     }
 }
