@@ -211,7 +211,7 @@ mod tests {
     }
 
     #[test]
-    fn add_declare_v2_transaction_is_successful() {
+    fn add_declare_v2_transaction_successful_execution() {
         let (mut starknet, sender) = setup(Some(100000000));
         let declare_txn = test_declare_transaction_v2(sender);
         let (tx_hash, class_hash) =
