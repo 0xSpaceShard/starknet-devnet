@@ -224,7 +224,6 @@ mod tests {
 
         // check if generated class hash is expected one
         assert_eq!(class_hash, declare_txn.sierra_contract_class.generate_hash().unwrap());
-        println!("{:?}", tx.execution_error);
         // check if txn is with status accepted
         assert_eq!(tx.status, TransactionStatus::AcceptedOnL2);
     }
