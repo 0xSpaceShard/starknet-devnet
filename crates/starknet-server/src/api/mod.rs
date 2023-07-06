@@ -3,8 +3,8 @@ pub(crate) mod json_rpc;
 pub(crate) mod models;
 pub(crate) mod serde_helpers;
 
-use starknet_core::{Starknet, StarknetConfig};
-use starknet_types::DevnetResult;
+use starknet_core::{Starknet};
+
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
