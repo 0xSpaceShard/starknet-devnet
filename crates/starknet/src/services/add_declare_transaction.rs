@@ -109,7 +109,7 @@ impl Starknet {
         if transaction.max_fee == 0 {
             return Err(Error::TransactionError(
                 starknet_in_rust::transaction::error::TransactionError::FeeError(
-                    "For declare transaction version 1 fee should not be 0".to_string(),
+                    "For declare transaction version 1, max fee cannot be 0".to_string(),
                 ),
             ));
         }
