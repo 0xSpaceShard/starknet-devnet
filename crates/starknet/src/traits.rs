@@ -5,7 +5,8 @@ use starknet_types::error::Error;
 use starknet_types::felt::{Balance, ClassHash, Felt};
 use starknet_types::DevnetResult;
 
-/// This trait should be implemented by structures that internally have collections and each element could be found by a hash
+/// This trait should be implemented by structures that internally have collections and each element
+/// could be found by a hash
 pub trait HashIdentified {
     type Element;
     type Hash;

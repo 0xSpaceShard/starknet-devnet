@@ -2,10 +2,8 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use super::{
-    abi_entry::{AbiEntry, AbiEntryType},
-    FeltHex,
-};
+use super::abi_entry::{AbiEntry, AbiEntryType};
+use super::FeltHex;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
