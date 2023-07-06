@@ -1,5 +1,4 @@
 use starknet_in_rust::transaction::Declare;
-use starknet_in_rust::definitions::block_context::StarknetChainId;
 use starknet_types::{
     error::Error,
     felt::{ClassHash, TransactionHash},

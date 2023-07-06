@@ -1,5 +1,5 @@
 use std::{
-    net::{IpAddr, Ipv4Addr, SocketAddr}, str::FromStr,
+    net::{IpAddr, SocketAddr}, str::FromStr,
 };
 
 use ::server::ServerConfig;
