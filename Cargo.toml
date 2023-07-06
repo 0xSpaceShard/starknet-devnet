@@ -9,8 +9,6 @@ members = [
 	"crates/starknet",
 ]
 
-default-members = ["crates/starknet-server"]
-
 [profile.release]
 panic = "unwind"
 
