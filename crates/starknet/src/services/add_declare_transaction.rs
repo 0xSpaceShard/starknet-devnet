@@ -57,6 +57,7 @@ impl Starknet {
         }
 
         let state_before_txn = self.state.pending_state.clone();
+        
         match transaction.execute(&mut self.state.pending_state, &self.block_context) {
             Ok(tx_info) => {
                 let transaction_to_add = StarknetTransaction::create_successful(
