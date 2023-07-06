@@ -10,9 +10,9 @@ jobs:
       - image: cimg/rust:1.69.0
     steps:
       - checkout
-      - install nightly: rustup install nightly
-      - fmt check: cargo +nightly fmt --all --check
-      - clippy check: ./scripts/clippy_check.sh
+      - install-nightly: rustup install nightly
+      - fmt-check: cargo +nightly fmt --all --check
+      - clippy-check: ./scripts/clippy_check.sh
       - test: cargo test
 
 # Orchestrate jobs using workflows
