@@ -63,8 +63,8 @@ pub(crate) struct Time {
 }
 
 #[derive(Serialize)]
-pub(crate) struct PredeployedAccount {
-    pub(crate) initial_balance: u128,
+pub(crate) struct SerializableAccount {
+    pub(crate) initial_balance: String,
     pub(crate) address: String,
     pub(crate) public_key: String,
     pub(crate) private_key: String,
@@ -73,11 +73,6 @@ pub(crate) struct PredeployedAccount {
 #[derive(Deserialize)]
 pub(crate) struct ContractAddress {
     contract_address: ContractAddressHex,
-}
-
-#[derive(Serialize)]
-pub(crate) struct ContractCode {
-    program: String,
 }
 
 #[derive(Serialize)]

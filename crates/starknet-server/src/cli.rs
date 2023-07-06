@@ -19,7 +19,7 @@ pub(crate) struct Args {
     #[arg(value_name = "INITIAL_BALANCE")]
     #[arg(default_value = "1000000000000000000000")]
     #[arg(help = "Specify the initial balance of accounts to be predeployed;")]
-    initial_balance: u128,
+    initial_balance: u128, // TODO Felt
 
     // seed for predeployed accounts
     #[arg(long = "seed")]
@@ -36,7 +36,7 @@ impl Args {
                 None => random_number_generator::generate_u32_random_number(),
             },
             total_accounts: self.accounts_count,
-            predeployed_accounts_initial_balance: self.initial_balance,
+            predeployed_accounts_initial_balance: self.initial_balance.into(),
         }
     }
 }
