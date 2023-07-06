@@ -48,7 +48,15 @@ impl Starknet {
         };
 
         transaction.verify_version()?;
+        if transaction.max_fee == 0 {
+            return Err(Error::TransactionError(
+                starknet_in_rust::transaction::error::TransactionError::FeeError(
+                    "For declare transaction version 2, max fee cannot be 0".to_string(),
+                ),
+            ));
+        }
 
+        let state_before_txn = self.state.pending_state.clone();
         match transaction.execute(&mut self.state.pending_state, &self.block_context) {
             Ok(tx_info) => {
                 let transaction_to_add = StarknetTransaction::create_successful(
@@ -80,6 +88,8 @@ impl Starknet {
                 );
 
                 self.transactions.insert(&transaction_hash, transaction_to_add);
+                // Revert to previous pending state
+                self.state.pending_state = state_before_txn;
             }
         }
 
@@ -208,6 +218,39 @@ mod tests {
             class_hash: None,
             transaction_hash: None,
         }
+    }
+
+    #[test]
+    fn add_declare_v2_transaction_with_zero_max_fee_should_be_errored() {
+        let (mut starknet, sender) = setup(None);
+        let mut declare_txn = test_declare_transaction_v2(sender);
+        declare_txn.max_fee = 0;
+        let expected_error = TransactionError::FeeError(String::from(
+            "For declare transaction version 2, max fee cannot be 0",
+        ));
+
+        match starknet.add_declare_transaction_v2(declare_txn).err().unwrap() {
+            starknet_types::error::Error::TransactionError(generated_error) => {
+                assert_eq!(generated_error.to_string(), expected_error.to_string());
+            }
+            _ => panic!("Wrong error type"),
+        }
+    }
+
+    #[test]
+    fn add_declare_v2_transaction_should_return_rejected_txn_and_not_be_part_of_pending_state() {
+        let (mut starknet, sender) = setup(Some(1));
+        let initial_cached_state =
+            starknet.state.pending_state.casm_contract_classes().as_ref().unwrap().len();
+        let declare_txn = test_declare_transaction_v2(sender);
+        let (txn_hash, _) = starknet.add_declare_transaction_v2(declare_txn).unwrap();
+        let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
+
+        assert_eq!(txn.status, TransactionStatus::Rejected);
+        assert_eq!(
+            initial_cached_state,
+            starknet.state.pending_state.casm_contract_classes().as_ref().unwrap().len()
+        );
     }
 
     #[test]
