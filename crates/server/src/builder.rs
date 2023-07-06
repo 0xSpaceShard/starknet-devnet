@@ -98,7 +98,7 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
 
         svc = svc.layer(TraceLayer::new_for_http());
 
-        if let Some(ServerConfig{allow_origin}) = self.config {
+        if let Some(ServerConfig { allow_origin }) = self.config {
             svc = svc.layer(
                 // see https://docs.rs/tower-http/latest/tower_http/cors/index.html
                 // for more details
