@@ -148,7 +148,7 @@ mod tests {
         let mut declare_txn = test_declare_transaction_v1(sender);
         declare_txn.max_fee = 0;
         let expected_error = TransactionError::FeeError(String::from(
-            "For declare transaction version 1 fee should not be 0",
+            "For declare transaction version 1, max fee cannot be 0",
         ));
 
         match starknet.add_declare_transaction_v1(declare_txn).err().unwrap() {

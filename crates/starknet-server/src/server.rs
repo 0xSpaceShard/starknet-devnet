@@ -12,8 +12,11 @@ use crate::api::json_rpc::JsonRpcHandler;
 use crate::api::Api;
 
 /// Configures an [axum::Server] that handles related JSON-RPC calls and WEB API calls via HTTP
-pub fn serve_http_api_json_rpc(addr: SocketAddr, config: ServerConfig) -> StarknetDevnetServer {
-    let api = Api::new();
+pub fn serve_http_api_json_rpc(
+    addr: SocketAddr,
+    config: ServerConfig,
+    api: Api,
+) -> StarknetDevnetServer {
     let http = api::http::HttpApiHandler { api: api.clone() };
     let json_rpc = api::json_rpc::JsonRpcHandler { api };
 
