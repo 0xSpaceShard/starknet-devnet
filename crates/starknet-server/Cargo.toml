@@ -9,6 +9,7 @@ edition = "2021"
 
 # devnet
 server = { path = "../server" }
+starknet-core = { workspace = true }
 starknet-types = { workspace = true }
 
 # axum
@@ -27,6 +28,7 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 
 # misc
+clap = { workspace = true }
 serde_json = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
