@@ -10,7 +10,10 @@ jobs:
       - image: cimg/rust:1.69.0
     steps:
       - checkout
-      - run: cargo --version
+      - install nightly: rustup install nightly
+      - fmt check: cargo +nightly fmt --all --check
+      - clippy check: ./scripts/clippy_check.sh
+      - test: cargo test
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
