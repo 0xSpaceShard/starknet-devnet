@@ -16,7 +16,7 @@ use super::{
     JsonRpcHandler,
 };
 
-/// here is definiton and stub implementation of all JSON-RPC endpoints
+/// here are the definitions and stub implementations of all JSON-RPC endpoints
 impl JsonRpcHandler {
     /// starknet_getBlockWithTxHashes
     pub(crate) async fn get_block_with_tx_hashes(&self, _block_id: BlockId) -> RpcResult<Block> {
