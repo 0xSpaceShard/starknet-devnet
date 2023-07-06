@@ -98,24 +98,16 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
 
         svc = svc.layer(TraceLayer::new_for_http());
 
-        let svc = if self.config.is_none() {
-            svc
-        } else {
-            let ServerConfig { allow_origin, use_cors } = self.config.unwrap();
-
-            if use_cors {
-                svc.layer(
-                    // see https://docs.rs/tower-http/latest/tower_http/cors/index.html
-                    // for more details
-                    CorsLayer::new()
-                        .allow_origin(allow_origin.0)
-                        .allow_headers(vec![header::CONTENT_TYPE])
-                        .allow_methods(vec![Method::GET, Method::POST]),
-                )
-            } else {
-                svc
-            }
-        };
+        if let Some(ServerConfig{allow_origin}) = self.config {
+            svc = svc.layer(
+                // see https://docs.rs/tower-http/latest/tower_http/cors/index.html
+                // for more details
+                CorsLayer::new()
+                    .allow_origin(allow_origin.0)
+                    .allow_headers(vec![header::CONTENT_TYPE])
+                    .allow_methods(vec![Method::GET, Method::POST]),
+            )
+        }
 
         Server::bind(&self.address).serve(svc.into_make_service())
     }
