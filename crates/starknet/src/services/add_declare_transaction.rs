@@ -1,4 +1,4 @@
-use starknet_in_rust::transaction::{Declare, DeclareV2};
+use starknet_in_rust::transaction::{verify_version, Declare, DeclareV2};
 use starknet_types::error::Error;
 use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::traits::HashProducer;
@@ -119,7 +119,12 @@ impl Starknet {
             skip_validate: false,
         };
 
-        transaction.verify_version()?;
+        verify_version(
+            &transaction.version,
+            transaction.max_fee,
+            &transaction.nonce,
+            &transaction.signature,
+        )?;
 
         if transaction.max_fee == 0 {
             return Err(Error::TransactionError(

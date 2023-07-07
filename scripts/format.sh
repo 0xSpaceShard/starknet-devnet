@@ -1,1 +1,2 @@
-cargo fmt --all
+cargo +nightly fmt --all
+
