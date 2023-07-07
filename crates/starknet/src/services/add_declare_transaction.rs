@@ -48,7 +48,7 @@ impl Starknet {
             &transaction.nonce,
             &transaction.signature,
         )?;
-        
+
         if transaction.max_fee == 0 {
             return Err(Error::TransactionError(
                 starknet_in_rust::transaction::error::TransactionError::FeeError(
