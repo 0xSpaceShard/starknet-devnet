@@ -63,9 +63,9 @@ pub(crate) struct Time {
 #[derive(Serialize)]
 pub(crate) struct SerializableAccount {
     pub(crate) initial_balance: String,
-    pub(crate) address: String,
-    pub(crate) public_key: String,
-    pub(crate) private_key: String,
+    pub(crate) address: ContractAddressHex,
+    pub(crate) public_key: FeltHex,
+    pub(crate) private_key: FeltHex,
 }
 
 #[derive(Deserialize)]
