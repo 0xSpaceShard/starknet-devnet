@@ -5,7 +5,7 @@ use blocks::{StarknetBlock, StarknetBlocks};
 use constants::{CHAIN_ID, ERC20_CONTRACT_ADDRESS};
 use predeployed_accounts::PredeployedAccounts;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
-use starknet_in_rust::definitions::block_context::{BlockContext, StarknetOsConfig};
+use starknet_in_rust::definitions::block_context::{BlockContext, StarknetOsConfig, StarknetChainId};
 use starknet_in_rust::definitions::constants::{
     DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS, DEFAULT_CONTRACT_STORAGE_COMMITMENT_TREE_HEIGHT,
     DEFAULT_GLOBAL_STATE_COMMITMENT_TREE_HEIGHT, DEFAULT_INVOKE_TX_MAX_N_STEPS,
@@ -39,6 +39,11 @@ pub struct StarknetConfig {
     pub seed: u32,
     pub total_accounts: u8,
     pub predeployed_accounts_initial_balance: Felt,
+    pub host: String,
+    pub port: u16,
+    pub timeout: u16,
+    pub gas_price: u64,
+    pub chain_id: StarknetChainId,
 }
 
 #[derive(Default)]
@@ -199,6 +204,7 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
+    use starknet_in_rust::definitions::block_context::StarknetChainId;
 
     use crate::blocks::StarknetBlock;
     use crate::traits::Accounted;
@@ -210,6 +216,11 @@ mod tests {
             seed: 123,
             total_accounts: 3,
             predeployed_accounts_initial_balance: 100.into(),
+            host: String::from("127.0.0.1"),
+            port: 5050,
+            timeout: 120,
+            gas_price: 100000000,
+            chain_id: StarknetChainId::TestNet,
         }
     }
 
