@@ -47,12 +47,12 @@ thiserror = { version = "1.0.32" }
 anyhow = "1"
 
 # Starknet dependencies
-starknet_api = { git = "https://github.com/starkware-libs/starknet-api", rev = "a891109ecc9c269e91b1afd2d44bc597728e1172" }
-starknet-in-rust = { git = "https://github.com/lambdaclass/starknet_in_rust", rev = "2870277", package="starknet-rs" }
+starknet_api = { version = "0.1.0", features = ["testing"] }
+starknet-in-rust = { git = "https://github.com/lambdaclass/starknet_in_rust", rev = "a8650ac", package="starknet_in_rust" }
 starknet-rs-signers = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "a6cbfa3", package = "starknet-signers" }
 starknet-rs-ff = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "a6cbfa3", package = "starknet-ff" }
 starknet-rs-core = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "a6cbfa3", package = "starknet-core" }
-cairo-felt = { version = "0.5.2", package = "cairo-felt" }
+cairo-felt = { version = "0.8.1", package = "cairo-felt" }
 
 # Inner dependencies
 starknet-types = { path = "crates/types", package = "types" }
