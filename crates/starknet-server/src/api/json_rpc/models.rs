@@ -3,7 +3,8 @@ use starknet_types::starknet_api::block::BlockNumber;
 
 use crate::api::models::block::{BlockHashHex, SyncStatus};
 use crate::api::models::transaction::{
-    BroadcastedTransactionWithType, ClassHashHex, EventFilter, FunctionCall, TransactionHashHex,
+    BroadcastedDeclareTransaction, BroadcastedTransactionWithType, ClassHashHex, EventFilter,
+    FunctionCall, TransactionHashHex,
 };
 use crate::api::models::{BlockId, ContractAddressHex, PatriciaKeyHex};
 
@@ -76,6 +77,11 @@ pub enum SyncingOutput {
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct EventsInput {
     pub filter: EventFilter,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+pub struct BroadcastedDeclareTransactionInput {
+    pub declare_transaction: BroadcastedDeclareTransaction,
 }
 
 #[cfg(test)]
