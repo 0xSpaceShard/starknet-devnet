@@ -11,17 +11,18 @@ use starknet_in_rust::definitions::constants::{
     DEFAULT_GLOBAL_STATE_COMMITMENT_TREE_HEIGHT, DEFAULT_INVOKE_TX_MAX_N_STEPS,
     DEFAULT_VALIDATE_MAX_N_STEPS,
 };
+use starknet_in_rust::execution::TransactionExecutionInfo;
 use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
 use starknet_rs_core::types::TransactionStatus;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::Felt;
+use starknet_types::felt::{Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use starknet_types::DevnetResult;
 use state::StarknetState;
 use tracing::error;
-use traits::{AccountGenerator, Accounted, HashIdentifiedMut};
-use transactions::StarknetTransactions;
+use traits::{AccountGenerator, Accounted, HashIdentifiedMut, StateChanger};
+use transactions::{StarknetTransaction, StarknetTransactions, Transaction};
 
 pub mod account;
 mod blocks;
@@ -129,6 +130,33 @@ impl Starknet {
 
         // insert pending block in the blocks collection
         self.blocks.insert(new_block);
+
+        Ok(())
+    }
+
+    pub(crate) fn handle_successful_transaction(
+        &mut self,
+        transaction_hash: &TransactionHash,
+        transaction: Transaction,
+        tx_info: TransactionExecutionInfo,
+    ) -> DevnetResult<()> {
+        let transaction_to_add =
+            StarknetTransaction::create_successful(transaction.clone(), tx_info);
+
+        // add accepted transaction to pending block
+        self.blocks.pending_block.add_transaction(transaction);
+
+        // add transaction to transactions
+        self.transactions.insert(transaction_hash, transaction_to_add);
+
+        // create new block from pending one
+        self.generate_new_block()?;
+        // apply state changes from cached state
+        self.state.apply_cached_state()?;
+        // make cached state part of "persistent" state
+        self.state.synchronize_states();
+        // clear pending block information
+        self.generate_pending_block()?;
 
         Ok(())
     }
