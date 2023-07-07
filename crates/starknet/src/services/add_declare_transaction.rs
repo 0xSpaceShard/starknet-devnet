@@ -1,16 +1,13 @@
 use starknet_in_rust::transaction::Declare;
-use starknet_types::{
-    error::Error,
-    felt::{ClassHash, TransactionHash},
-    traits::HashProducer,
-    DevnetResult,
-};
+use starknet_types::error::Error;
+use starknet_types::felt::{ClassHash, TransactionHash};
+use starknet_types::traits::HashProducer;
+use starknet_types::DevnetResult;
 
-use crate::{
-    traits::StateChanger,
-    transactions::{declare_transaction::DeclareTransactionV1, StarknetTransaction, Transaction},
-    Starknet,
-};
+use crate::traits::StateChanger;
+use crate::transactions::declare_transaction::DeclareTransactionV1;
+use crate::transactions::{StarknetTransaction, Transaction};
+use crate::Starknet;
 
 impl Starknet {
     pub fn add_declare_transaction_v1(
@@ -96,19 +93,17 @@ mod tests {
     use starknet_in_rust::transaction::error::TransactionError;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_rs_core::types::TransactionStatus;
-    use starknet_types::{
-        contract_address::ContractAddress, contract_class::ContractClass, felt::Felt,
-        traits::HashProducer,
-    };
+    use starknet_types::contract_address::ContractAddress;
+    use starknet_types::contract_class::ContractClass;
+    use starknet_types::felt::Felt;
+    use starknet_types::traits::HashProducer;
 
-    use crate::{
-        account::Account,
-        constants::{self},
-        traits::{Accounted, HashIdentifiedMut, StateChanger},
-        transactions::declare_transaction::DeclareTransactionV1,
-        utils::test_utils::dummy_felt,
-        Starknet,
-    };
+    use crate::account::Account;
+    use crate::constants::{self};
+    use crate::traits::{Accounted, HashIdentifiedMut, StateChanger};
+    use crate::transactions::declare_transaction::DeclareTransactionV1;
+    use crate::utils::test_utils::dummy_felt;
+    use crate::Starknet;
 
     fn test_declare_transaction_v1(sender_address: ContractAddress) -> DeclareTransactionV1 {
         let contract_json_path =
@@ -150,7 +145,7 @@ mod tests {
         let mut declare_txn = test_declare_transaction_v1(sender);
         declare_txn.max_fee = 0;
         let expected_error = TransactionError::FeeError(String::from(
-            "For declare transaction version 1 fee should not be 0",
+            "For declare transaction version 1, max fee cannot be 0",
         ));
 
         match starknet.add_declare_transaction_v1(declare_txn).err().unwrap() {

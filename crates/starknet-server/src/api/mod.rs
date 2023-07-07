@@ -4,16 +4,20 @@ pub(crate) mod models;
 pub(crate) mod serde_helpers;
 
 use std::sync::Arc;
+
+use starknet_core::Starknet;
 use tokio::sync::RwLock;
 
-/// Example of a data that can be shared between threads with read write lock access
+/// Data that can be shared between threads with read write lock access
+/// Whatever needs to be accessed as information outside of Starknet could be added to this struct
 #[derive(Clone)]
 pub struct Api {
-    pub data: Arc<RwLock<Vec<u32>>>,
+    // maybe the config should be added here next to the starknet instance
+    pub starknet: Arc<RwLock<Starknet>>,
 }
 
 impl Api {
-    pub fn new() -> Self {
-        Self { data: Arc::new(RwLock::new(Vec::new())) }
+    pub fn new(starknet: Starknet) -> Self {
+        Self { starknet: Arc::new(RwLock::new(starknet)) }
     }
 }

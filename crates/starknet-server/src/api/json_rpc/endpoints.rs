@@ -1,20 +1,16 @@
+use starknet_types::starknet_api::block::BlockNumber;
+
+use super::error::{self};
+use super::models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
+use super::{JsonRpcHandler, RpcResult};
+use crate::api::models::block::Block;
 use crate::api::models::contract_class::ContractClass;
+use crate::api::models::state::ThinStateDiff;
 use crate::api::models::transaction::{
     BroadcastedTransactionWithType, ClassHashHex, EventFilter, EventsChunk, FunctionCall,
     Transaction, TransactionHashHex, TransactionReceipt, TransactionWithType,
 };
-use crate::api::models::{block::Block, state::ThinStateDiff, BlockId};
-use crate::api::models::{ContractAddressHex, FeltHex, PatriciaKeyHex};
-
-use starknet_types::starknet_api::block::BlockNumber;
-
-use super::models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
-use super::RpcResult;
-
-use super::{
-    error::{self},
-    JsonRpcHandler,
-};
+use crate::api::models::{BlockId, ContractAddressHex, FeltHex, PatriciaKeyHex};
 
 /// here are the definitions and stub implementations of all JSON-RPC endpoints
 impl JsonRpcHandler {
@@ -122,7 +118,7 @@ impl JsonRpcHandler {
     pub(crate) async fn block_number(&self) -> RpcResult<BlockNumber> {
         Err(error::ApiError::NoBlocks)
     }
-    
+
     /// starknet_blockHashAndNumber
     pub(crate) async fn block_hash_and_number(&self) -> RpcResult<BlockHashAndNumberOutput> {
         Err(error::ApiError::NoBlocks)

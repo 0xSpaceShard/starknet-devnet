@@ -1,14 +1,12 @@
-use starknet_in_rust::{
-    core::transaction_hash::{calculate_transaction_hash_common, TransactionHashPrefix},
-    definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR,
+use starknet_in_rust::core::transaction_hash::{
+    calculate_transaction_hash_common, TransactionHashPrefix,
 };
-use starknet_types::{
-    contract_address::ContractAddress,
-    contract_class::ContractClass,
-    error::Error,
-    felt::{ClassHash, Felt, TransactionHash},
-    traits::HashProducer,
-};
+use starknet_in_rust::definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR;
+use starknet_types::contract_address::ContractAddress;
+use starknet_types::contract_class::ContractClass;
+use starknet_types::error::Error;
+use starknet_types::felt::{ClassHash, Felt, TransactionHash};
+use starknet_types::traits::HashProducer;
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct DeclareTransactionV1 {

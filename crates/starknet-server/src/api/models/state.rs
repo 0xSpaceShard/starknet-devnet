@@ -1,10 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use super::{
-    block::{BlockHashHex, GlobalRootHex},
-    transaction::{ClassHashHex, Nonce},
-    ContractAddressHex, FeltHex, PatriciaKeyHex,
-};
+use super::block::{BlockHashHex, GlobalRootHex};
+use super::transaction::{ClassHashHex, Nonce};
+use super::{ContractAddressHex, FeltHex, PatriciaKeyHex};
 
 pub type CompiledClassHashHex = FeltHex;
 

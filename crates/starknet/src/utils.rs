@@ -103,10 +103,10 @@ pub(crate) mod test_utils {
 
 #[cfg(test)]
 mod tests {
-    use super::test_utils::{self, get_bytes_from_u32};
     use starknet_types::traits::ToHexString;
 
     use super::get_storage_var_address;
+    use super::test_utils::{self, get_bytes_from_u32};
 
     #[test]
     fn correct_bytes_from_number() {
