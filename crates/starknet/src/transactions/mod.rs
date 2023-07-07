@@ -4,15 +4,14 @@ pub(crate) mod declare_transaction_v2;
 use std::collections::HashMap;
 
 use starknet_api::block::BlockNumber;
-use starknet_in_rust::{execution::TransactionExecutionInfo, transaction::error::TransactionError};
+use starknet_in_rust::execution::TransactionExecutionInfo;
+use starknet_in_rust::transaction::error::TransactionError;
 use starknet_rs_core::types::TransactionStatus;
 use starknet_types::felt::{BlockHash, TransactionHash};
 
+use self::declare_transaction::DeclareTransactionV1;
+use self::declare_transaction_v2::DeclareTransactionV2;
 use crate::traits::HashIdentifiedMut;
-
-use self::{
-    declare_transaction::DeclareTransactionV1, declare_transaction_v2::DeclareTransactionV2,
-};
 
 #[derive(Default)]
 pub struct StarknetTransactions(HashMap<TransactionHash, StarknetTransaction>);
@@ -89,9 +88,9 @@ mod tests {
     use starknet_rs_core::types::TransactionStatus;
     use starknet_types::traits::HashProducer;
 
-    use crate::{traits::HashIdentifiedMut, utils::test_utils::dummy_declare_transaction_v1};
-
     use super::{StarknetTransaction, StarknetTransactions, Transaction};
+    use crate::traits::HashIdentifiedMut;
+    use crate::utils::test_utils::dummy_declare_transaction_v1;
 
     #[test]
     fn get_transaction_by_hash() {
