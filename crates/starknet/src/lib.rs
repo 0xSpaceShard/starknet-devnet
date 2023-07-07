@@ -23,7 +23,7 @@ use tracing::error;
 use traits::{AccountGenerator, Accounted, HashIdentifiedMut};
 use transactions::StarknetTransactions;
 
-mod account;
+pub mod account;
 mod blocks;
 mod constants;
 mod predeployed_accounts;
@@ -38,7 +38,7 @@ mod utils;
 pub struct StarknetConfig {
     pub seed: u32,
     pub total_accounts: u8,
-    pub predeployed_accounts_initial_balance: u128,
+    pub predeployed_accounts_initial_balance: Felt,
 }
 
 #[derive(Default)]
@@ -206,7 +206,11 @@ mod tests {
     use crate::{Starknet, StarknetConfig};
 
     pub(crate) fn starknet_config_for_test() -> StarknetConfig {
-        StarknetConfig { seed: 123, total_accounts: 3, predeployed_accounts_initial_balance: 100 }
+        StarknetConfig {
+            seed: 123,
+            total_accounts: 3,
+            predeployed_accounts_initial_balance: 100.into(),
+        }
     }
 
     #[test]
@@ -214,7 +218,7 @@ mod tests {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
         let predeployed_accounts = starknet.predeployed_accounts.get_accounts();
-        let expected_balance = Felt::from(config.predeployed_accounts_initial_balance);
+        let expected_balance = config.predeployed_accounts_initial_balance;
 
         for account in predeployed_accounts {
             let account_balance = account.get_balance(&mut starknet.state).unwrap();
