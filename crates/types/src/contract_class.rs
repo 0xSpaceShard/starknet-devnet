@@ -50,10 +50,10 @@ impl TryFrom<ContractClass> for StarknetInRustContractClass {
         match value.0 {
             ContractClassInner::StarknetInRust(class) => Ok(class),
             ContractClassInner::JsonString(json_value) => {
-                let sir_contract_class =
+                let starknet_in_rust_contract_class =
                     StarknetInRustContractClass::from_str(&json_value.to_string())
                         .map_err(|err| JsonError::Custom { msg: err.to_string() })?;
-                Ok(sir_contract_class)
+                Ok(starknet_in_rust_contract_class)
             }
         }
     }
