@@ -2,11 +2,12 @@
 
 resolver = "2"
 members = [
-	"crates/server",
-	"crates/starknet-server",
 	"crates/types",
 	"crates/random-number-generator",
 	"crates/starknet",
+	"crates/cli",
+	"crates/server",
+	"crates/starknet-server",
 ]
 
 [profile.release]
@@ -18,33 +19,7 @@ version = "0.1.0"
 edition = "2021"
 repository = ""
 
-
 [workspace.dependencies]
-
-# axum
-axum = { version = "0.5" }
-hyper = "0.14"
-tower-http = { version = "0.4", features = ["trace", "cors"] }
-tower = { version = "0.4", features = ["full"] }
-
-# rpc
-rpc-core = { git = "https://github.com/foundry-rs/foundry.git", package = "anvil-rpc" }
-
-# async
-tokio = { version = "1", features = ["time", "macros", "rt-multi-thread"] }
-futures = "0.3"
-async-trait = "0.1"
-
-# tracing
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
-
-# misc
-clap = { version = "4.3.2", features = ["derive"] }
-serde = { version = "1.0.130", features = ["derive"] }
-serde_json = { version = "1.0.81" }
-thiserror = { version = "1.0.32" }
-anyhow = "1"
 
 # Starknet dependencies
 starknet_api = { git = "https://github.com/starkware-libs/starknet-api", rev = "a891109ecc9c269e91b1afd2d44bc597728e1172" }
@@ -58,4 +33,30 @@ cairo-felt = { version = "0.5.2", package = "cairo-felt" }
 starknet-types = { path = "crates/types", package = "types" }
 starknet-core = { path = "crates/starknet", package = "starknet" }
 random-number-generator = { path = "crates/random-number-generator", package = "random-number-generator" }
-num-bigint = { version = "0.4" }
+starknet-server = { path = "crates/starknet-server", package = "starknet-server" }
+
+# Rust depencencies
+thiserror = { version = "1.0.32" }
+serde = { version = "1.0.130", features = ["derive"] }
+serde_json = { version = "1.0.81" }
+
+# axum
+axum = { version = "0.5" }
+hyper = "0.14"
+tower-http = { version = "0.4", features = ["full"] }
+tower = { version = "0.4", features = ["full"] }
+
+# tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+# rpc
+rpc-core = { git = "https://github.com/foundry-rs/foundry.git", package = "anvil-rpc" }
+
+# async
+tokio = { version = "1", features = ["time", "macros", "rt-multi-thread"] }
+futures = "0.3"
+async-trait = "0.1"
+
+# misc
+anyhow = "1"

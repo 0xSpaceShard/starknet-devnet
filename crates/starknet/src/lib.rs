@@ -1,29 +1,30 @@
-use std::collections::HashMap;
-use std::time::SystemTime;
+use std::{collections::HashMap, time::SystemTime};
 
 use blocks::{StarknetBlock, StarknetBlocks};
-use constants::{CHAIN_ID, ERC20_CONTRACT_ADDRESS};
+use constants::{ERC20_CONTRACT_ADDRESS};
 use predeployed_accounts::PredeployedAccounts;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
-use starknet_in_rust::definitions::block_context::{BlockContext, StarknetOsConfig};
-use starknet_in_rust::definitions::constants::{
-    DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS, DEFAULT_CONTRACT_STORAGE_COMMITMENT_TREE_HEIGHT,
-    DEFAULT_GLOBAL_STATE_COMMITMENT_TREE_HEIGHT, DEFAULT_INVOKE_TX_MAX_N_STEPS,
-    DEFAULT_VALIDATE_MAX_N_STEPS,
+use starknet_in_rust::{
+    definitions::{
+        block_context::{BlockContext, StarknetOsConfig, StarknetChainId},
+        constants::{
+            DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS, DEFAULT_CONTRACT_STORAGE_COMMITMENT_TREE_HEIGHT,
+            DEFAULT_GLOBAL_STATE_COMMITMENT_TREE_HEIGHT, DEFAULT_INVOKE_TX_MAX_N_STEPS,
+            DEFAULT_VALIDATE_MAX_N_STEPS,
+        },
+    },
+    state::BlockInfo,
+    testing::TEST_SEQUENCER_ADDRESS,
 };
-use starknet_in_rust::state::BlockInfo;
-use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
 use starknet_rs_core::types::TransactionStatus;
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::Felt;
-use starknet_types::traits::HashProducer;
-use starknet_types::DevnetResult;
+use starknet_types::{contract_address::ContractAddress, DevnetResult};
+use starknet_types::{felt::Felt, traits::HashProducer};
 use state::StarknetState;
 use tracing::error;
 use traits::{AccountGenerator, Accounted, HashIdentifiedMut};
 use transactions::StarknetTransactions;
 
-pub mod account;
+mod account;
 mod blocks;
 mod constants;
 mod predeployed_accounts;
@@ -38,7 +39,12 @@ mod utils;
 pub struct StarknetConfig {
     pub seed: u32,
     pub total_accounts: u8,
-    pub predeployed_accounts_initial_balance: Felt,
+    pub predeployed_accounts_initial_balance: u128,
+    pub host: String,
+    pub port: u16,
+    pub timeout: u16,
+    pub gas_price: u64,
+    pub chain_id: StarknetChainId,
 }
 
 #[derive(Default)]
@@ -85,7 +91,7 @@ impl Starknet {
         let mut this = Self {
             state,
             predeployed_accounts,
-            block_context: Self::get_block_context(0, ERC20_CONTRACT_ADDRESS)?,
+            block_context: Self::get_block_context(config.gas_price, ERC20_CONTRACT_ADDRESS, config.chain_id)?,
             blocks: StarknetBlocks::default(),
             transactions: StarknetTransactions::default(),
         };
@@ -133,9 +139,9 @@ impl Starknet {
         Ok(())
     }
 
-    fn get_block_context(gas_price: u64, fee_token_address: &str) -> DevnetResult<BlockContext> {
+    fn get_block_context(gas_price: u64, fee_token_address: &str, chain_id: StarknetChainId) -> DevnetResult<BlockContext> {
         let starknet_os_config = StarknetOsConfig::new(
-            CHAIN_ID,
+            chain_id,
             starknet_in_rust::utils::Address(
                 Felt::from_prefixed_hex_str(fee_token_address)?.into(),
             ),
@@ -196,21 +202,16 @@ impl Starknet {
 #[cfg(test)]
 mod tests {
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
-    use starknet_types::contract_address::ContractAddress;
-    use starknet_types::felt::Felt;
-    use starknet_types::traits::HashProducer;
+    use starknet_types::{contract_address::ContractAddress, felt::Felt, traits::HashProducer};
+    use starknet_in_rust::definitions::block_context::StarknetChainId;
 
-    use crate::blocks::StarknetBlock;
-    use crate::traits::Accounted;
-    use crate::utils::test_utils::dummy_declare_transaction_v1;
-    use crate::{Starknet, StarknetConfig};
+    use crate::{
+        blocks::StarknetBlock, traits::Accounted, utils::test_utils::dummy_declare_transaction_v1,
+        Starknet, StarknetConfig,
+    };
 
     pub(crate) fn starknet_config_for_test() -> StarknetConfig {
-        StarknetConfig {
-            seed: 123,
-            total_accounts: 3,
-            predeployed_accounts_initial_balance: 100.into(),
-        }
+        StarknetConfig { seed: 123, total_accounts: 3, predeployed_accounts_initial_balance: 100, chain_id: StarknetChainId::TestNet, gas_price: 100000000, host: String::from("127.0.0.1"), port: 5050, timeout: 120}
     }
 
     #[test]
@@ -218,7 +219,7 @@ mod tests {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
         let predeployed_accounts = starknet.predeployed_accounts.get_accounts();
-        let expected_balance = config.predeployed_accounts_initial_balance;
+        let expected_balance = Felt::from(config.predeployed_accounts_initial_balance);
 
         for account in predeployed_accounts {
             let account_balance = account.get_balance(&mut starknet.state).unwrap();
@@ -230,7 +231,7 @@ mod tests {
     fn correct_block_context_creation() {
         let fee_token_address =
             ContractAddress::new(Felt::from_prefixed_hex_str("0xAA").unwrap()).unwrap();
-        let block_ctx = Starknet::get_block_context(10, "0xAA").unwrap();
+        let block_ctx = Starknet::get_block_context(10, "0xAA", StarknetChainId::TestNet).unwrap();
         assert!(block_ctx.block_info().block_number == 0);
         assert!(block_ctx.block_info().block_timestamp == 0);
         assert_eq!(block_ctx.block_info().gas_price, 10);
@@ -327,7 +328,7 @@ mod tests {
 
     #[test]
     fn correct_block_context_update() {
-        let mut block_ctx = Starknet::get_block_context(0, "0x0").unwrap();
+        let mut block_ctx = Starknet::get_block_context(0, "0x0", StarknetChainId::TestNet).unwrap();
         let initial_block_number = block_ctx.block_info().block_number;
         Starknet::update_block_context(&mut block_ctx);
 

@@ -1,11 +1,13 @@
 use serde::{Deserialize, Serialize};
 use starknet_types::starknet_api::block::BlockNumber;
 
-use crate::api::models::block::{BlockHashHex, SyncStatus};
-use crate::api::models::transaction::{
-    BroadcastedTransactionWithType, ClassHashHex, EventFilter, FunctionCall, TransactionHashHex,
+use crate::api::models::{
+    block::{BlockHashHex, SyncStatus},
+    transaction::{
+        BroadcastedTransactionWithType, ClassHashHex, EventFilter, FunctionCall, TransactionHashHex,
+    },
+    BlockId, ContractAddressHex, PatriciaKeyHex,
 };
-use crate::api::models::{BlockId, ContractAddressHex, PatriciaKeyHex};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct BlockIdInput {
@@ -80,18 +82,20 @@ pub struct EventsInput {
 
 #[cfg(test)]
 mod tests {
-    use starknet_types::contract_address::ContractAddress;
-    use starknet_types::felt::Felt;
-    use starknet_types::patricia_key::PatriciaKey;
-    use starknet_types::starknet_api::block::BlockNumber;
-
-    use super::{BlockIdInput, EstimateFeeInput, GetStorageInput};
-    use crate::api::models::transaction::{
-        BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
+    use starknet_types::{
+        contract_address::ContractAddress, felt::Felt, patricia_key::PatriciaKey,
+        starknet_api::block::BlockNumber,
     };
+
+    use super::{EstimateFeeInput, GetStorageInput};
     use crate::api::models::{
+        transaction::{
+            BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
+        },
         BlockHashOrNumber, BlockId, ContractAddressHex, FeltHex, PatriciaKeyHex, Tag,
     };
+
+    use super::BlockIdInput;
 
     #[test]
     fn errored_deserialization_of_estimate_fee_with_broadcasted_declare_transaction() {

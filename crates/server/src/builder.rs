@@ -1,27 +1,30 @@
-use std::convert::Infallible;
-use std::net::SocketAddr;
+use std::{convert::Infallible, net::SocketAddr, time::Duration};
 
-use axum::response::Response;
-use axum::routing::{post, IntoMakeService};
-use axum::{Extension, Router};
-use hyper::server::conn::AddrIncoming;
-use hyper::{header, Method, Request, Server};
+use axum::{
+    response::Response,
+    routing::{post, IntoMakeService},
+    Extension, Router,
+};
+use hyper::{header, server::conn::AddrIncoming, Method, Request, Server};
 use tower::Service;
-use tower_http::cors::CorsLayer;
-use tower_http::trace::TraceLayer;
+use tower_http::{cors::CorsLayer, trace::TraceLayer};
+use tower_http::timeout::TimeoutLayer;
+use starknet_core::StarknetConfig;
 
-use crate::rpc_handler::{self, RpcHandler};
-use crate::ServerConfig;
+use crate::{
+    rpc_handler::{self, RpcHandler},
+    ServerConfig,
+};
 
 /// Helper type for naming the [`Server`]
 pub type StarknetDevnetServer = Server<AddrIncoming, IntoMakeService<Router>>;
 
 /// Helper for constructing a [`Server`].
 /// [`Builder`] is a convenience wrapper around [`Router`] with added support for JSON-RPC and HTTP
-/// The main purpose of [`Builder`] is to provide with the essentials elements for the server to
-/// run: address, routes, shared state (if any) and additional configuration
-/// [`Builder`] uses 2 generic types (TJsonRpcHandler, THttpApiHandler) representing objects that
-/// will be available on every http request like a shared state.
+/// The main purpose of [`Builder`] is to provide with the essentials elements for the server to run:
+/// address, routes, shared state (if any) and additional configuration
+/// [`Builder`] uses 2 generic types (TJsonRpcHandler, THttpApiHandler) representing objects that will
+/// be available on every http request like a shared state.
 /// Take a look at https://docs.rs/axum/latest/axum/#using-request-extensions
 
 pub struct Builder<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static> {
@@ -66,8 +69,7 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
         Self { http_api_handler: Some(handler), ..self }
     }
 
-    /// Sets the path to the JSON-RPC endpoint and adds the object that will be available on every
-    /// request
+    /// Sets the path to the JSON-RPC endpoint and adds the object that will be available on every request
     pub fn json_rpc_route(self, path: &str, handler: TJsonRpcHandler) -> Self {
         Self {
             routes: self.routes.route(path, post(rpc_handler::handle::<TJsonRpcHandler>)),
@@ -81,11 +83,11 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
         Self { config: Some(config), ..self }
     }
 
-    /// Creates the http server - [`StarknetDevnetServer`] from all the configured routes, provided
-    /// [`ServerConfig`] and all handlers that have Some value. If TJsonRpcHandler and/or
-    /// THttpApiHandler are set each methods that serves the route will be able to use it.
+    /// Creates the http server - [`StarknetDevnetServer`] from all the configured routes, provided [`ServerConfig`]
+    /// and all handlers that have Some value. If TJsonRpcHandler and/or THttpApiHandler are set
+    /// each methods that serves the route will be able to use it.
     /// https://docs.rs/axum/latest/axum/#using-request-extensions
-    pub fn build(self) -> StarknetDevnetServer {
+    pub fn build(self, starknet_config: &StarknetConfig) -> StarknetDevnetServer {
         let mut svc = self.routes;
 
         if self.json_rpc_handler.is_some() {
@@ -96,7 +98,8 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
             svc = svc.layer(Extension(self.http_api_handler.unwrap()));
         }
 
-        svc = svc.layer(TraceLayer::new_for_http());
+        svc = svc.layer(TraceLayer::new_for_http())      
+            .layer(TimeoutLayer::new(Duration::from_secs(starknet_config.timeout.into())));
 
         if let Some(ServerConfig { allow_origin }) = self.config {
             svc = svc.layer(

@@ -1,8 +1,6 @@
 use axum::{Extension, Json};
 
-use crate::api::http::error::HttpApiError;
-use crate::api::http::models::Path;
-use crate::api::http::{HttpApiHandler, HttpApiResult};
+use crate::api::http::{error::HttpApiError, models::Path, HttpApiHandler, HttpApiResult};
 
 pub(crate) async fn dump(
     Json(_path): Json<Path>,

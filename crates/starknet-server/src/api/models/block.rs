@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 use starknet_types::starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp};
 
-use super::transaction::Transactions;
-use super::{ContractAddressHex, FeltHex};
+use super::{transaction::Transactions, ContractAddressHex, FeltHex};
 
 pub type BlockHashHex = FeltHex;
 pub type GlobalRootHex = FeltHex;

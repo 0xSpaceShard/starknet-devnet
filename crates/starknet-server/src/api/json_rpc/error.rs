@@ -1,4 +1,5 @@
 use server::rpc_core::error::RpcError;
+
 use tracing::error;
 
 #[allow(unused)]
@@ -31,8 +32,7 @@ pub enum ApiError {
 #[cfg(test)]
 mod tests {
 
-    use crate::api::json_rpc::error::ApiError;
-    use crate::api::json_rpc::{RpcResult, ToRpcResponseResult};
+    use crate::api::json_rpc::{error::ApiError, RpcResult, ToRpcResponseResult};
 
     #[test]
     fn contract_not_found_error() {

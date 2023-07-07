@@ -1,9 +1,11 @@
 use serde::{Deserialize, Serialize};
 use starknet_types::starknet_api::transaction::Fee;
 
-use crate::api::models::block::BlockHashHex;
-use crate::api::models::transaction::{Calldata, EntryPointSelectorHex, Nonce, TransactionHashHex};
-use crate::api::models::{ContractAddressHex, FeltHex};
+use crate::api::models::{
+    block::BlockHashHex,
+    transaction::{Calldata, EntryPointSelectorHex, Nonce, TransactionHashHex},
+    ContractAddressHex, FeltHex,
+};
 
 #[derive(Deserialize, Debug)]
 pub(crate) struct Path {
@@ -61,16 +63,21 @@ pub(crate) struct Time {
 }
 
 #[derive(Serialize)]
-pub(crate) struct SerializableAccount {
-    pub(crate) initial_balance: String,
-    pub(crate) address: ContractAddressHex,
-    pub(crate) public_key: FeltHex,
-    pub(crate) private_key: FeltHex,
+pub(crate) struct PredeployedAccount {
+    initial_balance: u128,
+    address: String,
+    public_key: String,
+    private_key: String,
 }
 
 #[derive(Deserialize)]
 pub(crate) struct ContractAddress {
     contract_address: ContractAddressHex,
+}
+
+#[derive(Serialize)]
+pub(crate) struct ContractCode {
+    program: String,
 }
 
 #[derive(Serialize)]

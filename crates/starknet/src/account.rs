@@ -23,7 +23,7 @@ pub struct Account {
     pub public_key: Key,
     pub private_key: Key,
     pub account_address: ContractAddress,
-    pub initial_balance: Balance,
+    pub(crate) balance: Balance,
     pub(crate) class_hash: ClassHash,
     pub(crate) contract_class: ContractClass,
     pub(crate) fee_token_address: ContractAddress,
@@ -31,7 +31,7 @@ pub struct Account {
 
 impl Account {
     pub(crate) fn new(
-        initial_balance: Balance,
+        balance: Balance,
         public_key: Key,
         private_key: Key,
         class_hash: ClassHash,
@@ -39,7 +39,7 @@ impl Account {
         fee_token_address: ContractAddress,
     ) -> DevnetResult<Self> {
         Ok(Self {
-            initial_balance,
+            balance,
             public_key,
             private_key,
             class_hash,
@@ -91,7 +91,7 @@ impl Accounted for Account {
             get_storage_var_address("ERC20_balances", &[Felt::from(self.account_address)])?;
         let storage_key = ContractStorageKey::new(self.fee_token_address, storage_var_address);
 
-        state.change_storage(storage_key, self.initial_balance)?;
+        state.change_storage(storage_key, self.balance)?;
 
         Ok(())
     }
@@ -204,7 +204,7 @@ mod tests {
     fn account_get_balance_should_return_correct_value() {
         let (mut account, mut state) = setup();
         let expected_balance = Felt::from(100);
-        account.initial_balance = expected_balance;
+        account.balance = expected_balance;
         account.deploy(&mut state).unwrap();
         account.set_initial_balance(&mut state).unwrap();
         let generated_balance = account.get_balance(&mut state).unwrap();

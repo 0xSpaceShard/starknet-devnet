@@ -9,7 +9,3 @@ pub trait ToHexString {
 pub trait HashProducer {
     fn generate_hash(&self) -> DevnetResult<Felt>;
 }
-
-pub trait ToDecimalString {
-    fn to_decimal_string(&self) -> String;
-}

@@ -5,10 +5,10 @@ pub(crate) mod state;
 pub(crate) mod transaction;
 
 use serde::{Deserialize, Serialize};
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::Felt;
-use starknet_types::patricia_key::PatriciaKey;
-use starknet_types::starknet_api::block::BlockNumber;
+use starknet_types::{
+    contract_address::ContractAddress, felt::Felt, patricia_key::PatriciaKey,
+    starknet_api::block::BlockNumber,
+};
 
 use super::serde_helpers::hex_string::{
     deserialize_prefixed_hex_string_to_felt, deserialize_to_prefixed_contract_address,

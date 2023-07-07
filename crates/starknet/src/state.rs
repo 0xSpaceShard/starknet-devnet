@@ -20,9 +20,8 @@ pub(crate) struct StarknetState {
 }
 
 impl StarknetState {
-    // this is used to copy "persistent" data that is present in "state" variable into
-    // "pending_state" this is done, because "pending_state" doesnt hold a reference to state,
-    // but rather a copy.
+    // this is used to copy "persistent" data that is present in "state" variable into "pending_state"
+    // this is done, because "pending_state" doesnt hold a reference to state, but rather a copy.
     pub(crate) fn synchronize_states(&mut self) {
         self.pending_state = CachedState::new(
             self.state.clone(),
@@ -130,7 +129,7 @@ impl StateChanger for StarknetState {
         // update contract storages
         storage_updates.into_iter().for_each(|(contract_address, storages)| {
             storages.into_iter().for_each(|(key, value)| {
-                // old_state.storage_view.insert((contract_address, key), value);
+                //old_state.storage_view.insert((contract_address, key), value);
                 let key = (contract_address.clone(), key.to_be_bytes());
                 old_state.address_to_storage_mut().insert(key, value);
             })
@@ -264,28 +263,24 @@ mod tests {
             dummy_contract_address().try_into().unwrap();
 
         // check if current nonce is 0
-        assert!(
-            state
-                .state
-                .address_to_nonce
-                .get(&starknet_in_rust_address)
-                .unwrap()
-                .eq(&Felt252::from(0))
-        );
+        assert!(state
+            .state
+            .address_to_nonce
+            .get(&starknet_in_rust_address)
+            .unwrap()
+            .eq(&Felt252::from(0)));
 
         state.synchronize_states();
         state.pending_state.increment_nonce(&starknet_in_rust_address).unwrap();
         state.apply_cached_state().unwrap();
 
         // check if nonce update was correct
-        assert!(
-            state
-                .state
-                .address_to_nonce
-                .get(&starknet_in_rust_address)
-                .unwrap()
-                .eq(&Felt252::from(1))
-        );
+        assert!(state
+            .state
+            .address_to_nonce
+            .get(&starknet_in_rust_address)
+            .unwrap()
+            .eq(&Felt252::from(1)));
     }
 
     #[test]
@@ -308,14 +303,12 @@ mod tests {
         assert!(state.deploy_contract(address, felt).is_ok());
         assert!(state.state.address_to_class_hash.len() == 1);
         assert!(state.state.address_to_class_hash.contains_key(&(address.try_into().unwrap())));
-        assert!(
-            state
-                .state
-                .address_to_nonce
-                .get(&(address.try_into().unwrap()))
-                .unwrap()
-                .eq(&Felt252::from(0))
-        );
+        assert!(state
+            .state
+            .address_to_nonce
+            .get(&(address.try_into().unwrap()))
+            .unwrap()
+            .eq(&Felt252::from(0)));
     }
 
     #[test]

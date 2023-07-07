@@ -67,6 +67,7 @@ mod tests {
         ERC20_CONTRACT_ADDRESS, ERC20_CONTRACT_CLASS_HASH, ERC20_CONTRACT_PATH,
     };
     use crate::state::StarknetState;
+
     use crate::traits::Accounted;
     #[test]
     fn load_erc20_contract() {

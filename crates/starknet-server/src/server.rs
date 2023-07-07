@@ -1,20 +1,20 @@
 use std::net::SocketAddr;
 
-use axum::routing::{get, post};
+use axum::routing::get;
+use axum::routing::post;
 use server::builder::StarknetDevnetServer;
 use server::ServerConfig;
+use starknet_core::StarknetConfig;
 
 use crate::api;
-use crate::api::http::{endpoints as http, HttpApiHandler};
+use crate::api::http::endpoints as http;
+use crate::api::http::HttpApiHandler;
 use crate::api::json_rpc::JsonRpcHandler;
 use crate::api::Api;
 
 /// Configures an [axum::Server] that handles related JSON-RPC calls and WEB API calls via HTTP
-pub fn serve_http_api_json_rpc(
-    addr: SocketAddr,
-    config: ServerConfig,
-    api: Api,
-) -> StarknetDevnetServer {
+pub fn serve_http_api_json_rpc(addr: SocketAddr, config: ServerConfig, starknet_config: &StarknetConfig) -> StarknetDevnetServer {
+    let api = Api::new();
     let http = api::http::HttpApiHandler { api: api.clone() };
     let json_rpc = api::json_rpc::JsonRpcHandler { api };
 
@@ -39,11 +39,11 @@ pub fn serve_http_api_json_rpc(
         .http_api_route("/restart", post(http::restart))
         .http_api_route("/set_time", post(http::time::set_time))
         .http_api_route("/increase_time", post(http::time::increase_time))
-        .http_api_route("/predeployed_accounts", get(http::accounts::get_predeployed_accounts))
+        .http_api_route("/predeployed_accounts", get(http::accounts::predeployed_accounts))
         .http_api_route("/account_balance", get(http::accounts::get_account_balance))
         .http_api_route("/fee_token", get(http::mint_token::get_fee_token))
         .http_api_route("/mint", post(http::mint_token::mint))
         .http_api_route("/fork_status", get(http::get_fork_status))
         .set_http_api_handler(http)
-        .build()
+        .build(starknet_config)
 }

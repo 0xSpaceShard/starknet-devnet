@@ -34,10 +34,6 @@ Run the formatter with:
 ./scripts/format.sh
 ```
 
-# Devnet cli options
-cargo run -- -h
-cargo run -- --help
-
 # Starting Devnet
 When starting devnet 'DEVNET_PORT' environment variable needs to be set
 

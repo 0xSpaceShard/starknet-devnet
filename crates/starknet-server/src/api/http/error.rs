@@ -1,5 +1,4 @@
-use axum::response::IntoResponse;
-use axum::Json;
+use axum::{response::IntoResponse, Json};
 use hyper::StatusCode;
 use serde_json::json;
 

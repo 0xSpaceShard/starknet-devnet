@@ -18,7 +18,9 @@ pub mod empty_params {
 }
 
 pub mod hex_string {
-    use serde::{Deserialize, Deserializer, Serializer};
+    use serde::Deserialize;
+    use serde::Deserializer;
+    use serde::Serializer;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
     use starknet_types::patricia_key::PatriciaKey;
@@ -98,10 +100,10 @@ pub mod hex_string {
     mod tests {
         use serde::{Deserialize, Serialize};
         use serde_json::json;
-        use starknet_types::contract_address::ContractAddress;
-        use starknet_types::felt::Felt;
-        use starknet_types::patricia_key::PatriciaKey;
-        use starknet_types::starknet_api::serde_utils::bytes_from_hex_str;
+        use starknet_types::{
+            contract_address::ContractAddress, felt::Felt, patricia_key::PatriciaKey,
+            starknet_api::serde_utils::bytes_from_hex_str,
+        };
 
         use crate::api::serde_helpers::hex_string::{
             deserialize_non_prefixed_hex_string_to_felt, deserialize_prefixed_hex_string_to_felt,
