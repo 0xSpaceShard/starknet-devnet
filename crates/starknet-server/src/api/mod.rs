@@ -3,9 +3,9 @@ pub(crate) mod json_rpc;
 pub(crate) mod models;
 pub(crate) mod serde_helpers;
 
-use starknet_core::Starknet;
-
 use std::sync::Arc;
+
+use starknet_core::Starknet;
 use tokio::sync::RwLock;
 
 /// Data that can be shared between threads with read write lock access

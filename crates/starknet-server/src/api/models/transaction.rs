@@ -1,16 +1,12 @@
 use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
-use starknet_types::starknet_api::{
-    block::BlockNumber,
-    transaction::{EthAddress, Fee},
-};
+use starknet_types::starknet_api::block::BlockNumber;
+use starknet_types::starknet_api::transaction::{EthAddress, Fee};
 
-use super::{
-    block::BlockHashHex,
-    contract_class::{DeprecatedContractClass, SierraContractClass},
-    BlockId, ContractAddressHex, FeltHex,
-};
+use super::block::BlockHashHex;
+use super::contract_class::{DeprecatedContractClass, SierraContractClass};
+use super::{BlockId, ContractAddressHex, FeltHex};
 
 pub type TransactionHashHex = FeltHex;
 pub type ClassHashHex = FeltHex;

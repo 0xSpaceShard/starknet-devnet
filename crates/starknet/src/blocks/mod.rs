@@ -1,16 +1,13 @@
 use std::collections::HashMap;
 
-use starknet_api::{
-    block::{BlockHeader, BlockNumber, BlockStatus},
-    hash::{pedersen_hash_array, StarkFelt},
-    stark_felt,
-};
-use starknet_types::{
-    felt::{BlockHash, Felt},
-    traits::HashProducer,
-};
+use starknet_api::block::{BlockHeader, BlockNumber, BlockStatus};
+use starknet_api::hash::{pedersen_hash_array, StarkFelt};
+use starknet_api::stark_felt;
+use starknet_types::felt::{BlockHash, Felt};
+use starknet_types::traits::HashProducer;
 
-use crate::{traits::HashIdentified, transactions::Transaction};
+use crate::traits::HashIdentified;
+use crate::transactions::Transaction;
 
 pub(crate) struct StarknetBlocks {
     pub(crate) hash_to_num: HashMap<BlockHash, BlockNumber>,
@@ -43,7 +40,8 @@ impl Default for StarknetBlocks {
 }
 
 impl StarknetBlocks {
-    /// Inserts a block in the collection and modifies the block parent hash to match the last block hash
+    /// Inserts a block in the collection and modifies the block parent hash to match the last block
+    /// hash
     pub fn insert(&mut self, mut block: StarknetBlock) {
         if self.last_block_hash.is_some() {
             block.header.parent_hash = self.last_block_hash.unwrap().into();
@@ -120,9 +118,8 @@ mod tests {
     use starknet_api::block::{BlockHash, BlockHeader, BlockNumber, BlockStatus};
     use starknet_types::traits::HashProducer;
 
-    use crate::traits::HashIdentified;
-
     use super::{StarknetBlock, StarknetBlocks};
+    use crate::traits::HashIdentified;
 
     #[test]
     fn block_hash_computation_doesnt_affect_internal_block_state() {

@@ -62,14 +62,20 @@ impl TryFrom<ContractClass> for StarknetInRustContractClass {
 impl ContractClass {
     /// Computes the hinted class hash of the contract class.
     /// The parameter is a JSON object representing the contract class.
-    /// Pythonic hinted class hash computation is based on a JSON artifact produced by the cairo-lang compiler.
-    /// The JSON object contains his keys in alphabetical order. But when those keys are made of digits only, they are sorted in ascending order.
-    /// For example keys "1", "10", "2" are sorted as "1", "2", "10" and keys "b", "a", "c" are sorted as "a", "b", "c".
-    /// The resulting object is being serialized to a string and then hashed.
-    /// In rust serde_json library when deserializing a JSON object, internally it uses a Map either HashMap or IndexMap. Depending on the feature enabled if [preserver_order] is not enabled HashMap will be used.
-    /// In HashMap the keys order of insertion is not preserved and they are sorted alphabetically, which doesnt work for our case, because the contract artifact contains keys under the "hints" property that are only numbers.
-    /// So we use IndexMap to preserve order of the keys, but its disadvantage is removing entries from the json object, because it uses swap_remove method on IndexMap, which doesnt preserve order.
-    /// So we traverse the JSON object and remove all entries with key - attributes or accessible_scopes if they are empty arrays.
+    /// Pythonic hinted class hash computation is based on a JSON artifact produced by the
+    /// cairo-lang compiler. The JSON object contains his keys in alphabetical order. But when
+    /// those keys are made of digits only, they are sorted in ascending order. For example keys
+    /// "1", "10", "2" are sorted as "1", "2", "10" and keys "b", "a", "c" are sorted as "a", "b",
+    /// "c". The resulting object is being serialized to a string and then hashed.
+    /// In rust serde_json library when deserializing a JSON object, internally it uses a Map either
+    /// HashMap or IndexMap. Depending on the feature enabled if [preserver_order] is not enabled
+    /// HashMap will be used. In HashMap the keys order of insertion is not preserved and they
+    /// are sorted alphabetically, which doesnt work for our case, because the contract artifact
+    /// contains keys under the "hints" property that are only numbers. So we use IndexMap to
+    /// preserve order of the keys, but its disadvantage is removing entries from the json object,
+    /// because it uses swap_remove method on IndexMap, which doesnt preserve order.
+    /// So we traverse the JSON object and remove all entries with key - attributes or
+    /// accessible_scopes if they are empty arrays.
     fn compute_hinted_class_hash(contract_class: &Value) -> crate::DevnetResult<StarkFelt> {
         let mut abi_program_json = json!({
             "abi": contract_class.get("abi").unwrap_or(&Value::Null),

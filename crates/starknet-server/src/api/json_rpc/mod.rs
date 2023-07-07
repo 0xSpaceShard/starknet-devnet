@@ -6,16 +6,15 @@ use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
     EstimateFeeInput, EventsInput, GetStorageInput, TransactionHashInput,
 };
-
-use super::Api;
-use tracing::error;
-
 use serde::{Deserialize, Serialize};
-use server::rpc_core::{error::RpcError, response::ResponseResult};
+use server::rpc_core::error::RpcError;
+use server::rpc_core::response::ResponseResult;
 use server::rpc_handler::RpcHandler;
-use tracing::{info, trace};
+use tracing::{error, info, trace};
 
-use self::{error::ApiError, models::BlockIdInput};
+use self::error::ApiError;
+use self::models::BlockIdInput;
+use super::Api;
 use crate::api::serde_helpers::empty_params;
 
 pub(crate) type RpcResult<T> = std::result::Result<T, ApiError>;
@@ -109,7 +108,8 @@ impl RpcHandler for JsonRpcHandler {
 }
 
 /// This object will be used as a shared state between HTTP calls.
-/// Is simillar to the HttpApiHandler but is with extended functionality and is used for JSON-RPC methods
+/// Is simillar to the HttpApiHandler but is with extended functionality and is used for JSON-RPC
+/// methods
 #[derive(Clone)]
 pub struct JsonRpcHandler {
     pub api: Api,

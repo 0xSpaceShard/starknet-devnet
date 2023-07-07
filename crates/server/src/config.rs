@@ -1,6 +1,7 @@
+use std::str::FromStr;
+
 use hyper::header::HeaderValue;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::str::FromStr;
 
 /// Additional server options.
 #[derive(Debug, Clone, Serialize, Deserialize)]
