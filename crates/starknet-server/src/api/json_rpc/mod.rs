@@ -1,4 +1,5 @@
 mod endpoints;
+mod write_endpoints;
 mod error;
 mod models;
 
@@ -178,6 +179,10 @@ impl JsonRpcHandler {
                 block_id,
                 contract_address,
             }) => self.get_nonce(block_id, contract_address).await.to_rpc_result(),
+
+            StarknetRequest::AddDeclareTransaction => {
+                self.add_declare_transaction().await.to_rpc_result()
+            }
         }
     }
 }
@@ -225,6 +230,8 @@ pub enum StarknetRequest {
     Events(EventsInput),
     #[serde(rename = "starknet_getNonce")]
     ContractNonce(BlockAndContractAddressInput),
+    #[serde(rename = "starknet_addDeclareTransaction")]
+    AddDeclareTransaction,
 }
 
 #[cfg(test)]
