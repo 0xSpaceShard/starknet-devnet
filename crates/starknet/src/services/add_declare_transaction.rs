@@ -1,4 +1,4 @@
-use starknet_in_rust::transaction::Declare;
+use starknet_in_rust::transaction::{verify_version, Declare};
 use starknet_types::{
     error::Error,
     felt::{ClassHash, TransactionHash},
@@ -36,9 +36,17 @@ impl Starknet {
             nonce: declare_transaction.nonce.into(),
             hash_value: transaction_hash.into(),
             contract_class: declare_transaction.contract_class.clone().try_into()?,
+            skip_execute: false,
+            skip_fee_transfer: false,
+            skip_validate: false,
         };
 
-        transaction.verify_version()?;
+        verify_version(
+            &transaction.version,
+            transaction.max_fee,
+            &transaction.nonce,
+            &transaction.signature,
+        )?;
 
         if transaction.max_fee == 0 {
             return Err(Error::StarknetInRustTransactionError(

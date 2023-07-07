@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::str::FromStr;
 
 use serde::Serialize;
 use serde_json::{json, Serializer, Value};
@@ -49,9 +50,10 @@ impl TryFrom<ContractClass> for StarknetInRustContractClass {
         match value.0 {
             ContractClassInner::StarknetInRust(class) => Ok(class),
             ContractClassInner::JsonString(json_value) => {
-                let sn_api: starknet_api::deprecated_contract_class::ContractClass =
-                    serde_json::from_value(json_value).map_err(JsonError::SerdeJsonError)?;
-                Ok(StarknetInRustContractClass::try_from(sn_api).unwrap())
+                let sir_contract_class =
+                    StarknetInRustContractClass::from_str(&json_value.to_string())
+                        .map_err(|err| JsonError::Custom { msg: err.to_string() })?;
+                Ok(sir_contract_class)
             }
         }
     }
