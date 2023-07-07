@@ -1,24 +1,23 @@
-use std::{collections::HashMap, time::SystemTime};
+use std::collections::HashMap;
+use std::time::SystemTime;
 
 use blocks::{StarknetBlock, StarknetBlocks};
 use constants::{CHAIN_ID, ERC20_CONTRACT_ADDRESS};
 use predeployed_accounts::PredeployedAccounts;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
-use starknet_in_rust::{
-    definitions::{
-        block_context::{BlockContext, StarknetOsConfig},
-        constants::{
-            DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS, DEFAULT_CONTRACT_STORAGE_COMMITMENT_TREE_HEIGHT,
-            DEFAULT_GLOBAL_STATE_COMMITMENT_TREE_HEIGHT, DEFAULT_INVOKE_TX_MAX_N_STEPS,
-            DEFAULT_VALIDATE_MAX_N_STEPS,
-        },
-    },
-    state::BlockInfo,
-    testing::TEST_SEQUENCER_ADDRESS,
+use starknet_in_rust::definitions::block_context::{BlockContext, StarknetOsConfig};
+use starknet_in_rust::definitions::constants::{
+    DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS, DEFAULT_CONTRACT_STORAGE_COMMITMENT_TREE_HEIGHT,
+    DEFAULT_GLOBAL_STATE_COMMITMENT_TREE_HEIGHT, DEFAULT_INVOKE_TX_MAX_N_STEPS,
+    DEFAULT_VALIDATE_MAX_N_STEPS,
 };
+use starknet_in_rust::state::BlockInfo;
+use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
 use starknet_rs_core::types::TransactionStatus;
-use starknet_types::{contract_address::ContractAddress, DevnetResult};
-use starknet_types::{felt::Felt, traits::HashProducer};
+use starknet_types::contract_address::ContractAddress;
+use starknet_types::felt::Felt;
+use starknet_types::traits::HashProducer;
+use starknet_types::DevnetResult;
 use state::StarknetState;
 use tracing::error;
 use traits::{AccountGenerator, Accounted, HashIdentifiedMut};
@@ -197,12 +196,14 @@ impl Starknet {
 #[cfg(test)]
 mod tests {
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
-    use starknet_types::{contract_address::ContractAddress, felt::Felt, traits::HashProducer};
+    use starknet_types::contract_address::ContractAddress;
+    use starknet_types::felt::Felt;
+    use starknet_types::traits::HashProducer;
 
-    use crate::{
-        blocks::StarknetBlock, traits::Accounted, utils::test_utils::dummy_declare_transaction_v1,
-        Starknet, StarknetConfig,
-    };
+    use crate::blocks::StarknetBlock;
+    use crate::traits::Accounted;
+    use crate::utils::test_utils::dummy_declare_transaction_v1;
+    use crate::{Starknet, StarknetConfig};
 
     pub(crate) fn starknet_config_for_test() -> StarknetConfig {
         StarknetConfig { seed: 123, total_accounts: 3, predeployed_accounts_initial_balance: 100 }

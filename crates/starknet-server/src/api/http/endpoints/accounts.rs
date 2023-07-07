@@ -1,11 +1,10 @@
-use axum::{extract::Query, Extension, Json};
+use axum::extract::Query;
+use axum::{Extension, Json};
 use starknet_types::traits::ToHexString;
 
-use crate::api::http::{
-    error::HttpApiError,
-    models::{Balance, ContractAddress, PredeployedAccount},
-    HttpApiHandler, HttpApiResult,
-};
+use crate::api::http::error::HttpApiError;
+use crate::api::http::models::{Balance, ContractAddress, PredeployedAccount};
+use crate::api::http::{HttpApiHandler, HttpApiResult};
 
 pub(crate) async fn predeployed_accounts(
     Extension(state): Extension<HttpApiHandler>,

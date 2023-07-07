@@ -1,7 +1,5 @@
-use std::{
-    env,
-    net::{IpAddr, Ipv4Addr, SocketAddr},
-};
+use std::env;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use ::server::ServerConfig;
 use clap::Parser;
