@@ -5,6 +5,7 @@ use std::{
 use ::server::ServerConfig;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
+use starknet_core::StarknetConfig;
 
 mod api;
 mod server;
@@ -18,11 +19,11 @@ fn configure_tracing() {
     tracing_subscriber::fmt().with_env_filter(level_filter_layer).init();
 }
 
-pub async fn start_server(address: String, port: u16) -> Result<(), anyhow::Error> {
+pub async fn start_server(starknet_config: &StarknetConfig) -> Result<(), anyhow::Error> {
     configure_tracing();
-    let host = IpAddr::from_str(address.as_str()).unwrap();
-    let mut addr = SocketAddr::new(host, port);
-    let server = server::serve_http_api_json_rpc(addr, ServerConfig::default());
+    let host = IpAddr::from_str(starknet_config.host.as_str()).unwrap();
+    let mut addr = SocketAddr::new(host, starknet_config.port);
+    let server = server::serve_http_api_json_rpc(addr, ServerConfig::default(), starknet_config);
     addr = server.local_addr();
 
     info!("StarkNet Devnet listening on {}", addr);

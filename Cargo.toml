@@ -43,7 +43,7 @@ serde_json = { version = "1.0.81" }
 # axum
 axum = { version = "0.5" }
 hyper = "0.14"
-tower-http = { version = "0.4", features = ["trace", "cors"] }
+tower-http = { version = "0.4", features = ["full"] }
 tower = { version = "0.4", features = ["full"] }
 
 # tracing
