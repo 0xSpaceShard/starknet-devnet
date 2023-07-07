@@ -4,7 +4,6 @@ use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::traits::HashProducer;
 use starknet_types::DevnetResult;
 
-use crate::traits::StateChanger;
 use crate::transactions::declare_transaction::DeclareTransactionV1;
 use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
 use crate::transactions::{StarknetTransaction, Transaction};
@@ -61,27 +60,13 @@ impl Starknet {
 
         match transaction.execute(&mut self.state.pending_state, &self.block_context) {
             Ok(tx_info) => {
-                let transaction_to_add = StarknetTransaction::create_successful(
-                    Transaction::DeclareV2(declare_transaction.clone()),
+                declare_transaction.class_hash = Some(class_hash);
+
+                self.handle_successful_transaction(
+                    &transaction_hash,
+                    Transaction::DeclareV2(declare_transaction),
                     tx_info,
-                );
-
-                // add accepted transaction to pending block
-                self.blocks
-                    .pending_block
-                    .add_transaction(Transaction::DeclareV2(declare_transaction));
-
-                // add transaction to transactions
-                self.transactions.insert(&transaction_hash, transaction_to_add);
-
-                // create new block from pending one
-                self.generate_new_block()?;
-                // apply state changes from cached state
-                self.state.apply_cached_state()?;
-                // make cached state part of "persistent" state
-                self.state.synchronize_states();
-                // clear pending block information
-                self.generate_pending_block()?;
+                )?;
             }
             Err(tx_err) => {
                 let transaction_to_add = StarknetTransaction::create_rejected(
