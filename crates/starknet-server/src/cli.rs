@@ -38,7 +38,11 @@ impl Args {
                 None => random_number_generator::generate_u32_random_number(),
             },
             total_accounts: self.accounts_count,
-            predeployed_accounts_initial_balance: self.initial_balance.clone().into(),
+            predeployed_accounts_initial_balance: self
+                .initial_balance
+                .clone()
+                .try_into()
+                .expect("Invalid value for initial balance"), // TODO doesn't exit nicely
         }
     }
 }

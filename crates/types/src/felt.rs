@@ -174,10 +174,12 @@ impl From<starknet_api::block::BlockHash> for Felt {
     }
 }
 
-impl From<BigUint> for Felt {
-    fn from(value: BigUint) -> Self {
-        // TODO shouldn't it fail if value too big?
-        Felt::from(cairo_felt::Felt252::from(value))
+impl TryFrom<BigUint> for Felt {
+    type Error = crate::error::Error;
+
+    fn try_from(value: BigUint) -> DevnetResult<Self> {
+        let hex_str = format!("0x{}", value.to_str_radix(16));
+        Felt::from_prefixed_hex_str(&hex_str)
     }
 }
 
@@ -214,7 +216,7 @@ mod tests {
     #[test]
     fn correct_conversion_from_bigint_to_felt() {
         let bigint = BigUint::from(123456u128);
-        assert_eq!(Felt::from(bigint), Felt::from_prefixed_hex_str("0x1e240").unwrap())
+        assert_eq!(Felt::try_from(bigint).unwrap(), Felt::from_prefixed_hex_str("0x1e240").unwrap())
     }
 
     #[test]
@@ -223,7 +225,7 @@ mod tests {
         let s = "1809251394333065553493296640760748560207343510400633813116524750123642650625";
         let bigint = BigUint::from_str(s).unwrap();
         assert_eq!(
-            Felt::from(bigint),
+            Felt::try_from(bigint).unwrap(),
             Felt::from_prefixed_hex_str(
                 "0x400000000000000000000000000000000000000000000000000000000000001"
             )
