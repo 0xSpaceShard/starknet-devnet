@@ -1,5 +1,6 @@
 use clap::Parser;
 use starknet_core::StarknetConfig;
+use starknet_types::num_bigint::BigUint;
 
 /// Run a local instance of Starknet Devnet
 #[derive(Parser, Debug)]
@@ -18,13 +19,14 @@ pub(crate) struct Args {
     #[arg(short = 'e')]
     #[arg(value_name = "INITIAL_BALANCE")]
     #[arg(default_value = "1000000000000000000000")]
-    #[arg(help = "Specify the initial balance of accounts to be predeployed;")]
-    initial_balance: u128, // TODO Felt
+    #[arg(help = "Specify the initial balance in WEI of accounts to be predeployed;")]
+    initial_balance: BigUint,
 
     // seed for predeployed accounts
     #[arg(long = "seed")]
     #[arg(value_name = "SEED")]
-    #[arg(help = "Specify the seed for randomness of accounts to be predeployed;")]
+    #[arg(help = "Specify the seed for randomness of accounts to be predeployed; if not \
+                  provided, it is randomly generated")]
     seed: Option<u32>,
 }
 
@@ -36,7 +38,7 @@ impl Args {
                 None => random_number_generator::generate_u32_random_number(),
             },
             total_accounts: self.accounts_count,
-            predeployed_accounts_initial_balance: self.initial_balance.into(),
+            predeployed_accounts_initial_balance: self.initial_balance.clone().into(),
         }
     }
 }

@@ -83,7 +83,7 @@ mod tests {
     use serde_json::json;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::felt::{Felt, Key};
-    use starknet_types::traits::ToHexString;
+    use starknet_types::traits::{ToDecimalString, ToHexString};
 
     use crate::constants::CAIRO_0_ACCOUNT_CONTRACT_PATH;
     use crate::predeployed_accounts::PredeployedAccounts;
@@ -184,7 +184,7 @@ mod tests {
             .map(|acc| {
                 json!({
                     "address": acc.account_address.to_prefixed_hex_str(),
-                    "initial_balance": acc.initial_balance.to_prefixed_hex_str(),
+                    "initial_balance": acc.initial_balance.to_decimal_string(),
                     "private_key": acc.private_key.to_prefixed_hex_str(),
                     "public_key": acc.public_key.to_prefixed_hex_str()
                 })

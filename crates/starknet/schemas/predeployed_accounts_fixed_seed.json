@@ -15,7 +15,7 @@
                 "initial_balance": {
                     "type": "string",
                     "enum": [
-                        "0x3e8"
+                        "1000"
                     ]
                 },
                 "private_key": {
@@ -51,7 +51,7 @@
                 "initial_balance": {
                     "type": "string",
                     "enum": [
-                        "0x3e8"
+                        "1000"
                     ]
                 },
                 "private_key": {
@@ -87,7 +87,7 @@
                 "initial_balance": {
                     "type": "string",
                     "enum": [
-                        "0x3e8"
+                        "1000"
                     ]
                 },
                 "private_key": {

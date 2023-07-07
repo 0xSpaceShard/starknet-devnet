@@ -7,7 +7,7 @@ use cli::Args;
 use starknet_core::account::Account;
 use starknet_core::Starknet;
 use starknet_types::felt::Felt;
-use starknet_types::traits::ToHexString;
+use starknet_types::traits::{ToDecimalString, ToHexString};
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
@@ -38,9 +38,12 @@ fn log_predeployed_accounts(predeployed_accounts: &Vec<Account>, seed: u32, init
 
         println!("{}", formatted_str);
     }
-    println!();
-    println!("Initial balance of each account: {} WEI", initial_balance.to_prefixed_hex_str()); // TODO
-    println!("Seed to replicate this account sequence: {seed}");
+
+    if !predeployed_accounts.is_empty() {
+        println!();
+        println!("Initial balance of each account: {} WEI", initial_balance.to_decimal_string());
+        println!("Seed to replicate this account sequence: {seed}");
+    }
 }
 
 #[tokio::main]
