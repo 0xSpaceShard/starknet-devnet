@@ -22,6 +22,7 @@ impl Starknet {
         let transaction_hash = declare_transaction.generate_hash()?;
         declare_transaction.transaction_hash = Some(transaction_hash);
 
+        // TODO compile the contract and check the hash
         let transaction = DeclareV2 {
             compiled_class_hash: declare_transaction.compiled_class_hash.into(),
             sierra_contract_class: declare_transaction.sierra_contract_class.clone().try_into()?,
