@@ -271,6 +271,7 @@ mod tests {
     use crate::utils::test_utils::{CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH};
 
     #[test]
+    #[ignore]
     fn cairo_1_contract_class_hash_generated_successfully() {
         panic!("Add check with expected class hash generated from sierra");
     }

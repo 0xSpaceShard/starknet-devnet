@@ -42,7 +42,13 @@ impl Starknet {
             skip_fee_transfer: false,
         };
 
-        transaction.verify_version()?;
+        verify_version(
+            &transaction.version,
+            transaction.max_fee,
+            &transaction.nonce,
+            &transaction.signature,
+        )?;
+        
         if transaction.max_fee == 0 {
             return Err(Error::TransactionError(
                 starknet_in_rust::transaction::error::TransactionError::FeeError(
