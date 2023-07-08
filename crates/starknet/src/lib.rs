@@ -11,19 +11,20 @@ use starknet_in_rust::definitions::constants::{
     DEFAULT_GLOBAL_STATE_COMMITMENT_TREE_HEIGHT, DEFAULT_INVOKE_TX_MAX_N_STEPS,
     DEFAULT_VALIDATE_MAX_N_STEPS,
 };
+use starknet_in_rust::execution::TransactionExecutionInfo;
 use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
 use starknet_rs_core::types::TransactionStatus;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::Felt;
+use starknet_types::felt::{Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use starknet_types::DevnetResult;
 use state::StarknetState;
 use tracing::error;
-use traits::{AccountGenerator, Accounted, HashIdentifiedMut};
-use transactions::StarknetTransactions;
+use traits::{AccountGenerator, Accounted, HashIdentifiedMut, StateChanger};
+use transactions::{StarknetTransaction, StarknetTransactions, Transaction};
 
-mod account;
+pub mod account;
 mod blocks;
 mod constants;
 mod predeployed_accounts;
@@ -38,7 +39,7 @@ mod utils;
 pub struct StarknetConfig {
     pub seed: u32,
     pub total_accounts: u8,
-    pub predeployed_accounts_initial_balance: u128,
+    pub predeployed_accounts_initial_balance: Felt,
 }
 
 #[derive(Default)]
@@ -133,6 +134,33 @@ impl Starknet {
         Ok(())
     }
 
+    pub(crate) fn handle_successful_transaction(
+        &mut self,
+        transaction_hash: &TransactionHash,
+        transaction: Transaction,
+        tx_info: TransactionExecutionInfo,
+    ) -> DevnetResult<()> {
+        let transaction_to_add =
+            StarknetTransaction::create_successful(transaction.clone(), tx_info);
+
+        // add accepted transaction to pending block
+        self.blocks.pending_block.add_transaction(transaction);
+
+        // add transaction to transactions
+        self.transactions.insert(transaction_hash, transaction_to_add);
+
+        // create new block from pending one
+        self.generate_new_block()?;
+        // apply state changes from cached state
+        self.state.apply_cached_state()?;
+        // make cached state part of "persistent" state
+        self.state.synchronize_states();
+        // clear pending block information
+        self.generate_pending_block()?;
+
+        Ok(())
+    }
+
     fn get_block_context(gas_price: u64, fee_token_address: &str) -> DevnetResult<BlockContext> {
         let starknet_os_config = StarknetOsConfig::new(
             CHAIN_ID,
@@ -206,7 +234,11 @@ mod tests {
     use crate::{Starknet, StarknetConfig};
 
     pub(crate) fn starknet_config_for_test() -> StarknetConfig {
-        StarknetConfig { seed: 123, total_accounts: 3, predeployed_accounts_initial_balance: 100 }
+        StarknetConfig {
+            seed: 123,
+            total_accounts: 3,
+            predeployed_accounts_initial_balance: 100.into(),
+        }
     }
 
     #[test]
@@ -214,7 +246,7 @@ mod tests {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
         let predeployed_accounts = starknet.predeployed_accounts.get_accounts();
-        let expected_balance = Felt::from(config.predeployed_accounts_initial_balance);
+        let expected_balance = config.predeployed_accounts_initial_balance;
 
         for account in predeployed_accounts {
             let account_balance = account.get_balance(&mut starknet.state).unwrap();

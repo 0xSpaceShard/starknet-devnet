@@ -1,9 +1,10 @@
+use num_bigint::BigUint;
 use starknet_api::serde_utils::{bytes_from_hex_str, hex_str_from_bytes};
 use starknet_api::StarknetApiError;
 
 use crate::contract_address::ContractAddress;
 use crate::error::Error;
-use crate::traits::ToHexString;
+use crate::traits::{ToDecimalString, ToHexString};
 use crate::DevnetResult;
 
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Hash, PartialOrd, Ord)]
@@ -48,6 +49,13 @@ impl ToHexString for Felt {
 
     fn to_nonprefixed_hex_str(&self) -> String {
         hex_str_from_bytes::<32, false>(self.0)
+    }
+}
+
+impl ToDecimalString for Felt {
+    fn to_decimal_string(&self) -> String {
+        let bigint = BigUint::from_bytes_be(&self.bytes());
+        bigint.to_str_radix(10)
     }
 }
 
@@ -166,6 +174,15 @@ impl From<starknet_api::block::BlockHash> for Felt {
     }
 }
 
+impl TryFrom<BigUint> for Felt {
+    type Error = crate::error::Error;
+
+    fn try_from(value: BigUint) -> DevnetResult<Self> {
+        let hex_str = format!("0x{}", value.to_str_radix(16));
+        Felt::from_prefixed_hex_str(&hex_str)
+    }
+}
+
 pub type BlockHash = Felt;
 pub type TransactionHash = Felt;
 pub type ClassHash = Felt;
@@ -174,7 +191,12 @@ pub type Balance = Felt;
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
+    use num_bigint::BigUint;
+
     use super::Felt;
+    use crate::traits::ToDecimalString;
     #[test]
     fn correct_conversion_from_hex_str_to_felt() {
         assert!(
@@ -189,5 +211,38 @@ mod tests {
     fn correct_value_after_hex_str_to_felt() {
         let felt = Felt::from_prefixed_hex_str("0xAA").unwrap();
         assert_eq!(felt.0[31], 170);
+    }
+
+    #[test]
+    fn correct_conversion_from_bigint_to_felt() {
+        let bigint = BigUint::from(123456u128);
+        assert_eq!(Felt::try_from(bigint).unwrap(), Felt::from_prefixed_hex_str("0x1e240").unwrap())
+    }
+
+    #[test]
+    /// 2**250 + 1
+    fn correct_conversion_from_decimal_string_to_felt() {
+        let s = "1809251394333065553493296640760748560207343510400633813116524750123642650625";
+        let bigint = BigUint::from_str(s).unwrap();
+        assert_eq!(
+            Felt::try_from(bigint).unwrap(),
+            Felt::from_prefixed_hex_str(
+                "0x400000000000000000000000000000000000000000000000000000000000001"
+            )
+            .unwrap()
+        )
+    }
+
+    #[test]
+    /// 2**250 + 1
+    fn correct_conversion_from_felt_to_decimal_string() {
+        assert_eq!(
+            Felt::from_prefixed_hex_str(
+                "0x400000000000000000000000000000000000000000000000000000000000001"
+            )
+            .unwrap()
+            .to_decimal_string(),
+            "1809251394333065553493296640760748560207343510400633813116524750123642650625"
+        );
     }
 }

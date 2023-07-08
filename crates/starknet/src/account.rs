@@ -23,7 +23,7 @@ pub struct Account {
     pub public_key: Key,
     pub private_key: Key,
     pub account_address: ContractAddress,
-    pub(crate) balance: Balance,
+    pub initial_balance: Balance,
     pub(crate) class_hash: ClassHash,
     pub(crate) contract_class: ContractClass,
     pub(crate) fee_token_address: ContractAddress,
@@ -31,7 +31,7 @@ pub struct Account {
 
 impl Account {
     pub(crate) fn new(
-        balance: Balance,
+        initial_balance: Balance,
         public_key: Key,
         private_key: Key,
         class_hash: ClassHash,
@@ -39,7 +39,7 @@ impl Account {
         fee_token_address: ContractAddress,
     ) -> DevnetResult<Self> {
         Ok(Self {
-            balance,
+            initial_balance,
             public_key,
             private_key,
             class_hash,
@@ -91,7 +91,7 @@ impl Accounted for Account {
             get_storage_var_address("ERC20_balances", &[Felt::from(self.account_address)])?;
         let storage_key = ContractStorageKey::new(self.fee_token_address, storage_var_address);
 
-        state.change_storage(storage_key, self.balance)?;
+        state.change_storage(storage_key, self.initial_balance)?;
 
         Ok(())
     }
@@ -117,7 +117,9 @@ mod tests {
     use crate::state::StarknetState;
     use crate::traits::Accounted;
     use crate::utils::get_storage_var_address;
-    use crate::utils::test_utils::{dummy_contract_address, dummy_contract_class, dummy_felt};
+    use crate::utils::test_utils::{
+        dummy_cairo_0_contract_class, dummy_contract_address, dummy_felt,
+    };
 
     /// Testing if generated account address has the same value as the first account in
     /// https://github.com/0xSpaceShard/starknet-devnet/blob/9d867e38e6d465e568e82a47e82e40608f6d220f/test/support/schemas/predeployed_accounts_fixed_seed.json
@@ -171,7 +173,7 @@ mod tests {
             default_felt,
             default_felt,
             default_felt,
-            dummy_contract_class(),
+            dummy_cairo_0_contract_class(),
             fee_token_address,
         )
         .unwrap();
@@ -197,14 +199,14 @@ mod tests {
 
         account.deploy(&mut state).unwrap();
         let err = account.get_balance(&mut state).unwrap_err();
-        assert!(matches!(err, Error::StarknetInRustStateError(StateError::NoneStorage((_, _)))));
+        assert!(matches!(err, Error::StateError(StateError::NoneStorage((_, _)))));
     }
 
     #[test]
     fn account_get_balance_should_return_correct_value() {
         let (mut account, mut state) = setup();
         let expected_balance = Felt::from(100);
-        account.balance = expected_balance;
+        account.initial_balance = expected_balance;
         account.deploy(&mut state).unwrap();
         account.set_initial_balance(&mut state).unwrap();
         let generated_balance = account.get_balance(&mut state).unwrap();
@@ -233,7 +235,7 @@ mod tests {
                 Felt::from(13431515),
                 Felt::from(11),
                 dummy_felt(),
-                dummy_contract_class(),
+                dummy_cairo_0_contract_class(),
                 dummy_contract_address(),
             )
             .unwrap(),

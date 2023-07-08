@@ -12,7 +12,7 @@ use crate::utils::generate_u128_random_numbers;
 #[derive(Default)]
 pub(crate) struct PredeployedAccounts {
     seed: u32,
-    initial_balance: u128,
+    initial_balance: Felt,
     fee_token_address: ContractAddress,
     accounts: Vec<Account>,
 }
@@ -20,7 +20,7 @@ pub(crate) struct PredeployedAccounts {
 impl PredeployedAccounts {
     pub(crate) fn new(
         seed: u32,
-        initial_balance: u128,
+        initial_balance: Felt,
         fee_token_address: ContractAddress,
     ) -> Self {
         Self { seed, initial_balance, fee_token_address, accounts: Vec::new() }
@@ -63,7 +63,7 @@ impl AccountGenerator for PredeployedAccounts {
 
         for private_key in private_keys {
             let account = Account::new(
-                Felt::from(self.initial_balance),
+                self.initial_balance,
                 self.generate_public_key(&private_key)?,
                 private_key,
                 class_hash,
@@ -83,7 +83,7 @@ mod tests {
     use serde_json::json;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::felt::{Felt, Key};
-    use starknet_types::traits::ToHexString;
+    use starknet_types::traits::{ToDecimalString, ToHexString};
 
     use crate::constants::CAIRO_0_ACCOUNT_CONTRACT_PATH;
     use crate::predeployed_accounts::PredeployedAccounts;
@@ -131,7 +131,8 @@ mod tests {
 
     #[test]
     fn private_key_from_different_seeds_should_be_different() {
-        let predeployed_acc = PredeployedAccounts::new(999, 1, dummy_contract_address());
+        let predeployed_acc =
+            PredeployedAccounts::new(999, Felt::from(1), dummy_contract_address());
         let generated_private_key = predeployed_acc.generate_private_keys(1).unwrap()[0];
 
         let non_expected_result = Felt::from_prefixed_hex_str(PRIVATE_KEYS_IN_HEX[0]).unwrap();
@@ -161,11 +162,12 @@ mod tests {
 
     #[test]
     fn check_generated_predeployed_accounts_against_json_schema() {
-        let mut predeployed_acc = PredeployedAccounts::new(123, 1000, dummy_contract_address());
+        let mut predeployed_acc =
+            PredeployedAccounts::new(123, Felt::from(1000), dummy_contract_address());
         let class_hash = Felt::from_prefixed_hex_str(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap();
         let json_str = std::fs::read_to_string(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
 
-        let contract_class = ContractClass::from_json_str(&json_str).unwrap();
+        let contract_class = ContractClass::cairo_0_from_json_str(&json_str).unwrap();
 
         let generated_accounts =
             predeployed_acc.generate_accounts(3, class_hash, contract_class).unwrap();
@@ -182,7 +184,7 @@ mod tests {
             .map(|acc| {
                 json!({
                     "address": acc.account_address.to_prefixed_hex_str(),
-                    "initial_balance": u64::from_str_radix(&acc.balance.to_nonprefixed_hex_str(), 16).unwrap(),
+                    "initial_balance": acc.initial_balance.to_decimal_string(),
                     "private_key": acc.private_key.to_prefixed_hex_str(),
                     "public_key": acc.public_key.to_prefixed_hex_str()
                 })
@@ -193,6 +195,6 @@ mod tests {
     }
 
     fn predeployed_account_instance() -> PredeployedAccounts {
-        PredeployedAccounts::new(SEED, 100, dummy_contract_address())
+        PredeployedAccounts::new(SEED, Felt::from(100), dummy_contract_address())
     }
 }
