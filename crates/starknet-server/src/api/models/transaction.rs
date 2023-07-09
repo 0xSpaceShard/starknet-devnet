@@ -58,7 +58,6 @@ pub enum Transaction {
 }
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
 pub struct DeclareTransactionV0V1 {
     pub class_hash: ClassHashHex,
     pub sender_address: ContractAddressHex,
@@ -258,7 +257,6 @@ pub struct FunctionCall {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
 pub struct BroadcastedTransactionCommon {
     pub max_fee: Fee,
     pub version: TransactionVersionHex,
@@ -296,7 +294,6 @@ pub enum BroadcastedDeclareTransaction {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
 pub struct BroadcastedInvokeTransactionV0 {
     #[serde(flatten)]
     pub common: BroadcastedTransactionCommon,
@@ -306,7 +303,6 @@ pub struct BroadcastedInvokeTransactionV0 {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
 pub struct BroadcastedInvokeTransactionV1 {
     #[serde(flatten)]
     pub common: BroadcastedTransactionCommon,
@@ -315,7 +311,6 @@ pub struct BroadcastedInvokeTransactionV1 {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
 pub struct BroadcastedDeclareTransactionV1 {
     #[serde(flatten)]
     pub common: BroadcastedTransactionCommon,
@@ -324,7 +319,6 @@ pub struct BroadcastedDeclareTransactionV1 {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
 pub struct BroadcastedDeclareTransactionV2 {
     #[serde(flatten)]
     pub common: BroadcastedTransactionCommon,
@@ -334,7 +328,6 @@ pub struct BroadcastedDeclareTransactionV2 {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
 pub struct BroadcastedDeployAccountTransaction {
     #[serde(flatten)]
     pub common: BroadcastedTransactionCommon,

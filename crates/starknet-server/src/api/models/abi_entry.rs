@@ -16,7 +16,6 @@ pub enum AbiEntryType {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
 #[serde(untagged)]
 pub enum AbiEntry {
     /// An event abi entry.
