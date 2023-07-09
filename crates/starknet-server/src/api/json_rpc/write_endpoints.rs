@@ -25,7 +25,7 @@ impl JsonRpcHandler {
                 .starknet
                 .write()
                 .await
-                .add_declare_transaction_v1(broadcasted_declare_txn.try_into()?)
+                .add_declare_transaction_v1((*broadcasted_declare_txn).try_into()?)
                 .map_err(|err| match err {
                     starknet_types::error::Error::TransactionError(
                         TransactionError::ClassAlreadyDeclared(_),
@@ -99,7 +99,7 @@ mod tests {
         let result = json_rpc_handler
             .add_declare_transaction(
                 crate::api::models::transaction::BroadcastedDeclareTransaction::V1(
-                    declare_txn_v1.clone(),
+                    Box::new(declare_txn_v1.clone()),
                 ),
             )
             .await

@@ -291,8 +291,8 @@ pub enum BroadcastedInvokeTransaction {
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum BroadcastedDeclareTransaction {
-    V1(BroadcastedDeclareTransactionV1),
-    V2(BroadcastedDeclareTransactionV2),
+    V1(Box<BroadcastedDeclareTransactionV1>),
+    V2(Box<BroadcastedDeclareTransactionV2>),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
