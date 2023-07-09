@@ -233,7 +233,7 @@ mod tests {
     use crate::blocks::StarknetBlock;
     use crate::traits::Accounted;
     use crate::utils::test_utils::{dummy_declare_transaction_v1, starknet_config_for_test};
-    use crate::{Starknet};
+    use crate::Starknet;
 
     #[test]
     fn correct_initial_state_with_test_config() {

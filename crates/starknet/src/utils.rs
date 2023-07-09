@@ -50,8 +50,8 @@ pub(crate) mod test_utils {
     use starknet_types::felt::Felt;
     use starknet_types::patricia_key::StorageKey;
 
-    use crate::{constants, StarknetConfig};
     use crate::transactions::declare_transaction::DeclareTransactionV1;
+    use crate::{constants, StarknetConfig};
 
     pub fn starknet_config_for_test() -> StarknetConfig {
         StarknetConfig {
