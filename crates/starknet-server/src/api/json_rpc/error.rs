@@ -26,6 +26,10 @@ pub enum ApiError {
     InvalidContinuationToken,
     #[error("Too many keys provided in a filter")]
     TooManyKeysInFilter,
+    #[error("Class already declared")]
+    ClassAlreadyDeclared,
+    #[error("Invalid contract class")]
+    InvalidContractClass,
 }
 
 #[cfg(test)]
