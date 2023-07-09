@@ -1,4 +1,4 @@
-pub(crate) mod declare_transaction;
+pub mod declare_transaction;
 pub(crate) mod declare_transaction_v2;
 
 use std::collections::HashMap;
