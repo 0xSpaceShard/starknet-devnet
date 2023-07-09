@@ -88,7 +88,7 @@ mod tests {
     use starknet_types::traits::ToHexString;
 
     use crate::api::json_rpc::JsonRpcHandler;
-    use crate::api::json_rpc::error::ApiError;
+    
     use crate::api::models::transaction::BroadcastedDeclareTransactionV1;
     use crate::api::Api;
 
@@ -135,7 +135,7 @@ mod tests {
         ))
         .unwrap();
 
-        let broadcasted_declare_transaction_v1: super::BroadcastedDeclareTransactionV1 =
+        let _broadcasted_declare_transaction_v1: super::BroadcastedDeclareTransactionV1 =
             serde_json::from_str(&json_string).unwrap();
     }
 

@@ -42,8 +42,8 @@ pub mod base_64_gzipped_json_string {
         let starknet_program: LegacyProgram = serde_json::from_reader(decoder)
             .map_err(|_| serde::de::Error::custom("program: Unable to decode gzipped bytes"))?;
 
-        Ok(serde_json::to_value(starknet_program)
-            .map_err(|_| serde::de::Error::custom("program: Unable to parse to JSON"))?)
+        serde_json::to_value(starknet_program)
+            .map_err(|_| serde::de::Error::custom("program: Unable to parse to JSON"))
     }
 
     #[cfg(test)]
