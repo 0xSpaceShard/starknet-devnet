@@ -313,9 +313,8 @@ mod tests {
         let err = starknet.add_declare_transaction_v1(declare_txn).err().unwrap();
 
         if let starknet_types::error::Error::TransactionError(TransactionError::ClassAlreadyDeclared(_)) = err {
-            assert!(true);
         } else {
-            assert!(false);
+            panic!("Wrong error type");
         }
     }
 
