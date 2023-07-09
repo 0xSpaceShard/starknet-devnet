@@ -17,6 +17,59 @@ pub mod empty_params {
     }
 }
 
+pub mod base_64_gzipped_json_string {
+    use std::io::Read;
+
+    use base64::Engine;
+    use serde::{Deserialize, Deserializer};
+    use starknet_types::starknet_api::deprecated_contract_class::Program;
+
+    pub fn deserialize_to_starknet_api_program<'de, D>(deserializer: D) -> Result<Program, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let buf = String::deserialize(deserializer)?;
+
+        let bytes = base64::engine::general_purpose::STANDARD.decode(buf).map_err(|_| {
+            serde::de::Error::custom("program: Unable to decode base64 string")
+        })?;
+
+        let mut decoder = flate2::read::GzDecoder::new(bytes.as_slice());
+        let mut decoded = String::new();
+        decoder.read_to_string(&mut decoded).map_err(|_| {
+            serde::de::Error::custom("program: Unable to decode gzipped bytes")
+        })?;
+
+        let program: Program = serde_json::from_str(&decoded).map_err(|_| {
+            serde::de::Error::custom("program: Unable to parse to JSON")
+        })?;
+        
+        Ok(program)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use serde::Deserialize;
+        use starknet_types::starknet_api::deprecated_contract_class::Program;
+
+        use crate::api::serde_helpers::base_64_gzipped_json_string::deserialize_to_starknet_api_program;
+
+        #[test]
+        fn deserialize_successfully_starknet_api_program() {
+            let json_str = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/rpc/cairo_0_program.json")).unwrap();
+            
+            #[derive(Deserialize)]
+            struct TestDeserialization {
+                #[allow(unused)]
+                #[serde(deserialize_with = "deserialize_to_starknet_api_program")]
+                program: Program
+            };
+
+            serde_json::from_str::<TestDeserialization>(&json_str).unwrap();
+        }
+    }
+}
+
 pub mod hex_string {
     use serde::{Deserialize, Deserializer, Serializer};
     use starknet_types::contract_address::ContractAddress;
