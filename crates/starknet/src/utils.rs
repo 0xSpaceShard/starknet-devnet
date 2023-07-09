@@ -43,7 +43,7 @@ pub(crate) fn get_storage_var_address(
 }
 
 #[cfg(test)]
-pub(crate) mod test_utils {
+pub mod test_utils {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::contract_storage_key::ContractStorageKey;
