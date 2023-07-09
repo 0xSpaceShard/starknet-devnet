@@ -15,7 +15,6 @@ use tracing::{error, info, trace};
 
 use self::error::ApiError;
 use self::models::{BlockIdInput, BroadcastedDeclareTransactionInput};
-use super::models::transaction::BroadcastedDeclareTransaction;
 use super::Api;
 use crate::api::serde_helpers::empty_params;
 
@@ -90,6 +89,16 @@ impl<T: Serialize> ToRpcResponseResult for RpcResult<T> {
                 },
                 err @ ApiError::TooManyKeysInFilter => RpcError {
                     code: server::rpc_core::error::ErrorCode::ServerError(34),
+                    message: err.to_string().into(),
+                    data: None,
+                },
+                err @ ApiError::ClassAlreadyDeclared => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(51),
+                    message: err.to_string().into(),
+                    data: None,
+                },
+                err @ ApiError::InvalidContractClass => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(50),
                     message: err.to_string().into(),
                     data: None,
                 },

@@ -84,6 +84,12 @@ pub struct BroadcastedDeclareTransactionInput {
     pub declare_transaction: BroadcastedDeclareTransaction,
 }
 
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+pub struct DeclareTransactionOutput {
+    pub transaction_hash: TransactionHashHex,
+    pub class_hash: ClassHashHex,
+}
+
 #[cfg(test)]
 mod tests {
     use starknet_types::contract_address::ContractAddress;
