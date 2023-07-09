@@ -66,7 +66,7 @@ pub mod base_64_gzipped_json_string {
                 #[serde(
                     deserialize_with = "deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order"
                 )]
-                program: serde_json::Value
+                program: serde_json::Value,
             }
 
             serde_json::from_str::<TestDeserialization>(&json_str).unwrap();

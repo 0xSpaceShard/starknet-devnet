@@ -268,8 +268,6 @@ mod tests {
         assert_eq!(tx.status, TransactionStatus::AcceptedOnL2);
     }
 
-    
-
     #[test]
     fn add_declare_v1_transaction_should_return_rejected_txn_and_not_be_part_of_pending_state() {
         let (mut starknet, sender) = setup(Some(1));
@@ -312,7 +310,10 @@ mod tests {
 
         let err = starknet.add_declare_transaction_v1(declare_txn).err().unwrap();
 
-        if let starknet_types::error::Error::TransactionError(TransactionError::ClassAlreadyDeclared(_)) = err {
+        if let starknet_types::error::Error::TransactionError(
+            TransactionError::ClassAlreadyDeclared(_),
+        ) = err
+        {
         } else {
             panic!("Wrong error type");
         }

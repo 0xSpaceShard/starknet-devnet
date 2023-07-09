@@ -88,7 +88,6 @@ mod tests {
     use starknet_types::traits::ToHexString;
 
     use crate::api::json_rpc::JsonRpcHandler;
-    
     use crate::api::models::transaction::BroadcastedDeclareTransactionV1;
     use crate::api::Api;
 
@@ -98,9 +97,9 @@ mod tests {
         let json_rpc_handler = setup();
         let result = json_rpc_handler
             .add_declare_transaction(
-                crate::api::models::transaction::BroadcastedDeclareTransaction::V1(
-                    Box::new(declare_txn_v1.clone()),
-                ),
+                crate::api::models::transaction::BroadcastedDeclareTransaction::V1(Box::new(
+                    declare_txn_v1.clone(),
+                )),
             )
             .await
             .unwrap();
