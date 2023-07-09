@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use super::abi_entry::{AbiEntry, AbiEntryType};
 use super::FeltHex;
+use crate::api::serde_helpers::base_64_gzipped_json_string::deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
@@ -27,7 +28,10 @@ pub struct SierraContractClass {
 pub struct DeprecatedContractClass {
     pub abi: Vec<ContractClassAbiEntryWithType>,
     /// A base64 encoding of the gzip-compressed JSON representation of program.
-    pub program: String,
+    #[serde(
+        deserialize_with = "deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order"
+    )]
+    pub program: serde_json::Value,
     /// The selector of each entry point is a unique identifier in the program.
     pub entry_points_by_type: HashMap<
         starknet_types::starknet_api::deprecated_contract_class::EntryPointType,
@@ -177,7 +181,7 @@ mod tests {
                     "type": "constructor"
                 }
             ],
-            "program": "H4sIAAAAAAAA/8tIzcnJVyjPL8pJUQQAlQYXAAAA",
+            "program": "",
             "entry_points_by_type": {
                 "EXTERNAL": [
                     {
@@ -194,7 +198,6 @@ mod tests {
 
         let obj = serde_json::from_str::<super::DeprecatedContractClass>(json_str).unwrap();
         assert_eq!(obj.abi.len(), 3);
-        assert_eq!(obj.program, "H4sIAAAAAAAA/8tIzcnJVyjPL8pJUQQAlQYXAAAA".to_string());
         assert_eq!(obj.entry_points_by_type.len(), 1);
         assert_eq!(obj.entry_points_by_type.get(&starknet_types::starknet_api::deprecated_contract_class::EntryPointType::External).unwrap().len(), 2);
     }
