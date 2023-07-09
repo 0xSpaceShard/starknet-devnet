@@ -37,9 +37,9 @@ pub struct DeprecatedContractClass {
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct ContractClassAbiEntryWithType {
-    pub r#type: AbiEntryType,
     #[serde(flatten)]
     pub entry: AbiEntry,
+    pub r#type: AbiEntryType,
 }
 
 #[cfg(test)]

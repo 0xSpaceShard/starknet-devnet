@@ -29,8 +29,8 @@ pub enum AbiEntry {
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub struct FunctionAbiEntry {
-    pub name: String,
     pub inputs: Vec<starknet_types::starknet_api::deprecated_contract_class::TypedParameter>,
+    pub name: String,
     pub outputs: Vec<starknet_types::starknet_api::deprecated_contract_class::TypedParameter>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "stateMutability")]
