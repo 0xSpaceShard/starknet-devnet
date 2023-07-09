@@ -4,6 +4,7 @@ use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::traits::HashProducer;
 use starknet_types::DevnetResult;
 
+use crate::traits::StateChanger;
 use crate::transactions::declare_transaction::DeclareTransactionV1;
 use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
 use crate::transactions::{StarknetTransaction, Transaction};
@@ -92,6 +93,14 @@ impl Starknet {
         let class_hash = declare_transaction.contract_class.generate_hash()?;
         let transaction_hash = declare_transaction.generate_hash()?;
         declare_transaction.transaction_hash = Some(transaction_hash);
+
+        if self.state.is_contract_declared(&class_hash)? {
+            return Err(Error::TransactionError(
+                starknet_in_rust::transaction::error::TransactionError::ClassAlreadyDeclared(
+                    class_hash.into(),
+                ),
+            ));
+        }
 
         let transaction = Declare {
             class_hash: class_hash.into(),
@@ -259,6 +268,8 @@ mod tests {
         assert_eq!(tx.status, TransactionStatus::AcceptedOnL2);
     }
 
+    
+
     #[test]
     fn add_declare_v1_transaction_should_return_rejected_txn_and_not_be_part_of_pending_state() {
         let (mut starknet, sender) = setup(Some(1));
@@ -289,6 +300,22 @@ mod tests {
                 assert_eq!(generated_error.to_string(), expected_error.to_string());
             }
             _ => panic!("Wrong error type"),
+        }
+    }
+
+    #[test]
+    fn add_declare_v1_transaction_second_time_should_fail() {
+        let (mut starknet, sender) = setup(None);
+
+        let declare_txn = test_declare_transaction_v1(sender);
+        starknet.add_declare_transaction_v1(declare_txn.clone()).unwrap();
+
+        let err = starknet.add_declare_transaction_v1(declare_txn.clone()).err().unwrap();
+
+        if let starknet_types::error::Error::TransactionError(TransactionError::ClassAlreadyDeclared(_)) = err {
+            assert!(true);
+        } else {
+            assert!(false);
         }
     }
 
