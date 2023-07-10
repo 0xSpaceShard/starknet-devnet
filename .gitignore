@@ -15,4 +15,3 @@ Cargo.lock
 
 # DS_Store MacOS file
 **/.DS_Store
-.vscode/launch.json
