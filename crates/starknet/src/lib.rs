@@ -32,8 +32,10 @@ mod services;
 mod state;
 mod system_contract;
 mod traits;
-mod transactions;
+pub mod transactions;
 mod utils;
+
+pub use starknet_in_rust::transaction::error::TransactionError;
 
 #[derive(Debug)]
 pub struct StarknetConfig {
@@ -230,16 +232,8 @@ mod tests {
 
     use crate::blocks::StarknetBlock;
     use crate::traits::Accounted;
-    use crate::utils::test_utils::dummy_declare_transaction_v1;
-    use crate::{Starknet, StarknetConfig};
-
-    pub(crate) fn starknet_config_for_test() -> StarknetConfig {
-        StarknetConfig {
-            seed: 123,
-            total_accounts: 3,
-            predeployed_accounts_initial_balance: 100.into(),
-        }
-    }
+    use crate::utils::test_utils::{dummy_declare_transaction_v1, starknet_config_for_test};
+    use crate::Starknet;
 
     #[test]
     fn correct_initial_state_with_test_config() {
