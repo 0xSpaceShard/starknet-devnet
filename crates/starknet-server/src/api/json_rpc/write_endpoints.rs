@@ -124,6 +124,9 @@ mod tests {
         JsonRpcHandler { api }
     }
 
+    /// The example uses declare_v1.json from test_data/rpc/declare_v1.json
+    /// Which declares the example from https://www.cairo-lang.org/docs/hello_starknet/intro.html#your-first-contract
+    /// The example was compiled locally and send via Postman to https://alpha4.starknet.io/gateway/add_transaction
     #[test]
     fn parsed_base64_gzipped_json_contract_class_correctly() {
         let json_string = std::fs::read_to_string(concat!(
