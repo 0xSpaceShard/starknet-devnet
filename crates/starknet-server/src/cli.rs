@@ -32,14 +32,14 @@ pub(crate) struct Args {
 
     // Host address.
     #[arg(long = "host")]
-    #[arg(value_name = "DEVNET_HOST")]
+    #[arg(value_name = "HOST")]
     #[arg(default_value = "127.0.0.1")]
     #[arg(help = "Specify the address to listen at;")]
     host: String,
 
     // Port number.
     #[arg(long = "port")]
-    #[arg(value_name = "DEVNET_PORT")]
+    #[arg(value_name = "PORT")]
     #[arg(default_value = "5050")]
     #[arg(help = "Specify the port to listen at;")]
     port: u16,
