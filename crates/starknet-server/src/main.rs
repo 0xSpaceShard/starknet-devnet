@@ -53,7 +53,7 @@ async fn main() -> Result<(), anyhow::Error> {
     // parse arguments
     let args = Args::parse();
     let starknet_config = args.to_starknet_config();
-    let host = IpAddr::from_str(starknet_config.host.as_str()).unwrap();
+    let host = IpAddr::from_str(starknet_config.host.as_str()).expect("should get host IP address");
     let mut addr = SocketAddr::new(host, starknet_config.port);
 
     let api = api::Api::new(Starknet::new(&starknet_config)?);
