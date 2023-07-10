@@ -245,6 +245,11 @@ mod tests {
             seed: 123,
             total_accounts: 3,
             predeployed_accounts_initial_balance: 100.into(),
+            host: String::from("127.0.0.1"),
+            port: 5050,
+            timeout: 120,
+            gas_price: 100000000,
+            chain_id: StarknetChainId::TestNet,
         }
     }
 
