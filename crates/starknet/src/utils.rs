@@ -49,6 +49,7 @@ pub(crate) mod test_utils {
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
     use starknet_types::patricia_key::StorageKey;
+    use starknet_in_rust::definitions::block_context::StarknetChainId;
 
     use crate::constants;
     use crate::transactions::declare_transaction::DeclareTransactionV1;
@@ -84,7 +85,7 @@ pub(crate) mod test_utils {
             vec![],
             dummy_felt(),
             dummy_cairo_0_contract_class(),
-            StarknetChainId::TestNet,
+            StarknetChainId::TestNet.to_felt().into(),
         )
     }
 

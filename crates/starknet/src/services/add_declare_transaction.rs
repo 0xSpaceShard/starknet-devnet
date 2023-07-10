@@ -191,6 +191,7 @@ mod tests {
             nonce: Felt::from(0),
             class_hash: None,
             transaction_hash: None,
+            chain_id: StarknetChainId::TestNet.to_felt().into(),
         }
     }
 

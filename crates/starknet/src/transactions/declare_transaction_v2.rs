@@ -7,8 +7,6 @@ use starknet_types::error::Error;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 
-use crate::constants;
-
 #[derive(Clone, PartialEq, Eq)]
 pub struct DeclareTransactionV2 {
     pub sierra_contract_class: ContractClass,
