@@ -70,15 +70,13 @@ impl TryFrom<BroadcastedDeclareTransactionV1>
 {
     type Error = ApiError;
     fn try_from(value: BroadcastedDeclareTransactionV1) -> RpcResult<Self> {
-        Ok(DeclareTransactionV1 {
-            sender_address: value.sender_address.0,
-            max_fee: value.common.max_fee.0,
-            signature: value.common.signature.iter().map(|x| x.0).collect(),
-            nonce: value.common.nonce.0,
-            contract_class: ContractClass::try_from(value.contract_class)?,
-            class_hash: None,
-            transaction_hash: None,
-        })
+        Ok(DeclareTransactionV1::new(
+            value.sender_address.0,
+            value.common.max_fee.0,
+            value.common.signature.iter().map(|x| x.0).collect(),
+            value.common.nonce.0,
+            ContractClass::try_from(value.contract_class)?,
+        ))
     }
 }
 
