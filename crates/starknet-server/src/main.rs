@@ -1,4 +1,3 @@
-use std::env;
 use std::{
     net::{IpAddr, SocketAddr}, str::FromStr,
 };

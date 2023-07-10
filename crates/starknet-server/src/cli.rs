@@ -40,7 +40,7 @@ pub(crate) struct Args {
     // Port number.
     #[arg(long = "port")]
     #[arg(value_name = "DEVNET_PORT")]
-    // #[arg(default_value = "5050")]
+    #[arg(default_value = "5050")]
     #[arg(help = "Specify the port to listen at;")]
     port: u16,
 
