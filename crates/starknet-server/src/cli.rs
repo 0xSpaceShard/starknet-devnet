@@ -87,7 +87,7 @@ impl Args {
                 "MAINNET" => StarknetChainId::MainNet,
                 "TESTNET" => StarknetChainId::TestNet,
                 "TESTNET2" => StarknetChainId::TestNet2,
-                _ => StarknetChainId::TestNet,
+                _ => panic!("Invalid value for chain-id"),
             },
         }
     }
