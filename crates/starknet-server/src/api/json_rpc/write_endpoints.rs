@@ -127,7 +127,7 @@ mod tests {
     }
 
     #[test]
-    fn parsed_base64_gzipped_json_contract_class_correctly_computed_hash() {
+    fn parsed_base64_gzipped_json_contract_class_correctly() {
         let json_string = std::fs::read_to_string(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/test_data/rpc/declare_v1.json"
