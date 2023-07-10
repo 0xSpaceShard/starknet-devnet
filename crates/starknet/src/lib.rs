@@ -2,26 +2,27 @@ use std::collections::HashMap;
 use std::time::SystemTime;
 
 use blocks::{StarknetBlock, StarknetBlocks};
-use constants::ERC20_CONTRACT_ADDRESS;
+use constants::{CHAIN_ID, ERC20_CONTRACT_ADDRESS};
 use predeployed_accounts::PredeployedAccounts;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
-use starknet_in_rust::definitions::block_context::{BlockContext, StarknetOsConfig, StarknetChainId};
+use starknet_in_rust::definitions::block_context::{BlockContext, StarknetOsConfig};
 use starknet_in_rust::definitions::constants::{
     DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS, DEFAULT_CONTRACT_STORAGE_COMMITMENT_TREE_HEIGHT,
     DEFAULT_GLOBAL_STATE_COMMITMENT_TREE_HEIGHT, DEFAULT_INVOKE_TX_MAX_N_STEPS,
     DEFAULT_VALIDATE_MAX_N_STEPS,
 };
+use starknet_in_rust::execution::TransactionExecutionInfo;
 use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
 use starknet_rs_core::types::TransactionStatus;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::Felt;
+use starknet_types::felt::{Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use starknet_types::DevnetResult;
 use state::StarknetState;
 use tracing::error;
-use traits::{AccountGenerator, Accounted, HashIdentifiedMut};
-use transactions::StarknetTransactions;
+use traits::{AccountGenerator, Accounted, HashIdentifiedMut, StateChanger};
+use transactions::{StarknetTransaction, StarknetTransactions, Transaction};
 
 pub mod account;
 mod blocks;
@@ -39,11 +40,6 @@ pub struct StarknetConfig {
     pub seed: u32,
     pub total_accounts: u8,
     pub predeployed_accounts_initial_balance: Felt,
-    pub host: String,
-    pub port: u16,
-    pub timeout: u16,
-    pub gas_price: u64,
-    pub chain_id: StarknetChainId,
 }
 
 #[derive(Default)]
@@ -90,7 +86,7 @@ impl Starknet {
         let mut this = Self {
             state,
             predeployed_accounts,
-            block_context: Self::get_block_context(config.gas_price, ERC20_CONTRACT_ADDRESS, config.chain_id)?,
+            block_context: Self::get_block_context(0, ERC20_CONTRACT_ADDRESS)?,
             blocks: StarknetBlocks::default(),
             transactions: StarknetTransactions::default(),
         };
@@ -138,9 +134,36 @@ impl Starknet {
         Ok(())
     }
 
-    fn get_block_context(gas_price: u64, fee_token_address: &str, chain_id: StarknetChainId) -> DevnetResult<BlockContext> {
+    pub(crate) fn handle_successful_transaction(
+        &mut self,
+        transaction_hash: &TransactionHash,
+        transaction: Transaction,
+        tx_info: TransactionExecutionInfo,
+    ) -> DevnetResult<()> {
+        let transaction_to_add =
+            StarknetTransaction::create_successful(transaction.clone(), tx_info);
+
+        // add accepted transaction to pending block
+        self.blocks.pending_block.add_transaction(transaction);
+
+        // add transaction to transactions
+        self.transactions.insert(transaction_hash, transaction_to_add);
+
+        // create new block from pending one
+        self.generate_new_block()?;
+        // apply state changes from cached state
+        self.state.apply_cached_state()?;
+        // make cached state part of "persistent" state
+        self.state.synchronize_states();
+        // clear pending block information
+        self.generate_pending_block()?;
+
+        Ok(())
+    }
+
+    fn get_block_context(gas_price: u64, fee_token_address: &str) -> DevnetResult<BlockContext> {
         let starknet_os_config = StarknetOsConfig::new(
-            chain_id,
+            CHAIN_ID,
             starknet_in_rust::utils::Address(
                 Felt::from_prefixed_hex_str(fee_token_address)?.into(),
             ),
@@ -204,7 +227,6 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
-    use starknet_in_rust::definitions::block_context::StarknetChainId;
 
     use crate::blocks::StarknetBlock;
     use crate::traits::Accounted;
@@ -216,11 +238,6 @@ mod tests {
             seed: 123,
             total_accounts: 3,
             predeployed_accounts_initial_balance: 100.into(),
-            host: String::from("127.0.0.1"),
-            port: 5050,
-            timeout: 120,
-            gas_price: 100000000,
-            chain_id: StarknetChainId::TestNet,
         }
     }
 
@@ -241,7 +258,7 @@ mod tests {
     fn correct_block_context_creation() {
         let fee_token_address =
             ContractAddress::new(Felt::from_prefixed_hex_str("0xAA").unwrap()).unwrap();
-        let block_ctx = Starknet::get_block_context(10, "0xAA", StarknetChainId::TestNet).unwrap();
+        let block_ctx = Starknet::get_block_context(10, "0xAA").unwrap();
         assert!(block_ctx.block_info().block_number == 0);
         assert!(block_ctx.block_info().block_timestamp == 0);
         assert_eq!(block_ctx.block_info().gas_price, 10);
@@ -338,7 +355,7 @@ mod tests {
 
     #[test]
     fn correct_block_context_update() {
-        let mut block_ctx = Starknet::get_block_context(0, "0x0", StarknetChainId::TestNet).unwrap();
+        let mut block_ctx = Starknet::get_block_context(0, "0x0").unwrap();
         let initial_block_number = block_ctx.block_info().block_number;
         Starknet::update_block_context(&mut block_ctx);
 
