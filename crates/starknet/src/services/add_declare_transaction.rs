@@ -94,14 +94,6 @@ impl Starknet {
         let transaction_hash = declare_transaction.generate_hash()?;
         declare_transaction.transaction_hash = Some(transaction_hash);
 
-        if self.state.is_contract_declared(&class_hash)? {
-            return Err(Error::TransactionError(
-                starknet_in_rust::transaction::error::TransactionError::ClassAlreadyDeclared(
-                    class_hash.into(),
-                ),
-            ));
-        }
-
         let transaction = Declare {
             class_hash: class_hash.into(),
             sender_address: declare_transaction.sender_address.try_into()?,
@@ -298,24 +290,6 @@ mod tests {
                 assert_eq!(generated_error.to_string(), expected_error.to_string());
             }
             _ => panic!("Wrong error type"),
-        }
-    }
-
-    #[test]
-    fn add_declare_v1_transaction_second_time_should_fail() {
-        let (mut starknet, sender) = setup(None);
-
-        let declare_txn = test_declare_transaction_v1(sender);
-        starknet.add_declare_transaction_v1(declare_txn.clone()).unwrap();
-
-        let err = starknet.add_declare_transaction_v1(declare_txn).err().unwrap();
-
-        if let starknet_types::error::Error::TransactionError(
-            TransactionError::ClassAlreadyDeclared(_),
-        ) = err
-        {
-        } else {
-            panic!("Wrong error type");
         }
     }
 
