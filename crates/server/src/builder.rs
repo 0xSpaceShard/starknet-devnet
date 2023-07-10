@@ -7,11 +7,11 @@ use axum::routing::{post, IntoMakeService};
 use axum::{Extension, Router};
 use hyper::server::conn::AddrIncoming;
 use hyper::{header, Method, Request, Server};
+use starknet_core::StarknetConfig;
 use tower::Service;
 use tower_http::cors::CorsLayer;
-use tower_http::trace::TraceLayer;
 use tower_http::timeout::TimeoutLayer;
-use starknet_core::StarknetConfig;
+use tower_http::trace::TraceLayer;
 
 use crate::rpc_handler::{self, RpcHandler};
 use crate::ServerConfig;
@@ -99,7 +99,8 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
             svc = svc.layer(Extension(self.http_api_handler.unwrap()));
         }
 
-        svc = svc.layer(TraceLayer::new_for_http())      
+        svc = svc
+            .layer(TraceLayer::new_for_http())
             .layer(TimeoutLayer::new(Duration::from_secs(starknet_config.timeout.into())));
 
         if let Some(ServerConfig { allow_origin }) = self.config {

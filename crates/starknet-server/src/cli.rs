@@ -1,7 +1,7 @@
 use clap::Parser;
 use starknet_core::StarknetConfig;
-use starknet_types::num_bigint::BigUint;
 use starknet_in_rust::definitions::block_context::StarknetChainId;
+use starknet_types::num_bigint::BigUint;
 
 /// Run a local instance of Starknet Devnet
 #[derive(Parser, Debug)]

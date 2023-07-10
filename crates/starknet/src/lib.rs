@@ -5,7 +5,9 @@ use blocks::{StarknetBlock, StarknetBlocks};
 use constants::ERC20_CONTRACT_ADDRESS;
 use predeployed_accounts::PredeployedAccounts;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
-use starknet_in_rust::definitions::block_context::{BlockContext, StarknetOsConfig};
+use starknet_in_rust::definitions::block_context::{
+    BlockContext, StarknetChainId, StarknetOsConfig,
+};
 use starknet_in_rust::definitions::constants::{
     DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS, DEFAULT_CONTRACT_STORAGE_COMMITMENT_TREE_HEIGHT,
     DEFAULT_GLOBAL_STATE_COMMITMENT_TREE_HEIGHT, DEFAULT_INVOKE_TX_MAX_N_STEPS,
@@ -14,7 +16,6 @@ use starknet_in_rust::definitions::constants::{
 use starknet_in_rust::execution::TransactionExecutionInfo;
 use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
-use starknet_in_rust::definitions::block_context::StarknetChainId;
 use starknet_rs_core::types::TransactionStatus;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{Felt, TransactionHash};
@@ -167,7 +168,11 @@ impl Starknet {
         Ok(())
     }
 
-    fn get_block_context(gas_price: u64, fee_token_address: &str, chain_id: StarknetChainId) -> DevnetResult<BlockContext> {
+    fn get_block_context(
+        gas_price: u64,
+        fee_token_address: &str,
+        chain_id: StarknetChainId,
+    ) -> DevnetResult<BlockContext> {
         let starknet_os_config = StarknetOsConfig::new(
             chain_id,
             starknet_in_rust::utils::Address(
@@ -230,10 +235,10 @@ impl Starknet {
 #[cfg(test)]
 mod tests {
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
+    use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
-    use starknet_in_rust::definitions::block_context::StarknetChainId;
 
     use crate::blocks::StarknetBlock;
     use crate::traits::Accounted;
@@ -367,7 +372,8 @@ mod tests {
 
     #[test]
     fn correct_block_context_update() {
-        let mut block_ctx = Starknet::get_block_context(0, "0x0", StarknetChainId::TestNet).unwrap();
+        let mut block_ctx =
+            Starknet::get_block_context(0, "0x0", StarknetChainId::TestNet).unwrap();
         let initial_block_number = block_ctx.block_info().block_number;
         Starknet::update_block_context(&mut block_ctx);
 

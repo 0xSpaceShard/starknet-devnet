@@ -1,6 +1,5 @@
-use std::{
-    net::{IpAddr, SocketAddr}, str::FromStr,
-};
+use std::net::{IpAddr, SocketAddr};
+use std::str::FromStr;
 
 use ::server::ServerConfig;
 use clap::Parser;
@@ -66,7 +65,12 @@ async fn main() -> Result<(), anyhow::Error> {
         starknet_config.predeployed_accounts_initial_balance,
     );
 
-    let server = server::serve_http_api_json_rpc(addr, ServerConfig::default(), api.clone(), &starknet_config);
+    let server = server::serve_http_api_json_rpc(
+        addr,
+        ServerConfig::default(),
+        api.clone(),
+        &starknet_config,
+    );
     addr = server.local_addr();
 
     info!("StarkNet Devnet listening on {}", addr);
