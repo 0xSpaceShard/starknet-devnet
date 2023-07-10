@@ -84,6 +84,7 @@ pub(crate) mod test_utils {
             vec![],
             dummy_felt(),
             dummy_cairo_0_contract_class(),
+            StarknetChainId::TestNet,
         )
     }
 

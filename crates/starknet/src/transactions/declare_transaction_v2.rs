@@ -19,6 +19,7 @@ pub struct DeclareTransactionV2 {
     pub nonce: Felt,
     pub class_hash: Option<ClassHash>,
     pub transaction_hash: Option<TransactionHash>,
+    pub chain_id: Felt,
 }
 
 impl DeclareTransactionV2 {
@@ -41,7 +42,7 @@ impl HashProducer for DeclareTransactionV2 {
             Felt::from(0).into(),
             &calldata,
             self.max_fee,
-            constants::CHAIN_ID.to_felt(),
+            self.chain_id.into(),
             &additional_data,
         )
         .map_err(|err| {
