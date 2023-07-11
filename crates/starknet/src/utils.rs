@@ -51,8 +51,16 @@ pub(crate) mod test_utils {
     use starknet_types::felt::Felt;
     use starknet_types::patricia_key::StorageKey;
 
-    use crate::constants;
     use crate::transactions::declare_transaction::DeclareTransactionV1;
+    use crate::{constants, StarknetConfig};
+
+    pub fn starknet_config_for_test() -> StarknetConfig {
+        StarknetConfig {
+            seed: 123,
+            total_accounts: 3,
+            predeployed_accounts_initial_balance: 100.into(),
+        }
+    }
 
     pub(crate) const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str =
         "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f";

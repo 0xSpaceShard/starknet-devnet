@@ -1,6 +1,7 @@
 mod endpoints;
 mod error;
 mod models;
+mod write_endpoints;
 
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
@@ -13,7 +14,7 @@ use server::rpc_handler::RpcHandler;
 use tracing::{error, info, trace};
 
 use self::error::ApiError;
-use self::models::BlockIdInput;
+use self::models::{BlockIdInput, BroadcastedDeclareTransactionInput};
 use super::Api;
 use crate::api::serde_helpers::empty_params;
 
@@ -88,6 +89,16 @@ impl<T: Serialize> ToRpcResponseResult for RpcResult<T> {
                 },
                 err @ ApiError::TooManyKeysInFilter => RpcError {
                     code: server::rpc_core::error::ErrorCode::ServerError(34),
+                    message: err.to_string().into(),
+                    data: None,
+                },
+                err @ ApiError::ClassAlreadyDeclared => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(51),
+                    message: err.to_string().into(),
+                    data: None,
+                },
+                err @ ApiError::InvalidContractClass => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(50),
                     message: err.to_string().into(),
                     data: None,
                 },
@@ -178,6 +189,10 @@ impl JsonRpcHandler {
                 block_id,
                 contract_address,
             }) => self.get_nonce(block_id, contract_address).await.to_rpc_result(),
+
+            StarknetRequest::AddDeclareTransaction(BroadcastedDeclareTransactionInput {
+                declare_transaction,
+            }) => self.add_declare_transaction(declare_transaction).await.to_rpc_result(),
         }
     }
 }
@@ -225,6 +240,8 @@ pub enum StarknetRequest {
     Events(EventsInput),
     #[serde(rename = "starknet_getNonce")]
     ContractNonce(BlockAndContractAddressInput),
+    #[serde(rename = "starknet_addDeclareTransaction")]
+    AddDeclareTransaction(BroadcastedDeclareTransactionInput),
 }
 
 #[cfg(test)]
