@@ -245,20 +245,7 @@ mod tests {
     use crate::blocks::StarknetBlock;
     use crate::traits::Accounted;
     use crate::utils::test_utils::{dummy_declare_transaction_v1, starknet_config_for_test};
-    use crate::{Starknet, StarknetConfig};
-
-    pub(crate) fn starknet_config_for_test() -> StarknetConfig {
-        StarknetConfig {
-            seed: 123,
-            total_accounts: 3,
-            predeployed_accounts_initial_balance: 100.into(),
-            host: String::from("127.0.0.1"),
-            port: 5050,
-            timeout: 120,
-            gas_price: 100000000,
-            chain_id: StarknetChainId::TestNet,
-        }
-    }
+    use crate::Starknet;
 
 
     #[test]
