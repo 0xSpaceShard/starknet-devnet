@@ -76,6 +76,7 @@ impl TryFrom<BroadcastedDeclareTransactionV1>
             value.common.signature.iter().map(|x| x.0).collect(),
             value.common.nonce.0,
             ContractClass::try_from(value.contract_class)?,
+            starknet_in_rust::definitions::block_context::StarknetChainId::TestNet.to_felt().into(), /* TODO: Use chain_id from Singleton config (addressed in issues #48) */
         ))
     }
 }
@@ -83,6 +84,7 @@ impl TryFrom<BroadcastedDeclareTransactionV1>
 #[cfg(test)]
 mod tests {
     use starknet_core::{Starknet, StarknetConfig};
+    use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_types::traits::ToHexString;
 
     use crate::api::json_rpc::JsonRpcHandler;
@@ -114,10 +116,15 @@ mod tests {
     }
 
     fn setup() -> JsonRpcHandler {
-        let config = StarknetConfig {
+        let config: StarknetConfig = StarknetConfig {
             seed: 123,
-            total_accounts: 1,
-            predeployed_accounts_initial_balance: 1000.into(),
+            total_accounts: 3,
+            predeployed_accounts_initial_balance: 100.into(),
+            host: String::from("127.0.0.1"),
+            port: 5050,
+            timeout: 120,
+            gas_price: 100000000,
+            chain_id: StarknetChainId::TestNet,
         };
         let starknet = Starknet::new(&config).unwrap();
         let api = Api::new(starknet);

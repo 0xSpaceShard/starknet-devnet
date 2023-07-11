@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use clap::Parser;
 use starknet_core::StarknetConfig;
 use starknet_in_rust::definitions::block_context::StarknetChainId;
@@ -11,7 +13,7 @@ pub(crate) struct Args {
     /// Number of accounts.
     #[arg(long = "accounts")]
     #[arg(value_name = "ACCOUNTS")]
-    #[arg(default_value = "10")]
+    #[arg(default_value_t = 10)]
     #[arg(help = "Specify the number of accounts to be predeployed;")]
     accounts_count: u8,
 
@@ -19,7 +21,7 @@ pub(crate) struct Args {
     #[arg(long = "initial-balance")]
     #[arg(short = 'e')]
     #[arg(value_name = "INITIAL_BALANCE")]
-    #[arg(default_value = "1000000000000000000000")]
+    #[arg(default_value_t = BigUint::from_bytes_be(b"3635C9ADC5DEA00000"))]
     #[arg(help = "Specify the initial balance in WEI of accounts to be predeployed;")]
     initial_balance: BigUint,
 
@@ -40,21 +42,21 @@ pub(crate) struct Args {
     // Port number.
     #[arg(long = "port")]
     #[arg(value_name = "PORT")]
-    #[arg(default_value = "5050")]
+    #[arg(default_value_t = 5050)]
     #[arg(help = "Specify the port to listen at;")]
     port: u16,
 
     // Server timeout in seconds.
     #[arg(long = "timeout")]
     #[arg(value_name = "TIMEOUT")]
-    #[arg(default_value = "120")]
+    #[arg(default_value_t = 120)]
     #[arg(help = "Specify the server timeout in seconds;")]
     timeout: u16,
 
     // Gas price in wei.
     #[arg(long = "gas-price")]
     #[arg(value_name = "GAS_PRICE")]
-    #[arg(default_value = "100000000")]
+    #[arg(default_value_t = 100000000)]
     #[arg(help = "Specify the gas price in wei per gas unit;")]
     gas_price: u64,
 
