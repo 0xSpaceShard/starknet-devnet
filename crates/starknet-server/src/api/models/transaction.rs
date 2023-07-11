@@ -1,12 +1,13 @@
 use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
+use starknet_rs_core::types::BlockId;
 use starknet_types::starknet_api::block::BlockNumber;
 use starknet_types::starknet_api::transaction::{EthAddress, Fee};
 
 use super::block::BlockHashHex;
 use super::contract_class::{DeprecatedContractClass, SierraContractClass};
-use super::{BlockId, ContractAddressHex, FeltHex};
+use super::{ContractAddressHex, FeltHex};
 
 pub type TransactionHashHex = FeltHex;
 pub type ClassHashHex = FeltHex;

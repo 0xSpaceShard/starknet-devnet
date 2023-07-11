@@ -5,6 +5,7 @@ use blocks::{StarknetBlock, StarknetBlocks};
 use constants::{CHAIN_ID, ERC20_CONTRACT_ADDRESS};
 use predeployed_accounts::PredeployedAccounts;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
+use starknet_in_rust::core::errors::state_errors::StateError;
 use starknet_in_rust::definitions::block_context::{BlockContext, StarknetOsConfig};
 use starknet_in_rust::definitions::constants::{
     DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS, DEFAULT_CONTRACT_STORAGE_COMMITMENT_TREE_HEIGHT,
@@ -12,10 +13,12 @@ use starknet_in_rust::definitions::constants::{
     DEFAULT_VALIDATE_MAX_N_STEPS,
 };
 use starknet_in_rust::execution::TransactionExecutionInfo;
+use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
 use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
-use starknet_rs_core::types::TransactionStatus;
+use starknet_rs_core::types::{BlockId, TransactionStatus};
 use starknet_types::contract_address::ContractAddress;
+use starknet_types::error::Error;
 use starknet_types::felt::{Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use starknet_types::DevnetResult;
@@ -220,6 +223,20 @@ impl Starknet {
         self.blocks.pending_block = block;
 
         Ok(())
+    }
+
+    // TODO should return a more generic type (StateReader) to allow future implementation of a
+    // ForkedStateReader
+    pub fn get_state_reader_at(&self, block_id: &BlockId) -> DevnetResult<&InMemoryStateReader> {
+        match block_id {
+            BlockId::Hash(_) => Err(Error::StateError(StateError::CustomError(
+                "Specifying block by hash is currently not enabled".to_string(),
+            ))),
+            BlockId::Number(_) => Err(Error::StateError(StateError::CustomError(
+                "Specifying block by number is currently not enabled".to_string(),
+            ))),
+            BlockId::Tag(_) => Ok(&self.state.state),
+        }
     }
 }
 

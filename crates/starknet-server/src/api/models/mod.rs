@@ -41,6 +41,23 @@ pub enum BlockId {
     Tag(Tag),
 }
 
+impl From<BlockId> for starknet_rs_core::types::BlockId {
+    fn from(block_id: BlockId) -> Self {
+        type ImportedBlockId = starknet_rs_core::types::BlockId;
+        type ImportedTag = starknet_rs_core::types::BlockTag;
+        match block_id {
+            BlockId::HashOrNumber(hash_or_number) => match hash_or_number {
+                BlockHashOrNumber::Hash(hash) => ImportedBlockId::Hash(hash.0.into()),
+                BlockHashOrNumber::Number(number) => ImportedBlockId::Number(number.0),
+            },
+            BlockId::Tag(tag) => match tag {
+                Tag::Latest => ImportedBlockId::Tag(ImportedTag::Latest),
+                Tag::Pending => ImportedBlockId::Tag(ImportedTag::Pending),
+            },
+        }
+    }
+}
+
 /// Felt serialized/deserialized from/to prefixed hex string
 #[derive(Debug, Default, Hash, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct FeltHex(
