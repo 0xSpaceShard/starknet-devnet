@@ -1,7 +1,5 @@
-use std::str::FromStr;
-
 use clap::Parser;
-use starknet_core::StarknetConfig;
+use starknet_core::{StarknetConfig, constants::{DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_TOTAL_ACCOUNTS}};
 use starknet_in_rust::definitions::block_context::StarknetChainId;
 use starknet_types::num_bigint::BigUint;
 
@@ -13,7 +11,7 @@ pub(crate) struct Args {
     /// Number of accounts.
     #[arg(long = "accounts")]
     #[arg(value_name = "ACCOUNTS")]
-    #[arg(default_value_t = 10)]
+    #[arg(default_value_t = DEVNET_DEFAULT_TOTAL_ACCOUNTS)]
     #[arg(help = "Specify the number of accounts to be predeployed;")]
     accounts_count: u8,
 
@@ -42,21 +40,21 @@ pub(crate) struct Args {
     // Port number.
     #[arg(long = "port")]
     #[arg(value_name = "PORT")]
-    #[arg(default_value_t = 5050)]
+    #[arg(default_value_t = DEVNET_DEFAULT_PORT)]
     #[arg(help = "Specify the port to listen at;")]
     port: u16,
 
     // Server timeout in seconds.
     #[arg(long = "timeout")]
     #[arg(value_name = "TIMEOUT")]
-    #[arg(default_value_t = 120)]
+    #[arg(default_value_t = DEVNET_DEFAULT_TIMEOUT)]
     #[arg(help = "Specify the server timeout in seconds;")]
     timeout: u16,
 
     // Gas price in wei.
     #[arg(long = "gas-price")]
     #[arg(value_name = "GAS_PRICE")]
-    #[arg(default_value_t = 100000000)]
+    #[arg(default_value_t = DEVNET_DEFAULT_GAS_PRICE)]
     #[arg(help = "Specify the gas price in wei per gas unit;")]
     gas_price: u64,
 

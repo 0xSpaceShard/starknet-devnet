@@ -28,7 +28,7 @@ use transactions::{StarknetTransaction, StarknetTransactions, Transaction};
 
 pub mod account;
 mod blocks;
-mod constants;
+pub mod constants;
 mod predeployed_accounts;
 mod services;
 mod state;

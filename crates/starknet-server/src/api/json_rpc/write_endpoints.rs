@@ -84,9 +84,8 @@ impl TryFrom<BroadcastedDeclareTransactionV1>
 #[cfg(test)]
 mod tests {
     use starknet_core::{Starknet, StarknetConfig};
-    use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_types::traits::ToHexString;
-
+    use starknet_core::constants::{DEVNET_DEFAULT_SEED, DEVNET_DEFAULT_TOTAL_ACCOUNTS, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_CHAIN_ID};
     use crate::api::json_rpc::JsonRpcHandler;
     use crate::api::models::transaction::BroadcastedDeclareTransactionV1;
     use crate::api::Api;
@@ -117,14 +116,14 @@ mod tests {
 
     fn setup() -> JsonRpcHandler {
         let config: StarknetConfig = StarknetConfig {
-            seed: 123,
-            total_accounts: 3,
+            seed: DEVNET_DEFAULT_SEED,
+            total_accounts: DEVNET_DEFAULT_TOTAL_ACCOUNTS,
             predeployed_accounts_initial_balance: 100.into(),
             host: String::from("127.0.0.1"),
-            port: 5050,
-            timeout: 120,
-            gas_price: 100000000,
-            chain_id: StarknetChainId::TestNet,
+            port: DEVNET_DEFAULT_PORT,
+            timeout: DEVNET_DEFAULT_TIMEOUT,
+            gas_price: DEVNET_DEFAULT_GAS_PRICE,
+            chain_id: DEVNET_DEFAULT_CHAIN_ID,
         };
         let starknet = Starknet::new(&config).unwrap();
         let api = Api::new(starknet);

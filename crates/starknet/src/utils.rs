@@ -51,19 +51,20 @@ pub(crate) mod test_utils {
     use starknet_types::felt::Felt;
     use starknet_types::patricia_key::StorageKey;
 
+    use crate::constants::{DEVNET_DEFAULT_SEED, DEVNET_DEFAULT_TOTAL_ACCOUNTS, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_CHAIN_ID};
     use crate::transactions::declare_transaction::DeclareTransactionV1;
     use crate::{constants, StarknetConfig};
 
     pub fn starknet_config_for_test() -> StarknetConfig {
         StarknetConfig {
-            seed: 123,
-            total_accounts: 3,
+            seed: DEVNET_DEFAULT_SEED,
+            total_accounts: DEVNET_DEFAULT_TOTAL_ACCOUNTS,
             predeployed_accounts_initial_balance: 100.into(),
             host: String::from("127.0.0.1"),
-            port: 5050,
-            timeout: 120,
-            gas_price: 100000000,
-            chain_id: StarknetChainId::TestNet,
+            port: DEVNET_DEFAULT_PORT,
+            timeout: DEVNET_DEFAULT_TIMEOUT,
+            gas_price: DEVNET_DEFAULT_GAS_PRICE,
+            chain_id: DEVNET_DEFAULT_CHAIN_ID,
         }
     }
 
