@@ -83,9 +83,13 @@ impl TryFrom<BroadcastedDeclareTransactionV1>
 
 #[cfg(test)]
 mod tests {
+    use starknet_core::constants::{
+        DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT,
+        DEVNET_DEFAULT_SEED, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+    };
     use starknet_core::{Starknet, StarknetConfig};
     use starknet_types::traits::ToHexString;
-    use starknet_core::constants::{DEVNET_DEFAULT_SEED, DEVNET_DEFAULT_TOTAL_ACCOUNTS, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_CHAIN_ID};
+
     use crate::api::json_rpc::JsonRpcHandler;
     use crate::api::models::transaction::BroadcastedDeclareTransactionV1;
     use crate::api::Api;
