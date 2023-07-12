@@ -85,6 +85,8 @@ impl BackgroundDevnet {
     }
 }
 
+/// By implementing Drop, we ensure there are no zombie background Devnet processes
+/// in case of an early test failure
 impl Drop for BackgroundDevnet {
     fn drop(&mut self) {
         self.process.as_mut().expect("No process to kill").kill().expect("Cannot kill process");
