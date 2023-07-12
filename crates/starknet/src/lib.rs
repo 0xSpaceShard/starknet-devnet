@@ -266,6 +266,11 @@ impl Starknet {
             BlockId::Tag(_) => Ok(&self.state.state),
         }
     }
+
+    pub fn block_number(&self) -> DevnetResult<BlockNumber> {
+        let block_len = self.blocks.num_to_block.len();
+        Ok(BlockNumber(block_len as u64))
+    }
 }
 
 #[cfg(test)]
@@ -438,5 +443,28 @@ mod tests {
             Err(Error::StateError(StateError::CustomError(_))) => (),
             _ => panic!("Should have failed"),
         }
+    }
+
+    #[test]
+    fn returns_block_number() {
+        let config = starknet_config_for_test();
+        let mut starknet = Starknet::new(&config).unwrap();
+
+        let mut tx = dummy_declare_transaction_v1();
+        let tx_hash = tx.generate_hash().unwrap();
+        tx.transaction_hash = Some(tx_hash);
+
+        starknet
+            .blocks
+            .pending_block
+            .add_transaction(crate::transactions::Transaction::Declare(tx));
+
+        starknet.generate_new_block().unwrap();
+
+        let added_block = starknet.blocks.num_to_block.get(&BlockNumber(0)).unwrap();
+
+        let block_number = starknet.block_number().unwrap();
+
+        assert_eq!(block_number.0, added_block.get_transactions().len() as u64);
     }
 }

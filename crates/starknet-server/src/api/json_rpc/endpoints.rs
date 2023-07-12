@@ -132,7 +132,9 @@ impl JsonRpcHandler {
 
     /// starknet_blockNumber
     pub(crate) async fn block_number(&self) -> RpcResult<BlockNumber> {
-        Err(error::ApiError::NoBlocks)
+        let block_number = self.api.starknet.read().await.block_number()
+            .unwrap();
+        Ok(block_number)
     }
 
     /// starknet_blockHashAndNumber
