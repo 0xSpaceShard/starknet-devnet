@@ -1,7 +1,7 @@
 use clap::Parser;
 use starknet_core::constants::{
     DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TIMEOUT,
-    DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+    DEVNET_DEFAULT_TOTAL_ACCOUNTS, DEVNET_DEFAULT_HOST, DEVNET_DEFAULT_INITIAL_BALANCE,
 };
 use starknet_core::StarknetConfig;
 use starknet_in_rust::definitions::block_context::StarknetChainId;
@@ -23,7 +23,7 @@ pub(crate) struct Args {
     #[arg(long = "initial-balance")]
     #[arg(short = 'e')]
     #[arg(value_name = "INITIAL_BALANCE")]
-    #[arg(default_value_t = BigUint::from_bytes_be(b"3635C9ADC5DEA00000"))]
+    #[arg(default_value_t = BigUint::from(DEVNET_DEFAULT_INITIAL_BALANCE))]
     #[arg(help = "Specify the initial balance in WEI of accounts to be predeployed;")]
     initial_balance: BigUint,
 
@@ -37,7 +37,7 @@ pub(crate) struct Args {
     // Host address
     #[arg(long = "host")]
     #[arg(value_name = "HOST")]
-    #[arg(default_value = "127.0.0.1")]
+    #[arg(default_value = DEVNET_DEFAULT_HOST)]
     #[arg(help = "Specify the address to listen at;")]
     host: String,
 
@@ -83,7 +83,7 @@ impl Args {
                 .clone()
                 .try_into()
                 .expect("Invalid value for initial balance"), // TODO: Doesn't exit nicely.
-            host: self.host.clone(),
+            host: self.host.to_string(),
             port: self.port, // TODO: Unification of parsing messages for host and port.
             timeout: self.timeout,
             gas_price: self.gas_price,

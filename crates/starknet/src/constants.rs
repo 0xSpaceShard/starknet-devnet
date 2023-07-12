@@ -24,11 +24,12 @@ pub(crate) const UDC_CONTRACT_CLASS_HASH: &str =
 pub(crate) const UDC_CONTRACT_ADDRESS: &str =
     "0x41A78E741E5AF2FEC34B695679BC6891742439F7AFB8484ECD7766661AD02BF";
 
+// TODO: move to starknet-server
 pub const DEVNET_DEFAULT_SEED: u32 = 123;
 pub const DEVNET_DEFAULT_TOTAL_ACCOUNTS: u8 = 10;
-// pub const DEVNET_DEFAULT_INITIAL_BALANCE: Felt = Felt::from(100);
+pub const DEVNET_DEFAULT_INITIAL_BALANCE: u128 = 1000000000000000000000;
 pub const DEVNET_DEFAULT_GAS_PRICE: u64 = 100_000_000_000;
-// pub const DEVNET_DEFAULT_HOST: String = String::from("127.0.0.1");
+pub const DEVNET_DEFAULT_HOST: &'static str = "127.0.0.1";
 pub const DEVNET_DEFAULT_PORT: u16 = 5050;
 pub const DEVNET_DEFAULT_TIMEOUT: u16 = 120;
 pub const DEVNET_DEFAULT_CHAIN_ID: StarknetChainId = StarknetChainId::TestNet;
