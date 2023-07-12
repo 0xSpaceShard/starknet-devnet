@@ -27,7 +27,9 @@ impl JsonRpcHandler {
                 .starknet
                 .write()
                 .await
-                .add_declare_transaction_v1((convert_to_declare_transaction_v1(*broadcasted_declare_txn, chain_id.into()))?)
+                .add_declare_transaction_v1(
+                    (convert_to_declare_transaction_v1(*broadcasted_declare_txn, chain_id.into()))?,
+                )
                 .map_err(|err| match err {
                     starknet_types::error::Error::TransactionError(
                         TransactionError::ClassAlreadyDeclared(_),
@@ -67,7 +69,10 @@ impl TryFrom<DeprecatedContractClass> for ContractClass {
     }
 }
 
-fn convert_to_declare_transaction_v1(value: BroadcastedDeclareTransactionV1, chain_id: Felt) -> RpcResult<DeclareTransactionV1> {
+fn convert_to_declare_transaction_v1(
+    value: BroadcastedDeclareTransactionV1,
+    chain_id: Felt,
+) -> RpcResult<DeclareTransactionV1> {
     Ok(DeclareTransactionV1::new(
         value.sender_address.0,
         value.common.max_fee.0,
