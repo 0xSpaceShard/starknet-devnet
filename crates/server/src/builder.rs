@@ -35,7 +35,11 @@ pub struct Builder<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + 
 impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static>
     Builder<TJsonRpcHandler, THttpApiHandler>
 {
-    pub fn new(addr: SocketAddr, json_rpc_handler: TJsonRpcHandler, http_api_handler: THttpApiHandler) -> Self {
+    pub fn new(
+        addr: SocketAddr,
+        json_rpc_handler: TJsonRpcHandler,
+        http_api_handler: THttpApiHandler,
+    ) -> Self {
         Builder {
             address: addr,
             routes: Router::<hyper::Body>::new(),
@@ -87,8 +91,8 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
     pub fn build(self) -> StarknetDevnetServer {
         let mut svc = self.routes;
 
-        svc = svc.layer(Extension(self.json_rpc_handler);
-        svc = svc.layer(Extension(self.http_api_handler);
+        svc = svc.layer(Extension(self.json_rpc_handler));
+        svc = svc.layer(Extension(self.http_api_handler));
         svc = svc.layer(TraceLayer::new_for_http());
 
         if let Some(ServerConfig { allow_origin }) = self.config {
