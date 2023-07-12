@@ -15,12 +15,12 @@ pub fn serve_http_api_json_rpc(
     config: ServerConfig,
     api: Api,
 ) -> StarknetDevnetServer {
-    let http = api::http::HttpApiHandler { api: api.clone() };
-    let json_rpc = api::json_rpc::JsonRpcHandler { api };
+    let http = HttpApiHandler { api: api.clone() };
+    let json_rpc = JsonRpcHandler { api };
 
-    server::builder::Builder::<JsonRpcHandler, HttpApiHandler>::new(addr)
+    server::builder::Builder::<JsonRpcHandler, HttpApiHandler>::new(addr, json_rpc, http)
         .set_config(config)
-        .json_rpc_route("/rpc", json_rpc)
+        .json_rpc_route("/rpc")
         .http_api_route("/is_alive", get(http::is_alive))
         .http_api_route("/dump", post(http::dump_load::dump))
         .http_api_route("/load", post(http::dump_load::load))
@@ -44,6 +44,5 @@ pub fn serve_http_api_json_rpc(
         .http_api_route("/fee_token", get(http::mint_token::get_fee_token))
         .http_api_route("/mint", post(http::mint_token::mint))
         .http_api_route("/fork_status", get(http::get_fork_status))
-        .set_http_api_handler(http)
         .build()
 }
