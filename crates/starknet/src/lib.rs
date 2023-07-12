@@ -50,7 +50,7 @@ pub struct Starknet {
     predeployed_accounts: PredeployedAccounts,
     block_context: BlockContext,
     blocks: StarknetBlocks,
-    transactions: StarknetTransactions,
+    pub transactions: StarknetTransactions,
 }
 
 impl Starknet {
