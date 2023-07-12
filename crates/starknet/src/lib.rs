@@ -243,7 +243,10 @@ impl Starknet {
 #[cfg(test)]
 mod tests {
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
+    use starknet_in_rust::core::errors::state_errors::StateError;
+    use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_types::contract_address::ContractAddress;
+    use starknet_types::error::Error;
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
 
@@ -371,5 +374,39 @@ mod tests {
         Starknet::update_block_context(&mut block_ctx);
 
         assert_eq!(block_ctx.block_info().block_number, initial_block_number + 1);
+    }
+
+    #[test]
+    fn getting_state_reader_of_latest_state() {
+        let config = starknet_config_for_test();
+        let starknet = Starknet::new(&config).unwrap();
+        starknet.get_state_reader_at(&BlockId::Tag(BlockTag::Latest)).expect("Should be OK");
+    }
+
+    #[test]
+    fn getting_state_reader_of_pending_state() {
+        let config = starknet_config_for_test();
+        let starknet = Starknet::new(&config).unwrap();
+        starknet.get_state_reader_at(&BlockId::Tag(BlockTag::Pending)).expect("Should be OK");
+    }
+
+    #[test]
+    fn getting_state_reader_at_block_by_hash() {
+        let config = starknet_config_for_test();
+        let starknet = Starknet::new(&config).unwrap();
+        match starknet.get_state_reader_at(&BlockId::Number(2)) {
+            Err(Error::StateError(StateError::CustomError(_))) => (),
+            _ => panic!("Should have failed"),
+        }
+    }
+
+    #[test]
+    fn getting_state_reader_at_block_by_number() {
+        let config = starknet_config_for_test();
+        let starknet = Starknet::new(&config).unwrap();
+        match starknet.get_state_reader_at(&BlockId::Number(2)) {
+            Err(Error::StateError(StateError::CustomError(_))) => (),
+            _ => panic!("Should have failed"),
+        }
     }
 }
