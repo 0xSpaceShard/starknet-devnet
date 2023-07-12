@@ -3,6 +3,7 @@ use server::rpc_core::error::RpcError;
 use starknet_core::transactions::declare_transaction::DeclareTransactionV1;
 use starknet_core::TransactionError;
 use starknet_types::contract_class::ContractClass;
+use starknet_types::felt::Felt;
 
 use super::error::ApiError;
 use super::models::DeclareTransactionOutput;
@@ -19,13 +20,14 @@ impl JsonRpcHandler {
         &self,
         request: BroadcastedDeclareTransaction,
     ) -> RpcResult<DeclareTransactionOutput> {
+        let chain_id = self.api.starknet.read().await.config.chain_id.to_felt();
         let (transaction_hash, class_hash) = match request {
             BroadcastedDeclareTransaction::V1(broadcasted_declare_txn) => self
                 .api
                 .starknet
                 .write()
                 .await
-                .add_declare_transaction_v1((*broadcasted_declare_txn).try_into()?)
+                .add_declare_transaction_v1((convert_to_declare_transaction_v1(*broadcasted_declare_txn, chain_id.into()))?)
                 .map_err(|err| match err {
                     starknet_types::error::Error::TransactionError(
                         TransactionError::ClassAlreadyDeclared(_),
@@ -65,27 +67,23 @@ impl TryFrom<DeprecatedContractClass> for ContractClass {
     }
 }
 
-impl TryFrom<BroadcastedDeclareTransactionV1>
-    for starknet_core::transactions::declare_transaction::DeclareTransactionV1
-{
-    type Error = ApiError;
-    fn try_from(value: BroadcastedDeclareTransactionV1) -> RpcResult<Self> {
-        Ok(DeclareTransactionV1::new(
-            value.sender_address.0,
-            value.common.max_fee.0,
-            value.common.signature.iter().map(|x| x.0).collect(),
-            value.common.nonce.0,
-            ContractClass::try_from(value.contract_class)?,
-            starknet_in_rust::definitions::block_context::StarknetChainId::TestNet.to_felt().into(), /* TODO: Use chain_id from Singleton config (addressed in issues #48) */
-        ))
-    }
+fn convert_to_declare_transaction_v1(value: BroadcastedDeclareTransactionV1, chain_id: Felt) -> RpcResult<DeclareTransactionV1> {
+    Ok(DeclareTransactionV1::new(
+        value.sender_address.0,
+        value.common.max_fee.0,
+        value.common.signature.iter().map(|x| x.0).collect(),
+        value.common.nonce.0,
+        ContractClass::try_from(value.contract_class)?,
+        chain_id,
+    ))
 }
 
 #[cfg(test)]
 mod tests {
     use starknet_core::constants::{
-        DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_HOST, DEVNET_DEFAULT_PORT,
-        DEVNET_DEFAULT_SEED, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS, DEVNET_DEFAULT_INITIAL_BALANCE,
+        DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_HOST,
+        DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_SEED,
+        DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
     };
     use starknet_core::{Starknet, StarknetConfig};
     use starknet_types::traits::ToHexString;

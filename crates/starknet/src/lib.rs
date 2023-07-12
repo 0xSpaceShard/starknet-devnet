@@ -51,6 +51,21 @@ pub struct StarknetConfig {
     pub chain_id: StarknetChainId,
 }
 
+impl Default for StarknetConfig {
+    fn default() -> Self {
+        Self {
+            seed: u32::default(),
+            total_accounts: u8::default(),
+            predeployed_accounts_initial_balance: Felt::default(),
+            host: String::default(),
+            port: u16::default(),
+            timeout: u16::default(),
+            gas_price: u64::default(),
+            chain_id: StarknetChainId::TestNet,
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct Starknet {
     state: StarknetState,
@@ -58,6 +73,7 @@ pub struct Starknet {
     block_context: BlockContext,
     blocks: StarknetBlocks,
     transactions: StarknetTransactions,
+    pub config: StarknetConfig,
 }
 
 impl Starknet {
@@ -98,6 +114,7 @@ impl Starknet {
             block_context: Self::get_block_context(0, ERC20_CONTRACT_ADDRESS, config.chain_id)?,
             blocks: StarknetBlocks::default(),
             transactions: StarknetTransactions::default(),
+            config: StarknetConfig::default(),
         };
 
         this.restart_pending_block()?;
