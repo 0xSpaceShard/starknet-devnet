@@ -5,6 +5,7 @@ pub(crate) mod state;
 pub(crate) mod transaction;
 
 use serde::{Deserialize, Serialize};
+use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag as ImportedBlockTag};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::Felt;
 use starknet_types::patricia_key::PatriciaKey;
@@ -41,18 +42,16 @@ pub enum BlockId {
     Tag(Tag),
 }
 
-impl From<BlockId> for starknet_rs_core::types::BlockId {
+impl From<BlockId> for ImportedBlockId {
     fn from(block_id: BlockId) -> Self {
-        type ImportedBlockId = starknet_rs_core::types::BlockId;
-        type ImportedTag = starknet_rs_core::types::BlockTag;
         match block_id {
             BlockId::HashOrNumber(hash_or_number) => match hash_or_number {
                 BlockHashOrNumber::Hash(hash) => ImportedBlockId::Hash(hash.0.into()),
                 BlockHashOrNumber::Number(number) => ImportedBlockId::Number(number.0),
             },
             BlockId::Tag(tag) => match tag {
-                Tag::Latest => ImportedBlockId::Tag(ImportedTag::Latest),
-                Tag::Pending => ImportedBlockId::Tag(ImportedTag::Pending),
+                Tag::Latest => ImportedBlockId::Tag(ImportedBlockTag::Latest),
+                Tag::Pending => ImportedBlockId::Tag(ImportedBlockTag::Pending),
             },
         }
     }
