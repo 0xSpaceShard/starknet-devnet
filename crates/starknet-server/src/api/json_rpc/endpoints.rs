@@ -44,13 +44,13 @@ impl JsonRpcHandler {
     pub(crate) async fn get_transaction_by_hash(
         &self,
         transaction_hash: TransactionHashHex,
-    ) -> RpcResult<StarknetTransaction> {
+    ) -> RpcResult<Option<&StarknetTransaction>> {
         // Err(error::ApiError::TransactionNotFound)
         let starknet = self.api.starknet.read().await;
         let txs = &starknet.transactions;
         let tx = starknet.transactions.get(&transaction_hash.0);
 
-        Ok(tx.unwrap())
+        Ok(tx)
     }
 
     /// starknet_getTransactionByBlockIdAndIndex

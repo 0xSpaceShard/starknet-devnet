@@ -21,7 +21,7 @@ impl StarknetTransactions {
         self.0.insert(*transaction_hash, transaction);
     }
 
-    pub fn get(&self, transaction_hash: &TransactionHash) -> Option<StarknetTransaction>
+    pub fn get(&self, transaction_hash: &TransactionHash) -> Option<&StarknetTransaction>
     {
         self.0.get(transaction_hash)
     }
