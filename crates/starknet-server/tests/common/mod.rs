@@ -54,7 +54,8 @@ impl BackgroundDevnet {
                 .arg(SEED.to_string())
                 .arg("--accounts")
                 .arg(ACCOUNTS.to_string())
-                .env("DEVNET_PORT", free_port.to_string())
+                .arg("--port")
+                .arg(free_port.to_string())
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .expect("Could not start background devnet"),

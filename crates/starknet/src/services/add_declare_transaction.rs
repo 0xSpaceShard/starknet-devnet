@@ -157,6 +157,7 @@ impl Starknet {
 #[cfg(test)]
 mod tests {
     use starknet_api::block::BlockNumber;
+    use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_in_rust::transaction::error::TransactionError;
     use starknet_rs_core::types::TransactionStatus;
     use starknet_types::contract_address::ContractAddress;
@@ -190,6 +191,7 @@ mod tests {
             nonce: Felt::from(0),
             class_hash: None,
             transaction_hash: None,
+            chain_id: StarknetChainId::TestNet.to_felt().into(),
         }
     }
 
@@ -208,6 +210,7 @@ mod tests {
             contract_class,
             class_hash: None,
             transaction_hash: None,
+            chain_id: StarknetChainId::TestNet.to_felt().into(),
         }
     }
 
@@ -354,8 +357,12 @@ mod tests {
         acc.set_initial_balance(&mut starknet.state).unwrap();
 
         starknet.state.synchronize_states();
-        starknet.block_context =
-            Starknet::get_block_context(1, constants::ERC20_CONTRACT_ADDRESS).unwrap();
+        starknet.block_context = Starknet::get_block_context(
+            1,
+            constants::ERC20_CONTRACT_ADDRESS,
+            StarknetChainId::TestNet,
+        )
+        .unwrap();
 
         starknet.restart_pending_block().unwrap();
 

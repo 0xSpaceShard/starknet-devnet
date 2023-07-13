@@ -1,0 +1,22 @@
+mod common;
+
+#[cfg(test)]
+mod get_class_hash_integration_tests {
+    use hyper::Uri;
+    use starknet_rs_core::types::{BlockId, BlockTag};
+    use starknet_rs_providers::jsonrpc::{HttpTransport, JsonRpcClient};
+    use starknet_rs_providers::Provider;
+
+    use crate::common::{BackgroundDevnet, PREDEPLOYED_ACCOUNT_ADDRESS};
+
+    #[tokio::test]
+    async fn foo() {
+        let mut devnet = BackgroundDevnet::new();
+        let url = Uri::builder().build().unwrap();
+        let client = JsonRpcClient::new(HttpTransport::from(""));
+        client
+            .get_class_hash_at(BlockId::Tag(BlockTag::Latest), PREDEPLOYED_ACCOUNT_ADDRESS.into())
+            .await
+            .unwrap();
+    }
+}
