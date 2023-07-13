@@ -63,3 +63,6 @@ starknet-types = { path = "crates/types", package = "types" }
 starknet-core = { path = "crates/starknet", package = "starknet" }
 random-number-generator = { path = "crates/random-number-generator", package = "random-number-generator" }
 num-bigint = { version = "0.4" }
+
+[workspace.dev-dependencies]
+lazy_static = { version = "1.4.0" }

@@ -1,56 +1,78 @@
-use std::net::TcpListener;
-use std::process::{Child, Command, Stdio};
-use std::{thread, time};
+#[cfg(test)]
+pub mod constants {
+    pub const HOST: &str = "localhost";
+    pub const MIN_PORT: u16 = 1025;
+    pub const MAX_PORT: u16 = 65_535;
+    pub const SEED: usize = 42;
+    pub const ACCOUNTS: usize = 3;
 
-use hyper::{Client, StatusCode, Uri};
-use starknet_rs_providers::jsonrpc::HttpTransport;
-use starknet_rs_providers::JsonRpcClient;
-use thiserror::Error;
-use url::Url;
+    pub const MAX_RETRIES: usize = 10;
 
-#[derive(Error, Debug)]
-pub enum TestError {
-    #[error("No free ports")]
-    NoFreePorts,
+    // predeployed account info with seed=42
+    pub const PREDEPLOYED_ACCOUNT_ADDRESS: &str =
+        "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba";
+    pub const EXPECTED_ACCOUNT_CLASS_HASH: &str =
+        "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f";
 }
 
-const HOST: &str = "localhost";
-const MIN_PORT: u16 = 1025;
-const MAX_PORT: u16 = 65_535;
-const SEED: usize = 42;
-const ACCOUNTS: usize = 3;
+#[cfg(test)]
+pub mod util {
+    use std::net::TcpListener;
+    use std::process::{Child, Command, Stdio};
+    use std::{thread, time};
 
-const MAX_RETRIES: usize = 10;
+    use hyper::{Client, StatusCode, Uri};
+    use lazy_static::lazy_static;
+    use starknet_rs_providers::jsonrpc::HttpTransport;
+    use starknet_rs_providers::JsonRpcClient;
+    use thiserror::Error;
+    use tokio::sync::Mutex;
+    use url::Url;
 
-// with seed 42
-pub const PREDEPLOYED_ACCOUNT_ADDRESS: &str =
-    "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba";
+    use super::constants::{ACCOUNTS, HOST, MAX_PORT, MAX_RETRIES, MIN_PORT, SEED};
 
-fn get_free_port_listener() -> Result<u16, TestError> {
-    for port in MIN_PORT..=MAX_PORT {
-        if let Ok(listener) = TcpListener::bind(("127.0.0.1", port)) {
-            return Ok(listener.local_addr().expect("No local addr").port());
-        }
-        // otherwise port is occupied
+    #[derive(Error, Debug)]
+    pub enum TestError {
+        #[error("No free ports")]
+        NoFreePorts,
     }
-    Err(TestError::NoFreePorts)
-}
 
-pub(crate) struct BackgroundDevnet {
-    pub(crate) json_rpc_client: JsonRpcClient<HttpTransport>,
-    process: Child,
-}
+    fn get_free_port_listener() -> Result<u16, TestError> {
+        for port in MIN_PORT..=MAX_PORT {
+            if let Ok(listener) = TcpListener::bind(("127.0.0.1", port)) {
+                return Ok(listener.local_addr().expect("No local addr").port());
+            }
+            // otherwise port is occupied
+        }
+        Err(TestError::NoFreePorts)
+    }
 
-impl BackgroundDevnet {
-    /// Ensures the background instance spawns at a free port, checks at most `MAX_RETRIES` times
-    pub(crate) async fn spawn() -> Self {
-        let free_port = get_free_port_listener().expect("No free ports");
+    lazy_static! {
+        /// This is to prevent TOCTOU errors; i.e. one background devnet might find one
+        /// port to be free, and while it's trying to start listening to it, another instance
+        /// finds that it's free and tries occupying it
+        static ref BACKGROUND_DEVNET_MUTEX: Mutex<()> = Mutex::new(());
+    }
 
-        let devnet_url = format!("http://{HOST}:{free_port}");
-        let devnet_rpc_url = Url::parse(format!("{}/rpc", devnet_url.as_str()).as_str()).unwrap();
-        let json_rpc_client = JsonRpcClient::new(HttpTransport::new(devnet_rpc_url));
+    pub struct BackgroundDevnet {
+        pub json_rpc_client: JsonRpcClient<HttpTransport>,
+        process: Child,
+    }
 
-        let process = Command::new("cargo")
+    impl BackgroundDevnet {
+        /// Ensures the background instance spawns at a free port, checks at most `MAX_RETRIES`
+        /// times
+        pub(crate) async fn spawn() -> Self {
+            let _mutex_guard = BACKGROUND_DEVNET_MUTEX.lock().await;
+
+            let free_port = get_free_port_listener().expect("No free ports");
+
+            let devnet_url = format!("http://{HOST}:{free_port}");
+            let devnet_rpc_url =
+                Url::parse(format!("{}/rpc", devnet_url.as_str()).as_str()).unwrap();
+            let json_rpc_client = JsonRpcClient::new(HttpTransport::new(devnet_rpc_url));
+
+            let process = Command::new("cargo")
                 .arg("run")
                 .arg("--")
                 .arg("--seed")
@@ -63,32 +85,33 @@ impl BackgroundDevnet {
                 .spawn()
                 .expect("Could not start background devnet");
 
-        let healthcheck_uri =
-            format!("{}/is_alive", devnet_url.as_str()).as_str().parse::<Uri>().unwrap();
+            let healthcheck_uri =
+                format!("{}/is_alive", devnet_url.as_str()).as_str().parse::<Uri>().unwrap();
 
-        let mut retries = 0;
-        let http_client = Client::new();
-        while retries < MAX_RETRIES {
-            if let Ok(alive_resp) = http_client.get(healthcheck_uri.clone()).await {
-                assert_eq!(alive_resp.status(), StatusCode::OK);
-                println!("Spawned background devnet at port {free_port}");
-                return BackgroundDevnet { json_rpc_client, process };
+            let mut retries = 0;
+            let http_client = Client::new();
+            while retries < MAX_RETRIES {
+                if let Ok(alive_resp) = http_client.get(healthcheck_uri.clone()).await {
+                    assert_eq!(alive_resp.status(), StatusCode::OK);
+                    println!("Spawned background devnet at port {free_port}");
+                    return BackgroundDevnet { json_rpc_client, process };
+                }
+
+                // otherwise there is an error, probably a ConnectError if Devnet is not yet up
+                // so we retry after some sleep
+                retries += 1;
+                thread::sleep(time::Duration::from_millis(500));
             }
 
-            // otherwise there is an error, probably a ConnectError if Devnet is not yet up
-            // so we retry after some sleep
-            retries += 1;
-            thread::sleep(time::Duration::from_millis(500));
+            panic!("Could not start Background Devnet");
         }
-
-        panic!("Could not start Background Devnet");
     }
-}
 
-/// By implementing Drop, we ensure there are no zombie background Devnet processes
-/// in case of an early test failure
-impl Drop for BackgroundDevnet {
-    fn drop(&mut self) {
-        self.process.kill().expect("Cannot kill process");
+    /// By implementing Drop, we ensure there are no zombie background Devnet processes
+    /// in case of an early test failure
+    impl Drop for BackgroundDevnet {
+        fn drop(&mut self) {
+            self.process.kill().expect("Cannot kill process");
+        }
     }
 }
