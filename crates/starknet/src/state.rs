@@ -276,28 +276,24 @@ mod tests {
             dummy_contract_address().try_into().unwrap();
 
         // check if current nonce is 0
-        assert!(
-            state
-                .state
-                .address_to_nonce
-                .get(&starknet_in_rust_address)
-                .unwrap()
-                .eq(&Felt252::from(0))
-        );
+        assert!(state
+            .state
+            .address_to_nonce
+            .get(&starknet_in_rust_address)
+            .unwrap()
+            .eq(&Felt252::from(0)));
 
         state.synchronize_states();
         state.pending_state.increment_nonce(&starknet_in_rust_address).unwrap();
         state.apply_cached_state().unwrap();
 
         // check if nonce update was correct
-        assert!(
-            state
-                .state
-                .address_to_nonce
-                .get(&starknet_in_rust_address)
-                .unwrap()
-                .eq(&Felt252::from(1))
-        );
+        assert!(state
+            .state
+            .address_to_nonce
+            .get(&starknet_in_rust_address)
+            .unwrap()
+            .eq(&Felt252::from(1)));
     }
 
     #[test]
@@ -320,14 +316,12 @@ mod tests {
         assert!(state.deploy_contract(address, felt).is_ok());
         assert!(state.state.address_to_class_hash.len() == 1);
         assert!(state.state.address_to_class_hash.contains_key(&(address.try_into().unwrap())));
-        assert!(
-            state
-                .state
-                .address_to_nonce
-                .get(&(address.try_into().unwrap()))
-                .unwrap()
-                .eq(&Felt252::from(0))
-        );
+        assert!(state
+            .state
+            .address_to_nonce
+            .get(&(address.try_into().unwrap()))
+            .unwrap()
+            .eq(&Felt252::from(0)));
     }
 
     #[test]

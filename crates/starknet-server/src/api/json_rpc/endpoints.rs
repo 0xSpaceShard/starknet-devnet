@@ -1,16 +1,22 @@
 use starknet_types::starknet_api::block::BlockNumber;
 
-use super::error::{self};
-use super::models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
-use super::{JsonRpcHandler, RpcResult};
-use crate::api::models::block::Block;
-use crate::api::models::contract_class::ContractClass;
-use crate::api::models::state::ThinStateDiff;
-use crate::api::models::transaction::{
-    BroadcastedTransactionWithType, ClassHashHex, EventFilter, EventsChunk, FunctionCall,
-    Transaction, TransactionHashHex, TransactionReceipt, TransactionWithType,
+use crate::api::{
+    json_rpc::{
+        error::{self},
+        JsonRpcHandler, RpcResult,
+    },
+    models::{
+        block::Block,
+        contract_class::ContractClass,
+        state::ThinStateDiff,
+        transaction::{
+            BroadcastedTransactionWithType, ClassHashHex, EventFilter, EventsChunk, FunctionCall,
+            Transaction, TransactionHashHex, TransactionReceipt, TransactionWithType,
+        },
+        BlockHashAndNumberOutput, BlockId, ContractAddressHex, EstimateFeeOutput, FeltHex,
+        PatriciaKeyHex, SyncingOutput,
+    },
 };
-use crate::api::models::{BlockId, ContractAddressHex, FeltHex, PatriciaKeyHex};
 
 /// here are the definitions and stub implementations of all JSON-RPC endpoints
 impl JsonRpcHandler {
@@ -67,10 +73,10 @@ impl JsonRpcHandler {
     /// starknet_getClass
     pub(crate) async fn get_class(
         &self,
-        _block_id: BlockId,
-        _class_hash: ClassHashHex,
+        block_id: BlockId,
+        class_hash: ClassHashHex,
     ) -> RpcResult<ContractClass> {
-        Err(error::ApiError::ClassHashNotFound)
+        Ok(self.api.starknet.read().await.get_class(block_id, class_hash).unwrap())
     }
 
     /// starknet_getClassHashAt
@@ -85,10 +91,24 @@ impl JsonRpcHandler {
     /// starknet_getClassAt
     pub(crate) async fn get_class_at(
         &self,
-        _block_id: BlockId,
-        _contract_address: ContractAddressHex,
+        block_id: BlockId,
+        contract_address: ContractAddressHex,
     ) -> RpcResult<ContractClass> {
-        Err(error::ApiError::ContractNotFound)
+        let parsed_address = contract_address.0.try_into().map_err(|_| {
+            error::ApiError::RpcError(RpcError::invalid_params(format!(
+                "Invalid contract_address: {:?}",
+                contract_address.0
+            )))
+        })?;
+
+        let starknet = self.api.starknet.read().await;
+        let state = starknet
+            .get_state_reader_at(&block_id.into())
+            .map_err(|_| error::ApiError::BlockNotFound)?;
+        match state.address_to_class_hash.get(&parsed_address) {
+            Some(class_hash) => Ok(FeltHex(Felt::from(*class_hash))),
+            None => Err(error::ApiError::ContractNotFound),
+        }
     }
 
     /// starknet_getBlockTransactionCount

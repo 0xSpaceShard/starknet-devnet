@@ -4,7 +4,7 @@ use hyper::StatusCode;
 use serde_json::json;
 
 #[derive(Debug)]
-pub(crate) enum HttpApiError {
+pub enum HttpApiError {
     PathNotFound,
     GeneralError,
 }

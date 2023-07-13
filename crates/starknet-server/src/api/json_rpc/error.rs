@@ -1,35 +1,40 @@
 use server::rpc_core::error::RpcError;
+use std::backtrace::Backtrace;
 use tracing::error;
 
 #[allow(unused)]
 #[derive(thiserror::Error, Debug)]
 pub enum ApiError {
     #[error("Rpc error {0:?}")]
-    RpcError(RpcError),
+    RpcError {
+        #[from]
+        source: RpcError,
+        backtrace: Backtrace,
+    },
     #[error("Block not found")]
-    BlockNotFound,
+    BlockNotFound { backtrace: Backtrace },
     #[error("Contract not found")]
-    ContractNotFound,
+    ContractNotFound { backtrace: Backtrace },
     #[error("Transaction hash not found")]
-    TransactionNotFound,
+    TransactionNotFound { backtrace: Backtrace },
     #[error("Invalid transaction index in a block")]
-    InvalidTransactionIndexInBlock,
+    InvalidTransactionIndexInBlock { backtrace: Backtrace },
     #[error("Class hash not found")]
-    ClassHashNotFound,
+    ClassHashNotFound { backtrace: Backtrace },
     #[error("Contract error")]
-    ContractError,
+    ContractError { backtrace: Backtrace },
     #[error("There are no blocks")]
-    NoBlocks,
+    NoBlocks { backtrace: Backtrace },
     #[error("Requested page size is too big")]
-    RequestPageSizeTooBig,
+    RequestPageSizeTooBig { backtrace: Backtrace },
     #[error("The supplied continuation token is invalid or unknown")]
-    InvalidContinuationToken,
+    InvalidContinuationToken { backtrace: Backtrace },
     #[error("Too many keys provided in a filter")]
-    TooManyKeysInFilter,
+    TooManyKeysInFilter { backtrace: Backtrace },
     #[error("Class already declared")]
-    ClassAlreadyDeclared,
+    ClassAlreadyDeclared { backtrace: Backtrace },
     #[error("Invalid contract class")]
-    InvalidContractClass,
+    InvalidContractClass { backtrace: Backtrace },
 }
 
 #[cfg(test)]

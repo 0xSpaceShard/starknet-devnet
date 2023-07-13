@@ -27,6 +27,7 @@ use transactions::{StarknetTransaction, StarknetTransactions, Transaction};
 pub mod account;
 mod blocks;
 mod constants;
+mod errors;
 mod predeployed_accounts;
 mod services;
 mod state;
@@ -35,7 +36,10 @@ mod traits;
 pub mod transactions;
 mod utils;
 
+use services::get_class_impls;
+
 pub use starknet_in_rust::transaction::error::TransactionError;
+use starknet_types::contract_class::ContractClass;
 
 #[derive(Debug)]
 pub struct StarknetConfig {
@@ -46,7 +50,7 @@ pub struct StarknetConfig {
 
 #[derive(Default)]
 pub struct Starknet {
-    state: StarknetState,
+    pub(in services) state: StarknetState,
     predeployed_accounts: PredeployedAccounts,
     block_context: BlockContext,
     blocks: StarknetBlocks,
@@ -220,6 +224,30 @@ impl Starknet {
         self.blocks.pending_block = block;
 
         Ok(())
+    }
+
+    pub async fn get_class_hash_at(
+        &self,
+        block_id: BlockId,
+        contract_address: ContractAddressHex,
+    ) -> DevnetResult<ClassHashHex> {
+        get_class_impls::get_class_hash_at_impl(self, block_id, contract_address)
+    }
+
+    pub fn get_class(
+        &self,
+        block_id: BlockId,
+        class_hash: ClassHashHex,
+    ) -> DevnetResult<ContractClass> {
+        get_class_impls::get_class_impl(block_id, class_hash)
+    }
+
+    pub fn get_class_at(
+        &self,
+        block_id: BlockId,
+        contract_address: ContractAddressHex,
+    ) -> DevnetResult<ContractClass> {
+        get_class_impls::get_class_at_impl(block_id, contract_address)
     }
 }
 
