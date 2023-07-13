@@ -34,6 +34,12 @@ Run the formatter with:
 ./scripts/format.sh
 ```
 
+If you encounter an error: `error: toolchain 'nightly-x86_64-unknown-linux-gnu' is not installed`
+Install it with:
+```
+rustup default nightly
+```
+
 # Devnet cli options
 cargo run -- -h
 cargo run -- --help
