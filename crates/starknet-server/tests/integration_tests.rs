@@ -1,7 +1,7 @@
 mod common;
 
 #[cfg(test)]
-mod tests {
+mod integration_tests {
     use crate::common::BackgroundDevnet;
 
     #[tokio::test]
