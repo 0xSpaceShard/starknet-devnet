@@ -16,6 +16,7 @@ random-number-generator = { workspace = true }
 server = { path = "../server" }
 starknet-core = { workspace = true }
 starknet-types = { workspace = true }
+starknet-in-rust = { workspace = true }
 starknet-rs-core = { workspace = true }
 
 # axum

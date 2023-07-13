@@ -44,20 +44,31 @@ pub(crate) fn get_storage_var_address(
 
 #[cfg(test)]
 pub(crate) mod test_utils {
+    use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
     use starknet_types::patricia_key::StorageKey;
 
+    use crate::constants::{
+        DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_HOST,
+        DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_SEED,
+        DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+    };
     use crate::transactions::declare_transaction::DeclareTransactionV1;
     use crate::{constants, StarknetConfig};
 
     pub fn starknet_config_for_test() -> StarknetConfig {
         StarknetConfig {
-            seed: 123,
-            total_accounts: 3,
-            predeployed_accounts_initial_balance: 100.into(),
+            seed: DEVNET_DEFAULT_SEED,
+            total_accounts: DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+            predeployed_accounts_initial_balance: DEVNET_DEFAULT_INITIAL_BALANCE.into(),
+            host: DEVNET_DEFAULT_HOST.to_string(),
+            port: DEVNET_DEFAULT_PORT,
+            timeout: DEVNET_DEFAULT_TIMEOUT,
+            gas_price: DEVNET_DEFAULT_GAS_PRICE,
+            chain_id: DEVNET_DEFAULT_CHAIN_ID,
         }
     }
 
@@ -92,6 +103,7 @@ pub(crate) mod test_utils {
             vec![],
             dummy_felt(),
             dummy_cairo_0_contract_class(),
+            StarknetChainId::TestNet.to_felt().into(),
         )
     }
 
