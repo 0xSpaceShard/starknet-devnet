@@ -47,10 +47,9 @@ impl JsonRpcHandler {
     ) -> RpcResult<Option<&StarknetTransaction>> {
         // Err(error::ApiError::TransactionNotFound)
         let starknet = self.api.starknet.read().await;
-        let txs = &starknet.transactions;
-        let tx = starknet.transactions.get(&transaction_hash.0);
+        let transaction: Option<&StarknetTransaction> = starknet.transactions.get(&transaction_hash.0);
 
-        Ok(tx)
+        Ok(transaction)
     }
 
     /// starknet_getTransactionByBlockIdAndIndex
