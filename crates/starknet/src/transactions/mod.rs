@@ -20,6 +20,11 @@ impl StarknetTransactions {
     pub fn insert(&mut self, transaction_hash: &TransactionHash, transaction: StarknetTransaction) {
         self.0.insert(*transaction_hash, transaction);
     }
+
+    pub fn get(&self, transaction_hash: &TransactionHash) -> Option<StarknetTransaction>
+    {
+        self.0.get(transaction_hash)
+    }
 }
 
 impl HashIdentifiedMut for StarknetTransactions {

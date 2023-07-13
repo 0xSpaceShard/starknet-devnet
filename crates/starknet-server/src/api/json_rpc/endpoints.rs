@@ -1,3 +1,4 @@
+use starknet_core::transactions::StarknetTransaction;
 use starknet_types::starknet_api::block::BlockNumber;
 
 use super::error::{self};
@@ -42,15 +43,14 @@ impl JsonRpcHandler {
     /// starknet_getTransactionByHash
     pub(crate) async fn get_transaction_by_hash(
         &self,
-        _transaction_hash: TransactionHashHex,
-    // ) -> RpcResult<TransactionWithType> {
-    ) -> RpcResult<String> {
+        transaction_hash: TransactionHashHex,
+    ) -> RpcResult<StarknetTransaction> {
         // Err(error::ApiError::TransactionNotFound)
         let starknet = self.api.starknet.read().await;
         let txs = &starknet.transactions;
-        // let tx = starknet.transactions.get(_transaction_hash);
+        let tx = starknet.transactions.get(&transaction_hash.0);
 
-        Ok("test".to_string())
+        Ok(tx.unwrap())
     }
 
     /// starknet_getTransactionByBlockIdAndIndex
