@@ -1,3 +1,5 @@
+use server::rpc_core::error::RpcError;
+use starknet_types::felt::Felt;
 use starknet_types::starknet_api::block::BlockNumber;
 
 use super::error::{self};
@@ -12,7 +14,7 @@ use crate::api::models::transaction::{
 };
 use crate::api::models::{BlockId, ContractAddressHex, FeltHex, PatriciaKeyHex};
 
-/// here are the definitions and stub implementations of all JSON-RPC endpoints
+/// here are the definitions and stub implementations of all JSON-RPC read endpoints
 impl JsonRpcHandler {
     /// starknet_getBlockWithTxHashes
     pub(crate) async fn get_block_with_tx_hashes(&self, _block_id: BlockId) -> RpcResult<Block> {
@@ -76,10 +78,24 @@ impl JsonRpcHandler {
     /// starknet_getClassHashAt
     pub(crate) async fn get_class_hash_at(
         &self,
-        _block_id: BlockId,
-        _contract_address: ContractAddressHex,
+        block_id: BlockId,
+        contract_address: ContractAddressHex,
     ) -> RpcResult<ClassHashHex> {
-        Err(error::ApiError::ContractNotFound)
+        let parsed_address = contract_address.0.try_into().map_err(|_| {
+            error::ApiError::RpcError(RpcError::invalid_params(format!(
+                "Invalid contract_address: {:?}",
+                contract_address.0
+            )))
+        })?;
+
+        let starknet = self.api.starknet.read().await;
+        let state = starknet
+            .get_state_reader_at(&block_id.into())
+            .map_err(|_| error::ApiError::BlockNotFound)?;
+        match state.address_to_class_hash.get(&parsed_address) {
+            Some(class_hash) => Ok(FeltHex(Felt::from(*class_hash))),
+            None => Err(error::ApiError::ContractNotFound),
+        }
     }
 
     /// starknet_getClassAt

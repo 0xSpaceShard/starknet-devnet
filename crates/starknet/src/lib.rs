@@ -5,6 +5,7 @@ use blocks::{StarknetBlock, StarknetBlocks};
 use constants::ERC20_CONTRACT_ADDRESS;
 use predeployed_accounts::PredeployedAccounts;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
+use starknet_in_rust::core::errors::state_errors::StateError;
 use starknet_in_rust::definitions::block_context::{
     BlockContext, StarknetChainId, StarknetOsConfig,
 };
@@ -14,10 +15,12 @@ use starknet_in_rust::definitions::constants::{
     DEFAULT_VALIDATE_MAX_N_STEPS,
 };
 use starknet_in_rust::execution::TransactionExecutionInfo;
+use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
 use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
-use starknet_rs_core::types::TransactionStatus;
+use starknet_rs_core::types::{BlockId, TransactionStatus};
 use starknet_types::contract_address::ContractAddress;
+use starknet_types::error::Error;
 use starknet_types::felt::{Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use starknet_types::DevnetResult;
@@ -249,13 +252,30 @@ impl Starknet {
 
         Ok(())
     }
+
+    // TODO should return a more generic type (StateReader) to allow future implementation of a
+    // ForkedStateReader
+    pub fn get_state_reader_at(&self, block_id: &BlockId) -> DevnetResult<&InMemoryStateReader> {
+        match block_id {
+            BlockId::Hash(_) => Err(Error::StateError(StateError::CustomError(
+                "Specifying block by hash is currently not enabled".to_string(),
+            ))),
+            BlockId::Number(_) => Err(Error::StateError(StateError::CustomError(
+                "Specifying block by number is currently not enabled".to_string(),
+            ))),
+            BlockId::Tag(_) => Ok(&self.state.state),
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
+    use starknet_in_rust::core::errors::state_errors::StateError;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
+    use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_types::contract_address::ContractAddress;
+    use starknet_types::error::Error;
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
 
@@ -384,5 +404,39 @@ mod tests {
         Starknet::update_block_context(&mut block_ctx);
 
         assert_eq!(block_ctx.block_info().block_number, initial_block_number + 1);
+    }
+
+    #[test]
+    fn getting_state_reader_of_latest_state() {
+        let config = starknet_config_for_test();
+        let starknet = Starknet::new(&config).unwrap();
+        starknet.get_state_reader_at(&BlockId::Tag(BlockTag::Latest)).expect("Should be OK");
+    }
+
+    #[test]
+    fn getting_state_reader_of_pending_state() {
+        let config = starknet_config_for_test();
+        let starknet = Starknet::new(&config).unwrap();
+        starknet.get_state_reader_at(&BlockId::Tag(BlockTag::Pending)).expect("Should be OK");
+    }
+
+    #[test]
+    fn getting_state_reader_at_block_by_hash() {
+        let config = starknet_config_for_test();
+        let starknet = Starknet::new(&config).unwrap();
+        match starknet.get_state_reader_at(&BlockId::Number(2)) {
+            Err(Error::StateError(StateError::CustomError(_))) => (),
+            _ => panic!("Should have failed"),
+        }
+    }
+
+    #[test]
+    fn getting_state_reader_at_block_by_number() {
+        let config = starknet_config_for_test();
+        let starknet = Starknet::new(&config).unwrap();
+        match starknet.get_state_reader_at(&BlockId::Number(2)) {
+            Err(Error::StateError(StateError::CustomError(_))) => (),
+            _ => panic!("Should have failed"),
+        }
     }
 }
