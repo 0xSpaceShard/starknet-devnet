@@ -2,14 +2,14 @@ use std::net::TcpListener;
 use std::process::{Child, Command, Stdio};
 use std::{thread, time};
 
-use hyper::client::HttpConnector;
 use hyper::{Client, StatusCode, Uri};
+use starknet_rs_providers::jsonrpc::HttpTransport;
+use starknet_rs_providers::JsonRpcClient;
 use thiserror::Error;
+use url::Url;
 
 #[derive(Error, Debug)]
 pub enum TestError {
-    #[error("Cannot start Devnet")]
-    DevnetNotStartable,
     #[error("No free ports")]
     NoFreePorts,
 }
@@ -37,21 +37,20 @@ fn get_free_port_listener() -> Result<u16, TestError> {
 }
 
 pub(crate) struct BackgroundDevnet {
-    client: Client<HttpConnector>,
-    process: Option<Child>,
+    pub(crate) json_rpc_client: JsonRpcClient<HttpTransport>,
+    process: Child,
 }
 
 impl BackgroundDevnet {
-    pub(crate) fn new() -> Self {
-        BackgroundDevnet { client: Client::new(), process: None }
-    }
-
     /// Ensures the background instance spawns at a free port, checks at most `MAX_RETRIES` times
-    pub(crate) async fn spawn(&mut self) -> Result<(), TestError> {
+    pub(crate) async fn spawn() -> Self {
         let free_port = get_free_port_listener().expect("No free ports");
 
-        self.process = Some(
-            Command::new("cargo")
+        let devnet_url = format!("http://{HOST}:{free_port}");
+        let devnet_rpc_url = Url::parse(format!("{}/rpc", devnet_url.as_str()).as_str()).unwrap();
+        let json_rpc_client = JsonRpcClient::new(HttpTransport::new(devnet_rpc_url));
+
+        let process = Command::new("cargo")
                 .arg("run")
                 .arg("--")
                 .arg("--seed")
@@ -62,22 +61,18 @@ impl BackgroundDevnet {
                 .arg(free_port.to_string())
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
-                .expect("Could not start background devnet"),
-        );
+                .expect("Could not start background devnet");
 
-        let healthcheck_uri = Uri::builder()
-            .scheme("http")
-            .authority(format!("{HOST}:{free_port}"))
-            .path_and_query("/is_alive")
-            .build()
-            .expect("Cannot build URI");
+        let healthcheck_uri =
+            format!("{}/is_alive", devnet_url.as_str()).as_str().parse::<Uri>().unwrap();
 
         let mut retries = 0;
+        let http_client = Client::new();
         while retries < MAX_RETRIES {
-            if let Ok(alive_resp) = self.client.get(healthcheck_uri.clone()).await {
+            if let Ok(alive_resp) = http_client.get(healthcheck_uri.clone()).await {
                 assert_eq!(alive_resp.status(), StatusCode::OK);
                 println!("Spawned background devnet at port {free_port}");
-                return Ok(());
+                return BackgroundDevnet { json_rpc_client, process };
             }
 
             // otherwise there is an error, probably a ConnectError if Devnet is not yet up
@@ -86,7 +81,7 @@ impl BackgroundDevnet {
             thread::sleep(time::Duration::from_millis(500));
         }
 
-        Err(TestError::DevnetNotStartable)
+        panic!("Could not start Background Devnet");
     }
 }
 
@@ -94,6 +89,6 @@ impl BackgroundDevnet {
 /// in case of an early test failure
 impl Drop for BackgroundDevnet {
     fn drop(&mut self) {
-        self.process.as_mut().expect("No process to kill").kill().expect("Cannot kill process");
+        self.process.kill().expect("Cannot kill process");
     }
 }

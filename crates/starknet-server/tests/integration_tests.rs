@@ -6,7 +6,6 @@ mod integration_tests {
 
     #[tokio::test]
     async fn spawnable() {
-        let mut devnet = BackgroundDevnet::new();
-        devnet.spawn().await.expect("Could not start Devnet");
+        BackgroundDevnet::spawn().await;
     }
 }
