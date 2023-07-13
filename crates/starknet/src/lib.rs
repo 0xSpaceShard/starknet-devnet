@@ -451,15 +451,16 @@ mod tests {
         let mut starknet = Starknet::new(&config).unwrap();
 
         starknet.generate_new_block().unwrap();
-        
+
         let added_block = starknet.blocks.num_to_block.get(&BlockNumber(0)).unwrap();
         let block_number = starknet.block_number().unwrap();
 
         assert_eq!(block_number, added_block.header.block_number);
 
         // TODO
-        // seems like this generate_new_block doesn't actually create it, so we should figure out why
-        
+        // seems like this generate_new_block doesn't actually create it, so we should figure out
+        // why
+
         // starknet.generate_new_block().unwrap();
 
         // let added_block2 = starknet.blocks.num_to_block.get(&BlockNumber(1)).unwrap();
