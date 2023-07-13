@@ -54,6 +54,7 @@ starknet-in-rust = { git = "https://github.com/lambdaclass/starknet_in_rust", re
 starknet-rs-signers = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "a6cbfa3", package = "starknet-signers" }
 starknet-rs-ff = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "a6cbfa3", package = "starknet-ff" }
 starknet-rs-core = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "a6cbfa3", package = "starknet-core" }
+starknet-rs-providers = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "a6cbfa3", package = "starknet-providers" }
 cairo-felt = { version = "0.8.1", package = "cairo-felt" }
 
 # Inner dependencies

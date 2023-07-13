@@ -22,6 +22,10 @@ const ACCOUNTS: usize = 3;
 
 const MAX_RETRIES: usize = 10;
 
+// with seed 42
+pub const PREDEPLOYED_ACCOUNT_ADDRESS: &str =
+    "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba";
+
 fn get_free_port_listener() -> Result<u16, TestError> {
     for port in MIN_PORT..=MAX_PORT {
         if let Ok(listener) = TcpListener::bind(("127.0.0.1", port)) {

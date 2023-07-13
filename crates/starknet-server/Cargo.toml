@@ -18,6 +18,7 @@ starknet-core = { workspace = true }
 starknet-types = { workspace = true }
 starknet-in-rust = { workspace = true }
 starknet-rs-core = { workspace = true }
+starknet-rs-providers = { workspace = true }
 
 # axum
 axum = { workspace = true }
