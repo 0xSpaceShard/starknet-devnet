@@ -9,8 +9,6 @@ pub mod constants {
     // predeployed account info with seed=42
     pub const PREDEPLOYED_ACCOUNT_ADDRESS: &str =
         "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba";
-    pub const EXPECTED_ACCOUNT_CLASS_HASH: &str =
-        "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f";
 }
 
 #[cfg(test)]

@@ -2,10 +2,11 @@ pub mod common;
 
 #[cfg(test)]
 mod get_class_hash_at_integration_tests {
+    use starknet_core::constants::CAIRO_0_ACCOUNT_CONTRACT_HASH;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
     use starknet_rs_providers::{Provider, ProviderError};
 
-    use crate::common::constants::{EXPECTED_ACCOUNT_CLASS_HASH, PREDEPLOYED_ACCOUNT_ADDRESS};
+    use crate::common::constants::PREDEPLOYED_ACCOUNT_ADDRESS;
     use crate::common::util::BackgroundDevnet;
 
     #[tokio::test]
@@ -19,7 +20,10 @@ mod get_class_hash_at_integration_tests {
             .await
             .unwrap();
 
-        assert_eq!(retrieved_hash, FieldElement::from_hex_be(EXPECTED_ACCOUNT_CLASS_HASH).unwrap());
+        assert_eq!(
+            retrieved_hash,
+            FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap()
+        );
     }
 
     #[tokio::test]
