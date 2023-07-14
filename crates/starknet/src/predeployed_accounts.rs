@@ -85,10 +85,10 @@ mod tests {
     use starknet_types::felt::{Felt, Key};
     use starknet_types::traits::{ToDecimalString, ToHexString};
 
-    use crate::constants::CAIRO_0_ACCOUNT_CONTRACT_PATH;
+    use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH};
     use crate::predeployed_accounts::PredeployedAccounts;
     use crate::traits::AccountGenerator;
-    use crate::utils::test_utils::{dummy_contract_address, CAIRO_0_ACCOUNT_CONTRACT_HASH};
+    use crate::utils::test_utils::dummy_contract_address;
 
     const SEED: u32 = 123;
 

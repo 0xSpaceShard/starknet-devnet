@@ -1,13 +1,16 @@
 use std::convert::Infallible;
 use std::net::SocketAddr;
+use std::time::Duration;
 
 use axum::response::Response;
 use axum::routing::{post, IntoMakeService};
 use axum::{Extension, Router};
 use hyper::server::conn::AddrIncoming;
 use hyper::{header, Method, Request, Server};
+use starknet_core::StarknetConfig;
 use tower::Service;
 use tower_http::cors::CorsLayer;
+use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 
 use crate::rpc_handler::{self, RpcHandler};
@@ -88,12 +91,13 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
     /// [`ServerConfig`] and all handlers that have Some value. If TJsonRpcHandler and/or
     /// THttpApiHandler are set each methods that serves the route will be able to use it.
     /// https://docs.rs/axum/latest/axum/#using-request-extensions
-    pub fn build(self) -> StarknetDevnetServer {
+    pub fn build(self, starknet_config: &StarknetConfig) -> StarknetDevnetServer {
         let mut svc = self.routes;
 
         svc = svc.layer(Extension(self.json_rpc_handler));
         svc = svc.layer(Extension(self.http_api_handler));
-        svc = svc.layer(TraceLayer::new_for_http());
+        svc = svc.layer(TraceLayer::new_for_http()).
+        		  layer(TimeoutLayer::new(Duration::from_secs(starknet_config.timeout.into())));;
 
         if let Some(ServerConfig { allow_origin }) = self.config {
             svc = svc.layer(

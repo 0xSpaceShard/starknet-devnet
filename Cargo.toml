@@ -24,7 +24,7 @@ repository = ""
 # axum
 axum = { version = "0.5" }
 hyper = "0.14"
-tower-http = { version = "0.4", features = ["trace", "cors"] }
+tower-http = { version = "0.4", features = ["full"] }
 tower = { version = "0.4", features = ["full"] }
 
 # rpc
@@ -54,10 +54,15 @@ starknet-in-rust = { git = "https://github.com/lambdaclass/starknet_in_rust", re
 starknet-rs-signers = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "a6cbfa3", package = "starknet-signers" }
 starknet-rs-ff = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "a6cbfa3", package = "starknet-ff" }
 starknet-rs-core = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "a6cbfa3", package = "starknet-core" }
+starknet-rs-providers = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "a6cbfa3", package = "starknet-providers" }
 cairo-felt = { version = "0.8.1", package = "cairo-felt" }
+url = "2.4"
 
 # Inner dependencies
 starknet-types = { path = "crates/types", package = "types" }
 starknet-core = { path = "crates/starknet", package = "starknet" }
 random-number-generator = { path = "crates/random-number-generator", package = "random-number-generator" }
 num-bigint = { version = "0.4" }
+
+[workspace.dev-dependencies]
+lazy_static = { version = "1.4.0" }
