@@ -31,7 +31,7 @@ pub mod util {
         NoFreePorts,
     }
 
-    fn get_free_port_listener() -> Result<u16, TestError> {
+    fn get_free_port() -> Result<u16, TestError> {
         for port in MIN_PORT..=MAX_PORT {
             if let Ok(listener) = TcpListener::bind(("127.0.0.1", port)) {
                 return Ok(listener.local_addr().expect("No local addr").port());
@@ -61,7 +61,7 @@ pub mod util {
         pub(crate) async fn spawn() -> Self {
             // we keep the reference, otherwise the mutex unlocks immediately
 
-            let free_port = get_free_port_listener().expect("No free ports");
+            let free_port = get_free_port().expect("No free ports");
 
             let devnet_url = format!("http://{HOST}:{free_port}");
             let devnet_rpc_url =
