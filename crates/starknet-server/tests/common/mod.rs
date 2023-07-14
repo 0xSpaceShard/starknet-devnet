@@ -45,6 +45,8 @@ pub mod util {
         /// This is to prevent TOCTOU errors; i.e. one background devnet might find one
         /// port to be free, and while it's trying to start listening to it, another instance
         /// finds that it's free and tries occupying it
+        /// Using the mutex in `get_free_port_listener` might be safer than using no mutex at all,
+        /// but not sufficiently safe
         static ref BACKGROUND_DEVNET_MUTEX: Mutex<()> = Mutex::new(());
     }
 
@@ -58,7 +60,6 @@ pub mod util {
         /// times
         pub(crate) async fn spawn() -> Self {
             // we keep the reference, otherwise the mutex unlocks immediately
-            let _mutex_guard = BACKGROUND_DEVNET_MUTEX.lock().await;
 
             let free_port = get_free_port_listener().expect("No free ports");
 
