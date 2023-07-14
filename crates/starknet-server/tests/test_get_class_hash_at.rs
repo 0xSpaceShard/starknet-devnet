@@ -39,7 +39,7 @@ mod get_class_hash_at_integration_tests {
 
         match err {
             ProviderError::StarknetError(StarknetError::ContractNotFound) => (),
-            _ => panic!("Invalid error in {err:?}"),
+            _ => panic!("Invalid error: {err:?}"),
         }
     }
 
@@ -56,7 +56,7 @@ mod get_class_hash_at_integration_tests {
 
         match err {
             ProviderError::StarknetError(StarknetError::BlockNotFound) => (),
-            _ => panic!("Invalid error in {err:?}"),
+            _ => panic!("Invalid error: {err:?}"),
         }
     }
 
