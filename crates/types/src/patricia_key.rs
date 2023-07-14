@@ -34,7 +34,7 @@ impl TryFrom<PatriciaKey> for starknet_api::core::PatriciaKey {
 
     fn try_from(value: PatriciaKey) -> Result<Self, Self::Error> {
         let stark_hash: starknet_api::hash::StarkFelt = value.0.into();
-        starknet_api::core::PatriciaKey::try_from(stark_hash).map_err(Error::StarknetApiError)
+        Ok(starknet_api::core::PatriciaKey::try_from(stark_hash)?)
     }
 }
 
@@ -55,15 +55,13 @@ mod tests {
 
     #[test]
     fn creation_of_patricia_key_should_be_successful() {
-        assert!(
-            PatriciaKey::new(
-                Felt::from_prefixed_hex_str(
-                    "0x7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-                )
-                .unwrap()
+        assert!(PatriciaKey::new(
+            Felt::from_prefixed_hex_str(
+                "0x7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
             )
-            .is_ok()
-        );
+            .unwrap()
+        )
+        .is_ok());
     }
 
     #[test]
