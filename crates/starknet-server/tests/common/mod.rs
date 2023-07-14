@@ -29,6 +29,15 @@ pub mod util {
     pub enum TestError {
         #[error("No free ports")]
         NoFreePorts,
+
+        #[error("Could not parse URL")]
+        UrlParseError(#[from] url::ParseError),
+
+        #[error("Invalid URI")]
+        InvalidUri(#[from] hyper::http::uri::InvalidUri),
+
+        #[error("Could not start Devnet")]
+        DevnetNotStartable,
     }
 
     fn get_free_port() -> Result<u16, TestError> {
@@ -58,14 +67,14 @@ pub mod util {
     impl BackgroundDevnet {
         /// Ensures the background instance spawns at a free port, checks at most `MAX_RETRIES`
         /// times
-        pub(crate) async fn spawn() -> Self {
+        pub(crate) async fn spawn() -> Result<Self, TestError> {
             // we keep the reference, otherwise the mutex unlocks immediately
+            let _mutex_guard = BACKGROUND_DEVNET_MUTEX.lock().await;
 
             let free_port = get_free_port().expect("No free ports");
 
             let devnet_url = format!("http://{HOST}:{free_port}");
-            let devnet_rpc_url =
-                Url::parse(format!("{}/rpc", devnet_url.as_str()).as_str()).unwrap();
+            let devnet_rpc_url = Url::parse(format!("{}/rpc", devnet_url.as_str()).as_str())?;
             let json_rpc_client = JsonRpcClient::new(HttpTransport::new(devnet_rpc_url));
 
             let process = Command::new("cargo")
@@ -82,7 +91,7 @@ pub mod util {
                 .expect("Could not start background devnet");
 
             let healthcheck_uri =
-                format!("{}/is_alive", devnet_url.as_str()).as_str().parse::<Uri>().unwrap();
+                format!("{}/is_alive", devnet_url.as_str()).as_str().parse::<Uri>()?;
 
             let mut retries = 0;
             let max_retries = 10; // limit the number of times we check if devnet is spawned
@@ -91,7 +100,7 @@ pub mod util {
                 if let Ok(alive_resp) = http_client.get(healthcheck_uri.clone()).await {
                     assert_eq!(alive_resp.status(), StatusCode::OK);
                     println!("Spawned background devnet at port {free_port}");
-                    return BackgroundDevnet { json_rpc_client, process };
+                    return Ok(BackgroundDevnet { json_rpc_client, process });
                 }
 
                 // otherwise there is an error, probably a ConnectError if Devnet is not yet up
@@ -100,7 +109,7 @@ pub mod util {
                 thread::sleep(time::Duration::from_millis(500));
             }
 
-            panic!("Could not start Background Devnet");
+            Err(TestError::DevnetNotStartable)
         }
     }
 

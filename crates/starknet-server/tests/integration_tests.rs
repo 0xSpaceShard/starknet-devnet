@@ -7,6 +7,6 @@ mod integration_tests {
     #[tokio::test]
     /// Asserts that a background instance can be spawned
     async fn spawnable() {
-        BackgroundDevnet::spawn().await;
+        BackgroundDevnet::spawn().await.expect("Could not start Devnet");
     }
 }
