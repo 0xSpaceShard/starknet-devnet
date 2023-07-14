@@ -104,13 +104,13 @@ impl<T: Serialize> ToRpcResponseResult for RpcResult<T> {
                 },
                 err @ ApiError::TypesError(_) => RpcError {
                     // random error coe
-                    code: server::rpc_core::error::ErrorCode::ServerError(52),
+                    code: server::rpc_core::error::ErrorCode::ServerError(32600),
                     message: err.to_string().into(),
                     data: None,
                 },
                 ApiError::StarknetDevnetError(error) => RpcError {
                     // random error coe
-                    code: server::rpc_core::error::ErrorCode::ServerError(53),
+                    code: server::rpc_core::error::ErrorCode::ServerError(32600),
                     message: error.to_string().into(),
                     data: None,
                 },
