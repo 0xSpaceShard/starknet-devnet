@@ -1,11 +1,4 @@
-use std::collections::HashMap;
-use std::time::SystemTime;
-
-use blocks::{StarknetBlock, StarknetBlocks};
-use constants::ERC20_CONTRACT_ADDRESS;
-use predeployed_accounts::PredeployedAccounts;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
-use starknet_in_rust::core::errors::state_errors::StateError;
 use starknet_in_rust::definitions::block_context::{
     BlockContext, StarknetChainId, StarknetOsConfig,
 };
@@ -19,19 +12,24 @@ use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
 use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
 use starknet_rs_core::types::{BlockId, TransactionStatus};
+use std::collections::HashMap;
+use std::time::SystemTime;
+use tracing::error;
+
+use blocks::{StarknetBlock, StarknetBlocks};
+use constants::ERC20_CONTRACT_ADDRESS;
+use predeployed_accounts::PredeployedAccounts;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::error::Error;
 use starknet_types::felt::{Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
-use starknet_types::DevnetResult;
 use state::StarknetState;
-use tracing::error;
 use traits::{AccountGenerator, Accounted, HashIdentifiedMut, StateChanger};
 use transactions::{StarknetTransaction, StarknetTransactions, Transaction};
 
 pub mod account;
 mod blocks;
 pub mod constants;
+pub mod error;
 mod predeployed_accounts;
 mod services;
 mod state;
@@ -40,7 +38,7 @@ mod traits;
 pub mod transactions;
 mod utils;
 
-pub use starknet_in_rust::transaction::error::TransactionError;
+use error::{Error, Result};
 
 #[derive(Debug)]
 pub struct StarknetConfig {
@@ -80,7 +78,7 @@ pub struct Starknet {
 }
 
 impl Starknet {
-    pub fn new(config: &StarknetConfig) -> DevnetResult<Self> {
+    pub fn new(config: &StarknetConfig) -> Result<Self> {
         let mut state = StarknetState::default();
         // deploy udc and erc20 contracts
         let erc20_fee_contract = Starknet::create_erc20()?;
@@ -127,7 +125,7 @@ impl Starknet {
 
     // Update block context
     // Initialize values for new pending block
-    pub(crate) fn generate_pending_block(&mut self) -> DevnetResult<()> {
+    pub(crate) fn generate_pending_block(&mut self) -> Result<()> {
         Self::update_block_context(&mut self.block_context);
         self.restart_pending_block()?;
 
@@ -135,7 +133,7 @@ impl Starknet {
     }
 
     // Transfer data from pending block into new block and save it to blocks collection
-    pub(crate) fn generate_new_block(&mut self) -> DevnetResult<()> {
+    pub(crate) fn generate_new_block(&mut self) -> Result<()> {
         let mut new_block = self.pending_block().clone();
 
         // set new block header
@@ -168,7 +166,7 @@ impl Starknet {
         transaction_hash: &TransactionHash,
         transaction: Transaction,
         tx_info: TransactionExecutionInfo,
-    ) -> DevnetResult<()> {
+    ) -> Result<()> {
         let transaction_to_add =
             StarknetTransaction::create_successful(transaction.clone(), tx_info);
 
@@ -194,7 +192,7 @@ impl Starknet {
         gas_price: u64,
         fee_token_address: &str,
         chain_id: StarknetChainId,
-    ) -> DevnetResult<BlockContext> {
+    ) -> Result<BlockContext> {
         let starknet_os_config = StarknetOsConfig::new(
             chain_id,
             starknet_in_rust::utils::Address(
@@ -238,7 +236,7 @@ impl Starknet {
     }
 
     /// Restarts pending block with information from block_context
-    fn restart_pending_block(&mut self) -> DevnetResult<()> {
+    fn restart_pending_block(&mut self) -> Result<()> {
         let mut block = StarknetBlock::create_pending_block();
 
         block.header.block_number = BlockNumber(self.block_context.block_info().block_number);
@@ -255,15 +253,11 @@ impl Starknet {
 
     // TODO should return a more generic type (StateReader) to allow future implementation of a
     // ForkedStateReader
-    pub fn get_state_reader_at(&self, block_id: &BlockId) -> DevnetResult<&InMemoryStateReader> {
+    pub fn get_state_reader_at(&self, block_id: &BlockId) -> Result<&InMemoryStateReader> {
         match block_id {
-            BlockId::Hash(_) => Err(Error::StateError(StateError::CustomError(
-                "Specifying block by hash is currently not enabled".to_string(),
-            ))),
-            BlockId::Number(_) => Err(Error::StateError(StateError::CustomError(
-                "Specifying block by number is currently not enabled".to_string(),
-            ))),
             BlockId::Tag(_) => Ok(&self.state.state),
+            BlockId::Hash(_) => Err(Error::BlockIdHashUnimplementedError),
+            BlockId::Number(_) => Err(Error::BlockIdNumberUnimplementedError),
         }
     }
 }

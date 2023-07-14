@@ -1,5 +1,5 @@
 mod endpoints;
-mod error;
+pub mod error;
 mod models;
 mod write_endpoints;
 
@@ -102,10 +102,30 @@ impl<T: Serialize> ToRpcResponseResult for RpcResult<T> {
                     message: err.to_string().into(),
                     data: None,
                 },
+                err @ ApiError::TypesError(_) => RpcError {
+                    // random error coe
+                    code: server::rpc_core::error::ErrorCode::ServerError(52),
+                    message: err.to_string().into(),
+                    data: None,
+                },
+                ApiError::StarknetDevnetError(error) => RpcError {
+                    // random error coe
+                    code: server::rpc_core::error::ErrorCode::ServerError(53),
+                    message: error.to_string().into(),
+                    data: None,
+                },
             }
             .into(),
         }
     }
+}
+
+/// This object will be used as a shared state between HTTP calls.
+/// Is simillar to the HttpApiHandler but is with extended functionality and is used for JSON-RPC
+/// methods
+#[derive(Clone)]
+pub struct JsonRpcHandler {
+    pub api: Api,
 }
 
 #[async_trait::async_trait]
@@ -116,14 +136,6 @@ impl RpcHandler for JsonRpcHandler {
         info!(target: "rpc", "received method in on_request");
         self.execute(request).await
     }
-}
-
-/// This object will be used as a shared state between HTTP calls.
-/// Is simillar to the HttpApiHandler but is with extended functionality and is used for JSON-RPC
-/// methods
-#[derive(Clone)]
-pub struct JsonRpcHandler {
-    pub api: Api,
 }
 
 impl JsonRpcHandler {

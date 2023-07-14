@@ -1,7 +1,6 @@
 use serde_json::json;
 use server::rpc_core::error::RpcError;
 use starknet_core::transactions::declare_transaction::DeclareTransactionV1;
-use starknet_core::TransactionError;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::Felt;
 
@@ -22,20 +21,11 @@ impl JsonRpcHandler {
     ) -> RpcResult<DeclareTransactionOutput> {
         let chain_id = self.api.starknet.read().await.config.chain_id.to_felt();
         let (transaction_hash, class_hash) = match request {
-            BroadcastedDeclareTransaction::V1(broadcasted_declare_txn) => self
-                .api
-                .starknet
-                .write()
-                .await
-                .add_declare_transaction_v1(
+            BroadcastedDeclareTransaction::V1(broadcasted_declare_txn) => {
+                self.api.starknet.write().await.add_declare_transaction_v1(
                     (convert_to_declare_transaction_v1(*broadcasted_declare_txn, chain_id.into()))?,
-                )
-                .map_err(|err| match err {
-                    starknet_types::error::Error::TransactionError(
-                        TransactionError::ClassAlreadyDeclared(_),
-                    ) => ApiError::ClassAlreadyDeclared,
-                    _ => ApiError::InvalidContractClass,
-                })?,
+                )?
+            }
             BroadcastedDeclareTransaction::V2(_) => todo!(),
         };
 

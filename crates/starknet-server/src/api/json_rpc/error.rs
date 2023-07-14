@@ -1,9 +1,16 @@
 use server::rpc_core::error::RpcError;
+use starknet_types;
+
+use thiserror::Error;
 use tracing::error;
 
 #[allow(unused)]
-#[derive(thiserror::Error, Debug)]
+#[derive(Error, Debug)]
 pub enum ApiError {
+    #[error(transparent)]
+    StarknetDevnetError(#[from] starknet_core::error::Error),
+    #[error("Types error")]
+    TypesError(#[from] starknet_types::error::Error),
     #[error("Rpc error {0:?}")]
     RpcError(RpcError),
     #[error("Block not found")]
