@@ -1,6 +1,5 @@
 use server::rpc_core::error::RpcError;
 use starknet_types;
-
 use thiserror::Error;
 use tracing::error;
 

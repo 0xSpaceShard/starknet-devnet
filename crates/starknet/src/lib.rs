@@ -1,3 +1,9 @@
+use std::collections::HashMap;
+use std::time::SystemTime;
+
+use blocks::{StarknetBlock, StarknetBlocks};
+use constants::ERC20_CONTRACT_ADDRESS;
+use predeployed_accounts::PredeployedAccounts;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
 use starknet_in_rust::definitions::block_context::{
     BlockContext, StarknetChainId, StarknetOsConfig,
@@ -12,17 +18,11 @@ use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
 use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
 use starknet_rs_core::types::{BlockId, TransactionStatus};
-use std::collections::HashMap;
-use std::time::SystemTime;
-use tracing::error;
-
-use blocks::{StarknetBlock, StarknetBlocks};
-use constants::ERC20_CONTRACT_ADDRESS;
-use predeployed_accounts::PredeployedAccounts;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use state::StarknetState;
+use tracing::error;
 use traits::{AccountGenerator, Accounted, HashIdentifiedMut, StateChanger};
 use transactions::{StarknetTransaction, StarknetTransactions, Transaction};
 

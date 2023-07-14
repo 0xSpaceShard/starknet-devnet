@@ -1,7 +1,5 @@
-use starknet_types;
-
-use starknet_in_rust;
 use thiserror::Error;
+use {starknet_in_rust, starknet_types};
 
 #[derive(Error, Debug)]
 pub enum Error {
