@@ -25,6 +25,9 @@ pub(crate) trait ToRpcResponseResult {
     fn to_rpc_result(self) -> ResponseResult;
 }
 
+/// Used when there is no defined code to use
+pub const WILDCARD_RPC_ERROR_CODE: i64 = -1;
+
 /// Converts a serializable value into a `ResponseResult`
 pub fn to_rpc_result<T: Serialize>(val: T) -> ResponseResult {
     match serde_json::to_value(val) {
@@ -103,14 +106,13 @@ impl<T: Serialize> ToRpcResponseResult for RpcResult<T> {
                     data: None,
                 },
                 err @ ApiError::TypesError(_) => RpcError {
-                    // random error coe
-                    code: server::rpc_core::error::ErrorCode::ServerError(32600),
+                    code: server::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
                     message: err.to_string().into(),
                     data: None,
                 },
                 ApiError::StarknetDevnetError(error) => RpcError {
                     // random error coe
-                    code: server::rpc_core::error::ErrorCode::ServerError(32600),
+                    code: server::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
                     message: error.to_string().into(),
                     data: None,
                 },
