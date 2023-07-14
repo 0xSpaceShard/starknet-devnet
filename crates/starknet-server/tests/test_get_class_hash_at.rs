@@ -1,6 +1,5 @@
 pub mod common;
 
-#[cfg(test)]
 mod get_class_hash_at_integration_tests {
     use starknet_core::constants::CAIRO_0_ACCOUNT_CONTRACT_HASH;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};

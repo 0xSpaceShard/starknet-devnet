@@ -1,4 +1,3 @@
-#[cfg(test)]
 pub mod constants {
     pub const HOST: &str = "localhost";
     pub const MIN_PORT: u16 = 1025;
@@ -11,7 +10,6 @@ pub mod constants {
         "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba";
 }
 
-#[cfg(test)]
 pub mod util {
     use std::net::TcpListener;
     use std::process::{Child, Command, Stdio};
