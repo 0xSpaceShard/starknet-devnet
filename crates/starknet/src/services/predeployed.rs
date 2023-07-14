@@ -1,11 +1,9 @@
-use starknet_types::error::Error;
-use starknet_types::DevnetResult;
-
 use crate::account::Account;
 use crate::constants::{
     ERC20_CONTRACT_ADDRESS, ERC20_CONTRACT_CLASS_HASH, ERC20_CONTRACT_PATH, UDC_CONTRACT_ADDRESS,
     UDC_CONTRACT_CLASS_HASH, UDC_CONTRACT_PATH,
 };
+use crate::error::{Error, Result};
 use crate::system_contract::SystemContract;
 use crate::Starknet;
 
@@ -14,7 +12,7 @@ impl Starknet {
         self.predeployed_accounts.get_accounts().to_vec()
     }
 
-    pub(crate) fn create_erc20() -> DevnetResult<SystemContract> {
+    pub(crate) fn create_erc20() -> Result<SystemContract> {
         let erc20_contract_class_json_str =
             std::fs::read_to_string(ERC20_CONTRACT_PATH).map_err(|err| Error::ReadFileError {
                 source: err,
@@ -29,7 +27,7 @@ impl Starknet {
         Ok(erc20_fee_contract)
     }
 
-    pub(crate) fn create_udc20() -> DevnetResult<SystemContract> {
+    pub(crate) fn create_udc20() -> Result<SystemContract> {
         let udc_contract_class_json_str =
             std::fs::read_to_string(UDC_CONTRACT_PATH).map_err(|err| Error::ReadFileError {
                 source: err,

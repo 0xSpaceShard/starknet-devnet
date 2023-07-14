@@ -2,10 +2,13 @@ use axum::response::IntoResponse;
 use axum::Json;
 use hyper::StatusCode;
 use serde_json::json;
+use thiserror::Error;
 
-#[derive(Debug)]
-pub(crate) enum HttpApiError {
+#[derive(Error, Debug)]
+pub enum HttpApiError {
+    #[error("Path not found")]
     PathNotFound,
+    #[error("General error")]
     GeneralError,
 }
 

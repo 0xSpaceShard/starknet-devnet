@@ -3,9 +3,9 @@ use starknet_in_rust::core::transaction_hash::{
 };
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
-use starknet_types::error::Error;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
+use starknet_types::DevnetResult;
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct DeclareTransactionV2 {
@@ -27,7 +27,7 @@ impl DeclareTransactionV2 {
 }
 
 impl HashProducer for DeclareTransactionV2 {
-    fn generate_hash(&self) -> starknet_types::DevnetResult<Felt> {
+    fn generate_hash(&self) -> DevnetResult<Felt> {
         let class_hash = self.class_hash.unwrap_or(self.sierra_contract_class.generate_hash()?);
 
         let calldata = [class_hash.into()].to_vec();
@@ -44,7 +44,7 @@ impl HashProducer for DeclareTransactionV2 {
             &additional_data,
         )
         .map_err(|err| {
-            Error::TransactionError(
+            starknet_types::error::Error::TransactionError(
                 starknet_in_rust::transaction::error::TransactionError::Syscall(err),
             )
         })?

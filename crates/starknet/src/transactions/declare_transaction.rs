@@ -7,6 +7,7 @@ use starknet_types::contract_class::ContractClass;
 use starknet_types::error::Error;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
+use starknet_types::DevnetResult;
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct DeclareTransactionV1 {
@@ -47,7 +48,7 @@ impl DeclareTransactionV1 {
 }
 
 impl HashProducer for DeclareTransactionV1 {
-    fn generate_hash(&self) -> starknet_types::DevnetResult<Felt> {
+    fn generate_hash(&self) -> DevnetResult<Felt> {
         let class_hash = self.class_hash.unwrap_or(self.contract_class.generate_hash()?);
 
         let (calldata, additional_data) = (Vec::new(), vec![class_hash.into()]);

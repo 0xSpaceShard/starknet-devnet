@@ -1,9 +1,8 @@
 use starknet_in_rust::transaction::{verify_version, Declare, DeclareV2};
-use starknet_types::error::Error;
 use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::traits::HashProducer;
-use starknet_types::DevnetResult;
 
+use crate::error::{Error, Result};
 use crate::transactions::declare_transaction::DeclareTransactionV1;
 use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
 use crate::transactions::{StarknetTransaction, Transaction};
@@ -13,7 +12,7 @@ impl Starknet {
     pub fn add_declare_transaction_v2(
         &mut self,
         declare_transaction: DeclareTransactionV2,
-    ) -> DevnetResult<(TransactionHash, ClassHash)> {
+    ) -> Result<(TransactionHash, ClassHash)> {
         let mut declare_transaction = declare_transaction;
 
         let class_hash = declare_transaction.sierra_contract_class.generate_hash()?;
@@ -86,7 +85,7 @@ impl Starknet {
     pub fn add_declare_transaction_v1(
         &mut self,
         declare_transaction: DeclareTransactionV1,
-    ) -> DevnetResult<(TransactionHash, ClassHash)> {
+    ) -> Result<(TransactionHash, ClassHash)> {
         let mut declare_transaction = declare_transaction;
 
         let class_hash = declare_transaction.contract_class.generate_hash()?;
@@ -167,6 +166,7 @@ mod tests {
 
     use crate::account::Account;
     use crate::constants::{self};
+    use crate::error::Error;
     use crate::traits::{Accounted, HashIdentifiedMut, StateChanger};
     use crate::transactions::declare_transaction::DeclareTransactionV1;
     use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
@@ -224,7 +224,7 @@ mod tests {
         ));
 
         match starknet.add_declare_transaction_v2(declare_txn).err().unwrap() {
-            starknet_types::error::Error::TransactionError(generated_error) => {
+            Error::TransactionError(generated_error) => {
                 assert_eq!(generated_error.to_string(), expected_error.to_string());
             }
             _ => panic!("Wrong error type"),
@@ -288,7 +288,7 @@ mod tests {
         ));
 
         match starknet.add_declare_transaction_v1(declare_txn).err().unwrap() {
-            starknet_types::error::Error::TransactionError(generated_error) => {
+            Error::TransactionError(generated_error) => {
                 assert_eq!(generated_error.to_string(), expected_error.to_string());
             }
             _ => panic!("Wrong error type"),
