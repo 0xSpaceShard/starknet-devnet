@@ -57,6 +57,7 @@ pub mod util {
         /// Ensures the background instance spawns at a free port, checks at most `MAX_RETRIES`
         /// times
         pub(crate) async fn spawn() -> Self {
+            // we keep the reference, otherwise the mutex unlocks immediately
             let _mutex_guard = BACKGROUND_DEVNET_MUTEX.lock().await;
 
             let free_port = get_free_port_listener().expect("No free ports");
