@@ -265,15 +265,14 @@ impl Starknet {
 #[cfg(test)]
 mod tests {
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
-    use starknet_in_rust::core::errors::state_errors::StateError;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::error::Error;
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
 
     use crate::blocks::StarknetBlock;
+    use crate::error::Error;
     use crate::traits::Accounted;
     use crate::utils::test_utils::{dummy_declare_transaction_v1, starknet_config_for_test};
     use crate::Starknet;
@@ -419,7 +418,7 @@ mod tests {
         let config = starknet_config_for_test();
         let starknet = Starknet::new(&config).unwrap();
         match starknet.get_state_reader_at(&BlockId::Number(2)) {
-            Err(Error::StateError(StateError::CustomError(_))) => (),
+            Err(Error::BlockIdNumberUnimplementedError) => (),
             _ => panic!("Should have failed"),
         }
     }
@@ -429,7 +428,7 @@ mod tests {
         let config = starknet_config_for_test();
         let starknet = Starknet::new(&config).unwrap();
         match starknet.get_state_reader_at(&BlockId::Number(2)) {
-            Err(Error::StateError(StateError::CustomError(_))) => (),
+            Err(Error::BlockIdNumberUnimplementedError) => (),
             _ => panic!("Should have failed"),
         }
     }

@@ -194,10 +194,10 @@ mod tests {
     use starknet_in_rust::state::state_api::{State, StateReader};
     use starknet_types::cairo_felt::Felt252;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::error::Error;
     use starknet_types::felt::Felt;
 
     use super::StarknetState;
+    use crate::error::Error;
     use crate::traits::{StateChanger, StateExtractor};
     use crate::utils::test_utils::{
         dummy_cairo_0_contract_class, dummy_contract_address, dummy_contract_storage_key,

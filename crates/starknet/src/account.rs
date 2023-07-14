@@ -110,10 +110,10 @@ mod tests {
     use starknet_in_rust::core::errors::state_errors::StateError;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_storage_key::ContractStorageKey;
-    use starknet_types::error::Error;
     use starknet_types::felt::Felt;
 
     use super::Account;
+    use crate::error::Error;
     use crate::state::StarknetState;
     use crate::traits::Accounted;
     use crate::utils::get_storage_var_address;

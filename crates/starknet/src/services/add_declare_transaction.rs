@@ -166,6 +166,7 @@ mod tests {
 
     use crate::account::Account;
     use crate::constants::{self};
+    use crate::error::Error;
     use crate::traits::{Accounted, HashIdentifiedMut, StateChanger};
     use crate::transactions::declare_transaction::DeclareTransactionV1;
     use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
@@ -223,7 +224,7 @@ mod tests {
         ));
 
         match starknet.add_declare_transaction_v2(declare_txn).err().unwrap() {
-            starknet_types::error::Error::TransactionError(generated_error) => {
+            Error::TransactionError(generated_error) => {
                 assert_eq!(generated_error.to_string(), expected_error.to_string());
             }
             _ => panic!("Wrong error type"),
@@ -287,7 +288,7 @@ mod tests {
         ));
 
         match starknet.add_declare_transaction_v1(declare_txn).err().unwrap() {
-            starknet_types::error::Error::TransactionError(generated_error) => {
+            Error::TransactionError(generated_error) => {
                 assert_eq!(generated_error.to_string(), expected_error.to_string());
             }
             _ => panic!("Wrong error type"),
