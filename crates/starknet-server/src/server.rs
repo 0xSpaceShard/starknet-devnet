@@ -5,7 +5,6 @@ use server::builder::StarknetDevnetServer;
 use server::ServerConfig;
 use starknet_core::StarknetConfig;
 
-use crate::api;
 use crate::api::http::{endpoints as http, HttpApiHandler};
 use crate::api::json_rpc::JsonRpcHandler;
 use crate::api::Api;
