@@ -4,30 +4,27 @@ use starknet_api::hash::{pedersen_hash, StarkFelt};
 use starknet_in_rust::utils::calculate_sn_keccak;
 use starknet_types::cairo_felt::Felt252;
 use starknet_types::contract_class::ContractClass;
-use starknet_types::error::Error;
 use starknet_types::felt::Felt;
 use starknet_types::num_integer::Integer;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
-use starknet_types::DevnetResult;
+
+use crate::error::{Error, Result};
 
 pub(crate) fn generate_u128_random_numbers(
     seed: u32,
     random_numbers_count: u8,
-) -> DevnetResult<Vec<u128>> {
+) -> Result<Vec<u128>> {
     Ok(random_number_generator::generate_u128_random_numbers(seed, random_numbers_count))
 }
 
-pub(crate) fn load_cairo_0_contract_class(path: &str) -> DevnetResult<ContractClass> {
+pub(crate) fn load_cairo_0_contract_class(path: &str) -> Result<ContractClass> {
     let contract_class_str = fs::read_to_string(path)
         .map_err(|err| Error::ReadFileError { source: err, path: path.to_string() })?;
-    ContractClass::cairo_0_from_json_str(&contract_class_str)
+    Ok(ContractClass::cairo_0_from_json_str(&contract_class_str)?)
 }
 
 /// Returns the storage address of a StarkNet storage variable given its name and arguments.
-pub(crate) fn get_storage_var_address(
-    storage_var_name: &str,
-    args: &[Felt],
-) -> DevnetResult<StorageKey> {
+pub(crate) fn get_storage_var_address(storage_var_name: &str, args: &[Felt]) -> Result<StorageKey> {
     let storage_var_name_hash = calculate_sn_keccak(storage_var_name.as_bytes());
     let storage_var_name_hash = StarkFelt::new(storage_var_name_hash)?;
 
@@ -39,7 +36,7 @@ pub(crate) fn get_storage_var_address(
         &Felt252::from_bytes_be(&starknet_api::core::L2_ADDRESS_UPPER_BOUND.to_bytes_be()),
     );
 
-    PatriciaKey::new(Felt::new(storage_key.to_be_bytes())?)
+    Ok(PatriciaKey::new(Felt::new(storage_key.to_be_bytes())?)?)
 }
 
 #[cfg(test)]
