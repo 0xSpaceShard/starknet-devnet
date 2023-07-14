@@ -6,8 +6,6 @@ pub mod constants {
     pub const SEED: usize = 42;
     pub const ACCOUNTS: usize = 3;
 
-    pub const MAX_RETRIES: usize = 10;
-
     // predeployed account info with seed=42
     pub const PREDEPLOYED_ACCOUNT_ADDRESS: &str =
         "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba";
@@ -29,7 +27,7 @@ pub mod util {
     use tokio::sync::Mutex;
     use url::Url;
 
-    use super::constants::{ACCOUNTS, HOST, MAX_PORT, MAX_RETRIES, MIN_PORT, SEED};
+    use super::constants::{ACCOUNTS, HOST, MAX_PORT, MIN_PORT, SEED};
 
     #[derive(Error, Debug)]
     pub enum TestError {
@@ -89,8 +87,9 @@ pub mod util {
                 format!("{}/is_alive", devnet_url.as_str()).as_str().parse::<Uri>().unwrap();
 
             let mut retries = 0;
+            let max_retries = 10; // limit the number of times we check if devnet is spawned
             let http_client = Client::new();
-            while retries < MAX_RETRIES {
+            while retries < max_retries {
                 if let Ok(alive_resp) = http_client.get(healthcheck_uri.clone()).await {
                     assert_eq!(alive_resp.status(), StatusCode::OK);
                     println!("Spawned background devnet at port {free_port}");
