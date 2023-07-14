@@ -36,6 +36,7 @@ impl HashIdentifiedMut for StarknetTransactions {
 }
 
 #[allow(unused)]
+#[derive(Clone)]
 pub struct StarknetTransaction {
     pub(crate) status: TransactionStatus,
     inner: Transaction,
@@ -44,6 +45,71 @@ pub struct StarknetTransaction {
     execution_info: Option<starknet_in_rust::execution::TransactionExecutionInfo>,
     execution_error: Option<TransactionError>,
 }
+
+// impl Clone for TransactionError {
+//     fn clone(&self) -> Self {
+//         match self {
+//             Self::MissingNonce => Self::MissingNonce,
+//             Self::InvalidMaxFee => Self::InvalidMaxFee,
+//             Self::InvalidNonce => Self::InvalidNonce,
+//             Self::InvalidSignature => Self::InvalidSignature,
+//             Self::InvokeFunctionNonZeroMissingNonce => Self::InvokeFunctionNonZeroMissingNonce,
+//             Self::InvokeFunctionZeroHasNonce => Self::InvokeFunctionZeroHasNonce,
+//             Self::InvalidTransactionNonce(arg0, arg1) => Self::InvalidTransactionNonce(arg0.clone(), arg1.clone()),
+//             Self::ActualFeeExceedsMaxFee(arg0, arg1) => Self::ActualFeeExceedsMaxFee(arg0.clone(), arg1.clone()),
+//             Self::FeeTransferError(arg0) => Self::FeeTransferError(arg0.clone()),
+//             Self::FeeError(arg0) => Self::FeeError(arg0.clone()),
+//             Self::ResourcesError => Self::ResourcesError,
+//             Self::ResourcesCalculation => Self::ResourcesCalculation,
+//             Self::ContractAddress(arg0) => Self::ContractAddress(arg0.clone()),
+//             Self::Syscall(arg0) => Self::Syscall(arg0.clone()),
+//             Self::State(arg0) => Self::State(arg0.clone()),
+//             Self::UnauthorizedActionOnValidate => Self::UnauthorizedActionOnValidate,
+//             Self::ClassAlreadyDeclared(arg0) => Self::ClassAlreadyDeclared(arg0.clone()),
+//             Self::NotARelocatableValue => Self::NotARelocatableValue,
+//             Self::UnexpectedHolesInEventOrder => Self::UnexpectedHolesInEventOrder,
+//             Self::UnexpectedHolesL2toL1Messages => Self::UnexpectedHolesL2toL1Messages,
+//             Self::CallTypeIsNotDelegate => Self::CallTypeIsNotDelegate,
+//             Self::AttempToUseNoneCodeAddress => Self::AttempToUseNoneCodeAddress,
+//             Self::FailToReadClassHash => Self::FailToReadClassHash,
+//             Self::MissingCompiledClass => Self::MissingCompiledClass,
+//             Self::NotDeployedContract(arg0) => Self::NotDeployedContract(arg0.clone()),
+//             Self::NonUniqueEntryPoint => Self::NonUniqueEntryPoint,
+//             Self::EntryPointNotFound => Self::EntryPointNotFound,
+//             Self::OsContextPtrNotEqual => Self::OsContextPtrNotEqual,
+//             Self::EmptyOsContext => Self::EmptyOsContext,
+//             Self::IllegalOsPtrOffset => Self::IllegalOsPtrOffset,
+//             Self::InvalidPtrFetch => Self::InvalidPtrFetch,
+//             Self::InvalidSegBasePtrOffset(arg0) => Self::InvalidSegBasePtrOffset(arg0.clone()),
+//             Self::InvalidSegmentSize => Self::InvalidSegmentSize,
+//             Self::InvalidStopPointer(arg0, arg1) => Self::InvalidStopPointer(arg0.clone(), arg1.clone()),
+//             Self::InvalidEntryPoints => Self::InvalidEntryPoints,
+//             Self::NotAFelt => Self::NotAFelt,
+//             Self::OutOfBound => Self::OutOfBound,
+//             Self::InvalidContractCall => Self::InvalidContractCall,
+//             Self::InvalidSenderAddress => Self::InvalidSenderAddress,
+//             Self::TraceException(arg0) => Self::TraceException(arg0.clone()),
+//             Self::MemoryException(arg0) => Self::MemoryException(arg0.clone()),
+//             Self::MissingInitialFp => Self::MissingInitialFp,
+//             Self::InvalidTxContext => Self::InvalidTxContext,
+//             Self::SierraCompileError(arg0) => Self::SierraCompileError(arg0.clone()),
+//             Self::InvalidBuiltinContractClass(arg0) => Self::InvalidBuiltinContractClass(arg0.clone()),
+//             Self::NotEqualClassHash => Self::NotEqualClassHash,
+//             Self::Vm(arg0) => Self::Vm(arg0.clone()),
+//             Self::CairoRunner(arg0) => Self::CairoRunner(arg0.clone()),
+//             Self::Runner(arg0) => Self::Runner(arg0.clone()),
+//             Self::NoneTransactionType(arg0, arg1) => Self::NoneTransactionType(arg0.clone(), arg1.clone()),
+//             Self::MathError(arg0) => Self::MathError(arg0.clone()),
+//             Self::ProgramError(arg0) => Self::ProgramError(arg0.clone()),
+//             Self::EmptyConstructorCalldata => Self::EmptyConstructorCalldata,
+//             Self::InvalidBlockNumber => Self::InvalidBlockNumber,
+//             Self::InvalidBlockTimestamp => Self::InvalidBlockTimestamp,
+//             Self::CustomError(arg0) => Self::CustomError(arg0.clone()),
+//             Self::CallInfoIsNone => Self::CallInfoIsNone,
+//             Self::UnsupportedVersion(arg0) => Self::UnsupportedVersion(arg0.clone()),
+//         }
+//     }
+// }
 
 impl StarknetTransaction {
     pub fn create_rejected(transaction: Transaction, execution_error: TransactionError) -> Self {
