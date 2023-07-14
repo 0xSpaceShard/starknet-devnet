@@ -3,9 +3,9 @@ use starknet_rs_signers::SigningKey;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Felt, Key};
-use starknet_types::DevnetResult;
 
 use crate::account::Account;
+use crate::error::Result;
 use crate::traits::AccountGenerator;
 use crate::utils::generate_u128_random_numbers;
 
@@ -28,14 +28,14 @@ impl PredeployedAccounts {
 }
 
 impl PredeployedAccounts {
-    fn generate_private_keys(&self, number_of_accounts: u8) -> DevnetResult<Vec<Key>> {
+    fn generate_private_keys(&self, number_of_accounts: u8) -> Result<Vec<Key>> {
         let random_numbers = generate_u128_random_numbers(self.seed, number_of_accounts)?;
         let private_keys = random_numbers.into_iter().map(Key::from).collect::<Vec<Key>>();
 
         Ok(private_keys)
     }
 
-    fn generate_public_key(&self, private_key: &Key) -> DevnetResult<Key> {
+    fn generate_public_key(&self, private_key: &Key) -> Result<Key> {
         let private_key_field_element = FieldElement::from(*private_key);
 
         let public_key = Key::from(
@@ -58,7 +58,7 @@ impl AccountGenerator for PredeployedAccounts {
         number_of_accounts: u8,
         class_hash: ClassHash,
         contract_class: ContractClass,
-    ) -> DevnetResult<&Vec<Self::Acc>> {
+    ) -> Result<&Vec<Self::Acc>> {
         let private_keys = self.generate_private_keys(number_of_accounts)?;
 
         for private_key in private_keys {
@@ -85,10 +85,10 @@ mod tests {
     use starknet_types::felt::{Felt, Key};
     use starknet_types::traits::{ToDecimalString, ToHexString};
 
-    use crate::constants::CAIRO_0_ACCOUNT_CONTRACT_PATH;
+    use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH};
     use crate::predeployed_accounts::PredeployedAccounts;
     use crate::traits::AccountGenerator;
-    use crate::utils::test_utils::{dummy_contract_address, CAIRO_0_ACCOUNT_CONTRACT_HASH};
+    use crate::utils::test_utils::dummy_contract_address;
 
     const SEED: u32 = 123;
 

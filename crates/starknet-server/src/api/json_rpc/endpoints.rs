@@ -1,4 +1,3 @@
-use server::rpc_core::error::RpcError;
 use starknet_types::felt::Felt;
 use starknet_types::starknet_api::block::BlockNumber;
 
@@ -87,17 +86,10 @@ impl JsonRpcHandler {
         block_id: BlockId,
         contract_address: ContractAddressHex,
     ) -> RpcResult<ClassHashHex> {
-        let parsed_address = contract_address.0.try_into().map_err(|_| {
-            error::ApiError::RpcError(RpcError::invalid_params(format!(
-                "Invalid contract_address: {:?}",
-                contract_address.0
-            )))
-        })?;
+        let parsed_address = contract_address.0.try_into()?;
 
         let starknet = self.api.starknet.read().await;
-        let state = starknet
-            .get_state_reader_at(&block_id.into())
-            .map_err(|_| error::ApiError::BlockNotFound)?;
+        let state = starknet.get_state_reader_at(&block_id.into())?;
         match state.address_to_class_hash.get(&parsed_address) {
             Some(class_hash) => Ok(FeltHex(Felt::from(*class_hash))),
             None => Err(error::ApiError::ContractNotFound),
