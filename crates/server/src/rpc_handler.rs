@@ -62,14 +62,14 @@ pub async fn handle<THandler: RpcHandler>(
     Extension(handler): Extension<THandler>,
 ) -> Json<Response> {
     match request {
-        Err(err) => {
-            warn!(target: "rpc", ?err, "invalid request");
-            Response::error(RpcError::invalid_request()).into()
-        }
         Ok(req) => handle_request(req.0, handler)
             .await
             .unwrap_or_else(|| Response::error(RpcError::invalid_request()))
             .into(),
+        Err(err) => {
+            warn!(target: "rpc", ?err, "invalid request");
+            Response::error(RpcError::invalid_request()).into()
+        }
     }
 }
 

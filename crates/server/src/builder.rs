@@ -30,20 +30,24 @@ pub type StarknetDevnetServer = Server<AddrIncoming, IntoMakeService<Router>>;
 pub struct Builder<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static> {
     address: SocketAddr,
     routes: Router,
-    json_rpc_handler: Option<TJsonRpcHandler>,
-    http_api_handler: Option<THttpApiHandler>,
+    json_rpc_handler: TJsonRpcHandler,
+    http_api_handler: THttpApiHandler,
     config: Option<ServerConfig>,
 }
 
 impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static>
     Builder<TJsonRpcHandler, THttpApiHandler>
 {
-    pub fn new(addr: SocketAddr) -> Self {
+    pub fn new(
+        addr: SocketAddr,
+        json_rpc_handler: TJsonRpcHandler,
+        http_api_handler: THttpApiHandler,
+    ) -> Self {
         Builder {
             address: addr,
             routes: Router::<hyper::Body>::new(),
-            json_rpc_handler: None,
-            http_api_handler: None,
+            json_rpc_handler,
+            http_api_handler,
             config: None,
         }
     }
@@ -66,15 +70,14 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
 
     /// Adds the object that will be available on every HTTP request
     pub fn set_http_api_handler(self, handler: THttpApiHandler) -> Self {
-        Self { http_api_handler: Some(handler), ..self }
+        Self { http_api_handler: handler, ..self }
     }
 
     /// Sets the path to the JSON-RPC endpoint and adds the object that will be available on every
     /// request
-    pub fn json_rpc_route(self, path: &str, handler: TJsonRpcHandler) -> Self {
+    pub fn json_rpc_route(self, path: &str) -> Self {
         Self {
             routes: self.routes.route(path, post(rpc_handler::handle::<TJsonRpcHandler>)),
-            json_rpc_handler: Some(handler),
             ..self
         }
     }
@@ -91,15 +94,9 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
     pub fn build(self, starknet_config: &StarknetConfig) -> StarknetDevnetServer {
         let mut svc = self.routes;
 
-        if self.json_rpc_handler.is_some() {
-            svc = svc.layer(Extension(self.json_rpc_handler.unwrap()));
-        }
-
-        if self.http_api_handler.is_some() {
-            svc = svc.layer(Extension(self.http_api_handler.unwrap()));
-        }
-
         svc = svc
+            .layer(Extension(self.json_rpc_handler))
+            .layer(Extension(self.http_api_handler))
             .layer(TraceLayer::new_for_http())
             .layer(TimeoutLayer::new(Duration::from_secs(starknet_config.timeout.into())));
 
