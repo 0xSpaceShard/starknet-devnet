@@ -94,10 +94,11 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
     pub fn build(self, starknet_config: &StarknetConfig) -> StarknetDevnetServer {
         let mut svc = self.routes;
 
-        svc = svc.layer(Extension(self.json_rpc_handler));
-        svc = svc.layer(Extension(self.http_api_handler));
-        svc = svc.layer(TraceLayer::new_for_http()).
-        		  layer(TimeoutLayer::new(Duration::from_secs(starknet_config.timeout.into())));;
+        svc = svc
+            .layer(Extension(self.json_rpc_handler))
+            .layer(Extension(self.http_api_handler))
+            .layer(TraceLayer::new_for_http())
+            .layer(TimeoutLayer::new(Duration::from_secs(starknet_config.timeout.into())));
 
         if let Some(ServerConfig { allow_origin }) = self.config {
             svc = svc.layer(
