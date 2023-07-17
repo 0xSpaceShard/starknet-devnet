@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+use std::time::SystemTime;
+
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
 use starknet_in_rust::definitions::block_context::{
     BlockContext, StarknetChainId, StarknetOsConfig,
@@ -11,9 +14,11 @@ use starknet_in_rust::execution::TransactionExecutionInfo;
 use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
 use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
+use starknet_in_rust::SierraContractClass;
 use starknet_rs_core::types::{BlockId, TransactionStatus};
-use std::collections::HashMap;
-use std::time::SystemTime;
+use starknet_types::contract_address::ContractAddress;
+use starknet_types::felt::{ClassHash, Felt, TransactionHash};
+use starknet_types::traits::HashProducer;
 use tracing::error;
 
 use crate::account::Account;
@@ -27,11 +32,6 @@ use crate::transactions::declare_transaction::DeclareTransactionV1;
 use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
 use crate::transactions::{StarknetTransaction, StarknetTransactions, Transaction};
 use crate::utils;
-use starknet_in_rust::SierraContractClass;
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::ClassHash;
-use starknet_types::felt::{Felt, TransactionHash};
-use starknet_types::traits::HashProducer;
 
 mod add_declare_transaction;
 mod predeployed;
@@ -175,8 +175,7 @@ impl Starknet {
         // add accepted transaction to pending block
         self.blocks.pending_block.add_transaction(transaction);
 
-        self.transactions
-            .insert(transaction_hash, transaction_to_add);
+        self.transactions.insert(transaction_hash, transaction_to_add);
 
         // create new block from pending one
         self.generate_new_block()?;
@@ -361,15 +360,7 @@ mod tests {
         let added_block = starknet.blocks.num_to_block.get(&BlockNumber(0)).unwrap();
 
         assert!(added_block.get_transactions().len() == 1);
-        assert_eq!(
-            added_block
-                .get_transactions()
-                .first()
-                .unwrap()
-                .get_hash()
-                .unwrap(),
-            tx_hash
-        );
+        assert_eq!(added_block.get_transactions().first().unwrap().get_hash().unwrap(), tx_hash);
     }
 
     #[test]
@@ -380,13 +371,8 @@ mod tests {
         let initial_block_number = starknet.block_context.block_info().block_number;
         let initial_gas_price = starknet.block_context.block_info().gas_price;
         let initial_block_timestamp = starknet.block_context.block_info().block_timestamp;
-        let initial_sequencer: ContractAddress = starknet
-            .block_context
-            .block_info()
-            .sequencer_address
-            .clone()
-            .try_into()
-            .unwrap();
+        let initial_sequencer: ContractAddress =
+            starknet.block_context.block_info().sequencer_address.clone().try_into().unwrap();
 
         // create pending block with some information in it
         let mut pending_block = StarknetBlock::create_pending_block();
@@ -409,18 +395,9 @@ mod tests {
             starknet.pending_block().header.timestamp,
             BlockTimestamp(initial_block_timestamp)
         );
-        assert_eq!(
-            starknet.pending_block().header.block_number,
-            BlockNumber(initial_block_number)
-        );
-        assert_eq!(
-            starknet.pending_block().header.parent_hash,
-            BlockHash::default()
-        );
-        assert_eq!(
-            starknet.pending_block().header.gas_price,
-            GasPrice(initial_gas_price as u128)
-        );
+        assert_eq!(starknet.pending_block().header.block_number, BlockNumber(initial_block_number));
+        assert_eq!(starknet.pending_block().header.parent_hash, BlockHash::default());
+        assert_eq!(starknet.pending_block().header.gas_price, GasPrice(initial_gas_price as u128));
         assert_eq!(
             starknet.pending_block().header.sequencer,
             initial_sequencer.try_into().unwrap()
@@ -434,28 +411,21 @@ mod tests {
         let initial_block_number = block_ctx.block_info().block_number;
         Starknet::update_block_context(&mut block_ctx);
 
-        assert_eq!(
-            block_ctx.block_info().block_number,
-            initial_block_number + 1
-        );
+        assert_eq!(block_ctx.block_info().block_number, initial_block_number + 1);
     }
 
     #[test]
     fn getting_state_reader_of_latest_state() {
         let config = starknet_config_for_test();
         let starknet = Starknet::new(&config).unwrap();
-        starknet
-            .get_state_reader_at(&BlockId::Tag(BlockTag::Latest))
-            .expect("Should be OK");
+        starknet.get_state_reader_at(&BlockId::Tag(BlockTag::Latest)).expect("Should be OK");
     }
 
     #[test]
     fn getting_state_reader_of_pending_state() {
         let config = starknet_config_for_test();
         let starknet = Starknet::new(&config).unwrap();
-        starknet
-            .get_state_reader_at(&BlockId::Tag(BlockTag::Pending))
-            .expect("Should be OK");
+        starknet.get_state_reader_at(&BlockId::Tag(BlockTag::Pending)).expect("Should be OK");
     }
 
     #[test]

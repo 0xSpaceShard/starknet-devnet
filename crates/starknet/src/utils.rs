@@ -14,17 +14,12 @@ pub(crate) fn generate_u128_random_numbers(
     seed: u32,
     random_numbers_count: u8,
 ) -> Result<Vec<u128>> {
-    Ok(random_number_generator::generate_u128_random_numbers(
-        seed,
-        random_numbers_count,
-    ))
+    Ok(random_number_generator::generate_u128_random_numbers(seed, random_numbers_count))
 }
 
 pub(crate) fn load_cairo_0_contract_class(path: &str) -> Result<ContractClass> {
-    let contract_class_str = fs::read_to_string(path).map_err(|err| Error::ReadFileError {
-        source: err,
-        path: path.to_string(),
-    })?;
+    let contract_class_str = fs::read_to_string(path)
+        .map_err(|err| Error::ReadFileError { source: err, path: path.to_string() })?;
     Ok(ContractClass::cairo_0_from_json_str(&contract_class_str)?)
 }
 
@@ -33,9 +28,9 @@ pub(crate) fn get_storage_var_address(storage_var_name: &str, args: &[Felt]) -> 
     let storage_var_name_hash = calculate_sn_keccak(storage_var_name.as_bytes());
     let storage_var_name_hash = StarkFelt::new(storage_var_name_hash)?;
 
-    let storage_key_hash = args.iter().fold(storage_var_name_hash, |res, arg| {
-        pedersen_hash(&res, &StarkFelt::from(arg))
-    });
+    let storage_key_hash = args
+        .iter()
+        .fold(storage_var_name_hash, |res, arg| pedersen_hash(&res, &StarkFelt::from(arg)));
 
     let storage_key = Felt252::from_bytes_be(storage_key_hash.bytes()).mod_floor(
         &Felt252::from_bytes_be(&starknet_api::core::L2_ADDRESS_UPPER_BOUND.to_bytes_be()),
@@ -134,10 +129,8 @@ mod tests {
     #[test]
     fn correct_number_generated_based_on_fixed_seed() {
         let generated_numbers = random_number_generator::generate_u128_random_numbers(123, 2);
-        let expected_output: Vec<u128> = vec![
-            261662301160200998434711212977610535782,
-            285327960644938307249498422906269531911,
-        ];
+        let expected_output: Vec<u128> =
+            vec![261662301160200998434711212977610535782, 285327960644938307249498422906269531911];
         assert_eq!(generated_numbers, expected_output);
     }
 

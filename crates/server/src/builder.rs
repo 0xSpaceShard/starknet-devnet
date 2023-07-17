@@ -65,37 +65,26 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
             + 'static,
         THttpMethodService::Future: Send + 'static,
     {
-        Self {
-            routes: self.routes.route(path, http_service),
-            ..self
-        }
+        Self { routes: self.routes.route(path, http_service), ..self }
     }
 
     /// Adds the object that will be available on every HTTP request
     pub fn set_http_api_handler(self, handler: THttpApiHandler) -> Self {
-        Self {
-            http_api_handler: handler,
-            ..self
-        }
+        Self { http_api_handler: handler, ..self }
     }
 
     /// Sets the path to the JSON-RPC endpoint and adds the object that will be available on every
     /// request
     pub fn json_rpc_route(self, path: &str) -> Self {
         Self {
-            routes: self
-                .routes
-                .route(path, post(rpc_handler::handle::<TJsonRpcHandler>)),
+            routes: self.routes.route(path, post(rpc_handler::handle::<TJsonRpcHandler>)),
             ..self
         }
     }
 
     /// Sets additional configuration for the [`StarknetDevnetServer`]
     pub fn set_config(self, config: ServerConfig) -> Self {
-        Self {
-            config: Some(config),
-            ..self
-        }
+        Self { config: Some(config), ..self }
     }
 
     /// Creates the http server - [`StarknetDevnetServer`] from all the configured routes, provided
@@ -109,9 +98,7 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
             .layer(Extension(self.json_rpc_handler))
             .layer(Extension(self.http_api_handler))
             .layer(TraceLayer::new_for_http())
-            .layer(TimeoutLayer::new(Duration::from_secs(
-                starknet_config.timeout.into(),
-            )));
+            .layer(TimeoutLayer::new(Duration::from_secs(starknet_config.timeout.into())));
 
         if let Some(ServerConfig { allow_origin }) = self.config {
             svc = svc.layer(

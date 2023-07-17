@@ -18,8 +18,6 @@ pub struct Api {
 
 impl Api {
     pub fn new(starknet: Starknet) -> Self {
-        Self {
-            starknet: Arc::new(RwLock::new(starknet)),
-        }
+        Self { starknet: Arc::new(RwLock::new(starknet)) }
     }
 }

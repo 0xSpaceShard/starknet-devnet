@@ -30,10 +30,8 @@ pub(crate) struct Args {
     // Seed for predeployed accounts
     #[arg(long = "seed")]
     #[arg(value_name = "SEED")]
-    #[arg(
-        help = "Specify the seed for randomness of accounts to be predeployed; if not \
-                  provided, it is randomly generated"
-    )]
+    #[arg(help = "Specify the seed for randomness of accounts to be predeployed; if not \
+                  provided, it is randomly generated")]
     seed: Option<u32>,
 
     // Host address

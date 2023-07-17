@@ -18,10 +18,7 @@ pub enum Error {
     #[error("I/O error")]
     IoError(#[from] std::io::Error),
     #[error("Error when reading file {path}")]
-    ReadFileError {
-        source: std::io::Error,
-        path: String,
-    },
+    ReadFileError { source: std::io::Error, path: String },
     #[error("Format error")]
     FormatError,
 }

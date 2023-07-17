@@ -49,13 +49,13 @@ impl TryFrom<DeprecatedContractClass> for ContractClass {
             ))
         })?;
 
-        Ok(ContractClass::Cairo0(
-            starknet_types::contract_class::Cairo0ContractClass::Json(json!({
+        Ok(ContractClass::Cairo0(starknet_types::contract_class::Cairo0ContractClass::Json(
+            json!({
                 "program": value.program,
                 "abi": abi_json,
                 "entry_points_by_type": entry_points_json,
-            })),
-        ))
+            }),
+        )))
     }
 }
 
