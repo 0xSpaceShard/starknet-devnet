@@ -466,6 +466,28 @@ mod requests_tests {
         assert_deserialization_fails(json_str.replace(r#""block_id":"latest","#, "").as_str());
     }
 
+    #[test]
+    fn deserialize_add_deploy_account_transaction_request() {
+        let json_str = r#"{
+            "method":"starknet_addDeployAccountTransaction",
+            "params":{
+                "deploy_account_transaction":{
+                    "type":"DEPLOY_ACCOUNT",
+                    "max_fee": "0xA",
+                    "version": "0x1",
+                    "signature": ["0xFF", "0xAA"],
+                    "nonce": "0x0",
+                    "contract_address_salt": "0x01",
+                    "constructor_calldata": ["0x01"],
+                    "class_hash": "0x01"
+                }
+            }
+        }"#;
+
+        assert_deserialization_succeeds(json_str);
+        assert_deserialization_fails(json_str.replace(r#""class_hash":"#, "").as_str());
+    }
+
     fn assert_deserialization_succeeds(json_str: &str) {
         serde_json::from_str::<StarknetRequest>(json_str).unwrap();
     }
