@@ -73,7 +73,7 @@ impl StarknetTransaction {
 pub enum Transaction {
     Declare(DeclareTransactionV1),
     DeclareV2(DeclareTransactionV2),
-    DeployAccount(DeployAccountTransaction),
+    DeployAccount(Box<DeployAccountTransaction>),
 }
 
 impl Transaction {

@@ -33,13 +33,13 @@ impl Starknet {
             Ok(tx_info) => {
                 self.handle_successful_transaction(
                     &transaction_hash,
-                    Transaction::DeployAccount(deploy_account_transaction),
+                    Transaction::DeployAccount(Box::new(deploy_account_transaction)),
                     tx_info,
                 )?;
             }
             Err(tx_err) => {
                 let transaction_to_add = StarknetTransaction::create_rejected(
-                    Transaction::DeployAccount(deploy_account_transaction),
+                    Transaction::DeployAccount(Box::new(deploy_account_transaction)),
                     tx_err,
                 );
 
