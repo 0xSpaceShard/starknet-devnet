@@ -9,8 +9,8 @@ use starknet_types::contract_class::ContractClass;
 use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::error::Error;
 use starknet_types::felt::{Balance, ClassHash, Felt, Key};
-use starknet_types::DevnetResult;
 
+use crate::error::Result;
 use crate::traits::{Accounted, StateChanger, StateExtractor};
 use crate::utils::get_storage_var_address;
 
@@ -37,7 +37,7 @@ impl Account {
         class_hash: ClassHash,
         contract_class: ContractClass,
         fee_token_address: ContractAddress,
-    ) -> DevnetResult<Self> {
+    ) -> Result<Self> {
         Ok(Self {
             initial_balance,
             public_key,
@@ -49,7 +49,7 @@ impl Account {
         })
     }
 
-    fn compute_account_address(public_key: &Key) -> DevnetResult<ContractAddress> {
+    fn compute_account_address(public_key: &Key) -> Result<ContractAddress> {
         let account_address = calculate_contract_address(
             ContractAddressSalt(stark_felt!(20u32)),
             Felt::from_prefixed_hex_str(ACCOUNT_CLASS_HASH_HEX_FOR_ADDRESS_COMPUTATION)?.into(),
@@ -61,7 +61,7 @@ impl Account {
         Ok(ContractAddress::from(account_address))
     }
 
-    fn balance_storage_key(&self) -> DevnetResult<ContractStorageKey> {
+    fn balance_storage_key(&self) -> Result<ContractStorageKey> {
         let storage_var_address =
             get_storage_var_address("ERC20_balances", &[Felt::from(self.account_address)])?;
         Ok(ContractStorageKey::new(self.fee_token_address, storage_var_address))
@@ -69,7 +69,7 @@ impl Account {
 }
 
 impl Accounted for Account {
-    fn deploy(&self, state: &mut impl StateChanger) -> Result<(), Error> {
+    fn deploy(&self, state: &mut impl StateChanger) -> Result<()> {
         // declare if not declared
         if !state.is_contract_declared(&self.class_hash)? {
             state.declare_contract_class(self.class_hash, self.contract_class.clone())?;
@@ -86,7 +86,7 @@ impl Accounted for Account {
         Ok(())
     }
 
-    fn set_initial_balance(&self, state: &mut impl StateChanger) -> DevnetResult<()> {
+    fn set_initial_balance(&self, state: &mut impl StateChanger) -> Result<()> {
         let storage_var_address =
             get_storage_var_address("ERC20_balances", &[Felt::from(self.account_address)])?;
         let storage_key = ContractStorageKey::new(self.fee_token_address, storage_var_address);
@@ -100,7 +100,7 @@ impl Accounted for Account {
         self.account_address
     }
 
-    fn get_balance(&self, state: &mut impl StateExtractor) -> DevnetResult<Balance> {
+    fn get_balance(&self, state: &mut impl StateExtractor) -> Result<Balance> {
         state.get_storage(self.balance_storage_key()?)
     }
 }
@@ -110,10 +110,10 @@ mod tests {
     use starknet_in_rust::core::errors::state_errors::StateError;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_storage_key::ContractStorageKey;
-    use starknet_types::error::Error;
     use starknet_types::felt::Felt;
 
     use super::Account;
+    use crate::error::Error;
     use crate::state::StarknetState;
     use crate::traits::Accounted;
     use crate::utils::get_storage_var_address;

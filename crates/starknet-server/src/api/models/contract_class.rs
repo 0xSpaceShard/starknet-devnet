@@ -6,6 +6,7 @@ use super::abi_entry::{AbiEntry, AbiEntryType};
 use super::FeltHex;
 use crate::api::serde_helpers::base_64_gzipped_json_string::deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order;
 
+// TODO: move to types
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum ContractClass {

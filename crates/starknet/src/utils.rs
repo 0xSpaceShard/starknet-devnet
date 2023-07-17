@@ -4,30 +4,27 @@ use starknet_api::hash::{pedersen_hash, StarkFelt};
 use starknet_in_rust::utils::calculate_sn_keccak;
 use starknet_types::cairo_felt::Felt252;
 use starknet_types::contract_class::ContractClass;
-use starknet_types::error::Error;
 use starknet_types::felt::Felt;
 use starknet_types::num_integer::Integer;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
-use starknet_types::DevnetResult;
+
+use crate::error::{Error, Result};
 
 pub(crate) fn generate_u128_random_numbers(
     seed: u32,
     random_numbers_count: u8,
-) -> DevnetResult<Vec<u128>> {
+) -> Result<Vec<u128>> {
     Ok(random_number_generator::generate_u128_random_numbers(seed, random_numbers_count))
 }
 
-pub(crate) fn load_cairo_0_contract_class(path: &str) -> DevnetResult<ContractClass> {
+pub(crate) fn load_cairo_0_contract_class(path: &str) -> Result<ContractClass> {
     let contract_class_str = fs::read_to_string(path)
         .map_err(|err| Error::ReadFileError { source: err, path: path.to_string() })?;
-    ContractClass::cairo_0_from_json_str(&contract_class_str)
+    Ok(ContractClass::cairo_0_from_json_str(&contract_class_str)?)
 }
 
 /// Returns the storage address of a StarkNet storage variable given its name and arguments.
-pub(crate) fn get_storage_var_address(
-    storage_var_name: &str,
-    args: &[Felt],
-) -> DevnetResult<StorageKey> {
+pub(crate) fn get_storage_var_address(storage_var_name: &str, args: &[Felt]) -> Result<StorageKey> {
     let storage_var_name_hash = calculate_sn_keccak(storage_var_name.as_bytes());
     let storage_var_name_hash = StarkFelt::new(storage_var_name_hash)?;
 
@@ -39,30 +36,38 @@ pub(crate) fn get_storage_var_address(
         &Felt252::from_bytes_be(&starknet_api::core::L2_ADDRESS_UPPER_BOUND.to_bytes_be()),
     );
 
-    PatriciaKey::new(Felt::new(storage_key.to_be_bytes())?)
+    Ok(PatriciaKey::new(Felt::new(storage_key.to_be_bytes())?)?)
 }
 
 #[cfg(test)]
 pub(crate) mod test_utils {
+    use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
     use starknet_types::patricia_key::StorageKey;
 
+    use crate::constants::{
+        DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_HOST,
+        DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_SEED,
+        DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+    };
     use crate::transactions::declare_transaction::DeclareTransactionV1;
     use crate::{constants, StarknetConfig};
 
     pub fn starknet_config_for_test() -> StarknetConfig {
         StarknetConfig {
-            seed: 123,
-            total_accounts: 3,
-            predeployed_accounts_initial_balance: 100.into(),
+            seed: DEVNET_DEFAULT_SEED,
+            total_accounts: DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+            predeployed_accounts_initial_balance: DEVNET_DEFAULT_INITIAL_BALANCE.into(),
+            host: DEVNET_DEFAULT_HOST.to_string(),
+            port: DEVNET_DEFAULT_PORT,
+            timeout: DEVNET_DEFAULT_TIMEOUT,
+            gas_price: DEVNET_DEFAULT_GAS_PRICE,
+            chain_id: DEVNET_DEFAULT_CHAIN_ID,
         }
     }
-
-    pub(crate) const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str =
-        "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f";
 
     pub(crate) fn dummy_felt() -> Felt {
         Felt::from_prefixed_hex_str("0xDD10").unwrap()
@@ -92,6 +97,7 @@ pub(crate) mod test_utils {
             vec![],
             dummy_felt(),
             dummy_cairo_0_contract_class(),
+            StarknetChainId::TestNet.to_felt().into(),
         )
     }
 

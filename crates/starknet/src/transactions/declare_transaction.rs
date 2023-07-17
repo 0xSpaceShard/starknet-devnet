@@ -7,8 +7,7 @@ use starknet_types::contract_class::ContractClass;
 use starknet_types::error::Error;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
-
-use crate::constants;
+use starknet_types::DevnetResult;
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct DeclareTransactionV1 {
@@ -19,6 +18,7 @@ pub struct DeclareTransactionV1 {
     pub(crate) contract_class: ContractClass,
     pub(crate) class_hash: Option<ClassHash>,
     pub(crate) transaction_hash: Option<TransactionHash>,
+    pub(crate) chain_id: Felt,
 }
 
 impl DeclareTransactionV1 {
@@ -28,6 +28,7 @@ impl DeclareTransactionV1 {
         signature: Vec<Felt>,
         nonce: Felt,
         contract_class: ContractClass,
+        chain_id: Felt,
     ) -> Self {
         Self {
             sender_address,
@@ -37,6 +38,7 @@ impl DeclareTransactionV1 {
             contract_class,
             class_hash: None,
             transaction_hash: None,
+            chain_id,
         }
     }
 
@@ -46,7 +48,7 @@ impl DeclareTransactionV1 {
 }
 
 impl HashProducer for DeclareTransactionV1 {
-    fn generate_hash(&self) -> starknet_types::DevnetResult<Felt> {
+    fn generate_hash(&self) -> DevnetResult<Felt> {
         let class_hash = self.class_hash.unwrap_or(self.contract_class.generate_hash()?);
 
         let (calldata, additional_data) = (Vec::new(), vec![class_hash.into()]);
@@ -58,7 +60,7 @@ impl HashProducer for DeclareTransactionV1 {
             VALIDATE_DECLARE_ENTRY_POINT_SELECTOR.clone(),
             &calldata,
             self.max_fee,
-            constants::CHAIN_ID.to_felt(),
+            self.chain_id.into(),
             &additional_data,
         )
         .map_err(|err| {

@@ -1,8 +1,8 @@
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{Balance, ClassHash, Felt};
-use starknet_types::DevnetResult;
 
+use crate::error::Result;
 use crate::traits::Accounted;
 
 pub(crate) struct SystemContract {
@@ -16,7 +16,7 @@ impl SystemContract {
         class_hash: &str,
         address: &str,
         contract_class_json_str: &str,
-    ) -> DevnetResult<Self> {
+    ) -> Result<Self> {
         Ok(Self {
             class_hash: Felt::from_prefixed_hex_str(class_hash)?,
             address: ContractAddress::new(Felt::from_prefixed_hex_str(address)?)?,
@@ -26,10 +26,7 @@ impl SystemContract {
 }
 
 impl Accounted for SystemContract {
-    fn deploy(
-        &self,
-        state: &mut impl crate::traits::StateChanger,
-    ) -> Result<(), starknet_types::error::Error> {
+    fn deploy(&self, state: &mut impl crate::traits::StateChanger) -> Result<()> {
         if !state.is_contract_declared(&self.class_hash)? {
             state.declare_contract_class(self.class_hash, self.contract_class.clone())?;
         }
@@ -39,10 +36,7 @@ impl Accounted for SystemContract {
         Ok(())
     }
 
-    fn set_initial_balance(
-        &self,
-        _state: &mut impl crate::traits::StateChanger,
-    ) -> DevnetResult<()> {
+    fn set_initial_balance(&self, _state: &mut impl crate::traits::StateChanger) -> Result<()> {
         Ok(())
     }
 
@@ -50,10 +44,7 @@ impl Accounted for SystemContract {
         self.address
     }
 
-    fn get_balance(
-        &self,
-        _state: &mut impl crate::traits::StateExtractor,
-    ) -> DevnetResult<Balance> {
+    fn get_balance(&self, _state: &mut impl crate::traits::StateExtractor) -> Result<Balance> {
         Ok(Felt::default())
     }
 }

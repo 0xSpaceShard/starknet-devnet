@@ -1,5 +1,5 @@
 mod endpoints;
-mod error;
+pub mod error;
 mod models;
 mod write_endpoints;
 
@@ -24,6 +24,9 @@ pub(crate) type RpcResult<T> = std::result::Result<T, ApiError>;
 pub(crate) trait ToRpcResponseResult {
     fn to_rpc_result(self) -> ResponseResult;
 }
+
+/// Used when there is no defined code to use
+pub const WILDCARD_RPC_ERROR_CODE: i64 = -1;
 
 /// Converts a serializable value into a `ResponseResult`
 pub fn to_rpc_result<T: Serialize>(val: T) -> ResponseResult {
@@ -102,10 +105,28 @@ impl<T: Serialize> ToRpcResponseResult for RpcResult<T> {
                     message: err.to_string().into(),
                     data: None,
                 },
+                err @ ApiError::TypesError(_) => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
+                    message: err.to_string().into(),
+                    data: None,
+                },
+                ApiError::StarknetDevnetError(error) => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
+                    message: error.to_string().into(),
+                    data: None,
+                },
             }
             .into(),
         }
     }
+}
+
+/// This object will be used as a shared state between HTTP calls.
+/// Is simillar to the HttpApiHandler but is with extended functionality and is used for JSON-RPC
+/// methods
+#[derive(Clone)]
+pub struct JsonRpcHandler {
+    pub api: Api,
 }
 
 #[async_trait::async_trait]
@@ -116,14 +137,6 @@ impl RpcHandler for JsonRpcHandler {
         info!(target: "rpc", "received method in on_request");
         self.execute(request).await
     }
-}
-
-/// This object will be used as a shared state between HTTP calls.
-/// Is simillar to the HttpApiHandler but is with extended functionality and is used for JSON-RPC
-/// methods
-#[derive(Clone)]
-pub struct JsonRpcHandler {
-    pub api: Api,
 }
 
 impl JsonRpcHandler {

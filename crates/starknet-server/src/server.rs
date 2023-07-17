@@ -3,8 +3,8 @@ use std::net::SocketAddr;
 use axum::routing::{get, post};
 use server::builder::StarknetDevnetServer;
 use server::ServerConfig;
+use starknet_core::StarknetConfig;
 
-use crate::api;
 use crate::api::http::{endpoints as http, HttpApiHandler};
 use crate::api::json_rpc::JsonRpcHandler;
 use crate::api::Api;
@@ -14,6 +14,7 @@ pub fn serve_http_api_json_rpc(
     addr: SocketAddr,
     config: ServerConfig,
     api: Api,
+    starknet_config: &StarknetConfig,
 ) -> StarknetDevnetServer {
     let http = HttpApiHandler { api: api.clone() };
     let json_rpc = JsonRpcHandler { api };
@@ -44,5 +45,5 @@ pub fn serve_http_api_json_rpc(
         .http_api_route("/fee_token", get(http::mint_token::get_fee_token))
         .http_api_route("/mint", post(http::mint_token::mint))
         .http_api_route("/fork_status", get(http::get_fork_status))
-        .build()
+        .build(starknet_config)
 }
