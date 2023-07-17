@@ -27,6 +27,7 @@ use crate::transactions::declare_transaction::DeclareTransactionV1;
 use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
 use crate::transactions::{StarknetTransaction, StarknetTransactions, Transaction};
 use crate::utils;
+use starknet_in_rust::SierraContractClass;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::ClassHash;
 use starknet_types::felt::{Felt, TransactionHash};
@@ -70,6 +71,7 @@ pub struct Starknet {
     blocks: StarknetBlocks,
     transactions: StarknetTransactions,
     pub config: StarknetConfig,
+    pub(in crate::starknet) sierra_contracts: HashMap<ClassHash, SierraContractClass>,
 }
 
 impl Starknet {
@@ -111,6 +113,7 @@ impl Starknet {
             blocks: StarknetBlocks::default(),
             transactions: StarknetTransactions::default(),
             config: StarknetConfig::default(),
+            sierra_contracts: HashMap::new(),
         };
 
         this.restart_pending_block()?;
@@ -172,7 +175,6 @@ impl Starknet {
         // add accepted transaction to pending block
         self.blocks.pending_block.add_transaction(transaction);
 
-        // add transaction to transactions
         self.transactions
             .insert(transaction_hash, transaction_to_add);
 
@@ -261,18 +263,18 @@ impl Starknet {
         }
     }
 
-    pub fn add_declare_transaction_v2(
-        &mut self,
-        declare_transaction: DeclareTransactionV2,
-    ) -> Result<(TransactionHash, ClassHash)> {
-        add_declare_transaction::add_declare_transaction_v2(self, declare_transaction)
-    }
-
     pub fn add_declare_transaction_v1(
         &mut self,
         declare_transaction: DeclareTransactionV1,
     ) -> Result<(TransactionHash, ClassHash)> {
         add_declare_transaction::add_declare_transaction_v1(self, declare_transaction)
+    }
+
+    pub fn add_declare_transaction_v2(
+        &mut self,
+        declare_transaction: DeclareTransactionV2,
+    ) -> Result<(TransactionHash, ClassHash)> {
+        add_declare_transaction::add_declare_transaction_v2(self, declare_transaction)
     }
 }
 

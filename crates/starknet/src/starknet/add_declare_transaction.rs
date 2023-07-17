@@ -67,6 +67,10 @@ pub fn add_declare_transaction_v2(
         Ok(tx_info) => {
             declare_transaction.class_hash = Some(class_hash);
 
+            // Add sierra contract
+            starknet
+                .sierra_contracts
+                .insert(class_hash, transaction.sierra_contract_class);
             starknet.handle_successful_transaction(
                 &transaction_hash,
                 Transaction::DeclareV2(declare_transaction),
@@ -179,12 +183,12 @@ mod tests {
     use crate::constants::{self};
     use crate::error::Error;
     use crate::starknet::predeployed;
+    use crate::starknet::Starknet;
     use crate::traits::{Accounted, HashIdentifiedMut, StateChanger};
     use crate::transactions::declare_transaction::DeclareTransactionV1;
     use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
     use crate::utils::load_cairo_0_contract_class;
     use crate::utils::test_utils::dummy_felt;
-    use crate::Starknet;
 
     fn test_declare_transaction_v2(sender_address: ContractAddress) -> DeclareTransactionV2 {
         let contract_json_path = concat!(
@@ -258,7 +262,7 @@ mod tests {
             .unwrap()
             .len();
         let declare_txn = test_declare_transaction_v2(sender);
-        let (txn_hash, _) = starknet.add_declare_transaction_v2(declare_txn).unwrap();
+        let (txn_hash, class_hash) = starknet.add_declare_transaction_v2(declare_txn).unwrap();
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
 
         assert_eq!(txn.status, TransactionStatus::Rejected);
@@ -272,6 +276,7 @@ mod tests {
                 .unwrap()
                 .len()
         );
+        assert!(starknet.sierra_contracts.get(&class_hash).is_none())
     }
 
     #[test]
@@ -291,6 +296,7 @@ mod tests {
         );
         // check if txn is with status accepted
         assert_eq!(tx.status, TransactionStatus::AcceptedOnL2);
+        assert!(starknet.sierra_contracts.get(&class_hash).is_some())
     }
 
     #[test]
