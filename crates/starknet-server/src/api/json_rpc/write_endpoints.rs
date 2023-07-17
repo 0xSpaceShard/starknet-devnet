@@ -42,10 +42,21 @@ impl JsonRpcHandler {
         request: BroadcastedDeployAccountTransaction,
     ) -> RpcResult<DeployAccountTransactionOutput> {
         let chain_id = self.api.starknet.read().await.config.chain_id.to_felt();
-        let (transaction_hash, contract_address) =
-            self.api.starknet.write().await.add_deploy_account_transaction(
-                convert_to_deploy_account_transaction(request, chain_id.into())?,
-            )?;
+        let (transaction_hash, contract_address) = self
+            .api
+            .starknet
+            .write()
+            .await
+            .add_deploy_account_transaction(convert_to_deploy_account_transaction(
+                request,
+                chain_id.into(),
+            )?)
+            .map_err(|err| match err {
+                starknet_core::error::Error::StateError(
+                    starknet_in_rust::core::errors::state_errors::StateError::MissingClassHash(),
+                ) => ApiError::ClassHashNotFound,
+                _ => ApiError::RpcError(RpcError::invalid_request()),
+            })?;
 
         Ok(DeployAccountTransactionOutput {
             transaction_hash: FeltHex(transaction_hash),
