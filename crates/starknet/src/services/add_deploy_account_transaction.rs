@@ -77,7 +77,7 @@ mod tests {
             Felt::from(0),
             account_class_hash,
             Felt::from(13),
-            DEVNET_DEFAULT_CHAIN_ID,
+            DEVNET_DEFAULT_CHAIN_ID.to_felt().into(),
             Felt::from(0),
         )
         .unwrap();
@@ -100,7 +100,7 @@ mod tests {
             Felt::from(0),
             account_class_hash,
             Felt::from(13),
-            DEVNET_DEFAULT_CHAIN_ID,
+            DEVNET_DEFAULT_CHAIN_ID.to_felt().into(),
             Felt::from(0),
         )
         .unwrap();

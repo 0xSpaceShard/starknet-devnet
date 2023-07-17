@@ -1,10 +1,10 @@
-use starknet_in_rust::definitions::block_context::StarknetChainId;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::transaction::DeployAccount;
 use starknet_types::error::Error;
 use starknet_types::felt::{ClassHash, Felt};
 use starknet_types::traits::HashProducer;
-use starknet_types::DevnetResult;
+
+use crate::error::Result;
 
 #[derive(Clone)]
 pub struct DeployAccountTransaction(pub(crate) DeployAccount);
@@ -29,9 +29,9 @@ impl DeployAccountTransaction {
         nonce: Felt,
         class_hash: ClassHash,
         contract_address_salt: Felt,
-        chain_id: StarknetChainId,
+        chain_id: Felt,
         version: Felt,
-    ) -> DevnetResult<Self> {
+    ) -> Result<Self> {
         let starknet_in_rust_deploy_account = DeployAccount::new(
             class_hash.bytes(),
             max_fee,
@@ -40,7 +40,7 @@ impl DeployAccountTransaction {
             constructor_calldata.iter().map(|h| h.into()).collect(),
             signature.iter().map(|h| h.into()).collect(),
             contract_address_salt.into(),
-            chain_id.to_felt(),
+            chain_id.into(),
             None,
         )
         .map_err(|err| Error::TransactionError(TransactionError::Syscall(err)))?;

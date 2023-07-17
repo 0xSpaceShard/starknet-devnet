@@ -1,18 +1,20 @@
 use serde_json::json;
 use server::rpc_core::error::RpcError;
 use starknet_core::transactions::declare_transaction::DeclareTransactionV1;
+use starknet_core::transactions::deploy_account_transaction::DeployAccountTransaction;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::Felt;
 
 use super::error::ApiError;
-use super::models::DeclareTransactionOutput;
+use super::models::{DeclareTransactionOutput, DeployAccountTransactionOutput};
 use super::RpcResult;
 use crate::api::json_rpc::JsonRpcHandler;
 use crate::api::models::contract_class::DeprecatedContractClass;
 use crate::api::models::transaction::{
     BroadcastedDeclareTransaction, BroadcastedDeclareTransactionV1,
+    BroadcastedDeployAccountTransaction,
 };
-use crate::api::models::FeltHex;
+use crate::api::models::{ContractAddressHex, FeltHex};
 
 impl JsonRpcHandler {
     pub(crate) async fn add_declare_transaction(
@@ -32,6 +34,22 @@ impl JsonRpcHandler {
         Ok(DeclareTransactionOutput {
             transaction_hash: FeltHex(transaction_hash),
             class_hash: FeltHex(class_hash),
+        })
+    }
+
+    pub(crate) async fn add_deploy_account_transaction(
+        &self,
+        request: BroadcastedDeployAccountTransaction,
+    ) -> RpcResult<DeployAccountTransactionOutput> {
+        let chain_id = self.api.starknet.read().await.config.chain_id.to_felt();
+        let (transaction_hash, contract_address) =
+            self.api.starknet.write().await.add_deploy_account_transaction(
+                convert_to_deploy_account_transaction(request, chain_id.into())?,
+            )?;
+
+        Ok(DeployAccountTransactionOutput {
+            transaction_hash: FeltHex(transaction_hash),
+            contract_address: ContractAddressHex(contract_address),
         })
     }
 }
@@ -71,6 +89,28 @@ fn convert_to_declare_transaction_v1(
         ContractClass::try_from(value.contract_class)?,
         chain_id,
     ))
+}
+
+fn convert_to_deploy_account_transaction(
+    broadcasted_txn: BroadcastedDeployAccountTransaction,
+    chain_id: Felt,
+) -> RpcResult<DeployAccountTransaction> {
+    DeployAccountTransaction::new(
+        broadcasted_txn.constructor_calldata.iter().map(|felt_hex| felt_hex.0).collect(),
+        broadcasted_txn.common.max_fee.0,
+        broadcasted_txn.common.signature.iter().map(|felt_hex| felt_hex.0).collect(),
+        broadcasted_txn.common.nonce.0,
+        broadcasted_txn.class_hash.0,
+        broadcasted_txn.contract_address_salt.0,
+        chain_id,
+        broadcasted_txn.common.version.0,
+    )
+    .map_err(|err| {
+        ApiError::RpcError(RpcError::invalid_params(format!(
+            "Unable to create DeployAccountTransaction: {}",
+            err
+        )))
+    })
 }
 
 #[cfg(test)]

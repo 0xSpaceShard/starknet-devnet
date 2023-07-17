@@ -14,7 +14,9 @@ use server::rpc_handler::RpcHandler;
 use tracing::{error, info, trace};
 
 use self::error::ApiError;
-use self::models::{BlockIdInput, BroadcastedDeclareTransactionInput};
+use self::models::{
+    BlockIdInput, BroadcastedDeclareTransactionInput, BroadcastedDeployAccountTransactionInput,
+};
 use super::Api;
 use crate::api::serde_helpers::empty_params;
 
@@ -202,10 +204,15 @@ impl JsonRpcHandler {
                 block_id,
                 contract_address,
             }) => self.get_nonce(block_id, contract_address).await.to_rpc_result(),
-
             StarknetRequest::AddDeclareTransaction(BroadcastedDeclareTransactionInput {
                 declare_transaction,
             }) => self.add_declare_transaction(declare_transaction).await.to_rpc_result(),
+            StarknetRequest::AddDeployAccountTransaction(
+                BroadcastedDeployAccountTransactionInput { deploy_account_transaction },
+            ) => self
+                .add_deploy_account_transaction(deploy_account_transaction)
+                .await
+                .to_rpc_result(),
         }
     }
 }
@@ -255,6 +262,8 @@ pub enum StarknetRequest {
     ContractNonce(BlockAndContractAddressInput),
     #[serde(rename = "starknet_addDeclareTransaction")]
     AddDeclareTransaction(BroadcastedDeclareTransactionInput),
+    #[serde(rename = "starknet_addDeployAccountTransaction")]
+    AddDeployAccountTransaction(BroadcastedDeployAccountTransactionInput),
 }
 
 #[cfg(test)]
