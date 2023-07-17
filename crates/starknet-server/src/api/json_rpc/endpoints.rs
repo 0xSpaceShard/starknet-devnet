@@ -1,3 +1,4 @@
+use starknet_in_rust::utils::Address;
 use starknet_types::felt::Felt;
 use starknet_types::starknet_api::block::BlockNumber;
 
@@ -80,14 +81,11 @@ impl JsonRpcHandler {
         block_id: BlockId,
         contract_address: ContractAddressHex,
     ) -> RpcResult<ClassHashHex> {
-        let parsed_address = contract_address.0.try_into()?;
+        let parsed_address: Address = contract_address.0.try_into()?;
 
         let starknet = self.api.starknet.read().await;
-        let state = starknet.get_state_reader_at(&block_id.into())?;
-        match state.address_to_class_hash.get(&parsed_address) {
-            Some(class_hash) => Ok(FeltHex(Felt::from(*class_hash))),
-            None => Err(error::ApiError::ContractNotFound),
-        }
+        let class_hash = starknet.get_class_hash_at(&block_id.into(), &parsed_address)?;
+        Ok(FeltHex(class_hash))
     }
 
     /// starknet_getClassAt
@@ -107,10 +105,12 @@ impl JsonRpcHandler {
     /// starknet_call
     pub(crate) async fn call(
         &self,
-        _block_id: BlockId,
-        _request: FunctionCall,
+        block_id: BlockId,
+        request: FunctionCall,
     ) -> RpcResult<Vec<FeltHex>> {
-        Err(error::ApiError::ContractError)
+        let starknet = self.api.starknet.read().await;
+        let result = starknet.call(block_id.into(), request.into())?;
+        Ok(result.into_iter().map(FeltHex).collect())
     }
 
     /// starknet_estimateFee
@@ -159,5 +159,15 @@ impl JsonRpcHandler {
         _contract_address: ContractAddressHex,
     ) -> RpcResult<FeltHex> {
         Err(error::ApiError::BlockNotFound)
+    }
+}
+
+impl From<FunctionCall> for starknet_rs_core::types::FunctionCall {
+    fn from(value: FunctionCall) -> Self {
+        starknet_rs_core::types::FunctionCall {
+            contract_address: Felt::from(value.contract_address.0).into(),
+            entry_point_selector: value.entry_point_selector.0.into(),
+            calldata: value.calldata.into_iter().map(|e| e.0.into()).collect(),
+        }
     }
 }
