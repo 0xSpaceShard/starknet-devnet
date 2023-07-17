@@ -3,7 +3,7 @@ use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{Balance, ClassHash, Felt};
 
 use crate::error::Result;
-use crate::traits::Accounted;
+use crate::traits::{Accounted, StateExtractor, StateChanger};
 
 pub(crate) struct SystemContract {
     class_hash: ClassHash,
@@ -26,7 +26,7 @@ impl SystemContract {
 }
 
 impl Accounted for SystemContract {
-    fn deploy(&self, state: &mut impl crate::traits::StateChanger) -> Result<()> {
+    fn deploy(&self, state: &mut (impl StateChanger + StateExtractor)) -> Result<()> {
         if !state.is_contract_declared(&self.class_hash)? {
             state.declare_contract_class(self.class_hash, self.contract_class.clone())?;
         }
