@@ -164,15 +164,12 @@ mod tests {
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
 
-    use crate::account::Account;
-    use crate::constants::{self};
     use crate::error::Error;
-    use crate::traits::{Accounted, HashIdentifiedMut, StateExtractor};
+    use crate::traits::{HashIdentifiedMut, StateExtractor};
     use crate::transactions::declare_transaction::DeclareTransactionV1;
     use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
     use crate::utils::load_cairo_0_contract_class;
-    use crate::utils::test_utils::dummy_felt;
-    use crate::Starknet;
+    use crate::utils::test_utils::{dummy_felt, setup};
 
     fn test_declare_transaction_v2(sender_address: ContractAddress) -> DeclareTransactionV2 {
         let contract_json_path = concat!(
@@ -216,7 +213,7 @@ mod tests {
 
     #[test]
     fn add_declare_v2_transaction_with_zero_max_fee_should_be_errored() {
-        let (mut starknet, sender) = setup(None);
+        let (mut starknet, sender, _) = setup(None);
         let mut declare_txn = test_declare_transaction_v2(sender);
         declare_txn.max_fee = 0;
         let expected_error = TransactionError::FeeError(String::from(
@@ -233,7 +230,7 @@ mod tests {
 
     #[test]
     fn add_declare_v2_transaction_should_return_rejected_txn_and_not_be_part_of_pending_state() {
-        let (mut starknet, sender) = setup(Some(1));
+        let (mut starknet, sender, _) = setup(Some(1));
         let initial_cached_state =
             starknet.state.pending_state.casm_contract_classes().as_ref().unwrap().len();
         let declare_txn = test_declare_transaction_v2(sender);
@@ -249,7 +246,7 @@ mod tests {
 
     #[test]
     fn add_declare_v2_transaction_successful_execution() {
-        let (mut starknet, sender) = setup(Some(100000000));
+        let (mut starknet, sender, _) = setup(Some(100000000));
         let declare_txn = test_declare_transaction_v2(sender);
         let (tx_hash, class_hash) =
             starknet.add_declare_transaction_v2(declare_txn.clone()).unwrap();
@@ -264,7 +261,7 @@ mod tests {
 
     #[test]
     fn add_declare_v1_transaction_should_return_rejected_txn_and_not_be_part_of_pending_state() {
-        let (mut starknet, sender) = setup(Some(1));
+        let (mut starknet, sender, _) = setup(Some(1));
         let initial_cached_state =
             starknet.state.pending_state.contract_classes().as_ref().unwrap().len();
         let declare_txn = test_declare_transaction_v1(sender);
@@ -280,7 +277,7 @@ mod tests {
 
     #[test]
     fn add_declare_v1_transaction_with_zero_max_fee_should_be_errored() {
-        let (mut starknet, sender) = setup(None);
+        let (mut starknet, sender, _) = setup(None);
         let mut declare_txn = test_declare_transaction_v1(sender);
         declare_txn.max_fee = 0;
         let expected_error = TransactionError::FeeError(String::from(
@@ -297,7 +294,7 @@ mod tests {
 
     #[test]
     fn add_declare_v1_transaction_successful_execution() {
-        let (mut starknet, sender) = setup(None);
+        let (mut starknet, sender, _) = setup(None);
 
         let declare_txn = test_declare_transaction_v1(sender);
         let (tx_hash, class_hash) =
@@ -329,43 +326,5 @@ mod tests {
                 .unwrap(),
             tx_hash
         );
-    }
-
-    /// Initializes starknet with 1 account - account without validations
-    fn setup(acc_balance: Option<u128>) -> (Starknet, ContractAddress) {
-        let mut starknet = Starknet::default();
-        let account_json_path = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/account_without_validations/account.json"
-        );
-        let contract_class = load_cairo_0_contract_class(account_json_path).unwrap();
-
-        let erc_20_contract = Starknet::create_erc20().unwrap();
-        erc_20_contract.deploy(&mut starknet.state).unwrap();
-
-        let acc = Account::new(
-            Felt::from(acc_balance.unwrap_or(100)),
-            dummy_felt(),
-            dummy_felt(),
-            contract_class.generate_hash().unwrap(),
-            contract_class,
-            erc_20_contract.get_address(),
-        )
-        .unwrap();
-
-        acc.deploy(&mut starknet.state).unwrap();
-        acc.set_initial_balance(&mut starknet.state).unwrap();
-
-        starknet.state.synchronize_states();
-        starknet.block_context = Starknet::get_block_context(
-            1,
-            constants::ERC20_CONTRACT_ADDRESS,
-            StarknetChainId::TestNet,
-        )
-        .unwrap();
-
-        starknet.restart_pending_block().unwrap();
-
-        (starknet, acc.get_address())
     }
 }
