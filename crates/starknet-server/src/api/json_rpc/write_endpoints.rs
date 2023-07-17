@@ -124,7 +124,9 @@ mod tests {
     use starknet_types::traits::ToHexString;
 
     use crate::api::json_rpc::JsonRpcHandler;
-    use crate::api::models::transaction::BroadcastedDeclareTransactionV1;
+    use crate::api::models::transaction::{
+        BroadcastedDeclareTransactionV1, BroadcastedDeployAccountTransaction,
+    };
     use crate::api::Api;
 
     #[tokio::test]
@@ -147,8 +149,11 @@ mod tests {
             result.class_hash.0.to_prefixed_hex_str(),
             "0x399998c787e0a063c3ac1d2abac084dcbe09954e3b156d53a8c43a02aa27d35"
         );
+    }
 
-        println!("{}", result.transaction_hash.0.to_prefixed_hex_str());
+    #[test]
+    fn check_correct_deserialization_of_deploy_account_transaction_request() {
+        test_deploy_account_transaction();
     }
 
     fn setup() -> JsonRpcHandler {
@@ -180,6 +185,19 @@ mod tests {
 
         let _broadcasted_declare_transaction_v1: super::BroadcastedDeclareTransactionV1 =
             serde_json::from_str(&json_string).unwrap();
+    }
+
+    fn test_deploy_account_transaction() -> BroadcastedDeployAccountTransaction {
+        let json_string = std::fs::read_to_string(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test_data/rpc/deploy_account.json"
+        ))
+        .unwrap();
+
+        let broadcasted_deploy_account_transaction: BroadcastedDeployAccountTransaction =
+            serde_json::from_str(&json_string).unwrap();
+
+        broadcasted_deploy_account_transaction
     }
 
     fn test_broadcasted_declare_transaction_v1() -> BroadcastedDeclareTransactionV1 {
