@@ -5,7 +5,7 @@ pub(crate) mod serde_helpers;
 
 use std::sync::Arc;
 
-use starknet_core::Starknet;
+use starknet_core::starknet::Starknet;
 use tokio::sync::RwLock;
 
 /// Data that can be shared between threads with read write lock access
@@ -18,6 +18,8 @@ pub struct Api {
 
 impl Api {
     pub fn new(starknet: Starknet) -> Self {
-        Self { starknet: Arc::new(RwLock::new(starknet)) }
+        Self {
+            starknet: Arc::new(RwLock::new(starknet)),
+        }
     }
 }

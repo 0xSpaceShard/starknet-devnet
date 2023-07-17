@@ -3,7 +3,7 @@ use std::net::SocketAddr;
 use axum::routing::{get, post};
 use server::builder::StarknetDevnetServer;
 use server::ServerConfig;
-use starknet_core::StarknetConfig;
+use starknet_core::starknet::StarknetConfig;
 
 use crate::api::http::{endpoints as http, HttpApiHandler};
 use crate::api::json_rpc::JsonRpcHandler;
@@ -25,7 +25,10 @@ pub fn serve_http_api_json_rpc(
         .http_api_route("/is_alive", get(http::is_alive))
         .http_api_route("/dump", post(http::dump_load::dump))
         .http_api_route("/load", post(http::dump_load::load))
-        .http_api_route("/postman/load_l1_messaging_contract", post(http::postman::postman_load))
+        .http_api_route(
+            "/postman/load_l1_messaging_contract",
+            post(http::postman::postman_load),
+        )
         .http_api_route("/postman/flush", post(http::postman::postman_flush))
         .http_api_route(
             "/postman/send_message_to_l2",
@@ -40,7 +43,10 @@ pub fn serve_http_api_json_rpc(
         .http_api_route("/restart", post(http::restart))
         .http_api_route("/set_time", post(http::time::set_time))
         .http_api_route("/increase_time", post(http::time::increase_time))
-        .http_api_route("/predeployed_accounts", get(http::accounts::get_predeployed_accounts))
+        .http_api_route(
+            "/predeployed_accounts",
+            get(http::accounts::get_predeployed_accounts),
+        )
         .http_api_route("/account_balance", get(http::accounts::get_account_balance))
         .http_api_route("/fee_token", get(http::mint_token::get_fee_token))
         .http_api_route("/mint", post(http::mint_token::mint))
