@@ -19,8 +19,6 @@ pub enum Error {
     IoError(#[from] std::io::Error),
     #[error("Error when reading file {path}")]
     ReadFileError { source: std::io::Error, path: String },
-    #[error("Contract not found")]
-    ContractNotFound,
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

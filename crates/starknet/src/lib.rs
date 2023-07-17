@@ -5,7 +5,6 @@ use blocks::{StarknetBlock, StarknetBlocks};
 use constants::ERC20_CONTRACT_ADDRESS;
 use predeployed_accounts::PredeployedAccounts;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
-use starknet_in_rust::call_contract;
 use starknet_in_rust::definitions::block_context::{
     BlockContext, StarknetChainId, StarknetOsConfig,
 };
@@ -15,10 +14,10 @@ use starknet_in_rust::definitions::constants::{
     DEFAULT_VALIDATE_MAX_N_STEPS,
 };
 use starknet_in_rust::execution::TransactionExecutionInfo;
+use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
 use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
-use starknet_in_rust::utils::Address;
-use starknet_rs_core::types::{BlockId, FunctionCall, TransactionStatus};
+use starknet_rs_core::types::{BlockId, TransactionStatus};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
@@ -70,7 +69,7 @@ impl Default for StarknetConfig {
 
 #[derive(Default)]
 pub struct Starknet {
-    pub(crate) state: StarknetState,
+    state: StarknetState,
     predeployed_accounts: PredeployedAccounts,
     block_context: BlockContext,
     blocks: StarknetBlocks,
@@ -252,42 +251,14 @@ impl Starknet {
         Ok(())
     }
 
-    fn get_state_at(&self, block_id: &BlockId) -> Result<&StarknetState> {
+    // TODO should return a more generic type (StateReader) to allow future implementation of a
+    // ForkedStateReader
+    pub fn get_state_reader_at(&self, block_id: &BlockId) -> Result<&InMemoryStateReader> {
         match block_id {
-            BlockId::Tag(_) => Ok(&self.state),
+            BlockId::Tag(_) => Ok(&self.state.state),
             BlockId::Hash(_) => Err(Error::BlockIdHashUnimplementedError),
             BlockId::Number(_) => Err(Error::BlockIdNumberUnimplementedError),
         }
-    }
-
-    pub fn get_class_hash_at(
-        &self,
-        block_id: &BlockId,
-        contract_address: &Address,
-    ) -> Result<Felt> {
-        let state = self.get_state_at(block_id)?;
-        match state.state.address_to_class_hash.get(contract_address) {
-            Some(class_hash) => Ok(Felt::from(*class_hash)),
-            None => Err(Error::ContractNotFound),
-        }
-    }
-
-    pub fn call(&self, block_id: BlockId, function_call: FunctionCall) -> Result<Vec<Felt>> {
-        let state = self.get_state_at(&block_id)?;
-        let adapted_calldata =
-            function_call.calldata.iter().map(|c| Felt::from(*c).into()).collect();
-
-        let result = call_contract(
-            Felt::from(function_call.contract_address).into(),
-            Felt::from(function_call.entry_point_selector).into(),
-            adapted_calldata,
-            &mut state.pending_state.clone(),
-            self.block_context.clone(),
-            // dummy caller_address since there is no account address; safe to unwrap since it's
-            // just 0
-            ContractAddress::zero().try_into().unwrap(),
-        )?;
-        Ok(result.iter().map(|e| Felt::from(e.clone())).collect())
     }
 }
 
@@ -295,8 +266,7 @@ impl Starknet {
 mod tests {
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
     use starknet_in_rust::definitions::block_context::StarknetChainId;
-    use starknet_rs_core::types::{BlockId, BlockTag, FunctionCall};
-    use starknet_rs_ff::FieldElement;
+    use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
@@ -433,21 +403,21 @@ mod tests {
     fn getting_state_reader_of_latest_state() {
         let config = starknet_config_for_test();
         let starknet = Starknet::new(&config).unwrap();
-        starknet.get_state_at(&BlockId::Tag(BlockTag::Latest)).expect("Should be OK");
+        starknet.get_state_reader_at(&BlockId::Tag(BlockTag::Latest)).expect("Should be OK");
     }
 
     #[test]
     fn getting_state_reader_of_pending_state() {
         let config = starknet_config_for_test();
         let starknet = Starknet::new(&config).unwrap();
-        starknet.get_state_at(&BlockId::Tag(BlockTag::Pending)).expect("Should be OK");
+        starknet.get_state_reader_at(&BlockId::Tag(BlockTag::Pending)).expect("Should be OK");
     }
 
     #[test]
     fn getting_state_reader_at_block_by_hash() {
         let config = starknet_config_for_test();
         let starknet = Starknet::new(&config).unwrap();
-        match starknet.get_state_at(&BlockId::Number(2)) {
+        match starknet.get_state_reader_at(&BlockId::Number(2)) {
             Err(Error::BlockIdNumberUnimplementedError) => (),
             _ => panic!("Should have failed"),
         }
@@ -457,30 +427,9 @@ mod tests {
     fn getting_state_reader_at_block_by_number() {
         let config = starknet_config_for_test();
         let starknet = Starknet::new(&config).unwrap();
-        match starknet.get_state_at(&BlockId::Number(2)) {
+        match starknet.get_state_reader_at(&BlockId::Number(2)) {
             Err(Error::BlockIdNumberUnimplementedError) => (),
             _ => panic!("Should have failed"),
         }
-    }
-
-    #[test]
-    fn calling_undeployed_contract() {
-        todo!("");
-    }
-
-    #[test]
-    fn calling_nonexistent_contract_method() {
-        todo!();
-    }
-
-    #[test]
-    fn calling_predeployed_contract() {
-        let config = starknet_config_for_test();
-        let starknet = Starknet::new(&config).unwrap();
-        starknet.call(BlockId::Tag(BlockTag::Latest), FunctionCall {
-            contract_address: FieldElement::from_hex_be(),
-            entry_point_selector: ,
-            calldata: todo!(),
-        })
     }
 }
