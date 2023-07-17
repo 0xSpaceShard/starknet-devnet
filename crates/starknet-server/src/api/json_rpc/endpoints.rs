@@ -77,7 +77,7 @@ impl JsonRpcHandler {
         block_id: BlockId,
         class_hash: ClassHashHex,
     ) -> RpcResult<ContractClass> {
-        Ok(self.api.starknet.read().await.get_class(block_id, class_hash.0)?.into())
+        Ok(self.api.starknet.read().await.get_class(block_id.into(), class_hash.0.into()?)?.into())
     }
 
     /// starknet_getClassHashAt
@@ -86,7 +86,13 @@ impl JsonRpcHandler {
         block_id: BlockId,
         contract_address: ContractAddressHex,
     ) -> RpcResult<ClassHashHex> {
-        Ok(self.api.starknet.read().await.get_class_hash_at(block_id, contract_address.0)?.into())
+        Ok(self
+            .api
+            .starknet
+            .read()
+            .await
+            .get_class_hash_at(block_id.into(), contract_address.0.try_into()?)?
+            .into())
     }
 
     /// starknet_getClassAt
@@ -95,7 +101,13 @@ impl JsonRpcHandler {
         block_id: BlockId,
         contract_address: ContractAddressHex,
     ) -> RpcResult<ContractClass> {
-        Ok(self.api.starknet.read().await.get_class_at(block_id, contract_address.0)?.into())
+        Ok(self
+            .api
+            .starknet
+            .read()
+            .await
+            .get_class_at(block_id.into(), contract_address.0.try_into()?)?
+            .into())
     }
 
     /// starknet_getBlockTransactionCount

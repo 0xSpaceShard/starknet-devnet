@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use super::abi_entry::{AbiEntry, AbiEntryType};
 use super::FeltHex;
 use crate::api::serde_helpers::base_64_gzipped_json_string::deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order;
+use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass;
 
 // TODO: move to types
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -12,6 +13,24 @@ use crate::api::serde_helpers::base_64_gzipped_json_string::deserialize_to_serde
 pub enum ContractClass {
     Cairo0(DeprecatedContractClass),
     Sierra(SierraContractClass),
+}
+
+impl From<CompiledClass> for ContractClass {
+    fn from(value: CompiledClass) -> Self {
+        match value {
+            CompiledClass::Deprecated(class) => {
+                let asd = DeprecatedContractClass {
+                    abi: class.abi.unwrap().iter().map(|el| el.abi),
+                    program: class.program,
+                    entry_points_by_type: class.entry_points_by_type
+                }
+                ContractClass::Cairo0()
+            },
+            CompiledClass::Casm(class) {
+                ContractClass::Cairo0()
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]

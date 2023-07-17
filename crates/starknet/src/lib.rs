@@ -19,6 +19,7 @@ use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
 use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
 use starknet_in_rust::utils::{Address, ClassHash};
+use starknet_rs_core::types::BlockId;
 use starknet_rs_core::types::TransactionStatus;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{Felt, TransactionHash};
@@ -74,7 +75,7 @@ impl Default for StarknetConfig {
 
 #[derive(Default)]
 pub struct Starknet {
-    pub state: StarknetState,
+    pub(crate) state: StarknetState,
     predeployed_accounts: PredeployedAccounts,
     block_context: BlockContext,
     blocks: StarknetBlocks,
@@ -276,7 +277,7 @@ impl Starknet {
     }
 
     pub fn get_class_hash_at(
-        &self,
+        &mut self,
         block_id: BlockId,
         contract_address: Address,
     ) -> Result<ClassHash> {
