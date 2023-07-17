@@ -3,7 +3,7 @@ use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{Balance, ClassHash, Felt};
 
 use crate::error::Result;
-use crate::traits::{Accounted, StateExtractor, StateChanger};
+use crate::traits::{Accounted, StateChanger, StateExtractor};
 
 pub(crate) struct SystemContract {
     class_hash: ClassHash,

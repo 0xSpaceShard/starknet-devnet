@@ -4,7 +4,6 @@ use starknet_types::felt::{Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 
 use crate::error::{Error, Result};
-
 use crate::traits::StateExtractor;
 use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
 use crate::transactions::{StarknetTransaction, Transaction};

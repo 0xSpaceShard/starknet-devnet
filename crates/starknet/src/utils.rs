@@ -49,6 +49,7 @@ pub(crate) mod test_utils {
     use starknet_types::patricia_key::StorageKey;
     use starknet_types::traits::HashProducer;
 
+    use super::load_cairo_0_contract_class;
     use crate::account::Account;
     use crate::constants::{
         DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_HOST,
@@ -57,9 +58,7 @@ pub(crate) mod test_utils {
     };
     use crate::traits::Accounted;
     use crate::transactions::declare_transaction::DeclareTransactionV1;
-    use crate::{constants, StarknetConfig, Starknet};
-
-    use super::load_cairo_0_contract_class;
+    use crate::{constants, Starknet, StarknetConfig};
 
     pub fn starknet_config_for_test() -> StarknetConfig {
         StarknetConfig {
@@ -143,8 +142,12 @@ pub(crate) mod test_utils {
         acc.set_initial_balance(&mut starknet.state).unwrap();
 
         starknet.state.synchronize_states();
-        starknet.block_context =
-            Starknet::get_block_context(1, constants::ERC20_CONTRACT_ADDRESS, DEVNET_DEFAULT_CHAIN_ID).unwrap();
+        starknet.block_context = Starknet::get_block_context(
+            1,
+            constants::ERC20_CONTRACT_ADDRESS,
+            DEVNET_DEFAULT_CHAIN_ID,
+        )
+        .unwrap();
 
         starknet.restart_pending_block().unwrap();
 

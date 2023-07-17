@@ -1,6 +1,6 @@
 pub mod declare_transaction;
-pub mod deploy_account_transaction;
 pub(crate) mod declare_transaction_v2;
+pub mod deploy_account_transaction;
 
 use std::collections::HashMap;
 
@@ -73,7 +73,7 @@ impl StarknetTransaction {
 pub enum Transaction {
     Declare(DeclareTransactionV1),
     DeclareV2(DeclareTransactionV2),
-    DeployAccount(DeployAccountTransaction)
+    DeployAccount(DeployAccountTransaction),
 }
 
 impl Transaction {
