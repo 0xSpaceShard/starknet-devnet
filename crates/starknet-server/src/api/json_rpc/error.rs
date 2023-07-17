@@ -1,5 +1,6 @@
 use server::rpc_core::error::RpcError;
 use starknet_types;
+use std::backtrace::Backtrace;
 use thiserror::Error;
 use tracing::error;
 
@@ -11,35 +12,31 @@ pub enum ApiError {
     #[error("Types error")]
     TypesError(#[from] starknet_types::error::Error),
     #[error("Rpc error {0:?}")]
-    RpcError {
-        #[from]
-        source: RpcError,
-        backtrace: Backtrace,
-    },
+    RpcError(#[from] RpcError),
     #[error("Block not found")]
-    BlockNotFound { backtrace: Backtrace },
+    BlockNotFound,
     #[error("Contract not found")]
-    ContractNotFound { backtrace: Backtrace },
+    ContractNotFound,
     #[error("Transaction hash not found")]
-    TransactionNotFound { backtrace: Backtrace },
+    TransactionNotFound,
     #[error("Invalid transaction index in a block")]
-    InvalidTransactionIndexInBlock { backtrace: Backtrace },
+    InvalidTransactionIndexInBlock,
     #[error("Class hash not found")]
-    ClassHashNotFound { backtrace: Backtrace },
+    ClassHashNotFound,
     #[error("Contract error")]
-    ContractError { backtrace: Backtrace },
+    ContractError,
     #[error("There are no blocks")]
-    NoBlocks { backtrace: Backtrace },
+    NoBlocks,
     #[error("Requested page size is too big")]
-    RequestPageSizeTooBig { backtrace: Backtrace },
+    RequestPageSizeTooBig,
     #[error("The supplied continuation token is invalid or unknown")]
-    InvalidContinuationToken { backtrace: Backtrace },
+    InvalidContinuationToken,
     #[error("Too many keys provided in a filter")]
-    TooManyKeysInFilter { backtrace: Backtrace },
+    TooManyKeysInFilter,
     #[error("Class already declared")]
-    ClassAlreadyDeclared { backtrace: Backtrace },
+    ClassAlreadyDeclared,
     #[error("Invalid contract class")]
-    InvalidContractClass { backtrace: Backtrace },
+    InvalidContractClass,
 }
 
 #[cfg(test)]

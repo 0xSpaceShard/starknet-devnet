@@ -15,6 +15,8 @@ pub enum Error {
     BlockIdHashUnimplementedError,
     #[error("Specifying block by number is currently not enabled")]
     BlockIdNumberUnimplementedError,
+    #[error("Contract hash not found")]
+    ContractHashNotFound,
     #[error("I/O error")]
     IoError(#[from] std::io::Error),
     #[error("Error when reading file {path}")]

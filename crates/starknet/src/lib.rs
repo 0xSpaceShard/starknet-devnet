@@ -14,10 +14,12 @@ use starknet_in_rust::definitions::constants::{
     DEFAULT_VALIDATE_MAX_N_STEPS,
 };
 use starknet_in_rust::execution::TransactionExecutionInfo;
+use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass;
 use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
 use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
-use starknet_rs_core::types::{BlockId, TransactionStatus};
+use starknet_in_rust::utils::{Address, ClassHash};
+use starknet_rs_core::types::TransactionStatus;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
@@ -72,7 +74,7 @@ impl Default for StarknetConfig {
 
 #[derive(Default)]
 pub struct Starknet {
-    pub(in services) state: StarknetState,
+    pub state: StarknetState,
     predeployed_accounts: PredeployedAccounts,
     block_context: BlockContext,
     blocks: StarknetBlocks,
@@ -261,29 +263,36 @@ impl Starknet {
             BlockId::Number(_) => Err(Error::BlockIdNumberUnimplementedError),
         }
     }
-    
-    pub async fn get_class_hash_at(
+
+    pub fn get_state_reader_at_mut(
+        &mut self,
+        block_id: &BlockId,
+    ) -> Result<&mut InMemoryStateReader> {
+        match block_id {
+            BlockId::Tag(_) => Ok(&mut self.state.state),
+            BlockId::Hash(_) => Err(Error::BlockIdHashUnimplementedError),
+            BlockId::Number(_) => Err(Error::BlockIdNumberUnimplementedError),
+        }
+    }
+
+    pub fn get_class_hash_at(
         &self,
         block_id: BlockId,
-        contract_address: ContractAddressHex,
-    ) -> Result<ClassHashHex> {
+        contract_address: Address,
+    ) -> Result<ClassHash> {
         get_class_impls::get_class_hash_at_impl(self, block_id, contract_address)
     }
 
-    pub fn get_class(
-        &self,
-        block_id: BlockId,
-        class_hash: ClassHashHex,
-    ) -> Result<ContractClass> {
-        get_class_impls::get_class_impl(block_id, class_hash)
+    pub fn get_class(&mut self, block_id: BlockId, class_hash: ClassHash) -> Result<CompiledClass> {
+        get_class_impls::get_class_impl(self, block_id, class_hash)
     }
 
     pub fn get_class_at(
-        &self,
+        &mut self,
         block_id: BlockId,
-        contract_address: ContractAddressHex,
-    ) -> Result<ContractClass> {
-        get_class_impls::get_class_at_impl(block_id, contract_address)
+        contract_address: Address,
+    ) -> Result<CompiledClass> {
+        get_class_impls::get_class_at_impl(self, block_id, contract_address)
     }
 }
 

@@ -4,6 +4,7 @@ use starknet_types::starknet_api::block::BlockNumber;
 use crate::api::{
     json_rpc::{
         error::{self},
+        models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput},
         JsonRpcHandler, RpcResult,
     },
     models::{
@@ -14,8 +15,7 @@ use crate::api::{
             BroadcastedTransactionWithType, ClassHashHex, EventFilter, EventsChunk, FunctionCall,
             Transaction, TransactionHashHex, TransactionReceipt, TransactionWithType,
         },
-        BlockHashAndNumberOutput, BlockId, ContractAddressHex, EstimateFeeOutput, FeltHex,
-        PatriciaKeyHex, SyncingOutput,
+        BlockId, ContractAddressHex, FeltHex, PatriciaKeyHex,
     },
 };
 
@@ -77,7 +77,7 @@ impl JsonRpcHandler {
         block_id: BlockId,
         class_hash: ClassHashHex,
     ) -> RpcResult<ContractClass> {
-        Ok(self.api.starknet.read().await.get_class(block_id, class_hash).unwrap())
+        Ok(self.api.starknet.read().await.get_class(block_id, class_hash.0)?.into())
     }
 
     /// starknet_getClassHashAt
@@ -86,14 +86,7 @@ impl JsonRpcHandler {
         block_id: BlockId,
         contract_address: ContractAddressHex,
     ) -> RpcResult<ClassHashHex> {
-        let parsed_address = contract_address.0.try_into()?;
-
-        let starknet = self.api.starknet.read().await;
-        let state = starknet.get_state_reader_at(&block_id.into())?;
-        match state.address_to_class_hash.get(&parsed_address) {
-            Some(class_hash) => Ok(FeltHex(Felt::from(*class_hash))),
-            None => Err(error::ApiError::ContractNotFound),
-        }
+        Ok(self.api.starknet.read().await.get_class_hash_at(block_id, contract_address.0)?.into())
     }
 
     /// starknet_getClassAt
@@ -102,21 +95,7 @@ impl JsonRpcHandler {
         block_id: BlockId,
         contract_address: ContractAddressHex,
     ) -> RpcResult<ContractClass> {
-        let parsed_address = contract_address.0.try_into().map_err(|_| {
-            error::ApiError::RpcError(RpcError::invalid_params(format!(
-                "Invalid contract_address: {:?}",
-                contract_address.0
-            )))
-        })?;
-
-        let starknet = self.api.starknet.read().await;
-        let state = starknet
-            .get_state_reader_at(&block_id.into())
-            .map_err(|_| error::ApiError::BlockNotFound)?;
-        match state.address_to_class_hash.get(&parsed_address) {
-            Some(class_hash) => Ok(FeltHex(Felt::from(*class_hash))),
-            None => Err(error::ApiError::ContractNotFound),
-        }
+        Ok(self.api.starknet.read().await.get_class_at(block_id, contract_address.0)?.into())
     }
 
     /// starknet_getBlockTransactionCount
