@@ -157,7 +157,7 @@ mod tests {
     use crate::transactions::declare_transaction::DeclareTransactionV1;
     use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
     use crate::utils::load_cairo_0_contract_class;
-    use crate::utils::test_utils::{dummy_felt, setup};
+    use crate::utils::test_utils::setup;
 
     fn test_declare_transaction_v2(sender_address: ContractAddress) -> DeclareTransactionV2 {
         let contract_json_path = concat!(

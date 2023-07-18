@@ -41,7 +41,6 @@ impl DeployAccountTransaction {
             signature.iter().map(|h| h.into()).collect(),
             contract_address_salt.into(),
             chain_id.into(),
-            None,
         )
         .map_err(|err| Error::TransactionError(TransactionError::Syscall(err)))?;
 
