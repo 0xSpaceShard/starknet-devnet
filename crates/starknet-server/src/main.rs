@@ -5,7 +5,7 @@ use ::server::ServerConfig;
 use clap::Parser;
 use cli::Args;
 use starknet_core::account::Account;
-use starknet_core::Starknet;
+use starknet_core::starknet::Starknet;
 use starknet_types::felt::Felt;
 use starknet_types::traits::{ToDecimalString, ToHexString};
 use tracing::info;
