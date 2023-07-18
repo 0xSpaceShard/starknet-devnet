@@ -7,50 +7,49 @@ use crate::error::{Error, Result};
 use crate::traits::StateExtractor;
 use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
 use crate::transactions::{StarknetTransaction, Transaction};
-use crate::Starknet;
 
-impl Starknet {
-    pub fn add_deploy_account_transaction(
-        &mut self,
-        deploy_account_transaction: DeployAccountTransaction,
-    ) -> Result<(TransactionHash, ContractAddress)> {
-        if !self
-            .state
-            .is_contract_declared(&Felt::new(*deploy_account_transaction.0.class_hash())?)?
-        {
-            return Err(Error::StateError(StateError::MissingClassHash()));
-        }
+use super::Starknet;
 
-        let state_before_txn = self.state.pending_state.clone();
-        let transaction_hash = deploy_account_transaction.generate_hash()?;
-        let address: ContractAddress =
-            (deploy_account_transaction.0.contract_address().clone()).try_into()?;
-
-        match deploy_account_transaction
-            .0
-            .execute(&mut self.state.pending_state, &self.block_context)
-        {
-            Ok(tx_info) => {
-                self.handle_successful_transaction(
-                    &transaction_hash,
-                    Transaction::DeployAccount(Box::new(deploy_account_transaction)),
-                    tx_info,
-                )?;
-            }
-            Err(tx_err) => {
-                let transaction_to_add = StarknetTransaction::create_rejected(
-                    Transaction::DeployAccount(Box::new(deploy_account_transaction)),
-                    tx_err,
-                );
-
-                self.transactions.insert(&transaction_hash, transaction_to_add);
-                // Revert to previous pending state
-                self.state.pending_state = state_before_txn;
-            }
-        }
-
-        Ok((transaction_hash, address))
+pub fn add_deploy_account_transaction(
+    starknet: &mut Starknet,
+    deploy_account_transaction: DeployAccountTransaction,
+) -> Result<(TransactionHash, ContractAddress)> {
+    if !starknet
+        .state
+        .is_contract_declared(&Felt::new(*deploy_account_transaction.0.class_hash())?)?
+    {
+        return Err(Error::StateError(StateError::MissingClassHash()));
     }
+
+    let state_before_txn = starknet.state.pending_state.clone();
+    let transaction_hash = deploy_account_transaction.generate_hash()?;
+    let address: ContractAddress =
+        (deploy_account_transaction.0.contract_address().clone()).try_into()?;
+
+    match deploy_account_transaction
+        .0
+        .execute(&mut starknet.state.pending_state, &starknet.block_context)
+    {
+        Ok(tx_info) => {
+            starknet.handle_successful_transaction(
+                &transaction_hash,
+                Transaction::DeployAccount(Box::new(deploy_account_transaction)),
+                tx_info,
+            )?;
+        }
+        Err(tx_err) => {
+            let transaction_to_add = StarknetTransaction::create_rejected(
+                Transaction::DeployAccount(Box::new(deploy_account_transaction)),
+                tx_err,
+            );
+
+            starknet.transactions.insert(&transaction_hash, transaction_to_add);
+            // Revert to previous pending state
+            starknet.state.pending_state = state_before_txn;
+        }
+    }
+
+    Ok((transaction_hash, address))
 }
 
 #[cfg(test)]
