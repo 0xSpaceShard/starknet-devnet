@@ -3,7 +3,6 @@ pub mod common;
 mod get_class_hash_at_integration_tests {
     use starknet_core::constants::CAIRO_0_ACCOUNT_CONTRACT_HASH;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
-    use starknet_rs_providers::jsonrpc::{JsonRpcClientError, RpcError};
     use starknet_rs_providers::{Provider, ProviderError};
 
     use crate::common::constants::PREDEPLOYED_ACCOUNT_ADDRESS;
@@ -56,16 +55,7 @@ mod get_class_hash_at_integration_tests {
             .expect_err("Should have failed");
 
         match err {
-            ProviderError::Other(JsonRpcClientError::RpcError(RpcError::Unknown(
-                json_rpc_error,
-            ))) => {
-                // cannot apply matching for the exact values because `message` must be String
-                assert_eq!(json_rpc_error.code, -1);
-                assert_eq!(
-                    json_rpc_error.message,
-                    "Specifying block by number is currently not enabled"
-                );
-            }
+            ProviderError::StarknetError(StarknetError::BlockNotFound) => (),
             _ => panic!("Invalid error: {err:?}"),
         }
     }
@@ -85,16 +75,7 @@ mod get_class_hash_at_integration_tests {
             .expect_err("Should have failed");
 
         match err {
-            ProviderError::Other(JsonRpcClientError::RpcError(RpcError::Unknown(
-                json_rpc_error,
-            ))) => {
-                // cannot apply matching for the exact values because `message` must be String
-                assert_eq!(json_rpc_error.code, -1);
-                assert_eq!(
-                    json_rpc_error.message,
-                    "Specifying block by hash is currently not enabled"
-                );
-            }
+            ProviderError::StarknetError(StarknetError::BlockNotFound) => (),
             _ => panic!("Invalid error: {err:?}"),
         }
     }

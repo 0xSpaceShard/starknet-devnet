@@ -482,7 +482,7 @@ mod tests {
     }
 
     #[test]
-    fn calling_undeployed_contract() {
+    fn calling_method_of_undeployed_contract() {
         let config = starknet_config_for_test();
         let starknet = Starknet::new(&config).unwrap();
 
@@ -546,7 +546,7 @@ mod tests {
     }
 
     #[test]
-    fn calling_predeployed_contract() {
+    fn getting_balance_of_predeployed_contract() {
         let config = starknet_config_for_test();
         let starknet = Starknet::new(&config).unwrap();
 

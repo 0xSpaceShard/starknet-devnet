@@ -1,3 +1,6 @@
+use starknet_core::error::Error;
+use starknet_in_rust::core::errors::state_errors::StateError;
+use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::utils::Address;
 use starknet_types::felt::Felt;
 use starknet_types::starknet_api::block::BlockNumber;
@@ -84,10 +87,14 @@ impl JsonRpcHandler {
         let parsed_address: Address = contract_address.0.try_into()?;
 
         let starknet = self.api.starknet.read().await;
-        let class_hash = starknet
-            .get_class_hash_at(&block_id.into(), &parsed_address)
-            .map_err(|_| ApiError::ContractNotFound)?;
-        Ok(FeltHex(class_hash))
+        match starknet.get_class_hash_at(&block_id.into(), &parsed_address) {
+            Ok(class_hash) => Ok(FeltHex(class_hash)),
+            Err(Error::BlockIdHashUnimplementedError | Error::BlockIdNumberUnimplementedError) => {
+                Err(ApiError::BlockNotFound)
+            }
+            Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
+            Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),
+        }
     }
 
     /// starknet_getClassAt
@@ -111,8 +118,16 @@ impl JsonRpcHandler {
         request: FunctionCall,
     ) -> RpcResult<Vec<FeltHex>> {
         let starknet = self.api.starknet.read().await;
-        let result = starknet.call(block_id.into(), request.into())?;
-        Ok(result.into_iter().map(FeltHex).collect())
+        match starknet.call(block_id.into(), request.into()) {
+            Ok(result) => Ok(result.into_iter().map(FeltHex).collect()),
+            Err(Error::TransactionError(TransactionError::State(
+                StateError::NoneContractState(Address(_address)),
+            ))) => Err(ApiError::ContractNotFound),
+            Err(Error::BlockIdHashUnimplementedError | Error::BlockIdNumberUnimplementedError) => {
+                Err(ApiError::OnlyLatestBlock)
+            }
+            Err(_) => Err(ApiError::ContractError),
+        }
     }
 
     /// starknet_estimateFee
