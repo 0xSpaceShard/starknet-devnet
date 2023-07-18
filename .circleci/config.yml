@@ -8,6 +8,7 @@ jobs:
   build-and-test:
     docker:
       - image: cimg/rust:1.69.0
+      - resource_class: xlarge
     steps:
       - checkout
       - run:
