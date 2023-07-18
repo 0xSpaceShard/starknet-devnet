@@ -21,6 +21,30 @@ pub struct DeclareTransactionV2 {
 }
 
 impl DeclareTransactionV2 {
+    pub fn new(
+        sierra_contract_class: ContractClass,
+        compiled_class_hash: ClassHash,
+        sender_address: ContractAddress,
+        max_fee: u128,
+        signature: Vec<Felt>,
+        nonce: Felt,
+        chain_id: Felt,
+    ) -> Self {
+        Self {
+            sierra_contract_class,
+            compiled_class_hash,
+            sender_address,
+            max_fee,
+            signature,
+            nonce,
+            class_hash: None,
+            transaction_hash: None,
+            chain_id,
+        }
+    }
+}
+
+impl DeclareTransactionV2 {
     pub(crate) fn version(&self) -> Felt {
         Felt::from(2)
     }
