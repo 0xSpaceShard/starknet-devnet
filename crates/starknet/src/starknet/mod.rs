@@ -282,7 +282,10 @@ impl Starknet {
         &mut self,
         deploy_account_transaction: DeployAccountTransaction,
     ) -> Result<(TransactionHash, ContractAddress)> {
-        add_deploy_account_transaction::add_deploy_account_transaction(self, deploy_account_transaction)
+        add_deploy_account_transaction::add_deploy_account_transaction(
+            self,
+            deploy_account_transaction,
+        )
     }
 }
 

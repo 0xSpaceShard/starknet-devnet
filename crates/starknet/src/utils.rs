@@ -51,15 +51,15 @@ pub(crate) mod test_utils {
 
     use super::load_cairo_0_contract_class;
     use crate::account::Account;
+    use crate::constants;
     use crate::constants::{
         CAIRO_0_ACCOUNT_CONTRACT_PATH, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE,
         DEVNET_DEFAULT_HOST, DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT,
         DEVNET_DEFAULT_SEED, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
     };
+    use crate::starknet::{predeployed, Starknet, StarknetConfig};
     use crate::traits::Accounted;
-    use crate::starknet::StarknetConfig;
     use crate::transactions::declare_transaction::DeclareTransactionV1;
-    use crate::{constants, Starknet, StarknetConfig};
 
     pub fn starknet_config_for_test() -> StarknetConfig {
         StarknetConfig {
@@ -115,44 +115,6 @@ pub(crate) mod test_utils {
         result[starting_idx..ending_idx].copy_from_slice(&num_bytes[..(ending_idx - starting_idx)]);
 
         result
-    }
-
-    /// Initializes starknet with 1 account - account without validations
-    pub(crate) fn setup(acc_balance: Option<u128>) -> (Starknet, ContractAddress, ContractAddress) {
-        let mut starknet = Starknet::default();
-        let account_json_path = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/account_without_validations/account.json"
-        );
-        let contract_class = load_cairo_0_contract_class(account_json_path).unwrap();
-
-        let erc_20_contract = Starknet::create_erc20().unwrap();
-        erc_20_contract.deploy(&mut starknet.state).unwrap();
-
-        let acc = Account::new(
-            Felt::from(acc_balance.unwrap_or(100)),
-            dummy_felt(),
-            dummy_felt(),
-            contract_class.generate_hash().unwrap(),
-            contract_class,
-            erc_20_contract.get_address(),
-        )
-        .unwrap();
-
-        acc.deploy(&mut starknet.state).unwrap();
-        acc.set_initial_balance(&mut starknet.state).unwrap();
-
-        starknet.state.synchronize_states();
-        starknet.block_context = Starknet::get_block_context(
-            1,
-            constants::ERC20_CONTRACT_ADDRESS,
-            DEVNET_DEFAULT_CHAIN_ID,
-        )
-        .unwrap();
-
-        starknet.restart_pending_block().unwrap();
-
-        (starknet, acc.get_address(), erc_20_contract.get_address())
     }
 }
 
