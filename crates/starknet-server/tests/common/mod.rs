@@ -79,6 +79,7 @@ pub mod util {
 
             let process = Command::new("cargo")
                 .arg("run")
+                .arg("--release")
                 .arg("--")
                 .arg("--seed")
                 .arg(SEED.to_string())
