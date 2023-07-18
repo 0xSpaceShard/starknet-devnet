@@ -14,12 +14,6 @@ pub fn add_declare_transaction_v2(
 ) -> Result<(TransactionHash, ClassHash)> {
     let mut declare_transaction = declare_transaction;
 
-    let class_hash = declare_transaction.sierra_contract_class.generate_hash()?;
-    declare_transaction.class_hash = Some(class_hash);
-
-    let transaction_hash = declare_transaction.generate_hash()?;
-    declare_transaction.transaction_hash = Some(transaction_hash);
-
     let transaction = DeclareV2::new(
         &declare_transaction.sierra_contract_class.clone().try_into()?,
         None,
@@ -31,6 +25,11 @@ pub fn add_declare_transaction_v2(
         declare_transaction.signature.iter().map(|felt| felt.into()).collect(),
         declare_transaction.nonce.into(),
     )?;
+    let class_hash = transaction.sierra_class_hash.clone().into();
+    let transaction_hash = transaction.hash_value.clone().into();
+    
+    declare_transaction.class_hash = Some(class_hash);
+    declare_transaction.transaction_hash = Some(transaction_hash);
 
     if transaction.max_fee == 0 {
         return Err(Error::TransactionError(
@@ -44,8 +43,6 @@ pub fn add_declare_transaction_v2(
 
     match transaction.execute(&mut starknet.state.pending_state, &starknet.block_context) {
         Ok(tx_info) => {
-            declare_transaction.class_hash = Some(class_hash);
-
             // Add sierra contract
             starknet.sierra_contracts.insert(class_hash, transaction.sierra_contract_class);
             starknet.handle_successful_transaction(
