@@ -22,30 +22,16 @@ impl Starknet {
         declare_transaction.transaction_hash = Some(transaction_hash);
 
         // TODO compile the contract and check the hash
-        let transaction = DeclareV2 {
-            compiled_class_hash: declare_transaction.compiled_class_hash.into(),
-            sierra_contract_class: declare_transaction.sierra_contract_class.clone().try_into()?,
-            casm_class: Default::default(),
-            sender_address: declare_transaction.sender_address.try_into()?,
-            tx_type: starknet_in_rust::definitions::transaction_type::TransactionType::Declare,
-            validate_entry_point_selector:
-                starknet_in_rust::definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR
-                    .clone(),
-            version: declare_transaction.version().into(),
-            max_fee: declare_transaction.max_fee,
-            signature: declare_transaction.signature.iter().map(|felt| felt.into()).collect(),
-            nonce: declare_transaction.nonce.into(),
-            hash_value: transaction_hash.into(),
-            skip_execute: false,
-            skip_validate: false,
-            skip_fee_transfer: false,
-        };
-
-        verify_version(
-            &transaction.version,
-            transaction.max_fee,
-            &transaction.nonce,
-            &transaction.signature,
+        let transaction = DeclareV2::new(
+            &declare_transaction.sierra_contract_class.clone().try_into()?,
+            None,
+            declare_transaction.compiled_class_hash.into(),
+            declare_transaction.chain_id.into(),
+            declare_transaction.sender_address.try_into()?,
+            declare_transaction.max_fee,
+            declare_transaction.version().into(),
+            declare_transaction.signature.iter().map(|felt| felt.into()).collect(),
+            declare_transaction.nonce.into(),
         )?;
 
         if transaction.max_fee == 0 {
@@ -156,8 +142,10 @@ impl Starknet {
 #[cfg(test)]
 mod tests {
     use starknet_api::block::BlockNumber;
+    use starknet_in_rust::core::contract_address::compute_casm_class_hash;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_in_rust::transaction::error::TransactionError;
+    use starknet_in_rust::CasmContractClass;
     use starknet_rs_core::types::TransactionStatus;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;
@@ -179,9 +167,13 @@ mod tests {
         let json_str = std::fs::read_to_string(contract_json_path).unwrap();
         let contract_class = ContractClass::cairo_1_from_sierra_json_str(&json_str).unwrap();
 
+        let compiled_class_hash =
+            compute_casm_class_hash(&CasmContractClass::try_from(contract_class.clone()).unwrap())
+                .unwrap();
+
         DeclareTransactionV2 {
             sierra_contract_class: contract_class,
-            compiled_class_hash: dummy_felt(),
+            compiled_class_hash: compiled_class_hash.into(),
             sender_address,
             max_fee: 100,
             signature: Vec::new(),
