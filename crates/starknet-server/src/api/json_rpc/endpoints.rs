@@ -2,7 +2,7 @@ use starknet_in_rust::utils::Address;
 use starknet_types::felt::Felt;
 use starknet_types::starknet_api::block::BlockNumber;
 
-use super::error::{self};
+use super::error::{self, ApiError};
 use super::models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
 use super::{JsonRpcHandler, RpcResult};
 use crate::api::models::block::Block;
@@ -84,7 +84,9 @@ impl JsonRpcHandler {
         let parsed_address: Address = contract_address.0.try_into()?;
 
         let starknet = self.api.starknet.read().await;
-        let class_hash = starknet.get_class_hash_at(&block_id.into(), &parsed_address)?;
+        let class_hash = starknet
+            .get_class_hash_at(&block_id.into(), &parsed_address)
+            .map_err(|_| ApiError::ContractNotFound)?;
         Ok(FeltHex(class_hash))
     }
 
