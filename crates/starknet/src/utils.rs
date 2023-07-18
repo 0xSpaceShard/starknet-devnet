@@ -47,18 +47,13 @@ pub(crate) mod test_utils {
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
     use starknet_types::patricia_key::StorageKey;
-    
 
-    
-    
-    
     use crate::constants::{
         CAIRO_0_ACCOUNT_CONTRACT_PATH, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE,
         DEVNET_DEFAULT_HOST, DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT,
         DEVNET_DEFAULT_SEED, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
     };
-    use crate::starknet::{StarknetConfig};
-    
+    use crate::starknet::StarknetConfig;
     use crate::transactions::declare_transaction::DeclareTransactionV1;
 
     pub fn starknet_config_for_test() -> StarknetConfig {
