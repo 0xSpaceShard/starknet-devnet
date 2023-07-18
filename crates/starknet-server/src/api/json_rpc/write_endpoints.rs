@@ -80,7 +80,7 @@ mod tests {
         DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TEST_SEED,
         DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
     };
-    use starknet_core::{Starknet, StarknetConfig};
+    use starknet_core::starknet::{Starknet, StarknetConfig};
     use starknet_types::traits::ToHexString;
 
     use crate::api::json_rpc::JsonRpcHandler;

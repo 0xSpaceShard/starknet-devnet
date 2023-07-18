@@ -7,7 +7,7 @@ use axum::routing::{post, IntoMakeService};
 use axum::{Extension, Router};
 use hyper::server::conn::AddrIncoming;
 use hyper::{header, Method, Request, Server};
-use starknet_core::StarknetConfig;
+use starknet_core::starknet::StarknetConfig;
 use tower::Service;
 use tower_http::cors::CorsLayer;
 use tower_http::timeout::TimeoutLayer;
