@@ -34,8 +34,13 @@ Run the formatter with:
 ./scripts/format.sh
 ```
 
-If you encounter an error: `error: toolchain 'nightly-x86_64-unknown-linux-gnu' is not installed`
-Install it with:
+If you encounter an error like
+
+```
+error: toolchain 'nightly-x86_64-unknown-linux-gnu' is not installed
+```
+
+Resolve it with:
 
 ```
 rustup default nightly
@@ -57,6 +62,7 @@ cargo run -- -h
 cargo run -- --help
 
 # Starting Devnet
+
 By default logging level is INFO, but this can be changed via RUST_LOG environment variable.
 
 All logging levels: TRACE, DEBUG, INFO, WARN, ERROR
