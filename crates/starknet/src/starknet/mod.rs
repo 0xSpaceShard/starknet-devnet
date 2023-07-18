@@ -275,6 +275,12 @@ impl Starknet {
     ) -> Result<(TransactionHash, ClassHash)> {
         add_declare_transaction::add_declare_transaction_v2(self, declare_transaction)
     }
+
+    /// returning the block number that will be added, ie. the most recent accepted block number
+    pub fn block_number(&self) -> Result<BlockNumber> {
+        let block_num: u64 = self.block_context.block_info().block_number;
+        Ok(BlockNumber(block_num))
+    }
 }
 
 #[cfg(test)]
@@ -446,5 +452,32 @@ mod tests {
             Err(Error::BlockIdNumberUnimplementedError) => (),
             _ => panic!("Should have failed"),
         }
+    }
+
+    #[test]
+    fn returns_block_number() {
+        let config = starknet_config_for_test();
+        let mut starknet = Starknet::new(&config).unwrap();
+
+        let block_number_no_blocks = starknet.block_number().unwrap();
+        assert_eq!(block_number_no_blocks.0, 0);
+
+        starknet.generate_new_block().unwrap();
+        starknet.generate_pending_block().unwrap();
+
+        // last added block number -> 0
+        let added_block = starknet.blocks.num_to_block.get(&BlockNumber(0)).unwrap();
+        // number of the accepted block -> 1
+        let block_number = starknet.block_number().unwrap();
+
+        assert_eq!(block_number.0 - 1, added_block.header.block_number.0);
+
+        starknet.generate_new_block().unwrap();
+        starknet.generate_pending_block().unwrap();
+
+        let added_block2 = starknet.blocks.num_to_block.get(&BlockNumber(1)).unwrap();
+        let block_number2 = starknet.block_number().unwrap();
+
+        assert_eq!(block_number2.0 - 1, added_block2.header.block_number.0);
     }
 }
