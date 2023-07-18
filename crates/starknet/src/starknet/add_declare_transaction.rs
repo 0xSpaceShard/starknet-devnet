@@ -27,7 +27,7 @@ pub fn add_declare_transaction_v2(
     )?;
     let class_hash = transaction.sierra_class_hash.clone().into();
     let transaction_hash = transaction.hash_value.clone().into();
-    
+
     declare_transaction.class_hash = Some(class_hash);
     declare_transaction.transaction_hash = Some(transaction_hash);
 
