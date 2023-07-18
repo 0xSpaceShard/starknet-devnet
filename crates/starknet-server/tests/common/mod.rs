@@ -95,7 +95,7 @@ pub mod util {
                 format!("{}/is_alive", devnet_url.as_str()).as_str().parse::<Uri>()?;
 
             let mut retries = 0;
-            let max_retries = 10; // limit the number of times we check if devnet is spawned
+            let max_retries = 30; // limit the number of times we check if devnet is spawned
             let http_client = Client::new();
             while retries < max_retries {
                 if let Ok(alive_resp) = http_client.get(healthcheck_uri.clone()).await {
