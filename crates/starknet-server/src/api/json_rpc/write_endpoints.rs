@@ -1,6 +1,7 @@
 use serde_json::json;
 use server::rpc_core::error::RpcError;
 use starknet_core::transactions::declare_transaction::DeclareTransactionV1;
+use starknet_core::transactions::declare_transaction_v2::DeclareTransactionV2;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::Felt;
 
@@ -10,7 +11,7 @@ use super::RpcResult;
 use crate::api::json_rpc::JsonRpcHandler;
 use crate::api::models::contract_class::DeprecatedContractClass;
 use crate::api::models::transaction::{
-    BroadcastedDeclareTransaction, BroadcastedDeclareTransactionV1,
+    BroadcastedDeclareTransaction, BroadcastedDeclareTransactionV1, BroadcastedDeclareTransactionV2,
 };
 use crate::api::models::FeltHex;
 
@@ -26,7 +27,11 @@ impl JsonRpcHandler {
                     (convert_to_declare_transaction_v1(*broadcasted_declare_txn, chain_id.into()))?,
                 )?
             }
-            BroadcastedDeclareTransaction::V2(_) => todo!(),
+            BroadcastedDeclareTransaction::V2(broadcasted_declare_txn) => {
+                self.api.starknet.write().await.add_declare_transaction_v2(
+                    convert_to_declare_transaction_v2(*broadcasted_declare_txn, chain_id.into()),
+                )?
+            }
         };
 
         Ok(DeclareTransactionOutput {
@@ -71,6 +76,21 @@ fn convert_to_declare_transaction_v1(
         ContractClass::try_from(value.contract_class)?,
         chain_id,
     ))
+}
+
+fn convert_to_declare_transaction_v2(
+    value: BroadcastedDeclareTransactionV2,
+    chain_id: Felt,
+) -> DeclareTransactionV2 {
+    DeclareTransactionV2::new(
+        ContractClass::from(value.contract_class),
+        value.compiled_class_hash.0,
+        value.sender_address.0,
+        value.common.max_fee.0,
+        value.common.signature.iter().map(|x| x.0).collect(),
+        value.common.nonce.0,
+        chain_id,
+    )
 }
 
 #[cfg(test)]

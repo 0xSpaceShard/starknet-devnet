@@ -6,7 +6,7 @@ use starknet_types::starknet_api::block::BlockNumber;
 use starknet_types::starknet_api::transaction::{EthAddress, Fee};
 
 use super::block::BlockHashHex;
-use super::contract_class::{DeprecatedContractClass, SierraContractClass};
+use super::contract_class::DeprecatedContractClass;
 use super::{ContractAddressHex, FeltHex};
 
 pub type TransactionHashHex = FeltHex;
@@ -323,7 +323,7 @@ pub struct BroadcastedDeclareTransactionV1 {
 pub struct BroadcastedDeclareTransactionV2 {
     #[serde(flatten)]
     pub common: BroadcastedTransactionCommon,
-    pub contract_class: SierraContractClass,
+    pub contract_class: starknet_in_rust::SierraContractClass,
     pub sender_address: ContractAddressHex,
     pub compiled_class_hash: CompiledClassHashHex,
 }
