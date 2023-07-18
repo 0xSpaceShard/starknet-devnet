@@ -44,6 +44,7 @@ mod get_class_hash_at_integration_tests {
     }
 
     #[tokio::test]
+    /// temporarily not enabled - pending
     async fn get_class_hash_at_by_block_number() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let contract_address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
@@ -61,6 +62,7 @@ mod get_class_hash_at_integration_tests {
     }
 
     #[tokio::test]
+    /// temporarily not enabled - pending
     async fn get_class_hash_at_by_block_hash() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let contract_address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
