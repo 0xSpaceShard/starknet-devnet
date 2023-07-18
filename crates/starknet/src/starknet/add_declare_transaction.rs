@@ -84,8 +84,7 @@ pub fn add_declare_transaction_v1(
         sender_address: declare_transaction.sender_address.try_into()?,
         tx_type: starknet_in_rust::definitions::transaction_type::TransactionType::Declare,
         validate_entry_point_selector:
-            starknet_in_rust::definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR
-                .clone(),
+            starknet_in_rust::definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR.clone(),
         version: declare_transaction.version().into(),
         max_fee: declare_transaction.max_fee,
         signature: declare_transaction.signature.iter().map(|felt| felt.into()).collect(),
@@ -138,7 +137,6 @@ pub fn add_declare_transaction_v1(
 
     Ok((transaction_hash, class_hash))
 }
-
 
 #[cfg(test)]
 mod tests {
