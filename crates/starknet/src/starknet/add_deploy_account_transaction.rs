@@ -132,7 +132,7 @@ mod tests {
         assert!(account_balance_before_deployment > account_balance_after_deployment);
     }
 
-    /// Initializes starknet with 1 account - account without validations
+    /// Initializes starknet with erc20 contract, 1 declared contract class. Gas price is set to 1
     fn setup() -> (Starknet, ClassHash, ContractAddress) {
         let mut starknet = Starknet::default();
         let account_json_path = concat!(
