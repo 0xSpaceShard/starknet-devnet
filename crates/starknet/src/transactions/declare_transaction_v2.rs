@@ -90,12 +90,35 @@ impl HashProducer for DeclareTransactionV2 {
 
 #[cfg(test)]
 mod tests {
-    use starknet_types::contract_class::ContractClass;
+    use starknet_types::{contract_class::ContractClass, felt::Felt, contract_address::ContractAddress};
+
+    use crate::utils::test_utils::dummy_cairo_1_contract_class;
 
 
     #[ignore]
     #[test]
     fn correct_declare_transaction_hash_computation() {
         todo!("Transaction hash computation should be checked")
+    }
+
+    #[test]
+    fn declare_transaction_v2_with_max_fee_zero_should_return_an_error() {
+        let result = super::DeclareTransactionV2::new(    
+            dummy_cairo_1_contract_class(),
+            Felt::from(0),
+            ContractAddress::new(Felt::from(0)).unwrap(),
+            0,
+            vec![],
+            Felt::from(0),
+            Felt::from(0),
+        );
+
+        assert!(result.is_err());
+        match result.err().unwrap() {
+            crate::error::Error::TransactionError(
+                starknet_in_rust::transaction::error::TransactionError::FeeError(msg),
+            ) => assert_eq!(msg, "For declare transaction version 2, max fee cannot be 0"),
+            _ => panic!("Wrong error type"),
+        }
     }
 }
