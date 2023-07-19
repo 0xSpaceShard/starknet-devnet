@@ -124,7 +124,7 @@ impl JsonRpcHandler {
 
     /// starknet_blockNumber
     pub(crate) async fn block_number(&self) -> RpcResult<BlockNumber> {
-        let block_number = self.api.starknet.read().await.block_number().unwrap();
+        let block_number = self.api.starknet.read().await.block_number();
         Ok(block_number)
     }
 

@@ -277,9 +277,9 @@ impl Starknet {
     }
 
     /// returning the block number that will be added, ie. the most recent accepted block number
-    pub fn block_number(&self) -> Result<BlockNumber> {
+    pub fn block_number(&self) -> BlockNumber {
         let block_num: u64 = self.block_context.block_info().block_number;
-        Ok(BlockNumber(block_num))
+        BlockNumber(block_num)
     }
 }
 
@@ -459,7 +459,7 @@ mod tests {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        let block_number_no_blocks = starknet.block_number().unwrap();
+        let block_number_no_blocks = starknet.block_number();
         assert_eq!(block_number_no_blocks.0, 0);
 
         starknet.generate_new_block().unwrap();
@@ -468,7 +468,7 @@ mod tests {
         // last added block number -> 0
         let added_block = starknet.blocks.num_to_block.get(&BlockNumber(0)).unwrap();
         // number of the accepted block -> 1
-        let block_number = starknet.block_number().unwrap();
+        let block_number = starknet.block_number();
 
         assert_eq!(block_number.0 - 1, added_block.header.block_number.0);
 
@@ -476,7 +476,7 @@ mod tests {
         starknet.generate_pending_block().unwrap();
 
         let added_block2 = starknet.blocks.num_to_block.get(&BlockNumber(1)).unwrap();
-        let block_number2 = starknet.block_number().unwrap();
+        let block_number2 = starknet.block_number();
 
         assert_eq!(block_number2.0 - 1, added_block2.header.block_number.0);
     }
