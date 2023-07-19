@@ -33,7 +33,7 @@ impl DeclareTransactionV1 {
         if max_fee == 0 {
             return Err(Error::TransactionError(
                 starknet_in_rust::transaction::error::TransactionError::FeeError(
-                    "For declare transaction version 2, max fee cannot be 0".to_string(),
+                    "For declare transaction version 1, max fee cannot be 0".to_string(),
                 ),
             ));
         }
@@ -84,9 +84,33 @@ impl HashProducer for DeclareTransactionV1 {
 
 #[cfg(test)]
 mod tests {
+    use starknet_types::felt::Felt;
+
+    use crate::utils::test_utils::{dummy_cairo_0_contract_class, dummy_contract_address, dummy_felt};
+
     #[test]
     #[ignore]
     fn correct_transaction_hash_computation() {
         todo!("Transaction hash computation should be checked")
+    }
+
+    #[test]
+    fn declare_transaction_v1_with_max_fee_zero_should_return_an_error() {
+        let result = super::DeclareTransactionV1::new(    
+            dummy_contract_address(),
+            0,
+            vec![],
+            dummy_felt(),
+            dummy_cairo_0_contract_class(),
+            dummy_felt(),
+        );
+
+        assert!(result.is_err());
+        match result.err().unwrap() {
+            crate::error::Error::TransactionError(
+                starknet_in_rust::transaction::error::TransactionError::FeeError(msg),
+            ) => assert_eq!(msg, "For declare transaction version 1, max fee cannot be 0"),
+            _ => panic!("Wrong error type"),
+        }
     }
 }
