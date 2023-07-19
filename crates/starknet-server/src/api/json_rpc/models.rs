@@ -3,8 +3,8 @@ use starknet_types::starknet_api::block::BlockNumber;
 
 use crate::api::models::block::{BlockHashHex, SyncStatus};
 use crate::api::models::transaction::{
-    BroadcastedDeclareTransaction, BroadcastedTransactionWithType, ClassHashHex, EventFilter,
-    FunctionCall, TransactionHashHex,
+    BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
+    BroadcastedTransactionWithType, ClassHashHex, EventFilter, FunctionCall, TransactionHashHex,
 };
 use crate::api::models::{BlockId, ContractAddressHex, PatriciaKeyHex};
 
@@ -88,6 +88,17 @@ pub struct BroadcastedDeclareTransactionInput {
 pub struct DeclareTransactionOutput {
     pub transaction_hash: TransactionHashHex,
     pub class_hash: ClassHashHex,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+pub struct BroadcastedDeployAccountTransactionInput {
+    pub deploy_account_transaction: BroadcastedDeployAccountTransaction,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+pub struct DeployAccountTransactionOutput {
+    pub transaction_hash: TransactionHashHex,
+    pub contract_address: ContractAddressHex,
 }
 
 #[cfg(test)]

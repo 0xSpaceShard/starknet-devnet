@@ -30,10 +30,12 @@ use crate::state::StarknetState;
 use crate::traits::{AccountGenerator, Accounted, HashIdentifiedMut, StateChanger};
 use crate::transactions::declare_transaction::DeclareTransactionV1;
 use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
+use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
 use crate::transactions::{StarknetTransaction, StarknetTransactions, Transaction};
 use crate::utils;
 
 mod add_declare_transaction;
+mod add_deploy_account_transaction;
 mod predeployed;
 
 #[derive(Debug)]
@@ -313,6 +315,16 @@ impl Starknet {
     pub fn block_number(&self) -> BlockNumber {
         let block_num: u64 = self.block_context.block_info().block_number;
         BlockNumber(block_num)
+    }
+
+    pub fn add_deploy_account_transaction(
+        &mut self,
+        deploy_account_transaction: DeployAccountTransaction,
+    ) -> Result<(TransactionHash, ContractAddress)> {
+        add_deploy_account_transaction::add_deploy_account_transaction(
+            self,
+            deploy_account_transaction,
+        )
     }
 }
 
