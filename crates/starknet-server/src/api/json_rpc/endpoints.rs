@@ -2,7 +2,6 @@ use starknet_core::error::Error;
 use starknet_in_rust::core::errors::state_errors::StateError;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::utils::Address;
-use starknet_types::felt::Felt;
 use starknet_types::starknet_api::block::BlockNumber;
 
 use super::error::{self, ApiError};
@@ -180,15 +179,5 @@ impl JsonRpcHandler {
         _contract_address: ContractAddressHex,
     ) -> RpcResult<FeltHex> {
         Err(error::ApiError::BlockNotFound)
-    }
-}
-
-impl From<FunctionCall> for starknet_rs_core::types::FunctionCall {
-    fn from(value: FunctionCall) -> Self {
-        starknet_rs_core::types::FunctionCall {
-            contract_address: Felt::from(value.contract_address.0).into(),
-            entry_point_selector: value.entry_point_selector.0.into(),
-            calldata: value.calldata.into_iter().map(|e| e.0.into()).collect(),
-        }
     }
 }
