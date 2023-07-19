@@ -34,6 +34,7 @@ use crate::transactions::{StarknetTransaction, StarknetTransactions, Transaction
 use crate::utils;
 
 mod add_declare_transaction;
+mod add_invoke_transaction;
 mod predeployed;
 
 #[derive(Debug)]
@@ -274,6 +275,10 @@ impl Starknet {
         declare_transaction: DeclareTransactionV2,
     ) -> Result<(TransactionHash, ClassHash)> {
         add_declare_transaction::add_declare_transaction_v2(self, declare_transaction)
+    }
+
+    pub fn add_invoke_transaction_v1(&mut self) -> Result<TransactionHash> {
+        add_invoke_transaction::add_invoke_transcation_v1(self)
     }
 }
 
