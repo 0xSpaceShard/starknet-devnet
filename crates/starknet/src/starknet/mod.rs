@@ -11,10 +11,10 @@ use starknet_in_rust::definitions::constants::{
     DEFAULT_VALIDATE_MAX_N_STEPS,
 };
 use starknet_in_rust::execution::TransactionExecutionInfo;
-use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
 use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
-use starknet_in_rust::SierraContractClass;
+use starknet_in_rust::utils::Address;
+use starknet_in_rust::{call_contract, SierraContractClass};
 use starknet_rs_core::types::{BlockId, TransactionStatus};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
@@ -254,14 +254,47 @@ impl Starknet {
         Ok(())
     }
 
-    // TODO should return a more generic type (StateReader) to allow future implementation of a
-    // ForkedStateReader
-    pub fn get_state_reader_at(&self, block_id: &BlockId) -> Result<&InMemoryStateReader> {
+    fn get_state_at(&self, block_id: &BlockId) -> Result<&StarknetState> {
         match block_id {
-            BlockId::Tag(_) => Ok(&self.state.state),
+            BlockId::Tag(_) => Ok(&self.state),
             BlockId::Hash(_) => Err(Error::BlockIdHashUnimplementedError),
             BlockId::Number(_) => Err(Error::BlockIdNumberUnimplementedError),
         }
+    }
+
+    pub fn get_class_hash_at(
+        &self,
+        block_id: &BlockId,
+        contract_address: &ContractAddress,
+    ) -> Result<Felt> {
+        let state = self.get_state_at(block_id)?;
+        let address: Address = contract_address.try_into()?;
+        match state.state.address_to_class_hash.get(&address) {
+            Some(class_hash) => Ok(Felt::from(*class_hash)),
+            None => Err(Error::ContractNotFound),
+        }
+    }
+
+    pub fn call(
+        &self,
+        block_id: BlockId,
+        contract_address: Felt,
+        entrypoint_selector: Felt,
+        calldata: Vec<Felt>,
+    ) -> Result<Vec<Felt>> {
+        let state = self.get_state_at(&block_id)?;
+
+        let result = call_contract(
+            contract_address.into(),
+            entrypoint_selector.into(),
+            calldata.iter().map(|c| c.into()).collect(),
+            &mut state.pending_state.clone(),
+            self.block_context.clone(),
+            // dummy caller_address since there is no account address; safe to unwrap since it's
+            // just 0
+            ContractAddress::zero().try_into().unwrap(),
+        )?;
+        Ok(result.iter().map(|e| Felt::from(e.clone())).collect())
     }
 
     pub fn add_declare_transaction_v1(
@@ -298,7 +331,10 @@ impl Starknet {
 #[cfg(test)]
 mod tests {
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
+    use starknet_in_rust::core::errors::state_errors::StateError;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
+    use starknet_in_rust::transaction::error::TransactionError;
+    use starknet_in_rust::utils::Address;
     use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
@@ -306,7 +342,8 @@ mod tests {
 
     use super::Starknet;
     use crate::blocks::StarknetBlock;
-    use crate::error::Error;
+    use crate::constants::{DEVNET_DEFAULT_INITIAL_BALANCE, ERC20_CONTRACT_ADDRESS};
+    use crate::error::{Error, Result};
     use crate::traits::Accounted;
     use crate::utils::test_utils::{dummy_declare_transaction_v1, starknet_config_for_test};
 
@@ -436,21 +473,21 @@ mod tests {
     fn getting_state_reader_of_latest_state() {
         let config = starknet_config_for_test();
         let starknet = Starknet::new(&config).unwrap();
-        starknet.get_state_reader_at(&BlockId::Tag(BlockTag::Latest)).expect("Should be OK");
+        starknet.get_state_at(&BlockId::Tag(BlockTag::Latest)).expect("Should be OK");
     }
 
     #[test]
     fn getting_state_reader_of_pending_state() {
         let config = starknet_config_for_test();
         let starknet = Starknet::new(&config).unwrap();
-        starknet.get_state_reader_at(&BlockId::Tag(BlockTag::Pending)).expect("Should be OK");
+        starknet.get_state_at(&BlockId::Tag(BlockTag::Pending)).expect("Should be OK");
     }
 
     #[test]
     fn getting_state_reader_at_block_by_hash() {
         let config = starknet_config_for_test();
         let starknet = Starknet::new(&config).unwrap();
-        match starknet.get_state_reader_at(&BlockId::Number(2)) {
+        match starknet.get_state_at(&BlockId::Number(2)) {
             Err(Error::BlockIdNumberUnimplementedError) => (),
             _ => panic!("Should have failed"),
         }
@@ -460,10 +497,96 @@ mod tests {
     fn getting_state_reader_at_block_by_number() {
         let config = starknet_config_for_test();
         let starknet = Starknet::new(&config).unwrap();
-        match starknet.get_state_reader_at(&BlockId::Number(2)) {
+        match starknet.get_state_at(&BlockId::Number(2)) {
             Err(Error::BlockIdNumberUnimplementedError) => (),
             _ => panic!("Should have failed"),
         }
+    }
+
+    #[test]
+    fn calling_method_of_undeployed_contract() {
+        let config = starknet_config_for_test();
+        let starknet = Starknet::new(&config).unwrap();
+
+        let undeployed_address_hex = "0x1234";
+        let undeployed_address = Felt::from_prefixed_hex_str(undeployed_address_hex).unwrap();
+        let entry_point_selector =
+            starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();
+
+        match starknet.call(
+            BlockId::Tag(BlockTag::Latest),
+            undeployed_address,
+            entry_point_selector.into(),
+            vec![],
+        ) {
+            Err(Error::TransactionError(TransactionError::State(
+                StateError::NoneContractState(Address(address)),
+            ))) => {
+                let received_address_hex = format!("0x{}", address.to_str_radix(16));
+                assert_eq!(received_address_hex.as_str(), undeployed_address_hex);
+            }
+            unexpected => panic!("Should have failed; got {unexpected:?}"),
+        }
+    }
+
+    #[test]
+    fn calling_nonexistent_contract_method() {
+        let config = starknet_config_for_test();
+        let starknet = Starknet::new(&config).unwrap();
+
+        let predeployed_account = &starknet.predeployed_accounts.get_accounts()[0];
+        let entry_point_selector =
+            starknet_rs_core::utils::get_selector_from_name("nonExistentMethod").unwrap();
+
+        match starknet.call(
+            BlockId::Tag(BlockTag::Latest),
+            Felt::from_prefixed_hex_str(ERC20_CONTRACT_ADDRESS).unwrap(),
+            entry_point_selector.into(),
+            vec![Felt::from(predeployed_account.account_address)],
+        ) {
+            Err(Error::TransactionError(TransactionError::EntryPointNotFound)) => (),
+            unexpected => panic!("Should have failed; got {unexpected:?}"),
+        }
+    }
+
+    /// utility method for happy path balance retrieval
+    fn get_balance_at(starknet: &Starknet, contract_address: ContractAddress) -> Result<Vec<Felt>> {
+        let entry_point_selector =
+            starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();
+        starknet.call(
+            BlockId::Tag(BlockTag::Latest),
+            Felt::from_prefixed_hex_str(ERC20_CONTRACT_ADDRESS)?,
+            entry_point_selector.into(),
+            vec![Felt::from(contract_address)],
+        )
+    }
+
+    #[test]
+    fn getting_balance_of_predeployed_contract() {
+        let config = starknet_config_for_test();
+        let starknet = Starknet::new(&config).unwrap();
+
+        let predeployed_account = &starknet.predeployed_accounts.get_accounts()[0];
+        let result = get_balance_at(&starknet, predeployed_account.account_address).unwrap();
+
+        let balance_hex = format!("0x{:x}", DEVNET_DEFAULT_INITIAL_BALANCE);
+        let balance_felt = Felt::from_prefixed_hex_str(balance_hex.as_str()).unwrap();
+        let balance_uint256 = vec![balance_felt, Felt::from_prefixed_hex_str("0x0").unwrap()];
+        assert_eq!(result, balance_uint256);
+    }
+
+    #[test]
+    fn getting_balance_of_undeployed_contract() {
+        let config = starknet_config_for_test();
+        let starknet = Starknet::new(&config).unwrap();
+
+        let undeployed_address =
+            ContractAddress::new(Felt::from_prefixed_hex_str("0x1234").unwrap()).unwrap();
+        let result = get_balance_at(&starknet, undeployed_address).unwrap();
+
+        let zero = Felt::from_prefixed_hex_str("0x0").unwrap();
+        let expected_balance_uint256 = vec![zero, zero];
+        assert_eq!(result, expected_balance_uint256);
     }
 
     #[test]

@@ -54,7 +54,7 @@ Run all tests with:
 cargo test
 ```
 
-To ensure that integration tests pass, be sure to have run `cargo build` or `cargo run` prior to that (this will build the production target that is used in these tests, so spawning Background Devnet won't time out)
+To ensure that integration tests pass, be sure to have run `cargo build --release` or `cargo run --release` prior to that (this will build the production target that is used in these tests, so spawning Background Devnet won't time out)
 
 # Devnet cli options
 

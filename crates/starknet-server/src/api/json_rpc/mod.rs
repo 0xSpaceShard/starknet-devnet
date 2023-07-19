@@ -117,6 +117,11 @@ impl<T: Serialize> ToRpcResponseResult for RpcResult<T> {
                     message: error.to_string().into(),
                     data: None,
                 },
+                err @ ApiError::OnlyLatestBlock => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(24),
+                    message: err.to_string().into(),
+                    data: None,
+                },
             }
             .into(),
         }
