@@ -1,6 +1,7 @@
 pub mod declare_transaction;
 pub(crate) mod declare_transaction_v2;
 pub mod deploy_account_transaction;
+pub mod invoke_transaction;
 
 use std::collections::HashMap;
 
@@ -13,6 +14,7 @@ use starknet_types::felt::{BlockHash, TransactionHash};
 use self::declare_transaction::DeclareTransactionV1;
 use self::declare_transaction_v2::DeclareTransactionV2;
 use self::deploy_account_transaction::DeployAccountTransaction;
+use self::invoke_transaction::InvokeTransactionV1;
 use crate::traits::HashIdentifiedMut;
 
 #[derive(Default)]
@@ -74,6 +76,7 @@ pub enum Transaction {
     Declare(DeclareTransactionV1),
     DeclareV2(DeclareTransactionV2),
     DeployAccount(Box<DeployAccountTransaction>),
+    Invoke(InvokeTransactionV1),
 }
 
 impl Transaction {
@@ -82,6 +85,7 @@ impl Transaction {
             Transaction::Declare(tx) => tx.transaction_hash,
             Transaction::DeclareV2(tx) => tx.transaction_hash,
             Transaction::DeployAccount(tx) => Some(tx.0.hash_value().clone().into()),
+            Transaction::Invoke(tx) => Some(tx.0.hash_value().clone().into()),
         }
     }
 }
