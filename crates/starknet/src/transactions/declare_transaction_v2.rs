@@ -90,10 +90,13 @@ impl HashProducer for DeclareTransactionV2 {
 
 #[cfg(test)]
 mod tests {
-    use starknet_types::{contract_class::ContractClass, felt::Felt, contract_address::ContractAddress};
+    use starknet_types::contract_address::ContractAddress;
+    use starknet_types::contract_class::ContractClass;
+    use starknet_types::felt::Felt;
 
-    use crate::utils::test_utils::{dummy_cairo_1_contract_class, dummy_felt, dummy_contract_address};
-
+    use crate::utils::test_utils::{
+        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
+    };
 
     #[ignore]
     #[test]
@@ -103,7 +106,7 @@ mod tests {
 
     #[test]
     fn declare_transaction_v2_with_max_fee_zero_should_return_an_error() {
-        let result = super::DeclareTransactionV2::new(    
+        let result = super::DeclareTransactionV2::new(
             dummy_cairo_1_contract_class(),
             dummy_felt(),
             dummy_contract_address(),

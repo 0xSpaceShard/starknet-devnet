@@ -7,7 +7,8 @@ use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use starknet_types::DevnetResult;
-use crate::error::{Result, Error};
+
+use crate::error::{Error, Result};
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct DeclareTransactionV1 {
@@ -86,7 +87,9 @@ impl HashProducer for DeclareTransactionV1 {
 mod tests {
     use starknet_types::felt::Felt;
 
-    use crate::utils::test_utils::{dummy_cairo_0_contract_class, dummy_contract_address, dummy_felt};
+    use crate::utils::test_utils::{
+        dummy_cairo_0_contract_class, dummy_contract_address, dummy_felt,
+    };
 
     #[test]
     #[ignore]
@@ -96,7 +99,7 @@ mod tests {
 
     #[test]
     fn declare_transaction_v1_with_max_fee_zero_should_return_an_error() {
-        let result = super::DeclareTransactionV1::new(    
+        let result = super::DeclareTransactionV1::new(
             dummy_contract_address(),
             0,
             vec![],

@@ -49,9 +49,9 @@ pub(crate) mod test_utils {
     use starknet_types::patricia_key::StorageKey;
 
     use crate::constants::{
-        DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE,
-        DEVNET_DEFAULT_HOST, DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT,
-        DEVNET_DEFAULT_TEST_SEED, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+        DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_HOST,
+        DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TEST_SEED,
+        DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
     };
     use crate::starknet::StarknetConfig;
     use crate::transactions::declare_transaction::DeclareTransactionV1;
@@ -84,7 +84,8 @@ pub(crate) mod test_utils {
         let json_str = std::fs::read_to_string(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/test_artifacts/cairo_0_test.json"
-        )).unwrap();
+        ))
+        .unwrap();
 
         ContractClass::cairo_0_from_json_str(&json_str).unwrap()
     }
@@ -93,7 +94,8 @@ pub(crate) mod test_utils {
         let json_str = std::fs::read_to_string(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/test_artifacts/cairo_1_test.json"
-        )).unwrap();
+        ))
+        .unwrap();
 
         ContractClass::cairo_1_from_sierra_json_str(&json_str).unwrap()
     }
@@ -110,7 +112,8 @@ pub(crate) mod test_utils {
             dummy_felt(),
             dummy_cairo_0_contract_class(),
             StarknetChainId::TestNet.to_felt().into(),
-        ).unwrap()
+        )
+        .unwrap()
     }
 
     pub(crate) fn get_bytes_from_u32(num: u32) -> [u8; 32] {

@@ -139,7 +139,9 @@ mod tests {
     use crate::transactions::declare_transaction::DeclareTransactionV1;
     use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
     use crate::utils::load_cairo_0_contract_class;
-    use crate::utils::test_utils::{dummy_felt, dummy_cairo_0_contract_class, dummy_cairo_1_contract_class};
+    use crate::utils::test_utils::{
+        dummy_cairo_0_contract_class, dummy_cairo_1_contract_class, dummy_felt,
+    };
 
     fn test_declare_transaction_v2(sender_address: ContractAddress) -> DeclareTransactionV2 {
         let contract_class = dummy_cairo_1_contract_class();
@@ -156,7 +158,8 @@ mod tests {
             Vec::new(),
             Felt::from(0),
             StarknetChainId::TestNet.to_felt().into(),
-        ).unwrap()
+        )
+        .unwrap()
     }
 
     fn test_declare_transaction_v1(sender_address: ContractAddress) -> DeclareTransactionV1 {
@@ -169,7 +172,8 @@ mod tests {
             Felt::from(0),
             contract_class,
             StarknetChainId::TestNet.to_felt().into(),
-        ).unwrap()
+        )
+        .unwrap()
     }
 
     #[test]

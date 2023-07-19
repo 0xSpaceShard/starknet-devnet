@@ -104,9 +104,8 @@ fn convert_to_declare_transaction_v1(
         value.common.nonce.0,
         ContractClass::try_from(value.contract_class)?,
         chain_id,
-    ).map_err(|err| {
-        ApiError::StarknetDevnetError(err)
-    })
+    )
+    .map_err(|err| ApiError::StarknetDevnetError(err))
 }
 
 fn convert_to_deploy_account_transaction(
@@ -143,9 +142,8 @@ fn convert_to_declare_transaction_v2(
         value.common.signature.iter().map(|x| x.0).collect(),
         value.common.nonce.0,
         chain_id,
-    ).map_err(|err| {
-        ApiError::StarknetDevnetError(err)
-    })
+    )
+    .map_err(|err| ApiError::StarknetDevnetError(err))
 }
 #[cfg(test)]
 mod tests {
