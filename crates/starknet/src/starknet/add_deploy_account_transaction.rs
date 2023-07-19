@@ -103,6 +103,7 @@ mod tests {
         )
         .unwrap();
 
+        // change balance at address
         let account_address =
             ContractAddress::try_from(transaction.0.contract_address().clone()).unwrap();
         let balance_storage_var_address =
@@ -110,7 +111,6 @@ mod tests {
         let balance_storage_key =
             ContractStorageKey::new(fee_token_address, balance_storage_var_address);
 
-        // change balance at address
         let account_balance_before_deployment = Felt::from(1000000);
         starknet
             .state
