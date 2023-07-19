@@ -84,10 +84,8 @@ impl JsonRpcHandler {
         block_id: BlockId,
         contract_address: ContractAddressHex,
     ) -> RpcResult<ClassHashHex> {
-        let parsed_address: Address = contract_address.0.try_into()?;
-
         let starknet = self.api.starknet.read().await;
-        match starknet.get_class_hash_at(&block_id.into(), &parsed_address) {
+        match starknet.get_class_hash_at(&block_id.into(), &contract_address.0) {
             Ok(class_hash) => Ok(FeltHex(class_hash)),
             Err(Error::BlockIdHashUnimplementedError | Error::BlockIdNumberUnimplementedError) => {
                 Err(ApiError::BlockNotFound)

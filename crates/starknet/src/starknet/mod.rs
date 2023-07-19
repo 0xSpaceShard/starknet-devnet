@@ -263,10 +263,11 @@ impl Starknet {
     pub fn get_class_hash_at(
         &self,
         block_id: &BlockId,
-        contract_address: &Address,
+        contract_address: &ContractAddress,
     ) -> Result<Felt> {
         let state = self.get_state_at(block_id)?;
-        match state.state.address_to_class_hash.get(contract_address) {
+        let address: Address = contract_address.try_into()?;
+        match state.state.address_to_class_hash.get(&address) {
             Some(class_hash) => Ok(Felt::from(*class_hash)),
             None => Err(Error::ContractNotFound),
         }
