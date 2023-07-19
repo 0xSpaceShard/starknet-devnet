@@ -52,9 +52,7 @@ impl DeclareTransactionV2 {
             chain_id,
         })
     }
-}
 
-impl DeclareTransactionV2 {
     pub(crate) fn version(&self) -> Felt {
         Felt::from(2)
     }
@@ -90,9 +88,6 @@ impl HashProducer for DeclareTransactionV2 {
 
 #[cfg(test)]
 mod tests {
-    
-    
-    
 
     use crate::utils::test_utils::{
         dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
