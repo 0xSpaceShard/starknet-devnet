@@ -23,7 +23,7 @@ pub(crate) fn load_cairo_0_contract_class(path: &str) -> Result<ContractClass> {
     Ok(ContractClass::cairo_0_from_json_str(&contract_class_str)?)
 }
 
-/// Returns the storage address of a StarkNet storage variable given its name and arguments.
+/// Returns the storage address of a Starknet storage variable given its name and arguments.
 pub(crate) fn get_storage_var_address(storage_var_name: &str, args: &[Felt]) -> Result<StorageKey> {
     let storage_var_name_hash = calculate_sn_keccak(storage_var_name.as_bytes());
     let storage_var_name_hash = StarkFelt::new(storage_var_name_hash)?;
