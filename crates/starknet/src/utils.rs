@@ -49,7 +49,7 @@ pub(crate) mod test_utils {
     use starknet_types::patricia_key::StorageKey;
 
     use crate::constants::{
-        CAIRO_0_ACCOUNT_CONTRACT_PATH, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE,
+        DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE,
         DEVNET_DEFAULT_HOST, DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT,
         DEVNET_DEFAULT_TEST_SEED, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
     };
@@ -81,7 +81,10 @@ pub(crate) mod test_utils {
     }
 
     pub(crate) fn dummy_cairo_0_contract_class() -> ContractClass {
-        let json_str = std::fs::read_to_string(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
+        let json_str = std::fs::read_to_string(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test_artifacts/cairo_0_test.json"
+        )).unwrap();
 
         ContractClass::cairo_0_from_json_str(&json_str).unwrap()
     }
