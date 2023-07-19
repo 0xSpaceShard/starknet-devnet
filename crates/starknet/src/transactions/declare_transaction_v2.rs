@@ -60,6 +60,6 @@ mod tests {
     #[ignore]
     #[test]
     fn correct_declare_transaction_hash_computation() {
-        panic!("Transaction hash computation should be checked")
+        todo!("Transaction hash computation should be checked")
     }
 }

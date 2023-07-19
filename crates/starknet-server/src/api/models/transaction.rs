@@ -150,7 +150,7 @@ pub struct L1HandlerTransaction {
     pub calldata: Calldata,
 }
 
-/// A transaction status in StarkNet.
+/// A transaction status in Starknet.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize, Default)]
 pub enum TransactionStatus {
     /// The transaction passed the validation and entered the pending block.

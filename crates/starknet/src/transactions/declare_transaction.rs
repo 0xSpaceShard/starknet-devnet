@@ -79,6 +79,6 @@ mod tests {
     #[test]
     #[ignore]
     fn correct_transaction_hash_computation() {
-        panic!("Transaction hash computation should be checked")
+        todo!("Transaction hash computation should be checked")
     }
 }

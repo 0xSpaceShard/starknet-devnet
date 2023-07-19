@@ -8,6 +8,7 @@ jobs:
   build-and-test:
     docker:
       - image: cimg/rust:1.69.0
+    resource_class: xlarge
     steps:
       - checkout
       - run:
@@ -15,7 +16,7 @@ jobs:
           command: rustup install nightly
       - run:
           name: Build
-          command: cargo build
+          command: cargo build --release
       - run:
           name: Clippy check
           command: ./scripts/clippy_check.sh
