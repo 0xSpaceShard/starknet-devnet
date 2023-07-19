@@ -56,7 +56,7 @@ mod tests {
     use starknet_rs_core::types::TransactionStatus;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_storage_key::ContractStorageKey;
-    use starknet_types::felt::{Felt, ClassHash};
+    use starknet_types::felt::{ClassHash, Felt};
     use starknet_types::traits::HashProducer;
 
     use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID};
