@@ -55,7 +55,7 @@ impl JsonRpcHandler {
                 starknet_core::error::Error::StateError(
                     starknet_in_rust::core::errors::state_errors::StateError::MissingClassHash(),
                 ) => ApiError::ClassHashNotFound,
-                _ => ApiError::RpcError(RpcError::invalid_request()),
+                unknown_error => ApiError::StarknetDevnetError(unknown_error),
             })?;
 
         Ok(DeployAccountTransactionOutput {
