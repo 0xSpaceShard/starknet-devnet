@@ -7,6 +7,8 @@ use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use starknet_types::DevnetResult;
 
+use crate::error::{Error, Result};
+
 #[derive(Clone, PartialEq, Eq)]
 pub struct DeclareTransactionV2 {
     pub sierra_contract_class: ContractClass,
@@ -29,8 +31,16 @@ impl DeclareTransactionV2 {
         signature: Vec<Felt>,
         nonce: Felt,
         chain_id: Felt,
-    ) -> Self {
-        Self {
+    ) -> Result<Self> {
+        if max_fee == 0 {
+            return Err(Error::TransactionError(
+                starknet_in_rust::transaction::error::TransactionError::FeeError(
+                    "For declare transaction version 2, max fee cannot be 0".to_string(),
+                ),
+            ));
+        }
+
+        Ok(Self {
             sierra_contract_class,
             compiled_class_hash,
             sender_address,
@@ -40,7 +50,7 @@ impl DeclareTransactionV2 {
             class_hash: None,
             transaction_hash: None,
             chain_id,
-        }
+        })
     }
 }
 
@@ -80,6 +90,8 @@ impl HashProducer for DeclareTransactionV2 {
 
 #[cfg(test)]
 mod tests {
+    use starknet_types::contract_class::ContractClass;
+
 
     #[ignore]
     #[test]
