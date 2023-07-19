@@ -4,7 +4,7 @@ use starknet_types::error::Error;
 use starknet_types::felt::{ClassHash, Felt};
 use starknet_types::traits::HashProducer;
 
-use crate::error::Result;
+use crate::error::{self, Result};
 
 #[derive(Clone)]
 pub struct DeployAccountTransaction(pub(crate) DeployAccount);
@@ -32,6 +32,12 @@ impl DeployAccountTransaction {
         chain_id: Felt,
         version: Felt,
     ) -> Result<Self> {
+        if max_fee == 0 {
+            return Err(error::Error::TransactionError(TransactionError::FeeError(
+                "For deploy account transaction, max fee cannot be 0".to_string(),
+            )));
+        }
+
         let starknet_in_rust_deploy_account = DeployAccount::new(
             class_hash.bytes(),
             max_fee,
@@ -60,5 +66,27 @@ mod tests {
     #[ignore]
     fn correct_transaction_hash_computation() {
         panic!("Transaction hash computation should be checked")
+    }
+
+    #[test]
+    fn account_with_max_fee_zero_should_return_an_error() {
+        let result = super::DeployAccountTransaction::new(
+            vec![0.into(), 1.into()],
+            0,
+            vec![0.into(), 1.into()],
+            0.into(),
+            0.into(),
+            0.into(),
+            0.into(),
+            0.into(),
+        );
+
+        assert!(result.is_err());
+        match result.err().unwrap() {
+            crate::error::Error::TransactionError(
+                starknet_in_rust::transaction::error::TransactionError::FeeError(msg),
+            ) => assert_eq!(msg, "For deploy account transaction, max fee cannot be 0"),
+            _ => assert!(false),
+        }
     }
 }
