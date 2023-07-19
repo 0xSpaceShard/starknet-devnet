@@ -2,7 +2,7 @@ use starknet_in_rust::transaction::{verify_version, Declare, DeclareV2};
 use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::traits::HashProducer;
 
-use crate::error::{Error, Result};
+use crate::error::{Result};
 use crate::starknet::Starknet;
 use crate::transactions::declare_transaction::DeclareTransactionV1;
 use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
@@ -123,17 +123,17 @@ mod tests {
     use starknet_api::block::BlockNumber;
     use starknet_in_rust::core::contract_address::compute_casm_class_hash;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
-    use starknet_in_rust::transaction::error::TransactionError;
+    
     use starknet_in_rust::CasmContractClass;
     use starknet_rs_core::types::TransactionStatus;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::ContractClass;
+    
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;
     use crate::constants::{self};
-    use crate::error::Error;
+    
     use crate::starknet::{predeployed, Starknet};
     use crate::traits::{Accounted, HashIdentifiedMut, StateExtractor};
     use crate::transactions::declare_transaction::DeclareTransactionV1;

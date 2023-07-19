@@ -85,7 +85,7 @@ impl HashProducer for DeclareTransactionV1 {
 
 #[cfg(test)]
 mod tests {
-    use starknet_types::felt::Felt;
+    
 
     use crate::utils::test_utils::{
         dummy_cairo_0_contract_class, dummy_contract_address, dummy_felt,

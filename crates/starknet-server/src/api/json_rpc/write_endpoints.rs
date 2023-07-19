@@ -105,7 +105,7 @@ fn convert_to_declare_transaction_v1(
         ContractClass::try_from(value.contract_class)?,
         chain_id,
     )
-    .map_err(|err| ApiError::StarknetDevnetError(err))
+    .map_err(ApiError::StarknetDevnetError)
 }
 
 fn convert_to_deploy_account_transaction(
@@ -143,7 +143,7 @@ fn convert_to_declare_transaction_v2(
         value.common.nonce.0,
         chain_id,
     )
-    .map_err(|err| ApiError::StarknetDevnetError(err))
+    .map_err(ApiError::StarknetDevnetError)
 }
 #[cfg(test)]
 mod tests {
