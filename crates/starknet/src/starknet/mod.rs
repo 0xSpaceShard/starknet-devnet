@@ -290,11 +290,26 @@ impl Starknet {
             calldata.iter().map(|c| c.into()).collect(),
             &mut state.pending_state.clone(),
             self.block_context.clone(),
-            // dummy caller_address since there is no account address; safe to unwrap since it's
-            // just 0
-            ContractAddress::zero().try_into().unwrap(),
+            // dummy caller_address since there is no account address
+            ContractAddress::zero().try_into()?,
         )?;
         Ok(result.iter().map(|e| Felt::from(e.clone())).collect())
+    }
+
+    pub fn estimate_fee(
+        &self,
+        block_id: BlockId,
+        transactions: &Vec<starknet_in_rust::transaction::Transaction>,
+        // TODO define a better return type
+    ) -> Result<Vec<(u128, usize)>> {
+        let state = self.get_state_at(&block_id)?;
+
+        // Vec<(Fee, GasUsage)>
+        Ok(starknet_in_rust::estimate_fee(
+            transactions,
+            state.pending_state.clone(),
+            &self.block_context,
+        )?)
     }
 
     pub fn add_declare_transaction_v1(
