@@ -31,14 +31,6 @@ pub fn add_declare_transaction_v2(
     declare_transaction.class_hash = Some(class_hash);
     declare_transaction.transaction_hash = Some(transaction_hash);
 
-    if transaction.max_fee == 0 {
-        return Err(Error::TransactionError(
-            starknet_in_rust::transaction::error::TransactionError::FeeError(
-                "For declare transaction version 2, max fee cannot be 0".to_string(),
-            ),
-        ));
-    }
-
     let state_before_txn = starknet.state.pending_state.clone();
 
     match transaction.execute(&mut starknet.state.pending_state, &starknet.block_context) {
@@ -156,48 +148,28 @@ mod tests {
             compute_casm_class_hash(&CasmContractClass::try_from(contract_class.clone()).unwrap())
                 .unwrap();
 
-        DeclareTransactionV2 {
-            sierra_contract_class: contract_class,
-            compiled_class_hash: compiled_class_hash.into(),
+        DeclareTransactionV2::new(
+            contract_class,
+            compiled_class_hash.into(),
             sender_address,
-            max_fee: 100,
-            signature: Vec::new(),
-            nonce: Felt::from(0),
-            class_hash: None,
-            transaction_hash: None,
-            chain_id: StarknetChainId::TestNet.to_felt().into(),
-        }
+            100,
+            Vec::new(),
+            Felt::from(0),
+            StarknetChainId::TestNet.to_felt().into(),
+        ).unwrap()
     }
 
     fn test_declare_transaction_v1(sender_address: ContractAddress) -> DeclareTransactionV1 {
         let contract_class = dummy_cairo_0_contract_class();
-        DeclareTransactionV1 {
+
+        DeclareTransactionV1::new(
             sender_address,
-            max_fee: 10000,
-            signature: Vec::new(),
-            nonce: Felt::from(0),
+            10000,
+            Vec::new(),
+            Felt::from(0),
             contract_class,
-            class_hash: None,
-            transaction_hash: None,
-            chain_id: StarknetChainId::TestNet.to_felt().into(),
-        }
-    }
-
-    #[test]
-    fn add_declare_v2_transaction_with_zero_max_fee_should_be_errored() {
-        let (mut starknet, sender) = setup(None);
-        let mut declare_txn = test_declare_transaction_v2(sender);
-        declare_txn.max_fee = 0;
-        let expected_error = TransactionError::FeeError(String::from(
-            "For declare transaction version 2, max fee cannot be 0",
-        ));
-
-        match starknet.add_declare_transaction_v2(declare_txn).err().unwrap() {
-            Error::TransactionError(generated_error) => {
-                assert_eq!(generated_error.to_string(), expected_error.to_string());
-            }
-            _ => panic!("Wrong error type"),
-        }
+            StarknetChainId::TestNet.to_felt().into(),
+        ).unwrap()
     }
 
     #[test]
@@ -247,23 +219,6 @@ mod tests {
             initial_cached_state,
             starknet.state.pending_state.contract_classes().as_ref().unwrap().len()
         );
-    }
-
-    #[test]
-    fn add_declare_v1_transaction_with_zero_max_fee_should_be_errored() {
-        let (mut starknet, sender) = setup(None);
-        let mut declare_txn = test_declare_transaction_v1(sender);
-        declare_txn.max_fee = 0;
-        let expected_error = TransactionError::FeeError(String::from(
-            "For declare transaction version 1, max fee cannot be 0",
-        ));
-
-        match starknet.add_declare_transaction_v1(declare_txn).err().unwrap() {
-            Error::TransactionError(generated_error) => {
-                assert_eq!(generated_error.to_string(), expected_error.to_string());
-            }
-            _ => panic!("Wrong error type"),
-        }
     }
 
     #[test]
