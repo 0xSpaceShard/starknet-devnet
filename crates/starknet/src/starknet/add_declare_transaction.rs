@@ -160,7 +160,7 @@ mod tests {
     fn test_declare_transaction_v2(sender_address: ContractAddress) -> DeclareTransactionV2 {
         let contract_json_path = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/declare/declare_cairo_1_test.json"
+            "/test_artifacts/cairo_1_test.json"
         );
         let json_str = std::fs::read_to_string(contract_json_path).unwrap();
         let contract_class = ContractClass::cairo_1_from_sierra_json_str(&json_str).unwrap();
@@ -185,7 +185,7 @@ mod tests {
     fn test_declare_transaction_v1(sender_address: ContractAddress) -> DeclareTransactionV1 {
         let contract_json_path = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/declare/declare_cairo_0_test.json"
+            "/test_artifacts/cairo_0_test.json"
         );
 
         let contract_class = load_cairo_0_contract_class(contract_json_path).unwrap();
