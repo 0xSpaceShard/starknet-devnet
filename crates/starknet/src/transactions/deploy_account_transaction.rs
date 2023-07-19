@@ -86,7 +86,7 @@ mod tests {
             crate::error::Error::TransactionError(
                 starknet_in_rust::transaction::error::TransactionError::FeeError(msg),
             ) => assert_eq!(msg, "For deploy account transaction, max fee cannot be 0"),
-            _ => assert!(false),
+            _ => panic!("Wrong error type"),
         }
     }
 }
