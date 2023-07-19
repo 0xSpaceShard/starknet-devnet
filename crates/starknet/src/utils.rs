@@ -89,6 +89,15 @@ pub(crate) mod test_utils {
         ContractClass::cairo_0_from_json_str(&json_str).unwrap()
     }
 
+    pub(crate) fn dummy_cairo_1_contract_class() -> ContractClass {
+        let json_str = std::fs::read_to_string(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test_artifacts/cairo_1_test.json"
+        )).unwrap();
+
+        ContractClass::cairo_1_from_sierra_json_str(&json_str).unwrap()
+    }
+
     pub(crate) fn dummy_contract_address() -> ContractAddress {
         ContractAddress::new(Felt::from_prefixed_hex_str("0xADD4E55").unwrap()).unwrap()
     }
