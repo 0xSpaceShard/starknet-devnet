@@ -110,7 +110,7 @@ pub(crate) mod test_utils {
             dummy_felt(),
             dummy_cairo_0_contract_class(),
             StarknetChainId::TestNet.to_felt().into(),
-        )
+        ).unwrap()
     }
 
     pub(crate) fn get_bytes_from_u32(num: u32) -> [u8; 32] {

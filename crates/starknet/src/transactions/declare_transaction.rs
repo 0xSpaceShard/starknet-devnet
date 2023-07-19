@@ -4,10 +4,10 @@ use starknet_in_rust::core::transaction_hash::{
 use starknet_in_rust::definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
-use starknet_types::error::Error;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use starknet_types::DevnetResult;
+use crate::error::{Result, Error};
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct DeclareTransactionV1 {
@@ -29,8 +29,16 @@ impl DeclareTransactionV1 {
         nonce: Felt,
         contract_class: ContractClass,
         chain_id: Felt,
-    ) -> Self {
-        Self {
+    ) -> Result<Self> {
+        if max_fee == 0 {
+            return Err(Error::TransactionError(
+                starknet_in_rust::transaction::error::TransactionError::FeeError(
+                    "For declare transaction version 2, max fee cannot be 0".to_string(),
+                ),
+            ));
+        }
+
+        Ok(Self {
             sender_address,
             max_fee,
             signature,
@@ -39,7 +47,7 @@ impl DeclareTransactionV1 {
             class_hash: None,
             transaction_hash: None,
             chain_id,
-        }
+        })
     }
 
     pub(crate) fn version(&self) -> Felt {
@@ -64,7 +72,7 @@ impl HashProducer for DeclareTransactionV1 {
             &additional_data,
         )
         .map_err(|err| {
-            Error::TransactionError(
+            starknet_types::error::Error::TransactionError(
                 starknet_in_rust::transaction::error::TransactionError::Syscall(err),
             )
         })?

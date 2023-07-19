@@ -31,7 +31,7 @@ impl JsonRpcHandler {
             }
             BroadcastedDeclareTransaction::V2(broadcasted_declare_txn) => {
                 self.api.starknet.write().await.add_declare_transaction_v2(
-                    convert_to_declare_transaction_v2(*broadcasted_declare_txn, chain_id.into()),
+                    convert_to_declare_transaction_v2(*broadcasted_declare_txn, chain_id.into())?,
                 )?
             }
         };
@@ -97,14 +97,16 @@ fn convert_to_declare_transaction_v1(
     value: BroadcastedDeclareTransactionV1,
     chain_id: Felt,
 ) -> RpcResult<DeclareTransactionV1> {
-    Ok(DeclareTransactionV1::new(
+    DeclareTransactionV1::new(
         value.sender_address.0,
         value.common.max_fee.0,
         value.common.signature.iter().map(|x| x.0).collect(),
         value.common.nonce.0,
         ContractClass::try_from(value.contract_class)?,
         chain_id,
-    ))
+    ).map_err(|err| {
+        ApiError::StarknetDevnetError(err)
+    })
 }
 
 fn convert_to_deploy_account_transaction(
@@ -132,7 +134,7 @@ fn convert_to_deploy_account_transaction(
 fn convert_to_declare_transaction_v2(
     value: BroadcastedDeclareTransactionV2,
     chain_id: Felt,
-) -> DeclareTransactionV2 {
+) -> RpcResult<DeclareTransactionV2> {
     DeclareTransactionV2::new(
         ContractClass::from(value.contract_class),
         value.compiled_class_hash.0,
@@ -141,7 +143,9 @@ fn convert_to_declare_transaction_v2(
         value.common.signature.iter().map(|x| x.0).collect(),
         value.common.nonce.0,
         chain_id,
-    )
+    ).map_err(|err| {
+        ApiError::StarknetDevnetError(err)
+    })
 }
 #[cfg(test)]
 mod tests {

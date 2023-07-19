@@ -99,14 +99,6 @@ pub fn add_declare_transaction_v1(
         &transaction.signature,
     )?;
 
-    if transaction.max_fee == 0 {
-        return Err(Error::TransactionError(
-            starknet_in_rust::transaction::error::TransactionError::FeeError(
-                "For declare transaction version 1, max fee cannot be 0".to_string(),
-            ),
-        ));
-    }
-
     let state_before_txn = starknet.state.pending_state.clone();
 
     match transaction.execute(&mut starknet.state.pending_state, &starknet.block_context) {
