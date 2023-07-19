@@ -116,7 +116,12 @@ impl JsonRpcHandler {
         request: FunctionCall,
     ) -> RpcResult<Vec<FeltHex>> {
         let starknet = self.api.starknet.read().await;
-        match starknet.call(block_id.into(), request.into()) {
+        match starknet.call(
+            block_id.into(),
+            request.contract_address.0.into(),
+            request.entry_point_selector.0,
+            request.calldata.iter().map(|c| c.0).collect(),
+        ) {
             Ok(result) => Ok(result.into_iter().map(FeltHex).collect()),
             Err(Error::TransactionError(TransactionError::State(
                 StateError::NoneContractState(Address(_address)),

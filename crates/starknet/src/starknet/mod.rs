@@ -15,7 +15,7 @@ use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
 use starknet_in_rust::utils::Address;
 use starknet_in_rust::{call_contract, SierraContractClass};
-use starknet_rs_core::types::{BlockId, FunctionCall, TransactionStatus};
+use starknet_rs_core::types::{BlockId, TransactionStatus};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
@@ -273,15 +273,19 @@ impl Starknet {
         }
     }
 
-    pub fn call(&self, block_id: BlockId, function_call: FunctionCall) -> Result<Vec<Felt>> {
+    pub fn call(
+        &self,
+        block_id: BlockId,
+        contract_address: Felt,
+        entrypoint_selector: Felt,
+        calldata: Vec<Felt>,
+    ) -> Result<Vec<Felt>> {
         let state = self.get_state_at(&block_id)?;
-        let adapted_calldata =
-            function_call.calldata.iter().map(|c| Felt::from(*c).into()).collect();
 
         let result = call_contract(
-            Felt::from(function_call.contract_address).into(),
-            Felt::from(function_call.entry_point_selector).into(),
-            adapted_calldata,
+            contract_address.into(),
+            entrypoint_selector.into(),
+            calldata.iter().map(|c| c.into()).collect(),
             &mut state.pending_state.clone(),
             self.block_context.clone(),
             // dummy caller_address since there is no account address; safe to unwrap since it's
@@ -319,8 +323,7 @@ mod tests {
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_in_rust::transaction::error::TransactionError;
     use starknet_in_rust::utils::Address;
-    use starknet_rs_core::types::{BlockId, BlockTag, FunctionCall};
-    use starknet_rs_ff::FieldElement;
+    use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
@@ -500,11 +503,9 @@ mod tests {
 
         match starknet.call(
             BlockId::Tag(BlockTag::Latest),
-            FunctionCall {
-                contract_address: undeployed_address.into(),
-                entry_point_selector,
-                calldata: vec![],
-            },
+            undeployed_address,
+            entry_point_selector.into(),
+            vec![],
         ) {
             Err(Error::TransactionError(TransactionError::State(
                 StateError::NoneContractState(Address(address)),
@@ -527,11 +528,9 @@ mod tests {
 
         match starknet.call(
             BlockId::Tag(BlockTag::Latest),
-            FunctionCall {
-                contract_address: FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap(),
-                entry_point_selector,
-                calldata: vec![Felt::from(predeployed_account.account_address).into()],
-            },
+            Felt::from_prefixed_hex_str(ERC20_CONTRACT_ADDRESS).unwrap(),
+            entry_point_selector.into(),
+            vec![Felt::from(predeployed_account.account_address)],
         ) {
             Err(Error::TransactionError(TransactionError::EntryPointNotFound)) => (),
             unexpected => panic!("Should have failed; got {unexpected:?}"),
@@ -544,11 +543,9 @@ mod tests {
             starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();
         starknet.call(
             BlockId::Tag(BlockTag::Latest),
-            FunctionCall {
-                contract_address: Felt::from_prefixed_hex_str(ERC20_CONTRACT_ADDRESS)?.into(),
-                entry_point_selector,
-                calldata: vec![Felt::from(contract_address).into()],
-            },
+            Felt::from_prefixed_hex_str(ERC20_CONTRACT_ADDRESS)?,
+            entry_point_selector.into(),
+            vec![Felt::from(contract_address)],
         )
     }
 
