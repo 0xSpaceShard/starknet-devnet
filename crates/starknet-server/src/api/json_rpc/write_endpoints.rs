@@ -12,8 +12,8 @@ use super::RpcResult;
 use crate::api::json_rpc::JsonRpcHandler;
 use crate::api::models::contract_class::DeprecatedContractClass;
 use crate::api::models::transaction::{
-    BroadcastedDeclareTransaction, BroadcastedDeclareTransactionV1, BroadcastedDeclareTransactionV2,
-    BroadcastedDeployAccountTransaction,
+    BroadcastedDeclareTransaction, BroadcastedDeclareTransactionV1,
+    BroadcastedDeclareTransactionV2, BroadcastedDeployAccountTransaction,
 };
 use crate::api::models::{ContractAddressHex, FeltHex};
 
