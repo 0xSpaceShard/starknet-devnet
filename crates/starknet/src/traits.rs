@@ -23,7 +23,7 @@ pub trait HashIdentifiedMut {
 
 /// This trait sets the interface for the account
 pub trait Accounted {
-    fn deploy(&self, state: &mut impl StateChanger) -> Result<()>;
+    fn deploy(&self, state: &mut (impl StateChanger + StateExtractor)) -> Result<()>;
     fn set_initial_balance(&self, state: &mut impl StateChanger) -> Result<()>;
     fn get_balance(&self, state: &mut impl StateExtractor) -> Result<Balance>;
     fn get_address(&self) -> ContractAddress;
@@ -39,7 +39,6 @@ pub trait StateChanger {
     fn deploy_contract(&mut self, address: ContractAddress, class_hash: ClassHash) -> Result<()>;
     fn change_storage(&mut self, storage_key: ContractStorageKey, data: Felt) -> Result<()>;
     fn increment_nonce(&mut self, address: ContractAddress) -> Result<()>;
-    fn is_contract_declared(&mut self, class_hash: &ClassHash) -> Result<bool>;
     // get differences from pending state and apply them to "persistent" state
     fn apply_cached_state(&mut self) -> Result<()>;
 }
@@ -47,6 +46,11 @@ pub trait StateChanger {
 /// Interface for extracting data from the state
 pub trait StateExtractor {
     fn get_storage(&mut self, storage_key: ContractStorageKey) -> Result<Felt>;
+    fn is_contract_declared(&self, class_hash: &ClassHash) -> Result<bool>;
+    fn get_class_hash_at_contract_address(
+        &mut self,
+        address: &ContractAddress,
+    ) -> Result<ClassHash>;
 }
 
 /// This trait should be implemented by structures that generate accounts

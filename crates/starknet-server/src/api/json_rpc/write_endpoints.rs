@@ -2,18 +2,20 @@ use serde_json::json;
 use server::rpc_core::error::RpcError;
 use starknet_core::transactions::declare_transaction::DeclareTransactionV1;
 use starknet_core::transactions::declare_transaction_v2::DeclareTransactionV2;
+use starknet_core::transactions::deploy_account_transaction::DeployAccountTransaction;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::Felt;
 
 use super::error::ApiError;
-use super::models::DeclareTransactionOutput;
+use super::models::{DeclareTransactionOutput, DeployAccountTransactionOutput};
 use super::RpcResult;
 use crate::api::json_rpc::JsonRpcHandler;
 use crate::api::models::contract_class::DeprecatedContractClass;
 use crate::api::models::transaction::{
     BroadcastedDeclareTransaction, BroadcastedDeclareTransactionV1, BroadcastedDeclareTransactionV2,
+    BroadcastedDeployAccountTransaction,
 };
-use crate::api::models::FeltHex;
+use crate::api::models::{ContractAddressHex, FeltHex};
 
 impl JsonRpcHandler {
     pub(crate) async fn add_declare_transaction(
@@ -37,6 +39,33 @@ impl JsonRpcHandler {
         Ok(DeclareTransactionOutput {
             transaction_hash: FeltHex(transaction_hash),
             class_hash: FeltHex(class_hash),
+        })
+    }
+
+    pub(crate) async fn add_deploy_account_transaction(
+        &self,
+        request: BroadcastedDeployAccountTransaction,
+    ) -> RpcResult<DeployAccountTransactionOutput> {
+        let chain_id = self.api.starknet.read().await.config.chain_id.to_felt();
+        let (transaction_hash, contract_address) = self
+            .api
+            .starknet
+            .write()
+            .await
+            .add_deploy_account_transaction(convert_to_deploy_account_transaction(
+                request,
+                chain_id.into(),
+            )?)
+            .map_err(|err| match err {
+                starknet_core::error::Error::StateError(
+                    starknet_in_rust::core::errors::state_errors::StateError::MissingClassHash(),
+                ) => ApiError::ClassHashNotFound,
+                unknown_error => ApiError::StarknetDevnetError(unknown_error),
+            })?;
+
+        Ok(DeployAccountTransactionOutput {
+            transaction_hash: FeltHex(transaction_hash),
+            contract_address: ContractAddressHex(contract_address),
         })
     }
 }
@@ -78,6 +107,28 @@ fn convert_to_declare_transaction_v1(
     ))
 }
 
+fn convert_to_deploy_account_transaction(
+    broadcasted_txn: BroadcastedDeployAccountTransaction,
+    chain_id: Felt,
+) -> RpcResult<DeployAccountTransaction> {
+    DeployAccountTransaction::new(
+        broadcasted_txn.constructor_calldata.iter().map(|felt_hex| felt_hex.0).collect(),
+        broadcasted_txn.common.max_fee.0,
+        broadcasted_txn.common.signature.iter().map(|felt_hex| felt_hex.0).collect(),
+        broadcasted_txn.common.nonce.0,
+        broadcasted_txn.class_hash.0,
+        broadcasted_txn.contract_address_salt.0,
+        chain_id,
+        broadcasted_txn.common.version.0,
+    )
+    .map_err(|err| {
+        ApiError::RpcError(RpcError::invalid_params(format!(
+            "Unable to create DeployAccountTransaction: {}",
+            err
+        )))
+    })
+}
+
 fn convert_to_declare_transaction_v2(
     value: BroadcastedDeclareTransactionV2,
     chain_id: Felt,
@@ -92,19 +143,20 @@ fn convert_to_declare_transaction_v2(
         chain_id,
     )
 }
-
 #[cfg(test)]
 mod tests {
     use starknet_core::constants::{
         DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_HOST,
-        DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_SEED,
+        DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TEST_SEED,
         DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
     };
     use starknet_core::starknet::{Starknet, StarknetConfig};
     use starknet_types::traits::ToHexString;
 
     use crate::api::json_rpc::JsonRpcHandler;
-    use crate::api::models::transaction::BroadcastedDeclareTransactionV1;
+    use crate::api::models::transaction::{
+        BroadcastedDeclareTransactionV1, BroadcastedDeployAccountTransaction,
+    };
     use crate::api::Api;
 
     #[tokio::test]
@@ -127,13 +179,16 @@ mod tests {
             result.class_hash.0.to_prefixed_hex_str(),
             "0x399998c787e0a063c3ac1d2abac084dcbe09954e3b156d53a8c43a02aa27d35"
         );
+    }
 
-        println!("{}", result.transaction_hash.0.to_prefixed_hex_str());
+    #[test]
+    fn check_correct_deserialization_of_deploy_account_transaction_request() {
+        test_deploy_account_transaction();
     }
 
     fn setup() -> JsonRpcHandler {
         let config: StarknetConfig = StarknetConfig {
-            seed: DEVNET_DEFAULT_SEED,
+            seed: DEVNET_DEFAULT_TEST_SEED,
             total_accounts: DEVNET_DEFAULT_TOTAL_ACCOUNTS,
             predeployed_accounts_initial_balance: DEVNET_DEFAULT_INITIAL_BALANCE.into(),
             host: DEVNET_DEFAULT_HOST.into(),
@@ -160,6 +215,19 @@ mod tests {
 
         let _broadcasted_declare_transaction_v1: super::BroadcastedDeclareTransactionV1 =
             serde_json::from_str(&json_string).unwrap();
+    }
+
+    fn test_deploy_account_transaction() -> BroadcastedDeployAccountTransaction {
+        let json_string = std::fs::read_to_string(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test_data/rpc/deploy_account.json"
+        ))
+        .unwrap();
+
+        let broadcasted_deploy_account_transaction: BroadcastedDeployAccountTransaction =
+            serde_json::from_str(&json_string).unwrap();
+
+        broadcasted_deploy_account_transaction
     }
 
     fn test_broadcasted_declare_transaction_v1() -> BroadcastedDeclareTransactionV1 {

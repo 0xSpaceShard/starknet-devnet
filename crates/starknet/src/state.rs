@@ -90,10 +90,6 @@ impl StateChanger for StarknetState {
         Ok(())
     }
 
-    fn is_contract_declared(&mut self, class_hash: &ClassHash) -> Result<bool> {
-        Ok(self.state.class_hash_to_contract_class.contains_key(&(class_hash.bytes())))
-    }
-
     fn apply_cached_state(&mut self) -> Result<()> {
         let new_casm_classes =
             self.pending_state.casm_contract_classes().clone().unwrap_or_default();
@@ -187,6 +183,17 @@ impl StateChanger for StarknetState {
 impl StateExtractor for StarknetState {
     fn get_storage(&mut self, storage_key: ContractStorageKey) -> Result<Felt> {
         Ok(self.state.get_storage_at(&storage_key.try_into()?).map(Felt::from)?)
+    }
+
+    fn is_contract_declared(&self, class_hash: &ClassHash) -> Result<bool> {
+        Ok(self.state.class_hash_to_contract_class.contains_key(&(class_hash.bytes())))
+    }
+
+    fn get_class_hash_at_contract_address(
+        &mut self,
+        contract_address: &ContractAddress,
+    ) -> Result<ClassHash> {
+        Ok(self.state.get_class_hash_at(&contract_address.try_into()?).map(Felt::new)??)
     }
 }
 
