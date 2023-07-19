@@ -56,21 +56,19 @@ mod tests {
     use starknet_rs_core::types::TransactionStatus;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_storage_key::ContractStorageKey;
-    use starknet_types::felt::Felt;
+    use starknet_types::felt::{Felt, ClassHash};
     use starknet_types::traits::HashProducer;
 
-    use crate::account::Account;
     use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID};
     use crate::starknet::{predeployed, Starknet};
     use crate::traits::{Accounted, HashIdentifiedMut, StateChanger, StateExtractor};
     use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
-    use crate::utils::test_utils::dummy_felt;
     use crate::utils::{get_storage_var_address, load_cairo_0_contract_class};
 
     #[test]
     fn deploy_account_transaction_should_fail_due_to_low_balance() {
-        let (mut starknet, addr, _) = setup(None);
-        let account_class_hash = starknet.state.get_class_hash_at_contract_address(&addr).unwrap();
+        let (mut starknet, account_class_hash, _) = setup();
+
         let transaction = DeployAccountTransaction::new(
             vec![],
             2000,
@@ -91,8 +89,7 @@ mod tests {
 
     #[test]
     fn deploy_account_transaction_successful_execution() {
-        let (mut starknet, addr, fee_token_address) = setup(None);
-        let account_class_hash = starknet.state.get_class_hash_at_contract_address(&addr).unwrap();
+        let (mut starknet, account_class_hash, fee_token_address) = setup();
 
         let transaction = DeployAccountTransaction::new(
             vec![],
@@ -136,29 +133,18 @@ mod tests {
     }
 
     /// Initializes starknet with 1 account - account without validations
-    fn setup(acc_balance: Option<u128>) -> (Starknet, ContractAddress, ContractAddress) {
+    fn setup() -> (Starknet, ClassHash, ContractAddress) {
         let mut starknet = Starknet::default();
         let account_json_path = concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/test_artifacts/account_without_validations/account.json"
         );
-        let contract_class = load_cairo_0_contract_class(account_json_path).unwrap();
-
         let erc_20_contract = predeployed::create_erc20().unwrap();
         erc_20_contract.deploy(&mut starknet.state).unwrap();
 
-        let acc = Account::new(
-            Felt::from(acc_balance.unwrap_or(100)),
-            dummy_felt(),
-            dummy_felt(),
-            contract_class.generate_hash().unwrap(),
-            contract_class,
-            erc_20_contract.get_address(),
-        )
-        .unwrap();
-
-        acc.deploy(&mut starknet.state).unwrap();
-        acc.set_initial_balance(&mut starknet.state).unwrap();
+        let contract_class = load_cairo_0_contract_class(account_json_path).unwrap();
+        let class_hash = contract_class.generate_hash().unwrap();
+        starknet.state.declare_contract_class(class_hash, contract_class).unwrap();
 
         starknet.state.synchronize_states();
         starknet.block_context = Starknet::get_block_context(
@@ -170,6 +156,6 @@ mod tests {
 
         starknet.restart_pending_block().unwrap();
 
-        (starknet, acc.get_address(), erc_20_contract.get_address())
+        (starknet, class_hash, erc_20_contract.get_address())
     }
 }
