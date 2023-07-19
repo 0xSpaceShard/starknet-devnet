@@ -77,7 +77,7 @@ fn convert_to_declare_transaction_v1(
 mod tests {
     use starknet_core::constants::{
         DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_HOST,
-        DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_SEED,
+        DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TEST_SEED,
         DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
     };
     use starknet_core::starknet::{Starknet, StarknetConfig};
@@ -113,7 +113,7 @@ mod tests {
 
     fn setup() -> JsonRpcHandler {
         let config: StarknetConfig = StarknetConfig {
-            seed: DEVNET_DEFAULT_SEED,
+            seed: DEVNET_DEFAULT_TEST_SEED,
             total_accounts: DEVNET_DEFAULT_TOTAL_ACCOUNTS,
             predeployed_accounts_initial_balance: DEVNET_DEFAULT_INITIAL_BALANCE.into(),
             host: DEVNET_DEFAULT_HOST.into(),

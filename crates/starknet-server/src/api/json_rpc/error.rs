@@ -36,6 +36,8 @@ pub enum ApiError {
     ClassAlreadyDeclared,
     #[error("Invalid contract class")]
     InvalidContractClass,
+    #[error("Only latest/pending block is supported")]
+    OnlyLatestBlock,
 }
 
 #[cfg(test)]

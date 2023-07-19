@@ -11,6 +11,12 @@ impl ContractAddress {
     pub fn new(felt: Felt) -> DevnetResult<Self> {
         Ok(Self(PatriciaKey::new(felt)?))
     }
+
+    /// Constructs a zero address
+    pub fn zero() -> Self {
+        // using unwrap because we are sure it works for 0x0
+        Self::new(Felt::from(0)).unwrap()
+    }
 }
 
 impl From<starknet_api::core::ContractAddress> for ContractAddress {
