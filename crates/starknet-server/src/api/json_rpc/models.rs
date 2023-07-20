@@ -4,7 +4,8 @@ use starknet_types::starknet_api::block::BlockNumber;
 use crate::api::models::block::{BlockHashHex, SyncStatus};
 use crate::api::models::transaction::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
-    BroadcastedTransactionWithType, ClassHashHex, EventFilter, FunctionCall, TransactionHashHex,
+    BroadcastedInvokeTransaction, BroadcastedTransactionWithType, ClassHashHex, EventFilter,
+    FunctionCall, TransactionHashHex,
 };
 use crate::api::models::{BlockId, ContractAddressHex, PatriciaKeyHex};
 

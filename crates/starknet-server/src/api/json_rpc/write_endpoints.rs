@@ -3,17 +3,21 @@ use server::rpc_core::error::RpcError;
 use starknet_core::transactions::declare_transaction::DeclareTransactionV1;
 use starknet_core::transactions::declare_transaction_v2::DeclareTransactionV2;
 use starknet_core::transactions::deploy_account_transaction::DeployAccountTransaction;
+use starknet_core::transactions::invoke_transaction::InvokeTransactionV1;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::Felt;
 
 use super::error::ApiError;
-use super::models::{DeclareTransactionOutput, DeployAccountTransactionOutput};
+use super::models::{
+    DeclareTransactionOutput, DeployAccountTransactionOutput, InvokeTransactionOutput,
+};
 use super::RpcResult;
 use crate::api::json_rpc::JsonRpcHandler;
 use crate::api::models::contract_class::DeprecatedContractClass;
 use crate::api::models::transaction::{
     BroadcastedDeclareTransaction, BroadcastedDeclareTransactionV1,
     BroadcastedDeclareTransactionV2, BroadcastedDeployAccountTransaction,
+    BroadcastedInvokeTransaction, BroadcastedInvokeTransactionV1,
 };
 use crate::api::models::{ContractAddressHex, FeltHex};
 
@@ -67,6 +71,27 @@ impl JsonRpcHandler {
             transaction_hash: FeltHex(transaction_hash),
             contract_address: ContractAddressHex(contract_address),
         })
+    }
+
+    pub(crate) async fn add_invoke_transaction(
+        &self,
+        request: BroadcastedInvokeTransaction,
+    ) -> RpcResult<InvokeTransactionOutput> {
+        let hash = match request {
+            BroadcastedInvokeTransaction::V0(_) => Err(ApiError::UnsupportedVersion),
+            BroadcastedInvokeTransaction::V1(invoke_transaction) => {
+                let chain_id: Felt =
+                    self.api.starknet.read().await.config.chain_id.to_felt().into();
+                let invoke_request =
+                    convert_to_invoke_transaction_v1(invoke_transaction, chain_id)?;
+                let res =
+                    self.api.starknet.write().await.add_invoke_transaction_v1(invoke_request)?;
+
+                Ok(res)
+            }
+        }?;
+
+        Ok(InvokeTransactionOutput { transaction_hash: FeltHex(hash) })
     }
 }
 
@@ -141,6 +166,21 @@ fn convert_to_declare_transaction_v2(
         value.common.max_fee.0,
         value.common.signature.iter().map(|x| x.0).collect(),
         value.common.nonce.0,
+        chain_id,
+    )
+    .map_err(ApiError::StarknetDevnetError)
+}
+
+fn convert_to_invoke_transaction_v1(
+    value: BroadcastedInvokeTransactionV1,
+    chain_id: Felt,
+) -> RpcResult<InvokeTransactionV1> {
+    InvokeTransactionV1::new(
+        value.sender_address.0,
+        value.common.max_fee.0,
+        value.common.signature.iter().map(|felt_hex| felt_hex.0).collect(),
+        value.common.nonce.0,
+        value.calldata.iter().map(|felt_hex| felt_hex.0).collect(),
         chain_id,
     )
     .map_err(ApiError::StarknetDevnetError)

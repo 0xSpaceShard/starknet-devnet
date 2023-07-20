@@ -16,6 +16,7 @@ use tracing::{error, info, trace};
 use self::error::ApiError;
 use self::models::{
     BlockIdInput, BroadcastedDeclareTransactionInput, BroadcastedDeployAccountTransactionInput,
+    BroadcastedInvokeTransactionInput,
 };
 use super::Api;
 use crate::api::serde_helpers::empty_params;
@@ -223,6 +224,9 @@ impl JsonRpcHandler {
                 .add_deploy_account_transaction(deploy_account_transaction)
                 .await
                 .to_rpc_result(),
+            StarknetRequest::AddInvokeTransaction(BroadcastedInvokeTransactionInput {
+                invoke_transaction,
+            }) => self.add_invoke_transaction(invoke_transaction).await.to_rpc_result(),
         }
     }
 }
@@ -274,6 +278,8 @@ pub enum StarknetRequest {
     AddDeclareTransaction(BroadcastedDeclareTransactionInput),
     #[serde(rename = "starknet_addDeployAccountTransaction")]
     AddDeployAccountTransaction(BroadcastedDeployAccountTransactionInput),
+    #[serde(rename = "starknet_addInvokeTransaction")]
+    AddInvokeTransaction(BroadcastedInvokeTransactionInput),
 }
 
 #[cfg(test)]
