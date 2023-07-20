@@ -27,7 +27,7 @@ use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT_PATH, ERC20_CONTRACT_ADDRESS};
 use crate::error::{Error, Result};
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::state::StarknetState;
-use crate::traits::{AccountGenerator, Accounted, HashIdentifiedMut, StateChanger};
+use crate::traits::{AccountGenerator, Accounted, Deployed, HashIdentifiedMut, StateChanger};
 use crate::transactions::declare_transaction::DeclareTransactionV1;
 use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
 use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
@@ -83,7 +83,7 @@ impl Starknet {
         let mut state = StarknetState::default();
         // deploy udc and erc20 contracts
         let erc20_fee_contract = predeployed::create_erc20()?;
-        let udc_contract = predeployed::create_udc20()?;
+        let udc_contract = predeployed::create_udc()?;
 
         erc20_fee_contract.deploy(&mut state)?;
         udc_contract.deploy(&mut state)?;

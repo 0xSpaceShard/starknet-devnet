@@ -20,7 +20,7 @@ pub(crate) fn create_erc20() -> Result<SystemContract> {
     Ok(erc20_fee_contract)
 }
 
-pub(crate) fn create_udc20() -> Result<SystemContract> {
+pub(crate) fn create_udc() -> Result<SystemContract> {
     let udc_contract_class_json_str = std::fs::read_to_string(UDC_CONTRACT_PATH)
         .map_err(|err| Error::ReadFileError { source: err, path: UDC_CONTRACT_PATH.to_string() })?;
     let udc_contract = SystemContract::new(

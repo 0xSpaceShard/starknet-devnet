@@ -11,7 +11,7 @@ use starknet_types::error::Error;
 use starknet_types::felt::{Balance, ClassHash, Felt, Key};
 
 use crate::error::Result;
-use crate::traits::{Accounted, StateChanger, StateExtractor};
+use crate::traits::{Accounted, Deployed, StateChanger, StateExtractor};
 use crate::utils::get_storage_var_address;
 
 /// data taken from https://github.com/0xSpaceShard/starknet-devnet/blob/fb96e0cc3c1c31fb29892ecefd2a670cf8a32b51/starknet_devnet/account.py
@@ -68,7 +68,7 @@ impl Account {
     }
 }
 
-impl Accounted for Account {
+impl Deployed for Account {
     fn deploy(&self, state: &mut (impl StateChanger + StateExtractor)) -> Result<()> {
         // declare if not declared
         if !state.is_contract_declared(&self.class_hash)? {
@@ -86,6 +86,12 @@ impl Accounted for Account {
         Ok(())
     }
 
+    fn get_address(&self) -> ContractAddress {
+        self.account_address
+    }
+}
+
+impl Accounted for Account {
     fn set_initial_balance(&self, state: &mut impl StateChanger) -> Result<()> {
         let storage_var_address =
             get_storage_var_address("ERC20_balances", &[Felt::from(self.account_address)])?;
@@ -94,10 +100,6 @@ impl Accounted for Account {
         state.change_storage(storage_key, self.initial_balance)?;
 
         Ok(())
-    }
-
-    fn get_address(&self) -> ContractAddress {
-        self.account_address
     }
 
     fn get_balance(&self, state: &mut impl StateExtractor) -> Result<Balance> {
@@ -115,7 +117,7 @@ mod tests {
     use super::Account;
     use crate::error::Error;
     use crate::state::StarknetState;
-    use crate::traits::Accounted;
+    use crate::traits::{Accounted, Deployed};
     use crate::utils::get_storage_var_address;
     use crate::utils::test_utils::{
         dummy_cairo_0_contract_class, dummy_contract_address, dummy_felt,
