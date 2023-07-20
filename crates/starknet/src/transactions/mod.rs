@@ -1,5 +1,5 @@
 pub mod declare_transaction;
-pub(crate) mod declare_transaction_v2;
+pub mod declare_transaction_v2;
 pub mod deploy_account_transaction;
 pub mod invoke_transaction;
 

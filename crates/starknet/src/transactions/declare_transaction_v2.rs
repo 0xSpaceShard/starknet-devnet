@@ -7,6 +7,8 @@ use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use starknet_types::DevnetResult;
 
+use crate::error::{Error, Result};
+
 #[derive(Clone, PartialEq, Eq)]
 pub struct DeclareTransactionV2 {
     pub sierra_contract_class: ContractClass,
@@ -21,6 +23,36 @@ pub struct DeclareTransactionV2 {
 }
 
 impl DeclareTransactionV2 {
+    pub fn new(
+        sierra_contract_class: ContractClass,
+        compiled_class_hash: ClassHash,
+        sender_address: ContractAddress,
+        max_fee: u128,
+        signature: Vec<Felt>,
+        nonce: Felt,
+        chain_id: Felt,
+    ) -> Result<Self> {
+        if max_fee == 0 {
+            return Err(Error::TransactionError(
+                starknet_in_rust::transaction::error::TransactionError::FeeError(
+                    "For declare transaction version 2, max fee cannot be 0".to_string(),
+                ),
+            ));
+        }
+
+        Ok(Self {
+            sierra_contract_class,
+            compiled_class_hash,
+            sender_address,
+            max_fee,
+            signature,
+            nonce,
+            class_hash: None,
+            transaction_hash: None,
+            chain_id,
+        })
+    }
+
     pub(crate) fn version(&self) -> Felt {
         Felt::from(2)
     }
@@ -57,9 +89,34 @@ impl HashProducer for DeclareTransactionV2 {
 #[cfg(test)]
 mod tests {
 
+    use crate::utils::test_utils::{
+        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
+    };
+
     #[ignore]
     #[test]
     fn correct_declare_transaction_hash_computation() {
         todo!("Transaction hash computation should be checked")
+    }
+
+    #[test]
+    fn declare_transaction_v2_with_max_fee_zero_should_return_an_error() {
+        let result = super::DeclareTransactionV2::new(
+            dummy_cairo_1_contract_class(),
+            dummy_felt(),
+            dummy_contract_address(),
+            0,
+            vec![],
+            dummy_felt(),
+            dummy_felt(),
+        );
+
+        assert!(result.is_err());
+        match result.err().unwrap() {
+            crate::error::Error::TransactionError(
+                starknet_in_rust::transaction::error::TransactionError::FeeError(msg),
+            ) => assert_eq!(msg, "For declare transaction version 2, max fee cannot be 0"),
+            _ => panic!("Wrong error type"),
+        }
     }
 }
