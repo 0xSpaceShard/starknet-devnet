@@ -107,7 +107,7 @@ pub struct BroadcastedInvokeTransactionInput {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-pub struct BroadcastedInvokeTransactionOutput {
+pub struct InvokeTransactionOutput {
     pub transaction_hash: TransactionHashHex,
 }
 
