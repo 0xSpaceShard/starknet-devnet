@@ -26,6 +26,63 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "Debug unit tests in library 'starknet'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=starknet"
+                ],
+                "filter": {
+                    "name": "starknet",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'random-number-generator'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=random-number-generator"
+                ],
+                "filter": {
+                    "name": "random-number-generator",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'types'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=types"
+                ],
+                "filter": {
+                    "name": "types",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "Debug executable 'starknet-devnet'",
             "cargo": {
                 "args": [
@@ -63,17 +120,17 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in library 'random-number-generator'",
+            "name": "Debug integration test 'get_transaction_by_hash'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--lib",
-                    "--package=random-number-generator"
+                    "--test=get_transaction_by_hash",
+                    "--package=starknet-server"
                 ],
                 "filter": {
-                    "name": "random-number-generator",
-                    "kind": "lib"
+                    "name": "get_transaction_by_hash",
+                    "kind": "test"
                 }
             },
             "args": [],
@@ -82,17 +139,17 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in library 'starknet'",
+            "name": "Debug integration test 'integration_tests'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--lib",
-                    "--package=starknet"
+                    "--test=integration_tests",
+                    "--package=starknet-server"
                 ],
                 "filter": {
-                    "name": "starknet",
-                    "kind": "lib"
+                    "name": "integration_tests",
+                    "kind": "test"
                 }
             },
             "args": [],
@@ -101,17 +158,17 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in library 'types'",
+            "name": "Debug integration test 'test_get_class_hash_at'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--lib",
-                    "--package=types"
+                    "--test=test_get_class_hash_at",
+                    "--package=starknet-server"
                 ],
                 "filter": {
-                    "name": "types",
-                    "kind": "lib"
+                    "name": "test_get_class_hash_at",
+                    "kind": "test"
                 }
             },
             "args": [],
