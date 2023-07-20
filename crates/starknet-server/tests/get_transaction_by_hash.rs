@@ -18,13 +18,11 @@ mod get_transaction_by_hash_integration_tests {
             "/test_data/rpc/declare_v1.json"
         ))
         .unwrap();
-        println!("{}", json_string);
 
         let declare_txn_v1: BroadcastedDeclareTransactionV1 =
             serde_json::from_str(&json_string).unwrap();
-        println!("{}", declare_txn_v1.nonce);
 
-        let add_tx = devnet
+        let add_transaction = devnet
             .json_rpc_client
             .add_declare_transaction(
                 starknet_rs_core::types::BroadcastedDeclareTransaction::V1(declare_txn_v1.clone()),
@@ -32,13 +30,14 @@ mod get_transaction_by_hash_integration_tests {
             .await
             .unwrap();
 
-        println!("{}", add_tx.class_hash);
-        println!("{}", add_tx.transaction_hash);
+        let x = add_transaction.transaction_hash;
+
+        let get_transaction = devnet
+            .json_rpc_client
+            .get_transaction_by_hash(add_transaction.transaction_hash)
+            .await
+            .unwrap();
 
         assert_eq!(1, 1);
-        // assert_eq!(
-        //     add_tx,
-        //     FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap()
-        // );
     }
 }
