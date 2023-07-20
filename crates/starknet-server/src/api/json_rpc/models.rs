@@ -101,6 +101,16 @@ pub struct DeployAccountTransactionOutput {
     pub contract_address: ContractAddressHex,
 }
 
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+pub struct BroadcastedInvokeTransactionInput {
+    pub invoke_transaction: BroadcastedInvokeTransaction,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+pub struct BroadcastedInvokeTransactionOutput {
+    pub transaction_hash: TransactionHashHex,
+}
+
 #[cfg(test)]
 mod tests {
     use starknet_types::contract_address::ContractAddress;
