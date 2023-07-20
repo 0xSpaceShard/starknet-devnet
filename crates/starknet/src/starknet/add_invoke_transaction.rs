@@ -60,8 +60,8 @@ mod tests {
     use crate::transactions::invoke_transaction::InvokeTransactionV1;
     use crate::utils::get_storage_var_address;
     use crate::utils::test_utils::{
-        cairo_0_account_without_validations, dummy_cairo_0_contract_class,
-        dummy_felt, get_bytes_from_u32,
+        cairo_0_account_without_validations, dummy_cairo_0_contract_class, dummy_felt,
+        get_bytes_from_u32,
     };
 
     fn test_invoke_transaction_v1(
@@ -69,7 +69,7 @@ mod tests {
         contract_address: ContractAddress,
         function_selector: Felt,
         param: Felt,
-        nonce: u128
+        nonce: u128,
     ) -> InvokeTransactionV1 {
         let calldata = vec![
             Felt::from(contract_address), // contract address
@@ -101,7 +101,7 @@ mod tests {
             contract_address,
             increase_balance_selector,
             Felt::from(10),
-            0
+            0,
         );
 
         let transaction_hash = starknet.add_invoke_transaction_v1(invoke_transaction).unwrap();
@@ -126,7 +126,7 @@ mod tests {
             contract_address,
             increase_balance_selector,
             Felt::from(10),
-            0
+            0,
         );
 
         // invoke transaction
@@ -145,7 +145,7 @@ mod tests {
             contract_address,
             increase_balance_selector,
             Felt::from(15),
-            1
+            1,
         );
 
         // invoke transaction again
@@ -169,7 +169,7 @@ mod tests {
             contract_address,
             increase_balance_selector,
             Felt::from(10),
-            0
+            0,
         );
 
         let transaction_hash =
