@@ -14,7 +14,6 @@ pub fn add_invoke_transcation_v1(
     let state_before_txn = starknet.state.pending_state.clone();
     let transaction_hash = invoke_transaction.generate_hash()?;
 
-    // TODO: fix value of remaining gas, because I have no idea what to put there
     match invoke_transaction.0.execute(
         &mut starknet.state.pending_state,
         &starknet.block_context,
