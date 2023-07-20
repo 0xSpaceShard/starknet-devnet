@@ -346,6 +346,7 @@ def create_genesis_block_transaction(
             "n_steps": 0,
         },
         tx_type=tx_type,
+        revert_error=None,
     )
     return DevnetTransaction(
         internal_tx=internal_tx,
