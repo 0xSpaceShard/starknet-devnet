@@ -1,5 +1,5 @@
 use starknet_in_rust::definitions::constants::INITIAL_GAS_COST;
-use starknet_types::felt::{Felt, TransactionHash};
+use starknet_types::felt::{TransactionHash};
 use starknet_types::traits::HashProducer;
 
 use super::Starknet;
@@ -49,7 +49,7 @@ mod tests {
     use starknet_rs_core::types::TransactionStatus;
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_storage_key::{self, ContractStorageKey};
+    use starknet_types::contract_storage_key::{ContractStorageKey};
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
 
@@ -78,7 +78,9 @@ mod tests {
             param,                        // calldata
         ];
 
-        let invoke_transaction = InvokeTransactionV1::new(
+        
+
+        InvokeTransactionV1::new(
             account_address,
             10000,
             vec![],
@@ -86,9 +88,7 @@ mod tests {
             calldata,
             DEVNET_DEFAULT_CHAIN_ID.to_felt().into(),
         )
-        .unwrap();
-
-        invoke_transaction
+        .unwrap()
     }
 
     #[test]
@@ -236,7 +236,7 @@ mod tests {
         let dummy_contract_address =
             ContractAddress::new(Felt::new(address_bytes).unwrap()).unwrap();
         let dummy_contract_class_hash = dummy_contract.generate_hash().unwrap();
-        let storage_key = get_storage_var_address("balance", &vec![]).unwrap();
+        let storage_key = get_storage_var_address("balance", &[]).unwrap();
         let contract_storage_key = ContractStorageKey::new(dummy_contract_address, storage_key);
 
         // declare dummy contract
