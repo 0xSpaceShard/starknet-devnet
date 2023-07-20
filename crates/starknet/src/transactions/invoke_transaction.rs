@@ -1,8 +1,9 @@
 use starknet_in_rust::definitions::constants::EXECUTE_ENTRY_POINT_SELECTOR;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::transaction::InvokeFunction;
-use starknet_types::{contract_address::ContractAddress, traits::HashProducer};
+use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::Felt;
+use starknet_types::traits::HashProducer;
 
 use crate::error::{self, Result};
 
@@ -71,7 +72,7 @@ mod tests {
             vec![],
             dummy_felt(),
             vec![],
-            dummy_felt()
+            dummy_felt(),
         );
 
         assert!(result.is_err());

@@ -40,8 +40,8 @@ pub struct StarknetTransaction {
     inner: Transaction,
     pub(crate) block_hash: Option<BlockHash>,
     pub(crate) block_number: Option<BlockNumber>,
-    execution_info: Option<starknet_in_rust::execution::TransactionExecutionInfo>,
-    execution_error: Option<TransactionError>,
+    pub(crate) execution_info: Option<starknet_in_rust::execution::TransactionExecutionInfo>,
+    pub(crate) execution_error: Option<TransactionError>,
 }
 
 impl StarknetTransaction {
