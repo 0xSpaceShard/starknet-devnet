@@ -73,10 +73,10 @@ impl StarknetTransaction {
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum Transaction {
-    Declare(DeclareTransactionV1),
-    DeclareV2(DeclareTransactionV2),
+    Declare(Box<DeclareTransactionV1>),
+    DeclareV2(Box<DeclareTransactionV2>),
     DeployAccount(Box<DeployAccountTransaction>),
-    Invoke(InvokeTransactionV1),
+    Invoke(Box<InvokeTransactionV1>),
 }
 
 impl Transaction {

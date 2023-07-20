@@ -105,8 +105,8 @@ pub(crate) mod test_utils {
         ContractAddress::new(Felt::from_prefixed_hex_str("0xADD4E55").unwrap()).unwrap()
     }
 
-    pub(crate) fn dummy_declare_transaction_v1() -> DeclareTransactionV1 {
-        DeclareTransactionV1::new(
+    pub(crate) fn dummy_declare_transaction_v1() -> Box<DeclareTransactionV1> {
+        Box::new(DeclareTransactionV1::new(
             dummy_contract_address(),
             100,
             vec![],
@@ -114,7 +114,7 @@ pub(crate) mod test_utils {
             dummy_cairo_0_contract_class(),
             StarknetChainId::TestNet.to_felt().into(),
         )
-        .unwrap()
+        .unwrap())
     }
 
     pub(crate) fn cairo_0_account_without_validations() -> ContractClass {

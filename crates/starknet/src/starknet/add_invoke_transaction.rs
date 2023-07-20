@@ -23,13 +23,13 @@ pub fn add_invoke_transcation_v1(
         Ok(tx_info) => {
             starknet.handle_successful_transaction(
                 &transaction_hash,
-                Transaction::Invoke(invoke_transaction),
+                Transaction::Invoke(Box::new(invoke_transaction)),
                 tx_info,
             )?;
         }
         Err(tx_err) => {
             let transaction_to_add = StarknetTransaction::create_rejected(
-                Transaction::Invoke(invoke_transaction),
+                Transaction::Invoke(Box::new(invoke_transaction)),
                 tx_err,
             );
 
