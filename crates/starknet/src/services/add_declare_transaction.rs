@@ -126,6 +126,7 @@ impl Starknet {
         }
 
         let state_before_txn = self.state.pending_state.clone();
+        declare_transaction.class_hash = Some(class_hash); // Ask Fabo/Alex/Ariel if reverted tx have class_hash or check it in spec
 
         match transaction.execute(&mut self.state.pending_state, &self.block_context) {
             Ok(tx_info) => {

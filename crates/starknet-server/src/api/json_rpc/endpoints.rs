@@ -1,8 +1,8 @@
-use starknet_in_rust::transaction::declare;
 use starknet_types::starknet_api::transaction::Fee;
 
 use starknet_types::felt::Felt;
 use starknet_types::starknet_api::block::BlockNumber;
+use starknet_types::traits::ToHexString;
 
 use super::error::{self};
 use super::models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
@@ -50,14 +50,15 @@ impl JsonRpcHandler {
     ) -> RpcResult<TransactionWithType> {
         let starknet = self.api.starknet.read().await;
 
-        // This is Declare hard coded version of get transaction by hash.
-        // This will fail if the transaction is not found - how to handle that in Rust?
-        // TODO: rise Err(error::ApiError::TransactionNotFound)
+        // This will fail if the transaction is not found - how to handle that in Rust? rise Err?
+        // rise Err(error::ApiError::TransactionNotFound)
         let transaction_to_map =  starknet.transactions.get(&transaction_hash.0).unwrap();
+        let transaction_type;
 
-        // TODO: move this mapping to models/transaction.rs
+        // Move this mapping to models/transaction.rs? Or it's ok to have this code here?
         let transaction_data: Transaction = match transaction_to_map.inner.clone() {
             starknet_core::transactions::Transaction::Declare(declare_v1) => {
+                transaction_type = TransactionType::Declare;
                 Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version1(DeclareTransactionV0V1{
                     class_hash: FeltHex(declare_v1.class_hash.unwrap()),
                     sender_address: ContractAddressHex(declare_v1.sender_address),
@@ -69,6 +70,7 @@ impl JsonRpcHandler {
                 }))
             },
             starknet_core::transactions::Transaction::DeclareV2(declare_v2) => {
+                transaction_type = TransactionType::Declare;
                 Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version2(DeclareTransactionV2{
                     class_hash: FeltHex(declare_v2.class_hash.unwrap()),
                     sender_address: ContractAddressHex(declare_v2.sender_address),
@@ -81,8 +83,7 @@ impl JsonRpcHandler {
                 }))
             },
         };
-        
-        let transaction_type = TransactionType::Declare;
+
         let transaction = TransactionWithType {
             transaction: transaction_data,
             r#type: transaction_type,
