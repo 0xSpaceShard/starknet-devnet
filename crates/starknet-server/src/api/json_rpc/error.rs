@@ -38,6 +38,8 @@ pub enum ApiError {
     InvalidContractClass,
     #[error("Only latest/pending block is supported")]
     OnlyLatestBlock,
+    #[error("Unsupported version")]
+    UnsupportedVersion,
 }
 
 #[cfg(test)]
