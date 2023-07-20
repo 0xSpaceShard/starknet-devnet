@@ -1,5 +1,5 @@
 use starknet_in_rust::definitions::constants::INITIAL_GAS_COST;
-use starknet_types::felt::{TransactionHash};
+use starknet_types::felt::TransactionHash;
 use starknet_types::traits::HashProducer;
 
 use super::Starknet;
@@ -49,7 +49,7 @@ mod tests {
     use starknet_rs_core::types::TransactionStatus;
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_storage_key::{ContractStorageKey};
+    use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
 
@@ -77,8 +77,6 @@ mod tests {
             Felt::from(1),                // calldata len
             param,                        // calldata
         ];
-
-        
 
         InvokeTransactionV1::new(
             account_address,
