@@ -299,7 +299,7 @@ impl Starknet {
     pub fn estimate_fee(
         &self,
         block_id: BlockId,
-        transactions: &Vec<starknet_in_rust::transaction::Transaction>,
+        transactions: &[starknet_in_rust::transaction::Transaction],
         // TODO define a better return type
     ) -> Result<Vec<(u128, usize)>> {
         let state = self.get_state_at(&block_id)?;

@@ -42,6 +42,10 @@ pub enum ApiError {
     UnsupportedAction { msg: String },
     #[error(transparent)]
     TransactionError(#[from] starknet_in_rust::transaction::error::TransactionError),
+    #[error(transparent)]
+    SyscallHandlerError(
+        #[from] starknet_in_rust::syscalls::syscall_handler_errors::SyscallHandlerError,
+    ),
 }
 
 #[cfg(test)]
