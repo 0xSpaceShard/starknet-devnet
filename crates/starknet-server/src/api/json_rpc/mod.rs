@@ -122,6 +122,11 @@ impl<T: Serialize> ToRpcResponseResult for RpcResult<T> {
                     message: err.to_string().into(),
                     data: None,
                 },
+                err @ ApiError::UnsupportedVersion => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
+                    message: err.to_string().into(),
+                    data: None,
+                },
             }
             .into(),
         }
