@@ -69,7 +69,7 @@ mod tests {
     }
 
     #[test]
-    fn account_with_max_fee_zero_should_return_an_error() {
+    fn account_deploy_transaction_with_max_fee_zero_should_return_an_error() {
         let result = super::DeployAccountTransaction::new(
             vec![0.into(), 1.into()],
             0,
