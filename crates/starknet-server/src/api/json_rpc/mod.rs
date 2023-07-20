@@ -122,6 +122,16 @@ impl<T: Serialize> ToRpcResponseResult for RpcResult<T> {
                     message: err.to_string().into(),
                     data: None,
                 },
+                ApiError::UnsupportedAction { msg } => RpcError {
+                    code: server::rpc_core::error::ErrorCode::InvalidRequest,
+                    message: msg.into(),
+                    data: None,
+                },
+                ApiError::TransactionError(err) => RpcError {
+                    code: server::rpc_core::error::ErrorCode::InvalidRequest,
+                    message: err.to_string().into(),
+                    data: None,
+                },
             }
             .into(),
         }

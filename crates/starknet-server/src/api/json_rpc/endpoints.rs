@@ -1,4 +1,5 @@
-use starknet_core::error::Error;
+use server::rpc_core::error::{ErrorCode, RpcError};
+use starknet_core::error::{Error, Result};
 use starknet_in_rust::core::errors::state_errors::StateError;
 use starknet_in_rust::definitions::block_context::StarknetChainId;
 use starknet_in_rust::transaction as starknet_in_rust_transaction;
@@ -12,12 +13,12 @@ use super::error::{self, ApiError};
 use super::models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
 use super::{JsonRpcHandler, RpcResult};
 use crate::api::models::block::Block;
-use crate::api::models::contract_class::ContractClass;
+use crate::api::models::contract_class::{ContractClass, DeprecatedContractClass};
 use crate::api::models::state::ThinStateDiff;
 use crate::api::models::transaction::{
-    BroadcastedInvokeTransaction, BroadcastedTransaction, BroadcastedTransactionWithType,
-    ClassHashHex, EventFilter, EventsChunk, FunctionCall, Transaction, TransactionHashHex,
-    TransactionReceipt, TransactionWithType,
+    BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
+    BroadcastedTransactionWithType, ClassHashHex, EventFilter, EventsChunk, FunctionCall,
+    Transaction, TransactionHashHex, TransactionReceipt, TransactionWithType,
 };
 use crate::api::models::{BlockId, ContractAddressHex, FeltHex, PatriciaKeyHex};
 
@@ -148,6 +149,7 @@ impl JsonRpcHandler {
             .into_iter()
             .map(|broadcasted_tx| {
                 convert_broadcasted_tx(broadcasted_tx.transaction, starknet.config.chain_id)
+                    .unwrap() // TODO temporary unwrap - maybe use loop
             })
             .collect();
 
@@ -208,28 +210,17 @@ impl JsonRpcHandler {
 fn convert_broadcasted_tx(
     broadcasted_tx: BroadcastedTransaction,
     chain_id: StarknetChainId,
-) -> DevnetResult<starknet_in_rust_transaction::Transaction> {
-    Ok(match broadcasted_tx {
-        BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V0(invoke_tx)) => {
-            starknet_in_rust_transaction::Transaction::InvokeFunction(
-                starknet_in_rust_transaction::InvokeFunction::new(
-                    invoke_tx.contract_address.0.try_into()?,
-                    invoke_tx.entry_point_selector.0.into(),
-                    invoke_tx.common.max_fee.0,
-                    invoke_tx.common.version.0.into(),
-                    invoke_tx.calldata.iter().map(|s| s.0.into()).collect(),
-                    invoke_tx.common.signature.iter().map(|s| s.0.into()).collect(),
-                    chain_id.to_felt(),
-                    Some(invoke_tx.common.nonce.0.into()),
-                )?,
-            )
+) -> RpcResult<starknet_in_rust_transaction::Transaction> {
+    match broadcasted_tx {
+        BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V0(_)) => {
+            Err(ApiError::UnsupportedAction { msg: "Invoke V0 is not supported".into() })
         }
         BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(invoke_tx)) => {
             let selector =
                 Felt::from(starknet_rs_core::utils::get_selector_from_name("__execute__").unwrap())
                     .into();
 
-            starknet_in_rust_transaction::Transaction::InvokeFunction(
+            Ok(starknet_in_rust_transaction::Transaction::InvokeFunction(
                 starknet_in_rust_transaction::InvokeFunction::new(
                     invoke_tx.sender_address.0.try_into()?,
                     selector,
@@ -240,9 +231,40 @@ fn convert_broadcasted_tx(
                     chain_id.to_felt(),
                     Some(invoke_tx.common.nonce.0.into()),
                 )?,
-            )
+            ))
         }
-        BroadcastedTransaction::Declare(_) => todo!(),
+        BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(declare_tx)) => {
+            let contract_class: starknet_types::contract_class::ContractClass = declare_tx
+                .contract_class
+                .try_into()
+                .map_err(|_| ApiError::RpcError(RpcError::invalid_request()))?;
+            Ok(starknet_in_rust_transaction::Transaction::Declare(
+                starknet_in_rust_transaction::Declare::new(
+                    contract_class.try_into()?,
+                    chain_id.to_felt(),
+                    declare_tx.sender_address.0.try_into()?,
+                    declare_tx.common.max_fee.0,
+                    declare_tx.common.version.0.into(),
+                    declare_tx.common.signature.iter().map(|s| s.0.into()).collect(),
+                    declare_tx.common.nonce.0.into(),
+                )?,
+            ))
+        }
+        BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(declare_tx)) => {
+            Ok(starknet_in_rust_transaction::Transaction::DeclareV2(Box(
+                starknet_in_rust_transaction::DeclareV2::new(
+                    sierra_contract_class,
+                    casm_contract_class,
+                    compiled_class_hash,
+                    chain_id,
+                    sender_address,
+                    max_fee,
+                    version,
+                    signature,
+                    nonce,
+                ),
+            )))
+        }
         BroadcastedTransaction::DeployAccount(_) => todo!(),
-    })
+    }
 }

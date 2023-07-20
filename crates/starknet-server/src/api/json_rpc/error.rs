@@ -38,6 +38,10 @@ pub enum ApiError {
     InvalidContractClass,
     #[error("Only latest/pending block is supported")]
     OnlyLatestBlock,
+    #[error("{msg}")]
+    UnsupportedAction { msg: String },
+    #[error(transparent)]
+    TransactionError(#[from] starknet_in_rust::transaction::error::TransactionError),
 }
 
 #[cfg(test)]
