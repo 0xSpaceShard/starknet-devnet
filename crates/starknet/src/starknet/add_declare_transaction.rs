@@ -258,6 +258,25 @@ mod tests {
         );
     }
 
+    #[test]
+    fn declare_v1_transaction_successful_storage_change() {
+        let (mut starknet, sender) = setup(None);
+        let declare_txn = test_declare_transaction_v1(sender);
+
+        let expected_class_hash = declare_txn.contract_class.generate_hash().unwrap();
+        // check if contract is not declared
+        assert!(starknet.state.state.class_hash_to_contract_class.get(&expected_class_hash.bytes()).is_none());
+
+        let (tx_hash, class_hash) =
+            starknet.add_declare_transaction_v1(declare_txn.clone()).unwrap();
+
+        let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
+
+        // check if txn is with status accepted
+        assert_eq!(tx.status, TransactionStatus::AcceptedOnL2);
+        starknet.state.state.class_hash_to_contract_class.get(&class_hash.bytes()).unwrap();
+    }
+
     /// Initializes starknet with 1 account - account without validations
     fn setup(acc_balance: Option<u128>) -> (Starknet, ContractAddress) {
         let mut starknet = Starknet::default();
