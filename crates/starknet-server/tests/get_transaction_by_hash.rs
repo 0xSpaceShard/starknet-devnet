@@ -2,8 +2,9 @@ pub mod common;
 
 mod get_transaction_by_hash_integration_tests {
     use starknet_core::constants::DECLARE_V1_TRANSACTION_HASH;
-    use starknet_rs_core::types::{BroadcastedDeclareTransactionV1, FieldElement, contract::SierraClass};
+    use starknet_rs_core::types::{BroadcastedDeclareTransactionV1, FieldElement, contract::{SierraClass, CompiledClass}};
     use starknet_rs_providers::Provider;
+    use starknet_types::{felt::Felt, traits::ToHexString};
     use crate::common::util::BackgroundDevnet;
 
     #[tokio::test]
@@ -43,9 +44,12 @@ mod get_transaction_by_hash_integration_tests {
     async fn get_declere_v2_transaction_by_hash_happy_path() {
 
         // Sierra class artifact. Output of the `starknet-compile` command
-        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/rpc/declare_v2_contract/output.json");
-        let contract_artifact: SierraClass = serde_json::from_reader(std::fs::File::open(path).unwrap()).unwrap();
-        
-        println!("contract_class_version: {}", contract_artifact.contract_class_version);
+        let path_to_cario1 = concat!(env!("CARGO_MANIFEST_DIR"), r"\test_data\rpc\declare_v2_contract_cario1\output.json");
+        let contract_artifact: SierraClass = serde_json::from_reader(std::fs::File::open(path_to_cario1).unwrap()).unwrap();
+
+        let path_to_casm = concat!(env!("CARGO_MANIFEST_DIR"), r"\test_data\rpc\declare_v2_contract_cario1\output-casm.json");
+        let casm_contract_definition: CompiledClass =  serde_json::from_reader(std::fs::File::open(path_to_casm).unwrap()).unwrap();
+        let compiled_class_hash: Result<FieldElement, starknet_rs_core::types::contract::ComputeClassHashError> = casm_contract_definition.class_hash();
+        assert_eq!(Felt::from(compiled_class_hash.unwrap()).to_prefixed_hex_str(), "0x63b33a5f2f46b1445d04c06d7832c48c48ad087ce0803b71f2b8d96353716ca");
     }
 }
