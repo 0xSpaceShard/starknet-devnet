@@ -1,6 +1,8 @@
 /// Copied from https://github.com/xJonathanLEI/starknet-rs/
 use starknet_rs_core::{crypto::pedersen_hash, types::FieldElement};
 
+use crate::constants::SUPPORTED_TX_VERSION;
+
 /// Cairo string for "invoke"
 const PREFIX_INVOKE: FieldElement = FieldElement::from_mont([
     18443034532770911073,
@@ -17,6 +19,7 @@ pub struct Call {
     pub calldata: Vec<FieldElement>,
 }
 
+#[derive(Debug)]
 pub struct RawExecution {
     pub calls: Vec<Call>,
     pub nonce: FieldElement,
@@ -59,7 +62,7 @@ impl RawExecution {
     pub fn transaction_hash(&self, chain_id: FieldElement, address: FieldElement) -> FieldElement {
         compute_hash_on_elements(&[
             PREFIX_INVOKE,
-            FieldElement::ONE, // version
+            FieldElement::from(SUPPORTED_TX_VERSION), // version
             address,
             FieldElement::ZERO, // entry_point_selector
             compute_hash_on_elements(&self.raw_calldata()),

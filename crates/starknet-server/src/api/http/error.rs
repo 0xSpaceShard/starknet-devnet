@@ -23,7 +23,9 @@ impl IntoResponse for HttpApiError {
             HttpApiError::GeneralError => {
                 (StatusCode::INTERNAL_SERVER_ERROR, String::from("general error"))
             }
-            HttpApiError::MintingError { msg } => (StatusCode::BAD_REQUEST, msg),
+            err @ HttpApiError::MintingError { msg: _ } => {
+                (StatusCode::BAD_REQUEST, err.to_string())
+            }
         };
 
         let body = Json(json!({

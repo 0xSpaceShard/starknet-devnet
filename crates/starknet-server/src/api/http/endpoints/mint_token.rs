@@ -37,12 +37,10 @@ pub(crate) async fn mint(
         )
         .map_err(|err| HttpApiError::MintingError { msg: err.to_string() })?;
 
-    // format new balance for output - initially it is a 2-member vector (high, low) // TODO check
-    // endianness
+    // format new balance for output - initially it is a 2-member vector (low, high)
     assert_eq!(new_balance_raw.len(), 2);
-    println!("DEBUG new_balance_raw: {new_balance_raw:?}");
-    let new_balance_high: BigUint = (*new_balance_raw.get(1).unwrap()).into();
     let new_balance_low: BigUint = (*new_balance_raw.get(0).unwrap()).into();
+    let new_balance_high: BigUint = (*new_balance_raw.get(1).unwrap()).into();
     let new_balance: BigUint = (new_balance_high << 128) + new_balance_low;
 
     Ok(Json(MintTokensResponse {

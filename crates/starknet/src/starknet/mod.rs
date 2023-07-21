@@ -25,6 +25,7 @@ use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use tracing::error;
 
+use self::predeployed::initialize_erc20;
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
@@ -48,7 +49,7 @@ mod add_deploy_account_transaction;
 mod add_invoke_transaction;
 mod predeployed;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct StarknetConfig {
     pub seed: u32,
     pub total_accounts: u8,
@@ -94,6 +95,8 @@ impl Starknet {
         let udc_contract = predeployed::create_udc()?;
 
         erc20_fee_contract.deploy(&mut state)?;
+        initialize_erc20(&mut state);
+
         udc_contract.deploy(&mut state)?;
 
         let mut predeployed_accounts = PredeployedAccounts::new(
@@ -131,7 +134,7 @@ impl Starknet {
             block_context: Self::get_block_context(0, ERC20_CONTRACT_ADDRESS, config.chain_id)?,
             blocks: StarknetBlocks::default(),
             transactions: StarknetTransactions::default(),
-            config: StarknetConfig::default(),
+            config: config.clone(),
             sierra_contracts: HashMap::new(),
         };
 
@@ -362,11 +365,12 @@ impl Starknet {
             Felt::from(address).into(),
             FieldElement::from_dec_str(&amount.to_string()).unwrap(), // `low` part of Uint256
             FieldElement::from_dec_str("0").unwrap(),                 // `high` part
-        ]; // TODO check endianness
+        ];
 
+        let erc20_address_felt = Felt::from_prefixed_hex_str(ERC20_CONTRACT_ADDRESS)?;
         let raw_execution = RawExecution {
             calls: vec![Call {
-                to: FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap(), /* TODO smarter than unwrap? */
+                to: erc20_address_felt.into(),
                 selector: get_selector_from_name("mint").unwrap(),
                 calldata: calldata.clone(),
             }],
@@ -374,8 +378,7 @@ impl Starknet {
             max_fee: FieldElement::from_dec_str(&sufficiently_big_max_fee.to_string()).unwrap(),
         };
 
-        // generated msg hash (not the same as tx hash)
-        let erc20_address_felt = Felt::from_prefixed_hex_str(ERC20_CONTRACT_ADDRESS)?;
+        // generate msg hash (not the same as tx hash)
         let chain_id_felt: Felt = self.config.chain_id.to_felt().into();
         let msg_hash_felt =
             raw_execution.transaction_hash(chain_id_felt.into(), chargeable_address_felt.into());
@@ -390,12 +393,12 @@ impl Starknet {
 
         // apply the invoke tx
         let invoke_tx = InvokeTransactionV1::new(
-            ContractAddress::new(erc20_address_felt)?,
+            ContractAddress::new(chargeable_address_felt)?,
             sufficiently_big_max_fee,
             vec![signature.r.into(), signature.s.into()],
             nonce.into(),
-            calldata.into_iter().map(|c| c.into()).collect(),
-            self.config.chain_id.to_felt().into(),
+            raw_execution.raw_calldata().into_iter().map(|c| c.into()).collect(),
+            chain_id_felt,
         )?;
         self.add_invoke_transaction_v1(invoke_tx)
     }

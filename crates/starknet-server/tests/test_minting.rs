@@ -21,20 +21,25 @@ mod minting_tests {
         );
 
         let resp = devnet.post_json("/mint".into(), req_body).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
 
         let resp_body = resp.into_body();
         let resp_body_bytes = hyper::body::to_bytes(resp_body).await.unwrap();
-        let deserialized_resp_body: serde_json::Value =
+        let mut deserialized_resp_body: serde_json::Value =
             serde_json::from_slice(&resp_body_bytes).unwrap();
+
+        // tx hash is not constant so we later just assert its general form
+        let tx_hash_value = deserialized_resp_body["tx_hash"].take();
         assert_eq!(
             deserialized_resp_body,
             json!({
                 "new_balance": DUMMY_AMOUNT.to_string(),
                 "unit": "WEI",
-                "tx_hash": "0x123" // TODO will not work - perhaps ignore the tx hash
+                "tx_hash": null
             })
         );
+
+        assert!(tx_hash_value.as_str().unwrap().starts_with("0x"));
     }
 
     #[tokio::test]
