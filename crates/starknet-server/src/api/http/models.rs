@@ -85,7 +85,7 @@ pub(crate) struct FeeToken {
     address: ContractAddressHex,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub(crate) struct MintTokensRequest {
     pub(crate) address: ContractAddressHex,
     pub(crate) amount: u128,

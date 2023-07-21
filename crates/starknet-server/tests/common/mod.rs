@@ -15,7 +15,9 @@ pub mod util {
     use std::process::{Child, Command, Stdio};
     use std::{thread, time};
 
-    use hyper::{Client, StatusCode, Uri};
+    use hyper::client::HttpConnector;
+    use hyper::http::request;
+    use hyper::{Client, Response, StatusCode, Uri};
     use lazy_static::lazy_static;
     use starknet_rs_providers::jsonrpc::HttpTransport;
     use starknet_rs_providers::JsonRpcClient;
@@ -60,8 +62,10 @@ pub mod util {
     }
 
     pub struct BackgroundDevnet {
+        pub http_client: Client<HttpConnector>,
         pub json_rpc_client: JsonRpcClient<HttpTransport>,
         process: Child,
+        url: String,
     }
 
     impl BackgroundDevnet {
@@ -101,7 +105,12 @@ pub mod util {
                 if let Ok(alive_resp) = http_client.get(healthcheck_uri.clone()).await {
                     assert_eq!(alive_resp.status(), StatusCode::OK);
                     println!("Spawned background devnet at port {free_port}");
-                    return Ok(BackgroundDevnet { json_rpc_client, process });
+                    return Ok(BackgroundDevnet {
+                        http_client,
+                        json_rpc_client,
+                        process,
+                        url: devnet_url,
+                    });
                 }
 
                 // otherwise there is an error, probably a ConnectError if Devnet is not yet up
@@ -111,6 +120,20 @@ pub mod util {
             }
 
             Err(TestError::DevnetNotStartable)
+        }
+
+        pub async fn post_json(
+            &self,
+            path: String,
+            body: hyper::Body,
+        ) -> Result<Response<hyper::Body>, hyper::Error> {
+            let req = request::Request::builder()
+                .method("POST")
+                .uri(format!("{}{}", self.url.as_str(), path))
+                .header("content-type", "application/json")
+                .body(body)
+                .unwrap();
+            self.http_client.request(req).await
         }
     }
 

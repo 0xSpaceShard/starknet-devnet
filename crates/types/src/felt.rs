@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use num_bigint::BigUint;
 use starknet_api::serde_utils::{bytes_from_hex_str, hex_str_from_bytes};
 use starknet_api::StarknetApiError;
@@ -180,6 +182,13 @@ impl TryFrom<BigUint> for Felt {
     fn try_from(value: BigUint) -> DevnetResult<Self> {
         let hex_str = format!("0x{}", value.to_str_radix(16));
         Felt::from_prefixed_hex_str(&hex_str)
+    }
+}
+
+impl From<Felt> for BigUint {
+    fn from(felt: Felt) -> Self {
+        // TODO better use TryFrom without unwrapping, but how to map the errors?
+        BigUint::from_str(&felt.to_decimal_string()).unwrap()
     }
 }
 

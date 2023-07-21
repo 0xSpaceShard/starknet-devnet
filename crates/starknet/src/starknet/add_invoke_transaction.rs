@@ -20,6 +20,7 @@ pub fn add_invoke_transcation_v1(
         INITIAL_GAS_COST,
     ) {
         Ok(tx_info) => {
+            println!("DEBUG Handling successful tx");
             starknet.handle_successful_transaction(
                 &transaction_hash,
                 Transaction::Invoke(Box::new(invoke_transaction)),
@@ -27,6 +28,7 @@ pub fn add_invoke_transcation_v1(
             )?;
         }
         Err(tx_err) => {
+            println!("DEBUG Handling rejected tx, err: {tx_err:?}");
             let transaction_to_add = StarknetTransaction::create_rejected(
                 Transaction::Invoke(Box::new(invoke_transaction)),
                 tx_err,
