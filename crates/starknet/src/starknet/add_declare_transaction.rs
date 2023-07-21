@@ -291,7 +291,7 @@ mod tests {
         assert!(!starknet.state.is_contract_declared(&expected_class_hash));
 
         let (tx_hash, class_hash) =
-            starknet.add_declare_transaction_v1(declare_txn.clone()).unwrap();
+            starknet.add_declare_transaction_v1(declare_txn).unwrap();
 
         let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
 
