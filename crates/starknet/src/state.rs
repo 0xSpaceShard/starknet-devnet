@@ -146,14 +146,15 @@ impl StateExtractor for StarknetState {
         Ok(self.state.get_storage_at(&storage_key.try_into()?).map(Felt::from)?)
     }
 
-    fn is_contract_declared(&mut self, class_hash: &ClassHash) -> Result<bool> {
-        if self.state.class_hash_to_contract_class.contains_key(&(class_hash.bytes())) {
-            return Ok(true);
-        }else if self.state.class_hash_to_compiled_class_hash_mut().contains_key(&class_hash.bytes()) {
-            return Ok(true);
+    fn is_contract_declared(&mut self, class_hash: &ClassHash) -> bool {
+        if self.state.class_hash_to_compiled_class_hash_mut().contains_key(&class_hash.bytes()) {
+            return true;
+        }
+        else if self.state.class_hash_to_contract_class.contains_key(&(class_hash.bytes())) {
+            return true;
         }
         
-        Ok(false)
+        false
     }
 
     fn get_class_hash_at_contract_address(
@@ -198,11 +199,11 @@ mod tests {
             .set_contract_class(&class_hash, &dummy_cairo_0_contract_class().try_into().unwrap())
             .unwrap();
 
-        assert!(!state.is_contract_declared(&dummy_felt()).unwrap());
+        assert!(!state.is_contract_declared(&dummy_felt()));
         state.pending_state.get_contract_class(&class_hash).unwrap();
         state.apply_cached_state().unwrap();
 
-        assert!(state.is_contract_declared(&dummy_felt()).unwrap());
+        assert!(state.is_contract_declared(&dummy_felt()));
     }
 
     #[test]

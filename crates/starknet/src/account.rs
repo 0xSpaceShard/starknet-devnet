@@ -71,7 +71,7 @@ impl Account {
 impl Accounted for Account {
     fn deploy(&self, state: &mut (impl StateChanger + StateExtractor)) -> Result<()> {
         // declare if not declared
-        if !state.is_contract_declared(&self.class_hash)? {
+        if !state.is_contract_declared(&self.class_hash) {
             state.declare_contract_class(self.class_hash, self.contract_class.clone())?;
         }
 
