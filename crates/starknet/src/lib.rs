@@ -5,7 +5,6 @@ pub mod error;
 mod predeployed_accounts;
 pub mod starknet;
 mod state;
-mod state_diff;
 mod system_contract;
 mod traits;
 pub mod transactions;

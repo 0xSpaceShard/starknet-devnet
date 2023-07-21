@@ -13,8 +13,11 @@ use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::felt::{ClassHash, Felt};
 
 use crate::error::Result;
-use crate::state_diff::StateDiff;
 use crate::traits::{StateChanger, StateExtractor};
+
+use self::state_diff::StateDiff;
+
+pub(crate) mod state_diff;
 
 #[derive(Debug)]
 pub(crate) struct StarknetState {
