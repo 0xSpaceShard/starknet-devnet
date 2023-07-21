@@ -2,7 +2,7 @@ pub mod common;
 
 mod get_transaction_by_hash_integration_tests {
     use starknet_core::constants::DECLARE_V1_TRANSACTION_HASH;
-    use starknet_rs_core::types::{BroadcastedDeclareTransactionV1, FieldElement};
+    use starknet_rs_core::types::{BroadcastedDeclareTransactionV1, FieldElement, contract::SierraClass};
     use starknet_rs_providers::Provider;
     use crate::common::util::BackgroundDevnet;
 
@@ -37,5 +37,15 @@ mod get_transaction_by_hash_integration_tests {
             },
             _ => {}
         };
+    }
+
+    #[tokio::test]
+    async fn get_declere_v2_transaction_by_hash_happy_path() {
+
+        // Sierra class artifact. Output of the `starknet-compile` command
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/rpc/declare_v2_contract/output.json");
+        let contract_artifact: SierraClass = serde_json::from_reader(std::fs::File::open(path).unwrap()).unwrap();
+        
+        println!("contract_class_version: {}", contract_artifact.contract_class_version);
     }
 }
