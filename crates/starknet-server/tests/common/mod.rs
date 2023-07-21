@@ -1,4 +1,6 @@
 pub mod constants {
+    use starknet_core::constants::DEVNET_DEFAULT_INITIAL_BALANCE;
+
     pub const HOST: &str = "localhost";
     pub const MIN_PORT: u16 = 1025;
     pub const MAX_PORT: u16 = 65_535;
@@ -8,6 +10,8 @@ pub mod constants {
     // predeployed account info with seed=42
     pub const PREDEPLOYED_ACCOUNT_ADDRESS: &str =
         "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba";
+    // half the default value - sanity check
+    pub const PREDEPLOYED_ACCOUNT_INITIAL_BALANCE: u128 = DEVNET_DEFAULT_INITIAL_BALANCE / 2;
 }
 
 pub mod util {
@@ -17,7 +21,7 @@ pub mod util {
 
     use hyper::client::HttpConnector;
     use hyper::http::request;
-    use hyper::{Client, Response, StatusCode, Uri};
+    use hyper::{Body, Client, Response, StatusCode, Uri};
     use lazy_static::lazy_static;
     use starknet_rs_providers::jsonrpc::HttpTransport;
     use starknet_rs_providers::JsonRpcClient;
@@ -25,7 +29,9 @@ pub mod util {
     use tokio::sync::Mutex;
     use url::Url;
 
-    use super::constants::{ACCOUNTS, HOST, MAX_PORT, MIN_PORT, SEED};
+    use super::constants::{
+        ACCOUNTS, HOST, MAX_PORT, MIN_PORT, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE, SEED,
+    };
 
     #[derive(Error, Debug)]
     pub enum TestError {
@@ -50,6 +56,12 @@ pub mod util {
             // otherwise port is occupied
         }
         Err(TestError::NoFreePorts)
+    }
+
+    pub async fn get_json_body(resp: Response<Body>) -> serde_json::Value {
+        let resp_body = resp.into_body();
+        let resp_body_bytes = hyper::body::to_bytes(resp_body).await.unwrap();
+        serde_json::from_slice(&resp_body_bytes).unwrap()
     }
 
     lazy_static! {
@@ -91,6 +103,8 @@ pub mod util {
                 .arg(ACCOUNTS.to_string())
                 .arg("--port")
                 .arg(free_port.to_string())
+                .arg("--initial-balance")
+                .arg(PREDEPLOYED_ACCOUNT_INITIAL_BALANCE.to_string())
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .expect("Could not start background devnet");

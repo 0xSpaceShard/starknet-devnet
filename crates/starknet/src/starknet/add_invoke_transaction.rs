@@ -20,7 +20,6 @@ pub fn add_invoke_transcation_v1(
         INITIAL_GAS_COST,
     ) {
         Ok(tx_info) => {
-            println!("DEBUG Handling successful tx");
             starknet.handle_successful_transaction(
                 &transaction_hash,
                 Transaction::Invoke(Box::new(invoke_transaction)),
