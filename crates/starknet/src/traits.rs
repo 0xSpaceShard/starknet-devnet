@@ -4,6 +4,7 @@ use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::felt::{Balance, ClassHash, Felt};
 
 use crate::error::Result;
+use crate::state_diff::StateDiff;
 
 /// This trait should be implemented by structures that internally have collections and each element
 /// could be found by a hash
@@ -51,6 +52,7 @@ pub trait StateExtractor {
         &mut self,
         address: &ContractAddress,
     ) -> Result<ClassHash>;
+    fn extract_state_diff_from_pending_state(&mut self) -> Result<StateDiff>;
 }
 
 /// This trait should be implemented by structures that generate accounts
