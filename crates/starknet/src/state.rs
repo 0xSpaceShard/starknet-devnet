@@ -112,6 +112,11 @@ impl StateChanger for StarknetState {
                 .class_hash_to_contract_class
                 .insert(entry.0.bytes(), entry.1.try_into().map_err(crate::error::Error::from)?);
         }
+        
+        // update class_hash -> compiled_class_hash differences
+        state_diff.class_hash_to_compiled_class_hash.into_iter().for_each(|(class_hash, compiled_class_hash)| {
+            old_state.class_hash_to_compiled_class_hash_mut().insert(class_hash.bytes(), compiled_class_hash.bytes());
+        });
 
         // // update cairo 1 differences
         state_diff.declared_contracts.into_iter().for_each(|(class_hash, cairo_1_casm)| {
