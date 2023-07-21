@@ -162,60 +162,10 @@ impl StateExtractor for StarknetState {
     }
 
     fn extract_state_diff_from_pending_state(&mut self) -> Result<StateDiff> {
-        let mut pending_state = self.pending_state.clone();
-        let mut class_hash_to_compiled_class_hash = HashMap::<ClassHash, ClassHash>::new();
-        let mut declared_contracts = HashMap::<ClassHash, CasmContractClass>::new();
-        let mut cairo_0_declared_contracts = HashMap::<ClassHash, ContractClass>::new();
-
-        // extract differences of class_hash -> compile_class_hash mapping
-        let class_hash_to_compiled_class_hash_subtracted_map = subtract_mappings(
-            pending_state.cache_mut().class_hash_to_compiled_class_hash_mut().clone(),
-            self.state.class_hash_to_compiled_class_hash_mut().clone(),
-        );
-
-        for entry in class_hash_to_compiled_class_hash_subtracted_map {
-            let key = Felt::new(entry.0).map_err(|err| crate::error::Error::from(err))?;
-            let value = Felt::new(entry.1).map_err(|err| crate::error::Error::from(err))?;
-
-            class_hash_to_compiled_class_hash.insert(key, value);
-        }
-
-        // extract difference of compiled_class_hash -> CasmContractClass mapping, which is Cairo 1
-        // contract
-        let new_casm_contracts_classes =
-            pending_state.casm_contract_classes().clone().unwrap_or_default();
-
-        let compiled_class_hash_to_cairo_casm = subtract_mappings(
-            new_casm_contracts_classes,
-            self.state.casm_contract_classes_mut().clone(),
-        );
-
-        for entry in compiled_class_hash_to_cairo_casm {
-            let key = Felt::new(entry.0).map_err(|err| crate::error::Error::from(err))?;
-
-            declared_contracts.insert(key, entry.1);
-        }
-
-        // extract difference of class_hash -> Cairo 0 contract class
-        let class_hash_to_cairo_0_contract_class = subtract_mappings(
-            self.pending_state.contract_classes().clone().unwrap_or_default(),
-            self.state.class_hash_to_contract_class.clone(),
-        );
-
-        for entry in class_hash_to_cairo_0_contract_class {
-            let key = Felt::new(entry.0).map_err(|err| crate::error::Error::from(err))?;
-
-            cairo_0_declared_contracts.insert(key, ContractClass::from(entry.1));
-        }
-
-        let diff = StarknetInRustStateDiff::from_cached_state(pending_state)?;
-
-        Ok(StateDiff {
-            inner: diff,
-            class_hash_to_compiled_class_hash,
-            cairo_0_declared_contracts,
-            declared_contracts,
-        })
+        StateDiff::difference_between_old_and_new_state(
+            self.state.clone(),
+            self.pending_state.clone(),
+        )
     }
 }
 

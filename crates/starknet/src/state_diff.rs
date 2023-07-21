@@ -29,7 +29,7 @@ impl Eq for StateDiff {
 }
 
 impl StateDiff {
-    fn difference_between_old_and_new_state(
+    pub(crate) fn difference_between_old_and_new_state(
         mut old_state: InMemoryStateReader,
         mut new_state: CachedState<InMemoryStateReader>,
     ) -> Result<Self> {
