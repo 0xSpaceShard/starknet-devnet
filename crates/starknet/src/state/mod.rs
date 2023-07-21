@@ -92,10 +92,7 @@ impl StateChanger for StarknetState {
         Ok(())
     }
 
-    fn apply_cached_state(&mut self) -> Result<()> {
-        // get differences
-        let state_diff = self.extract_state_diff_from_pending_state()?;
-
+    fn apply_state_difference(&mut self, state_diff: StateDiff) -> Result<()> {
         let old_state = &mut self.state;
         // update contract storages
         state_diff.inner.storage_updates().iter().for_each(|(contract_address, storages)| {
@@ -165,7 +162,7 @@ impl StateExtractor for StarknetState {
         Ok(self.state.get_class_hash_at(&contract_address.try_into()?).map(Felt::new)??)
     }
 
-    fn extract_state_diff_from_pending_state(&mut self) -> Result<StateDiff> {
+    fn extract_state_diff_from_pending_state(&self) -> Result<StateDiff> {
         StateDiff::difference_between_old_and_new_state(
             self.state.clone(),
             self.pending_state.clone(),
@@ -202,7 +199,7 @@ mod tests {
 
         assert!(!state.is_contract_declared(&dummy_felt()));
         state.pending_state.get_contract_class(&class_hash).unwrap();
-        state.apply_cached_state().unwrap();
+        state.apply_state_difference(state.extract_state_diff_from_pending_state().unwrap()).unwrap();
 
         assert!(state.is_contract_declared(&dummy_felt()));
     }
@@ -244,7 +241,7 @@ mod tests {
         ));
 
         // apply changes to persistent state
-        state.apply_cached_state().unwrap();
+        state.apply_state_difference(state.extract_state_diff_from_pending_state().unwrap()).unwrap();
         assert_eq!(state.get_storage(dummy_contract_storage_key()).unwrap(), dummy_felt());
     }
 
@@ -268,7 +265,7 @@ mod tests {
 
         state.synchronize_states();
         state.pending_state.increment_nonce(&starknet_in_rust_address).unwrap();
-        state.apply_cached_state().unwrap();
+        state.apply_state_difference(state.extract_state_diff_from_pending_state().unwrap()).unwrap();
 
         // check if nonce update was correct
         assert!(

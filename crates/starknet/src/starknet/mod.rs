@@ -27,7 +27,7 @@ use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT_PATH, ERC20_CONTRACT_ADDRESS};
 use crate::error::{Error, Result};
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::state::StarknetState;
-use crate::traits::{AccountGenerator, Accounted, HashIdentifiedMut, StateChanger};
+use crate::traits::{AccountGenerator, Accounted, HashIdentifiedMut, StateChanger, StateExtractor};
 use crate::transactions::declare_transaction::DeclareTransactionV1;
 use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
 use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
@@ -182,7 +182,7 @@ impl Starknet {
         // create new block from pending one
         self.generate_new_block()?;
         // apply state changes from cached state
-        self.state.apply_cached_state()?;
+        self.state.apply_state_difference(self.state.extract_state_diff_from_pending_state()?)?;
         // make cached state part of "persistent" state
         self.state.synchronize_states();
         // clear pending block information

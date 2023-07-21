@@ -40,8 +40,8 @@ pub trait StateChanger {
     fn deploy_contract(&mut self, address: ContractAddress, class_hash: ClassHash) -> Result<()>;
     fn change_storage(&mut self, storage_key: ContractStorageKey, data: Felt) -> Result<()>;
     fn increment_nonce(&mut self, address: ContractAddress) -> Result<()>;
-    // get differences from pending state and apply them to "persistent" state
-    fn apply_cached_state(&mut self) -> Result<()>;
+    // apply state_diff to "persistent" state
+    fn apply_state_difference(&mut self, state_diff: StateDiff) -> Result<()>;
 }
 
 /// Interface for extracting data from the state
@@ -52,7 +52,7 @@ pub trait StateExtractor {
         &mut self,
         address: &ContractAddress,
     ) -> Result<ClassHash>;
-    fn extract_state_diff_from_pending_state(&mut self) -> Result<StateDiff>;
+    fn extract_state_diff_from_pending_state(&self) -> Result<StateDiff>;
 }
 
 /// This trait should be implemented by structures that generate accounts
