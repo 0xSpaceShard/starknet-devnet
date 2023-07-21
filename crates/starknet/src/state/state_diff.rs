@@ -11,7 +11,7 @@ use starknet_types::felt::{ClassHash, Felt};
 use crate::error::Result;
 
 /// This struct is used to store the difference between state modifications
-#[derive(PartialEq, Default, Debug)]
+#[derive(PartialEq, Default, Debug, Clone)]
 pub struct StateDiff {
     // data taken from starknet_in_rust
     pub(crate) inner: StarknetInRustStateDiff,

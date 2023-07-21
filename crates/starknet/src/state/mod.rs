@@ -339,12 +339,6 @@ mod tests {
         assert_eq!(expected_result, generated_result);
     }
 
-    #[test]
-    fn get_state_diff_correct_result() {
-        let (mut state, _) = setup();
-        state.extract_state_diff_from_pending_state().unwrap();
-    }
-
     fn setup() -> (StarknetState, ContractAddress) {
         let mut state = StarknetState::default();
         let address = dummy_contract_address();
