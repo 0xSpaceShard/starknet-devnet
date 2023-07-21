@@ -55,6 +55,8 @@ starknet-rs-signers = { git = "https://github.com/xJonathanLEI/starknet-rs", rev
 starknet-rs-ff = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "a6cbfa3", package = "starknet-ff" }
 starknet-rs-core = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "a6cbfa3", package = "starknet-core" }
 starknet-rs-providers = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "a6cbfa3", package = "starknet-providers" }
+starknet-rs-accounts = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "a6cbfa3", package = "starknet-accounts" }
+
 cairo-felt = { version = "0.8.1", package = "cairo-felt" }
 url = "2.4"
 

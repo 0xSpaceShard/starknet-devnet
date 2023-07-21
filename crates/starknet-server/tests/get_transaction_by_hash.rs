@@ -1,11 +1,15 @@
 pub mod common;
 
 mod get_transaction_by_hash_integration_tests {
+    use std::sync::Arc;
     use starknet_core::constants::DECLARE_V1_TRANSACTION_HASH;
-    use starknet_rs_core::types::{BroadcastedDeclareTransactionV1, FieldElement, contract::{SierraClass, CompiledClass}};
+    use starknet_rs_core::{chain_id, types::{BroadcastedDeclareTransactionV1, FieldElement, BlockId, BlockTag, contract::{SierraClass, CompiledClass}}};
+    use starknet_rs_signers::{LocalWallet, SigningKey};
+    use starknet_rs_accounts::{Account, SingleOwnerAccount};
     use starknet_rs_providers::Provider;
     use starknet_types::{felt::Felt, traits::ToHexString};
     use crate::common::util::BackgroundDevnet;
+    use crate::common::constants::{PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_PRIVATE_KEY};
 
     #[tokio::test]
     async fn get_declere_v1_transaction_by_hash_happy_path() {
@@ -42,6 +46,7 @@ mod get_transaction_by_hash_integration_tests {
 
     #[tokio::test]
     async fn get_declere_v2_transaction_by_hash_happy_path() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         // Sierra class artifact. Output of the `starknet-compile` command
         let path_to_cario1 = concat!(env!("CARGO_MANIFEST_DIR"), r"\test_data\rpc\declare_v2_contract_cario1\output.json");
@@ -49,7 +54,27 @@ mod get_transaction_by_hash_integration_tests {
 
         let path_to_casm = concat!(env!("CARGO_MANIFEST_DIR"), r"\test_data\rpc\declare_v2_contract_cario1\output-casm.json");
         let casm_contract_definition: CompiledClass =  serde_json::from_reader(std::fs::File::open(path_to_casm).unwrap()).unwrap();
-        let compiled_class_hash: Result<FieldElement, starknet_rs_core::types::contract::ComputeClassHashError> = casm_contract_definition.class_hash();
-        assert_eq!(Felt::from(compiled_class_hash.unwrap()).to_prefixed_hex_str(), "0x63b33a5f2f46b1445d04c06d7832c48c48ad087ce0803b71f2b8d96353716ca");
+        let compiled_class_hash = (casm_contract_definition.class_hash()).unwrap();
+        assert_eq!(Felt::from(compiled_class_hash).to_prefixed_hex_str(), "0x63b33a5f2f46b1445d04c06d7832c48c48ad087ce0803b71f2b8d96353716ca");
+
+        let signer = LocalWallet::from(SigningKey::from_secret_scalar(
+            FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_PRIVATE_KEY).unwrap(),
+        ));
+        let address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
+
+        let mut account = SingleOwnerAccount::new(&devnet.json_rpc_client, signer, address, chain_id::TESTNET);
+        account.set_block_id(BlockId::Tag(BlockTag::Latest));
+
+        // We need to flatten the ABI into a string first
+        let flattened_class = contract_artifact.flatten().unwrap();
+
+        println!("result:");
+        let result = account
+            .declare(Arc::new(flattened_class), compiled_class_hash)
+            .send()
+            .await
+            .unwrap();
+        
+        println!("result.transaction_hash: {}", Felt::from(result.transaction_hash).to_prefixed_hex_str());
     }
 }
