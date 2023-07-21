@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use starknet_in_rust::CasmContractClass;
 use starknet_in_rust::state::StateDiff as StarknetInRustStateDiff;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::ClassHash;
@@ -12,7 +13,7 @@ pub struct StateDiff {
     // that are different from cairo 0
     pub(crate) class_hash_to_compiled_class_hash: HashMap<ClassHash, ClassHash>,
     // declare contracts that are not cairo 0
-    pub(crate) declared_contracts: HashMap<ClassHash, ContractClass>,
+    pub(crate) declared_contracts: HashMap<ClassHash, CasmContractClass>,
     // cairo 0 declared contracts
     pub(crate) cairo_0_declared_contracts: HashMap<ClassHash, ContractClass>,
 }
