@@ -2,6 +2,9 @@ use std::collections::HashMap;
 use std::time::SystemTime;
 
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
+use starknet_in_rust::core::transaction_hash::{
+    calculate_transaction_hash_common, TransactionHashPrefix,
+};
 use starknet_in_rust::definitions::block_context::{
     BlockContext, StarknetChainId, StarknetOsConfig,
 };
@@ -11,11 +14,15 @@ use starknet_in_rust::definitions::constants::{
     DEFAULT_VALIDATE_MAX_N_STEPS,
 };
 use starknet_in_rust::execution::TransactionExecutionInfo;
+use starknet_in_rust::felt::Felt252;
+use starknet_in_rust::state::state_api::State;
 use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
 use starknet_in_rust::utils::Address;
 use starknet_in_rust::{call_contract, SierraContractClass};
 use starknet_rs_core::types::{BlockId, TransactionStatus};
+use starknet_rs_ff::FieldElement;
+use starknet_rs_signers::Signer;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
@@ -23,7 +30,10 @@ use tracing::error;
 
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
-use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT_PATH, ERC20_CONTRACT_ADDRESS};
+use crate::constants::{
+    CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
+    ERC20_CONTRACT_ADDRESS, SUPPORTED_TX_VERSION,
+};
 use crate::error::{Error, Result};
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::state::StarknetState;
@@ -100,12 +110,19 @@ impl Starknet {
         let accounts = predeployed_accounts.generate_accounts(
             config.total_accounts,
             class_hash,
-            account_contract_class,
+            account_contract_class.clone(),
         )?;
         for account in accounts {
             account.deploy(&mut state)?;
             account.set_initial_balance(&mut state)?;
         }
+
+        let chargeable_account = Account::new_chargeable(
+            class_hash,
+            account_contract_class,
+            erc20_fee_contract.get_address(),
+        );
+        chargeable_account.deploy(&mut state)?;
 
         // copy already modified state to cached state
         state.synchronize_states();
@@ -334,6 +351,49 @@ impl Starknet {
         invoke_transaction: InvokeTransactionV1,
     ) -> Result<TransactionHash> {
         add_invoke_transaction::add_invoke_transcation_v1(self, invoke_transaction)
+    }
+
+    /// Creates an invoke tx for minting, using the chargeable account.
+    pub async fn mint(&mut self, address: ContractAddress, amount: u128) -> Result<Felt> {
+        let calldata: [Felt252; 3] = [address.into(), amount.into(), 0.into()];
+
+        // generated msg hash (not the same as tx hash)
+        let sufficiently_big_max_fee = 1_000_000_000_000_000_000_u128; // 1e18
+        let erc20_address_felt = Felt::from_prefixed_hex_str(ERC20_CONTRACT_ADDRESS)?;
+        let chargeable_address_felt =
+            Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?.into();
+        let nonce = self.state.pending_state.get_nonce_at(&Address(chargeable_address_felt))?;
+        let msg_hash = calculate_transaction_hash_common(
+            TransactionHashPrefix::Invoke,
+            SUPPORTED_TX_VERSION.into(),
+            &Address(erc20_address_felt.into()),
+            0.into(), /* entry_point_selector is implied to be __execute__; 0 is required in
+                       * hash calculation */
+            &calldata,
+            sufficiently_big_max_fee,
+            self.config.chain_id.to_felt(),
+            &[nonce.clone()],
+        )?;
+        let msg_hash_felt = Felt::new(msg_hash.to_be_bytes())?;
+
+        // generate signature by signing the msg hash
+        let signer = starknet_rs_signers::LocalWallet::from(
+            starknet_rs_signers::SigningKey::from_secret_scalar(
+                FieldElement::from_hex_be(CHARGEABLE_ACCOUNT_PRIVATE_KEY).unwrap(),
+            ),
+        );
+        let signature = signer.sign_hash(&msg_hash_felt.into()).await?;
+
+        // apply the invoke tx
+        let invoke_tx = InvokeTransactionV1::new(
+            ContractAddress::new(erc20_address_felt)?,
+            sufficiently_big_max_fee,
+            vec![signature.r.into(), signature.s.into()],
+            nonce.into(),
+            calldata.into_iter().map(|c| c.into()).collect(),
+            self.config.chain_id.to_felt().into(),
+        )?;
+        self.add_invoke_transaction_v1(invoke_tx)
     }
 }
 

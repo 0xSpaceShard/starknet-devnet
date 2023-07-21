@@ -86,17 +86,17 @@ pub(crate) struct FeeToken {
 }
 
 #[derive(Deserialize)]
-pub(crate) struct MintTokens {
-    address: ContractAddressHex,
-    amount: u128,
-    lite: Option<bool>,
+pub(crate) struct MintTokensRequest {
+    pub(crate) address: ContractAddressHex,
+    pub(crate) amount: u128,
 }
 
 #[derive(Serialize)]
 pub(crate) struct MintTokensResponse {
-    new_balance: u128,
-    unit: String,
-    tx_hash: TransactionHashHex,
+    /// decimal repr
+    pub(crate) new_balance: String,
+    pub(crate) unit: String,
+    pub(crate) tx_hash: TransactionHashHex,
 }
 
 #[derive(Serialize)]

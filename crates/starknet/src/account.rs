@@ -9,7 +9,11 @@ use starknet_types::contract_class::ContractClass;
 use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::error::Error;
 use starknet_types::felt::{Balance, ClassHash, Felt, Key};
+use starknet_types::num_bigint::BigUint;
 
+use crate::constants::{
+    CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, CHARGEABLE_ACCOUNT_PUBLIC_KEY,
+};
 use crate::error::Result;
 use crate::traits::{Accounted, Deployed, StateChanger, StateExtractor};
 use crate::utils::get_storage_var_address;
@@ -30,6 +34,27 @@ pub struct Account {
 }
 
 impl Account {
+    pub(crate) fn new_chargeable(
+        class_hash: ClassHash,
+        contract_class: ContractClass,
+        fee_token_address: ContractAddress,
+    ) -> Self {
+        let initial_balance = BigUint::from(2u32).pow(251);
+        let initial_balance_hex = format!("0x{}", initial_balance.to_str_radix(16));
+        Self {
+            public_key: Key::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_PUBLIC_KEY).unwrap(),
+            private_key: Key::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_PRIVATE_KEY).unwrap(),
+            account_address: ContractAddress::new(
+                Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS).unwrap(),
+            )
+            .unwrap(),
+            initial_balance: Felt::from_prefixed_hex_str(&initial_balance_hex).unwrap(),
+            class_hash,
+            contract_class,
+            fee_token_address,
+        }
+    }
+
     pub(crate) fn new(
         initial_balance: Balance,
         public_key: Key,
