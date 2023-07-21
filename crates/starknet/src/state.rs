@@ -146,8 +146,14 @@ impl StateExtractor for StarknetState {
         Ok(self.state.get_storage_at(&storage_key.try_into()?).map(Felt::from)?)
     }
 
-    fn is_contract_declared(&self, class_hash: &ClassHash) -> Result<bool> {
-        Ok(self.state.class_hash_to_contract_class.contains_key(&(class_hash.bytes())))
+    fn is_contract_declared(&mut self, class_hash: &ClassHash) -> Result<bool> {
+        if self.state.class_hash_to_contract_class.contains_key(&(class_hash.bytes())) {
+            return Ok(true);
+        }else if self.state.class_hash_to_compiled_class_hash_mut().contains_key(&class_hash.bytes()) {
+            return Ok(true);
+        }
+        
+        Ok(false)
     }
 
     fn get_class_hash_at_contract_address(
