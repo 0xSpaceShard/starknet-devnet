@@ -1,13 +1,12 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass;
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
 use starknet_in_rust::state::cached_state::CachedState;
 use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
 use starknet_in_rust::state::state_api::StateReader;
 use starknet_in_rust::state::StateDiff as StarknetInRustStateDiff;
-use starknet_in_rust::utils::{subtract_mappings, to_state_diff_storage_mapping, Address};
+use starknet_in_rust::utils::{subtract_mappings, Address};
 use starknet_in_rust::CasmContractClass;
 use starknet_types::cairo_felt::Felt252;
 use starknet_types::contract_address::ContractAddress;
@@ -97,88 +96,42 @@ impl StateChanger for StarknetState {
         // get differences
         let state_cache = self.pending_state.cache_mut();
 
-        // storage differences
-        let substracted_maps = subtract_mappings(
-            state_cache.storage_writes().clone(),
-            state_cache.storage_initial_values_mut().clone(),
-        );
-
-        let storage_updates = to_state_diff_storage_mapping(substracted_maps);
-
-        // nonce differences
-        let address_to_nonce = subtract_mappings(
-            state_cache.nonce_writes_mut().clone(),
-            state_cache.nonce_initial_values().clone(),
-        );
-
-        // Cairo 1 compiled class hash
-        let class_hash_to_compiled_class = subtract_mappings(
-            state_cache.compiled_class_hash_writes_mut().clone(),
-            state_cache.compiled_class_hash_initial_values_mut().clone(),
-        );
-
-        let address_to_class_hash = subtract_mappings(
-            state_cache.class_hash_writes_mut().clone(),
-            state_cache.class_hash_initial_values_mut().clone(),
-        );
-
-        let new_casm_classes =
-            self.pending_state.casm_contract_classes().clone().unwrap_or_default();
-
-        // // Cairo 1 differences
-        let class_hash_to_cairo_1_casm =
-            subtract_mappings(new_casm_classes, self.state.casm_contract_classes_mut().clone());
-
-        // Cairo 0 differences
-        let class_hash_to_cairo_0_contract_class = subtract_mappings(
-            self.pending_state.contract_classes().clone().unwrap_or_default(),
-            self.state.class_hash_to_contract_class.clone(),
-        );
+        let state_diff = self.extract_state_diff_from_pending_state()?;
 
         let old_state = &mut self.state;
-
         // update contract storages
-        storage_updates.into_iter().for_each(|(contract_address, storages)| {
+        state_diff.inner.storage_updates().into_iter().for_each(|(contract_address, storages)| {
             storages.into_iter().for_each(|(key, value)| {
                 // old_state.storage_view.insert((contract_address, key), value);
                 let key = (contract_address.clone(), key.to_be_bytes());
-                old_state.address_to_storage_mut().insert(key, value);
+                old_state.address_to_storage_mut().insert(key, value.clone());
             })
         });
 
-        // update declared contracts
-        // apply newly declared classses
-        for (class_hash, contract_class) in class_hash_to_compiled_class {
-            match contract_class {
-                CompiledClass::Deprecated(artifact) => {
-                    old_state.class_hash_to_contract_class_mut().insert(class_hash, *artifact);
-                }
-                CompiledClass::Casm(artifact) => {
-                    old_state.casm_contract_classes_mut().insert(class_hash, *artifact);
-                }
-            }
+        // update cairo 0 differences
+        for entry in state_diff.cairo_0_declared_contracts {
+            old_state
+                .class_hash_to_contract_class
+                .insert(entry.0.bytes(), entry.1.try_into().map_err(crate::error::Error::from)?);
         }
 
-        // update cairo 0 differences
-        class_hash_to_cairo_0_contract_class.into_iter().for_each(
-            |(class_hash, cairo_0_contract_class)| {
-                old_state.class_hash_to_contract_class.insert(class_hash, cairo_0_contract_class);
+        // // update cairo 1 differences
+        state_diff.declared_contracts.into_iter().for_each(|(class_hash, cairo_1_casm)| {
+            old_state.casm_contract_classes_mut().insert(class_hash.bytes(), cairo_1_casm);
+        });
+
+        // // update deployed contracts
+        state_diff.inner.address_to_class_hash().into_iter().for_each(
+            |(contract_address, class_hash)| {
+                old_state
+                    .address_to_class_hash_mut()
+                    .insert(contract_address.clone(), class_hash.clone());
             },
         );
 
-        // // update cairo 1 differences
-        class_hash_to_cairo_1_casm.into_iter().for_each(|(class_hash, cairo_1_casm)| {
-            old_state.casm_contract_classes_mut().insert(class_hash, cairo_1_casm);
-        });
-
-        // update deployed contracts
-        address_to_class_hash.into_iter().for_each(|(contract_address, class_hash)| {
-            old_state.address_to_class_hash_mut().insert(contract_address, class_hash);
-        });
-
-        // // update accounts nonce
-        address_to_nonce.into_iter().for_each(|(contract_address, nonce)| {
-            old_state.address_to_nonce_mut().insert(contract_address, nonce);
+        // update accounts nonce
+        state_diff.inner.address_to_nonce().into_iter().for_each(|(contract_address, nonce)| {
+            old_state.address_to_nonce_mut().insert(contract_address.clone(), nonce.clone());
         });
 
         Ok(())
@@ -234,7 +187,7 @@ impl StateExtractor for StarknetState {
             let key = Felt::new(entry.0).map_err(|err| crate::error::Error::from(err))?;
 
             declared_contracts.insert(key, entry.1);
-        } 
+        }
 
         // extract difference of class_hash -> Cairo 0 contract class
         let class_hash_to_cairo_0_contract_class = subtract_mappings(
@@ -431,7 +384,7 @@ mod tests {
     #[test]
     fn get_state_diff_correct_result() {
         let (mut state, _) = setup();
-        state.extract_state_diff_from_pending_state();
+        state.extract_state_diff_from_pending_state().unwrap();
     }
 
     fn setup() -> (StarknetState, ContractAddress) {
