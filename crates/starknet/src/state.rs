@@ -94,8 +94,6 @@ impl StateChanger for StarknetState {
 
     fn apply_cached_state(&mut self) -> Result<()> {
         // get differences
-        let state_cache = self.pending_state.cache_mut();
-
         let state_diff = self.extract_state_diff_from_pending_state()?;
 
         let old_state = &mut self.state;
