@@ -36,6 +36,7 @@ pub(crate) fn initialize_erc20(state: &mut StarknetState) {
         ("ERC20_name", get_selector_from_name("ether").unwrap().into()),
         ("ERC20_symbol", get_selector_from_name("ETH").unwrap().into()),
         ("ERC20_decimals", 18.into()),
+        // necessary to set - otherwise minting txs cannot be performed
         ("Ownable_owner", Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS).unwrap()),
     ]
     .into_iter()
