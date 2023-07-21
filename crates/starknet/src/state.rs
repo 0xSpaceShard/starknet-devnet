@@ -1,12 +1,12 @@
-use std::collections::HashMap;
+
 use std::sync::Arc;
 
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
 use starknet_in_rust::state::cached_state::CachedState;
 use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
 use starknet_in_rust::state::state_api::StateReader;
-use starknet_in_rust::state::StateDiff as StarknetInRustStateDiff;
-use starknet_in_rust::utils::{subtract_mappings, Address};
+
+use starknet_in_rust::utils::{Address};
 use starknet_in_rust::CasmContractClass;
 use starknet_types::cairo_felt::Felt252;
 use starknet_types::contract_address::ContractAddress;
@@ -98,8 +98,8 @@ impl StateChanger for StarknetState {
 
         let old_state = &mut self.state;
         // update contract storages
-        state_diff.inner.storage_updates().into_iter().for_each(|(contract_address, storages)| {
-            storages.into_iter().for_each(|(key, value)| {
+        state_diff.inner.storage_updates().iter().for_each(|(contract_address, storages)| {
+            storages.iter().for_each(|(key, value)| {
                 // old_state.storage_view.insert((contract_address, key), value);
                 let key = (contract_address.clone(), key.to_be_bytes());
                 old_state.address_to_storage_mut().insert(key, value.clone());
@@ -128,16 +128,16 @@ impl StateChanger for StarknetState {
         });
 
         // // update deployed contracts
-        state_diff.inner.address_to_class_hash().into_iter().for_each(
+        state_diff.inner.address_to_class_hash().iter().for_each(
             |(contract_address, class_hash)| {
                 old_state
                     .address_to_class_hash_mut()
-                    .insert(contract_address.clone(), class_hash.clone());
+                    .insert(contract_address.clone(), *class_hash);
             },
         );
 
         // update accounts nonce
-        state_diff.inner.address_to_nonce().into_iter().for_each(|(contract_address, nonce)| {
+        state_diff.inner.address_to_nonce().iter().for_each(|(contract_address, nonce)| {
             old_state.address_to_nonce_mut().insert(contract_address.clone(), nonce.clone());
         });
 

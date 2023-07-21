@@ -44,8 +44,8 @@ impl StateDiff {
         );
 
         for entry in class_hash_to_compiled_class_hash_subtracted_map {
-            let key = Felt::new(entry.0).map_err(|err| crate::error::Error::from(err))?;
-            let value = Felt::new(entry.1).map_err(|err| crate::error::Error::from(err))?;
+            let key = Felt::new(entry.0).map_err(crate::error::Error::from)?;
+            let value = Felt::new(entry.1).map_err(crate::error::Error::from)?;
 
             class_hash_to_compiled_class_hash.insert(key, value);
         }
@@ -61,7 +61,7 @@ impl StateDiff {
         );
 
         for entry in compiled_class_hash_to_cairo_casm {
-            let key = Felt::new(entry.0).map_err(|err| crate::error::Error::from(err))?;
+            let key = Felt::new(entry.0).map_err(crate::error::Error::from)?;
 
             declared_contracts.insert(key, entry.1);
         }
@@ -73,7 +73,7 @@ impl StateDiff {
         );
 
         for entry in class_hash_to_cairo_0_contract_class {
-            let key = Felt::new(entry.0).map_err(|err| crate::error::Error::from(err))?;
+            let key = Felt::new(entry.0).map_err(crate::error::Error::from)?;
 
             cairo_0_declared_contracts.insert(key, ContractClass::from(entry.1));
         }
@@ -107,11 +107,11 @@ mod tests {
 
     #[test]
     fn no_difference_between_non_modified_states() {
-        let (old_stat, new_state) = setup();
+        let (old_state, new_state) = setup();
 
         let generated_diff = super::StateDiff::difference_between_old_and_new_state(
-            old_stat.clone(),
-            new_state.clone(),
+            old_state,
+            new_state,
         )
         .unwrap();
 
@@ -133,7 +133,7 @@ mod tests {
             .insert(class_hash, compiled_class_hash);
 
         let generated_diff = super::StateDiff::difference_between_old_and_new_state(
-            old_state.clone(),
+            old_state,
             new_state.clone(),
         )
         .unwrap();
@@ -159,8 +159,8 @@ mod tests {
             CachedState::new(Arc::new(old_state.clone()), Some(HashMap::new()), Some(casm_cache));
 
         let generated_diff = super::StateDiff::difference_between_old_and_new_state(
-            old_state.clone(),
-            new_state.clone(),
+            old_state,
+            new_state,
         )
         .unwrap();
 
@@ -188,8 +188,8 @@ mod tests {
         );
 
         let generated_diff = super::StateDiff::difference_between_old_and_new_state(
-            old_state.clone(),
-            new_state.clone(),
+            old_state,
+            new_state,
         )
         .unwrap();
 
@@ -221,7 +221,7 @@ mod tests {
             .insert(contract_address.try_into().unwrap(), class_hash.bytes());
 
         let generated_diff = super::StateDiff::difference_between_old_and_new_state(
-            old_state.clone(),
+            old_state,
             new_state.clone(),
         )
         .unwrap();
