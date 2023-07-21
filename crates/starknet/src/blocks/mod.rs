@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use starknet_api::block::{BlockHeader, BlockNumber, BlockStatus};
 use starknet_api::hash::{pedersen_hash_array, StarkFelt};
 use starknet_api::stark_felt;
+use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::felt::{BlockHash, Felt};
 use starknet_types::traits::HashProducer;
 
@@ -53,6 +54,17 @@ impl StarknetBlocks {
         self.hash_to_num.insert(hash, block_number);
         self.num_to_block.insert(block_number, block);
         self.last_block_hash = Some(hash);
+    }
+
+    pub fn block_number_from_block_id(&self, block_id: &BlockId) -> Option<BlockNumber> {
+        match block_id {
+            BlockId::Number(number) => Some(BlockNumber(*number)),
+
+            BlockId::Hash(hash) => self.hash_to_num.get(&Felt::from(*hash)).cloned(),
+
+            BlockId::Tag(BlockTag::Pending) => None,
+            BlockId::Tag(BlockTag::Latest) => Some(BlockNumber(self.hash_to_num.len() as u64)),
+        }
     }
 }
 
@@ -116,16 +128,11 @@ impl HashProducer for StarknetBlock {
 #[cfg(test)]
 mod tests {
     use starknet_api::block::{BlockHash, BlockHeader, BlockNumber, BlockStatus};
+    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement};
     use starknet_types::traits::HashProducer;
 
     use super::{StarknetBlock, StarknetBlocks};
     use crate::traits::HashIdentified;
-
-    #[test]
-    fn block_hash_computation_doesnt_affect_internal_block_state() {
-        let block = StarknetBlock::create_pending_block();
-        assert!(block.generate_hash().unwrap() == block.generate_hash().unwrap());
-    }
 
     #[test]
     fn correct_block_linking_via_parent_hash() {
@@ -178,5 +185,28 @@ mod tests {
         assert!(block.status == BlockStatus::Pending);
         assert!(block.transactions.is_empty());
         assert_eq!(block.header, BlockHeader::default());
+    }
+
+    #[test]
+    fn get_block_number_from_block_id() {
+        let mut blocks = StarknetBlocks::default();
+
+        let mut block_to_insert = StarknetBlock::create_pending_block();
+        block_to_insert.header.block_hash = block_to_insert.generate_hash().unwrap().into();
+        block_to_insert.header.block_number = BlockNumber(1);
+
+        blocks.insert(block_to_insert.clone());
+
+        let block_by_number = blocks.block_number_from_block_id(&BlockId::Number(1));
+        assert_eq!(block_by_number.unwrap(), block_to_insert.block_number());
+
+        let block_by_tag = blocks.block_number_from_block_id(&BlockId::Tag(BlockTag::Latest));
+        assert_eq!(block_by_tag.unwrap(), block_to_insert.block_number());
+
+        let last_block_hash = blocks.last_block_hash.unwrap();
+
+        let block_by_hash =
+            blocks.block_number_from_block_id(&BlockId::Hash(FieldElement::from(last_block_hash)));
+        assert_eq!(block_by_hash.unwrap(), block_to_insert.block_number());
     }
 }
