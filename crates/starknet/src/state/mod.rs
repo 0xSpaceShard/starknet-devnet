@@ -12,10 +12,9 @@ use starknet_types::contract_class::ContractClass;
 use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::felt::{ClassHash, Felt};
 
+use self::state_diff::StateDiff;
 use crate::error::Result;
 use crate::traits::{StateChanger, StateExtractor};
-
-use self::state_diff::StateDiff;
 
 pub(crate) mod state_diff;
 
@@ -150,13 +149,12 @@ impl StateExtractor for StarknetState {
     }
 
     fn is_contract_declared(&mut self, class_hash: &ClassHash) -> bool {
-        if self.state.class_hash_to_compiled_class_hash_mut().contains_key(&class_hash.bytes()) {
+        if self.state.class_hash_to_compiled_class_hash_mut().contains_key(&class_hash.bytes())
+            || self.state.class_hash_to_contract_class.contains_key(&(class_hash.bytes()))
+        {
             return true;
         }
-        else if self.state.class_hash_to_contract_class.contains_key(&(class_hash.bytes())) {
-            return true;
-        }
-        
+
         false
     }
 
