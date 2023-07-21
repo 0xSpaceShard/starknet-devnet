@@ -1,12 +1,10 @@
-
 use std::sync::Arc;
 
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
 use starknet_in_rust::state::cached_state::CachedState;
 use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
 use starknet_in_rust::state::state_api::StateReader;
-
-use starknet_in_rust::utils::{Address};
+use starknet_in_rust::utils::Address;
 use starknet_in_rust::CasmContractClass;
 use starknet_types::cairo_felt::Felt252;
 use starknet_types::contract_address::ContractAddress;
@@ -130,9 +128,7 @@ impl StateChanger for StarknetState {
         // // update deployed contracts
         state_diff.inner.address_to_class_hash().iter().for_each(
             |(contract_address, class_hash)| {
-                old_state
-                    .address_to_class_hash_mut()
-                    .insert(contract_address.clone(), *class_hash);
+                old_state.address_to_class_hash_mut().insert(contract_address.clone(), *class_hash);
             },
         );
 

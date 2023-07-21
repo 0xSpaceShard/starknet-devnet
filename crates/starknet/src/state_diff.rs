@@ -109,11 +109,8 @@ mod tests {
     fn no_difference_between_non_modified_states() {
         let (old_state, new_state) = setup();
 
-        let generated_diff = super::StateDiff::difference_between_old_and_new_state(
-            old_state,
-            new_state,
-        )
-        .unwrap();
+        let generated_diff =
+            super::StateDiff::difference_between_old_and_new_state(old_state, new_state).unwrap();
 
         let expected_diff = StateDiff::default();
 
@@ -132,11 +129,9 @@ mod tests {
             .class_hash_to_compiled_class_hash_mut()
             .insert(class_hash, compiled_class_hash);
 
-        let generated_diff = super::StateDiff::difference_between_old_and_new_state(
-            old_state,
-            new_state.clone(),
-        )
-        .unwrap();
+        let generated_diff =
+            super::StateDiff::difference_between_old_and_new_state(old_state, new_state.clone())
+                .unwrap();
         let mut expected_diff = StateDiff::default();
         expected_diff
             .class_hash_to_compiled_class_hash
@@ -158,11 +153,8 @@ mod tests {
         let new_state =
             CachedState::new(Arc::new(old_state.clone()), Some(HashMap::new()), Some(casm_cache));
 
-        let generated_diff = super::StateDiff::difference_between_old_and_new_state(
-            old_state,
-            new_state,
-        )
-        .unwrap();
+        let generated_diff =
+            super::StateDiff::difference_between_old_and_new_state(old_state, new_state).unwrap();
 
         let mut expected_diff = StateDiff::default();
         expected_diff
@@ -187,11 +179,8 @@ mod tests {
             Some(HashMap::new()),
         );
 
-        let generated_diff = super::StateDiff::difference_between_old_and_new_state(
-            old_state,
-            new_state,
-        )
-        .unwrap();
+        let generated_diff =
+            super::StateDiff::difference_between_old_and_new_state(old_state, new_state).unwrap();
 
         let cairo_0_contract_class = starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass::try_from(dummy_cairo_0_contract_class()).unwrap();
         let expected_diff = StateDiff {
@@ -220,11 +209,9 @@ mod tests {
             .class_hash_writes_mut()
             .insert(contract_address.try_into().unwrap(), class_hash.bytes());
 
-        let generated_diff = super::StateDiff::difference_between_old_and_new_state(
-            old_state,
-            new_state.clone(),
-        )
-        .unwrap();
+        let generated_diff =
+            super::StateDiff::difference_between_old_and_new_state(old_state, new_state.clone())
+                .unwrap();
 
         let expected_diff = StateDiff {
             inner: starknet_in_rust::state::StateDiff::new(
