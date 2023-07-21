@@ -106,7 +106,7 @@ mod tests {
     };
 
     #[test]
-    fn no_difference_between_non_modified_states() {
+    fn correct_no_difference_between_non_modified_states() {
         let (old_state, new_state) = setup();
 
         let generated_diff =
