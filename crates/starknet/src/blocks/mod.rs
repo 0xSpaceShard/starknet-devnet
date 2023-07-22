@@ -147,15 +147,35 @@ impl HashProducer for StarknetBlock {
 #[cfg(test)]
 mod tests {
     use starknet_api::block::{BlockHash, BlockHeader, BlockNumber, BlockStatus};
+    use starknet_rs_core::types::BlockId;
     use starknet_types::traits::HashProducer;
 
     use super::{StarknetBlock, StarknetBlocks};
-    use crate::traits::HashIdentified;
+    use crate::{traits::HashIdentified, error};
+
 
     #[test]
-    fn block_hash_computation_doesnt_affect_internal_block_state() {
-        let block = StarknetBlock::create_pending_block();
-        assert!(block.generate_hash().unwrap() == block.generate_hash().unwrap());
+    fn get_by_block_id_is_correct() {
+        let mut blocks = StarknetBlocks::default();
+        let mut block_to_insert = StarknetBlock::create_pending_block();
+        block_to_insert.header.block_hash = block_to_insert.generate_hash().unwrap().into();
+        block_to_insert.header.block_number = BlockNumber(10);
+
+        blocks.insert(block_to_insert.clone());
+
+        let extracted_block = blocks.get_by_block_id(BlockId::Number(10)).unwrap();
+        assert!(block_to_insert == extracted_block.clone());
+
+        let extracted_block = blocks.get_by_block_id(BlockId::Hash(block_to_insert.block_hash().into())).unwrap();
+        assert!(block_to_insert == extracted_block.clone());
+
+        let extracted_block = blocks.get_by_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest)).unwrap();
+        assert!(block_to_insert == extracted_block.clone());
+
+        match blocks.get_by_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Pending)) {
+            Err(error::Error::NoBlock) => (),
+            _ => panic!("Expected error::Error::NoBlock"),
+        }
     }
 
     #[test]
