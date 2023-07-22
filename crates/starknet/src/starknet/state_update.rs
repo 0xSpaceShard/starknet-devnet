@@ -42,12 +42,10 @@ mod tests {
 
         let sierra_class_hash = contract_class.generate_hash().unwrap();
         let casm_contract_class = CasmContractClass::try_from(contract_class.clone()).unwrap();
-        let compiled_class_hash =
-            compute_casm_class_hash(&casm_contract_class.clone())
-                .unwrap();
+        let compiled_class_hash = compute_casm_class_hash(&casm_contract_class).unwrap();
 
         let declare_txn = DeclareTransactionV2::new(
-            contract_class.clone(),
+            contract_class,
             compiled_class_hash.clone().into(),
             sender_address,
             100,
@@ -68,9 +66,11 @@ mod tests {
                 starknet_rs_core::types::BlockTag::Latest,
             ))
             .unwrap();
-        
+
         let expected_state_diff = StateDiff {
-            declared_contracts: vec![(compiled_class_hash.clone().into(), casm_contract_class)].into_iter().collect(),
+            declared_contracts: vec![(compiled_class_hash.clone().into(), casm_contract_class)]
+                .into_iter()
+                .collect(),
             class_hash_to_compiled_class_hash: vec![(
                 sierra_class_hash,
                 compiled_class_hash.into(),
@@ -79,29 +79,35 @@ mod tests {
             .collect(),
             ..Default::default()
         };
-        
-        // check only 3 of the 4 fields, because the inner property has changes to the storage of the ERC20 contract
-        // which are hard to be tested correctly, it depends on the fee calculation of starknet_in_rust_library
-        assert_eq!(state_diff.cairo_0_declared_contracts, expected_state_diff.cairo_0_declared_contracts);
-        assert_eq!(state_diff.class_hash_to_compiled_class_hash, expected_state_diff.class_hash_to_compiled_class_hash);
+
+        // check only 3 of the 4 fields, because the inner property has changes to the storage of
+        // the ERC20 contract which are hard to be tested correctly, it depends on the fee
+        // calculation of starknet_in_rust_library
+        assert_eq!(
+            state_diff.cairo_0_declared_contracts,
+            expected_state_diff.cairo_0_declared_contracts
+        );
+        assert_eq!(
+            state_diff.class_hash_to_compiled_class_hash,
+            expected_state_diff.class_hash_to_compiled_class_hash
+        );
         assert_eq!(state_diff.declared_contracts, expected_state_diff.declared_contracts);
 
-        let (txn_hash, _) = starknet.add_declare_transaction_v2(declare_txn.clone()).unwrap();
+        let (txn_hash, _) = starknet.add_declare_transaction_v2(declare_txn).unwrap();
         assert_eq!(
             starknet.transactions.get_by_hash_mut(&txn_hash).unwrap().status,
             TransactionStatus::AcceptedOnL2
-        );   
+        );
 
         let (_, state_diff) = starknet
             .block_state_update(starknet_rs_core::types::BlockId::Tag(
                 starknet_rs_core::types::BlockTag::Latest,
             ))
-        .unwrap();
+            .unwrap();
 
         assert!(state_diff.declared_contracts.is_empty());
         assert!(state_diff.class_hash_to_compiled_class_hash.is_empty());
         assert!(state_diff.cairo_0_declared_contracts.is_empty());
-
     }
 
     fn setup() -> (Starknet, ContractAddress) {
