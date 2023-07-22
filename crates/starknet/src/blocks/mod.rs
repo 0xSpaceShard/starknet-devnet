@@ -3,9 +3,13 @@ use std::collections::HashMap;
 use starknet_api::block::{BlockHeader, BlockNumber, BlockStatus};
 use starknet_api::hash::{pedersen_hash_array, StarkFelt};
 use starknet_api::stark_felt;
+use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::felt::{BlockHash, Felt};
 use starknet_types::traits::HashProducer;
 
+use crate::error;
+use crate::error::Result;
+use crate::state::state_diff::StateDiff;
 use crate::traits::HashIdentified;
 use crate::transactions::Transaction;
 
@@ -13,7 +17,8 @@ pub(crate) struct StarknetBlocks {
     pub(crate) hash_to_num: HashMap<BlockHash, BlockNumber>,
     pub(crate) num_to_block: HashMap<BlockNumber, StarknetBlock>,
     pub(crate) pending_block: StarknetBlock,
-    last_block_hash: Option<BlockHash>,
+    pub(crate) last_block_hash: Option<BlockHash>,
+    pub(crate) num_to_state_diff: HashMap<BlockNumber, StateDiff>,
 }
 
 impl HashIdentified for StarknetBlocks {
@@ -35,6 +40,7 @@ impl Default for StarknetBlocks {
             num_to_block: HashMap::new(),
             pending_block: StarknetBlock::create_pending_block(),
             last_block_hash: None,
+            num_to_state_diff: HashMap::new(),
         }
     }
 }
@@ -53,6 +59,25 @@ impl StarknetBlocks {
         self.hash_to_num.insert(hash, block_number);
         self.num_to_block.insert(block_number, block);
         self.last_block_hash = Some(hash);
+    }
+
+    pub fn connect_state_diff_to_block(&mut self, block_number: BlockNumber, state_diff: StateDiff) {
+        self.num_to_state_diff.insert(block_number, state_diff);
+    }
+
+    pub fn get_by_block_id(&self, block_id: BlockId) -> Result<&StarknetBlock> {
+        match block_id {
+            BlockId::Hash(hash) => self.get_by_hash(Felt::from(hash)).ok_or(error::Error::NoBlock),
+            BlockId::Number(block_number) => self.num_to_block.get(&BlockNumber(block_number)).ok_or(error::Error::NoBlock),
+            BlockId::Tag(BlockTag::Latest) => {
+                if let Some(hash) = self.last_block_hash {
+                    self.get_by_hash(hash).ok_or(error::Error::NoBlock)
+                }else {
+                    Err(error::Error::NoBlock)
+                }
+            }
+            BlockId::Tag(BlockTag::Pending) => Err(error::Error::NoBlock)
+        }
     }
 }
 
