@@ -176,6 +176,11 @@ mod tests {
             Err(error::Error::NoBlock) => (),
             _ => panic!("Expected error::Error::NoBlock"),
         }
+
+        match blocks.get_by_block_id(BlockId::Number(11)) {
+            Err(error::Error::NoBlock) => (),
+            _ => panic!("Expected error::Error::NoBlock"),
+        }
     }
 
     #[test]
