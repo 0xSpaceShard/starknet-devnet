@@ -15,19 +15,20 @@ use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
 use starknet_in_rust::utils::Address;
 use starknet_in_rust::{call_contract, SierraContractClass};
-use starknet_rs_core::types::{BlockId, TransactionStatus};
+use starknet_rs_core::types::{BlockId, TransactionStatus, BlockTag};
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{ClassHash, Felt, TransactionHash};
+use starknet_types::felt::{ClassHash, Felt, TransactionHash, BlockHash};
 use starknet_types::traits::HashProducer;
 use tracing::error;
 
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT_PATH, ERC20_CONTRACT_ADDRESS};
-use crate::error::{Error, Result};
+use crate::error::{Error, Result, self};
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::state::StarknetState;
-use crate::traits::{AccountGenerator, Accounted, HashIdentifiedMut, StateChanger, StateExtractor};
+use crate::state::state_diff::StateDiff;
+use crate::traits::{AccountGenerator, Accounted, HashIdentifiedMut, StateChanger, StateExtractor, HashIdentified};
 use crate::transactions::declare_transaction::DeclareTransactionV1;
 use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
 use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
@@ -137,19 +138,20 @@ impl Starknet {
     }
 
     // Transfer data from pending block into new block and save it to blocks collection
-    pub(crate) fn generate_new_block(&mut self) -> Result<()> {
+    pub(crate) fn generate_new_block(&mut self, state_diff: StateDiff) -> Result<()> {
         let mut new_block = self.pending_block().clone();
 
         // set new block header
         new_block.set_block_hash(new_block.generate_hash()?);
         new_block.status = BlockStatus::AcceptedOnL2;
+        let new_block_number = new_block.block_number();
 
         // update txs block hash block number for each transaction in the pending block
         new_block.get_transactions().iter().for_each(|t| {
             if let Some(tx_hash) = t.get_hash() {
                 if let Some(tx) = self.transactions.get_by_hash_mut(&tx_hash) {
                     tx.block_hash = Some(new_block.header.block_hash.0.into());
-                    tx.block_number = Some(new_block.header.block_number);
+                    tx.block_number = Some(new_block_number);
                     tx.status = TransactionStatus::AcceptedOnL2;
                 } else {
                     error!("Transaction is not present in the transactions colletion");
@@ -161,6 +163,8 @@ impl Starknet {
 
         // insert pending block in the blocks collection
         self.blocks.insert(new_block);
+        // Connect block number to state diff
+        self.blocks.connect_state_diff_to_block(new_block_number, state_diff);
 
         Ok(())
     }
@@ -179,12 +183,13 @@ impl Starknet {
 
         self.transactions.insert(transaction_hash, transaction_to_add);
 
-        // create new block from pending one
-        self.generate_new_block()?;
+        let state_difference = self.state.extract_state_diff_from_pending_state()?;
         // apply state changes from cached state
-        self.state.apply_state_difference(self.state.extract_state_diff_from_pending_state()?)?;
+        self.state.apply_state_difference(state_difference.clone())?;
         // make cached state part of "persistent" state
         self.state.synchronize_states();
+        // create new block from pending one
+        self.generate_new_block(state_difference)?;
         // clear pending block information
         self.generate_pending_block()?;
 
@@ -326,6 +331,13 @@ impl Starknet {
             deploy_account_transaction,
         )
     }
+
+    pub fn block_state_update(&self, block_id: BlockId) -> Result<(BlockHash, StateDiff)> {
+        let block = self.blocks.get_by_block_id(block_id)?;
+        let state_diff = self.blocks.num_to_state_diff.get(&block.block_number()).cloned().unwrap_or_default();
+
+        Ok((block.block_hash(), state_diff))
+    }
 }
 
 #[cfg(test)]
@@ -344,6 +356,7 @@ mod tests {
     use crate::blocks::StarknetBlock;
     use crate::constants::{DEVNET_DEFAULT_INITIAL_BALANCE, ERC20_CONTRACT_ADDRESS};
     use crate::error::{Error, Result};
+    use crate::state::state_diff::StateDiff;
     use crate::traits::Accounted;
     use crate::utils::test_utils::{dummy_declare_transaction_v1, starknet_config_for_test};
 
@@ -407,7 +420,7 @@ mod tests {
         // blocks collection is empty
         assert!(starknet.blocks.num_to_block.is_empty());
 
-        starknet.generate_new_block().unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
         // blocks collection should not be empty
         assert!(!starknet.blocks.num_to_block.is_empty());
 
@@ -597,7 +610,7 @@ mod tests {
         let block_number_no_blocks = starknet.block_number();
         assert_eq!(block_number_no_blocks.0, 0);
 
-        starknet.generate_new_block().unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
         starknet.generate_pending_block().unwrap();
 
         // last added block number -> 0
@@ -607,7 +620,7 @@ mod tests {
 
         assert_eq!(block_number.0 - 1, added_block.header.block_number.0);
 
-        starknet.generate_new_block().unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
         starknet.generate_pending_block().unwrap();
 
         let added_block2 = starknet.blocks.num_to_block.get(&BlockNumber(1)).unwrap();
