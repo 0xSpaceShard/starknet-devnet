@@ -199,7 +199,9 @@ mod tests {
 
         assert!(!state.is_contract_declared(&dummy_felt()));
         state.pending_state.get_contract_class(&class_hash).unwrap();
-        state.apply_state_difference(state.extract_state_diff_from_pending_state().unwrap()).unwrap();
+        state
+            .apply_state_difference(state.extract_state_diff_from_pending_state().unwrap())
+            .unwrap();
 
         assert!(state.is_contract_declared(&dummy_felt()));
     }
@@ -241,7 +243,9 @@ mod tests {
         ));
 
         // apply changes to persistent state
-        state.apply_state_difference(state.extract_state_diff_from_pending_state().unwrap()).unwrap();
+        state
+            .apply_state_difference(state.extract_state_diff_from_pending_state().unwrap())
+            .unwrap();
         assert_eq!(state.get_storage(dummy_contract_storage_key()).unwrap(), dummy_felt());
     }
 
@@ -265,7 +269,9 @@ mod tests {
 
         state.synchronize_states();
         state.pending_state.increment_nonce(&starknet_in_rust_address).unwrap();
-        state.apply_state_difference(state.extract_state_diff_from_pending_state().unwrap()).unwrap();
+        state
+            .apply_state_difference(state.extract_state_diff_from_pending_state().unwrap())
+            .unwrap();
 
         // check if nonce update was correct
         assert!(

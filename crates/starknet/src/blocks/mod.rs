@@ -61,22 +61,28 @@ impl StarknetBlocks {
         self.last_block_hash = Some(hash);
     }
 
-    pub fn connect_state_diff_to_block(&mut self, block_number: BlockNumber, state_diff: StateDiff) {
+    pub fn connect_state_diff_to_block(
+        &mut self,
+        block_number: BlockNumber,
+        state_diff: StateDiff,
+    ) {
         self.num_to_state_diff.insert(block_number, state_diff);
     }
 
     pub fn get_by_block_id(&self, block_id: BlockId) -> Result<&StarknetBlock> {
         match block_id {
             BlockId::Hash(hash) => self.get_by_hash(Felt::from(hash)).ok_or(error::Error::NoBlock),
-            BlockId::Number(block_number) => self.num_to_block.get(&BlockNumber(block_number)).ok_or(error::Error::NoBlock),
+            BlockId::Number(block_number) => {
+                self.num_to_block.get(&BlockNumber(block_number)).ok_or(error::Error::NoBlock)
+            }
             BlockId::Tag(BlockTag::Latest) => {
                 if let Some(hash) = self.last_block_hash {
                     self.get_by_hash(hash).ok_or(error::Error::NoBlock)
-                }else {
+                } else {
                     Err(error::Error::NoBlock)
                 }
             }
-            BlockId::Tag(BlockTag::Pending) => Err(error::Error::NoBlock)
+            BlockId::Tag(BlockTag::Pending) => Err(error::Error::NoBlock),
         }
     }
 }

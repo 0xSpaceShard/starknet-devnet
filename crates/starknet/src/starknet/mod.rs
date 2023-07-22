@@ -15,20 +15,22 @@ use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
 use starknet_in_rust::utils::Address;
 use starknet_in_rust::{call_contract, SierraContractClass};
-use starknet_rs_core::types::{BlockId, TransactionStatus, BlockTag};
+use starknet_rs_core::types::{BlockId, BlockTag, TransactionStatus};
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{ClassHash, Felt, TransactionHash, BlockHash};
+use starknet_types::felt::{BlockHash, ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use tracing::error;
 
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT_PATH, ERC20_CONTRACT_ADDRESS};
-use crate::error::{Error, Result, self};
+use crate::error::{self, Error, Result};
 use crate::predeployed_accounts::PredeployedAccounts;
-use crate::state::StarknetState;
 use crate::state::state_diff::StateDiff;
-use crate::traits::{AccountGenerator, Accounted, HashIdentifiedMut, StateChanger, StateExtractor, HashIdentified};
+use crate::state::StarknetState;
+use crate::traits::{
+    AccountGenerator, Accounted, HashIdentified, HashIdentifiedMut, StateChanger, StateExtractor,
+};
 use crate::transactions::declare_transaction::DeclareTransactionV1;
 use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
 use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
@@ -334,7 +336,8 @@ impl Starknet {
 
     pub fn block_state_update(&self, block_id: BlockId) -> Result<(BlockHash, StateDiff)> {
         let block = self.blocks.get_by_block_id(block_id)?;
-        let state_diff = self.blocks.num_to_state_diff.get(&block.block_number()).cloned().unwrap_or_default();
+        let state_diff =
+            self.blocks.num_to_state_diff.get(&block.block_number()).cloned().unwrap_or_default();
 
         Ok((block.block_hash(), state_diff))
     }
