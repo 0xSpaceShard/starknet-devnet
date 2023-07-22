@@ -151,8 +151,8 @@ mod tests {
     use starknet_types::traits::HashProducer;
 
     use super::{StarknetBlock, StarknetBlocks};
-    use crate::{traits::HashIdentified, error};
-
+    use crate::error;
+    use crate::traits::HashIdentified;
 
     #[test]
     fn get_by_block_id_is_correct() {
@@ -166,10 +166,13 @@ mod tests {
         let extracted_block = blocks.get_by_block_id(BlockId::Number(10)).unwrap();
         assert!(block_to_insert == extracted_block.clone());
 
-        let extracted_block = blocks.get_by_block_id(BlockId::Hash(block_to_insert.block_hash().into())).unwrap();
+        let extracted_block =
+            blocks.get_by_block_id(BlockId::Hash(block_to_insert.block_hash().into())).unwrap();
         assert!(block_to_insert == extracted_block.clone());
 
-        let extracted_block = blocks.get_by_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest)).unwrap();
+        let extracted_block = blocks
+            .get_by_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))
+            .unwrap();
         assert!(block_to_insert == extracted_block.clone());
 
         match blocks.get_by_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Pending)) {
