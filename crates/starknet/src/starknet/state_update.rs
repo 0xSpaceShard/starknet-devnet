@@ -36,6 +36,8 @@ mod tests {
     use crate::utils::test_utils::{dummy_cairo_1_contract_class, dummy_felt};
 
     #[test]
+    /// This test checks that the state update is correct after a declare transaction v2.
+    /// Then checks that the state update is empty after executing the same declare transaction
     fn correct_state_update_after_declare_transaction_v2() {
         let (mut starknet, sender_address) = setup();
         let contract_class = dummy_cairo_1_contract_class();
@@ -110,6 +112,8 @@ mod tests {
         assert!(state_diff.cairo_0_declared_contracts.is_empty());
     }
 
+    // Initializes starknet with account_without_validations
+    // deployes ERC20 contract
     fn setup() -> (Starknet, ContractAddress) {
         let mut starknet = Starknet::default();
         let account_json_path = concat!(
