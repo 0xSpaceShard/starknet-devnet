@@ -10,7 +10,7 @@ use super::{JsonRpcHandler, RpcResult};
 use crate::api::models::block::Block;
 use crate::api::models::contract_class::ContractClass;
 use crate::api::models::state::{
-    self, ClassHashes, ContractNonce, DeployedContract, StateUpdate, StorageDiff, StorageEntry,
+    ClassHashes, ContractNonce, DeployedContract, StateUpdate, StorageDiff, StorageEntry,
     ThinStateDiff,
 };
 use crate::api::models::transaction::{
@@ -71,8 +71,10 @@ impl JsonRpcHandler {
                     nonce: FeltHex(nonce),
                 })
                 .collect(),
-            storage_diffs: state_update.storage_updates.into_iter().map(
-                |(contract_address, updates)| StorageDiff {
+            storage_diffs: state_update
+                .storage_updates
+                .into_iter()
+                .map(|(contract_address, updates)| StorageDiff {
                     address: ContractAddressHex(contract_address),
                     storage_entries: updates
                         .into_iter()
@@ -81,8 +83,8 @@ impl JsonRpcHandler {
                             value: FeltHex(value),
                         })
                         .collect(),
-                },
-            ).collect(),
+                })
+                .collect(),
             replaced_classes: vec![],
         };
 

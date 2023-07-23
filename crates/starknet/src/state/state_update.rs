@@ -26,11 +26,8 @@ impl StateUpdate {
             .collect();
 
         // cairo 0 declarations
-        let cairo_0_declared_classes: Vec<Felt> = state_diff
-            .cairo_0_declared_contracts
-            .into_iter()
-            .map(|(class_hash, _)| class_hash)
-            .collect();
+        let cairo_0_declared_classes: Vec<Felt> =
+            state_diff.cairo_0_declared_contracts.into_keys().collect();
 
         // storage updates (contract address -> [(storage_entry, value)])
         let mut storage_updates = Vec::<(ContractAddress, Vec<(PatriciaKey, Felt)>)>::new();
@@ -62,7 +59,7 @@ impl StateUpdate {
         for (address, class_hash) in state_diff.inner.address_to_class_hash() {
             let contract_address =
                 ContractAddress::try_from(address.clone()).map_err(crate::error::Error::from)?;
-            let class_hash = Felt::new(class_hash.clone()).map_err(crate::error::Error::from)?;
+            let class_hash = Felt::new(*class_hash).map_err(crate::error::Error::from)?;
             deployed_contracts.push((contract_address, class_hash));
         }
 

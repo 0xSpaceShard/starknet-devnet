@@ -7,8 +7,6 @@ use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::felt::{BlockHash, Felt};
 use starknet_types::traits::HashProducer;
 
-use crate::error;
-use crate::error::Result;
 use crate::state::state_diff::StateDiff;
 use crate::traits::HashIdentified;
 use crate::transactions::Transaction;
@@ -149,7 +147,6 @@ mod tests {
     use starknet_types::traits::HashProducer;
 
     use super::{StarknetBlock, StarknetBlocks};
-    use crate::error;
     use crate::traits::HashIdentified;
 
     #[test]

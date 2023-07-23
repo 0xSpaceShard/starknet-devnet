@@ -17,7 +17,7 @@ use starknet_in_rust::utils::Address;
 use starknet_in_rust::{call_contract, SierraContractClass};
 use starknet_rs_core::types::{BlockId, TransactionStatus};
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{BlockHash, ClassHash, Felt, TransactionHash};
+use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use tracing::error;
 

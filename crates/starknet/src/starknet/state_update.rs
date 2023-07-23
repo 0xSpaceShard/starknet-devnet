@@ -79,8 +79,7 @@ mod tests {
             ..Default::default()
         };
 
-        let expected_state_update =
-            StateUpdate::new(Felt::default(), expected_state_diff.clone()).unwrap();
+        let expected_state_update = StateUpdate::new(Felt::default(), expected_state_diff).unwrap();
 
         // check only 3 of the 4 fields, because the inner property has changes to the storage of
         // the ERC20 contract which are hard to be tested correctly, it depends on the fee
