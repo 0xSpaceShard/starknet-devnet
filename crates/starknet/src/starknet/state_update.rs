@@ -1,19 +1,15 @@
 use starknet_rs_core::types::BlockId;
-use starknet_types::felt::BlockHash;
 
 use super::Starknet;
 use crate::error::Result;
-use crate::state::state_diff::StateDiff;
+use crate::state::state_update::StateUpdate;
 
-pub fn state_update_by_block_id(
-    starknet: &Starknet,
-    block_id: BlockId,
-) -> Result<(BlockHash, StateDiff)> {
-    let block = starknet.blocks.get_by_block_id(block_id)?;
+pub fn state_update_by_block_id(starknet: &Starknet, block_id: BlockId) -> Result<StateUpdate> {
+    let block = starknet.blocks.get_by_block_id(block_id).ok_or(crate::error::Error::NoBlock)?;
     let state_diff =
         starknet.blocks.num_to_state_diff.get(&block.block_number()).cloned().unwrap_or_default();
 
-    Ok((block.block_hash(), state_diff))
+    StateUpdate::new(block.block_hash(), state_diff)
 }
 
 #[cfg(test)]
@@ -30,6 +26,7 @@ mod tests {
     use crate::constants;
     use crate::starknet::{predeployed, Starknet};
     use crate::state::state_diff::StateDiff;
+    use crate::state::state_update::StateUpdate;
     use crate::traits::{Accounted, HashIdentifiedMut};
     use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
     use crate::utils::load_cairo_0_contract_class;
@@ -63,7 +60,7 @@ mod tests {
             starknet.transactions.get_by_hash_mut(&txn_hash).unwrap().status,
             TransactionStatus::AcceptedOnL2
         );
-        let (_, state_diff) = starknet
+        let state_update = starknet
             .block_state_update(starknet_rs_core::types::BlockId::Tag(
                 starknet_rs_core::types::BlockTag::Latest,
             ))
@@ -82,18 +79,19 @@ mod tests {
             ..Default::default()
         };
 
+        let expected_state_update = StateUpdate::new(Felt::default(), expected_state_diff.clone()).unwrap();
+
         // check only 3 of the 4 fields, because the inner property has changes to the storage of
         // the ERC20 contract which are hard to be tested correctly, it depends on the fee
         // calculation of starknet_in_rust_library
         assert_eq!(
-            state_diff.cairo_0_declared_contracts,
-            expected_state_diff.cairo_0_declared_contracts
+            state_update.cairo_0_declared_classes,
+            expected_state_update.cairo_0_declared_classes
         );
         assert_eq!(
-            state_diff.class_hash_to_compiled_class_hash,
-            expected_state_diff.class_hash_to_compiled_class_hash
+            state_update.declared_classes,
+            expected_state_update.declared_classes
         );
-        assert_eq!(state_diff.declared_contracts, expected_state_diff.declared_contracts);
 
         let (txn_hash, _) = starknet.add_declare_transaction_v2(declare_txn).unwrap();
         assert_eq!(
@@ -101,15 +99,14 @@ mod tests {
             TransactionStatus::AcceptedOnL2
         );
 
-        let (_, state_diff) = starknet
+        let state_update = starknet
             .block_state_update(starknet_rs_core::types::BlockId::Tag(
                 starknet_rs_core::types::BlockTag::Latest,
             ))
             .unwrap();
 
-        assert!(state_diff.declared_contracts.is_empty());
-        assert!(state_diff.class_hash_to_compiled_class_hash.is_empty());
-        assert!(state_diff.cairo_0_declared_contracts.is_empty());
+        assert!(state_update.declared_classes.is_empty());
+        assert!(state_update.cairo_0_declared_classes.is_empty());
     }
 
     // Initializes starknet with account_without_validations

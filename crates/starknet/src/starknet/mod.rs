@@ -27,6 +27,7 @@ use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT_PATH, ERC20_CONTRACT_ADDRESS};
 use crate::error::{Error, Result};
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::state::state_diff::StateDiff;
+use crate::state::state_update::StateUpdate;
 use crate::state::StarknetState;
 use crate::traits::{AccountGenerator, Accounted, HashIdentifiedMut, StateChanger, StateExtractor};
 use crate::transactions::declare_transaction::DeclareTransactionV1;
@@ -333,7 +334,7 @@ impl Starknet {
         )
     }
 
-    pub fn block_state_update(&self, block_id: BlockId) -> Result<(BlockHash, StateDiff)> {
+    pub fn block_state_update(&self, block_id: BlockId) -> Result<StateUpdate> {
         state_update::state_update_by_block_id(self, block_id)
     }
 }

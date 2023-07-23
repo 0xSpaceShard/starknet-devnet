@@ -72,9 +72,7 @@ impl StarknetBlocks {
     pub fn get_by_block_id(&self, block_id: BlockId) -> Option<&StarknetBlock> {
         match block_id {
             BlockId::Hash(hash) => self.get_by_hash(Felt::from(hash)),
-            BlockId::Number(block_number) => {
-                self.num_to_block.get(&BlockNumber(block_number))
-            }
+            BlockId::Number(block_number) => self.num_to_block.get(&BlockNumber(block_number)),
             BlockId::Tag(BlockTag::Latest) => {
                 if let Some(hash) = self.last_block_hash {
                     self.get_by_hash(hash)
