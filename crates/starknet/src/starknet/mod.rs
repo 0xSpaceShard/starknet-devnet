@@ -347,8 +347,9 @@ impl Starknet {
         state_update::state_update_by_block_id(self, block_id)
     }
 
-    pub fn get_block(&self, block_id: BlockId) -> Result<&StarknetBlock> {
-        self.blocks.get_by_block_id(block_id).ok_or(crate::error::Error::NoBlock)
+    pub fn get_block(&self, block_id: BlockId) -> Result<StarknetBlock> {
+        let block = self.blocks.get_by_block_id(block_id).ok_or(crate::error::Error::NoBlock)?;
+        Ok(block.clone())
     }
 }
 

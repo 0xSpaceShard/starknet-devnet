@@ -40,7 +40,12 @@ impl JsonRpcHandler {
                 timestamp: block.timestamp(),
             },
             transactions: crate::api::models::transaction::Transactions::Hashes(
-                block.get_transactions().iter().map(|tx| FeltHex(tx.get_hash().unwrap())).collect()
+                block
+                    .get_transactions()
+                    .iter()
+                    // We shouldnt get in the situation where tx hash is None
+                    .map(|tx| FeltHex(tx.get_hash().unwrap_or_default()))
+                    .collect(),
             ),
         })
     }
