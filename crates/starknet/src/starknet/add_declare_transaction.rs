@@ -73,7 +73,7 @@ pub fn add_declare_transaction_v1(
         tx_type: starknet_in_rust::definitions::transaction_type::TransactionType::Declare,
         validate_entry_point_selector:
             starknet_in_rust::definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR.clone(),
-        version: declare_transaction.version().into(),
+        version: declare_transaction.version.into(),
         max_fee: declare_transaction.max_fee,
         signature: declare_transaction.signature.iter().map(|felt| felt.into()).collect(),
         nonce: declare_transaction.nonce.into(),
