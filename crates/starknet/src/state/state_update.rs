@@ -22,7 +22,7 @@ impl StateUpdate {
         let declared_classes = state_diff
             .class_hash_to_compiled_class_hash
             .into_iter()
-            .map(|(class_hash, compiled_class_hash)| (class_hash, class_hash))
+            .map(|(class_hash, compiled_class_hash)| (class_hash, compiled_class_hash))
             .collect();
 
         // cairo 0 declarations
