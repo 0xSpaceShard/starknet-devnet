@@ -9,7 +9,10 @@ use super::models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
 use super::{JsonRpcHandler, RpcResult};
 use crate::api::models::block::Block;
 use crate::api::models::contract_class::ContractClass;
-use crate::api::models::state::ThinStateDiff;
+use crate::api::models::state::{
+    self, ClassHashes, ContractNonce, DeployedContract, StateUpdate, StorageDiff, StorageEntry,
+    ThinStateDiff,
+};
 use crate::api::models::transaction::{
     BroadcastedTransactionWithType, ClassHashHex, EventFilter, EventsChunk, FunctionCall,
     Transaction, TransactionHashHex, TransactionReceipt, TransactionWithType,
@@ -29,8 +32,66 @@ impl JsonRpcHandler {
     }
 
     /// starknet_getStateUpdate
-    pub(crate) async fn get_state_update(&self, _block_id: BlockId) -> RpcResult<ThinStateDiff> {
-        Err(error::ApiError::BlockNotFound)
+    pub(crate) async fn get_state_update(&self, block_id: BlockId) -> RpcResult<StateUpdate> {
+        let state_update =
+            self.api.starknet.read().await.block_state_update(block_id.into()).map_err(|err| {
+                match err {
+                    Error::NoBlock => ApiError::BlockNotFound,
+                    unknown_error => ApiError::StarknetDevnetError(unknown_error),
+                }
+            })?;
+
+        let state_diff = ThinStateDiff {
+            deployed_contracts: state_update
+                .deployed_contracts
+                .into_iter()
+                .map(|(address, class_hash)| DeployedContract {
+                    address: ContractAddressHex(address),
+                    class_hash: ClassHashHex(class_hash),
+                })
+                .collect(),
+            declared_classes: state_update
+                .declared_classes
+                .into_iter()
+                .map(|(class_hash, compiled_class_hash)| ClassHashes {
+                    class_hash: ClassHashHex(class_hash),
+                    compiled_class_hash: ClassHashHex(compiled_class_hash),
+                })
+                .collect(),
+            deprecated_declared_classes: state_update
+                .cairo_0_declared_classes
+                .into_iter()
+                .map(ClassHashHex)
+                .collect(),
+            nonces: state_update
+                .nonces
+                .into_iter()
+                .map(|(address, nonce)| ContractNonce {
+                    contract_address: ContractAddressHex(address),
+                    nonce: FeltHex(nonce),
+                })
+                .collect(),
+            storage_diffs: state_update.storage_updates.into_iter().map(
+                |(contract_address, updates)| StorageDiff {
+                    address: ContractAddressHex(contract_address),
+                    storage_entries: updates
+                        .into_iter()
+                        .map(|(key, value)| StorageEntry {
+                            key: PatriciaKeyHex(key),
+                            value: FeltHex(value),
+                        })
+                        .collect(),
+                },
+            ),
+            replaced_classes: vec![],
+        };
+
+        Ok(StateUpdate {
+            block_hash: FeltHex(state_update.block_hash),
+            new_root: FeltHex(state_update.new_root),
+            old_root: FeltHex(state_update.old_root),
+            state_diff,
+        })
     }
 
     /// starknet_getStorageAt
