@@ -644,7 +644,7 @@ mod tests {
     fn correct_state_at_specific_block() {
         let mut starknet = Starknet::default();
         // generate initial block with empty state
-        let first_block = starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
+        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
         starknet.generate_pending_block().unwrap();
 
         // **generate second block**
