@@ -7,7 +7,7 @@ use starknet_types::starknet_api::block::BlockNumber;
 use super::error::{self, ApiError};
 use super::models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
 use super::{JsonRpcHandler, RpcResult};
-use crate::api::models::block::Block;
+use crate::api::models::block::{Block, BlockHeader};
 use crate::api::models::contract_class::ContractClass;
 use crate::api::models::state::{
     ClassHashes, ContractNonce, DeployedContract, StateUpdate, StorageDiff, StorageEntry,
@@ -22,8 +22,27 @@ use crate::api::models::{BlockId, ContractAddressHex, FeltHex, PatriciaKeyHex};
 /// here are the definitions and stub implementations of all JSON-RPC read endpoints
 impl JsonRpcHandler {
     /// starknet_getBlockWithTxHashes
-    pub(crate) async fn get_block_with_tx_hashes(&self, _block_id: BlockId) -> RpcResult<Block> {
-        Err(error::ApiError::BlockNotFound)
+    pub(crate) async fn get_block_with_tx_hashes(&self, block_id: BlockId) -> RpcResult<Block> {
+        let block =
+            self.api.starknet.read().await.get_block(block_id.into()).map_err(|err| match err {
+                Error::NoBlock => ApiError::BlockNotFound,
+                unknown_error => ApiError::StarknetDevnetError(unknown_error),
+            })?;
+
+        Ok(Block {
+            status: block.status().clone(),
+            header: BlockHeader {
+                block_hash: FeltHex(block.block_hash()),
+                parent_hash: FeltHex(block.parent_hash()),
+                block_number: block.block_number(),
+                sequencer_address: ContractAddressHex(block.sequencer_address()),
+                new_root: FeltHex(block.new_root()),
+                timestamp: block.timestamp(),
+            },
+            transactions: crate::api::models::transaction::Transactions::Hashes(
+                block.get_transactions().iter().map(|tx| FeltHex(tx.get_hash().unwrap())).collect()
+            ),
+        })
     }
 
     /// starknet_getBlockWithTxs

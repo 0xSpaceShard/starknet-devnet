@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
-use starknet_api::block::{BlockHeader, BlockNumber, BlockStatus};
+use starknet_api::block::{BlockHeader, BlockNumber, BlockStatus, BlockTimestamp};
 use starknet_api::hash::{pedersen_hash_array, StarkFelt};
 use starknet_api::stark_felt;
 use starknet_rs_core::types::{BlockId, BlockTag};
+use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, Felt};
 use starknet_types::traits::HashProducer;
 
@@ -84,9 +85,9 @@ impl StarknetBlocks {
 }
 
 #[derive(Clone, Eq, PartialEq)]
-pub(crate) struct StarknetBlock {
+pub struct StarknetBlock {
     pub(crate) header: BlockHeader,
-    transactions: Vec<Transaction>,
+    pub(crate) transactions: Vec<Transaction>,
     pub(crate) status: BlockStatus,
 }
 
@@ -95,19 +96,39 @@ impl StarknetBlock {
         self.transactions.push(transaction);
     }
 
-    pub(crate) fn get_transactions(&self) -> &Vec<Transaction> {
+    pub fn get_transactions(&self) -> &Vec<Transaction> {
         &self.transactions
     }
 
-    pub(crate) fn block_hash(&self) -> BlockHash {
+    pub fn status(&self) -> &BlockStatus {
+        &self.status
+    }
+
+    pub fn block_hash(&self) -> BlockHash {
         self.header.block_hash.into()
+    }
+
+    pub fn parent_hash(&self) -> BlockHash {
+        self.header.parent_hash.into()
+    }
+
+    pub fn sequencer_address(&self) -> ContractAddress {
+        self.header.sequencer.into()
+    }
+
+    pub fn timestamp(&self) -> BlockTimestamp {
+        self.header.timestamp
+    }
+
+    pub fn new_root(&self) -> Felt {
+        self.header.state_root.0.into()
     }
 
     pub(crate) fn set_block_hash(&mut self, block_hash: BlockHash) {
         self.header.block_hash = block_hash.into();
     }
 
-    pub(crate) fn block_number(&self) -> BlockNumber {
+    pub fn block_number(&self) -> BlockNumber {
         self.header.block_number
     }
 

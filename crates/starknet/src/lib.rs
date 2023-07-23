@@ -9,3 +9,5 @@ mod system_contract;
 mod traits;
 pub mod transactions;
 mod utils;
+
+pub use blocks::StarknetBlock;

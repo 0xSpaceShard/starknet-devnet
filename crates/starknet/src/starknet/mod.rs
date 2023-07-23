@@ -346,6 +346,10 @@ impl Starknet {
     pub fn block_state_update(&self, block_id: BlockId) -> Result<StateUpdate> {
         state_update::state_update_by_block_id(self, block_id)
     }
+
+    pub fn get_block(&self, block_id: BlockId) -> Result<&StarknetBlock> {
+        self.blocks.get_by_block_id(block_id).ok_or(crate::error::Error::NoBlock)
+    }
 }
 
 #[cfg(test)]

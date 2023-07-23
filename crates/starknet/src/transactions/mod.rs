@@ -80,7 +80,7 @@ pub enum Transaction {
 }
 
 impl Transaction {
-    pub(crate) fn get_hash(&self) -> Option<TransactionHash> {
+    pub fn get_hash(&self) -> Option<TransactionHash> {
         match self {
             Transaction::Declare(tx) => tx.transaction_hash,
             Transaction::DeclareV2(tx) => tx.transaction_hash,
