@@ -18,7 +18,7 @@ pub(crate) struct StarknetBlocks {
     pub(crate) pending_block: StarknetBlock,
     pub(crate) last_block_hash: Option<BlockHash>,
     pub(crate) num_to_state_diff: HashMap<BlockNumber, StateDiff>,
-    pub(crate) state_archive: HashMap<BlockNumber, StarknetState>,
+    pub(crate) num_to_state: HashMap<BlockNumber, StarknetState>,
 }
 
 impl HashIdentified for StarknetBlocks {
@@ -41,7 +41,7 @@ impl Default for StarknetBlocks {
             pending_block: StarknetBlock::create_pending_block(),
             last_block_hash: None,
             num_to_state_diff: HashMap::new(),
-            state_archive: HashMap::new(),
+            num_to_state: HashMap::new(),
         }
     }
 }
@@ -63,7 +63,7 @@ impl StarknetBlocks {
     }
 
     pub fn save_state_at(&mut self, block_number: BlockNumber, state: StarknetState) {
-        self.state_archive.insert(block_number, state);
+        self.num_to_state.insert(block_number, state);
     }
 
     pub fn connect_state_diff_to_block(
