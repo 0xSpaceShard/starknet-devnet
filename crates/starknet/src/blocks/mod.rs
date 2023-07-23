@@ -7,6 +7,7 @@ use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::felt::{BlockHash, Felt};
 use starknet_types::traits::HashProducer;
 
+use crate::state::StarknetState;
 use crate::state::state_diff::StateDiff;
 use crate::traits::HashIdentified;
 use crate::transactions::Transaction;
@@ -17,6 +18,7 @@ pub(crate) struct StarknetBlocks {
     pub(crate) pending_block: StarknetBlock,
     pub(crate) last_block_hash: Option<BlockHash>,
     pub(crate) num_to_state_diff: HashMap<BlockNumber, StateDiff>,
+    pub(crate) state_archive: HashMap<BlockNumber, StarknetState>,
 }
 
 impl HashIdentified for StarknetBlocks {
@@ -39,6 +41,7 @@ impl Default for StarknetBlocks {
             pending_block: StarknetBlock::create_pending_block(),
             last_block_hash: None,
             num_to_state_diff: HashMap::new(),
+            state_archive: HashMap::new(),
         }
     }
 }
@@ -57,6 +60,10 @@ impl StarknetBlocks {
         self.hash_to_num.insert(hash, block_number);
         self.num_to_block.insert(block_number, block);
         self.last_block_hash = Some(hash);
+    }
+
+    pub fn save_state_at(&mut self, block_number: BlockNumber, state: StarknetState) {
+        self.state_archive.insert(block_number, state);
     }
 
     pub fn connect_state_diff_to_block(
