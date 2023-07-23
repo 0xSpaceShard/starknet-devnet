@@ -79,7 +79,8 @@ mod tests {
             ..Default::default()
         };
 
-        let expected_state_update = StateUpdate::new(Felt::default(), expected_state_diff.clone()).unwrap();
+        let expected_state_update =
+            StateUpdate::new(Felt::default(), expected_state_diff.clone()).unwrap();
 
         // check only 3 of the 4 fields, because the inner property has changes to the storage of
         // the ERC20 contract which are hard to be tested correctly, it depends on the fee
@@ -88,10 +89,7 @@ mod tests {
             state_update.cairo_0_declared_classes,
             expected_state_update.cairo_0_declared_classes
         );
-        assert_eq!(
-            state_update.declared_classes,
-            expected_state_update.declared_classes
-        );
+        assert_eq!(state_update.declared_classes, expected_state_update.declared_classes);
 
         let (txn_hash, _) = starknet.add_declare_transaction_v2(declare_txn).unwrap();
         assert_eq!(
