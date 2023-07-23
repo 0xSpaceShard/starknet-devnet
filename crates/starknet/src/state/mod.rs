@@ -142,7 +142,7 @@ impl StateChanger for StarknetState {
 }
 
 impl StateExtractor for StarknetState {
-    fn get_storage(&mut self, storage_key: ContractStorageKey) -> Result<Felt> {
+    fn get_storage(&self, storage_key: ContractStorageKey) -> Result<Felt> {
         Ok(self.state.get_storage_at(&storage_key.try_into()?).map(Felt::from)?)
     }
 
