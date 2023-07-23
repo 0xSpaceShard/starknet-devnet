@@ -48,6 +48,7 @@ pub(crate) mod test_utils {
     use starknet_types::felt::Felt;
     use starknet_types::patricia_key::StorageKey;
 
+    use super::load_cairo_0_contract_class;
     use crate::constants::{
         DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_HOST,
         DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TEST_SEED,
@@ -104,16 +105,27 @@ pub(crate) mod test_utils {
         ContractAddress::new(Felt::from_prefixed_hex_str("0xADD4E55").unwrap()).unwrap()
     }
 
-    pub(crate) fn dummy_declare_transaction_v1() -> DeclareTransactionV1 {
-        DeclareTransactionV1::new(
-            dummy_contract_address(),
-            100,
-            vec![],
-            dummy_felt(),
-            dummy_cairo_0_contract_class(),
-            StarknetChainId::TestNet.to_felt().into(),
+    pub(crate) fn dummy_declare_transaction_v1() -> Box<DeclareTransactionV1> {
+        Box::new(
+            DeclareTransactionV1::new(
+                dummy_contract_address(),
+                100,
+                vec![],
+                dummy_felt(),
+                dummy_cairo_0_contract_class(),
+                StarknetChainId::TestNet.to_felt().into(),
+            )
+            .unwrap(),
         )
-        .unwrap()
+    }
+
+    pub(crate) fn cairo_0_account_without_validations() -> ContractClass {
+        let account_json_path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test_artifacts/account_without_validations/account.json"
+        );
+
+        load_cairo_0_contract_class(account_json_path).unwrap()
     }
 
     pub(crate) fn get_bytes_from_u32(num: u32) -> [u8; 32] {

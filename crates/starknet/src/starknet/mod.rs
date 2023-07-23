@@ -33,11 +33,13 @@ use crate::traits::{AccountGenerator, Accounted, HashIdentifiedMut, StateChanger
 use crate::transactions::declare_transaction::DeclareTransactionV1;
 use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
 use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
+use crate::transactions::invoke_transaction::InvokeTransactionV1;
 use crate::transactions::{StarknetTransaction, StarknetTransactions, Transaction};
 use crate::utils;
 
 mod add_declare_transaction;
 mod add_deploy_account_transaction;
+mod add_invoke_transaction;
 mod predeployed;
 mod state_update;
 
@@ -332,6 +334,13 @@ impl Starknet {
             self,
             deploy_account_transaction,
         )
+    }
+
+    pub fn add_invoke_transaction_v1(
+        &mut self,
+        invoke_transaction: InvokeTransactionV1,
+    ) -> Result<TransactionHash> {
+        add_invoke_transaction::add_invoke_transcation_v1(self, invoke_transaction)
     }
 
     pub fn block_state_update(&self, block_id: BlockId) -> Result<StateUpdate> {
