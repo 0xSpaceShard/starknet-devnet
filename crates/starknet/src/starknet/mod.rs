@@ -141,7 +141,8 @@ impl Starknet {
         Ok(())
     }
 
-    // Transfer data from pending block into new block and save it to blocks collection
+    /// Transfer data from pending block into new block and save it to blocks collection
+    /// Returns the new block number
     pub(crate) fn generate_new_block(&mut self, state_diff: StateDiff, state: StarknetState) -> Result<BlockNumber> {
         let mut new_block = self.pending_block().clone();
 
