@@ -69,20 +69,20 @@ impl StarknetBlocks {
         self.num_to_state_diff.insert(block_number, state_diff);
     }
 
-    pub fn get_by_block_id(&self, block_id: BlockId) -> Result<&StarknetBlock> {
+    pub fn get_by_block_id(&self, block_id: BlockId) -> Option<&StarknetBlock> {
         match block_id {
-            BlockId::Hash(hash) => self.get_by_hash(Felt::from(hash)).ok_or(error::Error::NoBlock),
+            BlockId::Hash(hash) => self.get_by_hash(Felt::from(hash)),
             BlockId::Number(block_number) => {
-                self.num_to_block.get(&BlockNumber(block_number)).ok_or(error::Error::NoBlock)
+                self.num_to_block.get(&BlockNumber(block_number))
             }
             BlockId::Tag(BlockTag::Latest) => {
                 if let Some(hash) = self.last_block_hash {
-                    self.get_by_hash(hash).ok_or(error::Error::NoBlock)
+                    self.get_by_hash(hash)
                 } else {
-                    Err(error::Error::NoBlock)
+                    None
                 }
             }
-            BlockId::Tag(BlockTag::Pending) => Err(error::Error::NoBlock),
+            BlockId::Tag(BlockTag::Pending) => None,
         }
     }
 }
@@ -176,13 +176,13 @@ mod tests {
         assert!(block_to_insert == extracted_block.clone());
 
         match blocks.get_by_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Pending)) {
-            Err(error::Error::NoBlock) => (),
-            _ => panic!("Expected error::Error::NoBlock"),
+            None => (),
+            _ => panic!("Expected none"),
         }
 
         match blocks.get_by_block_id(BlockId::Number(11)) {
-            Err(error::Error::NoBlock) => (),
-            _ => panic!("Expected error::Error::NoBlock"),
+            None => (),
+            _ => panic!("Expected none"),
         }
     }
 
