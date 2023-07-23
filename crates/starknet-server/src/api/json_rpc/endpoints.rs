@@ -30,7 +30,7 @@ impl JsonRpcHandler {
             })?;
 
         Ok(Block {
-            status: block.status().clone(),
+            status: *block.status(),
             header: BlockHeader {
                 block_hash: FeltHex(block.block_hash()),
                 parent_hash: FeltHex(block.parent_hash()),
