@@ -21,7 +21,7 @@ pub fn add_declare_transaction_v2(
         declare_transaction.chain_id.into(),
         declare_transaction.sender_address.try_into()?,
         declare_transaction.max_fee,
-        declare_transaction.version().into(),
+        declare_transaction.version.into(),
         declare_transaction.signature.iter().map(|felt| felt.into()).collect(),
         declare_transaction.nonce.into(),
     )?;
