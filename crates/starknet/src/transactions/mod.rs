@@ -84,8 +84,8 @@ impl Transaction {
         match self {
             Transaction::Declare(tx) => tx.transaction_hash,
             Transaction::DeclareV2(tx) => tx.transaction_hash,
-            Transaction::DeployAccount(tx) => Some(tx.0.hash_value().clone().into()),
-            Transaction::Invoke(tx) => Some(tx.0.hash_value().clone().into()),
+            Transaction::DeployAccount(tx) => Some(tx.inner.hash_value().clone().into()),
+            Transaction::Invoke(tx) => Some(tx.inner.hash_value().clone().into()),
         }
     }
 
@@ -93,8 +93,8 @@ impl Transaction {
         match self {
             Transaction::Declare(txn) => &txn.chain_id,
             Transaction::DeclareV2(txn) => &txn.chain_id,
-            Transaction::DeployAccount(txn) => todo!(),
-            Transaction::Invoke(_) => todo!(),
+            Transaction::DeployAccount(txn) => &txn.chain_id,
+            Transaction::Invoke(txn) => &txn.chain_id,
         }
     }
 
@@ -102,8 +102,8 @@ impl Transaction {
         match self {
             Transaction::Declare(txn) => txn.max_fee,
             Transaction::DeclareV2(txn) => txn.max_fee,
-            Transaction::DeployAccount(txn) => todo!(),
-            Transaction::Invoke(txn) => todo!(),
+            Transaction::DeployAccount(txn) => txn.max_fee,
+            Transaction::Invoke(txn) => txn.max_fee,
         }
     }
 
@@ -111,8 +111,8 @@ impl Transaction {
         match self {
             Transaction::Declare(txn) => &txn.signature,
             Transaction::DeclareV2(txn) => &txn.signature,
-            Transaction::DeployAccount(txn) => todo!(),
-            Transaction::Invoke(txn) => todo!(),
+            Transaction::DeployAccount(txn) => &txn.signature,
+            Transaction::Invoke(txn) => &txn.signature,
         }
     }
 
@@ -120,8 +120,8 @@ impl Transaction {
         match self {
             Transaction::Declare(txn) => &txn.nonce,
             Transaction::DeclareV2(txn) => &txn.nonce,
-            Transaction::DeployAccount(txn) => todo!(),
-            Transaction::Invoke(txn) => todo!(),
+            Transaction::DeployAccount(txn) => &txn.nonce,
+            Transaction::Invoke(txn) => &txn.nonce,
         }
     }
 
@@ -129,8 +129,8 @@ impl Transaction {
         match self {
             Transaction::Declare(txn) => &txn.version,
             Transaction::DeclareV2(txn) => &txn.version,
-            Transaction::DeployAccount(txn) => todo!(),
-            Transaction::Invoke(txn) => todo!(),
+            Transaction::DeployAccount(txn) => &txn.version,
+            Transaction::Invoke(txn) => &txn.version,
         }
     }
 

@@ -7,16 +7,23 @@ use starknet_types::traits::HashProducer;
 use crate::error::{self, Result};
 
 #[derive(Clone)]
-pub struct DeployAccountTransaction(pub DeployAccount);
+pub struct DeployAccountTransaction {
+    pub(crate) inner: DeployAccount,
+    pub(crate) chain_id: Felt,
+    pub(crate) signature: Vec<Felt>,
+    pub(crate) max_fee: u128,
+    pub(crate) nonce: Felt,
+    pub(crate) version: Felt,
+}
 
 impl Eq for DeployAccountTransaction {}
 
 impl PartialEq for DeployAccountTransaction {
     fn eq(&self, other: &Self) -> bool {
-        self.0.signature() == other.0.signature()
-            && self.0.constructor_calldata() == other.0.constructor_calldata()
-            && self.0.class_hash() == other.0.class_hash()
-            && self.0.contract_address_salt() == other.0.contract_address_salt()
+        self.inner.signature() == other.inner.signature()
+            && self.inner.constructor_calldata() == other.inner.constructor_calldata()
+            && self.inner.class_hash() == other.inner.class_hash()
+            && self.inner.contract_address_salt() == other.inner.contract_address_salt()
     }
 }
 
@@ -50,19 +57,26 @@ impl DeployAccountTransaction {
         )
         .map_err(|err| Error::TransactionError(TransactionError::Syscall(err)))?;
 
-        Ok(Self(starknet_in_rust_deploy_account))
+        Ok(Self {
+            inner: starknet_in_rust_deploy_account,
+            chain_id,
+            signature,
+            nonce,
+            max_fee,
+            version,
+        })
     }
 
     pub fn class_hash(&self) -> Result<Felt> {
-        Felt::new(*self.0.class_hash()).map_err(error::Error::from)
+        Felt::new(*self.inner.class_hash()).map_err(error::Error::from)
     }
 
     pub fn contract_address_salt(&self) -> Felt {
-        (self.0.contract_address_salt().clone()).into()
+        (self.inner.contract_address_salt().clone()).into()
     }
 
     pub fn constructor_calldata(&self) -> Vec<Felt> {
-        self.0
+        self.inner
             .constructor_calldata()
             .clone()
             .into_iter()
@@ -73,7 +87,7 @@ impl DeployAccountTransaction {
 
 impl HashProducer for DeployAccountTransaction {
     fn generate_hash(&self) -> starknet_types::DevnetResult<Felt> {
-        Ok(self.0.hash_value().clone().into())
+        Ok(self.inner.hash_value().clone().into())
     }
 }
 

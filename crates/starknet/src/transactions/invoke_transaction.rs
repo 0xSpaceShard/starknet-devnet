@@ -8,15 +8,23 @@ use starknet_types::traits::HashProducer;
 use crate::error::{self, Result};
 
 #[derive(Clone)]
-pub struct InvokeTransactionV1(pub(crate) InvokeFunction);
+pub struct InvokeTransactionV1{
+    pub(crate) inner: InvokeFunction,
+    pub(crate) chain_id: Felt,
+    pub(crate) signature: Vec<Felt>,
+    pub(crate) nonce: Felt,
+    pub(crate) calldata: Vec<Felt>,
+    pub(crate) max_fee: u128,
+    pub(crate) version: Felt,
+}
 
 impl Eq for InvokeTransactionV1 {}
 
 impl PartialEq for InvokeTransactionV1 {
     fn eq(&self, other: &Self) -> bool {
-        self.0.signature() == other.0.signature()
-            && self.0.contract_address() == other.0.contract_address()
-            && self.0.hash_value() == other.0.hash_value()
+        self.inner.signature() == other.inner.signature()
+            && self.inner.contract_address() == other.inner.contract_address()
+            && self.inner.hash_value() == other.inner.hash_value()
     }
 }
 
@@ -35,30 +43,38 @@ impl InvokeTransactionV1 {
             )));
         }
 
-        Ok(Self(starknet_in_rust::transaction::InvokeFunction::new(
-            sender_address.try_into()?,
-            EXECUTE_ENTRY_POINT_SELECTOR.clone(),
+        Ok(Self {
+            inner: starknet_in_rust::transaction::InvokeFunction::new(
+                sender_address.try_into()?,
+                EXECUTE_ENTRY_POINT_SELECTOR.clone(),
+                max_fee,
+                Felt::from(1).into(),
+                calldata.iter().map(|f| f.into()).collect(),
+                signature.iter().map(|f| f.into()).collect(),
+                chain_id.into(),
+                Some(nonce.into()),
+            )?,
+            chain_id,
+            signature,
+            nonce,
+            calldata,
             max_fee,
-            Felt::from(1).into(),
-            calldata.iter().map(|f| f.into()).collect(),
-            signature.iter().map(|f| f.into()).collect(),
-            chain_id.into(),
-            Some(nonce.into()),
-        )?))
+            version: Felt::from(1),
+        })
     }
 
     pub fn sender_address(&self) -> Result<ContractAddress> {
-        self.0.contract_address().clone().try_into().map_err(error::Error::from)
+        self.inner.contract_address().clone().try_into().map_err(error::Error::from)
     }
 
-    pub fn calldata(&self) -> Vec<Felt> {
-        vec![]
+    pub fn calldata(&self) -> &Vec<Felt> {
+        &self.calldata
     }
 }
 
 impl HashProducer for InvokeTransactionV1 {
     fn generate_hash(&self) -> starknet_types::DevnetResult<Felt> {
-        Ok(self.0.hash_value().clone().into())
+        Ok(self.inner.hash_value().clone().into())
     }
 }
 
