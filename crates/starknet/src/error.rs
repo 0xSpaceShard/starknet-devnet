@@ -24,7 +24,7 @@ pub enum Error {
     #[error("No block found")]
     NoBlock,
     #[error("No state at block {block_number}")]
-    NoStateAtBlock { block_number: u64},
+    NoStateAtBlock { block_number: u64 },
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

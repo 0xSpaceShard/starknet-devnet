@@ -29,7 +29,7 @@ use crate::predeployed_accounts::PredeployedAccounts;
 use crate::state::state_diff::StateDiff;
 use crate::state::state_update::StateUpdate;
 use crate::state::StarknetState;
-use crate::traits::{AccountGenerator, Accounted, HashIdentifiedMut, StateChanger, StateExtractor, HashIdentified};
+use crate::traits::{AccountGenerator, Accounted, HashIdentifiedMut, StateChanger, StateExtractor};
 use crate::transactions::declare_transaction::DeclareTransactionV1;
 use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
 use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
@@ -275,9 +275,11 @@ impl Starknet {
             BlockId::Tag(_) => Ok(&self.state),
             _ => {
                 let block = self.blocks.get_by_block_id(*block_id).ok_or(Error::NoBlock)?;
-                let state = self.blocks.num_to_state.get(&block.block_number()).ok_or(Error::NoStateAtBlock {
-                    block_number: block.block_number().0,
-                })?;
+                let state = self
+                    .blocks
+                    .num_to_state
+                    .get(&block.block_number())
+                    .ok_or(Error::NoStateAtBlock { block_number: block.block_number().0 })?;
                 Ok(state)
             }
         }
