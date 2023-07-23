@@ -238,9 +238,18 @@ impl JsonRpcHandler {
     /// starknet_getNonce
     pub(crate) async fn get_nonce(
         &self,
-        _block_id: BlockId,
-        _contract_address: ContractAddressHex,
+        block_id: BlockId,
+        contract_address: ContractAddressHex,
     ) -> RpcResult<FeltHex> {
-        Err(error::ApiError::BlockNotFound)
+        let nonce = self.api.starknet.read().await.contract_nonce_at_block(block_id.into(), contract_address.0)
+            .map_err(|err| {
+                match err {
+                    Error::NoBlock => ApiError::BlockNotFound,
+                    Error::NoStateAtBlock { block_number: _ } | Error::ContractNotFound => ApiError::ContractNotFound,
+                    unknown_error => ApiError::StarknetDevnetError(unknown_error),
+                }
+            })?;
+
+        Ok(FeltHex(nonce))
     }
 }
