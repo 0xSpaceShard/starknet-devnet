@@ -29,7 +29,7 @@ use crate::predeployed_accounts::PredeployedAccounts;
 use crate::state::state_diff::StateDiff;
 use crate::state::state_update::StateUpdate;
 use crate::state::StarknetState;
-use crate::traits::{AccountGenerator, Accounted, HashIdentifiedMut, StateChanger, StateExtractor};
+use crate::traits::{AccountGenerator, Accounted, HashIdentifiedMut, StateChanger, StateExtractor, HashIdentified};
 use crate::transactions::declare_transaction::DeclareTransactionV1;
 use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
 use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
@@ -273,8 +273,13 @@ impl Starknet {
     fn get_state_at(&self, block_id: &BlockId) -> Result<&StarknetState> {
         match block_id {
             BlockId::Tag(_) => Ok(&self.state),
-            BlockId::Hash(_) => Err(Error::BlockIdHashUnimplementedError),
-            BlockId::Number(_) => Err(Error::BlockIdNumberUnimplementedError),
+            _ => {
+                let block = self.blocks.get_by_block_id(*block_id).ok_or(Error::NoBlock)?;
+                let state = self.blocks.num_to_state.get(&block.block_number()).ok_or(Error::NoStateAtBlock {
+                    block_number: block.block_number().0,
+                })?;
+                Ok(state)
+            }
         }
     }
 
@@ -517,9 +522,11 @@ mod tests {
     #[test]
     fn getting_state_reader_at_block_by_hash() {
         let config = starknet_config_for_test();
-        let starknet = Starknet::new(&config).unwrap();
-        match starknet.get_state_at(&BlockId::Number(2)) {
-            Err(Error::BlockIdNumberUnimplementedError) => (),
+        let mut starknet = Starknet::new(&config).unwrap();
+        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
+
+        match starknet.get_state_at(&BlockId::Hash(Felt::from(0).into())) {
+            Err(Error::NoBlock) => (),
             _ => panic!("Should have failed"),
         }
     }
@@ -527,9 +534,12 @@ mod tests {
     #[test]
     fn getting_state_reader_at_block_by_number() {
         let config = starknet_config_for_test();
-        let starknet = Starknet::new(&config).unwrap();
-        match starknet.get_state_at(&BlockId::Number(2)) {
-            Err(Error::BlockIdNumberUnimplementedError) => (),
+        let mut starknet = Starknet::new(&config).unwrap();
+        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
+        starknet.blocks.num_to_state.remove(&BlockNumber(0));
+
+        match starknet.get_state_at(&BlockId::Number(0)) {
+            Err(Error::NoStateAtBlock { block_number: _ }) => (),
             _ => panic!("Should have failed"),
         }
     }
