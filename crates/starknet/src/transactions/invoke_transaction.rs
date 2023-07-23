@@ -8,7 +8,7 @@ use starknet_types::traits::HashProducer;
 use crate::error::{self, Result};
 
 #[derive(Clone)]
-pub struct InvokeTransactionV1{
+pub struct InvokeTransactionV1 {
     pub(crate) inner: InvokeFunction,
     pub(crate) chain_id: Felt,
     pub(crate) signature: Vec<Felt>,

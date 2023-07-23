@@ -76,12 +76,7 @@ impl DeployAccountTransaction {
     }
 
     pub fn constructor_calldata(&self) -> Vec<Felt> {
-        self.inner
-            .constructor_calldata()
-            .clone()
-            .into_iter()
-            .map(|felt| felt.into())
-            .collect()
+        self.inner.constructor_calldata().clone().into_iter().map(|felt| felt.into()).collect()
     }
 }
 

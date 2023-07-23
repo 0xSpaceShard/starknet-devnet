@@ -13,7 +13,9 @@ pub fn add_deploy_account_transaction(
     starknet: &mut Starknet,
     deploy_account_transaction: DeployAccountTransaction,
 ) -> Result<(TransactionHash, ContractAddress)> {
-    if !starknet.state.is_contract_declared(&Felt::new(*deploy_account_transaction.inner.class_hash())?)
+    if !starknet
+        .state
+        .is_contract_declared(&Felt::new(*deploy_account_transaction.inner.class_hash())?)
     {
         return Err(Error::StateError(StateError::MissingClassHash()));
     }

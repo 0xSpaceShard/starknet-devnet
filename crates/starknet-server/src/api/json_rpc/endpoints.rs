@@ -1,7 +1,5 @@
 use starknet_core::error::Error;
-use starknet_core::transactions::declare_transaction::DeclareTransactionV1;
 use starknet_in_rust::core::errors::state_errors::StateError;
-use starknet_in_rust::transaction::declare;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::utils::Address;
 use starknet_types::felt::Felt;
@@ -18,12 +16,13 @@ use crate::api::models::state::{
     ThinStateDiff,
 };
 use crate::api::models::transaction::{
-    BroadcastedTransactionWithType, ClassHashHex, DeclareTransactionV0V1, EventFilter, EventsChunk,
-    FunctionCall, Transaction, TransactionHashHex, TransactionReceipt, TransactionWithType,
-    Transactions, DeclareTransaction, DeclareTransactionV2, DeployAccountTransaction, TransactionType, InvokeTransactionV1,
+    BroadcastedTransactionWithType, ClassHashHex, DeclareTransaction, DeclareTransactionV0V1,
+    DeclareTransactionV2, DeployAccountTransaction, EventFilter, EventsChunk, FunctionCall,
+    InvokeTransactionV1, Transaction, TransactionHashHex, TransactionReceipt, TransactionType,
+    TransactionWithType, Transactions,
 };
 use crate::api::models::{BlockId, ContractAddressHex, FeltHex, PatriciaKeyHex};
-use crate::api::utils::{into_vec};
+use crate::api::utils::into_vec;
 
 /// here are the definitions and stub implementations of all JSON-RPC read endpoints
 impl JsonRpcHandler {
@@ -73,9 +72,9 @@ impl JsonRpcHandler {
                     };
                     TransactionWithType {
                         r#type: TransactionType::Declare,
-                        transaction: Transaction::Declare(
-                            DeclareTransaction::Version1(declare_txn)
-                        )
+                        transaction: Transaction::Declare(DeclareTransaction::Version1(
+                            declare_txn,
+                        )),
                     }
                 }
                 starknet_core::transactions::Transaction::DeclareV2(declare_v2) => {
@@ -92,11 +91,11 @@ impl JsonRpcHandler {
 
                     TransactionWithType {
                         r#type: TransactionType::Declare,
-                        transaction: Transaction::Declare(
-                            DeclareTransaction::Version2(declare_txn)
-                        )
+                        transaction: Transaction::Declare(DeclareTransaction::Version2(
+                            declare_txn,
+                        )),
                     }
-                },
+                }
                 starknet_core::transactions::Transaction::DeployAccount(deploy_account) => {
                     let deploy_account_txn = DeployAccountTransaction {
                         nonce: txn.nonce().into(),
@@ -104,43 +103,51 @@ impl JsonRpcHandler {
                         version: txn.version().into(),
                         transaction_hash: txn.get_hash().unwrap_or_default().into(),
                         signature: into_vec(txn.signature()),
-                        class_hash: deploy_account.class_hash().map_err(|err| ApiError::StarknetDevnetError(err))?.into(),
+                        class_hash: deploy_account
+                            .class_hash()
+                            .map_err(ApiError::StarknetDevnetError)?
+                            .into(),
                         contract_address_salt: deploy_account.contract_address_salt().into(),
                         constructor_calldata: into_vec(&deploy_account.constructor_calldata()),
                     };
 
                     TransactionWithType {
                         r#type: TransactionType::DeployAccount,
-                        transaction: Transaction::DeployAccount(deploy_account_txn)
+                        transaction: Transaction::DeployAccount(deploy_account_txn),
                     }
-                },
+                }
                 starknet_core::transactions::Transaction::Invoke(invoke_v1) => {
                     let invoke_txn = InvokeTransactionV1 {
-                        sender_address: invoke_v1.sender_address().map_err(|err| ApiError::StarknetDevnetError(err))?.into(),
+                        sender_address: invoke_v1
+                            .sender_address()
+                            .map_err(ApiError::StarknetDevnetError)?
+                            .into(),
                         nonce: txn.nonce().into(),
                         max_fee: Fee(txn.max_fee()),
                         version: txn.version().into(),
                         transaction_hash: txn.get_hash().unwrap_or_default().into(),
                         signature: into_vec(txn.signature()),
-                        calldata: into_vec(&invoke_v1.calldata()),
+                        calldata: into_vec(invoke_v1.calldata()),
                     };
 
                     TransactionWithType {
                         r#type: TransactionType::Invoke,
-                        transaction: Transaction::Invoke(crate::api::models::transaction::InvokeTransaction::Version1(invoke_txn))
+                        transaction: Transaction::Invoke(
+                            crate::api::models::transaction::InvokeTransaction::Version1(
+                                invoke_txn,
+                            ),
+                        ),
                     }
-                },
+                }
             };
 
             transactions.push(txn_to_add);
         }
-        Ok(
-            Block {
-                status: *block.status(),
-                header: BlockHeader::from(&block),
-                transactions: Transactions::Full(transactions),
-            }
-        )
+        Ok(Block {
+            status: *block.status(),
+            header: BlockHeader::from(&block),
+            transactions: Transactions::Full(transactions),
+        })
     }
 
     /// starknet_getStateUpdate

@@ -1,6 +1,7 @@
-use starknet_types::{felt::Felt, contract_address::ContractAddress};
+use starknet_types::contract_address::ContractAddress;
+use starknet_types::felt::Felt;
 
-use super::models::{FeltHex, ContractAddressHex};
+use super::models::{ContractAddressHex, FeltHex};
 
 impl From<&Felt> for FeltHex {
     fn from(value: &Felt) -> Self {
@@ -26,7 +27,7 @@ impl From<&ContractAddress> for ContractAddressHex {
     }
 }
 
-pub(crate) fn into_vec<'a, T, U>(value: &'a Vec<T>) -> Vec<U>
+pub(crate) fn into_vec<'a, T, U>(value: &'a [T]) -> Vec<U>
 where
     U: std::convert::From<&'a T>,
 {

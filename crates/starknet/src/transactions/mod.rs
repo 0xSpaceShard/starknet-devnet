@@ -9,7 +9,7 @@ use starknet_api::block::BlockNumber;
 use starknet_in_rust::execution::TransactionExecutionInfo;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_rs_core::types::TransactionStatus;
-use starknet_types::felt::{BlockHash, TransactionHash, Felt};
+use starknet_types::felt::{BlockHash, Felt, TransactionHash};
 
 use self::declare_transaction::DeclareTransactionV1;
 use self::declare_transaction_v2::DeclareTransactionV2;
@@ -133,7 +133,6 @@ impl Transaction {
             Transaction::Invoke(txn) => &txn.version,
         }
     }
-
 }
 
 #[cfg(test)]

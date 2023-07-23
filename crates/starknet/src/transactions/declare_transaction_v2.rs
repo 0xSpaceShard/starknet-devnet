@@ -51,7 +51,7 @@ impl DeclareTransactionV2 {
             class_hash: None,
             transaction_hash: None,
             chain_id,
-            version: Felt::from(2)
+            version: Felt::from(2),
         })
     }
 
