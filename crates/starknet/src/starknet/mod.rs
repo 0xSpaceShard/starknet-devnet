@@ -17,7 +17,9 @@ use starknet_in_rust::utils::Address;
 use starknet_in_rust::{call_contract, SierraContractClass};
 use starknet_rs_core::types::{BlockId, TransactionStatus};
 use starknet_types::contract_address::ContractAddress;
+use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
+use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::traits::HashProducer;
 use tracing::error;
 
@@ -371,6 +373,16 @@ impl Starknet {
             Some(nonce) => Ok(Felt::from(nonce.clone())),
             None => Err(Error::ContractNotFound),
         }
+    }
+
+    pub fn contract_storage_at_block(
+        &self,
+        block_id: BlockId,
+        contract_address: ContractAddress,
+        storage_key: PatriciaKey,
+    ) -> Result<Felt> {
+        let state = self.get_state_at(&block_id)?;
+        state.get_storage(ContractStorageKey::new(contract_address, storage_key))
     }
 }
 

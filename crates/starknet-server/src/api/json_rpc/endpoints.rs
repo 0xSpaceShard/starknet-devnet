@@ -99,11 +99,24 @@ impl JsonRpcHandler {
     /// starknet_getStorageAt
     pub(crate) async fn get_storage_at(
         &self,
-        _contract_address: ContractAddressHex,
-        _key: PatriciaKeyHex,
-        _block_id: BlockId,
-    ) -> RpcResult<PatriciaKeyHex> {
-        Err(error::ApiError::ContractNotFound)
+        contract_address: ContractAddressHex,
+        key: PatriciaKeyHex,
+        block_id: BlockId,
+    ) -> RpcResult<FeltHex> {
+        let felt = self
+            .api
+            .starknet
+            .read()
+            .await
+            .contract_storage_at_block(block_id.into(), contract_address.0, key.0)
+            .map_err(|err| match err {
+                Error::NoBlock => ApiError::BlockNotFound,
+                Error::StateError(StateError::NoneStorage((_, _)))
+                | Error::NoStateAtBlock { block_number: _ } => ApiError::ContractNotFound,
+                unknown_error => ApiError::StarknetDevnetError(unknown_error),
+            })?;
+
+        Ok(FeltHex(felt))
     }
 
     /// starknet_getTransactionByHash
