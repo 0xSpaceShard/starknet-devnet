@@ -7,8 +7,8 @@ use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::felt::{BlockHash, Felt};
 use starknet_types::traits::HashProducer;
 
-use crate::state::StarknetState;
 use crate::state::state_diff::StateDiff;
+use crate::state::StarknetState;
 use crate::traits::HashIdentified;
 use crate::transactions::Transaction;
 
