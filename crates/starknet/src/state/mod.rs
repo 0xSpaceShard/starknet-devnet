@@ -19,7 +19,7 @@ use crate::traits::{StateChanger, StateExtractor};
 pub(crate) mod state_diff;
 pub mod state_update;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct StarknetState {
     pub state: InMemoryStateReader,
     pub pending_state: CachedState<InMemoryStateReader>,
