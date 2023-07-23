@@ -143,7 +143,11 @@ impl Starknet {
 
     /// Transfer data from pending block into new block and save it to blocks collection
     /// Returns the new block number
-    pub(crate) fn generate_new_block(&mut self, state_diff: StateDiff, state: StarknetState) -> Result<BlockNumber> {
+    pub(crate) fn generate_new_block(
+        &mut self,
+        state_diff: StateDiff,
+        state: StarknetState,
+    ) -> Result<BlockNumber> {
         let mut new_block = self.pending_block().clone();
 
         // set new block header
@@ -369,8 +373,10 @@ mod tests {
     use crate::constants::{DEVNET_DEFAULT_INITIAL_BALANCE, ERC20_CONTRACT_ADDRESS};
     use crate::error::{Error, Result};
     use crate::state::state_diff::StateDiff;
-    use crate::traits::{Accounted, StateExtractor, StateChanger};
-    use crate::utils::test_utils::{dummy_declare_transaction_v1, starknet_config_for_test, dummy_contract_address};
+    use crate::traits::{Accounted, StateChanger, StateExtractor};
+    use crate::utils::test_utils::{
+        dummy_contract_address, dummy_declare_transaction_v1, starknet_config_for_test,
+    };
 
     #[test]
     fn correct_initial_state_with_test_config() {
@@ -650,7 +656,12 @@ mod tests {
 
         // **generate second block**
         // add data to state
-        starknet.state.pending_state.cache_mut().nonce_writes_mut().insert(dummy_contract_address().try_into().unwrap(), Felt::from(1).into());
+        starknet
+            .state
+            .pending_state
+            .cache_mut()
+            .nonce_writes_mut()
+            .insert(dummy_contract_address().try_into().unwrap(), Felt::from(1).into());
         // get state difference
         let state_diff = starknet.state.extract_state_diff_from_pending_state().unwrap();
         // move data from pending_state to state
@@ -661,7 +672,12 @@ mod tests {
 
         // **generate third block**
         // add data to state
-        starknet.state.pending_state.cache_mut().nonce_writes_mut().insert(dummy_contract_address().try_into().unwrap(), Felt::from(2).into());
+        starknet
+            .state
+            .pending_state
+            .cache_mut()
+            .nonce_writes_mut()
+            .insert(dummy_contract_address().try_into().unwrap(), Felt::from(2).into());
         // get state difference
         let state_diff = starknet.state.extract_state_diff_from_pending_state().unwrap();
         // move data from pending_state to state
@@ -671,11 +687,27 @@ mod tests {
         starknet.generate_pending_block().unwrap();
 
         // check modified state at block 1 and 2 to contain the correct value for the nonce
-        let second_block_address_nonce = starknet.blocks.num_to_state.get(&second_block).unwrap().state.address_to_nonce.get(&dummy_contract_address().try_into().unwrap()).unwrap();
+        let second_block_address_nonce = starknet
+            .blocks
+            .num_to_state
+            .get(&second_block)
+            .unwrap()
+            .state
+            .address_to_nonce
+            .get(&dummy_contract_address().try_into().unwrap())
+            .unwrap();
         let second_block_expected_address_nonce = Felt252::from(1);
         assert_eq!(second_block_expected_address_nonce, *second_block_address_nonce);
 
-        let third_block_address_nonce = starknet.blocks.num_to_state.get(&third_block).unwrap().state.address_to_nonce.get(&dummy_contract_address().try_into().unwrap()).unwrap();
+        let third_block_address_nonce = starknet
+            .blocks
+            .num_to_state
+            .get(&third_block)
+            .unwrap()
+            .state
+            .address_to_nonce
+            .get(&dummy_contract_address().try_into().unwrap())
+            .unwrap();
         let third_block_expected_address_nonce = Felt252::from(2);
         assert_eq!(third_block_expected_address_nonce, *third_block_address_nonce);
     }
