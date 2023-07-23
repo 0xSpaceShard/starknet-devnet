@@ -7,7 +7,7 @@ use starknet_types::traits::HashProducer;
 use crate::error::{self, Result};
 
 #[derive(Clone)]
-pub struct DeployAccountTransaction(pub(crate) DeployAccount);
+pub struct DeployAccountTransaction(pub DeployAccount);
 
 impl Eq for DeployAccountTransaction {}
 
@@ -51,6 +51,23 @@ impl DeployAccountTransaction {
         .map_err(|err| Error::TransactionError(TransactionError::Syscall(err)))?;
 
         Ok(Self(starknet_in_rust_deploy_account))
+    }
+
+    pub fn class_hash(&self) -> Result<Felt> {
+        Felt::new(*self.0.class_hash()).map_err(error::Error::from)
+    }
+
+    pub fn contract_address_salt(&self) -> Felt {
+        (self.0.contract_address_salt().clone()).into()
+    }
+
+    pub fn constructor_calldata(&self) -> Vec<Felt> {
+        self.0
+            .constructor_calldata()
+            .clone()
+            .into_iter()
+            .map(|felt| felt.into())
+            .collect()
     }
 }
 

@@ -9,7 +9,7 @@ use starknet_api::block::BlockNumber;
 use starknet_in_rust::execution::TransactionExecutionInfo;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_rs_core::types::TransactionStatus;
-use starknet_types::felt::{BlockHash, TransactionHash};
+use starknet_types::felt::{BlockHash, TransactionHash, Felt};
 
 use self::declare_transaction::DeclareTransactionV1;
 use self::declare_transaction_v2::DeclareTransactionV2;
@@ -88,6 +88,52 @@ impl Transaction {
             Transaction::Invoke(tx) => Some(tx.0.hash_value().clone().into()),
         }
     }
+
+    pub fn chain_id(&self) -> &Felt {
+        match self {
+            Transaction::Declare(txn) => &txn.chain_id,
+            Transaction::DeclareV2(txn) => &txn.chain_id,
+            Transaction::DeployAccount(txn) => todo!(),
+            Transaction::Invoke(_) => todo!(),
+        }
+    }
+
+    pub fn max_fee(&self) -> u128 {
+        match self {
+            Transaction::Declare(txn) => txn.max_fee,
+            Transaction::DeclareV2(txn) => txn.max_fee,
+            Transaction::DeployAccount(txn) => todo!(),
+            Transaction::Invoke(txn) => todo!(),
+        }
+    }
+
+    pub fn signature(&self) -> &Vec<Felt> {
+        match self {
+            Transaction::Declare(txn) => &txn.signature,
+            Transaction::DeclareV2(txn) => &txn.signature,
+            Transaction::DeployAccount(txn) => todo!(),
+            Transaction::Invoke(txn) => todo!(),
+        }
+    }
+
+    pub fn nonce(&self) -> &Felt {
+        match self {
+            Transaction::Declare(txn) => &txn.nonce,
+            Transaction::DeclareV2(txn) => &txn.nonce,
+            Transaction::DeployAccount(txn) => todo!(),
+            Transaction::Invoke(txn) => todo!(),
+        }
+    }
+
+    pub fn version(&self) -> &Felt {
+        match self {
+            Transaction::Declare(txn) => &txn.version,
+            Transaction::DeclareV2(txn) => &txn.version,
+            Transaction::DeployAccount(txn) => todo!(),
+            Transaction::Invoke(txn) => todo!(),
+        }
+    }
+
 }
 
 #[cfg(test)]

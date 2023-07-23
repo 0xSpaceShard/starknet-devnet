@@ -34,3 +34,16 @@ pub struct SyncStatus {
     pub highest_block_hash: BlockHashHex,
     pub highest_block_num: BlockNumber,
 }
+
+impl From<&starknet_core::StarknetBlock> for BlockHeader {
+    fn from(value: &starknet_core::StarknetBlock) -> Self {
+        Self {
+            block_hash: FeltHex(value.block_hash()),
+            parent_hash: FeltHex(value.parent_hash()),
+            block_number: value.block_number(),
+            sequencer_address: ContractAddressHex(value.sequencer_address()),
+            new_root: FeltHex(value.new_root()),
+            timestamp: value.timestamp(),
+        }
+    }
+}

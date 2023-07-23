@@ -1,8 +1,12 @@
 use starknet_core::error::Error;
+use starknet_core::transactions::declare_transaction::DeclareTransactionV1;
 use starknet_in_rust::core::errors::state_errors::StateError;
+use starknet_in_rust::transaction::declare;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::utils::Address;
+use starknet_types::felt::Felt;
 use starknet_types::starknet_api::block::BlockNumber;
+use starknet_types::starknet_api::transaction::Fee;
 
 use super::error::{self, ApiError};
 use super::models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
@@ -14,10 +18,12 @@ use crate::api::models::state::{
     ThinStateDiff,
 };
 use crate::api::models::transaction::{
-    BroadcastedTransactionWithType, ClassHashHex, EventFilter, EventsChunk, FunctionCall,
-    Transaction, TransactionHashHex, TransactionReceipt, TransactionWithType,
+    BroadcastedTransactionWithType, ClassHashHex, DeclareTransactionV0V1, EventFilter, EventsChunk,
+    FunctionCall, Transaction, TransactionHashHex, TransactionReceipt, TransactionWithType,
+    Transactions, DeclareTransaction, DeclareTransactionV2, DeployAccountTransaction, TransactionType, InvokeTransactionV1,
 };
 use crate::api::models::{BlockId, ContractAddressHex, FeltHex, PatriciaKeyHex};
+use crate::api::utils::{into_vec};
 
 /// here are the definitions and stub implementations of all JSON-RPC read endpoints
 impl JsonRpcHandler {
@@ -31,14 +37,7 @@ impl JsonRpcHandler {
 
         Ok(Block {
             status: *block.status(),
-            header: BlockHeader {
-                block_hash: FeltHex(block.block_hash()),
-                parent_hash: FeltHex(block.parent_hash()),
-                block_number: block.block_number(),
-                sequencer_address: ContractAddressHex(block.sequencer_address()),
-                new_root: FeltHex(block.new_root()),
-                timestamp: block.timestamp(),
-            },
+            header: BlockHeader::from(&block),
             transactions: crate::api::models::transaction::Transactions::Hashes(
                 block
                     .get_transactions()
@@ -51,8 +50,97 @@ impl JsonRpcHandler {
     }
 
     /// starknet_getBlockWithTxs
-    pub(crate) async fn get_block_with_full_txs(&self, _block_id: BlockId) -> RpcResult<Block> {
-        Err(error::ApiError::BlockNotFound)
+    pub(crate) async fn get_block_with_full_txs(&self, block_id: BlockId) -> RpcResult<Block> {
+        let block =
+            self.api.starknet.read().await.get_block(block_id.into()).map_err(|err| match err {
+                Error::NoBlock => ApiError::BlockNotFound,
+                unknown_error => ApiError::StarknetDevnetError(unknown_error),
+            })?;
+
+        let mut transactions = Vec::<TransactionWithType>::new();
+
+        for txn in block.get_transactions() {
+            let txn_to_add = match txn {
+                starknet_core::transactions::Transaction::Declare(declare_v1) => {
+                    let declare_txn = DeclareTransactionV0V1 {
+                        class_hash: declare_v1.class_hash().unwrap_or(&Felt::default()).into(),
+                        sender_address: declare_v1.sender_address().into(),
+                        nonce: txn.nonce().into(),
+                        max_fee: Fee(txn.max_fee()),
+                        version: txn.version().into(),
+                        transaction_hash: txn.get_hash().unwrap_or_default().into(),
+                        signature: into_vec(txn.signature()),
+                    };
+                    TransactionWithType {
+                        r#type: TransactionType::Declare,
+                        transaction: Transaction::Declare(
+                            DeclareTransaction::Version1(declare_txn)
+                        )
+                    }
+                }
+                starknet_core::transactions::Transaction::DeclareV2(declare_v2) => {
+                    let declare_txn = DeclareTransactionV2 {
+                        class_hash: declare_v2.class_hash().unwrap_or(&Felt::default()).into(),
+                        compiled_class_hash: declare_v2.compiled_class_hash().into(),
+                        sender_address: declare_v2.sender_address().into(),
+                        nonce: txn.nonce().into(),
+                        max_fee: Fee(txn.max_fee()),
+                        version: txn.version().into(),
+                        transaction_hash: txn.get_hash().unwrap_or_default().into(),
+                        signature: into_vec(txn.signature()),
+                    };
+
+                    TransactionWithType {
+                        r#type: TransactionType::Declare,
+                        transaction: Transaction::Declare(
+                            DeclareTransaction::Version2(declare_txn)
+                        )
+                    }
+                },
+                starknet_core::transactions::Transaction::DeployAccount(deploy_account) => {
+                    let deploy_account_txn = DeployAccountTransaction {
+                        nonce: txn.nonce().into(),
+                        max_fee: Fee(txn.max_fee()),
+                        version: txn.version().into(),
+                        transaction_hash: txn.get_hash().unwrap_or_default().into(),
+                        signature: into_vec(txn.signature()),
+                        class_hash: deploy_account.class_hash().map_err(|err| ApiError::StarknetDevnetError(err))?.into(),
+                        contract_address_salt: deploy_account.contract_address_salt().into(),
+                        constructor_calldata: into_vec(&deploy_account.constructor_calldata()),
+                    };
+
+                    TransactionWithType {
+                        r#type: TransactionType::DeployAccount,
+                        transaction: Transaction::DeployAccount(deploy_account_txn)
+                    }
+                },
+                starknet_core::transactions::Transaction::Invoke(invoke_v1) => {
+                    let invoke_txn = InvokeTransactionV1 {
+                        sender_address: invoke_v1.sender_address().map_err(|err| ApiError::StarknetDevnetError(err))?.into(),
+                        nonce: txn.nonce().into(),
+                        max_fee: Fee(txn.max_fee()),
+                        version: txn.version().into(),
+                        transaction_hash: txn.get_hash().unwrap_or_default().into(),
+                        signature: into_vec(txn.signature()),
+                        calldata: into_vec(&invoke_v1.calldata()),
+                    };
+
+                    TransactionWithType {
+                        r#type: TransactionType::Invoke,
+                        transaction: Transaction::Invoke(crate::api::models::transaction::InvokeTransaction::Version1(invoke_txn))
+                    }
+                },
+            };
+
+            transactions.push(txn_to_add);
+        }
+        Ok(
+            Block {
+                status: *block.status(),
+                header: BlockHeader::from(&block),
+                transactions: Transactions::Full(transactions),
+            }
+        )
     }
 
     /// starknet_getStateUpdate

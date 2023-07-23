@@ -46,6 +46,14 @@ impl InvokeTransactionV1 {
             Some(nonce.into()),
         )?))
     }
+
+    pub fn sender_address(&self) -> Result<ContractAddress> {
+        self.0.contract_address().clone().try_into().map_err(error::Error::from)
+    }
+
+    pub fn calldata(&self) -> Vec<Felt> {
+        vec![]
+    }
 }
 
 impl HashProducer for InvokeTransactionV1 {
