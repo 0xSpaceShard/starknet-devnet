@@ -149,10 +149,14 @@ impl JsonRpcHandler {
         let starknet = self.api.starknet.read().await;
         match starknet.get_class_hash_at(&block_id.into(), &contract_address.0) {
             Ok(class_hash) => Ok(FeltHex(class_hash)),
-            Err(Error::BlockIdHashUnimplementedError | Error::BlockIdNumberUnimplementedError | Error::NoBlock) => {
-                Err(ApiError::BlockNotFound)
+            Err(
+                Error::BlockIdHashUnimplementedError
+                | Error::BlockIdNumberUnimplementedError
+                | Error::NoBlock,
+            ) => Err(ApiError::BlockNotFound),
+            Err(Error::ContractNotFound | Error::NoStateAtBlock { block_number: _ }) => {
+                Err(ApiError::ContractNotFound)
             }
-            Err(Error::ContractNotFound | Error::NoStateAtBlock { block_number: _ }) => Err(ApiError::ContractNotFound),
             Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),
         }
     }
@@ -241,13 +245,18 @@ impl JsonRpcHandler {
         block_id: BlockId,
         contract_address: ContractAddressHex,
     ) -> RpcResult<FeltHex> {
-        let nonce = self.api.starknet.read().await.contract_nonce_at_block(block_id.into(), contract_address.0)
-            .map_err(|err| {
-                match err {
-                    Error::NoBlock => ApiError::BlockNotFound,
-                    Error::NoStateAtBlock { block_number: _ } | Error::ContractNotFound => ApiError::ContractNotFound,
-                    unknown_error => ApiError::StarknetDevnetError(unknown_error),
+        let nonce = self
+            .api
+            .starknet
+            .read()
+            .await
+            .contract_nonce_at_block(block_id.into(), contract_address.0)
+            .map_err(|err| match err {
+                Error::NoBlock => ApiError::BlockNotFound,
+                Error::NoStateAtBlock { block_number: _ } | Error::ContractNotFound => {
+                    ApiError::ContractNotFound
                 }
+                unknown_error => ApiError::StarknetDevnetError(unknown_error),
             })?;
 
         Ok(FeltHex(nonce))

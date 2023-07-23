@@ -361,7 +361,11 @@ impl Starknet {
         state_update::state_update_by_block_id(self, block_id)
     }
 
-    pub fn contract_nonce_at_block(&self, block_id: BlockId, contract_address: ContractAddress) -> Result<Felt> {
+    pub fn contract_nonce_at_block(
+        &self,
+        block_id: BlockId,
+        contract_address: ContractAddress,
+    ) -> Result<Felt> {
         let state = self.get_state_at(&block_id)?;
         match state.state.address_to_nonce.get(&contract_address.try_into()?) {
             Some(nonce) => Ok(Felt::from(nonce.clone())),
