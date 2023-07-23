@@ -47,21 +47,21 @@ impl JsonRpcHandler {
                 .into_iter()
                 .map(|(address, class_hash)| DeployedContract {
                     address: ContractAddressHex(address),
-                    class_hash: ClassHashHex(class_hash),
+                    class_hash: FeltHex(class_hash),
                 })
                 .collect(),
             declared_classes: state_update
                 .declared_classes
                 .into_iter()
                 .map(|(class_hash, compiled_class_hash)| ClassHashes {
-                    class_hash: ClassHashHex(class_hash),
-                    compiled_class_hash: ClassHashHex(compiled_class_hash),
+                    class_hash: FeltHex(class_hash),
+                    compiled_class_hash: FeltHex(compiled_class_hash),
                 })
                 .collect(),
             deprecated_declared_classes: state_update
                 .cairo_0_declared_classes
                 .into_iter()
-                .map(ClassHashHex)
+                .map(FeltHex)
                 .collect(),
             nonces: state_update
                 .nonces
@@ -82,7 +82,7 @@ impl JsonRpcHandler {
                         })
                         .collect(),
                 },
-            ),
+            ).collect(),
             replaced_classes: vec![],
         };
 
