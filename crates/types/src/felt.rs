@@ -187,8 +187,7 @@ impl TryFrom<BigUint> for Felt {
 
 impl From<Felt> for BigUint {
     fn from(felt: Felt) -> Self {
-        // TODO better use TryFrom without unwrapping, but how to map the errors in mint_token?
-        BigUint::from_str(&felt.to_decimal_string()).unwrap()
+        BigUint::from_str(&felt.to_decimal_string()).expect("Should never fail: felt is 251 bits")
     }
 }
 
