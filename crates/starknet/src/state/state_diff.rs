@@ -43,9 +43,11 @@ impl StateDiff {
             old_state.class_hash_to_compiled_class_hash_mut().clone(),
         );
 
-        for entry in class_hash_to_compiled_class_hash_subtracted_map {
-            let key = Felt::new(entry.0).map_err(crate::error::Error::from)?;
-            let value = Felt::new(entry.1).map_err(crate::error::Error::from)?;
+        for (class_hash_bytes, compiled_class_hash_bytes) in
+            class_hash_to_compiled_class_hash_subtracted_map
+        {
+            let key = Felt::new(class_hash_bytes).map_err(crate::error::Error::from)?;
+            let value = Felt::new(compiled_class_hash_bytes).map_err(crate::error::Error::from)?;
 
             class_hash_to_compiled_class_hash.insert(key, value);
         }
@@ -60,10 +62,10 @@ impl StateDiff {
             old_state.casm_contract_classes_mut().clone(),
         );
 
-        for entry in compiled_class_hash_to_cairo_casm {
-            let key = Felt::new(entry.0).map_err(crate::error::Error::from)?;
+        for (compiled_class_hash_bytes, casm_contract_class) in compiled_class_hash_to_cairo_casm {
+            let key = Felt::new(compiled_class_hash_bytes).map_err(crate::error::Error::from)?;
 
-            declared_contracts.insert(key, entry.1);
+            declared_contracts.insert(key, casm_contract_class);
         }
 
         // extract difference of class_hash -> Cairo 0 contract class
@@ -72,10 +74,10 @@ impl StateDiff {
             old_state.class_hash_to_contract_class.clone(),
         );
 
-        for entry in class_hash_to_cairo_0_contract_class {
-            let key = Felt::new(entry.0).map_err(crate::error::Error::from)?;
+        for (class_hash_bytes, cairo_0_contract_class) in class_hash_to_cairo_0_contract_class {
+            let key = Felt::new(class_hash_bytes).map_err(crate::error::Error::from)?;
 
-            cairo_0_declared_contracts.insert(key, ContractClass::from(entry.1));
+            cairo_0_declared_contracts.insert(key, ContractClass::from(cairo_0_contract_class));
         }
 
         let diff = StarknetInRustStateDiff::from_cached_state(new_state)?;
