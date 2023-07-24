@@ -46,7 +46,7 @@ impl Default for StarknetBlocks {
 impl StarknetBlocks {
     /// Inserts a block in the collection and modifies the block parent hash to match the last block
     /// hash
-    pub fn insert(&mut self, mut block: StarknetBlock) {
+    pub fn insert(&mut self, mut block: StarknetBlock, state_diff: StateDiff) {
         if self.last_block_hash.is_some() {
             block.header.parent_hash = self.last_block_hash.unwrap().into();
         }
@@ -56,15 +56,8 @@ impl StarknetBlocks {
 
         self.hash_to_num.insert(hash, block_number);
         self.num_to_block.insert(block_number, block);
-        self.last_block_hash = Some(hash);
-    }
-
-    pub fn connect_state_diff_to_block(
-        &mut self,
-        block_number: BlockNumber,
-        state_diff: StateDiff,
-    ) {
         self.num_to_state_diff.insert(block_number, state_diff);
+        self.last_block_hash = Some(hash);
     }
 
     pub fn get_by_block_id(&self, block_id: BlockId) -> Option<&StarknetBlock> {
@@ -147,6 +140,7 @@ mod tests {
     use starknet_types::traits::HashProducer;
 
     use super::{StarknetBlock, StarknetBlocks};
+    use crate::state::state_diff::StateDiff;
     use crate::traits::HashIdentified;
 
     #[test]
@@ -156,7 +150,7 @@ mod tests {
         block_to_insert.header.block_hash = block_to_insert.generate_hash().unwrap().into();
         block_to_insert.header.block_number = BlockNumber(10);
 
-        blocks.insert(block_to_insert.clone());
+        blocks.insert(block_to_insert.clone(), StateDiff::default());
 
         let extracted_block = blocks.get_by_block_id(BlockId::Number(10)).unwrap();
         assert!(block_to_insert == extracted_block.clone());
@@ -192,7 +186,7 @@ mod tests {
             block.header.block_number = BlockNumber(block_number);
             block.set_block_hash(block.generate_hash().unwrap());
 
-            blocks.insert(block);
+            blocks.insert(block, StateDiff::default());
         }
 
         assert!(
@@ -220,7 +214,7 @@ mod tests {
         block_to_insert.header.block_hash = block_to_insert.generate_hash().unwrap().into();
         block_to_insert.header.block_number = BlockNumber(1);
 
-        blocks.insert(block_to_insert.clone());
+        blocks.insert(block_to_insert.clone(), StateDiff::default());
 
         let extracted_block = blocks.get_by_hash(block_to_insert.block_hash()).unwrap();
         assert!(block_to_insert == extracted_block.clone());

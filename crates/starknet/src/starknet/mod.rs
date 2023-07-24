@@ -165,10 +165,8 @@ impl Starknet {
             }
         });
 
-        // insert pending block in the blocks collection
-        self.blocks.insert(new_block);
-        // Connect block number to state diff
-        self.blocks.connect_state_diff_to_block(new_block_number, state_diff);
+        // insert pending block in the blocks collection and connect it to the state diff
+        self.blocks.insert(new_block, state_diff);
 
         Ok(())
     }
