@@ -109,8 +109,8 @@ mod tests {
         assert!(state_update.cairo_0_declared_classes.is_empty());
     }
 
-    // Initializes starknet with account_without_validations
-    // deploys ERC20 contract
+    /// Initializes starknet with account_without_validations
+    /// deploys ERC20 contract
     fn setup() -> (Starknet, ContractAddress) {
         let mut starknet = Starknet::default();
         let account_json_path = concat!(
