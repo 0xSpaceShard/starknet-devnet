@@ -68,13 +68,19 @@ mod get_transaction_by_hash_integration_tests {
         // We need to flatten the ABI into a string first
         let flattened_class = contract_artifact.flatten().unwrap();
 
-        println!("result:");
+        println!("result 1:");
         let result = account
             .declare(Arc::new(flattened_class), compiled_class_hash)
+            .nonce(FieldElement::from_hex_be("0x0").unwrap())
+            .max_fee(FieldElement::from_hex_be("0xde0b6b3a7640000").unwrap())
+            .prepared()
+            .unwrap()
             .send()
-            .await
-            .unwrap();
-        
-        println!("result.transaction_hash: {}", Felt::from(result.transaction_hash).to_prefixed_hex_str());
+            .await;
+        // let error = result.unwrap_err();
+        // println!("result 2: {:?}", result.unwrap_err());
+        // println!("test 1:");
+        println!("result.transaction_hash: {}", Felt::from(result.unwrap().transaction_hash).to_prefixed_hex_str());
+    
     }
 }
