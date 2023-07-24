@@ -29,22 +29,23 @@ pub(crate) fn create_erc20() -> Result<SystemContract> {
 }
 
 /// Set initial values of ERC20 contract storage
-pub(crate) fn initialize_erc20(state: &mut StarknetState) {
+pub(crate) fn initialize_erc20(state: &mut StarknetState) -> Result<()> {
     let contract_address =
-        ContractAddress::new(Felt::from_prefixed_hex_str(ERC20_CONTRACT_ADDRESS).unwrap()).unwrap();
-    [
+        ContractAddress::new(Felt::from_prefixed_hex_str(ERC20_CONTRACT_ADDRESS)?)?;
+
+    for (storage_var_name, storage_value) in [
         ("ERC20_name", get_selector_from_name("ether").unwrap().into()),
         ("ERC20_symbol", get_selector_from_name("ETH").unwrap().into()),
         ("ERC20_decimals", 18.into()),
-        // necessary to set - otherwise minting txs cannot be performed
-        ("Ownable_owner", Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS).unwrap()),
-    ]
-    .into_iter()
-    .for_each(|(storage_var_name, storage_value)| {
-        let storage_var_address = get_storage_var_address(storage_var_name, &[]).unwrap();
+        // necessary to set - otherwise minting txs cannot be executed
+        ("Ownable_owner", Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?),
+    ] {
+        let storage_var_address = get_storage_var_address(storage_var_name, &[])?;
         let storage_key = ContractStorageKey::new(contract_address, storage_var_address);
-        state.change_storage(storage_key, storage_value).unwrap();
-    });
+        state.change_storage(storage_key, storage_value)?;
+    }
+
+    Ok(())
 }
 
 pub(crate) fn create_udc() -> Result<SystemContract> {

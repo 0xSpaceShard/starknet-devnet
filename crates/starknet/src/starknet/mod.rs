@@ -95,7 +95,7 @@ impl Starknet {
         let udc_contract = predeployed::create_udc()?;
 
         erc20_fee_contract.deploy(&mut state)?;
-        initialize_erc20(&mut state);
+        initialize_erc20(&mut state)?;
 
         udc_contract.deploy(&mut state)?;
 
