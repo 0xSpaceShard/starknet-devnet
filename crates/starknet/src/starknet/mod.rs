@@ -363,8 +363,8 @@ impl Starknet {
 
         let calldata = vec![
             Felt::from(address).into(),
-            FieldElement::from_dec_str(&amount.to_string()).unwrap(), // `low` part of Uint256
-            FieldElement::from_dec_str("0").unwrap(),                 // `high` part
+            FieldElement::from(amount), // `low` part of Uint256
+            FieldElement::from(0u32),   // `high` part
         ];
 
         let erc20_address_felt = Felt::from_prefixed_hex_str(ERC20_CONTRACT_ADDRESS)?;
@@ -375,7 +375,7 @@ impl Starknet {
                 calldata: calldata.clone(),
             }],
             nonce: Felt::from(nonce.clone()).into(),
-            max_fee: FieldElement::from_dec_str(&sufficiently_big_max_fee.to_string()).unwrap(),
+            max_fee: FieldElement::from(sufficiently_big_max_fee),
         };
 
         // generate msg hash (not the same as tx hash)
