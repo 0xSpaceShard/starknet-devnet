@@ -10,13 +10,22 @@ pub enum HttpApiError {
     PathNotFound,
     #[error("General error")]
     GeneralError,
+    #[error("Minting error: {msg}")]
+    MintingError { msg: String },
 }
 
 impl IntoResponse for HttpApiError {
     fn into_response(self) -> axum::response::Response {
         let (status, error_message) = match self {
-            HttpApiError::PathNotFound => (StatusCode::BAD_REQUEST, "path is missing"),
-            HttpApiError::GeneralError => (StatusCode::INTERNAL_SERVER_ERROR, "general error"),
+            HttpApiError::PathNotFound => {
+                (StatusCode::BAD_REQUEST, String::from("path is missing"))
+            }
+            HttpApiError::GeneralError => {
+                (StatusCode::INTERNAL_SERVER_ERROR, String::from("general error"))
+            }
+            err @ HttpApiError::MintingError { msg: _ } => {
+                (StatusCode::BAD_REQUEST, err.to_string())
+            }
         };
 
         let body = Json(json!({

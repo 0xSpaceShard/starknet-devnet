@@ -11,25 +11,34 @@ use starknet_in_rust::definitions::constants::{
     DEFAULT_VALIDATE_MAX_N_STEPS,
 };
 use starknet_in_rust::execution::TransactionExecutionInfo;
+use starknet_in_rust::state::state_api::State;
 use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
 use starknet_in_rust::utils::Address;
 use starknet_in_rust::{call_contract, SierraContractClass};
 use starknet_rs_core::types::{BlockId, TransactionStatus};
+use starknet_rs_core::utils::get_selector_from_name;
+use starknet_rs_ff::FieldElement;
+use starknet_rs_signers::Signer;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use tracing::error;
 
+use self::predeployed::initialize_erc20;
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
-use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT_PATH, ERC20_CONTRACT_ADDRESS};
+use crate::constants::{
+    CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
+    ERC20_CONTRACT_ADDRESS,
+};
 use crate::error::{Error, Result};
 use crate::predeployed_accounts::PredeployedAccounts;
+use crate::raw_execution::{Call, RawExecution};
 use crate::state::state_diff::StateDiff;
 use crate::state::state_update::StateUpdate;
 use crate::state::StarknetState;
-use crate::traits::{AccountGenerator, Accounted, HashIdentifiedMut, StateChanger, StateExtractor};
+use crate::traits::{AccountGenerator, Accounted, Deployed, HashIdentifiedMut, StateChanger, StateExtractor};
 use crate::transactions::declare_transaction::DeclareTransactionV1;
 use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
 use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
@@ -43,7 +52,7 @@ mod add_invoke_transaction;
 mod predeployed;
 mod state_update;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct StarknetConfig {
     pub seed: u32,
     pub total_accounts: u8,
@@ -86,9 +95,11 @@ impl Starknet {
         let mut state = StarknetState::default();
         // deploy udc and erc20 contracts
         let erc20_fee_contract = predeployed::create_erc20()?;
-        let udc_contract = predeployed::create_udc20()?;
+        let udc_contract = predeployed::create_udc()?;
 
         erc20_fee_contract.deploy(&mut state)?;
+        initialize_erc20(&mut state)?;
+
         udc_contract.deploy(&mut state)?;
 
         let mut predeployed_accounts = PredeployedAccounts::new(
@@ -103,12 +114,19 @@ impl Starknet {
         let accounts = predeployed_accounts.generate_accounts(
             config.total_accounts,
             class_hash,
-            account_contract_class,
+            account_contract_class.clone(),
         )?;
         for account in accounts {
             account.deploy(&mut state)?;
             account.set_initial_balance(&mut state)?;
         }
+
+        let chargeable_account = Account::new_chargeable(
+            class_hash,
+            account_contract_class,
+            erc20_fee_contract.get_address(),
+        );
+        chargeable_account.deploy(&mut state)?;
 
         // copy already modified state to cached state
         state.synchronize_states();
@@ -119,7 +137,7 @@ impl Starknet {
             block_context: Self::get_block_context(0, ERC20_CONTRACT_ADDRESS, config.chain_id)?,
             blocks: StarknetBlocks::default(),
             transactions: StarknetTransactions::default(),
-            config: StarknetConfig::default(),
+            config: config.clone(),
             sierra_contracts: HashMap::new(),
         };
 
@@ -339,6 +357,55 @@ impl Starknet {
         invoke_transaction: InvokeTransactionV1,
     ) -> Result<TransactionHash> {
         add_invoke_transaction::add_invoke_transcation_v1(self, invoke_transaction)
+    }
+
+    /// Creates an invoke tx for minting, using the chargeable account.
+    pub async fn mint(&mut self, address: ContractAddress, amount: u128) -> Result<Felt> {
+        let sufficiently_big_max_fee: u128 = self.config.gas_price as u128 * 1_000_000;
+        let chargeable_address_felt = Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?;
+        let nonce =
+            self.state.pending_state.get_nonce_at(&Address(chargeable_address_felt.into()))?;
+
+        let calldata = vec![
+            Felt::from(address).into(),
+            FieldElement::from(amount), // `low` part of Uint256
+            FieldElement::from(0u32),   // `high` part
+        ];
+
+        let erc20_address_felt = Felt::from_prefixed_hex_str(ERC20_CONTRACT_ADDRESS)?;
+        let raw_execution = RawExecution {
+            calls: vec![Call {
+                to: erc20_address_felt.into(),
+                selector: get_selector_from_name("mint").unwrap(),
+                calldata: calldata.clone(),
+            }],
+            nonce: Felt::from(nonce.clone()).into(),
+            max_fee: FieldElement::from(sufficiently_big_max_fee),
+        };
+
+        // generate msg hash (not the same as tx hash)
+        let chain_id_felt: Felt = self.config.chain_id.to_felt().into();
+        let msg_hash_felt =
+            raw_execution.transaction_hash(chain_id_felt.into(), chargeable_address_felt.into());
+
+        // generate signature by signing the msg hash
+        let signer = starknet_rs_signers::LocalWallet::from(
+            starknet_rs_signers::SigningKey::from_secret_scalar(
+                FieldElement::from_hex_be(CHARGEABLE_ACCOUNT_PRIVATE_KEY).unwrap(),
+            ),
+        );
+        let signature = signer.sign_hash(&msg_hash_felt).await?;
+
+        // apply the invoke tx
+        let invoke_tx = InvokeTransactionV1::new(
+            ContractAddress::new(chargeable_address_felt)?,
+            sufficiently_big_max_fee,
+            vec![signature.r.into(), signature.s.into()],
+            nonce.into(),
+            raw_execution.raw_calldata().into_iter().map(|c| c.into()).collect(),
+            chain_id_felt,
+        )?;
+        self.add_invoke_transaction_v1(invoke_tx)
     }
 
     pub fn block_state_update(&self, block_id: BlockId) -> Result<StateUpdate> {
