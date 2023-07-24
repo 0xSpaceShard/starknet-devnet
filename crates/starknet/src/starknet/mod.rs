@@ -38,7 +38,9 @@ use crate::raw_execution::{Call, RawExecution};
 use crate::state::state_diff::StateDiff;
 use crate::state::state_update::StateUpdate;
 use crate::state::StarknetState;
-use crate::traits::{AccountGenerator, Accounted, Deployed, HashIdentifiedMut, StateChanger, StateExtractor};
+use crate::traits::{
+    AccountGenerator, Accounted, Deployed, HashIdentifiedMut, StateChanger, StateExtractor,
+};
 use crate::transactions::declare_transaction::DeclareTransactionV1;
 use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
 use crate::transactions::deploy_account_transaction::DeployAccountTransaction;

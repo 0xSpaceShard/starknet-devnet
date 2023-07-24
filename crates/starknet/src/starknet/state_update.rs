@@ -27,7 +27,7 @@ mod tests {
     use crate::starknet::{predeployed, Starknet};
     use crate::state::state_diff::StateDiff;
     use crate::state::state_update::StateUpdate;
-    use crate::traits::{Accounted, HashIdentifiedMut};
+    use crate::traits::{Accounted, Deployed, HashIdentifiedMut};
     use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
     use crate::utils::load_cairo_0_contract_class;
     use crate::utils::test_utils::{dummy_cairo_1_contract_class, dummy_felt};
