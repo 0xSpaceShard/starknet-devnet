@@ -54,11 +54,11 @@ impl StateDiff {
 
         // extract difference of compiled_class_hash -> CasmContractClass mapping, which is Cairo 1
         // contract
-        let new_casm_contracts_classes =
+        let new_casm_contract_classes =
             new_state.casm_contract_classes().clone().unwrap_or_default();
 
         let compiled_class_hash_to_cairo_casm = subtract_mappings(
-            new_casm_contracts_classes,
+            new_casm_contract_classes,
             old_state.casm_contract_classes_mut().clone(),
         );
 
