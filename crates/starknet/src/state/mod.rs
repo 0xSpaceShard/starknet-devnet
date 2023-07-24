@@ -147,13 +147,8 @@ impl StateExtractor for StarknetState {
     }
 
     fn is_contract_declared(&mut self, class_hash: &ClassHash) -> bool {
-        if self.state.class_hash_to_compiled_class_hash_mut().contains_key(&class_hash.bytes())
+        self.state.class_hash_to_compiled_class_hash_mut().contains_key(&class_hash.bytes())
             || self.state.class_hash_to_contract_class.contains_key(&(class_hash.bytes()))
-        {
-            return true;
-        }
-
-        false
     }
 
     fn get_class_hash_at_contract_address(
