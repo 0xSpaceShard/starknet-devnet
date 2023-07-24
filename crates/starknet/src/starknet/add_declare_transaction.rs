@@ -224,7 +224,7 @@ mod tests {
         );
 
         let (tx_hash, retrieved_class_hash) =
-            starknet.add_declare_transaction_v2(declare_txn.clone()).unwrap();
+            starknet.add_declare_transaction_v2(declare_txn).unwrap();
 
         let retrieved_txn = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
 
