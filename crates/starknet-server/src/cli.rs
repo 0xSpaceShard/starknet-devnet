@@ -3,7 +3,7 @@ use starknet_core::constants::{
     DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_HOST, DEVNET_DEFAULT_INITIAL_BALANCE,
     DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
-use starknet_core::StarknetConfig;
+use starknet_core::starknet::StarknetConfig;
 use starknet_in_rust::definitions::block_context::StarknetChainId;
 use starknet_types::num_bigint::BigUint;
 

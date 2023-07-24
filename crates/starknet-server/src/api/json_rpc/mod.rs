@@ -14,7 +14,10 @@ use server::rpc_handler::RpcHandler;
 use tracing::{error, info, trace};
 
 use self::error::ApiError;
-use self::models::{BlockIdInput, BroadcastedDeclareTransactionInput};
+use self::models::{
+    BlockIdInput, BroadcastedDeclareTransactionInput, BroadcastedDeployAccountTransactionInput,
+    BroadcastedInvokeTransactionInput,
+};
 use super::Api;
 use crate::api::serde_helpers::empty_params;
 
@@ -115,6 +118,16 @@ impl<T: Serialize> ToRpcResponseResult for RpcResult<T> {
                     message: error.to_string().into(),
                     data: None,
                 },
+                err @ ApiError::OnlyLatestBlock => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(24),
+                    message: err.to_string().into(),
+                    data: None,
+                },
+                err @ ApiError::UnsupportedVersion => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
+                    message: err.to_string().into(),
+                    data: None,
+                },
             }
             .into(),
         }
@@ -202,10 +215,18 @@ impl JsonRpcHandler {
                 block_id,
                 contract_address,
             }) => self.get_nonce(block_id, contract_address).await.to_rpc_result(),
-
             StarknetRequest::AddDeclareTransaction(BroadcastedDeclareTransactionInput {
                 declare_transaction,
             }) => self.add_declare_transaction(declare_transaction).await.to_rpc_result(),
+            StarknetRequest::AddDeployAccountTransaction(
+                BroadcastedDeployAccountTransactionInput { deploy_account_transaction },
+            ) => self
+                .add_deploy_account_transaction(deploy_account_transaction)
+                .await
+                .to_rpc_result(),
+            StarknetRequest::AddInvokeTransaction(BroadcastedInvokeTransactionInput {
+                invoke_transaction,
+            }) => self.add_invoke_transaction(invoke_transaction).await.to_rpc_result(),
         }
     }
 }
@@ -255,6 +276,10 @@ pub enum StarknetRequest {
     ContractNonce(BlockAndContractAddressInput),
     #[serde(rename = "starknet_addDeclareTransaction")]
     AddDeclareTransaction(BroadcastedDeclareTransactionInput),
+    #[serde(rename = "starknet_addDeployAccountTransaction")]
+    AddDeployAccountTransaction(BroadcastedDeployAccountTransactionInput),
+    #[serde(rename = "starknet_addInvokeTransaction")]
+    AddInvokeTransaction(BroadcastedInvokeTransactionInput),
 }
 
 #[cfg(test)]
@@ -455,6 +480,28 @@ mod requests_tests {
 
         assert_deserialization_succeeds(json_str);
         assert_deserialization_fails(json_str.replace(r#""block_id":"latest","#, "").as_str());
+    }
+
+    #[test]
+    fn deserialize_add_deploy_account_transaction_request() {
+        let json_str = r#"{
+            "method":"starknet_addDeployAccountTransaction",
+            "params":{
+                "deploy_account_transaction":{
+                    "type":"DEPLOY_ACCOUNT",
+                    "max_fee": "0xA",
+                    "version": "0x1",
+                    "signature": ["0xFF", "0xAA"],
+                    "nonce": "0x0",
+                    "contract_address_salt": "0x01",
+                    "constructor_calldata": ["0x01"],
+                    "class_hash": "0x01"
+                }
+            }
+        }"#;
+
+        assert_deserialization_succeeds(json_str);
+        assert_deserialization_fails(json_str.replace(r#""class_hash":"#, "").as_str());
     }
 
     fn assert_deserialization_succeeds(json_str: &str) {

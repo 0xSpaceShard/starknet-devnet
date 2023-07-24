@@ -10,7 +10,7 @@ use crate::api::serde_helpers::base_64_gzipped_json_string::deserialize_to_serde
 #[serde(untagged)]
 pub enum ContractClass {
     Cairo0(DeprecatedContractClass),
-    Sierra(SierraContractClass),
+    Sierra(starknet_in_rust::SierraContractClass),
 }
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]

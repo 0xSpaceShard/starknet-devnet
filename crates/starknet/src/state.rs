@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass;
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
 use starknet_in_rust::state::cached_state::CachedState;
@@ -26,7 +28,7 @@ impl StarknetState {
     // but rather a copy.
     pub(crate) fn synchronize_states(&mut self) {
         self.pending_state = CachedState::new(
-            self.state.clone(),
+            Arc::new(self.state.clone()),
             Some(self.state.class_hash_to_contract_class.clone()),
             Some(self.state.casm_contract_classes_mut().clone()),
         );
@@ -38,7 +40,7 @@ impl Default for StarknetState {
         let in_memory_state = InMemoryStateReader::default();
         Self {
             state: in_memory_state.clone(),
-            pending_state: CachedState::new(in_memory_state, None, None),
+            pending_state: CachedState::new(Arc::new(in_memory_state), None, None),
         }
     }
 }
@@ -86,10 +88,6 @@ impl StateChanger for StarknetState {
         self.state.address_to_nonce_mut().insert(addr, nonce + Felt252::new(1));
 
         Ok(())
-    }
-
-    fn is_contract_declared(&mut self, class_hash: &ClassHash) -> Result<bool> {
-        Ok(self.state.class_hash_to_contract_class.contains_key(&(class_hash.bytes())))
     }
 
     fn apply_cached_state(&mut self) -> Result<()> {
@@ -185,6 +183,17 @@ impl StateChanger for StarknetState {
 impl StateExtractor for StarknetState {
     fn get_storage(&mut self, storage_key: ContractStorageKey) -> Result<Felt> {
         Ok(self.state.get_storage_at(&storage_key.try_into()?).map(Felt::from)?)
+    }
+
+    fn is_contract_declared(&self, class_hash: &ClassHash) -> Result<bool> {
+        Ok(self.state.class_hash_to_contract_class.contains_key(&(class_hash.bytes())))
+    }
+
+    fn get_class_hash_at_contract_address(
+        &mut self,
+        contract_address: &ContractAddress,
+    ) -> Result<ClassHash> {
+        Ok(self.state.get_class_hash_at(&contract_address.try_into()?).map(Felt::new)??)
     }
 }
 

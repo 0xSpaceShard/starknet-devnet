@@ -5,7 +5,7 @@ use ::server::ServerConfig;
 use clap::Parser;
 use cli::Args;
 use starknet_core::account::Account;
-use starknet_core::Starknet;
+use starknet_core::starknet::Starknet;
 use starknet_types::felt::Felt;
 use starknet_types::traits::{ToDecimalString, ToHexString};
 use tracing::info;
@@ -74,7 +74,7 @@ async fn main() -> Result<(), anyhow::Error> {
     );
     addr = server.local_addr();
 
-    info!("StarkNet Devnet listening on {}", addr);
+    info!("Starknet Devnet listening on {}", addr);
 
     // spawn the server on a new task
     let serve = tokio::task::spawn(server);

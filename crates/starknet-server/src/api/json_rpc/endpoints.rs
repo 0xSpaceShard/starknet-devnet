@@ -1,10 +1,13 @@
 use starknet_types::starknet_api::transaction::Fee;
-
 use starknet_types::felt::Felt;
+use starknet_core::error::Error;
+use starknet_in_rust::core::errors::state_errors::StateError;
+use starknet_in_rust::transaction::error::TransactionError;
+use starknet_in_rust::utils::Address;
 use starknet_types::starknet_api::block::BlockNumber;
 use starknet_types::traits::ToHexString;
 
-use super::error::{self};
+use super::error::{self, ApiError};
 use super::models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
 use super::{JsonRpcHandler, RpcResult};
 use crate::api::models::block::Block;
@@ -56,7 +59,7 @@ impl JsonRpcHandler {
         let transaction_type;
 
         // Move this mapping to models/transaction.rs? Or it's ok to have this code here?
-        let transaction_data: Transaction = match transaction_to_map.inner.clone() {
+        let transaction_data = match transaction_to_map.inner.clone() {
             starknet_core::transactions::Transaction::Declare(declare_v1) => {
                 transaction_type = TransactionType::Declare;
                 Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version1(DeclareTransactionV0V1{
@@ -124,13 +127,14 @@ impl JsonRpcHandler {
         block_id: BlockId,
         contract_address: ContractAddressHex,
     ) -> RpcResult<ClassHashHex> {
-        let parsed_address = contract_address.0.try_into()?;
-
         let starknet = self.api.starknet.read().await;
-        let state = starknet.get_state_reader_at(&block_id.into())?;
-        match state.address_to_class_hash.get(&parsed_address) {
-            Some(class_hash) => Ok(FeltHex(Felt::from(*class_hash))),
-            None => Err(error::ApiError::ContractNotFound),
+        match starknet.get_class_hash_at(&block_id.into(), &contract_address.0) {
+            Ok(class_hash) => Ok(FeltHex(class_hash)),
+            Err(Error::BlockIdHashUnimplementedError | Error::BlockIdNumberUnimplementedError) => {
+                Err(ApiError::BlockNotFound)
+            }
+            Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
+            Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),
         }
     }
 
@@ -151,10 +155,25 @@ impl JsonRpcHandler {
     /// starknet_call
     pub(crate) async fn call(
         &self,
-        _block_id: BlockId,
-        _request: FunctionCall,
+        block_id: BlockId,
+        request: FunctionCall,
     ) -> RpcResult<Vec<FeltHex>> {
-        Err(error::ApiError::ContractError)
+        let starknet = self.api.starknet.read().await;
+        match starknet.call(
+            block_id.into(),
+            request.contract_address.0.into(),
+            request.entry_point_selector.0,
+            request.calldata.iter().map(|c| c.0).collect(),
+        ) {
+            Ok(result) => Ok(result.into_iter().map(FeltHex).collect()),
+            Err(Error::TransactionError(TransactionError::State(
+                StateError::NoneContractState(Address(_address)),
+            ))) => Err(ApiError::ContractNotFound),
+            Err(Error::BlockIdHashUnimplementedError | Error::BlockIdNumberUnimplementedError) => {
+                Err(ApiError::OnlyLatestBlock)
+            }
+            Err(_) => Err(ApiError::ContractError),
+        }
     }
 
     /// starknet_estimateFee
@@ -168,7 +187,8 @@ impl JsonRpcHandler {
 
     /// starknet_blockNumber
     pub(crate) async fn block_number(&self) -> RpcResult<BlockNumber> {
-        Err(error::ApiError::NoBlocks)
+        let block_number = self.api.starknet.read().await.block_number();
+        Ok(block_number)
     }
 
     /// starknet_blockHashAndNumber

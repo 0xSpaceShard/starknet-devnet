@@ -3,7 +3,7 @@ use std::net::SocketAddr;
 use axum::routing::{get, post};
 use server::builder::StarknetDevnetServer;
 use server::ServerConfig;
-use starknet_core::StarknetConfig;
+use starknet_core::starknet::StarknetConfig;
 
 use crate::api::http::{endpoints as http, HttpApiHandler};
 use crate::api::json_rpc::JsonRpcHandler;
