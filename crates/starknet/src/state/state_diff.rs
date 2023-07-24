@@ -24,9 +24,7 @@ pub struct StateDiff {
     pub(crate) cairo_0_declared_contracts: HashMap<ClassHash, ContractClass>,
 }
 
-impl Eq for StateDiff {
-    fn assert_receiver_is_total_eq(&self) {}
-}
+impl Eq for StateDiff {}
 
 impl StateDiff {
     pub(crate) fn difference_between_old_and_new_state(
