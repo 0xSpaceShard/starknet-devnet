@@ -59,7 +59,7 @@ impl JsonRpcHandler {
         let transaction_type;
 
         // Move this mapping to models/transaction.rs? Or it's ok to have this code here?
-        let transaction_data = match transaction_to_map.inner.clone() {
+        let transaction_data: Transaction = match transaction_to_map.inner.clone() {
             starknet_core::transactions::Transaction::Declare(declare_v1) => {
                 transaction_type = TransactionType::Declare;
                 Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version1(DeclareTransactionV0V1{
@@ -85,6 +85,8 @@ impl JsonRpcHandler {
                     compiled_class_hash: FeltHex(declare_v2.compiled_class_hash),
                 }))
             },
+            starknet_core::transactions::Transaction::DeployAccount(deploy) => {!todo!()},
+            starknet_core::transactions::Transaction::Invoke(invoke) => {!todo!()},
         };
 
         let transaction = TransactionWithType {

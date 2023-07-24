@@ -156,6 +156,7 @@ impl JsonRpcHandler {
     /// The method matches the request to the corresponding enum variant and executes the request
     async fn execute(&self, request: StarknetRequest) -> ResponseResult {
         trace!(target: "JsonRpcHandler::execute", "executing starknet request");
+        println!("JsonRpcHandler::execute");
 
         match request {
             StarknetRequest::BlockWithTransactionHashes(block) => {
@@ -217,7 +218,11 @@ impl JsonRpcHandler {
             }) => self.get_nonce(block_id, contract_address).await.to_rpc_result(),
             StarknetRequest::AddDeclareTransaction(BroadcastedDeclareTransactionInput {
                 declare_transaction,
-            }) => self.add_declare_transaction(declare_transaction).await.to_rpc_result(),
+            }) => {
+                println!("testo");
+                
+                self.add_declare_transaction(declare_transaction).await.to_rpc_result()
+            },
             StarknetRequest::AddDeployAccountTransaction(
                 BroadcastedDeployAccountTransactionInput { deploy_account_transaction },
             ) => self
