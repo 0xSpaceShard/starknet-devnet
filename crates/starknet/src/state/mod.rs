@@ -121,12 +121,12 @@ impl StateChanger for StarknetState {
             },
         );
 
-        // // update cairo 1 differences
+        // update cairo 1 differences
         state_diff.declared_contracts.into_iter().for_each(|(class_hash, cairo_1_casm)| {
             old_state.casm_contract_classes_mut().insert(class_hash.bytes(), cairo_1_casm);
         });
 
-        // // update deployed contracts
+        // update deployed contracts
         state_diff.inner.address_to_class_hash().iter().for_each(
             |(contract_address, class_hash)| {
                 old_state.address_to_class_hash_mut().insert(contract_address.clone(), *class_hash);
