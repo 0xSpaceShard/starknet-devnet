@@ -90,7 +90,8 @@ mod tests {
         );
         assert_eq!(state_update.declared_classes, expected_state_update.declared_classes);
 
-        // execute the same transaction, but increment nonce, so new transaction hash could be computed
+        // execute the same transaction, but increment nonce, so new transaction hash could be
+        // computed
         declare_txn.nonce = Felt::from(1);
         let (txn_hash, _) = starknet.add_declare_transaction_v2(declare_txn).unwrap();
         assert_eq!(
