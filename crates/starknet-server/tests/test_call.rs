@@ -1,11 +1,13 @@
 pub mod common;
 
 mod call {
-    use starknet_core::constants::{DEVNET_DEFAULT_INITIAL_BALANCE, ERC20_CONTRACT_ADDRESS};
+    use starknet_core::constants::ERC20_CONTRACT_ADDRESS;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, FunctionCall, StarknetError};
     use starknet_rs_providers::{Provider, ProviderError};
 
-    use crate::common::constants::PREDEPLOYED_ACCOUNT_ADDRESS;
+    use crate::common::constants::{
+        PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
+    };
     use crate::common::util::BackgroundDevnet;
 
     #[tokio::test]
@@ -81,7 +83,7 @@ mod call {
             .await
             .expect("Failed to call contract");
 
-        let expected_hex_balance = format!("0x{DEVNET_DEFAULT_INITIAL_BALANCE:x}");
+        let expected_hex_balance = format!("0x{PREDEPLOYED_ACCOUNT_INITIAL_BALANCE:x}");
         let expected_balance = FieldElement::from_hex_be(expected_hex_balance.as_str()).unwrap();
         let expected_result = vec![expected_balance, FieldElement::ZERO]; // uint256
         assert_eq!(retrieved_result, expected_result);

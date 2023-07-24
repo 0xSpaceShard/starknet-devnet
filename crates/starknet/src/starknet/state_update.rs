@@ -27,7 +27,7 @@ mod tests {
     use crate::starknet::{predeployed, Starknet};
     use crate::state::state_diff::StateDiff;
     use crate::state::state_update::StateUpdate;
-    use crate::traits::{Accounted, HashIdentifiedMut};
+    use crate::traits::{Accounted, Deployed, HashIdentifiedMut};
     use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
     use crate::utils::load_cairo_0_contract_class;
     use crate::utils::test_utils::{dummy_cairo_1_contract_class, dummy_felt};
@@ -43,7 +43,7 @@ mod tests {
         let casm_contract_class = CasmContractClass::try_from(contract_class.clone()).unwrap();
         let compiled_class_hash = compute_casm_class_hash(&casm_contract_class).unwrap();
 
-        let declare_txn = DeclareTransactionV2::new(
+        let mut declare_txn = DeclareTransactionV2::new(
             contract_class,
             compiled_class_hash.clone().into(),
             sender_address,
@@ -90,6 +90,9 @@ mod tests {
         );
         assert_eq!(state_update.declared_classes, expected_state_update.declared_classes);
 
+        // execute the same transaction, but increment nonce, so new transaction hash could be
+        // computed
+        declare_txn.nonce = Felt::from(1);
         let (txn_hash, _) = starknet.add_declare_transaction_v2(declare_txn).unwrap();
         assert_eq!(
             starknet.transactions.get_by_hash_mut(&txn_hash).unwrap().status,
@@ -106,8 +109,8 @@ mod tests {
         assert!(state_update.cairo_0_declared_classes.is_empty());
     }
 
-    // Initializes starknet with account_without_validations
-    // deployes ERC20 contract
+    /// Initializes starknet with account_without_validations
+    /// deploys ERC20 contract
     fn setup() -> (Starknet, ContractAddress) {
         let mut starknet = Starknet::default();
         let account_json_path = concat!(

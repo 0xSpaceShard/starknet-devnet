@@ -1,4 +1,6 @@
 pub mod constants {
+    use starknet_core::constants::DEVNET_DEFAULT_INITIAL_BALANCE;
+
     pub const HOST: &str = "localhost";
     pub const MIN_PORT: u16 = 1025;
     pub const MAX_PORT: u16 = 65_535;
@@ -8,6 +10,8 @@ pub mod constants {
     // predeployed account info with seed=42
     pub const PREDEPLOYED_ACCOUNT_ADDRESS: &str =
         "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba";
+    // half the default value - sanity check
+    pub const PREDEPLOYED_ACCOUNT_INITIAL_BALANCE: u128 = DEVNET_DEFAULT_INITIAL_BALANCE / 2;
 }
 
 pub mod util {
@@ -15,7 +19,9 @@ pub mod util {
     use std::process::{Child, Command, Stdio};
     use std::{thread, time};
 
-    use hyper::{Client, StatusCode, Uri};
+    use hyper::client::HttpConnector;
+    use hyper::http::request;
+    use hyper::{Body, Client, Response, StatusCode, Uri};
     use lazy_static::lazy_static;
     use starknet_rs_providers::jsonrpc::HttpTransport;
     use starknet_rs_providers::JsonRpcClient;
@@ -23,7 +29,9 @@ pub mod util {
     use tokio::sync::Mutex;
     use url::Url;
 
-    use super::constants::{ACCOUNTS, HOST, MAX_PORT, MIN_PORT, SEED};
+    use super::constants::{
+        ACCOUNTS, HOST, MAX_PORT, MIN_PORT, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE, SEED,
+    };
 
     #[derive(Error, Debug)]
     pub enum TestError {
@@ -50,6 +58,12 @@ pub mod util {
         Err(TestError::NoFreePorts)
     }
 
+    pub async fn get_json_body(resp: Response<Body>) -> serde_json::Value {
+        let resp_body = resp.into_body();
+        let resp_body_bytes = hyper::body::to_bytes(resp_body).await.unwrap();
+        serde_json::from_slice(&resp_body_bytes).unwrap()
+    }
+
     lazy_static! {
         /// This is to prevent TOCTOU errors; i.e. one background devnet might find one
         /// port to be free, and while it's trying to start listening to it, another instance
@@ -60,8 +74,10 @@ pub mod util {
     }
 
     pub struct BackgroundDevnet {
+        pub http_client: Client<HttpConnector>,
         pub json_rpc_client: JsonRpcClient<HttpTransport>,
         process: Child,
+        url: String,
     }
 
     impl BackgroundDevnet {
@@ -87,6 +103,8 @@ pub mod util {
                 .arg(ACCOUNTS.to_string())
                 .arg("--port")
                 .arg(free_port.to_string())
+                .arg("--initial-balance")
+                .arg(PREDEPLOYED_ACCOUNT_INITIAL_BALANCE.to_string())
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .expect("Could not start background devnet");
@@ -101,7 +119,12 @@ pub mod util {
                 if let Ok(alive_resp) = http_client.get(healthcheck_uri.clone()).await {
                     assert_eq!(alive_resp.status(), StatusCode::OK);
                     println!("Spawned background devnet at port {free_port}");
-                    return Ok(BackgroundDevnet { json_rpc_client, process });
+                    return Ok(BackgroundDevnet {
+                        http_client,
+                        json_rpc_client,
+                        process,
+                        url: devnet_url,
+                    });
                 }
 
                 // otherwise there is an error, probably a ConnectError if Devnet is not yet up
@@ -111,6 +134,20 @@ pub mod util {
             }
 
             Err(TestError::DevnetNotStartable)
+        }
+
+        pub async fn post_json(
+            &self,
+            path: String,
+            body: hyper::Body,
+        ) -> Result<Response<hyper::Body>, hyper::Error> {
+            let req = request::Request::builder()
+                .method("POST")
+                .uri(format!("{}{}", self.url.as_str(), path))
+                .header("content-type", "application/json")
+                .body(body)
+                .unwrap();
+            self.http_client.request(req).await
         }
     }
 

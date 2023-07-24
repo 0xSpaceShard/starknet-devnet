@@ -22,12 +22,15 @@ pub trait HashIdentifiedMut {
     fn get_by_hash_mut(&mut self, hash: &Self::Hash) -> Option<&mut Self::Element>;
 }
 
+pub trait Deployed {
+    fn deploy(&self, state: &mut (impl StateChanger + StateExtractor)) -> Result<()>;
+    fn get_address(&self) -> ContractAddress;
+}
+
 /// This trait sets the interface for the account
 pub trait Accounted {
-    fn deploy(&self, state: &mut (impl StateChanger + StateExtractor)) -> Result<()>;
     fn set_initial_balance(&self, state: &mut impl StateChanger) -> Result<()>;
     fn get_balance(&self, state: &mut impl StateExtractor) -> Result<Balance>;
-    fn get_address(&self) -> ContractAddress;
 }
 
 /// Interface for modifying the state
