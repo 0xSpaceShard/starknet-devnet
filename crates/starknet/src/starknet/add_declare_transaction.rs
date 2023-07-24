@@ -226,12 +226,12 @@ mod tests {
         let (tx_hash, class_hash) =
             starknet.add_declare_transaction_v2(declare_txn.clone()).unwrap();
 
-        let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
+        let retrieved_txn = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
 
         // check if generated class hash is expected one
         assert_eq!(class_hash, declare_txn.sierra_contract_class.generate_hash().unwrap());
         // check if txn is with status accepted
-        assert_eq!(tx.status, TransactionStatus::AcceptedOnL2);
+        assert_eq!(retrieved_txn.status, TransactionStatus::AcceptedOnL2);
         assert!(starknet.state.is_contract_declared(&expected_class_hash));
     }
 
