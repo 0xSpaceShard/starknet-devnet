@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use starknet_api::block::{BlockHeader, BlockNumber, BlockStatus};
 use starknet_api::hash::{pedersen_hash_array, StarkFelt};
 use starknet_api::stark_felt;
-use starknet_rs_core::types::{BlockId, BlockTag};
+use starknet_rs_core::types::BlockId;
 use starknet_types::felt::{BlockHash, Felt};
 use starknet_types::traits::HashProducer;
 
@@ -71,14 +71,14 @@ impl StarknetBlocks {
         match block_id {
             BlockId::Hash(hash) => self.get_by_hash(Felt::from(hash)),
             BlockId::Number(block_number) => self.num_to_block.get(&BlockNumber(block_number)),
-            BlockId::Tag(BlockTag::Latest) => {
+            // latest and pending for now will return the latest one
+            BlockId::Tag(_) => {
                 if let Some(hash) = self.last_block_hash {
                     self.get_by_hash(hash)
                 } else {
                     None
                 }
             }
-            BlockId::Tag(BlockTag::Pending) => None,
         }
     }
 }
@@ -170,10 +170,10 @@ mod tests {
             .unwrap();
         assert!(block_to_insert == extracted_block.clone());
 
-        match blocks.get_by_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Pending)) {
-            None => (),
-            _ => panic!("Expected none"),
-        }
+        let extracted_block = blocks
+            .get_by_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Pending))
+            .unwrap();
+        assert!(block_to_insert == extracted_block.clone());
 
         match blocks.get_by_block_id(BlockId::Number(11)) {
             None => (),
