@@ -115,13 +115,9 @@ impl JsonRpcHandler {
         transaction_hash: TransactionHashHex,
     ) -> RpcResult<TransactionWithType> {
         let starknet = self.api.starknet.read().await;
-
-        // This will fail if the transaction is not found - how to handle that in Rust? rise Err?
-        // rise Err(error::ApiError::TransactionNotFound)
         let transaction_to_map =  starknet.transactions.get(&transaction_hash.0).unwrap();
         let transaction_type;
 
-        // Move this mapping to models/transaction.rs? Or it's ok to have this code here?
         let transaction_data: Transaction = match transaction_to_map.inner.clone() {
             starknet_core::transactions::Transaction::Declare(declare_v1) => {
                 transaction_type = TransactionType::Declare;
