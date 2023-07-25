@@ -117,7 +117,6 @@ impl JsonRpcHandler {
         let starknet = self.api.starknet.read().await;
         let transaction_to_map =  starknet.transactions.get(&transaction_hash.0).unwrap();
         let transaction_type;
-
         let transaction_data: Transaction = match transaction_to_map.inner.clone() {
             starknet_core::transactions::Transaction::Declare(declare_v1) => {
                 transaction_type = TransactionType::Declare;
@@ -144,8 +143,8 @@ impl JsonRpcHandler {
                     compiled_class_hash: FeltHex(declare_v2.compiled_class_hash),
                 }))
             },
-            starknet_core::transactions::Transaction::DeployAccount(deploy) => {!todo!()},
-            starknet_core::transactions::Transaction::Invoke(invoke) => {!todo!()},
+            starknet_core::transactions::Transaction::DeployAccount(_deploy) => {!todo!()},
+            starknet_core::transactions::Transaction::Invoke(_invoke) => {!todo!()},
         };
 
         let transaction = TransactionWithType {
