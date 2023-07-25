@@ -49,11 +49,11 @@ mod get_transaction_by_hash_integration_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         // Sierra class artifact. Output of the `starknet-compile` command
-        let path_to_cario1 = concat!(env!("CARGO_MANIFEST_DIR"), r"\test_data\rpc\declare_v2_contract_cario_v1\output.json");
+        let path_to_cario1 = concat!(env!("CARGO_MANIFEST_DIR"), r"\test_data\rpc\contract_cario_v1\output.json");
         let contract_artifact: SierraClass = serde_json::from_reader(std::fs::File::open(path_to_cario1).unwrap()).unwrap();
 
         // Casm artifact. Output of the `starknet-sierra-compile` command
-        let path_to_casm = concat!(env!("CARGO_MANIFEST_DIR"), r"\test_data\rpc\declare_v2_contract_cario_v1\output-casm.json");
+        let path_to_casm = concat!(env!("CARGO_MANIFEST_DIR"), r"\test_data\rpc\contract_cario_v1\output-casm.json");
         let casm_contract_definition: CompiledClass =  serde_json::from_reader(std::fs::File::open(path_to_casm).unwrap()).unwrap();
         let compiled_class_hash = (casm_contract_definition.class_hash()).unwrap();
         assert_eq!(Felt::from(compiled_class_hash).to_prefixed_hex_str(), CASM_COMPILED_CLASS_HASH);
