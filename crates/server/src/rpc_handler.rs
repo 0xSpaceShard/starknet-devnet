@@ -37,8 +37,6 @@ pub trait RpcHandler: Clone + Send + Sync + 'static {
             "params": params
         });
 
-        println!("serde_json::to_string: ");
-        println!("{}", serde_json::to_string(&call.clone()).unwrap());
         match serde_json::from_value::<Self::Request>(call) {
             Ok(req) => {
                 let result = self.on_request(req).await;
