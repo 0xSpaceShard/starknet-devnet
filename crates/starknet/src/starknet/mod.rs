@@ -11,23 +11,36 @@ use starknet_in_rust::definitions::constants::{
     DEFAULT_VALIDATE_MAX_N_STEPS,
 };
 use starknet_in_rust::execution::TransactionExecutionInfo;
+use starknet_in_rust::state::state_api::State;
 use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
 use starknet_in_rust::utils::Address;
 use starknet_in_rust::{call_contract, SierraContractClass};
 use starknet_rs_core::types::{BlockId, TransactionStatus};
+use starknet_rs_core::utils::get_selector_from_name;
+use starknet_rs_ff::FieldElement;
+use starknet_rs_signers::Signer;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use tracing::error;
 
+use self::predeployed::initialize_erc20;
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
-use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT_PATH, ERC20_CONTRACT_ADDRESS};
+use crate::constants::{
+    CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
+    ERC20_CONTRACT_ADDRESS,
+};
 use crate::error::{Error, Result};
 use crate::predeployed_accounts::PredeployedAccounts;
+use crate::raw_execution::{Call, RawExecution};
+use crate::state::state_diff::StateDiff;
+use crate::state::state_update::StateUpdate;
 use crate::state::StarknetState;
-use crate::traits::{AccountGenerator, Accounted, HashIdentifiedMut, StateChanger};
+use crate::traits::{
+    AccountGenerator, Accounted, Deployed, HashIdentifiedMut, StateChanger, StateExtractor,
+};
 use crate::transactions::declare_transaction::DeclareTransactionV1;
 use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
 use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
@@ -39,8 +52,9 @@ mod add_declare_transaction;
 mod add_deploy_account_transaction;
 mod add_invoke_transaction;
 mod predeployed;
+mod state_update;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct StarknetConfig {
     pub seed: u32,
     pub total_accounts: u8,
@@ -83,9 +97,11 @@ impl Starknet {
         let mut state = StarknetState::default();
         // deploy udc and erc20 contracts
         let erc20_fee_contract = predeployed::create_erc20()?;
-        let udc_contract = predeployed::create_udc20()?;
+        let udc_contract = predeployed::create_udc()?;
 
         erc20_fee_contract.deploy(&mut state)?;
+        initialize_erc20(&mut state)?;
+
         udc_contract.deploy(&mut state)?;
 
         let mut predeployed_accounts = PredeployedAccounts::new(
@@ -100,12 +116,19 @@ impl Starknet {
         let accounts = predeployed_accounts.generate_accounts(
             config.total_accounts,
             class_hash,
-            account_contract_class,
+            account_contract_class.clone(),
         )?;
         for account in accounts {
             account.deploy(&mut state)?;
             account.set_initial_balance(&mut state)?;
         }
+
+        let chargeable_account = Account::new_chargeable(
+            class_hash,
+            account_contract_class,
+            erc20_fee_contract.get_address(),
+        );
+        chargeable_account.deploy(&mut state)?;
 
         // copy already modified state to cached state
         state.synchronize_states();
@@ -116,7 +139,7 @@ impl Starknet {
             block_context: Self::get_block_context(0, ERC20_CONTRACT_ADDRESS, config.chain_id)?,
             blocks: StarknetBlocks::default(),
             transactions: StarknetTransactions::default(),
-            config: StarknetConfig::default(),
+            config: config.clone(),
             sierra_contracts: HashMap::new(),
         };
 
@@ -139,19 +162,20 @@ impl Starknet {
     }
 
     // Transfer data from pending block into new block and save it to blocks collection
-    pub(crate) fn generate_new_block(&mut self) -> Result<()> {
+    pub(crate) fn generate_new_block(&mut self, state_diff: StateDiff) -> Result<()> {
         let mut new_block = self.pending_block().clone();
 
         // set new block header
         new_block.set_block_hash(new_block.generate_hash()?);
         new_block.status = BlockStatus::AcceptedOnL2;
+        let new_block_number = new_block.block_number();
 
         // update txs block hash block number for each transaction in the pending block
         new_block.get_transactions().iter().for_each(|t| {
             if let Some(tx_hash) = t.get_hash() {
                 if let Some(tx) = self.transactions.get_by_hash_mut(&tx_hash) {
                     tx.block_hash = Some(new_block.header.block_hash.0.into());
-                    tx.block_number = Some(new_block.header.block_number);
+                    tx.block_number = Some(new_block_number);
                     tx.status = TransactionStatus::AcceptedOnL2;
                 } else {
                     error!("Transaction is not present in the transactions colletion");
@@ -161,8 +185,8 @@ impl Starknet {
             }
         });
 
-        // insert pending block in the blocks collection
-        self.blocks.insert(new_block);
+        // insert pending block in the blocks collection and connect it to the state diff
+        self.blocks.insert(new_block, state_diff);
 
         Ok(())
     }
@@ -181,12 +205,13 @@ impl Starknet {
 
         self.transactions.insert(transaction_hash, transaction_to_add);
 
-        // create new block from pending one
-        self.generate_new_block()?;
+        let state_difference = self.state.extract_state_diff_from_pending_state()?;
         // apply state changes from cached state
-        self.state.apply_cached_state()?;
+        self.state.apply_state_difference(state_difference.clone())?;
         // make cached state part of "persistent" state
         self.state.synchronize_states();
+        // create new block from pending one
+        self.generate_new_block(state_difference)?;
         // clear pending block information
         self.generate_pending_block()?;
 
@@ -335,6 +360,65 @@ impl Starknet {
     ) -> Result<TransactionHash> {
         add_invoke_transaction::add_invoke_transcation_v1(self, invoke_transaction)
     }
+
+    /// Creates an invoke tx for minting, using the chargeable account.
+    pub async fn mint(&mut self, address: ContractAddress, amount: u128) -> Result<Felt> {
+        let sufficiently_big_max_fee: u128 = self.config.gas_price as u128 * 1_000_000;
+        let chargeable_address_felt = Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?;
+        let nonce =
+            self.state.pending_state.get_nonce_at(&Address(chargeable_address_felt.into()))?;
+
+        let calldata = vec![
+            Felt::from(address).into(),
+            FieldElement::from(amount), // `low` part of Uint256
+            FieldElement::from(0u32),   // `high` part
+        ];
+
+        let erc20_address_felt = Felt::from_prefixed_hex_str(ERC20_CONTRACT_ADDRESS)?;
+        let raw_execution = RawExecution {
+            calls: vec![Call {
+                to: erc20_address_felt.into(),
+                selector: get_selector_from_name("mint").unwrap(),
+                calldata: calldata.clone(),
+            }],
+            nonce: Felt::from(nonce.clone()).into(),
+            max_fee: FieldElement::from(sufficiently_big_max_fee),
+        };
+
+        // generate msg hash (not the same as tx hash)
+        let chain_id_felt: Felt = self.config.chain_id.to_felt().into();
+        let msg_hash_felt =
+            raw_execution.transaction_hash(chain_id_felt.into(), chargeable_address_felt.into());
+
+        // generate signature by signing the msg hash
+        let signer = starknet_rs_signers::LocalWallet::from(
+            starknet_rs_signers::SigningKey::from_secret_scalar(
+                FieldElement::from_hex_be(CHARGEABLE_ACCOUNT_PRIVATE_KEY).unwrap(),
+            ),
+        );
+        let signature = signer.sign_hash(&msg_hash_felt).await?;
+
+        // apply the invoke tx
+        let invoke_tx = InvokeTransactionV1::new(
+            ContractAddress::new(chargeable_address_felt)?,
+            sufficiently_big_max_fee,
+            vec![signature.r.into(), signature.s.into()],
+            nonce.into(),
+            raw_execution.raw_calldata().into_iter().map(|c| c.into()).collect(),
+            chain_id_felt,
+        )?;
+        self.add_invoke_transaction_v1(invoke_tx)
+    }
+
+    pub fn block_state_update(&self, block_id: BlockId) -> Result<StateUpdate> {
+        state_update::state_update_by_block_id(self, block_id)
+    }
+
+    pub fn get_block_txs_count(&self, block_id: BlockId) -> Result<u64> {
+        let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
+
+        Ok(block.get_transactions().len() as u64)
+    }
 }
 
 #[cfg(test)]
@@ -353,6 +437,7 @@ mod tests {
     use crate::blocks::StarknetBlock;
     use crate::constants::{DEVNET_DEFAULT_INITIAL_BALANCE, ERC20_CONTRACT_ADDRESS};
     use crate::error::{Error, Result};
+    use crate::state::state_diff::StateDiff;
     use crate::traits::Accounted;
     use crate::utils::test_utils::{dummy_declare_transaction_v1, starknet_config_for_test};
 
@@ -416,7 +501,7 @@ mod tests {
         // blocks collection is empty
         assert!(starknet.blocks.num_to_block.is_empty());
 
-        starknet.generate_new_block().unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
         // blocks collection should not be empty
         assert!(!starknet.blocks.num_to_block.is_empty());
 
@@ -606,7 +691,7 @@ mod tests {
         let block_number_no_blocks = starknet.block_number();
         assert_eq!(block_number_no_blocks.0, 0);
 
-        starknet.generate_new_block().unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
         starknet.generate_pending_block().unwrap();
 
         // last added block number -> 0
@@ -616,12 +701,41 @@ mod tests {
 
         assert_eq!(block_number.0 - 1, added_block.header.block_number.0);
 
-        starknet.generate_new_block().unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
         starknet.generate_pending_block().unwrap();
 
         let added_block2 = starknet.blocks.num_to_block.get(&BlockNumber(1)).unwrap();
         let block_number2 = starknet.block_number();
 
         assert_eq!(block_number2.0 - 1, added_block2.header.block_number.0);
+    }
+
+    #[test]
+    fn gets_block_txs_count() {
+        let config = starknet_config_for_test();
+        let mut starknet = Starknet::new(&config).unwrap();
+
+        starknet.generate_new_block(StateDiff::default()).unwrap();
+        starknet.generate_pending_block().unwrap();
+
+        let num_no_transactions = starknet.get_block_txs_count(BlockId::Number(0));
+
+        assert_eq!(num_no_transactions.unwrap(), 0);
+
+        let mut tx = dummy_declare_transaction_v1();
+        let tx_hash = tx.generate_hash().unwrap();
+        tx.transaction_hash = Some(tx_hash);
+
+        // add transaction to pending block
+        starknet
+            .blocks
+            .pending_block
+            .add_transaction(crate::transactions::Transaction::Declare(tx));
+
+        starknet.generate_new_block(StateDiff::default()).unwrap();
+
+        let num_one_transaction = starknet.get_block_txs_count(BlockId::Number(1));
+
+        assert_eq!(num_one_transaction.unwrap(), 1);
     }
 }

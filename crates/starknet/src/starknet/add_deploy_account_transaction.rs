@@ -13,9 +13,7 @@ pub fn add_deploy_account_transaction(
     starknet: &mut Starknet,
     deploy_account_transaction: DeployAccountTransaction,
 ) -> Result<(TransactionHash, ContractAddress)> {
-    if !starknet
-        .state
-        .is_contract_declared(&Felt::new(*deploy_account_transaction.0.class_hash())?)?
+    if !starknet.state.is_contract_declared(&Felt::new(*deploy_account_transaction.0.class_hash())?)
     {
         return Err(Error::StateError(StateError::MissingClassHash()));
     }
@@ -61,7 +59,7 @@ mod tests {
 
     use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID};
     use crate::starknet::{predeployed, Starknet};
-    use crate::traits::{Accounted, HashIdentifiedMut, StateChanger, StateExtractor};
+    use crate::traits::{Deployed, HashIdentifiedMut, StateChanger, StateExtractor};
     use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
     use crate::utils::{get_storage_var_address, load_cairo_0_contract_class};
 

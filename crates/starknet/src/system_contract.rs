@@ -3,7 +3,7 @@ use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{Balance, ClassHash, Felt};
 
 use crate::error::Result;
-use crate::traits::{Accounted, StateChanger, StateExtractor};
+use crate::traits::{Accounted, Deployed, StateChanger, StateExtractor};
 
 pub(crate) struct SystemContract {
     class_hash: ClassHash,
@@ -25,9 +25,9 @@ impl SystemContract {
     }
 }
 
-impl Accounted for SystemContract {
+impl Deployed for SystemContract {
     fn deploy(&self, state: &mut (impl StateChanger + StateExtractor)) -> Result<()> {
-        if !state.is_contract_declared(&self.class_hash)? {
+        if !state.is_contract_declared(&self.class_hash) {
             state.declare_contract_class(self.class_hash, self.contract_class.clone())?;
         }
 
@@ -36,12 +36,14 @@ impl Accounted for SystemContract {
         Ok(())
     }
 
-    fn set_initial_balance(&self, _state: &mut impl crate::traits::StateChanger) -> Result<()> {
-        Ok(())
-    }
-
     fn get_address(&self) -> ContractAddress {
         self.address
+    }
+}
+
+impl Accounted for SystemContract {
+    fn set_initial_balance(&self, _state: &mut impl crate::traits::StateChanger) -> Result<()> {
+        Ok(())
     }
 
     fn get_balance(&self, _state: &mut impl crate::traits::StateExtractor) -> Result<Balance> {
@@ -58,7 +60,7 @@ mod tests {
         ERC20_CONTRACT_ADDRESS, ERC20_CONTRACT_CLASS_HASH, ERC20_CONTRACT_PATH,
     };
     use crate::state::StarknetState;
-    use crate::traits::Accounted;
+    use crate::traits::Deployed;
     #[test]
     fn load_erc20_contract() {
         let json_str = std::fs::read_to_string(ERC20_CONTRACT_PATH).unwrap();

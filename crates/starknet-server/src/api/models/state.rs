@@ -36,7 +36,7 @@ pub struct DeployedContract {
 #[derive(Debug, Default, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct StorageDiff {
     pub address: ContractAddressHex,
-    storage_entries: Vec<StorageEntry>,
+    pub storage_entries: Vec<StorageEntry>,
 }
 
 /// A storage entry in a contract.

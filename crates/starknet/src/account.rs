@@ -9,9 +9,13 @@ use starknet_types::contract_class::ContractClass;
 use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::error::Error;
 use starknet_types::felt::{Balance, ClassHash, Felt, Key};
+use starknet_types::num_bigint::BigUint;
 
+use crate::constants::{
+    CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, CHARGEABLE_ACCOUNT_PUBLIC_KEY,
+};
 use crate::error::Result;
-use crate::traits::{Accounted, StateChanger, StateExtractor};
+use crate::traits::{Accounted, Deployed, StateChanger, StateExtractor};
 use crate::utils::get_storage_var_address;
 
 /// data taken from https://github.com/0xSpaceShard/starknet-devnet/blob/fb96e0cc3c1c31fb29892ecefd2a670cf8a32b51/starknet_devnet/account.py
@@ -30,6 +34,28 @@ pub struct Account {
 }
 
 impl Account {
+    pub(crate) fn new_chargeable(
+        class_hash: ClassHash,
+        contract_class: ContractClass,
+        fee_token_address: ContractAddress,
+    ) -> Self {
+        // insanely big - should practically never run out of funds
+        let initial_balance = BigUint::from(2u32).pow(251);
+        let initial_balance_hex = format!("0x{}", initial_balance.to_str_radix(16));
+        Self {
+            public_key: Key::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_PUBLIC_KEY).unwrap(),
+            private_key: Key::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_PRIVATE_KEY).unwrap(),
+            account_address: ContractAddress::new(
+                Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS).unwrap(),
+            )
+            .unwrap(),
+            initial_balance: Felt::from_prefixed_hex_str(&initial_balance_hex).unwrap(),
+            class_hash,
+            contract_class,
+            fee_token_address,
+        }
+    }
+
     pub(crate) fn new(
         initial_balance: Balance,
         public_key: Key,
@@ -68,10 +94,10 @@ impl Account {
     }
 }
 
-impl Accounted for Account {
+impl Deployed for Account {
     fn deploy(&self, state: &mut (impl StateChanger + StateExtractor)) -> Result<()> {
         // declare if not declared
-        if !state.is_contract_declared(&self.class_hash)? {
+        if !state.is_contract_declared(&self.class_hash) {
             state.declare_contract_class(self.class_hash, self.contract_class.clone())?;
         }
 
@@ -86,6 +112,12 @@ impl Accounted for Account {
         Ok(())
     }
 
+    fn get_address(&self) -> ContractAddress {
+        self.account_address
+    }
+}
+
+impl Accounted for Account {
     fn set_initial_balance(&self, state: &mut impl StateChanger) -> Result<()> {
         let storage_var_address =
             get_storage_var_address("ERC20_balances", &[Felt::from(self.account_address)])?;
@@ -94,10 +126,6 @@ impl Accounted for Account {
         state.change_storage(storage_key, self.initial_balance)?;
 
         Ok(())
-    }
-
-    fn get_address(&self) -> ContractAddress {
-        self.account_address
     }
 
     fn get_balance(&self, state: &mut impl StateExtractor) -> Result<Balance> {
@@ -115,7 +143,7 @@ mod tests {
     use super::Account;
     use crate::error::Error;
     use crate::state::StarknetState;
-    use crate::traits::Accounted;
+    use crate::traits::{Accounted, Deployed};
     use crate::utils::get_storage_var_address;
     use crate::utils::test_utils::{
         dummy_cairo_0_contract_class, dummy_contract_address, dummy_felt,
