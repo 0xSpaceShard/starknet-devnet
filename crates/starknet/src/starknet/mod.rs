@@ -413,6 +413,12 @@ impl Starknet {
     pub fn block_state_update(&self, block_id: BlockId) -> Result<StateUpdate> {
         state_update::state_update_by_block_id(self, block_id)
     }
+
+    pub fn get_block_txs_count(&self, block_id: BlockId) -> Result<u64> {
+        let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
+
+        Ok(block.get_transactions().len() as u64)
+    }
 }
 
 #[cfg(test)]
@@ -702,5 +708,34 @@ mod tests {
         let block_number2 = starknet.block_number();
 
         assert_eq!(block_number2.0 - 1, added_block2.header.block_number.0);
+    }
+
+    #[test]
+    fn gets_block_txs_count() {
+        let config = starknet_config_for_test();
+        let mut starknet = Starknet::new(&config).unwrap();
+
+        starknet.generate_new_block(StateDiff::default()).unwrap();
+        starknet.generate_pending_block().unwrap();
+
+        let num_no_transactions = starknet.get_block_txs_count(BlockId::Number(0));
+
+        assert_eq!(num_no_transactions.unwrap(), 0);
+
+        let mut tx = dummy_declare_transaction_v1();
+        let tx_hash = tx.generate_hash().unwrap();
+        tx.transaction_hash = Some(tx_hash);
+
+        // add transaction to pending block
+        starknet
+            .blocks
+            .pending_block
+            .add_transaction(crate::transactions::Transaction::Declare(tx));
+
+        starknet.generate_new_block(StateDiff::default()).unwrap();
+
+        let num_one_transaction = starknet.get_block_txs_count(BlockId::Number(1));
+
+        assert_eq!(num_one_transaction.unwrap(), 1);
     }
 }
