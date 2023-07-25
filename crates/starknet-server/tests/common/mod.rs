@@ -107,7 +107,7 @@ pub mod util {
                 .arg(free_port.to_string())
                 .arg("--initial-balance")
                 .arg(PREDEPLOYED_ACCOUNT_INITIAL_BALANCE.to_string())
-                .stdout(Stdio::piped()) // comment this out for complete devnet stdout
+                // .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .expect("Could not start background devnet");
 
