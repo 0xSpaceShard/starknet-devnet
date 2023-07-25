@@ -218,8 +218,6 @@ impl JsonRpcHandler {
             StarknetRequest::AddDeclareTransaction(BroadcastedDeclareTransactionInput {
                 declare_transaction,
             }) => {
-                println!("testo");
-                
                 self.add_declare_transaction(declare_transaction).await.to_rpc_result()
             },
             StarknetRequest::AddDeployAccountTransaction(
