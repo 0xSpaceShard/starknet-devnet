@@ -8,6 +8,7 @@ use starknet_types::starknet_api::transaction::{EthAddress, Fee};
 use super::block::BlockHashHex;
 use super::contract_class::DeprecatedContractClass;
 use super::{ContractAddressHex, FeltHex};
+use crate::api::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 
 pub type TransactionHashHex = FeltHex;
 pub type ClassHashHex = FeltHex;
@@ -323,6 +324,7 @@ pub struct BroadcastedDeclareTransactionV1 {
 pub struct BroadcastedDeclareTransactionV2 {
     #[serde(flatten)]
     pub common: BroadcastedTransactionCommon,
+    #[serde(deserialize_with = "deserialize_to_sierra_contract_class")]
     pub contract_class: starknet_in_rust::SierraContractClass,
     pub sender_address: ContractAddressHex,
     pub compiled_class_hash: CompiledClassHashHex,
