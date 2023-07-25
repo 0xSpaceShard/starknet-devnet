@@ -105,10 +105,11 @@ impl StateChanger for StarknetState {
         });
 
         // update cairo 0 differences
-        for entry in state_diff.cairo_0_declared_contracts {
-            old_state
-                .class_hash_to_contract_class
-                .insert(entry.0.bytes(), entry.1.try_into().map_err(crate::error::Error::from)?);
+        for (class_hash, cairo_0_contract_class) in state_diff.cairo_0_declared_contracts {
+            old_state.class_hash_to_contract_class.insert(
+                class_hash.bytes(),
+                cairo_0_contract_class.try_into().map_err(crate::error::Error::from)?,
+            );
         }
 
         // update class_hash -> compiled_class_hash differences
@@ -120,12 +121,12 @@ impl StateChanger for StarknetState {
             },
         );
 
-        // // update cairo 1 differences
+        // update cairo 1 differences
         state_diff.declared_contracts.into_iter().for_each(|(class_hash, cairo_1_casm)| {
             old_state.casm_contract_classes_mut().insert(class_hash.bytes(), cairo_1_casm);
         });
 
-        // // update deployed contracts
+        // update deployed contracts
         state_diff.inner.address_to_class_hash().iter().for_each(
             |(contract_address, class_hash)| {
                 old_state.address_to_class_hash_mut().insert(contract_address.clone(), *class_hash);
@@ -147,13 +148,8 @@ impl StateExtractor for StarknetState {
     }
 
     fn is_contract_declared(&mut self, class_hash: &ClassHash) -> bool {
-        if self.state.class_hash_to_compiled_class_hash_mut().contains_key(&class_hash.bytes())
+        self.state.class_hash_to_compiled_class_hash_mut().contains_key(&class_hash.bytes())
             || self.state.class_hash_to_contract_class.contains_key(&(class_hash.bytes()))
-        {
-            return true;
-        }
-
-        false
     }
 
     fn get_class_hash_at_contract_address(

@@ -3,6 +3,7 @@ mod blocks;
 pub mod constants;
 pub mod error;
 mod predeployed_accounts;
+pub mod raw_execution;
 pub mod starknet;
 mod state;
 mod system_contract;

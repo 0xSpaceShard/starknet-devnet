@@ -24,9 +24,7 @@ pub struct StateDiff {
     pub(crate) cairo_0_declared_contracts: HashMap<ClassHash, ContractClass>,
 }
 
-impl Eq for StateDiff {
-    fn assert_receiver_is_total_eq(&self) {}
-}
+impl Eq for StateDiff {}
 
 impl StateDiff {
     pub(crate) fn difference_between_old_and_new_state(
@@ -43,27 +41,29 @@ impl StateDiff {
             old_state.class_hash_to_compiled_class_hash_mut().clone(),
         );
 
-        for entry in class_hash_to_compiled_class_hash_subtracted_map {
-            let key = Felt::new(entry.0).map_err(crate::error::Error::from)?;
-            let value = Felt::new(entry.1).map_err(crate::error::Error::from)?;
+        for (class_hash_bytes, compiled_class_hash_bytes) in
+            class_hash_to_compiled_class_hash_subtracted_map
+        {
+            let key = Felt::new(class_hash_bytes).map_err(crate::error::Error::from)?;
+            let value = Felt::new(compiled_class_hash_bytes).map_err(crate::error::Error::from)?;
 
             class_hash_to_compiled_class_hash.insert(key, value);
         }
 
         // extract difference of compiled_class_hash -> CasmContractClass mapping, which is Cairo 1
         // contract
-        let new_casm_contracts_classes =
+        let new_casm_contract_classes =
             new_state.casm_contract_classes().clone().unwrap_or_default();
 
         let compiled_class_hash_to_cairo_casm = subtract_mappings(
-            new_casm_contracts_classes,
+            new_casm_contract_classes,
             old_state.casm_contract_classes_mut().clone(),
         );
 
-        for entry in compiled_class_hash_to_cairo_casm {
-            let key = Felt::new(entry.0).map_err(crate::error::Error::from)?;
+        for (compiled_class_hash_bytes, casm_contract_class) in compiled_class_hash_to_cairo_casm {
+            let key = Felt::new(compiled_class_hash_bytes).map_err(crate::error::Error::from)?;
 
-            declared_contracts.insert(key, entry.1);
+            declared_contracts.insert(key, casm_contract_class);
         }
 
         // extract difference of class_hash -> Cairo 0 contract class
@@ -72,10 +72,10 @@ impl StateDiff {
             old_state.class_hash_to_contract_class.clone(),
         );
 
-        for entry in class_hash_to_cairo_0_contract_class {
-            let key = Felt::new(entry.0).map_err(crate::error::Error::from)?;
+        for (class_hash_bytes, cairo_0_contract_class) in class_hash_to_cairo_0_contract_class {
+            let key = Felt::new(class_hash_bytes).map_err(crate::error::Error::from)?;
 
-            cairo_0_declared_contracts.insert(key, ContractClass::from(entry.1));
+            cairo_0_declared_contracts.insert(key, ContractClass::from(cairo_0_contract_class));
         }
 
         let diff = StarknetInRustStateDiff::from_cached_state(new_state)?;
