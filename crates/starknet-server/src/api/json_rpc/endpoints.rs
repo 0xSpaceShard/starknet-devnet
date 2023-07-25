@@ -184,8 +184,12 @@ impl JsonRpcHandler {
     }
 
     /// starknet_getBlockTransactionCount
-    pub(crate) async fn get_block_txs_count(&self, _block_id: BlockId) -> RpcResult<BlockNumber> {
-        Err(error::ApiError::BlockNotFound)
+    pub(crate) async fn get_block_txs_count(&self, block_id: BlockId) -> RpcResult<u64> {
+        let num_trans_count = self.api.starknet.read().await.get_block_txs_count(block_id.into());
+        match num_trans_count {
+            Ok(count) => Ok(count),
+            Err(_) => Err(ApiError::NoBlocks),
+        }
     }
 
     /// starknet_call
