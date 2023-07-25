@@ -436,8 +436,6 @@ impl Starknet {
         Ok(block.get_transactions().len() as u64)
     }
 
-    }
-
     pub fn contract_nonce_at_block(
         &self,
         block_id: BlockId,
@@ -763,7 +761,7 @@ mod tests {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        starknet.generate_new_block(StateDiff::default()).unwrap();
+        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
         starknet.generate_pending_block().unwrap();
 
         let num_no_transactions = starknet.get_block_txs_count(BlockId::Number(0));
@@ -780,7 +778,7 @@ mod tests {
             .pending_block
             .add_transaction(crate::transactions::Transaction::Declare(tx));
 
-        starknet.generate_new_block(StateDiff::default()).unwrap();
+        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
 
         let num_one_transaction = starknet.get_block_txs_count(BlockId::Number(1));
 
