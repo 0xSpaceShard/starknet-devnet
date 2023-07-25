@@ -158,6 +158,25 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "Debug integration test 'test_call'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=test_call",
+                    "--package=starknet-server"
+                ],
+                "filter": {
+                    "name": "test_call",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "Debug integration test 'test_get_class_hash_at'",
             "cargo": {
                 "args": [

@@ -3,7 +3,7 @@ pub mod common;
 mod get_transaction_by_hash_integration_tests {
     use std::sync::Arc;
     use starknet_core::constants::DECLARE_V1_TRANSACTION_HASH;
-    use starknet_rs_core::{chain_id, types::{BroadcastedDeclareTransactionV1, FieldElement, BlockId, BlockTag, contract::{SierraClass, CompiledClass}}};
+    use starknet_rs_core::{chain_id, types::{BroadcastedDeclareTransactionV1, BroadcastedDeclareTransactionV2, FieldElement, BlockId, BlockTag, contract::{SierraClass, CompiledClass}}};
     use starknet_rs_signers::{LocalWallet, SigningKey};
     use starknet_rs_accounts::{Account, SingleOwnerAccount};
     use starknet_rs_providers::Provider;
@@ -44,6 +44,44 @@ mod get_transaction_by_hash_integration_tests {
         };
     }
 
+
+    #[tokio::test]
+    async fn get_declere_v123_transaction_by_hash_happy_path() {
+
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let json_string = std::fs::read_to_string(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test_data/rpc/declare_v2.json"
+        )).unwrap();
+
+        let declare_txn_v2: BroadcastedDeclareTransactionV2 =
+            serde_json::from_str(&json_string).unwrap();
+
+        let add_transaction = devnet
+            .json_rpc_client
+            .add_declare_transaction(
+                starknet_rs_core::types::BroadcastedDeclareTransaction::V2(declare_txn_v2.clone()),
+            )
+            .await
+            .unwrap();
+
+        println!("result.transaction_hash: {}", Felt::from(add_transaction.transaction_hash).to_prefixed_hex_str());
+
+        let get_transaction = devnet
+            .json_rpc_client
+            .get_transaction_by_hash(add_transaction.transaction_hash)
+            .await
+            .unwrap();
+
+        match get_transaction.clone() {
+            starknet_rs_core::types::Transaction::Declare(starknet_rs_core::types::DeclareTransaction::V1(declare_v1)) => {
+                assert_eq!(declare_v1.transaction_hash, FieldElement::from_hex_be(DECLARE_V1_TRANSACTION_HASH).unwrap());
+            },
+            _ => {}
+        };
+    }
+
+
     #[tokio::test]
     async fn get_declere_v2_transaction_by_hash_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
@@ -68,7 +106,6 @@ mod get_transaction_by_hash_integration_tests {
         // We need to flatten the ABI into a string first
         let flattened_class = contract_artifact.flatten().unwrap();
 
-        println!("result 1:");
         let result = account
             .declare(Arc::new(flattened_class), compiled_class_hash)
             .nonce(FieldElement::from_hex_be("0x0").unwrap())
@@ -77,9 +114,7 @@ mod get_transaction_by_hash_integration_tests {
             .unwrap()
             .send()
             .await;
-        // let error = result.unwrap_err();
-        // println!("result 2: {:?}", result.unwrap_err());
-        // println!("test 1:");
+
         println!("result.transaction_hash: {}", Felt::from(result.unwrap().transaction_hash).to_prefixed_hex_str());
     
     }

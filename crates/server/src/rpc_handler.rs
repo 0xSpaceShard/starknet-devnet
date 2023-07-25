@@ -37,12 +37,18 @@ pub trait RpcHandler: Clone + Send + Sync + 'static {
             "params": params
         });
 
+        println!("serde_json::to_string: ");
+        println!("{}", serde_json::to_string(&call.clone()).unwrap());
         match serde_json::from_value::<Self::Request>(call) {
             Ok(req) => {
+                println!("on_call Ok");
+
                 let result = self.on_request(req).await;
                 RpcResponse::new(id, result)
             }
             Err(err) => {
+                println!("on_call Err");
+
                 let err = err.to_string();
                 if err.contains("unknown variant") {
                     error!(target: "rpc", ?method, "failed to deserialize method due to unknown variant");

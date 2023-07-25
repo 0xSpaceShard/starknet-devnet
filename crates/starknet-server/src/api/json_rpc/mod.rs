@@ -156,7 +156,6 @@ impl JsonRpcHandler {
     /// The method matches the request to the corresponding enum variant and executes the request
     async fn execute(&self, request: StarknetRequest) -> ResponseResult {
         trace!(target: "JsonRpcHandler::execute", "executing starknet request");
-        println!("JsonRpcHandler::execute");
 
         match request {
             StarknetRequest::BlockWithTransactionHashes(block) => {
@@ -508,6 +507,16 @@ mod requests_tests {
         assert_deserialization_succeeds(json_str);
         assert_deserialization_fails(json_str.replace(r#""class_hash":"#, "").as_str());
     }
+
+    // #[test]
+    // fn deserialize_add_declare_transaction_request_from_file() {
+    //     let x = env!("CARGO_MANIFEST_DIR");
+    //     let path = concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/request_from_mario.json");
+    //     let json_str = std::fs::read_to_string(path);
+    //     let json_str_unwrap = std::fs::read_to_string(path).unwrap();
+    //     let y = serde_json::from_str::<StarknetRequest>(json_str_unwrap.as_str()).unwrap();
+    //     println!("{}", 1);
+    // } 
 
     fn assert_deserialization_succeeds(json_str: &str) {
         serde_json::from_str::<StarknetRequest>(json_str).unwrap();

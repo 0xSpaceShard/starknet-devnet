@@ -89,6 +89,7 @@ pub mod util {
                 .arg(ACCOUNTS.to_string())
                 .arg("--port")
                 .arg(free_port.to_string())
+                .env("RUST_LOG", "DEBUG")
                 //.stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .expect("Could not start background devnet");
