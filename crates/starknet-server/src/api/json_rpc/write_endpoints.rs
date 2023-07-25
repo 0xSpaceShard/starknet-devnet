@@ -26,8 +26,6 @@ impl JsonRpcHandler {
         &self,
         request: BroadcastedDeclareTransaction,
     ) -> RpcResult<DeclareTransactionOutput> {
-        println!("add_declare_transaction!!!");
-        
         let chain_id = self.api.starknet.read().await.config.chain_id.to_felt();
         let (transaction_hash, class_hash) = match request {
             BroadcastedDeclareTransaction::V1(broadcasted_declare_txn) => {
