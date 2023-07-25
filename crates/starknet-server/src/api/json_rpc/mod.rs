@@ -217,9 +217,7 @@ impl JsonRpcHandler {
             }) => self.get_nonce(block_id, contract_address).await.to_rpc_result(),
             StarknetRequest::AddDeclareTransaction(BroadcastedDeclareTransactionInput {
                 declare_transaction,
-            }) => {
-                self.add_declare_transaction(declare_transaction).await.to_rpc_result()
-            },
+            }) => self.add_declare_transaction(declare_transaction).await.to_rpc_result(),
             StarknetRequest::AddDeployAccountTransaction(
                 BroadcastedDeployAccountTransactionInput { deploy_account_transaction },
             ) => self
