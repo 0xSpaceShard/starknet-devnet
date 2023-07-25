@@ -17,6 +17,58 @@ pub mod empty_params {
     }
 }
 
+pub mod rpc_sierra_contract_class_to_sierra_contract_class {
+    use serde::{Deserialize, Deserializer};
+
+    pub fn deserialize_to_sierra_contract_class<'de, D>(
+        deserializer: D,
+    ) -> Result<starknet_in_rust::ContractClass, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let mut json_obj = serde_json::Value::deserialize(deserializer)?;
+        // Take the inner part of the string value which is expected to be a JSON array and replace
+        // it
+        if let Some(serde_json::Value::String(abi_string)) = json_obj.get("abi") {
+            let arr: serde_json::Value =
+                serde_json::from_str(abi_string).map_err(serde::de::Error::custom)?;
+
+            json_obj
+                .as_object_mut()
+                .ok_or(serde::de::Error::custom("Expected to be an object"))?
+                .insert("abi".to_string(), arr);
+        };
+
+        serde_json::from_value(json_obj).map_err(serde::de::Error::custom)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use serde::Deserialize;
+
+        use crate::api::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
+
+        #[test]
+        fn correct_deserialzation_from_sierra_contract_class_with_abi_field_as_string() {
+            #[derive(Deserialize)]
+            struct TestDeserialization(
+                #[allow(unused)]
+                #[serde(deserialize_with = "deserialize_to_sierra_contract_class")]
+                starknet_in_rust::ContractClass,
+            );
+
+            let path = concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/test_data/sierra_contract_class_with_abi_as_string.json"
+            );
+
+            let json_str = std::fs::read_to_string(path).unwrap();
+
+            serde_json::from_str::<TestDeserialization>(&json_str).unwrap();
+        }
+    }
+}
+
 pub mod base_64_gzipped_json_string {
     use base64::Engine;
     use serde::{Deserialize, Deserializer};
