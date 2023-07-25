@@ -2,7 +2,7 @@ pub mod common;
 
 mod get_transaction_by_hash_integration_tests {
     use std::sync::Arc;
-    use starknet_core::constants::DECLARE_V1_TRANSACTION_HASH;
+    use starknet_core::constants::{DECLARE_V1_TRANSACTION_HASH, DECLARE_V2_TRANSACTION_HASH};
     use starknet_rs_core::{chain_id, types::{BroadcastedDeclareTransactionV1, FieldElement, BlockId, BlockTag, contract::{SierraClass, CompiledClass}}};
     use starknet_rs_signers::{LocalWallet, SigningKey};
     use starknet_rs_accounts::{Account, SingleOwnerAccount};
@@ -48,11 +48,11 @@ mod get_transaction_by_hash_integration_tests {
     async fn get_declere_v2_transaction_by_hash_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-        // Sierra class artifact. Output of the `starknet-compile` command
+        // Sierra class artifact. Output of the `starknet-compile` command.
         let path_to_cario1 = concat!(env!("CARGO_MANIFEST_DIR"), r"\test_data\rpc\contract_cario_v1\output.json");
         let contract_artifact: SierraClass = serde_json::from_reader(std::fs::File::open(path_to_cario1).unwrap()).unwrap();
 
-        // Casm artifact. Output of the `starknet-sierra-compile` command
+        // Casm artifact. Output of the `starknet-sierra-compile` command.
         let path_to_casm = concat!(env!("CARGO_MANIFEST_DIR"), r"\test_data\rpc\contract_cario_v1\output-casm.json");
         let casm_contract_definition: CompiledClass =  serde_json::from_reader(std::fs::File::open(path_to_casm).unwrap()).unwrap();
         let compiled_class_hash = (casm_contract_definition.class_hash()).unwrap();
@@ -68,17 +68,13 @@ mod get_transaction_by_hash_integration_tests {
 
         // We need to flatten the ABI into a string first
         let flattened_class = contract_artifact.flatten().unwrap();
-
         let result = account
             .declare(Arc::new(flattened_class), compiled_class_hash)
             .nonce(FieldElement::from_hex_be("0x0").unwrap())
             .max_fee(FieldElement::from_hex_be("0xde0b6b3a7640000").unwrap())
-            .prepared()
-            .unwrap()
             .send()
             .await;
 
-        println!("result.transaction_hash: {}", Felt::from(result.unwrap().transaction_hash).to_prefixed_hex_str());
-    
+        assert_eq!(result.unwrap().transaction_hash, FieldElement::from_hex_be(DECLARE_V2_TRANSACTION_HASH).unwrap());
     }
 }
