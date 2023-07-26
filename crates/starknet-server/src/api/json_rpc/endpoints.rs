@@ -13,7 +13,10 @@ use super::models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
 use super::{JsonRpcHandler, RpcResult};
 use crate::api::models::block::Block;
 use crate::api::models::contract_class::ContractClass;
-use crate::api::models::state::ThinStateDiff;
+use crate::api::models::state::{
+    ClassHashes, ContractNonce, DeployedContract, StateUpdate, StorageDiff, StorageEntry,
+    ThinStateDiff,
+};
 use crate::api::models::transaction::{
     BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
     BroadcastedTransactionWithType, ClassHashHex, EventFilter, EventsChunk, FunctionCall,
@@ -34,8 +37,68 @@ impl JsonRpcHandler {
     }
 
     /// starknet_getStateUpdate
-    pub(crate) async fn get_state_update(&self, _block_id: BlockId) -> RpcResult<ThinStateDiff> {
-        Err(error::ApiError::BlockNotFound)
+    pub(crate) async fn get_state_update(&self, block_id: BlockId) -> RpcResult<StateUpdate> {
+        let state_update =
+            self.api.starknet.read().await.block_state_update(block_id.into()).map_err(|err| {
+                match err {
+                    Error::NoBlock => ApiError::BlockNotFound,
+                    unknown_error => ApiError::StarknetDevnetError(unknown_error),
+                }
+            })?;
+
+        let state_diff = ThinStateDiff {
+            deployed_contracts: state_update
+                .deployed_contracts
+                .into_iter()
+                .map(|(address, class_hash)| DeployedContract {
+                    address: ContractAddressHex(address),
+                    class_hash: FeltHex(class_hash),
+                })
+                .collect(),
+            declared_classes: state_update
+                .declared_classes
+                .into_iter()
+                .map(|(class_hash, compiled_class_hash)| ClassHashes {
+                    class_hash: FeltHex(class_hash),
+                    compiled_class_hash: FeltHex(compiled_class_hash),
+                })
+                .collect(),
+            deprecated_declared_classes: state_update
+                .cairo_0_declared_classes
+                .into_iter()
+                .map(FeltHex)
+                .collect(),
+            nonces: state_update
+                .nonces
+                .into_iter()
+                .map(|(address, nonce)| ContractNonce {
+                    contract_address: ContractAddressHex(address),
+                    nonce: FeltHex(nonce),
+                })
+                .collect(),
+            storage_diffs: state_update
+                .storage_updates
+                .into_iter()
+                .map(|(contract_address, updates)| StorageDiff {
+                    address: ContractAddressHex(contract_address),
+                    storage_entries: updates
+                        .into_iter()
+                        .map(|(key, value)| StorageEntry {
+                            key: PatriciaKeyHex(key),
+                            value: FeltHex(value),
+                        })
+                        .collect(),
+                })
+                .collect(),
+            replaced_classes: vec![],
+        };
+
+        Ok(StateUpdate {
+            block_hash: FeltHex(state_update.block_hash),
+            new_root: FeltHex(state_update.new_root),
+            old_root: FeltHex(state_update.old_root),
+            state_diff,
+        })
     }
 
     /// starknet_getStorageAt
@@ -109,8 +172,12 @@ impl JsonRpcHandler {
     }
 
     /// starknet_getBlockTransactionCount
-    pub(crate) async fn get_block_txs_count(&self, _block_id: BlockId) -> RpcResult<BlockNumber> {
-        Err(error::ApiError::BlockNotFound)
+    pub(crate) async fn get_block_txs_count(&self, block_id: BlockId) -> RpcResult<u64> {
+        let num_trans_count = self.api.starknet.read().await.get_block_txs_count(block_id.into());
+        match num_trans_count {
+            Ok(count) => Ok(count),
+            Err(_) => Err(ApiError::NoBlocks),
+        }
     }
 
     /// starknet_call

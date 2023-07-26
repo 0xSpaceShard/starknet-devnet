@@ -514,6 +514,39 @@ mod requests_tests {
         assert_deserialization_fails(json_str.replace(r#""class_hash":"#, "").as_str());
     }
 
+    #[test]
+    fn deserialize_add_declare_transaction_request() {
+        let json_str = r#"{
+            "method":"starknet_addDeclareTransaction",
+            "params":{
+                "declare_transaction":{
+                    "type":"DECLARE",
+                    "max_fee": "0xde0b6b3a7640000",
+                    "version": "0x2",
+                    "signature": [
+                        "0x2216f8f4d9abc06e130d2a05b13db61850f0a1d21891c7297b98fd6cc51920d",
+                        "0x6aadfb198bbffa8425801a2342f5c6d804745912114d5976f53031cd789bb6d"
+                        ],
+                    "nonce": "0x0",
+                    "compiled_class_hash":"0x63b33a5f2f46b1445d04c06d7832c48c48ad087ce0803b71f2b8d96353716ca",
+                    "sender_address":"0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba",
+                    "contract_class": {
+                        "sierra_program": ["0xAA", "0xBB"],
+                        "entry_points_by_type": {
+                            "EXTERNAL": [{"function_idx":0,"selector":"0x362398bec32bc0ebb411203221a35a0301193a96f317ebe5e40be9f60d15320"},{"function_idx":1,"selector":"0x39e11d48192e4333233c7eb19d10ad67c362bb28580c604d67884c85da39695"}],
+                            "L1_HANDLER": [],
+                            "CONSTRUCTOR": [{"function_idx":2,"selector":"0x28ffe4ff0f226a9107253e17a904099aa4f63a02a5621de0576e5aa71bc5194"}]
+                        },
+                        "abi": "[{\"type\": \"function\", \"name\": \"constructor\", \"inputs\": [{\"name\": \"initial_balance\", \"type\": \"core::felt252\"}], \"outputs\": [], \"state_mutability\": \"external\"}, {\"type\": \"function\", \"name\": \"increase_balance\", \"inputs\": [{\"name\": \"amount1\", \"type\": \"core::felt252\"}, {\"name\": \"amount2\", \"type\": \"core::felt252\"}], \"outputs\": [], \"state_mutability\": \"external\"}, {\"type\": \"function\", \"name\": \"get_balance\", \"inputs\": [], \"outputs\": [{\"type\": \"core::felt252\"}], \"state_mutability\": \"view\"}]",
+                        "contract_class_version": "0.1.0"
+                    }
+                }
+            }
+        }"#;
+
+        assert_deserialization_succeeds(json_str);
+    }
+
     fn assert_deserialization_succeeds(json_str: &str) {
         serde_json::from_str::<StarknetRequest>(json_str).unwrap();
     }
