@@ -344,6 +344,11 @@ impl Starknet {
         BlockNumber(block_num)
     }
 
+    /// returning the chain id as object
+    pub fn chain_id(&self) -> StarknetChainId {
+        self.config.chain_id
+    }
+
     pub fn add_deploy_account_transaction(
         &mut self,
         deploy_account_transaction: DeployAccountTransaction,
