@@ -162,11 +162,7 @@ impl JsonRpcHandler {
         let starknet = self.api.starknet.read().await;
         match starknet.get_class_hash_at(&block_id.into(), &contract_address.0) {
             Ok(class_hash) => Ok(FeltHex(class_hash)),
-            Err(
-                Error::BlockIdHashUnimplementedError
-                | Error::BlockIdNumberUnimplementedError
-                | Error::NoBlock,
-            ) => Err(ApiError::BlockNotFound),
+            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(Error::ContractNotFound | Error::NoStateAtBlock { block_number: _ }) => {
                 Err(ApiError::ContractNotFound)
             }
@@ -209,9 +205,6 @@ impl JsonRpcHandler {
             Err(Error::TransactionError(TransactionError::State(
                 StateError::NoneContractState(Address(_address)),
             ))) => Err(ApiError::ContractNotFound),
-            Err(Error::BlockIdHashUnimplementedError | Error::BlockIdNumberUnimplementedError) => {
-                Err(ApiError::OnlyLatestBlock)
-            }
             Err(_) => Err(ApiError::ContractError),
         }
     }

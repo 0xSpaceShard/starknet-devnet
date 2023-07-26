@@ -11,10 +11,6 @@ pub enum Error {
     TransactionError(#[from] starknet_in_rust::transaction::error::TransactionError),
     #[error("Types error")]
     TypesError(#[from] starknet_types::error::Error),
-    #[error("Specifying block by hash is currently not enabled")]
-    BlockIdHashUnimplementedError,
-    #[error("Specifying block by number is currently not enabled")]
-    BlockIdNumberUnimplementedError,
     #[error("I/O error")]
     IoError(#[from] std::io::Error),
     #[error("Error when reading file {path}")]
