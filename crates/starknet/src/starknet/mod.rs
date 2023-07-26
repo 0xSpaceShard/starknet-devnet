@@ -440,7 +440,9 @@ mod tests {
 
     use super::Starknet;
     use crate::blocks::StarknetBlock;
-    use crate::constants::{DEVNET_DEFAULT_INITIAL_BALANCE, ERC20_CONTRACT_ADDRESS, DEVNET_DEFAULT_CHAIN_ID};
+    use crate::constants::{
+        DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_INITIAL_BALANCE, ERC20_CONTRACT_ADDRESS,
+    };
     use crate::error::{Error, Result};
     use crate::state::state_diff::StateDiff;
     use crate::traits::Accounted;
@@ -752,5 +754,4 @@ mod tests {
 
         assert_eq!(chain_id.to_string(), DEVNET_DEFAULT_CHAIN_ID.to_string());
     }
-
 }
