@@ -45,7 +45,7 @@ mod get_transaction_by_hash_integration_tests {
             .await
             .unwrap();
 
-        match get_transaction.clone() {
+        match get_transaction {
             starknet_rs_core::types::Transaction::Declare(
                 starknet_rs_core::types::DeclareTransaction::V1(declare_v1),
             ) => {
