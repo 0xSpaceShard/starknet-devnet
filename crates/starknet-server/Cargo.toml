@@ -46,4 +46,4 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 
 [dev-dependencies]
-lazy_static = { workspace.dev-dependencies = true }
+lazy_static = { workspace = true }
