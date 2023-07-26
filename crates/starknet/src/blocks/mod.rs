@@ -10,6 +10,7 @@ use starknet_types::traits::HashProducer;
 use crate::state::state_diff::StateDiff;
 use crate::traits::HashIdentified;
 use crate::transactions::Transaction;
+use crate::error::Result;
 
 pub(crate) struct StarknetBlocks {
     pub(crate) hash_to_num: HashMap<BlockHash, BlockNumber>,
@@ -75,24 +76,64 @@ impl StarknetBlocks {
         }
     }
 
-    /// Returns the block number from a block id
-    /// If its hash it will check the hash_to_num map
-    /// If its number it will check the num_to_block map
-    /// If its tag it will return the last block number or None if there is no last block
+    /// Returns the block number from a block id, by finding the block by the block id
     fn block_number_from_block_id(&self, block_id: BlockId) -> Option<BlockNumber> {
-        match block_id {
-            BlockId::Hash(hash) => self.hash_to_num.get(&Felt::from(hash)).copied(),
-            BlockId::Number(number) => {
-                self.num_to_block.get_key_value(&BlockNumber(number)).map(|(k, _)| *k)
-            }
-            BlockId::Tag(_) => {
-                if let Some(hash) = self.last_block_hash {
-                    self.hash_to_num.get(&hash).copied()
-                } else {
-                    None
+        self.get_by_block_id(block_id).map(|block| block.block_number())
+    }
+
+    /// filter blocks based on from and to block ids
+    pub fn get_blocks(&self, from: Option<BlockId>, to: Option<BlockId>) -> Vec<StarknetBlock> {
+        let starting_block = if let Some(block_id) = from {
+            // if the value for block number provided is not correct it will return None
+            // so we have to handle the None value, because in the filter below it will
+            // skip check for this filter value. So we set it to be after the last block or 1 if
+            // there is no last block
+            match self.block_number_from_block_id(block_id) {
+                Some(block_number) => Some(block_number),
+                None => {
+                    if let Some(last_block_hash) = self.last_block_hash {
+                        // we are sure that if there is a last_block_hash it will have a block
+                        // number
+                        Some(
+                            self.hash_to_num
+                                .get(&last_block_hash)
+                                .copied()
+                                .unwrap_or_default()
+                                .next(),
+                        )
+                    } else {
+                        Some(BlockNumber(1))
+                    }
                 }
             }
-        }
+        } else {
+            None
+        };
+
+        let ending_block = if let Some(block_id) = to {
+            // if the value for block number provided is not correct it will return None
+            // So we set the block number to the first possible block number which is 0
+            match self.block_number_from_block_id(block_id) {
+                Some(block_number) => Some(block_number),
+                None => Some(BlockNumber(0)),
+            }
+        } else {
+            None
+        };
+
+        self.num_to_block
+            .iter()
+            .filter(|(current_block_number, _)| match (starting_block, ending_block) {
+                (None, None) => true,
+                (None, Some(end)) => **current_block_number < end,
+                (Some(start), None) => **current_block_number >= start,
+                (Some(start), Some(end)) => {
+                    **current_block_number >= start && **current_block_number < end
+                }
+            })
+            .map(|(_, block)| block)
+            .cloned()
+            .collect()
     }
 }
 
@@ -157,6 +198,7 @@ impl HashProducer for StarknetBlock {
 mod tests {
     use starknet_api::block::{BlockHash, BlockHeader, BlockNumber, BlockStatus};
     use starknet_rs_core::types::BlockId;
+    use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
 
     use super::{StarknetBlock, StarknetBlocks};
@@ -167,20 +209,77 @@ mod tests {
     fn block_number_from_block_id_should_return_correct_result() {
         let mut blocks = StarknetBlocks::default();
         let mut block_to_insert = StarknetBlock::create_pending_block();
-        
-        assert!(blocks.block_number_from_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest)).is_none());
 
-        let block_hash: Felt = block_to_insert.generate_hash().unwrap();
+        // latest/pending block returns none, because collection is empty
+        assert!(
+            blocks
+                .block_number_from_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))
+                .is_none()
+        );
+        assert!(
+            blocks
+                .block_number_from_block_id(BlockId::Tag(
+                    starknet_rs_core::types::BlockTag::Pending
+                ))
+                .is_none()
+        );
+
+        let block_hash = block_to_insert.generate_hash().unwrap();
         block_to_insert.header.block_number = BlockNumber(10);
         block_to_insert.header.block_hash = block_hash.into();
-        
-        blocks.insert(block_to_insert.clone(), StateDiff::default());
 
+        blocks.insert(block_to_insert, StateDiff::default());
+
+        // returns block number, even if the block number is not present in the collection
+        assert!(blocks.block_number_from_block_id(BlockId::Number(11)).is_none());
         assert!(blocks.block_number_from_block_id(BlockId::Number(10)).is_some());
+        // returns none because there is no block with the given hash
         assert!(blocks.block_number_from_block_id(BlockId::Hash(Felt::from(1).into())).is_none());
-        assert!(blocks.block_number_from_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest)).is_some());
-        assert!(blocks.block_number_from_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Pending)).is_some());
+        assert!(
+            blocks
+                .block_number_from_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))
+                .is_some()
+        );
+        assert!(
+            blocks
+                .block_number_from_block_id(BlockId::Tag(
+                    starknet_rs_core::types::BlockTag::Pending
+                ))
+                .is_some()
+        );
         assert!(blocks.block_number_from_block_id(BlockId::Hash(block_hash.into())).is_some());
+    }
+
+    #[test]
+    fn get_blocks_with_filter() {
+        let mut blocks = StarknetBlocks::default();
+
+        for block_number in 2..12 {
+            let mut block_to_insert = StarknetBlock::create_pending_block();
+            block_to_insert.header.block_number = BlockNumber(block_number);
+            block_to_insert.header.block_hash = block_to_insert.generate_hash().unwrap().into();
+            blocks.insert(block_to_insert, StateDiff::default());
+        }
+
+        // check blocks len
+        assert!(blocks.num_to_block.len() == 10);
+        // only from filter
+        assert_eq!(blocks.get_blocks(Some(BlockId::Number(9)), None).len(), 3);
+        // no filter
+        assert_eq!(blocks.get_blocks(None, None).len(), 10);
+        // invalid from filter, should return no blocks
+        assert!(blocks.get_blocks(Some(BlockId::Number(12)), None).is_empty());
+        // invalid from filter, should return no blocks
+        assert!(blocks.get_blocks(Some(BlockId::Number(13)), None).is_empty());
+        // invalid to filter, should return no blocks
+        assert!(blocks.get_blocks(None, Some(BlockId::Number(1))).is_empty());
+        // invalid to filter, should return no blocks
+        assert!(blocks.get_blocks(None, Some(BlockId::Number(2))).is_empty());
+        // bigger range than actual blocks in the collection
+        assert_eq!(
+            blocks.get_blocks(Some(BlockId::Number(0)), Some(BlockId::Number(1000))).len(),
+            10
+        );
     }
 
     #[test]

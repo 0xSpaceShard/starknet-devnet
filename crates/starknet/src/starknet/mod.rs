@@ -51,6 +51,7 @@ use crate::utils;
 mod add_declare_transaction;
 mod add_deploy_account_transaction;
 mod add_invoke_transaction;
+mod events;
 mod predeployed;
 mod state_update;
 
