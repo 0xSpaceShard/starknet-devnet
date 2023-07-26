@@ -220,8 +220,10 @@ impl JsonRpcHandler {
     }
 
     /// starknet_chainId
-    pub(crate) fn chain_id(&self) -> RpcResult<String> {
-        Ok("TESTNET".to_string())
+    pub(crate) async fn chain_id(&self) -> RpcResult<String> {
+        let starknet = self.api.starknet.read().await;
+
+        Ok(starknet.config.chain_id.to_string());
     }
 
     /// starknet_pendingTransactions
