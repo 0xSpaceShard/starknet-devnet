@@ -223,7 +223,7 @@ impl Starknet {
     ) -> Result<BlockContext> {
         println!("DEBUG gas price in get_block_context: {gas_price}");
         let starknet_os_config = StarknetOsConfig::new(
-            chain_id,
+            chain_id.to_felt(),
             starknet_in_rust::utils::Address(
                 Felt::from_prefixed_hex_str(fee_token_address)?.into(),
             ),
