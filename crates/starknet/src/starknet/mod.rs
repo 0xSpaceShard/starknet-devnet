@@ -124,6 +124,7 @@ impl Starknet {
             erc20_fee_contract.get_address(),
         );
         chargeable_account.deploy(&mut state)?;
+        chargeable_account.set_initial_balance(&mut state)?;
 
         // copy already modified state to cached state
         state.synchronize_states();
@@ -131,7 +132,11 @@ impl Starknet {
         let mut this = Self {
             state,
             predeployed_accounts,
-            block_context: Self::get_block_context(0, ERC20_CONTRACT_ADDRESS, config.chain_id)?,
+            block_context: Self::get_block_context(
+                config.gas_price,
+                ERC20_CONTRACT_ADDRESS,
+                config.chain_id,
+            )?,
             blocks: StarknetBlocks::default(),
             transactions: StarknetTransactions::default(),
             config: config.clone(),
@@ -216,6 +221,7 @@ impl Starknet {
         fee_token_address: &str,
         chain_id: StarknetChainId,
     ) -> Result<BlockContext> {
+        println!("DEBUG gas price in get_block_context: {gas_price}");
         let starknet_os_config = StarknetOsConfig::new(
             chain_id,
             starknet_in_rust::utils::Address(
@@ -316,20 +322,23 @@ impl Starknet {
         Ok(result.iter().map(|e| Felt::from(e.clone())).collect())
     }
 
-    pub fn estimate_fee(
+    /// Returns a Vec of pairs of gas usage
+    pub fn estimate_gas_usage(
         &self,
         block_id: BlockId,
         transactions: &[starknet_in_rust::transaction::Transaction],
-        // TODO define a better return type
-    ) -> Result<Vec<(u128, usize)>> {
+    ) -> Result<Vec<u64>> {
         let state = self.get_state_at(&block_id)?;
 
         // Vec<(Fee, GasUsage)>
-        Ok(starknet_in_rust::estimate_fee(
+        let estimation_pairs = starknet_in_rust::estimate_fee(
             transactions,
             state.pending_state.clone(),
             &self.block_context,
-        )?)
+        )?;
+
+        // extract the gas usage because fee is always 0
+        Ok(estimation_pairs.into_iter().map(|(_, gas_usage)| gas_usage as u64).collect())
     }
 
     pub fn add_declare_transaction_v1(
@@ -415,7 +424,22 @@ impl Starknet {
             raw_execution.raw_calldata().into_iter().map(|c| c.into()).collect(),
             chain_id_felt,
         )?;
-        self.add_invoke_transaction_v1(invoke_tx)
+
+        // assert invoke tx accepted
+        let tx_hash = self.add_invoke_transaction_v1(invoke_tx).unwrap();
+        Ok(tx_hash) // TODO temporarily returning this
+        // let tx = self
+        //     .transactions
+        //     .get_by_hash_mut(&tx_hash)
+        //     .ok_or(Error::InvalidMintingTransaction { msg: "Minting tx lost".into() })?;
+        // match tx.status {
+        //     TransactionStatus::AcceptedOnL2
+        //     | TransactionStatus::AcceptedOnL1
+        //     | TransactionStatus::Pending => Ok(tx_hash),
+        //     TransactionStatus::Rejected => Err(Error::InvalidMintingTransaction {
+        //         msg: tx.execution_error.as_ref().unwrap().to_string(),
+        //     }),
+        // }
     }
 }
 

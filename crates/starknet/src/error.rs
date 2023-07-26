@@ -27,6 +27,8 @@ pub enum Error {
     ),
     #[error(transparent)]
     SignError(#[from] starknet_rs_signers::local_wallet::SignError),
+    #[error("{msg}")]
+    InvalidMintingTransaction { msg: String },
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

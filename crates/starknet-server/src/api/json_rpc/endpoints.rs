@@ -152,13 +152,13 @@ impl JsonRpcHandler {
             })
             .collect();
 
-        match starknet.estimate_fee(block_id.into(), &transactions) {
+        match starknet.estimate_gas_usage(block_id.into(), &transactions) {
             Ok(result) => Ok(result
                 .iter()
-                .map(|(fee, gas_consumed)| EstimateFeeOutput {
+                .map(|gas_consumed| EstimateFeeOutput {
                     gas_consumed: format!("0x{gas_consumed:x}"),
                     gas_price: format!("0x{:x}", starknet.config.gas_price),
-                    overall_fee: format!("0x{fee:x}"),
+                    overall_fee: format!("0x{:x}", starknet.config.gas_price * gas_consumed),
                 })
                 .collect()),
             Err(_) => todo!(),

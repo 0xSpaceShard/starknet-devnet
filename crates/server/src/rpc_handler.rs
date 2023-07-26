@@ -36,6 +36,7 @@ pub trait RpcHandler: Clone + Send + Sync + 'static {
             "method": &method,
             "params": params
         });
+        println!("DEBUG call={call}");
 
         match serde_json::from_value::<Self::Request>(call) {
             Ok(req) => {

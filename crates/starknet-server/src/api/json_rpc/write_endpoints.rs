@@ -51,6 +51,7 @@ impl JsonRpcHandler {
         request: BroadcastedDeployAccountTransaction,
     ) -> RpcResult<DeployAccountTransactionOutput> {
         let chain_id = self.api.starknet.read().await.config.chain_id.to_felt();
+        println!("DEBUG in add_deploy_account_transaction, request={:?}", request);
         let (transaction_hash, contract_address) = self
             .api
             .starknet

@@ -47,3 +47,5 @@ anyhow = { workspace = true }
 
 [dev-dependencies]
 lazy_static = { workspace = true }
+starknet-rs-accounts = { workspace = true }
+starknet-rs-signers = { workspace = true }
