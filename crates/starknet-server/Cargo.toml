@@ -10,6 +10,7 @@ name = "starknet-devnet"
 path = "src/main.rs"
 
 [dependencies]
+
 # devnet
 random-number-generator = { workspace = true }
 server = { path = "../server" }
