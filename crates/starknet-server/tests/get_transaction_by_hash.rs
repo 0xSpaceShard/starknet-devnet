@@ -94,6 +94,7 @@ mod get_transaction_by_hash_integration_tests {
             .send()
             .await;
 
+            
         assert_eq!(
             result.unwrap().transaction_hash,
             FieldElement::from_hex_be(DECLARE_V2_TRANSACTION_HASH).unwrap()
