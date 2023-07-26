@@ -74,6 +74,26 @@ impl StarknetBlocks {
             }
         }
     }
+
+    /// Returns the block number from a block id
+    /// If its hash it will check the hash_to_num map
+    /// If its number it will check the num_to_block map
+    /// If its tag it will return the last block number or None if there is no last block
+    fn block_number_from_block_id(&self, block_id: BlockId) -> Option<BlockNumber> {
+        match block_id {
+            BlockId::Hash(hash) => self.hash_to_num.get(&Felt::from(hash)).copied(),
+            BlockId::Number(number) => {
+                self.num_to_block.get_key_value(&BlockNumber(number)).map(|(k, _)| *k)
+            }
+            BlockId::Tag(_) => {
+                if let Some(hash) = self.last_block_hash {
+                    self.hash_to_num.get(&hash).copied()
+                } else {
+                    None
+                }
+            }
+        }
+    }
 }
 
 #[derive(Clone, Eq, PartialEq)]
@@ -142,6 +162,26 @@ mod tests {
     use super::{StarknetBlock, StarknetBlocks};
     use crate::state::state_diff::StateDiff;
     use crate::traits::HashIdentified;
+
+    #[test]
+    fn block_number_from_block_id_should_return_correct_result() {
+        let mut blocks = StarknetBlocks::default();
+        let mut block_to_insert = StarknetBlock::create_pending_block();
+        
+        assert!(blocks.block_number_from_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest)).is_none());
+
+        let block_hash: Felt = block_to_insert.generate_hash().unwrap();
+        block_to_insert.header.block_number = BlockNumber(10);
+        block_to_insert.header.block_hash = block_hash.into();
+        
+        blocks.insert(block_to_insert.clone(), StateDiff::default());
+
+        assert!(blocks.block_number_from_block_id(BlockId::Number(10)).is_some());
+        assert!(blocks.block_number_from_block_id(BlockId::Hash(Felt::from(1).into())).is_none());
+        assert!(blocks.block_number_from_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest)).is_some());
+        assert!(blocks.block_number_from_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Pending)).is_some());
+        assert!(blocks.block_number_from_block_id(BlockId::Hash(block_hash.into())).is_some());
+    }
 
     #[test]
     fn get_by_block_id_is_correct() {
