@@ -5,7 +5,6 @@ use starknet_in_rust::utils::Address;
 use starknet_types::felt::Felt;
 use starknet_types::starknet_api::block::BlockNumber;
 use starknet_types::starknet_api::transaction::Fee;
-use starknet_types::traits::ToHexString;
 
 use super::error::{self, ApiError};
 use super::models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
@@ -125,12 +124,11 @@ impl JsonRpcHandler {
                 // Is case of a reverted transaction we need to set class_hash.
                 // It's just the first iteration of get_transaction_by_hash() code so probably this
                 // will change soon with v0.4.0 RPC spec adoption.
-                let class_hash_to_set: FeltHex;
-                if !declare_v1.class_hash.is_none() {
-                    class_hash_to_set = FeltHex(declare_v1.class_hash.unwrap());
+                let class_hash_to_set = if declare_v1.class_hash.is_some() {
+                    FeltHex(declare_v1.class_hash.unwrap())
                 } else {
-                    class_hash_to_set = FeltHex(Felt::from(0));
-                }
+                    FeltHex(Felt::from(0))
+                };
 
                 Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version1(
                     DeclareTransactionV0V1 {
@@ -159,8 +157,8 @@ impl JsonRpcHandler {
                     },
                 ))
             }
-            starknet_core::transactions::Transaction::DeployAccount(_deploy) => !todo!(),
-            starknet_core::transactions::Transaction::Invoke(_invoke) => !todo!(),
+            starknet_core::transactions::Transaction::DeployAccount(_deploy) => todo!(),
+            starknet_core::transactions::Transaction::Invoke(_invoke) => todo!(),
         };
 
         let transaction =
