@@ -53,6 +53,8 @@ mod get_transaction_by_hash_integration_tests {
                 declare_v1.transaction_hash,
                 FieldElement::from_hex_be(DECLARE_V1_TRANSACTION_HASH).unwrap()
             );
+        }else {
+                        
         }
     }
 
@@ -61,15 +63,15 @@ mod get_transaction_by_hash_integration_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         // Sierra class artifact. Output of the `starknet-compile` command.
-        let path_to_cario1 =
-            concat!(env!("CARGO_MANIFEST_DIR"), r"/test_data/rpc/contract_cario_v1/output.json");
+        let path_to_cairo1 =
+            concat!(env!("CARGO_MANIFEST_DIR"), r"/test_data/rpc/contract_cairo_v1/output.json");
         let contract_artifact: SierraClass =
-            serde_json::from_reader(std::fs::File::open(path_to_cario1).unwrap()).unwrap();
+            serde_json::from_reader(std::fs::File::open(path_to_cairo1).unwrap()).unwrap();
 
         // Casm artifact. Output of the `starknet-sierra-compile` command.
         let path_to_casm = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            r"/test_data/rpc/contract_cario_v1/output-casm.json"
+            r"/test_data/rpc/contract_cairo_v1/output-casm.json"
         );
         let casm_contract_definition: CompiledClass =
             serde_json::from_reader(std::fs::File::open(path_to_casm).unwrap()).unwrap();
