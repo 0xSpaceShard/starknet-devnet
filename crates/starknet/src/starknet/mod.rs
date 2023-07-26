@@ -16,9 +16,6 @@ use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
 use starknet_in_rust::SierraContractClass;
 use starknet_rs_core::types::{BlockId, TransactionStatus};
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{ClassHash, Felt, TransactionHash};
-use starknet_types::traits::HashProducer;
 use tracing::error;
 
 use crate::account::Account;
@@ -32,8 +29,12 @@ use crate::transactions::declare_transaction::DeclareTransactionV1;
 use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
 use crate::transactions::{StarknetTransaction, StarknetTransactions, Transaction};
 use crate::utils;
+use starknet_types::contract_address::ContractAddress;
+use starknet_types::felt::{ClassHash, Felt, TransactionHash};
+use starknet_types::traits::HashProducer;
 
 mod add_declare_transaction;
+mod get_class_impls;
 mod predeployed;
 
 #[derive(Debug)]
@@ -260,6 +261,37 @@ impl Starknet {
             BlockId::Hash(_) => Err(Error::BlockIdHashUnimplementedError),
             BlockId::Number(_) => Err(Error::BlockIdNumberUnimplementedError),
         }
+    }
+
+    pub fn get_state_reader_at_mut(
+        &mut self,
+        block_id: &BlockId,
+    ) -> Result<&mut InMemoryStateReader> {
+        match block_id {
+            BlockId::Tag(_) => Ok(&mut self.state.state),
+            BlockId::Hash(_) => Err(Error::BlockIdHashUnimplementedError),
+            BlockId::Number(_) => Err(Error::BlockIdNumberUnimplementedError),
+        }
+    }
+
+    pub fn get_class_hash_at(
+        &mut self,
+        block_id: BlockId,
+        contract_address: ContractAddress,
+    ) -> Result<ClassHash> {
+        Ok(get_class_impls::get_class_hash_at_impl(self, block_id, contract_address)?.try_into()?)
+    }
+
+    pub fn get_class(&mut self, block_id: BlockId, class_hash: ClassHash) -> Result<CompiledClass> {
+        get_class_impls::get_class_impl(self, block_id, class_hash)
+    }
+
+    pub fn get_class_at(
+        &mut self,
+        block_id: BlockId,
+        contract_address: ContractAddress,
+    ) -> Result<CompiledClass> {
+        get_class_impls::get_class_at_impl(self, block_id, contract_address)
     }
 
     pub fn add_declare_transaction_v1(
