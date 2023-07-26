@@ -335,7 +335,15 @@ impl JsonRpcHandler {
 
     /// starknet_blockHashAndNumber
     pub(crate) async fn block_hash_and_number(&self) -> RpcResult<BlockHashAndNumberOutput> {
-        Err(error::ApiError::NoBlocks)
+        let block = self.api.starknet.read().await.get_latest_block().map_err(|err| match err {
+            Error::NoBlock => ApiError::BlockNotFound,
+            unknown_error => ApiError::StarknetDevnetError(unknown_error),
+        })?;
+
+        Ok(BlockHashAndNumberOutput {
+            block_hash: FeltHex(block.block_hash()),
+            block_number: block.block_number(),
+        })
     }
 
     /// starknet_chainId
