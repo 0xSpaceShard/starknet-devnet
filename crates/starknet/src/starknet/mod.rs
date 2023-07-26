@@ -605,21 +605,21 @@ mod tests {
     }
 
     #[test]
-    fn getting_state_reader_of_latest_state() {
+    fn getting_state_of_latest_block() {
         let config = starknet_config_for_test();
         let starknet = Starknet::new(&config).unwrap();
         starknet.get_state_at(&BlockId::Tag(BlockTag::Latest)).expect("Should be OK");
     }
 
     #[test]
-    fn getting_state_reader_of_pending_state() {
+    fn getting_state_of_pending_block() {
         let config = starknet_config_for_test();
         let starknet = Starknet::new(&config).unwrap();
         starknet.get_state_at(&BlockId::Tag(BlockTag::Pending)).expect("Should be OK");
     }
 
     #[test]
-    fn getting_state_reader_at_block_by_hash() {
+    fn getting_state_at_block_by_nonexistent_hash() {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
         starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
@@ -631,7 +631,7 @@ mod tests {
     }
 
     #[test]
-    fn getting_state_reader_at_block_by_number() {
+    fn getting_nonexistent_state_at_block_by_number() {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
         starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
