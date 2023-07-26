@@ -45,7 +45,10 @@ mod get_transaction_by_hash_integration_tests {
             .await
             .unwrap();
 
-        if let starknet_rs_core::types::Transaction::Declare(starknet_rs_core::types::DeclareTransaction::V1(declare_v1)) = get_transaction {
+        if let starknet_rs_core::types::Transaction::Declare(
+            starknet_rs_core::types::DeclareTransaction::V1(declare_v1),
+        ) = get_transaction
+        {
             assert_eq!(
                 declare_v1.transaction_hash,
                 FieldElement::from_hex_be(DECLARE_V1_TRANSACTION_HASH).unwrap()
