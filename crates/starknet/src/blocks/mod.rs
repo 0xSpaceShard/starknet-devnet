@@ -86,7 +86,7 @@ impl StarknetBlocks {
         &self,
         from: Option<BlockId>,
         to: Option<BlockId>,
-    ) -> Result<Vec<StarknetBlock>> {
+    ) -> Result<Vec<&StarknetBlock>> {
         let starting_block = if let Some(block_id) = from {
             // If the value for block number provided is not correct it will return None
             // So we have to return an error
@@ -119,7 +119,6 @@ impl StarknetBlocks {
                 }
             })
             .map(|(_, block)| block)
-            .cloned()
             .collect())
     }
 }
