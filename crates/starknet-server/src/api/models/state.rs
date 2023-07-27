@@ -24,19 +24,19 @@ pub struct ThinStateDiff {
     pub replaced_classes: Vec<ReplacedClasses>,
 }
 
-/// A deployed contract in StarkNet.
+/// A deployed contract in Starknet.
 #[derive(Debug, Default, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct DeployedContract {
     pub address: ContractAddressHex,
     pub class_hash: ClassHashHex,
 }
 
-/// Storage differences in StarkNet.
+/// Storage differences in Starknet.
 // Invariant: Storage keys are strictly increasing. In particular, no key appears twice.
 #[derive(Debug, Default, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct StorageDiff {
     pub address: ContractAddressHex,
-    storage_entries: Vec<StorageEntry>,
+    pub storage_entries: Vec<StorageEntry>,
 }
 
 /// A storage entry in a contract.
@@ -58,7 +58,7 @@ pub struct ReplacedClasses {
     pub class_hash: ClassHashHex,
 }
 
-/// The nonce of a StarkNet contract.
+/// The nonce of a Starknet contract.
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct ContractNonce {
     pub contract_address: ContractAddressHex,

@@ -21,6 +21,16 @@ pub enum Error {
     IoError(#[from] std::io::Error),
     #[error("Error when reading file {path}")]
     ReadFileError { source: std::io::Error, path: String },
+    #[error("Contract not found")]
+    ContractNotFound,
+    #[error(transparent)]
+    SyscallHandlerError(
+        #[from] starknet_in_rust::syscalls::syscall_handler_errors::SyscallHandlerError,
+    ),
+    #[error(transparent)]
+    SignError(#[from] starknet_rs_signers::local_wallet::SignError),
+    #[error("No block found")]
+    NoBlock,
     #[error("Format error")]
     FormatError,
 }

@@ -1,3 +1,5 @@
+use cairo_felt::Felt252;
+
 use super::felt::Felt;
 use crate::error::Error;
 use crate::patricia_key::PatriciaKey;
@@ -10,6 +12,12 @@ pub struct ContractAddress(pub(crate) PatriciaKey);
 impl ContractAddress {
     pub fn new(felt: Felt) -> DevnetResult<Self> {
         Ok(Self(PatriciaKey::new(felt)?))
+    }
+
+    /// Constructs a zero address
+    pub fn zero() -> Self {
+        // using unwrap because we are sure it works for 0x0
+        Self::new(Felt::from(0)).unwrap()
     }
 }
 
@@ -51,6 +59,12 @@ impl TryFrom<starknet_in_rust::utils::Address> for ContractAddress {
 
     fn try_from(value: starknet_in_rust::utils::Address) -> DevnetResult<Self> {
         Self::new(Felt::from(value.0))
+    }
+}
+
+impl From<ContractAddress> for Felt252 {
+    fn from(value: ContractAddress) -> Self {
+        Felt::from(value).into()
     }
 }
 

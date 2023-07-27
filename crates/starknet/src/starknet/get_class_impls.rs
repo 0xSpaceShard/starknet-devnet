@@ -13,8 +13,8 @@ pub fn get_class_hash_at_impl(
     block_id: BlockId,
     contract_address: ContractAddress,
 ) -> Result<ClassHash> {
-    let state_reader = starknet.get_state_reader_at_mut(&block_id)?;
-    Ok(state_reader.get_class_hash_at(&contract_address.try_into()?)?.into())
+    let state = starknet.get_state_at_mut(&block_id)?;
+    Ok(state.state.get_class_hash_at(&contract_address.try_into()?)?.into())
 }
 
 pub fn get_class_impl(
@@ -28,8 +28,8 @@ pub fn get_class_impl(
             ContractClass::Cairo0(_) => Err(Error::FormatError),
         },
         None => {
-            let state_reader = starknet.get_state_reader_at_mut(&block_id)?;
-            Ok(state_reader.get_contract_class(&class_hash.into())?.try_into()?)
+            let state = starknet.get_state_at_mut(&block_id)?;
+            Ok(state.state.get_contract_class(&class_hash.into())?.try_into()?)
         }
     }
 }

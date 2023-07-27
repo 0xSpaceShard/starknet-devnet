@@ -3,7 +3,8 @@ use starknet_types::starknet_api::block::BlockNumber;
 
 use crate::api::models::block::{BlockHashHex, SyncStatus};
 use crate::api::models::transaction::{
-    BroadcastedDeclareTransaction, BroadcastedTransactionWithType, ClassHashHex, EventFilter,
+    BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
+    BroadcastedInvokeTransaction, BroadcastedTransactionWithType, ClassHashHex, EventFilter,
     FunctionCall, TransactionHashHex,
 };
 use crate::api::models::{BlockId, ContractAddressHex, PatriciaKeyHex};
@@ -88,6 +89,27 @@ pub struct BroadcastedDeclareTransactionInput {
 pub struct DeclareTransactionOutput {
     pub transaction_hash: TransactionHashHex,
     pub class_hash: ClassHashHex,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+pub struct BroadcastedDeployAccountTransactionInput {
+    pub deploy_account_transaction: BroadcastedDeployAccountTransaction,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+pub struct DeployAccountTransactionOutput {
+    pub transaction_hash: TransactionHashHex,
+    pub contract_address: ContractAddressHex,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+pub struct BroadcastedInvokeTransactionInput {
+    pub invoke_transaction: BroadcastedInvokeTransaction,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+pub struct InvokeTransactionOutput {
+    pub transaction_hash: TransactionHashHex,
 }
 
 #[cfg(test)]
@@ -206,16 +228,43 @@ mod tests {
                         "entry_points_by_type": {
                             "EXTERNAL": [
                                 {
-                                    "selector": "0xAAE3B5E8",
-                                    "function_idx": 1
+                                    "selector": "0x3c118a68e16e12e97ed25cb4901c12f4d3162818669cc44c391d8049924c14",
+                                    "function_idx": 4
                                 },
                                 {
-                                    "selector": "0xAAE3B5E9",
-                                    "function_idx": 2
+                                    "selector": "0xe7510edcf6e9f1b70f7bd1f488767b50f0363422f3c563160ab77adf62467b",
+                                    "function_idx": 7
+                                }
+                            ],
+                            "L1_HANDLER": [
+                                {
+                                    "selector": "0x39edbbb129ad752107a94d40c3873cae369a46fd2fc578d075679aa67e85d12",
+                                    "function_idx": 11
+                                }
+                            ],
+                            "CONSTRUCTOR": [
+                                {
+                                    "selector": "0x28ffe4ff0f226a9107253e17a904099aa4f63a02a5621de0576e5aa71bc5194",
+                                    "function_idx": 12
                                 }
                             ]
                         },
-                        "abi": "H4sIAAAAAAAA/8tIzcnJVyjPL8pJUQQAlQYXAAAA"
+                        "abi": [
+                            {
+                                "type": "constructor",
+                                "name": "constructor",
+                                "inputs": [
+                                    {
+                                        "name": "arg1",
+                                        "type": "core::felt252"
+                                    },
+                                    {
+                                        "name": "arg2",
+                                        "type": "core::felt252"
+                                    }
+                                ]
+                            }
+                        ]
                     }
                 },
                 {

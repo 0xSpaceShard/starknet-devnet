@@ -21,7 +21,7 @@ use starknet_types::starknet_api::state::{EntryPoint, FunctionIndex};
 #[serde(untagged)]
 pub enum ContractClass {
     Cairo0(DeprecatedContractClass),
-    Sierra(SierraContractClass),
+    Sierra(starknet_in_rust::SierraContractClass),
 }
 
 impl TryFrom<TypesContractClass> for ContractClass {

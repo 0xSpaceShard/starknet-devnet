@@ -74,7 +74,7 @@ async fn main() -> Result<(), anyhow::Error> {
     );
     addr = server.local_addr();
 
-    info!("StarkNet Devnet listening on {}", addr);
+    info!("Starknet Devnet listening on {}", addr);
 
     // spawn the server on a new task
     let serve = tokio::task::spawn(server);
