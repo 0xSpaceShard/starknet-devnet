@@ -7,10 +7,10 @@ use starknet_rs_core::types::BlockId;
 use starknet_types::felt::{BlockHash, Felt};
 use starknet_types::traits::HashProducer;
 
+use crate::error::{self, Result};
 use crate::state::state_diff::StateDiff;
 use crate::traits::HashIdentified;
 use crate::transactions::Transaction;
-use crate::error::Result;
 
 pub(crate) struct StarknetBlocks {
     pub(crate) hash_to_num: HashMap<BlockHash, BlockNumber>,
@@ -82,30 +82,17 @@ impl StarknetBlocks {
     }
 
     /// filter blocks based on from and to block ids
-    pub fn get_blocks(&self, from: Option<BlockId>, to: Option<BlockId>) -> Vec<StarknetBlock> {
+    pub fn get_blocks(
+        &self,
+        from: Option<BlockId>,
+        to: Option<BlockId>,
+    ) -> Result<Vec<StarknetBlock>> {
         let starting_block = if let Some(block_id) = from {
-            // if the value for block number provided is not correct it will return None
-            // so we have to handle the None value, because in the filter below it will
-            // skip check for this filter value. So we set it to be after the last block or 1 if
-            // there is no last block
-            match self.block_number_from_block_id(block_id) {
-                Some(block_number) => Some(block_number),
-                None => {
-                    if let Some(last_block_hash) = self.last_block_hash {
-                        // we are sure that if there is a last_block_hash it will have a block
-                        // number
-                        Some(
-                            self.hash_to_num
-                                .get(&last_block_hash)
-                                .copied()
-                                .unwrap_or_default()
-                                .next(),
-                        )
-                    } else {
-                        Some(BlockNumber(1))
-                    }
-                }
-            }
+            // If the value for block number provided is not correct it will return None
+            // So we have to return an error
+            let block_number =
+                self.block_number_from_block_id(block_id).ok_or(error::Error::NoBlock)?;
+            Some(block_number)
         } else {
             None
         };
@@ -113,27 +100,27 @@ impl StarknetBlocks {
         let ending_block = if let Some(block_id) = to {
             // if the value for block number provided is not correct it will return None
             // So we set the block number to the first possible block number which is 0
-            match self.block_number_from_block_id(block_id) {
-                Some(block_number) => Some(block_number),
-                None => Some(BlockNumber(0)),
-            }
+            let block_number =
+                self.block_number_from_block_id(block_id).ok_or(error::Error::NoBlock)?;
+            Some(block_number)
         } else {
             None
         };
 
-        self.num_to_block
+        Ok(self
+            .num_to_block
             .iter()
             .filter(|(current_block_number, _)| match (starting_block, ending_block) {
                 (None, None) => true,
-                (None, Some(end)) => **current_block_number < end,
                 (Some(start), None) => **current_block_number >= start,
+                (None, Some(end)) => **current_block_number <= end,
                 (Some(start), Some(end)) => {
-                    **current_block_number >= start && **current_block_number < end
+                    **current_block_number >= start && **current_block_number <= end
                 }
             })
             .map(|(_, block)| block)
             .cloned()
-            .collect()
+            .collect())
     }
 }
 
@@ -197,7 +184,7 @@ impl HashProducer for StarknetBlock {
 #[cfg(test)]
 mod tests {
     use starknet_api::block::{BlockHash, BlockHeader, BlockNumber, BlockStatus};
-    use starknet_rs_core::types::BlockId;
+    use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
 
@@ -257,28 +244,266 @@ mod tests {
         for block_number in 2..12 {
             let mut block_to_insert = StarknetBlock::create_pending_block();
             block_to_insert.header.block_number = BlockNumber(block_number);
-            block_to_insert.header.block_hash = block_to_insert.generate_hash().unwrap().into();
+            block_to_insert.header.block_hash = Felt::from(block_number as u128).into();
             blocks.insert(block_to_insert, StateDiff::default());
         }
 
         // check blocks len
         assert!(blocks.num_to_block.len() == 10);
-        // only from filter
-        assert_eq!(blocks.get_blocks(Some(BlockId::Number(9)), None).len(), 3);
+
+        // 1. None, None
         // no filter
-        assert_eq!(blocks.get_blocks(None, None).len(), 10);
-        // invalid from filter, should return no blocks
-        assert!(blocks.get_blocks(Some(BlockId::Number(12)), None).is_empty());
-        // invalid from filter, should return no blocks
-        assert!(blocks.get_blocks(Some(BlockId::Number(13)), None).is_empty());
-        // invalid to filter, should return no blocks
-        assert!(blocks.get_blocks(None, Some(BlockId::Number(1))).is_empty());
-        // invalid to filter, should return no blocks
-        assert!(blocks.get_blocks(None, Some(BlockId::Number(2))).is_empty());
-        // bigger range than actual blocks in the collection
+        assert_eq!(blocks.get_blocks(None, None).unwrap().len(), 10);
+
+        // 2. Some, None
+        assert_eq!(blocks.get_blocks(Some(BlockId::Number(9)), None).unwrap().len(), 3);
+        // invalid from filter, should return err block not found
+        assert!(blocks.get_blocks(Some(BlockId::Number(12)), None).is_err());
+        // last block should be returned
+        assert_eq!(blocks.get_blocks(Some(BlockId::Number(11)), None).unwrap().len(), 1);
+        // from filter using hash
         assert_eq!(
-            blocks.get_blocks(Some(BlockId::Number(0)), Some(BlockId::Number(1000))).len(),
+            blocks.get_blocks(Some(BlockId::Hash(Felt::from(9).into())), None).unwrap().len(),
+            3
+        );
+        // from filter using tag
+        assert_eq!(blocks.get_blocks(Some(BlockId::Tag(BlockTag::Latest)), None).unwrap().len(), 1);
+        assert_eq!(
+            blocks.get_blocks(Some(BlockId::Tag(BlockTag::Pending)), None).unwrap().len(),
+            1
+        );
+
+        // 3. None, Some
+        // to filter using block number
+        assert_eq!(blocks.get_blocks(None, Some(BlockId::Number(9))).unwrap().len(), 8);
+        // to filter using invalid block number
+        assert!(blocks.get_blocks(None, Some(BlockId::Number(0))).is_err());
+        // to filter using hash
+        assert_eq!(
+            blocks.get_blocks(None, Some(BlockId::Hash(Felt::from(9).into()))).unwrap().len(),
+            8
+        );
+        // to filter using invalid hash
+        assert!(blocks.get_blocks(None, Some(BlockId::Hash(Felt::from(0).into()))).is_err());
+        // to filter using tag
+        assert_eq!(
+            blocks.get_blocks(None, Some(BlockId::Tag(BlockTag::Latest))).unwrap().len(),
             10
+        );
+        assert_eq!(
+            blocks.get_blocks(None, Some(BlockId::Tag(BlockTag::Pending))).unwrap().len(),
+            10
+        );
+        // First block as to_block query param, should return empty collection
+        assert_eq!(blocks.get_blocks(None, Some(BlockId::Number(2))).unwrap().len(), 1);
+        // invalid to filter, should return err block not found
+        assert!(blocks.get_blocks(None, Some(BlockId::Number(1))).is_err());
+
+        // 4. Some, Some
+        // from block number to block number
+        assert_eq!(
+            blocks.get_blocks(Some(BlockId::Number(2)), Some(BlockId::Number(9))).unwrap().len(),
+            8
+        );
+        // from block number to to block hash
+        assert_eq!(
+            blocks
+                .get_blocks(Some(BlockId::Number(2)), Some(BlockId::Hash(Felt::from(9).into())))
+                .unwrap()
+                .len(),
+            8
+        );
+        // from first block to latest/pending, should return all blocks
+        assert_eq!(
+            blocks
+                .get_blocks(Some(BlockId::Number(2)), Some(BlockId::Tag(BlockTag::Latest)))
+                .unwrap()
+                .len(),
+            10
+        );
+        assert_eq!(
+            blocks
+                .get_blocks(Some(BlockId::Number(2)), Some(BlockId::Tag(BlockTag::Pending)))
+                .unwrap()
+                .len(),
+            10
+        );
+
+        // from last block to first block should return empty result
+        assert!(
+            blocks
+                .get_blocks(Some(BlockId::Number(10)), Some(BlockId::Number(2)))
+                .unwrap()
+                .is_empty()
+        );
+        // from last block to latest/pending, should return 1 block
+        assert_eq!(
+            blocks
+                .get_blocks(Some(BlockId::Number(11)), Some(BlockId::Tag(BlockTag::Latest)))
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            blocks
+                .get_blocks(Some(BlockId::Number(11)), Some(BlockId::Tag(BlockTag::Pending)))
+                .unwrap()
+                .len(),
+            1
+        );
+
+        // bigger range than actual blocks in the collection, should return err
+        assert!(blocks.get_blocks(Some(BlockId::Number(0)), Some(BlockId::Number(1000))).is_err());
+
+        // from block hash to block_hash
+        assert_eq!(
+            blocks
+                .get_blocks(
+                    Some(BlockId::Hash(Felt::from(2).into())),
+                    Some(BlockId::Hash(Felt::from(9).into()))
+                )
+                .unwrap()
+                .len(),
+            8
+        );
+        assert!(
+            blocks
+                .get_blocks(
+                    Some(BlockId::Hash(Felt::from(2).into())),
+                    Some(BlockId::Hash(Felt::from(0).into()))
+                )
+                .is_err()
+        );
+        assert!(
+            blocks
+                .get_blocks(
+                    Some(BlockId::Hash(Felt::from(10).into())),
+                    Some(BlockId::Hash(Felt::from(5).into()))
+                )
+                .unwrap()
+                .is_empty()
+        );
+        // from block hash to block number
+        assert_eq!(
+            blocks
+                .get_blocks(Some(BlockId::Hash(Felt::from(2).into())), Some(BlockId::Number(9)))
+                .unwrap()
+                .len(),
+            8
+        );
+        // from last block hash to latest/pending
+        assert_eq!(
+            blocks
+                .get_blocks(
+                    Some(BlockId::Hash(Felt::from(11).into())),
+                    Some(BlockId::Tag(BlockTag::Latest))
+                )
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            blocks
+                .get_blocks(
+                    Some(BlockId::Hash(Felt::from(11).into())),
+                    Some(BlockId::Tag(BlockTag::Pending))
+                )
+                .unwrap()
+                .len(),
+            1
+        );
+
+        // from tag to tag
+        assert_eq!(
+            blocks
+                .get_blocks(
+                    Some(BlockId::Tag(BlockTag::Latest)),
+                    Some(BlockId::Tag(BlockTag::Latest))
+                )
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            blocks
+                .get_blocks(
+                    Some(BlockId::Tag(BlockTag::Latest)),
+                    Some(BlockId::Tag(BlockTag::Pending))
+                )
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            blocks
+                .get_blocks(
+                    Some(BlockId::Tag(BlockTag::Pending)),
+                    Some(BlockId::Tag(BlockTag::Latest))
+                )
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            blocks
+                .get_blocks(
+                    Some(BlockId::Tag(BlockTag::Pending)),
+                    Some(BlockId::Tag(BlockTag::Pending))
+                )
+                .unwrap()
+                .len(),
+            1
+        );
+
+        // from tag to block number/hash
+        assert_eq!(
+            blocks
+                .get_blocks(Some(BlockId::Tag(BlockTag::Latest)), Some(BlockId::Number(11)))
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            blocks
+                .get_blocks(
+                    Some(BlockId::Tag(BlockTag::Latest)),
+                    Some(BlockId::Hash(Felt::from(11).into()))
+                )
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            blocks
+                .get_blocks(Some(BlockId::Tag(BlockTag::Pending)), Some(BlockId::Number(11)))
+                .unwrap()
+                .len(),
+            1
+        );
+        assert_eq!(
+            blocks
+                .get_blocks(
+                    Some(BlockId::Tag(BlockTag::Pending)),
+                    Some(BlockId::Hash(Felt::from(11).into()))
+                )
+                .unwrap()
+                .len(),
+            1
+        );
+        assert!(
+            blocks
+                .get_blocks(Some(BlockId::Tag(BlockTag::Latest)), Some(BlockId::Number(2)))
+                .unwrap()
+                .is_empty()
+        );
+        assert!(
+            blocks
+                .get_blocks(
+                    Some(BlockId::Tag(BlockTag::Latest)),
+                    Some(BlockId::Hash(Felt::from(2).into()))
+                )
+                .unwrap()
+                .is_empty()
         );
     }
 
