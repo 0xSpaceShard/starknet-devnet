@@ -83,6 +83,14 @@ pub mod util {
         (signer, address)
     }
 
+    /// dummy testing value
+    pub fn get_deployable_account_signer() -> LocalWallet {
+        let new_account_private_key = "0xc248668388dbe9acdfa3bc734cc2d57a";
+        starknet_rs_signers::LocalWallet::from(starknet_rs_signers::SigningKey::from_secret_scalar(
+            FieldElement::from_hex_be(new_account_private_key).unwrap(),
+        ))
+    }
+
     lazy_static! {
         /// This is to prevent TOCTOU errors; i.e. one background devnet might find one
         /// port to be free, and while it's trying to start listening to it, another instance

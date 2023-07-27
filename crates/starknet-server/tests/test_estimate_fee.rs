@@ -2,11 +2,12 @@ pub mod common;
 
 mod estimate_fee_tests {
     use starknet_core::constants::CAIRO_0_ACCOUNT_CONTRACT_HASH;
-    use starknet_rs_accounts::{AccountFactory, OpenZeppelinAccountFactory};
-    use starknet_rs_core::types::{FeeEstimate, FieldElement};
+    use starknet_rs_accounts::{AccountFactory, AccountFactoryError, OpenZeppelinAccountFactory};
+    use starknet_rs_core::types::{FeeEstimate, FieldElement, StarknetError};
+    use starknet_rs_providers::ProviderError;
 
     use crate::common::constants::CHAIN_ID;
-    use crate::common::util::BackgroundDevnet;
+    use crate::common::util::{get_deployable_account_signer, BackgroundDevnet};
 
     fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
         assert_eq!(
@@ -21,14 +22,7 @@ mod estimate_fee_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         // define the key of the new account - dummy value
-        let new_account_private_key = "0xc248668388dbe9acdfa3bc734cc2d57a";
-        let new_account_signer = starknet_rs_signers::LocalWallet::from(
-            starknet_rs_signers::SigningKey::from_secret_scalar(
-                FieldElement::from_hex_be(new_account_private_key).unwrap(),
-            ),
-        );
-        let new_account_nonce = FieldElement::ZERO;
-
+        let new_account_signer = get_deployable_account_signer();
         let account_factory = OpenZeppelinAccountFactory::new(
             FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
             CHAIN_ID,
@@ -37,6 +31,7 @@ mod estimate_fee_tests {
         )
         .await
         .unwrap();
+        let new_account_nonce = FieldElement::ZERO;
 
         // fund address
         let salt = FieldElement::from_hex_be("0x123").unwrap();
@@ -77,6 +72,37 @@ mod estimate_fee_tests {
             .await
             .expect("Should deploy with sufficient fee");
         // TODO assert tx is accepted
+    }
+
+    #[tokio::test]
+    async fn estimate_fee_of_invalid_deploy_account() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        let new_account_signer = get_deployable_account_signer();
+        let dummy_invalid_class_hash = FieldElement::from_hex_be("0x123").unwrap();
+        let account_factory = OpenZeppelinAccountFactory::new(
+            dummy_invalid_class_hash,
+            CHAIN_ID,
+            new_account_signer,
+            devnet.clone_provider(),
+        )
+        .await
+        .unwrap();
+        let new_account_nonce = FieldElement::ZERO;
+
+        let salt = FieldElement::from_hex_be("0x123").unwrap();
+        let err = account_factory
+            .deploy(salt)
+            .nonce(new_account_nonce)
+            .estimate_fee()
+            .await
+            .expect_err("Should have failed");
+        match err {
+            AccountFactoryError::Provider(ProviderError::StarknetError(
+                StarknetError::ContractError,
+            )) => (),
+            other => panic!("Got wrong error: {other}"),
+        }
     }
 
     #[tokio::test]

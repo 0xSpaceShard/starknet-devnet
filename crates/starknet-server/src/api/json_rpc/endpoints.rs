@@ -213,13 +213,13 @@ impl JsonRpcHandler {
         request: Vec<BroadcastedTransactionWithType>,
     ) -> RpcResult<Vec<EstimateFeeOutput>> {
         let starknet = self.api.starknet.read().await;
-        let transactions: Vec<starknet_in_rust_tx::Transaction> = request
-            .into_iter()
-            .map(|broadcasted_tx| {
-                convert_broadcasted_tx(broadcasted_tx.transaction, starknet.config.chain_id)
-                    .unwrap() // TODO temporary unwrap - maybe use loop
-            })
-            .collect();
+        let mut transactions = vec![];
+        for broadcasted_tx in request {
+            transactions.push(convert_broadcasted_tx(
+                broadcasted_tx.transaction,
+                starknet.config.chain_id,
+            )?);
+        }
 
         match starknet.estimate_gas_usage(block_id.into(), &transactions) {
             Ok(result) => Ok(result
@@ -230,7 +230,8 @@ impl JsonRpcHandler {
                     overall_fee: format!("0x{:x}", starknet.config.gas_price * gas_consumed),
                 })
                 .collect()),
-            Err(_) => todo!(),
+            Err(_) => Err(ApiError::ContractError),
+            // TODO better handling
         }
     }
 
