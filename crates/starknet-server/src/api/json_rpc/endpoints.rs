@@ -7,6 +7,7 @@ use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::utils::Address;
 use starknet_types::felt::Felt;
 use starknet_types::starknet_api::block::BlockNumber;
+use starknet_types::traits::ToHexString;
 
 use super::error::{self, ApiError};
 use super::models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
@@ -244,8 +245,10 @@ impl JsonRpcHandler {
     }
 
     /// starknet_chainId
-    pub(crate) fn chain_id(&self) -> RpcResult<String> {
-        Ok("TESTNET".to_string())
+    pub(crate) async fn chain_id(&self) -> RpcResult<String> {
+        let chain_id = self.api.starknet.read().await.chain_id();
+
+        Ok(Felt::from(chain_id.to_felt()).to_prefixed_hex_str())
     }
 
     /// starknet_pendingTransactions

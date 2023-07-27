@@ -213,7 +213,7 @@ impl JsonRpcHandler {
             StarknetRequest::BlockHashAndNumber => {
                 self.block_hash_and_number().await.to_rpc_result()
             }
-            StarknetRequest::ChainId => self.chain_id().to_rpc_result(),
+            StarknetRequest::ChainId => self.chain_id().await.to_rpc_result(),
             StarknetRequest::PendingTransactions => {
                 self.pending_transactions().await.to_rpc_result()
             }
