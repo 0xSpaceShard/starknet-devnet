@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use serde::Serialize;
-use serde_json::{json, Serializer};
+use serde_json::{json, Serializer, Value};
 use starknet_api::deprecated_contract_class::{EntryPoint, EntryPointType};
 use starknet_api::hash::{pedersen_hash_array, StarkFelt};
 use starknet_in_rust::core::contract_address::{

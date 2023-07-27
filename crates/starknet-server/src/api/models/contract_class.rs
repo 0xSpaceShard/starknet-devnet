@@ -29,7 +29,7 @@ impl TryFrom<TypesContractClass> for ContractClass {
 
     fn try_from(value: TypesContractClass) -> RpcResult<Self> {
         match value {
-            TypesContractClass::Cairo0(value) => Ok(ContractClass::Cairo0(value.try_into()?)),
+            TypesContractClass::Cairo0(value) => Err(ApiError::InvalidContractClass),
             TypesContractClass::Cairo1(value) => Ok(ContractClass::Sierra(value.try_into()?)),
         }
     }
@@ -47,18 +47,6 @@ pub struct SierraContractClass {
 impl TryFrom<ImportedSierraContractClass> for SierraContractClass {
     type Error = ApiError;
     fn try_from(value: ImportedSierraContractClass) -> RpcResult<Self> {
-        // let asd: Vec<RpcResult<FeltHex>> = value
-        //     .sierra_program
-        //     .into_iter()
-        //     .map(|el| {
-        //         let hex_str = format!("{:#x}", el.value);
-        //         match Felt::from_prefixed_hex_str(&hex_str) {
-        //             Ok(val) => Ok(FeltHex(val)),
-        //             Err(err) => Err(val.into()),
-        //         }
-        //     })
-        //     .collect();
-
         let sierra_program: Vec<FeltHex> =
             serde_json::from_str(&serde_json::to_string(&value.sierra_program)?)?;
         let mut map: HashMap<EntryPointType, Vec<EntryPoint>> = HashMap::new();
@@ -69,10 +57,12 @@ impl TryFrom<ImportedSierraContractClass> for SierraContractClass {
             let con = EntryPointType::Constructor;
             match map.get_mut(&con) {
                 Some(val) => val.push(EntryPoint { function_idx, selector }),
-                None => map.insert(
-                    EntryPointType::Constructor,
-                    vec![EntryPoint { selector, function_idx }],
-                ),
+                None => {
+                    map.insert(
+                        EntryPointType::Constructor,
+                        vec![EntryPoint { selector, function_idx }],
+                    );
+                }
             }
         }
 
@@ -80,10 +70,15 @@ impl TryFrom<ImportedSierraContractClass> for SierraContractClass {
             let selector = serde_json::from_str(&serde_json::to_string(&entry.selector)?)?;
             let function_idx = FunctionIndex(entry.function_idx);
 
-            match map.get_mut(&EntryPointType::External) {
+            let con = EntryPointType::External;
+            match map.get_mut(&con) {
                 Some(val) => val.push(EntryPoint { function_idx, selector }),
-                None => map
-                    .insert(EntryPointType::External, vec![EntryPoint { selector, function_idx }]),
+                None => {
+                    map.insert(
+                        EntryPointType::External,
+                        vec![EntryPoint { selector, function_idx }],
+                    );
+                }
             }
         }
 
@@ -91,10 +86,15 @@ impl TryFrom<ImportedSierraContractClass> for SierraContractClass {
             let selector = serde_json::from_str(&serde_json::to_string(&entry.selector)?)?;
             let function_idx = FunctionIndex(entry.function_idx);
 
-            match map.get_mut(&EntryPointType::L1Handler) {
+            let con = EntryPointType::L1Handler;
+            match map.get_mut(&con) {
                 Some(val) => val.push(EntryPoint { function_idx, selector }),
-                None => map
-                    .insert(EntryPointType::L1Handler, vec![EntryPoint { selector, function_idx }]),
+                None => {
+                    map.insert(
+                        EntryPointType::L1Handler,
+                        vec![EntryPoint { selector, function_idx }],
+                    );
+                }
             }
         }
 
@@ -104,14 +104,6 @@ impl TryFrom<ImportedSierraContractClass> for SierraContractClass {
             entry_points_by_type: map,
             abi: value.abi.map(|contract| contract.json()),
         })
-        //let abi =
-        // Self {
-        //     sierra_program: value
-        //         .sierra_program
-        //         .into_vec()
-        //         .into_iter(|el| serde_json::to_string(el)),
-        //     abi: value.abi,
-        // }
     }
 }
 

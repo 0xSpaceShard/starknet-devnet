@@ -115,6 +115,11 @@ impl<T: Serialize> ToRpcResponseResult for RpcResult<T> {
                     message: error.to_string().into(),
                     data: None,
                 },
+                ApiError::SerializationError(error) => RpcError {
+                    code: server::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
+                    message: error.to_string().into(),
+                    data: None,
+                },
             }
             .into(),
         }

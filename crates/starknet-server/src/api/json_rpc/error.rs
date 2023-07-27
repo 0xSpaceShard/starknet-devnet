@@ -12,7 +12,7 @@ pub enum ApiError {
     #[error("Types error")]
     TypesError(#[from] starknet_types::error::Error),
     #[error("Rpc error {0:?}")]
-    RpcError(#[from] RpcError),
+    RpcError(RpcError),
     #[error("Block not found")]
     BlockNotFound,
     #[error("Contract not found")]
@@ -37,6 +37,8 @@ pub enum ApiError {
     ClassAlreadyDeclared,
     #[error("Invalid contract class")]
     InvalidContractClass,
+    #[error("Serialization error")]
+    SerializationError(#[from] serde_json::Error),
 }
 
 #[cfg(test)]
