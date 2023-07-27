@@ -38,9 +38,8 @@ pub mod util {
     use url::Url;
 
     use super::constants::{
-        ACCOUNTS, CHAIN_ID_CLI_PARAM, HOST, MAX_PORT, MIN_PORT,
-        PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
-        PREDEPLOYED_ACCOUNT_PRIVATE_KEY, SEED,
+        ACCOUNTS, CHAIN_ID_CLI_PARAM, HOST, MAX_PORT, MIN_PORT, PREDEPLOYED_ACCOUNT_ADDRESS,
+        PREDEPLOYED_ACCOUNT_INITIAL_BALANCE, PREDEPLOYED_ACCOUNT_PRIVATE_KEY, SEED,
     };
 
     #[derive(Error, Debug)]
@@ -128,7 +127,7 @@ pub mod util {
                 .arg(PREDEPLOYED_ACCOUNT_INITIAL_BALANCE.to_string())
                 .arg("--chain-id")
                 .arg(CHAIN_ID_CLI_PARAM)
-                // .stdout(Stdio::piped()) // comment this out for complete devnet stdout
+                .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .expect("Could not start background devnet");
 

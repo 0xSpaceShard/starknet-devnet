@@ -45,19 +45,13 @@ pub(crate) async fn mint(
     // increase balance
     let mut starknet = state.api.starknet.write().await;
 
-    // TODO DEBUG
-    let old_balance = get_balance(&starknet, request.address.0).unwrap();
-    println!("DEBUG old balance: {old_balance}");
-
-    let tx_hash = starknet.mint(request.address.0, request.amount).await.map_err(|err| {
-        let new_balance = get_balance(&starknet, request.address.0).unwrap();
-        println!("DEBUG new balance after catching error: {new_balance}");
-        HttpApiError::MintingError { msg: err.to_string() }
-    })?;
+    let tx_hash = starknet
+        .mint(request.address.0, request.amount)
+        .await
+        .map_err(|err| HttpApiError::MintingError { msg: err.to_string() })?;
 
     let new_balance = get_balance(&starknet, request.address.0)
         .map_err(|err| HttpApiError::MintingError { msg: err.to_string() })?;
-    println!("DEBUG new balance after NOT catching error: {new_balance}");
 
     Ok(Json(MintTokensResponse {
         new_balance: new_balance.to_str_radix(10),

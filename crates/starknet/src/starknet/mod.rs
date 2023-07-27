@@ -228,7 +228,6 @@ impl Starknet {
         fee_token_address: &str,
         chain_id: StarknetChainId,
     ) -> Result<BlockContext> {
-        println!("DEBUG gas price in get_block_context: {gas_price}");
         let starknet_os_config = StarknetOsConfig::new(
             chain_id.to_felt(),
             starknet_in_rust::utils::Address(
@@ -436,22 +435,7 @@ impl Starknet {
             raw_execution.raw_calldata().into_iter().map(|c| c.into()).collect(),
             chain_id_felt,
         )?;
-
-        // assert invoke tx accepted
-        let tx_hash = self.add_invoke_transaction_v1(invoke_tx).unwrap();
-        Ok(tx_hash) // TODO temporarily returning this
-        // let tx = self
-        //     .transactions
-        //     .get_by_hash_mut(&tx_hash)
-        //     .ok_or(Error::InvalidMintingTransaction { msg: "Minting tx lost".into() })?;
-        // match tx.status {
-        //     TransactionStatus::AcceptedOnL2
-        //     | TransactionStatus::AcceptedOnL1
-        //     | TransactionStatus::Pending => Ok(tx_hash),
-        //     TransactionStatus::Rejected => Err(Error::InvalidMintingTransaction {
-        //         msg: tx.execution_error.as_ref().unwrap().to_string(),
-        //     }),
-        // }
+        self.add_invoke_transaction_v1(invoke_tx)
     }
 
     pub fn block_state_update(&self, block_id: BlockId) -> Result<StateUpdate> {

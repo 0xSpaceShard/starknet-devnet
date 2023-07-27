@@ -28,7 +28,6 @@ pub fn add_deploy_account_transaction(
         .execute(&mut starknet.state.pending_state, &starknet.block_context)
     {
         Ok(tx_info) => {
-            println!("DEBUG successful deploy account, tx_info={tx_info:?}");
             starknet.handle_successful_transaction(
                 &transaction_hash,
                 Transaction::DeployAccount(Box::new(deploy_account_transaction)),
@@ -36,7 +35,6 @@ pub fn add_deploy_account_transaction(
             )?;
         }
         Err(tx_err) => {
-            println!("DEBUG UNsuccessful deploy account: {tx_err}");
             let transaction_to_add = StarknetTransaction::create_rejected(
                 Transaction::DeployAccount(Box::new(deploy_account_transaction)),
                 tx_err,
