@@ -423,8 +423,8 @@ impl Starknet {
         to_block: Option<BlockId>,
         address: Option<ContractAddress>,
         keys: Option<Vec<Vec<Felt>>>,
-    ) -> Result<Vec<EmittedEvent>> {
-        events::get_events(self, from_block, to_block, address, keys)
+    ) -> Result<(Vec<EmittedEvent>, bool)> {
+        events::get_events(self, from_block, to_block, address, keys, 0, None)
     }
 }
 

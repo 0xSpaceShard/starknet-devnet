@@ -18,13 +18,28 @@ pub struct EmittedEvent {
     pub data: Vec<Felt>,
 }
 
+/// The method returns transaction events, based on query
+///
+/// # Arguments
+///
+/// * `from_block` - Optional. The block id to start the query from.
+/// * `to_block` - Optional. The block id to end the query at.
+/// * `contract_address` - Optional. The contract address to filter the events by.
+/// * `keys_filter` - Optional. The keys to filter the events by.
+/// * `skip` - The number of elements to skip.
+/// * `limit` - Optional. The maximum number of elements to return.
+///
+/// # Returns
+/// Tuple of the transaction events and a boolean indicating if there are more events to fetch.
 pub(crate) fn get_events(
     starknet: &Starknet,
     from_block: Option<BlockId>,
     to_block: Option<BlockId>,
     contract_address: Option<ContractAddress>,
-    keys_filter: Option<Vec<Vec<Felt>>>
-) -> Result<Vec<EmittedEvent>> {
+    keys_filter: Option<Vec<Vec<Felt>>>,
+    mut skip: usize,
+    limit: Option<usize>,
+) -> Result<(Vec<EmittedEvent>, bool)> {
     let blocks = starknet.blocks.get_blocks(from_block, to_block)?;
     let mut events: Vec<EmittedEvent> = Vec::new();
     // convert to starknet_in_rust::utils::Address
@@ -37,6 +52,7 @@ pub(crate) fn get_events(
             .map(|inner_felts| inner_felts.into_iter().map(|felt| Felt252::from(felt)).collect())
             .collect()
     });
+    let mut elements_added = 0;
 
     // iterate over each block and get the transactions for each one
     // then iterate over each transaction events and filter them
@@ -77,8 +93,15 @@ pub(crate) fn get_events(
                 });
 
             // produce an emitted event for each filtered transaction event
-            for transaction_event in filtered_transaction_events {
-                events.push(EmittedEvent {
+            for transaction_event in filtered_transaction_events.skip(skip) {
+                // check if there are more elements to fetch
+                if let Some(limit) = limit {
+                    if elements_added == limit {
+                        return Ok((events, true));
+                    }
+                }
+
+                let emitted_event = EmittedEvent {
                     transaction_hash: *transaction_hash,
                     block_hash: block.block_hash(),
                     block_number: block.block_number(),
@@ -88,10 +111,16 @@ pub(crate) fn get_events(
                         .map_err(error::Error::from)?,
                     keys: transaction_event.keys.into_iter().map(|el| el.into()).collect(),
                     data: transaction_event.data.into_iter().map(|el| el.into()).collect(),
-                });
+                };
+
+                events.push(emitted_event);
+                elements_added = elements_added + 1;
             }
+
+            // modify how many elements to skip, whichever is smaller so the usize doens't overflow
+            skip = skip - std::cmp::min(skip, elements_added);
         }
     }
 
-    Ok(events)
+    Ok((events, false))
 }
