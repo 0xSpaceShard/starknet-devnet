@@ -6,7 +6,7 @@ pub mod invoke_transaction;
 use std::collections::HashMap;
 
 use starknet_api::block::BlockNumber;
-use starknet_in_rust::execution::TransactionExecutionInfo;
+use starknet_in_rust::execution::{TransactionExecutionInfo, OrderedEvent, CallInfo};
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_rs_core::types::TransactionStatus;
 use starknet_types::felt::{BlockHash, TransactionHash};
@@ -68,6 +68,26 @@ impl StarknetTransaction {
             block_hash: None,
             block_number: None,
         }
+    }
+
+    pub fn get_events(&self) -> Vec<&OrderedEvent> {
+        let mut result = Vec::<&OrderedEvent>::new();
+
+        fn events_from_call_info(call_info: Option<&CallInfo>) -> Vec<&OrderedEvent> {
+            if let Some(call_info) = call_info {
+                call_info.events.iter().collect()
+            } else {
+                Vec::<&OrderedEvent>::new()
+            }
+        }
+
+        if let Some(execution_info) = &self.execution_info {
+            result.extend(events_from_call_info(execution_info.validate_info.as_ref()));
+            result.extend(events_from_call_info(execution_info.call_info.as_ref()));
+            result.extend(events_from_call_info(execution_info.fee_transfer_info.as_ref()));
+        }
+
+        result
     }
 }
 
