@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::time::SystemTime;
 
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
+use starknet_in_rust::call_contract;
 use starknet_in_rust::definitions::block_context::{
     BlockContext, StarknetChainId, StarknetOsConfig,
 };
@@ -11,27 +12,23 @@ use starknet_in_rust::definitions::constants::{
     DEFAULT_VALIDATE_MAX_N_STEPS,
 };
 use starknet_in_rust::execution::TransactionExecutionInfo;
+use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
 use starknet_in_rust::state::state_api::State;
 use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
 use starknet_in_rust::utils::Address;
-use starknet_in_rust::{call_contract, SierraContractClass};
+use starknet_in_rust::SierraContractClass;
 use starknet_rs_core::types::{BlockId, TransactionStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::Signer;
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{ClassHash, Felt, TransactionHash};
-use starknet_types::traits::HashProducer;
 use tracing::error;
 
 use self::predeployed::initialize_erc20;
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
-use crate::constants::{
-    CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
-    ERC20_CONTRACT_ADDRESS,
-};
+use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT_PATH, ERC20_CONTRACT_ADDRESS};
+use crate::constants::{CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY};
 use crate::error::{Error, Result};
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::raw_execution::{Call, RawExecution};
@@ -47,25 +44,6 @@ use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
 use crate::transactions::invoke_transaction::InvokeTransactionV1;
 use crate::transactions::{StarknetTransaction, StarknetTransactions, Transaction};
 use crate::utils;
-
-use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
-use starknet_in_rust::state::BlockInfo;
-use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
-use starknet_in_rust::SierraContractClass;
-use starknet_rs_core::types::{BlockId, TransactionStatus};
-use tracing::error;
-
-use crate::account::Account;
-use crate::blocks::{StarknetBlock, StarknetBlocks};
-use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT_PATH, ERC20_CONTRACT_ADDRESS};
-use crate::error::{Error, Result};
-use crate::predeployed_accounts::PredeployedAccounts;
-use crate::state::StarknetState;
-use crate::traits::{AccountGenerator, Accounted, HashIdentifiedMut, StateChanger};
-use crate::transactions::declare_transaction::DeclareTransactionV1;
-use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
-use crate::transactions::{StarknetTransaction, StarknetTransactions, Transaction};
-use crate::utils;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
@@ -74,6 +52,7 @@ use starknet_types::traits::HashProducer;
 mod add_declare_transaction;
 mod add_deploy_account_transaction;
 mod add_invoke_transaction;
+mod get_class_impls;
 mod predeployed;
 mod state_update;
 
@@ -308,18 +287,15 @@ impl Starknet {
     // ForkedStateReader
     fn get_state_at(&self, block_id: &BlockId) -> Result<&StarknetState> {
         match block_id {
-            BlockId::Tag(_) => Ok(&self.state.state),
+            BlockId::Tag(_) => Ok(&self.state),
             BlockId::Hash(_) => Err(Error::BlockIdHashUnimplementedError),
             BlockId::Number(_) => Err(Error::BlockIdNumberUnimplementedError),
         }
     }
 
-    pub fn get_state_at_mut(
-        &mut self,
-        block_id: &BlockId,
-    ) -> Result<&mut InMemoryStateReader> {
+    pub(crate) fn get_state_at_mut(&mut self, block_id: &BlockId) -> Result<&mut StarknetState> {
         match block_id {
-            BlockId::Tag(_) => Ok(&mut self.state.state),
+            BlockId::Tag(_) => Ok(&mut self.state),
             BlockId::Hash(_) => Err(Error::BlockIdHashUnimplementedError),
             BlockId::Number(_) => Err(Error::BlockIdNumberUnimplementedError),
         }

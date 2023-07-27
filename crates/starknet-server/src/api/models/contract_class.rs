@@ -29,8 +29,8 @@ impl TryFrom<TypesContractClass> for ContractClass {
 
     fn try_from(value: TypesContractClass) -> RpcResult<Self> {
         match value {
-            TypesContractClass::Cairo0(value) => Err(ApiError::InvalidContractClass),
-            TypesContractClass::Cairo1(value) => Ok(ContractClass::Sierra(value.try_into()?)),
+            TypesContractClass::Cairo0(_) => Err(ApiError::InvalidContractClass),
+            TypesContractClass::Cairo1(value) => Ok(ContractClass::Sierra(value)),
         }
     }
 }
@@ -340,7 +340,7 @@ mod tests {
                 .len(),
             2
         );
-        assert_eq!(obj.abi, "H4sIAAAAAAAA/8tIzcnJVyjPL8pJUQQAlQYXAAAA".to_string());
+        assert_eq!(obj.abi.unwrap(), "H4sIAAAAAAAA/8tIzcnJVyjPL8pJUQQAlQYXAAAA".to_string());
         assert_eq!(
             obj.entry_points_by_type
                 .get(&starknet_types::starknet_api::state::EntryPointType::External)
