@@ -4,13 +4,12 @@ use starknet_api::block::{BlockHeader, BlockNumber, BlockStatus};
 use starknet_api::hash::{pedersen_hash_array, StarkFelt};
 use starknet_api::stark_felt;
 use starknet_rs_core::types::BlockId;
-use starknet_types::felt::{BlockHash, Felt};
+use starknet_types::felt::{BlockHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 
 use crate::error::{self, Result};
 use crate::state::state_diff::StateDiff;
 use crate::traits::HashIdentified;
-use crate::transactions::Transaction;
 
 pub(crate) struct StarknetBlocks {
     pub(crate) hash_to_num: HashMap<BlockHash, BlockNumber>,
@@ -126,19 +125,18 @@ impl StarknetBlocks {
 #[derive(Clone, Eq, PartialEq)]
 pub(crate) struct StarknetBlock {
     pub(crate) header: BlockHeader,
-    transactions: Vec<Transaction>,
+    transaction_hashes: Vec<TransactionHash>,
     pub(crate) status: BlockStatus,
 }
 
 impl StarknetBlock {
-    pub(crate) fn add_transaction(&mut self, transaction: Transaction) {
-        self.transactions.push(transaction);
+    pub(crate) fn add_transaction(&mut self, transaction_hash: TransactionHash) {
+        self.transaction_hashes.push(transaction_hash);
     }
 
-    pub(crate) fn get_transactions(&self) -> &Vec<Transaction> {
-        &self.transactions
+    pub(crate) fn get_transactions(&self) -> &Vec<TransactionHash> {
+        &self.transaction_hashes
     }
-
     pub(crate) fn block_hash(&self) -> BlockHash {
         self.header.block_hash.into()
     }
@@ -154,8 +152,8 @@ impl StarknetBlock {
     pub(crate) fn create_pending_block() -> Self {
         Self {
             header: BlockHeader::default(),
-            transactions: Vec::new(),
             status: BlockStatus::Pending,
+            transaction_hashes: Vec::new(),
         }
     }
 }
@@ -163,17 +161,17 @@ impl StarknetBlock {
 impl HashProducer for StarknetBlock {
     fn generate_hash(&self) -> starknet_types::DevnetResult<BlockHash> {
         let hash = pedersen_hash_array(&[
-            stark_felt!(self.header.block_number.0),     // block number
-            self.header.state_root.0,                    // global_state_root
-            *self.header.sequencer.0.key(),              // sequencer_address
-            stark_felt!(self.header.timestamp.0),        // block_timestamp
-            stark_felt!(self.transactions.len() as u64), // transaction_count
-            stark_felt!(0_u8),                           // transaction_commitment
-            stark_felt!(0_u8),                           // event_count
-            stark_felt!(0_u8),                           // event_commitment
-            stark_felt!(0_u8),                           // protocol_version
-            stark_felt!(0_u8),                           // extra_data
-            stark_felt!(self.header.parent_hash.0),      // parent_block_hash
+            stark_felt!(self.header.block_number.0), // block number
+            self.header.state_root.0,                // global_state_root
+            *self.header.sequencer.0.key(),          // sequencer_address
+            stark_felt!(self.header.timestamp.0),    // block_timestamp
+            stark_felt!(self.transaction_hashes.len() as u64), // transaction_count
+            stark_felt!(0_u8),                       // transaction_commitment
+            stark_felt!(0_u8),                       // event_count
+            stark_felt!(0_u8),                       // event_commitment
+            stark_felt!(0_u8),                       // protocol_version
+            stark_felt!(0_u8),                       // extra_data
+            stark_felt!(self.header.parent_hash.0),  // parent_block_hash
         ]);
 
         Ok(Felt::from(hash))
@@ -587,7 +585,7 @@ mod tests {
     fn check_pending_block() {
         let block = StarknetBlock::create_pending_block();
         assert!(block.status == BlockStatus::Pending);
-        assert!(block.transactions.is_empty());
+        assert!(block.transaction_hashes.is_empty());
         assert_eq!(block.header, BlockHeader::default());
     }
 }

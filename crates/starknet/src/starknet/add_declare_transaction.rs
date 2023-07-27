@@ -273,15 +273,13 @@ mod tests {
         assert_eq!(starknet.blocks.num_to_block.len(), 1);
         // check if transaction is in generated block
         assert_eq!(
-            starknet
+            *starknet
                 .blocks
                 .num_to_block
                 .get(&BlockNumber(0))
                 .unwrap()
                 .get_transactions()
                 .first()
-                .unwrap()
-                .get_hash()
                 .unwrap(),
             tx_hash
         );

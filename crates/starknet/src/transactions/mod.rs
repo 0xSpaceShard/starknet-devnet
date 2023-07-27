@@ -6,7 +6,7 @@ pub mod invoke_transaction;
 use std::collections::HashMap;
 
 use starknet_api::block::BlockNumber;
-use starknet_in_rust::execution::{TransactionExecutionInfo, OrderedEvent, CallInfo};
+use starknet_in_rust::execution::{CallInfo, OrderedEvent, TransactionExecutionInfo};
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_rs_core::types::TransactionStatus;
 use starknet_types::felt::{BlockHash, TransactionHash};
@@ -97,17 +97,6 @@ pub enum Transaction {
     DeclareV2(Box<DeclareTransactionV2>),
     DeployAccount(Box<DeployAccountTransaction>),
     Invoke(Box<InvokeTransactionV1>),
-}
-
-impl Transaction {
-    pub(crate) fn get_hash(&self) -> Option<TransactionHash> {
-        match self {
-            Transaction::Declare(tx) => tx.transaction_hash,
-            Transaction::DeclareV2(tx) => tx.transaction_hash,
-            Transaction::DeployAccount(tx) => Some(tx.0.hash_value().clone().into()),
-            Transaction::Invoke(tx) => Some(tx.0.hash_value().clone().into()),
-        }
-    }
 }
 
 #[cfg(test)]

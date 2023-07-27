@@ -172,17 +172,13 @@ impl Starknet {
         let new_block_number = new_block.block_number();
 
         // update txs block hash block number for each transaction in the pending block
-        new_block.get_transactions().iter().for_each(|t| {
-            if let Some(tx_hash) = t.get_hash() {
-                if let Some(tx) = self.transactions.get_by_hash_mut(&tx_hash) {
-                    tx.block_hash = Some(new_block.header.block_hash.0.into());
-                    tx.block_number = Some(new_block_number);
-                    tx.status = TransactionStatus::AcceptedOnL2;
-                } else {
-                    error!("Transaction is not present in the transactions colletion");
-                }
+        new_block.get_transactions().iter().for_each(|tx_hash| {
+            if let Some(tx) = self.transactions.get_by_hash_mut(tx_hash) {
+                tx.block_hash = Some(new_block.header.block_hash.0.into());
+                tx.block_number = Some(new_block_number);
+                tx.status = TransactionStatus::AcceptedOnL2;
             } else {
-                error!("Transaction has no generated hash");
+                error!("Transaction is not present in the transactions colletion");
             }
         });
 
@@ -198,11 +194,10 @@ impl Starknet {
         transaction: Transaction,
         tx_info: TransactionExecutionInfo,
     ) -> Result<()> {
-        let transaction_to_add =
-            StarknetTransaction::create_successful(transaction.clone(), tx_info);
+        let transaction_to_add = StarknetTransaction::create_successful(transaction, tx_info);
 
         // add accepted transaction to pending block
-        self.blocks.pending_block.add_transaction(transaction);
+        self.blocks.pending_block.add_transaction(*transaction_hash);
 
         self.transactions.insert(transaction_hash, transaction_to_add);
 
@@ -440,7 +435,9 @@ mod tests {
     use crate::error::{Error, Result};
     use crate::state::state_diff::StateDiff;
     use crate::traits::Accounted;
-    use crate::utils::test_utils::{dummy_declare_transaction_v1, starknet_config_for_test};
+    use crate::utils::test_utils::{
+        dummy_declare_transaction_v1, dummy_felt, starknet_config_for_test,
+    };
 
     #[test]
     fn correct_initial_state_with_test_config() {
@@ -491,11 +488,8 @@ mod tests {
         let tx_hash = tx.generate_hash().unwrap();
         tx.transaction_hash = Some(tx_hash);
 
-        // add transaction to pending block
-        starknet
-            .blocks
-            .pending_block
-            .add_transaction(crate::transactions::Transaction::Declare(tx));
+        // add transaction hash to pending block
+        starknet.blocks.pending_block.add_transaction(tx_hash);
 
         // pending block has some transactions
         assert!(!starknet.pending_block().get_transactions().is_empty());
@@ -510,7 +504,7 @@ mod tests {
         let added_block = starknet.blocks.num_to_block.get(&BlockNumber(0)).unwrap();
 
         assert!(added_block.get_transactions().len() == 1);
-        assert_eq!(added_block.get_transactions().first().unwrap().get_hash().unwrap(), tx_hash);
+        assert_eq!(*added_block.get_transactions().first().unwrap(), tx_hash);
     }
 
     #[test]
@@ -526,9 +520,7 @@ mod tests {
 
         // create pending block with some information in it
         let mut pending_block = StarknetBlock::create_pending_block();
-        pending_block.add_transaction(crate::transactions::Transaction::Declare(
-            dummy_declare_transaction_v1(),
-        ));
+        pending_block.add_transaction(dummy_felt());
         pending_block.status = BlockStatus::AcceptedOnL2;
 
         // assign the pending block
@@ -723,15 +715,11 @@ mod tests {
 
         assert_eq!(num_no_transactions.unwrap(), 0);
 
-        let mut tx = dummy_declare_transaction_v1();
+        let tx = dummy_declare_transaction_v1();
         let tx_hash = tx.generate_hash().unwrap();
-        tx.transaction_hash = Some(tx_hash);
 
-        // add transaction to pending block
-        starknet
-            .blocks
-            .pending_block
-            .add_transaction(crate::transactions::Transaction::Declare(tx));
+        // add transaction hash to pending block
+        starknet.blocks.pending_block.add_transaction(tx_hash);
 
         starknet.generate_new_block(StateDiff::default()).unwrap();
 
