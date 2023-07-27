@@ -334,9 +334,7 @@ mod requests_tests {
 
         match request {
             StarknetRequest::TransactionByHash(input) => {
-                assert!(
-                    input.transaction_hash.0 == Felt::from_prefixed_hex_str("0x134134").unwrap()
-                );
+                assert!(input.transaction_hash == Felt::from_prefixed_hex_str("0x134134").unwrap());
             }
             _ => panic!("Wrong request type"),
         }
