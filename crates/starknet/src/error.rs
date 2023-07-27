@@ -29,6 +29,8 @@ pub enum Error {
     SignError(#[from] starknet_rs_signers::local_wallet::SignError),
     #[error("No block found")]
     NoBlock,
+    #[error("No transaction found")]
+    NoTransaction,
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
