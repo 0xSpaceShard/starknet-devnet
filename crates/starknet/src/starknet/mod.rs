@@ -316,6 +316,10 @@ impl Starknet {
     ) -> Result<Vec<Felt>> {
         let state = self.get_state_at(&block_id)?;
 
+        if !self.state.is_contract_deployed(&ContractAddress::new(contract_address)?) {
+            return Err(Error::ContractNotFound);
+        }
+
         let result = call_contract(
             contract_address.into(),
             entrypoint_selector.into(),
@@ -452,10 +456,8 @@ impl Starknet {
 #[cfg(test)]
 mod tests {
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
-    use starknet_in_rust::core::errors::state_errors::StateError;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_in_rust::transaction::error::TransactionError;
-    use starknet_in_rust::utils::Address;
     use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
@@ -643,12 +645,7 @@ mod tests {
             entry_point_selector.into(),
             vec![],
         ) {
-            Err(Error::TransactionError(TransactionError::State(
-                StateError::NoneContractState(Address(address)),
-            ))) => {
-                let received_address_hex = format!("0x{}", address.to_str_radix(16));
-                assert_eq!(received_address_hex.as_str(), undeployed_address_hex);
-            }
+            Err(Error::ContractNotFound) => (),
             unexpected => panic!("Should have failed; got {unexpected:?}"),
         }
     }

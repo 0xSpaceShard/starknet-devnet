@@ -201,6 +201,7 @@ impl JsonRpcHandler {
             Err(Error::BlockIdHashUnimplementedError | Error::BlockIdNumberUnimplementedError) => {
                 Err(ApiError::OnlyLatestBlock)
             }
+            Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
             Err(_) => Err(ApiError::ContractError),
         }
     }

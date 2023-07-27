@@ -51,6 +51,7 @@ pub trait StateChanger {
 pub trait StateExtractor {
     fn get_storage(&mut self, storage_key: ContractStorageKey) -> Result<Felt>;
     fn is_contract_declared(&mut self, class_hash: &ClassHash) -> bool;
+    fn is_contract_deployed(&self, address: &ContractAddress) -> bool;
     fn get_class_hash_at_contract_address(
         &mut self,
         address: &ContractAddress,

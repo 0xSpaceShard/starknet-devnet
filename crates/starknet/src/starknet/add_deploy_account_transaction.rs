@@ -85,6 +85,10 @@ mod tests {
         assert_eq!(txn.status, TransactionStatus::Rejected);
     }
 
+    fn get_accounts_count(starknet: &Starknet) -> usize {
+        starknet.state.state.address_to_class_hash.len()
+    }
+
     #[test]
     fn deploy_account_transaction_successful_execution() {
         let (mut starknet, account_class_hash, fee_token_address) = setup();
@@ -117,13 +121,13 @@ mod tests {
         starknet.state.synchronize_states();
 
         // get accounts count before deployment
-        let accounts_before_deployment = starknet.state.state.address_to_nonce.len();
+        let accounts_before_deployment = get_accounts_count(&starknet);
 
         let (txn_hash, _) = starknet.add_deploy_account_transaction(transaction).unwrap();
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
 
         assert_eq!(txn.status, TransactionStatus::AcceptedOnL2);
-        assert_eq!(starknet.state.state.address_to_nonce.len(), accounts_before_deployment + 1);
+        assert_eq!(get_accounts_count(&starknet), accounts_before_deployment + 1);
         let account_balance_after_deployment =
             starknet.state.get_storage(balance_storage_key).unwrap();
 
