@@ -25,6 +25,7 @@ use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use tracing::error;
 
+use self::events::EmittedEvent;
 use self::predeployed::initialize_erc20;
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
@@ -414,6 +415,16 @@ impl Starknet {
         let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
 
         Ok(block.get_transactions().len() as u64)
+    }
+
+    pub fn get_events(
+        &self,
+        from_block: Option<BlockId>,
+        to_block: Option<BlockId>,
+        address: Option<ContractAddress>,
+        keys: Option<Vec<Vec<Felt>>>,
+    ) -> Result<Vec<EmittedEvent>> {
+        events::get_events(self, from_block, to_block, address, keys)
     }
 }
 
