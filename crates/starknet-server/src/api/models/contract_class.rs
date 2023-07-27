@@ -1,11 +1,20 @@
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
+use serde_json::json;
+use server::rpc_core::error::RpcError;
+use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass::Deprecated;
+use std::collections::HashMap;
 
 use super::abi_entry::{AbiEntry, AbiEntryType};
 use super::FeltHex;
+use crate::api::json_rpc::error::ApiError;
+use crate::api::json_rpc::RpcResult;
+
 use crate::api::serde_helpers::base_64_gzipped_json_string::deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order;
-use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass;
+use starknet_in_rust::SierraContractClass as ImportedSierraContractClass;
+use starknet_types::contract_class::ContractClass as TypesContractClass;
+use starknet_types::felt::Felt;
+use starknet_types::starknet_api::state::EntryPointType;
+use starknet_types::starknet_api::state::{EntryPoint, FunctionIndex};
 
 // TODO: move to types
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -15,20 +24,13 @@ pub enum ContractClass {
     Sierra(SierraContractClass),
 }
 
-impl From<CompiledClass> for ContractClass {
-    fn from(value: CompiledClass) -> Self {
+impl TryFrom<TypesContractClass> for ContractClass {
+    type Error = ApiError;
+
+    fn try_from(value: TypesContractClass) -> RpcResult<Self> {
         match value {
-            CompiledClass::Deprecated(class) => {
-                let asd = DeprecatedContractClass {
-                    abi: class.abi.unwrap().iter().map(|el| el.abi),
-                    program: class.program,
-                    entry_points_by_type: class.entry_points_by_type
-                }
-                ContractClass::Cairo0()
-            },
-            CompiledClass::Casm(class) {
-                ContractClass::Cairo0()
-            }
+            TypesContractClass::Cairo0(value) => Ok(ContractClass::Cairo0(value.try_into()?)),
+            TypesContractClass::Cairo1(value) => Ok(ContractClass::Sierra(value.try_into()?)),
         }
     }
 }
@@ -37,11 +39,80 @@ impl From<CompiledClass> for ContractClass {
 pub struct SierraContractClass {
     pub sierra_program: Vec<FeltHex>,
     pub contract_class_version: String,
-    pub entry_points_by_type: HashMap<
-        starknet_types::starknet_api::state::EntryPointType,
-        Vec<starknet_types::starknet_api::state::EntryPoint>,
-    >,
-    pub abi: String,
+    pub entry_points_by_type: HashMap<EntryPointType, Vec<EntryPoint>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub abi: Option<String>,
+}
+
+impl TryFrom<ImportedSierraContractClass> for SierraContractClass {
+    type Error = ApiError;
+    fn try_from(value: ImportedSierraContractClass) -> RpcResult<Self> {
+        // let asd: Vec<RpcResult<FeltHex>> = value
+        //     .sierra_program
+        //     .into_iter()
+        //     .map(|el| {
+        //         let hex_str = format!("{:#x}", el.value);
+        //         match Felt::from_prefixed_hex_str(&hex_str) {
+        //             Ok(val) => Ok(FeltHex(val)),
+        //             Err(err) => Err(val.into()),
+        //         }
+        //     })
+        //     .collect();
+
+        let sierra_program: Vec<FeltHex> =
+            serde_json::from_str(&serde_json::to_string(&value.sierra_program)?)?;
+        let mut map: HashMap<EntryPointType, Vec<EntryPoint>> = HashMap::new();
+
+        for entry in value.entry_points_by_type.constructor {
+            let selector = serde_json::from_str(&serde_json::to_string(&entry.selector)?)?;
+            let function_idx = FunctionIndex(entry.function_idx);
+            let con = EntryPointType::Constructor;
+            match map.get_mut(&con) {
+                Some(val) => val.push(EntryPoint { function_idx, selector }),
+                None => map.insert(
+                    EntryPointType::Constructor,
+                    vec![EntryPoint { selector, function_idx }],
+                ),
+            }
+        }
+
+        for entry in value.entry_points_by_type.external {
+            let selector = serde_json::from_str(&serde_json::to_string(&entry.selector)?)?;
+            let function_idx = FunctionIndex(entry.function_idx);
+
+            match map.get_mut(&EntryPointType::External) {
+                Some(val) => val.push(EntryPoint { function_idx, selector }),
+                None => map
+                    .insert(EntryPointType::External, vec![EntryPoint { selector, function_idx }]),
+            }
+        }
+
+        for entry in value.entry_points_by_type.l1_handler {
+            let selector = serde_json::from_str(&serde_json::to_string(&entry.selector)?)?;
+            let function_idx = FunctionIndex(entry.function_idx);
+
+            match map.get_mut(&EntryPointType::L1Handler) {
+                Some(val) => val.push(EntryPoint { function_idx, selector }),
+                None => map
+                    .insert(EntryPointType::L1Handler, vec![EntryPoint { selector, function_idx }]),
+            }
+        }
+
+        Ok(Self {
+            sierra_program,
+            contract_class_version: value.contract_class_version,
+            entry_points_by_type: map,
+            abi: value.abi.map(|contract| contract.json()),
+        })
+        //let abi =
+        // Self {
+        //     sierra_program: value
+        //         .sierra_program
+        //         .into_vec()
+        //         .into_iter(|el| serde_json::to_string(el)),
+        //     abi: value.abi,
+        // }
+    }
 }
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
@@ -57,6 +128,31 @@ pub struct DeprecatedContractClass {
         starknet_types::starknet_api::deprecated_contract_class::EntryPointType,
         Vec<starknet_types::starknet_api::deprecated_contract_class::EntryPoint>,
     >,
+}
+
+// impl TryFrom<Cairo0ContractClass> for DeprecatedContractClass {}
+
+impl TryFrom<DeprecatedContractClass> for TypesContractClass {
+    type Error = ApiError;
+
+    fn try_from(value: DeprecatedContractClass) -> RpcResult<Self> {
+        let abi_json = serde_json::to_value(value.abi).map_err(|_| {
+            ApiError::RpcError(RpcError::invalid_params("abi: Unable to parse to JSON"))
+        })?;
+        let entry_points_json = serde_json::to_value(value.entry_points_by_type).map_err(|_| {
+            ApiError::RpcError(RpcError::invalid_params(
+                "entry_points_by_type: Unable to parse to JSON",
+            ))
+        })?;
+
+        Ok(TypesContractClass::Cairo0(starknet_types::contract_class::Cairo0ContractClass::Json(
+            json!({
+                "program": value.program,
+                "abi": abi_json,
+                "entry_points_by_type": entry_points_json,
+            }),
+        )))
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]

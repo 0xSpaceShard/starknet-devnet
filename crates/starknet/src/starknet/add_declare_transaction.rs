@@ -1,4 +1,5 @@
 use starknet_in_rust::transaction::{verify_version, Declare, DeclareV2};
+use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::traits::HashProducer;
 
@@ -48,7 +49,9 @@ pub fn add_declare_transaction_v2(
             declare_transaction.class_hash = Some(class_hash);
 
             // Add sierra contract
-            starknet.sierra_contracts.insert(class_hash, transaction.sierra_contract_class);
+            starknet
+                .sierra_contracts
+                .insert(class_hash, ContractClass::Cairo1(transaction.sierra_contract_class));
             starknet.handle_successful_transaction(
                 &transaction_hash,
                 Transaction::DeclareV2(declare_transaction),
@@ -69,6 +72,7 @@ pub fn add_declare_transaction_v2(
 
     Ok((transaction_hash, class_hash))
 }
+
 pub fn add_declare_transaction_v1(
     starknet: &mut Starknet,
     declare_transaction: DeclareTransactionV1,

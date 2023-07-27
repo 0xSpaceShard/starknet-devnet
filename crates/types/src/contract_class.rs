@@ -2,18 +2,19 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use serde::Serialize;
-use serde_json::{json, Serializer, Value};
+use serde_json::{json, Serializer};
 use starknet_api::deprecated_contract_class::{EntryPoint, EntryPointType};
 use starknet_api::hash::{pedersen_hash_array, StarkFelt};
 use starknet_in_rust::core::contract_address::{
     compute_deprecated_class_hash, compute_sierra_class_hash,
 };
 use starknet_in_rust::core::errors::contract_address_errors::ContractAddressError;
+use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass as ImportedCompiledClass;
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
 use starknet_in_rust::utils::calculate_sn_keccak;
 use starknet_in_rust::{CasmContractClass, SierraContractClass};
 
-use crate::error::{Error, JsonError};
+use crate::error::{ConversionError, Error, JsonError};
 use crate::felt::Felt;
 use crate::traits::HashProducer;
 use crate::{utils, DevnetResult};
@@ -24,10 +25,27 @@ pub enum Cairo0ContractClass {
     Json(serde_json::Value),
 }
 
+// #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+// pub enum Cairo0ContractClass {
+//
+// }
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ContractClass {
     Cairo0(Cairo0ContractClass),
     Cairo1(SierraContractClass),
+}
+
+impl TryFrom<ImportedCompiledClass> for ContractClass {
+    type Error = Error;
+    fn try_from(value: ImportedCompiledClass) -> DevnetResult<Self> {
+        match value {
+            ImportedCompiledClass::Deprecated(value) => {
+                Ok(ContractClass::Cairo0(Cairo0ContractClass::Obj(*value)))
+            }
+            ImportedCompiledClass::Casm(_) => Err(ConversionError::InvalidFormat.into()),
+        }
+    }
 }
 
 impl ContractClass {

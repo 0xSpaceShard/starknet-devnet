@@ -36,29 +36,6 @@ impl JsonRpcHandler {
     }
 }
 
-impl TryFrom<DeprecatedContractClass> for ContractClass {
-    type Error = ApiError;
-
-    fn try_from(value: DeprecatedContractClass) -> RpcResult<Self> {
-        let abi_json = serde_json::to_value(value.abi).map_err(|_| {
-            ApiError::RpcError(RpcError::invalid_params("abi: Unable to parse to JSON"))
-        })?;
-        let entry_points_json = serde_json::to_value(value.entry_points_by_type).map_err(|_| {
-            ApiError::RpcError(RpcError::invalid_params(
-                "entry_points_by_type: Unable to parse to JSON",
-            ))
-        })?;
-
-        Ok(ContractClass::Cairo0(starknet_types::contract_class::Cairo0ContractClass::Json(
-            json!({
-                "program": value.program,
-                "abi": abi_json,
-                "entry_points_by_type": entry_points_json,
-            }),
-        )))
-    }
-}
-
 fn convert_to_declare_transaction_v1(
     value: BroadcastedDeclareTransactionV1,
     chain_id: Felt,

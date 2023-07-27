@@ -21,6 +21,8 @@ pub enum Error {
     IoError(#[from] std::io::Error),
     #[error("Error when reading file {path}")]
     ReadFileError { source: std::io::Error, path: String },
+    #[error("Format error")]
+    FormatError,
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

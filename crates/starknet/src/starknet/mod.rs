@@ -30,6 +30,7 @@ use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
 use crate::transactions::{StarknetTransaction, StarknetTransactions, Transaction};
 use crate::utils;
 use starknet_types::contract_address::ContractAddress;
+use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 
@@ -72,7 +73,7 @@ pub struct Starknet {
     blocks: StarknetBlocks,
     transactions: StarknetTransactions,
     pub config: StarknetConfig,
-    pub(in crate::starknet) sierra_contracts: HashMap<ClassHash, SierraContractClass>,
+    pub(in crate::starknet) sierra_contracts: HashMap<ClassHash, ContractClass>,
 }
 
 impl Starknet {
@@ -279,10 +280,10 @@ impl Starknet {
         block_id: BlockId,
         contract_address: ContractAddress,
     ) -> Result<ClassHash> {
-        Ok(get_class_impls::get_class_hash_at_impl(self, block_id, contract_address)?.try_into()?)
+        Ok(get_class_impls::get_class_hash_at_impl(self, block_id, contract_address)?)
     }
 
-    pub fn get_class(&mut self, block_id: BlockId, class_hash: ClassHash) -> Result<CompiledClass> {
+    pub fn get_class(&mut self, block_id: BlockId, class_hash: ClassHash) -> Result<ContractClass> {
         get_class_impls::get_class_impl(self, block_id, class_hash)
     }
 
@@ -290,7 +291,7 @@ impl Starknet {
         &mut self,
         block_id: BlockId,
         contract_address: ContractAddress,
-    ) -> Result<CompiledClass> {
+    ) -> Result<ContractClass> {
         get_class_impls::get_class_at_impl(self, block_id, contract_address)
     }
 
