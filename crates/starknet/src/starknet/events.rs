@@ -48,7 +48,7 @@ pub(crate) fn get_events(
     let keys_filter: Option<Vec<Vec<Felt252>>> = keys_filter.map(|felts| {
         felts
             .into_iter()
-            .map(|inner_felts| inner_felts.into_iter().map(|felt| Felt252::from(felt)).collect())
+            .map(|inner_felts| inner_felts.into_iter().map(Felt252::from).collect())
             .collect()
     });
     let mut elements_added = 0;
@@ -90,7 +90,7 @@ pub(crate) fn get_events(
                 };
 
                 events.push(emitted_event);
-                elements_added = elements_added + 1;
+                elements_added += 1;
             }
 
             // modify how many elements to skip, whichever is smaller so the usize doens't overflow
@@ -127,7 +127,7 @@ fn check_if_filter_applies_for_event(
 /// * `keys` - The keys to check if they apply to the filter.
 fn check_if_filter_applies_for_event_keys<T>(
     keys_filter: &Option<Vec<Vec<T>>>,
-    keys: &Vec<T>,
+    keys: &[T],
 ) -> bool
 where
     T: PartialEq + Eq,
@@ -135,12 +135,12 @@ where
     match &keys_filter {
         Some(keys_filter) => {
             for (event_key, accepted_keys) in keys.iter().zip(keys_filter) {
-                if accepted_keys.len() > 0 && !accepted_keys.contains(event_key) {
+                if !accepted_keys.is_empty() && !accepted_keys.contains(event_key) {
                     return false;
                 }
             }
 
-            return true;
+            true
         }
         None => true,
     }
@@ -161,15 +161,15 @@ mod tests {
     fn filter_keys_with_empty_or_no_filter() {
         let keys = vec![1u32];
         // no filter
-        assert_eq!(check_if_filter_applies_for_event_keys(&None, &keys), true);
+        assert!(check_if_filter_applies_for_event_keys(&None, &keys));
 
         // empty filter
         let filter = vec![];
-        assert_eq!(check_if_filter_applies_for_event_keys(&Some(filter), &keys), true);
+        assert!(check_if_filter_applies_for_event_keys(&Some(filter), &keys));
 
         // empty filter, but made of two empty filters
         let filter = vec![vec![], vec![]];
-        assert_eq!(check_if_filter_applies_for_event_keys(&Some(filter), &keys), true);
+        assert!(check_if_filter_applies_for_event_keys(&Some(filter), &keys));
     }
 
     #[test]
@@ -179,17 +179,17 @@ mod tests {
 
         // filter with 1 key and second one empty filter
         let filter = vec![vec![1u32], vec![]];
-        assert_eq!(check_if_filter_applies_for_event_keys(&Some(filter), &keys), true);
+        assert!(check_if_filter_applies_for_event_keys(&Some(filter), &keys));
 
         // filter with 1 key and second one value that is not amongst the keys, but will not
         // evalueate, because the keys is of length 1
         let filter = vec![vec![1u32], vec![2u32]];
-        assert_eq!(check_if_filter_applies_for_event_keys(&Some(filter), &keys), true);
+        assert!(check_if_filter_applies_for_event_keys(&Some(filter), &keys));
 
         // filter with multiple keys, that are different from the keys, except one and second filter
         // is empty
         let filter = vec![vec![0u32, 1u32], vec![]];
-        assert_eq!(check_if_filter_applies_for_event_keys(&Some(filter), &keys), true);
+        assert!(check_if_filter_applies_for_event_keys(&Some(filter), &keys));
     }
 
     #[test]
@@ -198,11 +198,11 @@ mod tests {
 
         // filter with 1 key, that is different from the keys and second one empty filter
         let filter = vec![vec![0u32], vec![]];
-        assert_eq!(check_if_filter_applies_for_event_keys(&Some(filter), &keys), false);
+        assert!(!check_if_filter_applies_for_event_keys(&Some(filter), &keys));
 
         // filter with multiple keys, that are different from the keys and second filter is empty
         let filter = vec![vec![0u32, 2u32], vec![]];
-        assert_eq!(check_if_filter_applies_for_event_keys(&Some(filter), &keys), false);
+        assert!(!check_if_filter_applies_for_event_keys(&Some(filter), &keys));
     }
 
     #[test]
@@ -211,23 +211,23 @@ mod tests {
 
         // both filters apply to the keys, each filter is with 1 value
         let filter = vec![vec![3u32], vec![2u32]];
-        assert_eq!(check_if_filter_applies_for_event_keys(&Some(filter), &keys), true);
+        assert!(check_if_filter_applies_for_event_keys(&Some(filter), &keys));
 
         // both filter apply to the keys, each filter is with multiple values
         let filter = vec![vec![3u32, 1u32], vec![0u32, 2u32]];
-        assert_eq!(check_if_filter_applies_for_event_keys(&Some(filter), &keys), true);
+        assert!(check_if_filter_applies_for_event_keys(&Some(filter), &keys));
 
         // first filter applies to the keys, second filter is empty
         let filter = vec![vec![3u32, 1u32], vec![]];
-        assert_eq!(check_if_filter_applies_for_event_keys(&Some(filter), &keys), true);
+        assert!(check_if_filter_applies_for_event_keys(&Some(filter), &keys));
 
         // first filter is empty, second filter applies to the keys
         let filter = vec![vec![], vec![0u32, 2u32]];
-        assert_eq!(check_if_filter_applies_for_event_keys(&Some(filter), &keys), true);
+        assert!(check_if_filter_applies_for_event_keys(&Some(filter), &keys));
 
         // both filters are empty
         let filter = vec![vec![], vec![]];
-        assert_eq!(check_if_filter_applies_for_event_keys(&Some(filter), &keys), true);
+        assert!(check_if_filter_applies_for_event_keys(&Some(filter), &keys));
     }
 
     #[test]
@@ -236,15 +236,15 @@ mod tests {
 
         // first filter applies to the keys, second filter does not
         let filter = vec![vec![3u32, 1u32], vec![0u32]];
-        assert_eq!(check_if_filter_applies_for_event_keys(&Some(filter), &keys), false);
+        assert!(!check_if_filter_applies_for_event_keys(&Some(filter), &keys));
 
         // first filter does not apply to the keys, second filter applies
         let filter = vec![vec![0u32], vec![0u32, 2u32]];
-        assert_eq!(check_if_filter_applies_for_event_keys(&Some(filter), &keys), false);
+        assert!(!check_if_filter_applies_for_event_keys(&Some(filter), &keys));
 
         // both filters do not apply to the keys
         let filter = vec![vec![0u32], vec![0u32]];
-        assert_eq!(check_if_filter_applies_for_event_keys(&Some(filter), &keys), false);
+        assert!(!check_if_filter_applies_for_event_keys(&Some(filter), &keys));
     }
 
     #[test]
@@ -253,11 +253,11 @@ mod tests {
 
         // filter with address that is the same as the on in the event
         let address = Some(dummy_contract_address().try_into().unwrap());
-        assert_eq!(check_if_filter_applies_for_event(&address, &None, &event), true);
+        assert!(check_if_filter_applies_for_event(&address, &None, &event));
 
         // filter with address that is different from the one in the event
         let address = ContractAddress::new(Felt::from(0)).unwrap().try_into().unwrap();
-        assert_eq!(check_if_filter_applies_for_event(&Some(address), &None, &event), false);
+        assert!(!check_if_filter_applies_for_event(&Some(address), &None, &event));
     }
 
     #[test]
@@ -265,10 +265,10 @@ mod tests {
         let event = setup_event();
 
         let keys_filter = vec![vec![Felt252::from(1), Felt252::from(3)]];
-        assert_eq!(check_if_filter_applies_for_event(&None, &Some(keys_filter), &event), false);
+        assert!(!check_if_filter_applies_for_event(&None, &Some(keys_filter), &event));
 
         let keys_filter = vec![vec![], vec![Felt252::from(1), Felt252::from(3)]];
-        assert_eq!(check_if_filter_applies_for_event(&None, &Some(keys_filter), &event), true);
+        assert!(check_if_filter_applies_for_event(&None, &Some(keys_filter), &event));
     }
 
     #[test]
@@ -278,22 +278,22 @@ mod tests {
         // filter with address correct and filter keys correct
         let address = Some(dummy_contract_address().try_into().unwrap());
         let keys_filter = vec![vec![Felt252::from(2), Felt252::from(3)]];
-        assert_eq!(check_if_filter_applies_for_event(&address, &Some(keys_filter), &event), true);
+        assert!(check_if_filter_applies_for_event(&address, &Some(keys_filter), &event));
 
         // filter with incorrect address and correct filter keys
         let address = Some(ContractAddress::new(Felt::from(0)).unwrap().try_into().unwrap());
         let keys_filter = vec![vec![Felt252::from(2), Felt252::from(3)]];
-        assert_eq!(check_if_filter_applies_for_event(&address, &Some(keys_filter), &event), false);
+        assert!(!check_if_filter_applies_for_event(&address, &Some(keys_filter), &event));
 
         // filter with correct address and incorrect filter keys
         let address = Some(dummy_contract_address().try_into().unwrap());
         let keys_filter = vec![vec![Felt252::from(1), Felt252::from(3)]];
-        assert_eq!(check_if_filter_applies_for_event(&address, &Some(keys_filter), &event), false);
+        assert!(!check_if_filter_applies_for_event(&address, &Some(keys_filter), &event));
 
         // filter with incorrect address and incorrect filter keys
         let address = Some(ContractAddress::new(Felt::from(0)).unwrap().try_into().unwrap());
         let keys_filter = vec![vec![Felt252::from(1), Felt252::from(3)]];
-        assert_eq!(check_if_filter_applies_for_event(&address, &Some(keys_filter), &event), false);
+        assert!(!check_if_filter_applies_for_event(&address, &Some(keys_filter), &event));
     }
 
     fn setup_event() -> Event {
