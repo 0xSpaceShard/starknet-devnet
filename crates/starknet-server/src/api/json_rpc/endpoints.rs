@@ -49,7 +49,7 @@ impl JsonRpcHandler {
     }
 
     /// starknet_getBlockWithTxs
-    pub(crate) async fn get_block_with_full_txs(&self, block_id: BlockId) -> RpcResult<Block> {
+    pub(crate) async fn get_block_with_txs(&self, block_id: BlockId) -> RpcResult<Block> {
         let block =
             self.api.starknet.read().await.get_block(block_id.into()).map_err(|err| match err {
                 Error::NoBlock => ApiError::BlockNotFound,
