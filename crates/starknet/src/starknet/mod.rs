@@ -424,6 +424,15 @@ impl Starknet {
         let block = self.blocks.get_by_block_id(block_id).ok_or(crate::error::Error::NoBlock)?;
         Ok(block.clone())
     }
+
+    pub fn get_latest_block(&self) -> Result<StarknetBlock> {
+        let block = self
+            .blocks
+            .get_by_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))
+            .ok_or(crate::error::Error::NoBlock)?;
+
+        Ok(block.clone())
+    }
 }
 
 #[cfg(test)]
@@ -742,5 +751,21 @@ mod tests {
         let num_one_transaction = starknet.get_block_txs_count(BlockId::Number(1));
 
         assert_eq!(num_one_transaction.unwrap(), 1);
+    }
+
+    #[test]
+    fn gets_latest_block() {
+        let config = starknet_config_for_test();
+        let mut starknet = Starknet::new(&config).unwrap();
+
+        starknet.generate_new_block(StateDiff::default()).unwrap();
+        starknet.generate_pending_block().unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
+        starknet.generate_pending_block().unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
+
+        let latest_block = starknet.get_latest_block();
+
+        assert_eq!(latest_block.unwrap().block_number(), BlockNumber(2));
     }
 }
