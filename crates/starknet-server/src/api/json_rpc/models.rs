@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
+use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::starknet_api::block::BlockNumber;
 
 use crate::api::models::block::{BlockHashHex, SyncStatus};
 use crate::api::models::transaction::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
-    BroadcastedInvokeTransaction, BroadcastedTransactionWithType, ClassHashHex, EventFilter,
-    FunctionCall, TransactionHashHex,
+    BroadcastedInvokeTransaction, BroadcastedTransactionWithType, EventFilter, FunctionCall,
 };
 use crate::api::models::{BlockId, ContractAddressHex, PatriciaKeyHex};
 
@@ -16,7 +16,7 @@ pub struct BlockIdInput {
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct TransactionHashInput {
-    pub(crate) transaction_hash: TransactionHashHex,
+    pub(crate) transaction_hash: TransactionHash,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
@@ -35,7 +35,7 @@ pub struct BlockAndIndexInput {
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct BlockAndClassHashInput {
     pub(crate) block_id: BlockId,
-    pub(crate) class_hash: ClassHashHex,
+    pub(crate) class_hash: ClassHash,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
@@ -87,8 +87,8 @@ pub struct BroadcastedDeclareTransactionInput {
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct DeclareTransactionOutput {
-    pub transaction_hash: TransactionHashHex,
-    pub class_hash: ClassHashHex,
+    pub transaction_hash: TransactionHash,
+    pub class_hash: ClassHash,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
@@ -98,7 +98,7 @@ pub struct BroadcastedDeployAccountTransactionInput {
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct DeployAccountTransactionOutput {
-    pub transaction_hash: TransactionHashHex,
+    pub transaction_hash: TransactionHash,
     pub contract_address: ContractAddressHex,
 }
 
@@ -109,7 +109,7 @@ pub struct BroadcastedInvokeTransactionInput {
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct InvokeTransactionOutput {
-    pub transaction_hash: TransactionHashHex,
+    pub transaction_hash: TransactionHash,
 }
 
 #[cfg(test)]
@@ -342,8 +342,8 @@ mod tests {
                     contract_address: ContractAddressHex(
                         ContractAddress::new(Felt::from_prefixed_hex_str("0x01").unwrap()).unwrap()
                     ),
-                    entry_point_selector: FeltHex(Felt::from_prefixed_hex_str("0x02").unwrap()),
-                    calldata: vec![FeltHex(Felt::from_prefixed_hex_str("0x03").unwrap())],
+                    entry_point_selector: Felt::from_prefixed_hex_str("0x02").unwrap(),
+                    calldata: vec![Felt::from_prefixed_hex_str("0x03").unwrap()],
                 },
                 block_id: BlockId::HashOrNumber(BlockHashOrNumber::Number(BlockNumber(1))),
             }
@@ -554,7 +554,7 @@ mod tests {
             serde_json::from_str::<super::TransactionHashInput>(json_str_transaction_hash)
         {
             transaction_hash_input.transaction_hash
-                == FeltHex(Felt::from_prefixed_hex_str(expected_transaction_hash).unwrap())
+                == Felt::from_prefixed_hex_str(expected_transaction_hash).unwrap()
         } else {
             false
         };

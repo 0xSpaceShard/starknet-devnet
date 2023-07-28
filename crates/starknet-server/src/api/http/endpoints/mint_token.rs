@@ -46,6 +46,6 @@ pub(crate) async fn mint(
     Ok(Json(MintTokensResponse {
         new_balance: new_balance.to_str_radix(10),
         unit: "WEI".to_string(),
-        tx_hash: FeltHex(tx_hash),
+        tx_hash,
     }))
 }

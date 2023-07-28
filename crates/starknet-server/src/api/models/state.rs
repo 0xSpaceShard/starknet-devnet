@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
+use starknet_types::felt::{ClassHash, Nonce};
 
 use super::block::{BlockHashHex, GlobalRootHex};
-use super::transaction::{ClassHashHex, Nonce};
 use super::{ContractAddressHex, FeltHex, PatriciaKeyHex};
 
 pub type CompiledClassHashHex = FeltHex;
@@ -19,7 +19,7 @@ pub struct ThinStateDiff {
     pub deployed_contracts: Vec<DeployedContract>,
     pub storage_diffs: Vec<StorageDiff>,
     pub declared_classes: Vec<ClassHashes>,
-    pub deprecated_declared_classes: Vec<ClassHashHex>,
+    pub deprecated_declared_classes: Vec<ClassHash>,
     pub nonces: Vec<ContractNonce>,
     pub replaced_classes: Vec<ReplacedClasses>,
 }
@@ -28,7 +28,7 @@ pub struct ThinStateDiff {
 #[derive(Debug, Default, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct DeployedContract {
     pub address: ContractAddressHex,
-    pub class_hash: ClassHashHex,
+    pub class_hash: ClassHash,
 }
 
 /// Storage differences in Starknet.
@@ -48,14 +48,14 @@ pub struct StorageEntry {
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub struct ClassHashes {
-    pub class_hash: ClassHashHex,
+    pub class_hash: ClassHash,
     pub compiled_class_hash: CompiledClassHashHex,
 }
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub struct ReplacedClasses {
     pub contract_address: ContractAddressHex,
-    pub class_hash: ClassHashHex,
+    pub class_hash: ClassHash,
 }
 
 /// The nonce of a Starknet contract.

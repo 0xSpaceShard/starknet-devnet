@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
+use starknet_types::felt::{Calldata, EntryPointSelector, Nonce, TransactionHash};
 use starknet_types::starknet_api::transaction::Fee;
 
 use crate::api::models::block::BlockHashHex;
-use crate::api::models::transaction::{Calldata, EntryPointSelectorHex, Nonce, TransactionHashHex};
 use crate::api::models::{ContractAddressHex, FeltHex};
 
 #[derive(Deserialize, Debug)]
@@ -20,7 +20,7 @@ pub(crate) struct PostmanLoadL1MessagingContract {
 #[derive(Deserialize)]
 pub(crate) struct MessageToL2 {
     l2_contract_address: ContractAddressHex,
-    entry_point_selector: EntryPointSelectorHex,
+    entry_point_selector: EntryPointSelector,
     l1_contract_addresss: ContractAddressHex,
     payload: Calldata,
     paid_fee_on_l1: Fee,
@@ -96,7 +96,7 @@ pub(crate) struct MintTokensResponse {
     /// decimal repr
     pub(crate) new_balance: String,
     pub(crate) unit: String,
-    pub(crate) tx_hash: TransactionHashHex,
+    pub(crate) tx_hash: TransactionHash,
 }
 
 #[derive(Serialize)]

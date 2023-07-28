@@ -2,7 +2,7 @@ use starknet_core::error::Error;
 use starknet_in_rust::core::errors::state_errors::StateError;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::utils::Address;
-use starknet_types::felt::Felt;
+use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::starknet_api::block::BlockNumber;
 use starknet_types::traits::ToHexString;
 
@@ -16,8 +16,8 @@ use crate::api::models::state::{
     ThinStateDiff,
 };
 use crate::api::models::transaction::{
-    BroadcastedTransactionWithType, ClassHashHex, EventFilter, EventsChunk, FunctionCall,
-    Transaction, TransactionHashHex, TransactionReceipt, TransactionWithType,
+    BroadcastedTransactionWithType, EventFilter, EventsChunk, FunctionCall, Transaction,
+    TransactionReceipt, TransactionWithType,
 };
 use crate::api::models::{BlockId, ContractAddressHex, FeltHex, PatriciaKeyHex};
 
@@ -49,28 +49,24 @@ impl JsonRpcHandler {
                 .into_iter()
                 .map(|(address, class_hash)| DeployedContract {
                     address: ContractAddressHex(address),
-                    class_hash: FeltHex(class_hash),
+                    class_hash,
                 })
                 .collect(),
             declared_classes: state_update
                 .declared_classes
                 .into_iter()
                 .map(|(class_hash, compiled_class_hash)| ClassHashes {
-                    class_hash: FeltHex(class_hash),
+                    class_hash,
                     compiled_class_hash: FeltHex(compiled_class_hash),
                 })
                 .collect(),
-            deprecated_declared_classes: state_update
-                .cairo_0_declared_classes
-                .into_iter()
-                .map(FeltHex)
-                .collect(),
+            deprecated_declared_classes: state_update.cairo_0_declared_classes,
             nonces: state_update
                 .nonces
                 .into_iter()
                 .map(|(address, nonce)| ContractNonce {
                     contract_address: ContractAddressHex(address),
-                    nonce: FeltHex(nonce),
+                    nonce,
                 })
                 .collect(),
             storage_diffs: state_update
@@ -111,7 +107,7 @@ impl JsonRpcHandler {
     /// starknet_getTransactionByHash
     pub(crate) async fn get_transaction_by_hash(
         &self,
-        _transaction_hash: TransactionHashHex,
+        _transaction_hash: TransactionHash,
     ) -> RpcResult<TransactionWithType> {
         Err(error::ApiError::TransactionNotFound)
     }
@@ -128,7 +124,7 @@ impl JsonRpcHandler {
     /// starknet_getTransactionReceipt
     pub(crate) async fn get_transaction_receipt_by_hash(
         &self,
-        _transaction_hash: TransactionHashHex,
+        _transaction_hash: TransactionHash,
     ) -> RpcResult<TransactionReceipt> {
         Err(error::ApiError::TransactionNotFound)
     }
@@ -137,9 +133,9 @@ impl JsonRpcHandler {
     pub(crate) async fn get_class(
         &self,
         block_id: BlockId,
-        class_hash: ClassHashHex,
+        class_hash: ClassHash,
     ) -> RpcResult<ContractClass> {
-        Ok(self.api.starknet.write().await.get_class(block_id.into(), class_hash.0)?.try_into()?)
+        Ok(self.api.starknet.write().await.get_class(block_id.into(), class_hash)?.try_into()?)
     }
 
     /// starknet_getClassAt
@@ -162,14 +158,13 @@ impl JsonRpcHandler {
         &self,
         block_id: BlockId,
         contract_address: ContractAddressHex,
-    ) -> RpcResult<ClassHashHex> {
-        Ok(FeltHex(
-            self.api
-                .starknet
-                .write()
-                .await
-                .get_class_hash_at(block_id.into(), contract_address.0)?,
-        ))
+    ) -> RpcResult<ClassHash> {
+        Ok(self
+            .api
+            .starknet
+            .write()
+            .await
+            .get_class_hash_at(block_id.into(), contract_address.0)?)
     }
 
     /// starknet_getBlockTransactionCount
@@ -191,8 +186,8 @@ impl JsonRpcHandler {
         match starknet.call(
             block_id.into(),
             request.contract_address.0.into(),
-            request.entry_point_selector.0,
-            request.calldata.iter().map(|c| c.0).collect(),
+            request.entry_point_selector,
+            request.calldata,
         ) {
             Ok(result) => Ok(result.into_iter().map(FeltHex).collect()),
             Err(Error::TransactionError(TransactionError::State(
