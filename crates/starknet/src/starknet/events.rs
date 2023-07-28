@@ -1,4 +1,5 @@
 use starknet_api::block::BlockNumber;
+use starknet_in_rust::execution::Event;
 use starknet_in_rust::felt::Felt252;
 use starknet_in_rust::utils::Address;
 use starknet_rs_core::types::BlockId;
@@ -65,32 +66,9 @@ pub(crate) fn get_events(
 
             // filter the events from the transaction
             let filtered_transaction_events =
-                transaction.get_events()?.into_iter().filter(|event| {
-                    let address_condition = match &address {
-                        Some(from_contract_address) => {
-                            event.from_address == from_contract_address.clone()
-                        }
-                        None => true,
-                    };
-
-                    // address condition is false, then no need to continue checking the keys
-                    if !address_condition {
-                        return false;
-                    }
-
-                    match &keys_filter {
-                        Some(keys_filter) => {
-                            for (event_key, accepted_keys) in event.keys.iter().zip(keys_filter) {
-                                if accepted_keys.len() > 0 && !accepted_keys.contains(event_key) {
-                                    return false;
-                                }
-                            }
-
-                            return true;
-                        }
-                        None => true,
-                    }
-                });
+                transaction.get_events()?.into_iter().filter(|event|
+                    check_if_event_applies_to_filter(&address, &keys_filter, event)
+                );
 
             // produce an emitted event for each filtered transaction event
             for transaction_event in filtered_transaction_events.skip(skip) {
@@ -125,7 +103,49 @@ pub(crate) fn get_events(
     Ok((events, false))
 }
 
+fn check_if_event_applies_to_filter(
+    address: &Option<starknet_in_rust::utils::Address>,
+    keys_filter: &Option<Vec<Vec<Felt252>>>,
+    event: &Event,
+) -> bool {
+    let address_condition = match &address {
+        Some(from_contract_address) => event.from_address == from_contract_address.clone(),
+        None => true,
+    };
+
+    // address condition is false, then no need to continue checking the keys
+    if !address_condition {
+        return false;
+    }
+
+    match &keys_filter {
+        Some(keys_filter) => {
+            for (event_key, accepted_keys) in event.keys.iter().zip(keys_filter) {
+                if accepted_keys.len() > 0 && !accepted_keys.contains(event_key) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        None => true,
+    }
+}
+
 #[cfg(test)]
-mod tests{
-    
+mod tests {
+    use starknet_in_rust::{execution::{Event, OrderedEvent}, felt::Felt252};
+
+    use crate::utils::test_utils::dummy_contract_address;
+
+
+    #[test]
+    fn check_filtering_of_single_element() {
+        let event = Event::new(
+            OrderedEvent::new(1, 
+                vec![Felt252::from(2), Felt252::from(3)], 
+                vec![Felt252::from(1), Felt252::from(1)]), dummy_contract_address().try_into().unwrap());
+
+        
+    }
 }
