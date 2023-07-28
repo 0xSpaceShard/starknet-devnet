@@ -19,7 +19,8 @@ pub struct EmittedEvent {
     pub data: Vec<Felt>,
 }
 
-/// The method returns transaction events, based on query
+/// The method returns transaction events, based on query and if there are more results to be
+/// fetched
 ///
 /// # Arguments
 ///
@@ -29,9 +30,6 @@ pub struct EmittedEvent {
 /// * `keys_filter` - Optional. The keys to filter the events by.
 /// * `skip` - The number of elements to skip.
 /// * `limit` - Optional. The maximum number of elements to return.
-///
-/// # Returns
-/// Tuple of the transaction events and a boolean indicating if there are more events to fetch.
 pub(crate) fn get_events(
     starknet: &Starknet,
     from_block: Option<BlockId>,
@@ -103,6 +101,12 @@ pub(crate) fn get_events(
     Ok((events, false))
 }
 
+/// This method checks if the event applies to the provided filters and returns true or false
+///
+/// # Arguments
+/// * `address` - Optional. The address to filter the event by.
+/// * `keys_filter` - Optional. The keys to filter the event by.
+/// * `event` - The event to check if it applies to the filters.
 fn check_if_filter_applies_for_event(
     address: &Option<starknet_in_rust::utils::Address>,
     keys_filter: &Option<Vec<Vec<Felt252>>>,
@@ -116,11 +120,18 @@ fn check_if_filter_applies_for_event(
     address_condition && check_if_filter_applies_for_event_keys(keys_filter, &event.keys)
 }
 
+/// This method checks if the keys apply to the keys_filter and returns true or false
+///
+/// # Arguments
+/// * `keys_filter` - Optional. The values to filter the keys by.
+/// * `keys` - The keys to check if they apply to the filter.
 fn check_if_filter_applies_for_event_keys<T>(
     keys_filter: &Option<Vec<Vec<T>>>,
     keys: &Vec<T>,
-) -> bool 
-where T: PartialEq + Eq {
+) -> bool
+where
+    T: PartialEq + Eq,
+{
     match &keys_filter {
         Some(keys_filter) => {
             for (event_key, accepted_keys) in keys.iter().zip(keys_filter) {
@@ -142,10 +153,9 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
 
+    use super::check_if_filter_applies_for_event;
     use crate::starknet::events::check_if_filter_applies_for_event_keys;
     use crate::utils::test_utils::dummy_contract_address;
-
-    use super::check_if_filter_applies_for_event;
 
     #[test]
     fn filter_keys_with_empty_or_no_filter() {
@@ -171,13 +181,15 @@ mod tests {
         let filter = vec![vec![1u32], vec![]];
         assert_eq!(check_if_filter_applies_for_event_keys(&Some(filter), &keys), true);
 
-        // filter with 1 key and second one value that is not amongst the keys, but will not evalueate, because the keys is of length 1
+        // filter with 1 key and second one value that is not amongst the keys, but will not
+        // evalueate, because the keys is of length 1
         let filter = vec![vec![1u32], vec![2u32]];
         assert_eq!(check_if_filter_applies_for_event_keys(&Some(filter), &keys), true);
 
-        // filter with multiple keys, that are different from the keys, except one and second filter is empty
+        // filter with multiple keys, that are different from the keys, except one and second filter
+        // is empty
         let filter = vec![vec![0u32, 1u32], vec![]];
-        assert_eq!(check_if_filter_applies_for_event_keys(&Some(filter), &keys), true);     
+        assert_eq!(check_if_filter_applies_for_event_keys(&Some(filter), &keys), true);
     }
 
     #[test]
@@ -190,7 +202,7 @@ mod tests {
 
         // filter with multiple keys, that are different from the keys and second filter is empty
         let filter = vec![vec![0u32, 2u32], vec![]];
-        assert_eq!(check_if_filter_applies_for_event_keys(&Some(filter), &keys), false);   
+        assert_eq!(check_if_filter_applies_for_event_keys(&Some(filter), &keys), false);
     }
 
     #[test]
@@ -200,7 +212,7 @@ mod tests {
         // both filters apply to the keys, each filter is with 1 value
         let filter = vec![vec![3u32], vec![2u32]];
         assert_eq!(check_if_filter_applies_for_event_keys(&Some(filter), &keys), true);
-        
+
         // both filter apply to the keys, each filter is with multiple values
         let filter = vec![vec![3u32, 1u32], vec![0u32, 2u32]];
         assert_eq!(check_if_filter_applies_for_event_keys(&Some(filter), &keys), true);
