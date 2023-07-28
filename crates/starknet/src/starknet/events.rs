@@ -69,7 +69,14 @@ pub(crate) fn get_events(
                 .filter(|event| check_if_filter_applies_for_event(&address, &keys_filter, event));
 
             // produce an emitted event for each filtered transaction event
-            for transaction_event in filtered_transaction_events.skip(skip) {
+            for transaction_event in filtered_transaction_events.skip_while(|_| {
+                if skip > 0 {
+                    skip -= 1;
+                    true
+                } else {
+                    false
+                }
+            }) {
                 // check if there are more elements to fetch
                 if let Some(limit) = limit {
                     if elements_added == limit {
@@ -92,9 +99,6 @@ pub(crate) fn get_events(
                 events.push(emitted_event);
                 elements_added += 1;
             }
-
-            // modify how many elements to skip, whichever is smaller so the usize doens't overflow
-            skip = skip - std::cmp::min(skip, elements_added);
         }
     }
 
@@ -145,14 +149,20 @@ where
 
 #[cfg(test)]
 mod tests {
-    use starknet_in_rust::execution::{Event, OrderedEvent};
+    use starknet_in_rust::execution::{CallInfo, Event, OrderedEvent, TransactionExecutionInfo};
     use starknet_in_rust::felt::Felt252;
+    use starknet_rs_core::types::BlockId;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
 
-    use super::check_if_filter_applies_for_event;
+    use super::{check_if_filter_applies_for_event, get_events};
     use crate::starknet::events::check_if_filter_applies_for_event_keys;
-    use crate::utils::test_utils::dummy_contract_address;
+    use crate::starknet::Starknet;
+    use crate::traits::HashIdentified;
+    use crate::transactions::Transaction;
+    use crate::utils::test_utils::{
+        dummy_contract_address, dummy_declare_transaction_v1, starknet_config_for_test,
+    };
 
     #[test]
     fn filter_keys_with_empty_or_no_filter() {
@@ -246,7 +256,7 @@ mod tests {
 
     #[test]
     fn filter_with_address_only() {
-        let event = setup_event();
+        let event = dummy_event();
 
         // filter with address that is the same as the on in the event
         let address = Some(dummy_contract_address().try_into().unwrap());
@@ -259,7 +269,7 @@ mod tests {
 
     #[test]
     fn filter_with_keys_only() {
-        let event = setup_event();
+        let event = dummy_event();
 
         let keys_filter = vec![vec![Felt252::from(1), Felt252::from(3)]];
         assert!(!check_if_filter_applies_for_event(&None, &Some(keys_filter), &event));
@@ -270,7 +280,7 @@ mod tests {
 
     #[test]
     fn filter_with_address_and_keys() {
-        let event = setup_event();
+        let event = dummy_event();
 
         // filter with address correct and filter keys correct
         let address = Some(dummy_contract_address().try_into().unwrap());
@@ -293,7 +303,129 @@ mod tests {
         assert!(!check_if_filter_applies_for_event(&address, &Some(keys_filter), &event));
     }
 
-    fn setup_event() -> Event {
+    #[test]
+    fn pagination_for_latest_block_that_has_1_transaction_with_5_events() {
+        let starknet = setup();
+
+        // no pagination to the latest block events
+        let (events, has_more) = get_events(
+            &starknet,
+            Some(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest)),
+            Some(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest)),
+            None,
+            None,
+            0,
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(events.len(), 5);
+        assert!(!has_more);
+
+        // limit the result to only events, should be left 2 more
+        let (events, has_more) = get_events(
+            &starknet,
+            Some(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest)),
+            Some(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest)),
+            None,
+            None,
+            0,
+            Some(3),
+        )
+        .unwrap();
+
+        assert_eq!(events.len(), 3);
+        assert!(has_more);
+
+        // skip 3 events and return maximum 3, but the result should be 2, because the total amount
+        // of events for the latest block is 5
+        let (events, has_more) = get_events(
+            &starknet,
+            Some(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest)),
+            Some(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest)),
+            None,
+            None,
+            3,
+            Some(3),
+        )
+        .unwrap();
+
+        assert_eq!(events.len(), 2);
+        assert!(!has_more);
+    }
+
+    #[test]
+    fn pagination_for_events_of_multiple_blocks() {
+        let starknet = setup();
+
+        // returns all events from all blocks
+        let (events, has_more) = get_events(&starknet, None, None, None, None, 0, None).unwrap();
+
+        assert_eq!(events.len(), 15);
+        assert!(!has_more);
+
+        // returns all events from all blocks, skip 3, but limit the result to 10
+        let (events, has_more) =
+            get_events(&starknet, None, None, None, None, 3, Some(10)).unwrap();
+        assert_eq!(events.len(), 10);
+        assert!(has_more);
+
+        // returns all events from the first 2 blocks, skip 3, but limit the result to 1
+        let (events, has_more) =
+            get_events(&starknet, None, Some(BlockId::Number(1)), None, None, 3, Some(1)).unwrap();
+        assert_eq!(events.len(), 0);
+        assert!(!has_more);
+
+        // returns all events from the first 2 blocks, skip 1, but limit the result to 1, it should
+        // return 1 event and should be more
+        let (events, has_more) =
+            get_events(&starknet, None, Some(BlockId::Number(1)), None, None, 1, Some(1)).unwrap();
+        assert_eq!(events.len(), 1);
+        assert!(has_more);
+    }
+
+    fn setup() -> Starknet {
+        // generate 5 transactions
+        // each transaction should have events count equal to the order of the transaction
+        let mut starknet = Starknet::new(&starknet_config_for_test()).unwrap();
+
+        for idx in 0..5 {
+            let transaction = Transaction::Declare(dummy_declare_transaction_v1());
+            let txn_info = TransactionExecutionInfo {
+                call_info: Some(dummy_call_info(idx + 1)),
+                ..Default::default()
+            };
+            let transaction_hash = Felt::from(idx as u128 + 100);
+
+            starknet
+                .handle_successful_transaction(&transaction_hash, transaction, txn_info)
+                .unwrap();
+        }
+
+        assert_eq!(starknet.blocks.get_blocks(None, None).unwrap().len(), 5);
+        for idx in 0..5 {
+            starknet.transactions.get_by_hash(Felt::from(idx as u128 + 100)).unwrap();
+        }
+
+        starknet
+    }
+
+    fn dummy_call_info(events_count: usize) -> CallInfo {
+        let mut call_info = CallInfo::default();
+
+        for idx in 1..=events_count {
+            let event: OrderedEvent = OrderedEvent {
+                order: idx as u64,
+                keys: vec![Felt252::from(idx + 10)],
+                data: vec![Felt252::from(idx + 20)],
+            };
+            call_info.events.push(event);
+        }
+
+        call_info
+    }
+
+    fn dummy_event() -> Event {
         Event::new(
             OrderedEvent::new(
                 1,
