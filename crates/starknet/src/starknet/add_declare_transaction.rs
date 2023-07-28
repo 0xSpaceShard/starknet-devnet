@@ -66,6 +66,7 @@ pub fn add_declare_transaction_v1(
     let class_hash = declare_transaction.contract_class.generate_hash()?;
     let transaction_hash = declare_transaction.generate_hash()?;
     declare_transaction.transaction_hash = Some(transaction_hash);
+    declare_transaction.class_hash = Some(class_hash);
 
     let transaction = Declare {
         class_hash: class_hash.into(),
@@ -95,8 +96,6 @@ pub fn add_declare_transaction_v1(
 
     match transaction.execute(&mut starknet.state.pending_state, &starknet.block_context) {
         Ok(tx_info) => {
-            declare_transaction.class_hash = Some(class_hash);
-
             starknet.handle_successful_transaction(
                 &transaction_hash,
                 Transaction::Declare(Box::new(declare_transaction)),
