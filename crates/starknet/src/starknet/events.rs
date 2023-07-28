@@ -125,10 +125,7 @@ fn check_if_filter_applies_for_event(
 /// # Arguments
 /// * `keys_filter` - Optional. The values to filter the keys by.
 /// * `keys` - The keys to check if they apply to the filter.
-fn check_if_filter_applies_for_event_keys<T>(
-    keys_filter: &Option<Vec<Vec<T>>>,
-    keys: &[T],
-) -> bool
+fn check_if_filter_applies_for_event_keys<T>(keys_filter: &Option<Vec<Vec<T>>>, keys: &[T]) -> bool
 where
     T: PartialEq + Eq,
 {
