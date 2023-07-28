@@ -1,11 +1,11 @@
 use axum::Json;
+use starknet_types::felt::TransactionHash;
 
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{
     MessageFromL2, MessageHash, MessageToL2, PostmanLoadL1MessagingContract,
 };
 use crate::api::http::HttpApiResult;
-use starknet_types::felt::TransactionHash;
 
 pub(crate) async fn postman_load(
     Json(_l1_contract): Json<PostmanLoadL1MessagingContract>,
