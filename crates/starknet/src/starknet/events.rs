@@ -20,7 +20,7 @@ pub struct EmittedEvent {
 }
 
 /// The method returns transaction events, based on query and if there are more results to be
-/// fetched
+/// fetched in the form of a tuple (events, has_more).
 ///
 /// # Arguments
 ///
