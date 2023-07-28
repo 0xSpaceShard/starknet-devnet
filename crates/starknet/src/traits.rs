@@ -49,7 +49,7 @@ pub trait StateChanger {
 
 /// Interface for extracting data from the state
 pub trait StateExtractor {
-    fn get_storage(&mut self, storage_key: ContractStorageKey) -> Result<Felt>;
+    fn get_storage(&self, storage_key: ContractStorageKey) -> Result<Felt>;
     fn is_contract_declared(&mut self, class_hash: &ClassHash) -> bool;
     fn is_contract_deployed(&self, address: &ContractAddress) -> bool;
     fn get_class_hash_at_contract_address(
