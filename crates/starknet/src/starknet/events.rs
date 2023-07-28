@@ -124,3 +124,8 @@ pub(crate) fn get_events(
 
     Ok((events, false))
 }
+
+#[cfg(test)]
+mod tests{
+    
+}
