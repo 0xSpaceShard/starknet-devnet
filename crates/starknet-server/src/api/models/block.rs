@@ -1,11 +1,12 @@
 use serde::{Deserialize, Serialize};
+use starknet_types::felt::Felt;
 use starknet_types::starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp};
 
 use super::transaction::Transactions;
-use super::{ContractAddressHex, FeltHex};
+use super::ContractAddressHex;
 
-pub type BlockHashHex = FeltHex;
-pub type GlobalRootHex = FeltHex;
+pub type BlockHashHex = Felt;
+pub type GlobalRootHex = Felt;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct Block {

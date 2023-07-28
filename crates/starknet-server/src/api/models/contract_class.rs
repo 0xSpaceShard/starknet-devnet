@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
+use starknet_types::felt::Felt;
 
 use super::abi_entry::{AbiEntry, AbiEntryType};
-use super::FeltHex;
 use crate::api::serde_helpers::base_64_gzipped_json_string::deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -15,7 +15,7 @@ pub enum ContractClass {
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub struct SierraContractClass {
-    pub sierra_program: Vec<FeltHex>,
+    pub sierra_program: Vec<Felt>,
     pub contract_class_version: String,
     pub entry_points_by_type: HashMap<
         starknet_types::starknet_api::state::EntryPointType,
