@@ -9,7 +9,7 @@ use starknet_types::traits::ToHexString;
 use super::error::{self, ApiError};
 use super::models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
 use super::{JsonRpcHandler, RpcResult};
-use crate::api::models::block::Block;
+use crate::api::models::block::{Block, BlockHeader};
 use crate::api::models::contract_class::ContractClass;
 use crate::api::models::state::{
     ClassHashes, ContractNonce, DeployedContract, StateUpdate, StorageDiff, StorageEntry,
@@ -17,20 +17,54 @@ use crate::api::models::state::{
 };
 use crate::api::models::transaction::{
     BroadcastedTransactionWithType, ClassHashHex, EventFilter, EventsChunk, FunctionCall,
-    Transaction, TransactionHashHex, TransactionReceipt, TransactionWithType,
+    Transaction, TransactionHashHex, TransactionReceipt, TransactionWithType, Transactions,
 };
 use crate::api::models::{BlockId, ContractAddressHex, FeltHex, PatriciaKeyHex};
 
 /// here are the definitions and stub implementations of all JSON-RPC read endpoints
 impl JsonRpcHandler {
     /// starknet_getBlockWithTxHashes
-    pub(crate) async fn get_block_with_tx_hashes(&self, _block_id: BlockId) -> RpcResult<Block> {
-        Err(error::ApiError::BlockNotFound)
+    pub(crate) async fn get_block_with_tx_hashes(&self, block_id: BlockId) -> RpcResult<Block> {
+        let block =
+            self.api.starknet.read().await.get_block(block_id.into()).map_err(|err| match err {
+                Error::NoBlock => ApiError::BlockNotFound,
+                unknown_error => ApiError::StarknetDevnetError(unknown_error),
+            })?;
+
+        Ok(Block {
+            status: *block.status(),
+            header: BlockHeader::from(&block),
+            transactions: crate::api::models::transaction::Transactions::Hashes(
+                block
+                    .get_transactions()
+                    .iter()
+                    // We shouldnt get in the situation where tx hash is None
+                    .map(|tx| FeltHex(tx.get_hash().unwrap_or_default()))
+                    .collect(),
+            ),
+        })
     }
 
     /// starknet_getBlockWithTxs
-    pub(crate) async fn get_block_with_full_txs(&self, _block_id: BlockId) -> RpcResult<Block> {
-        Err(error::ApiError::BlockNotFound)
+    pub(crate) async fn get_block_with_txs(&self, block_id: BlockId) -> RpcResult<Block> {
+        let block =
+            self.api.starknet.read().await.get_block(block_id.into()).map_err(|err| match err {
+                Error::NoBlock => ApiError::BlockNotFound,
+                unknown_error => ApiError::StarknetDevnetError(unknown_error),
+            })?;
+
+        let mut transactions = Vec::<TransactionWithType>::new();
+
+        for txn in block.get_transactions() {
+            let txn_to_add = TransactionWithType::try_from(txn)?;
+
+            transactions.push(txn_to_add);
+        }
+        Ok(Block {
+            status: *block.status(),
+            header: BlockHeader::from(&block),
+            transactions: Transactions::Full(transactions),
+        })
     }
 
     /// starknet_getStateUpdate
@@ -228,7 +262,15 @@ impl JsonRpcHandler {
 
     /// starknet_blockHashAndNumber
     pub(crate) async fn block_hash_and_number(&self) -> RpcResult<BlockHashAndNumberOutput> {
-        Err(error::ApiError::NoBlocks)
+        let block = self.api.starknet.read().await.get_latest_block().map_err(|err| match err {
+            Error::NoBlock => ApiError::BlockNotFound,
+            unknown_error => ApiError::StarknetDevnetError(unknown_error),
+        })?;
+
+        Ok(BlockHashAndNumberOutput {
+            block_hash: FeltHex(block.block_hash()),
+            block_number: block.block_number(),
+        })
     }
 
     /// starknet_chainId
