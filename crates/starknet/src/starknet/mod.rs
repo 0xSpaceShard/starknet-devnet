@@ -885,11 +885,11 @@ mod tests {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        starknet.generate_new_block(StateDiff::default()).unwrap();
+        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
         starknet.generate_pending_block().unwrap();
-        starknet.generate_new_block(StateDiff::default()).unwrap();
+        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
         starknet.generate_pending_block().unwrap();
-        starknet.generate_new_block(StateDiff::default()).unwrap();
+        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
 
         let latest_block = starknet.get_latest_block();
 
