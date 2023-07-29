@@ -2,7 +2,9 @@ use starknet_core::error::Error;
 use starknet_in_rust::core::errors::state_errors::StateError;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::utils::Address;
+use starknet_types::felt::Felt;
 use starknet_types::starknet_api::block::BlockNumber;
+use starknet_types::traits::ToHexString;
 
 use super::error::{self, ApiError};
 use super::models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
@@ -133,11 +135,24 @@ impl JsonRpcHandler {
     /// starknet_getStorageAt
     pub(crate) async fn get_storage_at(
         &self,
-        _contract_address: ContractAddressHex,
-        _key: PatriciaKeyHex,
-        _block_id: BlockId,
-    ) -> RpcResult<PatriciaKeyHex> {
-        Err(error::ApiError::ContractNotFound)
+        contract_address: ContractAddressHex,
+        key: PatriciaKeyHex,
+        block_id: BlockId,
+    ) -> RpcResult<FeltHex> {
+        let felt = self
+            .api
+            .starknet
+            .read()
+            .await
+            .contract_storage_at_block(block_id.into(), contract_address.0, key.0)
+            .map_err(|err| match err {
+                Error::NoBlock => ApiError::BlockNotFound,
+                Error::StateError(StateError::NoneStorage((_, _)))
+                | Error::NoStateAtBlock { block_number: _ } => ApiError::ContractNotFound,
+                unknown_error => ApiError::StarknetDevnetError(unknown_error),
+            })?;
+
+        Ok(FeltHex(felt))
     }
 
     /// starknet_getTransactionByHash
@@ -183,10 +198,10 @@ impl JsonRpcHandler {
         let starknet = self.api.starknet.read().await;
         match starknet.get_class_hash_at(&block_id.into(), &contract_address.0) {
             Ok(class_hash) => Ok(FeltHex(class_hash)),
-            Err(Error::BlockIdHashUnimplementedError | Error::BlockIdNumberUnimplementedError) => {
-                Err(ApiError::BlockNotFound)
+            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
+            Err(Error::ContractNotFound | Error::NoStateAtBlock { block_number: _ }) => {
+                Err(ApiError::ContractNotFound)
             }
-            Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
             Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),
         }
     }
@@ -226,9 +241,6 @@ impl JsonRpcHandler {
             Err(Error::TransactionError(TransactionError::State(
                 StateError::NoneContractState(Address(_address)),
             ))) => Err(ApiError::ContractNotFound),
-            Err(Error::BlockIdHashUnimplementedError | Error::BlockIdNumberUnimplementedError) => {
-                Err(ApiError::OnlyLatestBlock)
-            }
             Err(_) => Err(ApiError::ContractError),
         }
     }
@@ -262,8 +274,10 @@ impl JsonRpcHandler {
     }
 
     /// starknet_chainId
-    pub(crate) fn chain_id(&self) -> RpcResult<String> {
-        Ok("TESTNET".to_string())
+    pub(crate) async fn chain_id(&self) -> RpcResult<String> {
+        let chain_id = self.api.starknet.read().await.chain_id();
+
+        Ok(Felt::from(chain_id.to_felt()).to_prefixed_hex_str())
     }
 
     /// starknet_pendingTransactions
@@ -284,9 +298,23 @@ impl JsonRpcHandler {
     /// starknet_getNonce
     pub(crate) async fn get_nonce(
         &self,
-        _block_id: BlockId,
-        _contract_address: ContractAddressHex,
+        block_id: BlockId,
+        contract_address: ContractAddressHex,
     ) -> RpcResult<FeltHex> {
-        Err(error::ApiError::BlockNotFound)
+        let nonce = self
+            .api
+            .starknet
+            .read()
+            .await
+            .contract_nonce_at_block(block_id.into(), contract_address.0)
+            .map_err(|err| match err {
+                Error::NoBlock => ApiError::BlockNotFound,
+                Error::NoStateAtBlock { block_number: _ } | Error::ContractNotFound => {
+                    ApiError::ContractNotFound
+                }
+                unknown_error => ApiError::StarknetDevnetError(unknown_error),
+            })?;
+
+        Ok(FeltHex(nonce))
     }
 }
