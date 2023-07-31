@@ -238,11 +238,11 @@ pub struct EventContent {
 pub struct EventFilter {
     pub from_block: Option<BlockId>,
     pub to_block: Option<BlockId>,
-    pub continuation_token: Option<String>,
-    pub chunk_size: usize,
     pub address: Option<ContractAddressHex>,
     #[serde(default)]
     pub keys: Vec<HashSet<FeltHex>>,
+    pub continuation_token: Option<String>,
+    pub chunk_size: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
