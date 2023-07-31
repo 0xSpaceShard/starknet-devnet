@@ -8,8 +8,10 @@ mod estimate_fee_tests {
         Account, AccountFactory, AccountFactoryError, OpenZeppelinAccountFactory,
         SingleOwnerAccount,
     };
+    use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{FeeEstimate, FieldElement, StarknetError};
+    use starknet_rs_core::utils::get_contract_address;
     use starknet_rs_providers::ProviderError;
 
     use crate::common::constants::{CAIRO_0_CONTRACT_PATH, CHAIN_ID};
@@ -146,7 +148,44 @@ mod estimate_fee_tests {
 
     #[tokio::test]
     async fn estimate_fee_of_invoke() {
-        todo!();
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        // get account
+        let (signer, account_address) = get_predeployed_account_props();
+        let account =
+            SingleOwnerAccount::new(devnet.clone_provider(), signer, account_address, CHAIN_ID);
+
+        // get class
+        let contract_artifact_path = resolve_crates_path(CAIRO_0_CONTRACT_PATH);
+        let contract_artifact: Arc<LegacyContractClass> =
+            Arc::new(load_json(&contract_artifact_path));
+        let class_hash = contract_artifact.class_hash().unwrap();
+
+        // declare class
+        let declaration_result = account
+            .declare_legacy(contract_artifact.clone())
+            .nonce(FieldElement::ZERO)
+            .max_fee(FieldElement::from(1e18 as u128))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(declaration_result.class_hash, class_hash);
+
+        // deploy instance of class
+        let contract_factory = ContractFactory::new(class_hash, account);
+        let salt = FieldElement::from_hex_be("0x123").unwrap();
+        let constructor_calldata = vec![];
+        let _contract_address =
+            get_contract_address(salt, class_hash, &constructor_calldata, account_address);
+        contract_factory
+            .deploy(constructor_calldata, salt, true)
+            .nonce(FieldElement::ONE)
+            // max fee implicitly estimated
+            .send()
+            .await
+            .expect("Cannot deploy");
+
+        todo!("Add invoke estimation here");
     }
 
     #[tokio::test]
