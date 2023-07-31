@@ -46,7 +46,7 @@ impl HashIdentified for StarknetTransactions {
 #[allow(unused)]
 pub struct StarknetTransaction {
     pub(crate) status: TransactionStatus,
-    inner: Transaction,
+    pub(crate) inner: Transaction,
     pub(crate) block_hash: Option<BlockHash>,
     pub(crate) block_number: Option<BlockNumber>,
     pub(crate) execution_info: Option<starknet_in_rust::execution::TransactionExecutionInfo>,

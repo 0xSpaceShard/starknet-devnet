@@ -142,7 +142,7 @@ impl StarknetBlock {
         self.transaction_hashes.push(transaction_hash);
     }
 
-    pub(crate) fn get_transactions(&self) -> &Vec<TransactionHash> {
+    pub fn get_transactions(&self) -> &Vec<TransactionHash> {
         &self.transaction_hashes
     }
 

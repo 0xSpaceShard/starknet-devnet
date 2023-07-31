@@ -42,7 +42,8 @@ use crate::state::state_diff::StateDiff;
 use crate::state::state_update::StateUpdate;
 use crate::state::StarknetState;
 use crate::traits::{
-    AccountGenerator, Accounted, Deployed, HashIdentifiedMut, StateChanger, StateExtractor,
+    AccountGenerator, Accounted, Deployed, HashIdentified, HashIdentifiedMut, StateChanger,
+    StateExtractor,
 };
 use crate::transactions::declare_transaction::DeclareTransactionV1;
 use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
@@ -474,6 +475,13 @@ impl Starknet {
         Ok(block.clone())
     }
 
+    pub fn get_transaction_by_hash(&self, transaction_hash: Felt) -> Result<&Transaction> {
+        self.transactions
+            .get_by_hash(transaction_hash)
+            .map(|starknet_transaction| &starknet_transaction.inner)
+            .ok_or(crate::error::Error::NoTransaction)
+    }
+
     pub fn get_events(
         &self,
         from_block: Option<BlockId>,
@@ -509,9 +517,7 @@ mod tests {
     use crate::state::state_diff::StateDiff;
     use crate::traits::{Accounted, StateChanger, StateExtractor};
     use crate::utils::test_utils::{
-        dummy_contract_address, 
-        dummy_declare_transaction_v1, dummy_felt, starknet_config_for_test,
-    ,
+        dummy_contract_address, dummy_declare_transaction_v1, dummy_felt, starknet_config_for_test,
     };
 
     #[test]

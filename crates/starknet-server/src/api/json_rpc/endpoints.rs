@@ -16,8 +16,9 @@ use crate::api::models::state::{
     ThinStateDiff,
 };
 use crate::api::models::transaction::{
-    BroadcastedTransactionWithType, ClassHashHex, EventFilter, EventsChunk, FunctionCall,
-    Transaction, TransactionHashHex, TransactionReceipt, TransactionWithType, Transactions, EmittedEvent, Event, EventContent,
+    BroadcastedTransactionWithType, ClassHashHex, EmittedEvent, Event, EventContent, EventFilter,
+    EventsChunk, FunctionCall, Transaction, TransactionHashHex, TransactionReceipt,
+    TransactionWithType, Transactions,
 };
 use crate::api::models::{BlockId, ContractAddressHex, FeltHex, PatriciaKeyHex};
 
@@ -39,7 +40,7 @@ impl JsonRpcHandler {
                     .get_transactions()
                     .iter()
                     // We shouldnt get in the situation where tx hash is None
-                    .map(|tx| FeltHex(tx.get_hash().unwrap_or_default()))
+                    .map(|tx| FeltHex(*tx))
                     .collect(),
             ),
         })
@@ -47,16 +48,17 @@ impl JsonRpcHandler {
 
     /// starknet_getBlockWithTxs
     pub(crate) async fn get_block_with_txs(&self, block_id: BlockId) -> RpcResult<Block> {
-        let block =
-            self.api.starknet.read().await.get_block(block_id.into()).map_err(|err| match err {
-                Error::NoBlock => ApiError::BlockNotFound,
-                unknown_error => ApiError::StarknetDevnetError(unknown_error),
-            })?;
+        let starknet = self.api.starknet.read().await;
+        let block = starknet.get_block(block_id.into()).map_err(|err| match err {
+            Error::NoBlock => ApiError::BlockNotFound,
+            unknown_error => ApiError::StarknetDevnetError(unknown_error),
+        })?;
 
         let mut transactions = Vec::<TransactionWithType>::new();
 
-        for txn in block.get_transactions() {
-            let txn_to_add = TransactionWithType::try_from(txn)?;
+        for txn_hash in block.get_transactions() {
+            let txn_to_add =
+                TransactionWithType::try_from(starknet.get_transaction_by_hash(*txn_hash)?)?;
 
             transactions.push(txn_to_add);
         }
@@ -301,31 +303,41 @@ impl JsonRpcHandler {
 
         let starknet = self.api.starknet.read().await;
 
-        let skip = filter.continuation_token.unwrap_or("0".to_string()).parse::<usize>()
+        let skip = filter
+            .continuation_token
+            .unwrap_or("0".to_string())
+            .parse::<usize>()
             .map_err(|_| ApiError::InvalidContinuationToken)?;
-            
-        let (events, has_more_events) = starknet.get_events(filter.from_block, filter.to_block, filter.address.map(|val| val.0), keys, skip, Some(filter.chunk_size))?;
 
-        let result = EventsChunk {
-            events: events.into_iter().map(|emitted_event| {
-                EmittedEvent {
-                    block_hash: FeltHex(emitted_event.block_hash),
-                    block_number: emitted_event.block_number,
-                    transaction_hash: FeltHex(emitted_event.transaction_hash),
-                    event: Event {
-                        from_address: ContractAddressHex(emitted_event.from_address),
-                        content: EventContent {
-                            keys: emitted_event.keys.in,
-                            data: todo!(),
-                        },
-                    },
-                    
-                }
-            }).collect(),
-            continuation_token: if has_more_events {
-                Some((skip + 1).to_string())
-            }else {None},
-        }
+        let (events, has_more_events) = starknet.get_events(
+            filter.from_block,
+            filter.to_block,
+            filter.address.map(|val| val.0),
+            keys,
+            skip,
+            Some(filter.chunk_size),
+        )?;
+
+        // let result = EventsChunk {
+        //     events: events.into_iter().map(|emitted_event| {
+        //         EmittedEvent {
+        //             block_hash: FeltHex(emitted_event.block_hash),
+        //             block_number: emitted_event.block_number,
+        //             transaction_hash: FeltHex(emitted_event.transaction_hash),
+        //             event: Event {
+        //                 from_address: ContractAddressHex(emitted_event.from_address),
+        //                 content: EventContent {
+        //                     keys: emitted_event.keys.in,
+        //                     data: todo!(),
+        //                 },
+        //             },
+
+        //         }
+        //     }).collect(),
+        //     continuation_token: if has_more_events {
+        //         Some((skip + 1).to_string())
+        //     }else {None},
+        // }
 
         RpcResult::Err(ApiError::BlockNotFound)
     }
