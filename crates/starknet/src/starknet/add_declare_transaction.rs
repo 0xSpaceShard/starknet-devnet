@@ -1,6 +1,6 @@
 use starknet_in_rust::transaction::{verify_version, Declare, DeclareV2};
 use starknet_types::felt::{ClassHash, TransactionHash};
-use starknet_types::traits::HashProducer;
+use starknet_types::traits::{HashProducer, ToHexString};
 
 use crate::error::Result;
 use crate::starknet::Starknet;

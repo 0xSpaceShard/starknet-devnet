@@ -1,13 +1,22 @@
 pub mod common;
 
 mod estimate_fee_tests {
+    use std::sync::Arc;
+
     use starknet_core::constants::CAIRO_0_ACCOUNT_CONTRACT_HASH;
-    use starknet_rs_accounts::{AccountFactory, AccountFactoryError, OpenZeppelinAccountFactory};
+    use starknet_rs_accounts::{
+        Account, AccountFactory, AccountFactoryError, OpenZeppelinAccountFactory,
+        SingleOwnerAccount,
+    };
+    use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{FeeEstimate, FieldElement, StarknetError};
     use starknet_rs_providers::ProviderError;
 
-    use crate::common::constants::CHAIN_ID;
-    use crate::common::util::{get_deployable_account_signer, BackgroundDevnet};
+    use crate::common::constants::{CAIRO_0_CONTRACT_PATH, CHAIN_ID};
+    use crate::common::util::{
+        get_deployable_account_signer, get_predeployed_account_props, load_json,
+        resolve_crates_path, BackgroundDevnet,
+    };
 
     fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
         assert_eq!(
@@ -26,7 +35,7 @@ mod estimate_fee_tests {
         let account_factory = OpenZeppelinAccountFactory::new(
             FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
             CHAIN_ID,
-            new_account_signer,
+            new_account_signer.clone(),
             devnet.clone_provider(),
         )
         .await
@@ -107,7 +116,27 @@ mod estimate_fee_tests {
 
     #[tokio::test]
     async fn estimate_fee_of_declare_v1() {
-        todo!();
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        // get account
+        let (signer, account_address) = get_predeployed_account_props();
+
+        // get class
+        let contract_artifact_path = resolve_crates_path(CAIRO_0_CONTRACT_PATH);
+        let contract_artifact: LegacyContractClass = load_json(&contract_artifact_path);
+
+        // declare class
+        let account =
+            SingleOwnerAccount::new(devnet.clone_provider(), signer, account_address, CHAIN_ID);
+
+        let fee_estimation = account
+            .declare_legacy(Arc::new(contract_artifact))
+            .nonce(FieldElement::ZERO)
+            .fee_estimate_multiplier(1.0)
+            .estimate_fee()
+            .await
+            .unwrap();
+        assert_fee_estimation(&fee_estimation);
     }
 
     #[tokio::test]

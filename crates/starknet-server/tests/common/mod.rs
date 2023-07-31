@@ -14,8 +14,13 @@ pub mod constants {
     pub const PREDEPLOYED_ACCOUNT_ADDRESS: &str =
         "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba";
     pub const PREDEPLOYED_ACCOUNT_PRIVATE_KEY: &str = "0xb137668388dbe9acdfa3bc734cc2c469";
+    pub const PREDEPLOYED_ACCOUNT_PUBLIC_KEY: &str =
+        "0x05a5e37c60e77a0318643b111f88413a76af6233c891a0cfb2804106372006d4";
     // half the default value - sanity check
     pub const PREDEPLOYED_ACCOUNT_INITIAL_BALANCE: u128 = DEVNET_DEFAULT_INITIAL_BALANCE / 2;
+
+    // Example contract - Cairo 0
+    pub const CAIRO_0_CONTRACT_PATH: &str = "starknet/test_artifacts/cairo_0_test.json";
 }
 
 pub mod util {
@@ -91,6 +96,18 @@ pub mod util {
         ))
     }
 
+    /// resolve a path relative to the crates directory
+    pub fn resolve_crates_path(relative_path: &str) -> String {
+        let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+        format!("{manifest_dir}/../{relative_path}")
+    }
+
+    pub fn load_json<T: serde::de::DeserializeOwned>(path: &str) -> T {
+        let reader = std::fs::File::open(path).unwrap();
+        let loaded: T = serde_json::from_reader(reader).unwrap();
+        loaded
+    }
+
     lazy_static! {
         /// This is to prevent TOCTOU errors; i.e. one background devnet might find one
         /// port to be free, and while it's trying to start listening to it, another instance
@@ -135,7 +152,7 @@ pub mod util {
                 .arg(PREDEPLOYED_ACCOUNT_INITIAL_BALANCE.to_string())
                 .arg("--chain-id")
                 .arg(CHAIN_ID_CLI_PARAM)
-                .stdout(Stdio::piped()) // comment this out for complete devnet stdout
+                // .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .expect("Could not start background devnet");
 
