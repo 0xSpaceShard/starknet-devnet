@@ -96,7 +96,7 @@ mod get_transaction_by_hash_integration_tests {
         let flattened_class = contract_artifact.flatten().unwrap();
         let result = account
             .declare(Arc::new(flattened_class), compiled_class_hash)
-            .nonce(FieldElement::from_hex_be("0x0").unwrap())
+            .nonce(FieldElement::ZERO)
             .max_fee(FieldElement::from_hex_be("0xde0b6b3a7640000").unwrap())
             .send()
             .await;
