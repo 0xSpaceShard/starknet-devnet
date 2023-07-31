@@ -21,6 +21,7 @@ use crate::api::models::transaction::{
     TransactionWithType, Transactions,
 };
 use crate::api::models::{BlockId, ContractAddressHex, FeltHex, PatriciaKeyHex};
+use crate::api::utils::into_vec;
 
 /// here are the definitions and stub implementations of all JSON-RPC read endpoints
 impl JsonRpcHandler {
@@ -318,28 +319,24 @@ impl JsonRpcHandler {
             Some(filter.chunk_size),
         )?;
 
-        // let result = EventsChunk {
-        //     events: events.into_iter().map(|emitted_event| {
-        //         EmittedEvent {
-        //             block_hash: FeltHex(emitted_event.block_hash),
-        //             block_number: emitted_event.block_number,
-        //             transaction_hash: FeltHex(emitted_event.transaction_hash),
-        //             event: Event {
-        //                 from_address: ContractAddressHex(emitted_event.from_address),
-        //                 content: EventContent {
-        //                     keys: emitted_event.keys.in,
-        //                     data: todo!(),
-        //                 },
-        //             },
-
-        //         }
-        //     }).collect(),
-        //     continuation_token: if has_more_events {
-        //         Some((skip + 1).to_string())
-        //     }else {None},
-        // }
-
-        RpcResult::Err(ApiError::BlockNotFound)
+        Ok(EventsChunk {
+            events: events
+                .into_iter()
+                .map(|emitted_event| EmittedEvent {
+                    block_hash: FeltHex(emitted_event.block_hash),
+                    block_number: emitted_event.block_number,
+                    transaction_hash: FeltHex(emitted_event.transaction_hash),
+                    event: Event {
+                        from_address: ContractAddressHex(emitted_event.from_address),
+                        content: EventContent {
+                            keys: into_vec(&emitted_event.keys),
+                            data: into_vec(&emitted_event.data),
+                        },
+                    },
+                })
+                .collect(),
+            continuation_token: if has_more_events { Some((skip + 1).to_string()) } else { None },
+        })
     }
 
     /// starknet_getNonce

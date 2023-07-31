@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use serde::{Deserialize, Serialize};
 use starknet_rs_core::types::BlockId;
 use starknet_types::starknet_api::block::BlockNumber;
@@ -253,10 +251,10 @@ pub struct EventsChunk {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct EmittedEvent {
     #[serde(flatten)]
-    event: Event,
-    block_hash: BlockHashHex,
-    block_number: BlockNumber,
-    transaction_hash: TransactionHashHex,
+    pub event: Event,
+    pub block_hash: BlockHashHex,
+    pub block_number: BlockNumber,
+    pub transaction_hash: TransactionHashHex,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
