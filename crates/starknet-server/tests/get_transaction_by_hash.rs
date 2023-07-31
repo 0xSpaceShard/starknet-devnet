@@ -3,7 +3,6 @@ pub mod common;
 mod get_transaction_by_hash_integration_tests {
     use std::sync::Arc;
 
-    use starknet_core::constants::{DECLARE_V1_TRANSACTION_HASH, DECLARE_V2_TRANSACTION_HASH};
     use starknet_rs_accounts::{Account, SingleOwnerAccount};
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
@@ -19,6 +18,12 @@ mod get_transaction_by_hash_integration_tests {
         CASM_COMPILED_CLASS_HASH, PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     };
     use crate::common::util::BackgroundDevnet;
+
+    pub const DECLARE_V1_TRANSACTION_HASH: &str =
+        "0x1862250c3d9e5f2dac38cda979d848c959202d3a5621e9072596444bcd0831a";
+
+    pub const DECLARE_V2_TRANSACTION_HASH: &str =
+        "0x2b5c7f97fc7899669463848f59bfbe114138b945cf8bffebb8b29949df8b1a8";
 
     #[tokio::test]
     async fn get_declare_v1_transaction_by_hash_happy_path() {
