@@ -124,7 +124,7 @@ impl JsonRpcHandler {
             starknet_core::transactions::Transaction::Declare(declare_v1) => {
                 transaction_type = TransactionType::Declare;
 
-                // Is case of a reverted transaction we need to set class_hash as
+                // In case of a reverted transaction we need to set class_hash as
                 // unwrap_or_default(). It will change soon with v0.4.0 RPC spec
                 // adoption.
                 Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version1(
