@@ -53,8 +53,7 @@ mod get_transaction_by_hash_integration_tests {
                 declare_v1.transaction_hash,
                 FieldElement::from_hex_be(DECLARE_V1_TRANSACTION_HASH).unwrap()
             );
-        }else {
-                        
+        } else {
         }
     }
 

@@ -157,8 +157,12 @@ impl JsonRpcHandler {
                     },
                 ))
             }
-            starknet_core::transactions::Transaction::DeployAccount(_deploy) => todo!(),
-            starknet_core::transactions::Transaction::Invoke(_invoke) => todo!(),
+            starknet_core::transactions::Transaction::DeployAccount(_deploy) => {
+                unimplemented!("DeployAccount isn't implemented")
+            }
+            starknet_core::transactions::Transaction::Invoke(_invoke) => {
+                unimplemented!("Invoke isn't implemented")
+            }
         };
 
         let transaction =
