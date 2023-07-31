@@ -149,6 +149,22 @@ pub mod util {
                 .unwrap();
             self.http_client.request(req).await
         }
+
+        pub async fn get(
+            &self,
+            path: &str,
+            query: Option<String>,
+        ) -> Result<Response<hyper::Body>, hyper::Error> {
+            let uri = if query.is_none() {
+                format!("{}{}", self.url, path)
+            } else {
+                format!("{}{}?{}", self.url, path, query.unwrap())
+            };
+
+            let response =
+                self.http_client.get(uri.as_str().parse::<Uri>().unwrap()).await.unwrap();
+            Ok(response)
+        }
     }
 
     /// By implementing Drop, we ensure there are no zombie background Devnet processes
