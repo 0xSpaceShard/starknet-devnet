@@ -21,7 +21,7 @@ mod get_transaction_by_hash_integration_tests {
     use crate::common::util::BackgroundDevnet;
 
     #[tokio::test]
-    async fn get_declere_v1_transaction_by_hash_happy_path() {
+    async fn get_declare_v1_transaction_by_hash_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let json_string = std::fs::read_to_string(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -53,12 +53,11 @@ mod get_transaction_by_hash_integration_tests {
                 declare_v1.transaction_hash,
                 FieldElement::from_hex_be(DECLARE_V1_TRANSACTION_HASH).unwrap()
             );
-        } else {
         }
     }
 
     #[tokio::test]
-    async fn get_declere_v2_transaction_by_hash_happy_path() {
+    async fn get_declare_v2_transaction_by_hash_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         // Sierra class artifact. Output of the `starknet-compile` command.
