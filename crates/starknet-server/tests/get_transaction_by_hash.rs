@@ -97,7 +97,7 @@ mod get_transaction_by_hash_integration_tests {
         let result = account
             .declare(Arc::new(flattened_class), compiled_class_hash)
             .nonce(FieldElement::ZERO)
-            .max_fee(FieldElement::from_hex_be("0xde0b6b3a7640000").unwrap())
+            .max_fee(FieldElement::from_hex_be("0xde0b6b3a7640000").unwrap()) // Specified max fee of 10^18 to declare v2 transaction, can be removed once fee estimation will work
             .send()
             .await;
 
