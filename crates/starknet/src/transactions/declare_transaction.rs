@@ -1,7 +1,6 @@
 use starknet_in_rust::core::transaction_hash::{
     calculate_transaction_hash_common, TransactionHashPrefix,
 };
-use starknet_in_rust::definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
@@ -60,13 +59,13 @@ impl HashProducer for DeclareTransactionV1 {
     fn generate_hash(&self) -> DevnetResult<Felt> {
         let class_hash = self.class_hash.unwrap_or(self.contract_class.generate_hash()?);
 
-        let (calldata, additional_data) = (Vec::new(), vec![class_hash.into()]);
+        let (calldata, additional_data) = (vec![class_hash.into()], vec![self.nonce.into()]);
 
         let transaction_hash: Felt = calculate_transaction_hash_common(
             TransactionHashPrefix::Declare,
             self.version().into(),
             &self.sender_address.try_into()?,
-            VALIDATE_DECLARE_ENTRY_POINT_SELECTOR.clone(),
+            0.into(),
             &calldata,
             self.max_fee,
             self.chain_id.into(),
