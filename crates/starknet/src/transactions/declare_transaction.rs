@@ -16,6 +16,7 @@ pub struct DeclareTransactionV1 {
     pub max_fee: u128,
     pub signature: Vec<Felt>,
     pub nonce: Felt,
+    pub version: Felt,
     pub contract_class: ContractClass,
     pub class_hash: Option<ClassHash>,
     pub transaction_hash: Option<TransactionHash>,
