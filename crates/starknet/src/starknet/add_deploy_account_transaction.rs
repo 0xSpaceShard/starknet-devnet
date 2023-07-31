@@ -13,7 +13,9 @@ pub fn add_deploy_account_transaction(
     starknet: &mut Starknet,
     deploy_account_transaction: DeployAccountTransaction,
 ) -> Result<(TransactionHash, ContractAddress)> {
-    if !starknet.state.is_contract_declared(&Felt::new(*deploy_account_transaction.0.class_hash())?)
+    if !starknet
+        .state
+        .is_contract_declared(&Felt::new(*deploy_account_transaction.inner.class_hash())?)
     {
         return Err(Error::StateError(StateError::MissingClassHash()));
     }
@@ -21,10 +23,10 @@ pub fn add_deploy_account_transaction(
     let state_before_txn = starknet.state.pending_state.clone();
     let transaction_hash = deploy_account_transaction.generate_hash()?;
     let address: ContractAddress =
-        (deploy_account_transaction.0.contract_address().clone()).try_into()?;
+        (deploy_account_transaction.inner.contract_address().clone()).try_into()?;
 
     match deploy_account_transaction
-        .0
+        .inner
         .execute(&mut starknet.state.pending_state, &starknet.block_context)
     {
         Ok(tx_info) => {
@@ -103,7 +105,7 @@ mod tests {
 
         // change balance at address
         let account_address =
-            ContractAddress::try_from(transaction.0.contract_address().clone()).unwrap();
+            ContractAddress::try_from(transaction.inner.contract_address().clone()).unwrap();
         let balance_storage_var_address =
             get_storage_var_address("ERC20_balances", &[account_address.into()]).unwrap();
         let balance_storage_key =

@@ -44,6 +44,7 @@ impl DeclareTransactionV1 {
             max_fee,
             signature,
             nonce,
+            version: Felt::from(1),
             contract_class,
             class_hash: None,
             transaction_hash: None,
@@ -51,8 +52,12 @@ impl DeclareTransactionV1 {
         })
     }
 
-    pub(crate) fn version(&self) -> Felt {
-        Felt::from(1)
+    pub fn sender_address(&self) -> &ContractAddress {
+        &self.sender_address
+    }
+
+    pub fn class_hash(&self) -> Option<&ClassHash> {
+        self.class_hash.as_ref()
     }
 }
 
@@ -64,7 +69,7 @@ impl HashProducer for DeclareTransactionV1 {
 
         let transaction_hash: Felt = calculate_transaction_hash_common(
             TransactionHashPrefix::Declare,
-            self.version().into(),
+            self.version.into(),
             &self.sender_address.try_into()?,
             VALIDATE_DECLARE_ENTRY_POINT_SELECTOR.clone(),
             &calldata,
