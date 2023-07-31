@@ -162,7 +162,7 @@ impl JsonRpcHandler {
                 self.get_block_with_tx_hashes(block.block_id).await.to_rpc_result()
             }
             StarknetRequest::BlockWithFullTransactions(block) => {
-                self.get_block_with_full_txs(block.block_id).await.to_rpc_result()
+                self.get_block_with_txs(block.block_id).await.to_rpc_result()
             }
             StarknetRequest::StateUpdate(block) => {
                 self.get_state_update(block.block_id).await.to_rpc_result()
@@ -203,7 +203,7 @@ impl JsonRpcHandler {
             StarknetRequest::BlockHashAndNumber => {
                 self.block_hash_and_number().await.to_rpc_result()
             }
-            StarknetRequest::ChainId => self.chain_id().to_rpc_result(),
+            StarknetRequest::ChainId => self.chain_id().await.to_rpc_result(),
             StarknetRequest::PendingTransactions => {
                 self.pending_transactions().await.to_rpc_result()
             }
