@@ -24,6 +24,10 @@ impl StarknetTransactions {
     pub fn insert(&mut self, transaction_hash: &TransactionHash, transaction: StarknetTransaction) {
         self.0.insert(*transaction_hash, transaction);
     }
+
+    pub fn get(&self, transaction_hash: &TransactionHash) -> Option<&StarknetTransaction> {
+        self.0.get(transaction_hash)
+    }
 }
 
 impl HashIdentifiedMut for StarknetTransactions {
@@ -37,7 +41,7 @@ impl HashIdentifiedMut for StarknetTransactions {
 #[allow(unused)]
 pub struct StarknetTransaction {
     pub(crate) status: TransactionStatus,
-    inner: Transaction,
+    pub inner: Transaction,
     pub(crate) block_hash: Option<BlockHash>,
     pub(crate) block_number: Option<BlockNumber>,
     pub(crate) execution_info: Option<starknet_in_rust::execution::TransactionExecutionInfo>,
