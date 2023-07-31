@@ -121,18 +121,11 @@ impl JsonRpcHandler {
             starknet_core::transactions::Transaction::Declare(declare_v1) => {
                 transaction_type = TransactionType::Declare;
 
-                // Is case of a reverted transaction we need to set class_hash.
-                // It's just the first iteration of get_transaction_by_hash() code so probably this
-                // will change soon with v0.4.0 RPC spec adoption.
-                let class_hash_to_set = if declare_v1.class_hash.is_some() {
-                    FeltHex(declare_v1.class_hash.unwrap())
-                } else {
-                    FeltHex(Felt::from(0))
-                };
-
+                // Is case of a reverted transaction we need to set class_hash as unwrap_or_default().
+                // It will change soon with v0.4.0 RPC spec adoption.
                 Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version1(
                     DeclareTransactionV0V1 {
-                        class_hash: class_hash_to_set,
+                        class_hash: FeltHex(declare_v1.class_hash.unwrap_or_default()),
                         sender_address: ContractAddressHex(declare_v1.sender_address),
                         nonce: FeltHex(declare_v1.nonce),
                         max_fee: Fee(declare_v1.max_fee),
