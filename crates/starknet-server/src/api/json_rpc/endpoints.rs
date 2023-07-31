@@ -123,7 +123,6 @@ impl JsonRpcHandler {
         let transaction_data: Transaction = match transaction_to_map.inner.clone() {
             starknet_core::transactions::Transaction::Declare(declare_v1) => {
                 transaction_type = TransactionType::Declare;
-
                 Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version1(
                     DeclareTransactionV0V1 {
                         class_hash: FeltHex(declare_v1.class_hash.unwrap_or_default()),
