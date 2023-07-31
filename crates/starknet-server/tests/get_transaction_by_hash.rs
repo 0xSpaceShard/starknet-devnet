@@ -36,7 +36,7 @@ mod get_transaction_by_hash_integration_tests {
         let declare_txn_v1: BroadcastedDeclareTransactionV1 =
             serde_json::from_str(&json_string).unwrap();
 
-        let add_transaction = devnet
+        let declare_transaction = devnet
             .json_rpc_client
             .add_declare_transaction(starknet_rs_core::types::BroadcastedDeclareTransaction::V1(
                 declare_txn_v1.clone(),
@@ -44,15 +44,15 @@ mod get_transaction_by_hash_integration_tests {
             .await
             .unwrap();
 
-        let get_transaction = devnet
+        let result = devnet
             .json_rpc_client
-            .get_transaction_by_hash(add_transaction.transaction_hash)
+            .get_transaction_by_hash(declare_transaction.transaction_hash)
             .await
             .unwrap();
 
         if let starknet_rs_core::types::Transaction::Declare(
             starknet_rs_core::types::DeclareTransaction::V1(declare_v1),
-        ) = get_transaction
+        ) = result
         {
             assert_eq!(
                 declare_v1.transaction_hash,
