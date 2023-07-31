@@ -158,10 +158,10 @@ impl JsonRpcHandler {
                 ))
             }
             starknet_core::transactions::Transaction::DeployAccount(_deploy) => {
-                unimplemented!("DeployAccount isn't implemented")
+                return Err(error::ApiError::TransactionNotFound);
             }
             starknet_core::transactions::Transaction::Invoke(_invoke) => {
-                unimplemented!("Invoke isn't implemented")
+                return Err(error::ApiError::TransactionNotFound);
             }
         };
 
