@@ -239,16 +239,24 @@ pub struct EventFilter {
     pub from_block: Option<BlockId>,
     pub to_block: Option<BlockId>,
     pub address: Option<ContractAddressHex>,
-    #[serde(default)]
-    pub keys: Vec<HashSet<FeltHex>>,
+    pub keys: Option<Vec<Vec<FeltHex>>>,
     pub continuation_token: Option<String>,
     pub chunk_size: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct EventsChunk {
-    pub events: Vec<Event>,
+    pub events: Vec<EmittedEvent>,
     pub continuation_token: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+pub struct EmittedEvent {
+    #[serde(flatten)]
+    event: Event,
+    block_hash: BlockHashHex,
+    block_number: BlockNumber,
+    transaction_hash: TransactionHashHex,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
