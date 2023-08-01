@@ -11,16 +11,16 @@ use crate::error::{Error, Result};
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct DeclareTransactionV2 {
-    pub(crate) sierra_contract_class: ContractClass,
-    pub(crate) compiled_class_hash: ClassHash,
-    pub(crate) sender_address: ContractAddress,
-    pub(crate) max_fee: u128,
-    pub(crate) signature: Vec<Felt>,
-    pub(crate) nonce: Felt,
-    pub(crate) class_hash: Option<ClassHash>,
-    pub(crate) transaction_hash: Option<TransactionHash>,
-    pub(crate) chain_id: Felt,
-    pub(crate) version: Felt,
+    pub sierra_contract_class: ContractClass,
+    pub compiled_class_hash: ClassHash,
+    pub sender_address: ContractAddress,
+    pub max_fee: u128,
+    pub signature: Vec<Felt>,
+    pub nonce: Felt,
+    pub class_hash: Option<ClassHash>,
+    pub transaction_hash: Option<TransactionHash>,
+    pub chain_id: Felt,
+    pub version: Felt,
 }
 
 impl DeclareTransactionV2 {

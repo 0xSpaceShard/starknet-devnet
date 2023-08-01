@@ -92,7 +92,7 @@ pub struct Starknet {
     predeployed_accounts: PredeployedAccounts,
     pub(in crate::starknet) block_context: BlockContext,
     blocks: StarknetBlocks,
-    transactions: StarknetTransactions,
+    pub transactions: StarknetTransactions,
     pub config: StarknetConfig,
     pub(in crate::starknet) sierra_contracts: HashMap<ClassHash, SierraContractClass>,
 }
