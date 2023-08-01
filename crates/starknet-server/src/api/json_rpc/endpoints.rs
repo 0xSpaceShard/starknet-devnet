@@ -18,11 +18,8 @@ use crate::api::models::state::{
 };
 use crate::api::models::transaction::{
     BroadcastedTransactionWithType, ClassHashHex, DeclareTransactionV0V1, DeclareTransactionV2,
-    EventFilter, EventsChunk, FunctionCall, Transaction, TransactionHashHex, TransactionReceipt,
-    TransactionType, TransactionWithType, Transactions,
-    BroadcastedTransactionWithType, ClassHashHex, EmittedEvent, Event, EventContent, EventFilter,
-    EventsChunk, FunctionCall, Transaction, TransactionHashHex, TransactionReceipt,
-    TransactionWithType, Transactions,
+    EmittedEvent, Event, EventContent, EventFilter, EventsChunk, FunctionCall, Transaction,
+    TransactionHashHex, TransactionReceipt, TransactionType, TransactionWithType, Transactions,
 };
 use crate::api::models::{BlockId, ContractAddressHex, FeltHex, PatriciaKeyHex};
 use crate::api::utils::into_vec;
