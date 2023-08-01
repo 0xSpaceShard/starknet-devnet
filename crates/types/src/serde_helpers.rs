@@ -70,11 +70,12 @@ pub mod rpc_sierra_contract_class_to_sierra_contract_class {
 }
 
 pub mod hex_string {
+    use serde::{Deserialize, Deserializer, Serializer};
+
     use crate::contract_address::ContractAddress;
     use crate::felt::Felt;
     use crate::patricia_key::PatriciaKey;
     use crate::traits::ToHexString;
-    use serde::{Deserialize, Deserializer, Serializer};
 
     pub fn deserialize_to_prefixed_patricia_key<'de, D>(
         deserializer: D,
@@ -148,13 +149,13 @@ pub mod hex_string {
 
     #[cfg(test)]
     mod tests {
-        use crate::contract_address::ContractAddress;
-        use crate::felt::Felt;
-        use crate::patricia_key::PatriciaKey;
         use serde::{Deserialize, Serialize};
         use serde_json::json;
         use starknet_api::serde_utils::bytes_from_hex_str;
 
+        use crate::contract_address::ContractAddress;
+        use crate::felt::Felt;
+        use crate::patricia_key::PatriciaKey;
         use crate::serde_helpers::hex_string::{
             deserialize_non_prefixed_hex_string_to_felt, deserialize_prefixed_hex_string_to_felt,
             deserialize_to_prefixed_contract_address, deserialize_to_prefixed_patricia_key,
