@@ -338,9 +338,10 @@ mod tests {
             call_input,
             super::CallInput {
                 request: super::FunctionCall {
-                    contract_address: ContractAddress(
-                        ContractAddress::new(Felt::from_prefixed_hex_str("0x01").unwrap()).unwrap()
-                    ),
+                    contract_address: ContractAddress::new(
+                        Felt::from_prefixed_hex_str("0x01").unwrap()
+                    )
+                    .unwrap(),
                     entry_point_selector: Felt::from_prefixed_hex_str("0x02").unwrap(),
                     calldata: vec![Felt::from_prefixed_hex_str("0x03").unwrap()],
                 },
@@ -370,9 +371,8 @@ mod tests {
             block_id: BlockId::HashOrNumber(BlockHashOrNumber::Hash(
                 Felt::from_prefixed_hex_str("0x01").unwrap(),
             )),
-            contract_address: ContractAddress(
-                ContractAddress::new(Felt::from_prefixed_hex_str("0x02").unwrap()).unwrap(),
-            ),
+            contract_address: ContractAddress::new(Felt::from_prefixed_hex_str("0x02").unwrap())
+                .unwrap(),
             key: PatriciaKeyHex(
                 PatriciaKey::new(Felt::from_prefixed_hex_str("0x03").unwrap()).unwrap(),
             ),
