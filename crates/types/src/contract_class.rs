@@ -9,13 +9,12 @@ use starknet_in_rust::core::contract_address::{
     compute_deprecated_class_hash, compute_sierra_class_hash,
 };
 use starknet_in_rust::core::errors::contract_address_errors::ContractAddressError;
-use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass as ImportedCompiledClass;
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
 use starknet_in_rust::utils::calculate_sn_keccak;
 use starknet_in_rust::{CasmContractClass, SierraContractClass};
 
 use crate::abi_entry::{AbiEntry, AbiEntryType};
-use crate::error::{ConversionError, Error, JsonError};
+use crate::error::{Error, JsonError};
 use crate::felt::Felt;
 use crate::serde_helpers::base_64_gzipped_json_string::deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order;
 use crate::traits::HashProducer;

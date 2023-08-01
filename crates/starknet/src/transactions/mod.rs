@@ -16,7 +16,6 @@ use self::deploy_account_transaction::DeployAccountTransaction;
 use self::invoke_transaction::InvokeTransactionV1;
 use crate::traits::HashIdentifiedMut;
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
-use starknet_types::starknet_api::transaction::{EthAddress, Fee};
 
 #[derive(Default)]
 pub struct StarknetTransactions(HashMap<TransactionHash, StarknetTransaction>);

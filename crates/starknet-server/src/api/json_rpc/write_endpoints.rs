@@ -17,7 +17,6 @@ use crate::api::models::transaction::{
     BroadcastedDeclareTransactionV2, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedInvokeTransactionV1,
 };
-use starknet_types::contract_class::DeprecatedContractClass;
 
 impl JsonRpcHandler {
     pub(crate) async fn add_declare_transaction(

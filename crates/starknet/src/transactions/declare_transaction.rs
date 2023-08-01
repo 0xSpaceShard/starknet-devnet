@@ -3,7 +3,7 @@ use starknet_in_rust::core::transaction_hash::{
 };
 use starknet_in_rust::definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::{ContractClass, DeprecatedContractClass};
+use starknet_types::contract_class::DeprecatedContractClass;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use starknet_types::DevnetResult;

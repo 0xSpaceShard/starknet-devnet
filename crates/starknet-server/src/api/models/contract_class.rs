@@ -1,17 +1,10 @@
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use server::rpc_core::error::RpcError;
 use std::collections::HashMap;
 
 use crate::api::json_rpc::error::ApiError;
 use crate::api::json_rpc::RpcResult;
 use starknet_in_rust::SierraContractClass as ImportedSierraContractClass;
-use starknet_types::abi_entry::{AbiEntry, AbiEntryType};
-use starknet_types::contract_class::{
-    ContractClass as TypesContractClass, DeprecatedContractClass,
-};
 use starknet_types::felt::Felt;
-use starknet_types::serde_helpers::base_64_gzipped_json_string::deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order;
 use starknet_types::starknet_api::state::EntryPointType;
 use starknet_types::starknet_api::state::{EntryPoint, FunctionIndex};
 
