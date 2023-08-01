@@ -20,6 +20,7 @@ pub struct DeclareTransactionV2 {
     pub class_hash: Option<ClassHash>,
     pub transaction_hash: Option<TransactionHash>,
     pub chain_id: Felt,
+    pub version: Felt,
 }
 
 impl DeclareTransactionV2 {
@@ -50,11 +51,20 @@ impl DeclareTransactionV2 {
             class_hash: None,
             transaction_hash: None,
             chain_id,
+            version: Felt::from(2),
         })
     }
 
-    pub(crate) fn version(&self) -> Felt {
-        Felt::from(2)
+    pub fn sender_address(&self) -> &ContractAddress {
+        &self.sender_address
+    }
+
+    pub fn class_hash(&self) -> Option<&ClassHash> {
+        self.class_hash.as_ref()
+    }
+
+    pub fn compiled_class_hash(&self) -> &ClassHash {
+        &self.compiled_class_hash
     }
 }
 
@@ -67,7 +77,7 @@ impl HashProducer for DeclareTransactionV2 {
 
         let transaction_hash: Felt = calculate_transaction_hash_common(
             TransactionHashPrefix::Declare,
-            self.version().into(),
+            self.version.into(),
             &self.sender_address.try_into()?,
             Felt::from(0).into(),
             &calldata,

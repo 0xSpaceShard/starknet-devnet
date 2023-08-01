@@ -89,7 +89,7 @@ pub struct Starknet {
     predeployed_accounts: PredeployedAccounts,
     pub(in crate::starknet) block_context: BlockContext,
     blocks: StarknetBlocks,
-    transactions: StarknetTransactions,
+    pub transactions: StarknetTransactions,
     pub config: StarknetConfig,
     pub(in crate::starknet) sierra_contracts: HashMap<ClassHash, SierraContractClass>,
 }
@@ -461,6 +461,20 @@ impl Starknet {
     ) -> Result<Felt> {
         let state = self.get_state_at(&block_id)?;
         state.get_storage(ContractStorageKey::new(contract_address, storage_key))
+    }
+
+    pub fn get_block(&self, block_id: BlockId) -> Result<StarknetBlock> {
+        let block = self.blocks.get_by_block_id(block_id).ok_or(crate::error::Error::NoBlock)?;
+        Ok(block.clone())
+    }
+
+    pub fn get_latest_block(&self) -> Result<StarknetBlock> {
+        let block = self
+            .blocks
+            .get_by_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))
+            .ok_or(crate::error::Error::NoBlock)?;
+
+        Ok(block.clone())
     }
 }
 
@@ -864,5 +878,21 @@ mod tests {
             .unwrap();
         let third_block_expected_address_nonce = Felt252::from(2);
         assert_eq!(third_block_expected_address_nonce, *third_block_address_nonce);
+    }
+
+    #[test]
+    fn gets_latest_block() {
+        let config = starknet_config_for_test();
+        let mut starknet = Starknet::new(&config).unwrap();
+
+        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
+        starknet.generate_pending_block().unwrap();
+        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
+        starknet.generate_pending_block().unwrap();
+        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
+
+        let latest_block = starknet.get_latest_block();
+
+        assert_eq!(latest_block.unwrap().block_number(), BlockNumber(2));
     }
 }
