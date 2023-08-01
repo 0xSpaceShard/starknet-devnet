@@ -70,7 +70,7 @@ class DevnetTransaction:
         if transaction_hash is None:
             self.transaction_hash = internal_tx.hash_value
 
-        if status != ExecutionStatus.REJECTED and execution_info.call_info:
+        if status != TransactionStatus.REJECTED and execution_info.call_info:
             self.execution_resources = execution_info.call_info.execution_resources
 
     def __get_actual_fee(self) -> int:
@@ -300,15 +300,14 @@ class DevnetTransactions:
 
         return status_response
 
-    async def reject_transaction(self, tx_hash: int):
+    async def revert_transaction_in_aborted_block(self, tx_hash: int):
         """
         Reject transaction in aborted block.
         """
         self.__instances[tx_hash].status = TransactionStatus.REJECTED
-        self.__instances[tx_hash].finality_status = FinalityStatus.RECEIVED
-        self.__instances[
-            tx_hash
-        ].execution_status = ExecutionStatus.REJECTED  # TODO or reverted?
+        self.__instances[tx_hash].finality_status = FinalityStatus.ACCEPTED_ON_L2
+        # TODO reject/revert?
+        self.__instances[tx_hash].execution_status = None
         self.__instances[tx_hash].block = None
         self.__instances[tx_hash].transaction_failure_reason = TransactionFailureReason(
             code=StarknetErrorCode.TRANSACTION_FAILED.name,

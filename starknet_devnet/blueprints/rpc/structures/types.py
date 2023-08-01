@@ -49,7 +49,7 @@ def rpc_block_status(block_status: str) -> RpcBlockStatus:
     block_status_map = {
         BlockStatus.PENDING.name: "PENDING",
         BlockStatus.ABORTED.name: "REJECTED",
-        BlockStatus.REVERTED.name: "REJECTED",
+        BlockStatus.REVERTED.name: "REJECTED", # TODO
         BlockStatus.ACCEPTED_ON_L2.name: "ACCEPTED_ON_L2",
         BlockStatus.ACCEPTED_ON_L1.name: "ACCEPTED_ON_L1",
     }

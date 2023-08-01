@@ -29,10 +29,10 @@ DEFAULT_TIMEOUT = 60  # seconds
 OLD_SUPPORTED_VERSIONS = [0]
 
 # account used by Starknet CLI; calculated using
-# poetry run python scripts/compute_compiled_class_hash.py \
+# poetry run python scripts/compute_deprecated_compiled_class_hash.py \
 #   ~/.cache/pypoetry/virtualenvs/<YOUR_VENV>/lib/python3.9/site-packages/starkware/starknet/third_party/open_zeppelin/account.json
 STARKNET_CLI_ACCOUNT_CLASS_HASH = (
-    0x646A72E2AAB2FCA75D713FBE4A58F2D12CBD64105621B89DC9CE7045B5BF02B
+    0x495B30BEA9715F5BD596989103C4D609917FD343B935163D58F29EDB12E2472
 )
 
 # starkware.starknet.public.abi.get_selector_from_name("replace_class")

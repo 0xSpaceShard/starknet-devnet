@@ -481,13 +481,12 @@ class StarknetWrapper:
                     transaction = DevnetTransaction(
                         internal_tx=self.internal_tx,
                         status=TransactionStatus.REJECTED,
-                        execution_status=ExecutionStatus.REJECTED, # TODO or reverted
+                        execution_status=None,  # TODO or reverted
                         finality_status=FinalityStatus.RECEIVED,
                         execution_info=TransactionExecutionInfo.empty(),
                         transaction_hash=tx_hash,
                         block_number=None,  # Rejected txs have no block number
                         transaction_index=None,  # Rejected txs have no tx index
-                        revert_error=exc.message,
                     )
                     self.starknet_wrapper._store_transaction(
                         transaction, error_message=exc.message
@@ -1042,9 +1041,9 @@ class StarknetWrapper:
                 hex(last_block.block_hash)
             )
 
-            # Reject transactions.
+            # Revert transactions.
             for transaction in last_block.transactions:
-                await self.transactions.reject_transaction(
+                await self.transactions.revert_transaction_in_aborted_block(
                     tx_hash=transaction.transaction_hash
                 )
 

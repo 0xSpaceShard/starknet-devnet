@@ -227,3 +227,6 @@ def test_increase_balance():
     assert_equal(
         final_account_balance, initial_account_balance + mint_amount - actual_fee
     )
+
+
+# TODO here or somewhere else - test that REVERTED incurs fee subtraction
