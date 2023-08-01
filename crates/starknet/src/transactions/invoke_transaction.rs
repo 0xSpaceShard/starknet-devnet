@@ -9,13 +9,13 @@ use crate::error::{self, Result};
 
 #[derive(Clone)]
 pub struct InvokeTransactionV1 {
-    pub(crate) inner: InvokeFunction,
-    pub(crate) chain_id: Felt,
-    pub(crate) signature: Vec<Felt>,
-    pub(crate) nonce: Felt,
-    pub(crate) calldata: Vec<Felt>,
-    pub(crate) max_fee: u128,
-    pub(crate) version: Felt,
+    pub inner: InvokeFunction,
+    pub chain_id: Felt,
+    pub signature: Vec<Felt>,
+    pub nonce: Felt,
+    pub calldata: Vec<Felt>,
+    pub max_fee: u128,
+    pub version: Felt,
 }
 
 impl Eq for InvokeTransactionV1 {}

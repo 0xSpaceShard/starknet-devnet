@@ -19,7 +19,7 @@ use crate::api::models::state::{
 use crate::api::models::transaction::{
     BroadcastedTransactionWithType, DeclareTransactionV0V1, DeclareTransactionV2, EventFilter,
     EventsChunk, FunctionCall, Transaction, TransactionReceipt, TransactionType,
-    TransactionWithType, Transactions,
+    TransactionWithType, Transactions, InvokeTransactionV0
 };
 use crate::api::models::{BlockId, ContractAddressHex, PatriciaKeyHex};
 
@@ -191,12 +191,36 @@ impl JsonRpcHandler {
                     },
                 ))
             }
-            starknet_core::transactions::Transaction::DeployAccount(_deploy) => {
-                return Err(error::ApiError::TransactionNotFound);
+            starknet_core::transactions::Transaction::DeployAccount(deploy) => {
+                transaction_type = TransactionType::DeployAccount;
+                Transaction::DeployAccount(crate::api::models::transaction::DeployAccountTransaction {
+                        transaction_hash: Felt::from(deploy.inner.hash_value().clone()), // Clone is ok?
+                        max_fee: Fee(deploy.max_fee),
+                        version: deploy.version,
+                        signature: deploy.signature,
+                        nonce: deploy.nonce,
+                        class_hash: deploy.class_hash().unwrap(), // Panic?
+                        contract_address_salt: deploy.contract_address_salt(),
+                        constructor_calldata: deploy.constructor_calldata(),
+                    }
+                )
             }
-            starknet_core::transactions::Transaction::Invoke(_invoke) => {
-                return Err(error::ApiError::TransactionNotFound);
+            starknet_core::transactions::Transaction::Invoke(invoke) => {
+                transaction_type = TransactionType::Invoke;
+                Transaction::Invoke(crate::api::models::transaction::InvokeTransaction::Version0(
+                    InvokeTransactionV0 {
+                        transaction_hash: Felt::from(invoke.inner.hash_value().clone()), // Clone is ok?
+                        max_fee: Fee(invoke.max_fee),
+                        version: invoke.version,
+                        signature: invoke.signature,
+                        nonce: invoke.nonce,
+                        contract_address: ContractAddressHex(invoke.inner.contract_address),
+                        entry_point_selector: Felt::from(invoke.inner.entry_point_selector.clone()), // Clone is ok?,
+                        calldata: invoke.calldata,
+                    },
+                ))
             }
+            // What about InvokeV2?
         };
 
         let transaction =
