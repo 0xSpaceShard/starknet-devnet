@@ -12,7 +12,6 @@ use starknet_in_rust::definitions::constants::{
     DEFAULT_VALIDATE_MAX_N_STEPS,
 };
 use starknet_in_rust::execution::TransactionExecutionInfo;
-use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
 use starknet_in_rust::state::state_api::State;
 use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
@@ -22,11 +21,6 @@ use starknet_rs_core::types::{BlockId, TransactionStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::Signer;
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_storage_key::ContractStorageKey;
-use starknet_types::felt::{ClassHash, Felt, TransactionHash};
-use starknet_types::patricia_key::PatriciaKey;
-use starknet_types::traits::HashProducer;
 use tracing::error;
 
 use self::predeployed::initialize_erc20;
@@ -51,7 +45,9 @@ use crate::transactions::{StarknetTransaction, StarknetTransactions, Transaction
 use crate::utils;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
+use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
+use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::traits::HashProducer;
 
 mod add_declare_transaction;

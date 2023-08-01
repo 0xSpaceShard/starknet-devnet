@@ -226,9 +226,9 @@ impl JsonRpcHandler {
     pub(crate) async fn get_class(
         &self,
         block_id: BlockId,
-        class_hash: ClassHashHex,
+        class_hash: ClassHash,
     ) -> RpcResult<ContractClass> {
-        Ok(self.api.starknet.write().await.get_class(block_id.into(), class_hash.0)?.try_into()?)
+        Ok(self.api.starknet.write().await.get_class(block_id.into(), class_hash)?.try_into()?)
     }
 
     /// starknet_getClassAt
@@ -251,14 +251,13 @@ impl JsonRpcHandler {
         &self,
         block_id: BlockId,
         contract_address: ContractAddressHex,
-    ) -> RpcResult<ClassHashHex> {
-        Ok(FeltHex(
-            self.api
-                .starknet
-                .write()
-                .await
-                .get_class_hash_at(block_id.into(), contract_address.0)?,
-        ))
+    ) -> RpcResult<ClassHash> {
+        Ok(self
+            .api
+            .starknet
+            .write()
+            .await
+            .get_class_hash_at(block_id.into(), contract_address.0)?)
     }
 
     /// starknet_getBlockTransactionCount

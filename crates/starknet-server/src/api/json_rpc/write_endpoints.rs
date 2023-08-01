@@ -1,4 +1,3 @@
-use serde_json::json;
 use server::rpc_core::error::RpcError;
 use starknet_core::transactions::declare_transaction::DeclareTransactionV1;
 use starknet_core::transactions::declare_transaction_v2::DeclareTransactionV2;
