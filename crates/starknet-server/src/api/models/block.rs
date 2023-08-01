@@ -39,11 +39,11 @@ pub struct SyncStatus {
 impl From<&starknet_core::StarknetBlock> for BlockHeader {
     fn from(value: &starknet_core::StarknetBlock) -> Self {
         Self {
-            block_hash: FeltHex(value.block_hash()),
-            parent_hash: FeltHex(value.parent_hash()),
+            block_hash: value.block_hash(),
+            parent_hash: value.parent_hash(),
             block_number: value.block_number(),
             sequencer_address: ContractAddressHex(value.sequencer_address()),
-            new_root: FeltHex(value.new_root()),
+            new_root: value.new_root(),
             timestamp: value.timestamp(),
         }
     }

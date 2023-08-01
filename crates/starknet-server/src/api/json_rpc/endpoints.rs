@@ -17,9 +17,9 @@ use crate::api::models::state::{
     ThinStateDiff,
 };
 use crate::api::models::transaction::{
-    BroadcastedTransactionWithType, ClassHashHex, DeclareTransactionV0V1, DeclareTransactionV2,
-    EventFilter, EventsChunk, FunctionCall, Transaction, TransactionHashHex, TransactionReceipt,
-    TransactionType, TransactionWithType, Transactions,
+    BroadcastedTransactionWithType, DeclareTransactionV0V1, DeclareTransactionV2, EventFilter,
+    EventsChunk, FunctionCall, Transaction, TransactionReceipt, TransactionType,
+    TransactionWithType, Transactions,
 };
 use crate::api::models::{BlockId, ContractAddressHex, PatriciaKeyHex};
 
@@ -41,7 +41,7 @@ impl JsonRpcHandler {
                     .get_transactions()
                     .iter()
                     // We shouldnt get in the situation where tx hash is None
-                    .map(|tx| FeltHex(tx.get_hash().unwrap_or_default()))
+                    .map(|tx| tx.get_hash().unwrap_or_default())
                     .collect(),
             ),
         })
@@ -153,12 +153,12 @@ impl JsonRpcHandler {
     /// starknet_getTransactionByHash
     pub(crate) async fn get_transaction_by_hash(
         &self,
-        transaction_hash: TransactionHashHex,
+        transaction_hash: TransactionHash,
     ) -> RpcResult<TransactionWithType> {
         let starknet = self.api.starknet.read().await;
         let transaction_to_map = starknet
             .transactions
-            .get(&transaction_hash.0)
+            .get(&transaction_hash)
             .ok_or(error::ApiError::TransactionNotFound)?;
         let transaction_type;
         let transaction_data: Transaction = match transaction_to_map.inner.clone() {
@@ -166,13 +166,13 @@ impl JsonRpcHandler {
                 transaction_type = TransactionType::Declare;
                 Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version1(
                     DeclareTransactionV0V1 {
-                        class_hash: FeltHex(declare_v1.class_hash.unwrap_or_default()),
+                        class_hash: declare_v1.class_hash.unwrap_or_default(),
                         sender_address: ContractAddressHex(declare_v1.sender_address),
-                        nonce: FeltHex(declare_v1.nonce),
+                        nonce: declare_v1.nonce,
                         max_fee: Fee(declare_v1.max_fee),
-                        version: FeltHex(Felt::from(1)),
-                        transaction_hash: FeltHex(declare_v1.transaction_hash.unwrap()),
-                        signature: declare_v1.signature.into_iter().map(FeltHex).collect(),
+                        version: Felt::from(1),
+                        transaction_hash: declare_v1.transaction_hash.unwrap(),
+                        signature: declare_v1.signature,
                     },
                 ))
             }
@@ -180,14 +180,14 @@ impl JsonRpcHandler {
                 transaction_type = TransactionType::Declare;
                 Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version2(
                     DeclareTransactionV2 {
-                        class_hash: FeltHex(declare_v2.class_hash.unwrap()),
+                        class_hash: declare_v2.class_hash.unwrap(),
                         sender_address: ContractAddressHex(declare_v2.sender_address),
-                        nonce: FeltHex(declare_v2.nonce),
+                        nonce: declare_v2.nonce,
                         max_fee: Fee(declare_v2.max_fee),
-                        version: FeltHex(Felt::from(2)),
-                        transaction_hash: FeltHex(declare_v2.transaction_hash.unwrap()),
-                        signature: declare_v2.signature.into_iter().map(FeltHex).collect(),
-                        compiled_class_hash: FeltHex(declare_v2.compiled_class_hash),
+                        version: Felt::from(2),
+                        transaction_hash: declare_v2.transaction_hash.unwrap(),
+                        signature: declare_v2.signature,
+                        compiled_class_hash: declare_v2.compiled_class_hash,
                     },
                 ))
             }
@@ -310,7 +310,7 @@ impl JsonRpcHandler {
         })?;
 
         Ok(BlockHashAndNumberOutput {
-            block_hash: FeltHex(block.block_hash()),
+            block_hash: block.block_hash(),
             block_number: block.block_number(),
         })
     }
