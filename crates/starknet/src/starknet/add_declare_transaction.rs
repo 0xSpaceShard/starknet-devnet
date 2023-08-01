@@ -100,6 +100,10 @@ pub fn add_declare_transaction_v1(
 
     match transaction.execute(&mut starknet.state.pending_state, &starknet.block_context) {
         Ok(tx_info) => {
+            starknet.sierra_contracts.insert(
+                class_hash,
+                ContractClass::Cairo0(declare_transaction.contract_class.clone()),
+            );
             starknet.handle_successful_transaction(
                 &transaction_hash,
                 Transaction::Declare(Box::new(declare_transaction)),

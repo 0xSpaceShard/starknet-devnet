@@ -1,3 +1,4 @@
+pub mod abi_entry;
 pub mod contract_address;
 pub mod contract_class;
 pub mod contract_storage_key;

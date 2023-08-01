@@ -23,14 +23,8 @@ pub fn get_class_impl(
     class_hash: ClassHash,
 ) -> Result<ContractClass> {
     match starknet.sierra_contracts.get(&class_hash) {
-        Some(class) => match class {
-            ContractClass::Cairo1(_) => Ok(class.clone()),
-            ContractClass::Cairo0(_) => Err(Error::FormatError),
-        },
-        None => {
-            let state = starknet.get_state_at_mut(&block_id)?;
-            Ok(state.state.get_contract_class(&class_hash.into())?.try_into()?)
-        }
+        Some(class) => Ok(class.clone()),
+        None => Err(Error::FormatError),
     }
 }
 

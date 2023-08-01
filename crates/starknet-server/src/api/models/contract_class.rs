@@ -3,34 +3,17 @@ use serde_json::json;
 use server::rpc_core::error::RpcError;
 use std::collections::HashMap;
 
-use super::abi_entry::{AbiEntry, AbiEntryType};
 use crate::api::json_rpc::error::ApiError;
 use crate::api::json_rpc::RpcResult;
-use crate::api::serde_helpers::base_64_gzipped_json_string::deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order;
 use starknet_in_rust::SierraContractClass as ImportedSierraContractClass;
-use starknet_types::contract_class::ContractClass as TypesContractClass;
+use starknet_types::abi_entry::{AbiEntry, AbiEntryType};
+use starknet_types::contract_class::{
+    ContractClass as TypesContractClass, DeprecatedContractClass,
+};
 use starknet_types::felt::Felt;
+use starknet_types::serde_helpers::base_64_gzipped_json_string::deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order;
 use starknet_types::starknet_api::state::EntryPointType;
 use starknet_types::starknet_api::state::{EntryPoint, FunctionIndex};
-
-// TODO: move to types
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(untagged)]
-pub enum ContractClass {
-    Cairo0(DeprecatedContractClass),
-    Sierra(starknet_in_rust::SierraContractClass),
-}
-
-impl TryFrom<TypesContractClass> for ContractClass {
-    type Error = ApiError;
-
-    fn try_from(value: TypesContractClass) -> RpcResult<Self> {
-        match value {
-            TypesContractClass::Cairo0(_) => Err(ApiError::InvalidContractClass),
-            TypesContractClass::Cairo1(value) => Ok(ContractClass::Sierra(value)),
-        }
-    }
-}
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub struct SierraContractClass {
@@ -104,58 +87,12 @@ impl TryFrom<ImportedSierraContractClass> for SierraContractClass {
     }
 }
 
-#[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
-pub struct DeprecatedContractClass {
-    pub abi: Vec<ContractClassAbiEntryWithType>,
-    /// A base64 encoding of the gzip-compressed JSON representation of program.
-    #[serde(
-        deserialize_with = "deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order"
-    )]
-    pub program: serde_json::Value,
-    /// The selector of each entry point is a unique identifier in the program.
-    pub entry_points_by_type: HashMap<
-        starknet_types::starknet_api::deprecated_contract_class::EntryPointType,
-        Vec<starknet_types::starknet_api::deprecated_contract_class::EntryPoint>,
-    >,
-}
-
-// impl TryFrom<Cairo0ContractClass> for DeprecatedContractClass {}
-
-impl TryFrom<DeprecatedContractClass> for TypesContractClass {
-    type Error = ApiError;
-
-    fn try_from(value: DeprecatedContractClass) -> RpcResult<Self> {
-        let abi_json = serde_json::to_value(value.abi).map_err(|_| {
-            ApiError::RpcError(RpcError::invalid_params("abi: Unable to parse to JSON"))
-        })?;
-        let entry_points_json = serde_json::to_value(value.entry_points_by_type).map_err(|_| {
-            ApiError::RpcError(RpcError::invalid_params(
-                "entry_points_by_type: Unable to parse to JSON",
-            ))
-        })?;
-
-        Ok(TypesContractClass::Cairo0(starknet_types::contract_class::Cairo0ContractClass::Json(
-            json!({
-                "program": value.program,
-                "abi": abi_json,
-                "entry_points_by_type": entry_points_json,
-            }),
-        )))
-    }
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-pub struct ContractClassAbiEntryWithType {
-    #[serde(flatten)]
-    pub entry: AbiEntry,
-    pub r#type: AbiEntryType,
-}
-
 #[cfg(test)]
 mod tests {
     use starknet_types::felt::Felt;
 
-    use crate::api::models::abi_entry::FunctionAbiEntry;
+    use starknet_types::abi_entry::FunctionAbiEntry;
+    use starknet_types::contract_class::ContractClassAbiEntryWithType;
 
     #[test]
     fn deserialize_contract_class_abi_entry_with_type() {
@@ -172,7 +109,7 @@ mod tests {
             "type": "function"
         }"#;
 
-        let obj = serde_json::from_str::<super::ContractClassAbiEntryWithType>(json_str).unwrap();
+        let obj = serde_json::from_str::<ContractClassAbiEntryWithType>(json_str).unwrap();
         assert_eq!(obj.r#type, super::AbiEntryType::Function);
         assert_eq!(
             obj.entry,
@@ -201,7 +138,7 @@ mod tests {
             "type": "function"
         }"#;
 
-        let obj = serde_json::from_str::<super::ContractClassAbiEntryWithType>(json_str).unwrap();
+        let obj = serde_json::from_str::<ContractClassAbiEntryWithType>(json_str).unwrap();
         assert_eq!(obj.r#type, super::AbiEntryType::Function);
         assert_eq!(
             obj.entry,
@@ -230,7 +167,7 @@ mod tests {
             "type": "constructor"
         }"#;
 
-        let obj = serde_json::from_str::<super::ContractClassAbiEntryWithType>(json_str).unwrap();
+        let obj = serde_json::from_str::<ContractClassAbiEntryWithType>(json_str).unwrap();
         assert_eq!(obj.r#type, super::AbiEntryType::Constructor);
         assert_eq!(
             obj.entry,

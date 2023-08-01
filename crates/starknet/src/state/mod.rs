@@ -106,10 +106,9 @@ impl StateChanger for StarknetState {
 
         // update cairo 0 differences
         for (class_hash, cairo_0_contract_class) in state_diff.cairo_0_declared_contracts {
-            old_state.class_hash_to_contract_class.insert(
-                class_hash.bytes(),
-                cairo_0_contract_class.try_into().map_err(crate::error::Error::from)?,
-            );
+            old_state
+                .class_hash_to_contract_class
+                .insert(class_hash.bytes(), cairo_0_contract_class);
         }
 
         // update class_hash -> compiled_class_hash differences

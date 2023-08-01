@@ -12,7 +12,7 @@ use starknet_types::starknet_api::block::BlockNumber;
 use starknet_types::starknet_api::transaction::{EthAddress, Fee};
 
 use super::block::BlockHashHex;
-use super::contract_class::DeprecatedContractClass;
+use starknet_types::contract_class::DeprecatedContractClass;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]

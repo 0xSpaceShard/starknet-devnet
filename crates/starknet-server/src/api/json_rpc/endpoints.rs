@@ -12,7 +12,6 @@ use super::error::{self, ApiError};
 use super::models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
 use super::{JsonRpcHandler, RpcResult};
 use crate::api::models::block::{Block, BlockHeader};
-use crate::api::models::contract_class::ContractClass;
 use crate::api::models::state::{
     ClassHashes, ContractNonce, DeployedContract, StateUpdate, StorageDiff, StorageEntry,
     ThinStateDiff,
@@ -23,6 +22,7 @@ use crate::api::models::transaction::{
     TransactionWithType, Transactions,
 };
 use crate::api::models::{BlockId, PatriciaKeyHex};
+use starknet_types::contract_class::ContractClass;
 
 /// here are the definitions and stub implementations of all JSON-RPC read endpoints
 impl JsonRpcHandler {
@@ -223,7 +223,7 @@ impl JsonRpcHandler {
         block_id: BlockId,
         class_hash: ClassHash,
     ) -> RpcResult<ContractClass> {
-        Ok(self.api.starknet.write().await.get_class(block_id.into(), class_hash)?.try_into()?)
+        Ok(self.api.starknet.write().await.get_class(block_id.into(), class_hash)?)
     }
 
     /// starknet_getClassAt
@@ -232,13 +232,7 @@ impl JsonRpcHandler {
         block_id: BlockId,
         contract_address: ContractAddress,
     ) -> RpcResult<ContractClass> {
-        Ok(self
-            .api
-            .starknet
-            .write()
-            .await
-            .get_class_at(block_id.into(), contract_address)?
-            .try_into()?)
+        Ok(self.api.starknet.write().await.get_class_at(block_id.into(), contract_address)?)
     }
 
     /// starknet_getClassHashAt

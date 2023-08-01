@@ -12,12 +12,12 @@ use super::models::{
 };
 use super::RpcResult;
 use crate::api::json_rpc::JsonRpcHandler;
-use crate::api::models::contract_class::DeprecatedContractClass;
 use crate::api::models::transaction::{
     BroadcastedDeclareTransaction, BroadcastedDeclareTransactionV1,
     BroadcastedDeclareTransactionV2, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedInvokeTransactionV1,
 };
+use starknet_types::contract_class::DeprecatedContractClass;
 
 impl JsonRpcHandler {
     pub(crate) async fn add_declare_transaction(
@@ -96,7 +96,7 @@ fn convert_to_declare_transaction_v1(
         value.common.max_fee.0,
         value.common.signature,
         value.common.nonce,
-        ContractClass::try_from(value.contract_class)?,
+        value.contract_class,
         chain_id,
     )
     .map_err(ApiError::StarknetDevnetError)
