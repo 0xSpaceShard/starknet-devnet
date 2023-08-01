@@ -46,7 +46,7 @@ pub mod rpc_sierra_contract_class_to_sierra_contract_class {
     mod tests {
         use serde::Deserialize;
 
-        use types::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
+        use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 
         #[test]
         fn correct_deserialzation_from_sierra_contract_class_with_abi_field_as_string() {
@@ -59,7 +59,7 @@ pub mod rpc_sierra_contract_class_to_sierra_contract_class {
 
             let path = concat!(
                 env!("CARGO_MANIFEST_DIR"),
-                "/test_data/sierra_contract_class_with_abi_as_string.json"
+                "/data/sierra_contract_class_with_abi_as_string.json"
             );
 
             let json_str = std::fs::read_to_string(path).unwrap();
@@ -149,17 +149,16 @@ pub mod hex_string {
     #[cfg(test)]
     mod tests {
         use crate::contract_address::ContractAddress;
-        use crate::felt::{
-            deserialize_prefixed_hex_string_to_felt, serialize_to_prefixed_hex, Felt,
-        };
+        use crate::felt::Felt;
         use crate::patricia_key::PatriciaKey;
         use serde::{Deserialize, Serialize};
         use serde_json::json;
         use starknet_api::serde_utils::bytes_from_hex_str;
 
-        use types::serde_helpers::hex_string::{
-            deserialize_non_prefixed_hex_string_to_felt, deserialize_to_prefixed_contract_address,
-            deserialize_to_prefixed_patricia_key, serialize_contract_address_to_prefixed_hex,
+        use crate::serde_helpers::hex_string::{
+            deserialize_non_prefixed_hex_string_to_felt, deserialize_prefixed_hex_string_to_felt,
+            deserialize_to_prefixed_contract_address, deserialize_to_prefixed_patricia_key,
+            serialize_contract_address_to_prefixed_hex, serialize_to_prefixed_hex,
         };
 
         #[test]

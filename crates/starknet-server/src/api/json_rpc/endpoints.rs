@@ -233,7 +233,7 @@ impl JsonRpcHandler {
         contract_address: ContractAddress,
     ) -> RpcResult<ClassHash> {
         let starknet = self.api.starknet.read().await;
-        match starknet.get_class_hash_at(&block_id.into(), &contract_address.0) {
+        match starknet.get_class_hash_at(&block_id.into(), &contract_address) {
             Ok(class_hash) => Ok(class_hash),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(Error::ContractNotFound | Error::NoStateAtBlock { block_number: _ }) => {
@@ -247,7 +247,7 @@ impl JsonRpcHandler {
     pub(crate) async fn get_class_at(
         &self,
         _block_id: BlockId,
-        _contract_address: ContractAddressHex,
+        _contract_address: ContractAddress,
     ) -> RpcResult<ContractClass> {
         Err(error::ApiError::ContractNotFound)
     }
