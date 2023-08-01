@@ -12,9 +12,8 @@ use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::starknet_api::block::BlockNumber;
 
 use super::serde_helpers::hex_string::{
-    deserialize_prefixed_hex_string_to_felt, deserialize_to_prefixed_contract_address,
-    deserialize_to_prefixed_patricia_key, serialize_contract_address_to_prefixed_hex,
-    serialize_patricia_key_to_prefixed_hex, serialize_to_prefixed_hex,
+    deserialize_to_prefixed_contract_address, deserialize_to_prefixed_patricia_key,
+    serialize_contract_address_to_prefixed_hex, serialize_patricia_key_to_prefixed_hex,
 };
 
 #[derive(Copy, Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -30,7 +29,7 @@ pub enum Tag {
 #[derive(Copy, Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum BlockHashOrNumber {
     #[serde(rename = "block_hash")]
-    Hash(FeltHex),
+    Hash(Felt),
     #[serde(rename = "block_number")]
     Number(BlockNumber),
 }
@@ -46,7 +45,7 @@ impl From<BlockId> for ImportedBlockId {
     fn from(block_id: BlockId) -> Self {
         match block_id {
             BlockId::HashOrNumber(hash_or_number) => match hash_or_number {
-                BlockHashOrNumber::Hash(hash) => ImportedBlockId::Hash(hash.0.into()),
+                BlockHashOrNumber::Hash(hash) => ImportedBlockId::Hash(hash.into()),
                 BlockHashOrNumber::Number(number) => ImportedBlockId::Number(number.0),
             },
             BlockId::Tag(tag) => match tag {
@@ -56,16 +55,6 @@ impl From<BlockId> for ImportedBlockId {
         }
     }
 }
-
-/// Felt serialized/deserialized from/to prefixed hex string
-#[derive(Debug, Default, Hash, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct FeltHex(
-    #[serde(
-        serialize_with = "serialize_to_prefixed_hex",
-        deserialize_with = "deserialize_prefixed_hex_string_to_felt"
-    )]
-    pub Felt,
-);
 
 /// Contract address serialized/deserialized from/to prefixed hex string
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]

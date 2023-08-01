@@ -5,7 +5,7 @@ use starknet_types::traits::ToDecimalString;
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{Balance, ContractAddress, SerializableAccount};
 use crate::api::http::{HttpApiHandler, HttpApiResult};
-use crate::api::models::{ContractAddressHex, FeltHex};
+use crate::api::models::ContractAddressHex;
 
 pub(crate) async fn get_predeployed_accounts(
     Extension(state): Extension<HttpApiHandler>,
@@ -20,8 +20,8 @@ pub(crate) async fn get_predeployed_accounts(
         .map(|acc| SerializableAccount {
             initial_balance: acc.initial_balance.to_decimal_string(),
             address: ContractAddressHex(acc.account_address),
-            public_key: FeltHex(acc.public_key),
-            private_key: FeltHex(acc.private_key),
+            public_key: acc.public_key,
+            private_key: acc.private_key,
         })
         .collect();
 
