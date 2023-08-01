@@ -115,7 +115,7 @@ pub struct InvokeTransactionOutput {
 
 #[cfg(test)]
 mod tests {
-    use starknet_types::contract_address::{ContractAddress, ContractAddress};
+    use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
     use starknet_types::patricia_key::PatriciaKey;
     use starknet_types::starknet_api::block::BlockNumber;
