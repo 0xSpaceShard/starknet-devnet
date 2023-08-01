@@ -19,7 +19,7 @@ use self::models::{
     BroadcastedInvokeTransactionInput,
 };
 use super::Api;
-use crate::api::serde_helpers::empty_params;
+use starknet_types::serde_helpers::empty_params;
 
 pub(crate) type RpcResult<T> = std::result::Result<T, ApiError>;
 

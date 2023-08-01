@@ -19,7 +19,7 @@ pub(crate) async fn mint(
     // increase balance
     let mut starknet = state.api.starknet.write().await;
     let tx_hash = starknet
-        .mint(request.address.0, request.amount)
+        .mint(request.address, request.amount)
         .await
         .map_err(|err| HttpApiError::MintingError { msg: err.to_string() })?;
 
@@ -32,7 +32,7 @@ pub(crate) async fn mint(
             BlockId::Tag(BlockTag::Pending),
             erc20_address,
             balance_selector,
-            vec![Felt::from(request.address.0)], // calldata = the incremented address
+            vec![Felt::from(request.address)], // calldata = the incremented address
         )
         .map_err(|err| HttpApiError::MintingError { msg: err.to_string() })?;
 

@@ -46,7 +46,7 @@ pub mod rpc_sierra_contract_class_to_sierra_contract_class {
     mod tests {
         use serde::Deserialize;
 
-        use crate::api::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
+        use types::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 
         #[test]
         fn correct_deserialzation_from_sierra_contract_class_with_abi_field_as_string() {
@@ -69,69 +69,12 @@ pub mod rpc_sierra_contract_class_to_sierra_contract_class {
     }
 }
 
-pub mod base_64_gzipped_json_string {
-    use base64::Engine;
-    use serde::{Deserialize, Deserializer};
-    use starknet_rs_core::types::contract::legacy::LegacyProgram;
-
-    pub fn deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order<'de, D>(
-        deserializer: D,
-    ) -> Result<serde_json::Value, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let buf = String::deserialize(deserializer)?;
-        if buf.is_empty() {
-            return Ok(serde_json::Value::Null);
-        }
-
-        let bytes = base64::engine::general_purpose::STANDARD
-            .decode(buf)
-            .map_err(|_| serde::de::Error::custom("program: Unable to decode base64 string"))?;
-
-        let decoder = flate2::read::GzDecoder::new(bytes.as_slice());
-
-        let starknet_program: LegacyProgram = serde_json::from_reader(decoder)
-            .map_err(|_| serde::de::Error::custom("program: Unable to decode gzipped bytes"))?;
-
-        serde_json::to_value(starknet_program)
-            .map_err(|_| serde::de::Error::custom("program: Unable to parse to JSON"))
-    }
-
-    #[cfg(test)]
-    mod tests {
-        use serde::Deserialize;
-
-        use crate::api::serde_helpers::base_64_gzipped_json_string::deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order;
-
-        #[test]
-        fn deserialize_successfully_starknet_api_program() {
-            let json_str = std::fs::read_to_string(concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/test_data/rpc/cairo_0_base64_gzipped_program.json"
-            ))
-            .unwrap();
-
-            #[derive(Deserialize)]
-            struct TestDeserialization {
-                #[allow(unused)]
-                #[serde(
-                    deserialize_with = "deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order"
-                )]
-                program: serde_json::Value,
-            }
-
-            serde_json::from_str::<TestDeserialization>(&json_str).unwrap();
-        }
-    }
-}
-
 pub mod hex_string {
+    use crate::contract_address::ContractAddress;
+    use crate::felt::Felt;
+    use crate::patricia_key::PatriciaKey;
+    use crate::traits::ToHexString;
     use serde::{Deserialize, Deserializer, Serializer};
-    use starknet_types::contract_address::ContractAddress;
-    use starknet_types::felt::{deserialize_prefixed_hex_string_to_felt, Felt};
-    use starknet_types::patricia_key::PatriciaKey;
-    use starknet_types::traits::ToHexString;
 
     pub fn deserialize_to_prefixed_patricia_key<'de, D>(
         deserializer: D,
@@ -185,18 +128,36 @@ pub mod hex_string {
         Felt::from_prefixed_hex_str(&format!("0x{buf}")).map_err(serde::de::Error::custom)
     }
 
+    pub fn serialize_to_prefixed_hex<S>(felt: &Felt, s: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        s.serialize_str(felt.to_prefixed_hex_str().as_str())
+    }
+
+    pub fn deserialize_prefixed_hex_string_to_felt<'de, D>(
+        deserializer: D,
+    ) -> Result<Felt, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let buf = String::deserialize(deserializer)?;
+
+        Felt::from_prefixed_hex_str(&buf).map_err(serde::de::Error::custom)
+    }
+
     #[cfg(test)]
     mod tests {
-        use serde::{Deserialize, Serialize};
-        use serde_json::json;
-        use starknet_types::contract_address::ContractAddress;
-        use starknet_types::felt::{
+        use crate::contract_address::ContractAddress;
+        use crate::felt::{
             deserialize_prefixed_hex_string_to_felt, serialize_to_prefixed_hex, Felt,
         };
-        use starknet_types::patricia_key::PatriciaKey;
-        use starknet_types::starknet_api::serde_utils::bytes_from_hex_str;
+        use crate::patricia_key::PatriciaKey;
+        use serde::{Deserialize, Serialize};
+        use serde_json::json;
+        use starknet_api::serde_utils::bytes_from_hex_str;
 
-        use crate::api::serde_helpers::hex_string::{
+        use types::serde_helpers::hex_string::{
             deserialize_non_prefixed_hex_string_to_felt, deserialize_to_prefixed_contract_address,
             deserialize_to_prefixed_patricia_key, serialize_contract_address_to_prefixed_hex,
         };

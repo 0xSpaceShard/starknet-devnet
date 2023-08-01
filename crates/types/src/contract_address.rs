@@ -1,8 +1,12 @@
 use cairo_felt::Felt252;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::felt::Felt;
 use crate::error::Error;
 use crate::patricia_key::PatriciaKey;
+use crate::serde_helpers::hex_string::{
+    deserialize_to_prefixed_contract_address, serialize_contract_address_to_prefixed_hex,
+};
 use crate::traits::ToHexString;
 use crate::DevnetResult;
 
@@ -18,6 +22,24 @@ impl ContractAddress {
     pub fn zero() -> Self {
         // using unwrap because we are sure it works for 0x0
         Self::new(Felt::from(0)).unwrap()
+    }
+}
+
+impl Serialize for ContractAddress {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serialize_contract_address_to_prefixed_hex(self, serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for ContractAddress {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserialize_to_prefixed_contract_address(deserializer)
     }
 }
 
