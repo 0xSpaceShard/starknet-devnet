@@ -4,6 +4,7 @@ use starknet_in_rust::transaction::InvokeFunction;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::Felt;
 use starknet_types::traits::HashProducer;
+use starknet_types::cairo_felt::Felt252;
 
 use crate::error::{self, Result};
 
@@ -65,6 +66,11 @@ impl InvokeTransactionV1 {
 
     pub fn sender_address(&self) -> Result<ContractAddress> {
         self.inner.contract_address().clone().try_into().map_err(error::Error::from)
+    }
+
+    pub fn entry_point_selector(&self) -> Felt252 {
+        // self.inner.entry_point_selector - needs to be decorated with #[getset(get = "pub")]
+        Felt252::from(0)
     }
 
     pub fn calldata(&self) -> &Vec<Felt> {
