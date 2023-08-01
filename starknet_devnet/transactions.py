@@ -18,6 +18,8 @@ from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     Event,
+    ExecutionStatus,
+    FinalityStatus,
     FunctionInvocation,
     L2ToL1Message,
     StarknetBlock,
@@ -44,26 +46,32 @@ class DevnetTransaction:
         self,
         internal_tx: InternalTransaction,
         status: TransactionStatus,
+        execution_status: Optional[ExecutionStatus],
+        finality_status: FinalityStatus,
         execution_info: TransactionExecutionInfo,
         block_number: Optional[int],
         transaction_index: Optional[int],
         transaction_hash: Optional[int] = None,
+        revert_error: Optional[str] = None,
     ):
         self.block: Optional[StarknetBlock] = None
         self.execution_info = execution_info
-        if status != TransactionStatus.REJECTED and execution_info.call_info:
-            self.execution_resources = execution_info.call_info.execution_resources
-        else:
-            self.execution_resources = None
+        self.execution_resources = None
         self.internal_tx = internal_tx
         self.status = status
+        self.execution_status = execution_status
+        self.finality_status = finality_status
         self.transaction_failure_reason = None
         self.transaction_index = transaction_index
         self.__block_number = block_number
         self.transaction_hash = transaction_hash
+        self.revert_error = revert_error
 
         if transaction_hash is None:
             self.transaction_hash = internal_tx.hash_value
+
+        if status != ExecutionStatus.REJECTED and execution_info.call_info:
+            self.execution_resources = execution_info.call_info.execution_resources
 
     def __get_actual_fee(self) -> int:
         """Returns the actual fee"""
@@ -125,12 +133,14 @@ class DevnetTransaction:
     def get_tx_info(self) -> TransactionInfo:
         """Returns the transaction info"""
         return TransactionInfo.create(
-            status=self.status,
+            finality_status=self.finality_status,
+            execution_status=self.execution_status,
             transaction=self.internal_tx,
             transaction_index=self.transaction_index,
             block_hash=self.__get_block_hash(),
             block_number=self.__block_number,
             transaction_failure_reason=self.transaction_failure_reason,
+            revert_error=self.revert_error,
         )
 
     def get_receipt(self) -> TransactionReceipt:
@@ -169,11 +179,13 @@ class DevnetTransaction:
             function_invocation=function_invocation,
             fee_transfer_invocation=fee_transfer_invocation,
             signature=self.get_signature(),
+            revert_error=self.revert_error,
         )
 
     def get_execution(self) -> TransactionExecution:
         """Returns the transaction execution"""
         return TransactionExecution(
+            execution_status=self.execution_status,
             transaction_hash=self.internal_tx.hash_value,
             transaction_index=self.transaction_index,
             actual_fee=self.__get_actual_fee(),
@@ -181,6 +193,7 @@ class DevnetTransaction:
             execution_resources=self.execution_resources,
             l2_to_l1_messages=self.__get_l2_to_l1_messages(),
             l1_to_l2_consumed_message=None,
+            revert_error=self.revert_error,
         )
 
 
@@ -292,6 +305,10 @@ class DevnetTransactions:
         Reject transaction in aborted block.
         """
         self.__instances[tx_hash].status = TransactionStatus.REJECTED
+        self.__instances[tx_hash].finality_status = FinalityStatus.RECEIVED
+        self.__instances[
+            tx_hash
+        ].execution_status = ExecutionStatus.REJECTED  # TODO or reverted?
         self.__instances[tx_hash].block = None
         self.__instances[tx_hash].transaction_failure_reason = TransactionFailureReason(
             code=StarknetErrorCode.TRANSACTION_FAILED.name,
@@ -351,6 +368,8 @@ def create_genesis_block_transaction(
     return DevnetTransaction(
         internal_tx=internal_tx,
         status=TransactionStatus.ACCEPTED_ON_L2,
+        finality_status=FinalityStatus.ACCEPTED_ON_L2,
+        execution_status=ExecutionStatus.SUCCEEDED,
         execution_info=execution_info,
         block_number=block_number,
         transaction_index=transaction_index,

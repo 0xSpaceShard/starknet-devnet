@@ -50,6 +50,8 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     StateDiff,
     StorageEntry,
     TransactionStatus,
+    ExecutionStatus,
+    FinalityStatus,
     TransactionTrace,
 )
 from starkware.starknet.services.api.gateway.transaction import (
@@ -470,7 +472,6 @@ class StarknetWrapper:
                         raise StarknetDevnetException(
                             code=StarknetErrorCode.UNEXPECTED_FAILURE, message=str(exc)
                         ) from exc
-                    status = TransactionStatus.REJECTED
 
                     # restore block info
                     self.starknet_wrapper.get_state().state.block_info = (
@@ -479,18 +480,19 @@ class StarknetWrapper:
 
                     transaction = DevnetTransaction(
                         internal_tx=self.internal_tx,
-                        status=status,
+                        status=TransactionStatus.REJECTED,
+                        execution_status=ExecutionStatus.REJECTED, # TODO or reverted
+                        finality_status=FinalityStatus.RECEIVED,
                         execution_info=TransactionExecutionInfo.empty(),
                         transaction_hash=tx_hash,
                         block_number=None,  # Rejected txs have no block number
                         transaction_index=None,  # Rejected txs have no tx index
+                        revert_error=exc.message,
                     )
                     self.starknet_wrapper._store_transaction(
                         transaction, error_message=exc.message
                     )
                 else:
-                    status = TransactionStatus.ACCEPTED_ON_L2
-
                     assert self.execution_info is not None
                     if self.execution_info.call_info:
                         await self.starknet_wrapper._register_new_contracts(
@@ -512,7 +514,9 @@ class StarknetWrapper:
 
                     transaction = DevnetTransaction(
                         internal_tx=self.internal_tx,
-                        status=status,
+                        status=TransactionStatus.ACCEPTED_ON_L2,
+                        execution_status=ExecutionStatus.SUCCEEDED,
+                        finality_status=FinalityStatus.ACCEPTED_ON_L2,
                         execution_info=self.execution_info,
                         transaction_hash=tx_hash,
                         block_number=next_block_number,
@@ -911,6 +915,7 @@ class StarknetWrapper:
                     execution_info.fee_transfer_info
                 ),
                 signature=external_tx.signature,
+                revert_error=execution_info.revert_error,
             )
             traces.append(trace)
 

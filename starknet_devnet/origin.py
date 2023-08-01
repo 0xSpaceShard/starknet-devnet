@@ -8,6 +8,7 @@ from starkware.starknet.services.api.feeder_gateway.feeder_gateway_client import
     FeederGatewayClient,
 )
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    FinalityStatus,
     StarknetBlock,
     TransactionInfo,
     TransactionReceipt,
@@ -80,11 +81,15 @@ class NullOrigin(Origin):
     """
 
     async def get_transaction_status(self, transaction_hash: str):
-        return {"tx_status": TransactionStatus.NOT_RECEIVED.name}
+        return {
+            "status": TransactionStatus.NOT_RECEIVED.name,
+            "finality_status": FinalityStatus.NOT_RECEIVED.name,
+            "execution_status": None,
+        }
 
     async def get_transaction(self, transaction_hash: str) -> TransactionInfo:
         return TransactionInfo.create(
-            status=TransactionStatus.NOT_RECEIVED,
+            finality_status=TransactionStatus.NOT_RECEIVED,
         )
 
     async def get_transaction_receipt(
@@ -92,6 +97,8 @@ class NullOrigin(Origin):
     ) -> TransactionReceipt:
         return TransactionReceipt(
             status=TransactionStatus.NOT_RECEIVED,
+            finality_status=FinalityStatus.NOT_RECEIVED,
+            execution_status=None,
             transaction_hash=0,  # testnet returns 0 instead of received hash
             events=[],
             l2_to_l1_messages=[],
@@ -101,6 +108,7 @@ class NullOrigin(Origin):
             execution_resources=None,
             actual_fee=None,
             transaction_failure_reason=None,
+            revert_error=None,
             l1_to_l2_consumed_message=None,
         )
 
