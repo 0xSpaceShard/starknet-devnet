@@ -2,6 +2,7 @@ use starknet_core::error::Error;
 use starknet_in_rust::core::errors::state_errors::StateError;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::utils::Address;
+use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::starknet_api::block::BlockNumber;
 use starknet_types::starknet_api::transaction::Fee;
@@ -21,7 +22,7 @@ use crate::api::models::transaction::{
     EventsChunk, FunctionCall, Transaction, TransactionReceipt, TransactionType,
     TransactionWithType, Transactions,
 };
-use crate::api::models::{BlockId, ContractAddressHex, PatriciaKeyHex};
+use crate::api::models::{BlockId, PatriciaKeyHex};
 
 /// here are the definitions and stub implementations of all JSON-RPC read endpoints
 impl JsonRpcHandler {
@@ -83,10 +84,7 @@ impl JsonRpcHandler {
             deployed_contracts: state_update
                 .deployed_contracts
                 .into_iter()
-                .map(|(address, class_hash)| DeployedContract {
-                    address: ContractAddressHex(address),
-                    class_hash,
-                })
+                .map(|(address, class_hash)| DeployedContract { address, class_hash })
                 .collect(),
             declared_classes: state_update
                 .declared_classes
@@ -100,16 +98,13 @@ impl JsonRpcHandler {
             nonces: state_update
                 .nonces
                 .into_iter()
-                .map(|(address, nonce)| ContractNonce {
-                    contract_address: ContractAddressHex(address),
-                    nonce,
-                })
+                .map(|(address, nonce)| ContractNonce { contract_address: address, nonce })
                 .collect(),
             storage_diffs: state_update
                 .storage_updates
                 .into_iter()
                 .map(|(contract_address, updates)| StorageDiff {
-                    address: ContractAddressHex(contract_address),
+                    address: contract_address,
                     storage_entries: updates
                         .into_iter()
                         .map(|(key, value)| StorageEntry { key: PatriciaKeyHex(key), value })
@@ -130,7 +125,7 @@ impl JsonRpcHandler {
     /// starknet_getStorageAt
     pub(crate) async fn get_storage_at(
         &self,
-        contract_address: ContractAddressHex,
+        contract_address: ContractAddress,
         key: PatriciaKeyHex,
         block_id: BlockId,
     ) -> RpcResult<Felt> {
@@ -139,7 +134,7 @@ impl JsonRpcHandler {
             .starknet
             .read()
             .await
-            .contract_storage_at_block(block_id.into(), contract_address.0, key.0)
+            .contract_storage_at_block(block_id.into(), contract_address, key.0)
             .map_err(|err| match err {
                 Error::NoBlock => ApiError::BlockNotFound,
                 Error::StateError(StateError::NoneStorage((_, _)))
@@ -167,7 +162,7 @@ impl JsonRpcHandler {
                 Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version1(
                     DeclareTransactionV0V1 {
                         class_hash: declare_v1.class_hash.unwrap_or_default(),
-                        sender_address: ContractAddressHex(declare_v1.sender_address),
+                        sender_address: declare_v1.sender_address,
                         nonce: declare_v1.nonce,
                         max_fee: Fee(declare_v1.max_fee),
                         version: Felt::from(1),
@@ -181,7 +176,7 @@ impl JsonRpcHandler {
                 Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version2(
                     DeclareTransactionV2 {
                         class_hash: declare_v2.class_hash.unwrap(),
-                        sender_address: ContractAddressHex(declare_v2.sender_address),
+                        sender_address: declare_v2.sender_address,
                         nonce: declare_v2.nonce,
                         max_fee: Fee(declare_v2.max_fee),
                         version: Felt::from(2),
@@ -235,7 +230,7 @@ impl JsonRpcHandler {
     pub(crate) async fn get_class_hash_at(
         &self,
         block_id: BlockId,
-        contract_address: ContractAddressHex,
+        contract_address: ContractAddress,
     ) -> RpcResult<ClassHash> {
         let starknet = self.api.starknet.read().await;
         match starknet.get_class_hash_at(&block_id.into(), &contract_address.0) {
@@ -275,7 +270,7 @@ impl JsonRpcHandler {
         let starknet = self.api.starknet.read().await;
         match starknet.call(
             block_id.into(),
-            request.contract_address.0.into(),
+            request.contract_address.into(),
             request.entry_point_selector,
             request.calldata,
         ) {
@@ -341,14 +336,14 @@ impl JsonRpcHandler {
     pub(crate) async fn get_nonce(
         &self,
         block_id: BlockId,
-        contract_address: ContractAddressHex,
+        contract_address: ContractAddress,
     ) -> RpcResult<Felt> {
         let nonce = self
             .api
             .starknet
             .read()
             .await
-            .contract_nonce_at_block(block_id.into(), contract_address.0)
+            .contract_nonce_at_block(block_id.into(), contract_address)
             .map_err(|err| match err {
                 Error::NoBlock => ApiError::BlockNotFound,
                 Error::NoStateAtBlock { block_number: _ } | Error::ContractNotFound => {
