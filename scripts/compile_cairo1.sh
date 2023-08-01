@@ -30,6 +30,7 @@ for contract in "test/contracts/cairo1"/*.cairo; do
     cargo run --bin starknet-compile \
         --manifest-path "$CAIRO_1_COMPILER_MANIFEST" \
         -- \
+        --single-file \
         "$contract" "$sierra_output"
 
     # compile to casm
