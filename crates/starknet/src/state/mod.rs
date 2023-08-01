@@ -19,7 +19,7 @@ use crate::traits::{StateChanger, StateExtractor};
 pub(crate) mod state_diff;
 pub mod state_update;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct StarknetState {
     pub state: InMemoryStateReader,
     pub pending_state: CachedState<InMemoryStateReader>,
@@ -143,7 +143,7 @@ impl StateChanger for StarknetState {
 }
 
 impl StateExtractor for StarknetState {
-    fn get_storage(&mut self, storage_key: ContractStorageKey) -> Result<Felt> {
+    fn get_storage(&self, storage_key: ContractStorageKey) -> Result<Felt> {
         Ok(self.state.get_storage_at(&storage_key.try_into()?).map(Felt::from)?)
     }
 

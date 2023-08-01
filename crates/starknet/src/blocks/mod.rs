@@ -1,13 +1,15 @@
 use std::collections::HashMap;
 
-use starknet_api::block::{BlockHeader, BlockNumber, BlockStatus};
+use starknet_api::block::{BlockHeader, BlockNumber, BlockStatus, BlockTimestamp};
 use starknet_api::hash::{pedersen_hash_array, StarkFelt};
 use starknet_api::stark_felt;
 use starknet_rs_core::types::BlockId;
+use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, Felt};
 use starknet_types::traits::HashProducer;
 
 use crate::state::state_diff::StateDiff;
+use crate::state::StarknetState;
 use crate::traits::HashIdentified;
 use crate::transactions::Transaction;
 
@@ -17,6 +19,7 @@ pub(crate) struct StarknetBlocks {
     pub(crate) pending_block: StarknetBlock,
     pub(crate) last_block_hash: Option<BlockHash>,
     pub(crate) num_to_state_diff: HashMap<BlockNumber, StateDiff>,
+    pub(crate) num_to_state: HashMap<BlockNumber, StarknetState>,
 }
 
 impl HashIdentified for StarknetBlocks {
@@ -39,6 +42,7 @@ impl Default for StarknetBlocks {
             pending_block: StarknetBlock::create_pending_block(),
             last_block_hash: None,
             num_to_state_diff: HashMap::new(),
+            num_to_state: HashMap::new(),
         }
     }
 }
@@ -60,6 +64,10 @@ impl StarknetBlocks {
         self.last_block_hash = Some(hash);
     }
 
+    pub fn save_state_at(&mut self, block_number: BlockNumber, state: StarknetState) {
+        self.num_to_state.insert(block_number, state);
+    }
+
     pub fn get_by_block_id(&self, block_id: BlockId) -> Option<&StarknetBlock> {
         match block_id {
             BlockId::Hash(hash) => self.get_by_hash(Felt::from(hash)),
@@ -77,9 +85,9 @@ impl StarknetBlocks {
 }
 
 #[derive(Clone, Eq, PartialEq)]
-pub(crate) struct StarknetBlock {
+pub struct StarknetBlock {
     pub(crate) header: BlockHeader,
-    transactions: Vec<Transaction>,
+    pub(crate) transactions: Vec<Transaction>,
     pub(crate) status: BlockStatus,
 }
 
@@ -88,19 +96,39 @@ impl StarknetBlock {
         self.transactions.push(transaction);
     }
 
-    pub(crate) fn get_transactions(&self) -> &Vec<Transaction> {
+    pub fn get_transactions(&self) -> &Vec<Transaction> {
         &self.transactions
     }
 
-    pub(crate) fn block_hash(&self) -> BlockHash {
+    pub fn status(&self) -> &BlockStatus {
+        &self.status
+    }
+
+    pub fn block_hash(&self) -> BlockHash {
         self.header.block_hash.into()
+    }
+
+    pub fn parent_hash(&self) -> BlockHash {
+        self.header.parent_hash.into()
+    }
+
+    pub fn sequencer_address(&self) -> ContractAddress {
+        self.header.sequencer.into()
+    }
+
+    pub fn timestamp(&self) -> BlockTimestamp {
+        self.header.timestamp
+    }
+
+    pub fn new_root(&self) -> Felt {
+        self.header.state_root.0.into()
     }
 
     pub(crate) fn set_block_hash(&mut self, block_hash: BlockHash) {
         self.header.block_hash = block_hash.into();
     }
 
-    pub(crate) fn block_number(&self) -> BlockNumber {
+    pub fn block_number(&self) -> BlockNumber {
         self.header.block_number
     }
 

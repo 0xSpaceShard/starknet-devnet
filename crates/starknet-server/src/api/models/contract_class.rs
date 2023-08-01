@@ -1,14 +1,11 @@
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use server::rpc_core::error::RpcError;
-use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass::Deprecated;
 use std::collections::HashMap;
 
 use super::abi_entry::{AbiEntry, AbiEntryType};
-use super::FeltHex;
 use crate::api::json_rpc::error::ApiError;
 use crate::api::json_rpc::RpcResult;
-
 use crate::api::serde_helpers::base_64_gzipped_json_string::deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order;
 use starknet_in_rust::SierraContractClass as ImportedSierraContractClass;
 use starknet_types::contract_class::ContractClass as TypesContractClass;
@@ -37,7 +34,7 @@ impl TryFrom<TypesContractClass> for ContractClass {
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub struct SierraContractClass {
-    pub sierra_program: Vec<FeltHex>,
+    pub sierra_program: Vec<Felt>,
     pub contract_class_version: String,
     pub entry_points_by_type: HashMap<EntryPointType, Vec<EntryPoint>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -47,7 +44,7 @@ pub struct SierraContractClass {
 impl TryFrom<ImportedSierraContractClass> for SierraContractClass {
     type Error = ApiError;
     fn try_from(value: ImportedSierraContractClass) -> RpcResult<Self> {
-        let sierra_program: Vec<FeltHex> =
+        let sierra_program: Vec<Felt> =
             serde_json::from_str(&serde_json::to_string(&value.sierra_program)?)?;
         let mut map: HashMap<EntryPointType, Vec<EntryPoint>> = HashMap::new();
 

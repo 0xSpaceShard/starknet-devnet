@@ -167,7 +167,7 @@ impl JsonRpcHandler {
                 self.get_block_with_tx_hashes(block.block_id).await.to_rpc_result()
             }
             StarknetRequest::BlockWithFullTransactions(block) => {
-                self.get_block_with_full_txs(block.block_id).await.to_rpc_result()
+                self.get_block_with_txs(block.block_id).await.to_rpc_result()
             }
             StarknetRequest::StateUpdate(block) => {
                 self.get_state_update(block.block_id).await.to_rpc_result()
@@ -334,9 +334,7 @@ mod requests_tests {
 
         match request {
             StarknetRequest::TransactionByHash(input) => {
-                assert!(
-                    input.transaction_hash.0 == Felt::from_prefixed_hex_str("0x134134").unwrap()
-                );
+                assert!(input.transaction_hash == Felt::from_prefixed_hex_str("0x134134").unwrap());
             }
             _ => panic!("Wrong request type"),
         }

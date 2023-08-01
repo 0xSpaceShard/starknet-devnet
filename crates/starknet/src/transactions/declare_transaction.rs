@@ -12,14 +12,15 @@ use crate::error::{Error, Result};
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct DeclareTransactionV1 {
-    pub(crate) sender_address: ContractAddress,
-    pub(crate) max_fee: u128,
-    pub(crate) signature: Vec<Felt>,
-    pub(crate) nonce: Felt,
-    pub(crate) contract_class: ContractClass,
-    pub(crate) class_hash: Option<ClassHash>,
-    pub(crate) transaction_hash: Option<TransactionHash>,
-    pub(crate) chain_id: Felt,
+    pub sender_address: ContractAddress,
+    pub max_fee: u128,
+    pub signature: Vec<Felt>,
+    pub nonce: Felt,
+    pub version: Felt,
+    pub contract_class: ContractClass,
+    pub class_hash: Option<ClassHash>,
+    pub transaction_hash: Option<TransactionHash>,
+    pub chain_id: Felt,
 }
 
 impl DeclareTransactionV1 {
@@ -44,6 +45,7 @@ impl DeclareTransactionV1 {
             max_fee,
             signature,
             nonce,
+            version: Felt::from(1),
             contract_class,
             class_hash: None,
             transaction_hash: None,
@@ -51,8 +53,12 @@ impl DeclareTransactionV1 {
         })
     }
 
-    pub(crate) fn version(&self) -> Felt {
-        Felt::from(1)
+    pub fn sender_address(&self) -> &ContractAddress {
+        &self.sender_address
+    }
+
+    pub fn class_hash(&self) -> Option<&ClassHash> {
+        self.class_hash.as_ref()
     }
 }
 
@@ -64,7 +70,7 @@ impl HashProducer for DeclareTransactionV1 {
 
         let transaction_hash: Felt = calculate_transaction_hash_common(
             TransactionHashPrefix::Declare,
-            self.version().into(),
+            self.version.into(),
             &self.sender_address.try_into()?,
             VALIDATE_DECLARE_ENTRY_POINT_SELECTOR.clone(),
             &calldata,

@@ -31,6 +31,8 @@ pub enum Error {
     SignError(#[from] starknet_rs_signers::local_wallet::SignError),
     #[error("No block found")]
     NoBlock,
+    #[error("No state at block {block_number}")]
+    NoStateAtBlock { block_number: u64 },
     #[error("Format error")]
     FormatError,
 }

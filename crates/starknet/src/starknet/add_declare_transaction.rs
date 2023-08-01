@@ -22,7 +22,7 @@ pub fn add_declare_transaction_v2(
         declare_transaction.chain_id.into(),
         declare_transaction.sender_address.try_into()?,
         declare_transaction.max_fee,
-        declare_transaction.version().into(),
+        declare_transaction.version.into(),
         declare_transaction.signature.iter().map(|felt| felt.into()).collect(),
         declare_transaction.nonce.into(),
     )?;
@@ -70,6 +70,7 @@ pub fn add_declare_transaction_v1(
     let class_hash = declare_transaction.contract_class.generate_hash()?;
     let transaction_hash = declare_transaction.generate_hash()?;
     declare_transaction.transaction_hash = Some(transaction_hash);
+    declare_transaction.class_hash = Some(class_hash);
 
     let transaction = Declare {
         class_hash: class_hash.into(),
@@ -77,7 +78,7 @@ pub fn add_declare_transaction_v1(
         tx_type: starknet_in_rust::definitions::transaction_type::TransactionType::Declare,
         validate_entry_point_selector:
             starknet_in_rust::definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR.clone(),
-        version: declare_transaction.version().into(),
+        version: declare_transaction.version.into(),
         max_fee: declare_transaction.max_fee,
         signature: declare_transaction.signature.iter().map(|felt| felt.into()).collect(),
         nonce: declare_transaction.nonce.into(),
@@ -99,8 +100,6 @@ pub fn add_declare_transaction_v1(
 
     match transaction.execute(&mut starknet.state.pending_state, &starknet.block_context) {
         Ok(tx_info) => {
-            declare_transaction.class_hash = Some(class_hash);
-
             starknet.handle_successful_transaction(
                 &transaction_hash,
                 Transaction::Declare(Box::new(declare_transaction)),
