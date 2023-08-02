@@ -247,4 +247,4 @@ def test_compiler_args_without_pythonic_hints():
 
     assert resp.status_code == 200
     resp_body = resp.json()
-    assert_tx_status(resp_body["transaction_hash"], "REJECTED")
+    assert_tx_status(resp_body["transaction_hash"], "REVERTED")

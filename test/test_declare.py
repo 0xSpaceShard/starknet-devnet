@@ -37,7 +37,7 @@ def test_declare_max_fee_too_low():
     )
     class_hash = declare_info["class_hash"]
     assert_hex_equal(class_hash, EXPECTED_CLASS_HASH)
-    assert_tx_status(declare_info["tx_hash"], "REJECTED")
+    assert_tx_status(declare_info["tx_hash"], "REVERTED")
 
     assert_undeclared_class(
         resp=requests.get(

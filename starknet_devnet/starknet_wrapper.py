@@ -46,12 +46,12 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     BlockStateUpdate,
     ClassHashPair,
     ContractAddressHashPair,
+    ExecutionStatus,
+    FinalityStatus,
     StarknetBlock,
     StateDiff,
     StorageEntry,
     TransactionStatus,
-    ExecutionStatus,
-    FinalityStatus,
     TransactionTrace,
 )
 from starkware.starknet.services.api.gateway.transaction import (
@@ -348,9 +348,13 @@ class StarknetWrapper:
         error_message: str = None,
     ) -> StarknetBlock:
         """Stores the provided transaction in the transaction storage."""
-        if transaction.status == TransactionStatus.REJECTED:
-            assert error_message, "error_message must be present if tx rejected"
-            transaction.set_failure_reason(error_message)
+
+        # TODO is this checking and setting even necessary?
+        # if it needs to be done, can it be done earlier, outside of this function?
+
+        # if transaction.status in [TransactionStatus.REJECTED, TransactionStatus.REVERTED]:
+        #     assert error_message, "error_message must be present if tx rejected"
+        #     transaction.set_failure_reason(error_message)
 
         self.transactions.store(transaction.transaction_hash, transaction)
 
@@ -480,13 +484,14 @@ class StarknetWrapper:
 
                     transaction = DevnetTransaction(
                         internal_tx=self.internal_tx,
-                        status=TransactionStatus.REJECTED,
-                        execution_status=None,  # TODO or reverted
-                        finality_status=FinalityStatus.RECEIVED,
+                        status=TransactionStatus.REVERTED,
+                        execution_status=ExecutionStatus.REVERTED,  # TODO or reverted
+                        finality_status=FinalityStatus.ACCEPTED_ON_L2,
                         execution_info=TransactionExecutionInfo.empty(),
                         transaction_hash=tx_hash,
-                        block_number=None,  # Rejected txs have no block number
-                        transaction_index=None,  # Rejected txs have no tx index
+                        block_number=0,  # Rejected txs have no block number
+                        transaction_index=0,  # Rejected txs have no tx index
+                        revert_error=exc.message,
                     )
                     self.starknet_wrapper._store_transaction(
                         transaction, error_message=exc.message

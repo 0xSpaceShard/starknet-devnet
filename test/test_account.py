@@ -153,7 +153,7 @@ def test_invoking_with_invalid_args():
         max_fee=int(1e18),  # prevent estimateFee - fails due to invalid args
     )
 
-    assert_tx_status(tx_hash, "REJECTED")
+    assert_tx_status(tx_hash, "REVERTED")
 
     # check if nonce is increased
     nonce_after = get_nonce(account_address)
@@ -205,7 +205,7 @@ def test_low_max_fee():
 
     tx_hash = invoke(calls, account_address, PRIVATE_KEY, max_fee=estimated_fee - 1)
 
-    assert_tx_status(tx_hash, "REJECTED")
+    assert_tx_status(tx_hash, "REVERTED")
 
     balance = call("get_balance", deploy_info["address"], abi_path=ABI_PATH)
 
@@ -247,12 +247,9 @@ def test_sufficient_max_fee():
 
 
 def _assert_subtraction_overflow(tx_hash: str):
-    assert_tx_status(tx_hash, "REJECTED")
+    assert_tx_status(tx_hash, "REVERTED")
     invoke_receipt = get_transaction_receipt(tx_hash)
-    assert (
-        "subtraction overflow"
-        in invoke_receipt["transaction_failure_reason"]["error_message"]
-    )
+    assert "subtraction overflow" in invoke_receipt["revert_error"]
 
 
 @pytest.mark.account

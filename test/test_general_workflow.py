@@ -56,7 +56,6 @@ def test_lite_mode_block_hash():
     ],
     indirect=True,
 )
-@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS, "--lite-mode")
 def test_general_workflow():
     """Test main feeder gateway calls"""
     deploy_info = declare_and_deploy_with_chargeable(CONTRACT_PATH, inputs=["0"])
@@ -107,7 +106,7 @@ def test_salty_deploy():
     """Test deploying with salt"""
 
     expected_address = (
-        "0x759db555a5facc5bc1cdd838efaf9122be77b0a1373959995ffcbe569057b7e"
+        "0x668bb85fe8e02248aaf308fd9739b9ede2cf27f1e10355a7dfc5b8cc2ee5809"
     )
     contract_path = EVENTS_CONTRACT_PATH
     inputs = None
@@ -129,7 +128,7 @@ def test_salty_deploy():
         max_fee=int(1e18) + 1,
     )
     assert_hex_equal(actual=repeated_deploy_info["address"], expected=expected_address)
-    assert_tx_status(repeated_deploy_info["tx_hash"], "REJECTED")
+    assert_tx_status(repeated_deploy_info["tx_hash"], "REVERTED")
 
 
 @devnet_in_background()
@@ -139,5 +138,5 @@ def test_failing_deploy():
         FAILING_CONTRACT_PATH,
         max_fee=int(1e18),  # if not provided, will fail on implicit estimation
     )
-    assert_tx_status(deploy_info["tx_hash"], "REJECTED")
-    assert_transaction(deploy_info["tx_hash"], "REJECTED")
+    assert_tx_status(deploy_info["tx_hash"], "REVERTED")
+    assert_transaction(deploy_info["tx_hash"], "REVERTED")

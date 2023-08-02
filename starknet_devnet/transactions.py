@@ -70,7 +70,10 @@ class DevnetTransaction:
         if transaction_hash is None:
             self.transaction_hash = internal_tx.hash_value
 
-        if status != TransactionStatus.REJECTED and execution_info.call_info:
+        if (
+            status not in [TransactionStatus.REJECTED, TransactionStatus.REVERTED]
+            and execution_info.call_info
+        ):
             self.execution_resources = execution_info.call_info.execution_resources
 
     def __get_actual_fee(self) -> int:
@@ -253,7 +256,10 @@ class DevnetTransactions:
         if transaction is None:
             return await self.origin.get_transaction_trace(tx_hash)
 
-        if transaction.status == TransactionStatus.REJECTED:
+        if transaction.status in [
+            TransactionStatus.REJECTED,
+            TransactionStatus.REVERTED,
+        ]:
             raise StarknetDevnetException(
                 code=StarknetErrorCode.NO_TRACE,
                 message=f"Transaction corresponding to hash {int(tx_hash, 16)} has no trace; status: {transaction.status.name}.",
@@ -285,6 +291,10 @@ class DevnetTransactions:
 
         status_response = {
             "tx_status": tx_info.status.name,
+            "finality_status": tx_info.finality_status.name,
+            "execution_status": tx_info.execution_status.name
+            if tx_info.execution_status
+            else None,
         }
 
         # "block_hash" will only exist after transaction enters ACCEPTED_ON_L2
@@ -302,16 +312,18 @@ class DevnetTransactions:
 
     async def revert_transaction_in_aborted_block(self, tx_hash: int):
         """
-        Reject transaction in aborted block.
+        Revert transaction in aborted block.
         """
-        self.__instances[tx_hash].status = TransactionStatus.REJECTED
+        self.__instances[tx_hash].status = TransactionStatus.REVERTED
         self.__instances[tx_hash].finality_status = FinalityStatus.ACCEPTED_ON_L2
         # TODO reject/revert?
-        self.__instances[tx_hash].execution_status = None
+        self.__instances[tx_hash].execution_status = ExecutionStatus.REVERTED
         self.__instances[tx_hash].block = None
-        self.__instances[tx_hash].transaction_failure_reason = TransactionFailureReason(
-            code=StarknetErrorCode.TRANSACTION_FAILED.name,
-            error_message="Block aborted.",
+        self.__instances[tx_hash].revert_error = str(
+            TransactionFailureReason(
+                code=StarknetErrorCode.TRANSACTION_FAILED.name,
+                error_message="Block aborted.",
+            )
         )
 
 

@@ -348,11 +348,15 @@ def test_get_transaction_status():
     json_response = get_transaction_status(tx_hash)
     assert_valid_schema(json_response, "get_transaction_status.json")
     assert json_response.get("tx_status") == "ACCEPTED_ON_L2"
+    assert json_response.get("execution_status") == "SUCCEEDED"
+    assert json_response.get("finality_status") == "ACCEPTED_ON_L2"
 
     invalid_tx_hash = "0x443a8b3ec1f9e0c64"
     json_response = get_transaction_status(invalid_tx_hash)
     assert_valid_schema(json_response, "get_transaction_status.json")
     assert json_response.get("tx_status") == "NOT_RECEIVED"
+    assert json_response.get("execution_status") is None
+    assert json_response.get("finality_status") == "NOT_RECEIVED"
 
 
 @devnet_in_background()

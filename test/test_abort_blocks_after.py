@@ -57,7 +57,7 @@ def test_abort_single_block_single_transaction():
     assert contract_deploy_block["status"] == "ACCEPTED_ON_L2"
     assert_tx_status(contract_deploy_info["tx_hash"], "ACCEPTED_ON_L2")
 
-    # Blocks should be aborted and transactions should be rejected
+    # Blocks should be aborted and transactions should be reverted
     response = abort_blocks(contract_deploy_block["block_hash"])
     assert response.status_code == 200
     assert response.json()["aborted"] == [
@@ -70,9 +70,9 @@ def test_abort_single_block_single_transaction():
         block_hash=contract_deploy_block["block_hash"], parse=True
     )
     assert contract_deploy_block_after_abort["status"] == "ABORTED"
-    assert_transaction(contract_deploy_info["tx_hash"], "REJECTED")
+    assert_transaction(contract_deploy_info["tx_hash"], "REVERTED")
 
-    # Test RPC get block status mapping from ABORTED to REJECTED
+    # Test RPC get block status mapping from ABORTED to REVERTED
     rpc_aborted_block = rpc_call(
         "starknet_getBlockWithTxs",
         params={
@@ -94,7 +94,7 @@ def test_abort_same_block_twice():
     assert contract_deploy_block["status"] == "ACCEPTED_ON_L2"
     assert_tx_status(contract_deploy_info["tx_hash"], "ACCEPTED_ON_L2")
 
-    # Blocks should be aborted and transactions should be rejected
+    # Blocks should be aborted and transactions should be reverted
     response = abort_blocks(contract_deploy_block["block_hash"])
     assert response.status_code == 200
     assert response.json()["aborted"] == [
@@ -104,7 +104,7 @@ def test_abort_same_block_twice():
         block_hash=contract_deploy_block["block_hash"], parse=True
     )
     assert contract_deploy_block_after_abort["status"] == "ABORTED"
-    assert_transaction(contract_deploy_info["tx_hash"], "REJECTED")
+    assert_transaction(contract_deploy_info["tx_hash"], "REVERTED")
 
     # Try to abort block again
     response = abort_blocks(contract_deploy_block["block_hash"])
@@ -137,7 +137,7 @@ def test_abort_many_blocks_many_transactions():
     assert invoke_block["status"] == "ACCEPTED_ON_L2"
     assert_transaction(invoke_tx_hash, "ACCEPTED_ON_L2")
 
-    # Blocks should be aborted and transactions should be rejected
+    # Blocks should be aborted and transactions should be reverted
     response = abort_blocks(contract_deploy_block["block_hash"])
     assert response.status_code == 200
     assert response.json()["aborted"] == [
@@ -152,15 +152,15 @@ def test_abort_many_blocks_many_transactions():
         block_hash=contract_deploy_block["block_hash"], parse=True
     )
     assert contract_deploy_block_after_abort["status"] == "ABORTED"
-    assert_transaction(contract_deploy_info["tx_hash"], "REJECTED")
+    assert_transaction(contract_deploy_info["tx_hash"], "REVERTED")
 
     invoke_block_after_abort = get_block(
         block_hash=invoke_block["block_hash"], parse=True
     )
     assert invoke_block_after_abort["status"] == "ABORTED"
-    assert_transaction(invoke_tx_hash, "REJECTED")
+    assert_transaction(invoke_tx_hash, "REVERTED")
 
-    # Test RPC get block status mapping from ABORTED to REJECTED
+    # Test RPC get block status mapping from ABORTED to REVERTED
     rpc_aborted_block_contract = rpc_call(
         "starknet_getBlockWithTxs",
         params={
@@ -273,7 +273,7 @@ def test_state_revert_with_abort_block():
     )
     assert int(value_after_invoke) == 30
 
-    # Block should be aborted and transaction should be rejected
+    # Block should be aborted and transaction should be reverted
     response = abort_blocks(invoke_block["block_hash"])
     assert response.status_code == 200
     assert response.json()["aborted"] == [invoke_block["block_hash"]]
@@ -313,8 +313,8 @@ def test_pending_state_with_abort_block():
     )
     assert_tx_status(invoke_tx_hash, "ACCEPTED_ON_L2")
 
-    # Block should be aborted and pending transaction should be rejected
+    # Block should be aborted and pending transaction should be reverted
     latest_block = get_block(block_number="latest", parse=True)
     response = abort_blocks(latest_block["block_hash"])
     assert response.status_code == 200
-    assert_tx_status(invoke_tx_hash, "REJECTED")
+    assert_tx_status(invoke_tx_hash, "REVERTED")

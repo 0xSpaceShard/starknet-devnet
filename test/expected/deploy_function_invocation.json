@@ -9,8 +9,8 @@
         "0x5"
     ],
     "caller_address": "0x0",
-    "class_hash": "0x30430b242f48e0d8eb590f1a2a114d7c3e49678d96f8a5f20664f29413d3154",
-    "contract_address": "0x2ef8c5645763df5a2604dbfd7e348e5353f7272b3a4a33de4c7b8b8044a3ce0",
+    "class_hash": "0x7e9593b08156273c4177588b0f5210176ec7689115df46abe99a9a8d45c0760",
+    "contract_address": "0x862402f45f33df7b4c82c9108ea7cace59ab1c7703b3dc65c6c3b0047e36b8",
     "entry_point_type": "CONSTRUCTOR",
     "events": [],
     "execution_resources": {

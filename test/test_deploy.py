@@ -103,7 +103,7 @@ def deploy_account_test_body():
 
     # deployment should fail if no funds
     tx_before = send_tx(deploy_account_tx, TransactionType.DEPLOY_ACCOUNT)
-    assert_tx_status(tx_before["transaction_hash"], "REJECTED")
+    assert_tx_status(tx_before["transaction_hash"], "REVERTED")
 
     # fund the address of the account
     mint(hex(account_address), amount=int(1e18))
@@ -240,4 +240,4 @@ def test_declare_and_deploy_with_invalid_constructor_args():
         max_fee=int(1e18),  # prevent estimateFee - fails due to invalid args
     )
 
-    assert_tx_status(deploy_info["tx_hash"], "REJECTED")
+    assert_tx_status(deploy_info["tx_hash"], "REVERTED")

@@ -82,14 +82,14 @@ class NullOrigin(Origin):
 
     async def get_transaction_status(self, transaction_hash: str):
         return {
-            "status": TransactionStatus.NOT_RECEIVED.name,
+            "tx_status": TransactionStatus.NOT_RECEIVED.name,
             "finality_status": FinalityStatus.NOT_RECEIVED.name,
             "execution_status": None,
         }
 
     async def get_transaction(self, transaction_hash: str) -> TransactionInfo:
         return TransactionInfo.create(
-            finality_status=TransactionStatus.NOT_RECEIVED,
+            finality_status=FinalityStatus.NOT_RECEIVED,
         )
 
     async def get_transaction_receipt(

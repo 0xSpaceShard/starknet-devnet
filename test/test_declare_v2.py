@@ -62,11 +62,8 @@ def assert_already_declared(
     assert tx_resp.status_code == 200, tx_resp.json()
     tx_resp_body = tx_resp.json()
 
-    assert tx_resp_body.get("status") == "REJECTED", tx_resp_body
-    assert (
-        "already declared"
-        in tx_resp_body["transaction_failure_reason"]["error_message"]
-    )
+    assert tx_resp_body.get("status") == "REVERTED", tx_resp_body
+    assert "already declared" in tx_resp_body["revert_error"]
 
 
 def _assert_invalid_compiled_class_hash(declaration_resp: requests.Response):
@@ -80,11 +77,8 @@ def _assert_invalid_compiled_class_hash(declaration_resp: requests.Response):
     assert tx_resp.status_code == 200, tx_resp.json()
     tx_resp_body = tx_resp.json()
 
-    assert tx_resp_body.get("status") == "REJECTED", tx_resp_body
-    assert (
-        "Compiled class hash not matching"
-        in tx_resp_body["transaction_failure_reason"]["error_message"]
-    )
+    assert tx_resp_body.get("status") == "REVERTED", tx_resp_body
+    assert "Compiled class hash not matching" in tx_resp_body["revert_error"]
 
 
 def load_cairo1_contract():

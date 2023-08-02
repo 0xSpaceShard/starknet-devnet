@@ -7,11 +7,17 @@
         "tx_status": {
             "$ref": "type/tx_status.json"
         },
+        "finality_status": {
+            "$ref": "type/finality_status.json"
+        },
+        "execution_status": {
+            "$ref": "type/execution_status.json"
+        },
         "block_hash": {
             "$ref": "type/hex_string.json"
         }
     },
-    "required": ["tx_status"],
+    "required": ["tx_status", "execution_status", "finality_status"],
     "dependentRequired": {
         "block_hash": ["tx_status"]
     },

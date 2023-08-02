@@ -197,12 +197,9 @@ def test_increase_balance():
         max_fee=10**21,
     )
 
-    assert_tx_status(invoke_tx_hash, "REJECTED")
+    assert_tx_status(invoke_tx_hash, "REVERTED")
     invoke_receipt = get_transaction_receipt(invoke_tx_hash)
-    assert (
-        "subtraction overflow"
-        in invoke_receipt["transaction_failure_reason"]["error_message"]
-    )
+    assert "subtraction overflow" in invoke_receipt["revert_error"]
 
     intermediate_account_balance = get_account_balance(account_address)
     assert_equal(initial_account_balance, intermediate_account_balance)

@@ -1,0 +1,11 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Must be one of existing execution statuses",
+    "type": ["string", "null"],
+    "enum": [
+        "REJECTED",
+        "REVERTED",
+        "SUCCEEDED",
+        null
+    ]
+}

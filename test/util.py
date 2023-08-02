@@ -248,7 +248,9 @@ def assert_transaction_not_received(tx_hash: str, feeder_gateway_url=APP_URL):
         ["get_transaction", "--hash", tx_hash], gateway_url=feeder_gateway_url
     )
     transaction = json.loads(output.stdout)
-    assert_equal(transaction, {"status": "NOT_RECEIVED"})
+    assert_equal(
+        transaction, {"finality_status": "NOT_RECEIVED", "status": "NOT_RECEIVED"}
+    )
 
 
 def assert_transaction_receipt_not_received(tx_hash: str, feeder_gateway_url=APP_URL):
@@ -260,6 +262,7 @@ def assert_transaction_receipt_not_received(tx_hash: str, feeder_gateway_url=APP
             "events": [],
             "l2_to_l1_messages": [],
             "status": "NOT_RECEIVED",
+            "finality_status": "NOT_RECEIVED",
             "transaction_hash": "0x0",
         },
     )
