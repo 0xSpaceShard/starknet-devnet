@@ -7,7 +7,7 @@ mod get_transaction_by_hash_integration_tests {
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
     use starknet_rs_core::types::{
-        BlockId, BlockTag, BroadcastedDeclareTransactionV1, FieldElement,
+        BlockId, BlockTag, BroadcastedDeclareTransactionV1, FieldElement, BroadcastedInvokeTransactionV1, BroadcastedDeployAccountTransaction,
     };
     use starknet_rs_providers::Provider;
     use starknet_rs_signers::{LocalWallet, SigningKey};
@@ -24,6 +24,9 @@ mod get_transaction_by_hash_integration_tests {
 
     pub const DECLARE_V2_TRANSACTION_HASH: &str =
         "0x2b5c7f97fc7899669463848f59bfbe114138b945cf8bffebb8b29949df8b1a8";
+    
+    pub const INVOKE_V1_TRANSACTION_HASH: &str =
+        "0x057c60c720f9ce34cd0a411e5c2ded91dfd2a912c11a26508c796da53d1b73c6";
 
     #[tokio::test]
     async fn get_declare_v1_transaction_by_hash_happy_path() {
@@ -105,5 +108,81 @@ mod get_transaction_by_hash_integration_tests {
             result.unwrap().transaction_hash,
             FieldElement::from_hex_be(DECLARE_V2_TRANSACTION_HASH).unwrap()
         );
+    }
+
+    #[tokio::test]
+    async fn get_deploy_account_transaction_by_hash_happy_path() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        // Just some dummy data to pass validation, this will change once get_transaction_receipt_by_hash will be implemented
+        let deploy_account_txn = BroadcastedDeployAccountTransaction {
+            max_fee: FieldElement::from_hex_be("0xde0b6b3a7640000").unwrap(),
+            signature: vec![FieldElement::from_hex_be("0x1").unwrap(), FieldElement::from_hex_be("0x1").unwrap()],
+            nonce: FieldElement::from_hex_be("0x0").unwrap(),
+            class_hash: FieldElement::from_hex_be("0x1").unwrap(),
+            contract_address_salt: FieldElement::from_hex_be("0x1").unwrap(),
+            constructor_calldata: vec![FieldElement::from_hex_be("0x1").unwrap()],
+        };
+
+        let deploy_transaction = devnet
+            .json_rpc_client
+            .add_deploy_account_transaction(deploy_account_txn.clone())
+            .await;
+
+        let result = devnet
+            .json_rpc_client
+            .get_transaction_by_hash(deploy_transaction.unwrap().transaction_hash)
+            .await
+            .unwrap();
+
+        if let starknet_rs_core::types::Transaction::DeployAccount(
+            deploy
+        ) = result
+        {
+            assert_eq!(
+                deploy.transaction_hash,
+                FieldElement::from_hex_be(INVOKE_V1_TRANSACTION_HASH).unwrap()
+            );
+        } else {
+            panic!();
+        }
+    }
+
+    #[tokio::test]
+    async fn get_invoke_v1_transaction_by_hash_happy_path() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        // Just some dummy data to pass validation, this will change once get_transaction_receipt_by_hash will be implemented
+        let invoke_txn_v1 = BroadcastedInvokeTransactionV1 {
+            max_fee: FieldElement::from_hex_be("0xde0b6b3a7640000").unwrap(),
+            signature: vec![],
+            nonce: FieldElement::from_hex_be("0x0").unwrap(),
+            sender_address: FieldElement::from_hex_be("0x0").unwrap(),
+            calldata: vec![],
+        };
+
+        let invoke_transaction = devnet
+            .json_rpc_client
+            .add_invoke_transaction(starknet_rs_core::types::BroadcastedInvokeTransaction::V1(
+                invoke_txn_v1.clone(),
+            ))
+            .await
+            .unwrap();
+
+        let result = devnet
+            .json_rpc_client
+            .get_transaction_by_hash(invoke_transaction.transaction_hash)
+            .await
+            .unwrap();
+
+        if let starknet_rs_core::types::Transaction::Invoke(
+            starknet_rs_core::types::InvokeTransaction::V1(invoke_v1),
+        ) = result
+        {
+            assert_eq!(
+                invoke_v1.transaction_hash,
+                FieldElement::from_hex_be(INVOKE_V1_TRANSACTION_HASH).unwrap()
+            );
+        } else {
+            panic!();
+        }
     }
 }

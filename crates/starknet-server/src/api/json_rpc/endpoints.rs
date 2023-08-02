@@ -194,7 +194,7 @@ impl JsonRpcHandler {
             starknet_core::transactions::Transaction::DeployAccount(deploy) => {
                 transaction_type = TransactionType::DeployAccount;
                 Transaction::DeployAccount(crate::api::models::transaction::DeployAccountTransaction {
-                        transaction_hash: Felt::from(deploy.inner.hash_value().clone()), // Clone is ok?
+                        transaction_hash: Felt::from(deploy.inner.hash_value().clone()),
                         max_fee: Fee(deploy.max_fee),
                         version: deploy.version,
                         signature: deploy.signature.clone(),
@@ -209,7 +209,7 @@ impl JsonRpcHandler {
                 transaction_type = TransactionType::Invoke;
                 Transaction::Invoke(crate::api::models::transaction::InvokeTransaction::Version1(
                     InvokeTransactionV1 {
-                        transaction_hash: Felt::from(invoke.inner.hash_value().clone()), // Clone is ok?
+                        transaction_hash: Felt::from(invoke.inner.hash_value().clone()),
                         max_fee: Fee(invoke.max_fee),
                         version: invoke.version,
                         signature: invoke.signature.clone(),
