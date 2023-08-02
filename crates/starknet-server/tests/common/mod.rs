@@ -168,6 +168,12 @@ pub mod util {
                 self.http_client.get(uri.as_str().parse::<Uri>().unwrap()).await.unwrap();
             Ok(response)
         }
+
+        pub fn clone_provider(&self) -> JsonRpcClient<HttpTransport> {
+            JsonRpcClient::new(HttpTransport::new(
+                Url::parse(format!("{}/rpc", self.url.as_str()).as_str()).unwrap(),
+            ))
+        }
     }
 
     /// By implementing Drop, we ensure there are no zombie background Devnet processes
