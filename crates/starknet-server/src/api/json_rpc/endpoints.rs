@@ -18,11 +18,9 @@ use crate::api::models::state::{
 };
 use crate::api::models::transaction::{
     BroadcastedTransactionWithType, DeclareTransactionV0V1, DeclareTransactionV2,
-    EmittedEvent, Event, EventContent, EventFilter, EventsChunk, FunctionCall, Transaction,
-    TransactionHashHex, TransactionReceipt, TransactionType, TransactionWithType, Transactions,
+    EmittedEvent, Event, EventContent, EventFilter, EventsChunk, FunctionCall, Transaction, TransactionReceipt, TransactionType, TransactionWithType, Transactions,
 };
 use crate::api::models::{BlockId, ContractAddressHex, PatriciaKeyHex};
-use crate::api::utils::into_vec;
 
 /// here are the definitions and stub implementations of all JSON-RPC read endpoints
 impl JsonRpcHandler {
@@ -40,10 +38,7 @@ impl JsonRpcHandler {
             transactions: crate::api::models::transaction::Transactions::Hashes(
                 block
                     .get_transactions()
-                    .iter()
-                    // We shouldnt get in the situation where tx hash is None
-                    .map(|tx| tx.get_hash().unwrap_or_default())
-                    .collect(),
+                    .to_owned()
             ),
         })
     }
@@ -336,13 +331,6 @@ impl JsonRpcHandler {
 
     /// starknet_getEvents
     pub(crate) async fn get_events(&self, filter: EventFilter) -> RpcResult<EventsChunk> {
-        let keys: Option<Vec<Vec<Felt>>> = filter.keys.map(|vector_of_vector_of_keys| {
-            vector_of_vector_of_keys
-                .into_iter()
-                .map(|vector_of_keys| vector_of_keys.into_iter().map(|key| key.0).collect())
-                .collect()
-        });
-
         let starknet = self.api.starknet.read().await;
 
         let skip = filter
@@ -355,7 +343,7 @@ impl JsonRpcHandler {
             filter.from_block,
             filter.to_block,
             filter.address.map(|val| val.0),
-            keys,
+            filter.keys,
             skip,
             Some(filter.chunk_size),
         )?;
@@ -364,14 +352,14 @@ impl JsonRpcHandler {
             events: events
                 .into_iter()
                 .map(|emitted_event| EmittedEvent {
-                    block_hash: FeltHex(emitted_event.block_hash),
+                    block_hash: emitted_event.block_hash,
                     block_number: emitted_event.block_number,
-                    transaction_hash: FeltHex(emitted_event.transaction_hash),
+                    transaction_hash: emitted_event.transaction_hash,
                     event: Event {
                         from_address: ContractAddressHex(emitted_event.from_address),
                         content: EventContent {
-                            keys: into_vec(&emitted_event.keys),
-                            data: into_vec(&emitted_event.data),
+                            keys: emitted_event.keys,
+                            data: emitted_event.data,
                         },
                     },
                 })

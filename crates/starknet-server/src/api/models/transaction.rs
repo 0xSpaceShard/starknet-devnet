@@ -231,7 +231,7 @@ pub struct EventFilter {
     pub from_block: Option<BlockId>,
     pub to_block: Option<BlockId>,
     pub address: Option<ContractAddressHex>,
-    pub keys: Option<Vec<Vec<FeltHex>>>,
+    pub keys: Option<Vec<Vec<Felt>>>,
     pub continuation_token: Option<String>,
     pub chunk_size: usize,
 }
@@ -248,7 +248,7 @@ pub struct EmittedEvent {
     pub event: Event,
     pub block_hash: BlockHashHex,
     pub block_number: BlockNumber,
-    pub transaction_hash: TransactionHashHex,
+    pub transaction_hash: TransactionHash,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
