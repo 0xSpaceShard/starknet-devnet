@@ -1,27 +1,21 @@
 use serde::{Deserialize, Serialize};
 use starknet_rs_core::types::BlockId;
+use starknet_types::felt::{
+    Calldata, ClassHash, CompiledClassHash, ContractAddressSalt, EntryPointSelector, Felt, Nonce,
+    TransactionHash, TransactionSignature, TransactionVersion,
+};
 use starknet_types::starknet_api::block::BlockNumber;
 use starknet_types::starknet_api::transaction::{EthAddress, Fee};
 
 use super::block::BlockHashHex;
 use super::contract_class::DeprecatedContractClass;
-use super::{ContractAddressHex, FeltHex};
+use super::ContractAddressHex;
 use crate::api::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
-
-pub type TransactionHashHex = FeltHex;
-pub type ClassHashHex = FeltHex;
-pub type Nonce = FeltHex;
-pub type TransactionVersionHex = FeltHex;
-pub type TransactionSignature = Vec<FeltHex>;
-pub type CompiledClassHashHex = FeltHex;
-pub type EntryPointSelectorHex = FeltHex;
-pub type Calldata = Vec<FeltHex>;
-pub type ContractAddressSaltHex = FeltHex;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum Transactions {
-    Hashes(Vec<TransactionHashHex>),
+    Hashes(Vec<TransactionHash>),
     Full(Vec<TransactionWithType>),
 }
 
@@ -59,24 +53,24 @@ pub enum Transaction {
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub struct DeclareTransactionV0V1 {
-    pub class_hash: ClassHashHex,
+    pub class_hash: ClassHash,
     pub sender_address: ContractAddressHex,
     pub nonce: Nonce,
     pub max_fee: Fee,
-    pub version: TransactionVersionHex,
-    pub transaction_hash: TransactionHashHex,
+    pub version: TransactionVersion,
+    pub transaction_hash: TransactionHash,
     pub signature: TransactionSignature,
 }
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub struct DeclareTransactionV2 {
-    pub class_hash: ClassHashHex,
-    pub compiled_class_hash: CompiledClassHashHex,
+    pub class_hash: ClassHash,
+    pub compiled_class_hash: CompiledClassHash,
     pub sender_address: ContractAddressHex,
     pub nonce: Nonce,
     pub max_fee: Fee,
-    pub version: TransactionVersionHex,
-    pub transaction_hash: TransactionHashHex,
+    pub version: TransactionVersion,
+    pub transaction_hash: TransactionHash,
     pub signature: TransactionSignature,
 }
 
@@ -90,21 +84,21 @@ pub enum DeclareTransaction {
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub struct InvokeTransactionV0 {
-    pub transaction_hash: TransactionHashHex,
+    pub transaction_hash: TransactionHash,
     pub max_fee: Fee,
-    pub version: TransactionVersionHex,
+    pub version: TransactionVersion,
     pub signature: TransactionSignature,
     pub nonce: Nonce,
     pub contract_address: ContractAddressHex,
-    pub entry_point_selector: EntryPointSelectorHex,
+    pub entry_point_selector: EntryPointSelector,
     pub calldata: Calldata,
 }
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub struct InvokeTransactionV1 {
-    pub transaction_hash: TransactionHashHex,
+    pub transaction_hash: TransactionHash,
     pub max_fee: Fee,
-    pub version: TransactionVersionHex,
+    pub version: TransactionVersion,
     pub signature: TransactionSignature,
     pub nonce: Nonce,
     pub sender_address: ContractAddressHex,
@@ -120,32 +114,32 @@ pub enum InvokeTransaction {
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub struct DeployAccountTransaction {
-    pub transaction_hash: TransactionHashHex,
+    pub transaction_hash: TransactionHash,
     pub max_fee: Fee,
-    pub version: TransactionVersionHex,
+    pub version: TransactionVersion,
     pub signature: TransactionSignature,
     pub nonce: Nonce,
-    pub class_hash: ClassHashHex,
-    pub contract_address_salt: ContractAddressSaltHex,
+    pub class_hash: ClassHash,
+    pub contract_address_salt: ContractAddressSalt,
     pub constructor_calldata: Calldata,
 }
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub struct DeployTransaction {
-    pub transaction_hash: TransactionHashHex,
-    pub version: TransactionVersionHex,
-    pub class_hash: ClassHashHex,
-    pub contract_address_salt: ContractAddressSaltHex,
+    pub transaction_hash: TransactionHash,
+    pub version: TransactionVersion,
+    pub class_hash: ClassHash,
+    pub contract_address_salt: ContractAddressSalt,
     pub constructor_calldata: Calldata,
 }
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub struct L1HandlerTransaction {
-    pub transaction_hash: TransactionHashHex,
-    pub version: TransactionVersionHex,
+    pub transaction_hash: TransactionHash,
+    pub version: TransactionVersion,
     pub nonce: Nonce,
     pub contract_address: ContractAddressHex,
-    pub entry_point_selector: EntryPointSelectorHex,
+    pub entry_point_selector: EntryPointSelector,
     pub calldata: Calldata,
 }
 
@@ -190,7 +184,7 @@ pub struct DeployTransactionReceipt {
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct CommonTransactionReceipt {
-    pub transaction_hash: TransactionHashHex,
+    pub transaction_hash: TransactionHash,
     pub r#type: TransactionType,
     pub block_hash: BlockHashHex,
     pub block_number: BlockNumber,
@@ -205,7 +199,7 @@ pub struct TransactionOutput {
     pub events: Vec<Event>,
 }
 
-pub type L2ToL1Payload = Vec<FeltHex>;
+pub type L2ToL1Payload = Vec<Felt>;
 
 /// An L2 to L1 message.
 #[derive(Debug, Default, Clone, Eq, PartialEq, Deserialize, Serialize)]
@@ -222,8 +216,8 @@ pub struct Event {
     pub content: EventContent,
 }
 
-pub type EventKeyHex = FeltHex;
-pub type EventData = Vec<FeltHex>;
+pub type EventKeyHex = Felt;
+pub type EventData = Vec<Felt>;
 
 /// An event content.
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
@@ -260,14 +254,14 @@ pub struct EmittedEvent {
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct FunctionCall {
     pub contract_address: ContractAddressHex,
-    pub entry_point_selector: EntryPointSelectorHex,
+    pub entry_point_selector: EntryPointSelector,
     pub calldata: Calldata,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct BroadcastedTransactionCommon {
     pub max_fee: Fee,
-    pub version: TransactionVersionHex,
+    pub version: TransactionVersion,
     pub signature: TransactionSignature,
     pub nonce: Nonce,
 }
@@ -306,7 +300,7 @@ pub struct BroadcastedInvokeTransactionV0 {
     #[serde(flatten)]
     pub common: BroadcastedTransactionCommon,
     pub contract_address: ContractAddressHex,
-    pub entry_point_selector: EntryPointSelectorHex,
+    pub entry_point_selector: EntryPointSelector,
     pub calldata: Calldata,
 }
 
@@ -333,14 +327,14 @@ pub struct BroadcastedDeclareTransactionV2 {
     #[serde(deserialize_with = "deserialize_to_sierra_contract_class")]
     pub contract_class: starknet_in_rust::SierraContractClass,
     pub sender_address: ContractAddressHex,
-    pub compiled_class_hash: CompiledClassHashHex,
+    pub compiled_class_hash: CompiledClassHash,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct BroadcastedDeployAccountTransaction {
     #[serde(flatten)]
     pub common: BroadcastedTransactionCommon,
-    pub contract_address_salt: ContractAddressSaltHex,
+    pub contract_address_salt: ContractAddressSalt,
     pub constructor_calldata: Calldata,
-    pub class_hash: ClassHashHex,
+    pub class_hash: ClassHash,
 }

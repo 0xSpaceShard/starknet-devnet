@@ -2,7 +2,7 @@ use starknet_core::error::Error;
 use starknet_in_rust::core::errors::state_errors::StateError;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::utils::Address;
-use starknet_types::felt::Felt;
+use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::starknet_api::block::BlockNumber;
 use starknet_types::starknet_api::transaction::Fee;
 use starknet_types::traits::ToHexString;
@@ -17,11 +17,11 @@ use crate::api::models::state::{
     ThinStateDiff,
 };
 use crate::api::models::transaction::{
-    BroadcastedTransactionWithType, ClassHashHex, DeclareTransactionV0V1, DeclareTransactionV2,
+    BroadcastedTransactionWithType, DeclareTransactionV0V1, DeclareTransactionV2,
     EmittedEvent, Event, EventContent, EventFilter, EventsChunk, FunctionCall, Transaction,
     TransactionHashHex, TransactionReceipt, TransactionType, TransactionWithType, Transactions,
 };
-use crate::api::models::{BlockId, ContractAddressHex, FeltHex, PatriciaKeyHex};
+use crate::api::models::{BlockId, ContractAddressHex, PatriciaKeyHex};
 use crate::api::utils::into_vec;
 
 /// here are the definitions and stub implementations of all JSON-RPC read endpoints
@@ -42,7 +42,7 @@ impl JsonRpcHandler {
                     .get_transactions()
                     .iter()
                     // We shouldnt get in the situation where tx hash is None
-                    .map(|tx| FeltHex(*tx))
+                    .map(|tx| tx.get_hash().unwrap_or_default())
                     .collect(),
             ),
         })
@@ -87,28 +87,24 @@ impl JsonRpcHandler {
                 .into_iter()
                 .map(|(address, class_hash)| DeployedContract {
                     address: ContractAddressHex(address),
-                    class_hash: FeltHex(class_hash),
+                    class_hash,
                 })
                 .collect(),
             declared_classes: state_update
                 .declared_classes
                 .into_iter()
                 .map(|(class_hash, compiled_class_hash)| ClassHashes {
-                    class_hash: FeltHex(class_hash),
-                    compiled_class_hash: FeltHex(compiled_class_hash),
+                    class_hash,
+                    compiled_class_hash,
                 })
                 .collect(),
-            deprecated_declared_classes: state_update
-                .cairo_0_declared_classes
-                .into_iter()
-                .map(FeltHex)
-                .collect(),
+            deprecated_declared_classes: state_update.cairo_0_declared_classes,
             nonces: state_update
                 .nonces
                 .into_iter()
                 .map(|(address, nonce)| ContractNonce {
                     contract_address: ContractAddressHex(address),
-                    nonce: FeltHex(nonce),
+                    nonce,
                 })
                 .collect(),
             storage_diffs: state_update
@@ -118,10 +114,7 @@ impl JsonRpcHandler {
                     address: ContractAddressHex(contract_address),
                     storage_entries: updates
                         .into_iter()
-                        .map(|(key, value)| StorageEntry {
-                            key: PatriciaKeyHex(key),
-                            value: FeltHex(value),
-                        })
+                        .map(|(key, value)| StorageEntry { key: PatriciaKeyHex(key), value })
                         .collect(),
                 })
                 .collect(),
@@ -129,9 +122,9 @@ impl JsonRpcHandler {
         };
 
         Ok(StateUpdate {
-            block_hash: FeltHex(state_update.block_hash),
-            new_root: FeltHex(state_update.new_root),
-            old_root: FeltHex(state_update.old_root),
+            block_hash: state_update.block_hash,
+            new_root: state_update.new_root,
+            old_root: state_update.old_root,
             state_diff,
         })
     }
@@ -142,7 +135,7 @@ impl JsonRpcHandler {
         contract_address: ContractAddressHex,
         key: PatriciaKeyHex,
         block_id: BlockId,
-    ) -> RpcResult<FeltHex> {
+    ) -> RpcResult<Felt> {
         let felt = self
             .api
             .starknet
@@ -156,18 +149,18 @@ impl JsonRpcHandler {
                 unknown_error => ApiError::StarknetDevnetError(unknown_error),
             })?;
 
-        Ok(FeltHex(felt))
+        Ok(felt)
     }
 
     /// starknet_getTransactionByHash
     pub(crate) async fn get_transaction_by_hash(
         &self,
-        transaction_hash: TransactionHashHex,
+        transaction_hash: TransactionHash,
     ) -> RpcResult<TransactionWithType> {
         let starknet = self.api.starknet.read().await;
         let transaction_to_map = starknet
             .transactions
-            .get(&transaction_hash.0)
+            .get(&transaction_hash)
             .ok_or(error::ApiError::TransactionNotFound)?;
         let transaction_type;
         let transaction_data: Transaction = match transaction_to_map.inner.clone() {
@@ -175,13 +168,13 @@ impl JsonRpcHandler {
                 transaction_type = TransactionType::Declare;
                 Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version1(
                     DeclareTransactionV0V1 {
-                        class_hash: FeltHex(declare_v1.class_hash.unwrap_or_default()),
+                        class_hash: declare_v1.class_hash.unwrap_or_default(),
                         sender_address: ContractAddressHex(declare_v1.sender_address),
-                        nonce: FeltHex(declare_v1.nonce),
+                        nonce: declare_v1.nonce,
                         max_fee: Fee(declare_v1.max_fee),
-                        version: FeltHex(Felt::from(1)),
-                        transaction_hash: FeltHex(declare_v1.transaction_hash.unwrap()),
-                        signature: declare_v1.signature.into_iter().map(FeltHex).collect(),
+                        version: Felt::from(1),
+                        transaction_hash: declare_v1.transaction_hash.unwrap(),
+                        signature: declare_v1.signature,
                     },
                 ))
             }
@@ -189,14 +182,14 @@ impl JsonRpcHandler {
                 transaction_type = TransactionType::Declare;
                 Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version2(
                     DeclareTransactionV2 {
-                        class_hash: FeltHex(declare_v2.class_hash.unwrap()),
+                        class_hash: declare_v2.class_hash.unwrap(),
                         sender_address: ContractAddressHex(declare_v2.sender_address),
-                        nonce: FeltHex(declare_v2.nonce),
+                        nonce: declare_v2.nonce,
                         max_fee: Fee(declare_v2.max_fee),
-                        version: FeltHex(Felt::from(2)),
-                        transaction_hash: FeltHex(declare_v2.transaction_hash.unwrap()),
-                        signature: declare_v2.signature.into_iter().map(FeltHex).collect(),
-                        compiled_class_hash: FeltHex(declare_v2.compiled_class_hash),
+                        version: Felt::from(2),
+                        transaction_hash: declare_v2.transaction_hash.unwrap(),
+                        signature: declare_v2.signature,
+                        compiled_class_hash: declare_v2.compiled_class_hash,
                     },
                 ))
             }
@@ -226,7 +219,7 @@ impl JsonRpcHandler {
     /// starknet_getTransactionReceipt
     pub(crate) async fn get_transaction_receipt_by_hash(
         &self,
-        _transaction_hash: TransactionHashHex,
+        _transaction_hash: TransactionHash,
     ) -> RpcResult<TransactionReceipt> {
         Err(error::ApiError::TransactionNotFound)
     }
@@ -235,7 +228,7 @@ impl JsonRpcHandler {
     pub(crate) async fn get_class(
         &self,
         _block_id: BlockId,
-        _class_hash: ClassHashHex,
+        _class_hash: ClassHash,
     ) -> RpcResult<ContractClass> {
         Err(error::ApiError::ClassHashNotFound)
     }
@@ -245,10 +238,10 @@ impl JsonRpcHandler {
         &self,
         block_id: BlockId,
         contract_address: ContractAddressHex,
-    ) -> RpcResult<ClassHashHex> {
+    ) -> RpcResult<ClassHash> {
         let starknet = self.api.starknet.read().await;
         match starknet.get_class_hash_at(&block_id.into(), &contract_address.0) {
-            Ok(class_hash) => Ok(FeltHex(class_hash)),
+            Ok(class_hash) => Ok(class_hash),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(Error::ContractNotFound | Error::NoStateAtBlock { block_number: _ }) => {
                 Err(ApiError::ContractNotFound)
@@ -280,15 +273,15 @@ impl JsonRpcHandler {
         &self,
         block_id: BlockId,
         request: FunctionCall,
-    ) -> RpcResult<Vec<FeltHex>> {
+    ) -> RpcResult<Vec<Felt>> {
         let starknet = self.api.starknet.read().await;
         match starknet.call(
             block_id.into(),
             request.contract_address.0.into(),
-            request.entry_point_selector.0,
-            request.calldata.iter().map(|c| c.0).collect(),
+            request.entry_point_selector,
+            request.calldata,
         ) {
-            Ok(result) => Ok(result.into_iter().map(FeltHex).collect()),
+            Ok(result) => Ok(result),
             Err(Error::TransactionError(TransactionError::State(
                 StateError::NoneContractState(Address(_address)),
             ))) => Err(ApiError::ContractNotFound),
@@ -319,7 +312,7 @@ impl JsonRpcHandler {
         })?;
 
         Ok(BlockHashAndNumberOutput {
-            block_hash: FeltHex(block.block_hash()),
+            block_hash: block.block_hash(),
             block_number: block.block_number(),
         })
     }
@@ -392,7 +385,7 @@ impl JsonRpcHandler {
         &self,
         block_id: BlockId,
         contract_address: ContractAddressHex,
-    ) -> RpcResult<FeltHex> {
+    ) -> RpcResult<Felt> {
         let nonce = self
             .api
             .starknet
@@ -407,6 +400,6 @@ impl JsonRpcHandler {
                 unknown_error => ApiError::StarknetDevnetError(unknown_error),
             })?;
 
-        Ok(FeltHex(nonce))
+        Ok(nonce)
     }
 }

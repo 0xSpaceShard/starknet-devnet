@@ -7,7 +7,6 @@ use starknet_types::num_bigint::BigUint;
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{FeeToken, MintTokensRequest, MintTokensResponse};
 use crate::api::http::{HttpApiHandler, HttpApiResult};
-use crate::api::models::FeltHex;
 
 pub(crate) async fn get_fee_token() -> HttpApiResult<Json<FeeToken>> {
     Err(HttpApiError::GeneralError)
@@ -46,6 +45,6 @@ pub(crate) async fn mint(
     Ok(Json(MintTokensResponse {
         new_balance: new_balance.to_str_radix(10),
         unit: "WEI".to_string(),
-        tx_hash: FeltHex(tx_hash),
+        tx_hash,
     }))
 }
