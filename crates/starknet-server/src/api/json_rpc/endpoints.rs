@@ -193,37 +193,32 @@ impl JsonRpcHandler {
             }
             starknet_core::transactions::Transaction::DeployAccount(deploy) => {
                 transaction_type = TransactionType::DeployAccount;
-                let test1 = deploy.class_hash().unwrap();
-                let test2 = deploy.contract_address_salt();
-                let test3 = deploy.constructor_calldata().clone();
                 Transaction::DeployAccount(crate::api::models::transaction::DeployAccountTransaction {
                         transaction_hash: Felt::from(deploy.inner.hash_value().clone()), // Clone is ok?
                         max_fee: Fee(deploy.max_fee),
                         version: deploy.version,
-                        signature: deploy.signature,
+                        signature: deploy.signature.clone(),
                         nonce: deploy.nonce,
-                        class_hash: test1, // Panic?
-                        contract_address_salt: test2,
-                        constructor_calldata: test3,
+                        class_hash: deploy.class_hash().unwrap(), // Panic?
+                        contract_address_salt: deploy.contract_address_salt(),
+                        constructor_calldata: deploy.constructor_calldata().clone(),
                     }
                 )
             }
             starknet_core::transactions::Transaction::Invoke(invoke) => {
                 transaction_type = TransactionType::Invoke;
-                let test1 = invoke.sender_address().unwrap(); //why I need to use test variable?
                 Transaction::Invoke(crate::api::models::transaction::InvokeTransaction::Version1(
                     InvokeTransactionV1 {
                         transaction_hash: Felt::from(invoke.inner.hash_value().clone()), // Clone is ok?
                         max_fee: Fee(invoke.max_fee),
                         version: invoke.version,
-                        signature: invoke.signature,
+                        signature: invoke.signature.clone(),
                         nonce: invoke.nonce,
-                        calldata: invoke.calldata,
-                        sender_address: ContractAddressHex(test1),
+                        calldata: invoke.calldata.clone(),
+                        sender_address: ContractAddressHex(invoke.sender_address().unwrap()),
                     },
                 ))
             }
-            // What about InvokeV0?
         };
 
         let transaction =

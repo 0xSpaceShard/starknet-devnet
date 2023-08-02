@@ -68,11 +68,6 @@ impl InvokeTransactionV1 {
         self.inner.contract_address().clone().try_into().map_err(error::Error::from)
     }
 
-    pub fn entry_point_selector(&self) -> Felt252 {
-        // self.inner.entry_point_selector - needs to be decorated with #[getset(get = "pub")]
-        Felt252::from(0)
-    }
-
     pub fn calldata(&self) -> &Vec<Felt> {
         &self.calldata
     }
