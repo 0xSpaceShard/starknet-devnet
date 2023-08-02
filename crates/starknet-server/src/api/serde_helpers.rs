@@ -129,7 +129,7 @@ pub mod base_64_gzipped_json_string {
 pub mod hex_string {
     use serde::{Deserialize, Deserializer, Serializer};
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::felt::Felt;
+    use starknet_types::felt::{deserialize_prefixed_hex_string_to_felt, Felt};
     use starknet_types::patricia_key::PatriciaKey;
     use starknet_types::traits::ToHexString;
 
@@ -173,24 +173,6 @@ pub mod hex_string {
         s.serialize_str(contract_address.to_prefixed_hex_str().as_str())
     }
 
-    pub fn serialize_to_prefixed_hex<S>(felt: &Felt, s: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        s.serialize_str(felt.to_prefixed_hex_str().as_str())
-    }
-
-    pub fn deserialize_prefixed_hex_string_to_felt<'de, D>(
-        deserializer: D,
-    ) -> Result<Felt, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let buf = String::deserialize(deserializer)?;
-
-        Felt::from_prefixed_hex_str(&buf).map_err(serde::de::Error::custom)
-    }
-
     #[allow(unused)]
     pub fn deserialize_non_prefixed_hex_string_to_felt<'de, D>(
         deserializer: D,
@@ -208,14 +190,15 @@ pub mod hex_string {
         use serde::{Deserialize, Serialize};
         use serde_json::json;
         use starknet_types::contract_address::ContractAddress;
-        use starknet_types::felt::Felt;
+        use starknet_types::felt::{
+            deserialize_prefixed_hex_string_to_felt, serialize_to_prefixed_hex, Felt,
+        };
         use starknet_types::patricia_key::PatriciaKey;
         use starknet_types::starknet_api::serde_utils::bytes_from_hex_str;
 
         use crate::api::serde_helpers::hex_string::{
-            deserialize_non_prefixed_hex_string_to_felt, deserialize_prefixed_hex_string_to_felt,
-            deserialize_to_prefixed_contract_address, deserialize_to_prefixed_patricia_key,
-            serialize_contract_address_to_prefixed_hex, serialize_to_prefixed_hex,
+            deserialize_non_prefixed_hex_string_to_felt, deserialize_to_prefixed_contract_address,
+            deserialize_to_prefixed_patricia_key, serialize_contract_address_to_prefixed_hex,
         };
 
         #[test]

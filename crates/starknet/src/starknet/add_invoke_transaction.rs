@@ -14,7 +14,7 @@ pub fn add_invoke_transcation_v1(
     let state_before_txn = starknet.state.pending_state.clone();
     let transaction_hash = invoke_transaction.generate_hash()?;
 
-    match invoke_transaction.0.execute(
+    match invoke_transaction.inner.execute(
         &mut starknet.state.pending_state,
         &starknet.block_context,
         INITIAL_GAS_COST,

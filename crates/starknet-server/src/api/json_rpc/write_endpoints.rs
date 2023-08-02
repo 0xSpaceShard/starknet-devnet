@@ -19,7 +19,7 @@ use crate::api::models::transaction::{
     BroadcastedDeclareTransactionV2, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedInvokeTransactionV1,
 };
-use crate::api::models::{ContractAddressHex, FeltHex};
+use crate::api::models::ContractAddressHex;
 
 impl JsonRpcHandler {
     pub(crate) async fn add_declare_transaction(
@@ -40,10 +40,7 @@ impl JsonRpcHandler {
             }
         };
 
-        Ok(DeclareTransactionOutput {
-            transaction_hash: FeltHex(transaction_hash),
-            class_hash: FeltHex(class_hash),
-        })
+        Ok(DeclareTransactionOutput { transaction_hash, class_hash })
     }
 
     pub(crate) async fn add_deploy_account_transaction(
@@ -68,7 +65,7 @@ impl JsonRpcHandler {
             })?;
 
         Ok(DeployAccountTransactionOutput {
-            transaction_hash: FeltHex(transaction_hash),
+            transaction_hash,
             contract_address: ContractAddressHex(contract_address),
         })
     }
@@ -93,7 +90,7 @@ impl JsonRpcHandler {
             }
         }?;
 
-        Ok(InvokeTransactionOutput { transaction_hash: FeltHex(hash) })
+        Ok(InvokeTransactionOutput { transaction_hash: hash })
     }
 }
 
@@ -127,8 +124,8 @@ fn convert_to_declare_transaction_v1(
     DeclareTransactionV1::new(
         value.sender_address.0,
         value.common.max_fee.0,
-        value.common.signature.iter().map(|x| x.0).collect(),
-        value.common.nonce.0,
+        value.common.signature,
+        value.common.nonce,
         ContractClass::try_from(value.contract_class)?,
         chain_id,
     )
@@ -140,14 +137,14 @@ fn convert_to_deploy_account_transaction(
     chain_id: Felt,
 ) -> RpcResult<DeployAccountTransaction> {
     DeployAccountTransaction::new(
-        broadcasted_txn.constructor_calldata.iter().map(|felt_hex| felt_hex.0).collect(),
+        broadcasted_txn.constructor_calldata,
         broadcasted_txn.common.max_fee.0,
-        broadcasted_txn.common.signature.iter().map(|felt_hex| felt_hex.0).collect(),
-        broadcasted_txn.common.nonce.0,
-        broadcasted_txn.class_hash.0,
-        broadcasted_txn.contract_address_salt.0,
+        broadcasted_txn.common.signature,
+        broadcasted_txn.common.nonce,
+        broadcasted_txn.class_hash,
+        broadcasted_txn.contract_address_salt,
         chain_id,
-        broadcasted_txn.common.version.0,
+        broadcasted_txn.common.version,
     )
     .map_err(|err| {
         ApiError::RpcError(RpcError::invalid_params(format!(
@@ -163,11 +160,11 @@ fn convert_to_declare_transaction_v2(
 ) -> RpcResult<DeclareTransactionV2> {
     DeclareTransactionV2::new(
         ContractClass::from(value.contract_class),
-        value.compiled_class_hash.0,
+        value.compiled_class_hash,
         value.sender_address.0,
         value.common.max_fee.0,
-        value.common.signature.iter().map(|x| x.0).collect(),
-        value.common.nonce.0,
+        value.common.signature,
+        value.common.nonce,
         chain_id,
     )
     .map_err(ApiError::StarknetDevnetError)
@@ -180,9 +177,9 @@ fn convert_to_invoke_transaction_v1(
     InvokeTransactionV1::new(
         value.sender_address.0,
         value.common.max_fee.0,
-        value.common.signature.iter().map(|felt_hex| felt_hex.0).collect(),
-        value.common.nonce.0,
-        value.calldata.iter().map(|felt_hex| felt_hex.0).collect(),
+        value.common.signature,
+        value.common.nonce,
+        value.calldata,
         chain_id,
     )
     .map_err(ApiError::StarknetDevnetError)
@@ -220,7 +217,7 @@ mod tests {
         // which resulted in transaction_hash
         // 0x1d50d192f54d8d75e73c8ab8fb7159e70bfdbccc322abb43a081889a3043627 Could be checked in https://testnet.starkscan.co/tx/0x1d50d192f54d8d75e73c8ab8fb7159e70bfdbccc322abb43a081889a3043627
         assert_eq!(
-            result.class_hash.0.to_prefixed_hex_str(),
+            result.class_hash.to_prefixed_hex_str(),
             "0x399998c787e0a063c3ac1d2abac084dcbe09954e3b156d53a8c43a02aa27d35"
         );
     }

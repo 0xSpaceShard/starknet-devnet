@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use num_bigint::BigUint;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_api::serde_utils::{bytes_from_hex_str, hex_str_from_bytes};
 use starknet_api::StarknetApiError;
 
@@ -11,6 +12,40 @@ use crate::DevnetResult;
 
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Hash, PartialOrd, Ord)]
 pub struct Felt(pub(crate) [u8; 32]);
+
+pub fn serialize_to_prefixed_hex<S>(felt: &Felt, s: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    s.serialize_str(felt.to_prefixed_hex_str().as_str())
+}
+
+pub fn deserialize_prefixed_hex_string_to_felt<'de, D>(deserializer: D) -> Result<Felt, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let buf = String::deserialize(deserializer)?;
+
+    Felt::from_prefixed_hex_str(&buf).map_err(serde::de::Error::custom)
+}
+
+impl Serialize for Felt {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serialize_to_prefixed_hex(self, serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for Felt {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserialize_prefixed_hex_string_to_felt(deserializer)
+    }
+}
 
 impl Felt {
     pub fn new(bytes: [u8; 32]) -> DevnetResult<Self> {
@@ -191,6 +226,13 @@ impl From<Felt> for BigUint {
     }
 }
 
+pub type Nonce = Felt;
+pub type TransactionVersion = Felt;
+pub type TransactionSignature = Vec<Felt>;
+pub type CompiledClassHash = Felt;
+pub type EntryPointSelector = Felt;
+pub type Calldata = Vec<Felt>;
+pub type ContractAddressSalt = Felt;
 pub type BlockHash = Felt;
 pub type TransactionHash = Felt;
 pub type ClassHash = Felt;

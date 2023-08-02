@@ -21,6 +21,8 @@ pub mod constants {
 
     // Example contract - Cairo 0
     pub const CAIRO_0_CONTRACT_PATH: &str = "starknet/test_artifacts/cairo_0_test.json";
+    pub const CASM_COMPILED_CLASS_HASH: &str =
+        "0x63b33a5f2f46b1445d04c06d7832c48c48ad087ce0803b71f2b8d96353716ca";
 }
 
 pub mod util {
