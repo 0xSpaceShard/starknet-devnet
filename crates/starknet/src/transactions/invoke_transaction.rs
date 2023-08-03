@@ -4,7 +4,6 @@ use starknet_in_rust::transaction::InvokeFunction;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::Felt;
 use starknet_types::traits::HashProducer;
-use starknet_types::cairo_felt::Felt252;
 
 use crate::error::{self, Result};
 

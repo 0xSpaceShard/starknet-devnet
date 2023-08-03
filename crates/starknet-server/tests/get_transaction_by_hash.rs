@@ -3,11 +3,13 @@ pub mod common;
 mod get_transaction_by_hash_integration_tests {
     use std::sync::Arc;
 
+    use starknet_core::constants::UDC_CONTRACT_CLASS_HASH;
     use starknet_rs_accounts::{Account, SingleOwnerAccount};
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
     use starknet_rs_core::types::{
-        BlockId, BlockTag, BroadcastedDeclareTransactionV1, FieldElement, BroadcastedInvokeTransactionV1, BroadcastedDeployAccountTransaction,
+        BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedDeployAccountTransaction,
+        BroadcastedInvokeTransactionV1, FieldElement,
     };
     use starknet_rs_providers::Provider;
     use starknet_rs_signers::{LocalWallet, SigningKey};
@@ -24,7 +26,10 @@ mod get_transaction_by_hash_integration_tests {
 
     pub const DECLARE_V2_TRANSACTION_HASH: &str =
         "0x2b5c7f97fc7899669463848f59bfbe114138b945cf8bffebb8b29949df8b1a8";
-    
+
+    pub const DEPLOY_ACCOUNT_TRANSACTION_HASH: &str =
+        "0x01b815e18639e72c8f56f5dbee70c5997f127e6183e46ea26a41b7f2944be593";
+
     pub const INVOKE_V1_TRANSACTION_HASH: &str =
         "0x057c60c720f9ce34cd0a411e5c2ded91dfd2a912c11a26508c796da53d1b73c6";
 
@@ -113,20 +118,23 @@ mod get_transaction_by_hash_integration_tests {
     #[tokio::test]
     async fn get_deploy_account_transaction_by_hash_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        // Just some dummy data to pass validation, this will change once get_transaction_receipt_by_hash will be implemented
+        // Just some dummy data to pass validation, this will change once
+        // get_transaction_receipt_by_hash will be implemented I tired to use
+        // ACCOUNT_CLASS_HASH_HEX_FOR_ADDRESS_COMPUTATION but ClassHashNotFound
         let deploy_account_txn = BroadcastedDeployAccountTransaction {
             max_fee: FieldElement::from_hex_be("0xde0b6b3a7640000").unwrap(),
-            signature: vec![FieldElement::from_hex_be("0x1").unwrap(), FieldElement::from_hex_be("0x1").unwrap()],
+            signature: vec![
+                FieldElement::from_hex_be("0x1").unwrap(),
+                FieldElement::from_hex_be("0x1").unwrap(),
+            ],
             nonce: FieldElement::from_hex_be("0x0").unwrap(),
-            class_hash: FieldElement::from_hex_be("0x1").unwrap(),
+            class_hash: FieldElement::from_hex_be(UDC_CONTRACT_CLASS_HASH).unwrap(),
             contract_address_salt: FieldElement::from_hex_be("0x1").unwrap(),
             constructor_calldata: vec![FieldElement::from_hex_be("0x1").unwrap()],
         };
 
-        let deploy_transaction = devnet
-            .json_rpc_client
-            .add_deploy_account_transaction(deploy_account_txn.clone())
-            .await;
+        let deploy_transaction =
+            devnet.json_rpc_client.add_deploy_account_transaction(deploy_account_txn.clone()).await;
 
         let result = devnet
             .json_rpc_client
@@ -134,13 +142,10 @@ mod get_transaction_by_hash_integration_tests {
             .await
             .unwrap();
 
-        if let starknet_rs_core::types::Transaction::DeployAccount(
-            deploy
-        ) = result
-        {
+        if let starknet_rs_core::types::Transaction::DeployAccount(deploy) = result {
             assert_eq!(
                 deploy.transaction_hash,
-                FieldElement::from_hex_be(INVOKE_V1_TRANSACTION_HASH).unwrap()
+                FieldElement::from_hex_be(DEPLOY_ACCOUNT_TRANSACTION_HASH).unwrap()
             );
         } else {
             panic!();
@@ -150,7 +155,8 @@ mod get_transaction_by_hash_integration_tests {
     #[tokio::test]
     async fn get_invoke_v1_transaction_by_hash_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        // Just some dummy data to pass validation, this will change once get_transaction_receipt_by_hash will be implemented
+        // Just some dummy data to pass validation, this will change once
+        // get_transaction_receipt_by_hash will be implemented
         let invoke_txn_v1 = BroadcastedInvokeTransactionV1 {
             max_fee: FieldElement::from_hex_be("0xde0b6b3a7640000").unwrap(),
             signature: vec![],

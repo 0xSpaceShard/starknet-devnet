@@ -18,8 +18,8 @@ use crate::api::models::state::{
 };
 use crate::api::models::transaction::{
     BroadcastedTransactionWithType, DeclareTransactionV0V1, DeclareTransactionV2, EventFilter,
-    EventsChunk, FunctionCall, Transaction, TransactionReceipt, TransactionType,
-    TransactionWithType, Transactions, InvokeTransactionV1
+    EventsChunk, FunctionCall, InvokeTransactionV1, Transaction, TransactionReceipt,
+    TransactionType, TransactionWithType, Transactions,
 };
 use crate::api::models::{BlockId, ContractAddressHex, PatriciaKeyHex};
 
@@ -193,7 +193,8 @@ impl JsonRpcHandler {
             }
             starknet_core::transactions::Transaction::DeployAccount(deploy) => {
                 transaction_type = TransactionType::DeployAccount;
-                Transaction::DeployAccount(crate::api::models::transaction::DeployAccountTransaction {
+                Transaction::DeployAccount(
+                    crate::api::models::transaction::DeployAccountTransaction {
                         transaction_hash: Felt::from(deploy.inner.hash_value().clone()),
                         max_fee: Fee(deploy.max_fee),
                         version: deploy.version,
@@ -201,8 +202,8 @@ impl JsonRpcHandler {
                         nonce: deploy.nonce,
                         class_hash: deploy.class_hash().unwrap(), // Panic?
                         contract_address_salt: deploy.contract_address_salt(),
-                        constructor_calldata: deploy.constructor_calldata().clone(),
-                    }
+                        constructor_calldata: deploy.constructor_calldata(),
+                    },
                 )
             }
             starknet_core::transactions::Transaction::Invoke(invoke) => {
