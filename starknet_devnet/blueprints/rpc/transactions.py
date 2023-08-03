@@ -31,7 +31,12 @@ from starknet_devnet.blueprints.rpc.structures.responses import (
     RpcInvokeTransactionResult,
     rpc_transaction_receipt,
 )
-from starknet_devnet.blueprints.rpc.structures.types import BlockId, RpcError, TxnHash
+from starknet_devnet.blueprints.rpc.structures.types import (
+    BlockId,
+    PredefinedRpcErrorCode,
+    RpcError,
+    TxnHash,
+)
 from starknet_devnet.blueprints.rpc.utils import (
     assert_block_id_is_valid,
     get_block_by_block_id,
@@ -133,13 +138,19 @@ async def add_declare_transaction(
         hex(transaction_hash)
     )
 
-    if status_response["tx_status"] == "REJECTED":
-        error_message = status_response["tx_failure_reason"].error_message
-        if (
-            "Class with hash" in error_message
-            and "is already declared" in error_message
-        ):
+    assert (
+        status_response["tx_status"] != "REJECTED"
+    ), f"Invalid status response: {status_response}"
+
+    if status_response["tx_status"] == "REVERTED":
+        revert_reason = status_response["tx_revert_reason"]
+        if "is already declared" in revert_reason:
             raise RpcError.from_spec_name("CLASS_ALREADY_DECLARED")
+
+        # an unknown error
+        raise RpcError(
+            code=PredefinedRpcErrorCode.INTERNAL_ERROR, message=revert_reason
+        )
 
     return RpcDeclareTransactionResult(
         transaction_hash=rpc_felt(transaction_hash),
@@ -162,11 +173,20 @@ async def add_deploy_account_transaction(
     status_response = await state.starknet_wrapper.transactions.get_transaction_status(
         hex(transaction_hash)
     )
-    if (
-        status_response["tx_status"] == "REJECTED"
-        and "is not declared" in status_response["tx_failure_reason"].error_message
-    ):
-        raise RpcError.from_spec_name("CLASS_HASH_NOT_FOUND")
+
+    assert (
+        status_response["tx_status"] != "REJECTED"
+    ), f"Invalid status response: {status_response}"
+
+    if status_response["tx_status"] == "REVERTED":
+        revert_reason = status_response["tx_revert_reason"]
+        if "is not declared" in revert_reason:
+            raise RpcError.from_spec_name("CLASS_HASH_NOT_FOUND")
+
+        # an unknown error
+        raise RpcError(
+            code=PredefinedRpcErrorCode.INTERNAL_ERROR, message=revert_reason
+        )
 
     return RpcDeployAccountTransactionResult(
         transaction_hash=rpc_felt(transaction_hash),

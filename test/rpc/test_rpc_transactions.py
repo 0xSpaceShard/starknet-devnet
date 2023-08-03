@@ -850,6 +850,7 @@ def test_add_deploy_account_transaction_on_incorrect_class_hash(deploy_account_d
         "starknet_addDeployAccountTransaction",
         params={"deploy_account_transaction": rpc_deploy_account_tx},
     )
+    print("DEBUG ex", ex)
     assert ex["error"] == {"code": 28, "message": "Class hash not found"}
 
 
@@ -870,7 +871,7 @@ def test_add_deploy_account_transaction(deploy_account_details):
     tx_before = tx_before["result"]
 
     # deployment should fail if no funds
-    assert_tx_status(tx_before["transaction_hash"], "REJECTED")
+    assert_tx_status(tx_before["transaction_hash"], "REVERTED")
 
     # fund the address of the account
     mint(hex(address), amount=int(1e18))
