@@ -285,11 +285,11 @@ def test_forking_testnet_from_too_early_block():
     )
 
     # assertions on fork (devnet)
-    assert_tx_status(invoke_tx_hash, "REJECTED")
+    assert_tx_status(invoke_tx_hash, "REVERTED")
     assert_address_has_no_class_hash(TESTNET_CONTRACT_ADDRESS)
 
     # assertions on origin (testnet)
-    # this will fail if someone invokes `increase_balance(2, 3)` because it will then be REJECTED instead of NOT_RECEIVED
+    # this will fail if someone invokes `increase_balance(2, 3)` because it will then be REVERTED instead of NOT_RECEIVED
     assert_tx_status(invoke_tx_hash, "NOT_RECEIVED", feeder_gateway_url=TESTNET_URL)
 
 
