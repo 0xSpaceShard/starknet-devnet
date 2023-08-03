@@ -342,22 +342,6 @@ class StarknetWrapper:
             state_diff=state_diff,
         )
 
-    def _store_transaction(
-        self,
-        transaction: DevnetTransaction,
-        error_message: str = None,
-    ) -> StarknetBlock:
-        """Stores the provided transaction in the transaction storage."""
-
-        # TODO is this checking and setting even necessary?
-        # if it needs to be done, can it be done earlier, outside of this function?
-
-        # if transaction.status in [TransactionStatus.REJECTED, TransactionStatus.REVERTED]:
-        #     assert error_message, "error_message must be present if tx rejected"
-        #     transaction.set_failure_reason(error_message)
-
-        self.transactions.store(transaction.transaction_hash, transaction)
-
     async def declare(
         self, external_tx: Union[Declare, DeprecatedDeclare]
     ) -> Tuple[int, int]:
@@ -493,8 +477,8 @@ class StarknetWrapper:
                         transaction_index=0,  # Rejected txs have no tx index
                         revert_error=exc.message,
                     )
-                    self.starknet_wrapper._store_transaction(
-                        transaction, error_message=exc.message
+                    self.starknet_wrapper.transactions.store(
+                        transaction.transaction_hash, transaction
                     )
                 else:
                     assert self.execution_info is not None
@@ -527,7 +511,9 @@ class StarknetWrapper:
                         transaction_index=len(self.starknet_wrapper.pending_txs),
                     )
                     self.starknet_wrapper.pending_txs.append(transaction)
-                    self.starknet_wrapper._store_transaction(transaction)
+                    self.starknet_wrapper.transactions.store(
+                        transaction.transaction_hash, transaction
+                    )
 
                     await self.starknet_wrapper.update_pending_block(state_update)
 
