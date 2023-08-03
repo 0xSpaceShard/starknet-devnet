@@ -3,7 +3,7 @@ pub mod common;
 mod get_class_hash_at_integration_tests {
     use starknet_core::constants::CAIRO_0_ACCOUNT_CONTRACT_HASH;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
-    use starknet_rs_providers::{Provider, ProviderError};
+    use starknet_rs_providers::{Provider, ProviderError, StarknetErrorWithMessage, MaybeUnknownErrorCode};
 
     use crate::common::constants::PREDEPLOYED_ACCOUNT_ADDRESS;
     use crate::common::util::BackgroundDevnet;
@@ -38,7 +38,7 @@ mod get_class_hash_at_integration_tests {
             .expect_err("Should have failed");
 
         match err {
-            ProviderError::StarknetError(StarknetError::ContractNotFound) => (),
+            ProviderError::StarknetError(StarknetErrorWithMessage {code: MaybeUnknownErrorCode::Known(StarknetError::ContractNotFound), ..}) => (),
             _ => panic!("Invalid error: {err:?}"),
         }
     }
@@ -56,7 +56,7 @@ mod get_class_hash_at_integration_tests {
             .expect_err("Should have failed");
 
         match err {
-            ProviderError::StarknetError(StarknetError::BlockNotFound) => (),
+            ProviderError::StarknetError(StarknetErrorWithMessage {code: MaybeUnknownErrorCode::Known(StarknetError::BlockNotFound), ..}) => (),
             _ => panic!("Invalid error: {err:?}"),
         }
     }
@@ -77,7 +77,7 @@ mod get_class_hash_at_integration_tests {
             .expect_err("Should have failed");
 
         match err {
-            ProviderError::StarknetError(StarknetError::BlockNotFound) => (),
+            ProviderError::StarknetError(StarknetErrorWithMessage {code: MaybeUnknownErrorCode::Known(StarknetError::BlockNotFound), ..}) => (),
             _ => panic!("Invalid error: {err:?}"),
         }
     }

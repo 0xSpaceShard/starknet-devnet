@@ -3,7 +3,7 @@ pub mod common;
 mod call {
     use starknet_core::constants::ERC20_CONTRACT_ADDRESS;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, FunctionCall, StarknetError};
-    use starknet_rs_providers::{Provider, ProviderError};
+    use starknet_rs_providers::{Provider, ProviderError, StarknetErrorWithMessage, MaybeUnknownErrorCode};
 
     use crate::common::constants::{
         PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
@@ -32,7 +32,7 @@ mod call {
             .expect_err("Should have failed");
 
         match err {
-            ProviderError::StarknetError(StarknetError::ContractNotFound) => (),
+            ProviderError::StarknetError(StarknetErrorWithMessage {code: MaybeUnknownErrorCode::Known(StarknetError::ContractNotFound), ..}) => (),
             _ => panic!("Invalid error: {err:?}"),
         }
     }
@@ -58,7 +58,7 @@ mod call {
             .expect_err("Should have failed");
 
         match err {
-            ProviderError::StarknetError(StarknetError::ContractError) => (),
+            ProviderError::StarknetError(StarknetErrorWithMessage{code: MaybeUnknownErrorCode::Known(StarknetError::ContractError), ..}) => (),
             _ => panic!("Invalid error: {err:?}"),
         }
     }
