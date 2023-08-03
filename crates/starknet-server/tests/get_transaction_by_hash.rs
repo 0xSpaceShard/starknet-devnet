@@ -3,7 +3,6 @@ pub mod common;
 mod get_transaction_by_hash_integration_tests {
     use std::sync::Arc;
 
-    use starknet_core::constants::UDC_CONTRACT_CLASS_HASH;
     use starknet_rs_accounts::{Account, SingleOwnerAccount};
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
@@ -119,8 +118,10 @@ mod get_transaction_by_hash_integration_tests {
     async fn get_deploy_account_transaction_by_hash_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         // Just some dummy data to pass validation, this will change once
-        // get_transaction_receipt_by_hash will be implemented I tired to use
-        // ACCOUNT_CLASS_HASH_HEX_FOR_ADDRESS_COMPUTATION but ClassHashNotFound
+        // get_transaction_receipt_by_hash will be implemented.
+        // I tried to use ACCOUNT_CLASS_HASH_HEX_FOR_ADDRESS_COMPUTATION but I recived error
+        // ClassHashNotFound, so I just used UDC_CONTRACT_CLASS_HASH as string for now to pass
+        // validation.
         let deploy_account_txn = BroadcastedDeployAccountTransaction {
             max_fee: FieldElement::from_hex_be("0xde0b6b3a7640000").unwrap(),
             signature: vec![
@@ -128,7 +129,10 @@ mod get_transaction_by_hash_integration_tests {
                 FieldElement::from_hex_be("0x1").unwrap(),
             ],
             nonce: FieldElement::from_hex_be("0x0").unwrap(),
-            class_hash: FieldElement::from_hex_be(UDC_CONTRACT_CLASS_HASH).unwrap(),
+            class_hash: FieldElement::from_hex_be(
+                "0x7B3E05F48F0C69E4A65CE5E076A66271A527AFF2C34CE1083EC6E1526997A69",
+            )
+            .unwrap(),
             contract_address_salt: FieldElement::from_hex_be("0x1").unwrap(),
             constructor_calldata: vec![FieldElement::from_hex_be("0x1").unwrap()],
         };
@@ -156,7 +160,7 @@ mod get_transaction_by_hash_integration_tests {
     async fn get_invoke_v1_transaction_by_hash_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         // Just some dummy data to pass validation, this will change once
-        // get_transaction_receipt_by_hash will be implemented
+        // get_transaction_receipt_by_hash will be implemented.
         let invoke_txn_v1 = BroadcastedInvokeTransactionV1 {
             max_fee: FieldElement::from_hex_be("0xde0b6b3a7640000").unwrap(),
             signature: vec![],

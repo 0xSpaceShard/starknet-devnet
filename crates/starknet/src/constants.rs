@@ -21,7 +21,7 @@ pub const ERC20_CONTRACT_ADDRESS: &str =
 pub(crate) const UDC_CONTRACT_PATH: &str =
     concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/UDC_OZ_0.5.0.json");
 
-pub const UDC_CONTRACT_CLASS_HASH: &str =
+pub(crate) const UDC_CONTRACT_CLASS_HASH: &str =
     "0x7B3E05F48F0C69E4A65CE5E076A66271A527AFF2C34CE1083EC6E1526997A69";
 
 pub(crate) const UDC_CONTRACT_ADDRESS: &str =

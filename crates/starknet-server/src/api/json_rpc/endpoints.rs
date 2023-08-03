@@ -216,7 +216,7 @@ impl JsonRpcHandler {
                         signature: invoke.signature.clone(),
                         nonce: invoke.nonce,
                         calldata: invoke.calldata.clone(),
-                        sender_address: ContractAddressHex(invoke.sender_address().unwrap()),
+                        sender_address: ContractAddressHex(invoke.sender_address().unwrap()), /* Panic? */
                     },
                 ))
             }
