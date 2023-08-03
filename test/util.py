@@ -371,6 +371,9 @@ def assert_tx_status(tx_hash, expected_tx_status: str, feeder_gateway_url=APP_UR
     if tx_status == "REJECTED":
         assert "tx_failure_reason" in response, f"Key not found in {response}"
 
+    if tx_status == "REVERTED":
+        assert "tx_revert_reason" in response, f"Key not found in {response}"
+
 
 def assert_contract_code_present(address: str, feeder_gateway_url=APP_URL):
     """Asserts the content of the code of a contract at `address`."""
