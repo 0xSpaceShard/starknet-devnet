@@ -3,7 +3,7 @@ use std::slice::RSplit;
 use std::str::FromStr;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use serde_json::{json, Value};
+use serde_json::{json, Serializer as JsonSerializer, Value};
 use starknet_api::deprecated_contract_class::{EntryPoint, EntryPointType};
 use starknet_api::hash::{pedersen_hash_array, StarkFelt};
 use starknet_in_rust::core::contract_address::{
@@ -231,7 +231,7 @@ impl ContractClass {
             });
 
         let mut buffer = Vec::with_capacity(128);
-        let mut serializer = Serializer::with_formatter(&mut buffer, utils::StarknetFormatter);
+        let mut serializer = JsonSerializer::with_formatter(&mut buffer, utils::StarknetFormatter);
         modified_abi_program_json.serialize(&mut serializer).map_err(JsonError::SerdeJsonError)?;
 
         Ok(StarkFelt::new(calculate_sn_keccak(&buffer))?)
@@ -324,6 +324,43 @@ impl HashProducer for DeprecatedContractClass {
             .map_err(Error::ContractAddressError)?;
 
         Ok(Felt::from(stark_hash))
+    }
+}
+
+impl HashProducer for Cairo0ContractClass {
+    fn generate_hash(&self) -> DevnetResult<Felt> {
+        match self {
+            // TODO: ::Starknet shall be calling compute_hinted_class_hash
+            // TODO: rpc shall convert and call compute_deprecated_class_hash
+            Cairo0ContractClass::Starknet(contract) => {
+                Ok(compute_deprecated_class_hash(contract)?.into())
+            }
+            Cairo0ContractClass::Rpc(contract) => {
+                let contract = contract.clone();
+                let abi_json = serde_json::to_value(contract.abi).unwrap();
+
+                // let abi_json = serde_json::to_value(value.abi).map_err(|_| {
+                //     ApiError::RpcError(RpcError::invalid_params("abi: Unable to parse to JSON"))
+                // })?;
+
+                let entry_points_json =
+                    serde_json::to_value(contract.entry_points_by_type).unwrap();
+
+                // let entry_points_json = serde_json::to_value(value.entry_points_by_type).map_err(|_| {
+                //     ApiError::RpcError(RpcError::invalid_params(
+                //         "entry_points_by_type: Unable to parse to JSON",
+                //     ))
+                // })?;
+
+                let json_value = json!({
+                    "program": contract.program,
+                    "abi": abi_json,
+                    "entry_points_by_type": entry_points_json,
+                });
+
+                Ok(ContractClass::compute_hinted_class_hash(&json_value)?.into())
+            }
+        }
     }
 }
 
