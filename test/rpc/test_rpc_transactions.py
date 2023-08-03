@@ -850,7 +850,6 @@ def test_add_deploy_account_transaction_on_incorrect_class_hash(deploy_account_d
         "starknet_addDeployAccountTransaction",
         params={"deploy_account_transaction": rpc_deploy_account_tx},
     )
-    print("DEBUG ex", ex)
     assert ex["error"] == {"code": 28, "message": "Class hash not found"}
 
 
