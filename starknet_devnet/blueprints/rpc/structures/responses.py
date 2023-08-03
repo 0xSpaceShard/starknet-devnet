@@ -191,7 +191,7 @@ async def rpc_base_transaction_receipt(txr: TransactionReceipt) -> dict:
         mapping: Dict[TransactionStatus, TxnStatus] = {
             TransactionStatus.ACCEPTED_ON_L2: "ACCEPTED_ON_L2",
             TransactionStatus.ACCEPTED_ON_L1: "ACCEPTED_ON_L1",
-            TransactionStatus.RECEIVED: "PENDING",  # TODO
+            TransactionStatus.RECEIVED: "PENDING",
             TransactionStatus.REJECTED: "REJECTED",
         }
         return mapping[txr.status]

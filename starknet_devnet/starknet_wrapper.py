@@ -469,7 +469,7 @@ class StarknetWrapper:
                     transaction = DevnetTransaction(
                         internal_tx=self.internal_tx,
                         status=TransactionStatus.REVERTED,
-                        execution_status=ExecutionStatus.REVERTED,  # TODO or reverted
+                        execution_status=ExecutionStatus.REVERTED,
                         finality_status=FinalityStatus.ACCEPTED_ON_L2,
                         execution_info=TransactionExecutionInfo.empty(),
                         transaction_hash=tx_hash,

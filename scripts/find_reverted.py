@@ -5,10 +5,13 @@ import time
 
 import requests
 
+
 def extract_not_succeeded_from_block(block_number: int) -> list:
     """Check txs in a block"""
     while True:
-        req = requests.get(f"https://external.integration.starknet.io/feeder_gateway/get_block?blockNumber={block_number}")
+        req = requests.get(
+            f"https://external.integration.starknet.io/feeder_gateway/get_block?blockNumber={block_number}"
+        )
         if req.status_code == 200:
             break
 
@@ -31,11 +34,12 @@ def extract_not_succeeded_from_block(block_number: int) -> list:
 
     return not_succeeded
 
+
 def main():
     """The main method"""
     try:
         from_block = int(sys.argv[1])
-        to_block =int(sys.argv[2])
+        to_block = int(sys.argv[2])
     except (IndexError, ValueError):
         sys.exit(f"{__file__}: <FROM_BLOCK> <TO_BLOCK>")
 
@@ -53,6 +57,7 @@ def main():
     print("Finished. Not succeeded txs:")
     print(*not_succeeded, sep="\n")
     print("Count:", len(not_succeeded))
+
 
 if __name__ == "__main__":
     main()

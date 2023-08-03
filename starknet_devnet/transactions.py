@@ -316,7 +316,6 @@ class DevnetTransactions:
         """
         self.__instances[tx_hash].status = TransactionStatus.REVERTED
         self.__instances[tx_hash].finality_status = FinalityStatus.ACCEPTED_ON_L2
-        # TODO reject/revert?
         self.__instances[tx_hash].execution_status = ExecutionStatus.REVERTED
         self.__instances[tx_hash].block = None
         self.__instances[tx_hash].revert_error = str(
