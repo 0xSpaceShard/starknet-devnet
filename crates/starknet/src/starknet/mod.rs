@@ -231,7 +231,7 @@ impl Starknet {
         chain_id: StarknetChainId,
     ) -> Result<BlockContext> {
         let starknet_os_config = StarknetOsConfig::new(
-            chain_id,
+            chain_id.to_felt(),
             starknet_in_rust::utils::Address(
                 Felt::from_prefixed_hex_str(fee_token_address)?.into(),
             ),
@@ -692,12 +692,7 @@ mod tests {
             entry_point_selector.into(),
             vec![],
         ) {
-            Err(Error::TransactionError(TransactionError::State(
-                StateError::NoneContractState(Address(address)),
-            ))) => {
-                let received_address_hex = format!("0x{}", address.to_str_radix(16));
-                assert_eq!(received_address_hex.as_str(), undeployed_address_hex);
-            }
+            Err(Error::TransactionError(TransactionError::MissingCompiledClass)) => (),
             unexpected => panic!("Should have failed; got {unexpected:?}"),
         }
     }
