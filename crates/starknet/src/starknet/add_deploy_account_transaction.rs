@@ -55,6 +55,7 @@ pub fn add_deploy_account_transaction(
 mod tests {
     use starknet_rs_core::types::TransactionStatus;
     use starknet_types::contract_address::ContractAddress;
+    use starknet_types::contract_class::ContractClass;
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::{ClassHash, Felt};
     use starknet_types::traits::HashProducer;
@@ -144,7 +145,10 @@ mod tests {
 
         let contract_class = load_cairo_0_contract_class(account_json_path).unwrap();
         let class_hash = contract_class.generate_hash().unwrap();
-        starknet.state.declare_contract_class(class_hash, contract_class).unwrap();
+        starknet
+            .state
+            .declare_contract_class(class_hash, ContractClass::Cairo0(contract_class))
+            .unwrap();
 
         starknet.state.synchronize_states();
         starknet.block_context = Starknet::get_block_context(

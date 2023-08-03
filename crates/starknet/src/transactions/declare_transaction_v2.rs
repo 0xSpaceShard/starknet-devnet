@@ -1,6 +1,7 @@
 use starknet_in_rust::core::transaction_hash::{
     calculate_transaction_hash_common, TransactionHashPrefix,
 };
+use starknet_in_rust::SierraContractClass;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
@@ -11,7 +12,7 @@ use crate::error::{Error, Result};
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct DeclareTransactionV2 {
-    pub sierra_contract_class: ContractClass,
+    pub sierra_contract_class: SierraContractClass,
     pub compiled_class_hash: ClassHash,
     pub sender_address: ContractAddress,
     pub max_fee: u128,
@@ -25,7 +26,7 @@ pub struct DeclareTransactionV2 {
 
 impl DeclareTransactionV2 {
     pub fn new(
-        sierra_contract_class: ContractClass,
+        sierra_contract_class: SierraContractClass,
         compiled_class_hash: ClassHash,
         sender_address: ContractAddress,
         max_fee: u128,
@@ -70,7 +71,9 @@ impl DeclareTransactionV2 {
 
 impl HashProducer for DeclareTransactionV2 {
     fn generate_hash(&self) -> DevnetResult<Felt> {
-        let class_hash = self.class_hash.unwrap_or(self.sierra_contract_class.generate_hash()?);
+        let class_hash = self
+            .class_hash
+            .unwrap_or(ContractClass::Cairo1(self.sierra_contract_class.clone()).generate_hash()?);
 
         let calldata = [class_hash.into()].to_vec();
         let additional_data = [self.nonce.into(), self.compiled_class_hash.into()].to_vec();

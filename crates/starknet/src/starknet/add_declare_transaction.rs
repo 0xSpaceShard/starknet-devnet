@@ -16,7 +16,7 @@ pub fn add_declare_transaction_v2(
     let mut declare_transaction = declare_transaction;
 
     let transaction = DeclareV2::new(
-        &declare_transaction.sierra_contract_class.clone().try_into()?,
+        &declare_transaction.sierra_contract_class.clone(),
         None,
         declare_transaction.compiled_class_hash.into(),
         declare_transaction.chain_id.into(),
@@ -133,6 +133,7 @@ mod tests {
     use starknet_in_rust::CasmContractClass;
     use starknet_rs_core::types::TransactionStatus;
     use starknet_types::contract_address::ContractAddress;
+    use starknet_types::contract_class::ContractClass;
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
 
@@ -150,9 +151,10 @@ mod tests {
     fn test_declare_transaction_v2(sender_address: ContractAddress) -> DeclareTransactionV2 {
         let contract_class = dummy_cairo_1_contract_class();
 
-        let compiled_class_hash =
-            compute_casm_class_hash(&CasmContractClass::try_from(contract_class.clone()).unwrap())
-                .unwrap();
+        let compiled_class_hash = compute_casm_class_hash(
+            &CasmContractClass::from_contract_class(contract_class.clone(), true).unwrap(),
+        )
+        .unwrap();
 
         DeclareTransactionV2::new(
             contract_class,
@@ -207,7 +209,10 @@ mod tests {
         let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
 
         // check if generated class hash is expected one
-        assert_eq!(class_hash, declare_txn.sierra_contract_class.generate_hash().unwrap());
+        assert_eq!(
+            class_hash,
+            ContractClass::Cairo1(declare_txn.sierra_contract_class).generate_hash().unwrap()
+        );
         // check if txn is with status accepted
         assert_eq!(tx.status, TransactionStatus::AcceptedOnL2);
         assert!(starknet.sierra_contracts.get(&class_hash).is_some())
@@ -217,7 +222,9 @@ mod tests {
     fn declare_v2_transaction_successful_storage_change() {
         let (mut starknet, sender) = setup(Some(100000000));
         let declare_txn = test_declare_transaction_v2(sender);
-        let expected_class_hash = declare_txn.sierra_contract_class.generate_hash().unwrap();
+        let expected_class_hash = ContractClass::Cairo1(declare_txn.sierra_contract_class.clone())
+            .generate_hash()
+            .unwrap();
         let expected_compiled_class_hash = declare_txn.compiled_class_hash;
 
         // check if contract is not declared
@@ -328,7 +335,7 @@ mod tests {
             dummy_felt(),
             dummy_felt(),
             contract_class.generate_hash().unwrap(),
-            contract_class,
+            ContractClass::Cairo0(contract_class),
             erc_20_contract.get_address(),
         )
         .unwrap();

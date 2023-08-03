@@ -137,6 +137,7 @@ impl Accounted for Account {
 mod tests {
     use starknet_in_rust::core::errors::state_errors::StateError;
     use starknet_types::contract_address::ContractAddress;
+    use starknet_types::contract_class::ContractClass;
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
 
@@ -201,7 +202,7 @@ mod tests {
             default_felt,
             default_felt,
             default_felt,
-            dummy_cairo_0_contract_class(),
+            ContractClass::Cairo0(dummy_cairo_0_contract_class()),
             fee_token_address,
         )
         .unwrap();
@@ -263,7 +264,7 @@ mod tests {
                 Felt::from(13431515),
                 Felt::from(11),
                 dummy_felt(),
-                dummy_cairo_0_contract_class(),
+                ContractClass::Cairo0(dummy_cairo_0_contract_class()),
                 dummy_contract_address(),
             )
             .unwrap(),

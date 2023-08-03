@@ -84,8 +84,8 @@ impl TryFrom<ImportedSierraContractClass> for SierraContractClass {
 mod tests {
     use starknet_types::felt::Felt;
 
-    use starknet_types::abi_entry::FunctionAbiEntry;
-    use starknet_types::contract_class::ContractClassAbiEntryWithType;
+    use starknet_types::abi_entry::{AbiEntry, AbiEntryType, FunctionAbiEntry};
+    use starknet_types::contract_class::{ContractClassAbiEntryWithType, DeprecatedContractClass};
 
     #[test]
     fn deserialize_contract_class_abi_entry_with_type() {
@@ -103,10 +103,10 @@ mod tests {
         }"#;
 
         let obj = serde_json::from_str::<ContractClassAbiEntryWithType>(json_str).unwrap();
-        assert_eq!(obj.r#type, super::AbiEntryType::Function);
+        assert_eq!(obj.r#type, AbiEntryType::Function);
         assert_eq!(
             obj.entry,
-            super::AbiEntry::Function(FunctionAbiEntry {
+            AbiEntry::Function(FunctionAbiEntry {
                 name: "getPublicKey".to_string(),
                 inputs: vec![],
                 outputs: vec![
@@ -132,10 +132,10 @@ mod tests {
         }"#;
 
         let obj = serde_json::from_str::<ContractClassAbiEntryWithType>(json_str).unwrap();
-        assert_eq!(obj.r#type, super::AbiEntryType::Function);
+        assert_eq!(obj.r#type, AbiEntryType::Function);
         assert_eq!(
             obj.entry,
-            super::AbiEntry::Function(FunctionAbiEntry {
+            AbiEntry::Function(FunctionAbiEntry {
                 name: "setPublicKey".to_string(),
                 inputs: vec![
                     starknet_types::starknet_api::deprecated_contract_class::TypedParameter {
@@ -161,10 +161,10 @@ mod tests {
         }"#;
 
         let obj = serde_json::from_str::<ContractClassAbiEntryWithType>(json_str).unwrap();
-        assert_eq!(obj.r#type, super::AbiEntryType::Constructor);
+        assert_eq!(obj.r#type, AbiEntryType::Constructor);
         assert_eq!(
             obj.entry,
-            super::AbiEntry::Function(FunctionAbiEntry {
+            AbiEntry::Function(FunctionAbiEntry {
                 name: "constructor".to_string(),
                 inputs: vec![
                     starknet_types::starknet_api::deprecated_contract_class::TypedParameter {
@@ -231,7 +231,7 @@ mod tests {
             }
         }"#;
 
-        let obj = serde_json::from_str::<super::DeprecatedContractClass>(json_str).unwrap();
+        let obj = serde_json::from_str::<DeprecatedContractClass>(json_str).unwrap();
         assert_eq!(obj.abi.len(), 3);
         assert_eq!(obj.entry_points_by_type.len(), 1);
         assert_eq!(obj.entry_points_by_type.get(&starknet_types::starknet_api::deprecated_contract_class::EntryPointType::External).unwrap().len(), 2);

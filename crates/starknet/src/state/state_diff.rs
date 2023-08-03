@@ -90,6 +90,7 @@ impl StateDiff {
 
 #[cfg(test)]
 mod tests {
+    use starknet_in_rust::CasmContractClass;
     use std::collections::HashMap;
     use std::sync::Arc;
 
@@ -147,7 +148,7 @@ mod tests {
         let compiled_class_hash = Felt::from(1);
         casm_cache.insert(
             compiled_class_hash.bytes(),
-            dummy_cairo_1_contract_class().try_into().unwrap(),
+            CasmContractClass::from_contract_class(dummy_cairo_1_contract_class(), true).unwrap(),
         );
         let new_state =
             CachedState::new(Arc::new(old_state.clone()), Some(HashMap::new()), Some(casm_cache));
@@ -156,9 +157,10 @@ mod tests {
             super::StateDiff::difference_between_old_and_new_state(old_state, new_state).unwrap();
 
         let mut expected_diff = StateDiff::default();
-        expected_diff
-            .declared_contracts
-            .insert(compiled_class_hash, dummy_cairo_1_contract_class().try_into().unwrap());
+        expected_diff.declared_contracts.insert(
+            compiled_class_hash,
+            CasmContractClass::from_contract_class(dummy_cairo_1_contract_class(), true).unwrap(),
+        );
 
         assert_eq!(generated_diff, expected_diff);
     }
@@ -170,7 +172,8 @@ mod tests {
         let class_hash = Felt::from(1);
         let cairo_0_contract_class = dummy_cairo_0_contract_class();
         let mut cairo_0_classes = ContractClassCache::new();
-        cairo_0_classes.insert(class_hash.bytes(), cairo_0_contract_class.try_into().unwrap());
+        cairo_0_classes
+            .insert(class_hash.bytes(), cairo_0_contract_class.clone().try_into().unwrap());
 
         let new_state = CachedState::new(
             Arc::new(old_state.clone()),
@@ -181,13 +184,10 @@ mod tests {
         let generated_diff =
             super::StateDiff::difference_between_old_and_new_state(old_state, new_state).unwrap();
 
-        let cairo_0_contract_class = starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass::try_from(dummy_cairo_0_contract_class()).unwrap();
         let expected_diff = StateDiff {
             cairo_0_declared_contracts: vec![(
                 class_hash,
-                ContractClass::Cairo0(starknet_types::contract_class::Cairo0ContractClass::Obj(
-                    cairo_0_contract_class,
-                )),
+                cairo_0_contract_class.try_into().unwrap(),
             )]
             .into_iter()
             .collect(),

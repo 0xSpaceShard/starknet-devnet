@@ -3,7 +3,6 @@ use starknet_core::transactions::declare_transaction::DeclareTransactionV1;
 use starknet_core::transactions::declare_transaction_v2::DeclareTransactionV2;
 use starknet_core::transactions::deploy_account_transaction::DeployAccountTransaction;
 use starknet_core::transactions::invoke_transaction::InvokeTransactionV1;
-use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::Felt;
 
 use super::error::ApiError;
@@ -128,7 +127,7 @@ fn convert_to_declare_transaction_v2(
     chain_id: Felt,
 ) -> RpcResult<DeclareTransactionV2> {
     DeclareTransactionV2::new(
-        ContractClass::from(value.contract_class),
+        value.contract_class,
         value.compiled_class_hash,
         value.sender_address,
         value.common.max_fee.0,

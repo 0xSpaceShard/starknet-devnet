@@ -1,5 +1,5 @@
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::ContractClass;
+use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
 use starknet_types::felt::{Balance, ClassHash, Felt};
 
 use crate::error::Result;
@@ -20,7 +20,8 @@ impl SystemContract {
         Ok(Self {
             class_hash: Felt::from_prefixed_hex_str(class_hash)?,
             address: ContractAddress::new(Felt::from_prefixed_hex_str(address)?)?,
-            contract_class: ContractClass::cairo_0_from_json_str(contract_class_json_str)?,
+            contract_class: Cairo0ContractClass::cairo_0_from_json_str(contract_class_json_str)?
+                .into(),
         })
     }
 }

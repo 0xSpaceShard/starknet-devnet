@@ -169,8 +169,9 @@ mod tests {
 
         let contract_class = ContractClass::cairo_0_from_json_str(&json_str).unwrap();
 
-        let generated_accounts =
-            predeployed_acc.generate_accounts(3, class_hash, contract_class).unwrap();
+        let generated_accounts = predeployed_acc
+            .generate_accounts(3, class_hash, ContractClass::Cairo0(contract_class))
+            .unwrap();
         let schema_json: serde_json::Value = serde_json::from_str(
             std::fs::read_to_string(PREDEPLOYED_ACCOUNTS_JSON_SCHEMA_WITH_DATA_FILE_PATH)
                 .unwrap()

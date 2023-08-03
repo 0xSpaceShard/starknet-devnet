@@ -327,7 +327,7 @@ pub mod base_64_gzipped_json_string {
     mod tests {
         use serde::Deserialize;
 
-        use starknet_types::serde_helpers::base_64_gzipped_json_string::deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order;
+        use crate::serde_helpers::base_64_gzipped_json_string::deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order;
 
         #[test]
         fn deserialize_successfully_starknet_api_program() {
