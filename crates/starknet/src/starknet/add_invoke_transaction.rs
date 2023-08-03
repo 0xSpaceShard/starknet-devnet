@@ -240,10 +240,7 @@ mod tests {
         // declare dummy contract
         starknet
             .state
-            .declare_contract_class(
-                dummy_contract_class_hash,
-                ContractClass::Cairo0(dummy_contract),
-            )
+            .declare_contract_class(dummy_contract_class_hash, dummy_contract.into())
             .unwrap();
 
         // deploy dummy contract

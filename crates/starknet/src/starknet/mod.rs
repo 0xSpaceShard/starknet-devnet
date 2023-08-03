@@ -115,11 +115,10 @@ impl Starknet {
             utils::load_cairo_0_contract_class(CAIRO_0_ACCOUNT_CONTRACT_PATH)?;
         let class_hash = account_contract_class.generate_hash()?;
 
-        let wrapped_account_contract_class = ContractClass::Cairo0(account_contract_class);
         let accounts = predeployed_accounts.generate_accounts(
             config.total_accounts,
             class_hash,
-            wrapped_account_contract_class.clone(),
+            account_contract_class.clone().into(),
         )?;
         for account in accounts {
             account.deploy(&mut state)?;
@@ -128,7 +127,7 @@ impl Starknet {
 
         let chargeable_account = Account::new_chargeable(
             class_hash,
-            wrapped_account_contract_class,
+            account_contract_class.into(),
             erc20_fee_contract.get_address(),
         );
         chargeable_account.deploy(&mut state)?;

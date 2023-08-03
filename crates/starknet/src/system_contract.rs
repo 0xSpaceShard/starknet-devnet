@@ -54,7 +54,7 @@ impl Accounted for SystemContract {
 
 #[cfg(test)]
 mod tests {
-    use starknet_types::contract_class::ContractClass;
+    use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
 
     use super::SystemContract;
     use crate::constants::{
@@ -65,7 +65,7 @@ mod tests {
     #[test]
     fn load_erc20_contract() {
         let json_str = std::fs::read_to_string(ERC20_CONTRACT_PATH).unwrap();
-        assert!(ContractClass::cairo_0_from_json_str(&json_str).is_ok());
+        assert!(Cairo0ContractClass::cairo_0_from_json_str(&json_str).is_ok());
     }
 
     #[test]

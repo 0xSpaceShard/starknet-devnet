@@ -3,7 +3,7 @@ use std::fs;
 use starknet_api::hash::{pedersen_hash, StarkFelt};
 use starknet_in_rust::utils::calculate_sn_keccak;
 use starknet_types::cairo_felt::Felt252;
-use starknet_types::contract_class::{ContractClass, DeprecatedContractClass};
+use starknet_types::contract_class::{Cairo0ContractClass, ContractClass, DeprecatedContractClass};
 use starknet_types::felt::Felt;
 use starknet_types::num_integer::Integer;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
@@ -17,10 +17,10 @@ pub(crate) fn generate_u128_random_numbers(
     Ok(random_number_generator::generate_u128_random_numbers(seed, random_numbers_count))
 }
 
-pub(crate) fn load_cairo_0_contract_class(path: &str) -> Result<DeprecatedContractClass> {
+pub(crate) fn load_cairo_0_contract_class(path: &str) -> Result<Cairo0ContractClass> {
     let contract_class_str = fs::read_to_string(path)
         .map_err(|err| Error::ReadFileError { source: err, path: path.to_string() })?;
-    Ok(ContractClass::cairo_0_from_json_str(&contract_class_str)?)
+    Ok(Cairo0ContractClass::cairo_0_from_json_str(&contract_class_str)?)
 }
 
 /// Returns the storage address of a Starknet storage variable given its name and arguments.
@@ -44,7 +44,9 @@ pub(crate) mod test_utils {
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_in_rust::SierraContractClass;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{ContractClass, DeprecatedContractClass};
+    use starknet_types::contract_class::{
+        Cairo0ContractClass, ContractClass, DeprecatedContractClass,
+    };
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
     use starknet_types::patricia_key::StorageKey;
@@ -82,14 +84,14 @@ pub(crate) mod test_utils {
         )
     }
 
-    pub(crate) fn dummy_cairo_0_contract_class() -> DeprecatedContractClass {
+    pub(crate) fn dummy_cairo_0_contract_class() -> Cairo0ContractClass {
         let json_str = std::fs::read_to_string(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/test_artifacts/cairo_0_test.json"
         ))
         .unwrap();
 
-        ContractClass::cairo_0_from_json_str(&json_str).unwrap()
+        Cairo0ContractClass::cairo_0_from_json_str(&json_str).unwrap()
     }
 
     pub(crate) fn dummy_cairo_1_contract_class() -> SierraContractClass {
@@ -120,7 +122,7 @@ pub(crate) mod test_utils {
         )
     }
 
-    pub(crate) fn cairo_0_account_without_validations() -> DeprecatedContractClass {
+    pub(crate) fn cairo_0_account_without_validations() -> Cairo0ContractClass {
         let account_json_path = concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/test_artifacts/account_without_validations/account.json"

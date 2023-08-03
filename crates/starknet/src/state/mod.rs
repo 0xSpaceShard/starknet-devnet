@@ -55,10 +55,10 @@ impl StateChanger for StarknetState {
         contract_class: ContractClass,
     ) -> Result<()> {
         match contract_class {
-            ContractClass::Cairo0(_) => {
+            ContractClass::Cairo0(deprecated_contract_class) => {
                 self.state.class_hash_to_contract_class_mut().insert(
                     class_hash.bytes(),
-                    StarknetInRustContractClass::try_from(contract_class)?,
+                    StarknetInRustContractClass::try_from(deprecated_contract_class)?,
                 );
             }
             ContractClass::Cairo1(sierra_contract_class) => {
@@ -285,10 +285,7 @@ mod tests {
         let class_hash = Felt::from_prefixed_hex_str("0xFE").unwrap();
 
         assert!(state
-            .declare_contract_class(
-                class_hash,
-                ContractClass::Cairo0(dummy_cairo_0_contract_class())
-            )
+            .declare_contract_class(class_hash, dummy_cairo_0_contract_class().into())
             .is_ok());
         assert!(state.state.class_hash_to_contract_class.len() == 1);
         let contract_class = state.state.class_hash_to_contract_class.get(&class_hash.bytes());
@@ -349,7 +346,7 @@ mod tests {
         let contract_class = dummy_cairo_0_contract_class();
         let class_hash = dummy_felt();
 
-        state.declare_contract_class(class_hash, ContractClass::Cairo0(contract_class)).unwrap();
+        state.declare_contract_class(class_hash, contract_class.into()).unwrap();
         state.deploy_contract(address, class_hash).unwrap();
 
         (state, address)
