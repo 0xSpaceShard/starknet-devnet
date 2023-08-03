@@ -171,7 +171,7 @@ impl JsonRpcHandler {
                         nonce: declare_v1.nonce,
                         max_fee: Fee(declare_v1.max_fee),
                         version: Felt::from(1),
-                        transaction_hash: declare_v1.transaction_hash.unwrap(),
+                        transaction_hash: declare_v1.transaction_hash.unwrap_or_default(),
                         signature: declare_v1.signature,
                     },
                 ))
@@ -180,12 +180,12 @@ impl JsonRpcHandler {
                 transaction_type = TransactionType::Declare;
                 Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version2(
                     DeclareTransactionV2 {
-                        class_hash: declare_v2.class_hash.unwrap(),
+                        class_hash: declare_v2.class_hash.unwrap_or_default(),
                         sender_address: ContractAddressHex(declare_v2.sender_address),
                         nonce: declare_v2.nonce,
                         max_fee: Fee(declare_v2.max_fee),
                         version: Felt::from(2),
-                        transaction_hash: declare_v2.transaction_hash.unwrap(),
+                        transaction_hash: declare_v2.transaction_hash.unwrap_or_default(),
                         signature: declare_v2.signature,
                         compiled_class_hash: declare_v2.compiled_class_hash,
                     },
@@ -200,7 +200,7 @@ impl JsonRpcHandler {
                         version: deploy.version,
                         signature: deploy.signature.clone(),
                         nonce: deploy.nonce,
-                        class_hash: deploy.class_hash().unwrap(), // Panic?
+                        class_hash: deploy.class_hash().unwrap_or_default(),
                         contract_address_salt: deploy.contract_address_salt(),
                         constructor_calldata: deploy.constructor_calldata(),
                     },
@@ -216,7 +216,9 @@ impl JsonRpcHandler {
                         signature: invoke.signature.clone(),
                         nonce: invoke.nonce,
                         calldata: invoke.calldata.clone(),
-                        sender_address: ContractAddressHex(invoke.sender_address().unwrap()), /* Panic? */
+                        sender_address: ContractAddressHex(
+                            invoke.sender_address().unwrap_or_default(),
+                        ),
                     },
                 ))
             }
