@@ -140,7 +140,7 @@ def test_send_message_to_l2_execute_without_deploy():
     response = send_message_to_l2(_VALID_MESSAGE_TO_L2_BODY)
 
     assert response.status_code == 200, response.json()
-    assert_tx_status(response.json().get("transaction_hash"), "REJECTED")
+    assert_tx_status(response.json().get("transaction_hash"), "REVERTED")
 
 
 @devnet_in_background()
@@ -154,7 +154,7 @@ def test_send_message_to_l2_with_zero_message_fee():
     response = send_message_to_l2(data)
 
     assert response.status_code == 200, response.json()
-    assert_tx_status(response.json().get("transaction_hash"), "REJECTED")
+    assert_tx_status(response.json().get("transaction_hash"), "REVERTED")
 
 
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
