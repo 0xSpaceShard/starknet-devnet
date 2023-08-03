@@ -26,7 +26,7 @@ if [ -z "$CAIRO_1_COMPILER_MANIFEST" ]; then
     COMPILER_DIR="cairo-compiler"
     mkdir -p "$COMPILER_DIR"
     git clone git@github.com:starkware-libs/cairo.git "$COMPILER_DIR" \
-        --branch v2.0.0 \
+        --branch v2.1.0-rc0 \
         --single-branch
     echo "Downloaded compiler to subdirectory $COMPILER_DIR"
     CAIRO_1_COMPILER_MANIFEST="$COMPILER_DIR/Cargo.toml"
