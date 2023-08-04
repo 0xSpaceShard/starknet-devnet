@@ -16,6 +16,8 @@ pub enum Error {
     ),
     #[error(transparent)]
     TransactionError(#[from] starknet_in_rust::transaction::error::TransactionError),
+    #[error(transparent)]
+    IoError(#[from] std::io::Error),
 }
 
 #[derive(Error, Debug)]

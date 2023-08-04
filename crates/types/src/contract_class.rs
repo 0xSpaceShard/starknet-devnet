@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fs;
 use std::slice::RSplit;
 use std::str::FromStr;
 
@@ -40,26 +41,63 @@ pub struct DeprecatedContractClass {
     pub entry_points_by_type: HashMap<EntryPointType, Vec<EntryPoint>>,
 }
 
+pub type Cairo0Json = Value;
+
+impl HashProducer for Cairo0Json {
+    fn generate_hash(&self) -> DevnetResult<Felt> {
+        Ok(ContractClass::compute_hinted_class_hash(&self)?.into())
+    }
+}
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Cairo0ContractClass {
-    // TODO: keep json as before
-    RawJson(Value),
+    RawJson(Cairo0Json),
     SIR(StarknetInRustContractClass),
     Rpc(DeprecatedContractClass),
 }
 
 impl Cairo0ContractClass {
-    pub fn cairo_0_from_json_str(json_str: &str) -> DevnetResult<Cairo0ContractClass> {
-        let res: serde_json::Value =
-            serde_json::from_str(json_str).map_err(JsonError::SerdeJsonError)?;
+    pub fn raw_json_from_json_str(json_str: &str) -> DevnetResult<Cairo0Json> {
+        let res: Cairo0Json = serde_json::from_str(json_str).map_err(JsonError::SerdeJsonError)?;
 
         if res.is_object() {
-            Ok(Cairo0ContractClass::RawJson(res))
+            Ok(res)
         } else {
             Err(Error::JsonError(JsonError::Custom {
                 msg: "expected JSON string to be an object".to_string(),
             }))
         }
+    }
+
+    pub fn rpc_from_json_str(json_str: &str) -> DevnetResult<DeprecatedContractClass> {
+        // let res: DeprecatedContractClass =
+        //     serde_json::from_str(json_str).map_err(JsonError::SerdeJsonError)?;
+
+        let kekL: starknet_api::deprecated_contract_class::ContractClass =
+            serde_json::from_str(json_str).map_err(JsonError::SerdeJsonError)?;
+        let asd = StarknetInRustContractClass::from_str(json_str).unwrap();
+        let asd_felt: Felt = asd.hinted_class_hash().clone().into();
+        let res: serde_json::Value =
+            serde_json::from_str(json_str).map_err(JsonError::SerdeJsonError)?;
+        let felt = ContractClass::compute_hinted_class_hash(&res);
+
+        Err(Error::PyModuleError)
+    }
+
+    pub fn raw_json_from_path(path: &str) -> DevnetResult<Cairo0Json> {
+        let contract_class_str = fs::read_to_string(path)?;
+        Ok(Cairo0ContractClass::raw_json_from_json_str(&contract_class_str)?)
+    }
+
+    pub fn rpc_from_path(path: &str) -> DevnetResult<DeprecatedContractClass> {
+        let contract_class_str = fs::read_to_string(path)?;
+        Ok(Cairo0ContractClass::rpc_from_json_str(&contract_class_str)?)
+    }
+}
+
+impl From<Cairo0Json> for Cairo0ContractClass {
+    fn from(value: Cairo0Json) -> Self {
+        Cairo0ContractClass::RawJson(value)
     }
 }
 
@@ -143,22 +181,32 @@ impl From<DeprecatedContractClass> for ContractClass {
     }
 }
 
+impl From<Cairo0Json> for ContractClass {
+    fn from(value: Cairo0Json) -> Self {
+        ContractClass::Cairo0(value.into())
+    }
+}
+
 impl From<SierraContractClass> for ContractClass {
     fn from(value: SierraContractClass) -> Self {
         ContractClass::Cairo1(value)
     }
 }
 
+impl TryFrom<DeprecatedContractClass> for Cairo0Json {
+    type Error = Error;
+    fn try_from(value: DeprecatedContractClass) -> Result<Self, Self::Error> {
+        Ok(serde_json::to_value(&value).map_err(JsonError::SerdeJsonError)?)
+    }
+}
+
 impl TryFrom<DeprecatedContractClass> for StarknetInRustContractClass {
     type Error = Error;
     fn try_from(value: DeprecatedContractClass) -> Result<Self, Self::Error> {
-        let abi_json = serde_json::to_value(value.abi).unwrap();
-
+        let json_value: Value = value.try_into()?;
         // let abi_json = serde_json::to_value(value.abi).map_err(|_| {
         //     ApiError::RpcError(RpcError::invalid_params("abi: Unable to parse to JSON"))
         // })?;
-
-        let entry_points_json = serde_json::to_value(value.entry_points_by_type).unwrap();
 
         // let entry_points_json = serde_json::to_value(value.entry_points_by_type).map_err(|_| {
         //     ApiError::RpcError(RpcError::invalid_params(
@@ -166,11 +214,11 @@ impl TryFrom<DeprecatedContractClass> for StarknetInRustContractClass {
         //     ))
         // })?;
 
-        let json_value = json!({
-            "program": value.program,
-            "abi": abi_json,
-            "entry_points_by_type": entry_points_json,
-        });
+        // let json_value = json!({
+        //     "program": value.program,
+        //     "abi": abi_json,
+        //     "entry_points_by_type": entry_points_json,
+        // });
 
         let starknet_in_rust_contract_class =
             StarknetInRustContractClass::from_str(&json_value.to_string())
@@ -340,50 +388,20 @@ impl ContractClass {
 }
 
 impl HashProducer for DeprecatedContractClass {
-    fn generate_hash(&self) -> crate::DevnetResult<crate::felt::Felt> {
-        let stark_hash = compute_deprecated_class_hash(&self.clone().try_into()?)
-            .map_err(Error::ContractAddressError)?;
-
-        Ok(Felt::from(stark_hash))
+    fn generate_hash(&self) -> DevnetResult<Felt> {
+        let json_value: Cairo0Json = self.clone().try_into()?;
+        json_value.generate_hash()
     }
 }
 
 impl HashProducer for Cairo0ContractClass {
     fn generate_hash(&self) -> DevnetResult<Felt> {
         match self {
-            // TODO: ::Starknet shall be calling compute_hinted_class_hash
-            // TODO: rpc shall convert and call compute_deprecated_class_hash
-            Cairo0ContractClass::RawJson(contract_json) => {
-                Ok(ContractClass::compute_hinted_class_hash(&contract_json)?.into())
-            }
+            Cairo0ContractClass::RawJson(contract_json) => Ok(contract_json.generate_hash()?),
             Cairo0ContractClass::SIR(contract) => {
-                // TODO: use compute_hinted_class_hash on JSON value
                 Ok(compute_deprecated_class_hash(contract)?.into())
             }
-            Cairo0ContractClass::Rpc(contract) => {
-                let contract = contract.clone();
-                let abi_json = serde_json::to_value(contract.abi).unwrap();
-
-                // let abi_json = serde_json::to_value(value.abi).map_err(|_| {
-                //     ApiError::RpcError(RpcError::invalid_params("abi: Unable to parse to JSON"))
-                // })?;
-
-                let entry_points_json =
-                    serde_json::to_value(contract.entry_points_by_type).unwrap();
-
-                // let entry_points_json = serde_json::to_value(value.entry_points_by_type).map_err(|_| {
-                //     ApiError::RpcError(RpcError::invalid_params(
-                //         "entry_points_by_type: Unable to parse to JSON",
-                //     ))
-                // })?;
-
-                let json_value = json!({
-                    "program": contract.program,
-                    "abi": abi_json,
-                    "entry_points_by_type": entry_points_json,
-                });
-                Ok(ContractClass::compute_hinted_class_hash(&json_value)?.into())
-            }
+            Cairo0ContractClass::Rpc(contract) => Ok(contract.generate_hash()?),
         }
     }
 }
@@ -419,7 +437,7 @@ mod tests {
     #[test]
     fn cairo_0_contract_class_hash_generated_successfully() {
         let json_str = std::fs::read_to_string(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
-        let contract_class = Cairo0ContractClass::cairo_0_from_json_str(&json_str).unwrap();
+        let contract_class = Cairo0ContractClass::raw_json_from_json_str(&json_str).unwrap();
         let class_hash = contract_class.generate_hash().unwrap();
         let expected_class_hash =
             Felt::from_prefixed_hex_str(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap();
@@ -428,6 +446,6 @@ mod tests {
 
     #[test]
     fn contract_class_cairo_0_from_json_str_doesnt_accept_string_different_from_json() {
-        assert!(Cairo0ContractClass::cairo_0_from_json_str(" not JSON string").is_err());
+        assert!(Cairo0ContractClass::raw_json_from_json_str(" not JSON string").is_err());
     }
 }

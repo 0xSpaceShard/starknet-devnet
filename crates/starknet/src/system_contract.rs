@@ -20,7 +20,7 @@ impl SystemContract {
         Ok(Self {
             class_hash: Felt::from_prefixed_hex_str(class_hash)?,
             address: ContractAddress::new(Felt::from_prefixed_hex_str(address)?)?,
-            contract_class: Cairo0ContractClass::cairo_0_from_json_str(contract_class_json_str)?
+            contract_class: Cairo0ContractClass::raw_json_from_json_str(contract_class_json_str)?
                 .into(),
         })
     }
@@ -65,7 +65,7 @@ mod tests {
     #[test]
     fn load_erc20_contract() {
         let json_str = std::fs::read_to_string(ERC20_CONTRACT_PATH).unwrap();
-        assert!(Cairo0ContractClass::cairo_0_from_json_str(&json_str).is_ok());
+        assert!(Cairo0ContractClass::raw_json_from_json_str(&json_str).is_ok());
     }
 
     #[test]

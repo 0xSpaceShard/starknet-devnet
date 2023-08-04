@@ -132,7 +132,7 @@ mod tests {
     use starknet_in_rust::CasmContractClass;
     use starknet_rs_core::types::TransactionStatus;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::ContractClass;
+    use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
 
@@ -142,7 +142,6 @@ mod tests {
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut, StateExtractor};
     use crate::transactions::declare_transaction::DeclareTransactionV1;
     use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
-    use crate::utils::load_cairo_0_contract_class;
     use crate::utils::test_utils::{
         dummy_cairo_0_contract_class, dummy_cairo_1_contract_class, dummy_felt,
     };
@@ -324,7 +323,7 @@ mod tests {
             env!("CARGO_MANIFEST_DIR"),
             "/test_artifacts/account_without_validations/account.json"
         );
-        let contract_class = load_cairo_0_contract_class(account_json_path).unwrap();
+        let contract_class = Cairo0ContractClass::rpc_from_path(account_json_path).unwrap();
 
         let erc_20_contract = predeployed::create_erc20().unwrap();
         erc_20_contract.deploy(&mut starknet.state).unwrap();
@@ -334,7 +333,7 @@ mod tests {
             dummy_felt(),
             dummy_felt(),
             contract_class.generate_hash().unwrap(),
-            ContractClass::Cairo0(contract_class),
+            contract_class.into(),
             erc_20_contract.get_address(),
         )
         .unwrap();

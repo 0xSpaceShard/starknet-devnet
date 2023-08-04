@@ -167,7 +167,7 @@ mod tests {
         let class_hash = Felt::from_prefixed_hex_str(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap();
         let json_str = std::fs::read_to_string(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
 
-        let contract_class = Cairo0ContractClass::cairo_0_from_json_str(&json_str).unwrap();
+        let contract_class = Cairo0ContractClass::raw_json_from_json_str(&json_str).unwrap();
 
         let generated_accounts =
             predeployed_acc.generate_accounts(3, class_hash, contract_class.into()).unwrap();

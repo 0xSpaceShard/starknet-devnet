@@ -17,12 +17,6 @@ pub(crate) fn generate_u128_random_numbers(
     Ok(random_number_generator::generate_u128_random_numbers(seed, random_numbers_count))
 }
 
-pub(crate) fn load_cairo_0_contract_class(path: &str) -> Result<Cairo0ContractClass> {
-    let contract_class_str = fs::read_to_string(path)
-        .map_err(|err| Error::ReadFileError { source: err, path: path.to_string() })?;
-    Ok(Cairo0ContractClass::cairo_0_from_json_str(&contract_class_str)?)
-}
-
 /// Returns the storage address of a Starknet storage variable given its name and arguments.
 pub(crate) fn get_storage_var_address(storage_var_name: &str, args: &[Felt]) -> Result<StorageKey> {
     let storage_var_name_hash = calculate_sn_keccak(storage_var_name.as_bytes());
@@ -51,7 +45,6 @@ pub(crate) mod test_utils {
     use starknet_types::felt::Felt;
     use starknet_types::patricia_key::StorageKey;
 
-    use super::load_cairo_0_contract_class;
     use crate::constants::{
         DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_HOST,
         DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TEST_SEED,
@@ -84,14 +77,34 @@ pub(crate) mod test_utils {
         )
     }
 
-    pub(crate) fn dummy_cairo_0_contract_class() -> Cairo0ContractClass {
+    pub(crate) fn dummy_cairo_0_contract_class() -> DeprecatedContractClass {
         let json_str = std::fs::read_to_string(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/test_artifacts/cairo_0_test.json"
         ))
         .unwrap();
 
-        Cairo0ContractClass::cairo_0_from_json_str(&json_str).unwrap()
+        Cairo0ContractClass::rpc_from_json_str(&json_str).unwrap()
+    }
+
+    pub(crate) fn dummy_cairo_0_rpc_class() -> DeprecatedContractClass {
+        let json_str = std::fs::read_to_string(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test_artifacts/cairo_0_rpc.json"
+        ))
+        .unwrap();
+
+        Cairo0ContractClass::rpc_from_json_str(&json_str).unwrap()
+    }
+
+    pub(crate) fn dummy_account_0_rpc_class() -> DeprecatedContractClass {
+        let json_str = std::fs::read_to_string(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/accounts_artifacts/OpenZeppelin/0.5.1/Account.cairo/Account.json"
+        ))
+        .unwrap();
+
+        Cairo0ContractClass::rpc_from_json_str(&json_str).unwrap()
     }
 
     pub(crate) fn dummy_cairo_1_contract_class() -> SierraContractClass {
@@ -128,7 +141,7 @@ pub(crate) mod test_utils {
             "/test_artifacts/account_without_validations/account.json"
         );
 
-        load_cairo_0_contract_class(account_json_path).unwrap()
+        Cairo0ContractClass::rpc_from_path(account_json_path).unwrap().into()
     }
 
     pub(crate) fn get_bytes_from_u32(num: u32) -> [u8; 32] {
@@ -148,7 +161,17 @@ mod tests {
     use starknet_types::traits::ToHexString;
 
     use super::get_storage_var_address;
-    use super::test_utils::{self, get_bytes_from_u32};
+    use super::test_utils::dummy_cairo_0_rpc_class;
+    use super::test_utils::{self, dummy_account_0_rpc_class, get_bytes_from_u32};
+    #[test]
+    fn test_dummy_cairo_0_rpc_class() {
+        dummy_cairo_0_rpc_class();
+    }
+
+    #[test]
+    fn test_dummy_account_0_rpc_class() {
+        dummy_account_0_rpc_class();
+    }
 
     #[test]
     fn correct_bytes_from_number() {
