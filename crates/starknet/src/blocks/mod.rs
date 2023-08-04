@@ -87,7 +87,7 @@ impl StarknetBlocks {
 #[derive(Clone, Eq, PartialEq)]
 pub struct StarknetBlock {
     pub(crate) header: BlockHeader,
-    pub(crate) transactions: Vec<Transaction>,
+    pub transactions: Vec<Transaction>,
     pub(crate) status: BlockStatus,
 }
 

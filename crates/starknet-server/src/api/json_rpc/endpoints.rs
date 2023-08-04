@@ -1,4 +1,5 @@
 use starknet_core::error::Error;
+use starknet_core::transactions::StarknetTransaction;
 use starknet_in_rust::core::errors::state_errors::StateError;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::utils::Address;
@@ -150,17 +151,9 @@ impl JsonRpcHandler {
         Ok(felt)
     }
 
-    /// starknet_getTransactionByHash
-    pub(crate) async fn get_transaction_by_hash(
-        &self,
-        transaction_hash: TransactionHash,
-    ) -> RpcResult<TransactionWithType> {
-        let starknet = self.api.starknet.read().await;
-        let transaction_to_map = starknet
-            .transactions
-            .get(&transaction_hash)
-            .ok_or(error::ApiError::TransactionNotFound)?;
-        let transaction_type;
+    // TODO move to utils?
+    pub(crate) fn convert_to_transaction_type(transaction_to_map: &StarknetTransaction) -> RpcResult<TransactionWithType> {
+        let transaction_type: TransactionType;
         let transaction_data: Transaction = match transaction_to_map.inner.clone() {
             starknet_core::transactions::Transaction::Declare(declare_v1) => {
                 transaction_type = TransactionType::Declare;
@@ -201,17 +194,34 @@ impl JsonRpcHandler {
 
         let transaction =
             TransactionWithType { transaction: transaction_data, r#type: transaction_type };
-
         Ok(transaction)
+    }
+
+    /// starknet_getTransactionByHash
+    pub(crate) async fn get_transaction_by_hash(
+        &self,
+        transaction_hash: TransactionHash,
+    ) -> RpcResult<TransactionWithType> {
+        let starknet = self.api.starknet.read().await;
+        let transaction = starknet
+            .transactions
+            .get(&transaction_hash)
+            .ok_or(error::ApiError::TransactionNotFound)?;
+
+        convert_to_transaction_type(transaction)
     }
 
     /// starknet_getTransactionByBlockIdAndIndex
     pub(crate) async fn get_transaction_by_block_id_and_index(
         &self,
-        _block_id: BlockId,
-        _index: BlockNumber,
+        block_id: BlockId,
+        index: BlockNumber,
     ) -> RpcResult<TransactionWithType> {
-        Err(error::ApiError::InvalidTransactionIndexInBlock)
+        let starknet = self.api.starknet.read().await;
+        let block = starknet.get_block(block_id.into()).unwrap_or(return Err(error::ApiError::BlockNotFound));
+        let transaction = block.transactions.get(index.0 as usize).ok_or(error::ApiError::InvalidTransactionIndexInBlock);
+        
+        convert_to_transaction_type(transaction)
     }
 
     /// starknet_getTransactionReceipt
