@@ -11,9 +11,15 @@ mod estimate_fee_tests {
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::contract::SierraClass;
-    use starknet_rs_core::types::{ContractClass, FeeEstimate, FieldElement, StarknetError};
-    use starknet_rs_core::utils::{get_contract_address, get_selector_from_name};
-    use starknet_rs_providers::ProviderError;
+    use starknet_rs_core::types::{
+        BlockId, BlockTag, FeeEstimate, FieldElement, FunctionCall, StarknetError,
+    };
+    use starknet_rs_core::utils::{
+        get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
+    };
+    use starknet_rs_providers::{
+        MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
+    };
 
     use crate::common::constants::{
         CAIRO_0_CONTRACT_PATH, CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH, CHAIN_ID,
@@ -64,8 +70,8 @@ mod estimate_fee_tests {
         let mint_amount = fee_estimation.overall_fee as u128 * 2;
         devnet.mint(deployment_address, mint_amount).await;
 
-        // TODO uncomment the following section once starknet_in_rust fixes max_fee checking
         // try sending with insufficient max fee
+        // TODO uncomment the following section once starknet_in_rust fixes max_fee checking
         // let insufficient_max_fee = fee_estimation.overall_fee * 9 / 10; // 90% of estimate - not
         // enough let unsuccessful_deployment_tx = account_factory
         // .deploy(salt)
@@ -113,9 +119,12 @@ mod estimate_fee_tests {
             .expect_err("Should have failed");
         match err {
             AccountFactoryError::Provider(ProviderError::StarknetError(
-                StarknetError::ContractError,
+                StarknetErrorWithMessage {
+                    code: MaybeUnknownErrorCode::Known(StarknetError::ContractError),
+                    ..
+                },
             )) => (),
-            other => panic!("Got wrong error: {other}"),
+            _ => panic!("Invalid error: {err:?}"),
         }
     }
 
@@ -183,8 +192,12 @@ mod estimate_fee_tests {
 
         // get account
         let (signer, account_address) = get_predeployed_account_props();
-        let account =
-            SingleOwnerAccount::new(devnet.clone_provider(), signer, account_address, CHAIN_ID);
+        let account = Arc::new(SingleOwnerAccount::new(
+            devnet.clone_provider(),
+            signer,
+            account_address,
+            CHAIN_ID,
+        ));
 
         // get class
         let contract_artifact_path = resolve_crates_path(CAIRO_0_CONTRACT_PATH);
@@ -203,31 +216,67 @@ mod estimate_fee_tests {
         assert_eq!(declaration_result.class_hash, class_hash);
 
         // deploy instance of class
-        let contract_factory = ContractFactory::new(class_hash, account);
+        let contract_factory = ContractFactory::new(class_hash, account.clone());
         let salt = FieldElement::from_hex_be("0x123").unwrap();
         let constructor_calldata = vec![];
-        todo!("Use the method get_udc_deployed_address");
-        let contract_address =
-            get_contract_address(salt, class_hash, &constructor_calldata, account_address);
+        let contract_address = get_udc_deployed_address(
+            salt,
+            class_hash,
+            &UdcUniqueness::NotUnique,
+            &constructor_calldata,
+        );
         contract_factory
-            .deploy(constructor_calldata, salt, true)
+            .deploy(constructor_calldata, salt, false)
             .nonce(FieldElement::ONE)
             // max fee implicitly estimated
             .send()
             .await
             .expect("Cannot deploy");
 
-        let increase_amount = 100 as u128;
-        let calls = vec![Call {
+        // prepare the call used in estimation and actual invoke
+        let increase_amount = FieldElement::from(100u128);
+        let invoke_calls = vec![Call {
             to: contract_address,
             selector: get_selector_from_name("increase_balance").unwrap(),
-            calldata: vec![FieldElement::from(increase_amount)],
+            calldata: vec![increase_amount],
         }];
-        let fee_estimation =
-            account.execute(calls).fee_estimate_multiplier(1.0).estimate_fee().await.unwrap();
+
+        // estimate the fee
+        let fee_estimation = account
+            .execute(invoke_calls.clone())
+            .fee_estimate_multiplier(1.0)
+            .estimate_fee()
+            .await
+            .unwrap();
         assert_fee_estimation(&fee_estimation);
-        // TODO attempt invoking with max_fee < estimate - expect failure
-        // TODO attempt invoking with max_fee > estimate - expect success
+
+        // prepare the call used in checking the balance
+        let call = FunctionCall {
+            contract_address,
+            entry_point_selector: get_selector_from_name("get_balance").unwrap(),
+            calldata: vec![],
+        };
+
+        // invoke with max_fee < estimate; expect failure
+        // TODO uncomment the following section once starknet_in_rust fixes max_fee checking
+        // let insufficient_max_fee =
+        //     FieldElement::from((fee_estimation.overall_fee as f64 * 0.9) as u128);
+        // account.execute(invoke_calls.clone()).max_fee(insufficient_max_fee).send().await.
+        // unwrap(); let balance_after_insufficient = devnet
+        //     .json_rpc_client
+        //     .call(call.clone(), BlockId::Tag(BlockTag::Latest))
+        //     .await
+        //     .unwrap();
+        // println!("Balance after insufficient: {balance_after_insufficient:?}");
+        // assert_eq!(balance_after_insufficient, vec![FieldElement::ZERO]);
+
+        // invoke with max_fee > estimate; expect success
+        let sufficient_max_fee =
+            FieldElement::from((fee_estimation.overall_fee as f64 * 1.1) as u128);
+        account.execute(invoke_calls).max_fee(sufficient_max_fee).send().await.unwrap();
+        let balance_after_sufficient =
+            devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap();
+        assert_eq!(balance_after_sufficient, vec![increase_amount]);
     }
 
     #[tokio::test]
