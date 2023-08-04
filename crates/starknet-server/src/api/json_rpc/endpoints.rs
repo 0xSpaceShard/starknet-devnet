@@ -17,8 +17,9 @@ use crate::api::models::state::{
     ThinStateDiff,
 };
 use crate::api::models::transaction::{
-    BroadcastedTransactionWithType, DeclareTransactionV0V1, DeclareTransactionV2,
-    EmittedEvent, Event, EventContent, EventFilter, EventsChunk, FunctionCall, Transaction, TransactionReceipt, TransactionType, TransactionWithType, Transactions,
+    BroadcastedTransactionWithType, DeclareTransactionV0V1, DeclareTransactionV2, EmittedEvent,
+    Event, EventContent, EventFilter, EventsChunk, FunctionCall, Transaction, TransactionReceipt,
+    TransactionType, TransactionWithType, Transactions,
 };
 use crate::api::models::{BlockId, ContractAddressHex, PatriciaKeyHex};
 
@@ -36,9 +37,7 @@ impl JsonRpcHandler {
             status: *block.status(),
             header: BlockHeader::from(&block),
             transactions: crate::api::models::transaction::Transactions::Hashes(
-                block
-                    .get_transactions()
-                    .to_owned()
+                block.get_transactions().to_owned(),
             ),
         })
     }
