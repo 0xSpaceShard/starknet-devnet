@@ -5,16 +5,19 @@ mod estimate_fee_tests {
 
     use starknet_core::constants::CAIRO_0_ACCOUNT_CONTRACT_HASH;
     use starknet_rs_accounts::{
-        Account, AccountFactory, AccountFactoryError, OpenZeppelinAccountFactory,
+        Account, AccountFactory, AccountFactoryError, Call, OpenZeppelinAccountFactory,
         SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::{FeeEstimate, FieldElement, StarknetError};
-    use starknet_rs_core::utils::get_contract_address;
+    use starknet_rs_core::types::contract::SierraClass;
+    use starknet_rs_core::types::{ContractClass, FeeEstimate, FieldElement, StarknetError};
+    use starknet_rs_core::utils::{get_contract_address, get_selector_from_name};
     use starknet_rs_providers::ProviderError;
 
-    use crate::common::constants::{CAIRO_0_CONTRACT_PATH, CHAIN_ID};
+    use crate::common::constants::{
+        CAIRO_0_CONTRACT_PATH, CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH, CHAIN_ID,
+    };
     use crate::common::util::{
         get_deployable_account_signer, get_predeployed_account_props, load_json,
         resolve_crates_path, BackgroundDevnet,
@@ -139,11 +142,39 @@ mod estimate_fee_tests {
             .await
             .unwrap();
         assert_fee_estimation(&fee_estimation);
+
+        // TODO attempt declaring with max_fee < estimate - expect failure
+        // TODO attempt declaring with max_fee > estimate - expect success
     }
 
+    #[ignore] // estimation currently completely failing
     #[tokio::test]
     async fn estimate_fee_of_declare_v2() {
-        todo!();
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        // get account
+        let (signer, account_address) = get_predeployed_account_props();
+
+        // get class
+        let contract_artifact_path = resolve_crates_path(CAIRO_1_CONTRACT_PATH);
+        let contract_artifact: SierraClass = load_json(&contract_artifact_path);
+        let flattened_contract_artifact = contract_artifact.flatten().unwrap();
+        let compiled_class_hash = FieldElement::from_hex_be(CASM_COMPILED_CLASS_HASH).unwrap();
+
+        // declare class
+        let account =
+            SingleOwnerAccount::new(devnet.clone_provider(), signer, account_address, CHAIN_ID);
+
+        let fee_estimation = account
+            .declare(Arc::new(flattened_contract_artifact), compiled_class_hash)
+            .nonce(FieldElement::ONE)
+            .fee_estimate_multiplier(1.0)
+            .estimate_fee()
+            .await
+            .unwrap();
+        assert_fee_estimation(&fee_estimation);
+        // TODO attempt declaring with max_fee < estimate - expect failure
+        // TODO attempt declaring with max_fee > estimate - expect success
     }
 
     #[tokio::test]
@@ -175,7 +206,8 @@ mod estimate_fee_tests {
         let contract_factory = ContractFactory::new(class_hash, account);
         let salt = FieldElement::from_hex_be("0x123").unwrap();
         let constructor_calldata = vec![];
-        let _contract_address =
+        todo!("Use the method get_udc_deployed_address");
+        let contract_address =
             get_contract_address(salt, class_hash, &constructor_calldata, account_address);
         contract_factory
             .deploy(constructor_calldata, salt, true)
@@ -185,7 +217,17 @@ mod estimate_fee_tests {
             .await
             .expect("Cannot deploy");
 
-        todo!("Add invoke estimation here");
+        let increase_amount = 100 as u128;
+        let calls = vec![Call {
+            to: contract_address,
+            selector: get_selector_from_name("increase_balance").unwrap(),
+            calldata: vec![FieldElement::from(increase_amount)],
+        }];
+        let fee_estimation =
+            account.execute(calls).fee_estimate_multiplier(1.0).estimate_fee().await.unwrap();
+        assert_fee_estimation(&fee_estimation);
+        // TODO attempt invoking with max_fee < estimate - expect failure
+        // TODO attempt invoking with max_fee > estimate - expect success
     }
 
     #[tokio::test]
