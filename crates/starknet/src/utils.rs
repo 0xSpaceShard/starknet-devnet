@@ -41,6 +41,7 @@ pub(crate) fn get_storage_var_address(storage_var_name: &str, args: &[Felt]) -> 
 
 #[cfg(test)]
 pub(crate) mod test_utils {
+    use serde::de::DeserializeOwned;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;
@@ -137,6 +138,20 @@ pub(crate) mod test_utils {
         result[starting_idx..ending_idx].copy_from_slice(&num_bytes[..(ending_idx - starting_idx)]);
 
         result
+    }
+
+    pub(crate) fn get_transaction_from_feeder_gateway<T>(transaction_hash: &str) -> T
+    where
+        T: DeserializeOwned,
+    {
+        let url = format!(
+            "https://alpha4.starknet.io/feeder_gateway/get_transaction?transactionHash={}",
+            transaction_hash
+        );
+        let obj_value =
+            reqwest::blocking::get(&url).unwrap().json::<serde_json::Value>().unwrap().to_owned();
+
+        serde_json::from_value(obj_value.get("transaction").unwrap().to_owned()).unwrap()
     }
 }
 

@@ -22,3 +22,4 @@ tracing = { workspace = true }
 [dev-dependencies]
 jsonschema = "0.16.0"
 blockifier = { git = "https://github.com/starkware-libs/blockifier", rev = "f2d237b" }
+reqwest = { version = "0.11", features = ["blocking", "json"]}
