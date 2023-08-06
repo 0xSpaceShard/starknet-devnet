@@ -61,40 +61,11 @@ pub fn add_declare_transaction_v1(
     starknet: &mut Starknet,
     declare_transaction: DeclareTransactionV1,
 ) -> Result<(TransactionHash, ClassHash)> {
-    let mut declare_transaction = declare_transaction;
-
-    let class_hash = declare_transaction.contract_class.generate_hash()?;
-    let transaction_hash = declare_transaction.generate_hash()?;
-    declare_transaction.transaction_hash = Some(transaction_hash);
-    declare_transaction.class_hash = Some(class_hash);
-
-    let transaction = Declare {
-        class_hash: class_hash.into(),
-        sender_address: declare_transaction.sender_address.try_into()?,
-        tx_type: starknet_in_rust::definitions::transaction_type::TransactionType::Declare,
-        validate_entry_point_selector:
-            starknet_in_rust::definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR.clone(),
-        version: declare_transaction.version.into(),
-        max_fee: declare_transaction.max_fee,
-        signature: declare_transaction.signature.iter().map(|felt| felt.into()).collect(),
-        nonce: declare_transaction.nonce.into(),
-        hash_value: transaction_hash.into(),
-        contract_class: declare_transaction.contract_class.clone().try_into()?,
-        skip_execute: false,
-        skip_fee_transfer: false,
-        skip_validate: false,
-    };
-
-    verify_version(
-        &transaction.version,
-        transaction.max_fee,
-        &transaction.nonce,
-        &transaction.signature,
-    )?;
-
     let state_before_txn = starknet.state.pending_state.clone();
+    let transaction_hash = declare_transaction.transaction_hash.unwrap();
+    let class_hash = declare_transaction.class_hash.unwrap();
 
-    match transaction.execute(&mut starknet.state.pending_state, &starknet.block_context) {
+    match declare_transaction.inner.execute(&mut starknet.state.pending_state, &starknet.block_context) {
         Ok(tx_info) => {
             starknet.handle_successful_transaction(
                 &transaction_hash,
