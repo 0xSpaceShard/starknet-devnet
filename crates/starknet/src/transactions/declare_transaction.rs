@@ -2,7 +2,7 @@ use starknet_in_rust::core::transaction_hash::{
     calculate_transaction_hash_common, TransactionHashPrefix,
 };
 use starknet_in_rust::felt::Felt252;
-use starknet_in_rust::transaction::{Declare, verify_version};
+use starknet_in_rust::transaction::{verify_version, Declare};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
@@ -27,15 +27,15 @@ pub struct DeclareTransactionV1 {
 
 impl PartialEq for DeclareTransactionV1 {
     fn eq(&self, other: &Self) -> bool {
-        self.inner.sender_address == other.inner.sender_address 
-        && self.inner.validate_entry_point_selector == other.inner.validate_entry_point_selector
-        && self.max_fee == other.max_fee 
-        && self.signature == other.signature 
-        && self.nonce == other.nonce 
-        && self.version == other.version 
-        && self.class_hash == other.class_hash 
-        && self.transaction_hash == other.transaction_hash 
-        && self.chain_id == other.chain_id
+        self.inner.sender_address == other.inner.sender_address
+            && self.inner.validate_entry_point_selector == other.inner.validate_entry_point_selector
+            && self.max_fee == other.max_fee
+            && self.signature == other.signature
+            && self.nonce == other.nonce
+            && self.version == other.version
+            && self.class_hash == other.class_hash
+            && self.transaction_hash == other.transaction_hash
+            && self.chain_id == other.chain_id
     }
 }
 
@@ -66,9 +66,10 @@ impl DeclareTransactionV1 {
             sender_address: sender_address.try_into()?,
             tx_type: starknet_in_rust::definitions::transaction_type::TransactionType::Declare,
             validate_entry_point_selector:
-                starknet_in_rust::definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR.clone(),
+                starknet_in_rust::definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR
+                    .clone(),
             version: version.into(),
-            max_fee: max_fee,
+            max_fee,
             signature: signature.iter().map(|felt| felt.into()).collect(),
             nonce: nonce.into(),
             hash_value: Felt252::default(),
@@ -110,7 +111,7 @@ impl DeclareTransactionV1 {
             nonce,
             version,
             contract_class,
-            class_hash: class_hash,
+            class_hash,
             transaction_hash: transaction_hash.into(),
             chain_id,
         })
@@ -136,10 +137,14 @@ mod tests {
 
     use serde::Deserialize;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
-    use starknet_types::{contract_class::ContractClass, traits::{HashProducer, ToHexString}, felt::Felt, contract_address::ContractAddress};
+    use starknet_types::contract_address::ContractAddress;
+    use starknet_types::contract_class::ContractClass;
+    use starknet_types::felt::Felt;
+    use starknet_types::traits::{HashProducer, ToHexString};
 
     use crate::utils::test_utils::{
-        dummy_cairo_0_contract_class, dummy_contract_address, dummy_felt, get_transaction_from_feeder_gateway,
+        dummy_cairo_0_contract_class, dummy_contract_address, dummy_felt,
+        get_transaction_from_feeder_gateway,
     };
 
     #[derive(Deserialize)]
@@ -154,7 +159,11 @@ mod tests {
     #[test]
     /// test_artifact is taken from starknet-rs. https://github.com/xJonathanLEI/starknet-rs/blob/starknet-core/v0.5.1/starknet-core/test-data/contracts/cairo0/artifacts/event_example.txt
     fn correct_transaction_hash_computation_compared_to_a_transaction_from_feeder_gateway() {
-        let json_str = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/test_artifacts/events_cairo0.txt")).unwrap();
+        let json_str = std::fs::read_to_string(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test_artifacts/events_cairo0.txt"
+        ))
+        .unwrap();
         let cairo0 = ContractClass::cairo_0_from_json_str(&json_str).unwrap();
 
         // this is declare v1 transaction send with starknet-rs
@@ -167,12 +176,14 @@ mod tests {
 
         let declare_transaction = super::DeclareTransactionV1::new(
             ContractAddress::new(feeder_gateway_transaction.sender_address).unwrap(),
-            u128::from_str_radix(&feeder_gateway_transaction.max_fee.to_nonprefixed_hex_str(), 16).unwrap(),
+            u128::from_str_radix(&feeder_gateway_transaction.max_fee.to_nonprefixed_hex_str(), 16)
+                .unwrap(),
             vec![],
             feeder_gateway_transaction.nonce,
             cairo0,
             StarknetChainId::TestNet.to_felt().into(),
-        ).unwrap();
+        )
+        .unwrap();
 
         let declare_transaction_hash = declare_transaction.generate_hash().unwrap();
         assert_eq!(feeder_gateway_transaction.transaction_hash, declare_transaction_hash);
