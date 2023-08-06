@@ -16,6 +16,7 @@ mod get_events_integration_tests {
     use starknet_rs_core::chain_id;
     use starknet_rs_core::crypto::ecdsa_sign;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
+    use starknet_rs_core::types::contract::SierraClass;
     use starknet_rs_core::types::{
         BlockId, BlockTag, BroadcastedDeployAccountTransaction, EventFilter, FieldElement,
         FlattenedSierraClass,
@@ -30,6 +31,60 @@ mod get_events_integration_tests {
     use url::Url;
 
     use crate::common::util::{get_json_body, BackgroundDevnet};
+
+    #[tokio::test]
+    async fn declare_events_contract() {
+        let contract_artifact: SierraClass = serde_json::from_reader(
+            std::fs::File::open(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/test_data/cairo1/events/events_2.0.1_compiler.sierra"
+            ))
+            .unwrap(),
+        )
+        .unwrap();
+
+        let casm: CasmContractClass = serde_json::from_reader(
+            std::fs::File::open(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/test_data/cairo1/events/events_2.0.1_compiler.casm"
+            ))
+            .unwrap(),
+        )
+        .unwrap();
+
+        let compiled_class_hash = compute_casm_class_hash(&casm).unwrap();
+        println!("{}", Felt::from(compiled_class_hash.clone()).to_prefixed_hex_str());
+
+        // Class hash of the compiled CASM class from the `starknet-sierra-compile` command
+        let compiled_class_hash =
+            FieldElement::from_bytes_be(&compiled_class_hash.to_be_bytes()).unwrap();
+
+        let provider = SequencerGatewayProvider::starknet_alpha_goerli();
+        let signer = LocalWallet::from(SigningKey::from_secret_scalar(
+            FieldElement::from_hex_be(
+                "0x2caedeed52386b11d9eba38c1ca2c5785cbb342754dfcb22b0f98575f72f11e",
+            )
+            .unwrap(),
+        ));
+        let address = FieldElement::from_hex_be(
+            "0x204bd1135dd127fb54cc2edfdc3ed762224487c23dc52b0200e7bb010e17488",
+        )
+        .unwrap();
+
+        let mut account = SingleOwnerAccount::new(provider, signer, address, chain_id::TESTNET);
+
+        // `SingleOwnerAccount` defaults to checking nonce and estimating fees against the latest
+        // block. Optionally change the target block to pending with the following line:
+        account.set_block_id(BlockId::Tag(BlockTag::Pending));
+
+        // We need to flatten the ABI into a string first
+        let flattened_class = contract_artifact.flatten().unwrap();
+
+        let result =
+            account.declare(Arc::new(flattened_class), compiled_class_hash).send().await.unwrap();
+
+        println!("{:?}", result);
+    }
 
     ///
     fn get_events_contract_in_sierra_and_compiled_class_hash()
@@ -202,6 +257,7 @@ mod get_events_integration_tests {
             contract_address_salt: FieldElement::ZERO,
             constructor_calldata: vec![],
             class_hash: declaration_result.class_hash,
+            is_query: false,
         };
 
         let txn_hash = generate_transaction_hash_on_deploy_account_transaction(
