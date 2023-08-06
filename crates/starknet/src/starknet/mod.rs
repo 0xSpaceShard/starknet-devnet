@@ -565,12 +565,10 @@ mod tests {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        let mut tx = dummy_declare_transaction_v1();
-        let tx_hash = tx.generate_hash().unwrap();
-        tx.transaction_hash = Some(tx_hash);
+        let tx = dummy_declare_transaction_v1();
 
         // add transaction hash to pending block
-        starknet.blocks.pending_block.add_transaction(tx_hash);
+        starknet.blocks.pending_block.add_transaction(tx.transaction_hash);
 
         // pending block has some transactions
         assert!(!starknet.pending_block().get_transactions().is_empty());
@@ -585,7 +583,7 @@ mod tests {
         let added_block = starknet.blocks.num_to_block.get(&BlockNumber(0)).unwrap();
 
         assert!(added_block.get_transactions().len() == 1);
-        assert_eq!(*added_block.get_transactions().first().unwrap(), tx_hash);
+        assert_eq!(*added_block.get_transactions().first().unwrap(), tx.transaction_hash);
     }
 
     #[test]

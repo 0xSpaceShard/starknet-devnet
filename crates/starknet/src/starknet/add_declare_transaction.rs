@@ -12,8 +12,8 @@ pub fn add_declare_transaction_v2(
     declare_transaction: DeclareTransactionV2,
 ) -> Result<(TransactionHash, ClassHash)> {
     let state_before_txn = starknet.state.pending_state.clone();
-    let transaction_hash = declare_transaction.transaction_hash.unwrap();
-    let class_hash = declare_transaction.class_hash.unwrap();
+    let transaction_hash = declare_transaction.transaction_hash;
+    let class_hash = declare_transaction.class_hash;
 
     match declare_transaction.inner.execute(&mut starknet.state.pending_state, &starknet.block_context) {
         Ok(tx_info) => {
@@ -44,8 +44,8 @@ pub fn add_declare_transaction_v1(
     declare_transaction: DeclareTransactionV1,
 ) -> Result<(TransactionHash, ClassHash)> {
     let state_before_txn = starknet.state.pending_state.clone();
-    let transaction_hash = declare_transaction.transaction_hash.unwrap();
-    let class_hash = declare_transaction.class_hash.unwrap();
+    let transaction_hash = declare_transaction.transaction_hash;
+    let class_hash = declare_transaction.class_hash;
 
     match declare_transaction.inner.execute(&mut starknet.state.pending_state, &starknet.block_context) {
         Ok(tx_info) => {

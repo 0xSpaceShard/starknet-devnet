@@ -162,12 +162,12 @@ impl JsonRpcHandler {
                 transaction_type = TransactionType::Declare;
                 Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version1(
                     DeclareTransactionV0V1 {
-                        class_hash: declare_v1.class_hash.unwrap_or_default(),
+                        class_hash: declare_v1.class_hash,
                         sender_address: ContractAddressHex(declare_v1.sender_address),
                         nonce: declare_v1.nonce,
                         max_fee: Fee(declare_v1.max_fee),
                         version: Felt::from(1),
-                        transaction_hash: declare_v1.transaction_hash.unwrap(),
+                        transaction_hash: declare_v1.transaction_hash,
                         signature: declare_v1.signature,
                     },
                 ))
@@ -176,12 +176,12 @@ impl JsonRpcHandler {
                 transaction_type = TransactionType::Declare;
                 Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version2(
                     DeclareTransactionV2 {
-                        class_hash: declare_v2.class_hash.unwrap(),
+                        class_hash: declare_v2.class_hash,
                         sender_address: ContractAddressHex(declare_v2.sender_address),
                         nonce: declare_v2.nonce,
                         max_fee: Fee(declare_v2.max_fee),
                         version: Felt::from(2),
-                        transaction_hash: declare_v2.transaction_hash.unwrap(),
+                        transaction_hash: declare_v2.transaction_hash,
                         signature: declare_v2.signature,
                         compiled_class_hash: declare_v2.compiled_class_hash,
                     },

@@ -113,12 +113,12 @@ pub enum Transaction {
 }
 
 impl Transaction {
-    pub fn get_hash(&self) -> Option<TransactionHash> {
+    pub fn get_hash(&self) -> TransactionHash {
         match self {
             Transaction::Declare(tx) => tx.transaction_hash,
             Transaction::DeclareV2(tx) => tx.transaction_hash,
-            Transaction::DeployAccount(tx) => Some(tx.inner.hash_value().clone().into()),
-            Transaction::Invoke(tx) => Some(tx.inner.hash_value().clone().into()),
+            Transaction::DeployAccount(tx) => tx.inner.hash_value().clone().into(),
+            Transaction::Invoke(tx) => tx.inner.hash_value().clone().into(),
         }
     }
 

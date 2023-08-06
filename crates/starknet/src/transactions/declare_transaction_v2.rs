@@ -19,8 +19,8 @@ pub struct DeclareTransactionV2 {
     pub max_fee: u128,
     pub signature: Vec<Felt>,
     pub nonce: Felt,
-    pub class_hash: Option<ClassHash>,
-    pub transaction_hash: Option<TransactionHash>,
+    pub class_hash: ClassHash,
+    pub transaction_hash: TransactionHash,
     pub chain_id: Felt,
     pub version: Felt,
 }
@@ -74,8 +74,8 @@ impl DeclareTransactionV2 {
             max_fee,
             signature,
             nonce,
-            class_hash: Some(class_hash),
-            transaction_hash: Some(transaction_hash),
+            class_hash: class_hash,
+            transaction_hash: transaction_hash,
             chain_id,
             version,
         })
@@ -85,8 +85,8 @@ impl DeclareTransactionV2 {
         &self.sender_address
     }
 
-    pub fn class_hash(&self) -> Option<&ClassHash> {
-        self.class_hash.as_ref()
+    pub fn class_hash(&self) -> &ClassHash {
+        &self.class_hash
     }
 
     pub fn compiled_class_hash(&self) -> &ClassHash {
@@ -166,7 +166,7 @@ mod tests {
             StarknetChainId::TestNet.to_felt().into())
             .unwrap();
         
-        assert_eq!(feeder_gateway_transaction.class_hash, declare_transaction.class_hash.unwrap());
+        assert_eq!(feeder_gateway_transaction.class_hash, declare_transaction.class_hash);
         assert_eq!(feeder_gateway_transaction.transaction_hash, declare_transaction.generate_hash().unwrap());
     }
 
