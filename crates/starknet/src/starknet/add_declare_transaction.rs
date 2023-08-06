@@ -1,6 +1,5 @@
 use starknet_in_rust::transaction::{verify_version, Declare, DeclareV2};
 use starknet_types::felt::{ClassHash, TransactionHash};
-use starknet_types::traits::HashProducer;
 
 use crate::error::Result;
 use crate::starknet::Starknet;
@@ -12,31 +11,14 @@ pub fn add_declare_transaction_v2(
     starknet: &mut Starknet,
     declare_transaction: DeclareTransactionV2,
 ) -> Result<(TransactionHash, ClassHash)> {
-    let mut declare_transaction = declare_transaction;
-
-    let transaction = DeclareV2::new(
-        &declare_transaction.sierra_contract_class.clone().try_into()?,
-        None,
-        declare_transaction.compiled_class_hash.into(),
-        declare_transaction.chain_id.into(),
-        declare_transaction.sender_address.try_into()?,
-        declare_transaction.max_fee,
-        declare_transaction.version.into(),
-        declare_transaction.signature.iter().map(|felt| felt.into()).collect(),
-        declare_transaction.nonce.into(),
-    )?;
-    let class_hash = transaction.sierra_class_hash.clone().into();
-    let transaction_hash = transaction.hash_value.clone().into();
-
-    declare_transaction.class_hash = Some(class_hash);
-    declare_transaction.transaction_hash = Some(transaction_hash);
-
     let state_before_txn = starknet.state.pending_state.clone();
+    let transaction_hash = declare_transaction.transaction_hash.unwrap();
+    let class_hash = declare_transaction.class_hash.unwrap();
 
-    match transaction.execute(&mut starknet.state.pending_state, &starknet.block_context) {
+    match declare_transaction.inner.execute(&mut starknet.state.pending_state, &starknet.block_context) {
         Ok(tx_info) => {
             // Add sierra contract
-            starknet.sierra_contracts.insert(class_hash, transaction.sierra_contract_class);
+            starknet.sierra_contracts.insert(class_hash, declare_transaction.inner.sierra_contract_class.clone());
             starknet.handle_successful_transaction(
                 &transaction_hash,
                 Transaction::DeclareV2(Box::new(declare_transaction)),
