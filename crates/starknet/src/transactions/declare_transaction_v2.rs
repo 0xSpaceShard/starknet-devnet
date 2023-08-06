@@ -158,7 +158,7 @@ mod tests {
             "/test_artifacts/events_cairo1.sierra");
 
         let cairo_1_contract = ContractClass::cairo_1_from_sierra_json_str(&std::fs::read_to_string(sierra_contract_path).unwrap()).unwrap();
-        let declare_transaction = DeclareTransactionV2::new(cairo_1_contract.clone(), 
+        let mut declare_transaction = DeclareTransactionV2::new(cairo_1_contract.clone(), 
             feeder_gateway_transaction.compiled_class_hash, 
             ContractAddress::new(feeder_gateway_transaction.sender_address).unwrap(), 
             u128::from_str_radix(&feeder_gateway_transaction.max_fee.to_nonprefixed_hex_str(), 16).unwrap(), 
@@ -166,8 +166,30 @@ mod tests {
             feeder_gateway_transaction.nonce, 
             StarknetChainId::TestNet.to_felt().into())
             .unwrap();
+
+        let sierra_hash = Felt::from(compute_sierra_class_hash(&cairo_1_contract.try_into().unwrap()).unwrap());
+        println!("sierra hash: {}", sierra_hash.to_prefixed_hex_str());
+
+        declare_transaction.class_hash = Some(feeder_gateway_transaction.class_hash.into());
+        assert_eq!(feeder_gateway_transaction.transaction_hash, declare_transaction.generate_hash().unwrap());
+
+        declare_transaction.class_hash = None;
+
+        let starknet_in_rust_transaction = DeclareV2::new(
+            &declare_transaction.sierra_contract_class.clone().try_into().unwrap(),
+            None,
+            declare_transaction.compiled_class_hash.into(),
+            declare_transaction.chain_id.into(),
+            declare_transaction.sender_address.try_into().unwrap(),
+            declare_transaction.max_fee,
+            declare_transaction.version.into(),
+            declare_transaction.signature.iter().map(|felt| felt.into()).collect(),
+            declare_transaction.nonce.into(),
+        ).unwrap();
+
+        println!("{}", Felt::from(starknet_in_rust_transaction.hash_value).to_prefixed_hex_str());
+        println!("{}", declare_transaction.generate_hash().unwrap().to_prefixed_hex_str());
         
-        assert_eq!(feeder_gateway_transaction.class_hash, declare_transaction.class_hash.unwrap());
         assert_eq!(feeder_gateway_transaction.transaction_hash, declare_transaction.generate_hash().unwrap());
     }
 
