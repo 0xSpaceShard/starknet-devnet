@@ -80,12 +80,49 @@ impl HashProducer for InvokeTransactionV1 {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::test_utils::{dummy_contract_address, dummy_felt};
+    use serde::Deserialize;
+    use starknet_in_rust::definitions::block_context::StarknetChainId;
+    use starknet_types::contract_address::ContractAddress;
+    use starknet_types::felt::Felt;
+    use starknet_types::traits::{HashProducer, ToHexString};
 
+    use crate::utils::test_utils::{
+        dummy_contract_address, dummy_felt, get_transaction_from_feeder_gateway,
+    };
+
+    #[derive(Deserialize)]
+    struct FeederGatewayInvokeTransaction {
+        transaction_hash: Felt,
+        sender_address: Felt,
+        max_fee: Felt,
+        nonce: Felt,
+        calldata: Vec<Felt>,
+    }
+
+    /// Get transaction from feeder gateway by hash and then using the same parameters compute the
+    /// transaction hash
     #[test]
-    #[ignore]
-    fn correct_transaction_hash_computation() {
-        todo!("Transaction hash computation should be checked")
+    fn correct_transaction_hash_computation_compared_to_a_transaction_from_feeder_gateway() {
+        let feeder_gateway_transaction =
+            get_transaction_from_feeder_gateway::<FeederGatewayInvokeTransaction>(
+                "0x068fbb499e59af504491b801b694cb5b7450a2efc338f7480cb1887ea2c9bd01",
+            );
+
+        let transaction = super::InvokeTransactionV1::new(
+            ContractAddress::new(feeder_gateway_transaction.sender_address).unwrap(),
+            u128::from_str_radix(&feeder_gateway_transaction.max_fee.to_nonprefixed_hex_str(), 16)
+                .unwrap(),
+            vec![],
+            feeder_gateway_transaction.nonce,
+            feeder_gateway_transaction.calldata,
+            StarknetChainId::TestNet.to_felt().into(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            feeder_gateway_transaction.transaction_hash,
+            transaction.generate_hash().unwrap()
+        );
     }
 
     #[test]
