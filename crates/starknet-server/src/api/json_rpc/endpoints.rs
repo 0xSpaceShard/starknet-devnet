@@ -156,78 +156,12 @@ impl JsonRpcHandler {
         transaction_hash: TransactionHash,
     ) -> RpcResult<TransactionWithType> {
         let starknet = self.api.starknet.read().await;
-        let transaction_to_map = starknet
+        let transaction = starknet
             .transactions
             .get(&transaction_hash)
             .ok_or(error::ApiError::TransactionNotFound)?;
-        let transaction_type;
-        let transaction_data: Transaction = match transaction_to_map.inner.clone() {
-            starknet_core::transactions::Transaction::Declare(declare_v1) => {
-                transaction_type = TransactionType::Declare;
-                Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version1(
-                    DeclareTransactionV0V1 {
-                        class_hash: declare_v1.class_hash.unwrap_or_default(),
-                        sender_address: ContractAddressHex(declare_v1.sender_address),
-                        nonce: declare_v1.nonce,
-                        max_fee: Fee(declare_v1.max_fee),
-                        version: Felt::from(1),
-                        transaction_hash: declare_v1.transaction_hash.unwrap_or_default(),
-                        signature: declare_v1.signature,
-                    },
-                ))
-            }
-            starknet_core::transactions::Transaction::DeclareV2(declare_v2) => {
-                transaction_type = TransactionType::Declare;
-                Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version2(
-                    DeclareTransactionV2 {
-                        class_hash: declare_v2.class_hash.unwrap_or_default(),
-                        sender_address: ContractAddressHex(declare_v2.sender_address),
-                        nonce: declare_v2.nonce,
-                        max_fee: Fee(declare_v2.max_fee),
-                        version: Felt::from(2),
-                        transaction_hash: declare_v2.transaction_hash.unwrap_or_default(),
-                        signature: declare_v2.signature,
-                        compiled_class_hash: declare_v2.compiled_class_hash,
-                    },
-                ))
-            }
-            starknet_core::transactions::Transaction::DeployAccount(deploy) => {
-                transaction_type = TransactionType::DeployAccount;
-                Transaction::DeployAccount(
-                    crate::api::models::transaction::DeployAccountTransaction {
-                        transaction_hash: Felt::from(deploy.inner.hash_value().clone()),
-                        max_fee: Fee(deploy.max_fee),
-                        version: deploy.version,
-                        signature: deploy.signature.clone(),
-                        nonce: deploy.nonce,
-                        class_hash: deploy.class_hash().unwrap_or_default(),
-                        contract_address_salt: deploy.contract_address_salt(),
-                        constructor_calldata: deploy.constructor_calldata(),
-                    },
-                )
-            }
-            starknet_core::transactions::Transaction::Invoke(invoke) => {
-                transaction_type = TransactionType::Invoke;
-                Transaction::Invoke(crate::api::models::transaction::InvokeTransaction::Version1(
-                    InvokeTransactionV1 {
-                        transaction_hash: Felt::from(invoke.inner.hash_value().clone()),
-                        max_fee: Fee(invoke.max_fee),
-                        version: invoke.version,
-                        signature: invoke.signature.clone(),
-                        nonce: invoke.nonce,
-                        calldata: invoke.calldata.clone(),
-                        sender_address: ContractAddressHex(
-                            invoke.sender_address().unwrap_or_default(),
-                        ),
-                    },
-                ))
-            }
-        };
 
-        let transaction =
-            TransactionWithType { transaction: transaction_data, r#type: transaction_type };
-
-        Ok(transaction)
+        Ok(TransactionWithType::try_from(&transaction.inner)?)
     }
 
     /// starknet_getTransactionByBlockIdAndIndex
