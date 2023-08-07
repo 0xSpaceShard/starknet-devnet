@@ -25,6 +25,9 @@ jobs:
           command: cargo +nightly fmt --all --check
       - run:
           name: Test
+          # if jobs not limited - fails
+          # problem: https://app.circleci.com/pipelines/github/0xSpaceShard/starknet-devnet-rs/339/workflows/97e98c29-1563-4aa0-b716-4bfd023c563e/jobs/335/steps
+          # solution: https://stackoverflow.com/questions/71962406/how-to-use-less-memory-when-compiling-to-avoid-killing-the-build
           command: cargo test --jobs 6
 
 # Orchestrate jobs using workflows
