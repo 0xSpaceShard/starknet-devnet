@@ -161,7 +161,7 @@ mod tests {
     fn correct_transaction_hash_computation_compared_to_a_transaction_from_feeder_gateway() {
         let json_str = std::fs::read_to_string(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/events_cairo0.txt"
+            "/test_artifacts/events_cairo0.casm"
         ))
         .unwrap();
         let cairo0 = ContractClass::cairo_0_from_json_str(&json_str).unwrap();
