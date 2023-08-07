@@ -1,4 +1,3 @@
-use starknet_in_rust::transaction::{verify_version, Declare, DeclareV2};
 use starknet_types::felt::{ClassHash, TransactionHash};
 
 use crate::error::Result;

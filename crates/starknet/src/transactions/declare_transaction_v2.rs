@@ -1,6 +1,3 @@
-use starknet_in_rust::core::transaction_hash::{
-    calculate_transaction_hash_common, TransactionHashPrefix,
-};
 use starknet_in_rust::transaction::DeclareV2;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
@@ -113,11 +110,8 @@ impl HashProducer for DeclareTransactionV2 {
 mod tests {
 
     use serde::Deserialize;
-    use starknet_in_rust::core::contract_address::{
-        compute_casm_class_hash, compute_sierra_class_hash,
-    };
+    use starknet_in_rust::core::contract_address::compute_sierra_class_hash;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
-    use starknet_in_rust::transaction::DeclareV2;
     use starknet_rs_core::types::contract::SierraClass;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;
@@ -150,7 +144,7 @@ mod tests {
         )
         .unwrap();
         let starknet_in_rust_sierra =
-            starknet_in_rust::ContractClass::try_from(cairo_1_contract.clone()).unwrap();
+            starknet_in_rust::ContractClass::try_from(cairo_1_contract).unwrap();
         let sierra_class: SierraClass =
             serde_json::from_value(serde_json::to_value(starknet_in_rust_sierra.clone()).unwrap())
                 .unwrap();
@@ -180,7 +174,7 @@ mod tests {
         )
         .unwrap();
         let declare_transaction = DeclareTransactionV2::new(
-            cairo_1_contract.clone(),
+            cairo_1_contract,
             feeder_gateway_transaction.compiled_class_hash,
             ContractAddress::new(feeder_gateway_transaction.sender_address).unwrap(),
             u128::from_str_radix(&feeder_gateway_transaction.max_fee.to_nonprefixed_hex_str(), 16)

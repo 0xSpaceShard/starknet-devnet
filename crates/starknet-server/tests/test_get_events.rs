@@ -10,24 +10,21 @@ mod get_events_integration_tests {
     use starknet_in_rust::felt::Felt252;
     use starknet_in_rust::hash_utils::calculate_contract_address;
     use starknet_in_rust::utils::Address;
-    use starknet_in_rust::{CasmContractClass, ContractClass};
-    use starknet_rs_accounts::{Account, Call, RawExecution, SingleOwnerAccount};
+    use starknet_in_rust::CasmContractClass;
+    use starknet_rs_accounts::{Account, Call, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::chain_id;
     use starknet_rs_core::crypto::ecdsa_sign;
-    use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::contract::SierraClass;
     use starknet_rs_core::types::{
-        BlockId, BlockTag, BroadcastedDeployAccountTransaction, EventFilter, FieldElement,
-        FlattenedSierraClass,
+        BlockId, BlockTag, BroadcastedDeployAccountTransaction, FieldElement, FlattenedSierraClass,
     };
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_rs_providers::jsonrpc::HttpTransport;
-    use starknet_rs_providers::{AnyProvider, JsonRpcClient, Provider, SequencerGatewayProvider};
+    use starknet_rs_providers::{JsonRpcClient, Provider, SequencerGatewayProvider};
     use starknet_rs_signers::{LocalWallet, SigningKey};
     use starknet_types::felt::Felt;
     use starknet_types::traits::ToHexString;
-    use tracing::field::Field;
     use url::Url;
 
     use crate::common::util::{get_json_body, BackgroundDevnet};
@@ -132,9 +129,9 @@ mod get_events_integration_tests {
             &contract_address,
             class_hash,
             &calldata,
-            u128::from_str_radix(&txn.max_fee.to_string(), 10).unwrap(),
+            txn.max_fee.to_string().parse::<u128>().unwrap(),
             Felt::from(txn.nonce).into(),
-            address_salt.clone(),
+            address_salt,
             Felt::from(chain_id::TESTNET).into(),
         )
         .unwrap();
@@ -247,7 +244,7 @@ mod get_events_integration_tests {
         let resp = devnet.post_json("/mint".into(), req_body).await.unwrap();
         assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
 
-        let contract_factory =
+        let _contract_factory =
             ContractFactory::new(declaration_result.class_hash, Arc::new(new_contract));
 
         let mut broadcasted_deploy_account_transaction = BroadcastedDeployAccountTransaction {
@@ -275,7 +272,7 @@ mod get_events_integration_tests {
 
         println!("{}", Felt::from(get_selector_from_name("deploy").unwrap()).to_prefixed_hex_str());
 
-        let execution = predeployed_account
+        let _execution = predeployed_account
             .execute(vec![Call {
                 to: FieldElement::from_hex_be(
                     "0x64bae94dbae2bb29d9be1b8e4e37ca3020f4b2f4ced6f7148800b7be3374640",

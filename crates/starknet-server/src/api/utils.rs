@@ -1,5 +1,4 @@
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::ClassHash;
 use starknet_types::starknet_api::transaction::Fee;
 
 use super::json_rpc::error::ApiError;
