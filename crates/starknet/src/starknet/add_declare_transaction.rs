@@ -318,7 +318,7 @@ mod tests {
         erc_20_contract.deploy(&mut starknet.state).unwrap();
 
         let acc = Account::new(
-            Felt::from(acc_balance.unwrap_or(100)),
+            Felt::from(acc_balance.unwrap_or(10000)),
             dummy_felt(),
             dummy_felt(),
             contract_class.generate_hash().unwrap(),

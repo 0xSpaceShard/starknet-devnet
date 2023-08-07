@@ -77,7 +77,7 @@ mod tests {
             account_class_hash,
             Felt::from(13),
             DEVNET_DEFAULT_CHAIN_ID.to_felt().into(),
-            Felt::from(0),
+            Felt::from(1),
         )
         .unwrap();
 
@@ -93,13 +93,13 @@ mod tests {
 
         let transaction = DeployAccountTransaction::new(
             vec![],
-            2000,
+            4000,
             vec![],
             Felt::from(0),
             account_class_hash,
             Felt::from(13),
             DEVNET_DEFAULT_CHAIN_ID.to_felt().into(),
-            Felt::from(0),
+            Felt::from(1),
         )
         .unwrap();
 

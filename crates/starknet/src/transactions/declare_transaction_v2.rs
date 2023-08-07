@@ -87,7 +87,9 @@ impl HashProducer for DeclareTransactionV2 {
         )
         .map_err(|err| {
             starknet_types::error::Error::TransactionError(
-                starknet_in_rust::transaction::error::TransactionError::Syscall(err),
+                starknet_in_rust::transaction::error::TransactionError::Syscall(
+                    starknet_in_rust::syscalls::syscall_handler_errors::SyscallHandlerError::HashError(err)
+                ),
             )
         })?
         .into();
