@@ -22,7 +22,7 @@ fn get_sierra_class(
     starknet: &mut Starknet,
     class_hash: &ClassHash,
 ) -> Result<SierraContractClass> {
-    match starknet.sierra_contracts.get(class_hash) {
+    match starknet.state.contract_classes.get(class_hash) {
         Some(contract) => Ok(contract.clone().try_into()?),
         None => Err(Error::FormatError),
     }
@@ -32,7 +32,7 @@ fn get_cairo_0_class(
     starknet: &mut Starknet,
     class_hash: &ClassHash,
 ) -> Result<Cairo0ContractClass> {
-    match starknet.sierra_contracts.get(class_hash) {
+    match starknet.state.contract_classes.get(class_hash) {
         Some(contract) => Ok(contract.clone().try_into()?),
         None => Err(Error::FormatError),
     }

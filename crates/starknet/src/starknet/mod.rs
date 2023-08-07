@@ -90,7 +90,6 @@ pub struct Starknet {
     blocks: StarknetBlocks,
     pub transactions: StarknetTransactions,
     pub config: StarknetConfig,
-    pub(in crate::starknet) sierra_contracts: HashMap<ClassHash, ContractClass>,
 }
 
 impl Starknet {
@@ -141,7 +140,6 @@ impl Starknet {
             blocks: StarknetBlocks::default(),
             transactions: StarknetTransactions::default(),
             config: config.clone(),
-            sierra_contracts: HashMap::new(),
         };
 
         this.restart_pending_block()?;
@@ -309,8 +307,15 @@ impl Starknet {
     pub(crate) fn get_state_at_mut(&mut self, block_id: &BlockId) -> Result<&mut StarknetState> {
         match block_id {
             BlockId::Tag(_) => Ok(&mut self.state),
-            BlockId::Hash(_) => Err(Error::BlockIdHashUnimplementedError),
-            BlockId::Number(_) => Err(Error::BlockIdNumberUnimplementedError),
+            _ => {
+                let block = self.blocks.get_by_block_id(*block_id).ok_or(Error::NoBlock)?.clone();
+                let state = self
+                    .blocks
+                    .num_to_state
+                    .get_mut(&block.block_number())
+                    .ok_or(Error::NoStateAtBlock { block_number: block.block_number().0 })?;
+                Ok(state)
+            }
         }
     }
 
@@ -504,19 +509,22 @@ mod tests {
     use starknet_in_rust::utils::Address;
     use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_types::contract_address::ContractAddress;
+    use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json};
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
 
     use super::Starknet;
     use crate::blocks::StarknetBlock;
     use crate::constants::{
-        DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_INITIAL_BALANCE, ERC20_CONTRACT_ADDRESS,
+        CAIRO_0_ACCOUNT_CONTRACT_PATH, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_INITIAL_BALANCE,
+        ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::{Error, Result};
     use crate::state::state_diff::StateDiff;
     use crate::traits::{Accounted, StateChanger, StateExtractor};
     use crate::utils::test_utils::{
-        dummy_contract_address, dummy_declare_transaction_v1, starknet_config_for_test,
+        dummy_contract_address, dummy_declare_transaction_v1, dummy_declare_transaction_v2,
+        starknet_config_for_test,
     };
 
     #[test]
@@ -910,5 +918,60 @@ mod tests {
         let latest_block = starknet.get_latest_block();
 
         assert_eq!(latest_block.unwrap().block_number(), BlockNumber(2));
+    }
+
+    #[test]
+    fn get_class_hash_at_generated_accounts() {
+        let config = starknet_config_for_test();
+        let mut starknet = Starknet::new(&config).unwrap();
+        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
+
+        let block_number = starknet.block_number();
+        let block_id = BlockId::Number(block_number.0);
+
+        let accounts = starknet.predeployed_accounts.get_accounts().to_vec();
+        for account in accounts {
+            let class_hash = starknet.get_class_hash_at(block_id, account.account_address).unwrap();
+            let expected = account.class_hash;
+            assert_eq!(class_hash, expected);
+        }
+    }
+
+    #[test]
+    fn get_class_at_generated_accounts() {
+        let config = starknet_config_for_test();
+        let mut starknet = Starknet::new(&config).unwrap();
+        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
+
+        let block_number = starknet.block_number();
+        let block_id = BlockId::Number(block_number.0);
+
+        let accounts = starknet.predeployed_accounts.get_accounts().to_vec();
+        let expected =
+            Cairo0ContractClass::raw_json_from_path(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
+
+        for account in accounts {
+            let contract_class = starknet.get_class_at(block_id, account.account_address).unwrap();
+            let contract_class: Cairo0Json = contract_class.try_into().unwrap();
+            assert_eq!(contract_class, expected);
+        }
+    }
+
+    #[test]
+    fn get_sierra_class_at() {
+        let config = starknet_config_for_test();
+        let mut starknet = Starknet::new(&config).unwrap();
+
+        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
+        starknet.generate_pending_block();
+
+        let account = &starknet.predeployed_accounts.get_accounts().to_vec()[0];
+        let declare_transaction = dummy_declare_transaction_v2(&account.account_address);
+        starknet.add_declare_transaction_v2(declare_transaction.clone()).unwrap();
+
+        let block_number = starknet.block_number();
+        let block_id = BlockId::Number(block_number.0);
+
+        starknet.get_class(block_id, declare_transaction.compiled_class_hash).unwrap();
     }
 }

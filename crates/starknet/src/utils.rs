@@ -32,8 +32,9 @@ pub(crate) fn get_storage_var_address(storage_var_name: &str, args: &[Felt]) -> 
 
 #[cfg(test)]
 pub(crate) mod test_utils {
+    use starknet_in_rust::core::contract_address::compute_casm_class_hash;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
-    use starknet_in_rust::SierraContractClass;
+    use starknet_in_rust::{CasmContractClass, SierraContractClass};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{
         Cairo0ContractClass, Cairo0Json, ContractClass, DeprecatedContractClass,
@@ -49,6 +50,7 @@ pub(crate) mod test_utils {
     };
     use crate::starknet::StarknetConfig;
     use crate::transactions::declare_transaction::DeclareTransactionV1;
+    use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
 
     pub fn starknet_config_for_test() -> StarknetConfig {
         StarknetConfig {
@@ -130,6 +132,28 @@ pub(crate) mod test_utils {
             )
             .unwrap(),
         )
+    }
+
+    pub(crate) fn dummy_declare_transaction_v2(
+        sender_address: &ContractAddress,
+    ) -> DeclareTransactionV2 {
+        let contract_class = dummy_cairo_1_contract_class();
+
+        let compiled_class_hash = compute_casm_class_hash(
+            &CasmContractClass::from_contract_class(contract_class.clone(), true).unwrap(),
+        )
+        .unwrap();
+
+        DeclareTransactionV2::new(
+            contract_class,
+            compiled_class_hash.into(),
+            sender_address.clone(),
+            100,
+            Vec::new(),
+            Felt::from(0),
+            StarknetChainId::TestNet.to_felt().into(),
+        )
+        .unwrap()
     }
 
     pub(crate) fn cairo_0_account_without_validations() -> Cairo0ContractClass {

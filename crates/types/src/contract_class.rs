@@ -198,9 +198,6 @@ impl TryFrom<DeprecatedContractClass> for Cairo0Json {
         });
 
         Ok(json_value)
-        // TODO fix with json!({
-        // TODO: check if TryFrom<DeprecatedContractClass> for StarknetInRustContractClass still works
-        //Ok(serde_json::to_value(&value).map_err(JsonError::SerdeJsonError)?)
     }
 }
 
@@ -231,6 +228,19 @@ impl TryFrom<ContractClass> for Cairo0ContractClass {
     fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
         match value {
             ContractClass::Cairo0(cairo_0) => Ok(cairo_0),
+            _ => Err(Error::ConversionError(crate::error::ConversionError::InvalidFormat)),
+        }
+    }
+}
+
+impl TryFrom<ContractClass> for Cairo0Json {
+    type Error = Error;
+    fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
+        match value {
+            ContractClass::Cairo0(cairo_0) => match cairo_0 {
+                Cairo0ContractClass::RawJson(contract) => Ok(contract),
+                _ => Err(Error::ConversionError(crate::error::ConversionError::InvalidFormat)),
+            },
             _ => Err(Error::ConversionError(crate::error::ConversionError::InvalidFormat)),
         }
     }

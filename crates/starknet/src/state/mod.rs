@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
@@ -23,6 +24,7 @@ pub mod state_update;
 pub(crate) struct StarknetState {
     pub state: InMemoryStateReader,
     pub pending_state: CachedState<InMemoryStateReader>,
+    pub(crate) contract_classes: HashMap<ClassHash, ContractClass>,
 }
 
 impl StarknetState {
@@ -44,6 +46,7 @@ impl Default for StarknetState {
         Self {
             state: in_memory_state.clone(),
             pending_state: CachedState::new(Arc::new(in_memory_state), None, None),
+            contract_classes: HashMap::new(),
         }
     }
 }
@@ -54,6 +57,8 @@ impl StateChanger for StarknetState {
         class_hash: ClassHash,
         contract_class: ContractClass,
     ) -> Result<()> {
+        self.contract_classes.insert(class_hash, contract_class.clone());
+
         match contract_class {
             ContractClass::Cairo0(deprecated_contract_class) => {
                 self.state.class_hash_to_contract_class_mut().insert(

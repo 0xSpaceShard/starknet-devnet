@@ -38,7 +38,8 @@ pub fn add_declare_transaction_v2(
         Ok(tx_info) => {
             // Add sierra contract
             starknet
-                .sierra_contracts
+                .state
+                .contract_classes
                 .insert(class_hash, ContractClass::Cairo1(transaction.sierra_contract_class));
             starknet.handle_successful_transaction(
                 &transaction_hash,
@@ -101,7 +102,8 @@ pub fn add_declare_transaction_v1(
     match transaction.execute(&mut starknet.state.pending_state, &starknet.block_context) {
         Ok(tx_info) => {
             starknet
-                .sierra_contracts
+                .state
+                .contract_classes
                 .insert(class_hash, declare_transaction.contract_class.clone().into());
             starknet.handle_successful_transaction(
                 &transaction_hash,
@@ -130,7 +132,7 @@ mod tests {
     use starknet_in_rust::core::contract_address::compute_casm_class_hash;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_in_rust::CasmContractClass;
-    use starknet_rs_core::types::TransactionStatus;
+    use starknet_rs_core::types::{BlockId, TransactionStatus};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::felt::Felt;
@@ -143,28 +145,9 @@ mod tests {
     use crate::transactions::declare_transaction::DeclareTransactionV1;
     use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
     use crate::utils::test_utils::{
-        dummy_cairo_0_contract_class, dummy_cairo_1_contract_class, dummy_felt,
+        dummy_cairo_0_contract_class, dummy_cairo_1_contract_class, dummy_declare_transaction_v2,
+        dummy_felt,
     };
-
-    fn test_declare_transaction_v2(sender_address: ContractAddress) -> DeclareTransactionV2 {
-        let contract_class = dummy_cairo_1_contract_class();
-
-        let compiled_class_hash = compute_casm_class_hash(
-            &CasmContractClass::from_contract_class(contract_class.clone(), true).unwrap(),
-        )
-        .unwrap();
-
-        DeclareTransactionV2::new(
-            contract_class,
-            compiled_class_hash.into(),
-            sender_address,
-            100,
-            Vec::new(),
-            Felt::from(0),
-            StarknetChainId::TestNet.to_felt().into(),
-        )
-        .unwrap()
-    }
 
     fn test_declare_transaction_v1(sender_address: ContractAddress) -> DeclareTransactionV1 {
         let contract_class = dummy_cairo_0_contract_class();
@@ -185,7 +168,7 @@ mod tests {
         let (mut starknet, sender) = setup(Some(1));
         let initial_cached_state =
             starknet.state.pending_state.casm_contract_classes().as_ref().unwrap().len();
-        let declare_txn = test_declare_transaction_v2(sender);
+        let declare_txn = dummy_declare_transaction_v2(&sender);
         let (txn_hash, class_hash) = starknet.add_declare_transaction_v2(declare_txn).unwrap();
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
 
@@ -194,15 +177,20 @@ mod tests {
             initial_cached_state,
             starknet.state.pending_state.casm_contract_classes().as_ref().unwrap().len()
         );
-        assert!(starknet.sierra_contracts.get(&class_hash).is_none())
+        assert!(starknet.state.contract_classes.get(&class_hash).is_none())
     }
 
     #[test]
     fn add_declare_v2_transaction_successful_execution() {
         let (mut starknet, sender) = setup(Some(100000000));
-        let declare_txn = test_declare_transaction_v2(sender);
+
+        let block_number = starknet.block_number();
+
+        let declare_txn = dummy_declare_transaction_v2(&sender);
         let (tx_hash, class_hash) =
             starknet.add_declare_transaction_v2(declare_txn.clone()).unwrap();
+
+        let block_number = starknet.block_number();
 
         let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
 
@@ -213,13 +201,18 @@ mod tests {
         );
         // check if txn is with status accepted
         assert_eq!(tx.status, TransactionStatus::AcceptedOnL2);
-        assert!(starknet.sierra_contracts.get(&class_hash).is_some())
+        assert!(starknet.state.contract_classes.get(&class_hash).is_some());
+
+        // let block_number = starknet.block_number();
+        // let block_id = BlockId::Number(block_number.0);
+        let block_id = BlockId::Number(tx.block_number.unwrap().0);
+        let class = starknet.get_class(block_id, class_hash).unwrap();
     }
 
     #[test]
     fn declare_v2_transaction_successful_storage_change() {
         let (mut starknet, sender) = setup(Some(100000000));
-        let declare_txn = test_declare_transaction_v2(sender);
+        let declare_txn = dummy_declare_transaction_v2(&sender);
         let expected_class_hash = ContractClass::Cairo1(declare_txn.sierra_contract_class.clone())
             .generate_hash()
             .unwrap();
@@ -268,6 +261,15 @@ mod tests {
         let declare_txn = test_declare_transaction_v1(sender);
         let (tx_hash, class_hash) =
             starknet.add_declare_transaction_v1(declare_txn.clone()).unwrap();
+
+        {
+            let block_id = {
+                let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
+                BlockId::Number(tx.block_number.unwrap().0)
+            };
+
+            let class = starknet.get_class(block_id, class_hash).unwrap();
+        }
 
         let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
 

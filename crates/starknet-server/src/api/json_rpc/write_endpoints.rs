@@ -160,12 +160,15 @@ mod tests {
         DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
     };
     use starknet_core::starknet::{Starknet, StarknetConfig};
+    use starknet_rs_core::types::BlockTag;
+    use starknet_types::starknet_api::block::BlockNumber;
     use starknet_types::traits::ToHexString;
 
     use crate::api::json_rpc::JsonRpcHandler;
     use crate::api::models::transaction::{
         BroadcastedDeclareTransactionV1, BroadcastedDeployAccountTransaction,
     };
+    use crate::api::models::{BlockHashOrNumber, BlockId, Tag};
     use crate::api::Api;
 
     #[tokio::test]
@@ -177,6 +180,14 @@ mod tests {
                 crate::api::models::transaction::BroadcastedDeclareTransaction::V1(Box::new(
                     declare_txn_v1.clone(),
                 )),
+            )
+            .await
+            .unwrap();
+
+        let contract_class = json_rpc_handler
+            .get_class(
+                BlockId::HashOrNumber(BlockHashOrNumber::Number(BlockNumber(1))),
+                result.class_hash.clone(),
             )
             .await
             .unwrap();
