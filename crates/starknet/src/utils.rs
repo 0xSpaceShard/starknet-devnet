@@ -148,8 +148,7 @@ pub(crate) mod test_utils {
             "https://alpha4.starknet.io/feeder_gateway/get_transaction?transactionHash={}",
             transaction_hash
         );
-        let obj_value =
-            reqwest::blocking::get(&url).unwrap().json::<serde_json::Value>().unwrap().to_owned();
+        let obj_value = reqwest::blocking::get(url).unwrap().json::<serde_json::Value>().unwrap();
 
         serde_json::from_value(obj_value.get("transaction").unwrap().to_owned()).unwrap()
     }

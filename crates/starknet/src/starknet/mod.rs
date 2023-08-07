@@ -179,13 +179,13 @@ impl Starknet {
 
         // update txs block hash block number for each transaction in the pending block
         new_block.get_transactions().iter().for_each(|t| {
-                if let Some(tx) = self.transactions.get_by_hash_mut(&t.get_hash()) {
-                    tx.block_hash = Some(new_block.header.block_hash.0.into());
-                    tx.block_number = Some(new_block_number);
-                    tx.status = TransactionStatus::AcceptedOnL2;
-                } else {
-                    error!("Transaction is not present in the transactions colletion");
-                }
+            if let Some(tx) = self.transactions.get_by_hash_mut(&t.get_hash()) {
+                tx.block_hash = Some(new_block.header.block_hash.0.into());
+                tx.block_number = Some(new_block_number);
+                tx.status = TransactionStatus::AcceptedOnL2;
+            } else {
+                error!("Transaction is not present in the transactions colletion");
+            }
         });
 
         // insert pending block in the blocks collection and connect it to the state diff
@@ -477,15 +477,12 @@ impl Starknet {
 #[cfg(test)]
 mod tests {
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
-    use starknet_in_rust::core::errors::state_errors::StateError;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_in_rust::felt::Felt252;
     use starknet_in_rust::transaction::error::TransactionError;
-    use starknet_in_rust::utils::Address;
     use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
-    use starknet_types::traits::HashProducer;
 
     use super::Starknet;
     use crate::blocks::StarknetBlock;
@@ -778,7 +775,7 @@ mod tests {
 
         assert_eq!(num_no_transactions.unwrap(), 0);
 
-        let mut tx = dummy_declare_transaction_v1();
+        let tx = dummy_declare_transaction_v1();
 
         // add transaction to pending block
         starknet

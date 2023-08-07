@@ -1,4 +1,3 @@
-use starknet_in_rust::transaction::{verify_version, Declare, DeclareV2};
 use starknet_types::felt::{ClassHash, TransactionHash};
 
 use crate::error::Result;
@@ -15,10 +14,15 @@ pub fn add_declare_transaction_v2(
     let transaction_hash = declare_transaction.transaction_hash;
     let class_hash = declare_transaction.class_hash;
 
-    match declare_transaction.inner.execute(&mut starknet.state.pending_state, &starknet.block_context) {
+    match declare_transaction
+        .inner
+        .execute(&mut starknet.state.pending_state, &starknet.block_context)
+    {
         Ok(tx_info) => {
             // Add sierra contract
-            starknet.sierra_contracts.insert(class_hash, declare_transaction.inner.sierra_contract_class.clone());
+            starknet
+                .sierra_contracts
+                .insert(class_hash, declare_transaction.inner.sierra_contract_class.clone());
             starknet.handle_successful_transaction(
                 &transaction_hash,
                 Transaction::DeclareV2(Box::new(declare_transaction)),
@@ -47,7 +51,10 @@ pub fn add_declare_transaction_v1(
     let transaction_hash = declare_transaction.transaction_hash;
     let class_hash = declare_transaction.class_hash;
 
-    match declare_transaction.inner.execute(&mut starknet.state.pending_state, &starknet.block_context) {
+    match declare_transaction
+        .inner
+        .execute(&mut starknet.state.pending_state, &starknet.block_context)
+    {
         Ok(tx_info) => {
             starknet.handle_successful_transaction(
                 &transaction_hash,
