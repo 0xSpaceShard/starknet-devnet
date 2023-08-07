@@ -94,8 +94,6 @@ mod tests {
     use starknet_types::felt::Felt;
     use starknet_types::traits::{HashProducer, ToHexString};
 
-    use crate::utils::test_utils::get_transaction_from_feeder_gateway;
-
     #[derive(Deserialize)]
     struct FeederGatewayDeployAccountTransaction {
         transaction_hash: Felt,
@@ -110,10 +108,14 @@ mod tests {
 
     #[test]
     fn correct_transaction_hash_computation_compared_to_a_transaction_from_feeder_gateway() {
-        let feeder_gateway_transaction =
-            get_transaction_from_feeder_gateway::<FeederGatewayDeployAccountTransaction>(
-                "0x23a872d966d4f6091cc3725604fdaa1b39cef76ebf38b9a06a0b71e9ed700ea",
-            );
+        let json_obj: serde_json::Value = serde_json::from_reader(std::fs::File::open(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test_artifacts/sequencer_response/deploy_account_testnet_0x23a872d966d4f6091cc3725604fdaa1b39cef76ebf38b9a06a0b71e9ed700ea.json"
+        )).unwrap()).unwrap();
+
+        let feeder_gateway_transaction: FeederGatewayDeployAccountTransaction =
+            serde_json::from_value(json_obj.get("transaction").unwrap().clone()).unwrap();
+
         let deploy_account_transaction = super::DeployAccountTransaction::new(
             feeder_gateway_transaction.constructor_calldata,
             u128::from_str_radix(&feeder_gateway_transaction.max_fee.to_nonprefixed_hex_str(), 16)

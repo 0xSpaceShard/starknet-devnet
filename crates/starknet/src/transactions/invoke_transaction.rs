@@ -86,9 +86,7 @@ mod tests {
     use starknet_types::felt::Felt;
     use starknet_types::traits::{HashProducer, ToHexString};
 
-    use crate::utils::test_utils::{
-        dummy_contract_address, dummy_felt, get_transaction_from_feeder_gateway,
-    };
+    use crate::utils::test_utils::{dummy_contract_address, dummy_felt};
 
     #[derive(Deserialize)]
     struct FeederGatewayInvokeTransaction {
@@ -103,10 +101,13 @@ mod tests {
     /// transaction hash
     #[test]
     fn correct_transaction_hash_computation_compared_to_a_transaction_from_feeder_gateway() {
-        let feeder_gateway_transaction =
-            get_transaction_from_feeder_gateway::<FeederGatewayInvokeTransaction>(
-                "0x068fbb499e59af504491b801b694cb5b7450a2efc338f7480cb1887ea2c9bd01",
-            );
+        let json_obj: serde_json::Value = serde_json::from_reader(std::fs::File::open(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test_artifacts/sequencer_response/invoke_v1_testnet_0x068fbb499e59af504491b801b694cb5b7450a2efc338f7480cb1887ea2c9bd01.json"
+        )).unwrap()).unwrap();
+
+        let feeder_gateway_transaction: FeederGatewayInvokeTransaction =
+            serde_json::from_value(json_obj.get("transaction").unwrap().clone()).unwrap();
 
         let transaction = super::InvokeTransactionV1::new(
             ContractAddress::new(feeder_gateway_transaction.sender_address).unwrap(),

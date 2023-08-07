@@ -144,7 +144,6 @@ mod tests {
 
     use crate::utils::test_utils::{
         dummy_cairo_0_contract_class, dummy_contract_address, dummy_felt,
-        get_transaction_from_feeder_gateway,
     };
 
     #[derive(Deserialize)]
@@ -167,10 +166,13 @@ mod tests {
         let cairo0 = ContractClass::cairo_0_from_json_str(&json_str).unwrap();
 
         // this is declare v1 transaction send with starknet-rs
-        let feeder_gateway_transaction =
-            get_transaction_from_feeder_gateway::<FeederGatewayDeclareTransactionV1>(
-                "0x04f3480733852ec616431fd89a5e3127b49cef0ac7a71440ebdec40b1322ca9d",
-            );
+        let json_obj: serde_json::Value = serde_json::from_reader(std::fs::File::open(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test_artifacts/sequencer_response/declare_v1_testnet_0x04f3480733852ec616431fd89a5e3127b49cef0ac7a71440ebdec40b1322ca9d.json"
+        )).unwrap()).unwrap();
+
+        let feeder_gateway_transaction: FeederGatewayDeclareTransactionV1 =
+            serde_json::from_value(json_obj.get("transaction").unwrap().clone()).unwrap();
 
         assert_eq!(feeder_gateway_transaction.class_hash, cairo0.generate_hash().unwrap());
 

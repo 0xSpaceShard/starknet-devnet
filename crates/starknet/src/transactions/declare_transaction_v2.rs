@@ -121,7 +121,6 @@ mod tests {
     use super::DeclareTransactionV2;
     use crate::utils::test_utils::{
         dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
-        get_transaction_from_feeder_gateway,
     };
 
     #[derive(Deserialize)]
@@ -161,10 +160,13 @@ mod tests {
     /// test_data/cairo1/events/events_2.0.1_compiler.sierra Which in turn is taken from cairo package https://github.com/starkware-libs/cairo/blob/98eb937c6e7e12b16c0471f087309c10bffe5013/crates/cairo-lang-starknet/cairo_level_tests/events.cairo
     #[test]
     fn correct_transaction_hash_computation_compared_to_a_transaction_from_feeder_gateway() {
-        let feeder_gateway_transaction =
-            get_transaction_from_feeder_gateway::<FeederGatewayDeclareTransactionV2>(
-                "0x01b852f1fe2b13db21a44f8884bc4b7760dc277bb3820b970dba929860275617",
-            );
+        let json_obj: serde_json::Value = serde_json::from_reader(std::fs::File::open(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test_artifacts/sequencer_response/declare_v2_testnet_0x01b852f1fe2b13db21a44f8884bc4b7760dc277bb3820b970dba929860275617.json"
+        )).unwrap()).unwrap();
+
+        let feeder_gateway_transaction: FeederGatewayDeclareTransactionV2 =
+            serde_json::from_value(json_obj.get("transaction").unwrap().clone()).unwrap();
 
         let sierra_contract_path =
             concat!(env!("CARGO_MANIFEST_DIR"), "/test_artifacts/events_cairo1.sierra");
