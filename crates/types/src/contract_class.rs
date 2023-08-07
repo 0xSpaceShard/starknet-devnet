@@ -76,7 +76,6 @@ impl TryFrom<ContractClass> for StarknetInRustContractClass {
                 Ok(starknet_in_rust_contract_class)
             }
             ContractClass::Cairo1(_) => {
-                // TODO implement this?
                 Err(Error::ConversionError(crate::error::ConversionError::InvalidFormat))
             }
         }

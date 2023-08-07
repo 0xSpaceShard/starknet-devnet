@@ -288,7 +288,7 @@ impl JsonRpcHandler {
                 StateError::NoneContractState(Address(_address)),
             ))) => Err(ApiError::ContractNotFound),
             Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
-            Err(_) => Err(ApiError::ContractError),
+            Err(err) => Err(ApiError::ContractError { msg: err.to_string() }),
         }
     }
 
@@ -316,8 +316,7 @@ impl JsonRpcHandler {
                     overall_fee: format!("0x{:x}", starknet.config.gas_price * gas_consumed),
                 })
                 .collect()),
-            Err(_) => Err(ApiError::ContractError),
-            // TODO better handling
+            Err(err) => Err(ApiError::ContractError { msg: err.to_string() }),
         }
     }
 
