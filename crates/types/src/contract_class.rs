@@ -45,7 +45,7 @@ pub type Cairo0Json = Value;
 
 impl HashProducer for Cairo0Json {
     fn generate_hash(&self) -> DevnetResult<Felt> {
-        Ok(ContractClass::compute_hinted_class_hash(&self)?.into())
+        Ok(ContractClass::compute_cairo_0_contract_class_hash(&self)?.into())
     }
 }
 
@@ -395,15 +395,6 @@ impl ContractClass {
 impl HashProducer for DeprecatedContractClass {
     fn generate_hash(&self) -> DevnetResult<Felt> {
         let json_value: Cairo0Json = self.clone().try_into()?;
-        let sir: StarknetInRustContractClass = self.clone().try_into()?;
-
-        let sir_hash = compute_deprecated_class_hash(&sir)?;
-        println!("sir_hash {}", sir_hash);
-        println!("sir_hinted {}", sir.hinted_class_hash());
-        let sir_hash: Felt = sir_hash.into();
-
-        let json_hash = json_value.generate_hash()?;
-
         json_value.generate_hash()
     }
 }
