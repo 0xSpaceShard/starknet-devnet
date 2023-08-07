@@ -184,7 +184,7 @@ impl Starknet {
                 tx.block_number = Some(new_block_number);
                 tx.status = TransactionStatus::AcceptedOnL2;
             } else {
-                error!("Transaction is not present in the transactions colletion");
+                error!("Transaction is not present in the transactions collection");
             }
         });
 
