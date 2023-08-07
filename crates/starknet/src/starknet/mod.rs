@@ -348,7 +348,7 @@ impl Starknet {
         Ok(result.iter().map(|e| Felt::from(e.clone())).collect())
     }
 
-    /// Returns a Vec of pairs of gas usage
+    /// Returns just the gas usage, not the overall fee
     pub fn estimate_gas_usage(
         &self,
         block_id: BlockId,
