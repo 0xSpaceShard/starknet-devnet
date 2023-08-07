@@ -149,7 +149,6 @@ pub(crate) mod test_utils {
             transaction_hash
         );
         let obj_value = reqwest::blocking::get(url).unwrap().json::<serde_json::Value>().unwrap();
-
         serde_json::from_value(obj_value.get("transaction").unwrap().to_owned()).unwrap()
     }
 }
