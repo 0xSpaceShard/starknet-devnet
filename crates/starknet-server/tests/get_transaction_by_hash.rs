@@ -8,9 +8,9 @@ mod get_transaction_by_hash_integration_tests {
     use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
     use starknet_rs_core::types::{
         BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedDeployAccountTransaction,
-        BroadcastedInvokeTransactionV1, FieldElement,
+        BroadcastedInvokeTransactionV1, FieldElement, StarknetError,
     };
-    use starknet_rs_providers::Provider;
+    use starknet_rs_providers::{Provider, ProviderError};
     use starknet_rs_signers::{LocalWallet, SigningKey};
     use starknet_types::felt::Felt;
     use starknet_types::traits::ToHexString;
@@ -66,7 +66,7 @@ mod get_transaction_by_hash_integration_tests {
                 FieldElement::from_hex_be(DECLARE_V1_TRANSACTION_HASH).unwrap()
             );
         } else {
-            panic!();
+            panic!(); // Otherwise test should fail
         }
     }
 
@@ -147,7 +147,7 @@ mod get_transaction_by_hash_integration_tests {
                 FieldElement::from_hex_be(DEPLOY_ACCOUNT_TRANSACTION_HASH).unwrap()
             );
         } else {
-            panic!();
+            panic!(); // Otherwise test should fail
         }
     }
 
@@ -185,7 +185,22 @@ mod get_transaction_by_hash_integration_tests {
                 FieldElement::from_hex_be(INVOKE_V1_TRANSACTION_HASH).unwrap()
             );
         } else {
-            panic!();
+            panic!(); // Otherwise test should fail
+        }
+    }
+
+    #[tokio::test]
+    async fn get_non_existing_transaction() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let result = devnet
+            .json_rpc_client
+            .get_transaction_by_hash(FieldElement::from_hex_be("0x0").unwrap())
+            .await
+            .unwrap_err();
+
+        match result {
+            ProviderError::StarknetError(StarknetError::TransactionHashNotFound) => (),
+            _ => panic!("Invalid error: {result:?}"),
         }
     }
 }
