@@ -25,7 +25,7 @@ jobs:
           command: cargo +nightly fmt --all --check
       - run:
           name: Test
-          command: cargo test
+          command: cargo test --jobs 6
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
