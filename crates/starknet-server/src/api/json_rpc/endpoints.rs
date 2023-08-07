@@ -159,8 +159,8 @@ impl JsonRpcHandler {
             .transactions
             .get(&transaction_hash)
             .ok_or(error::ApiError::TransactionNotFound)?;
-
-        convert_to_rpc(transaction.inner.clone())
+        
+        Ok(TransactionWithType::try_from(&transaction.inner)?)
     }
 
     /// starknet_getTransactionByBlockIdAndIndex
@@ -177,7 +177,7 @@ impl JsonRpcHandler {
                     .get(index.0 as usize)
                     .ok_or(error::ApiError::InvalidTransactionIndexInBlock);
 
-                convert_to_rpc(transaction.unwrap().clone())
+                TransactionWithType::try_from(transaction.unwrap())
             }
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),
