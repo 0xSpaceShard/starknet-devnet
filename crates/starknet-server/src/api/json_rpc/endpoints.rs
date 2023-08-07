@@ -4,7 +4,6 @@ use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::utils::Address;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::starknet_api::block::BlockNumber;
-use starknet_types::starknet_api::transaction::Fee;
 use starknet_types::traits::ToHexString;
 
 use super::error::{self, ApiError};
@@ -17,9 +16,8 @@ use crate::api::models::state::{
     ThinStateDiff,
 };
 use crate::api::models::transaction::{
-    BroadcastedTransactionWithType, DeclareTransactionV0V1, DeclareTransactionV2, EventFilter,
-    EventsChunk, FunctionCall, InvokeTransactionV1, Transaction, TransactionReceipt,
-    TransactionType, TransactionWithType, Transactions,
+    BroadcastedTransactionWithType, EventFilter, EventsChunk, FunctionCall, Transaction,
+    TransactionReceipt, TransactionWithType, Transactions,
 };
 use crate::api::models::{BlockId, ContractAddressHex, PatriciaKeyHex};
 
@@ -156,12 +154,13 @@ impl JsonRpcHandler {
         transaction_hash: TransactionHash,
     ) -> RpcResult<TransactionWithType> {
         let starknet = self.api.starknet.read().await;
-        let transaction = starknet
+        let transaction_to_map = starknet
             .transactions
             .get(&transaction_hash)
             .ok_or(error::ApiError::TransactionNotFound)?;
+        let transaction = TransactionWithType::try_from(&transaction_to_map.inner)?;
 
-        Ok(TransactionWithType::try_from(&transaction.inner)?)
+        Ok(transaction)
     }
 
     /// starknet_getTransactionByBlockIdAndIndex
