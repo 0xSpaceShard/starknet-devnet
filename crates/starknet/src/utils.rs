@@ -1,14 +1,11 @@
-use std::fs;
-
 use starknet_api::hash::{pedersen_hash, StarkFelt};
 use starknet_in_rust::utils::calculate_sn_keccak;
 use starknet_types::cairo_felt::Felt252;
-use starknet_types::contract_class::{Cairo0ContractClass, ContractClass, DeprecatedContractClass};
 use starknet_types::felt::Felt;
 use starknet_types::num_integer::Integer;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 
-use crate::error::{Error, Result};
+use crate::error::Result;
 
 pub(crate) fn generate_u128_random_numbers(
     seed: u32,

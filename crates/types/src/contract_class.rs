@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 use std::fs;
-use std::slice::RSplit;
 use std::str::FromStr;
 
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize, Serializer};
 use serde_json::{json, Serializer as JsonSerializer, Value};
 use starknet_api::deprecated_contract_class::{EntryPoint, EntryPointType};
 use starknet_api::hash::{pedersen_hash_array, StarkFelt};
@@ -13,10 +12,10 @@ use starknet_in_rust::core::contract_address::{
 use starknet_in_rust::core::errors::contract_address_errors::ContractAddressError;
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
 use starknet_in_rust::utils::calculate_sn_keccak;
-use starknet_in_rust::{CasmContractClass, SierraContractClass};
+use starknet_in_rust::SierraContractClass;
 
 use crate::abi_entry::{AbiEntry, AbiEntryType};
-use crate::error::{ConversionError, Error, JsonError};
+use crate::error::{Error, JsonError};
 use crate::felt::Felt;
 use crate::serde_helpers::base_64_gzipped_json_string::deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order;
 use crate::traits::HashProducer;
@@ -209,22 +208,6 @@ impl TryFrom<DeprecatedContractClass> for StarknetInRustContractClass {
     type Error = Error;
     fn try_from(value: DeprecatedContractClass) -> Result<Self, Self::Error> {
         let json_value: Value = value.try_into()?;
-        // let abi_json = serde_json::to_value(value.abi).map_err(|_| {
-        //     ApiError::RpcError(RpcError::invalid_params("abi: Unable to parse to JSON"))
-        // })?;
-        //
-        // let entry_points_json = serde_json::to_value(value.entry_points_by_type).map_err(|_| {
-        //     ApiError::RpcError(RpcError::invalid_params(
-        //         "entry_points_by_type: Unable to parse to JSON",
-        //     ))
-        // })?;
-        //
-        // let json_value = json!({
-        //     "program": value.program,
-        //     "abi": abi_json,
-        //     "entry_points_by_type": entry_points_json,
-        // });
-
         let starknet_in_rust_contract_class =
             StarknetInRustContractClass::from_str(&json_value.to_string())
                 .map_err(|err| JsonError::Custom { msg: err.to_string() })?;
@@ -233,29 +216,21 @@ impl TryFrom<DeprecatedContractClass> for StarknetInRustContractClass {
     }
 }
 
-// impl TryFrom<SierraContractClass> for CasmContractClass {
-//     type Error = Error;
-//     fn try_from(value: ContractClass) -> DevnetResult<Self> {
-//         match value {
-//             ContractClass::Cairo1(sierra) => {
-//                 let casm = CasmContractClass::from_contract_class(sierra, true).map_err(|err| {
-//                     starknet_in_rust::transaction::error::TransactionError::SierraCompileError(
-//                         err.to_string(),
-//                     )
-//                 })?;
-//
-//                 Ok(casm)
-//             }
-//             _ => Err(Error::ConversionError(crate::error::ConversionError::InvalidFormat)),
-//         }
-//     }
-// }
-
 impl TryFrom<ContractClass> for SierraContractClass {
     type Error = Error;
     fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
         match value {
             ContractClass::Cairo1(sierra) => Ok(sierra),
+            _ => Err(Error::ConversionError(crate::error::ConversionError::InvalidFormat)),
+        }
+    }
+}
+
+impl TryFrom<ContractClass> for Cairo0ContractClass {
+    type Error = Error;
+    fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
+        match value {
+            ContractClass::Cairo0(cairo_0) => Ok(cairo_0),
             _ => Err(Error::ConversionError(crate::error::ConversionError::InvalidFormat)),
         }
     }

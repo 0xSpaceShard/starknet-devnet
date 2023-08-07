@@ -314,12 +314,6 @@ pub mod base_64_gzipped_json_string {
             .map_err(|_| serde::de::Error::custom("program: Unable to decode base64 string"))?;
 
         let decoder = flate2::read::GzDecoder::new(bytes.as_slice());
-
-        //let starknet_program: serde_json::Value = serde_json::from_reader(decoder)
-        //.map_err(|_| serde::de::Error::custom("program: Unable to decode gzipped bytes"))?;
-
-        // Ok(starknet_program)
-
         let starknet_program: LegacyProgram = serde_json::from_reader(decoder)
             .map_err(|_| serde::de::Error::custom("program: Unable to decode gzipped bytes"))?;
 
