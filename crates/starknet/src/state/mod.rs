@@ -174,7 +174,7 @@ mod tests {
     use starknet_in_rust::state::state_api::{State, StateReader};
     use starknet_types::cairo_felt::Felt252;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::ContractClass;
+    use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::felt::Felt;
 
     use super::StarknetState;
@@ -190,10 +190,11 @@ mod tests {
         let mut state = StarknetState::default();
 
         let class_hash = dummy_felt().bytes();
+        let contract_class: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
 
         state
             .pending_state
-            .set_contract_class(&class_hash, &dummy_cairo_0_contract_class().try_into().unwrap())
+            .set_contract_class(&class_hash, &contract_class.try_into().unwrap())
             .unwrap();
 
         assert!(!state.is_contract_declared(&dummy_felt()));
@@ -284,13 +285,15 @@ mod tests {
         let mut state = StarknetState::default();
         let class_hash = Felt::from_prefixed_hex_str("0xFE").unwrap();
 
+        let contract_class: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
         assert!(state
-            .declare_contract_class(class_hash, dummy_cairo_0_contract_class().into())
+            .declare_contract_class(class_hash, contract_class.clone().try_into().unwrap())
             .is_ok());
         assert!(state.state.class_hash_to_contract_class.len() == 1);
-        let contract_class = state.state.class_hash_to_contract_class.get(&class_hash.bytes());
-        assert!(contract_class.is_some());
-        assert_eq!(*contract_class.unwrap(), dummy_cairo_0_contract_class().try_into().unwrap());
+        let declared_contract_class =
+            state.state.class_hash_to_contract_class.get(&class_hash.bytes());
+        assert!(declared_contract_class.is_some());
+        assert_eq!(*declared_contract_class.unwrap(), contract_class.try_into().unwrap());
     }
 
     #[test]

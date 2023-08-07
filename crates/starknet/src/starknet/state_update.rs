@@ -120,7 +120,7 @@ mod tests {
             env!("CARGO_MANIFEST_DIR"),
             "/test_artifacts/account_without_validations/account.json"
         );
-        let contract_class = Cairo0ContractClass::rpc_from_path(account_json_path).unwrap();
+        let contract_class = Cairo0ContractClass::raw_json_from_path(account_json_path).unwrap();
 
         let erc_20_contract = predeployed::create_erc20().unwrap();
         erc_20_contract.deploy(&mut starknet.state).unwrap();

@@ -3,7 +3,7 @@ use starknet_in_rust::core::transaction_hash::{
 };
 use starknet_in_rust::definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::DeprecatedContractClass;
+use starknet_types::contract_class::{Cairo0ContractClass, DeprecatedContractClass};
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use starknet_types::DevnetResult;
@@ -17,7 +17,7 @@ pub struct DeclareTransactionV1 {
     pub signature: Vec<Felt>,
     pub nonce: Felt,
     pub version: Felt,
-    pub contract_class: DeprecatedContractClass,
+    pub contract_class: Cairo0ContractClass,
     pub class_hash: Option<ClassHash>,
     pub transaction_hash: Option<TransactionHash>,
     pub chain_id: Felt,
@@ -29,7 +29,7 @@ impl DeclareTransactionV1 {
         max_fee: u128,
         signature: Vec<Felt>,
         nonce: Felt,
-        contract_class: DeprecatedContractClass,
+        contract_class: Cairo0ContractClass,
         chain_id: Felt,
     ) -> Result<Self> {
         if max_fee == 0 {
@@ -109,7 +109,7 @@ mod tests {
             0,
             vec![],
             dummy_felt(),
-            dummy_cairo_0_contract_class(),
+            dummy_cairo_0_contract_class().into(),
             dummy_felt(),
         );
 

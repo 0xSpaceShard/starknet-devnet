@@ -94,7 +94,7 @@ fn convert_to_declare_transaction_v1(
         value.common.max_fee.0,
         value.common.signature,
         value.common.nonce,
-        value.contract_class,
+        value.contract_class.into(),
         chain_id,
     )
     .map_err(ApiError::StarknetDevnetError)

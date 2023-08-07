@@ -96,7 +96,7 @@ mod tests {
 
     use starknet_in_rust::state::cached_state::{CachedState, CasmClassCache, ContractClassCache};
     use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
-    use starknet_types::contract_class::ContractClass;
+    use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::felt::Felt;
 
     use super::StateDiff;
@@ -170,7 +170,7 @@ mod tests {
         let old_state = InMemoryStateReader::default();
 
         let class_hash = Felt::from(1);
-        let cairo_0_contract_class = dummy_cairo_0_contract_class();
+        let cairo_0_contract_class: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
         let mut cairo_0_classes = ContractClassCache::new();
         cairo_0_classes
             .insert(class_hash.bytes(), cairo_0_contract_class.clone().try_into().unwrap());

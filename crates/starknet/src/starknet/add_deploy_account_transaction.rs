@@ -143,7 +143,7 @@ mod tests {
         let erc_20_contract = predeployed::create_erc20().unwrap();
         erc_20_contract.deploy(&mut starknet.state).unwrap();
 
-        let contract_class = Cairo0ContractClass::rpc_from_path(account_json_path).unwrap();
+        let contract_class = Cairo0ContractClass::raw_json_from_path(account_json_path).unwrap();
         let class_hash = contract_class.generate_hash().unwrap();
 
         starknet.state.declare_contract_class(class_hash, contract_class.into()).unwrap();

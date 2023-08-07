@@ -39,7 +39,7 @@ pub(crate) mod test_utils {
     use starknet_in_rust::SierraContractClass;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{
-        Cairo0ContractClass, ContractClass, DeprecatedContractClass,
+        Cairo0ContractClass, Cairo0Json, ContractClass, DeprecatedContractClass,
     };
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
@@ -77,14 +77,14 @@ pub(crate) mod test_utils {
         )
     }
 
-    pub(crate) fn dummy_cairo_0_contract_class() -> DeprecatedContractClass {
+    pub(crate) fn dummy_cairo_0_contract_class() -> Cairo0Json {
         let json_str = std::fs::read_to_string(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/test_artifacts/cairo_0_test.json"
         ))
         .unwrap();
 
-        Cairo0ContractClass::rpc_from_json_str(&json_str).unwrap()
+        Cairo0ContractClass::raw_json_from_json_str(&json_str).unwrap()
     }
 
     pub(crate) fn dummy_cairo_0_rpc_class() -> DeprecatedContractClass {
@@ -128,7 +128,7 @@ pub(crate) mod test_utils {
                 100,
                 vec![],
                 dummy_felt(),
-                dummy_cairo_0_contract_class(),
+                dummy_cairo_0_contract_class().into(),
                 StarknetChainId::TestNet.to_felt().into(),
             )
             .unwrap(),
@@ -141,7 +141,7 @@ pub(crate) mod test_utils {
             "/test_artifacts/account_without_validations/account.json"
         );
 
-        Cairo0ContractClass::rpc_from_path(account_json_path).unwrap().into()
+        Cairo0ContractClass::raw_json_from_path(account_json_path).unwrap().into()
     }
 
     pub(crate) fn get_bytes_from_u32(num: u32) -> [u8; 32] {
@@ -163,15 +163,6 @@ mod tests {
     use super::get_storage_var_address;
     use super::test_utils::dummy_cairo_0_rpc_class;
     use super::test_utils::{self, dummy_account_0_rpc_class, get_bytes_from_u32};
-    #[test]
-    fn test_dummy_cairo_0_rpc_class() {
-        dummy_cairo_0_rpc_class();
-    }
-
-    #[test]
-    fn test_dummy_account_0_rpc_class() {
-        dummy_account_0_rpc_class();
-    }
 
     #[test]
     fn correct_bytes_from_number() {
