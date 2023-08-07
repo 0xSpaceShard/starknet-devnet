@@ -179,17 +179,13 @@ impl Starknet {
 
         // update txs block hash block number for each transaction in the pending block
         new_block.get_transactions().iter().for_each(|t| {
-            if let Some(tx_hash) = t.get_hash() {
-                if let Some(tx) = self.transactions.get_by_hash_mut(&tx_hash) {
+                if let Some(tx) = self.transactions.get_by_hash_mut(&t.get_hash()) {
                     tx.block_hash = Some(new_block.header.block_hash.0.into());
                     tx.block_number = Some(new_block_number);
                     tx.status = TransactionStatus::AcceptedOnL2;
                 } else {
                     error!("Transaction is not present in the transactions colletion");
                 }
-            } else {
-                error!("Transaction has no generated hash");
-            }
         });
 
         // insert pending block in the blocks collection and connect it to the state diff
@@ -548,15 +544,13 @@ mod tests {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        let mut tx = dummy_declare_transaction_v1();
-        let tx_hash = tx.generate_hash().unwrap();
-        tx.transaction_hash = Some(tx_hash);
+        let tx = dummy_declare_transaction_v1();
 
         // add transaction to pending block
         starknet
             .blocks
             .pending_block
-            .add_transaction(crate::transactions::Transaction::Declare(tx));
+            .add_transaction(crate::transactions::Transaction::Declare(tx.clone()));
 
         // pending block has some transactions
         assert!(!starknet.pending_block().get_transactions().is_empty());
@@ -571,7 +565,7 @@ mod tests {
         let added_block = starknet.blocks.num_to_block.get(&BlockNumber(0)).unwrap();
 
         assert!(added_block.get_transactions().len() == 1);
-        assert_eq!(added_block.get_transactions().first().unwrap().get_hash().unwrap(), tx_hash);
+        assert_eq!(added_block.get_transactions().first().unwrap().get_hash(), tx.transaction_hash);
     }
 
     #[test]
@@ -785,8 +779,6 @@ mod tests {
         assert_eq!(num_no_transactions.unwrap(), 0);
 
         let mut tx = dummy_declare_transaction_v1();
-        let tx_hash = tx.generate_hash().unwrap();
-        tx.transaction_hash = Some(tx_hash);
 
         // add transaction to pending block
         starknet

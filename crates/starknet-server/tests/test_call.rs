@@ -35,7 +35,7 @@ mod call {
 
         match err {
             ProviderError::StarknetError(StarknetErrorWithMessage {
-                code: MaybeUnknownErrorCode::Known(StarknetError::ContractNotFound),
+                code: MaybeUnknownErrorCode::Known(StarknetError::ContractError),
                 ..
             }) => (),
             _ => panic!("Invalid error: {err:?}"),

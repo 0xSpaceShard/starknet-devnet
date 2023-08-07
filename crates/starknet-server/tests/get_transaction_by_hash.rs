@@ -20,10 +20,10 @@ mod get_transaction_by_hash_integration_tests {
     use crate::common::util::BackgroundDevnet;
 
     pub const DECLARE_V1_TRANSACTION_HASH: &str =
-        "0x1862250c3d9e5f2dac38cda979d848c959202d3a5621e9072596444bcd0831a";
+        "0x01d50d192f54d8d75e73c8ab8fb7159e70bfdbccc322abb43a081889a3043627";
 
     pub const DECLARE_V2_TRANSACTION_HASH: &str =
-        "0x2b5c7f97fc7899669463848f59bfbe114138b945cf8bffebb8b29949df8b1a8";
+        "0x040b80108251e5991622eb2ff6061313dabe66a52f550c59867c027910777e7e";
 
     #[tokio::test]
     async fn get_declare_v1_transaction_by_hash_happy_path() {

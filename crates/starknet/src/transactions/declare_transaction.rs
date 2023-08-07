@@ -20,8 +20,8 @@ pub struct DeclareTransactionV1 {
     pub nonce: Felt,
     pub version: Felt,
     pub contract_class: ContractClass,
-    pub class_hash: Option<ClassHash>,
-    pub transaction_hash: Option<TransactionHash>,
+    pub class_hash: ClassHash,
+    pub transaction_hash: TransactionHash,
     pub chain_id: Felt,
 }
 
@@ -110,8 +110,8 @@ impl DeclareTransactionV1 {
             nonce,
             version,
             contract_class,
-            class_hash: Some(class_hash),
-            transaction_hash: Some(transaction_hash.into()),
+            class_hash: class_hash,
+            transaction_hash: transaction_hash.into(),
             chain_id,
         })
     }
@@ -120,14 +120,14 @@ impl DeclareTransactionV1 {
         &self.sender_address
     }
 
-    pub fn class_hash(&self) -> Option<&ClassHash> {
-        self.class_hash.as_ref()
+    pub fn class_hash(&self) -> &ClassHash {
+        &self.class_hash
     }
 }
 
 impl HashProducer for DeclareTransactionV1 {
     fn generate_hash(&self) -> DevnetResult<Felt> {
-        Ok(self.transaction_hash.unwrap())
+        Ok(self.transaction_hash)
     }
 }
 
