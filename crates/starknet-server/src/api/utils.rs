@@ -1,9 +1,8 @@
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{ClassHash, Felt};
+use starknet_types::felt::ClassHash;
 use starknet_types::starknet_api::transaction::Fee;
 
 use super::json_rpc::error::ApiError;
-use super::json_rpc::RpcResult;
 use super::models::transaction::{
     DeclareTransaction, DeclareTransactionV0V1, DeclareTransactionV2, DeployAccountTransaction,
     InvokeTransactionV1, Transaction, TransactionType, TransactionWithType,

@@ -20,7 +20,6 @@ use crate::api::models::transaction::{
     TransactionReceipt, TransactionWithType, Transactions,
 };
 use crate::api::models::{BlockId, ContractAddressHex, PatriciaKeyHex};
-use crate::api::utils::convert_to_rpc;
 
 /// here are the definitions and stub implementations of all JSON-RPC read endpoints
 impl JsonRpcHandler {
