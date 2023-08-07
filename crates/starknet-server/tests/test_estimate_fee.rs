@@ -72,21 +72,19 @@ mod estimate_fee_tests {
 
         // try sending with insufficient max fee
         // TODO uncomment the following section once starknet_in_rust fixes max_fee checking
-        // let insufficient_max_fee = fee_estimation.overall_fee * 9 / 10; // 90% of estimate - not
-        // enough let unsuccessful_deployment_tx = account_factory
-        // .deploy(salt)
-        // .max_fee(FieldElement::from(insufficient_max_fee))
-        // .nonce(new_account_nonce)
-        // .send()
-        // .await
-        // .unwrap();
+        // let unsuccessful_deployment_tx = account_factory
+        //     .deploy(salt)
+        //     .max_fee(FieldElement::from((fee_estimation.overall_fee as f64 * 0.9) as u128))
+        //     .nonce(new_account_nonce)
+        //     .send()
+        //     .await
+        //     .unwrap();
         // todo!("Assert the tx is not accepted");
 
         // try sending with sufficient max fee
-        let sufficient_max_fee = fee_estimation.overall_fee * 11 / 10;
         let _result = account_factory
             .deploy(salt)
-            .max_fee(FieldElement::from(sufficient_max_fee))
+            .max_fee(FieldElement::from((fee_estimation.overall_fee as f64 * 1.1) as u128))
             .nonce(new_account_nonce)
             .send()
             .await
