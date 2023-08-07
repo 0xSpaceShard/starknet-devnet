@@ -1,8 +1,9 @@
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::ClassHash;
+use starknet_types::felt::{ClassHash, Felt};
 use starknet_types::starknet_api::transaction::Fee;
 
 use super::json_rpc::error::ApiError;
+use super::json_rpc::RpcResult;
 use super::models::transaction::{
     DeclareTransaction, DeclareTransactionV0V1, DeclareTransactionV2, DeployAccountTransaction,
     InvokeTransactionV1, Transaction, TransactionType, TransactionWithType,
@@ -101,4 +102,52 @@ impl TryFrom<&starknet_core::transactions::Transaction> for TransactionWithType 
 
         Ok(transaction_with_type)
     }
+}
+
+// Is this really needed? why I can't use try_from?
+pub fn convert_to_rpc(
+    transaction_to_map: starknet_core::transactions::Transaction,
+) -> RpcResult<TransactionWithType> {
+    let transaction_type: TransactionType;
+    let transaction_data: Transaction = match transaction_to_map {
+        starknet_core::transactions::Transaction::Declare(declare_v1) => {
+            transaction_type = TransactionType::Declare;
+            Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version1(
+                DeclareTransactionV0V1 {
+                    class_hash: declare_v1.class_hash.unwrap_or_default(),
+                    sender_address: ContractAddressHex(declare_v1.sender_address),
+                    nonce: declare_v1.nonce,
+                    max_fee: Fee(declare_v1.max_fee),
+                    version: Felt::from(1),
+                    transaction_hash: declare_v1.transaction_hash.unwrap(),
+                    signature: declare_v1.signature,
+                },
+            ))
+        }
+        starknet_core::transactions::Transaction::DeclareV2(declare_v2) => {
+            transaction_type = TransactionType::Declare;
+            Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version2(
+                DeclareTransactionV2 {
+                    class_hash: declare_v2.class_hash.unwrap(),
+                    sender_address: ContractAddressHex(declare_v2.sender_address),
+                    nonce: declare_v2.nonce,
+                    max_fee: Fee(declare_v2.max_fee),
+                    version: Felt::from(2),
+                    transaction_hash: declare_v2.transaction_hash.unwrap(),
+                    signature: declare_v2.signature,
+                    compiled_class_hash: declare_v2.compiled_class_hash,
+                },
+            ))
+        }
+        starknet_core::transactions::Transaction::DeployAccount(_deploy) => {
+            return Err(ApiError::TransactionNotFound);
+        }
+        starknet_core::transactions::Transaction::Invoke(_invoke) => {
+            return Err(ApiError::TransactionNotFound);
+        }
+    };
+
+    let transaction =
+        TransactionWithType { transaction: transaction_data, r#type: transaction_type };
+    Ok(transaction)
 }

@@ -1,11 +1,9 @@
 use starknet_core::error::Error;
-use starknet_core::transactions::StarknetTransaction;
 use starknet_in_rust::core::errors::state_errors::StateError;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::utils::Address;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::starknet_api::block::BlockNumber;
-use starknet_types::starknet_api::transaction::Fee;
 use starknet_types::traits::ToHexString;
 
 use super::error::{self, ApiError};
@@ -18,11 +16,11 @@ use crate::api::models::state::{
     ThinStateDiff,
 };
 use crate::api::models::transaction::{
-    BroadcastedTransactionWithType, DeclareTransactionV0V1, DeclareTransactionV2, EventFilter,
-    EventsChunk, FunctionCall, Transaction, TransactionReceipt, TransactionType,
-    TransactionWithType, Transactions,
+    BroadcastedTransactionWithType, EventFilter, EventsChunk, FunctionCall, Transaction,
+    TransactionReceipt, TransactionWithType, Transactions,
 };
 use crate::api::models::{BlockId, ContractAddressHex, PatriciaKeyHex};
+use crate::api::utils::convert_to_rpc;
 
 /// here are the definitions and stub implementations of all JSON-RPC read endpoints
 impl JsonRpcHandler {
@@ -151,52 +149,6 @@ impl JsonRpcHandler {
         Ok(felt)
     }
 
-    // TODO move to utils?
-    pub(crate) fn convert_to_transaction_type(transaction_to_map: &StarknetTransaction) -> RpcResult<TransactionWithType> {
-        let transaction_type: TransactionType;
-        let transaction_data: Transaction = match transaction_to_map.inner.clone() {
-            starknet_core::transactions::Transaction::Declare(declare_v1) => {
-                transaction_type = TransactionType::Declare;
-                Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version1(
-                    DeclareTransactionV0V1 {
-                        class_hash: declare_v1.class_hash.unwrap_or_default(),
-                        sender_address: ContractAddressHex(declare_v1.sender_address),
-                        nonce: declare_v1.nonce,
-                        max_fee: Fee(declare_v1.max_fee),
-                        version: Felt::from(1),
-                        transaction_hash: declare_v1.transaction_hash.unwrap(),
-                        signature: declare_v1.signature,
-                    },
-                ))
-            }
-            starknet_core::transactions::Transaction::DeclareV2(declare_v2) => {
-                transaction_type = TransactionType::Declare;
-                Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version2(
-                    DeclareTransactionV2 {
-                        class_hash: declare_v2.class_hash.unwrap(),
-                        sender_address: ContractAddressHex(declare_v2.sender_address),
-                        nonce: declare_v2.nonce,
-                        max_fee: Fee(declare_v2.max_fee),
-                        version: Felt::from(2),
-                        transaction_hash: declare_v2.transaction_hash.unwrap(),
-                        signature: declare_v2.signature,
-                        compiled_class_hash: declare_v2.compiled_class_hash,
-                    },
-                ))
-            }
-            starknet_core::transactions::Transaction::DeployAccount(_deploy) => {
-                return Err(error::ApiError::TransactionNotFound);
-            }
-            starknet_core::transactions::Transaction::Invoke(_invoke) => {
-                return Err(error::ApiError::TransactionNotFound);
-            }
-        };
-
-        let transaction =
-            TransactionWithType { transaction: transaction_data, r#type: transaction_type };
-        Ok(transaction)
-    }
-
     /// starknet_getTransactionByHash
     pub(crate) async fn get_transaction_by_hash(
         &self,
@@ -208,7 +160,7 @@ impl JsonRpcHandler {
             .get(&transaction_hash)
             .ok_or(error::ApiError::TransactionNotFound)?;
 
-        convert_to_transaction_type(transaction)
+        convert_to_rpc(transaction.inner.clone())
     }
 
     /// starknet_getTransactionByBlockIdAndIndex
@@ -218,10 +170,18 @@ impl JsonRpcHandler {
         index: BlockNumber,
     ) -> RpcResult<TransactionWithType> {
         let starknet = self.api.starknet.read().await;
-        let block = starknet.get_block(block_id.into()).unwrap_or(return Err(error::ApiError::BlockNotFound));
-        let transaction = block.transactions.get(index.0 as usize).ok_or(error::ApiError::InvalidTransactionIndexInBlock);
-        
-        convert_to_transaction_type(transaction)
+        match starknet.get_block(block_id.into()) {
+            Ok(block) => {
+                let transaction = block
+                    .transactions
+                    .get(index.0 as usize)
+                    .ok_or(error::ApiError::InvalidTransactionIndexInBlock);
+
+                convert_to_rpc(transaction.unwrap().clone())
+            }
+            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
+            Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),
+        }
     }
 
     /// starknet_getTransactionReceipt
