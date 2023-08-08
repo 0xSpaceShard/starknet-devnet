@@ -3,7 +3,6 @@ pub mod error;
 mod models;
 mod write_endpoints;
 
-use crate::api::serde_helpers::empty_params;
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
     EstimateFeeInput, EventsInput, GetStorageInput, TransactionHashInput,
@@ -20,6 +19,7 @@ use self::models::{
     BroadcastedInvokeTransactionInput,
 };
 use super::Api;
+use crate::api::serde_helpers::empty_params;
 
 pub(crate) type RpcResult<T> = std::result::Result<T, ApiError>;
 
