@@ -14,11 +14,11 @@ impl TryFrom<&starknet_core::transactions::Transaction> for TransactionWithType 
             starknet_core::transactions::Transaction::Declare(declare_v1) => {
                 let declare_txn = DeclareTransactionV0V1 {
                     class_hash: declare_v1.class_hash().cloned().unwrap_or(ClassHash::default()),
-                    sender_address: declare_v1.sender_address().clone(),
-                    nonce: txn.nonce().clone(),
+                    sender_address: declare_v1.sender_address().into(),
+                    nonce: *txn.nonce(),
                     max_fee: Fee(txn.max_fee()),
-                    version: txn.version().clone(),
-                    transaction_hash: txn.get_hash().unwrap_or_default().into(),
+                    version: *txn.version(),
+                    transaction_hash: txn.get_hash().unwrap_or_default(),
                     signature: txn.signature().to_vec(),
                 };
                 TransactionWithType {
@@ -29,12 +29,12 @@ impl TryFrom<&starknet_core::transactions::Transaction> for TransactionWithType 
             starknet_core::transactions::Transaction::DeclareV2(declare_v2) => {
                 let declare_txn = DeclareTransactionV2 {
                     class_hash: declare_v2.class_hash().cloned().unwrap_or(ClassHash::default()),
-                    compiled_class_hash: declare_v2.compiled_class_hash().clone(),
-                    sender_address: declare_v2.sender_address().clone(),
-                    nonce: txn.nonce().clone(),
+                    compiled_class_hash: *declare_v2.compiled_class_hash(),
+                    sender_address: declare_v2.sender_address().into(),
+                    nonce: *txn.nonce(),
                     max_fee: Fee(txn.max_fee()),
-                    version: txn.version().clone(),
-                    transaction_hash: txn.get_hash().unwrap_or_default().into(),
+                    version: *txn.version(),
+                    transaction_hash: txn.get_hash().unwrap_or_default(),
                     signature: txn.signature().to_vec(),
                 };
 
@@ -45,16 +45,15 @@ impl TryFrom<&starknet_core::transactions::Transaction> for TransactionWithType 
             }
             starknet_core::transactions::Transaction::DeployAccount(deploy_account) => {
                 let deploy_account_txn = DeployAccountTransaction {
-                    nonce: txn.nonce().clone(),
+                    nonce: *txn.nonce(),
                     max_fee: Fee(txn.max_fee()),
-                    version: txn.version().clone(),
-                    transaction_hash: txn.get_hash().unwrap_or_default().into(),
+                    version: *txn.version(),
+                    transaction_hash: txn.get_hash().unwrap_or_default(),
                     signature: txn.signature().to_vec(),
                     class_hash: deploy_account
                         .class_hash()
-                        .map_err(ApiError::StarknetDevnetError)?
-                        .into(),
-                    contract_address_salt: deploy_account.contract_address_salt().into(),
+                        .map_err(ApiError::StarknetDevnetError)?,
+                    contract_address_salt: deploy_account.contract_address_salt(),
                     constructor_calldata: deploy_account.constructor_calldata(),
                 };
 
@@ -69,10 +68,10 @@ impl TryFrom<&starknet_core::transactions::Transaction> for TransactionWithType 
                         .sender_address()
                         .map_err(ApiError::StarknetDevnetError)?
                         .into(),
-                    nonce: txn.nonce().clone(),
+                    nonce: *txn.nonce(),
                     max_fee: Fee(txn.max_fee()),
-                    version: txn.version().clone(),
-                    transaction_hash: txn.get_hash().unwrap_or_default().into(),
+                    version: *txn.version(),
+                    transaction_hash: txn.get_hash().unwrap_or_default(),
                     signature: txn.signature().to_vec(),
                     calldata: invoke_v1.calldata().to_vec(),
                 };
