@@ -10,7 +10,9 @@ mod get_transaction_by_hash_integration_tests {
         BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedDeployAccountTransaction,
         BroadcastedInvokeTransactionV1, FieldElement, StarknetError,
     };
-    use starknet_rs_providers::{Provider, ProviderError, StarknetErrorWithMessage, MaybeUnknownErrorCode};
+    use starknet_rs_providers::{
+        MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
+    };
     use starknet_rs_signers::{LocalWallet, SigningKey};
     use starknet_types::felt::Felt;
     use starknet_types::traits::ToHexString;
