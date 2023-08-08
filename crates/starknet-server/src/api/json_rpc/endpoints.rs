@@ -39,7 +39,7 @@ impl JsonRpcHandler {
                     .get_transactions()
                     .iter()
                     // We shouldnt get in the situation where tx hash is None
-                    .map(|tx| tx.get_hash().unwrap_or_default())
+                    .map(|tx| tx.get_hash())
                     .collect(),
             ),
         })

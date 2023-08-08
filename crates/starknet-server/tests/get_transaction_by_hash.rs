@@ -10,7 +10,9 @@ mod get_transaction_by_hash_integration_tests {
         BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedDeployAccountTransaction,
         BroadcastedInvokeTransactionV1, FieldElement, StarknetError,
     };
-    use starknet_rs_providers::{Provider, ProviderError};
+    use starknet_rs_providers::{
+        MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
+    };
     use starknet_rs_signers::{LocalWallet, SigningKey};
     use starknet_types::felt::Felt;
     use starknet_types::traits::ToHexString;
@@ -21,10 +23,10 @@ mod get_transaction_by_hash_integration_tests {
     use crate::common::util::BackgroundDevnet;
 
     pub const DECLARE_V1_TRANSACTION_HASH: &str =
-        "0x1862250c3d9e5f2dac38cda979d848c959202d3a5621e9072596444bcd0831a";
+        "0x01d50d192f54d8d75e73c8ab8fb7159e70bfdbccc322abb43a081889a3043627";
 
     pub const DECLARE_V2_TRANSACTION_HASH: &str =
-        "0x2b5c7f97fc7899669463848f59bfbe114138b945cf8bffebb8b29949df8b1a8";
+        "0x040b80108251e5991622eb2ff6061313dabe66a52f550c59867c027910777e7e";
 
     pub const DEPLOY_ACCOUNT_TRANSACTION_HASH: &str =
         "0x01b815e18639e72c8f56f5dbee70c5997f127e6183e46ea26a41b7f2944be593";
@@ -143,6 +145,7 @@ mod get_transaction_by_hash_integration_tests {
             .unwrap(),
             contract_address_salt: FieldElement::from_hex_be("0x1").unwrap(),
             constructor_calldata: vec![FieldElement::from_hex_be("0x1").unwrap()],
+            is_query: false,
         };
 
         let deploy_transaction =
@@ -173,6 +176,7 @@ mod get_transaction_by_hash_integration_tests {
             nonce: FieldElement::from_hex_be("0x0").unwrap(),
             sender_address: FieldElement::from_hex_be("0x0").unwrap(),
             calldata: vec![],
+            is_query: false,
         };
 
         let invoke_transaction = devnet
@@ -212,7 +216,10 @@ mod get_transaction_by_hash_integration_tests {
             .unwrap_err();
 
         match result {
-            ProviderError::StarknetError(StarknetError::TransactionHashNotFound) => (),
+            ProviderError::StarknetError(StarknetErrorWithMessage {
+                code: MaybeUnknownErrorCode::Known(StarknetError::TransactionHashNotFound),
+                ..
+            }) => (),
             _ => panic!("Invalid error: {result:?}"),
         }
     }
