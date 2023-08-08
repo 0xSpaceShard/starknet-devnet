@@ -101,17 +101,30 @@ mod get_transaction_by_hash_integration_tests {
 
         // We need to flatten the ABI into a string first
         let flattened_class = contract_artifact.flatten().unwrap();
-        let result = account
+        let declare_result = account
             .declare(Arc::new(flattened_class), compiled_class_hash)
             .nonce(FieldElement::ZERO)
             .max_fee(FieldElement::from_hex_be("0xde0b6b3a7640000").unwrap()) // Specified max fee of 10^18 to declare v2 transaction, can be removed once fee estimation will work
             .send()
             .await;
 
-        assert_eq!(
-            result.unwrap().transaction_hash,
-            FieldElement::from_hex_be(DECLARE_V2_TRANSACTION_HASH).unwrap()
-        );
+        let result = devnet
+            .json_rpc_client
+            .get_transaction_by_hash(declare_result.unwrap().transaction_hash)
+            .await
+            .unwrap();
+        
+        if let starknet_rs_core::types::Transaction::Declare(
+            starknet_rs_core::types::DeclareTransaction::V2(declare_v2),
+        ) = result
+        {
+            assert_eq!(
+                declare_v2.transaction_hash,
+                FieldElement::from_hex_be(DECLARE_V2_TRANSACTION_HASH).unwrap()
+            );
+        } else {
+            panic!("Could not unpack the transaction from {result:?}");
+        }
     }
 
     #[tokio::test]
