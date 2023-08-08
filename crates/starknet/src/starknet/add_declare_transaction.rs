@@ -180,13 +180,9 @@ mod tests {
     fn add_declare_v2_transaction_successful_execution() {
         let (mut starknet, sender) = setup(Some(100000000));
 
-        let _block_number = starknet.block_number();
-
         let declare_txn = dummy_declare_transaction_v2(&sender);
         let (tx_hash, class_hash) =
             starknet.add_declare_transaction_v2(declare_txn.clone()).unwrap();
-
-        let _block_number = starknet.block_number();
 
         let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
 

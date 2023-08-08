@@ -39,7 +39,6 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 
 # misc
-# todo see if can remove after migration
 base64 = { workspace = true }
 flate2 = { workspace = true }
 clap = { workspace = true }

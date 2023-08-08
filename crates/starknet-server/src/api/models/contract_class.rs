@@ -1,12 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::api::json_rpc::error::ApiError;
-use crate::api::json_rpc::RpcResult;
-use starknet_in_rust::SierraContractClass as ImportedSierraContractClass;
 use starknet_types::felt::Felt;
+use starknet_types::starknet_api::state::EntryPoint;
 use starknet_types::starknet_api::state::EntryPointType;
-use starknet_types::starknet_api::state::{EntryPoint, FunctionIndex};
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub struct SierraContractClass {
@@ -15,69 +12,6 @@ pub struct SierraContractClass {
     pub entry_points_by_type: HashMap<EntryPointType, Vec<EntryPoint>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub abi: Option<String>,
-}
-
-impl TryFrom<ImportedSierraContractClass> for SierraContractClass {
-    type Error = ApiError;
-    fn try_from(value: ImportedSierraContractClass) -> RpcResult<Self> {
-        let sierra_program: Vec<Felt> =
-            serde_json::from_str(&serde_json::to_string(&value.sierra_program)?)?;
-        let mut map: HashMap<EntryPointType, Vec<EntryPoint>> = HashMap::new();
-
-        for entry in value.entry_points_by_type.constructor {
-            let selector = serde_json::from_str(&serde_json::to_string(&entry.selector)?)?;
-            let function_idx = FunctionIndex(entry.function_idx);
-            let con = EntryPointType::Constructor;
-            match map.get_mut(&con) {
-                Some(val) => val.push(EntryPoint { function_idx, selector }),
-                None => {
-                    map.insert(
-                        EntryPointType::Constructor,
-                        vec![EntryPoint { selector, function_idx }],
-                    );
-                }
-            }
-        }
-
-        for entry in value.entry_points_by_type.external {
-            let selector = serde_json::from_str(&serde_json::to_string(&entry.selector)?)?;
-            let function_idx = FunctionIndex(entry.function_idx);
-
-            let con = EntryPointType::External;
-            match map.get_mut(&con) {
-                Some(val) => val.push(EntryPoint { function_idx, selector }),
-                None => {
-                    map.insert(
-                        EntryPointType::External,
-                        vec![EntryPoint { selector, function_idx }],
-                    );
-                }
-            }
-        }
-
-        for entry in value.entry_points_by_type.l1_handler {
-            let selector = serde_json::from_str(&serde_json::to_string(&entry.selector)?)?;
-            let function_idx = FunctionIndex(entry.function_idx);
-
-            let con = EntryPointType::L1Handler;
-            match map.get_mut(&con) {
-                Some(val) => val.push(EntryPoint { function_idx, selector }),
-                None => {
-                    map.insert(
-                        EntryPointType::L1Handler,
-                        vec![EntryPoint { selector, function_idx }],
-                    );
-                }
-            }
-        }
-
-        Ok(Self {
-            sierra_program,
-            contract_class_version: value.contract_class_version,
-            entry_points_by_type: map,
-            abi: value.abi.map(|contract| contract.json()),
-        })
-    }
 }
 
 #[cfg(test)]

@@ -287,8 +287,6 @@ impl Starknet {
         Ok(())
     }
 
-    // TODO should return a more generic type (StateReader) to allow future implementation of a
-    // ForkedStateReader
     fn get_state_at(&self, block_id: &BlockId) -> Result<&StarknetState> {
         match block_id {
             BlockId::Tag(_) => Ok(&self.state),

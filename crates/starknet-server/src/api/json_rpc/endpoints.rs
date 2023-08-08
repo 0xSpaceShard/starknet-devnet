@@ -249,9 +249,6 @@ impl JsonRpcHandler {
                 | Error::StateError(StateError::NoneContractState(_))
                 | Error::NoStateAtBlock { block_number: _ },
             ) => Err(ApiError::ContractNotFound),
-            // Err(Error::StateError(
-            //     starknet_in_rust::core::errors::state_errors::StateError::NoneContractState(_),
-            // )) => Err(ApiError::ContractNotFound),
             Err(unknown_error) => {
                 let unknown_error = unknown_error;
                 Err(ApiError::StarknetDevnetError(unknown_error))
