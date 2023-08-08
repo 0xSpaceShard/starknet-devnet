@@ -792,10 +792,9 @@ mod tests {
         assert_eq!(num_no_transactions.unwrap(), 0);
 
         let tx = dummy_declare_transaction_v1();
-        let tx_hash = tx.generate_hash().unwrap();
 
         // add transaction hash to pending block
-        starknet.blocks.pending_block.add_transaction(tx_hash);
+        starknet.blocks.pending_block.add_transaction(tx.transaction_hash);
 
         starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
 
