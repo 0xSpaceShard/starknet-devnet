@@ -187,7 +187,7 @@ impl Starknet {
                 tx.block_number = Some(new_block_number);
                 tx.status = TransactionStatus::AcceptedOnL2;
             } else {
-                error!("Transaction is not present in the transactions colletion");
+                error!("Transaction is not present in the transactions collection");
             }
         });
 
@@ -504,7 +504,6 @@ mod tests {
     use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
-    use starknet_types::traits::HashProducer;
 
     use super::Starknet;
     use crate::blocks::StarknetBlock;
