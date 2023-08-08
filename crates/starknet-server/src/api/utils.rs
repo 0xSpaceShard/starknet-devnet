@@ -14,7 +14,7 @@ impl TryFrom<&starknet_core::transactions::Transaction> for TransactionWithType 
             starknet_core::transactions::Transaction::Declare(declare_v1) => {
                 let declare_txn = DeclareTransactionV0V1 {
                     class_hash: declare_v1.class_hash().cloned().unwrap_or(ClassHash::default()),
-                    sender_address: declare_v1.sender_address().into(),
+                    sender_address: *declare_v1.sender_address(),
                     nonce: *txn.nonce(),
                     max_fee: Fee(txn.max_fee()),
                     version: *txn.version(),
@@ -30,7 +30,7 @@ impl TryFrom<&starknet_core::transactions::Transaction> for TransactionWithType 
                 let declare_txn = DeclareTransactionV2 {
                     class_hash: declare_v2.class_hash().cloned().unwrap_or(ClassHash::default()),
                     compiled_class_hash: *declare_v2.compiled_class_hash(),
-                    sender_address: declare_v2.sender_address().into(),
+                    sender_address: *declare_v2.sender_address(),
                     nonce: *txn.nonce(),
                     max_fee: Fee(txn.max_fee()),
                     version: *txn.version(),
@@ -66,8 +66,7 @@ impl TryFrom<&starknet_core::transactions::Transaction> for TransactionWithType 
                 let invoke_txn = InvokeTransactionV1 {
                     sender_address: invoke_v1
                         .sender_address()
-                        .map_err(ApiError::StarknetDevnetError)?
-                        .into(),
+                        .map_err(ApiError::StarknetDevnetError)?,
                     nonce: *txn.nonce(),
                     max_fee: Fee(txn.max_fee()),
                     version: *txn.version(),
