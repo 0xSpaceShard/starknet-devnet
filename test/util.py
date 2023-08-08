@@ -23,6 +23,7 @@ from starkware.starknet.services.api.contract_class.contract_class import (
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionInfo,
 )
+from starkware.starkware_utils.error_handling import StarkErrorCode
 
 from starknet_devnet.general_config import DEFAULT_GENERAL_CONFIG
 
@@ -593,36 +594,36 @@ def get_block(
     block_number=None, block_hash=None, parse=False, feeder_gateway_url=APP_URL
 ):
     """Get the block with block_number. If no number provided, return the last."""
-    args = ["get_block"]
-    if block_number:
-        args.extend(["--number", str(block_number)])
-    if block_hash:
-        args.extend(["--hash", str(block_hash)])
-
-    if parse:
-        output = run_starknet(
-            args, raise_on_nonzero=True, gateway_url=feeder_gateway_url
+    if block_hash is None:
+        block_number_str = (
+            block_number if isinstance(block_number, str) else block_number
         )
-        return json.loads(output.stdout)
+        params = {"blockNumber": block_number_str}
+    else:
+        params = {"blockHash": str(block_hash)}
 
-    return run_starknet(args, raise_on_nonzero=False, gateway_url=feeder_gateway_url)
+    resp = requests.get(
+        f"{feeder_gateway_url}/feeder_gateway/get_block",
+        params=params,
+    )
+
+    return resp.json()
 
 
 def assert_negative_block_input():
     """Test behavior if get_block provided with negative input."""
-    try:
-        get_block(-1, parse=True)
-        raise RuntimeError("Should have failed on negative block number")
-    except ReturnCodeAssertionError:
-        print("Correctly rejecting negative block number")
+    negative_block_number = -1
+    resp = get_block(block_number=negative_block_number, parse=True)
+    assert resp["code"] == str(StarkErrorCode.MALFORMED_REQUEST)
+    assert resp["message"] == f"Invalid block number: '{negative_block_number}'"
 
 
 def assert_block(latest_block_number, latest_tx_hash):
     """Asserts the content of the block with block_number."""
-    too_big = 1000
-    error_message = get_block(block_number=too_big, parse=False).stderr
+    too_big = 1_000_000
+    error_resp = get_block(block_number=too_big, parse=False)
     total_blocks_str = re.search(
-        "There are currently (.*) blocks.", error_message
+        "There are currently (.*) blocks.", error_resp["message"]
     ).group(1)
     total_blocks = int(total_blocks_str)
     extracted_last_block_number = total_blocks - 1
