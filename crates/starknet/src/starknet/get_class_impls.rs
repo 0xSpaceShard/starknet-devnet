@@ -65,12 +65,8 @@ pub fn get_class_at_impl(
 
 #[cfg(test)]
 mod tests {
-    use starknet_api::block::BlockNumber;
-    use starknet_in_rust::core::contract_address::compute_casm_class_hash;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
-    use starknet_in_rust::CasmContractClass;
-    use starknet_rs_core::types::{BlockId, TransactionStatus};
-    use starknet_types::contract_address::ContractAddress;
+    use starknet_rs_core::types::BlockId;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
@@ -79,13 +75,8 @@ mod tests {
     use crate::constants::{self};
     use crate::starknet::{predeployed, Starknet};
     use crate::state::state_diff::StateDiff;
-    use crate::traits::{Accounted, Deployed, HashIdentifiedMut, StateExtractor};
-    use crate::transactions::declare_transaction::DeclareTransactionV1;
-    use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
-    use crate::utils::test_utils::{
-        dummy_cairo_0_contract_class, dummy_cairo_1_contract_class, dummy_declare_transaction_v2,
-        dummy_felt,
-    };
+    use crate::traits::{Accounted, Deployed};
+    use crate::utils::test_utils::{dummy_declare_transaction_v2, dummy_felt};
 
     fn setup(acc_balance: Option<u128>) -> (Starknet, Account) {
         let mut starknet = Starknet::default();
@@ -131,14 +122,13 @@ mod tests {
         let block_number = starknet.block_number();
         let declare_txn = dummy_declare_transaction_v2(&account.account_address);
 
-        let expected = declare_txn.sierra_contract_class.clone();
-        let (tx_hash, class_hash) =
-            starknet.add_declare_transaction_v2(declare_txn.clone()).unwrap();
+        let expected: ContractClass = declare_txn.sierra_contract_class.clone().into();
+        let (_, class_hash) = starknet.add_declare_transaction_v2(declare_txn.clone()).unwrap();
 
         let contract_class =
             starknet.get_class(BlockId::Number(block_number.0), class_hash).unwrap();
 
-        assert_eq!(contract_class, contract_class)
+        assert_eq!(contract_class, expected)
     }
 
     #[test]

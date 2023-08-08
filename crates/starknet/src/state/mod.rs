@@ -179,7 +179,7 @@ mod tests {
     use starknet_in_rust::state::state_api::{State, StateReader};
     use starknet_types::cairo_felt::Felt252;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
+    use starknet_types::contract_class::Cairo0ContractClass;
     use starknet_types::felt::Felt;
 
     use super::StarknetState;

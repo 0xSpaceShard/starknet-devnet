@@ -129,10 +129,8 @@ pub fn add_declare_transaction_v1(
 #[cfg(test)]
 mod tests {
     use starknet_api::block::BlockNumber;
-    use starknet_in_rust::core::contract_address::compute_casm_class_hash;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
-    use starknet_in_rust::CasmContractClass;
-    use starknet_rs_core::types::{BlockId, TransactionStatus};
+    use starknet_rs_core::types::TransactionStatus;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::felt::Felt;
@@ -143,10 +141,8 @@ mod tests {
     use crate::starknet::{predeployed, Starknet};
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut, StateExtractor};
     use crate::transactions::declare_transaction::DeclareTransactionV1;
-    use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
     use crate::utils::test_utils::{
-        dummy_cairo_0_contract_class, dummy_cairo_1_contract_class, dummy_declare_transaction_v2,
-        dummy_felt,
+        dummy_cairo_0_contract_class, dummy_declare_transaction_v2, dummy_felt,
     };
 
     fn test_declare_transaction_v1(sender_address: ContractAddress) -> DeclareTransactionV1 {
@@ -184,13 +180,13 @@ mod tests {
     fn add_declare_v2_transaction_successful_execution() {
         let (mut starknet, sender) = setup(Some(100000000));
 
-        let block_number = starknet.block_number();
+        let _block_number = starknet.block_number();
 
         let declare_txn = dummy_declare_transaction_v2(&sender);
         let (tx_hash, class_hash) =
             starknet.add_declare_transaction_v2(declare_txn.clone()).unwrap();
 
-        let block_number = starknet.block_number();
+        let _block_number = starknet.block_number();
 
         let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
 
@@ -202,11 +198,6 @@ mod tests {
         // check if txn is with status accepted
         assert_eq!(tx.status, TransactionStatus::AcceptedOnL2);
         assert!(starknet.state.contract_classes.get(&class_hash).is_some());
-
-        // let block_number = starknet.block_number();
-        // let block_id = BlockId::Number(block_number.0);
-        let block_id = BlockId::Number(tx.block_number.unwrap().0);
-        let class = starknet.get_class(block_id, class_hash).unwrap();
     }
 
     #[test]
@@ -261,15 +252,6 @@ mod tests {
         let declare_txn = test_declare_transaction_v1(sender);
         let (tx_hash, class_hash) =
             starknet.add_declare_transaction_v1(declare_txn.clone()).unwrap();
-
-        {
-            let block_id = {
-                let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
-                BlockId::Number(tx.block_number.unwrap().0)
-            };
-
-            let class = starknet.get_class(block_id, class_hash).unwrap();
-        }
 
         let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
 

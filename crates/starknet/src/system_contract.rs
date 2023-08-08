@@ -54,7 +54,7 @@ impl Accounted for SystemContract {
 
 #[cfg(test)]
 mod tests {
-    use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
+    use starknet_types::contract_class::Cairo0ContractClass;
 
     use super::SystemContract;
     use crate::constants::{

@@ -137,7 +137,6 @@ impl Accounted for Account {
 mod tests {
     use starknet_in_rust::core::errors::state_errors::StateError;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::ContractClass;
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
 

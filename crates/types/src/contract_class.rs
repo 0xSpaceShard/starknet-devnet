@@ -50,6 +50,7 @@ impl HashProducer for Cairo0Json {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Cairo0ContractClass {
+    // TODO: remove once starknet_api raised
     RawJson(Cairo0Json),
     SIR(StarknetInRustContractClass),
     Rpc(DeprecatedContractClass),
@@ -412,7 +413,6 @@ mod tests {
     use crate::contract_class::Cairo0ContractClass;
     use core::panic;
 
-    use super::ContractClass;
     use crate::felt::Felt;
     use crate::traits::HashProducer;
     use crate::utils::test_utils::{CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH};
@@ -427,7 +427,7 @@ mod tests {
     fn cairo_0_rpc_successfully() {
         let json_str = std::fs::read_to_string("/Users/edwin/Documents/work/ShardLabs/starknet-devnet-rs/crates/starknet/test_artifacts/cairo_0_rpc.json").unwrap();
         let contract_class = Cairo0ContractClass::rpc_from_json_str(&json_str).unwrap();
-        let hash = contract_class.generate_hash().unwrap();
+        let _ = contract_class.generate_hash().unwrap();
     }
 
     #[test]

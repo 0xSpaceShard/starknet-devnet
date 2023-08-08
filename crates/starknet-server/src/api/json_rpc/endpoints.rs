@@ -1,5 +1,4 @@
 use starknet_core::error::Error;
-use starknet_in_rust::core::errors;
 use starknet_in_rust::core::errors::state_errors::StateError;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::utils::Address;

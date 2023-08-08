@@ -36,9 +36,7 @@ pub(crate) mod test_utils {
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_in_rust::{CasmContractClass, SierraContractClass};
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{
-        Cairo0ContractClass, Cairo0Json, ContractClass, DeprecatedContractClass,
-    };
+    use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
     use starknet_types::patricia_key::StorageKey;
@@ -84,26 +82,6 @@ pub(crate) mod test_utils {
         .unwrap();
 
         Cairo0ContractClass::raw_json_from_json_str(&json_str).unwrap()
-    }
-
-    pub(crate) fn dummy_cairo_0_rpc_class() -> DeprecatedContractClass {
-        let json_str = std::fs::read_to_string(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/cairo_0_rpc.json"
-        ))
-        .unwrap();
-
-        Cairo0ContractClass::rpc_from_json_str(&json_str).unwrap()
-    }
-
-    pub(crate) fn dummy_account_0_rpc_class() -> DeprecatedContractClass {
-        let json_str = std::fs::read_to_string(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/accounts_artifacts/OpenZeppelin/0.5.1/Account.cairo/Account.json"
-        ))
-        .unwrap();
-
-        Cairo0ContractClass::rpc_from_json_str(&json_str).unwrap()
     }
 
     pub(crate) fn dummy_cairo_1_contract_class() -> SierraContractClass {
@@ -182,8 +160,7 @@ mod tests {
     use starknet_types::traits::ToHexString;
 
     use super::get_storage_var_address;
-    use super::test_utils::dummy_cairo_0_rpc_class;
-    use super::test_utils::{self, dummy_account_0_rpc_class, get_bytes_from_u32};
+    use super::test_utils::{self, get_bytes_from_u32};
 
     #[test]
     fn correct_bytes_from_number() {

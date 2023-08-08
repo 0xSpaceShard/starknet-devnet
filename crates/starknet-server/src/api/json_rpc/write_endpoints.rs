@@ -160,15 +160,12 @@ mod tests {
         DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
     };
     use starknet_core::starknet::{Starknet, StarknetConfig};
-    use starknet_rs_core::types::BlockTag;
-    use starknet_types::starknet_api::block::BlockNumber;
     use starknet_types::traits::ToHexString;
 
     use crate::api::json_rpc::JsonRpcHandler;
     use crate::api::models::transaction::{
         BroadcastedDeclareTransactionV1, BroadcastedDeployAccountTransaction,
     };
-    use crate::api::models::{BlockHashOrNumber, BlockId, Tag};
     use crate::api::Api;
 
     #[tokio::test]

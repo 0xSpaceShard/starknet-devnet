@@ -509,23 +509,19 @@ mod tests {
     use starknet_in_rust::utils::Address;
     use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json};
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
 
     use super::Starknet;
     use crate::blocks::StarknetBlock;
     use crate::constants::{
-        CAIRO_0_ACCOUNT_CONTRACT_PATH, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_INITIAL_BALANCE,
-        ERC20_CONTRACT_ADDRESS,
+        DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_INITIAL_BALANCE, ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::{Error, Result};
     use crate::state::state_diff::StateDiff;
     use crate::traits::{Accounted, StateChanger, StateExtractor};
-    use crate::transactions::declare_transaction::DeclareTransactionV1;
     use crate::utils::test_utils::{
-        dummy_cairo_0_contract_class, dummy_contract_address, dummy_declare_transaction_v1,
-        dummy_declare_transaction_v2, starknet_config_for_test,
+        dummy_contract_address, dummy_declare_transaction_v1, starknet_config_for_test,
     };
 
     #[test]

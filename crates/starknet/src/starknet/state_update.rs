@@ -19,7 +19,6 @@ mod tests {
     use starknet_in_rust::CasmContractClass;
     use starknet_rs_core::types::TransactionStatus;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::ContractClass::Cairo1;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
