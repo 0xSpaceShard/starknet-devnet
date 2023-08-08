@@ -44,7 +44,7 @@ pub type Cairo0Json = Value;
 
 impl HashProducer for Cairo0Json {
     fn generate_hash(&self) -> DevnetResult<Felt> {
-        Ok(ContractClass::compute_cairo_0_contract_class_hash(&self)?.into())
+        ContractClass::compute_cairo_0_contract_class_hash(self)
     }
 }
 
@@ -71,7 +71,7 @@ impl Cairo0ContractClass {
 
     pub fn raw_json_from_path(path: &str) -> DevnetResult<Cairo0Json> {
         let contract_class_str = fs::read_to_string(path)?;
-        Ok(Cairo0ContractClass::raw_json_from_json_str(&contract_class_str)?)
+        Cairo0ContractClass::raw_json_from_json_str(&contract_class_str)
     }
 
     pub fn rpc_from_json_str(json_str: &str) -> DevnetResult<DeprecatedContractClass> {
@@ -83,7 +83,7 @@ impl Cairo0ContractClass {
 
     pub fn rpc_from_path(path: &str) -> DevnetResult<DeprecatedContractClass> {
         let contract_class_str = fs::read_to_string(path)?;
-        Ok(Cairo0ContractClass::rpc_from_json_str(&contract_class_str)?)
+        Cairo0ContractClass::rpc_from_json_str(&contract_class_str)
     }
 }
 
@@ -237,10 +237,7 @@ impl TryFrom<ContractClass> for Cairo0Json {
     type Error = Error;
     fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
         match value {
-            ContractClass::Cairo0(cairo_0) => match cairo_0 {
-                Cairo0ContractClass::RawJson(contract) => Ok(contract),
-                _ => Err(Error::ConversionError(crate::error::ConversionError::InvalidFormat)),
-            },
+            ContractClass::Cairo0(Cairo0ContractClass::RawJson(contract)) => Ok(contract),
             _ => Err(Error::ConversionError(crate::error::ConversionError::InvalidFormat)),
         }
     }

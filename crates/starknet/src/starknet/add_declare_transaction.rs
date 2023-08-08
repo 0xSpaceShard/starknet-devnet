@@ -16,7 +16,7 @@ pub fn add_declare_transaction_v2(
     let mut declare_transaction = declare_transaction;
 
     let transaction = DeclareV2::new(
-        &declare_transaction.sierra_contract_class.clone(),
+        &declare_transaction.sierra_contract_class,
         None,
         declare_transaction.compiled_class_hash.into(),
         declare_transaction.chain_id.into(),

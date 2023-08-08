@@ -42,7 +42,7 @@ mod tests {
         let sierra_class_hash =
             ContractClass::Cairo1(contract_class.clone()).generate_hash().unwrap();
         let casm_contract_class =
-            CasmContractClass::from_contract_class(contract_class.clone().into(), true).unwrap();
+            CasmContractClass::from_contract_class(contract_class.clone(), true).unwrap();
         let compiled_class_hash = compute_casm_class_hash(&casm_contract_class).unwrap();
 
         let mut declare_txn = DeclareTransactionV2::new(

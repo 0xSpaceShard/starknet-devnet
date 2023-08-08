@@ -324,7 +324,7 @@ impl Starknet {
         block_id: BlockId,
         contract_address: ContractAddress,
     ) -> Result<ClassHash> {
-        Ok(get_class_impls::get_class_hash_at_impl(self, block_id, contract_address)?)
+        get_class_impls::get_class_hash_at_impl(self, block_id, contract_address)
     }
 
     pub fn get_class(&mut self, block_id: BlockId, class_hash: ClassHash) -> Result<ContractClass> {

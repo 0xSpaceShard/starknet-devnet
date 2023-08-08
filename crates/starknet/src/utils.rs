@@ -125,7 +125,7 @@ pub(crate) mod test_utils {
         DeclareTransactionV2::new(
             contract_class,
             compiled_class_hash.into(),
-            sender_address.clone(),
+            *sender_address,
             100,
             Vec::new(),
             Felt::from(0),
