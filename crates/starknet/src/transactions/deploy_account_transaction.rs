@@ -8,12 +8,12 @@ use crate::error::{self, Result};
 
 #[derive(Clone)]
 pub struct DeployAccountTransaction {
-    pub(crate) inner: DeployAccount,
-    pub(crate) chain_id: Felt,
-    pub(crate) signature: Vec<Felt>,
-    pub(crate) max_fee: u128,
-    pub(crate) nonce: Felt,
-    pub(crate) version: Felt,
+    pub inner: DeployAccount,
+    pub chain_id: Felt,
+    pub signature: Vec<Felt>,
+    pub max_fee: u128,
+    pub nonce: Felt,
+    pub version: Felt,
 }
 
 impl Eq for DeployAccountTransaction {}
