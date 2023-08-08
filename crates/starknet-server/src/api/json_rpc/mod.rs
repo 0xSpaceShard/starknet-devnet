@@ -3,6 +3,7 @@ pub mod error;
 mod models;
 mod write_endpoints;
 
+use crate::api::serde_helpers::empty_params;
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
     EstimateFeeInput, EventsInput, GetStorageInput, TransactionHashInput,
@@ -11,7 +12,6 @@ use serde::{Deserialize, Serialize};
 use server::rpc_core::error::RpcError;
 use server::rpc_core::response::ResponseResult;
 use server::rpc_handler::RpcHandler;
-use starknet_types::serde_helpers::empty_params;
 use tracing::{error, info, trace};
 
 use self::error::ApiError;
