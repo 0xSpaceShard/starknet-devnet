@@ -66,7 +66,7 @@ mod get_transaction_by_hash_integration_tests {
                 FieldElement::from_hex_be(DECLARE_V1_TRANSACTION_HASH).unwrap()
             );
         } else {
-            panic!(); // Otherwise test should fail
+            panic!("Could not unpack the transaction from {result:?}");
         }
     }
 
@@ -147,7 +147,7 @@ mod get_transaction_by_hash_integration_tests {
                 FieldElement::from_hex_be(DEPLOY_ACCOUNT_TRANSACTION_HASH).unwrap()
             );
         } else {
-            panic!(); // Otherwise test should fail
+            panic!("Could not unpack the transaction from {result:?}");
         }
     }
 
@@ -185,7 +185,7 @@ mod get_transaction_by_hash_integration_tests {
                 FieldElement::from_hex_be(INVOKE_V1_TRANSACTION_HASH).unwrap()
             );
         } else {
-            panic!(); // Otherwise test should fail
+            panic!("Could not unpack the transaction from {result:?}");
         }
     }
 
