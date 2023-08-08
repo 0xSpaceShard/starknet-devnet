@@ -154,12 +154,13 @@ impl JsonRpcHandler {
         transaction_hash: TransactionHash,
     ) -> RpcResult<TransactionWithType> {
         let starknet = self.api.starknet.read().await;
-        let transaction = starknet
+        let transaction_to_map = starknet
             .transactions
             .get(&transaction_hash)
             .ok_or(error::ApiError::TransactionNotFound)?;
-        
-        Ok(TransactionWithType::try_from(&transaction.inner)?)
+        let transaction = TransactionWithType::try_from(&transaction_to_map.inner)?;
+
+        Ok(transaction)
     }
 
     /// starknet_getTransactionByBlockIdAndIndex
