@@ -115,7 +115,7 @@ mod get_transaction_by_hash_integration_tests {
             .get_transaction_by_hash(declare_result.unwrap().transaction_hash)
             .await
             .unwrap();
-        
+
         if let starknet_rs_core::types::Transaction::Declare(
             starknet_rs_core::types::DeclareTransaction::V2(declare_v2),
         ) = result

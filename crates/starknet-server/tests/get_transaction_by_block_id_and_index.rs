@@ -1,12 +1,11 @@
 pub mod common;
 
 mod get_transaction_by_block_id_and_index_integration_tests {
-    use starknet_rs_core::types::{
-        BlockId, BlockTag, FieldElement
-    };
-    use starknet_rs_providers::Provider;
     use hyper::Body;
     use serde_json::json;
+    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement};
+    use starknet_rs_providers::Provider;
+
     use crate::common::util::{get_json_body, BackgroundDevnet};
 
     #[tokio::test]
