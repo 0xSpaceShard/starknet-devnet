@@ -590,9 +590,7 @@ def assert_events(tx_hash, expected_path):
     assert_equal(receipt["events"], expected_receipt["events"])
 
 
-def get_block(
-    block_number=None, block_hash=None, parse=False, feeder_gateway_url=APP_URL
-):
+def get_block(block_number=None, block_hash=None, feeder_gateway_url=APP_URL):
     """Get the block with block_number. If no number provided, return the last."""
     if block_hash is None:
         block_number_str = (
@@ -613,7 +611,7 @@ def get_block(
 def assert_negative_block_input():
     """Test behavior if get_block provided with negative input."""
     negative_block_number = -1
-    resp = get_block(block_number=negative_block_number, parse=True)
+    resp = get_block(block_number=negative_block_number)
     assert resp["code"] == str(StarkErrorCode.MALFORMED_REQUEST)
     assert resp["message"] == f"Invalid block number: '{negative_block_number}'"
 
@@ -621,7 +619,7 @@ def assert_negative_block_input():
 def assert_block(latest_block_number, latest_tx_hash):
     """Asserts the content of the block with block_number."""
     too_big = 1_000_000
-    error_resp = get_block(block_number=too_big, parse=False)
+    error_resp = get_block(block_number=too_big)
     total_blocks_str = re.search(
         "There are currently (.*) blocks.", error_resp["message"]
     ).group(1)
@@ -629,8 +627,8 @@ def assert_block(latest_block_number, latest_tx_hash):
     extracted_last_block_number = total_blocks - 1
     assert_equal(extracted_last_block_number, latest_block_number)
 
-    latest_block = get_block(parse=True)
-    specific_block = get_block(block_number=extracted_last_block_number, parse=True)
+    latest_block = get_block()
+    specific_block = get_block(block_number=extracted_last_block_number)
     assert_equal(latest_block, specific_block)
 
     assert_equal(latest_block["block_number"], latest_block_number)

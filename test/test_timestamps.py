@@ -37,7 +37,7 @@ def get_ts_from_contract(address):
 
 def get_ts_from_last_block():
     """Returns the timestamp of the last block"""
-    return get_block(parse=True)["timestamp"]
+    return get_block()["timestamp"]
 
 
 @pytest.mark.timestamps

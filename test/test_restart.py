@@ -119,14 +119,14 @@ GAS_PRICE = str(int(1e9))
 def test_gas_price_unaffected_by_restart():
     """Checks that gas price is not affected by restart"""
     deploy_contract()
-    block_before = get_block(parse=True)
+    block_before = get_block()
     gas_price_before = str(int(block_before["gas_price"], 16))
     assert gas_price_before == GAS_PRICE
 
     restart()
 
     deploy_contract()
-    block_after = get_block(parse=True)
+    block_after = get_block()
     assert block_after["block_hash"] != block_before["block_hash"]
     gas_price_after = str(int(block_after["gas_price"], 16))
     assert gas_price_after == GAS_PRICE

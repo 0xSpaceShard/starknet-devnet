@@ -104,13 +104,13 @@ def test_call_with_block_hash():
     deploy_info = declare_and_deploy_with_chargeable(
         CONTRACT_PATH, inputs=[str(initial_value)]
     )
-    deployment_block = get_block(block_number="latest", parse=True)
+    deployment_block = get_block(block_number="latest")
     deployment_block_hash = deployment_block["block_hash"]
     contract_address = deploy_info["address"]
 
     increment_value = 7
     _increment(contract_address, increment_value)
-    increment_block = get_block(block_number="latest", parse=True)
+    increment_block = get_block(block_number="latest")
     increment_block_hash = increment_block["block_hash"]
     assert increment_block_hash != deployment_block_hash
 
@@ -148,7 +148,7 @@ def test_forked():
     _increment(contract_address, increment_value=first_increment_value)
     _increment(contract_address, increment_value=5)
 
-    latest_block = get_block(block_number="latest", parse=True)
+    latest_block = get_block(block_number="latest")
     # fork + genesis + declare + deploy + invoke + invoke
     assert latest_block["block_number"] == FORK_BLOCK + 5
 
@@ -207,7 +207,7 @@ def test_old_block_generated_on_demand():
     _increment(contract_address, increment_value)
     demand_block_creation()
 
-    latest_block = get_block(block_number="latest", parse=True)
+    latest_block = get_block(block_number="latest")
     assert latest_block["block_number"] == 2  # genesis (0) + demand + demand
 
     assert (
@@ -229,7 +229,7 @@ def test_getting_storage_at_old_block():
     deploy_info = declare_and_deploy_with_chargeable(
         contract=CONTRACT_PATH, inputs=[str(initial_balance)]
     )
-    deployment_block = get_block(block_number="latest", parse=True)
+    deployment_block = get_block(block_number="latest")
     contract_address = deploy_info["address"]
 
     increment_value = 5

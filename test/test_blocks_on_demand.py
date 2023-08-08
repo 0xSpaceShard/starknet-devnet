@@ -55,7 +55,7 @@ def _assert_block_is_pending(block: dict):
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS, "--blocks-on-demand")
 def test_invokable_on_pending_block():
     """Test deploy+invoke+call in blocks-on-demand mode"""
-    latest_block = get_block(block_number="latest", parse=True)
+    latest_block = get_block(block_number="latest")
     genesis_block_number = latest_block["block_number"]
     assert genesis_block_number == 0
 
@@ -80,7 +80,7 @@ def test_invokable_on_pending_block():
     )
     assert_tx_status(invoke_hash, "ACCEPTED_ON_L2")
 
-    latest_block = get_block(block_number="latest", parse=True)
+    latest_block = get_block(block_number="latest")
     block_number_after_deploy_and_invoke = latest_block["block_number"]
     assert block_number_after_deploy_and_invoke == 0
 
@@ -90,7 +90,7 @@ def test_invokable_on_pending_block():
     balance_after_create_block = get_contract_balance()
     assert int(balance_after_create_block) == 30
 
-    latest_block = get_block(block_number="latest", parse=True)
+    latest_block = get_block(block_number="latest")
     block_number_after_block_on_demand_call = latest_block["block_number"]
     assert block_number_after_block_on_demand_call == 1
     assert len(latest_block["transactions"]) == 3  # declare + deploy + invoke
@@ -178,8 +178,8 @@ def test_getting_next_block():
 def test_getting_pending_defaults_to_latest():
     """Test that specifying "pending" defaults to using "latest" if no there is no pending block"""
 
-    pending_block = get_block(block_number="pending", parse=True)
-    latest_block = get_block(block_number="latest", parse=True)
+    pending_block = get_block(block_number="pending")
+    latest_block = get_block(block_number="latest")
     assert_equal(pending_block, latest_block)
 
     pending_block_traces = get_block_traces({"blockNumber": "pending"})
@@ -196,14 +196,14 @@ def test_pending_block():
     """Test that pending block contains pending data"""
 
     # get state of latest before the tx
-    latest_block_before = get_block(block_number="latest", parse=True)
+    latest_block_before = get_block(block_number="latest")
     assert latest_block_before["status"] == "ACCEPTED_ON_L2"
 
     # some tx to generate a pending block, could be anything
     deploy_info = declare_and_deploy_with_chargeable(CONTRACT_PATH, inputs=["0"])
 
     # assert correct pending block
-    pending_block = get_block(block_number="pending", parse=True)
+    pending_block = get_block(block_number="pending")
     _assert_block_is_pending(pending_block)
 
     assert len(pending_block["transactions"]) == 2
@@ -211,11 +211,11 @@ def test_pending_block():
     assert deploy_info["tx_hash"] == retrieved_pending_deploy_tx["transaction_hash"]
 
     # assert latest unchanged
-    latest_block = get_block(block_number="latest", parse=True)
+    latest_block = get_block(block_number="latest")
     assert_equal(latest_block_before, latest_block)
 
     demand_block_creation()
-    latest_block_after = get_block(block_number="latest", parse=True)
+    latest_block_after = get_block(block_number="latest")
     assert pending_block["transactions"] == latest_block_after["transactions"]
 
 
@@ -340,7 +340,7 @@ def test_events():
 def _assert_correct_block_creation_response(resp: requests.Response):
     assert resp.status_code == 200
     resp_block_hash = resp.json()["block_hash"]
-    latest_block = get_block(block_number="latest", parse=True)
+    latest_block = get_block(block_number="latest")
     assert_hex_equal(resp_block_hash, latest_block["block_hash"])
 
 
@@ -393,7 +393,7 @@ def test_increase_time_in_block_on_demand_mode():
     """Test block creation with increase_time and pending txs"""
     deploy_info = declare_and_deploy_with_chargeable(CONTRACT_PATH, inputs=["0"])
     assert_tx_status(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
-    latest_block_timestamp = get_block(block_number="latest", parse=True)["timestamp"]
+    latest_block_timestamp = get_block(block_number="latest")["timestamp"]
 
     # increase time should fail when there are pending transactions
     increase_time_response = increase_time(10000)
@@ -404,7 +404,7 @@ def test_increase_time_in_block_on_demand_mode():
     assert resp.status_code == 200
     increase_time_response = increase_time(10000)
     assert increase_time_response.status_code == 200
-    latest_block = get_block(block_number="latest", parse=True)
+    latest_block = get_block(block_number="latest")
     assert latest_block["timestamp"] >= latest_block_timestamp + 10000
     assert latest_block["block_hash"] == increase_time_response.json()["block_hash"]
     assert_tx_status(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
@@ -415,7 +415,7 @@ def test_set_time_in_block_on_demand_mode():
     """Test block creation with set_time and pending txs"""
     deploy_info = declare_and_deploy_with_chargeable(CONTRACT_PATH, inputs=["0"])
     assert_tx_status(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
-    latest_block_timestamp = get_block(block_number="latest", parse=True)["timestamp"]
+    latest_block_timestamp = get_block(block_number="latest")["timestamp"]
 
     # set time should fail when there are pending transactions
     set_time_response = set_time(latest_block_timestamp + 10000)
@@ -426,7 +426,7 @@ def test_set_time_in_block_on_demand_mode():
     assert resp.status_code == 200
     set_time_response = set_time(latest_block_timestamp + 10000)
     assert set_time_response.status_code == 200
-    latest_block = get_block(block_number="latest", parse=True)
+    latest_block = get_block(block_number="latest")
     assert latest_block["timestamp"] == latest_block_timestamp + 10000
     assert latest_block["block_hash"] == set_time_response.json()["block_hash"]
     assert_tx_status(deploy_info["tx_hash"], "ACCEPTED_ON_L2")

@@ -46,7 +46,7 @@ def test_genesis_block_transactions(last_tx_hash):
     There are 4 declare and 3 deploy transactions + accounts deploy depending on the number of accounts.
     """
 
-    genesis_block = get_block(block_number="latest", parse=True)
+    genesis_block = get_block(block_number="latest")
 
     # Assert transaction iterator with genesis block transactions
     assert len(genesis_block["transactions"]) == last_tx_hash

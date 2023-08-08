@@ -44,7 +44,7 @@ def test_lite_mode_block_hash():
     deploy_info = declare_and_deploy_with_chargeable(CONTRACT_PATH, inputs=["0"])
     assert_tx_status(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
     expected_block_hash = "0x2"  # after declare and deploy
-    assert_equal(expected_block_hash, get_block(parse=True)["block_hash"])
+    assert_equal(expected_block_hash, get_block()["block_hash"])
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")

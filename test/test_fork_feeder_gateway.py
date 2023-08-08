@@ -378,14 +378,13 @@ def test_block_responses():
 
     origin_block = get_block(
         block_number=TESTNET_DEPLOYMENT_BLOCK,
-        parse=True,
         feeder_gateway_url=TESTNET_URL,
     )
-    fork_block = get_block(block_number=TESTNET_DEPLOYMENT_BLOCK, parse=True)
+    fork_block = get_block(block_number=TESTNET_DEPLOYMENT_BLOCK)
     assert origin_block == fork_block
 
     # assert block count incremented by one (due to genesis block)
-    latest_fork_block_before = get_block(block_number="latest", parse=True)
+    latest_fork_block_before = get_block(block_number="latest")
     assert latest_fork_block_before["block_number"] == fork_block["block_number"] + 1
 
     # assert next block not yet present
@@ -397,7 +396,7 @@ def test_block_responses():
     _make_expected_invoke(gateway_url=APP_URL)
 
     # assert block count incremented by one
-    latest_fork_block_after = get_block(block_number="latest", parse=True)
+    latest_fork_block_after = get_block(block_number="latest")
     assert (
         latest_fork_block_after["block_number"]
         == latest_fork_block_before["block_number"] + 1
@@ -418,9 +417,9 @@ def test_block_responses_by_hash():
     for method in "get_block", "get_block_traces", "get_state_update":
         _assert_block_artifact_not_found(method, block_hash=dummy_hash)
 
-    latest_block_by_number = get_block(block_number="latest", parse=True)
+    latest_block_by_number = get_block(block_number="latest")
     latest_block_hash = latest_block_by_number["block_hash"]
-    latest_block_by_hash = get_block(block_hash=latest_block_hash, parse=True)
+    latest_block_by_hash = get_block(block_hash=latest_block_hash)
     assert latest_block_by_number == latest_block_by_hash
 
     block_traces_by_hash = get_block_traces({"blockHash": latest_block_hash})
