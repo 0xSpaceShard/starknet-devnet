@@ -14,7 +14,7 @@ use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::felt::{ClassHash, Felt};
 
 use self::state_diff::StateDiff;
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::traits::{StateChanger, StateExtractor};
 
 pub(crate) mod state_diff;
@@ -69,8 +69,8 @@ impl StateChanger for StarknetState {
             ContractClass::Cairo1(sierra_contract_class) => {
                 self.state.casm_contract_classes_mut().insert(
                     class_hash.bytes(),
-                    // TODO: remove unwrap. ed
-                    CasmContractClass::from_contract_class(sierra_contract_class, true).unwrap(),
+                    CasmContractClass::from_contract_class(sierra_contract_class, true)
+                        .map_err(|_| Error::SierraCompilationError)?,
                 );
             }
         }

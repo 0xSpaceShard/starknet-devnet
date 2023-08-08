@@ -133,7 +133,6 @@ impl Serialize for ContractClass {
     {
         match self {
             ContractClass::Cairo0(cairo0) => match cairo0 {
-                // TODO: refactor error
                 Cairo0ContractClass::RawJson(contract_json) => contract_json.serialize(serializer),
                 Cairo0ContractClass::SIR(_) => Err(serde::ser::Error::custom(
                     "Serialization of starknet 0 contract is unavailable",

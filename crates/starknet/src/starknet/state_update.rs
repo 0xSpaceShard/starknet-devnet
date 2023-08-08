@@ -19,6 +19,7 @@ mod tests {
     use starknet_in_rust::CasmContractClass;
     use starknet_rs_core::types::TransactionStatus;
     use starknet_types::contract_address::ContractAddress;
+    use starknet_types::contract_class::ContractClass::Cairo1;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
@@ -39,11 +40,10 @@ mod tests {
         let (mut starknet, sender_address) = setup();
         let contract_class = dummy_cairo_1_contract_class();
 
-        // TODO: improve
         let sierra_class_hash =
             ContractClass::Cairo1(contract_class.clone()).generate_hash().unwrap();
         let casm_contract_class =
-            CasmContractClass::from_contract_class(contract_class.clone(), true).unwrap();
+            CasmContractClass::from_contract_class(contract_class.clone().into(), true).unwrap();
         let compiled_class_hash = compute_casm_class_hash(&casm_contract_class).unwrap();
 
         let mut declare_txn = DeclareTransactionV2::new(

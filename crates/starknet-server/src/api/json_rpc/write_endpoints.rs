@@ -184,14 +184,6 @@ mod tests {
             .await
             .unwrap();
 
-        let contract_class = json_rpc_handler
-            .get_class(
-                BlockId::HashOrNumber(BlockHashOrNumber::Number(BlockNumber(1))),
-                result.class_hash.clone(),
-            )
-            .await
-            .unwrap();
-
         // Data taken from transaction execution to https://alpha4.starknet.io/gateway/add_transaction
         // which resulted in transaction_hash
         // 0x1d50d192f54d8d75e73c8ab8fb7159e70bfdbccc322abb43a081889a3043627 Could be checked in https://testnet.starkscan.co/tx/0x1d50d192f54d8d75e73c8ab8fb7159e70bfdbccc322abb43a081889a3043627

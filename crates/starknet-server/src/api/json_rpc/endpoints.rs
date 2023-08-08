@@ -1,4 +1,5 @@
 use starknet_core::error::Error;
+use starknet_in_rust::core::errors;
 use starknet_in_rust::core::errors::state_errors::StateError;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::utils::Address;
@@ -241,7 +242,22 @@ impl JsonRpcHandler {
         block_id: BlockId,
         contract_address: ContractAddress,
     ) -> RpcResult<ClassHash> {
-        Ok(self.api.starknet.write().await.get_class_hash_at(block_id.into(), contract_address)?)
+        match self.api.starknet.write().await.get_class_hash_at(block_id.into(), contract_address) {
+            Ok(class_hash) => Ok(class_hash),
+            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
+            Err(
+                Error::ContractNotFound
+                | Error::StateError(StateError::NoneContractState(_))
+                | Error::NoStateAtBlock { block_number: _ },
+            ) => Err(ApiError::ContractNotFound),
+            // Err(Error::StateError(
+            //     starknet_in_rust::core::errors::state_errors::StateError::NoneContractState(_),
+            // )) => Err(ApiError::ContractNotFound),
+            Err(unknown_error) => {
+                let unknown_error = unknown_error;
+                Err(ApiError::StarknetDevnetError(unknown_error))
+            }
+        }
     }
 
     /// starknet_getBlockTransactionCount
