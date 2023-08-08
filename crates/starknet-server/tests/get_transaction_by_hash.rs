@@ -10,7 +10,7 @@ mod get_transaction_by_hash_integration_tests {
         BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedDeployAccountTransaction,
         BroadcastedInvokeTransactionV1, FieldElement, StarknetError,
     };
-    use starknet_rs_providers::{Provider, ProviderError};
+    use starknet_rs_providers::{Provider, ProviderError, StarknetErrorWithMessage, MaybeUnknownErrorCode};
     use starknet_rs_signers::{LocalWallet, SigningKey};
     use starknet_types::felt::Felt;
     use starknet_types::traits::ToHexString;
@@ -130,6 +130,7 @@ mod get_transaction_by_hash_integration_tests {
             .unwrap(),
             contract_address_salt: FieldElement::from_hex_be("0x1").unwrap(),
             constructor_calldata: vec![FieldElement::from_hex_be("0x1").unwrap()],
+            is_query: false,
         };
 
         let deploy_transaction =
@@ -160,6 +161,7 @@ mod get_transaction_by_hash_integration_tests {
             nonce: FieldElement::from_hex_be("0x0").unwrap(),
             sender_address: FieldElement::from_hex_be("0x0").unwrap(),
             calldata: vec![],
+            is_query: false,
         };
 
         let invoke_transaction = devnet
@@ -199,7 +201,10 @@ mod get_transaction_by_hash_integration_tests {
             .unwrap_err();
 
         match result {
-            ProviderError::StarknetError(StarknetError::TransactionHashNotFound) => (),
+            ProviderError::StarknetError(StarknetErrorWithMessage {
+                code: MaybeUnknownErrorCode::Known(StarknetError::TransactionHashNotFound),
+                ..
+            }) => (),
             _ => panic!("Invalid error: {result:?}"),
         }
     }
