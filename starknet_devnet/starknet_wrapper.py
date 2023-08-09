@@ -14,10 +14,8 @@ from starkware.starknet.business_logic.state.storage_domain import StorageDomain
 from starkware.starknet.business_logic.transaction.fee import calculate_tx_fee
 from starkware.starknet.business_logic.transaction.objects import (
     CallInfo,
-    InternalDeclare,
     InternalDeploy,
     InternalDeployAccount,
-    InternalInvokeFunction,
     InternalL1Handler,
     InternalTransaction,
     TransactionExecutionInfo,
@@ -55,6 +53,7 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     TransactionTrace,
 )
 from starkware.starknet.services.api.gateway.transaction import (
+    AccountTransaction,
     Declare,
     DeployAccount,
     DeprecatedDeclare,
@@ -352,9 +351,6 @@ class StarknetWrapper:
 
         state = self.get_state()
         async with self.__get_transaction_handler(external_tx) as tx_handler:
-            tx_handler.internal_tx = InternalDeclare.from_external(
-                external_tx, state.general_config
-            )
             # extract class hash here if execution later fails
             class_hash = tx_handler.internal_tx.class_hash
 
@@ -413,7 +409,9 @@ class StarknetWrapper:
         )
         return block_info
 
-    def __get_transaction_handler(self, external_tx=None):
+    def __get_transaction_handler(
+        self, external_tx: Optional[AccountTransaction] = None
+    ):
         class TransactionHandler:
             """Class for with-blocks in transactions"""
 
@@ -428,10 +426,11 @@ class StarknetWrapper:
             def __init__(self, starknet_wrapper: StarknetWrapper):
                 self.starknet_wrapper = starknet_wrapper
                 self.preserved_block_info = starknet_wrapper._update_block_number()
+                self.internal_tx = InternalTransaction.from_external(
+                    external_tx, starknet_wrapper.get_state().general_config
+                )
 
-            def _check_tx_fee(self, transaction):
-                if not hasattr(transaction, "max_fee"):
-                    return
+            def _check_tx_fee(self, transaction: AccountTransaction):
                 if (
                     transaction.version != LEGACY_TX_VERSION
                     and transaction.max_fee == 0
@@ -443,7 +442,8 @@ class StarknetWrapper:
                     )
 
             async def __aenter__(self):
-                self._check_tx_fee(external_tx)
+                if external_tx:
+                    self._check_tx_fee(external_tx)
                 return self
 
             async def __aexit__(
@@ -535,7 +535,6 @@ class StarknetWrapper:
     async def deploy_account(self, external_tx: DeployAccount):
         """Deploys account and returns (address, tx_hash)"""
 
-        state = self.get_state()
         account_address = calculate_contract_address_from_hash(
             salt=external_tx.contract_address_salt,
             class_hash=external_tx.class_hash,
@@ -546,10 +545,6 @@ class StarknetWrapper:
         async with self.__get_transaction_handler(
             external_tx=external_tx
         ) as tx_handler:
-            tx_handler.internal_tx = InternalDeployAccount.from_external(
-                external_tx, state.general_config
-            )
-
             tx_handler.execution_info = await self.__deploy(tx_handler.internal_tx)
             tx_handler.internal_calls = (
                 tx_handler.execution_info.call_info.internal_calls
@@ -566,9 +561,6 @@ class StarknetWrapper:
         async with self.__get_transaction_handler(
             external_tx=external_tx
         ) as tx_handler:
-            tx_handler.internal_tx = InternalInvokeFunction.from_external(
-                external_tx, state.general_config
-            )
             tx_handler.execution_info = await state.execute_tx(tx_handler.internal_tx)
             tx_handler.internal_calls = (
                 tx_handler.execution_info.call_info.internal_calls
