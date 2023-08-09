@@ -426,9 +426,10 @@ class StarknetWrapper:
             def __init__(self, starknet_wrapper: StarknetWrapper):
                 self.starknet_wrapper = starknet_wrapper
                 self.preserved_block_info = starknet_wrapper._update_block_number()
-                self.internal_tx = InternalTransaction.from_external(
-                    external_tx, starknet_wrapper.get_state().general_config
-                )
+                if external_tx:
+                    self.internal_tx = InternalTransaction.from_external(
+                        external_tx, starknet_wrapper.get_state().general_config
+                    )
 
             def _check_tx_fee(self, transaction: AccountTransaction):
                 if (
