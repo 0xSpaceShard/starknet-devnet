@@ -1,4 +1,3 @@
-use starknet_types::contract_address::ContractAddress;
 use starknet_types::starknet_api::transaction::Fee;
 
 use super::json_rpc::error::ApiError;
@@ -6,19 +5,6 @@ use super::models::transaction::{
     DeclareTransaction, DeclareTransactionV0V1, DeclareTransactionV2, DeployAccountTransaction,
     InvokeTransactionV1, Transaction, TransactionType, TransactionWithType,
 };
-use super::models::ContractAddressHex;
-
-impl From<ContractAddress> for ContractAddressHex {
-    fn from(value: ContractAddress) -> Self {
-        Self(value)
-    }
-}
-
-impl From<&ContractAddress> for ContractAddressHex {
-    fn from(value: &ContractAddress) -> Self {
-        Self(*value)
-    }
-}
 
 impl TryFrom<&starknet_core::transactions::Transaction> for TransactionWithType {
     type Error = ApiError;
@@ -27,7 +13,7 @@ impl TryFrom<&starknet_core::transactions::Transaction> for TransactionWithType 
             starknet_core::transactions::Transaction::Declare(declare_v1) => {
                 let declare_txn = DeclareTransactionV0V1 {
                     class_hash: *declare_v1.class_hash(),
-                    sender_address: declare_v1.sender_address().into(),
+                    sender_address: *declare_v1.sender_address(),
                     nonce: *txn.nonce(),
                     max_fee: Fee(txn.max_fee()),
                     version: *txn.version(),
@@ -43,7 +29,7 @@ impl TryFrom<&starknet_core::transactions::Transaction> for TransactionWithType 
                 let declare_txn = DeclareTransactionV2 {
                     class_hash: *declare_v2.class_hash(),
                     compiled_class_hash: *declare_v2.compiled_class_hash(),
-                    sender_address: declare_v2.sender_address().into(),
+                    sender_address: *declare_v2.sender_address(),
                     nonce: *txn.nonce(),
                     max_fee: Fee(txn.max_fee()),
                     version: *txn.version(),
@@ -79,8 +65,7 @@ impl TryFrom<&starknet_core::transactions::Transaction> for TransactionWithType 
                 let invoke_txn = InvokeTransactionV1 {
                     sender_address: invoke_v1
                         .sender_address()
-                        .map_err(ApiError::StarknetDevnetError)?
-                        .into(),
+                        .map_err(ApiError::StarknetDevnetError)?,
                     nonce: *txn.nonce(),
                     max_fee: Fee(txn.max_fee()),
                     version: *txn.version(),
