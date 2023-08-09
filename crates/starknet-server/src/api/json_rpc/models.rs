@@ -29,7 +29,7 @@ pub struct GetStorageInput {
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct BlockAndIndexInput {
     pub(crate) block_id: BlockId,
-    pub(crate) index: BlockNumber,
+    pub(crate) index: u64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
