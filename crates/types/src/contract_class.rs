@@ -1,4 +1,6 @@
+use std::cmp::{Eq, PartialEq};
 use std::collections::HashMap;
+use std::default::Default;
 use std::fs;
 use std::str::FromStr;
 
@@ -20,6 +22,10 @@ use crate::felt::Felt;
 use crate::serde_helpers::base_64_gzipped_json_string::deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order;
 use crate::traits::HashProducer;
 use crate::{utils, DevnetResult};
+use base64::Engine;
+use starknet_rs_core::serde::byte_array::base64 as base64Sir;
+use starknet_rs_core::types::contract::legacy::LegacyProgram;
+use starknet_rs_core::types::LegacyEntryPointsByType;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct ContractClassAbiEntryWithType {
@@ -28,16 +34,44 @@ pub struct ContractClassAbiEntryWithType {
     pub r#type: AbiEntryType,
 }
 
-#[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct DeprecatedContractClass {
-    pub abi: Vec<ContractClassAbiEntryWithType>,
     /// A base64 encoding of the gzip-compressed JSON representation of program.
-    #[serde(
-        deserialize_with = "deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order"
-    )]
-    pub program: Value,
+    #[serde(with = "base64Sir")]
+    pub program: Vec<u8>,
+    pub abi: Vec<ContractClassAbiEntryWithType>,
     /// The selector of each entry point is a unique identifier in the program.
-    pub entry_points_by_type: HashMap<EntryPointType, Vec<EntryPoint>>,
+    pub entry_points_by_type: LegacyEntryPointsByType,
+}
+
+impl PartialEq for DeprecatedContractClass {
+    fn eq(&self, other: &Self) -> bool {
+        self.program == other.program && self.abi == other.abi
+    }
+}
+
+impl Eq for DeprecatedContractClass {}
+
+impl Default for DeprecatedContractClass {
+    fn default() -> Self {
+        Self {
+            program: Vec::new(),
+            abi: Vec::new(),
+            entry_points_by_type: LegacyEntryPointsByType {
+                constructor: Vec::new(),
+                external: Vec::new(),
+                l1_handler: Vec::new(),
+            },
+        }
+    }
+}
+
+pub fn raw_program_into_json(program: &[u8]) -> DevnetResult<Value> {
+    let decoder = flate2::read::GzDecoder::new(program);
+    let starknet_program: LegacyProgram =
+        serde_json::from_reader(decoder).map_err(JsonError::SerdeJsonError)?;
+
+    Ok(serde_json::to_value(starknet_program).map_err(JsonError::SerdeJsonError)?)
 }
 
 pub type Cairo0Json = Value;
@@ -191,8 +225,9 @@ impl TryFrom<DeprecatedContractClass> for Cairo0Json {
         let entry_points_json =
             serde_json::to_value(value.entry_points_by_type).map_err(JsonError::SerdeJsonError)?;
 
+        let program = raw_program_into_json(&value.program)?;
         let json_value = json!({
-            "program": value.program,
+            "program": program,
             "abi": abi_json,
             "entry_points_by_type": entry_points_json,
         });
@@ -409,6 +444,7 @@ impl HashProducer for ContractClass {
 mod tests {
     use crate::contract_class::Cairo0ContractClass;
     use core::panic;
+    use starknet_rs_core::types::CompressedLegacyContractClass;
 
     use crate::felt::Felt;
     use crate::traits::HashProducer;
@@ -424,7 +460,15 @@ mod tests {
     fn cairo_0_rpc_successfully() {
         let json_str = std::fs::read_to_string("/Users/edwin/Documents/work/ShardLabs/starknet-devnet-rs/crates/starknet/test_artifacts/cairo_0_rpc.json").unwrap();
         let contract_class = Cairo0ContractClass::rpc_from_json_str(&json_str).unwrap();
-        let _ = contract_class.generate_hash().unwrap();
+
+        let asd = serde_json::to_value(contract_class).unwrap();
+        let starknet: CompressedLegacyContractClass = serde_json::from_str(&json_str).unwrap();
+        let kek: CompressedLegacyContractClass = serde_json::from_value(asd).unwrap();
+        //let kek: CompressedLegacyContractClass = serde_json::from_str(&asd.to_string()).unwrap();
+        //println!("{}", asd);
+        println!("{}", serde_json::to_value(starknet).unwrap());
+
+        // let _ = contract_class.generate_hash().unwrap();
     }
 
     #[test]

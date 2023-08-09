@@ -296,6 +296,7 @@ pub mod hex_string {
 pub mod base_64_gzipped_json_string {
     use base64::Engine;
     use serde::{Deserialize, Deserializer};
+    use serde_json::Value;
     use starknet_rs_core::types::contract::legacy::LegacyProgram;
 
     pub fn deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order<'de, D>(
@@ -320,6 +321,13 @@ pub mod base_64_gzipped_json_string {
         serde_json::to_value(starknet_program)
             .map_err(|_| serde::de::Error::custom("program: Unable to parse to JSON"))
     }
+
+    // pub fn serialize_program_to_base64<S>(program: &Value, s: S) -> Result<S::Ok, S::Error>
+    // where
+    //     S: Serializer,
+    // {
+    //     s.serialize_str(contract_address.to_prefixed_hex_str().as_str())
+    // }
 
     #[cfg(test)]
     mod tests {

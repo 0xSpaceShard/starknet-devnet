@@ -210,7 +210,11 @@ mod tests {
                             "type": "function"
                         }],
                         "program": "",
-                        "entry_points_by_type": {}
+                        "entry_points_by_type": {
+                            "CONSTRUCTOR": [],
+                "           "L1_HANDLER": [],
+                            "EXTERNAL": [],
+                        }
                     }
                 },
                 {

@@ -152,6 +152,8 @@ mod tests {
             ],
             "program": "",
             "entry_points_by_type": {
+                "CONSTRUCTOR": [],
+                "L1_HANDLER": [],
                 "EXTERNAL": [
                     {
                         "selector": "0xAAE3B5E8",
