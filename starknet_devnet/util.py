@@ -11,8 +11,10 @@ from dataclasses import dataclass
 from typing import Dict, List, Set, Tuple
 
 from flask import request
+from services.everest.definitions.fields import format_felt_list
 from starkware.starknet.business_logic.state.state import CachedState
 from starkware.starknet.business_logic.state.storage_domain import StorageDomain
+from starkware.starknet.business_logic.transaction.objects import CallInfo
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     ClassHashPair,
@@ -21,7 +23,11 @@ from starkware.starknet.services.api.feeder_gateway.response_objects import (
     StorageEntry,
 )
 from starkware.starknet.testing.contract import StarknetContract
-from starkware.starkware_utils.error_handling import StarkErrorCode, StarkException
+from starkware.starkware_utils.error_handling import (
+    StarkErrorCode,
+    StarkException,
+    stark_assert,
+)
 
 
 def parse_hex_string(arg: str) -> int:
@@ -343,3 +349,16 @@ def log_request(rpc=False):
         return wrapper
 
     return decorator
+
+
+def stark_assert_call_succeeded(call_info: CallInfo):
+    """Assert the call is successful; raise appropriate StarknetError otherwise"""
+    message = (
+        f"Transaction failed; failure reason: {format_felt_list(call_info.retdata)}."
+    )
+    print("DEBUG call_info:", call_info)
+    stark_assert(
+        call_info.failure_flag == 0,
+        code=StarknetErrorCode.TRANSACTION_FAILED,
+        message=message,
+    )
