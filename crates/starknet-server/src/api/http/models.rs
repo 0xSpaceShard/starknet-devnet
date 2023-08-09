@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
+use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{Calldata, EntryPointSelector, Felt, Nonce, TransactionHash};
 use starknet_types::starknet_api::transaction::Fee;
 
 use crate::api::models::block::BlockHashHex;
-use crate::api::models::ContractAddressHex;
 
 #[derive(Deserialize, Debug)]
 pub(crate) struct Path {
@@ -14,14 +14,14 @@ pub(crate) struct Path {
 pub(crate) struct PostmanLoadL1MessagingContract {
     #[serde(rename = "networkUrl")]
     network_url: String,
-    address: ContractAddressHex,
+    address: ContractAddress,
 }
 
 #[derive(Deserialize)]
 pub(crate) struct MessageToL2 {
-    l2_contract_address: ContractAddressHex,
+    l2_contract_address: ContractAddress,
     entry_point_selector: EntryPointSelector,
-    l1_contract_addresss: ContractAddressHex,
+    l1_contract_addresss: ContractAddress,
     payload: Calldata,
     paid_fee_on_l1: Fee,
     nonce: Nonce,
@@ -29,8 +29,8 @@ pub(crate) struct MessageToL2 {
 
 #[derive(Deserialize)]
 pub(crate) struct MessageFromL2 {
-    l2_contract_address: ContractAddressHex,
-    l1_contract_addresss: ContractAddressHex,
+    l2_contract_address: ContractAddress,
+    l1_contract_addresss: ContractAddress,
     payload: Calldata,
 }
 
@@ -63,14 +63,9 @@ pub(crate) struct Time {
 #[derive(Serialize)]
 pub(crate) struct SerializableAccount {
     pub(crate) initial_balance: String,
-    pub(crate) address: ContractAddressHex,
+    pub(crate) address: ContractAddress,
     pub(crate) public_key: Felt,
     pub(crate) private_key: Felt,
-}
-
-#[derive(Deserialize)]
-pub(crate) struct ContractAddress {
-    contract_address: ContractAddressHex,
 }
 
 #[derive(Serialize)]
@@ -82,12 +77,12 @@ pub(crate) struct Balance {
 #[derive(Serialize)]
 pub(crate) struct FeeToken {
     symbol: String,
-    address: ContractAddressHex,
+    address: ContractAddress,
 }
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct MintTokensRequest {
-    pub(crate) address: ContractAddressHex,
+    pub(crate) address: ContractAddress,
     pub(crate) amount: u128,
 }
 

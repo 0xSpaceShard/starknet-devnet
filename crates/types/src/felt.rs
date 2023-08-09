@@ -7,27 +7,14 @@ use starknet_api::StarknetApiError;
 
 use crate::contract_address::ContractAddress;
 use crate::error::Error;
+use crate::serde_helpers::hex_string::{
+    deserialize_prefixed_hex_string_to_felt, serialize_to_prefixed_hex,
+};
 use crate::traits::{ToDecimalString, ToHexString};
 use crate::DevnetResult;
 
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Hash, PartialOrd, Ord)]
 pub struct Felt(pub(crate) [u8; 32]);
-
-pub fn serialize_to_prefixed_hex<S>(felt: &Felt, s: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    s.serialize_str(felt.to_prefixed_hex_str().as_str())
-}
-
-pub fn deserialize_prefixed_hex_string_to_felt<'de, D>(deserializer: D) -> Result<Felt, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let buf = String::deserialize(deserializer)?;
-
-    Felt::from_prefixed_hex_str(&buf).map_err(serde::de::Error::custom)
-}
 
 impl Serialize for Felt {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
