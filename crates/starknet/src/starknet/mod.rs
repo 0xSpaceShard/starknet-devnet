@@ -698,7 +698,7 @@ mod tests {
             entry_point_selector.into(),
             vec![],
         ) {
-            Err(Error::TransactionError(TransactionError::MissingCompiledClass)) => (),
+            Err(Error::ContractNotFound) => (),
             unexpected => panic!("Should have failed; got {unexpected:?}"),
         }
     }
