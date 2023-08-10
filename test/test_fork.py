@@ -281,7 +281,7 @@ def test_forking_testnet_from_too_early_block():
         calls=[(TESTNET_CONTRACT_ADDRESS, "increase_balance", [2, 3])],  # random values
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
-        max_fee=int(1e8),  # to prevent implicit fee estimation
+        max_fee=int(1e18),  # a sufficient value; prevents implicit fee estimation
     )
 
     # assertions on fork (devnet)
