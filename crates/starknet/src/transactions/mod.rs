@@ -40,7 +40,7 @@ impl HashIdentifiedMut for StarknetTransactions {
 
 #[allow(unused)]
 pub struct StarknetTransaction {
-    pub(crate) status: TransactionStatus,
+    pub status: TransactionStatus,
     pub inner: Transaction,
     pub(crate) block_hash: Option<BlockHash>,
     pub(crate) block_number: Option<BlockNumber>,
