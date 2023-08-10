@@ -10,6 +10,7 @@ import inspect
 from typing import Callable, Dict, List, Tuple, Union
 
 from flask import Blueprint, request
+from starkware.starkware_utils.error_handling import StarkException
 
 from starknet_devnet.blueprints.rpc.blocks import (
     block_hash_and_number,
@@ -32,9 +33,9 @@ from starknet_devnet.blueprints.rpc.schema import (
 from starknet_devnet.blueprints.rpc.state import get_state_update
 from starknet_devnet.blueprints.rpc.storage import get_storage_at
 from starknet_devnet.blueprints.rpc.structures.types import (
-    GATEWAY_TO_RPC_ERROR,
     PredefinedRpcErrorCode,
     RpcError,
+    map_gateway_to_rpc_error_dict,
 )
 from starknet_devnet.blueprints.rpc.transactions import (
     add_declare_transaction,
@@ -48,7 +49,6 @@ from starknet_devnet.blueprints.rpc.transactions import (
     simulate_transaction,
 )
 from starknet_devnet.blueprints.rpc.utils import rpc_error, rpc_response
-from starknet_devnet.util import StarknetDevnetException
 
 methods = {
     "getBlockWithTxHashes": get_block_with_tx_hashes,
@@ -110,9 +110,8 @@ async def base_route():
             code=PredefinedRpcErrorCode.INTERNAL_ERROR.value,
             message=str(error),
         )
-    except StarknetDevnetException as ex:
-        default_error = PredefinedRpcErrorCode.INTERNAL_ERROR
-        rpc_error_dict = GATEWAY_TO_RPC_ERROR.get(ex.code, default_error)
+    except StarkException as ex:
+        rpc_error_dict = map_gateway_to_rpc_error_dict(exception=ex)
         return rpc_error(message_id=message_id, **rpc_error_dict)
 
     return rpc_response(message_id=message_id, content=result)

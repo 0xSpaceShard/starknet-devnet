@@ -14,7 +14,7 @@ from test.rpc.rpc_utils import (
 )
 from test.test_account import SALT
 from test.util import load_file_content, mint
-from typing import Tuple
+from typing import Optional, Tuple
 
 import pytest
 from starkware.crypto.signature.signature import private_to_stark_key
@@ -179,12 +179,19 @@ def prepare_deploy_account_tx(
     public_key: int,
     account_salt: int,
     contract_class: CompiledClassBase,
+    class_hash: Optional[int] = None,
 ) -> Tuple[DeployAccount, int]:
     """Return (signed deploy account tx, address)"""
+    # If user specified class_hash, use that (useful for testing invalid input), otherwise compute
+    class_hash = (
+        class_hash
+        if class_hash is not None
+        else compute_deprecated_class_hash(contract_class)
+    )
     account_address, deploy_account_tx = sign_deploy_account_tx(
         private_key=private_key,
         public_key=public_key,
-        class_hash=compute_deprecated_class_hash(contract_class),
+        class_hash=class_hash,
         salt=account_salt,
         max_fee=int(1e18),
         version=SUPPORTED_RPC_TX_VERSION,

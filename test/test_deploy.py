@@ -7,6 +7,7 @@ from starkware.starknet.core.os.contract_address.contract_address import (
 from starkware.starknet.core.os.contract_class.deprecated_class_hash import (
     compute_deprecated_class_hash,
 )
+from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.definitions.general_config import DEFAULT_CHAIN_ID
 from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starknet.public.abi import get_selector_from_name
@@ -102,8 +103,10 @@ def deploy_account_test_body():
     deploy_account_tx = deploy_account_tx.dump()
 
     # deployment should fail if no funds
-    tx_before = send_tx(deploy_account_tx, TransactionType.DEPLOY_ACCOUNT)
-    assert_tx_status(tx_before["transaction_hash"], "REVERTED")
+    tx_before = send_tx(
+        deploy_account_tx, TransactionType.DEPLOY_ACCOUNT, expected_status_code=400
+    )
+    assert tx_before["code"] == str(StarknetErrorCode.INSUFFICIENT_ACCOUNT_BALANCE)
 
     # fund the address of the account
     mint(hex(account_address), amount=int(1e18))
@@ -135,7 +138,7 @@ def deploy_account_test_body():
         selector=get_selector_from_name("increase_balance"),
         calldata=[10, 20],
         chain_id=DEFAULT_CHAIN_ID,
-        max_fee=int(1e18),
+        max_fee=int(1e15),  # smaller than account balance but sufficient
         version=SUPPORTED_TX_VERSION,
         nonce=1,
     ).dump()

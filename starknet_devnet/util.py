@@ -357,7 +357,7 @@ def stark_assert_call_succeeded(call_info: CallInfo):
     assert (
         call_info.entry_point_selector is not None
     ), "An entry point selector must be specified."
-    entry_point_name = SELECTOR_TO_NAME[call_info.entry_point_selector]
+    entry_point_name = SELECTOR_TO_NAME.get(call_info.entry_point_selector)
     assert (
         entry_point_name is not None
     ), f"{call_info.entry_point_selector} isn't defined."

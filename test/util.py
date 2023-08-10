@@ -191,16 +191,21 @@ def run_starknet(args, raise_on_nonzero=True, gateway_url=APP_URL):
     return output
 
 
-def send_tx(transaction: dict, tx_type: TransactionType, gateway_url=APP_URL) -> dict:
+def send_tx(
+    transaction: dict,
+    tx_type: TransactionType,
+    gateway_url=APP_URL,
+    expected_status_code=200,
+) -> dict:
     """
-    Send transaction.
-    Returns tx hash
+    Sends transaction. Asserts status code of response.
+    Returns response json body
     """
     resp = requests.post(
         url=f"{gateway_url}/gateway/add_transaction",
         json={**transaction, "type": tx_type.name},
     )
-    assert resp.status_code == 200, resp.json()
+    assert resp.status_code == expected_status_code, resp.json()
     return resp.json()
 
 

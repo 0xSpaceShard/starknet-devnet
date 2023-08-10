@@ -431,7 +431,7 @@ class StarknetWrapper:
         class TransactionHandler:
             """Class for with-blocks in transactions"""
 
-            internal_tx: InternalAccountTransaction
+            internal_tx: Optional[InternalAccountTransaction] = None
             execution_info: TransactionExecutionInfo = TransactionExecutionInfo.empty()
             internal_calls: List[CallInfo] = []
             deployed_contracts: List[ContractAddressHashPair] = []
@@ -544,14 +544,15 @@ class StarknetWrapper:
                     )
 
             async def __aenter__(self):
-                state = self.starknet_wrapper.get_state().state._copy()
-                loop = asyncio.get_running_loop()
-                state = UpdatesTrackerState(
-                    state=StateSyncifier(async_state=state, loop=loop)
-                )
-                await asyncio.to_thread(
-                    self._inner_perform_state_related_validations, state=state
-                )
+                if self.internal_tx:
+                    state = self.starknet_wrapper.get_state().state._copy()
+                    loop = asyncio.get_running_loop()
+                    state = UpdatesTrackerState(
+                        state=StateSyncifier(async_state=state, loop=loop)
+                    )
+                    await asyncio.to_thread(
+                        self._inner_perform_state_related_validations, state=state
+                    )
                 return self
 
             def _inner_perform_state_related_validations(

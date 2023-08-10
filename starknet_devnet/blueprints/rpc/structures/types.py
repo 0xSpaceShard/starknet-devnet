@@ -9,6 +9,7 @@ from typing import List, Union
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.definitions.transaction_type import TransactionType
 from starkware.starknet.services.api.feeder_gateway.response_objects import BlockStatus
+from starkware.starkware_utils.error_handling import StarkException
 from typing_extensions import Literal, TypedDict
 
 from ..rpc_spec import RPC_SPECIFICATION
@@ -125,6 +126,35 @@ def _combine_rpc_errors():
 
 RPC_ERRORS = _combine_rpc_errors()
 
-GATEWAY_TO_RPC_ERROR = {
-    StarknetErrorCode.BLOCK_NOT_FOUND: RPC_ERRORS["BLOCK_NOT_FOUND"],
-}
+
+def map_gateway_to_rpc_error_dict(exception: StarkException) -> RpcError:
+    """
+    JSON-RPC cannot work with raw StarkExceptions, they have to be properly mapped
+    Contains errors from rpc spec 0.4.0 - necessary for proper mapping of errors
+    from Starknet 0.12.1 (mostly validation related). Those custom definitions be
+    removed if RPC 0.4.0 support is added - they be supported via the spec file.
+    """
+    print("DEBUG exception:", exception)
+    return {
+        StarknetErrorCode.BLOCK_NOT_FOUND: RPC_ERRORS["BLOCK_NOT_FOUND"],
+        StarknetErrorCode.INSUFFICIENT_MAX_FEE: {
+            "code": 53,
+            "message": "Max fee is smaller than the minimal transaction cost (validation plus fee transfer)",
+        },
+        StarknetErrorCode.INSUFFICIENT_ACCOUNT_BALANCE: {
+            "code": 54,
+            "message": "Account balance is smaller than the transaction's max_fee",
+        },
+        StarknetErrorCode.VALIDATE_FAILURE: {
+            "code": 55,
+            "message": "Account validation failed",
+        },
+        StarknetErrorCode.INVALID_TRANSACTION_NONCE: {
+            "code": 52,
+            "message": "Invalid transaction nonce",
+        },
+        StarknetErrorCode.UNDECLARED_CLASS: RPC_ERRORS["CLASS_HASH_NOT_FOUND"],
+    }.get(exception.code) or {
+        "code": PredefinedRpcErrorCode.INTERNAL_ERROR.value,
+        "message": f"Internal error occurred: {exception}",
+    }
