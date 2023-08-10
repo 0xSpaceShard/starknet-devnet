@@ -56,7 +56,7 @@ from .util import (
 
 DEPLOYMENT_INPUT = "10"
 EXPECTED_DEPLOYMENT_ADDRESS = (
-    "0x4e5724d645a4215fd86b8c63ee500842b0ad49b986ce04b6a3a6e348fe94f3f"
+    "0xda1eb8b20061fe2498c8a388255e1001bf469f3a8638d805f22825be4df946"
 )
 EXPECTED_INVOKE_HASH = (
     "0x36d9b59c104647452ec410b1a429bd16f175af71fb0afbed839f30202e3f44c"
@@ -378,14 +378,13 @@ def test_block_responses():
 
     origin_block = get_block(
         block_number=TESTNET_DEPLOYMENT_BLOCK,
-        parse=True,
         feeder_gateway_url=TESTNET_URL,
     )
-    fork_block = get_block(block_number=TESTNET_DEPLOYMENT_BLOCK, parse=True)
+    fork_block = get_block(block_number=TESTNET_DEPLOYMENT_BLOCK)
     assert origin_block == fork_block
 
     # assert block count incremented by one (due to genesis block)
-    latest_fork_block_before = get_block(block_number="latest", parse=True)
+    latest_fork_block_before = get_block(block_number="latest")
     assert latest_fork_block_before["block_number"] == fork_block["block_number"] + 1
 
     # assert next block not yet present
@@ -397,7 +396,7 @@ def test_block_responses():
     _make_expected_invoke(gateway_url=APP_URL)
 
     # assert block count incremented by one
-    latest_fork_block_after = get_block(block_number="latest", parse=True)
+    latest_fork_block_after = get_block(block_number="latest")
     assert (
         latest_fork_block_after["block_number"]
         == latest_fork_block_before["block_number"] + 1
@@ -418,9 +417,9 @@ def test_block_responses_by_hash():
     for method in "get_block", "get_block_traces", "get_state_update":
         _assert_block_artifact_not_found(method, block_hash=dummy_hash)
 
-    latest_block_by_number = get_block(block_number="latest", parse=True)
+    latest_block_by_number = get_block(block_number="latest")
     latest_block_hash = latest_block_by_number["block_hash"]
-    latest_block_by_hash = get_block(block_hash=latest_block_hash, parse=True)
+    latest_block_by_hash = get_block(block_hash=latest_block_hash)
     assert latest_block_by_number == latest_block_by_hash
 
     block_traces_by_hash = get_block_traces({"blockHash": latest_block_hash})

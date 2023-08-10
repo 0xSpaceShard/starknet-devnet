@@ -322,13 +322,23 @@ class DevnetBlocks:
         numeric_hash = _parse_block_hash(block_hash)
         block = self.__hash2block[numeric_hash]
 
-        # This is done like this because the block object's properties cannot be modified
-        block_dict = block.dump()
-        block_dict["status"] = BlockStatus.ABORTED.name
-        block_dict["transaction_receipts"] = None
-        del self.__num2hash[block_dict["block_number"]]
-        block_dict["block_number"] = None
-        self.__hash2block[numeric_hash] = StarknetBlock.load(block_dict)
+        # old block's properties cannot be modified, so we are constructing a new object
+        aborted_block = StarknetBlock(
+            block_hash=block.block_hash,
+            parent_block_hash=block.parent_block_hash,
+            block_number=None,
+            state_root=block.state_root,
+            status=BlockStatus.ABORTED,
+            gas_price=block.gas_price,
+            transactions=block.transactions,
+            timestamp=block.timestamp,
+            sequencer_address=block.sequencer_address,
+            transaction_receipts=None,
+            starknet_version=block.starknet_version,
+        )
+
+        del self.__num2hash[block.block_number]
+        self.__hash2block[numeric_hash] = aborted_block
         self.__state_archive.remove(numeric_hash)
 
         return block.block_hash

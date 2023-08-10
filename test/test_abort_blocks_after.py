@@ -53,7 +53,7 @@ def test_abort_single_block_single_transaction():
     contract_deploy_info = declare_and_deploy_with_chargeable(
         contract=CONTRACT_PATH, inputs=[0]
     )
-    contract_deploy_block = get_block(parse=True)
+    contract_deploy_block = get_block()
     assert contract_deploy_block["status"] == "ACCEPTED_ON_L2"
     assert_tx_status(contract_deploy_info["tx_hash"], "ACCEPTED_ON_L2")
 
@@ -63,11 +63,11 @@ def test_abort_single_block_single_transaction():
     assert response.json()["aborted"] == [
         contract_deploy_block["block_hash"],
     ]
-    last_block = get_block(parse=True)
+    last_block = get_block()
     assert last_block["status"] == "ACCEPTED_ON_L2"
     assert last_block["block_number"] == 1
     contract_deploy_block_after_abort = get_block(
-        block_hash=contract_deploy_block["block_hash"], parse=True
+        block_hash=contract_deploy_block["block_hash"]
     )
     assert contract_deploy_block_after_abort["status"] == "ABORTED"
     assert_transaction(contract_deploy_info["tx_hash"], "REVERTED")
@@ -90,7 +90,7 @@ def test_abort_same_block_twice():
     contract_deploy_info = declare_and_deploy_with_chargeable(
         contract=CONTRACT_PATH, inputs=[0]
     )
-    contract_deploy_block = get_block(parse=True)
+    contract_deploy_block = get_block()
     assert contract_deploy_block["status"] == "ACCEPTED_ON_L2"
     assert_tx_status(contract_deploy_info["tx_hash"], "ACCEPTED_ON_L2")
 
@@ -101,7 +101,7 @@ def test_abort_same_block_twice():
         contract_deploy_block["block_hash"],
     ]
     contract_deploy_block_after_abort = get_block(
-        block_hash=contract_deploy_block["block_hash"], parse=True
+        block_hash=contract_deploy_block["block_hash"]
     )
     assert contract_deploy_block_after_abort["status"] == "ABORTED"
     assert_transaction(contract_deploy_info["tx_hash"], "REVERTED")
@@ -123,7 +123,7 @@ def test_abort_many_blocks_many_transactions():
     contract_deploy_info = declare_and_deploy_with_chargeable(
         contract=CONTRACT_PATH, inputs=[0]
     )
-    contract_deploy_block = get_block(parse=True)
+    contract_deploy_block = get_block()
     assert contract_deploy_block["status"] == "ACCEPTED_ON_L2"
     assert_tx_status(contract_deploy_info["tx_hash"], "ACCEPTED_ON_L2")
 
@@ -133,7 +133,7 @@ def test_abort_many_blocks_many_transactions():
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
-    invoke_block = get_block(parse=True)
+    invoke_block = get_block()
     assert invoke_block["status"] == "ACCEPTED_ON_L2"
     assert_transaction(invoke_tx_hash, "ACCEPTED_ON_L2")
 
@@ -144,19 +144,17 @@ def test_abort_many_blocks_many_transactions():
         invoke_block["block_hash"],
         contract_deploy_block["block_hash"],
     ]
-    last_block = get_block(parse=True)
+    last_block = get_block()
     assert last_block["status"] == "ACCEPTED_ON_L2"
     assert last_block["block_number"] == 1
 
     contract_deploy_block_after_abort = get_block(
-        block_hash=contract_deploy_block["block_hash"], parse=True
+        block_hash=contract_deploy_block["block_hash"]
     )
     assert contract_deploy_block_after_abort["status"] == "ABORTED"
     assert_transaction(contract_deploy_info["tx_hash"], "REVERTED")
 
-    invoke_block_after_abort = get_block(
-        block_hash=invoke_block["block_hash"], parse=True
-    )
+    invoke_block_after_abort = get_block(block_hash=invoke_block["block_hash"])
     assert invoke_block_after_abort["status"] == "ABORTED"
     assert_transaction(invoke_tx_hash, "REVERTED")
 
@@ -183,17 +181,17 @@ def test_new_blocks_after_abortion():
     contract_deploy_info = declare_and_deploy_with_chargeable(
         contract=CONTRACT_PATH, inputs=[0]
     )
-    contract_declare_block = get_block(block_number=1, parse=True)
+    contract_declare_block = get_block(block_number=1)
     abort_blocks(contract_declare_block["block_hash"])
 
     # New block and transaction should be accepted on L2
     contract_deploy_info = declare_and_deploy_with_chargeable(
         contract=CONTRACT_PATH, inputs=[0]
     )
-    last_block = get_block(parse=True)
+    last_block = get_block()
     assert last_block["status"] == "ACCEPTED_ON_L2"
     assert last_block["block_number"] == 2
-    last_block_by_number = get_block(block_number=2, parse=True)
+    last_block_by_number = get_block(block_number=2)
     assert last_block_by_number["block_number"] == last_block["block_number"]
     assert last_block_by_number["block_hash"] == last_block["block_hash"]
     assert_tx_status(contract_deploy_info["tx_hash"], "ACCEPTED_ON_L2")
@@ -209,17 +207,13 @@ def test_forked_at_block_with_abort_blocks():
     assert fork_status.status_code == 200
 
     # Abort block should fail on forked blocks
-    block_before_fork = get_block(
-        block_number=fork_status.json().get("block") - 1, parse=True
-    )
+    block_before_fork = get_block(block_number=fork_status.json().get("block") - 1)
     response = abort_blocks(block_before_fork["block_hash"])
     assert response.status_code == 400
     assert response.json()["message"] == "Aborting forked blocks is not supported."
 
     # Abort block should fail on genesis forked blocks
-    genesis_block_fork = get_block(
-        block_number=fork_status.json().get("block") + 1, parse=True
-    )
+    genesis_block_fork = get_block(block_number=fork_status.json().get("block") + 1)
     response = abort_blocks(genesis_block_fork["block_hash"])
     assert response.status_code == 400
     assert response.json()["message"] == "Aborting genesis block is not supported."
@@ -231,7 +225,7 @@ def test_forked_at_block_with_abort_blocks():
     assert_tx_status(contract_deploy_info["tx_hash"], "ACCEPTED_ON_L2")
 
     # Abort Block should succeed on new block
-    latest_block = get_block(parse=True)
+    latest_block = get_block()
     response = abort_blocks(latest_block["block_hash"])
     assert response.status_code == 200
     assert response.json()["aborted"] == [
@@ -247,7 +241,7 @@ def test_state_revert_with_abort_block():
     contract_deploy_info = declare_and_deploy_with_chargeable(
         contract=CONTRACT_PATH, inputs=[0]
     )
-    contract_deploy_block = get_block(parse=True)
+    contract_deploy_block = get_block()
     assert contract_deploy_block["status"] == "ACCEPTED_ON_L2"
     assert_tx_status(contract_deploy_info["tx_hash"], "ACCEPTED_ON_L2")
     value_after_deploy = call(
@@ -263,7 +257,7 @@ def test_state_revert_with_abort_block():
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     )
-    invoke_block = get_block(parse=True)
+    invoke_block = get_block()
     assert invoke_block["status"] == "ACCEPTED_ON_L2"
     assert_transaction(invoke_tx_hash, "ACCEPTED_ON_L2")
     value_after_invoke = call(
@@ -290,7 +284,7 @@ def test_state_revert_with_abort_block():
 @devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
 def test_abort_genesis_block():
     """Test abort of genesis block that should fail."""
-    genesis_block = get_block(parse=True)
+    genesis_block = get_block()
     response = abort_blocks(genesis_block["block_hash"])
     assert response.status_code == 400
     assert response.json()["message"] == "Aborting genesis block is not supported."
@@ -314,7 +308,7 @@ def test_pending_state_with_abort_block():
     assert_tx_status(invoke_tx_hash, "ACCEPTED_ON_L2")
 
     # Block should be aborted and pending transaction should be reverted
-    latest_block = get_block(block_number="latest", parse=True)
+    latest_block = get_block(block_number="latest")
     response = abort_blocks(latest_block["block_hash"])
     assert response.status_code == 200
     assert_tx_status(invoke_tx_hash, "REVERTED")

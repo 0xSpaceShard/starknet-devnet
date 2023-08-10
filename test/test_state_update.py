@@ -137,7 +137,7 @@ def test_block_hash():
     mint(address=dummy_address, amount=dummy_amount, lite=False)
     initial_state_update = get_state_update()
 
-    first_block = get_block(parse=True)
+    first_block = get_block()
     first_block_hash = first_block["block_hash"]
 
     assert_equal(first_block_hash, initial_state_update["block_hash"])

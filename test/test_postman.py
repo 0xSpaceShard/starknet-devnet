@@ -265,7 +265,7 @@ def _l1_l2_message_exchange(web3: Web3, l1l2_example_contract, l2_contract_addre
     )
 
     # Check if l2 to l1 message is included in transaction_receipts
-    l2_to_l1_block = get_block(parse=True)
+    l2_to_l1_block = get_block()
     l2_to_l1_messages = l2_to_l1_block["transaction_receipts"][0]["l2_to_l1_messages"]
     l2_to_l1_withdraw_amount = l2_to_l1_messages[0]["payload"][2]
     assert l2_to_l1_withdraw_amount == hex(withdraw_amount)
@@ -342,7 +342,7 @@ def _l1_l2_message_exchange(web3: Web3, l1l2_example_contract, l2_contract_addre
     assert l2_balance == "2933"
 
     # Check if last block contains L1_HANDLER transaction and event contains the correct balance
-    latest_block = get_block(parse=True)
+    latest_block = get_block()
 
     assert len(latest_block["transactions"]) == 1
     l2_transaction = latest_block["transactions"][0]

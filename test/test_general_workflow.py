@@ -44,7 +44,7 @@ def test_lite_mode_block_hash():
     deploy_info = declare_and_deploy_with_chargeable(CONTRACT_PATH, inputs=["0"])
     assert_tx_status(deploy_info["tx_hash"], "ACCEPTED_ON_L2")
     expected_block_hash = "0x2"  # after declare and deploy
-    assert_equal(expected_block_hash, get_block(parse=True)["block_hash"])
+    assert_equal(expected_block_hash, get_block()["block_hash"])
 
 
 @pytest.mark.usefixtures("run_devnet_in_background")
@@ -106,7 +106,7 @@ def test_salty_deploy():
     """Test deploying with salt"""
 
     expected_address = (
-        "0x668bb85fe8e02248aaf308fd9739b9ede2cf27f1e10355a7dfc5b8cc2ee5809"
+        "0x586520ebb518e10057003d627bbcf7534ef5d7da3e16ce9313f6981dcb301a7"
     )
     contract_path = EVENTS_CONTRACT_PATH
     inputs = None
