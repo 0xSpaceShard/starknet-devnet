@@ -386,3 +386,39 @@ def test_get_nonce_endpoint():
     final_resp = get_nonce_with_request(address=account_address)
     assert final_resp.status_code == 200
     assert final_resp.json() == "0x3"  # invoke
+
+
+@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
+def test_failed_validation():
+    """Test invalid nonce in transaction"""
+    account_address = PREDEPLOYED_ACCOUNT_ADDRESS
+    deployment_info = declare_and_deploy(
+        contract=CONTRACT_PATH,
+        account_address=account_address,
+        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+        inputs=[0],
+    )
+
+    nonce_before_invoke = get_nonce(account_address)
+    assert nonce_before_invoke == 2  # declare+deploy
+
+    calls = [(deployment_info["address"], "increase_balance", [10, 20])]
+    with ErrorExpector(StarknetErrorCode.INVALID_TRANSACTION_NONCE):
+        invoke(
+            calls=calls,
+            account_address=account_address,
+            private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+            max_fee=int(1e15),  # smaller than account balance but sufficient
+            nonce=nonce_before_invoke - 1,  # too low - cause the expected failure
+        )
+
+    with ErrorExpector(StarknetErrorCode.TRANSACTION_FAILED):
+        invoke(
+            calls=calls,
+            account_address=account_address,
+            # key to cause invalid signature
+            private_key=0x123,
+            # max_fee must be specified to avoid invalid implicit estimation;
+            # smaller than account balance but sufficient
+            max_fee=int(1e15),
+        )

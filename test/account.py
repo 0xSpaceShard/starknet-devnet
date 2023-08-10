@@ -201,6 +201,8 @@ def invoke(
             account_address,
             "--abi",
             ACCOUNT_ABI_PATH,
+            "--nonce",
+            str(nonce),
             "--signature",
             *signature,
             "--max_fee",
