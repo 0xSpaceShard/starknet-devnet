@@ -4,6 +4,7 @@ import json
 
 import pytest
 import requests
+from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.public.abi import get_selector_from_name
 
 from starknet_devnet.chargeable_account import ChargeableAccount
@@ -25,7 +26,7 @@ from .test_account import (
     get_account_balance,
     get_transaction_receipt,
 )
-from .util import assert_equal, devnet_in_background, mint
+from .util import ErrorExpector, assert_equal, devnet_in_background, mint
 
 
 @pytest.mark.fee_token
@@ -190,31 +191,29 @@ def test_increase_balance():
     account_address = PREDEPLOYED_ACCOUNT_ADDRESS
     initial_account_balance = get_account_balance(account_address)
 
-    invoke_tx_hash = invoke(
-        calls=[(deploy_info["address"], "increase_balance", ["10", "20"])],
-        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
-        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
-        max_fee=10**21,
-    )
-
-    assert_tx_status(invoke_tx_hash, "REVERTED")
-    invoke_receipt = get_transaction_receipt(invoke_tx_hash)
-    assert "subtraction overflow" in invoke_receipt["revert_error"]
+    calls = [(deploy_info["address"], "increase_balance", ["10", "20"])]
+    with ErrorExpector(StarknetErrorCode.INSUFFICIENT_ACCOUNT_BALANCE):
+        invoke(
+            calls=calls,
+            account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+            private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+            max_fee=10**21,
+        )
 
     intermediate_account_balance = get_account_balance(account_address)
     assert_equal(initial_account_balance, intermediate_account_balance)
 
-    mint_amount = 200_000_000_000_000
+    mint_amount = int(2e14)
     mint(address=account_address, amount=mint_amount)
     balance_after_mint = get_account_balance(account_address)
     assert_equal(balance_after_mint, initial_account_balance + mint_amount)
 
     invoke_tx_hash = invoke(
-        calls=[(deploy_info["address"], "increase_balance", ["10", "20"])],
+        calls=calls,
         account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
         private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
-        max_fee=10**21,
-    )  # big enough
+        max_fee=mint_amount,  # smaller than account balance (which is at this point = initial + minted) but sufficient
+    )
     assert_tx_status(invoke_tx_hash, "ACCEPTED_ON_L2")
 
     invoke_receipt = get_transaction_receipt(invoke_tx_hash)

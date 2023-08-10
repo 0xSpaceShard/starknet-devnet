@@ -4,6 +4,7 @@ Tests of contract class declaration and deploy syscall.
 
 import pytest
 import requests
+from starkware.starknet.definitions.error_codes import StarknetErrorCode
 
 from .account import declare
 from .settings import APP_URL
@@ -15,6 +16,7 @@ from .shared import (
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
 from .util import (
+    ErrorExpector,
     assert_class_by_hash,
     assert_hex_equal,
     assert_tx_status,
@@ -29,19 +31,17 @@ from .util import (
 def test_declare_max_fee_too_low():
     """Test declaring if max fee too low"""
 
-    declare_info = declare(
-        contract_path=CONTRACT_PATH,
-        account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
-        private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
-        max_fee=1,
-    )
-    class_hash = declare_info["class_hash"]
-    assert_hex_equal(class_hash, EXPECTED_CLASS_HASH)
-    assert_tx_status(declare_info["tx_hash"], "REVERTED")
+    with ErrorExpector(StarknetErrorCode.INSUFFICIENT_MAX_FEE):
+        declare(
+            contract_path=CONTRACT_PATH,
+            account_address=PREDEPLOYED_ACCOUNT_ADDRESS,
+            private_key=PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
+            max_fee=1,
+        )
 
     assert_undeclared_class(
         resp=requests.get(
-            f"{APP_URL}/feeder_gateway/get_class_by_hash?classHash={class_hash}"
+            f"{APP_URL}/feeder_gateway/get_class_by_hash?classHash={EXPECTED_CLASS_HASH}"
         )
     )
 

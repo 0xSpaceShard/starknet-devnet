@@ -134,7 +134,6 @@ def map_gateway_to_rpc_error_dict(exception: StarkException) -> RpcError:
     from Starknet 0.12.1 (mostly validation related). Those custom definitions be
     removed if RPC 0.4.0 support is added - they be supported via the spec file.
     """
-    print("DEBUG exception:", exception)
     return {
         StarknetErrorCode.BLOCK_NOT_FOUND: RPC_ERRORS["BLOCK_NOT_FOUND"],
         StarknetErrorCode.INSUFFICIENT_MAX_FEE: {

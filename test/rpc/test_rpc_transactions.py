@@ -34,8 +34,6 @@ from test.util import assert_tx_status, call, load_contract_class, mint, send_tx
 from typing import List
 
 import pytest
-
-from starkware.starknet.definitions.error_codes import StarknetErrorCode
 from starkware.starknet.core.os.transaction_hash.transaction_hash import (
     calculate_declare_transaction_hash,
     calculate_deprecated_declare_transaction_hash,

@@ -5,6 +5,7 @@ Test account functionality.
 import pytest
 import requests
 from starkware.crypto.signature.signature import private_to_stark_key
+from starkware.starknet.definitions.error_codes import StarknetErrorCode
 
 from .account import (
     ACCOUNT_ABI_PATH,
@@ -25,6 +26,7 @@ from .shared import (
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
 )
 from .util import (
+    ErrorExpector,
     assert_equal,
     assert_events,
     assert_hex_equal,
@@ -150,7 +152,9 @@ def test_invoking_with_invalid_args():
         calls,
         account_address=account_address,
         private_key=PRIVATE_KEY,
-        max_fee=int(1e18),  # prevent estimateFee - fails due to invalid args
+        # specify max_fee to prevent estimateFee, which fails due to invalid args
+        # this max_fee also needs to be smaller than the current account balance (which is slightly less than 1e18)
+        max_fee=int(1e15),
     )
 
     assert_tx_status(tx_hash, "REVERTED")
@@ -260,8 +264,8 @@ def _assert_subtraction_overflow(tx_hash: str):
     "--initial-balance",
     "10",
 )
-def test_insufficient_balance():
-    """Test handling of insufficient account balance"""
+def test_insufficient_balance_and_insufficient_fee():
+    """Test handling of insufficient account balance and fee"""
     deploy_info = deploy_empty_contract()
     account_address = PREDEPLOYED_ACCOUNT_ADDRESS
     private_key = PREDEPLOYED_ACCOUNT_PRIVATE_KEY
@@ -273,19 +277,20 @@ def test_insufficient_balance():
 
     args = [10, 20]
     calls = [(deploy_info["address"], "increase_balance", args)]
-    invoke_tx_hash = invoke(
-        calls, account_address, private_key, max_fee=10**21
-    )  # big enough to fail
+    with ErrorExpector(StarknetErrorCode.INSUFFICIENT_ACCOUNT_BALANCE):
+        invoke(calls, account_address, private_key, max_fee=initial_account_balance + 1)
 
-    _assert_subtraction_overflow(invoke_tx_hash)
+        invoke(calls, account_address, private_key, max_fee=initial_account_balance - 1)
 
+    # assert contract state not changed
     final_contract_balance = call(
         "get_balance", deploy_info["address"], abi_path=ABI_PATH
     )
     assert_equal(final_contract_balance, initial_contract_balance)
 
+    # assert account balance not changed
     final_account_balance = get_account_balance(account_address)
-    assert_equal(initial_account_balance, final_account_balance)
+    assert_equal(final_account_balance, initial_account_balance)
 
 
 @pytest.mark.account
@@ -306,7 +311,12 @@ def test_multicall():
         (to_address, "increase_balance", [10, 20]),
         (to_address, "increase_balance", [30, 40]),
     ]
-    tx_hash = invoke(calls, account_address, PRIVATE_KEY, max_fee=int(1e18))
+    tx_hash = invoke(
+        calls,
+        account_address,
+        PRIVATE_KEY,
+        max_fee=int(1e15),  # smaller than account balance but sufficient
+    )
 
     assert_tx_status(tx_hash, "ACCEPTED_ON_L2")
 
