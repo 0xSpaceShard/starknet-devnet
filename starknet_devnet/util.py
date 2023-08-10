@@ -16,6 +16,7 @@ from starkware.starknet.business_logic.state.state import CachedState
 from starkware.starknet.business_logic.state.storage_domain import StorageDomain
 from starkware.starknet.business_logic.transaction.objects import CallInfo
 from starkware.starknet.definitions.error_codes import StarknetErrorCode
+from starkware.starknet.public.abi import SELECTOR_TO_NAME
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
     ClassHashPair,
     ContractAddressHashPair,
@@ -352,13 +353,19 @@ def log_request(rpc=False):
 
 
 def stark_assert_call_succeeded(call_info: CallInfo):
-    """Assert the call is successful; raise appropriate StarknetError otherwise"""
-    message = (
-        f"Transaction failed; failure reason: {format_felt_list(call_info.retdata)}."
-    )
-    print("DEBUG call_info:", call_info)
+    """Assert the call that produced the provided `call_info` was successful; fail otherwise"""
+    assert (
+        call_info.entry_point_selector is not None
+    ), "An entry point selector must be specified."
+    entry_point_name = SELECTOR_TO_NAME[call_info.entry_point_selector]
+    assert (
+        entry_point_name is not None
+    ), f"{call_info.entry_point_selector} isn't defined."
     stark_assert(
-        call_info.failure_flag == 0,
-        code=StarknetErrorCode.TRANSACTION_FAILED,
-        message=message,
+        call_info.result().succeeded,
+        code=StarknetErrorCode.VALIDATE_FAILURE,
+        message=(
+            f"{entry_point_name} call failed; failure reason: "
+            f"{format_felt_list(call_info.retdata)}."
+        ),
     )
