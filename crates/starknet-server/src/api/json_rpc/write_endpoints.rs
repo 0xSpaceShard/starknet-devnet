@@ -19,7 +19,6 @@ use crate::api::models::transaction::{
     BroadcastedDeclareTransactionV2, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedInvokeTransactionV1,
 };
-use crate::api::models::ContractAddressHex;
 
 impl JsonRpcHandler {
     pub(crate) async fn add_declare_transaction(
@@ -64,10 +63,7 @@ impl JsonRpcHandler {
                 unknown_error => ApiError::StarknetDevnetError(unknown_error),
             })?;
 
-        Ok(DeployAccountTransactionOutput {
-            transaction_hash,
-            contract_address: ContractAddressHex(contract_address),
-        })
+        Ok(DeployAccountTransactionOutput { transaction_hash, contract_address })
     }
 
     pub(crate) async fn add_invoke_transaction(
@@ -122,7 +118,7 @@ fn convert_to_declare_transaction_v1(
     chain_id: Felt,
 ) -> RpcResult<DeclareTransactionV1> {
     DeclareTransactionV1::new(
-        value.sender_address.0,
+        value.sender_address,
         value.common.max_fee.0,
         value.common.signature,
         value.common.nonce,
@@ -161,7 +157,7 @@ fn convert_to_declare_transaction_v2(
     DeclareTransactionV2::new(
         ContractClass::from(value.contract_class),
         value.compiled_class_hash,
-        value.sender_address.0,
+        value.sender_address,
         value.common.max_fee.0,
         value.common.signature,
         value.common.nonce,
@@ -175,7 +171,7 @@ fn convert_to_invoke_transaction_v1(
     chain_id: Felt,
 ) -> RpcResult<InvokeTransactionV1> {
     InvokeTransactionV1::new(
-        value.sender_address.0,
+        value.sender_address,
         value.common.max_fee.0,
         value.common.signature,
         value.common.nonce,

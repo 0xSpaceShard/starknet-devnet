@@ -26,7 +26,7 @@ fn get_balance(
         BlockId::Tag(BlockTag::Pending),
         erc20_address,
         balance_selector,
-        vec![Felt::from(address)], // calldata = the query balance
+        vec![Felt::from(address)], // calldata = the address being queried
     )?;
 
     // format balance for output - initially it is a 2-member vector (low, high)
@@ -45,11 +45,11 @@ pub(crate) async fn mint(
     let mut starknet = state.api.starknet.write().await;
 
     let tx_hash = starknet
-        .mint(request.address.0, request.amount)
+        .mint(request.address, request.amount)
         .await
         .map_err(|err| HttpApiError::MintingError { msg: err.to_string() })?;
 
-    let new_balance = get_balance(&starknet, request.address.0)
+    let new_balance = get_balance(&starknet, request.address)
         .map_err(|err| HttpApiError::MintingError { msg: err.to_string() })?;
 
     Ok(Json(MintTokensResponse {
