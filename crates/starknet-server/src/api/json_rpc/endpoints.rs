@@ -414,7 +414,7 @@ fn convert_broadcasted_tx(
         BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(broadcasted_tx)) => {
             let contract_class: starknet_types::contract_class::ContractClass = broadcasted_tx
                 .contract_class
-                .try_into() // TODO why does this work if the converter is in write_endpoints.rs?
+                .try_into()
                 .map_err(|_| ApiError::RpcError(RpcError::invalid_request()))?;
             Ok(starknet_in_rust_tx::Transaction::Declare(starknet_in_rust_tx::Declare::new(
                 contract_class.try_into()?,
