@@ -5,6 +5,7 @@ use starknet_in_rust::utils::Address;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::starknet_api::block::BlockNumber;
+use starknet_types::starknet_api::transaction::Fee;
 use starknet_types::traits::ToHexString;
 
 use super::error::{self, ApiError};
@@ -18,7 +19,7 @@ use crate::api::models::state::{
 };
 use crate::api::models::transaction::{
     BroadcastedTransactionWithType, EventFilter, EventsChunk, FunctionCall, Transaction,
-    TransactionReceiptWithStatus, TransactionWithType, Transactions,
+    TransactionReceiptWithStatus, TransactionWithType, Transactions, CommonTransactionReceipt,
 };
 use crate::api::models::{BlockId, PatriciaKeyHex};
 
@@ -177,14 +178,28 @@ impl JsonRpcHandler {
             .transactions
             .get(&transaction_hash)
             .ok_or(error::ApiError::TransactionNotFound)?;
-        // let transaction = TransactionWithType::try_from(&transaction_to_map.inner)?;
+        let transaction = TransactionWithType::try_from(&transaction_to_map.inner)?;
 
-        let x = TransactionReceiptWithStatus {
-            status: transaction_to_map.status,
-            receipt: transaction_to_map,
+        let out = crate::api::models::transaction::TransactionOutput {
+            actual_fee: types::starknet_api::transaction::Fee(transaction_to_map.inner.max_fee()),
+            messages_sent: Vec::new(),
+            events: Vec::new(),
         };
 
-        Err(error::ApiError::TransactionNotFound)
+        let receipt = crate::api::models::transaction::TransactionReceipt::Common(CommonTransactionReceipt{
+            r#type: crate::api::models::transaction::TransactionType::Declare,
+            transaction_hash: transaction_to_map.inner.get_hash(),
+            block_hash: transaction_to_map.block_hash.unwrap(),
+            block_number: transaction_to_map.block_number.unwrap(),
+            output: out,
+        });
+        
+        let receipt_with_status: TransactionReceiptWithStatus = TransactionReceiptWithStatus {
+            status: crate::api::models::transaction::TransactionStatus::AcceptedOnL2,
+            receipt: receipt,
+        };
+
+        Ok(receipt_with_status)
     }
 
     /// starknet_getClass

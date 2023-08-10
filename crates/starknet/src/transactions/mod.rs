@@ -42,8 +42,8 @@ impl HashIdentifiedMut for StarknetTransactions {
 pub struct StarknetTransaction {
     pub status: TransactionStatus,
     pub inner: Transaction,
-    pub(crate) block_hash: Option<BlockHash>,
-    pub(crate) block_number: Option<BlockNumber>,
+    pub block_hash: Option<BlockHash>,
+    pub block_number: Option<BlockNumber>,
     pub(crate) execution_info: Option<starknet_in_rust::execution::TransactionExecutionInfo>,
     pub(crate) execution_error: Option<TransactionError>,
 }
