@@ -121,7 +121,6 @@ mod tests {
     use super::DeclareTransactionV2;
     use crate::utils::test_utils::{
         dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
-        get_transaction_from_feeder_gateway,
     };
 
     #[derive(Deserialize)]

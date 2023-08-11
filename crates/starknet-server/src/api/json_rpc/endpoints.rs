@@ -16,9 +16,8 @@ use crate::api::models::state::{
     ThinStateDiff,
 };
 use crate::api::models::transaction::{
-    BroadcastedTransactionWithType, DeclareTransactionV0V1, DeclareTransactionV2, EmittedEvent,
-    Event, EventContent, EventFilter, EventsChunk, FunctionCall, Transaction, TransactionReceipt,
-    TransactionType, TransactionWithType, Transactions,
+    BroadcastedTransactionWithType, EmittedEvent, Event, EventContent, EventFilter, EventsChunk,
+    FunctionCall, Transaction, TransactionReceipt, TransactionWithType, Transactions,
 };
 use crate::api::models::{BlockId, ContractAddressHex, PatriciaKeyHex};
 

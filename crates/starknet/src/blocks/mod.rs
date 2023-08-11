@@ -135,7 +135,7 @@ impl StarknetBlocks {
                 }
             })
             .for_each(|(block_number, block)| {
-                filtered_blocks.insert(*block_number, &block);
+                filtered_blocks.insert(*block_number, block);
             });
 
         Ok(filtered_blocks.into_values().collect())

@@ -3,30 +3,19 @@ pub mod common;
 mod get_events_integration_tests {
     use std::sync::Arc;
 
-    use hyper::{Body, StatusCode};
-    use serde_json::json;
     use starknet_in_rust::core::contract_address::compute_casm_class_hash;
-    use starknet_in_rust::core::transaction_hash::calculate_deploy_account_transaction_hash;
-    use starknet_in_rust::felt::Felt252;
-    use starknet_in_rust::hash_utils::calculate_contract_address;
-    use starknet_in_rust::utils::Address;
     use starknet_in_rust::CasmContractClass;
-    use starknet_rs_accounts::{Account, Call, OpenZeppelinAccountFactory, SingleOwnerAccount};
+    use starknet_rs_accounts::{Account, Call, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::chain_id;
-    use starknet_rs_core::crypto::ecdsa_sign;
     use starknet_rs_core::types::contract::SierraClass;
     use starknet_rs_core::types::{
-        BlockId, BlockTag, BroadcastedDeployAccountTransaction, EventFilter, FieldElement,
-        FlattenedSierraClass,
+        BlockId, BlockTag, EventFilter, FieldElement, FlattenedSierraClass,
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
-    use starknet_rs_providers::jsonrpc::HttpTransport;
-    use starknet_rs_providers::{JsonRpcClient, Provider, SequencerGatewayProvider};
+    use starknet_rs_providers::Provider;
     use starknet_rs_signers::{LocalWallet, SigningKey};
     use starknet_types::felt::Felt;
-    use starknet_types::traits::ToHexString;
-    use url::Url;
 
     use crate::common::util::{get_json_body, BackgroundDevnet};
 
@@ -109,7 +98,7 @@ mod get_events_integration_tests {
             FieldElement::ZERO,
             declaration_result.class_hash,
             &starknet_rs_core::utils::UdcUniqueness::NotUnique,
-            &vec![],
+            &[],
         );
 
         let events_contract_call = vec![Call {
