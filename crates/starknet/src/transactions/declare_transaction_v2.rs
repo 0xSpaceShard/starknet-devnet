@@ -5,7 +5,7 @@ use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use starknet_types::DevnetResult;
 
-use crate::error::{Error, Result};
+use crate::error::Result;
 
 #[derive(Clone)]
 pub struct DeclareTransactionV2 {
@@ -49,13 +49,6 @@ impl DeclareTransactionV2 {
         nonce: Felt,
         chain_id: Felt,
     ) -> Result<Self> {
-        if max_fee == 0 {
-            return Err(Error::TransactionError(
-                starknet_in_rust::transaction::error::TransactionError::FeeError(
-                    "For declare transaction version 2, max fee cannot be 0".to_string(),
-                ),
-            ));
-        }
         let version = Felt::from(2);
 
         let transaction = DeclareV2::new(
@@ -119,9 +112,6 @@ mod tests {
     use starknet_types::traits::{HashProducer, ToHexString};
 
     use super::DeclareTransactionV2;
-    use crate::utils::test_utils::{
-        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
-    };
 
     #[derive(Deserialize)]
     struct FeederGatewayDeclareTransactionV2 {
@@ -192,26 +182,5 @@ mod tests {
             feeder_gateway_transaction.transaction_hash,
             declare_transaction.generate_hash().unwrap()
         );
-    }
-
-    #[test]
-    fn declare_transaction_v2_with_max_fee_zero_should_return_an_error() {
-        let result = super::DeclareTransactionV2::new(
-            dummy_cairo_1_contract_class(),
-            dummy_felt(),
-            dummy_contract_address(),
-            0,
-            vec![],
-            dummy_felt(),
-            dummy_felt(),
-        );
-
-        assert!(result.is_err());
-        match result.err().unwrap() {
-            crate::error::Error::TransactionError(
-                starknet_in_rust::transaction::error::TransactionError::FeeError(msg),
-            ) => assert_eq!(msg, "For declare transaction version 2, max fee cannot be 0"),
-            _ => panic!("Wrong error type"),
-        }
     }
 }

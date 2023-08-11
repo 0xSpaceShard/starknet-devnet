@@ -73,9 +73,9 @@ impl<T: Serialize> ToRpcResponseResult for RpcResult<T> {
                     message: err.to_string().into(),
                     data: None,
                 },
-                err @ ApiError::ContractError => RpcError {
+                ApiError::ContractError { msg } => RpcError {
                     code: server::rpc_core::error::ErrorCode::ServerError(40),
-                    message: err.to_string().into(),
+                    message: msg.into(),
                     data: None,
                 },
                 err @ ApiError::NoBlocks => RpcError {
@@ -123,9 +123,9 @@ impl<T: Serialize> ToRpcResponseResult for RpcResult<T> {
                     message: err.to_string().into(),
                     data: None,
                 },
-                err @ ApiError::UnsupportedVersion => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
-                    message: err.to_string().into(),
+                ApiError::UnsupportedAction { msg } => RpcError {
+                    code: server::rpc_core::error::ErrorCode::InvalidRequest,
+                    message: msg.into(),
                     data: None,
                 },
             }

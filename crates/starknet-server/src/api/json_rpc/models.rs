@@ -22,9 +22,9 @@ pub struct TransactionHashInput {
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct GetStorageInput {
-    pub(crate) block_id: BlockId,
     pub(crate) contract_address: ContractAddress,
     pub(crate) key: PatriciaKeyHex,
+    pub(crate) block_id: BlockId,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]

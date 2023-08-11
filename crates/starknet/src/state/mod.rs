@@ -152,6 +152,11 @@ impl StateExtractor for StarknetState {
             || self.state.class_hash_to_contract_class.contains_key(&(class_hash.bytes()))
     }
 
+    fn is_contract_deployed(&self, address: &ContractAddress) -> bool {
+        let address_felt: Felt252 = (*address).into();
+        self.state.address_to_class_hash.contains_key(&Address(address_felt))
+    }
+
     fn get_class_hash_at_contract_address(
         &mut self,
         contract_address: &ContractAddress,

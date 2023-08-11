@@ -22,8 +22,8 @@ pub enum ApiError {
     InvalidTransactionIndexInBlock,
     #[error("Class hash not found")]
     ClassHashNotFound,
-    #[error("Contract error")]
-    ContractError,
+    #[error("Contract error: {msg}")]
+    ContractError { msg: String },
     #[error("There are no blocks")]
     NoBlocks,
     #[error("Requested page size is too big")]
@@ -38,8 +38,8 @@ pub enum ApiError {
     InvalidContractClass,
     #[error("Only latest/pending block is supported")]
     OnlyLatestBlock,
-    #[error("Unsupported version")]
-    UnsupportedVersion,
+    #[error("{msg}")]
+    UnsupportedAction { msg: String },
 }
 
 #[cfg(test)]
@@ -115,7 +115,11 @@ mod tests {
 
     #[test]
     fn contract_error() {
-        error_expected_code_and_message(ApiError::ContractError, 40, "Contract error");
+        error_expected_code_and_message(
+            ApiError::ContractError { msg: "Contract error".into() },
+            40,
+            "Contract error",
+        );
     }
 
     fn error_expected_code_and_message(err: ApiError, expected_code: i64, expected_message: &str) {
