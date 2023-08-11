@@ -3,8 +3,62 @@ use starknet_types::starknet_api::transaction::Fee;
 use super::json_rpc::error::ApiError;
 use super::models::transaction::{
     DeclareTransaction, DeclareTransactionV0V1, DeclareTransactionV2, DeployAccountTransaction,
-    InvokeTransactionV1, Transaction, TransactionType, TransactionWithType,
+    InvokeTransactionV1, Transaction, TransactionType, TransactionWithType, TransactionReceiptWithStatus, CommonTransactionReceipt,
 };
+
+impl TryFrom<&starknet_core::transactions::StarknetTransaction> for TransactionReceiptWithStatus {
+    type Error = ApiError;
+
+    fn try_from(txn: &starknet_core::transactions::StarknetTransaction) -> Result<Self, Self::Error> {
+
+        let transaction_with_receipt = match txn.inner {
+            starknet_core::transactions::Transaction::Declare(declare_v1) => {
+                let out = crate::api::models::transaction::TransactionOutput {
+                    actual_fee: types::starknet_api::transaction::Fee(txn.max_fee()),
+                    messages_sent: Vec::new(), // where to find it?
+                    events: Vec::new(), // where to find it?
+                };
+        
+                let receipt = crate::api::models::transaction::TransactionReceipt::Common(CommonTransactionReceipt{
+                    r#type: crate::api::models::transaction::TransactionType::Declare,
+                    transaction_hash: txn.inner.get_hash(),
+                    block_hash: txn.block_hash.unwrap(),
+                    block_number: txn.block_number.unwrap(),
+                    output: out,
+                });
+                
+                TransactionReceiptWithStatus {
+                    status: crate::api::models::transaction::TransactionStatus::AcceptedOnL2, //todo map txn.status
+                    receipt: receipt,
+                }
+            }
+            starknet_core::transactions::Transaction::DeclareV2(declare_v2) => {
+
+                TransactionReceiptWithStatus {
+                    status: crate::api::models::transaction::TransactionStatus::AcceptedOnL2, //todo map txn.status
+                    receipt: receipt,
+                }
+            }
+            starknet_core::transactions::Transaction::DeployAccount(deploy_account) => {
+
+                TransactionReceiptWithStatus {
+                    status: crate::api::models::transaction::TransactionStatus::AcceptedOnL2, //todo map txn.status
+                    receipt: receipt,
+                }
+            }
+            starknet_core::transactions::Transaction::Invoke(invoke_v1) => {
+
+                TransactionReceiptWithStatus {
+                    status: crate::api::models::transaction::TransactionStatus::AcceptedOnL2, //todo map txn.status
+                    receipt: receipt,
+                }
+            }
+        };
+
+        Ok(transaction_with_receipt)
+    }
+}
+
 
 impl TryFrom<&starknet_core::transactions::Transaction> for TransactionWithType {
     type Error = ApiError;
