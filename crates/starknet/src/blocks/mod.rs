@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use starknet_api::block::{BlockHeader, BlockNumber, BlockStatus, BlockTimestamp};
 use starknet_api::hash::{pedersen_hash_array, StarkFelt};
@@ -88,12 +88,20 @@ impl StarknetBlocks {
         self.get_by_block_id(block_id).map(|block| block.block_number())
     }
 
-    /// filter blocks based on from and to block ids
+    /// Filter blocks based on from and to block ids and returns a collection of block's references
+    /// in ascending order
+    ///
+    /// # Arguments
+    /// * `from` - The block id from which to start the filtering
+    /// * `to` - The block id to which to end the filtering
     pub fn get_blocks(
         &self,
         from: Option<BlockId>,
         to: Option<BlockId>,
     ) -> Result<Vec<&StarknetBlock>> {
+        // used btree map to keep elements in the order of the keys
+        let mut filtered_blocks: BTreeMap<BlockNumber, &StarknetBlock> = BTreeMap::new();
+
         let starting_block = if let Some(block_id) = from {
             // If the value for block number provided is not correct it will return None
             // So we have to return an error
@@ -114,8 +122,9 @@ impl StarknetBlocks {
             None
         };
 
-        Ok(self
-            .num_to_block
+        // iterate over the blocks and apply the filter
+        // then insert the filtered blocks into the btree map
+        self.num_to_block
             .iter()
             .filter(|(current_block_number, _)| match (starting_block, ending_block) {
                 (None, None) => true,
@@ -125,8 +134,11 @@ impl StarknetBlocks {
                     **current_block_number >= start && **current_block_number <= end
                 }
             })
-            .map(|(_, block)| block)
-            .collect())
+            .for_each(|(block_number, block)| {
+                filtered_blocks.insert(*block_number, &block);
+            });
+
+        Ok(filtered_blocks.into_values().collect())
     }
 }
 
@@ -217,6 +229,40 @@ mod tests {
     use super::{StarknetBlock, StarknetBlocks};
     use crate::state::state_diff::StateDiff;
     use crate::traits::HashIdentified;
+
+    #[test]
+    fn get_blocks_return_in_correct_order() {
+        let mut blocks = StarknetBlocks::default();
+        for block_number in 1..=10 {
+            let mut block_to_insert = StarknetBlock::create_pending_block();
+            block_to_insert.header.block_number = BlockNumber(block_number);
+            block_to_insert.header.block_hash = Felt::from(block_number as u128).into();
+            blocks.insert(block_to_insert, StateDiff::default());
+        }
+
+        let expected_block_numbers = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+        for _ in 0..10 {
+            let block_numbers: Vec<u64> = blocks
+                .get_blocks(None, None)
+                .unwrap()
+                .iter()
+                .map(|block| block.block_number().0)
+                .collect();
+            assert_eq!(expected_block_numbers, block_numbers);
+        }
+
+        let expected_block_numbers = vec![7, 8, 9, 10];
+        for _ in 0..10 {
+            let block_numbers: Vec<u64> = blocks
+                .get_blocks(Some(BlockId::Number(7)), None)
+                .unwrap()
+                .iter()
+                .map(|block| block.block_number().0)
+                .collect();
+            assert_eq!(expected_block_numbers, block_numbers);
+        }
+    }
 
     #[test]
     fn block_number_from_block_id_should_return_correct_result() {
