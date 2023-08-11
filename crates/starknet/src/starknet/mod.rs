@@ -348,13 +348,35 @@ impl Starknet {
     pub fn estimate_gas_usage(
         &self,
         block_id: BlockId,
-        transactions: &[starknet_in_rust::transaction::Transaction],
+        transactions: &[Transaction],
     ) -> Result<Vec<u64>> {
         let state = self.get_state_at(&block_id)?;
 
         // Vec<(Fee, GasUsage)>
         let estimation_pairs = starknet_in_rust::estimate_fee(
-            transactions,
+            &transactions
+                .iter()
+                .map(|txn| match txn {
+                    Transaction::Declare(declare) => {
+                        starknet_in_rust::transaction::Transaction::Declare(declare.inner.clone())
+                    }
+                    Transaction::DeclareV2(declare_v2) => {
+                        starknet_in_rust::transaction::Transaction::DeclareV2(Box::new(
+                            declare_v2.inner.clone(),
+                        ))
+                    }
+                    Transaction::DeployAccount(deploy) => {
+                        starknet_in_rust::transaction::Transaction::DeployAccount(
+                            deploy.inner.clone(),
+                        )
+                    }
+                    Transaction::Invoke(invoke) => {
+                        starknet_in_rust::transaction::Transaction::InvokeFunction(
+                            invoke.inner.clone(),
+                        )
+                    }
+                })
+                .collect::<Vec<starknet_in_rust::transaction::Transaction>>(),
             state.pending_state.clone(),
             &self.block_context,
         )?;
