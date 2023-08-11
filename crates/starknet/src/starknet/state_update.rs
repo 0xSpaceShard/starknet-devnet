@@ -47,7 +47,7 @@ mod tests {
             contract_class,
             compiled_class_hash.clone().into(),
             sender_address,
-            100,
+            2000,
             Vec::new(),
             Felt::from(0),
             StarknetChainId::TestNet.to_felt().into(),
