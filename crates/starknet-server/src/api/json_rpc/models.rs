@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::starknet_api::block::BlockNumber;
 
@@ -7,7 +8,7 @@ use crate::api::models::transaction::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedTransactionWithType, EventFilter, FunctionCall,
 };
-use crate::api::models::{BlockId, ContractAddressHex, PatriciaKeyHex};
+use crate::api::models::{BlockId, PatriciaKeyHex};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct BlockIdInput {
@@ -21,15 +22,15 @@ pub struct TransactionHashInput {
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct GetStorageInput {
-    pub(crate) block_id: BlockId,
-    pub(crate) contract_address: ContractAddressHex,
+    pub(crate) contract_address: ContractAddress,
     pub(crate) key: PatriciaKeyHex,
+    pub(crate) block_id: BlockId,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct BlockAndIndexInput {
     pub(crate) block_id: BlockId,
-    pub(crate) index: BlockNumber,
+    pub(crate) index: u64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
@@ -41,7 +42,7 @@ pub struct BlockAndClassHashInput {
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct BlockAndContractAddressInput {
     pub(crate) block_id: BlockId,
-    pub(crate) contract_address: ContractAddressHex,
+    pub(crate) contract_address: ContractAddress,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
@@ -99,7 +100,7 @@ pub struct BroadcastedDeployAccountTransactionInput {
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct DeployAccountTransactionOutput {
     pub transaction_hash: TransactionHash,
-    pub contract_address: ContractAddressHex,
+    pub contract_address: ContractAddress,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
@@ -123,7 +124,7 @@ mod tests {
     use crate::api::models::transaction::{
         BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
     };
-    use crate::api::models::{BlockHashOrNumber, BlockId, ContractAddressHex, PatriciaKeyHex, Tag};
+    use crate::api::models::{BlockHashOrNumber, BlockId, PatriciaKeyHex, Tag};
 
     #[test]
     fn errored_deserialization_of_estimate_fee_with_broadcasted_declare_transaction() {
@@ -337,9 +338,10 @@ mod tests {
             call_input,
             super::CallInput {
                 request: super::FunctionCall {
-                    contract_address: ContractAddressHex(
-                        ContractAddress::new(Felt::from_prefixed_hex_str("0x01").unwrap()).unwrap()
-                    ),
+                    contract_address: ContractAddress::new(
+                        Felt::from_prefixed_hex_str("0x01").unwrap()
+                    )
+                    .unwrap(),
                     entry_point_selector: Felt::from_prefixed_hex_str("0x02").unwrap(),
                     calldata: vec![Felt::from_prefixed_hex_str("0x03").unwrap()],
                 },
@@ -369,9 +371,8 @@ mod tests {
             block_id: BlockId::HashOrNumber(BlockHashOrNumber::Hash(
                 Felt::from_prefixed_hex_str("0x01").unwrap(),
             )),
-            contract_address: ContractAddressHex(
-                ContractAddress::new(Felt::from_prefixed_hex_str("0x02").unwrap()).unwrap(),
-            ),
+            contract_address: ContractAddress::new(Felt::from_prefixed_hex_str("0x02").unwrap())
+                .unwrap(),
             key: PatriciaKeyHex(
                 PatriciaKey::new(Felt::from_prefixed_hex_str("0x03").unwrap()).unwrap(),
             ),

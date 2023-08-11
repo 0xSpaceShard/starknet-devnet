@@ -1,6 +1,6 @@
 use starknet_types::felt::{ClassHash, TransactionHash};
 
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::starknet::Starknet;
 use crate::transactions::declare_transaction::DeclareTransactionV1;
 use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
@@ -10,6 +10,14 @@ pub fn add_declare_transaction_v2(
     starknet: &mut Starknet,
     declare_transaction: DeclareTransactionV2,
 ) -> Result<(TransactionHash, ClassHash)> {
+    if declare_transaction.max_fee == 0 {
+        return Err(Error::TransactionError(
+            starknet_in_rust::transaction::error::TransactionError::FeeError(
+                "For declare transaction version 2, max fee cannot be 0".to_string(),
+            ),
+        ));
+    }
+
     let state_before_txn = starknet.state.pending_state.clone();
     let transaction_hash = declare_transaction.transaction_hash;
     let class_hash = declare_transaction.class_hash;
@@ -47,6 +55,14 @@ pub fn add_declare_transaction_v1(
     starknet: &mut Starknet,
     declare_transaction: DeclareTransactionV1,
 ) -> Result<(TransactionHash, ClassHash)> {
+    if declare_transaction.max_fee == 0 {
+        return Err(Error::TransactionError(
+            starknet_in_rust::transaction::error::TransactionError::FeeError(
+                "For declare transaction version 1, max fee cannot be 0".to_string(),
+            ),
+        ));
+    }
+
     let state_before_txn = starknet.state.pending_state.clone();
     let transaction_hash = declare_transaction.transaction_hash;
     let class_hash = declare_transaction.class_hash;
@@ -96,7 +112,8 @@ mod tests {
     use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
     use crate::utils::load_cairo_0_contract_class;
     use crate::utils::test_utils::{
-        dummy_cairo_0_contract_class, dummy_cairo_1_contract_class, dummy_felt,
+        dummy_cairo_0_contract_class, dummy_cairo_1_contract_class, dummy_contract_address,
+        dummy_felt,
     };
 
     fn test_declare_transaction_v2(sender_address: ContractAddress) -> DeclareTransactionV2 {
@@ -130,6 +147,30 @@ mod tests {
             StarknetChainId::TestNet.to_felt().into(),
         )
         .unwrap()
+    }
+
+    #[test]
+    fn declare_transaction_v2_with_max_fee_zero_should_return_an_error() {
+        let declare_transaction_v2 = super::DeclareTransactionV2::new(
+            dummy_cairo_1_contract_class(),
+            dummy_felt(),
+            dummy_contract_address(),
+            0,
+            vec![],
+            dummy_felt(),
+            dummy_felt(),
+        )
+        .unwrap();
+
+        let result = Starknet::default().add_declare_transaction_v2(declare_transaction_v2);
+
+        assert!(result.is_err());
+        match result.err().unwrap() {
+            crate::error::Error::TransactionError(
+                starknet_in_rust::transaction::error::TransactionError::FeeError(msg),
+            ) => assert_eq!(msg, "For declare transaction version 2, max fee cannot be 0"),
+            _ => panic!("Wrong error type"),
+        }
     }
 
     #[test]
@@ -192,6 +233,29 @@ mod tests {
         // check if txn is with status accepted
         assert_eq!(retrieved_txn.status, TransactionStatus::AcceptedOnL2);
         assert!(starknet.state.is_contract_declared(&expected_class_hash));
+    }
+
+    #[test]
+    fn declare_transaction_v1_with_max_fee_zero_should_return_an_error() {
+        let declare_transaction = super::DeclareTransactionV1::new(
+            dummy_contract_address(),
+            0,
+            vec![],
+            dummy_felt(),
+            dummy_cairo_0_contract_class(),
+            dummy_felt(),
+        )
+        .unwrap();
+
+        let result = Starknet::default().add_declare_transaction_v1(declare_transaction);
+
+        assert!(result.is_err());
+        match result.err().unwrap() {
+            crate::error::Error::TransactionError(
+                starknet_in_rust::transaction::error::TransactionError::FeeError(msg),
+            ) => assert_eq!(msg, "For declare transaction version 1, max fee cannot be 0"),
+            _ => panic!("Wrong error type"),
+        }
     }
 
     #[test]

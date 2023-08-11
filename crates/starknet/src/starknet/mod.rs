@@ -134,6 +134,7 @@ impl Starknet {
             erc20_fee_contract.get_address(),
         );
         chargeable_account.deploy(&mut state)?;
+        chargeable_account.set_initial_balance(&mut state)?;
 
         // copy already modified state to cached state
         state.synchronize_states();
@@ -141,7 +142,11 @@ impl Starknet {
         let mut this = Self {
             state,
             predeployed_accounts,
-            block_context: Self::get_block_context(0, ERC20_CONTRACT_ADDRESS, config.chain_id)?,
+            block_context: Self::get_block_context(
+                config.gas_price,
+                ERC20_CONTRACT_ADDRESS,
+                config.chain_id,
+            )?,
             blocks: StarknetBlocks::default(),
             transactions: StarknetTransactions::default(),
             config: config.clone(),
@@ -325,17 +330,61 @@ impl Starknet {
     ) -> Result<Vec<Felt>> {
         let state = self.get_state_at(&block_id)?;
 
+        if !self.state.is_contract_deployed(&ContractAddress::new(contract_address)?) {
+            return Err(Error::ContractNotFound);
+        }
+
         let result = call_contract(
             contract_address.into(),
             entrypoint_selector.into(),
             calldata.iter().map(|c| c.into()).collect(),
             &mut state.pending_state.clone(),
             self.block_context.clone(),
-            // dummy caller_address since there is no account address; safe to unwrap since it's
-            // just 0
-            ContractAddress::zero().try_into().unwrap(),
+            // dummy caller_address since there is no account address
+            ContractAddress::zero().try_into()?,
         )?;
         Ok(result.iter().map(|e| Felt::from(e.clone())).collect())
+    }
+
+    /// Returns just the gas usage, not the overall fee
+    pub fn estimate_gas_usage(
+        &self,
+        block_id: BlockId,
+        transactions: &[Transaction],
+    ) -> Result<Vec<u64>> {
+        let state = self.get_state_at(&block_id)?;
+
+        // Vec<(Fee, GasUsage)>
+        let estimation_pairs = starknet_in_rust::estimate_fee(
+            &transactions
+                .iter()
+                .map(|txn| match txn {
+                    Transaction::Declare(declare) => {
+                        starknet_in_rust::transaction::Transaction::Declare(declare.inner.clone())
+                    }
+                    Transaction::DeclareV2(declare_v2) => {
+                        starknet_in_rust::transaction::Transaction::DeclareV2(Box::new(
+                            declare_v2.inner.clone(),
+                        ))
+                    }
+                    Transaction::DeployAccount(deploy) => {
+                        starknet_in_rust::transaction::Transaction::DeployAccount(
+                            deploy.inner.clone(),
+                        )
+                    }
+                    Transaction::Invoke(invoke) => {
+                        starknet_in_rust::transaction::Transaction::InvokeFunction(
+                            invoke.inner.clone(),
+                        )
+                    }
+                })
+                .collect::<Vec<starknet_in_rust::transaction::Transaction>>(),
+            state.pending_state.clone(),
+            &self.block_context,
+        )?;
+
+        // extract the gas usage because fee is always 0
+        Ok(estimation_pairs.into_iter().map(|(_, gas_usage)| gas_usage as u64).collect())
     }
 
     pub fn add_declare_transaction_v1(
@@ -687,7 +736,7 @@ mod tests {
             entry_point_selector.into(),
             vec![],
         ) {
-            Err(Error::TransactionError(TransactionError::MissingCompiledClass)) => (),
+            Err(Error::ContractNotFound) => (),
             unexpected => panic!("Should have failed; got {unexpected:?}"),
         }
     }
