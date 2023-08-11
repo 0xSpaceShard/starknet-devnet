@@ -113,7 +113,7 @@ impl TryFrom<DeprecatedContractClass> for ContractClass {
     }
 }
 
-fn convert_to_declare_transaction_v1(
+pub(crate) fn convert_to_declare_transaction_v1(
     value: BroadcastedDeclareTransactionV1,
     chain_id: Felt,
 ) -> RpcResult<DeclareTransactionV1> {
@@ -128,7 +128,7 @@ fn convert_to_declare_transaction_v1(
     .map_err(ApiError::StarknetDevnetError)
 }
 
-fn convert_to_deploy_account_transaction(
+pub(crate) fn convert_to_deploy_account_transaction(
     broadcasted_txn: BroadcastedDeployAccountTransaction,
     chain_id: Felt,
 ) -> RpcResult<DeployAccountTransaction> {
@@ -150,7 +150,7 @@ fn convert_to_deploy_account_transaction(
     })
 }
 
-fn convert_to_declare_transaction_v2(
+pub(crate) fn convert_to_declare_transaction_v2(
     value: BroadcastedDeclareTransactionV2,
     chain_id: Felt,
 ) -> RpcResult<DeclareTransactionV2> {
@@ -166,7 +166,7 @@ fn convert_to_declare_transaction_v2(
     .map_err(ApiError::StarknetDevnetError)
 }
 
-fn convert_to_invoke_transaction_v1(
+pub(crate) fn convert_to_invoke_transaction_v1(
     value: BroadcastedInvokeTransactionV1,
     chain_id: Felt,
 ) -> RpcResult<InvokeTransactionV1> {

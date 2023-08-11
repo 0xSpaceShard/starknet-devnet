@@ -1,4 +1,5 @@
 use starknet_in_rust::core::errors::state_errors::StateError;
+use starknet_in_rust::transaction::error::TransactionError;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
@@ -13,6 +14,12 @@ pub fn add_deploy_account_transaction(
     starknet: &mut Starknet,
     deploy_account_transaction: DeployAccountTransaction,
 ) -> Result<(TransactionHash, ContractAddress)> {
+    if deploy_account_transaction.max_fee == 0 {
+        return Err(Error::TransactionError(TransactionError::FeeError(
+            "For deploy account transaction, max fee cannot be 0".to_string(),
+        )));
+    }
+
     if !starknet
         .state
         .is_contract_declared(&Felt::new(*deploy_account_transaction.inner.class_hash())?)
@@ -64,6 +71,31 @@ mod tests {
     use crate::traits::{Deployed, HashIdentifiedMut, StateChanger, StateExtractor};
     use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
     use crate::utils::{get_storage_var_address, load_cairo_0_contract_class};
+
+    #[test]
+    fn account_deploy_transaction_with_max_fee_zero_should_return_an_error() {
+        let deploy_account_transaction = super::DeployAccountTransaction::new(
+            vec![0.into(), 1.into()],
+            0,
+            vec![0.into(), 1.into()],
+            0.into(),
+            0.into(),
+            0.into(),
+            0.into(),
+            0.into(),
+        )
+        .unwrap();
+
+        let result = Starknet::default().add_deploy_account_transaction(deploy_account_transaction);
+
+        assert!(result.is_err());
+        match result.err().unwrap() {
+            crate::error::Error::TransactionError(
+                starknet_in_rust::transaction::error::TransactionError::FeeError(msg),
+            ) => assert_eq!(msg, "For deploy account transaction, max fee cannot be 0"),
+            _ => panic!("Wrong error type"),
+        }
+    }
 
     #[test]
     fn deploy_account_transaction_should_fail_due_to_low_balance() {
