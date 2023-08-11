@@ -161,10 +161,22 @@ impl JsonRpcHandler {
     /// starknet_getTransactionByBlockIdAndIndex
     pub(crate) async fn get_transaction_by_block_id_and_index(
         &self,
-        _block_id: BlockId,
-        _index: BlockNumber,
+        block_id: BlockId,
+        index: u64,
     ) -> RpcResult<TransactionWithType> {
-        Err(error::ApiError::InvalidTransactionIndexInBlock)
+        let starknet = self.api.starknet.read().await;
+        match starknet.get_block(block_id.into()) {
+            Ok(block) => {
+                let transaction = block
+                    .transactions
+                    .get(index as usize)
+                    .ok_or(error::ApiError::InvalidTransactionIndexInBlock)?;
+
+                TransactionWithType::try_from(transaction)
+            }
+            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
+            Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),
+        }
     }
 
     /// starknet_getTransactionReceipt
