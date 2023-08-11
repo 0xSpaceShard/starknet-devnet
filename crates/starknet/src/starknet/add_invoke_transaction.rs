@@ -1,9 +1,10 @@
 use starknet_in_rust::definitions::constants::INITIAL_GAS_COST;
+use starknet_in_rust::transaction::error::TransactionError;
 use starknet_types::felt::TransactionHash;
 use starknet_types::traits::HashProducer;
 
 use super::Starknet;
-use crate::error::Result;
+use crate::error::{self, Result};
 use crate::transactions::invoke_transaction::InvokeTransactionV1;
 use crate::transactions::{StarknetTransaction, Transaction};
 
@@ -11,6 +12,12 @@ pub fn add_invoke_transcation_v1(
     starknet: &mut Starknet,
     invoke_transaction: InvokeTransactionV1,
 ) -> Result<TransactionHash> {
+    if invoke_transaction.max_fee == 0 {
+        return Err(error::Error::TransactionError(TransactionError::FeeError(
+            "For invoke transaction, max fee cannot be 0".to_string(),
+        )));
+    }
+
     let state_before_txn = starknet.state.pending_state.clone();
     let transaction_hash = invoke_transaction.generate_hash()?;
 
@@ -59,8 +66,8 @@ mod tests {
     use crate::transactions::invoke_transaction::InvokeTransactionV1;
     use crate::utils::get_storage_var_address;
     use crate::utils::test_utils::{
-        cairo_0_account_without_validations, dummy_cairo_0_contract_class, dummy_felt,
-        get_bytes_from_u32,
+        cairo_0_account_without_validations, dummy_cairo_0_contract_class, dummy_contract_address,
+        dummy_felt, get_bytes_from_u32,
     };
 
     fn test_invoke_transaction_v1(
@@ -154,6 +161,29 @@ mod tests {
             starknet.state.get_storage(balance_var_storage_address).unwrap(),
             Felt::from(25)
         );
+    }
+
+    #[test]
+    fn invoke_transaction_with_max_fee_zero_should_return_error() {
+        let invoke_transaction = super::InvokeTransactionV1::new(
+            dummy_contract_address(),
+            0,
+            vec![],
+            dummy_felt(),
+            vec![],
+            dummy_felt(),
+        )
+        .unwrap();
+
+        let result = Starknet::default().add_invoke_transaction_v1(invoke_transaction);
+
+        assert!(result.is_err());
+        match result.err().unwrap() {
+            crate::error::Error::TransactionError(
+                starknet_in_rust::transaction::error::TransactionError::FeeError(msg),
+            ) => assert_eq!(msg, "For invoke transaction, max fee cannot be 0"),
+            _ => panic!("Wrong error type"),
+        }
     }
 
     #[test]
