@@ -11,15 +11,16 @@ mod get_events_integration_tests {
     use starknet_in_rust::hash_utils::calculate_contract_address;
     use starknet_in_rust::utils::Address;
     use starknet_in_rust::CasmContractClass;
-    use starknet_rs_accounts::{Account, Call, SingleOwnerAccount};
+    use starknet_rs_accounts::{Account, Call, OpenZeppelinAccountFactory, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::chain_id;
     use starknet_rs_core::crypto::ecdsa_sign;
     use starknet_rs_core::types::contract::SierraClass;
     use starknet_rs_core::types::{
-        BlockId, BlockTag, BroadcastedDeployAccountTransaction, FieldElement, FlattenedSierraClass,
+        BlockId, BlockTag, BroadcastedDeployAccountTransaction, EventFilter, FieldElement,
+        FlattenedSierraClass,
     };
-    use starknet_rs_core::utils::get_selector_from_name;
+    use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::jsonrpc::HttpTransport;
     use starknet_rs_providers::{JsonRpcClient, Provider, SequencerGatewayProvider};
     use starknet_rs_signers::{LocalWallet, SigningKey};
@@ -29,162 +30,34 @@ mod get_events_integration_tests {
 
     use crate::common::util::{get_json_body, BackgroundDevnet};
 
-    #[tokio::test]
-    async fn declare_events_contract() {
-        let contract_artifact: SierraClass = serde_json::from_reader(
-            std::fs::File::open(concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/test_data/cairo1/events/events_2.0.1_compiler.sierra"
-            ))
-            .unwrap(),
-        )
-        .unwrap();
-
-        let casm: CasmContractClass = serde_json::from_reader(
-            std::fs::File::open(concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/test_data/cairo1/events/events_2.0.1_compiler.casm"
-            ))
-            .unwrap(),
-        )
-        .unwrap();
-
-        let compiled_class_hash = compute_casm_class_hash(&casm).unwrap();
-        println!("{}", Felt::from(compiled_class_hash.clone()).to_prefixed_hex_str());
-
-        // Class hash of the compiled CASM class from the `starknet-sierra-compile` command
-        let compiled_class_hash =
-            FieldElement::from_bytes_be(&compiled_class_hash.to_be_bytes()).unwrap();
-
-        let provider = SequencerGatewayProvider::starknet_alpha_goerli();
-        let signer = LocalWallet::from(SigningKey::from_secret_scalar(
-            FieldElement::from_hex_be(
-                "0x2caedeed52386b11d9eba38c1ca2c5785cbb342754dfcb22b0f98575f72f11e",
-            )
-            .unwrap(),
-        ));
-        let address = FieldElement::from_hex_be(
-            "0x204bd1135dd127fb54cc2edfdc3ed762224487c23dc52b0200e7bb010e17488",
-        )
-        .unwrap();
-
-        let mut account = SingleOwnerAccount::new(provider, signer, address, chain_id::TESTNET);
-
-        // `SingleOwnerAccount` defaults to checking nonce and estimating fees against the latest
-        // block. Optionally change the target block to pending with the following line:
-        account.set_block_id(BlockId::Tag(BlockTag::Pending));
-
-        // We need to flatten the ABI into a string first
-        let flattened_class = contract_artifact.flatten().unwrap();
-
-        let result =
-            account.declare(Arc::new(flattened_class), compiled_class_hash).send().await.unwrap();
-
-        println!("{:?}", result);
-    }
-
-    ///
     fn get_events_contract_in_sierra_and_compiled_class_hash()
     -> (FlattenedSierraClass, FieldElement) {
         let sierra_artifact = std::fs::read_to_string(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/test_data/cairo1/events/events.sierra"
+            "/test_data/cairo1/events/events_2.0.1_compiler.sierra"
         ))
         .unwrap();
-        let mut sierra_json: serde_json::Value = serde_json::from_str(&sierra_artifact).unwrap();
+        let sierra_class: SierraClass = serde_json::from_str(&sierra_artifact).unwrap();
+
         let contract_class: starknet_in_rust::ContractClass =
-            serde_json::from_value(sierra_json.clone()).unwrap();
+            serde_json::from_str(&sierra_artifact).unwrap();
 
         let casm_contract_class =
-            CasmContractClass::from_contract_class(contract_class, true).unwrap();
+            CasmContractClass::from_contract_class(contract_class, false).unwrap();
         let compiled_class_hash = compute_casm_class_hash(&casm_contract_class).unwrap();
 
-        // convert abi from array to string
-        sierra_json["abi"] = serde_json::Value::String(sierra_json["abi"].to_string());
-        let flattened_sierra: FlattenedSierraClass = serde_json::from_value(sierra_json).unwrap();
-
-        (flattened_sierra, Felt::from(compiled_class_hash).into())
-    }
-
-    fn generate_transaction_hash_on_deploy_account_transaction(
-        txn: BroadcastedDeployAccountTransaction,
-    ) -> FieldElement {
-        let calldata: Vec<Felt252> =
-            txn.constructor_calldata.iter().map(|x| Felt::from(*x).into()).collect();
-        let class_hash: Felt252 = Felt::from(txn.class_hash).into();
-        let address_salt: Felt252 = Felt::from(txn.contract_address_salt).into();
-
-        let contract_address = Address(
-            calculate_contract_address(
-                &address_salt,
-                &class_hash,
-                &calldata,
-                Address(Felt252::from(0)),
-            )
-            .unwrap(),
-        );
-
-        let hash_value = calculate_deploy_account_transaction_hash(
-            Felt252::from(1),
-            &contract_address,
-            class_hash,
-            &calldata,
-            txn.max_fee.to_string().parse::<u128>().unwrap(),
-            Felt::from(txn.nonce).into(),
-            address_salt,
-            Felt::from(chain_id::TESTNET).into(),
-        )
-        .unwrap();
-
-        Felt::from(hash_value).into()
-    }
-
-    #[test]
-    fn test_invoke_transaction_hash() {
-        let provider =
-            JsonRpcClient::new(HttpTransport::new(Url::parse("http://localhost:5000").unwrap()));
-
-        let test_account = SingleOwnerAccount::new(
-            provider,
-            LocalWallet::from_signing_key(SigningKey::from_secret_scalar(FieldElement::ZERO)),
-            FieldElement::from_hex_be(
-                "0x6f19b187aabb71473c27e01719fc33d53377703e7063c3151cd2481bee1c94c",
-            )
-            .unwrap(),
-            chain_id::TESTNET,
-        );
-
-        let execution = test_account
-            .execute(vec![Call {
-                to: FieldElement::from_hex_be(
-                    "0x64bae94dbae2bb29d9be1b8e4e37ca3020f4b2f4ced6f7148800b7be3374640",
-                )
-                .unwrap(),
-                selector: FieldElement::from_hex_be(
-                    "0xe654a0a9b2953a6fd9084842d9b9abc308341e6cd2ab57856441c542e51525",
-                )
-                .unwrap(),
-                calldata: vec![FieldElement::from(1u8)],
-            }])
-            .max_fee(FieldElement::from_hex_be("0x24fd5a988532").unwrap())
-            .nonce(FieldElement::from_hex_be("0x33").unwrap())
-            .prepared()
-            .unwrap();
-
-        assert!(
-            Felt::from_prefixed_hex_str(
-                "0x068fbb499e59af504491b801b694cb5b7450a2efc338f7480cb1887ea2c9bd01"
-            )
-            .unwrap()
-                == Felt::from(execution.transaction_hash())
-        );
-
-        println!("{}", Felt::from(execution.transaction_hash()).to_prefixed_hex_str());
+        (sierra_class.flatten().unwrap(), Felt::from(compiled_class_hash).into())
     }
 
     #[tokio::test]
-    async fn get_events() {
+    /// The test verifies that the `get_events` RPC method returns the correct events.
+    /// The test starts a devnet, gets the first predeployed account, using it declares and deploys
+    /// a contract that emits events.
+    /// Then the events are being fetched first all of them then in chunks
+    async fn get_events_correct_chunking() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        // get first predeployed account data
         let predeployed_accounts_response =
             devnet.get("/predeployed_accounts", None).await.unwrap();
 
@@ -196,6 +69,7 @@ mod get_events_integration_tests {
         let private_key =
             Felt::from_prefixed_hex_str(first_account["private_key"].as_str().unwrap()).unwrap();
 
+        // constructs starknet-rs account
         let signer = LocalWallet::from(SigningKey::from_secret_scalar(private_key.into()));
         let address = FieldElement::from(account_address);
 
@@ -209,6 +83,7 @@ mod get_events_integration_tests {
         let (cairo_1_contract, casm_class_hash) =
             get_events_contract_in_sierra_and_compiled_class_hash();
 
+        // declare the contract
         let declaration_result = predeployed_account
             .declare(Arc::new(cairo_1_contract), casm_class_hash)
             .max_fee(FieldElement::from(100000000000000u128))
@@ -217,92 +92,84 @@ mod get_events_integration_tests {
             .await
             .unwrap();
 
-        println!(
-            "{:?}",
-            devnet
-                .json_rpc_client
-                .get_transaction_by_hash(declaration_result.transaction_hash)
-                .await
-        );
+        let predeployed_account = Arc::new(predeployed_account);
 
-        // new account created from dummy values for address and private key
-        let new_contract = SingleOwnerAccount::new(
-            devnet.clone_provider(),
-            LocalWallet::from(SigningKey::from_secret_scalar(FieldElement::from(1023u64))),
-            FieldElement::from(10u64),
-            chain_id::TESTNET,
-        );
-
-        let req_body = Body::from(
-            json!({
-                "address": Felt::from(new_contract.address()).to_prefixed_hex_str(),
-                "amount": 100000000
-            })
-            .to_string(),
-        );
-
-        let resp = devnet.post_json("/mint".into(), req_body).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
-
-        let _contract_factory =
-            ContractFactory::new(declaration_result.class_hash, Arc::new(new_contract));
-
-        let mut broadcasted_deploy_account_transaction = BroadcastedDeployAccountTransaction {
-            max_fee: FieldElement::from(10000000000u128),
-            signature: vec![],
-            nonce: FieldElement::from(1u8),
-            contract_address_salt: FieldElement::ZERO,
-            constructor_calldata: vec![],
-            class_hash: declaration_result.class_hash,
-            is_query: false,
-        };
-
-        let txn_hash = generate_transaction_hash_on_deploy_account_transaction(
-            broadcasted_deploy_account_transaction.clone(),
-        );
-        let signature = ecdsa_sign(&private_key.into(), &txn_hash).unwrap();
-        broadcasted_deploy_account_transaction.signature =
-            vec![signature.r, signature.s, signature.v];
-
-        let deployment_result = devnet
-            .json_rpc_client
-            .add_deploy_account_transaction(broadcasted_deploy_account_transaction)
-            .await;
-        println!("{:?}", deployment_result);
-
-        println!("{}", Felt::from(get_selector_from_name("deploy").unwrap()).to_prefixed_hex_str());
-
-        let _execution = predeployed_account
-            .execute(vec![Call {
-                to: FieldElement::from_hex_be(
-                    "0x64bae94dbae2bb29d9be1b8e4e37ca3020f4b2f4ced6f7148800b7be3374640",
-                )
-                .unwrap(),
-                selector: FieldElement::from_hex_be(
-                    "0xe654a0a9b2953a6fd9084842d9b9abc308341e6cd2ab57856441c542e51525",
-                )
-                .unwrap(),
-                calldata: vec![FieldElement::from(1u8)],
-            }])
-            .max_fee(FieldElement::from_hex_be("0x24fd5a988532").unwrap())
-            .nonce(FieldElement::from_hex_be("0x33").unwrap())
-            .prepared()
+        // deploy the contract
+        let contract_factory =
+            ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
+        contract_factory
+            .deploy(vec![], FieldElement::ZERO, false)
+            .max_fee(FieldElement::from(100000000000000u128))
+            .send()
+            .await
             .unwrap();
 
-        // deploy new account to the already funded account address
-        // invoke via the predeployed account
+        // generate the address of the newly deployed contract
+        let new_contract_address = get_udc_deployed_address(
+            FieldElement::ZERO,
+            declaration_result.class_hash,
+            &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+            &vec![],
+        );
 
-        // let txn =
-        //     devnet.json_rpc_client.get_transaction_by_hash(result.transaction_hash).await.
-        // unwrap(); let events = devnet
-        //     .json_rpc_client
-        //     .get_events(
-        //         EventFilter { from_block: None, to_block: None, address: None, keys: None },
-        //         None,
-        //         10000,
-        //     )
-        //     .await
-        //     .unwrap();
-        // println!("{:?}", events);
+        let events_contract_call = vec![Call {
+            to: new_contract_address,
+            selector: get_selector_from_name("emit_event").unwrap(),
+            calldata: vec![FieldElement::from(1u8)],
+        }];
+
+        // invoke 10 times the contract to emit event, it should produce 10 events
+        let n_events_contract_invokations = 10;
+        for _ in 0..n_events_contract_invokations {
+            predeployed_account
+                .execute(events_contract_call.clone())
+                .max_fee(FieldElement::from(100000000000000u128))
+                .send()
+                .await
+                .unwrap();
+        }
+
+        // get all the events from the contract, the chunk size is large enough so we are sure
+        // we get all the events in one call
+        let event_filter = EventFilter {
+            from_block: None,
+            to_block: Some(BlockId::Tag(BlockTag::Latest)),
+            address: Some(new_contract_address),
+            keys: None,
+        };
+
+        let events =
+            devnet.json_rpc_client.get_events(event_filter.clone(), None, 100000000).await.unwrap();
+
+        let generated_events_count = events.events.len();
+        assert_eq!(generated_events_count, n_events_contract_invokations);
+
+        // divide the events by a group of 3
+        // and iterate over with continuation token
+        // on the last iteration the continuation token should be None
+        let chunk_size = 3;
+        let mut continuation_token: Option<String> = None;
+        let mut total_extracted_events = 0;
+        loop {
+            let events = devnet
+                .json_rpc_client
+                .get_events(event_filter.clone(), continuation_token, chunk_size as u64)
+                .await
+                .unwrap();
+            total_extracted_events += events.events.len();
+
+            if events.continuation_token.is_some() {
+                assert_eq!(events.events.len(), chunk_size);
+            } else {
+                assert!(events.events.len() <= chunk_size);
+            }
+
+            continuation_token = events.continuation_token;
+            if continuation_token.is_none() {
+                break;
+            }
+        }
+
+        assert_eq!(total_extracted_events, generated_events_count);
     }
 }

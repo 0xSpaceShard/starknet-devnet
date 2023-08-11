@@ -291,7 +291,7 @@ impl JsonRpcHandler {
     pub(crate) async fn get_events(&self, filter: EventFilter) -> RpcResult<EventsChunk> {
         let starknet = self.api.starknet.read().await;
 
-        let skip = filter
+        let page = filter
             .continuation_token
             .unwrap_or("0".to_string())
             .parse::<usize>()
@@ -302,7 +302,7 @@ impl JsonRpcHandler {
             filter.to_block,
             filter.address.map(|val| val.0),
             filter.keys,
-            skip,
+            page * filter.chunk_size,
             Some(filter.chunk_size),
         )?;
 
@@ -322,7 +322,7 @@ impl JsonRpcHandler {
                     },
                 })
                 .collect(),
-            continuation_token: if has_more_events { Some((skip + 1).to_string()) } else { None },
+            continuation_token: if has_more_events { Some((page + 1).to_string()) } else { None },
         })
     }
 
