@@ -9,16 +9,14 @@ use starknet_types::num_bigint::BigUint;
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{FeeToken, MintTokensRequest, MintTokensResponse};
 use crate::api::http::{HttpApiHandler, HttpApiResult};
+use crate::api::json_rpc::error::ApiError;
 
 pub(crate) async fn get_fee_token() -> HttpApiResult<Json<FeeToken>> {
     Err(HttpApiError::GeneralError)
 }
 
 /// get the balance of the `address`
-fn get_balance(
-    starknet: &Starknet,
-    address: ContractAddress,
-) -> Result<BigUint, starknet_core::error::Error> {
+fn get_balance(starknet: &Starknet, address: ContractAddress) -> Result<BigUint, ApiError> {
     let erc20_address = Felt::from_prefixed_hex_str(ERC20_CONTRACT_ADDRESS).unwrap();
     let balance_selector =
         starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap().into();
@@ -30,7 +28,11 @@ fn get_balance(
     )?;
 
     // format balance for output - initially it is a 2-member vector (low, high)
-    assert_eq!(new_balance_raw.len(), 2);
+    if new_balance_raw.len() != 2 {
+        let msg =
+            format!("Fee token contract expected to return 2 values; got: {:?}", new_balance_raw);
+        return Err(ApiError::ContractError { msg });
+    }
     let new_balance_low: BigUint = (*new_balance_raw.get(0).unwrap()).into();
     let new_balance_high: BigUint = (*new_balance_raw.get(1).unwrap()).into();
     let new_balance: BigUint = (new_balance_high << 128) + new_balance_low;
