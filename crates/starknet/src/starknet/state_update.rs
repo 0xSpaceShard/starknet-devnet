@@ -19,7 +19,7 @@ mod tests {
     use starknet_in_rust::CasmContractClass;
     use starknet_rs_core::types::TransactionStatus;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
+    use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
 
@@ -119,7 +119,7 @@ mod tests {
             env!("CARGO_MANIFEST_DIR"),
             "/test_artifacts/account_without_validations/account.json"
         );
-        let contract_class = Cairo0ContractClass::raw_json_from_path(account_json_path).unwrap();
+        let contract_class = Cairo0Json::raw_json_from_path(account_json_path).unwrap();
 
         let erc_20_contract = predeployed::create_erc20().unwrap();
         erc_20_contract.deploy(&mut starknet.state).unwrap();

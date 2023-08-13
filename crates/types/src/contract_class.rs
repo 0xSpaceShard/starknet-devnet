@@ -8,210 +8,33 @@ use serde::{Deserialize, Serialize, Serializer};
 use serde_json::{json, Serializer as JsonSerializer, Value};
 use starknet_api::deprecated_contract_class::{EntryPoint, EntryPointType};
 use starknet_api::hash::{pedersen_hash_array, StarkFelt};
-use starknet_in_rust::core::contract_address::{
-    compute_deprecated_class_hash, compute_sierra_class_hash,
-};
 use starknet_in_rust::core::errors::contract_address_errors::ContractAddressError;
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
 use starknet_in_rust::utils::calculate_sn_keccak;
 use starknet_in_rust::SierraContractClass;
-
-use crate::abi_entry::{AbiEntry, AbiEntryType};
-use crate::error::{Error, JsonError};
-use crate::felt::Felt;
-use crate::serde_helpers::base_64_gzipped_json_string::{
-    deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order,
-    serialize_program_to_base64,
+use starknet_rs_core::types::{
+    ContractClass as CodegenContractClass, FlattenedSierraClass as CodegenSierraContracrClass,
 };
+
+use crate::error::JsonError::SerdeJsonError;
+use crate::error::{ConversionError, Error, JsonError};
+use crate::felt::Felt;
 use crate::traits::HashProducer;
 use crate::{utils, DevnetResult};
 use base64::Engine;
+use core::fmt::{Debug, Display};
 use flate2::write::GzEncoder;
 use flate2::Compression;
+use starknet_in_rust::core::contract_address::compute_sierra_class_hash;
 use starknet_rs_core::serde::byte_array::base64 as base64Sir;
 use starknet_rs_core::types::contract::legacy::LegacyProgram;
-use starknet_rs_core::types::LegacyEntryPointsByType;
+use starknet_rs_core::types::{CompressedLegacyContractClass, LegacyEntryPointsByType};
+use std::fmt::Formatter;
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-pub struct ContractClassAbiEntryWithType {
-    #[serde(flatten)]
-    pub entry: AbiEntry,
-    pub r#type: AbiEntryType,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct DeprecatedContractClass {
-    /// A base64 encoding of the gzip-compressed JSON representation of program.
-    #[serde(
-        deserialize_with = "deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order",
-        serialize_with = "serialize_program_to_base64"
-    )]
-    pub program: Value,
-    pub abi: Vec<ContractClassAbiEntryWithType>,
-    /// The selector of each entry point is a unique identifier in the program.
-    pub entry_points_by_type: LegacyEntryPointsByType,
-}
-
-impl PartialEq for DeprecatedContractClass {
-    fn eq(&self, other: &Self) -> bool {
-        self.program == other.program && self.abi == other.abi
-    }
-}
-
-impl Eq for DeprecatedContractClass {}
-
-impl Default for DeprecatedContractClass {
-    fn default() -> Self {
-        Self {
-            program: Value::default(),
-            abi: Vec::new(),
-            entry_points_by_type: LegacyEntryPointsByType {
-                constructor: Vec::new(),
-                external: Vec::new(),
-                l1_handler: Vec::new(),
-            },
-        }
-    }
-}
-
-pub fn raw_program_into_json(program: &[u8]) -> DevnetResult<Value> {
-    let decoder = flate2::read::GzDecoder::new(program);
-    let starknet_program: LegacyProgram =
-        serde_json::from_reader(decoder).map_err(JsonError::SerdeJsonError)?;
-
-    Ok(serde_json::to_value(starknet_program).map_err(JsonError::SerdeJsonError)?)
-}
-
-pub fn json_into_raw_program(json_data: &Value) -> DevnetResult<Vec<u8>> {
-    let mut buffer = Vec::new();
-    let encoder = GzEncoder::new(&mut buffer, Compression::default());
-    serde_json::to_writer(encoder, &json_data).map_err(JsonError::SerdeJsonError)?;
-
-    Ok(buffer)
-}
-
-pub type Cairo0Json = Value;
-
-impl HashProducer for Cairo0Json {
-    fn generate_hash(&self) -> DevnetResult<Felt> {
-        ContractClass::compute_cairo_0_contract_class_hash(self)
-    }
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Cairo0ContractClass {
-    // TODO: remove once starknet_api raised
-    RawJson(Cairo0Json),
-    SIR(StarknetInRustContractClass),
-    Rpc(DeprecatedContractClass),
-}
-
-impl Cairo0ContractClass {
-    fn patch_debug_info(program: &mut Value) -> DevnetResult<()> {
-        match serde_json::from_value::<LegacyProgram>(program.clone()) {
-            // If valid json value - do nothing
-            Ok(_) => Ok(()),
-
-            // Try to patch
-            Err(_) => match program.get_mut("debug_info") {
-                Some(_) => {
-                    program
-                        .as_object_mut()
-                        .ok_or(JsonError::Custom { msg: "expected object".to_string() })?
-                        .insert("debug_info".to_string(), serde_json::Value::Null);
-
-                    Ok(())
-                }
-
-                // No debug info - do nothing
-                None => Ok(()),
-            },
-        }
-    }
-
-    pub fn rpc_from_decompressed_json(json_str: &str) -> DevnetResult<DeprecatedContractClass> {
-        let mut value: Value = serde_json::from_str(json_str).map_err(JsonError::SerdeJsonError)?;
-
-        let program = value
-            .get("program")
-            .ok_or(JsonError::Custom { msg: String::from("program key doesn't exist") })?;
-        let api_value = value
-            .get("abi")
-            .ok_or(JsonError::Custom { msg: String::from("abi key doesn't exist") })?;
-        let entry_points_by_type = value.get("entry_points_by_type").ok_or(JsonError::Custom {
-            msg: String::from("entry_points_by_type key doesn't exist"),
-        })?;
-        Ok(DeprecatedContractClass {
-            abi: serde_json::from_value(api_value.clone()).map_err(JsonError::SerdeJsonError)?,
-            entry_points_by_type: serde_json::from_value(entry_points_by_type.clone())
-                .map_err(JsonError::SerdeJsonError)?,
-            program: program.clone(),
-        })
-    }
-
-    pub fn raw_json_from_json_str(json_str: &str) -> DevnetResult<Cairo0Json> {
-        let res: Cairo0Json = serde_json::from_str(json_str).map_err(JsonError::SerdeJsonError)?;
-
-        if res.is_object() {
-            Ok(res)
-        } else {
-            Err(Error::JsonError(JsonError::Custom {
-                msg: "expected JSON string to be an object".to_string(),
-            }))
-        }
-    }
-
-    pub fn raw_json_from_path(path: &str) -> DevnetResult<Cairo0Json> {
-        let contract_class_str = fs::read_to_string(path)?;
-        Cairo0ContractClass::raw_json_from_json_str(&contract_class_str)
-    }
-
-    pub fn rpc_from_json_str(json_str: &str) -> DevnetResult<DeprecatedContractClass> {
-        let res: DeprecatedContractClass =
-            serde_json::from_str(json_str).map_err(JsonError::SerdeJsonError)?;
-
-        Ok(res)
-    }
-
-    pub fn rpc_from_path(path: &str) -> DevnetResult<DeprecatedContractClass> {
-        let contract_class_str = fs::read_to_string(path)?;
-        Cairo0ContractClass::rpc_from_json_str(&contract_class_str)
-    }
-}
-
-impl From<Cairo0Json> for Cairo0ContractClass {
-    fn from(value: Cairo0Json) -> Self {
-        Cairo0ContractClass::RawJson(value)
-    }
-}
-
-impl From<StarknetInRustContractClass> for Cairo0ContractClass {
-    fn from(value: StarknetInRustContractClass) -> Self {
-        Cairo0ContractClass::SIR(value)
-    }
-}
-
-impl From<DeprecatedContractClass> for Cairo0ContractClass {
-    fn from(value: DeprecatedContractClass) -> Self {
-        Cairo0ContractClass::Rpc(value)
-    }
-}
-
-impl TryFrom<Cairo0ContractClass> for StarknetInRustContractClass {
-    type Error = Error;
-    fn try_from(value: Cairo0ContractClass) -> Result<Self, Self::Error> {
-        match value {
-            Cairo0ContractClass::RawJson(json_value) => {
-                let starknet_in_rust_contract_class =
-                    StarknetInRustContractClass::from_str(&json_value.to_string())
-                        .map_err(|err| JsonError::Custom { msg: err.to_string() })?;
-                Ok(starknet_in_rust_contract_class)
-            }
-            Cairo0ContractClass::SIR(contract) => Ok(contract),
-            Cairo0ContractClass::Rpc(contract) => contract.try_into(),
-        }
-    }
-}
+pub mod deprecated;
+pub use deprecated::json_contract_class::Cairo0Json;
+pub use deprecated::rpc_contract_class::DeprecatedContractClass;
+pub use deprecated::Cairo0ContractClass;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ContractClass {
@@ -276,36 +99,6 @@ impl From<SierraContractClass> for ContractClass {
     }
 }
 
-impl TryFrom<DeprecatedContractClass> for Cairo0Json {
-    type Error = Error;
-    fn try_from(value: DeprecatedContractClass) -> Result<Self, Self::Error> {
-        let abi_json = serde_json::to_value(value.abi).map_err(JsonError::SerdeJsonError)?;
-        let entry_points_json =
-            serde_json::to_value(value.entry_points_by_type).map_err(JsonError::SerdeJsonError)?;
-
-        //let program = raw_program_into_json(&value.program)?;
-        let json_value = json!({
-            "program": value.program,
-            "abi": abi_json,
-            "entry_points_by_type": entry_points_json,
-        });
-
-        Ok(json_value)
-    }
-}
-
-impl TryFrom<DeprecatedContractClass> for StarknetInRustContractClass {
-    type Error = Error;
-    fn try_from(value: DeprecatedContractClass) -> Result<Self, Self::Error> {
-        let json_value: Value = value.try_into()?;
-        let starknet_in_rust_contract_class =
-            StarknetInRustContractClass::from_str(&json_value.to_string())
-                .map_err(|err| JsonError::Custom { msg: err.to_string() })?;
-
-        Ok(starknet_in_rust_contract_class)
-    }
-}
-
 impl TryFrom<ContractClass> for SierraContractClass {
     type Error = Error;
     fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
@@ -336,157 +129,6 @@ impl TryFrom<ContractClass> for Cairo0Json {
     }
 }
 
-impl ContractClass {
-    /// Computes the hinted class hash of the contract class.
-    /// The parameter is a JSON object representing the contract class.
-    /// Pythonic hinted class hash computation is based on a JSON artifact produced by the
-    /// cairo-lang compiler. The JSON object contains his keys in alphabetical order. But when
-    /// those keys are made of digits only, they are sorted in ascending order. For example keys
-    /// "1", "10", "2" are sorted as "1", "2", "10" and keys "b", "a", "c" are sorted as "a", "b",
-    /// "c". The resulting object is being serialized to a string and then hashed.
-    /// In rust serde_json library when deserializing a JSON object, internally it uses a Map either
-    /// HashMap or IndexMap. Depending on the feature enabled if [preserver_order] is not enabled
-    /// HashMap will be used. In HashMap the keys order of insertion is not preserved and they
-    /// are sorted alphabetically, which doesnt work for our case, because the contract artifact
-    /// contains keys under the "hints" property that are only numbers. So we use IndexMap to
-    /// preserve order of the keys, but its disadvantage is removing entries from the json object,
-    /// because it uses swap_remove method on IndexMap, which doesnt preserve order.
-    /// So we traverse the JSON object and remove all entries with key - attributes or
-    /// accessible_scopes if they are empty arrays.
-    fn compute_hinted_class_hash(contract_class: &Value) -> crate::DevnetResult<StarkFelt> {
-        let mut abi_program_json = json!({
-            "abi": contract_class.get("abi").unwrap_or(&Value::Null),
-            "program": contract_class.get("program").unwrap_or(&Value::Null)
-        });
-        let program_json = abi_program_json
-            .get_mut("program")
-            .ok_or(JsonError::Custom { msg: "missing program entry".to_string() })?;
-
-        let debug_info_json = program_json.get_mut("debug_info");
-        if debug_info_json.is_some() {
-            program_json
-                .as_object_mut()
-                .ok_or(JsonError::Custom { msg: "expected object".to_string() })?
-                .insert("debug_info".to_string(), serde_json::Value::Null);
-        }
-
-        // Traverse the JSON and remove all entries with key attributes and accessible_scopes
-        // if they are empty arrays.
-        let modified_abi_program_json =
-            crate::utils::traverse_and_exclude_recursively(&abi_program_json, &|key, value| {
-                return (key == "attributes" || key == "accessible_scopes")
-                    && value.is_array()
-                    && value.as_array().expect("Not a valid JSON array").is_empty();
-            });
-
-        let mut buffer = Vec::with_capacity(128);
-        let mut serializer = JsonSerializer::with_formatter(&mut buffer, utils::StarknetFormatter);
-        modified_abi_program_json.serialize(&mut serializer).map_err(JsonError::SerdeJsonError)?;
-
-        Ok(StarkFelt::new(calculate_sn_keccak(&buffer))?)
-    }
-
-    fn compute_cairo_0_contract_class_hash(json_class: &Value) -> crate::DevnetResult<Felt> {
-        let mut hashes = Vec::<StarkFelt>::new();
-        hashes.push(StarkFelt::from(0u128));
-
-        let entry_points_by_type: HashMap<EntryPointType, Vec<EntryPoint>> =
-            serde_json::from_value(
-                json_class
-                    .get("entry_points_by_type")
-                    .ok_or(JsonError::Custom {
-                        msg: "missing entry_points_by_type entry".to_string(),
-                    })?
-                    .clone(),
-            )
-            .unwrap();
-
-        let entry_points_hash_by_type =
-            |entry_point_type: EntryPointType| -> DevnetResult<StarkFelt> {
-                let felts: Vec<StarkFelt> = entry_points_by_type
-                    .get(&entry_point_type)
-                    .ok_or(ContractAddressError::NoneExistingEntryPointType)?
-                    .iter()
-                    .flat_map(|entry_point| {
-                        let selector = entry_point.selector.0;
-                        let offset = StarkFelt::from(entry_point.offset.0 as u128);
-
-                        vec![selector, offset]
-                    })
-                    .collect();
-
-                Ok(pedersen_hash_array(&felts))
-            };
-
-        hashes.push(entry_points_hash_by_type(EntryPointType::External)?);
-        hashes.push(entry_points_hash_by_type(EntryPointType::L1Handler)?);
-        hashes.push(entry_points_hash_by_type(EntryPointType::Constructor)?);
-
-        let program_json = json_class
-            .get("program")
-            .ok_or(JsonError::Custom { msg: "missing program entry".to_string() })?;
-        let builtins_encoded_as_felts = program_json
-            .get("builtins")
-            .unwrap_or(&serde_json::Value::Null)
-            .as_array()
-            .unwrap_or(&Vec::<serde_json::Value>::new())
-            .iter()
-            .map(|el| {
-                let json_str = el.as_str().unwrap();
-                let non_prefixed_hex =
-                    json_str.as_bytes().iter().map(|b| format!("{:02x}", b)).collect::<String>();
-                let prefixed_hex = format!("0x{}", non_prefixed_hex);
-                prefixed_hex
-            })
-            .collect::<Vec<String>>()
-            .into_iter()
-            .map(|el| StarkFelt::try_from(el.as_str()).map_err(Error::StarknetApiError))
-            .collect::<DevnetResult<Vec<StarkFelt>>>()?;
-
-        hashes.push(pedersen_hash_array(&builtins_encoded_as_felts));
-
-        hashes.push(ContractClass::compute_hinted_class_hash(json_class)?);
-
-        let program_data_felts = program_json
-            .get("data")
-            .unwrap_or(&serde_json::Value::Null)
-            .as_array()
-            .unwrap_or(&Vec::<serde_json::Value>::new())
-            .clone()
-            .into_iter()
-            .map(|str| {
-                StarkFelt::try_from(
-                    str.as_str().ok_or(JsonError::Custom { msg: "expected string".to_string() })?,
-                )
-                .map_err(Error::StarknetApiError)
-            })
-            .collect::<DevnetResult<Vec<StarkFelt>>>()?;
-
-        hashes.push(pedersen_hash_array(&program_data_felts));
-
-        Ok(Felt::from(pedersen_hash_array(&hashes)))
-    }
-}
-
-impl HashProducer for DeprecatedContractClass {
-    fn generate_hash(&self) -> DevnetResult<Felt> {
-        let json_value: Cairo0Json = self.clone().try_into()?;
-        json_value.generate_hash()
-    }
-}
-
-impl HashProducer for Cairo0ContractClass {
-    fn generate_hash(&self) -> DevnetResult<Felt> {
-        match self {
-            Cairo0ContractClass::RawJson(contract_json) => Ok(contract_json.generate_hash()?),
-            Cairo0ContractClass::SIR(contract) => {
-                Ok(compute_deprecated_class_hash(contract)?.into())
-            }
-            Cairo0ContractClass::Rpc(contract) => Ok(contract.generate_hash()?),
-        }
-    }
-}
-
 impl HashProducer for ContractClass {
     fn generate_hash(&self) -> crate::DevnetResult<crate::felt::Felt> {
         match self {
@@ -499,14 +141,38 @@ impl HashProducer for ContractClass {
     }
 }
 
+fn convert_sierra_to_codegen(
+    contract_class: &SierraContractClass,
+) -> DevnetResult<CodegenSierraContracrClass> {
+    // TODO: improve
+    let value: Value =
+        serde_json::to_value(contract_class.clone()).map_err(JsonError::SerdeJsonError)?;
+
+    Ok(serde_json::from_value(value).map_err(JsonError::SerdeJsonError)?)
+}
+
+impl TryInto<CodegenContractClass> for ContractClass {
+    type Error = Error;
+    fn try_into(self) -> Result<CodegenContractClass, Self::Error> {
+        match self {
+            ContractClass::Cairo0(contract_class) => {
+                Ok(CodegenContractClass::Legacy(contract_class.try_into()?))
+            }
+            ContractClass::Cairo1(contract_class) => {
+                Ok(CodegenContractClass::Sierra(convert_sierra_to_codegen(&contract_class)?))
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::contract_class::Cairo0ContractClass;
+    use crate::contract_class::{Cairo0ContractClass, Cairo0Json, DeprecatedContractClass};
     use core::panic;
     use starknet_rs_core::types::CompressedLegacyContractClass;
 
     use crate::felt::Felt;
-    use crate::traits::HashProducer;
+    use crate::traits::{HashProducer, ToHexString};
     use crate::utils::test_utils::{CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH};
 
     #[test]
@@ -516,9 +182,23 @@ mod tests {
     }
 
     #[test]
+    fn cairo_predeployed() {
+        let class = Cairo0Json::raw_json_from_path("/Users/edwin/Documents/work/ShardLabs/starknet-devnet-rs/crates/starknet/accounts_artifacts/OpenZeppelin/0.5.1/Account.cairo/Account.json").unwrap();
+        let hash = class.generate_hash().unwrap();
+        println!("{}", hash.to_prefixed_hex_str());
+    }
+
+    // #[test]
+    // fn cairo_0_acc_successfully() {
+    //     let json_str = std::fs::read_to_string("/Users/edwin/Documents/work/ShardLabs/starknet-devnet-rs/crates/starknet/accounts_artifacts/OpenZeppelin/0.5.1/Account.cairo/Account.json").unwrap();
+    //     let contract_class = Cairo0Json::raw_json_from_path(&json_str).unwrap();
+    //     let i = 1;
+    // }
+
+    #[test]
     fn cairo_0_rpc_successfully() {
         let json_str = std::fs::read_to_string("/Users/edwin/Documents/work/ShardLabs/starknet-devnet-rs/crates/starknet/test_artifacts/cairo_0_rpc.json").unwrap();
-        let contract_class = Cairo0ContractClass::rpc_from_json_str(&json_str).unwrap();
+        let contract_class = DeprecatedContractClass::rpc_from_json_str(&json_str).unwrap();
 
         let asd = serde_json::to_value(contract_class).unwrap();
         let starknet: CompressedLegacyContractClass = serde_json::from_str(&json_str).unwrap();
@@ -533,7 +213,7 @@ mod tests {
     #[test]
     fn cairo_0_contract_class_hash_generated_successfully() {
         let json_str = std::fs::read_to_string(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
-        let contract_class = Cairo0ContractClass::raw_json_from_json_str(&json_str).unwrap();
+        let contract_class = Cairo0Json::raw_json_from_json_str(&json_str).unwrap();
         let class_hash = contract_class.generate_hash().unwrap();
         let expected_class_hash =
             Felt::from_prefixed_hex_str(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap();
@@ -542,6 +222,6 @@ mod tests {
 
     #[test]
     fn contract_class_cairo_0_from_json_str_doesnt_accept_string_different_from_json() {
-        assert!(Cairo0ContractClass::raw_json_from_json_str(" not JSON string").is_err());
+        assert!(Cairo0Json::raw_json_from_json_str(" not JSON string").is_err());
     }
 }
