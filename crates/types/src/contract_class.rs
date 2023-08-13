@@ -182,35 +182,6 @@ mod tests {
     }
 
     #[test]
-    fn cairo_predeployed() {
-        let class = Cairo0Json::raw_json_from_path("/Users/edwin/Documents/work/ShardLabs/starknet-devnet-rs/crates/starknet/accounts_artifacts/OpenZeppelin/0.5.1/Account.cairo/Account.json").unwrap();
-        let hash = class.generate_hash().unwrap();
-        println!("{}", hash.to_prefixed_hex_str());
-    }
-
-    // #[test]
-    // fn cairo_0_acc_successfully() {
-    //     let json_str = std::fs::read_to_string("/Users/edwin/Documents/work/ShardLabs/starknet-devnet-rs/crates/starknet/accounts_artifacts/OpenZeppelin/0.5.1/Account.cairo/Account.json").unwrap();
-    //     let contract_class = Cairo0Json::raw_json_from_path(&json_str).unwrap();
-    //     let i = 1;
-    // }
-
-    #[test]
-    fn cairo_0_rpc_successfully() {
-        let json_str = std::fs::read_to_string("/Users/edwin/Documents/work/ShardLabs/starknet-devnet-rs/crates/starknet/test_artifacts/cairo_0_rpc.json").unwrap();
-        let contract_class = DeprecatedContractClass::rpc_from_json_str(&json_str).unwrap();
-
-        let asd = serde_json::to_value(contract_class).unwrap();
-        let starknet: CompressedLegacyContractClass = serde_json::from_str(&json_str).unwrap();
-        let kek: CompressedLegacyContractClass = serde_json::from_value(asd).unwrap();
-        //let kek: CompressedLegacyContractClass = serde_json::from_str(&asd.to_string()).unwrap();
-        //println!("{}", asd);
-        println!("{}", serde_json::to_value(starknet).unwrap());
-
-        // let _ = contract_class.generate_hash().unwrap();
-    }
-
-    #[test]
     fn cairo_0_contract_class_hash_generated_successfully() {
         let json_str = std::fs::read_to_string(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
         let contract_class = Cairo0Json::raw_json_from_json_str(&json_str).unwrap();

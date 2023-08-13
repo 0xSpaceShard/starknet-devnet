@@ -245,3 +245,16 @@ pub fn json_into_raw_program(json_data: &Value) -> DevnetResult<Vec<u8>> {
 
     Ok(buffer)
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::contract_class::Cairo0Json;
+    use crate::utils::test_utils::CAIRO_0_ACCOUNT_CONTRACT_PATH;
+    use starknet_rs_core::types::CompressedLegacyContractClass;
+
+    #[test]
+    fn test_unzipped_to_codegen_conversion() {
+        let class = Cairo0Json::raw_json_from_path(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
+        let _: CompressedLegacyContractClass = class.try_into().unwrap();
+    }
+}

@@ -21,12 +21,6 @@ mod get_class_hash_at_integration_tests {
             .await
             .unwrap();
 
-        let res = devnet
-            .json_rpc_client
-            .get_class_at(BlockId::Tag(BlockTag::Latest), contract_address)
-            .await
-            .unwrap();
-
         assert_eq!(
             retrieved_hash,
             FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap()
