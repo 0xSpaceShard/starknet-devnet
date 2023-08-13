@@ -295,8 +295,11 @@ pub mod hex_string {
 
 pub mod base_64_gzipped_json_string {
     use base64::Engine;
-    use serde::{Deserialize, Deserializer};
+    use flate2::write::GzEncoder;
+    use flate2::Compression;
+    use serde::{Deserialize, Deserializer, Serializer};
     use serde_json::Value;
+    use starknet_rs_core::serde::byte_array::base64 as base64Sir;
     use starknet_rs_core::types::contract::legacy::LegacyProgram;
 
     pub fn deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order<'de, D>(
@@ -310,6 +313,7 @@ pub mod base_64_gzipped_json_string {
             return Ok(serde_json::Value::Null);
         }
 
+        // TODO: change on starknet_rs_core::serde::byte_array::base64
         let bytes = base64::engine::general_purpose::STANDARD
             .decode(buf)
             .map_err(|_| serde::de::Error::custom("program: Unable to decode base64 string"))?;
@@ -322,12 +326,17 @@ pub mod base_64_gzipped_json_string {
             .map_err(|_| serde::de::Error::custom("program: Unable to parse to JSON"))
     }
 
-    // pub fn serialize_program_to_base64<S>(program: &Value, s: S) -> Result<S::Ok, S::Error>
-    // where
-    //     S: Serializer,
-    // {
-    //     s.serialize_str(contract_address.to_prefixed_hex_str().as_str())
-    // }
+    pub fn serialize_program_to_base64<S>(program: &Value, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut buffer = Vec::new();
+        let encoder = GzEncoder::new(&mut buffer, Compression::default());
+        serde_json::to_writer(encoder, program)
+            .map_err(|_| serde::ser::Error::custom("program: Unable to encode program"))?;
+
+        base64Sir::serialize(&buffer, serializer)
+    }
 
     #[cfg(test)]
     mod tests {

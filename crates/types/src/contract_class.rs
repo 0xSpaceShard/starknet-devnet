@@ -19,10 +19,15 @@ use starknet_in_rust::SierraContractClass;
 use crate::abi_entry::{AbiEntry, AbiEntryType};
 use crate::error::{Error, JsonError};
 use crate::felt::Felt;
-use crate::serde_helpers::base_64_gzipped_json_string::deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order;
+use crate::serde_helpers::base_64_gzipped_json_string::{
+    deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order,
+    serialize_program_to_base64,
+};
 use crate::traits::HashProducer;
 use crate::{utils, DevnetResult};
 use base64::Engine;
+use flate2::write::GzEncoder;
+use flate2::Compression;
 use starknet_rs_core::serde::byte_array::base64 as base64Sir;
 use starknet_rs_core::types::contract::legacy::LegacyProgram;
 use starknet_rs_core::types::LegacyEntryPointsByType;
@@ -37,8 +42,11 @@ pub struct ContractClassAbiEntryWithType {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct DeprecatedContractClass {
     /// A base64 encoding of the gzip-compressed JSON representation of program.
-    #[serde(with = "base64Sir")]
-    pub program: Vec<u8>,
+    #[serde(
+        deserialize_with = "deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order",
+        serialize_with = "serialize_program_to_base64"
+    )]
+    pub program: Value,
     pub abi: Vec<ContractClassAbiEntryWithType>,
     /// The selector of each entry point is a unique identifier in the program.
     pub entry_points_by_type: LegacyEntryPointsByType,
@@ -55,7 +63,7 @@ impl Eq for DeprecatedContractClass {}
 impl Default for DeprecatedContractClass {
     fn default() -> Self {
         Self {
-            program: Vec::new(),
+            program: Value::default(),
             abi: Vec::new(),
             entry_points_by_type: LegacyEntryPointsByType {
                 constructor: Vec::new(),
@@ -72,6 +80,14 @@ pub fn raw_program_into_json(program: &[u8]) -> DevnetResult<Value> {
         serde_json::from_reader(decoder).map_err(JsonError::SerdeJsonError)?;
 
     Ok(serde_json::to_value(starknet_program).map_err(JsonError::SerdeJsonError)?)
+}
+
+pub fn json_into_raw_program(json_data: &Value) -> DevnetResult<Vec<u8>> {
+    let mut buffer = Vec::new();
+    let encoder = GzEncoder::new(&mut buffer, Compression::default());
+    serde_json::to_writer(encoder, &json_data).map_err(JsonError::SerdeJsonError)?;
+
+    Ok(buffer)
 }
 
 pub type Cairo0Json = Value;
@@ -91,6 +107,48 @@ pub enum Cairo0ContractClass {
 }
 
 impl Cairo0ContractClass {
+    fn patch_debug_info(program: &mut Value) -> DevnetResult<()> {
+        match serde_json::from_value::<LegacyProgram>(program.clone()) {
+            // If valid json value - do nothing
+            Ok(_) => Ok(()),
+
+            // Try to patch
+            Err(_) => match program.get_mut("debug_info") {
+                Some(_) => {
+                    program
+                        .as_object_mut()
+                        .ok_or(JsonError::Custom { msg: "expected object".to_string() })?
+                        .insert("debug_info".to_string(), serde_json::Value::Null);
+
+                    Ok(())
+                }
+
+                // No debug info - do nothing
+                None => Ok(()),
+            },
+        }
+    }
+
+    pub fn rpc_from_decompressed_json(json_str: &str) -> DevnetResult<DeprecatedContractClass> {
+        let mut value: Value = serde_json::from_str(json_str).map_err(JsonError::SerdeJsonError)?;
+
+        let program = value
+            .get("program")
+            .ok_or(JsonError::Custom { msg: String::from("program key doesn't exist") })?;
+        let api_value = value
+            .get("abi")
+            .ok_or(JsonError::Custom { msg: String::from("abi key doesn't exist") })?;
+        let entry_points_by_type = value.get("entry_points_by_type").ok_or(JsonError::Custom {
+            msg: String::from("entry_points_by_type key doesn't exist"),
+        })?;
+        Ok(DeprecatedContractClass {
+            abi: serde_json::from_value(api_value.clone()).map_err(JsonError::SerdeJsonError)?,
+            entry_points_by_type: serde_json::from_value(entry_points_by_type.clone())
+                .map_err(JsonError::SerdeJsonError)?,
+            program: program.clone(),
+        })
+    }
+
     pub fn raw_json_from_json_str(json_str: &str) -> DevnetResult<Cairo0Json> {
         let res: Cairo0Json = serde_json::from_str(json_str).map_err(JsonError::SerdeJsonError)?;
 
@@ -225,9 +283,9 @@ impl TryFrom<DeprecatedContractClass> for Cairo0Json {
         let entry_points_json =
             serde_json::to_value(value.entry_points_by_type).map_err(JsonError::SerdeJsonError)?;
 
-        let program = raw_program_into_json(&value.program)?;
+        //let program = raw_program_into_json(&value.program)?;
         let json_value = json!({
-            "program": program,
+            "program": value.program,
             "abi": abi_json,
             "entry_points_by_type": entry_points_json,
         });
@@ -403,6 +461,7 @@ impl ContractClass {
                 .map_err(Error::StarknetApiError)
             })
             .collect::<DevnetResult<Vec<StarkFelt>>>()?;
+
         hashes.push(pedersen_hash_array(&program_data_felts));
 
         Ok(Felt::from(pedersen_hash_array(&hashes)))
