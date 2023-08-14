@@ -304,35 +304,20 @@ impl Starknet {
         }
     }
 
-    pub(crate) fn get_state_at_mut(&mut self, block_id: &BlockId) -> Result<&mut StarknetState> {
-        match block_id {
-            BlockId::Tag(_) => Ok(&mut self.state),
-            _ => {
-                let block = self.blocks.get_by_block_id(*block_id).ok_or(Error::NoBlock)?.clone();
-                let state = self
-                    .blocks
-                    .num_to_state
-                    .get_mut(&block.block_number())
-                    .ok_or(Error::NoStateAtBlock { block_number: block.block_number().0 })?;
-                Ok(state)
-            }
-        }
-    }
-
     pub fn get_class_hash_at(
-        &mut self,
+        &self,
         block_id: BlockId,
         contract_address: ContractAddress,
     ) -> Result<ClassHash> {
         get_class_impls::get_class_hash_at_impl(self, block_id, contract_address)
     }
 
-    pub fn get_class(&mut self, block_id: BlockId, class_hash: ClassHash) -> Result<ContractClass> {
+    pub fn get_class(&self, block_id: BlockId, class_hash: ClassHash) -> Result<ContractClass> {
         get_class_impls::get_class_impl(self, block_id, class_hash)
     }
 
     pub fn get_class_at(
-        &mut self,
+        &self,
         block_id: BlockId,
         contract_address: ContractAddress,
     ) -> Result<ContractClass> {

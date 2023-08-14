@@ -199,7 +199,7 @@ impl JsonRpcHandler {
         block_id: BlockId,
         class_hash: ClassHash,
     ) -> RpcResult<CodegenContractClass> {
-        Ok(self.api.starknet.write().await.get_class(block_id.into(), class_hash)?.try_into()?)
+        Ok(self.api.starknet.read().await.get_class(block_id.into(), class_hash)?.try_into()?)
     }
 
     /// starknet_getClassAt
@@ -211,7 +211,7 @@ impl JsonRpcHandler {
         Ok(self
             .api
             .starknet
-            .write()
+            .read()
             .await
             .get_class_at(block_id.into(), contract_address)?
             .try_into()?)
@@ -223,7 +223,7 @@ impl JsonRpcHandler {
         block_id: BlockId,
         contract_address: ContractAddress,
     ) -> RpcResult<ClassHash> {
-        match self.api.starknet.write().await.get_class_hash_at(block_id.into(), contract_address) {
+        match self.api.starknet.read().await.get_class_hash_at(block_id.into(), contract_address) {
             Ok(class_hash) => Ok(class_hash),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(
