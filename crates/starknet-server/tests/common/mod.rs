@@ -146,6 +146,7 @@ pub mod util {
             let process = Command::new("cargo")
                 .arg("run")
                 .arg("--")
+                .arg("--release")
                 .arg("--seed")
                 .arg(SEED.to_string())
                 .arg("--accounts")
@@ -159,9 +160,6 @@ pub mod util {
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .expect("Could not start background devnet");
-
-            let pid = process.id();
-            println!("pid: {}", pid);
 
             let healthcheck_uri =
                 format!("{}/is_alive", devnet_url.as_str()).as_str().parse::<Uri>()?;
