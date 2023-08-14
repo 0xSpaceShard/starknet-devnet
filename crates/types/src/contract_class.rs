@@ -168,19 +168,13 @@ impl TryInto<CodegenContractClass> for ContractClass {
 
 #[cfg(test)]
 mod tests {
-    use crate::contract_class::{
-        convert_sierra_to_codegen, Cairo0ContractClass, Cairo0Json, ContractClass,
-        DeprecatedContractClass,
-    };
-    use core::panic;
-    use serde_json::value::Serializer;
+    use crate::contract_class::{convert_sierra_to_codegen, Cairo0Json, ContractClass};
     use serde_json::Deserializer;
     use starknet_in_rust::SierraContractClass;
-    use starknet_rs_core::types::CompressedLegacyContractClass;
 
     use crate::felt::Felt;
     use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
-    use crate::traits::{HashProducer, ToHexString};
+    use crate::traits::HashProducer;
     use crate::utils::test_utils::{
         CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH, CAIRO_1_CONTRACT_PATH,
         CAIRO_1_CONTRACT_SIERRA_HASH,

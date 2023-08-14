@@ -1,10 +1,6 @@
-use starknet_in_rust::core::transaction_hash::{
-    calculate_transaction_hash_common, TransactionHashPrefix,
-};
 use starknet_in_rust::transaction::DeclareV2;
 use starknet_in_rust::SierraContractClass;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use starknet_types::DevnetResult;
@@ -136,17 +132,14 @@ mod tests {
             &std::fs::read_to_string(sierra_contract_path).unwrap(),
         )
         .unwrap();
-        let starknet_in_rust_sierra =
-            starknet_in_rust::ContractClass::try_from(cairo_1_contract).unwrap();
         let sierra_class: SierraClass =
-            serde_json::from_value(serde_json::to_value(starknet_in_rust_sierra.clone()).unwrap())
+            serde_json::from_value(serde_json::to_value(cairo_1_contract.clone()).unwrap())
                 .unwrap();
         println!("{}", Felt::from(sierra_class.class_hash().unwrap()).to_prefixed_hex_str());
 
         println!(
             "{}",
-            Felt::from(compute_sierra_class_hash(&starknet_in_rust_sierra).unwrap())
-                .to_prefixed_hex_str()
+            Felt::from(compute_sierra_class_hash(&cairo_1_contract).unwrap()).to_prefixed_hex_str()
         );
     }
 

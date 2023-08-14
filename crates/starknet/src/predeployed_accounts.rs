@@ -81,7 +81,7 @@ impl AccountGenerator for PredeployedAccounts {
 mod tests {
     use jsonschema::JSONSchema;
     use serde_json::json;
-    use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json};
+    use starknet_types::contract_class::Cairo0Json;
     use starknet_types::felt::{Felt, Key};
     use starknet_types::traits::{ToDecimalString, ToHexString};
 

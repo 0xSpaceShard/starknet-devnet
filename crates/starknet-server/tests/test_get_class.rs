@@ -3,12 +3,8 @@ pub mod common;
 mod get_class_tests {
     use crate::common::constants::PREDEPLOYED_ACCOUNT_ADDRESS;
     use crate::common::util::BackgroundDevnet;
-    use starknet_rs_core::types::{
-        BlockId, BlockTag, BroadcastedDeclareTransactionV1, FieldElement, StarknetError,
-    };
-    use starknet_rs_providers::{
-        MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
-    };
+    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement};
+    use starknet_rs_providers::Provider;
 
     #[tokio::test]
     async fn test_get_class_at() {

@@ -67,7 +67,7 @@ pub fn get_class_at_impl(
 mod tests {
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_rs_core::types::BlockId;
-    use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
+    use starknet_types::contract_class::{Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
 

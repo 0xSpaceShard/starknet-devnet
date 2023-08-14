@@ -62,7 +62,7 @@ pub fn add_deploy_account_transaction(
 mod tests {
     use starknet_rs_core::types::TransactionStatus;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json};
+    use starknet_types::contract_class::Cairo0Json;
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::{ClassHash, Felt};
     use starknet_types::traits::HashProducer;
