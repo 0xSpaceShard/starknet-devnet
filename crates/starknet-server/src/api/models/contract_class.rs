@@ -19,7 +19,9 @@ mod tests {
     use starknet_types::felt::Felt;
 
     use starknet_types::abi_entry::{AbiEntry, AbiEntryType, FunctionAbiEntry};
-    use starknet_types::contract_class::{ContractClassAbiEntryWithType, DeprecatedContractClass};
+    use starknet_types::contract_class::deprecated::rpc_contract_class::{
+        ContractClassAbiEntryWithType, DeprecatedContractClass,
+    };
 
     #[test]
     fn deserialize_contract_class_abi_entry_with_type() {
@@ -111,6 +113,7 @@ mod tests {
             })
         );
     }
+
     #[test]
     fn deserialize_deprecated_contract_class() {
         let json_str = r#"{
@@ -169,8 +172,7 @@ mod tests {
 
         let obj = serde_json::from_str::<DeprecatedContractClass>(json_str).unwrap();
         assert_eq!(obj.abi.len(), 3);
-        assert_eq!(obj.entry_points_by_type.len(), 1);
-        assert_eq!(obj.entry_points_by_type.get(&starknet_types::starknet_api::deprecated_contract_class::EntryPointType::External).unwrap().len(), 2);
+        assert_eq!(obj.entry_points_by_type.external.len(), 2);
     }
 
     #[test]

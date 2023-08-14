@@ -22,7 +22,7 @@ use crate::api::models::transaction::{
     TransactionWithType, Transactions,
 };
 use crate::api::models::{BlockId, PatriciaKeyHex};
-use starknet_types::contract_class::ContractClass;
+use starknet_rs_core::types::ContractClass as CodegenContractClass;
 
 /// here are the definitions and stub implementations of all JSON-RPC read endpoints
 impl JsonRpcHandler {
@@ -222,8 +222,8 @@ impl JsonRpcHandler {
         &self,
         block_id: BlockId,
         class_hash: ClassHash,
-    ) -> RpcResult<ContractClass> {
-        Ok(self.api.starknet.write().await.get_class(block_id.into(), class_hash)?)
+    ) -> RpcResult<CodegenContractClass> {
+        Ok(self.api.starknet.write().await.get_class(block_id.into(), class_hash)?.try_into()?)
     }
 
     /// starknet_getClassAt
@@ -231,8 +231,14 @@ impl JsonRpcHandler {
         &self,
         block_id: BlockId,
         contract_address: ContractAddress,
-    ) -> RpcResult<ContractClass> {
-        Ok(self.api.starknet.write().await.get_class_at(block_id.into(), contract_address)?)
+    ) -> RpcResult<CodegenContractClass> {
+        Ok(self
+            .api
+            .starknet
+            .write()
+            .await
+            .get_class_at(block_id.into(), contract_address)?
+            .try_into()?)
     }
 
     /// starknet_getClassHashAt

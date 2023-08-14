@@ -4,6 +4,8 @@ use thiserror::Error;
 pub enum Error {
     #[error(transparent)]
     StarknetApiError(#[from] starknet_api::StarknetApiError),
+    #[error(transparent)]
+    StarknetFfConversionError(#[from] starknet_rs_ff::FromByteSliceError),
     #[error("Error when calling python module")]
     PyModuleError,
     #[error(transparent)]

@@ -81,7 +81,7 @@ pub(crate) mod test_utils {
         ))
         .unwrap();
 
-        Cairo0ContractClass::raw_json_from_json_str(&json_str).unwrap()
+        Cairo0Json::raw_json_from_json_str(&json_str).unwrap()
     }
 
     pub(crate) fn dummy_cairo_1_contract_class() -> SierraContractClass {
@@ -140,7 +140,7 @@ pub(crate) mod test_utils {
             "/test_artifacts/account_without_validations/account.json"
         );
 
-        Cairo0ContractClass::raw_json_from_path(account_json_path).unwrap().into()
+        Cairo0Json::raw_json_from_path(account_json_path).unwrap().into()
     }
 
     pub(crate) fn get_bytes_from_u32(num: u32) -> [u8; 32] {

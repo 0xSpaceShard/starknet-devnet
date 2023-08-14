@@ -1,5 +1,5 @@
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
+use starknet_types::contract_class::{Cairo0Json, ContractClass};
 use starknet_types::felt::{Balance, ClassHash, Felt};
 
 use crate::error::Result;
@@ -20,8 +20,7 @@ impl SystemContract {
         Ok(Self {
             class_hash: Felt::from_prefixed_hex_str(class_hash)?,
             address: ContractAddress::new(Felt::from_prefixed_hex_str(address)?)?,
-            contract_class: Cairo0ContractClass::raw_json_from_json_str(contract_class_json_str)?
-                .into(),
+            contract_class: Cairo0Json::raw_json_from_json_str(contract_class_json_str)?.into(),
         })
     }
 }
@@ -54,7 +53,7 @@ impl Accounted for SystemContract {
 
 #[cfg(test)]
 mod tests {
-    use starknet_types::contract_class::Cairo0ContractClass;
+    use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json};
 
     use super::SystemContract;
     use crate::constants::{
@@ -65,7 +64,7 @@ mod tests {
     #[test]
     fn load_erc20_contract() {
         let json_str = std::fs::read_to_string(ERC20_CONTRACT_PATH).unwrap();
-        assert!(Cairo0ContractClass::raw_json_from_json_str(&json_str).is_ok());
+        assert!(Cairo0Json::raw_json_from_json_str(&json_str).is_ok());
     }
 
     #[test]

@@ -42,7 +42,7 @@ use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
 use crate::transactions::invoke_transaction::InvokeTransactionV1;
 use crate::transactions::{StarknetTransaction, StarknetTransactions, Transaction};
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
+use starknet_types::contract_class::{Cairo0Json, ContractClass};
 use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
@@ -109,8 +109,7 @@ impl Starknet {
             config.predeployed_accounts_initial_balance,
             erc20_fee_contract.get_address(),
         );
-        let account_contract_class =
-            Cairo0ContractClass::raw_json_from_path(CAIRO_0_ACCOUNT_CONTRACT_PATH)?;
+        let account_contract_class = Cairo0Json::raw_json_from_path(CAIRO_0_ACCOUNT_CONTRACT_PATH)?;
         let class_hash = account_contract_class.generate_hash()?;
 
         let accounts = predeployed_accounts.generate_accounts(
