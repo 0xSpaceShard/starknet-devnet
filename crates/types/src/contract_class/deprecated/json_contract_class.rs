@@ -1,7 +1,7 @@
 use core::fmt::{Debug, Display, Formatter};
 use flate2::write::GzEncoder;
 use flate2::Compression;
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Serializer as JsonSerializer, Value};
 use starknet_api::deprecated_contract_class::{EntryPoint, EntryPointType};
 use starknet_api::hash::{pedersen_hash_array, StarkFelt};

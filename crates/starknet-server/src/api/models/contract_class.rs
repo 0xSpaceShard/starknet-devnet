@@ -114,68 +114,66 @@ mod tests {
         );
     }
 
-    // TODO: resolve
-    // #[test]
-    // fn deserialize_deprecated_contract_class() {
-    //     let json_str = r#"{
-    //         "abi": [
-    //             {
-    //                 "inputs": [],
-    //                 "name": "getPublicKey",
-    //                 "outputs": [
-    //                     {
-    //                         "name": "publicKey",
-    //                         "type": "felt"
-    //                     }
-    //                 ],
-    //                 "stateMutability": "view",
-    //                 "type": "function"
-    //             },
-    //             {
-    //                 "inputs": [
-    //                     {
-    //                         "name": "newPublicKey",
-    //                         "type": "felt"
-    //                     }
-    //                 ],
-    //                 "name": "setPublicKey",
-    //                 "outputs": [],
-    //                 "type": "function"
-    //             },
-    //             {
-    //                 "inputs": [
-    //                     {
-    //                         "name": "publicKey",
-    //                         "type": "felt"
-    //                     }
-    //                 ],
-    //                 "name": "constructor",
-    //                 "outputs": [],
-    //                 "type": "constructor"
-    //             }
-    //         ],
-    //         "program": "",
-    //         "entry_points_by_type": {
-    //             "CONSTRUCTOR": [],
-    //             "L1_HANDLER": [],
-    //             "EXTERNAL": [
-    //                 {
-    //                     "selector": "0xAAE3B5E8",
-    //                     "offset": "0x1"
-    //                 },
-    //                 {
-    //                     "selector": "0xAAE3B5E9",
-    //                     "offset": "0x2"
-    //                 }
-    //             ]
-    //         }
-    //     }"#;
-    //
-    //     let obj = serde_json::from_str::<DeprecatedContractClass>(json_str).unwrap();
-    //     assert_eq!(obj.abi.len(), 3);
-    //     assert_eq!(obj.entry_points_by_type.len(), 1);
-    //     assert_eq!(obj.entry_points_by_type.get(&starknet_types::starknet_api::deprecated_contract_class::EntryPointType::External).unwrap().len(), 2);
-    // }
+    #[test]
+    fn deserialize_deprecated_contract_class() {
+        let json_str = r#"{
+            "abi": [
+                {
+                    "inputs": [],
+                    "name": "getPublicKey",
+                    "outputs": [
+                        {
+                            "name": "publicKey",
+                            "type": "felt"
+                        }
+                    ],
+                    "stateMutability": "view",
+                    "type": "function"
+                },
+                {
+                    "inputs": [
+                        {
+                            "name": "newPublicKey",
+                            "type": "felt"
+                        }
+                    ],
+                    "name": "setPublicKey",
+                    "outputs": [],
+                    "type": "function"
+                },
+                {
+                    "inputs": [
+                        {
+                            "name": "publicKey",
+                            "type": "felt"
+                        }
+                    ],
+                    "name": "constructor",
+                    "outputs": [],
+                    "type": "constructor"
+                }
+            ],
+            "program": "",
+            "entry_points_by_type": {
+                "CONSTRUCTOR": [],
+                "L1_HANDLER": [],
+                "EXTERNAL": [
+                    {
+                        "selector": "0xAAE3B5E8",
+                        "offset": "0x1"
+                    },
+                    {
+                        "selector": "0xAAE3B5E9",
+                        "offset": "0x2"
+                    }
+                ]
+            }
+        }"#;
+
+        let obj = serde_json::from_str::<DeprecatedContractClass>(json_str).unwrap();
+        assert_eq!(obj.abi.len(), 3);
+        assert_eq!(obj.entry_points_by_type.external.len(), 2);
+    }
 
     #[test]
     fn deserialize_sierra_contract_class() {

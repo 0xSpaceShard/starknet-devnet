@@ -1,35 +1,19 @@
 use std::cmp::{Eq, PartialEq};
-use std::collections::HashMap;
-use std::default::Default;
-use std::fs;
-use std::str::FromStr;
 
-use serde::{Deserialize, Serialize, Serializer};
-use serde_json::{json, Serializer as JsonSerializer, Value};
-use starknet_api::deprecated_contract_class::{EntryPoint, EntryPointType};
-use starknet_api::hash::{pedersen_hash_array, StarkFelt};
-use starknet_in_rust::core::errors::contract_address_errors::ContractAddressError;
+use serde::{Serialize, Serializer};
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
-use starknet_in_rust::utils::calculate_sn_keccak;
 use starknet_in_rust::SierraContractClass;
 use starknet_rs_core::types::{
     ContractClass as CodegenContractClass, FlattenedSierraClass as CodegenSierraContracrClass,
 };
 
-use crate::error::JsonError::SerdeJsonError;
-use crate::error::{ConversionError, Error, JsonError};
+use crate::error::{Error, JsonError};
 use crate::felt::Felt;
 use crate::traits::HashProducer;
-use crate::{utils, DevnetResult};
-use base64::Engine;
-use core::fmt::{Debug, Display};
-use flate2::write::GzEncoder;
-use flate2::Compression;
+use crate::DevnetResult;
+use core::fmt::Debug;
 use starknet_in_rust::core::contract_address::compute_sierra_class_hash;
-use starknet_rs_core::serde::byte_array::base64 as base64Sir;
-use starknet_rs_core::types::contract::legacy::LegacyProgram;
-use starknet_rs_core::types::{CompressedLegacyContractClass, LegacyEntryPointsByType};
-use std::fmt::Formatter;
+use starknet_rs_ff::FieldElement;
 
 pub mod deprecated;
 pub use deprecated::json_contract_class::Cairo0Json;
@@ -144,11 +128,28 @@ impl HashProducer for ContractClass {
 fn convert_sierra_to_codegen(
     contract_class: &SierraContractClass,
 ) -> DevnetResult<CodegenSierraContracrClass> {
-    // TODO: improve
-    let value: Value =
-        serde_json::to_value(contract_class.clone()).map_err(JsonError::SerdeJsonError)?;
+    let abi = serde_json::to_string(&contract_class.abi).map_err(JsonError::SerdeJsonError)?;
+    let sierra_program = contract_class
+        .sierra_program
+        .iter()
+        .map(|bigint| {
+            FieldElement::from_byte_slice_be(&bigint.value.to_bytes_be())
+                .map_err(Error::StarknetFfConversionError)
+        })
+        .collect::<DevnetResult<Vec<FieldElement>>>()?;
 
-    Ok(serde_json::from_value(value).map_err(JsonError::SerdeJsonError)?)
+    let entry_points_by_type_value =
+        serde_json::to_value(contract_class.entry_points_by_type.clone())
+            .map_err(JsonError::SerdeJsonError)?;
+    let entry_points_by_type =
+        serde_json::from_value(entry_points_by_type_value).map_err(JsonError::SerdeJsonError)?;
+
+    Ok(CodegenSierraContracrClass {
+        sierra_program,
+        contract_class_version: contract_class.contract_class_version.clone(),
+        entry_points_by_type,
+        abi,
+    })
 }
 
 impl TryInto<CodegenContractClass> for ContractClass {
@@ -167,11 +168,17 @@ impl TryInto<CodegenContractClass> for ContractClass {
 
 #[cfg(test)]
 mod tests {
-    use crate::contract_class::{Cairo0ContractClass, Cairo0Json, DeprecatedContractClass};
+    use crate::contract_class::{
+        convert_sierra_to_codegen, Cairo0ContractClass, Cairo0Json, DeprecatedContractClass,
+    };
     use core::panic;
+    use serde_json::value::Serializer;
+    use serde_json::Deserializer;
+    use starknet_in_rust::SierraContractClass;
     use starknet_rs_core::types::CompressedLegacyContractClass;
 
     use crate::felt::Felt;
+    use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
     use crate::traits::{HashProducer, ToHexString};
     use crate::utils::test_utils::{CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH};
 
@@ -179,6 +186,20 @@ mod tests {
     #[ignore]
     fn cairo_1_contract_class_hash_generated_successfully() {
         panic!("Add check with expected class hash generated from sierra");
+    }
+
+    #[test]
+    fn cairo_1_to_codegen() {
+        let path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test_data/sierra_contract_class_with_abi_as_string.json"
+        );
+        let contract_str = std::fs::read_to_string(path).unwrap();
+        let mut deserializer = Deserializer::from_str(&contract_str);
+        let contract_class: SierraContractClass =
+            deserialize_to_sierra_contract_class(&mut deserializer).unwrap();
+
+        convert_sierra_to_codegen(&contract_class).unwrap();
     }
 
     #[test]

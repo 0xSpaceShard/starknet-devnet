@@ -1,5 +1,5 @@
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
+use starknet_types::contract_class::{Cairo0Json, ContractClass};
 use starknet_types::felt::{Balance, ClassHash, Felt};
 
 use crate::error::Result;

@@ -23,7 +23,6 @@ use crate::api::models::transaction::{
 };
 use crate::api::models::{BlockId, PatriciaKeyHex};
 use starknet_rs_core::types::ContractClass as CodegenContractClass;
-use starknet_types::contract_class::ContractClass;
 
 /// here are the definitions and stub implementations of all JSON-RPC read endpoints
 impl JsonRpcHandler {

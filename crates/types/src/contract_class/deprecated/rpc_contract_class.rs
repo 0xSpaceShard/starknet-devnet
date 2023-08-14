@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize, Serializer};
-use serde_json::{json, Value};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
 use starknet_rs_core::types::{CompressedLegacyContractClass, LegacyEntryPointsByType};
 use std::str::FromStr;
