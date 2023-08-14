@@ -1,3 +1,6 @@
+use starknet_in_rust::core::transaction_hash::{
+    calculate_transaction_hash_common, TransactionHashPrefix,
+};
 use starknet_in_rust::transaction::DeclareV2;
 use starknet_in_rust::SierraContractClass;
 use starknet_types::contract_address::ContractAddress;
@@ -53,7 +56,7 @@ impl DeclareTransactionV2 {
         let version = Felt::from(2);
 
         let transaction = DeclareV2::new(
-            &sierra_contract_class.clone().try_into()?,
+            &sierra_contract_class,
             None,
             compiled_class_hash.into(),
             chain_id.into(),
@@ -96,31 +99,7 @@ impl DeclareTransactionV2 {
 
 impl HashProducer for DeclareTransactionV2 {
     fn generate_hash(&self) -> DevnetResult<Felt> {
-        let class_hash = self
-            .class_hash
-            .unwrap_or(ContractClass::Cairo1(self.sierra_contract_class.clone()).generate_hash()?);
-
-        let calldata = [class_hash.into()].to_vec();
-        let additional_data = [self.nonce.into(), self.compiled_class_hash.into()].to_vec();
-
-        let transaction_hash: Felt = calculate_transaction_hash_common(
-            TransactionHashPrefix::Declare,
-            self.version.into(),
-            &self.sender_address.try_into()?,
-            Felt::from(0).into(),
-            &calldata,
-            self.max_fee,
-            self.chain_id.into(),
-            &additional_data,
-        )
-        .map_err(|err| {
-            starknet_types::error::Error::TransactionError(
-                starknet_in_rust::transaction::error::TransactionError::Syscall(err),
-            )
-        })?
-        .into();
-
-        Ok(transaction_hash)
+        Ok(self.inner.hash_value.clone().into())
     }
 }
 

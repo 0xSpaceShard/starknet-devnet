@@ -1,5 +1,5 @@
-use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::contract_class::ContractClass;
+use starknet_types::felt::{ClassHash, TransactionHash};
 
 use crate::error::{Error, Result};
 use crate::starknet::Starknet;
@@ -29,10 +29,10 @@ pub fn add_declare_transaction_v2(
     {
         Ok(tx_info) => {
             // Add sierra contract
-            starknet
-                .state
-                .contract_classes
-                .insert(class_hash, ContractClass::Cairo1(transaction.sierra_contract_class));
+            starknet.state.contract_classes.insert(
+                class_hash,
+                ContractClass::Cairo1(declare_transaction.sierra_contract_class.clone()),
+            );
             starknet.handle_successful_transaction(
                 &transaction_hash,
                 Transaction::DeclareV2(Box::new(declare_transaction)),
@@ -117,7 +117,7 @@ mod tests {
     use crate::transactions::declare_transaction::DeclareTransactionV1;
     use crate::utils::test_utils::{
         dummy_cairo_0_contract_class, dummy_cairo_1_contract_class, dummy_contract_address,
-        dummy_felt,
+        dummy_declare_transaction_v2, dummy_felt,
     };
 
     fn test_declare_transaction_v1(sender_address: ContractAddress) -> DeclareTransactionV1 {
@@ -231,7 +231,7 @@ mod tests {
             0,
             vec![],
             dummy_felt(),
-            dummy_cairo_0_contract_class(),
+            dummy_cairo_0_contract_class().into(),
             dummy_felt(),
         )
         .unwrap();

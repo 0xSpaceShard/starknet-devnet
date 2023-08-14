@@ -169,7 +169,8 @@ impl TryInto<CodegenContractClass> for ContractClass {
 #[cfg(test)]
 mod tests {
     use crate::contract_class::{
-        convert_sierra_to_codegen, Cairo0ContractClass, Cairo0Json, DeprecatedContractClass,
+        convert_sierra_to_codegen, Cairo0ContractClass, Cairo0Json, ContractClass,
+        DeprecatedContractClass,
     };
     use core::panic;
     use serde_json::value::Serializer;
@@ -184,13 +185,15 @@ mod tests {
         CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH, CAIRO_1_CONTRACT_PATH,
         CAIRO_1_CONTRACT_SIERRA_HASH,
     };
-    
+
     #[test]
     fn cairo_1_contract_class_hash_generated_successfully() {
-        let cairo_1_contract_sierra = ContractClass::cairo_1_from_sierra_json_str(
-            &std::fs::read_to_string(CAIRO_1_CONTRACT_PATH).unwrap(),
-        )
-        .unwrap();
+        let cairo_1_contract_sierra = ContractClass::Cairo1(
+            ContractClass::cairo_1_from_sierra_json_str(
+                &std::fs::read_to_string(CAIRO_1_CONTRACT_PATH).unwrap(),
+            )
+            .unwrap(),
+        );
         assert_eq!(
             Felt::from_prefixed_hex_str(CAIRO_1_CONTRACT_SIERRA_HASH).unwrap(),
             cairo_1_contract_sierra.generate_hash().unwrap()

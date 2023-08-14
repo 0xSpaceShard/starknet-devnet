@@ -87,7 +87,7 @@ impl JsonRpcHandler {
     }
 }
 
-fn convert_to_declare_transaction_v1(
+pub(crate) fn convert_to_declare_transaction_v1(
     value: BroadcastedDeclareTransactionV1,
     chain_id: Felt,
 ) -> RpcResult<DeclareTransactionV1> {

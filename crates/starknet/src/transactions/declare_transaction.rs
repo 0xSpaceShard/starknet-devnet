@@ -130,7 +130,7 @@ mod tests {
     use serde::Deserialize;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::ContractClass;
+    use starknet_types::contract_class::{Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
     use starknet_types::traits::{HashProducer, ToHexString};
 
@@ -151,7 +151,7 @@ mod tests {
             "/test_artifacts/events_cairo0.casm"
         ))
         .unwrap();
-        let cairo0 = ContractClass::cairo_0_from_json_str(&json_str).unwrap();
+        let cairo0 = Cairo0Json::raw_json_from_json_str(&json_str).unwrap();
 
         // this is declare v1 transaction send with starknet-rs
         let json_obj: serde_json::Value = serde_json::from_reader(std::fs::File::open(concat!(
@@ -170,7 +170,7 @@ mod tests {
                 .unwrap(),
             vec![],
             feeder_gateway_transaction.nonce,
-            cairo0,
+            cairo0.into(),
             StarknetChainId::TestNet.to_felt().into(),
         )
         .unwrap();
