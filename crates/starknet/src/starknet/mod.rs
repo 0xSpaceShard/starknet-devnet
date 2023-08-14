@@ -128,6 +128,7 @@ impl Starknet {
             erc20_fee_contract.get_address(),
         );
         chargeable_account.deploy(&mut state)?;
+        chargeable_account.set_initial_balance(&mut state)?;
 
         // copy already modified state to cached state
         state.synchronize_states();
@@ -135,7 +136,11 @@ impl Starknet {
         let mut this = Self {
             state,
             predeployed_accounts,
-            block_context: Self::get_block_context(0, ERC20_CONTRACT_ADDRESS, config.chain_id)?,
+            block_context: Self::get_block_context(
+                config.gas_price,
+                ERC20_CONTRACT_ADDRESS,
+                config.chain_id,
+            )?,
             blocks: StarknetBlocks::default(),
             transactions: StarknetTransactions::default(),
             config: config.clone(),
@@ -175,16 +180,12 @@ impl Starknet {
 
         // update txs block hash block number for each transaction in the pending block
         new_block.get_transactions().iter().for_each(|t| {
-            if let Some(tx_hash) = t.get_hash() {
-                if let Some(tx) = self.transactions.get_by_hash_mut(&tx_hash) {
-                    tx.block_hash = Some(new_block.header.block_hash.0.into());
-                    tx.block_number = Some(new_block_number);
-                    tx.status = TransactionStatus::AcceptedOnL2;
-                } else {
-                    error!("Transaction is not present in the transactions colletion");
-                }
+            if let Some(tx) = self.transactions.get_by_hash_mut(&t.get_hash()) {
+                tx.block_hash = Some(new_block.header.block_hash.0.into());
+                tx.block_number = Some(new_block_number);
+                tx.status = TransactionStatus::AcceptedOnL2;
             } else {
-                error!("Transaction has no generated hash");
+                error!("Transaction is not present in the transactions collection");
             }
         });
 
@@ -229,7 +230,7 @@ impl Starknet {
         chain_id: StarknetChainId,
     ) -> Result<BlockContext> {
         let starknet_os_config = StarknetOsConfig::new(
-            chain_id,
+            chain_id.to_felt(),
             starknet_in_rust::utils::Address(
                 Felt::from_prefixed_hex_str(fee_token_address)?.into(),
             ),
@@ -345,17 +346,61 @@ impl Starknet {
     ) -> Result<Vec<Felt>> {
         let state = self.get_state_at(&block_id)?;
 
+        if !self.state.is_contract_deployed(&ContractAddress::new(contract_address)?) {
+            return Err(Error::ContractNotFound);
+        }
+
         let result = call_contract(
             contract_address.into(),
             entrypoint_selector.into(),
             calldata.iter().map(|c| c.into()).collect(),
             &mut state.pending_state.clone(),
             self.block_context.clone(),
-            // dummy caller_address since there is no account address; safe to unwrap since it's
-            // just 0
-            ContractAddress::zero().try_into().unwrap(),
+            // dummy caller_address since there is no account address
+            ContractAddress::zero().try_into()?,
         )?;
         Ok(result.iter().map(|e| Felt::from(e.clone())).collect())
+    }
+
+    /// Returns just the gas usage, not the overall fee
+    pub fn estimate_gas_usage(
+        &self,
+        block_id: BlockId,
+        transactions: &[Transaction],
+    ) -> Result<Vec<u64>> {
+        let state = self.get_state_at(&block_id)?;
+
+        // Vec<(Fee, GasUsage)>
+        let estimation_pairs = starknet_in_rust::estimate_fee(
+            &transactions
+                .iter()
+                .map(|txn| match txn {
+                    Transaction::Declare(declare) => {
+                        starknet_in_rust::transaction::Transaction::Declare(declare.inner.clone())
+                    }
+                    Transaction::DeclareV2(declare_v2) => {
+                        starknet_in_rust::transaction::Transaction::DeclareV2(Box::new(
+                            declare_v2.inner.clone(),
+                        ))
+                    }
+                    Transaction::DeployAccount(deploy) => {
+                        starknet_in_rust::transaction::Transaction::DeployAccount(
+                            deploy.inner.clone(),
+                        )
+                    }
+                    Transaction::Invoke(invoke) => {
+                        starknet_in_rust::transaction::Transaction::InvokeFunction(
+                            invoke.inner.clone(),
+                        )
+                    }
+                })
+                .collect::<Vec<starknet_in_rust::transaction::Transaction>>(),
+            state.pending_state.clone(),
+            &self.block_context,
+        )?;
+
+        // extract the gas usage because fee is always 0
+        Ok(estimation_pairs.into_iter().map(|(_, gas_usage)| gas_usage as u64).collect())
     }
 
     pub fn add_declare_transaction_v1(
@@ -499,15 +544,12 @@ impl Starknet {
 #[cfg(test)]
 mod tests {
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
-    use starknet_in_rust::core::errors::state_errors::StateError;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_in_rust::felt::Felt252;
     use starknet_in_rust::transaction::error::TransactionError;
-    use starknet_in_rust::utils::Address;
     use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
-    use starknet_types::traits::HashProducer;
 
     use super::Starknet;
     use crate::blocks::StarknetBlock;
@@ -566,15 +608,13 @@ mod tests {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        let mut tx = dummy_declare_transaction_v1();
-        let tx_hash = tx.generate_hash().unwrap();
-        tx.transaction_hash = Some(tx_hash);
+        let tx = dummy_declare_transaction_v1();
 
         // add transaction to pending block
         starknet
             .blocks
             .pending_block
-            .add_transaction(crate::transactions::Transaction::Declare(tx));
+            .add_transaction(crate::transactions::Transaction::Declare(tx.clone()));
 
         // pending block has some transactions
         assert!(!starknet.pending_block().get_transactions().is_empty());
@@ -589,7 +629,7 @@ mod tests {
         let added_block = starknet.blocks.num_to_block.get(&BlockNumber(0)).unwrap();
 
         assert!(added_block.get_transactions().len() == 1);
-        assert_eq!(added_block.get_transactions().first().unwrap().get_hash().unwrap(), tx_hash);
+        assert_eq!(added_block.get_transactions().first().unwrap().get_hash(), tx.transaction_hash);
     }
 
     #[test]
@@ -698,12 +738,7 @@ mod tests {
             entry_point_selector.into(),
             vec![],
         ) {
-            Err(Error::TransactionError(TransactionError::State(
-                StateError::NoneContractState(Address(address)),
-            ))) => {
-                let received_address_hex = format!("0x{}", address.to_str_radix(16));
-                assert_eq!(received_address_hex.as_str(), undeployed_address_hex);
-            }
+            Err(Error::ContractNotFound) => (),
             unexpected => panic!("Should have failed; got {unexpected:?}"),
         }
     }
@@ -807,9 +842,7 @@ mod tests {
 
         assert_eq!(num_no_transactions.unwrap(), 0);
 
-        let mut tx = dummy_declare_transaction_v1();
-        let tx_hash = tx.generate_hash().unwrap();
-        tx.transaction_hash = Some(tx_hash);
+        let tx = dummy_declare_transaction_v1();
 
         // add transaction to pending block
         starknet

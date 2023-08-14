@@ -40,7 +40,7 @@ impl Account {
         fee_token_address: ContractAddress,
     ) -> Self {
         // insanely big - should practically never run out of funds
-        let initial_balance = BigUint::from(2u32).pow(251);
+        let initial_balance = BigUint::from(u128::MAX);
         let initial_balance_hex = format!("0x{}", initial_balance.to_str_radix(16));
         Self {
             public_key: Key::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_PUBLIC_KEY).unwrap(),

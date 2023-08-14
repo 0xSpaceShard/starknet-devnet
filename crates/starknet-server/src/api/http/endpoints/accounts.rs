@@ -1,11 +1,11 @@
 use axum::extract::Query;
 use axum::{Extension, Json};
+use starknet_types::contract_address::ContractAddress;
 use starknet_types::traits::ToDecimalString;
 
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{Balance, SerializableAccount};
 use crate::api::http::{HttpApiHandler, HttpApiResult};
-use starknet_types::contract_address::ContractAddress;
 
 pub(crate) async fn get_predeployed_accounts(
     Extension(state): Extension<HttpApiHandler>,

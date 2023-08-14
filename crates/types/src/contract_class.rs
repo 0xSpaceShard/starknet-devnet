@@ -180,12 +180,21 @@ mod tests {
     use crate::felt::Felt;
     use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
     use crate::traits::{HashProducer, ToHexString};
-    use crate::utils::test_utils::{CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH};
-
+    use crate::utils::test_utils::{
+        CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH, CAIRO_1_CONTRACT_PATH,
+        CAIRO_1_CONTRACT_SIERRA_HASH,
+    };
+    
     #[test]
-    #[ignore]
     fn cairo_1_contract_class_hash_generated_successfully() {
-        panic!("Add check with expected class hash generated from sierra");
+        let cairo_1_contract_sierra = ContractClass::cairo_1_from_sierra_json_str(
+            &std::fs::read_to_string(CAIRO_1_CONTRACT_PATH).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            Felt::from_prefixed_hex_str(CAIRO_1_CONTRACT_SIERRA_HASH).unwrap(),
+            cairo_1_contract_sierra.generate_hash().unwrap()
+        );
     }
 
     #[test]

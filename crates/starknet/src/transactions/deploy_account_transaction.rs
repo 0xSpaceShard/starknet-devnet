@@ -8,12 +8,12 @@ use crate::error::{self, Result};
 
 #[derive(Clone)]
 pub struct DeployAccountTransaction {
-    pub(crate) inner: DeployAccount,
-    pub(crate) chain_id: Felt,
-    pub(crate) signature: Vec<Felt>,
-    pub(crate) max_fee: u128,
-    pub(crate) nonce: Felt,
-    pub(crate) version: Felt,
+    pub inner: DeployAccount,
+    pub chain_id: Felt,
+    pub signature: Vec<Felt>,
+    pub max_fee: u128,
+    pub nonce: Felt,
+    pub version: Felt,
 }
 
 impl Eq for DeployAccountTransaction {}
@@ -39,12 +39,6 @@ impl DeployAccountTransaction {
         chain_id: Felt,
         version: Felt,
     ) -> Result<Self> {
-        if max_fee == 0 {
-            return Err(error::Error::TransactionError(TransactionError::FeeError(
-                "For deploy account transaction, max fee cannot be 0".to_string(),
-            )));
-        }
-
         let starknet_in_rust_deploy_account = DeployAccount::new(
             class_hash.bytes(),
             max_fee,
@@ -88,31 +82,55 @@ impl HashProducer for DeployAccountTransaction {
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    #[ignore]
-    fn correct_transaction_hash_computation() {
-        todo!("Transaction hash computation should be checked")
+    use serde::Deserialize;
+    use starknet_in_rust::definitions::block_context::StarknetChainId;
+    use starknet_types::contract_address::ContractAddress;
+    use starknet_types::felt::Felt;
+    use starknet_types::traits::{HashProducer, ToHexString};
+
+    #[derive(Deserialize)]
+    struct FeederGatewayDeployAccountTransaction {
+        transaction_hash: Felt,
+        version: Felt,
+        max_fee: Felt,
+        nonce: Felt,
+        constructor_calldata: Vec<Felt>,
+        contract_address: Felt,
+        contract_address_salt: Felt,
+        class_hash: Felt,
     }
 
     #[test]
-    fn account_deploy_transaction_with_max_fee_zero_should_return_an_error() {
-        let result = super::DeployAccountTransaction::new(
-            vec![0.into(), 1.into()],
-            0,
-            vec![0.into(), 1.into()],
-            0.into(),
-            0.into(),
-            0.into(),
-            0.into(),
-            0.into(),
-        );
+    fn correct_transaction_hash_computation_compared_to_a_transaction_from_feeder_gateway() {
+        let json_obj: serde_json::Value = serde_json::from_reader(std::fs::File::open(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test_artifacts/sequencer_response/deploy_account_testnet_0x23a872d966d4f6091cc3725604fdaa1b39cef76ebf38b9a06a0b71e9ed700ea.json"
+        )).unwrap()).unwrap();
 
-        assert!(result.is_err());
-        match result.err().unwrap() {
-            crate::error::Error::TransactionError(
-                starknet_in_rust::transaction::error::TransactionError::FeeError(msg),
-            ) => assert_eq!(msg, "For deploy account transaction, max fee cannot be 0"),
-            _ => panic!("Wrong error type"),
-        }
+        let feeder_gateway_transaction: FeederGatewayDeployAccountTransaction =
+            serde_json::from_value(json_obj.get("transaction").unwrap().clone()).unwrap();
+
+        let deploy_account_transaction = super::DeployAccountTransaction::new(
+            feeder_gateway_transaction.constructor_calldata,
+            u128::from_str_radix(&feeder_gateway_transaction.max_fee.to_nonprefixed_hex_str(), 16)
+                .unwrap(),
+            vec![],
+            feeder_gateway_transaction.nonce,
+            feeder_gateway_transaction.class_hash,
+            feeder_gateway_transaction.contract_address_salt,
+            StarknetChainId::TestNet.to_felt().into(),
+            feeder_gateway_transaction.version,
+        )
+        .unwrap();
+
+        assert_eq!(
+            ContractAddress::new(feeder_gateway_transaction.contract_address).unwrap(),
+            ContractAddress::try_from(deploy_account_transaction.inner.contract_address().clone())
+                .unwrap()
+        );
+        assert_eq!(
+            feeder_gateway_transaction.transaction_hash,
+            deploy_account_transaction.generate_hash().unwrap()
+        );
     }
 }

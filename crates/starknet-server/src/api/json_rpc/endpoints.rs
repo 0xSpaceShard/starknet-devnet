@@ -1,15 +1,19 @@
 use starknet_core::error::Error;
 use starknet_in_rust::core::errors::state_errors::StateError;
+use starknet_in_rust::definitions::block_context::StarknetChainId;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::utils::Address;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::starknet_api::block::BlockNumber;
-use starknet_types::starknet_api::transaction::Fee;
 use starknet_types::traits::ToHexString;
 
 use super::error::{self, ApiError};
 use super::models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
+use super::write_endpoints::{
+    convert_to_declare_transaction_v1, convert_to_declare_transaction_v2,
+    convert_to_deploy_account_transaction, convert_to_invoke_transaction_v1,
+};
 use super::{JsonRpcHandler, RpcResult};
 use crate::api::models::block::{Block, BlockHeader};
 use crate::api::models::state::{
@@ -17,9 +21,9 @@ use crate::api::models::state::{
     ThinStateDiff,
 };
 use crate::api::models::transaction::{
-    BroadcastedTransactionWithType, DeclareTransactionV0V1, DeclareTransactionV2, EventFilter,
-    EventsChunk, FunctionCall, Transaction, TransactionReceipt, TransactionType,
-    TransactionWithType, Transactions,
+    BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
+    BroadcastedTransactionWithType, EventFilter, EventsChunk, FunctionCall, Transaction,
+    TransactionReceipt, TransactionWithType, Transactions,
 };
 use crate::api::models::{BlockId, PatriciaKeyHex};
 use starknet_rs_core::types::ContractClass as CodegenContractClass;
@@ -42,7 +46,7 @@ impl JsonRpcHandler {
                     .get_transactions()
                     .iter()
                     // We shouldnt get in the situation where tx hash is None
-                    .map(|tx| tx.get_hash().unwrap_or_default())
+                    .map(|tx| tx.get_hash())
                     .collect(),
             ),
         })
@@ -155,47 +159,7 @@ impl JsonRpcHandler {
             .transactions
             .get(&transaction_hash)
             .ok_or(error::ApiError::TransactionNotFound)?;
-        let transaction_type;
-        let transaction_data: Transaction = match transaction_to_map.inner.clone() {
-            starknet_core::transactions::Transaction::Declare(declare_v1) => {
-                transaction_type = TransactionType::Declare;
-                Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version1(
-                    DeclareTransactionV0V1 {
-                        class_hash: declare_v1.class_hash.unwrap_or_default(),
-                        sender_address: declare_v1.sender_address,
-                        nonce: declare_v1.nonce,
-                        max_fee: Fee(declare_v1.max_fee),
-                        version: Felt::from(1),
-                        transaction_hash: declare_v1.transaction_hash.unwrap(),
-                        signature: declare_v1.signature,
-                    },
-                ))
-            }
-            starknet_core::transactions::Transaction::DeclareV2(declare_v2) => {
-                transaction_type = TransactionType::Declare;
-                Transaction::Declare(crate::api::models::transaction::DeclareTransaction::Version2(
-                    DeclareTransactionV2 {
-                        class_hash: declare_v2.class_hash.unwrap(),
-                        sender_address: declare_v2.sender_address,
-                        nonce: declare_v2.nonce,
-                        max_fee: Fee(declare_v2.max_fee),
-                        version: Felt::from(2),
-                        transaction_hash: declare_v2.transaction_hash.unwrap(),
-                        signature: declare_v2.signature,
-                        compiled_class_hash: declare_v2.compiled_class_hash,
-                    },
-                ))
-            }
-            starknet_core::transactions::Transaction::DeployAccount(_deploy) => {
-                return Err(error::ApiError::TransactionNotFound);
-            }
-            starknet_core::transactions::Transaction::Invoke(_invoke) => {
-                return Err(error::ApiError::TransactionNotFound);
-            }
-        };
-
-        let transaction =
-            TransactionWithType { transaction: transaction_data, r#type: transaction_type };
+        let transaction = TransactionWithType::try_from(&transaction_to_map.inner)?;
 
         Ok(transaction)
     }
@@ -203,10 +167,22 @@ impl JsonRpcHandler {
     /// starknet_getTransactionByBlockIdAndIndex
     pub(crate) async fn get_transaction_by_block_id_and_index(
         &self,
-        _block_id: BlockId,
-        _index: BlockNumber,
+        block_id: BlockId,
+        index: u64,
     ) -> RpcResult<TransactionWithType> {
-        Err(error::ApiError::InvalidTransactionIndexInBlock)
+        let starknet = self.api.starknet.read().await;
+        match starknet.get_block(block_id.into()) {
+            Ok(block) => {
+                let transaction = block
+                    .transactions
+                    .get(index as usize)
+                    .ok_or(error::ApiError::InvalidTransactionIndexInBlock)?;
+
+                TransactionWithType::try_from(transaction)
+            }
+            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
+            Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),
+        }
     }
 
     /// starknet_getTransactionReceipt
@@ -288,17 +264,37 @@ impl JsonRpcHandler {
             Err(Error::TransactionError(TransactionError::State(
                 StateError::NoneContractState(Address(_address)),
             ))) => Err(ApiError::ContractNotFound),
-            Err(_) => Err(ApiError::ContractError),
+            Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
+            Err(err) => Err(ApiError::ContractError { msg: err.to_string() }),
         }
     }
 
     /// starknet_estimateFee
     pub(crate) async fn estimate_fee(
         &self,
-        _block_id: BlockId,
-        _request: Vec<BroadcastedTransactionWithType>,
+        block_id: BlockId,
+        request: Vec<BroadcastedTransactionWithType>,
     ) -> RpcResult<Vec<EstimateFeeOutput>> {
-        Err(error::ApiError::ContractError)
+        let starknet = self.api.starknet.read().await;
+        let mut transactions = vec![];
+        for broadcasted_tx in request {
+            transactions.push(convert_broadcasted_tx(
+                broadcasted_tx.transaction,
+                starknet.config.chain_id,
+            )?);
+        }
+
+        match starknet.estimate_gas_usage(block_id.into(), &transactions) {
+            Ok(result) => Ok(result
+                .iter()
+                .map(|gas_consumed| EstimateFeeOutput {
+                    gas_consumed: format!("0x{gas_consumed:x}"),
+                    gas_price: format!("0x{:x}", starknet.config.gas_price),
+                    overall_fee: format!("0x{:x}", starknet.config.gas_price * gas_consumed),
+                })
+                .collect()),
+            Err(err) => Err(ApiError::ContractError { msg: err.to_string() }),
+        }
     }
 
     /// starknet_blockNumber
@@ -363,5 +359,37 @@ impl JsonRpcHandler {
             })?;
 
         Ok(nonce)
+    }
+}
+
+fn convert_broadcasted_tx(
+    broadcasted_tx: BroadcastedTransaction,
+    chain_id: StarknetChainId,
+) -> RpcResult<starknet_core::transactions::Transaction> {
+    let chain_id = Felt::from(chain_id.to_felt());
+    match broadcasted_tx {
+        BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V0(_)) => {
+            Err(ApiError::UnsupportedAction { msg: "Invoke V0 is not supported".into() })
+        }
+        BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(broadcasted_tx)) => {
+            Ok(starknet_core::transactions::Transaction::Invoke(Box::new(
+                convert_to_invoke_transaction_v1(broadcasted_tx, chain_id)?,
+            )))
+        }
+        BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(broadcasted_tx)) => {
+            Ok(starknet_core::transactions::Transaction::Declare(Box::new(
+                convert_to_declare_transaction_v1(*broadcasted_tx, chain_id)?,
+            )))
+        }
+        BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(broadcasted_tx)) => {
+            Ok(starknet_core::transactions::Transaction::DeclareV2(Box::new(
+                convert_to_declare_transaction_v2(*broadcasted_tx, chain_id)?,
+            )))
+        }
+        BroadcastedTransaction::DeployAccount(broadcasted_tx) => {
+            Ok(starknet_core::transactions::Transaction::DeployAccount(Box::new(
+                convert_to_deploy_account_transaction(broadcasted_tx, chain_id)?,
+            )))
+        }
     }
 }

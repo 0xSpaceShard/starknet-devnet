@@ -1,4 +1,3 @@
-use starknet_types::felt::ClassHash;
 use starknet_types::starknet_api::transaction::Fee;
 
 use super::json_rpc::error::ApiError;
@@ -13,12 +12,12 @@ impl TryFrom<&starknet_core::transactions::Transaction> for TransactionWithType 
         let transaction_with_type = match txn {
             starknet_core::transactions::Transaction::Declare(declare_v1) => {
                 let declare_txn = DeclareTransactionV0V1 {
-                    class_hash: declare_v1.class_hash().cloned().unwrap_or(ClassHash::default()),
+                    class_hash: *declare_v1.class_hash(),
                     sender_address: *declare_v1.sender_address(),
                     nonce: *txn.nonce(),
                     max_fee: Fee(txn.max_fee()),
                     version: *txn.version(),
-                    transaction_hash: txn.get_hash().unwrap_or_default(),
+                    transaction_hash: txn.get_hash(),
                     signature: txn.signature().to_vec(),
                 };
                 TransactionWithType {
@@ -28,13 +27,13 @@ impl TryFrom<&starknet_core::transactions::Transaction> for TransactionWithType 
             }
             starknet_core::transactions::Transaction::DeclareV2(declare_v2) => {
                 let declare_txn = DeclareTransactionV2 {
-                    class_hash: declare_v2.class_hash().cloned().unwrap_or(ClassHash::default()),
+                    class_hash: *declare_v2.class_hash(),
                     compiled_class_hash: *declare_v2.compiled_class_hash(),
                     sender_address: *declare_v2.sender_address(),
                     nonce: *txn.nonce(),
                     max_fee: Fee(txn.max_fee()),
                     version: *txn.version(),
-                    transaction_hash: txn.get_hash().unwrap_or_default(),
+                    transaction_hash: txn.get_hash(),
                     signature: txn.signature().to_vec(),
                 };
 
@@ -48,7 +47,7 @@ impl TryFrom<&starknet_core::transactions::Transaction> for TransactionWithType 
                     nonce: *txn.nonce(),
                     max_fee: Fee(txn.max_fee()),
                     version: *txn.version(),
-                    transaction_hash: txn.get_hash().unwrap_or_default(),
+                    transaction_hash: txn.get_hash(),
                     signature: txn.signature().to_vec(),
                     class_hash: deploy_account
                         .class_hash()
@@ -70,7 +69,7 @@ impl TryFrom<&starknet_core::transactions::Transaction> for TransactionWithType 
                     nonce: *txn.nonce(),
                     max_fee: Fee(txn.max_fee()),
                     version: *txn.version(),
-                    transaction_hash: txn.get_hash().unwrap_or_default(),
+                    transaction_hash: txn.get_hash(),
                     signature: txn.signature().to_vec(),
                     calldata: invoke_v1.calldata().to_vec(),
                 };

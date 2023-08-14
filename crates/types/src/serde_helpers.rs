@@ -17,6 +17,7 @@ pub mod empty_params {
     }
 }
 
+<<<<<<<< HEAD:crates/types/src/serde_helpers.rs
 pub mod rpc_sierra_contract_class_to_sierra_contract_class {
     use serde::{Deserialize, Deserializer};
 
@@ -300,6 +301,11 @@ pub mod base_64_gzipped_json_string {
     use serde::{Deserialize, Deserializer, Serializer};
     use serde_json::Value;
     use starknet_rs_core::serde::byte_array::base64 as base64Sir;
+========
+pub mod base_64_gzipped_json_string {
+    use base64::Engine;
+    use serde::{Deserialize, Deserializer};
+>>>>>>>> main:crates/starknet-server/src/api/serde_helpers.rs
     use starknet_rs_core::types::contract::legacy::LegacyProgram;
 
     pub fn deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order<'de, D>(
@@ -313,12 +319,19 @@ pub mod base_64_gzipped_json_string {
             return Ok(serde_json::Value::Null);
         }
 
+<<<<<<<< HEAD:crates/types/src/serde_helpers.rs
         // TODO: change on starknet_rs_core::serde::byte_array::base64
+========
+>>>>>>>> main:crates/starknet-server/src/api/serde_helpers.rs
         let bytes = base64::engine::general_purpose::STANDARD
             .decode(buf)
             .map_err(|_| serde::de::Error::custom("program: Unable to decode base64 string"))?;
 
         let decoder = flate2::read::GzDecoder::new(bytes.as_slice());
+<<<<<<<< HEAD:crates/types/src/serde_helpers.rs
+========
+
+>>>>>>>> main:crates/starknet-server/src/api/serde_helpers.rs
         let starknet_program: LegacyProgram = serde_json::from_reader(decoder)
             .map_err(|_| serde::de::Error::custom("program: Unable to decode gzipped bytes"))?;
 
@@ -326,6 +339,7 @@ pub mod base_64_gzipped_json_string {
             .map_err(|_| serde::de::Error::custom("program: Unable to parse to JSON"))
     }
 
+<<<<<<<< HEAD:crates/types/src/serde_helpers.rs
     pub fn serialize_program_to_base64<S>(program: &Value, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -338,15 +352,24 @@ pub mod base_64_gzipped_json_string {
         base64Sir::serialize(&buffer, serializer)
     }
 
+========
+>>>>>>>> main:crates/starknet-server/src/api/serde_helpers.rs
     #[cfg(test)]
     mod tests {
         use serde::Deserialize;
 
+<<<<<<<< HEAD:crates/types/src/serde_helpers.rs
         use crate::serde_helpers::base_64_gzipped_json_string::deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order;
 
         #[test]
         fn deserialize_successfully_starknet_api_program() {
             // TODO: move test data
+========
+        use crate::api::serde_helpers::base_64_gzipped_json_string::deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order;
+
+        #[test]
+        fn deserialize_successfully_starknet_api_program() {
+>>>>>>>> main:crates/starknet-server/src/api/serde_helpers.rs
             let json_str = std::fs::read_to_string(concat!(
                 env!("CARGO_MANIFEST_DIR"),
                 "/test_data/rpc/cairo_0_base64_gzipped_program.json"
