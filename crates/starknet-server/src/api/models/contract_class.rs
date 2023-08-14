@@ -1,9 +1,8 @@
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use serde::{Deserialize, Serialize};
 use starknet_types::felt::Felt;
-use starknet_types::starknet_api::state::EntryPoint;
-use starknet_types::starknet_api::state::EntryPointType;
+use starknet_types::starknet_api::state::{EntryPoint, EntryPointType};
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub struct SierraContractClass {
@@ -16,12 +15,11 @@ pub struct SierraContractClass {
 
 #[cfg(test)]
 mod tests {
-    use starknet_types::felt::Felt;
-
     use starknet_types::abi_entry::{AbiEntry, AbiEntryType, FunctionAbiEntry};
     use starknet_types::contract_class::deprecated::rpc_contract_class::{
         ContractClassAbiEntryWithType, DeprecatedContractClass,
     };
+    use starknet_types::felt::Felt;
 
     #[test]
     fn deserialize_contract_class_abi_entry_with_type() {

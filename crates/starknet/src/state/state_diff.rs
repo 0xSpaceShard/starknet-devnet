@@ -90,12 +90,12 @@ impl StateDiff {
 
 #[cfg(test)]
 mod tests {
-    use starknet_in_rust::CasmContractClass;
     use std::collections::HashMap;
     use std::sync::Arc;
 
     use starknet_in_rust::state::cached_state::{CachedState, CasmClassCache, ContractClassCache};
     use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
+    use starknet_in_rust::CasmContractClass;
     use starknet_types::contract_class::Cairo0ContractClass;
     use starknet_types::felt::Felt;
 

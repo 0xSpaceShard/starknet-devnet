@@ -1,13 +1,13 @@
-use crate::error::{Error, Result};
-use crate::starknet::Starknet;
 use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass;
 use starknet_in_rust::state::state_api::StateReader;
 use starknet_in_rust::SierraContractClass;
 use starknet_rs_core::types::BlockId;
-
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
 use starknet_types::felt::ClassHash;
+
+use crate::error::{Error, Result};
+use crate::starknet::Starknet;
 
 pub fn get_class_hash_at_impl(
     starknet: &mut Starknet,

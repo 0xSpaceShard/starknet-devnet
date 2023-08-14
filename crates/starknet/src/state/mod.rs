@@ -268,12 +268,14 @@ mod tests {
             dummy_contract_address().try_into().unwrap();
 
         // check if current nonce is 0
-        assert!(state
-            .state
-            .address_to_nonce
-            .get(&starknet_in_rust_address)
-            .unwrap()
-            .eq(&Felt252::from(0)));
+        assert!(
+            state
+                .state
+                .address_to_nonce
+                .get(&starknet_in_rust_address)
+                .unwrap()
+                .eq(&Felt252::from(0))
+        );
 
         state.synchronize_states();
         state.pending_state.increment_nonce(&starknet_in_rust_address).unwrap();
@@ -282,12 +284,14 @@ mod tests {
             .unwrap();
 
         // check if nonce update was correct
-        assert!(state
-            .state
-            .address_to_nonce
-            .get(&starknet_in_rust_address)
-            .unwrap()
-            .eq(&Felt252::from(1)));
+        assert!(
+            state
+                .state
+                .address_to_nonce
+                .get(&starknet_in_rust_address)
+                .unwrap()
+                .eq(&Felt252::from(1))
+        );
     }
 
     #[test]
@@ -296,9 +300,11 @@ mod tests {
         let class_hash = Felt::from_prefixed_hex_str("0xFE").unwrap();
 
         let contract_class: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
-        assert!(state
-            .declare_contract_class(class_hash, contract_class.clone().try_into().unwrap())
-            .is_ok());
+        assert!(
+            state
+                .declare_contract_class(class_hash, contract_class.clone().try_into().unwrap())
+                .is_ok()
+        );
         assert!(state.state.class_hash_to_contract_class.len() == 1);
         let declared_contract_class =
             state.state.class_hash_to_contract_class.get(&class_hash.bytes());
@@ -314,12 +320,14 @@ mod tests {
         assert!(state.deploy_contract(address, felt).is_ok());
         assert!(state.state.address_to_class_hash.len() == 1);
         assert!(state.state.address_to_class_hash.contains_key(&(address.try_into().unwrap())));
-        assert!(state
-            .state
-            .address_to_nonce
-            .get(&(address.try_into().unwrap()))
-            .unwrap()
-            .eq(&Felt252::from(0)));
+        assert!(
+            state
+                .state
+                .address_to_nonce
+                .get(&(address.try_into().unwrap()))
+                .unwrap()
+                .eq(&Felt252::from(0))
+        );
     }
 
     #[test]

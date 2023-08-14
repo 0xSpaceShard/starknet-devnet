@@ -1,7 +1,8 @@
+use std::str::FromStr;
+
 use starknet_in_rust::core::contract_address::compute_deprecated_class_hash;
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
 use starknet_rs_core::types::CompressedLegacyContractClass;
-use std::str::FromStr;
 
 use crate::contract_class::deprecated::rpc_contract_class::DeprecatedContractClass;
 use crate::contract_class::Cairo0Json;

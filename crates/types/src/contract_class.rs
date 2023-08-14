@@ -1,19 +1,19 @@
+use core::fmt::Debug;
 use std::cmp::{Eq, PartialEq};
 
 use serde::{Serialize, Serializer};
+use starknet_in_rust::core::contract_address::compute_sierra_class_hash;
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
 use starknet_in_rust::SierraContractClass;
 use starknet_rs_core::types::{
     ContractClass as CodegenContractClass, FlattenedSierraClass as CodegenSierraContracrClass,
 };
+use starknet_rs_ff::FieldElement;
 
 use crate::error::{Error, JsonError};
 use crate::felt::Felt;
 use crate::traits::HashProducer;
 use crate::DevnetResult;
-use core::fmt::Debug;
-use starknet_in_rust::core::contract_address::compute_sierra_class_hash;
-use starknet_rs_ff::FieldElement;
 
 pub mod deprecated;
 pub use deprecated::json_contract_class::Cairo0Json;
@@ -168,10 +168,10 @@ impl TryInto<CodegenContractClass> for ContractClass {
 
 #[cfg(test)]
 mod tests {
-    use crate::contract_class::{convert_sierra_to_codegen, Cairo0Json, ContractClass};
     use serde_json::Deserializer;
     use starknet_in_rust::SierraContractClass;
 
+    use crate::contract_class::{convert_sierra_to_codegen, Cairo0Json, ContractClass};
     use crate::felt::Felt;
     use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
     use crate::traits::HashProducer;

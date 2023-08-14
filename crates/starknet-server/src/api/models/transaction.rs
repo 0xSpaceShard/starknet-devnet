@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 use starknet_rs_core::types::BlockId;
 use starknet_types::contract_address::ContractAddress;
+use starknet_types::contract_class::DeprecatedContractClass;
 use starknet_types::felt::{
     Calldata, ClassHash, CompiledClassHash, ContractAddressSalt, EntryPointSelector, Felt, Nonce,
     TransactionHash, TransactionSignature, TransactionVersion,
@@ -12,7 +13,6 @@ use starknet_types::starknet_api::block::BlockNumber;
 use starknet_types::starknet_api::transaction::{EthAddress, Fee};
 
 use super::block::BlockHashHex;
-use starknet_types::contract_class::DeprecatedContractClass;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]

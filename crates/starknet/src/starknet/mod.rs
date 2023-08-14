@@ -20,13 +20,21 @@ use starknet_rs_core::types::{BlockId, TransactionStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::Signer;
+use starknet_types::contract_address::ContractAddress;
+use starknet_types::contract_class::{Cairo0Json, ContractClass};
+use starknet_types::contract_storage_key::ContractStorageKey;
+use starknet_types::felt::{ClassHash, Felt, TransactionHash};
+use starknet_types::patricia_key::PatriciaKey;
+use starknet_types::traits::HashProducer;
 use tracing::error;
 
 use self::predeployed::initialize_erc20;
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
-use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT_PATH, ERC20_CONTRACT_ADDRESS};
-use crate::constants::{CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY};
+use crate::constants::{
+    CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
+    ERC20_CONTRACT_ADDRESS,
+};
 use crate::error::{Error, Result};
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::raw_execution::{Call, RawExecution};
@@ -41,12 +49,6 @@ use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
 use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
 use crate::transactions::invoke_transaction::InvokeTransactionV1;
 use crate::transactions::{StarknetTransaction, StarknetTransactions, Transaction};
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::{Cairo0Json, ContractClass};
-use starknet_types::contract_storage_key::ContractStorageKey;
-use starknet_types::felt::{ClassHash, Felt, TransactionHash};
-use starknet_types::patricia_key::PatriciaKey;
-use starknet_types::traits::HashProducer;
 
 mod add_declare_transaction;
 mod add_deploy_account_transaction;

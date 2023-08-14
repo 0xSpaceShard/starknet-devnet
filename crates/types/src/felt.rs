@@ -106,7 +106,7 @@ impl From<u128> for Felt {
 
 impl From<ContractAddress> for Felt {
     fn from(value: ContractAddress) -> Self {
-        value.0 .0
+        value.0.0
     }
 }
 
@@ -236,10 +236,12 @@ mod tests {
     use crate::traits::ToDecimalString;
     #[test]
     fn correct_conversion_from_hex_str_to_felt() {
-        assert!(Felt::from_prefixed_hex_str(
-            "0x3FCBF77B28C96F4F2FB5BD2D176AB083A12A5E123ADEB0DE955D7EE228C9854"
+        assert!(
+            Felt::from_prefixed_hex_str(
+                "0x3FCBF77B28C96F4F2FB5BD2D176AB083A12A5E123ADEB0DE955D7EE228C9854"
+            )
+            .is_ok()
         )
-        .is_ok())
     }
 
     #[test]

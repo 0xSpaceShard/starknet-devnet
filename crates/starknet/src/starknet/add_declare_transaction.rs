@@ -206,11 +206,13 @@ mod tests {
 
         // check if contract is not declared
         assert!(!starknet.state.is_contract_declared(&expected_class_hash));
-        assert!(!starknet
-            .state
-            .state
-            .casm_contract_classes_mut()
-            .contains_key(&expected_compiled_class_hash.bytes()));
+        assert!(
+            !starknet
+                .state
+                .state
+                .casm_contract_classes_mut()
+                .contains_key(&expected_compiled_class_hash.bytes())
+        );
 
         let (tx_hash, retrieved_class_hash) =
             starknet.add_declare_transaction_v2(declare_txn).unwrap();

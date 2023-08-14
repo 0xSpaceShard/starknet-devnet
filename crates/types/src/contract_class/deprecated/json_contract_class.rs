@@ -1,4 +1,6 @@
 use core::fmt::{Debug, Display, Formatter};
+use std::collections::HashMap;
+
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use serde::{Deserialize, Serialize};
@@ -8,13 +10,13 @@ use starknet_api::hash::{pedersen_hash_array, StarkFelt};
 use starknet_in_rust::core::errors::contract_address_errors::ContractAddressError;
 use starknet_in_rust::utils::calculate_sn_keccak;
 use starknet_rs_core::types::CompressedLegacyContractClass;
-use std::collections::HashMap;
 
 use crate::contract_class::deprecated::rpc_contract_class::DeprecatedContractClass;
 use crate::error::{Error, JsonError};
 use crate::felt::Felt;
 use crate::traits::HashProducer;
-use crate::{utils::StarknetFormatter, DevnetResult};
+use crate::utils::StarknetFormatter;
+use crate::DevnetResult;
 
 #[derive(Clone, Eq, PartialEq, Debug, Default, Serialize, Deserialize)]
 pub struct Cairo0Json {
@@ -248,9 +250,10 @@ pub fn json_into_raw_program(json_data: &Value) -> DevnetResult<Vec<u8>> {
 
 #[cfg(test)]
 mod tests {
+    use starknet_rs_core::types::CompressedLegacyContractClass;
+
     use crate::contract_class::Cairo0Json;
     use crate::utils::test_utils::CAIRO_0_ACCOUNT_CONTRACT_PATH;
-    use starknet_rs_core::types::CompressedLegacyContractClass;
 
     #[test]
     fn test_unzipped_to_codegen_conversion() {
