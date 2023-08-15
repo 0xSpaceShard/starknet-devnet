@@ -57,25 +57,25 @@ pub(crate) fn get_events(
     // then iterate over each transaction events and filter them
     for block in blocks {
         for transaction_hash in block.get_transactions() {
-            let transaction = starknet
-                .transactions
-                .get_by_hash(*transaction_hash)
-                .ok_or(Error::NoTransaction)?;
+            let transaction =
+                starknet.transactions.get_by_hash(*transaction_hash).ok_or(Error::NoTransaction)?;
 
             // filter the events from the transaction
             let filtered_transaction_events = transaction
                 .get_events()?
                 .into_iter()
                 .filter(|event| check_if_filter_applies_for_event(&address, &keys_filter, event))
-                .skip_while(|_| {if skip > 0 {
-                    skip -= 1;
-                    true
-                } else {
-                    false
-                }});
+                .skip_while(|_| {
+                    if skip > 0 {
+                        skip -= 1;
+                        true
+                    } else {
+                        false
+                    }
+                });
 
             // produce an emitted event for each filtered transaction event
-            for transaction_event in filtered_transaction_events{
+            for transaction_event in filtered_transaction_events {
                 // check if there are more elements to fetch
                 if let Some(limit) = limit {
                     if elements_added == limit {
@@ -87,10 +87,7 @@ pub(crate) fn get_events(
                     transaction_hash: *transaction_hash,
                     block_hash: block.block_hash(),
                     block_number: block.block_number(),
-                    from_address: transaction_event
-                        .from_address
-                        .try_into()
-                        .map_err(Error::from)?,
+                    from_address: transaction_event.from_address.try_into().map_err(Error::from)?,
                     keys: transaction_event.keys.into_iter().map(|el| el.into()).collect(),
                     data: transaction_event.data.into_iter().map(|el| el.into()).collect(),
                 };
