@@ -7,7 +7,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::Felt;
 
 use super::Starknet;
-use crate::error::{self, Result};
+use crate::error::{Error, Result};
 use crate::traits::HashIdentified;
 
 pub struct EmittedEvent {
@@ -60,7 +60,7 @@ pub(crate) fn get_events(
             let transaction = starknet
                 .transactions
                 .get_by_hash(*transaction_hash)
-                .ok_or(crate::error::Error::NoTransaction)?;
+                .ok_or(Error::NoTransaction)?;
 
             // filter the events from the transaction
             let filtered_transaction_events = transaction
@@ -91,7 +91,7 @@ pub(crate) fn get_events(
                     from_address: transaction_event
                         .from_address
                         .try_into()
-                        .map_err(error::Error::from)?,
+                        .map_err(Error::from)?,
                     keys: transaction_event.keys.into_iter().map(|el| el.into()).collect(),
                     data: transaction_event.data.into_iter().map(|el| el.into()).collect(),
                 };
