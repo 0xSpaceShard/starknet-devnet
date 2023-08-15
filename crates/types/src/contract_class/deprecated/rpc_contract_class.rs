@@ -5,7 +5,7 @@ use serde_json::Value;
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
 use starknet_rs_core::types::{CompressedLegacyContractClass, LegacyEntryPointsByType};
 
-use crate::abi_entry::{AbiEntry, AbiEntryType};
+use crate::contract_class::deprecated::abi_entry::{AbiEntry, AbiEntryType};
 use crate::contract_class::Cairo0Json;
 use crate::error::{Error, JsonError};
 use crate::felt::Felt;
@@ -95,7 +95,27 @@ impl TryInto<CompressedLegacyContractClass> for DeprecatedContractClass {
     type Error = Error;
     fn try_into(self) -> Result<CompressedLegacyContractClass, Self::Error> {
         // TODO: improve
-        let value: Cairo0Json = self.try_into()?;
-        Ok(serde_json::from_value(value.inner).map_err(JsonError::SerdeJsonError)?)
+        let cairo0: Cairo0Json = self.try_into()?;
+        cairo0.try_into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::contract_class::DeprecatedContractClass;
+    use crate::utils::test_utils::CAIRO_0_RPC_CONTRACT_PATH;
+    use starknet_rs_core::types::CompressedLegacyContractClass;
+
+    #[test]
+    fn test_rpc_deserialization() {
+        let _ = DeprecatedContractClass::rpc_from_path(CAIRO_0_RPC_CONTRACT_PATH).unwrap();
+    }
+
+    #[test]
+    fn test_rpc_to_codegen() {
+        let contract_class =
+            DeprecatedContractClass::rpc_from_path(CAIRO_0_RPC_CONTRACT_PATH).unwrap();
+
+        let _: CompressedLegacyContractClass = contract_class.try_into().unwrap();
     }
 }

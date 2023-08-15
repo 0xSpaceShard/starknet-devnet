@@ -38,8 +38,6 @@ pub enum ApiError {
     InvalidContractClass,
     #[error("Only latest/pending block is supported")]
     OnlyLatestBlock,
-    #[error("Serialization error")]
-    SerializationError(#[from] serde_json::Error),
     #[error("{msg}")]
     UnsupportedAction { msg: String },
 }

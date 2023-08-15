@@ -343,15 +343,11 @@ pub mod base_64_gzipped_json_string {
         use serde::Deserialize;
 
         use crate::serde_helpers::base_64_gzipped_json_string::deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order;
+        use crate::utils::test_utils::CAIRO_0_ZIPPED_PROGRAM_PATH;
 
         #[test]
         fn deserialize_successfully_starknet_api_program() {
-            // TODO: move test data
-            let json_str = std::fs::read_to_string(concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/test_data/rpc/cairo_0_base64_gzipped_program.json"
-            ))
-            .unwrap();
+            let json_str = std::fs::read_to_string(CAIRO_0_ZIPPED_PROGRAM_PATH).unwrap();
 
             #[derive(Deserialize)]
             struct TestDeserialization {

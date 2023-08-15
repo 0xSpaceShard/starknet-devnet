@@ -199,7 +199,16 @@ impl JsonRpcHandler {
         block_id: BlockId,
         class_hash: ClassHash,
     ) -> RpcResult<CodegenContractClass> {
-        Ok(self.api.starknet.read().await.get_class(block_id.into(), class_hash)?.try_into()?)
+        match self.api.starknet.read().await.get_class(block_id.into(), class_hash) {
+            Ok(contract_class) => Ok(contract_class.try_into()?),
+            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
+            Err(
+                Error::ContractNotFound
+                | Error::StateError(StateError::NoneContractState(_))
+                | Error::NoStateAtBlock { block_number: _ },
+            ) => Err(ApiError::ContractNotFound),
+            Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),
+        }
     }
 
     /// starknet_getClassAt
@@ -208,13 +217,16 @@ impl JsonRpcHandler {
         block_id: BlockId,
         contract_address: ContractAddress,
     ) -> RpcResult<CodegenContractClass> {
-        Ok(self
-            .api
-            .starknet
-            .read()
-            .await
-            .get_class_at(block_id.into(), contract_address)?
-            .try_into()?)
+        match self.api.starknet.read().await.get_class_at(block_id.into(), contract_address) {
+            Ok(contract_class) => Ok(contract_class.try_into()?),
+            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
+            Err(
+                Error::ContractNotFound
+                | Error::StateError(StateError::NoneContractState(_))
+                | Error::NoStateAtBlock { block_number: _ },
+            ) => Err(ApiError::ContractNotFound),
+            Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),
+        }
     }
 
     /// starknet_getClassHashAt
@@ -231,10 +243,7 @@ impl JsonRpcHandler {
                 | Error::StateError(StateError::NoneContractState(_))
                 | Error::NoStateAtBlock { block_number: _ },
             ) => Err(ApiError::ContractNotFound),
-            Err(unknown_error) => {
-                let unknown_error = unknown_error;
-                Err(ApiError::StarknetDevnetError(unknown_error))
-            }
+            Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),
         }
     }
 

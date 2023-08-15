@@ -21,14 +21,14 @@ pub fn get_class_hash_at_impl(
 fn get_sierra_class(starknet: &Starknet, class_hash: &ClassHash) -> Result<SierraContractClass> {
     match starknet.state.contract_classes.get(class_hash) {
         Some(contract) => Ok(contract.clone().try_into()?),
-        None => Err(Error::FormatError),
+        None => Err(Error::ContractNotFound),
     }
 }
 
 fn get_cairo_0_class(starknet: &Starknet, class_hash: &ClassHash) -> Result<Cairo0ContractClass> {
     match starknet.state.contract_classes.get(class_hash) {
         Some(contract) => Ok(contract.clone().try_into()?),
-        None => Err(Error::FormatError),
+        None => Err(Error::ContractNotFound),
     }
 }
 

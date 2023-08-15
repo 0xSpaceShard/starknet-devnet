@@ -1,8 +1,10 @@
 pub mod common;
 
 mod get_class_tests {
-    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement};
-    use starknet_rs_providers::Provider;
+    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
+    use starknet_rs_providers::{
+        MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
+    };
 
     use crate::common::constants::PREDEPLOYED_ACCOUNT_ADDRESS;
     use crate::common::util::BackgroundDevnet;
@@ -42,10 +44,18 @@ mod get_class_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let contract_address = FieldElement::from_hex_be("0x22").unwrap();
 
-        let _ = devnet
+        let err = devnet
             .json_rpc_client
             .get_class_at(BlockId::Tag(BlockTag::Latest), contract_address)
             .await
             .expect_err("Should have failed");
+
+        match err {
+            ProviderError::StarknetError(StarknetErrorWithMessage {
+                code: MaybeUnknownErrorCode::Known(StarknetError::ContractNotFound),
+                ..
+            }) => (),
+            _ => panic!("Invalid error: {err:?}"),
+        }
     }
 }

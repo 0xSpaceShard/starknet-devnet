@@ -11,6 +11,7 @@ use crate::felt::Felt;
 use crate::traits::HashProducer;
 use crate::DevnetResult;
 
+pub mod abi_entry;
 pub mod json_contract_class;
 pub mod rpc_contract_class;
 
