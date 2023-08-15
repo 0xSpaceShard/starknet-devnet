@@ -102,9 +102,10 @@ impl TryInto<CompressedLegacyContractClass> for DeprecatedContractClass {
 
 #[cfg(test)]
 mod tests {
+    use starknet_rs_core::types::CompressedLegacyContractClass;
+
     use crate::contract_class::DeprecatedContractClass;
     use crate::utils::test_utils::CAIRO_0_RPC_CONTRACT_PATH;
-    use starknet_rs_core::types::CompressedLegacyContractClass;
 
     #[test]
     fn test_rpc_deserialization() {

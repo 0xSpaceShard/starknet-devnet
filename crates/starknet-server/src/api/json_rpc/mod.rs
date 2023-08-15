@@ -11,7 +11,6 @@ use serde::{Deserialize, Serialize};
 use server::rpc_core::error::RpcError;
 use server::rpc_core::response::ResponseResult;
 use server::rpc_handler::RpcHandler;
-use starknet_types::serde_helpers::empty_params;
 use tracing::{error, info, trace};
 
 use self::error::ApiError;
@@ -20,6 +19,7 @@ use self::models::{
     BroadcastedInvokeTransactionInput,
 };
 use super::Api;
+use crate::api::serde_helpers::empty_params;
 
 pub(crate) type RpcResult<T> = std::result::Result<T, ApiError>;
 
