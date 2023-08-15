@@ -66,17 +66,16 @@ pub(crate) fn get_events(
             let filtered_transaction_events = transaction
                 .get_events()?
                 .into_iter()
-                .filter(|event| check_if_filter_applies_for_event(&address, &keys_filter, event));
-
-            // produce an emitted event for each filtered transaction event
-            for transaction_event in filtered_transaction_events.skip_while(|_| {
-                if skip > 0 {
+                .filter(|event| check_if_filter_applies_for_event(&address, &keys_filter, event))
+                .skip_while(|_| {if skip > 0 {
                     skip -= 1;
                     true
                 } else {
                     false
-                }
-            }) {
+                }});
+
+            // produce an emitted event for each filtered transaction event
+            for transaction_event in filtered_transaction_events{
                 // check if there are more elements to fetch
                 if let Some(limit) = limit {
                     if elements_added == limit {
