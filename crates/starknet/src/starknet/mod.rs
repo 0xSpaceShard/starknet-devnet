@@ -528,7 +528,7 @@ impl Starknet {
         self.transactions
             .get_by_hash(transaction_hash)
             .map(|starknet_transaction| &starknet_transaction.inner)
-            .ok_or(crate::error::Error::NoTransaction)
+            .ok_or(Error::NoTransaction)
     }
 
     pub fn get_events(
