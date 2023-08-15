@@ -3,6 +3,7 @@ use starknet_in_rust::core::errors::state_errors::StateError;
 use starknet_in_rust::definitions::block_context::StarknetChainId;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::utils::Address;
+use starknet_rs_core::types::ContractClass as CodegenContractClass;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::starknet_api::block::BlockNumber;
@@ -16,7 +17,6 @@ use super::write_endpoints::{
 };
 use super::{JsonRpcHandler, RpcResult};
 use crate::api::models::block::{Block, BlockHeader};
-use crate::api::models::contract_class::ContractClass;
 use crate::api::models::state::{
     ClassHashes, ContractNonce, DeployedContract, StateUpdate, StorageDiff, StorageEntry,
     ThinStateDiff,
@@ -195,10 +195,37 @@ impl JsonRpcHandler {
     /// starknet_getClass
     pub(crate) async fn get_class(
         &self,
-        _block_id: BlockId,
-        _class_hash: ClassHash,
-    ) -> RpcResult<ContractClass> {
-        Err(error::ApiError::ClassHashNotFound)
+        block_id: BlockId,
+        class_hash: ClassHash,
+    ) -> RpcResult<CodegenContractClass> {
+        match self.api.starknet.read().await.get_class(block_id.into(), class_hash) {
+            Ok(contract_class) => Ok(contract_class.try_into()?),
+            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
+            Err(
+                Error::ContractNotFound
+                | Error::StateError(StateError::NoneContractState(_))
+                | Error::NoStateAtBlock { block_number: _ },
+            ) => Err(ApiError::ContractNotFound),
+            Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),
+        }
+    }
+
+    /// starknet_getClassAt
+    pub(crate) async fn get_class_at(
+        &self,
+        block_id: BlockId,
+        contract_address: ContractAddress,
+    ) -> RpcResult<CodegenContractClass> {
+        match self.api.starknet.read().await.get_class_at(block_id.into(), contract_address) {
+            Ok(contract_class) => Ok(contract_class.try_into()?),
+            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
+            Err(
+                Error::ContractNotFound
+                | Error::StateError(StateError::NoneContractState(_))
+                | Error::NoStateAtBlock { block_number: _ },
+            ) => Err(ApiError::ContractNotFound),
+            Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),
+        }
     }
 
     /// starknet_getClassHashAt
@@ -207,24 +234,16 @@ impl JsonRpcHandler {
         block_id: BlockId,
         contract_address: ContractAddress,
     ) -> RpcResult<ClassHash> {
-        let starknet = self.api.starknet.read().await;
-        match starknet.get_class_hash_at(&block_id.into(), &contract_address) {
+        match self.api.starknet.read().await.get_class_hash_at(block_id.into(), contract_address) {
             Ok(class_hash) => Ok(class_hash),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
-            Err(Error::ContractNotFound | Error::NoStateAtBlock { block_number: _ }) => {
-                Err(ApiError::ContractNotFound)
-            }
+            Err(
+                Error::ContractNotFound
+                | Error::StateError(StateError::NoneContractState(_))
+                | Error::NoStateAtBlock { block_number: _ },
+            ) => Err(ApiError::ContractNotFound),
             Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),
         }
-    }
-
-    /// starknet_getClassAt
-    pub(crate) async fn get_class_at(
-        &self,
-        _block_id: BlockId,
-        _contract_address: ContractAddress,
-    ) -> RpcResult<ContractClass> {
-        Err(error::ApiError::ContractNotFound)
     }
 
     /// starknet_getBlockTransactionCount

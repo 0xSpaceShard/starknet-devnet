@@ -201,7 +201,7 @@ mod tests {
             default_felt,
             default_felt,
             default_felt,
-            dummy_cairo_0_contract_class(),
+            dummy_cairo_0_contract_class().into(),
             fee_token_address,
         )
         .unwrap();
@@ -263,7 +263,7 @@ mod tests {
                 Felt::from(13431515),
                 Felt::from(11),
                 dummy_felt(),
-                dummy_cairo_0_contract_class(),
+                dummy_cairo_0_contract_class().into(),
                 dummy_contract_address(),
             )
             .unwrap(),

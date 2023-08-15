@@ -62,6 +62,7 @@ pub fn add_deploy_account_transaction(
 mod tests {
     use starknet_rs_core::types::TransactionStatus;
     use starknet_types::contract_address::ContractAddress;
+    use starknet_types::contract_class::Cairo0Json;
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::{ClassHash, Felt};
     use starknet_types::traits::HashProducer;
@@ -70,7 +71,7 @@ mod tests {
     use crate::starknet::{predeployed, Starknet};
     use crate::traits::{Deployed, HashIdentifiedMut, StateChanger, StateExtractor};
     use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
-    use crate::utils::{get_storage_var_address, load_cairo_0_contract_class};
+    use crate::utils::get_storage_var_address;
 
     #[test]
     fn account_deploy_transaction_with_max_fee_zero_should_return_an_error() {
@@ -178,10 +179,10 @@ mod tests {
         let erc_20_contract = predeployed::create_erc20().unwrap();
         erc_20_contract.deploy(&mut starknet.state).unwrap();
 
-        let contract_class = load_cairo_0_contract_class(account_json_path).unwrap();
+        let contract_class = Cairo0Json::raw_json_from_path(account_json_path).unwrap();
         let class_hash = contract_class.generate_hash().unwrap();
-        starknet.state.declare_contract_class(class_hash, contract_class).unwrap();
 
+        starknet.state.declare_contract_class(class_hash, contract_class.into()).unwrap();
         starknet.state.synchronize_states();
         starknet.block_context = Starknet::get_block_context(
             1,

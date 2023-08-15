@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::time::SystemTime;
 
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
+use starknet_in_rust::call_contract;
 use starknet_in_rust::definitions::block_context::{
     BlockContext, StarknetChainId, StarknetOsConfig,
 };
@@ -15,12 +16,12 @@ use starknet_in_rust::state::state_api::State;
 use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
 use starknet_in_rust::utils::Address;
-use starknet_in_rust::{call_contract, SierraContractClass};
 use starknet_rs_core::types::{BlockId, TransactionStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::Signer;
 use starknet_types::contract_address::ContractAddress;
+use starknet_types::contract_class::{Cairo0Json, ContractClass};
 use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
@@ -50,11 +51,11 @@ use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
 use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
 use crate::transactions::invoke_transaction::InvokeTransactionV1;
 use crate::transactions::{StarknetTransaction, StarknetTransactions, Transaction};
-use crate::utils;
 
 mod add_declare_transaction;
 mod add_deploy_account_transaction;
 mod add_invoke_transaction;
+mod get_class_impls;
 mod events;
 mod predeployed;
 mod state_update;
@@ -94,7 +95,6 @@ pub struct Starknet {
     blocks: StarknetBlocks,
     pub transactions: StarknetTransactions,
     pub config: StarknetConfig,
-    pub(in crate::starknet) sierra_contracts: HashMap<ClassHash, SierraContractClass>,
 }
 
 impl Starknet {
@@ -114,14 +114,13 @@ impl Starknet {
             config.predeployed_accounts_initial_balance,
             erc20_fee_contract.get_address(),
         );
-        let account_contract_class =
-            utils::load_cairo_0_contract_class(CAIRO_0_ACCOUNT_CONTRACT_PATH)?;
+        let account_contract_class = Cairo0Json::raw_json_from_path(CAIRO_0_ACCOUNT_CONTRACT_PATH)?;
         let class_hash = account_contract_class.generate_hash()?;
 
         let accounts = predeployed_accounts.generate_accounts(
             config.total_accounts,
             class_hash,
-            account_contract_class.clone(),
+            account_contract_class.clone().into(),
         )?;
         for account in accounts {
             account.deploy(&mut state)?;
@@ -130,7 +129,7 @@ impl Starknet {
 
         let chargeable_account = Account::new_chargeable(
             class_hash,
-            account_contract_class,
+            account_contract_class.into(),
             erc20_fee_contract.get_address(),
         );
         chargeable_account.deploy(&mut state)?;
@@ -150,7 +149,6 @@ impl Starknet {
             blocks: StarknetBlocks::default(),
             transactions: StarknetTransactions::default(),
             config: config.clone(),
-            sierra_contracts: HashMap::new(),
         };
 
         this.restart_pending_block()?;
@@ -310,15 +308,22 @@ impl Starknet {
 
     pub fn get_class_hash_at(
         &self,
-        block_id: &BlockId,
-        contract_address: &ContractAddress,
-    ) -> Result<Felt> {
-        let state = self.get_state_at(block_id)?;
-        let address: Address = contract_address.try_into()?;
-        match state.state.address_to_class_hash.get(&address) {
-            Some(class_hash) => Ok(Felt::from(*class_hash)),
-            None => Err(Error::ContractNotFound),
-        }
+        block_id: BlockId,
+        contract_address: ContractAddress,
+    ) -> Result<ClassHash> {
+        get_class_impls::get_class_hash_at_impl(self, block_id, contract_address)
+    }
+
+    pub fn get_class(&self, block_id: BlockId, class_hash: ClassHash) -> Result<ContractClass> {
+        get_class_impls::get_class_impl(self, block_id, class_hash)
+    }
+
+    pub fn get_class_at(
+        &self,
+        block_id: BlockId,
+        contract_address: ContractAddress,
+    ) -> Result<ContractClass> {
+        get_class_impls::get_class_at_impl(self, block_id, contract_address)
     }
 
     pub fn call(

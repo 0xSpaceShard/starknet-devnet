@@ -28,7 +28,7 @@ tower-http = { version = "0.4", features = ["full"] }
 tower = { version = "0.4", features = ["full"] }
 
 # rpc
-rpc-core = { git = "https://github.com/foundry-rs/foundry.git", package = "anvil-rpc" }
+rpc-core = { git = "https://github.com/foundry-rs/foundry", rev = "5f2262736feaeabadeef2ae989a78e9b43da8eee", package = "anvil-rpc" }
 
 # async
 tokio = { version = "1", features = ["time", "macros", "rt-multi-thread"] }
