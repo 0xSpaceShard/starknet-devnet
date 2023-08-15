@@ -40,7 +40,7 @@ pub mod rpc_sierra_contract_class_to_sierra_contract_class {
 
             let path = concat!(
                 env!("CARGO_MANIFEST_DIR"),
-                "/data/sierra_contract_class_with_abi_as_string.json"
+                "/test_data/sierra_contract_class_with_abi_as_string.json"
             );
 
             let json_str = std::fs::read_to_string(path).unwrap();
@@ -270,6 +270,76 @@ pub mod hex_string {
             } else {
                 assert!(result.is_err());
             }
+        }
+    }
+}
+
+pub mod base_64_gzipped_json_string {
+    use base64::Engine;
+    use flate2::write::GzEncoder;
+    use flate2::Compression;
+    use serde::{Deserialize, Deserializer, Serializer};
+    use serde_json::Value;
+    use starknet_rs_core::serde::byte_array::base64 as base64Sir;
+    use starknet_rs_core::types::contract::legacy::LegacyProgram;
+
+    pub fn deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order<'de, D>(
+        deserializer: D,
+    ) -> Result<serde_json::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let buf = String::deserialize(deserializer)?;
+        if buf.is_empty() {
+            return Ok(serde_json::Value::Null);
+        }
+
+        // TODO: change on starknet_rs_core::serde::byte_array::base64
+        let bytes = base64::engine::general_purpose::STANDARD
+            .decode(buf)
+            .map_err(|_| serde::de::Error::custom("program: Unable to decode base64 string"))?;
+
+        let decoder = flate2::read::GzDecoder::new(bytes.as_slice());
+        let starknet_program: LegacyProgram = serde_json::from_reader(decoder)
+            .map_err(|_| serde::de::Error::custom("program: Unable to decode gzipped bytes"))?;
+
+        serde_json::to_value(starknet_program)
+            .map_err(|_| serde::de::Error::custom("program: Unable to parse to JSON"))
+    }
+
+    pub fn serialize_program_to_base64<S>(program: &Value, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut buffer = Vec::new();
+        let encoder = GzEncoder::new(&mut buffer, Compression::default());
+        serde_json::to_writer(encoder, program)
+            .map_err(|_| serde::ser::Error::custom("program: Unable to encode program"))?;
+
+        base64Sir::serialize(&buffer, serializer)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use serde::Deserialize;
+
+        use crate::serde_helpers::base_64_gzipped_json_string::deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order;
+        use crate::utils::test_utils::CAIRO_0_ZIPPED_PROGRAM_PATH;
+
+        #[test]
+        fn deserialize_successfully_starknet_api_program() {
+            let json_str = std::fs::read_to_string(CAIRO_0_ZIPPED_PROGRAM_PATH).unwrap();
+
+            #[derive(Deserialize)]
+            struct TestDeserialization {
+                #[allow(unused)]
+                #[serde(
+                    deserialize_with = "deserialize_to_serde_json_value_with_keys_ordered_in_alphabetical_order"
+                )]
+                program: serde_json::Value,
+            }
+
+            serde_json::from_str::<TestDeserialization>(&json_str).unwrap();
         }
     }
 }

@@ -55,6 +55,7 @@ mod tests {
     use starknet_rs_core::types::TransactionStatus;
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::contract_address::ContractAddress;
+    use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
@@ -236,7 +237,7 @@ mod tests {
             dummy_felt(),
             dummy_felt(),
             account_without_validations_class_hash,
-            account_without_validations_contract_class,
+            ContractClass::Cairo0(account_without_validations_contract_class),
             erc_20_contract.get_address(),
         )
         .unwrap();
@@ -245,7 +246,7 @@ mod tests {
         account.set_initial_balance(&mut starknet.state).unwrap();
 
         // dummy contract
-        let dummy_contract = dummy_cairo_0_contract_class();
+        let dummy_contract: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
         let sir = StarknetInRustContractClass::try_from(dummy_contract.clone()).unwrap();
         let increase_balance_selector = get_selector_from_name("increase_balance").unwrap();
 
@@ -267,7 +268,10 @@ mod tests {
         let contract_storage_key = ContractStorageKey::new(dummy_contract_address, storage_key);
 
         // declare dummy contract
-        starknet.state.declare_contract_class(dummy_contract_class_hash, dummy_contract).unwrap();
+        starknet
+            .state
+            .declare_contract_class(dummy_contract_class_hash, dummy_contract.into())
+            .unwrap();
 
         // deploy dummy contract
         starknet.state.deploy_contract(dummy_contract_address, dummy_contract_class_hash).unwrap();

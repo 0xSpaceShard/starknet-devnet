@@ -4,7 +4,7 @@ use starknet_in_rust::core::transaction_hash::{
 use starknet_in_rust::felt::Felt252;
 use starknet_in_rust::transaction::{verify_version, Declare};
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::ContractClass;
+use starknet_types::contract_class::Cairo0ContractClass;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use starknet_types::DevnetResult;
@@ -19,7 +19,7 @@ pub struct DeclareTransactionV1 {
     pub signature: Vec<Felt>,
     pub nonce: Felt,
     pub version: Felt,
-    pub contract_class: ContractClass,
+    pub contract_class: Cairo0ContractClass,
     pub class_hash: ClassHash,
     pub transaction_hash: TransactionHash,
     pub chain_id: Felt,
@@ -47,7 +47,7 @@ impl DeclareTransactionV1 {
         max_fee: u128,
         signature: Vec<Felt>,
         nonce: Felt,
-        contract_class: ContractClass,
+        contract_class: Cairo0ContractClass,
         chain_id: Felt,
     ) -> Result<Self> {
         let class_hash = contract_class.generate_hash()?;
@@ -130,7 +130,7 @@ mod tests {
     use serde::Deserialize;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::ContractClass;
+    use starknet_types::contract_class::Cairo0Json;
     use starknet_types::felt::Felt;
     use starknet_types::traits::{HashProducer, ToHexString};
 
@@ -151,7 +151,7 @@ mod tests {
             "/test_artifacts/events_cairo0.casm"
         ))
         .unwrap();
-        let cairo0 = ContractClass::cairo_0_from_json_str(&json_str).unwrap();
+        let cairo0 = Cairo0Json::raw_json_from_json_str(&json_str).unwrap();
 
         // this is declare v1 transaction send with starknet-rs
         let json_obj: serde_json::Value = serde_json::from_reader(std::fs::File::open(concat!(
@@ -170,7 +170,7 @@ mod tests {
                 .unwrap(),
             vec![],
             feeder_gateway_transaction.nonce,
-            cairo0,
+            cairo0.into(),
             StarknetChainId::TestNet.to_felt().into(),
         )
         .unwrap();

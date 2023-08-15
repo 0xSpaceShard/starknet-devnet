@@ -19,18 +19,18 @@ pub enum AbiEntryType {
 #[serde(untagged)]
 pub enum AbiEntry {
     /// An event abi entry.
-    Event(starknet_types::starknet_api::deprecated_contract_class::EventAbiEntry),
+    Event(starknet_api::deprecated_contract_class::EventAbiEntry),
     /// A function abi entry.
     Function(FunctionAbiEntry),
     /// A struct abi entry.
-    Struct(starknet_types::starknet_api::deprecated_contract_class::StructAbiEntry),
+    Struct(starknet_api::deprecated_contract_class::StructAbiEntry),
 }
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub struct FunctionAbiEntry {
-    pub inputs: Vec<starknet_types::starknet_api::deprecated_contract_class::TypedParameter>,
+    pub inputs: Vec<starknet_api::deprecated_contract_class::TypedParameter>,
     pub name: String,
-    pub outputs: Vec<starknet_types::starknet_api::deprecated_contract_class::TypedParameter>,
+    pub outputs: Vec<starknet_api::deprecated_contract_class::TypedParameter>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "stateMutability")]
     pub state_mutability: Option<String>,
