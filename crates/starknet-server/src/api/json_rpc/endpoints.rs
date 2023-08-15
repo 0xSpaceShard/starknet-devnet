@@ -28,6 +28,8 @@ use crate::api::models::transaction::{
 };
 use crate::api::models::{BlockId, PatriciaKeyHex};
 
+const DEFAULT_CONTINUATION_TOKEN: &str = "0";
+
 /// here are the definitions and stub implementations of all JSON-RPC read endpoints
 impl JsonRpcHandler {
     /// starknet_getBlockWithTxHashes
@@ -326,7 +328,7 @@ impl JsonRpcHandler {
 
         let page = filter
             .continuation_token
-            .unwrap_or("0".to_string())
+            .unwrap_or(DEFAULT_CONTINUATION_TOKEN.to_string())
             .parse::<usize>()
             .map_err(|_| ApiError::InvalidContinuationToken)?;
 
