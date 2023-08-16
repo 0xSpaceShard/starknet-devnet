@@ -52,23 +52,24 @@ impl JsonRpcHandler {
     /// starknet_getBlockWithTxs
     pub(crate) async fn get_block_with_txs(&self, block_id: BlockId) -> RpcResult<Block> {
         let starknet = self.api.starknet.read().await;
-        let block = starknet.get_block(block_id.into()).map_err(|err| match err {
-            Error::NoBlock => ApiError::BlockNotFound,
-            unknown_error => ApiError::StarknetDevnetError(unknown_error),
-        })?;
+        let (block, transactions) =
+            starknet.get_block_with_transactions(block_id.into()).map_err(|err| match err {
+                Error::NoBlock => ApiError::BlockNotFound,
+                Error::NoTransaction => ApiError::TransactionNotFound,
+                unknown_error => ApiError::StarknetDevnetError(unknown_error),
+            })?;
 
-        let mut transactions = Vec::<TransactionWithType>::new();
+        let mut transactions_with_type = Vec::<TransactionWithType>::new();
 
-        for txn_hash in block.get_transactions() {
-            let txn_to_add =
-                TransactionWithType::try_from(starknet.get_transaction_by_hash(*txn_hash)?)?;
+        for transaction in transactions {
+            let txn_to_add = TransactionWithType::try_from(transaction)?;
 
-            transactions.push(txn_to_add);
+            transactions_with_type.push(txn_to_add);
         }
         Ok(Block {
             status: *block.status(),
             header: BlockHeader::from(&block),
-            transactions: Transactions::Full(transactions),
+            transactions: Transactions::Full(transactions_with_type),
         })
     }
 

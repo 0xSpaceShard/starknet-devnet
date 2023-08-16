@@ -521,6 +521,21 @@ impl Starknet {
         Ok(block.clone())
     }
 
+    pub fn get_block_with_transactions(
+        &self,
+        block_id: BlockId,
+    ) -> Result<(StarknetBlock, Vec<&Transaction>)> {
+        let block = self.blocks.get_by_block_id(block_id).ok_or(crate::error::Error::NoBlock)?;
+        let mut transactions: Vec<&Transaction> = vec![];
+        for transaction_hash in block.get_transactions() {
+            let transaction =
+                self.transactions.get_by_hash(*transaction_hash).ok_or(Error::NoTransaction)?;
+            transactions.push(&transaction.inner);
+        }
+
+        Ok((block.clone(), transactions))
+    }
+
     pub fn get_latest_block(&self) -> Result<StarknetBlock> {
         let block = self
             .blocks
