@@ -371,6 +371,36 @@ mod tests {
         assert!(has_more);
     }
 
+    #[test]
+    fn check_correct_events_being_returned() {
+        let starknet = setup();
+
+        // events with key 15 should be only 1 in the 5th transaction
+        let (events, _) =
+            get_events(&starknet, None, None, None, Some(vec![vec![Felt::from(15)]]), 0, None)
+                .unwrap();
+
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0].transaction_hash, Felt::from(104));
+        assert_eq!(events[0].keys.len(), 1);
+        assert_eq!(events[0].keys[0], Felt::from(15));
+        assert_eq!(events[0].data[0], Felt::from(25));
+
+        let (events, _) =
+            get_events(&starknet, None, None, None, Some(vec![vec![Felt::from(12)]]), 0, None)
+                .unwrap();
+
+        assert_eq!(events.len(), 4);
+        // start from transaction hash 101 because from the setup the first transaction has
+        // generated event with key 11
+        for idx in 0..4 {
+            assert_eq!(events[idx].transaction_hash, Felt::from(101 + idx as u128));
+            assert_eq!(events[idx].keys.len(), 1);
+            assert_eq!(events[idx].keys[0], Felt::from(12));
+            assert_eq!(events[idx].data[0], Felt::from(22));
+        }
+    }
+
     fn setup() -> Starknet {
         // generate 5 transactions
         // each transaction should have events count equal to the order of the transaction
