@@ -55,8 +55,8 @@ use crate::transactions::{StarknetTransaction, StarknetTransactions, Transaction
 mod add_declare_transaction;
 mod add_deploy_account_transaction;
 mod add_invoke_transaction;
-mod get_class_impls;
 mod events;
+mod get_class_impls;
 mod predeployed;
 mod state_update;
 
@@ -479,7 +479,7 @@ impl Starknet {
             nonce.into(),
             raw_execution.raw_calldata().into_iter().map(|c| c.into()).collect(),
             chain_id_felt,
-            Felt::from(1)
+            Felt::from(1),
         )?;
         self.add_invoke_transaction_v1(invoke_tx)
     }

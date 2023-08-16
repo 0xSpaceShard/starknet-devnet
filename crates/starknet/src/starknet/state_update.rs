@@ -53,6 +53,7 @@ mod tests {
             Vec::new(),
             Felt::from(0),
             StarknetChainId::TestNet.to_felt().into(),
+            Felt::from(2),
         )
         .unwrap();
 

@@ -87,6 +87,7 @@ mod tests {
         max_fee: Felt,
         nonce: Felt,
         calldata: Vec<Felt>,
+        version: Felt,
     }
 
     /// Get transaction from feeder gateway by hash and then using the same parameters compute the
@@ -109,7 +110,7 @@ mod tests {
             feeder_gateway_transaction.nonce,
             feeder_gateway_transaction.calldata,
             StarknetChainId::TestNet.to_felt().into(),
-            feeder_gateway_transaction.version
+            feeder_gateway_transaction.version,
         )
         .unwrap();
 

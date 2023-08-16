@@ -130,6 +130,7 @@ mod tests {
             Felt::from(0),
             contract_class.into(),
             StarknetChainId::TestNet.to_felt().into(),
+            Felt::from(1),
         )
         .unwrap()
     }
@@ -144,6 +145,7 @@ mod tests {
             vec![],
             dummy_felt(),
             dummy_felt(),
+            Felt::from(2),
         )
         .unwrap();
 
@@ -235,6 +237,7 @@ mod tests {
             dummy_felt(),
             dummy_cairo_0_contract_class().into(),
             dummy_felt(),
+            Felt::from(1),
         )
         .unwrap();
 

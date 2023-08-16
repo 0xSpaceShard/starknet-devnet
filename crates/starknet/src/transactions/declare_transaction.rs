@@ -49,9 +49,9 @@ impl DeclareTransactionV1 {
         nonce: Felt,
         contract_class: Cairo0ContractClass,
         chain_id: Felt,
+        version: Felt,
     ) -> Result<Self> {
         let class_hash = contract_class.generate_hash()?;
-        let version = Felt::from(1);
 
         let mut inner = Declare {
             class_hash: class_hash.into(),
@@ -141,6 +141,7 @@ mod tests {
         nonce: Felt,
         class_hash: Felt,
         sender_address: Felt,
+        version: Felt,
     }
 
     #[test]
@@ -172,6 +173,7 @@ mod tests {
             feeder_gateway_transaction.nonce,
             cairo0.into(),
             StarknetChainId::TestNet.to_felt().into(),
+            feeder_gateway_transaction.version,
         )
         .unwrap();
 
