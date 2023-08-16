@@ -393,11 +393,11 @@ mod tests {
         assert_eq!(events.len(), 4);
         // start from transaction hash 101 because from the setup the first transaction has
         // generated event with key 11
-        for idx in 0..4 {
-            assert_eq!(events[idx].transaction_hash, Felt::from(101 + idx as u128));
-            assert_eq!(events[idx].keys.len(), 1);
-            assert_eq!(events[idx].keys[0], Felt::from(12));
-            assert_eq!(events[idx].data[0], Felt::from(22));
+        for (idx, event) in events.iter().enumerate() {
+            assert_eq!(event.transaction_hash, Felt::from(101 + idx as u128));
+            assert_eq!(event.keys.len(), 1);
+            assert_eq!(event.keys[0], Felt::from(12));
+            assert_eq!(event.data[0], Felt::from(22));
         }
     }
 
