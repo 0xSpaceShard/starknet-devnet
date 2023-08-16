@@ -479,6 +479,7 @@ impl Starknet {
             nonce.into(),
             raw_execution.raw_calldata().into_iter().map(|c| c.into()).collect(),
             chain_id_felt,
+            Felt::from(1)
         )?;
         self.add_invoke_transaction_v1(invoke_tx)
     }

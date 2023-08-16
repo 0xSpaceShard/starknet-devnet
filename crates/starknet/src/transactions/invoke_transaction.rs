@@ -35,13 +35,14 @@ impl InvokeTransactionV1 {
         nonce: Felt,
         calldata: Vec<Felt>,
         chain_id: Felt,
+        version: Felt,
     ) -> Result<Self> {
         Ok(Self {
             inner: starknet_in_rust::transaction::InvokeFunction::new(
                 sender_address.try_into()?,
                 EXECUTE_ENTRY_POINT_SELECTOR.clone(),
                 max_fee,
-                Felt::from(1).into(),
+                version.into(),
                 calldata.iter().map(|f| f.into()).collect(),
                 signature.iter().map(|f| f.into()).collect(),
                 chain_id.into(),
@@ -52,7 +53,7 @@ impl InvokeTransactionV1 {
             nonce,
             calldata,
             max_fee,
-            version: Felt::from(1),
+            version,
         })
     }
 
@@ -108,6 +109,7 @@ mod tests {
             feeder_gateway_transaction.nonce,
             feeder_gateway_transaction.calldata,
             StarknetChainId::TestNet.to_felt().into(),
+            feeder_gateway_transaction.version
         )
         .unwrap();
 
