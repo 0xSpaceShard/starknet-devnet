@@ -23,8 +23,8 @@ use crate::api::models::state::{
 };
 use crate::api::models::transaction::{
     BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
-    BroadcastedTransactionWithType, EmittedEvent, Event, EventContent, EventFilter, EventsChunk,
-    FunctionCall, Transaction, TransactionReceipt, TransactionWithType, Transactions,
+    BroadcastedTransactionWithType, EventFilter, EventsChunk, FunctionCall, Transaction,
+    TransactionReceipt, TransactionWithType, Transactions,
 };
 use crate::api::models::{BlockId, PatriciaKeyHex};
 
@@ -361,21 +361,7 @@ impl JsonRpcHandler {
         )?;
 
         Ok(EventsChunk {
-            events: events
-                .into_iter()
-                .map(|emitted_event| EmittedEvent {
-                    block_hash: emitted_event.block_hash,
-                    block_number: emitted_event.block_number,
-                    transaction_hash: emitted_event.transaction_hash,
-                    event: Event {
-                        from_address: emitted_event.from_address,
-                        content: EventContent {
-                            keys: emitted_event.keys,
-                            data: emitted_event.data,
-                        },
-                    },
-                })
-                .collect(),
+            events,
             continuation_token: if has_more_events { Some((page + 1).to_string()) } else { None },
         })
     }

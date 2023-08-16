@@ -1,23 +1,14 @@
-use starknet_api::block::BlockNumber;
 use starknet_in_rust::execution::Event;
 use starknet_in_rust::felt::Felt252;
 use starknet_in_rust::utils::Address;
 use starknet_rs_core::types::BlockId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::Felt;
+use starknet_types::models::emitted_event::EmittedEvent;
 
 use super::Starknet;
 use crate::error::{Error, Result};
 use crate::traits::HashIdentified;
-
-pub struct EmittedEvent {
-    pub transaction_hash: starknet_types::felt::TransactionHash,
-    pub block_hash: starknet_types::felt::BlockHash,
-    pub block_number: BlockNumber,
-    pub from_address: ContractAddress,
-    pub keys: Vec<Felt>,
-    pub data: Vec<Felt>,
-}
 
 /// The method returns transaction events, based on query and if there are more results to be
 /// fetched in the form of a tuple (events, has_more).

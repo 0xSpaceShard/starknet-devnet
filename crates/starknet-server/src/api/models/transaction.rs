@@ -236,9 +236,9 @@ pub struct EventFilter {
     pub chunk_size: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct EventsChunk {
-    pub events: Vec<EmittedEvent>,
+    pub events: Vec<starknet_types::models::emitted_event::EmittedEvent>,
     pub continuation_token: Option<String>,
 }
 

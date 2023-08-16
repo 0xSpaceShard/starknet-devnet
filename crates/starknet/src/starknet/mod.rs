@@ -24,11 +24,11 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0Json, ContractClass};
 use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
+use starknet_types::models::emitted_event::EmittedEvent;
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::traits::HashProducer;
 use tracing::error;
 
-use self::events::EmittedEvent;
 use self::predeployed::initialize_erc20;
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
