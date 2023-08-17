@@ -269,12 +269,18 @@ mod tests {
         let mut block_to_insert = StarknetBlock::create_pending_block();
 
         // latest/pending block returns none, because collection is empty
-        assert!(blocks
-            .block_number_from_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))
-            .is_none());
-        assert!(blocks
-            .block_number_from_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Pending))
-            .is_none());
+        assert!(
+            blocks
+                .block_number_from_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))
+                .is_none()
+        );
+        assert!(
+            blocks
+                .block_number_from_block_id(BlockId::Tag(
+                    starknet_rs_core::types::BlockTag::Pending
+                ))
+                .is_none()
+        );
 
         let block_hash = block_to_insert.generate_hash().unwrap();
         block_to_insert.header.block_number = BlockNumber(10);
@@ -287,12 +293,18 @@ mod tests {
         assert!(blocks.block_number_from_block_id(BlockId::Number(10)).is_some());
         // returns none because there is no block with the given hash
         assert!(blocks.block_number_from_block_id(BlockId::Hash(Felt::from(1).into())).is_none());
-        assert!(blocks
-            .block_number_from_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))
-            .is_some());
-        assert!(blocks
-            .block_number_from_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Pending))
-            .is_some());
+        assert!(
+            blocks
+                .block_number_from_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))
+                .is_some()
+        );
+        assert!(
+            blocks
+                .block_number_from_block_id(BlockId::Tag(
+                    starknet_rs_core::types::BlockTag::Pending
+                ))
+                .is_some()
+        );
         assert!(blocks.block_number_from_block_id(BlockId::Hash(block_hash.into())).is_some());
     }
 
@@ -389,10 +401,12 @@ mod tests {
         );
 
         // from last block to first block should return empty result
-        assert!(blocks
-            .get_blocks(Some(BlockId::Number(10)), Some(BlockId::Number(2)))
-            .unwrap()
-            .is_empty());
+        assert!(
+            blocks
+                .get_blocks(Some(BlockId::Number(10)), Some(BlockId::Number(2)))
+                .unwrap()
+                .is_empty()
+        );
         // from last block to latest/pending, should return 1 block
         assert_eq!(
             blocks
@@ -423,19 +437,23 @@ mod tests {
                 .len(),
             8
         );
-        assert!(blocks
-            .get_blocks(
-                Some(BlockId::Hash(Felt::from(2).into())),
-                Some(BlockId::Hash(Felt::from(0).into()))
-            )
-            .is_err());
-        assert!(blocks
-            .get_blocks(
-                Some(BlockId::Hash(Felt::from(10).into())),
-                Some(BlockId::Hash(Felt::from(5).into()))
-            )
-            .unwrap()
-            .is_empty());
+        assert!(
+            blocks
+                .get_blocks(
+                    Some(BlockId::Hash(Felt::from(2).into())),
+                    Some(BlockId::Hash(Felt::from(0).into()))
+                )
+                .is_err()
+        );
+        assert!(
+            blocks
+                .get_blocks(
+                    Some(BlockId::Hash(Felt::from(10).into())),
+                    Some(BlockId::Hash(Felt::from(5).into()))
+                )
+                .unwrap()
+                .is_empty()
+        );
         // from block hash to block number
         assert_eq!(
             blocks
@@ -543,17 +561,21 @@ mod tests {
                 .len(),
             1
         );
-        assert!(blocks
-            .get_blocks(Some(BlockId::Tag(BlockTag::Latest)), Some(BlockId::Number(2)))
-            .unwrap()
-            .is_empty());
-        assert!(blocks
-            .get_blocks(
-                Some(BlockId::Tag(BlockTag::Latest)),
-                Some(BlockId::Hash(Felt::from(2).into()))
-            )
-            .unwrap()
-            .is_empty());
+        assert!(
+            blocks
+                .get_blocks(Some(BlockId::Tag(BlockTag::Latest)), Some(BlockId::Number(2)))
+                .unwrap()
+                .is_empty()
+        );
+        assert!(
+            blocks
+                .get_blocks(
+                    Some(BlockId::Tag(BlockTag::Latest)),
+                    Some(BlockId::Hash(Felt::from(2).into()))
+                )
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]

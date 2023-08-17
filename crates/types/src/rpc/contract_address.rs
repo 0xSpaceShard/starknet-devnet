@@ -61,7 +61,7 @@ impl TryFrom<ContractAddress> for starknet_in_rust::utils::Address {
     type Error = Error;
 
     fn try_from(value: ContractAddress) -> DevnetResult<Self> {
-        let felt_252 = cairo_felt::Felt252::from(value.0 .0);
+        let felt_252 = cairo_felt::Felt252::from(value.0.0);
         Ok(Self(felt_252))
     }
 }
@@ -70,7 +70,7 @@ impl TryFrom<&ContractAddress> for starknet_in_rust::utils::Address {
     type Error = Error;
 
     fn try_from(value: &ContractAddress) -> DevnetResult<Self> {
-        let felt_252 = cairo_felt::Felt252::from(&value.0 .0);
+        let felt_252 = cairo_felt::Felt252::from(&value.0.0);
         Ok(Self(felt_252))
     }
 }
@@ -91,11 +91,11 @@ impl From<ContractAddress> for Felt252 {
 
 impl ToHexString for ContractAddress {
     fn to_prefixed_hex_str(&self) -> String {
-        self.0 .0.to_prefixed_hex_str()
+        self.0.0.to_prefixed_hex_str()
     }
 
     fn to_nonprefixed_hex_str(&self) -> String {
-        self.0 .0.to_nonprefixed_hex_str()
+        self.0.0.to_nonprefixed_hex_str()
     }
 }
 
@@ -123,6 +123,6 @@ pub(crate) mod test_utils {
     use super::ContractAddress;
 
     pub fn is_equal(lhs: &ContractAddress, rhs: &Address) -> bool {
-        lhs.0 .0.bytes() == rhs.0.to_be_bytes()
+        lhs.0.0.bytes() == rhs.0.to_be_bytes()
     }
 }

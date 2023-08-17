@@ -19,8 +19,8 @@ mod get_events_integration_tests {
 
     use crate::common::util::{get_json_body, BackgroundDevnet};
 
-    fn get_events_contract_in_sierra_and_compiled_class_hash(
-    ) -> (FlattenedSierraClass, FieldElement) {
+    fn get_events_contract_in_sierra_and_compiled_class_hash()
+    -> (FlattenedSierraClass, FieldElement) {
         let sierra_artifact = std::fs::read_to_string(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/test_data/cairo1/events/events_2.0.1_compiler.sierra"
