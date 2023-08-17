@@ -5,17 +5,20 @@ use starknet_types::num_integer::Integer;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 use starknet_types::rpc::felt::Felt;
 
-use crate::error::Result;
+use crate::error::DevnetResult;
 
 pub(crate) fn generate_u128_random_numbers(
     seed: u32,
     random_numbers_count: u8,
-) -> Result<Vec<u128>> {
+) -> DevnetResult<Vec<u128>> {
     Ok(random_number_generator::generate_u128_random_numbers(seed, random_numbers_count))
 }
 
 /// Returns the storage address of a Starknet storage variable given its name and arguments.
-pub(crate) fn get_storage_var_address(storage_var_name: &str, args: &[Felt]) -> Result<StorageKey> {
+pub(crate) fn get_storage_var_address(
+    storage_var_name: &str,
+    args: &[Felt],
+) -> DevnetResult<StorageKey> {
     let storage_var_name_hash = calculate_sn_keccak(storage_var_name.as_bytes());
     let storage_var_name_hash = StarkFelt::new(storage_var_name_hash)?;
 

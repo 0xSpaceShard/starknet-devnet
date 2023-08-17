@@ -8,7 +8,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::rpc::felt::{BlockHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 
-use crate::error::{self, Result};
+use crate::error::{DevnetResult, Error};
 use crate::state::state_diff::StateDiff;
 use crate::state::StarknetState;
 use crate::traits::HashIdentified;
@@ -98,15 +98,14 @@ impl StarknetBlocks {
         &self,
         from: Option<BlockId>,
         to: Option<BlockId>,
-    ) -> Result<Vec<&StarknetBlock>> {
+    ) -> DevnetResult<Vec<&StarknetBlock>> {
         // used btree map to keep elements in the order of the keys
         let mut filtered_blocks: BTreeMap<BlockNumber, &StarknetBlock> = BTreeMap::new();
 
         let starting_block = if let Some(block_id) = from {
             // If the value for block number provided is not correct it will return None
             // So we have to return an error
-            let block_number =
-                self.block_number_from_block_id(block_id).ok_or(error::Error::NoBlock)?;
+            let block_number = self.block_number_from_block_id(block_id).ok_or(Error::NoBlock)?;
             Some(block_number)
         } else {
             None
@@ -115,8 +114,7 @@ impl StarknetBlocks {
         let ending_block = if let Some(block_id) = to {
             // if the value for block number provided is not correct it will return None
             // So we set the block number to the first possible block number which is 0
-            let block_number =
-                self.block_number_from_block_id(block_id).ok_or(error::Error::NoBlock)?;
+            let block_number = self.block_number_from_block_id(block_id).ok_or(Error::NoBlock)?;
             Some(block_number)
         } else {
             None
@@ -200,7 +198,8 @@ impl StarknetBlock {
 }
 
 impl HashProducer for StarknetBlock {
-    fn generate_hash(&self) -> starknet_types::DevnetResult<BlockHash> {
+    type Error = Error;
+    fn generate_hash(&self) -> DevnetResult<BlockHash> {
         let hash = pedersen_hash_array(&[
             stark_felt!(self.header.block_number.0), // block number
             self.header.state_root.0,                // global_state_root

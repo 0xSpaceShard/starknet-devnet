@@ -3,9 +3,8 @@ use starknet_in_rust::SierraContractClass;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::rpc::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
-use starknet_types::DevnetResult;
 
-use crate::error::Result;
+use crate::error::{DevnetResult, Error};
 
 #[derive(Clone)]
 pub struct DeclareTransactionV2 {
@@ -50,7 +49,7 @@ impl DeclareTransactionV2 {
         nonce: Felt,
         chain_id: Felt,
         version: Felt,
-    ) -> Result<Self> {
+    ) -> DevnetResult<Self> {
         let transaction = DeclareV2::new(
             &sierra_contract_class,
             None,
@@ -94,6 +93,7 @@ impl DeclareTransactionV2 {
 }
 
 impl HashProducer for DeclareTransactionV2 {
+    type Error = Error;
     fn generate_hash(&self) -> DevnetResult<Felt> {
         Ok(self.inner.hash_value.clone().into())
     }

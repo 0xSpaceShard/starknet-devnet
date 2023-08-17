@@ -7,9 +7,8 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::Cairo0ContractClass;
 use starknet_types::rpc::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
-use starknet_types::DevnetResult;
 
-use crate::error::Result;
+use crate::error::{DevnetResult, Error};
 
 #[derive(Clone)]
 pub struct DeclareTransactionV1 {
@@ -50,7 +49,7 @@ impl DeclareTransactionV1 {
         contract_class: Cairo0ContractClass,
         chain_id: Felt,
         version: Felt,
-    ) -> Result<Self> {
+    ) -> DevnetResult<Self> {
         let class_hash = contract_class.generate_hash()?;
 
         let mut inner = Declare {
@@ -119,6 +118,7 @@ impl DeclareTransactionV1 {
 }
 
 impl HashProducer for DeclareTransactionV1 {
+    type Error = Error;
     fn generate_hash(&self) -> DevnetResult<Felt> {
         Ok(self.transaction_hash)
     }

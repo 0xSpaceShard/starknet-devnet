@@ -5,7 +5,7 @@ use starknet_types::rpc::felt::{Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 
 use super::Starknet;
-use crate::error::{Error, Result};
+use crate::error::{DevnetResult, Error};
 use crate::traits::StateExtractor;
 use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
 use crate::transactions::{StarknetTransaction, Transaction};
@@ -13,7 +13,7 @@ use crate::transactions::{StarknetTransaction, Transaction};
 pub fn add_deploy_account_transaction(
     starknet: &mut Starknet,
     deploy_account_transaction: DeployAccountTransaction,
-) -> Result<(TransactionHash, ContractAddress)> {
+) -> DevnetResult<(TransactionHash, ContractAddress)> {
     if deploy_account_transaction.max_fee == 0 {
         return Err(Error::TransactionError(TransactionError::FeeError(
             "For deploy account transaction, max fee cannot be 0".to_string(),

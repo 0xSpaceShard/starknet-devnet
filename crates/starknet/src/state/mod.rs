@@ -14,7 +14,7 @@ use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::rpc::felt::{ClassHash, Felt};
 
 use self::state_diff::StateDiff;
-use crate::error::{Error, Result};
+use crate::error::{DevnetResult, Error};
 use crate::traits::{StateChanger, StateExtractor};
 
 pub(crate) mod state_diff;
@@ -60,7 +60,7 @@ impl StateChanger for StarknetState {
         &mut self,
         class_hash: ClassHash,
         contract_class: ContractClass,
-    ) -> Result<()> {
+    ) -> DevnetResult<()> {
         self.contract_classes.insert(class_hash, contract_class.clone());
 
         match contract_class {
@@ -82,7 +82,11 @@ impl StateChanger for StarknetState {
         Ok(())
     }
 
-    fn deploy_contract(&mut self, address: ContractAddress, class_hash: ClassHash) -> Result<()> {
+    fn deploy_contract(
+        &mut self,
+        address: ContractAddress,
+        class_hash: ClassHash,
+    ) -> DevnetResult<()> {
         let addr: Address = address.try_into()?;
         self.state.address_to_class_hash_mut().insert(addr.clone(), class_hash.bytes());
         self.state.address_to_nonce_mut().insert(addr, Felt252::new(0));
@@ -90,13 +94,13 @@ impl StateChanger for StarknetState {
         Ok(())
     }
 
-    fn change_storage(&mut self, storage_key: ContractStorageKey, data: Felt) -> Result<()> {
+    fn change_storage(&mut self, storage_key: ContractStorageKey, data: Felt) -> DevnetResult<()> {
         self.state.address_to_storage_mut().insert(storage_key.try_into()?, data.into());
 
         Ok(())
     }
 
-    fn increment_nonce(&mut self, address: ContractAddress) -> Result<()> {
+    fn increment_nonce(&mut self, address: ContractAddress) -> DevnetResult<()> {
         let addr: Address = address.try_into()?;
         let nonce = self.state.get_nonce_at(&addr)?;
         self.state.address_to_nonce_mut().insert(addr, nonce + Felt252::new(1));
@@ -104,7 +108,7 @@ impl StateChanger for StarknetState {
         Ok(())
     }
 
-    fn apply_state_difference(&mut self, state_diff: StateDiff) -> Result<()> {
+    fn apply_state_difference(&mut self, state_diff: StateDiff) -> DevnetResult<()> {
         let old_state = &mut self.state;
         // update contract storages
         state_diff.inner.storage_updates().iter().for_each(|(contract_address, storages)| {
@@ -153,7 +157,7 @@ impl StateChanger for StarknetState {
 }
 
 impl StateExtractor for StarknetState {
-    fn get_storage(&self, storage_key: ContractStorageKey) -> Result<Felt> {
+    fn get_storage(&self, storage_key: ContractStorageKey) -> DevnetResult<Felt> {
         Ok(self.state.get_storage_at(&storage_key.try_into()?).map(Felt::from)?)
     }
 
@@ -170,11 +174,11 @@ impl StateExtractor for StarknetState {
     fn get_class_hash_at_contract_address(
         &mut self,
         contract_address: &ContractAddress,
-    ) -> Result<ClassHash> {
+    ) -> DevnetResult<ClassHash> {
         Ok(self.state.get_class_hash_at(&contract_address.try_into()?).map(Felt::new)??)
     }
 
-    fn extract_state_diff_from_pending_state(&self) -> Result<StateDiff> {
+    fn extract_state_diff_from_pending_state(&self) -> DevnetResult<StateDiff> {
         StateDiff::difference_between_old_and_new_state(
             self.state.clone(),
             self.pending_state.clone(),

@@ -6,8 +6,6 @@ pub mod serde_helpers;
 pub mod traits;
 mod utils;
 
-pub type DevnetResult<T> = Result<T, crate::error::Error>;
-
 // Re export libraries
 pub use rpc::contract_address;
 pub use rpc::contract_class;

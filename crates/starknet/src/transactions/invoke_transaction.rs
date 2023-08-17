@@ -4,7 +4,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::rpc::felt::Felt;
 use starknet_types::traits::HashProducer;
 
-use crate::error::{self, Result};
+use crate::error::{DevnetResult, Error};
 
 #[derive(Clone)]
 pub struct InvokeTransactionV1 {
@@ -36,7 +36,7 @@ impl InvokeTransactionV1 {
         calldata: Vec<Felt>,
         chain_id: Felt,
         version: Felt,
-    ) -> Result<Self> {
+    ) -> DevnetResult<Self> {
         Ok(Self {
             inner: starknet_in_rust::transaction::InvokeFunction::new(
                 sender_address.try_into()?,
@@ -57,8 +57,8 @@ impl InvokeTransactionV1 {
         })
     }
 
-    pub fn sender_address(&self) -> Result<ContractAddress> {
-        self.inner.contract_address().clone().try_into().map_err(error::Error::from)
+    pub fn sender_address(&self) -> DevnetResult<ContractAddress> {
+        self.inner.contract_address().clone().try_into().map_err(Error::from)
     }
 
     pub fn calldata(&self) -> &Vec<Felt> {
@@ -67,7 +67,8 @@ impl InvokeTransactionV1 {
 }
 
 impl HashProducer for InvokeTransactionV1 {
-    fn generate_hash(&self) -> starknet_types::DevnetResult<Felt> {
+    type Error = Error;
+    fn generate_hash(&self) -> DevnetResult<Felt> {
         Ok(self.inner.hash_value().clone().into())
     }
 }

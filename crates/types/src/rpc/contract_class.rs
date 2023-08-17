@@ -10,10 +10,10 @@ use starknet_rs_core::types::{
 };
 use starknet_rs_ff::FieldElement;
 
+use crate::error::DevnetResult;
 use crate::error::{Error, JsonError};
 use crate::rpc::felt::Felt;
 use crate::traits::HashProducer;
-use crate::DevnetResult;
 
 pub mod deprecated;
 pub use deprecated::json_contract_class::Cairo0Json;
@@ -114,7 +114,8 @@ impl TryFrom<ContractClass> for Cairo0Json {
 }
 
 impl HashProducer for ContractClass {
-    fn generate_hash(&self) -> crate::DevnetResult<crate::rpc::felt::Felt> {
+    type Error = Error;
+    fn generate_hash(&self) -> DevnetResult<Felt> {
         match self {
             ContractClass::Cairo0(contract) => Ok(contract.generate_hash()?),
             ContractClass::Cairo1(sierra) => {

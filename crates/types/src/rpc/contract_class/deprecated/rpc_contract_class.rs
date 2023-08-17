@@ -7,6 +7,7 @@ use starknet_rs_core::types::{CompressedLegacyContractClass, LegacyEntryPointsBy
 
 use crate::contract_class::deprecated::abi_entry::{AbiEntry, AbiEntryType};
 use crate::contract_class::Cairo0Json;
+use crate::error::DevnetResult;
 use crate::error::{Error, JsonError};
 use crate::rpc::felt::Felt;
 use crate::serde_helpers::base_64_gzipped_json_string::{
@@ -14,7 +15,6 @@ use crate::serde_helpers::base_64_gzipped_json_string::{
     serialize_program_to_base64,
 };
 use crate::traits::HashProducer;
-use crate::DevnetResult;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct ContractClassAbiEntryWithType {
@@ -73,6 +73,7 @@ impl Default for DeprecatedContractClass {
 }
 
 impl HashProducer for DeprecatedContractClass {
+    type Error = Error;
     fn generate_hash(&self) -> DevnetResult<Felt> {
         let json_value: Cairo0Json = self.clone().try_into()?;
         json_value.generate_hash()

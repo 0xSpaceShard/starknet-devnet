@@ -6,26 +6,32 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
 use starknet_types::rpc::felt::ClassHash;
 
-use crate::error::{Error, Result};
+use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;
 
 pub fn get_class_hash_at_impl(
     starknet: &Starknet,
     block_id: BlockId,
     contract_address: ContractAddress,
-) -> Result<ClassHash> {
+) -> DevnetResult<ClassHash> {
     let state = starknet.get_state_at(&block_id)?;
     Ok(state.state.get_class_hash_at(&contract_address.try_into()?)?.into())
 }
 
-fn get_sierra_class(starknet: &Starknet, class_hash: &ClassHash) -> Result<SierraContractClass> {
+fn get_sierra_class(
+    starknet: &Starknet,
+    class_hash: &ClassHash,
+) -> DevnetResult<SierraContractClass> {
     match starknet.state.contract_classes.get(class_hash) {
         Some(contract) => Ok(contract.clone().try_into()?),
         None => Err(Error::ContractNotFound),
     }
 }
 
-fn get_cairo_0_class(starknet: &Starknet, class_hash: &ClassHash) -> Result<Cairo0ContractClass> {
+fn get_cairo_0_class(
+    starknet: &Starknet,
+    class_hash: &ClassHash,
+) -> DevnetResult<Cairo0ContractClass> {
     match starknet.state.contract_classes.get(class_hash) {
         Some(contract) => Ok(contract.clone().try_into()?),
         None => Err(Error::ContractNotFound),
@@ -36,7 +42,7 @@ pub fn get_class_impl(
     starknet: &Starknet,
     block_id: BlockId,
     class_hash: ClassHash,
-) -> Result<ContractClass> {
+) -> DevnetResult<ContractClass> {
     let state = starknet.get_state_at(&block_id)?;
 
     match state.state.get_contract_class(&class_hash.into()) {
@@ -52,7 +58,7 @@ pub fn get_class_at_impl(
     starknet: &Starknet,
     block_id: BlockId,
     contract_address: ContractAddress,
-) -> Result<ContractClass> {
+) -> DevnetResult<ContractClass> {
     let class_hash = starknet.get_class_hash_at(block_id, contract_address)?;
     starknet.get_class(block_id, class_hash)
 }

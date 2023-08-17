@@ -1,5 +1,4 @@
 use crate::rpc::felt::Felt;
-use crate::DevnetResult;
 
 pub trait ToHexString {
     fn to_prefixed_hex_str(&self) -> String;
@@ -7,7 +6,8 @@ pub trait ToHexString {
 }
 
 pub trait HashProducer {
-    fn generate_hash(&self) -> DevnetResult<Felt>;
+    type Error;
+    fn generate_hash(&self) -> Result<Felt, Self::Error>;
 }
 
 pub trait ToDecimalString {

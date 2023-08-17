@@ -4,14 +4,14 @@ use starknet_types::rpc::felt::TransactionHash;
 use starknet_types::traits::HashProducer;
 
 use super::Starknet;
-use crate::error::{self, Result};
+use crate::error::{self, DevnetResult};
 use crate::transactions::invoke_transaction::InvokeTransactionV1;
 use crate::transactions::{StarknetTransaction, Transaction};
 
 pub fn add_invoke_transcation_v1(
     starknet: &mut Starknet,
     invoke_transaction: InvokeTransactionV1,
-) -> Result<TransactionHash> {
+) -> DevnetResult<TransactionHash> {
     if invoke_transaction.max_fee == 0 {
         return Err(error::Error::TransactionError(TransactionError::FeeError(
             "For invoke transaction, max fee cannot be 0".to_string(),

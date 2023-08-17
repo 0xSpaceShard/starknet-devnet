@@ -12,11 +12,11 @@ use starknet_in_rust::utils::calculate_sn_keccak;
 use starknet_rs_core::types::CompressedLegacyContractClass;
 
 use crate::contract_class::deprecated::rpc_contract_class::DeprecatedContractClass;
+use crate::error::DevnetResult;
 use crate::error::{Error, JsonError};
 use crate::rpc::felt::Felt;
 use crate::traits::HashProducer;
 use crate::utils::StarknetFormatter;
-use crate::DevnetResult;
 
 #[derive(Clone, Eq, PartialEq, Debug, Default, Serialize, Deserialize)]
 pub struct Cairo0Json {
@@ -57,7 +57,7 @@ impl Cairo0Json {
     /// because it uses swap_remove method on IndexMap, which doesnt preserve order.
     /// So we traverse the JSON object and remove all entries with key - attributes or
     /// accessible_scopes if they are empty arrays.
-    fn compute_hinted_class_hash(contract_class: &Value) -> crate::DevnetResult<StarkFelt> {
+    fn compute_hinted_class_hash(contract_class: &Value) -> crate::error::DevnetResult<StarkFelt> {
         let mut abi_program_json = json!({
             "abi": contract_class.get("abi").unwrap_or(&Value::Null),
             "program": contract_class.get("program").unwrap_or(&Value::Null)
@@ -90,7 +90,7 @@ impl Cairo0Json {
         Ok(StarkFelt::new(calculate_sn_keccak(&buffer))?)
     }
 
-    fn compute_cairo_0_contract_class_hash(json_class: &Value) -> crate::DevnetResult<Felt> {
+    fn compute_cairo_0_contract_class_hash(json_class: &Value) -> crate::error::DevnetResult<Felt> {
         let mut hashes = Vec::<StarkFelt>::new();
         hashes.push(StarkFelt::from(0u128));
 
@@ -209,6 +209,7 @@ impl TryInto<CompressedLegacyContractClass> for Cairo0Json {
 }
 
 impl HashProducer for Cairo0Json {
+    type Error = Error;
     fn generate_hash(&self) -> DevnetResult<Felt> {
         Cairo0Json::compute_cairo_0_contract_class_hash(&self.inner)
     }

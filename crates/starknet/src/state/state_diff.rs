@@ -8,7 +8,7 @@ use starknet_in_rust::utils::subtract_mappings;
 use starknet_in_rust::CasmContractClass;
 use starknet_types::rpc::felt::{ClassHash, Felt};
 
-use crate::error::Result;
+use crate::error::DevnetResult;
 
 /// This struct is used to store the difference between state modifications
 #[derive(PartialEq, Default, Debug, Clone)]
@@ -30,7 +30,7 @@ impl StateDiff {
     pub(crate) fn difference_between_old_and_new_state(
         mut old_state: InMemoryStateReader,
         mut new_state: CachedState<InMemoryStateReader>,
-    ) -> Result<Self> {
+    ) -> DevnetResult<Self> {
         let mut class_hash_to_compiled_class_hash = HashMap::<ClassHash, ClassHash>::new();
         let mut declared_contracts = HashMap::<ClassHash, CasmContractClass>::new();
         let mut cairo_0_declared_contracts = HashMap::<ClassHash, DeprecatedContractClass>::new();

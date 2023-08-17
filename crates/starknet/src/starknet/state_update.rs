@@ -1,10 +1,13 @@
 use starknet_rs_core::types::BlockId;
 
 use super::Starknet;
-use crate::error::Result;
+use crate::error::DevnetResult;
 use crate::state::state_update::StateUpdate;
 
-pub fn state_update_by_block_id(starknet: &Starknet, block_id: BlockId) -> Result<StateUpdate> {
+pub fn state_update_by_block_id(
+    starknet: &Starknet,
+    block_id: BlockId,
+) -> DevnetResult<StateUpdate> {
     let block = starknet.blocks.get_by_block_id(block_id).ok_or(crate::error::Error::NoBlock)?;
     let state_diff =
         starknet.blocks.num_to_state_diff.get(&block.block_number()).cloned().unwrap_or_default();

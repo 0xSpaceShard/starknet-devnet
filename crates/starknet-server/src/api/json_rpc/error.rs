@@ -42,11 +42,13 @@ pub enum ApiError {
     UnsupportedAction { msg: String },
 }
 
+pub(crate) type RpcResult<T> = Result<T, ApiError>;
+
 #[cfg(test)]
 mod tests {
 
-    use crate::api::json_rpc::error::ApiError;
-    use crate::api::json_rpc::{RpcResult, ToRpcResponseResult};
+    use crate::api::json_rpc::error::{ApiError, RpcResult};
+    use crate::api::json_rpc::ToRpcResponseResult;
 
     #[test]
     fn contract_not_found_error() {
