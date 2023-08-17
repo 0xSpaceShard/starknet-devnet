@@ -1,10 +1,11 @@
+use starknet_core::transactions::StarknetTransaction;
 use starknet_types::starknet_api::transaction::Fee;
 
 use super::json_rpc::error::ApiError;
 use super::models::transaction::{
     CommonTransactionReceipt, DeclareTransaction, DeclareTransactionV0V1, DeclareTransactionV2,
-    DeployAccountTransaction, InvokeTransactionV1, Transaction, TransactionReceiptWithStatus,
-    TransactionType, TransactionWithType,
+    DeployAccountTransaction, DeployTransactionReceipt, InvokeTransactionV1, Transaction,
+    TransactionReceipt, TransactionReceiptWithStatus, TransactionType, TransactionWithType,
 };
 
 impl TryFrom<&starknet_core::transactions::Transaction> for TransactionWithType {
@@ -150,21 +151,38 @@ impl TryFrom<&starknet_core::transactions::StarknetTransaction> for TransactionR
 
                 TransactionReceiptWithStatus { status: txn.status, receipt }
             }
+            // if transaction is invoke, then it could be possibly a deploy transaction
+            // because deploy transaction is just an invoke transaction to the UDC
             starknet_core::transactions::Transaction::Invoke(..) => {
+                let transaction_events = txn.get_events()?;
+                let deployed_address_option =
+                    StarknetTransaction::get_deployed_address_from_events(&transaction_events)?;
+
                 let output = crate::api::models::transaction::TransactionOutput {
                     actual_fee: starknet_types::starknet_api::transaction::Fee(txn.inner.max_fee()),
                     messages_sent: Vec::new(), // Add missing L1L2 messages
-                    events: txn.get_events()?,
+                    events: transaction_events,
                 };
-                let receipt = crate::api::models::transaction::TransactionReceipt::Common(
-                    CommonTransactionReceipt {
-                        r#type: crate::api::models::transaction::TransactionType::Invoke,
-                        transaction_hash: txn.inner.get_hash(),
-                        block_hash: txn.block_hash.unwrap_or_default(),
-                        block_number: txn.block_number.unwrap_or_default(),
-                        output,
+                let common_receipt = CommonTransactionReceipt {
+                    r#type: if deployed_address_option.is_none() {
+                        TransactionType::Invoke
+                    } else {
+                        TransactionType::Deploy
                     },
-                );
+                    transaction_hash: txn.inner.get_hash(),
+                    block_hash: txn.block_hash.unwrap_or_default(),
+                    block_number: txn.block_number.unwrap_or_default(),
+                    output,
+                };
+
+                let receipt = if let Some(deployed_address) = deployed_address_option {
+                    TransactionReceipt::Deploy(DeployTransactionReceipt {
+                        common: common_receipt,
+                        contract_address: deployed_address,
+                    })
+                } else {
+                    TransactionReceipt::Common(common_receipt)
+                };
 
                 TransactionReceiptWithStatus { status: txn.status, receipt }
             }
