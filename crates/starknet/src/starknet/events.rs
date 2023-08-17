@@ -67,7 +67,7 @@ pub(crate) fn get_events(
                     transaction_hash: *transaction_hash,
                     block_hash: block.block_hash(),
                     block_number: block.block_number(),
-                    event_data: transaction_event
+                    event_data: transaction_event,
                 };
 
                 events.push(emitted_event);
@@ -91,7 +91,7 @@ fn check_if_filter_applies_for_event(
     event: &Event,
 ) -> bool {
     let address_condition = match &address {
-        Some(from_contract_address) => event.from_address == from_contract_address.clone(),
+        Some(from_contract_address) => event.from_address == *from_contract_address,
         None => true,
     };
 
@@ -234,11 +234,11 @@ mod tests {
         let event = dummy_event();
 
         // filter with address that is the same as the on in the event
-        let address = Some(dummy_contract_address().try_into().unwrap());
+        let address = Some(dummy_contract_address());
         assert!(check_if_filter_applies_for_event(&address, &None, &event));
 
         // filter with address that is different from the one in the event
-        let address = ContractAddress::new(Felt::from(0)).unwrap().try_into().unwrap();
+        let address = ContractAddress::new(Felt::from(0)).unwrap();
         assert!(!check_if_filter_applies_for_event(&Some(address), &None, &event));
     }
 
@@ -258,22 +258,22 @@ mod tests {
         let event = dummy_event();
 
         // filter with address correct and filter keys correct
-        let address = Some(dummy_contract_address().try_into().unwrap());
+        let address = Some(dummy_contract_address());
         let keys_filter = vec![vec![Felt::from(2), Felt::from(3)]];
         assert!(check_if_filter_applies_for_event(&address, &Some(keys_filter), &event));
 
         // filter with incorrect address and correct filter keys
-        let address = Some(ContractAddress::new(Felt::from(0)).unwrap().try_into().unwrap());
+        let address = Some(ContractAddress::new(Felt::from(0)).unwrap());
         let keys_filter = vec![vec![Felt::from(2), Felt::from(3)]];
         assert!(!check_if_filter_applies_for_event(&address, &Some(keys_filter), &event));
 
         // filter with correct address and incorrect filter keys
-        let address = Some(dummy_contract_address().try_into().unwrap());
+        let address = Some(dummy_contract_address());
         let keys_filter = vec![vec![Felt::from(1), Felt::from(3)]];
         assert!(!check_if_filter_applies_for_event(&address, &Some(keys_filter), &event));
 
         // filter with incorrect address and incorrect filter keys
-        let address = Some(ContractAddress::new(Felt::from(0)).unwrap().try_into().unwrap());
+        let address = Some(ContractAddress::new(Felt::from(0)).unwrap());
         let keys_filter = vec![vec![Felt::from(1), Felt::from(3)]];
         assert!(!check_if_filter_applies_for_event(&address, &Some(keys_filter), &event));
     }
