@@ -1,5 +1,3 @@
-use starknet_types::starknet_api::transaction::Fee;
-
 use super::json_rpc::error::ApiError;
 use super::models::transaction::{
     DeclareTransaction, DeclareTransactionV0V1, DeclareTransactionV2, DeployAccountTransaction,
@@ -13,43 +11,43 @@ impl TryFrom<&starknet_core::transactions::StarknetTransaction> for TransactionR
 
         let transaction_with_receipt = match txn.inner {
             starknet_core::transactions::Transaction::Declare(declare_v1) => {
-                let out = crate::api::models::transaction::TransactionOutput {
-                    actual_fee: types::starknet_api::transaction::Fee(txn.max_fee()),
-                    messages_sent: Vec::new(), // where to find it?
-                    events: Vec::new(), // where to find it?
+                let output = crate::api::models::transaction::TransactionOutput {
+                    actual_fee: starknet_types::starknet_api::transaction::Fee(txn.inner.max_fee()),
+                    messages_sent: Vec::new(), // todo where to find it?
+                    events: Vec::new(), // use txn.get_events() after merge
                 };
         
                 let receipt = crate::api::models::transaction::TransactionReceipt::Common(CommonTransactionReceipt{
                     r#type: crate::api::models::transaction::TransactionType::Declare,
                     transaction_hash: txn.inner.get_hash(),
-                    block_hash: txn.block_hash.unwrap(),
-                    block_number: txn.block_number.unwrap(),
-                    output: out,
+                    block_hash: txn.block_hash.unwrap(), // todo fix unwrap
+                    block_number: txn.block_number.unwrap(), // todo fix unwrap
+                    output: output,
                 });
-                
+
                 TransactionReceiptWithStatus {
-                    status: crate::api::models::transaction::TransactionStatus::AcceptedOnL2, //todo map txn.status
+                    status: txn.status, // todo map txn.status from starknet in rust
                     receipt: receipt,
                 }
             }
             starknet_core::transactions::Transaction::DeclareV2(declare_v2) => {
 
                 TransactionReceiptWithStatus {
-                    status: crate::api::models::transaction::TransactionStatus::AcceptedOnL2, //todo map txn.status
+                    status: crate::api::models::transaction::TransactionStatus::AcceptedOnL2,
                     receipt: receipt,
                 }
             }
             starknet_core::transactions::Transaction::DeployAccount(deploy_account) => {
 
                 TransactionReceiptWithStatus {
-                    status: crate::api::models::transaction::TransactionStatus::AcceptedOnL2, //todo map txn.status
+                    status: crate::api::models::transaction::TransactionStatus::AcceptedOnL2,
                     receipt: receipt,
                 }
             }
             starknet_core::transactions::Transaction::Invoke(invoke_v1) => {
 
                 TransactionReceiptWithStatus {
-                    status: crate::api::models::transaction::TransactionStatus::AcceptedOnL2, //todo map txn.status
+                    status: crate::api::models::transaction::TransactionStatus::AcceptedOnL2,
                     receipt: receipt,
                 }
             }
