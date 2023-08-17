@@ -6,9 +6,10 @@ pub mod invoke_transaction;
 use std::collections::HashMap;
 
 use starknet_api::block::BlockNumber;
-use starknet_in_rust::execution::{CallInfo, Event, TransactionExecutionInfo};
+use starknet_in_rust::execution::{CallInfo, TransactionExecutionInfo};
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_rs_core::types::TransactionStatus;
+use starknet_types::emitted_event::Event;
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
 
 use self::declare_transaction::DeclareTransactionV1;
@@ -84,20 +85,33 @@ impl StarknetTransaction {
     }
 
     pub fn get_events(&self) -> Result<Vec<Event>> {
-        let mut result = Vec::<Event>::new();
+        let mut starknet_in_rust_events = Vec::<starknet_in_rust::execution::Event>::new();
 
-        fn events_from_call_info(call_info: Option<&CallInfo>) -> Result<Vec<Event>> {
+        fn events_from_call_info(
+            call_info: Option<&CallInfo>,
+        ) -> Result<Vec<starknet_in_rust::execution::Event>> {
             if let Some(call_info) = call_info {
                 call_info.get_sorted_events().map_err(crate::error::Error::from)
             } else {
-                Ok(Vec::<Event>::new())
+                Ok(Vec::<starknet_in_rust::execution::Event>::new())
             }
         }
 
         if let Some(execution_info) = &self.execution_info {
-            result.extend(events_from_call_info(execution_info.validate_info.as_ref())?);
-            result.extend(events_from_call_info(execution_info.call_info.as_ref())?);
-            result.extend(events_from_call_info(execution_info.fee_transfer_info.as_ref())?);
+            starknet_in_rust_events
+                .extend(events_from_call_info(execution_info.validate_info.as_ref())?);
+            starknet_in_rust_events
+                .extend(events_from_call_info(execution_info.call_info.as_ref())?);
+            starknet_in_rust_events
+                .extend(events_from_call_info(execution_info.fee_transfer_info.as_ref())?);
+        }
+        let mut result: Vec<Event> = Vec::new();
+        for event in starknet_in_rust_events.into_iter() {
+            result.push(Event {
+                from_address: event.from_address.try_into()?,
+                keys: event.keys.into_iter().map(Felt::from).collect(),
+                data: event.data.into_iter().map(Felt::from).collect(),
+            });
         }
 
         Ok(result)

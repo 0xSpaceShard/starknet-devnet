@@ -9,6 +9,12 @@ pub struct EmittedEvent {
     pub transaction_hash: TransactionHash,
     pub block_hash: BlockHash,
     pub block_number: BlockNumber,
+    #[serde(flatten)]
+    pub event_data: Event,
+}
+
+#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+pub struct Event {
     pub from_address: ContractAddress,
     pub keys: Vec<Felt>,
     pub data: Vec<Felt>,

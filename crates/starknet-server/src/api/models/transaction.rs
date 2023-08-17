@@ -143,28 +143,28 @@ pub struct L1HandlerTransaction {
     pub calldata: Calldata,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 pub struct TransactionReceiptWithStatus {
     pub status: TransactionStatus,
     #[serde(flatten)]
     pub receipt: TransactionReceipt,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum TransactionReceipt {
     Deploy(DeployTransactionReceipt),
     Common(CommonTransactionReceipt),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 pub struct DeployTransactionReceipt {
     #[serde(flatten)]
     pub common: CommonTransactionReceipt,
     pub contract_address: ContractAddress,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 pub struct CommonTransactionReceipt {
     pub transaction_hash: TransactionHash,
     pub r#type: TransactionType,
@@ -174,11 +174,11 @@ pub struct CommonTransactionReceipt {
     pub output: TransactionOutput,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 pub struct TransactionOutput {
     pub actual_fee: Fee,
     pub messages_sent: Vec<MessageToL1>,
-    pub events: Vec<Event>,
+    pub events: Vec<starknet_types::emitted_event::Event>,
 }
 
 pub type L2ToL1Payload = Vec<Felt>;
@@ -189,23 +189,6 @@ pub struct MessageToL1 {
     pub from_address: ContractAddress,
     pub to_address: EthAddress,
     pub payload: L2ToL1Payload,
-}
-
-#[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
-pub struct Event {
-    pub from_address: ContractAddress,
-    #[serde(flatten)]
-    pub content: EventContent,
-}
-
-pub type EventKeyHex = Felt;
-pub type EventData = Vec<Felt>;
-
-/// An event content.
-#[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
-pub struct EventContent {
-    pub keys: Vec<EventKeyHex>,
-    pub data: EventData,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
