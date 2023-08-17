@@ -1,3 +1,5 @@
+use starknet_types::starknet_api::transaction::Fee;
+
 use super::json_rpc::error::ApiError;
 use super::models::transaction::{
     CommonTransactionReceipt, DeclareTransaction, DeclareTransactionV0V1, DeclareTransactionV2,
@@ -93,7 +95,7 @@ impl TryFrom<&starknet_core::transactions::StarknetTransaction> for TransactionR
         txn: &starknet_core::transactions::StarknetTransaction,
     ) -> Result<Self, Self::Error> {
         let transaction_with_receipt = match txn.inner {
-            starknet_core::transactions::Transaction::Declare(declare_v1) => {
+            starknet_core::transactions::Transaction::Declare(..) => {
                 let output = crate::api::models::transaction::TransactionOutput {
                     actual_fee: Fee(txn.inner.max_fee()),
                     messages_sent: Vec::new(), // Add missing L1L2 messages
@@ -111,7 +113,7 @@ impl TryFrom<&starknet_core::transactions::StarknetTransaction> for TransactionR
 
                 TransactionReceiptWithStatus { status: txn.status, receipt }
             }
-            starknet_core::transactions::Transaction::DeclareV2(declare_v2) => {
+            starknet_core::transactions::Transaction::DeclareV2(..) => {
                 let output = crate::api::models::transaction::TransactionOutput {
                     actual_fee: starknet_types::starknet_api::transaction::Fee(txn.inner.max_fee()),
                     messages_sent: Vec::new(), // Add missing L1L2 messages
@@ -129,7 +131,7 @@ impl TryFrom<&starknet_core::transactions::StarknetTransaction> for TransactionR
 
                 TransactionReceiptWithStatus { status: txn.status, receipt }
             }
-            starknet_core::transactions::Transaction::DeployAccount(deploy_account) => {
+            starknet_core::transactions::Transaction::DeployAccount(..) => {
                 let output = crate::api::models::transaction::TransactionOutput {
                     actual_fee: starknet_types::starknet_api::transaction::Fee(txn.inner.max_fee()),
                     messages_sent: Vec::new(), // Add missing L1L2 messages
@@ -147,7 +149,7 @@ impl TryFrom<&starknet_core::transactions::StarknetTransaction> for TransactionR
 
                 TransactionReceiptWithStatus { status: txn.status, receipt }
             }
-            starknet_core::transactions::Transaction::Invoke(invoke_v1) => {
+            starknet_core::transactions::Transaction::Invoke(..) => {
                 let output = crate::api::models::transaction::TransactionOutput {
                     actual_fee: starknet_types::starknet_api::transaction::Fee(txn.inner.max_fee()),
                     messages_sent: Vec::new(), // Add missing L1L2 messages
