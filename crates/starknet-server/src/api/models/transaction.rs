@@ -238,17 +238,8 @@ pub struct EventFilter {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct EventsChunk {
-    pub events: Vec<starknet_types::models::emitted_event::EmittedEvent>,
+    pub events: Vec<starknet_types::emitted_event::EmittedEvent>,
     pub continuation_token: Option<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
-pub struct EmittedEvent {
-    #[serde(flatten)]
-    pub event: Event,
-    pub block_hash: BlockHashHex,
-    pub block_number: BlockNumber,
-    pub transaction_hash: TransactionHash,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]

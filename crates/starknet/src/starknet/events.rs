@@ -3,8 +3,8 @@ use starknet_in_rust::felt::Felt252;
 use starknet_in_rust::utils::Address;
 use starknet_rs_core::types::BlockId;
 use starknet_types::contract_address::ContractAddress;
+use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::Felt;
-use starknet_types::models::emitted_event::EmittedEvent;
 
 use super::Starknet;
 use crate::error::{Error, Result};

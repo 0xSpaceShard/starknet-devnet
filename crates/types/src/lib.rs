@@ -1,9 +1,9 @@
 pub mod contract_address;
 pub mod contract_class;
 pub mod contract_storage_key;
+pub mod emitted_event;
 pub mod error;
 pub mod felt;
-pub mod models;
 pub mod patricia_key;
 pub mod serde_helpers;
 pub mod traits;
