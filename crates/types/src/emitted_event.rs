@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
 
 use crate::contract_address::ContractAddress;
@@ -13,7 +13,7 @@ pub struct EmittedEvent {
     pub event_data: Event,
 }
 
-#[derive(Serialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Clone, Debug, PartialEq, Eq, Deserialize)]
 pub struct Event {
     pub from_address: ContractAddress,
     pub keys: Vec<Felt>,

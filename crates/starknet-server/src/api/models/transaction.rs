@@ -145,28 +145,28 @@ pub struct L1HandlerTransaction {
     pub calldata: Calldata,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TransactionReceiptWithStatus {
     pub status: TransactionStatus,
     #[serde(flatten)]
     pub receipt: TransactionReceipt,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum TransactionReceipt {
     Deploy(DeployTransactionReceipt),
     Common(CommonTransactionReceipt),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct DeployTransactionReceipt {
     #[serde(flatten)]
     pub common: CommonTransactionReceipt,
     pub contract_address: ContractAddress,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct CommonTransactionReceipt {
     pub transaction_hash: TransactionHash,
     pub r#type: TransactionType,
@@ -176,7 +176,7 @@ pub struct CommonTransactionReceipt {
     pub output: TransactionOutput,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TransactionOutput {
     pub actual_fee: Fee,
     pub messages_sent: Vec<MessageToL1>,
