@@ -8,46 +8,80 @@ impl TryFrom<&starknet_core::transactions::StarknetTransaction> for TransactionR
     type Error = ApiError;
 
     fn try_from(txn: &starknet_core::transactions::StarknetTransaction) -> Result<Self, Self::Error> {
-
         let transaction_with_receipt = match txn.inner {
             starknet_core::transactions::Transaction::Declare(declare_v1) => {
                 let output = crate::api::models::transaction::TransactionOutput {
-                    actual_fee: starknet_types::starknet_api::transaction::Fee(txn.inner.max_fee()),
-                    messages_sent: Vec::new(), // todo where to find it?
-                    events: Vec::new(), // use txn.get_events() after merge
+                    actual_fee: Fee(txn.inner.max_fee()),
+                    messages_sent: Vec::new(), // Add missing L1L2 messages
+                    events: Vec::new(), // TODO: use txn.get_events()
                 };
-        
                 let receipt = crate::api::models::transaction::TransactionReceipt::Common(CommonTransactionReceipt{
                     r#type: crate::api::models::transaction::TransactionType::Declare,
                     transaction_hash: txn.inner.get_hash(),
-                    block_hash: txn.block_hash.unwrap(), // todo fix unwrap
-                    block_number: txn.block_number.unwrap(), // todo fix unwrap
+                    block_hash: txn.block_hash.unwrap_or_default(),
+                    block_number: txn.block_number.unwrap_or_default(),
                     output: output,
                 });
 
                 TransactionReceiptWithStatus {
-                    status: txn.status, // todo map txn.status from starknet in rust
+                    status: txn.status,
                     receipt: receipt,
                 }
             }
             starknet_core::transactions::Transaction::DeclareV2(declare_v2) => {
+                let output = crate::api::models::transaction::TransactionOutput {
+                    actual_fee: starknet_types::starknet_api::transaction::Fee(txn.inner.max_fee()),
+                    messages_sent: Vec::new(), // Add missing L1L2 messages
+                    events: Vec::new(), // TODO: use txn.get_events()
+                };
+                let receipt = crate::api::models::transaction::TransactionReceipt::Common(CommonTransactionReceipt{
+                    r#type: crate::api::models::transaction::TransactionType::Declare,
+                    transaction_hash: txn.inner.get_hash(),
+                    block_hash: txn.block_hash.unwrap_or_default(),
+                    block_number: txn.block_number.unwrap_or_default(),
+                    output: output,
+                });
 
                 TransactionReceiptWithStatus {
-                    status: crate::api::models::transaction::TransactionStatus::AcceptedOnL2,
+                    status: txn.status,
                     receipt: receipt,
                 }
             }
             starknet_core::transactions::Transaction::DeployAccount(deploy_account) => {
+                let output = crate::api::models::transaction::TransactionOutput {
+                    actual_fee: starknet_types::starknet_api::transaction::Fee(txn.inner.max_fee()),
+                    messages_sent: Vec::new(), // Add missing L1L2 messages
+                    events: Vec::new(), // TODO: use txn.get_events()
+                };
+                let receipt = crate::api::models::transaction::TransactionReceipt::Common(CommonTransactionReceipt{
+                    r#type: crate::api::models::transaction::TransactionType::DeployAccount,
+                    transaction_hash: txn.inner.get_hash(),
+                    block_hash: txn.block_hash.unwrap_or_default(),
+                    block_number: txn.block_number.unwrap_or_default(),
+                    output: output,
+                });
 
                 TransactionReceiptWithStatus {
-                    status: crate::api::models::transaction::TransactionStatus::AcceptedOnL2,
+                    status: txn.status,
                     receipt: receipt,
                 }
             }
             starknet_core::transactions::Transaction::Invoke(invoke_v1) => {
+                let output = crate::api::models::transaction::TransactionOutput {
+                    actual_fee: starknet_types::starknet_api::transaction::Fee(txn.inner.max_fee()),
+                    messages_sent: Vec::new(), // Add missing L1L2 messages
+                    events: Vec::new(), // TODO: use txn.get_events()
+                };
+                let receipt = crate::api::models::transaction::TransactionReceipt::Common(CommonTransactionReceipt{
+                    r#type: crate::api::models::transaction::TransactionType::Invoke,
+                    transaction_hash: txn.inner.get_hash(),
+                    block_hash: txn.block_hash.unwrap_or_default(),
+                    block_number: txn.block_number.unwrap_or_default(),
+                    output: output,
+                });
 
                 TransactionReceiptWithStatus {
-                    status: crate::api::models::transaction::TransactionStatus::AcceptedOnL2,
+                    status: txn.status,
                     receipt: receipt,
                 }
             }

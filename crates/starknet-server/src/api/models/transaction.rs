@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use starknet_rs_core::types::BlockId;
+use starknet_rs_core::types::{BlockId, TransactionStatus};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::DeprecatedContractClass;
 use starknet_types::felt::{
@@ -141,24 +141,6 @@ pub struct L1HandlerTransaction {
     pub contract_address: ContractAddress,
     pub entry_point_selector: EntryPointSelector,
     pub calldata: Calldata,
-}
-
-/// A transaction status in Starknet.
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize, Default)]
-pub enum TransactionStatus {
-    /// The transaction passed the validation and entered the pending block.
-    #[serde(rename = "PENDING")]
-    Pending,
-    /// The transaction passed the validation and entered an actual created block.
-    #[serde(rename = "ACCEPTED_ON_L2")]
-    #[default]
-    AcceptedOnL2,
-    /// The transaction was accepted on-chain.
-    #[serde(rename = "ACCEPTED_ON_L1")]
-    AcceptedOnL1,
-    /// The transaction failed validation.
-    #[serde(rename = "REJECTED")]
-    Rejected,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
