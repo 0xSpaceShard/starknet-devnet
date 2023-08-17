@@ -130,6 +130,7 @@ mod tests {
             Felt::from(0),
             contract_class.into(),
             StarknetChainId::TestNet.to_felt().into(),
+            Felt::from(1),
         )
         .unwrap()
     }
@@ -144,6 +145,7 @@ mod tests {
             vec![],
             dummy_felt(),
             dummy_felt(),
+            Felt::from(2),
         )
         .unwrap();
 
@@ -235,6 +237,7 @@ mod tests {
             dummy_felt(),
             dummy_cairo_0_contract_class().into(),
             dummy_felt(),
+            Felt::from(1),
         )
         .unwrap();
 
@@ -287,15 +290,14 @@ mod tests {
         assert_eq!(starknet.blocks.num_to_block.len(), 1);
         // check if transaction is in generated block
         assert_eq!(
-            starknet
+            *starknet
                 .blocks
                 .num_to_block
                 .get(&BlockNumber(0))
                 .unwrap()
                 .get_transactions()
                 .first()
-                .unwrap()
-                .get_hash(),
+                .unwrap(),
             tx_hash
         );
     }

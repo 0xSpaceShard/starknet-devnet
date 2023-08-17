@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use serde::{Deserialize, Serialize};
 use starknet_rs_core::types::BlockId;
 use starknet_types::contract_address::ContractAddress;
@@ -232,16 +230,15 @@ pub struct EventContent {
 pub struct EventFilter {
     pub from_block: Option<BlockId>,
     pub to_block: Option<BlockId>,
+    pub address: Option<ContractAddress>,
+    pub keys: Option<Vec<Vec<Felt>>>,
     pub continuation_token: Option<String>,
     pub chunk_size: usize,
-    pub address: Option<ContractAddress>,
-    #[serde(default)]
-    pub keys: Vec<HashSet<Felt>>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct EventsChunk {
-    pub events: Vec<Event>,
+    pub events: Vec<starknet_types::emitted_event::EmittedEvent>,
     pub continuation_token: Option<String>,
 }
 

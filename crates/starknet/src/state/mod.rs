@@ -45,7 +45,11 @@ impl Default for StarknetState {
         let in_memory_state = InMemoryStateReader::default();
         Self {
             state: in_memory_state.clone(),
-            pending_state: CachedState::new(Arc::new(in_memory_state), None, None),
+            pending_state: CachedState::new(
+                Arc::new(in_memory_state),
+                Some(Default::default()),
+                Some(Default::default()),
+            ),
             contract_classes: HashMap::new(),
         }
     }
