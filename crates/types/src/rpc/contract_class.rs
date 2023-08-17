@@ -10,8 +10,7 @@ use starknet_rs_core::types::{
 };
 use starknet_rs_ff::FieldElement;
 
-use crate::error::DevnetResult;
-use crate::error::{Error, JsonError};
+use crate::error::{DevnetResult, Error, JsonError};
 use crate::rpc::felt::Felt;
 use crate::traits::HashProducer;
 

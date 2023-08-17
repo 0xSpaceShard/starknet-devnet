@@ -7,8 +7,5 @@ pub mod traits;
 mod utils;
 
 // Re export libraries
-pub use rpc::contract_address;
-pub use rpc::contract_class;
-pub use rpc::emitted_event;
-pub use rpc::felt;
+pub use rpc::{contract_address, contract_class, emitted_event, felt};
 pub use {cairo_felt, num_bigint, num_integer, starknet_api};

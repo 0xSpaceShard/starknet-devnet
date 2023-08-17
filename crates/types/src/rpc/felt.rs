@@ -6,8 +6,7 @@ use starknet_api::serde_utils::{bytes_from_hex_str, hex_str_from_bytes};
 use starknet_api::StarknetApiError;
 
 use crate::contract_address::ContractAddress;
-use crate::error::DevnetResult;
-use crate::error::Error;
+use crate::error::{DevnetResult, Error};
 use crate::serde_helpers::hex_string::{
     deserialize_prefixed_hex_string_to_felt, serialize_to_prefixed_hex,
 };
@@ -106,7 +105,7 @@ impl From<u128> for Felt {
 
 impl From<ContractAddress> for Felt {
     fn from(value: ContractAddress) -> Self {
-        value.0 .0
+        value.0.0
     }
 }
 
@@ -236,10 +235,12 @@ mod tests {
     use crate::traits::ToDecimalString;
     #[test]
     fn correct_conversion_from_hex_str_to_felt() {
-        assert!(Felt::from_prefixed_hex_str(
-            "0x3FCBF77B28C96F4F2FB5BD2D176AB083A12A5E123ADEB0DE955D7EE228C9854"
+        assert!(
+            Felt::from_prefixed_hex_str(
+                "0x3FCBF77B28C96F4F2FB5BD2D176AB083A12A5E123ADEB0DE955D7EE228C9854"
+            )
+            .is_ok()
         )
-        .is_ok())
     }
 
     #[test]
