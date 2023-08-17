@@ -153,7 +153,6 @@ pub struct TransactionReceiptWithStatus {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum TransactionReceipt {
-    Deploy(DeployTransactionReceipt),
     Common(CommonTransactionReceipt),
 }
 
