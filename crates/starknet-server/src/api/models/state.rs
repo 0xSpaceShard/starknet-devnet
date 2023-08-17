@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::rpc::felt::{ClassHash, Felt, Nonce};
+use starknet_types::felt::{ClassHash, Felt, Nonce};
 
 use super::block::{BlockHashHex, GlobalRootHex};
 use super::PatriciaKeyHex;

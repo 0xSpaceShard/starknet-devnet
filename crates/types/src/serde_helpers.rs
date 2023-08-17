@@ -54,8 +54,8 @@ pub mod hex_string {
     use serde::{Deserialize, Deserializer, Serializer};
 
     use crate::contract_address::ContractAddress;
+    use crate::felt::Felt;
     use crate::patricia_key::PatriciaKey;
-    use crate::rpc::felt::Felt;
     use crate::traits::ToHexString;
 
     pub fn deserialize_to_prefixed_patricia_key<'de, D>(
@@ -135,8 +135,8 @@ pub mod hex_string {
         use starknet_api::serde_utils::bytes_from_hex_str;
 
         use crate::contract_address::ContractAddress;
+        use crate::felt::Felt;
         use crate::patricia_key::PatriciaKey;
-        use crate::rpc::felt::Felt;
         use crate::serde_helpers::hex_string::{
             deserialize_non_prefixed_hex_string_to_felt, deserialize_prefixed_hex_string_to_felt,
             deserialize_to_prefixed_contract_address, deserialize_to_prefixed_patricia_key,

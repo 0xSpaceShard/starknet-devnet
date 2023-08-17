@@ -4,8 +4,8 @@ pub(crate) mod transaction;
 
 use serde::{Deserialize, Serialize};
 use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag as ImportedBlockTag};
+use starknet_types::felt::Felt;
 use starknet_types::patricia_key::PatriciaKey;
-use starknet_types::rpc::felt::Felt;
 use starknet_types::serde_helpers::hex_string::{
     deserialize_to_prefixed_patricia_key, serialize_patricia_key_to_prefixed_hex,
 };

@@ -5,7 +5,7 @@ use starknet_in_rust::felt::Felt252;
 use starknet_in_rust::transaction::{verify_version, Declare};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::Cairo0ContractClass;
-use starknet_types::rpc::felt::{ClassHash, Felt, TransactionHash};
+use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 
 use crate::error::{DevnetResult, Error};
@@ -131,7 +131,7 @@ mod tests {
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::Cairo0Json;
-    use starknet_types::rpc::felt::Felt;
+    use starknet_types::felt::Felt;
     use starknet_types::traits::{HashProducer, ToHexString};
 
     #[derive(Deserialize)]

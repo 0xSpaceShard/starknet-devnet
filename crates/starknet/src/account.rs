@@ -8,8 +8,8 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::error::Error;
+use starknet_types::felt::{Balance, ClassHash, Felt, Key};
 use starknet_types::num_bigint::BigUint;
-use starknet_types::rpc::felt::{Balance, ClassHash, Felt, Key};
 
 use crate::constants::{
     CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, CHARGEABLE_ACCOUNT_PUBLIC_KEY,
@@ -138,7 +138,7 @@ mod tests {
     use starknet_in_rust::core::errors::state_errors::StateError;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_storage_key::ContractStorageKey;
-    use starknet_types::rpc::felt::Felt;
+    use starknet_types::felt::Felt;
 
     use super::Account;
     use crate::error::Error;

@@ -325,7 +325,7 @@ impl std::fmt::Display for StarknetRequest {
 
 #[cfg(test)]
 mod requests_tests {
-    use starknet_types::rpc::felt::Felt;
+    use starknet_types::felt::Felt;
 
     use super::StarknetRequest;
 

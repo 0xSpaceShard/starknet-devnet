@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use starknet_rs_core::types::BlockId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::DeprecatedContractClass;
-use starknet_types::rpc::felt::{
+use starknet_types::felt::{
     Calldata, ClassHash, CompiledClassHash, ContractAddressSalt, EntryPointSelector, Felt, Nonce,
     TransactionHash, TransactionSignature, TransactionVersion,
 };

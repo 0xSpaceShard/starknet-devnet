@@ -5,7 +5,7 @@ use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::utils::Address;
 use starknet_rs_core::types::ContractClass as CodegenContractClass;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::rpc::felt::{ClassHash, Felt, TransactionHash};
+use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::starknet_api::block::BlockNumber;
 use starknet_types::traits::ToHexString;
 

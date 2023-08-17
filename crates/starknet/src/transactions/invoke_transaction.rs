@@ -1,7 +1,7 @@
 use starknet_in_rust::definitions::constants::EXECUTE_ENTRY_POINT_SELECTOR;
 use starknet_in_rust::transaction::InvokeFunction;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::rpc::felt::Felt;
+use starknet_types::felt::Felt;
 use starknet_types::traits::HashProducer;
 
 use crate::error::{DevnetResult, Error};
@@ -78,7 +78,7 @@ mod tests {
     use serde::Deserialize;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::rpc::felt::Felt;
+    use starknet_types::felt::Felt;
     use starknet_types::traits::{HashProducer, ToHexString};
 
     #[derive(Deserialize)]

@@ -11,7 +11,7 @@ use starknet_rs_core::types::{
 use starknet_rs_ff::FieldElement;
 
 use crate::error::{DevnetResult, Error, JsonError};
-use crate::rpc::felt::Felt;
+use crate::felt::Felt;
 use crate::traits::HashProducer;
 
 pub mod deprecated;
@@ -172,7 +172,7 @@ mod tests {
     use starknet_in_rust::SierraContractClass;
 
     use crate::contract_class::{convert_sierra_to_codegen, Cairo0Json, ContractClass};
-    use crate::rpc::felt::Felt;
+    use crate::felt::Felt;
     use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
     use crate::traits::HashProducer;
     use crate::utils::test_utils::{

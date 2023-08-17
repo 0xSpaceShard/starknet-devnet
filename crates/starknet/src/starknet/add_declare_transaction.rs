@@ -1,5 +1,5 @@
 use starknet_types::contract_class::ContractClass;
-use starknet_types::rpc::felt::{ClassHash, TransactionHash};
+use starknet_types::felt::{ClassHash, TransactionHash};
 
 use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;
@@ -107,7 +107,7 @@ mod tests {
     use starknet_rs_core::types::TransactionStatus;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};
-    use starknet_types::rpc::felt::Felt;
+    use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;
@@ -208,13 +208,11 @@ mod tests {
 
         // check if contract is not declared
         assert!(!starknet.state.is_contract_declared(&expected_class_hash));
-        assert!(
-            !starknet
-                .state
-                .state
-                .casm_contract_classes_mut()
-                .contains_key(&expected_compiled_class_hash.bytes())
-        );
+        assert!(!starknet
+            .state
+            .state
+            .casm_contract_classes_mut()
+            .contains_key(&expected_compiled_class_hash.bytes()));
 
         let (tx_hash, retrieved_class_hash) =
             starknet.add_declare_transaction_v2(declare_txn).unwrap();

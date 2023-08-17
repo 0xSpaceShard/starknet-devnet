@@ -4,7 +4,7 @@ use starknet_in_rust::SierraContractClass;
 use starknet_rs_core::types::BlockId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
-use starknet_types::rpc::felt::ClassHash;
+use starknet_types::felt::ClassHash;
 
 use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;
@@ -68,7 +68,7 @@ mod tests {
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_rs_core::types::BlockId;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};
-    use starknet_types::rpc::felt::Felt;
+    use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;

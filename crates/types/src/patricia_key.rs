@@ -1,7 +1,7 @@
 use starknet_api::core::{CONTRACT_ADDRESS_DOMAIN_SIZE, PATRICIA_KEY_UPPER_BOUND};
 
 use crate::error::{DevnetResult, Error};
-use crate::rpc::felt::Felt;
+use crate::felt::Felt;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct PatriciaKey(pub(crate) Felt);
@@ -50,19 +50,17 @@ pub type StorageKey = PatriciaKey;
 #[cfg(test)]
 mod tests {
     use super::PatriciaKey;
-    use crate::rpc::felt::Felt;
+    use crate::felt::Felt;
 
     #[test]
     fn creation_of_patricia_key_should_be_successful() {
-        assert!(
-            PatriciaKey::new(
-                Felt::from_prefixed_hex_str(
-                    "0x7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-                )
-                .unwrap()
+        assert!(PatriciaKey::new(
+            Felt::from_prefixed_hex_str(
+                "0x7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
             )
-            .is_ok()
-        );
+            .unwrap()
+        )
+        .is_ok());
     }
 
     #[test]

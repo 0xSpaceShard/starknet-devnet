@@ -1,4 +1,4 @@
-use crate::rpc::felt::Felt;
+use crate::felt::Felt;
 
 pub trait ToHexString {
     fn to_prefixed_hex_str(&self) -> String;

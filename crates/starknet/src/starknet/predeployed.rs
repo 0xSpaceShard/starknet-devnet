@@ -1,7 +1,7 @@
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_storage_key::ContractStorageKey;
-use starknet_types::rpc::felt::Felt;
+use starknet_types::felt::Felt;
 
 use crate::constants::{
     CHARGEABLE_ACCOUNT_ADDRESS, ERC20_CONTRACT_ADDRESS, ERC20_CONTRACT_CLASS_HASH,

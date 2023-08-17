@@ -1,6 +1,6 @@
 use starknet_types::contract_address::ContractAddress;
+use starknet_types::felt::{ClassHash, Felt};
 use starknet_types::patricia_key::PatriciaKey;
-use starknet_types::rpc::felt::{ClassHash, Felt};
 
 use super::state_diff::StateDiff;
 use crate::error::DevnetResult;

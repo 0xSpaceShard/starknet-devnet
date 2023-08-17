@@ -1,9 +1,9 @@
 use starknet_api::hash::{pedersen_hash, StarkFelt};
 use starknet_in_rust::utils::calculate_sn_keccak;
 use starknet_types::cairo_felt::Felt252;
+use starknet_types::felt::Felt;
 use starknet_types::num_integer::Integer;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
-use starknet_types::rpc::felt::Felt;
 
 use crate::error::DevnetResult;
 
@@ -41,8 +41,8 @@ pub(crate) mod test_utils {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
     use starknet_types::contract_storage_key::ContractStorageKey;
+    use starknet_types::felt::Felt;
     use starknet_types::patricia_key::StorageKey;
-    use starknet_types::rpc::felt::Felt;
 
     use crate::constants::{
         DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_HOST,

@@ -3,8 +3,8 @@ use starknet_core::constants::ERC20_CONTRACT_ADDRESS;
 use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::contract_address::ContractAddress;
+use starknet_types::felt::Felt;
 use starknet_types::num_bigint::BigUint;
-use starknet_types::rpc::felt::Felt;
 
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{FeeToken, MintTokensRequest, MintTokensResponse};
