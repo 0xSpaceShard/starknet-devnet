@@ -67,9 +67,7 @@ pub(crate) fn get_events(
                     transaction_hash: *transaction_hash,
                     block_hash: block.block_hash(),
                     block_number: block.block_number(),
-                    from_address: transaction_event.from_address,
-                    keys: transaction_event.keys,
-                    data: transaction_event.data,
+                    event_data: transaction_event
                 };
 
                 events.push(emitted_event);
@@ -372,9 +370,9 @@ mod tests {
 
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].transaction_hash, Felt::from(104));
-        assert_eq!(events[0].keys.len(), 1);
-        assert_eq!(events[0].keys[0], Felt::from(15));
-        assert_eq!(events[0].data[0], Felt::from(25));
+        assert_eq!(events[0].event_data.keys.len(), 1);
+        assert_eq!(events[0].event_data.keys[0], Felt::from(15));
+        assert_eq!(events[0].event_data.data[0], Felt::from(25));
 
         let (events, _) =
             get_events(&starknet, None, None, None, Some(vec![vec![Felt::from(12)]]), 0, None)
@@ -385,9 +383,9 @@ mod tests {
         // generated event with key 11
         for (idx, event) in events.iter().enumerate() {
             assert_eq!(event.transaction_hash, Felt::from(101 + idx as u128));
-            assert_eq!(event.keys.len(), 1);
-            assert_eq!(event.keys[0], Felt::from(12));
-            assert_eq!(event.data[0], Felt::from(22));
+            assert_eq!(event.event_data.keys.len(), 1);
+            assert_eq!(event.event_data.keys[0], Felt::from(12));
+            assert_eq!(event.event_data.data[0], Felt::from(22));
         }
     }
 
