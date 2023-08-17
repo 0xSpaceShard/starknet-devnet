@@ -4,7 +4,7 @@ use starknet_in_rust::utils::Address;
 use starknet_rs_core::types::BlockId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::EmittedEvent;
-use starknet_types::felt::Felt;
+use starknet_types::rpc::felt::Felt;
 
 use super::Starknet;
 use crate::error::{Error, Result};
@@ -140,7 +140,7 @@ mod tests {
     use starknet_in_rust::felt::Felt252;
     use starknet_rs_core::types::BlockId;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::felt::Felt;
+    use starknet_types::rpc::felt::Felt;
 
     use super::{check_if_filter_applies_for_event, get_events};
     use crate::starknet::events::check_if_filter_applies_for_event_keys;

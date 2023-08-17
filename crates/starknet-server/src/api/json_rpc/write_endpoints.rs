@@ -3,7 +3,7 @@ use starknet_core::transactions::declare_transaction::DeclareTransactionV1;
 use starknet_core::transactions::declare_transaction_v2::DeclareTransactionV2;
 use starknet_core::transactions::deploy_account_transaction::DeployAccountTransaction;
 use starknet_core::transactions::invoke_transaction::InvokeTransactionV1;
-use starknet_types::felt::Felt;
+use starknet_types::rpc::felt::Felt;
 
 use super::error::ApiError;
 use super::models::{

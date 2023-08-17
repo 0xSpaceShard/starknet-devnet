@@ -1,7 +1,7 @@
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::transaction::DeployAccount;
 use starknet_types::error::Error;
-use starknet_types::felt::{ClassHash, Felt};
+use starknet_types::rpc::felt::{ClassHash, Felt};
 use starknet_types::traits::HashProducer;
 
 use crate::error::{self, Result};
@@ -85,7 +85,7 @@ mod tests {
     use serde::Deserialize;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::felt::Felt;
+    use starknet_types::rpc::felt::Felt;
     use starknet_types::traits::{HashProducer, ToHexString};
 
     #[derive(Deserialize)]

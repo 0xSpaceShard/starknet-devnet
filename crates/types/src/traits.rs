@@ -1,4 +1,4 @@
-use crate::felt::Felt;
+use crate::rpc::felt::Felt;
 use crate::DevnetResult;
 
 pub trait ToHexString {

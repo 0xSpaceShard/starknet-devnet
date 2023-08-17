@@ -2,7 +2,7 @@ use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::SigningKey;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
-use starknet_types::felt::{ClassHash, Felt, Key};
+use starknet_types::rpc::felt::{ClassHash, Felt, Key};
 
 use crate::account::Account;
 use crate::error::Result;
@@ -82,7 +82,7 @@ mod tests {
     use jsonschema::JSONSchema;
     use serde_json::json;
     use starknet_types::contract_class::Cairo0Json;
-    use starknet_types::felt::{Felt, Key};
+    use starknet_types::rpc::felt::{Felt, Key};
     use starknet_types::traits::{ToDecimalString, ToHexString};
 
     use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH};

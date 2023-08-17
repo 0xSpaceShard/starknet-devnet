@@ -1,7 +1,7 @@
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::contract_storage_key::ContractStorageKey;
-use starknet_types::felt::{Balance, ClassHash, Felt};
+use starknet_types::rpc::felt::{Balance, ClassHash, Felt};
 
 use crate::error::Result;
 use crate::state::state_diff::StateDiff;

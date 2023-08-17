@@ -1,7 +1,7 @@
 use starknet_in_rust::core::errors::state_errors::StateError;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{Felt, TransactionHash};
+use starknet_types::rpc::felt::{Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 
 use super::Starknet;
@@ -64,7 +64,7 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::Cairo0Json;
     use starknet_types::contract_storage_key::ContractStorageKey;
-    use starknet_types::felt::{ClassHash, Felt};
+    use starknet_types::rpc::felt::{ClassHash, Felt};
     use starknet_types::traits::HashProducer;
 
     use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID};

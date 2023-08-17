@@ -1,5 +1,5 @@
 use axum::Json;
-use starknet_types::felt::TransactionHash;
+use starknet_types::rpc::felt::TransactionHash;
 
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{

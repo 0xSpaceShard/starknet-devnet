@@ -73,20 +73,28 @@ impl Formatter for StarknetFormatter {
     where
         W: ?Sized + io::Write,
     {
-        if first { Ok(()) } else { writer.write_all(b", ") }
+        if first {
+            Ok(())
+        } else {
+            writer.write_all(b", ")
+        }
     }
 
     fn begin_array_value<W>(&mut self, writer: &mut W, first: bool) -> io::Result<()>
     where
         W: ?Sized + io::Write,
     {
-        if first { Ok(()) } else { writer.write_all(b", ") }
+        if first {
+            Ok(())
+        } else {
+            writer.write_all(b", ")
+        }
     }
 }
 
 #[cfg(test)]
 pub(crate) mod test_utils {
-    use crate::felt::Felt;
+    use crate::rpc::felt::Felt;
 
     pub(crate) const CAIRO_0_ACCOUNT_CONTRACT_PATH: &str =
         concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/Cairo0_contract.json");

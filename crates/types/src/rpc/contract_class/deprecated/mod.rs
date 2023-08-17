@@ -7,7 +7,7 @@ use starknet_rs_core::types::CompressedLegacyContractClass;
 use crate::contract_class::deprecated::rpc_contract_class::DeprecatedContractClass;
 use crate::contract_class::Cairo0Json;
 use crate::error::{Error, JsonError};
-use crate::felt::Felt;
+use crate::rpc::felt::Felt;
 use crate::traits::HashProducer;
 use crate::DevnetResult;
 

@@ -20,7 +20,7 @@ mod tests {
     use starknet_rs_core::types::TransactionStatus;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};
-    use starknet_types::felt::Felt;
+    use starknet_types::rpc::felt::Felt;
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;

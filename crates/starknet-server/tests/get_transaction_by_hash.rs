@@ -14,7 +14,7 @@ mod get_transaction_by_hash_integration_tests {
         MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
     };
     use starknet_rs_signers::{LocalWallet, SigningKey};
-    use starknet_types::felt::Felt;
+    use starknet_types::rpc::felt::Felt;
     use starknet_types::traits::ToHexString;
 
     use crate::common::constants::{

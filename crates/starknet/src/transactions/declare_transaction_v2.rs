@@ -1,7 +1,7 @@
 use starknet_in_rust::transaction::DeclareV2;
 use starknet_in_rust::SierraContractClass;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{ClassHash, Felt, TransactionHash};
+use starknet_types::rpc::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use starknet_types::DevnetResult;
 
@@ -108,7 +108,7 @@ mod tests {
     use starknet_rs_core::types::contract::SierraClass;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::ContractClass;
-    use starknet_types::felt::Felt;
+    use starknet_types::rpc::felt::Felt;
     use starknet_types::traits::{HashProducer, ToHexString};
 
     use super::DeclareTransactionV2;

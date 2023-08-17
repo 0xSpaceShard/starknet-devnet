@@ -6,7 +6,7 @@ use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
 use starknet_in_rust::state::StateDiff as StarknetInRustStateDiff;
 use starknet_in_rust::utils::subtract_mappings;
 use starknet_in_rust::CasmContractClass;
-use starknet_types::felt::{ClassHash, Felt};
+use starknet_types::rpc::felt::{ClassHash, Felt};
 
 use crate::error::Result;
 
@@ -97,7 +97,7 @@ mod tests {
     use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
     use starknet_in_rust::CasmContractClass;
     use starknet_types::contract_class::Cairo0ContractClass;
-    use starknet_types::felt::Felt;
+    use starknet_types::rpc::felt::Felt;
 
     use super::StateDiff;
     use crate::utils::test_utils::{

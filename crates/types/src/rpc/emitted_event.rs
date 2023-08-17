@@ -2,7 +2,7 @@ use serde::Serialize;
 use starknet_api::block::BlockNumber;
 
 use crate::contract_address::ContractAddress;
-use crate::felt::{BlockHash, Felt, TransactionHash};
+use crate::rpc::felt::{BlockHash, Felt, TransactionHash};
 
 #[derive(Serialize, Clone, Debug)]
 pub struct EmittedEvent {

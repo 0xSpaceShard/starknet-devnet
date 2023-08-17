@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::Felt;
+use starknet_types::rpc::felt::Felt;
 use starknet_types::starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp};
 
 use super::transaction::Transactions;

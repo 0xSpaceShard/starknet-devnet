@@ -1,6 +1,6 @@
 use starknet_in_rust::definitions::constants::INITIAL_GAS_COST;
 use starknet_in_rust::transaction::error::TransactionError;
-use starknet_types::felt::TransactionHash;
+use starknet_types::rpc::felt::TransactionHash;
 use starknet_types::traits::HashProducer;
 
 use super::Starknet;
@@ -57,7 +57,7 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::contract_storage_key::ContractStorageKey;
-    use starknet_types::felt::Felt;
+    use starknet_types::rpc::felt::Felt;
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;

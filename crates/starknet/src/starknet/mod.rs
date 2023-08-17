@@ -24,8 +24,8 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0Json, ContractClass};
 use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::emitted_event::EmittedEvent;
-use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
+use starknet_types::rpc::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use tracing::error;
 
@@ -573,7 +573,7 @@ mod tests {
     use starknet_in_rust::transaction::error::TransactionError;
     use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::felt::Felt;
+    use starknet_types::rpc::felt::Felt;
 
     use super::Starknet;
     use crate::blocks::StarknetBlock;
