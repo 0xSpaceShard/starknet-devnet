@@ -21,6 +21,7 @@ impl TryFrom<&starknet_core::transactions::Transaction> for TransactionWithType 
                     transaction_hash: txn.get_hash(),
                     signature: txn.signature().to_vec(),
                 };
+
                 TransactionWithType {
                     r#type: TransactionType::Declare,
                     transaction: Transaction::Declare(DeclareTransaction::Version1(declare_txn)),
