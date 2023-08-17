@@ -23,6 +23,7 @@ use starknet_rs_signers::Signer;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0Json, ContractClass};
 use starknet_types::contract_storage_key::ContractStorageKey;
+use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::traits::HashProducer;
@@ -42,7 +43,8 @@ use crate::state::state_diff::StateDiff;
 use crate::state::state_update::StateUpdate;
 use crate::state::StarknetState;
 use crate::traits::{
-    AccountGenerator, Accounted, Deployed, HashIdentifiedMut, StateChanger, StateExtractor,
+    AccountGenerator, Accounted, Deployed, HashIdentified, HashIdentifiedMut, StateChanger,
+    StateExtractor,
 };
 use crate::transactions::declare_transaction::DeclareTransactionV1;
 use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
@@ -53,6 +55,7 @@ use crate::transactions::{StarknetTransaction, StarknetTransactions, Transaction
 mod add_declare_transaction;
 mod add_deploy_account_transaction;
 mod add_invoke_transaction;
+mod events;
 mod get_class_impls;
 mod predeployed;
 mod state_update;
@@ -181,8 +184,8 @@ impl Starknet {
         let new_block_number = new_block.block_number();
 
         // update txs block hash block number for each transaction in the pending block
-        new_block.get_transactions().iter().for_each(|t| {
-            if let Some(tx) = self.transactions.get_by_hash_mut(&t.get_hash()) {
+        new_block.get_transactions().iter().for_each(|tx_hash| {
+            if let Some(tx) = self.transactions.get_by_hash_mut(tx_hash) {
                 tx.block_hash = Some(new_block.header.block_hash.0.into());
                 tx.block_number = Some(new_block_number);
                 tx.status = TransactionStatus::AcceptedOnL2;
@@ -205,11 +208,10 @@ impl Starknet {
         transaction: Transaction,
         tx_info: TransactionExecutionInfo,
     ) -> Result<()> {
-        let transaction_to_add =
-            StarknetTransaction::create_successful(transaction.clone(), tx_info);
+        let transaction_to_add = StarknetTransaction::create_successful(transaction, tx_info);
 
         // add accepted transaction to pending block
-        self.blocks.pending_block.add_transaction(transaction);
+        self.blocks.pending_block.add_transaction(*transaction_hash);
 
         self.transactions.insert(transaction_hash, transaction_to_add);
 
@@ -477,6 +479,7 @@ impl Starknet {
             nonce.into(),
             raw_execution.raw_calldata().into_iter().map(|c| c.into()).collect(),
             chain_id_felt,
+            Felt::from(1),
         )?;
         self.add_invoke_transaction_v1(invoke_tx)
     }
@@ -518,6 +521,21 @@ impl Starknet {
         Ok(block.clone())
     }
 
+    pub fn get_block_with_transactions(
+        &self,
+        block_id: BlockId,
+    ) -> Result<(StarknetBlock, Vec<&Transaction>)> {
+        let block = self.blocks.get_by_block_id(block_id).ok_or(crate::error::Error::NoBlock)?;
+        let mut transactions: Vec<&Transaction> = vec![];
+        for transaction_hash in block.get_transactions() {
+            let transaction =
+                self.transactions.get_by_hash(*transaction_hash).ok_or(Error::NoTransaction)?;
+            transactions.push(&transaction.inner);
+        }
+
+        Ok((block.clone(), transactions))
+    }
+
     pub fn get_latest_block(&self) -> Result<StarknetBlock> {
         let block = self
             .blocks
@@ -525,6 +543,25 @@ impl Starknet {
             .ok_or(crate::error::Error::NoBlock)?;
 
         Ok(block.clone())
+    }
+
+    pub fn get_transaction_by_hash(&self, transaction_hash: Felt) -> Result<&Transaction> {
+        self.transactions
+            .get_by_hash(transaction_hash)
+            .map(|starknet_transaction| &starknet_transaction.inner)
+            .ok_or(Error::NoTransaction)
+    }
+
+    pub fn get_events(
+        &self,
+        from_block: Option<BlockId>,
+        to_block: Option<BlockId>,
+        address: Option<ContractAddress>,
+        keys: Option<Vec<Vec<Felt>>>,
+        skip: usize,
+        limit: Option<usize>,
+    ) -> Result<(Vec<EmittedEvent>, bool)> {
+        events::get_events(self, from_block, to_block, address, keys, skip, limit)
     }
 }
 
@@ -547,7 +584,7 @@ mod tests {
     use crate::state::state_diff::StateDiff;
     use crate::traits::{Accounted, StateChanger, StateExtractor};
     use crate::utils::test_utils::{
-        dummy_contract_address, dummy_declare_transaction_v1, starknet_config_for_test,
+        dummy_contract_address, dummy_declare_transaction_v1, dummy_felt, starknet_config_for_test,
     };
 
     #[test]
@@ -597,11 +634,8 @@ mod tests {
 
         let tx = dummy_declare_transaction_v1();
 
-        // add transaction to pending block
-        starknet
-            .blocks
-            .pending_block
-            .add_transaction(crate::transactions::Transaction::Declare(tx.clone()));
+        // add transaction hash to pending block
+        starknet.blocks.pending_block.add_transaction(tx.transaction_hash);
 
         // pending block has some transactions
         assert!(!starknet.pending_block().get_transactions().is_empty());
@@ -616,7 +650,7 @@ mod tests {
         let added_block = starknet.blocks.num_to_block.get(&BlockNumber(0)).unwrap();
 
         assert!(added_block.get_transactions().len() == 1);
-        assert_eq!(added_block.get_transactions().first().unwrap().get_hash(), tx.transaction_hash);
+        assert_eq!(*added_block.get_transactions().first().unwrap(), tx.transaction_hash);
     }
 
     #[test]
@@ -632,9 +666,7 @@ mod tests {
 
         // create pending block with some information in it
         let mut pending_block = StarknetBlock::create_pending_block();
-        pending_block.add_transaction(crate::transactions::Transaction::Declare(
-            dummy_declare_transaction_v1(),
-        ));
+        pending_block.add_transaction(dummy_felt());
         pending_block.status = BlockStatus::AcceptedOnL2;
 
         // assign the pending block
@@ -831,11 +863,8 @@ mod tests {
 
         let tx = dummy_declare_transaction_v1();
 
-        // add transaction to pending block
-        starknet
-            .blocks
-            .pending_block
-            .add_transaction(crate::transactions::Transaction::Declare(tx));
+        // add transaction hash to pending block
+        starknet.blocks.pending_block.add_transaction(tx.transaction_hash);
 
         starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
 

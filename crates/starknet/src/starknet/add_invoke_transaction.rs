@@ -92,6 +92,7 @@ mod tests {
             Felt::from(nonce),
             calldata,
             DEVNET_DEFAULT_CHAIN_ID.to_felt().into(),
+            Felt::from(1),
         )
         .unwrap()
     }
@@ -173,6 +174,7 @@ mod tests {
             dummy_felt(),
             vec![],
             dummy_felt(),
+            Felt::from(1),
         )
         .unwrap();
 
