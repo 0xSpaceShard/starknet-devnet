@@ -13,3 +13,10 @@ pub struct EmittedEvent {
     pub keys: Vec<Felt>,
     pub data: Vec<Felt>,
 }
+
+#[derive(Serialize, Clone, Debug)]
+pub struct Event {
+    pub from_address: ContractAddress,
+    pub keys: Vec<Felt>,
+    pub data: Vec<Felt>,
+}
