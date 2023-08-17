@@ -1,10 +1,9 @@
-
 use starknet_types::starknet_api::transaction::Fee;
 
 use super::json_rpc::error::ApiError;
 use super::models::transaction::{
-    DeclareTransaction, DeclareTransactionV0V1, DeclareTransactionV2,
-    DeployAccountTransaction, InvokeTransactionV1, Transaction, TransactionType, TransactionWithType,
+    DeclareTransaction, DeclareTransactionV0V1, DeclareTransactionV2, DeployAccountTransaction,
+    InvokeTransactionV1, Transaction, TransactionType, TransactionWithType,
 };
 
 impl TryFrom<&starknet_core::transactions::Transaction> for TransactionWithType {
