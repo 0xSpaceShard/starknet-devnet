@@ -7,7 +7,6 @@ use starknet_rs_core::types::ContractClass as CodegenContractClass;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::starknet_api::block::BlockNumber;
-use starknet_types::starknet_api::transaction::Fee;
 use starknet_types::traits::ToHexString;
 
 use super::error::{self, ApiError};
@@ -25,7 +24,7 @@ use crate::api::models::state::{
 use crate::api::models::transaction::{
     BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
     BroadcastedTransactionWithType, EventFilter, EventsChunk, FunctionCall, Transaction,
-    TransactionReceiptWithStatus, TransactionWithType, Transactions, CommonTransactionReceipt,
+    TransactionReceiptWithStatus, TransactionWithType, Transactions,
 };
 use crate::api::models::{BlockId, PatriciaKeyHex};
 
