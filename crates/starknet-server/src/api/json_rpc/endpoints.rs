@@ -28,6 +28,8 @@ use crate::api::models::transaction::{
 };
 use crate::api::models::{BlockId, PatriciaKeyHex};
 
+const DEFAULT_CONTINUATION_TOKEN: &str = "0";
+
 /// here are the definitions and stub implementations of all JSON-RPC read endpoints
 impl JsonRpcHandler {
     /// starknet_getBlockWithTxHashes
@@ -42,35 +44,32 @@ impl JsonRpcHandler {
             status: *block.status(),
             header: BlockHeader::from(&block),
             transactions: crate::api::models::transaction::Transactions::Hashes(
-                block
-                    .get_transactions()
-                    .iter()
-                    // We shouldnt get in the situation where tx hash is None
-                    .map(|tx| tx.get_hash())
-                    .collect(),
+                block.get_transactions().to_owned(),
             ),
         })
     }
 
     /// starknet_getBlockWithTxs
     pub(crate) async fn get_block_with_txs(&self, block_id: BlockId) -> RpcResult<Block> {
-        let block =
-            self.api.starknet.read().await.get_block(block_id.into()).map_err(|err| match err {
+        let starknet = self.api.starknet.read().await;
+        let (block, transactions) =
+            starknet.get_block_with_transactions(block_id.into()).map_err(|err| match err {
                 Error::NoBlock => ApiError::BlockNotFound,
+                Error::NoTransaction => ApiError::TransactionNotFound,
                 unknown_error => ApiError::StarknetDevnetError(unknown_error),
             })?;
 
-        let mut transactions = Vec::<TransactionWithType>::new();
+        let mut transactions_with_type = Vec::<TransactionWithType>::new();
 
-        for txn in block.get_transactions() {
-            let txn_to_add = TransactionWithType::try_from(txn)?;
+        for transaction in transactions {
+            let txn_to_add = TransactionWithType::try_from(transaction)?;
 
-            transactions.push(txn_to_add);
+            transactions_with_type.push(txn_to_add);
         }
         Ok(Block {
             status: *block.status(),
             header: BlockHeader::from(&block),
-            transactions: Transactions::Full(transactions),
+            transactions: Transactions::Full(transactions_with_type),
         })
     }
 
@@ -173,11 +172,12 @@ impl JsonRpcHandler {
         let starknet = self.api.starknet.read().await;
         match starknet.get_block(block_id.into()) {
             Ok(block) => {
-                let transaction = block
-                    .transactions
+                let transaction_hash = block
+                    .get_transactions()
                     .get(index as usize)
                     .ok_or(error::ApiError::InvalidTransactionIndexInBlock)?;
 
+                let transaction = starknet.get_transaction_by_hash(*transaction_hash)?;
                 TransactionWithType::try_from(transaction)
             }
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
@@ -343,8 +343,28 @@ impl JsonRpcHandler {
     }
 
     /// starknet_getEvents
-    pub(crate) async fn get_events(&self, _filter: EventFilter) -> RpcResult<EventsChunk> {
-        Err(error::ApiError::InvalidContinuationToken)
+    pub(crate) async fn get_events(&self, filter: EventFilter) -> RpcResult<EventsChunk> {
+        let starknet = self.api.starknet.read().await;
+
+        let page = filter
+            .continuation_token
+            .unwrap_or(DEFAULT_CONTINUATION_TOKEN.to_string())
+            .parse::<usize>()
+            .map_err(|_| ApiError::InvalidContinuationToken)?;
+
+        let (events, has_more_events) = starknet.get_events(
+            filter.from_block,
+            filter.to_block,
+            filter.address,
+            filter.keys,
+            page * filter.chunk_size,
+            Some(filter.chunk_size),
+        )?;
+
+        Ok(EventsChunk {
+            events,
+            continuation_token: if has_more_events { Some((page + 1).to_string()) } else { None },
+        })
     }
 
     /// starknet_getNonce

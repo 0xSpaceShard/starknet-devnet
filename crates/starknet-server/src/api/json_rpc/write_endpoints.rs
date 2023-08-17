@@ -98,6 +98,7 @@ pub(crate) fn convert_to_declare_transaction_v1(
         value.common.nonce,
         value.contract_class.into(),
         chain_id,
+        value.common.version,
     )
     .map_err(ApiError::StarknetDevnetError)
 }
@@ -136,6 +137,7 @@ pub(crate) fn convert_to_declare_transaction_v2(
         value.common.signature,
         value.common.nonce,
         chain_id,
+        value.common.version,
     )
     .map_err(ApiError::StarknetDevnetError)
 }
@@ -151,6 +153,7 @@ pub(crate) fn convert_to_invoke_transaction_v1(
         value.common.nonce,
         value.calldata,
         chain_id,
+        value.common.version,
     )
     .map_err(ApiError::StarknetDevnetError)
 }

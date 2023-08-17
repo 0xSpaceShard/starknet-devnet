@@ -33,6 +33,8 @@ pub enum Error {
     FormatError,
     #[error("Sierra compilation error")]
     SierraCompilationError,
+    #[error("No transaction found")]
+    NoTransaction,
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

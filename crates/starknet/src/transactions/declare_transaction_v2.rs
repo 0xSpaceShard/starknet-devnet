@@ -40,6 +40,7 @@ impl PartialEq for DeclareTransactionV2 {
 impl Eq for DeclareTransactionV2 {}
 
 impl DeclareTransactionV2 {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         sierra_contract_class: SierraContractClass,
         compiled_class_hash: ClassHash,
@@ -48,9 +49,8 @@ impl DeclareTransactionV2 {
         signature: Vec<Felt>,
         nonce: Felt,
         chain_id: Felt,
+        version: Felt,
     ) -> Result<Self> {
-        let version = Felt::from(2);
-
         let transaction = DeclareV2::new(
             &sierra_contract_class,
             None,
@@ -121,6 +121,7 @@ mod tests {
         nonce: Felt,
         class_hash: Felt,
         compiled_class_hash: Felt,
+        version: Felt,
     }
 
     #[test]
@@ -171,6 +172,7 @@ mod tests {
             vec![],
             feeder_gateway_transaction.nonce,
             StarknetChainId::TestNet.to_felt().into(),
+            feeder_gateway_transaction.version,
         )
         .unwrap();
 

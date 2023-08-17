@@ -107,6 +107,7 @@ pub(crate) mod test_utils {
                 dummy_felt(),
                 dummy_cairo_0_contract_class().into(),
                 StarknetChainId::TestNet.to_felt().into(),
+                Felt::from(1),
             )
             .unwrap(),
         )
@@ -126,10 +127,11 @@ pub(crate) mod test_utils {
             contract_class,
             compiled_class_hash.into(),
             *sender_address,
-            100,
+            2000,
             Vec::new(),
             Felt::from(0),
             StarknetChainId::TestNet.to_felt().into(),
+            Felt::from(2),
         )
         .unwrap()
     }
