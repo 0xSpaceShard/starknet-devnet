@@ -1,16 +1,16 @@
 use starknet_in_rust::transaction::DeclareV2;
+use starknet_in_rust::SierraContractClass;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use starknet_types::DevnetResult;
 
-use crate::error::{Error, Result};
+use crate::error::Result;
 
 #[derive(Clone)]
 pub struct DeclareTransactionV2 {
     pub(crate) inner: DeclareV2,
-    pub sierra_contract_class: ContractClass,
+    pub sierra_contract_class: SierraContractClass,
     pub compiled_class_hash: ClassHash,
     pub sender_address: ContractAddress,
     pub max_fee: u128,
@@ -40,26 +40,19 @@ impl PartialEq for DeclareTransactionV2 {
 impl Eq for DeclareTransactionV2 {}
 
 impl DeclareTransactionV2 {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
-        sierra_contract_class: ContractClass,
+        sierra_contract_class: SierraContractClass,
         compiled_class_hash: ClassHash,
         sender_address: ContractAddress,
         max_fee: u128,
         signature: Vec<Felt>,
         nonce: Felt,
         chain_id: Felt,
+        version: Felt,
     ) -> Result<Self> {
-        if max_fee == 0 {
-            return Err(Error::TransactionError(
-                starknet_in_rust::transaction::error::TransactionError::FeeError(
-                    "For declare transaction version 2, max fee cannot be 0".to_string(),
-                ),
-            ));
-        }
-        let version = Felt::from(2);
-
         let transaction = DeclareV2::new(
-            &sierra_contract_class.clone().try_into()?,
+            &sierra_contract_class,
             None,
             compiled_class_hash.into(),
             chain_id.into(),
@@ -119,9 +112,6 @@ mod tests {
     use starknet_types::traits::{HashProducer, ToHexString};
 
     use super::DeclareTransactionV2;
-    use crate::utils::test_utils::{
-        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
-    };
 
     #[derive(Deserialize)]
     struct FeederGatewayDeclareTransactionV2 {
@@ -131,6 +121,7 @@ mod tests {
         nonce: Felt,
         class_hash: Felt,
         compiled_class_hash: Felt,
+        version: Felt,
     }
 
     #[test]
@@ -142,17 +133,14 @@ mod tests {
             &std::fs::read_to_string(sierra_contract_path).unwrap(),
         )
         .unwrap();
-        let starknet_in_rust_sierra =
-            starknet_in_rust::ContractClass::try_from(cairo_1_contract).unwrap();
         let sierra_class: SierraClass =
-            serde_json::from_value(serde_json::to_value(starknet_in_rust_sierra.clone()).unwrap())
+            serde_json::from_value(serde_json::to_value(cairo_1_contract.clone()).unwrap())
                 .unwrap();
         println!("{}", Felt::from(sierra_class.class_hash().unwrap()).to_prefixed_hex_str());
 
         println!(
             "{}",
-            Felt::from(compute_sierra_class_hash(&starknet_in_rust_sierra).unwrap())
-                .to_prefixed_hex_str()
+            Felt::from(compute_sierra_class_hash(&cairo_1_contract).unwrap()).to_prefixed_hex_str()
         );
     }
 
@@ -184,6 +172,7 @@ mod tests {
             vec![],
             feeder_gateway_transaction.nonce,
             StarknetChainId::TestNet.to_felt().into(),
+            feeder_gateway_transaction.version,
         )
         .unwrap();
 
@@ -192,26 +181,5 @@ mod tests {
             feeder_gateway_transaction.transaction_hash,
             declare_transaction.generate_hash().unwrap()
         );
-    }
-
-    #[test]
-    fn declare_transaction_v2_with_max_fee_zero_should_return_an_error() {
-        let result = super::DeclareTransactionV2::new(
-            dummy_cairo_1_contract_class(),
-            dummy_felt(),
-            dummy_contract_address(),
-            0,
-            vec![],
-            dummy_felt(),
-            dummy_felt(),
-        );
-
-        assert!(result.is_err());
-        match result.err().unwrap() {
-            crate::error::Error::TransactionError(
-                starknet_in_rust::transaction::error::TransactionError::FeeError(msg),
-            ) => assert_eq!(msg, "For declare transaction version 2, max fee cannot be 0"),
-            _ => panic!("Wrong error type"),
-        }
     }
 }

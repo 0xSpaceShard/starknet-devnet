@@ -28,7 +28,7 @@ tower-http = { version = "0.4", features = ["full"] }
 tower = { version = "0.4", features = ["full"] }
 
 # rpc
-rpc-core = { git = "https://github.com/foundry-rs/foundry.git", package = "anvil-rpc" }
+rpc-core = { git = "https://github.com/foundry-rs/foundry", rev = "5f2262736feaeabadeef2ae989a78e9b43da8eee", package = "anvil-rpc" }
 
 # async
 tokio = { version = "1", features = ["time", "macros", "rt-multi-thread"] }
@@ -50,7 +50,7 @@ anyhow = "1"
 
 # Starknet dependencies
 starknet_api = { version = "0.3.0", features = ["testing"] }
-starknet-in-rust = { git = "https://github.com/lambdaclass/starknet_in_rust", rev = "3200858", package="starknet_in_rust" }
+starknet-in-rust = { git = "https://github.com/lambdaclass/starknet_in_rust", rev = "f05da40", package="starknet_in_rust" }
 starknet-rs-signers = { version = "0.3.0", package = "starknet-signers" }
 starknet-rs-ff = { version = "0.3.4", package = "starknet-ff" }
 starknet-rs-core = { version = "0.5.1", package = "starknet-core" }

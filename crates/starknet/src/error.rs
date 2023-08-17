@@ -23,10 +23,18 @@ pub enum Error {
     ),
     #[error(transparent)]
     SignError(#[from] starknet_rs_signers::local_wallet::SignError),
+    #[error("{msg}")]
+    InvalidMintingTransaction { msg: String },
     #[error("No block found")]
     NoBlock,
     #[error("No state at block {block_number}")]
     NoStateAtBlock { block_number: u64 },
+    #[error("Format error")]
+    FormatError,
+    #[error("Sierra compilation error")]
+    SierraCompilationError,
+    #[error("No transaction found")]
+    NoTransaction,
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

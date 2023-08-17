@@ -73,9 +73,9 @@ impl<T: Serialize> ToRpcResponseResult for RpcResult<T> {
                     message: err.to_string().into(),
                     data: None,
                 },
-                err @ ApiError::ContractError => RpcError {
+                ApiError::ContractError { msg } => RpcError {
                     code: server::rpc_core::error::ErrorCode::ServerError(40),
-                    message: err.to_string().into(),
+                    message: msg.into(),
                     data: None,
                 },
                 err @ ApiError::NoBlocks => RpcError {
@@ -123,9 +123,9 @@ impl<T: Serialize> ToRpcResponseResult for RpcResult<T> {
                     message: err.to_string().into(),
                     data: None,
                 },
-                err @ ApiError::UnsupportedVersion => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
-                    message: err.to_string().into(),
+                ApiError::UnsupportedAction { msg } => RpcError {
+                    code: server::rpc_core::error::ErrorCode::InvalidRequest,
+                    message: msg.into(),
                     data: None,
                 },
             }
@@ -147,7 +147,7 @@ impl RpcHandler for JsonRpcHandler {
     type Request = StarknetRequest;
 
     async fn on_request(&self, request: Self::Request) -> ResponseResult {
-        info!(target: "rpc", "received method in on_request");
+        info!(target: "rpc", "received method in on_request {}", request);
         self.execute(request).await
     }
 }
@@ -280,6 +280,48 @@ pub enum StarknetRequest {
     AddDeployAccountTransaction(BroadcastedDeployAccountTransactionInput),
     #[serde(rename = "starknet_addInvokeTransaction")]
     AddInvokeTransaction(BroadcastedInvokeTransactionInput),
+}
+
+impl std::fmt::Display for StarknetRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StarknetRequest::BlockWithTransactionHashes(_) => {
+                write!(f, "starknet_getBlockWithTxHashes")
+            }
+            StarknetRequest::BlockWithFullTransactions(_) => write!(f, "starknet_getBlockWithTxs"),
+            StarknetRequest::StateUpdate(_) => write!(f, "starknet_getStateUpdate"),
+            StarknetRequest::StorageAt(_) => write!(f, "starknet_getStorageAt"),
+            StarknetRequest::TransactionByHash(_) => write!(f, "starknet_getTransactionByHash"),
+            StarknetRequest::TransactionByBlockAndIndex(_) => {
+                write!(f, "starknet_getTransactionByBlockIdAndIndex")
+            }
+            StarknetRequest::TransactionReceiptByTransactionHash(_) => {
+                write!(f, "starknet_getTransactionReceipt")
+            }
+            StarknetRequest::ClassByHash(_) => write!(f, "starknet_getClass"),
+            StarknetRequest::ClassHashAtContractAddress(_) => write!(f, "starknet_getClassHashAt"),
+            StarknetRequest::ClassAtContractAddress(_) => write!(f, "starknet_getClassAt"),
+            StarknetRequest::BlockTransactionCount(_) => {
+                write!(f, "starknet_getBlockTransactionCount")
+            }
+            StarknetRequest::Call(_) => write!(f, "starknet_call"),
+            StarknetRequest::EsimateFee(_) => write!(f, "starknet_estimateFee"),
+            StarknetRequest::BlockNumber => write!(f, "starknet_blockNumber"),
+            StarknetRequest::BlockHashAndNumber => write!(f, "starknet_blockHashAndNumber"),
+            StarknetRequest::ChainId => write!(f, "starknet_chainId"),
+            StarknetRequest::PendingTransactions => write!(f, "starknet_pendingTransactions"),
+            StarknetRequest::Syncing => write!(f, "starknet_syncing"),
+            StarknetRequest::Events(_) => write!(f, "starknet_getEvents"),
+            StarknetRequest::ContractNonce(_) => write!(f, "starknet_getNonce"),
+            StarknetRequest::AddDeclareTransaction(_) => {
+                write!(f, "starknet_addDeclareTransaction")
+            }
+            StarknetRequest::AddDeployAccountTransaction(_) => {
+                write!(f, "starknet_addDeployAccountTransaction")
+            }
+            StarknetRequest::AddInvokeTransaction(_) => write!(f, "starknet_addInvokeTransaction"),
+        }
+    }
 }
 
 #[cfg(test)]

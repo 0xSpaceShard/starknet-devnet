@@ -1,5 +1,4 @@
 use starknet_in_rust::definitions::constants::EXECUTE_ENTRY_POINT_SELECTOR;
-use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::transaction::InvokeFunction;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::Felt;
@@ -36,19 +35,14 @@ impl InvokeTransactionV1 {
         nonce: Felt,
         calldata: Vec<Felt>,
         chain_id: Felt,
+        version: Felt,
     ) -> Result<Self> {
-        if max_fee == 0 {
-            return Err(error::Error::TransactionError(TransactionError::FeeError(
-                "For invoke transaction, max fee cannot be 0".to_string(),
-            )));
-        }
-
         Ok(Self {
             inner: starknet_in_rust::transaction::InvokeFunction::new(
                 sender_address.try_into()?,
                 EXECUTE_ENTRY_POINT_SELECTOR.clone(),
                 max_fee,
-                Felt::from(1).into(),
+                version.into(),
                 calldata.iter().map(|f| f.into()).collect(),
                 signature.iter().map(|f| f.into()).collect(),
                 chain_id.into(),
@@ -59,7 +53,7 @@ impl InvokeTransactionV1 {
             nonce,
             calldata,
             max_fee,
-            version: Felt::from(1),
+            version,
         })
     }
 
@@ -86,8 +80,6 @@ mod tests {
     use starknet_types::felt::Felt;
     use starknet_types::traits::{HashProducer, ToHexString};
 
-    use crate::utils::test_utils::{dummy_contract_address, dummy_felt};
-
     #[derive(Deserialize)]
     struct FeederGatewayInvokeTransaction {
         transaction_hash: Felt,
@@ -95,6 +87,7 @@ mod tests {
         max_fee: Felt,
         nonce: Felt,
         calldata: Vec<Felt>,
+        version: Felt,
     }
 
     /// Get transaction from feeder gateway by hash and then using the same parameters compute the
@@ -117,6 +110,7 @@ mod tests {
             feeder_gateway_transaction.nonce,
             feeder_gateway_transaction.calldata,
             StarknetChainId::TestNet.to_felt().into(),
+            feeder_gateway_transaction.version,
         )
         .unwrap();
 
@@ -124,25 +118,5 @@ mod tests {
             feeder_gateway_transaction.transaction_hash,
             transaction.generate_hash().unwrap()
         );
-    }
-
-    #[test]
-    fn invoke_transaction_with_max_fee_zero_should_return_error() {
-        let result = super::InvokeTransactionV1::new(
-            dummy_contract_address(),
-            0,
-            vec![],
-            dummy_felt(),
-            vec![],
-            dummy_felt(),
-        );
-
-        assert!(result.is_err());
-        match result.err().unwrap() {
-            crate::error::Error::TransactionError(
-                starknet_in_rust::transaction::error::TransactionError::FeeError(msg),
-            ) => assert_eq!(msg, "For invoke transaction, max fee cannot be 0"),
-            _ => panic!("Wrong error type"),
-        }
     }
 }

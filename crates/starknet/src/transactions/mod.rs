@@ -6,7 +6,7 @@ pub mod invoke_transaction;
 use std::collections::HashMap;
 
 use starknet_api::block::BlockNumber;
-use starknet_in_rust::execution::TransactionExecutionInfo;
+use starknet_in_rust::execution::{CallInfo, Event, TransactionExecutionInfo};
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_rs_core::types::TransactionStatus;
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
@@ -15,7 +15,8 @@ use self::declare_transaction::DeclareTransactionV1;
 use self::declare_transaction_v2::DeclareTransactionV2;
 use self::deploy_account_transaction::DeployAccountTransaction;
 use self::invoke_transaction::InvokeTransactionV1;
-use crate::traits::HashIdentifiedMut;
+use crate::error::Result;
+use crate::traits::{HashIdentified, HashIdentifiedMut};
 
 #[derive(Default)]
 pub struct StarknetTransactions(HashMap<TransactionHash, StarknetTransaction>);
@@ -35,6 +36,14 @@ impl HashIdentifiedMut for StarknetTransactions {
     type Element = StarknetTransaction;
     fn get_by_hash_mut(&mut self, hash: &Self::Hash) -> Option<&mut StarknetTransaction> {
         self.0.get_mut(hash)
+    }
+}
+
+impl HashIdentified for StarknetTransactions {
+    type Hash = TransactionHash;
+    type Element = StarknetTransaction;
+    fn get_by_hash(&self, hash: Self::Hash) -> Option<&StarknetTransaction> {
+        self.0.get(&hash)
     }
 }
 
@@ -72,6 +81,26 @@ impl StarknetTransaction {
             block_hash: None,
             block_number: None,
         }
+    }
+
+    pub fn get_events(&self) -> Result<Vec<Event>> {
+        let mut result = Vec::<Event>::new();
+
+        fn events_from_call_info(call_info: Option<&CallInfo>) -> Result<Vec<Event>> {
+            if let Some(call_info) = call_info {
+                call_info.get_sorted_events().map_err(crate::error::Error::from)
+            } else {
+                Ok(Vec::<Event>::new())
+            }
+        }
+
+        if let Some(execution_info) = &self.execution_info {
+            result.extend(events_from_call_info(execution_info.validate_info.as_ref())?);
+            result.extend(events_from_call_info(execution_info.call_info.as_ref())?);
+            result.extend(events_from_call_info(execution_info.fee_transfer_info.as_ref())?);
+        }
+
+        Ok(result)
     }
 }
 

@@ -1,8 +1,7 @@
-use std::collections::HashSet;
-
 use serde::{Deserialize, Serialize};
 use starknet_rs_core::types::BlockId;
 use starknet_types::contract_address::ContractAddress;
+use starknet_types::contract_class::DeprecatedContractClass;
 use starknet_types::felt::{
     Calldata, ClassHash, CompiledClassHash, ContractAddressSalt, EntryPointSelector, Felt, Nonce,
     TransactionHash, TransactionSignature, TransactionVersion,
@@ -12,7 +11,6 @@ use starknet_types::starknet_api::block::BlockNumber;
 use starknet_types::starknet_api::transaction::{EthAddress, Fee};
 
 use super::block::BlockHashHex;
-use super::contract_class::DeprecatedContractClass;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
@@ -232,16 +230,15 @@ pub struct EventContent {
 pub struct EventFilter {
     pub from_block: Option<BlockId>,
     pub to_block: Option<BlockId>,
+    pub address: Option<ContractAddress>,
+    pub keys: Option<Vec<Vec<Felt>>>,
     pub continuation_token: Option<String>,
     pub chunk_size: usize,
-    pub address: Option<ContractAddress>,
-    #[serde(default)]
-    pub keys: Vec<HashSet<Felt>>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct EventsChunk {
-    pub events: Vec<Event>,
+    pub events: Vec<starknet_types::emitted_event::EmittedEvent>,
     pub continuation_token: Option<String>,
 }
 

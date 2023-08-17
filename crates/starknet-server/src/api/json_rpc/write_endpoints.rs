@@ -1,10 +1,8 @@
-use serde_json::json;
 use server::rpc_core::error::RpcError;
 use starknet_core::transactions::declare_transaction::DeclareTransactionV1;
 use starknet_core::transactions::declare_transaction_v2::DeclareTransactionV2;
 use starknet_core::transactions::deploy_account_transaction::DeployAccountTransaction;
 use starknet_core::transactions::invoke_transaction::InvokeTransactionV1;
-use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::Felt;
 
 use super::error::ApiError;
@@ -13,7 +11,6 @@ use super::models::{
 };
 use super::RpcResult;
 use crate::api::json_rpc::JsonRpcHandler;
-use crate::api::models::contract_class::DeprecatedContractClass;
 use crate::api::models::transaction::{
     BroadcastedDeclareTransaction, BroadcastedDeclareTransactionV1,
     BroadcastedDeclareTransactionV2, BroadcastedDeployAccountTransaction,
@@ -71,7 +68,9 @@ impl JsonRpcHandler {
         request: BroadcastedInvokeTransaction,
     ) -> RpcResult<InvokeTransactionOutput> {
         let hash = match request {
-            BroadcastedInvokeTransaction::V0(_) => Err(ApiError::UnsupportedVersion),
+            BroadcastedInvokeTransaction::V0(_) => {
+                Err(ApiError::UnsupportedAction { msg: "Invoke V0 is not supported".into() })
+            }
             BroadcastedInvokeTransaction::V1(invoke_transaction) => {
                 let chain_id: Felt =
                     self.api.starknet.read().await.config.chain_id.to_felt().into();
@@ -88,30 +87,7 @@ impl JsonRpcHandler {
     }
 }
 
-impl TryFrom<DeprecatedContractClass> for ContractClass {
-    type Error = ApiError;
-
-    fn try_from(value: DeprecatedContractClass) -> RpcResult<Self> {
-        let abi_json = serde_json::to_value(value.abi).map_err(|_| {
-            ApiError::RpcError(RpcError::invalid_params("abi: Unable to parse to JSON"))
-        })?;
-        let entry_points_json = serde_json::to_value(value.entry_points_by_type).map_err(|_| {
-            ApiError::RpcError(RpcError::invalid_params(
-                "entry_points_by_type: Unable to parse to JSON",
-            ))
-        })?;
-
-        Ok(ContractClass::Cairo0(starknet_types::contract_class::Cairo0ContractClass::Json(
-            json!({
-                "program": value.program,
-                "abi": abi_json,
-                "entry_points_by_type": entry_points_json,
-            }),
-        )))
-    }
-}
-
-fn convert_to_declare_transaction_v1(
+pub(crate) fn convert_to_declare_transaction_v1(
     value: BroadcastedDeclareTransactionV1,
     chain_id: Felt,
 ) -> RpcResult<DeclareTransactionV1> {
@@ -120,13 +96,14 @@ fn convert_to_declare_transaction_v1(
         value.common.max_fee.0,
         value.common.signature,
         value.common.nonce,
-        ContractClass::try_from(value.contract_class)?,
+        value.contract_class.into(),
         chain_id,
+        value.common.version,
     )
     .map_err(ApiError::StarknetDevnetError)
 }
 
-fn convert_to_deploy_account_transaction(
+pub(crate) fn convert_to_deploy_account_transaction(
     broadcasted_txn: BroadcastedDeployAccountTransaction,
     chain_id: Felt,
 ) -> RpcResult<DeployAccountTransaction> {
@@ -148,23 +125,24 @@ fn convert_to_deploy_account_transaction(
     })
 }
 
-fn convert_to_declare_transaction_v2(
+pub(crate) fn convert_to_declare_transaction_v2(
     value: BroadcastedDeclareTransactionV2,
     chain_id: Felt,
 ) -> RpcResult<DeclareTransactionV2> {
     DeclareTransactionV2::new(
-        ContractClass::from(value.contract_class),
+        value.contract_class,
         value.compiled_class_hash,
         value.sender_address,
         value.common.max_fee.0,
         value.common.signature,
         value.common.nonce,
         chain_id,
+        value.common.version,
     )
     .map_err(ApiError::StarknetDevnetError)
 }
 
-fn convert_to_invoke_transaction_v1(
+pub(crate) fn convert_to_invoke_transaction_v1(
     value: BroadcastedInvokeTransactionV1,
     chain_id: Felt,
 ) -> RpcResult<InvokeTransactionV1> {
@@ -175,6 +153,7 @@ fn convert_to_invoke_transaction_v1(
         value.common.nonce,
         value.calldata,
         chain_id,
+        value.common.version,
     )
     .map_err(ApiError::StarknetDevnetError)
 }

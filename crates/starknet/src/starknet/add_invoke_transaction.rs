@@ -1,9 +1,10 @@
 use starknet_in_rust::definitions::constants::INITIAL_GAS_COST;
+use starknet_in_rust::transaction::error::TransactionError;
 use starknet_types::felt::TransactionHash;
 use starknet_types::traits::HashProducer;
 
 use super::Starknet;
-use crate::error::Result;
+use crate::error::{self, Result};
 use crate::transactions::invoke_transaction::InvokeTransactionV1;
 use crate::transactions::{StarknetTransaction, Transaction};
 
@@ -11,6 +12,12 @@ pub fn add_invoke_transcation_v1(
     starknet: &mut Starknet,
     invoke_transaction: InvokeTransactionV1,
 ) -> Result<TransactionHash> {
+    if invoke_transaction.max_fee == 0 {
+        return Err(error::Error::TransactionError(TransactionError::FeeError(
+            "For invoke transaction, max fee cannot be 0".to_string(),
+        )));
+    }
+
     let state_before_txn = starknet.state.pending_state.clone();
     let transaction_hash = invoke_transaction.generate_hash()?;
 
@@ -48,6 +55,7 @@ mod tests {
     use starknet_rs_core::types::TransactionStatus;
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::contract_address::ContractAddress;
+    use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
@@ -59,8 +67,8 @@ mod tests {
     use crate::transactions::invoke_transaction::InvokeTransactionV1;
     use crate::utils::get_storage_var_address;
     use crate::utils::test_utils::{
-        cairo_0_account_without_validations, dummy_cairo_0_contract_class, dummy_felt,
-        get_bytes_from_u32,
+        cairo_0_account_without_validations, dummy_cairo_0_contract_class, dummy_contract_address,
+        dummy_felt, get_bytes_from_u32,
     };
 
     fn test_invoke_transaction_v1(
@@ -84,6 +92,7 @@ mod tests {
             Felt::from(nonce),
             calldata,
             DEVNET_DEFAULT_CHAIN_ID.to_felt().into(),
+            Felt::from(1),
         )
         .unwrap()
     }
@@ -157,6 +166,30 @@ mod tests {
     }
 
     #[test]
+    fn invoke_transaction_with_max_fee_zero_should_return_error() {
+        let invoke_transaction = super::InvokeTransactionV1::new(
+            dummy_contract_address(),
+            0,
+            vec![],
+            dummy_felt(),
+            vec![],
+            dummy_felt(),
+            Felt::from(1),
+        )
+        .unwrap();
+
+        let result = Starknet::default().add_invoke_transaction_v1(invoke_transaction);
+
+        assert!(result.is_err());
+        match result.err().unwrap() {
+            crate::error::Error::TransactionError(
+                starknet_in_rust::transaction::error::TransactionError::FeeError(msg),
+            ) => assert_eq!(msg, "For invoke transaction, max fee cannot be 0"),
+            _ => panic!("Wrong error type"),
+        }
+    }
+
+    #[test]
     fn invoke_transaction_should_fail_if_same_nonce_supplied() {
         let (mut starknet, account_address, contract_address, increase_balance_selector, _) =
             setup();
@@ -206,7 +239,7 @@ mod tests {
             dummy_felt(),
             dummy_felt(),
             account_without_validations_class_hash,
-            account_without_validations_contract_class,
+            ContractClass::Cairo0(account_without_validations_contract_class),
             erc_20_contract.get_address(),
         )
         .unwrap();
@@ -215,7 +248,7 @@ mod tests {
         account.set_initial_balance(&mut starknet.state).unwrap();
 
         // dummy contract
-        let dummy_contract = dummy_cairo_0_contract_class();
+        let dummy_contract: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
         let sir = StarknetInRustContractClass::try_from(dummy_contract.clone()).unwrap();
         let increase_balance_selector = get_selector_from_name("increase_balance").unwrap();
 
@@ -237,7 +270,10 @@ mod tests {
         let contract_storage_key = ContractStorageKey::new(dummy_contract_address, storage_key);
 
         // declare dummy contract
-        starknet.state.declare_contract_class(dummy_contract_class_hash, dummy_contract).unwrap();
+        starknet
+            .state
+            .declare_contract_class(dummy_contract_class_hash, dummy_contract.into())
+            .unwrap();
 
         // deploy dummy contract
         starknet.state.deploy_contract(dummy_contract_address, dummy_contract_class_hash).unwrap();

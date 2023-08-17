@@ -19,6 +19,7 @@ mod tests {
     use starknet_in_rust::CasmContractClass;
     use starknet_rs_core::types::TransactionStatus;
     use starknet_types::contract_address::ContractAddress;
+    use starknet_types::contract_class::{Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
 
@@ -29,7 +30,6 @@ mod tests {
     use crate::state::state_update::StateUpdate;
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut};
     use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
-    use crate::utils::load_cairo_0_contract_class;
     use crate::utils::test_utils::{dummy_cairo_1_contract_class, dummy_felt};
 
     #[test]
@@ -39,18 +39,21 @@ mod tests {
         let (mut starknet, sender_address) = setup();
         let contract_class = dummy_cairo_1_contract_class();
 
-        let sierra_class_hash = contract_class.generate_hash().unwrap();
-        let casm_contract_class = CasmContractClass::try_from(contract_class.clone()).unwrap();
+        let sierra_class_hash =
+            ContractClass::Cairo1(contract_class.clone()).generate_hash().unwrap();
+        let casm_contract_class =
+            CasmContractClass::from_contract_class(contract_class.clone(), true).unwrap();
         let compiled_class_hash = compute_casm_class_hash(&casm_contract_class).unwrap();
 
         let mut declare_txn = DeclareTransactionV2::new(
             contract_class,
             compiled_class_hash.clone().into(),
             sender_address,
-            100,
+            2000,
             Vec::new(),
             Felt::from(0),
             StarknetChainId::TestNet.to_felt().into(),
+            Felt::from(2),
         )
         .unwrap();
 
@@ -117,7 +120,7 @@ mod tests {
             env!("CARGO_MANIFEST_DIR"),
             "/test_artifacts/account_without_validations/account.json"
         );
-        let contract_class = load_cairo_0_contract_class(account_json_path).unwrap();
+        let contract_class = Cairo0Json::raw_json_from_path(account_json_path).unwrap();
 
         let erc_20_contract = predeployed::create_erc20().unwrap();
         erc_20_contract.deploy(&mut starknet.state).unwrap();
@@ -127,7 +130,7 @@ mod tests {
             dummy_felt(),
             dummy_felt(),
             contract_class.generate_hash().unwrap(),
-            contract_class,
+            contract_class.into(),
             erc_20_contract.get_address(),
         )
         .unwrap();

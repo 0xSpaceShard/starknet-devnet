@@ -1,0 +1,1 @@
+Compiled with cairo version tag/v1.1.0

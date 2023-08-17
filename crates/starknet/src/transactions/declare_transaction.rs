@@ -4,12 +4,12 @@ use starknet_in_rust::core::transaction_hash::{
 use starknet_in_rust::felt::Felt252;
 use starknet_in_rust::transaction::{verify_version, Declare};
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::ContractClass;
+use starknet_types::contract_class::Cairo0ContractClass;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::traits::HashProducer;
 use starknet_types::DevnetResult;
 
-use crate::error::{Error, Result};
+use crate::error::Result;
 
 #[derive(Clone)]
 pub struct DeclareTransactionV1 {
@@ -19,7 +19,7 @@ pub struct DeclareTransactionV1 {
     pub signature: Vec<Felt>,
     pub nonce: Felt,
     pub version: Felt,
-    pub contract_class: ContractClass,
+    pub contract_class: Cairo0ContractClass,
     pub class_hash: ClassHash,
     pub transaction_hash: TransactionHash,
     pub chain_id: Felt,
@@ -47,19 +47,11 @@ impl DeclareTransactionV1 {
         max_fee: u128,
         signature: Vec<Felt>,
         nonce: Felt,
-        contract_class: ContractClass,
+        contract_class: Cairo0ContractClass,
         chain_id: Felt,
+        version: Felt,
     ) -> Result<Self> {
-        if max_fee == 0 {
-            return Err(Error::TransactionError(
-                starknet_in_rust::transaction::error::TransactionError::FeeError(
-                    "For declare transaction version 1, max fee cannot be 0".to_string(),
-                ),
-            ));
-        }
-
         let class_hash = contract_class.generate_hash()?;
-        let version = Felt::from(1);
 
         let mut inner = Declare {
             class_hash: class_hash.into(),
@@ -138,13 +130,9 @@ mod tests {
     use serde::Deserialize;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::ContractClass;
+    use starknet_types::contract_class::Cairo0Json;
     use starknet_types::felt::Felt;
     use starknet_types::traits::{HashProducer, ToHexString};
-
-    use crate::utils::test_utils::{
-        dummy_cairo_0_contract_class, dummy_contract_address, dummy_felt,
-    };
 
     #[derive(Deserialize)]
     struct FeederGatewayDeclareTransactionV1 {
@@ -153,6 +141,7 @@ mod tests {
         nonce: Felt,
         class_hash: Felt,
         sender_address: Felt,
+        version: Felt,
     }
 
     #[test]
@@ -163,7 +152,7 @@ mod tests {
             "/test_artifacts/events_cairo0.casm"
         ))
         .unwrap();
-        let cairo0 = ContractClass::cairo_0_from_json_str(&json_str).unwrap();
+        let cairo0 = Cairo0Json::raw_json_from_json_str(&json_str).unwrap();
 
         // this is declare v1 transaction send with starknet-rs
         let json_obj: serde_json::Value = serde_json::from_reader(std::fs::File::open(concat!(
@@ -182,32 +171,13 @@ mod tests {
                 .unwrap(),
             vec![],
             feeder_gateway_transaction.nonce,
-            cairo0,
+            cairo0.into(),
             StarknetChainId::TestNet.to_felt().into(),
+            feeder_gateway_transaction.version,
         )
         .unwrap();
 
         let declare_transaction_hash = declare_transaction.generate_hash().unwrap();
         assert_eq!(feeder_gateway_transaction.transaction_hash, declare_transaction_hash);
-    }
-
-    #[test]
-    fn declare_transaction_v1_with_max_fee_zero_should_return_an_error() {
-        let result = super::DeclareTransactionV1::new(
-            dummy_contract_address(),
-            0,
-            vec![],
-            dummy_felt(),
-            dummy_cairo_0_contract_class(),
-            dummy_felt(),
-        );
-
-        assert!(result.is_err());
-        match result.err().unwrap() {
-            crate::error::Error::TransactionError(
-                starknet_in_rust::transaction::error::TransactionError::FeeError(msg),
-            ) => assert_eq!(msg, "For declare transaction version 1, max fee cannot be 0"),
-            _ => panic!("Wrong error type"),
-        }
     }
 }
