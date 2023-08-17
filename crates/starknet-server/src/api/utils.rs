@@ -100,7 +100,7 @@ impl TryFrom<&starknet_core::transactions::StarknetTransaction> for TransactionR
                 let output = crate::api::models::transaction::TransactionOutput {
                     actual_fee: Fee(txn.inner.max_fee()),
                     messages_sent: Vec::new(), // Add missing L1L2 messages
-                    events: Vec::new(),        // TODO: use txn.get_events()
+                    events: txn.get_events()?,
                 };
                 let receipt = crate::api::models::transaction::TransactionReceipt::Common(
                     CommonTransactionReceipt {
@@ -118,7 +118,7 @@ impl TryFrom<&starknet_core::transactions::StarknetTransaction> for TransactionR
                 let output = crate::api::models::transaction::TransactionOutput {
                     actual_fee: starknet_types::starknet_api::transaction::Fee(txn.inner.max_fee()),
                     messages_sent: Vec::new(), // Add missing L1L2 messages
-                    events: Vec::new(),        // TODO: use txn.get_events()
+                    events: txn.get_events()?,
                 };
                 let receipt = crate::api::models::transaction::TransactionReceipt::Common(
                     CommonTransactionReceipt {
@@ -136,7 +136,7 @@ impl TryFrom<&starknet_core::transactions::StarknetTransaction> for TransactionR
                 let output = crate::api::models::transaction::TransactionOutput {
                     actual_fee: starknet_types::starknet_api::transaction::Fee(txn.inner.max_fee()),
                     messages_sent: Vec::new(), // Add missing L1L2 messages
-                    events: Vec::new(),        // TODO: use txn.get_events()
+                    events: txn.get_events()?,
                 };
                 let receipt = crate::api::models::transaction::TransactionReceipt::Common(
                     CommonTransactionReceipt {
@@ -154,7 +154,7 @@ impl TryFrom<&starknet_core::transactions::StarknetTransaction> for TransactionR
                 let output = crate::api::models::transaction::TransactionOutput {
                     actual_fee: starknet_types::starknet_api::transaction::Fee(txn.inner.max_fee()),
                     messages_sent: Vec::new(), // Add missing L1L2 messages
-                    events: Vec::new(),        // TODO: use txn.get_events()
+                    events: txn.get_events()?,
                 };
                 let receipt = crate::api::models::transaction::TransactionReceipt::Common(
                     CommonTransactionReceipt {
