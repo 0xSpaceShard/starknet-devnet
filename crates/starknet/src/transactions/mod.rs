@@ -9,6 +9,8 @@ use starknet_api::block::BlockNumber;
 use starknet_in_rust::execution::{CallInfo, TransactionExecutionInfo};
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_rs_core::types::TransactionStatus;
+use starknet_rs_core::utils::get_selector_from_name;
+use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::Event;
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
 
@@ -16,7 +18,8 @@ use self::declare_transaction::DeclareTransactionV1;
 use self::declare_transaction_v2::DeclareTransactionV2;
 use self::deploy_account_transaction::DeployAccountTransaction;
 use self::invoke_transaction::InvokeTransactionV1;
-use crate::error::Result;
+use crate::constants::UDC_CONTRACT_ADDRESS;
+use crate::error::{self, Result};
 use crate::traits::{HashIdentified, HashIdentifiedMut};
 
 #[derive(Default)]
@@ -115,6 +118,32 @@ impl StarknetTransaction {
         }
 
         Ok(result)
+    }
+
+    /// Scans through events and gets information from Event generated from UDC with specific
+    /// ContractDeployed. Returns the contract address
+    ///
+    /// # Arguments
+    /// * `events` - The events that will be searched
+    pub fn get_deployed_address_from_events(events: &[Event]) -> Result<Option<ContractAddress>> {
+        let contract_deployed_event_key = Felt::from(
+            get_selector_from_name("ContractDeployed").map_err(|_| error::Error::FormatError)?,
+        );
+
+        let udc_address = ContractAddress::new(Felt::from_prefixed_hex_str(UDC_CONTRACT_ADDRESS)?)?;
+
+        let deployed_address = events
+            .iter()
+            .find(|e| {
+                e.from_address == udc_address && e.keys.contains(&contract_deployed_event_key)
+            })
+            .map(|e| e.data.first().cloned().unwrap_or_default());
+
+        Ok(if let Some(contract_address) = deployed_address {
+            Some(ContractAddress::new(contract_address)?)
+        } else {
+            None
+        })
     }
 }
 
