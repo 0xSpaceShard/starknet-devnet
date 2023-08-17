@@ -1,7 +1,7 @@
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, TransactionHash};
 
-use crate::error::{Error, Result};
+use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;
 use crate::transactions::declare_transaction::DeclareTransactionV1;
 use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
@@ -10,7 +10,7 @@ use crate::transactions::{StarknetTransaction, Transaction};
 pub fn add_declare_transaction_v2(
     starknet: &mut Starknet,
     declare_transaction: DeclareTransactionV2,
-) -> Result<(TransactionHash, ClassHash)> {
+) -> DevnetResult<(TransactionHash, ClassHash)> {
     if declare_transaction.max_fee == 0 {
         return Err(Error::TransactionError(
             starknet_in_rust::transaction::error::TransactionError::FeeError(
@@ -57,7 +57,7 @@ pub fn add_declare_transaction_v2(
 pub fn add_declare_transaction_v1(
     starknet: &mut Starknet,
     declare_transaction: DeclareTransactionV1,
-) -> Result<(TransactionHash, ClassHash)> {
+) -> DevnetResult<(TransactionHash, ClassHash)> {
     if declare_transaction.max_fee == 0 {
         return Err(Error::TransactionError(
             starknet_in_rust::transaction::error::TransactionError::FeeError(

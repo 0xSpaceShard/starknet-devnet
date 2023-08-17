@@ -6,12 +6,11 @@ use starknet_api::serde_utils::{bytes_from_hex_str, hex_str_from_bytes};
 use starknet_api::StarknetApiError;
 
 use crate::contract_address::ContractAddress;
-use crate::error::Error;
+use crate::error::{DevnetResult, Error};
 use crate::serde_helpers::hex_string::{
     deserialize_prefixed_hex_string_to_felt, serialize_to_prefixed_hex,
 };
 use crate::traits::{ToDecimalString, ToHexString};
-use crate::DevnetResult;
 
 #[derive(Debug, Default, Copy, Clone, Eq, PartialEq, Hash, PartialOrd, Ord)]
 pub struct Felt(pub(crate) [u8; 32]);

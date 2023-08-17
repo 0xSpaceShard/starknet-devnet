@@ -7,7 +7,7 @@ use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::Felt;
 
 use super::Starknet;
-use crate::error::{Error, Result};
+use crate::error::{DevnetResult, Error};
 use crate::traits::HashIdentified;
 
 /// The method returns transaction events, based on query and if there are more results to be
@@ -29,7 +29,7 @@ pub(crate) fn get_events(
     keys_filter: Option<Vec<Vec<Felt>>>,
     mut skip: usize,
     limit: Option<usize>,
-) -> Result<(Vec<EmittedEvent>, bool)> {
+) -> DevnetResult<(Vec<EmittedEvent>, bool)> {
     let blocks = starknet.blocks.get_blocks(from_block, to_block)?;
     let mut events: Vec<EmittedEvent> = Vec::new();
     // convert to starknet_in_rust::utils::Address

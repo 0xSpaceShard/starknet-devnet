@@ -15,7 +15,7 @@ use self::declare_transaction::DeclareTransactionV1;
 use self::declare_transaction_v2::DeclareTransactionV2;
 use self::deploy_account_transaction::DeployAccountTransaction;
 use self::invoke_transaction::InvokeTransactionV1;
-use crate::error::Result;
+use crate::error::DevnetResult;
 use crate::traits::{HashIdentified, HashIdentifiedMut};
 
 #[derive(Default)]
@@ -83,10 +83,10 @@ impl StarknetTransaction {
         }
     }
 
-    pub fn get_events(&self) -> Result<Vec<Event>> {
+    pub fn get_events(&self) -> DevnetResult<Vec<Event>> {
         let mut result = Vec::<Event>::new();
 
-        fn events_from_call_info(call_info: Option<&CallInfo>) -> Result<Vec<Event>> {
+        fn events_from_call_info(call_info: Option<&CallInfo>) -> DevnetResult<Vec<Event>> {
             if let Some(call_info) = call_info {
                 call_info.get_sorted_events().map_err(crate::error::Error::from)
             } else {

@@ -6,10 +6,9 @@ use starknet_rs_core::types::CompressedLegacyContractClass;
 
 use crate::contract_class::deprecated::rpc_contract_class::DeprecatedContractClass;
 use crate::contract_class::Cairo0Json;
-use crate::error::{Error, JsonError};
+use crate::error::{DevnetResult, Error, JsonError};
 use crate::felt::Felt;
 use crate::traits::HashProducer;
-use crate::DevnetResult;
 
 pub mod abi_entry;
 pub mod json_contract_class;
@@ -58,6 +57,7 @@ impl TryFrom<Cairo0ContractClass> for StarknetInRustContractClass {
 }
 
 impl HashProducer for Cairo0ContractClass {
+    type Error = Error;
     fn generate_hash(&self) -> DevnetResult<Felt> {
         match self {
             Cairo0ContractClass::RawJson(contract_json) => Ok(contract_json.generate_hash()?),

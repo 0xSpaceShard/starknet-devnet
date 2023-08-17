@@ -1,14 +1,13 @@
 use cairo_felt::Felt252;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use super::felt::Felt;
-use crate::error::Error;
+use crate::error::{DevnetResult, Error};
+use crate::felt::Felt;
 use crate::patricia_key::PatriciaKey;
 use crate::serde_helpers::hex_string::{
     deserialize_to_prefixed_contract_address, serialize_contract_address_to_prefixed_hex,
 };
 use crate::traits::ToHexString;
-use crate::DevnetResult;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct ContractAddress(pub(crate) PatriciaKey);
