@@ -4,6 +4,11 @@ use starknet_core::transactions::declare_transaction_v2::DeclareTransactionV2;
 use starknet_core::transactions::deploy_account_transaction::DeployAccountTransaction;
 use starknet_core::transactions::invoke_transaction::InvokeTransactionV1;
 use starknet_types::felt::Felt;
+use starknet_types::rpc::transaction::{
+    BroadcastedDeclareTransaction, BroadcastedDeclareTransactionV1,
+    BroadcastedDeclareTransactionV2, BroadcastedDeployAccountTransaction,
+    BroadcastedInvokeTransaction, BroadcastedInvokeTransactionV1,
+};
 
 use super::error::ApiError;
 use super::models::{
@@ -11,11 +16,6 @@ use super::models::{
 };
 use crate::api::json_rpc::error::RpcResult;
 use crate::api::json_rpc::JsonRpcHandler;
-use crate::api::models::transaction::{
-    BroadcastedDeclareTransaction, BroadcastedDeclareTransactionV1,
-    BroadcastedDeclareTransactionV2, BroadcastedDeployAccountTransaction,
-    BroadcastedInvokeTransaction, BroadcastedInvokeTransactionV1,
-};
 
 impl JsonRpcHandler {
     pub(crate) async fn add_declare_transaction(
@@ -165,12 +165,12 @@ mod tests {
         DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
     };
     use starknet_core::starknet::{Starknet, StarknetConfig};
+    use starknet_types::rpc::transaction::{
+        BroadcastedDeclareTransactionV1, BroadcastedDeployAccountTransaction,
+    };
     use starknet_types::traits::ToHexString;
 
     use crate::api::json_rpc::JsonRpcHandler;
-    use crate::api::models::transaction::{
-        BroadcastedDeclareTransactionV1, BroadcastedDeployAccountTransaction,
-    };
     use crate::api::Api;
 
     #[tokio::test]
@@ -179,7 +179,7 @@ mod tests {
         let json_rpc_handler = setup();
         let result = json_rpc_handler
             .add_declare_transaction(
-                crate::api::models::transaction::BroadcastedDeclareTransaction::V1(Box::new(
+                starknet_types::rpc::transaction::BroadcastedDeclareTransaction::V1(Box::new(
                     declare_txn_v1.clone(),
                 )),
             )

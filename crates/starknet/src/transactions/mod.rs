@@ -6,16 +6,25 @@ pub mod invoke_transaction;
 use std::collections::HashMap;
 
 use starknet_api::block::BlockNumber;
+use starknet_api::transaction::Fee;
 use starknet_in_rust::execution::{CallInfo, Event, TransactionExecutionInfo};
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_rs_core::types::TransactionStatus;
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
+use starknet_types::rpc::transaction::{
+    DeclareTransaction as RpcDeclareTransaction,
+    DeclareTransactionV0V1 as RpcDeclareTransactionV0V1,
+    DeclareTransactionV2 as RpcDeclareTransactionV2,
+    DeployAccountTransaction as RpcDeployAccountTransaction,
+    InvokeTransactionV1 as RpcInvokeTransactionV1, Transaction as RpcTransaction,
+    TransactionType as RpcTransactionType, TransactionWithType as RpcTransactionWithType,
+};
 
 use self::declare_transaction::DeclareTransactionV1;
 use self::declare_transaction_v2::DeclareTransactionV2;
 use self::deploy_account_transaction::DeployAccountTransaction;
 use self::invoke_transaction::InvokeTransactionV1;
-use crate::error::DevnetResult;
+use crate::error::{DevnetResult, Error};
 use crate::traits::{HashIdentified, HashIdentifiedMut};
 
 #[derive(Default)]
@@ -165,6 +174,87 @@ impl Transaction {
             Transaction::DeployAccount(txn) => &txn.version,
             Transaction::Invoke(txn) => &txn.version,
         }
+    }
+}
+
+impl TryFrom<&Transaction> for RpcTransactionWithType {
+    type Error = Error;
+    fn try_from(txn: &Transaction) -> DevnetResult<Self> {
+        let transaction_with_type = match txn {
+            Transaction::Declare(declare_v1) => {
+                let declare_txn = RpcDeclareTransactionV0V1 {
+                    class_hash: *declare_v1.class_hash(),
+                    sender_address: *declare_v1.sender_address(),
+                    nonce: *txn.nonce(),
+                    max_fee: Fee(txn.max_fee()),
+                    version: *txn.version(),
+                    transaction_hash: txn.get_hash(),
+                    signature: txn.signature().to_vec(),
+                };
+                RpcTransactionWithType {
+                    r#type: RpcTransactionType::Declare,
+                    transaction: RpcTransaction::Declare(RpcDeclareTransaction::Version1(
+                        declare_txn,
+                    )),
+                }
+            }
+            Transaction::DeclareV2(declare_v2) => {
+                let declare_txn = RpcDeclareTransactionV2 {
+                    class_hash: *declare_v2.class_hash(),
+                    compiled_class_hash: *declare_v2.compiled_class_hash(),
+                    sender_address: *declare_v2.sender_address(),
+                    nonce: *txn.nonce(),
+                    max_fee: Fee(txn.max_fee()),
+                    version: *txn.version(),
+                    transaction_hash: txn.get_hash(),
+                    signature: txn.signature().to_vec(),
+                };
+
+                RpcTransactionWithType {
+                    r#type: RpcTransactionType::Declare,
+                    transaction: RpcTransaction::Declare(RpcDeclareTransaction::Version2(
+                        declare_txn,
+                    )),
+                }
+            }
+            Transaction::DeployAccount(deploy_account) => {
+                let deploy_account_txn = RpcDeployAccountTransaction {
+                    nonce: *txn.nonce(),
+                    max_fee: Fee(txn.max_fee()),
+                    version: *txn.version(),
+                    transaction_hash: txn.get_hash(),
+                    signature: txn.signature().to_vec(),
+                    class_hash: deploy_account.class_hash()?,
+                    contract_address_salt: deploy_account.contract_address_salt(),
+                    constructor_calldata: deploy_account.constructor_calldata(),
+                };
+
+                RpcTransactionWithType {
+                    r#type: RpcTransactionType::DeployAccount,
+                    transaction: RpcTransaction::DeployAccount(deploy_account_txn),
+                }
+            }
+            Transaction::Invoke(invoke_v1) => {
+                let invoke_txn = RpcInvokeTransactionV1 {
+                    sender_address: invoke_v1.sender_address()?,
+                    nonce: *txn.nonce(),
+                    max_fee: Fee(txn.max_fee()),
+                    version: *txn.version(),
+                    transaction_hash: txn.get_hash(),
+                    signature: txn.signature().to_vec(),
+                    calldata: invoke_v1.calldata().to_vec(),
+                };
+
+                RpcTransactionWithType {
+                    r#type: RpcTransactionType::Invoke,
+                    transaction: RpcTransaction::Invoke(
+                        starknet_types::rpc::transaction::InvokeTransaction::Version1(invoke_txn),
+                    ),
+                }
+            }
+        };
+
+        Ok(transaction_with_type)
     }
 }
 

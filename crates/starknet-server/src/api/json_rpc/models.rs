@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{ClassHash, TransactionHash};
-use starknet_types::starknet_api::block::BlockNumber;
-
-use crate::api::models::block::{BlockHashHex, SyncStatus};
-use crate::api::models::transaction::{
+use starknet_types::felt::{BlockHash, ClassHash, TransactionHash};
+use starknet_types::rpc::block::SyncStatus;
+use starknet_types::rpc::transaction::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedTransactionWithType, EventFilter, FunctionCall,
 };
+use starknet_types::starknet_api::block::BlockNumber;
+
 use crate::api::models::{BlockId, PatriciaKeyHex};
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
@@ -66,7 +66,7 @@ pub struct EstimateFeeOutput {
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct BlockHashAndNumberOutput {
-    pub block_hash: BlockHashHex,
+    pub block_hash: BlockHash,
     pub block_number: BlockNumber,
 }
 
@@ -118,12 +118,12 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
     use starknet_types::patricia_key::PatriciaKey;
+    use starknet_types::rpc::transaction::{
+        BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
+    };
     use starknet_types::starknet_api::block::BlockNumber;
 
     use super::{BlockIdInput, EstimateFeeInput, GetStorageInput};
-    use crate::api::models::transaction::{
-        BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
-    };
     use crate::api::models::{BlockHashOrNumber, BlockId, PatriciaKeyHex, Tag};
 
     #[test]

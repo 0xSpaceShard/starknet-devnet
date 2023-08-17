@@ -6,6 +6,12 @@ use starknet_in_rust::utils::Address;
 use starknet_rs_core::types::ContractClass as CodegenContractClass;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
+use starknet_types::rpc::block::{Block, BlockHeader};
+use starknet_types::rpc::transaction::{
+    BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
+    BroadcastedTransactionWithType, EventFilter, EventsChunk, FunctionCall, Transaction,
+    TransactionReceipt, TransactionWithType, Transactions,
+};
 use starknet_types::starknet_api::block::BlockNumber;
 use starknet_types::traits::ToHexString;
 
@@ -17,15 +23,9 @@ use super::write_endpoints::{
 };
 use super::JsonRpcHandler;
 use crate::api::json_rpc::error::RpcResult;
-use crate::api::models::block::{Block, BlockHeader};
 use crate::api::models::state::{
     ClassHashes, ContractNonce, DeployedContract, StateUpdate, StorageDiff, StorageEntry,
     ThinStateDiff,
-};
-use crate::api::models::transaction::{
-    BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
-    BroadcastedTransactionWithType, EventFilter, EventsChunk, FunctionCall, Transaction,
-    TransactionReceipt, TransactionWithType, Transactions,
 };
 use crate::api::models::{BlockId, PatriciaKeyHex};
 
@@ -44,7 +44,7 @@ impl JsonRpcHandler {
         Ok(Block {
             status: *block.status(),
             header: BlockHeader::from(&block),
-            transactions: crate::api::models::transaction::Transactions::Hashes(
+            transactions: starknet_types::rpc::transaction::Transactions::Hashes(
                 block.get_transactions().to_owned(),
             ),
         })
@@ -176,10 +176,10 @@ impl JsonRpcHandler {
                 let transaction_hash = block
                     .get_transactions()
                     .get(index as usize)
-                    .ok_or(error::ApiError::InvalidTransactionIndexInBlock)?;
+                    .ok_or(ApiError::InvalidTransactionIndexInBlock)?;
 
                 let transaction = starknet.get_transaction_by_hash(*transaction_hash)?;
-                TransactionWithType::try_from(transaction)
+                Ok(TransactionWithType::try_from(transaction)?)
             }
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),

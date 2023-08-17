@@ -1,16 +1,15 @@
 use serde::{Deserialize, Serialize};
+use starknet_api::block::BlockNumber;
+use starknet_api::transaction::{EthAddress, Fee};
 use starknet_rs_core::types::BlockId;
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::DeprecatedContractClass;
-use starknet_types::felt::{
-    Calldata, ClassHash, CompiledClassHash, ContractAddressSalt, EntryPointSelector, Felt, Nonce,
-    TransactionHash, TransactionSignature, TransactionVersion,
-};
-use starknet_types::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
-use starknet_types::starknet_api::block::BlockNumber;
-use starknet_types::starknet_api::transaction::{EthAddress, Fee};
 
-use super::block::BlockHashHex;
+use crate::contract_address::ContractAddress;
+use crate::contract_class::DeprecatedContractClass;
+use crate::felt::{
+    BlockHash, Calldata, ClassHash, CompiledClassHash, ContractAddressSalt, EntryPointSelector,
+    Felt, Nonce, TransactionHash, TransactionSignature, TransactionVersion,
+};
+use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
@@ -186,7 +185,7 @@ pub struct DeployTransactionReceipt {
 pub struct CommonTransactionReceipt {
     pub transaction_hash: TransactionHash,
     pub r#type: TransactionType,
-    pub block_hash: BlockHashHex,
+    pub block_hash: BlockHash,
     pub block_number: BlockNumber,
     #[serde(flatten)]
     pub output: TransactionOutput,
@@ -238,7 +237,7 @@ pub struct EventFilter {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct EventsChunk {
-    pub events: Vec<starknet_types::emitted_event::EmittedEvent>,
+    pub events: Vec<crate::emitted_event::EmittedEvent>,
     pub continuation_token: Option<String>,
 }
 
