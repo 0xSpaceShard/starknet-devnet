@@ -39,7 +39,7 @@ impl InvokeTransactionV1 {
     ) -> DevnetResult<Self> {
         Ok(Self {
             inner: starknet_in_rust::transaction::InvokeFunction::new(
-                sender_address.try_into()?,
+                sender_address.into(),
                 EXECUTE_ENTRY_POINT_SELECTOR.clone(),
                 max_fee,
                 version.into(),

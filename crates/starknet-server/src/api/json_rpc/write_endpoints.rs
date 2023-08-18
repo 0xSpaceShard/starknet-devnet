@@ -4,9 +4,10 @@ use starknet_core::transactions::declare_transaction_v2::DeclareTransactionV2;
 use starknet_core::transactions::deploy_account_transaction::DeployAccountTransaction;
 use starknet_core::transactions::invoke_transaction::InvokeTransactionV1;
 use starknet_types::felt::Felt;
-use starknet_types::rpc::transaction::{
-    BroadcastedDeclareTransaction, BroadcastedDeclareTransactionV1,
-    BroadcastedDeclareTransactionV2, BroadcastedDeployAccountTransaction,
+use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
+use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
+use starknet_types::rpc::transactions::{
+    BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedInvokeTransactionV1,
 };
 
@@ -22,18 +23,19 @@ impl JsonRpcHandler {
         &self,
         request: BroadcastedDeclareTransaction,
     ) -> RpcResult<DeclareTransactionOutput> {
-        let chain_id = self.api.starknet.read().await.config.chain_id.to_felt();
         let (transaction_hash, class_hash) = match request {
-            BroadcastedDeclareTransaction::V1(broadcasted_declare_txn) => {
-                self.api.starknet.write().await.add_declare_transaction_v1(
-                    (convert_to_declare_transaction_v1(*broadcasted_declare_txn, chain_id.into()))?,
-                )?
-            }
-            BroadcastedDeclareTransaction::V2(broadcasted_declare_txn) => {
-                self.api.starknet.write().await.add_declare_transaction_v2(
-                    convert_to_declare_transaction_v2(*broadcasted_declare_txn, chain_id.into())?,
-                )?
-            }
+            BroadcastedDeclareTransaction::V1(broadcasted_declare_txn) => self
+                .api
+                .starknet
+                .write()
+                .await
+                .add_declare_transaction_v1(broadcasted_declare_txn, chain_id.into()?)?,
+            BroadcastedDeclareTransaction::V2(broadcasted_declare_txn) => self
+                .api
+                .starknet
+                .write()
+                .await
+                .add_declare_transaction_v2(*broadcasted_declare_txn)?,
         };
 
         Ok(DeclareTransactionOutput { transaction_hash, class_hash })
@@ -165,9 +167,8 @@ mod tests {
         DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
     };
     use starknet_core::starknet::{Starknet, StarknetConfig};
-    use starknet_types::rpc::transaction::{
-        BroadcastedDeclareTransactionV1, BroadcastedDeployAccountTransaction,
-    };
+    use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
+    use starknet_types::rpc::transactions::BroadcastedDeployAccountTransaction;
     use starknet_types::traits::ToHexString;
 
     use crate::api::json_rpc::JsonRpcHandler;
@@ -179,7 +180,7 @@ mod tests {
         let json_rpc_handler = setup();
         let result = json_rpc_handler
             .add_declare_transaction(
-                starknet_types::rpc::transaction::BroadcastedDeclareTransaction::V1(Box::new(
+                starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V1(Box::new(
                     declare_txn_v1.clone(),
                 )),
             )

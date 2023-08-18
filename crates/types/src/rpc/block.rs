@@ -3,7 +3,7 @@ use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp};
 
 use crate::contract_address::ContractAddress;
 use crate::felt::{BlockHash, Felt};
-use crate::rpc::transaction::Transactions;
+use crate::rpc::transactions::Transactions;
 pub type GlobalRootHex = Felt;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]

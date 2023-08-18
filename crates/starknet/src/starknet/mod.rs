@@ -26,6 +26,9 @@ use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
+use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
+use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
+use starknet_types::rpc::transactions::TransactionWithType;
 use starknet_types::traits::HashProducer;
 use tracing::error;
 
@@ -205,7 +208,7 @@ impl Starknet {
     pub(crate) fn handle_successful_transaction(
         &mut self,
         transaction_hash: &TransactionHash,
-        transaction: Transaction,
+        transaction: TransactionWithType,
         tx_info: TransactionExecutionInfo,
     ) -> DevnetResult<()> {
         let transaction_to_add = StarknetTransaction::create_successful(transaction, tx_info);
@@ -350,7 +353,7 @@ impl Starknet {
             &mut state.pending_state.clone(),
             self.block_context.clone(),
             // dummy caller_address since there is no account address
-            ContractAddress::zero().try_into()?,
+            ContractAddress::zero().into(),
         )?;
         Ok(result.iter().map(|e| Felt::from(e.clone())).collect())
     }
@@ -398,14 +401,14 @@ impl Starknet {
 
     pub fn add_declare_transaction_v1(
         &mut self,
-        declare_transaction: DeclareTransactionV1,
+        declare_transaction: BroadcastedDeclareTransactionV1,
     ) -> DevnetResult<(TransactionHash, ClassHash)> {
         add_declare_transaction::add_declare_transaction_v1(self, declare_transaction)
     }
 
     pub fn add_declare_transaction_v2(
         &mut self,
-        declare_transaction: DeclareTransactionV2,
+        declare_transaction: BroadcastedDeclareTransactionV2,
     ) -> DevnetResult<(TransactionHash, ClassHash)> {
         add_declare_transaction::add_declare_transaction_v2(self, declare_transaction)
     }
@@ -504,7 +507,7 @@ impl Starknet {
         contract_address: ContractAddress,
     ) -> DevnetResult<Felt> {
         let state = self.get_state_at(&block_id)?;
-        match state.state.address_to_nonce.get(&contract_address.try_into()?) {
+        match state.state.address_to_nonce.get(&contract_address.into()) {
             Some(nonce) => Ok(Felt::from(nonce.clone())),
             None => Err(Error::ContractNotFound),
         }

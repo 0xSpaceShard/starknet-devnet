@@ -33,8 +33,7 @@ pub(crate) fn get_events(
     let blocks = starknet.blocks.get_blocks(from_block, to_block)?;
     let mut events: Vec<EmittedEvent> = Vec::new();
     // convert to starknet_in_rust::utils::Address
-    let address =
-        if let Some(address) = contract_address { Some(Address::try_from(address)?) } else { None };
+    let address = contract_address.map(Address::from);
     // convert felts to Felt252
     let keys_filter: Option<Vec<Vec<Felt252>>> = keys_filter.map(|felts| {
         felts

@@ -1,17 +1,20 @@
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, TransactionHash};
+use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
+use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
+use starknet_types::rpc::transactions::{
+    DeclareTransaction, Transaction, TransactionType, TransactionWithType,
+};
 
 use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;
-use crate::transactions::declare_transaction::DeclareTransactionV1;
-use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
-use crate::transactions::{StarknetTransaction, Transaction};
+use crate::transactions::StarknetTransaction;
 
 pub fn add_declare_transaction_v2(
     starknet: &mut Starknet,
-    declare_transaction: DeclareTransactionV2,
+    broadcasted_declare_transaction: BroadcastedDeclareTransactionV2,
 ) -> DevnetResult<(TransactionHash, ClassHash)> {
-    if declare_transaction.max_fee == 0 {
+    if broadcasted_declare_transaction.common.max_fee.0 == 0 {
         return Err(Error::TransactionError(
             starknet_in_rust::transaction::error::TransactionError::FeeError(
                 "For declare transaction version 2, max fee cannot be 0".to_string(),
@@ -19,31 +22,38 @@ pub fn add_declare_transaction_v2(
         ));
     }
 
-    let state_before_txn = starknet.state.pending_state.clone();
-    let transaction_hash = declare_transaction.transaction_hash;
-    let class_hash = declare_transaction.class_hash;
+    let sir_declare_transaction = broadcasted_declare_transaction
+        .compile_sir_declare(&starknet.config.chain_id.to_felt().into())?;
 
-    match declare_transaction
-        .inner
+    let transaction_hash = sir_declare_transaction.hash_value.into();
+    let class_hash: ClassHash = sir_declare_transaction.sierra_class_hash.into();
+
+    let state_before_txn = starknet.state.pending_state.clone();
+    let transaction_with_type = TransactionWithType {
+        r#type: TransactionType::Declare,
+        transaction: Transaction::Declare(DeclareTransaction::Version2(
+            sir_declare_transaction.try_into()?,
+        )),
+    };
+
+    match sir_declare_transaction
         .execute(&mut starknet.state.pending_state, &starknet.block_context)
     {
         Ok(tx_info) => {
             // Add sierra contract
             starknet.state.contract_classes.insert(
                 class_hash,
-                ContractClass::Cairo1(declare_transaction.sierra_contract_class.clone()),
+                ContractClass::Cairo1(broadcasted_declare_transaction.contract_class.clone()),
             );
             starknet.handle_successful_transaction(
                 &transaction_hash,
-                Transaction::DeclareV2(Box::new(declare_transaction)),
+                transaction_with_type,
                 tx_info,
             )?;
         }
         Err(tx_err) => {
-            let transaction_to_add = StarknetTransaction::create_rejected(
-                Transaction::DeclareV2(Box::new(declare_transaction)),
-                tx_err,
-            );
+            let transaction_to_add =
+                StarknetTransaction::create_rejected(transaction_with_type, tx_err);
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
             // Revert to previous pending state
@@ -56,9 +66,9 @@ pub fn add_declare_transaction_v2(
 
 pub fn add_declare_transaction_v1(
     starknet: &mut Starknet,
-    declare_transaction: DeclareTransactionV1,
+    broadcasted_declare_transaction: BroadcastedDeclareTransactionV1,
 ) -> DevnetResult<(TransactionHash, ClassHash)> {
-    if declare_transaction.max_fee == 0 {
+    if broadcasted_declare_transaction.common.max_fee.0 == 0 {
         return Err(Error::TransactionError(
             starknet_in_rust::transaction::error::TransactionError::FeeError(
                 "For declare transaction version 1, max fee cannot be 0".to_string(),
@@ -67,29 +77,38 @@ pub fn add_declare_transaction_v1(
     }
 
     let state_before_txn = starknet.state.pending_state.clone();
-    let transaction_hash = declare_transaction.transaction_hash;
-    let class_hash = declare_transaction.class_hash;
 
-    match declare_transaction
-        .inner
+    let class_hash = broadcasted_declare_transaction.generate_class_hash()?;
+    let transaction_hash = broadcasted_declare_transaction
+        .calculate_transaction_hash(&starknet.config.chain_id.to_felt().into(), &class_hash)?;
+
+    let declare_transaction =
+        broadcasted_declare_transaction.compile_declare(&class_hash, &transaction_hash);
+    let transaction_with_type = TransactionWithType {
+        r#type: TransactionType::Declare,
+        transaction: Transaction::Declare(DeclareTransaction::Version1(declare_transaction)),
+    };
+
+    let sir_declare_transaction =
+        broadcasted_declare_transaction.compile_sir_declare(&class_hash)?;
+
+    match sir_declare_transaction
         .execute(&mut starknet.state.pending_state, &starknet.block_context)
     {
         Ok(tx_info) => {
             starknet
                 .state
                 .contract_classes
-                .insert(class_hash, declare_transaction.contract_class.clone().into());
+                .insert(class_hash, broadcasted_declare_transaction.contract_class.clone().into());
             starknet.handle_successful_transaction(
                 &transaction_hash,
-                Transaction::Declare(Box::new(declare_transaction)),
+                transaction_with_type,
                 tx_info,
             )?;
         }
         Err(tx_err) => {
-            let transaction_to_add = StarknetTransaction::create_rejected(
-                Transaction::Declare(Box::new(declare_transaction)),
-                tx_err,
-            );
+            let transaction_to_add =
+                StarknetTransaction::create_rejected(transaction_with_type, tx_err);
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
             // Revert to previous pending state
@@ -97,7 +116,7 @@ pub fn add_declare_transaction_v1(
         }
     }
 
-    Ok((transaction_hash, class_hash))
+    Ok((transaction_hash, class_hash.into()))
 }
 
 #[cfg(test)]
@@ -208,13 +227,11 @@ mod tests {
 
         // check if contract is not declared
         assert!(!starknet.state.is_contract_declared(&expected_class_hash));
-        assert!(
-            !starknet
-                .state
-                .state
-                .casm_contract_classes_mut()
-                .contains_key(&expected_compiled_class_hash.bytes())
-        );
+        assert!(!starknet
+            .state
+            .state
+            .casm_contract_classes_mut()
+            .contains_key(&expected_compiled_class_hash.bytes()));
 
         let (tx_hash, retrieved_class_hash) =
             starknet.add_declare_transaction_v2(declare_txn).unwrap();

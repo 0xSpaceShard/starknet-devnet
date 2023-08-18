@@ -54,7 +54,7 @@ impl DeclareTransactionV1 {
 
         let mut inner = Declare {
             class_hash: class_hash.into(),
-            sender_address: sender_address.try_into()?,
+            sender_address: sender_address.into(),
             tx_type: starknet_in_rust::definitions::transaction_type::TransactionType::Declare,
             validate_entry_point_selector:
                 starknet_in_rust::definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR

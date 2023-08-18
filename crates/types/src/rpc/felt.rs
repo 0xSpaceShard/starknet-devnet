@@ -1,3 +1,4 @@
+use cairo_felt::Felt252;
 use std::str::FromStr;
 
 use num_bigint::BigUint;
@@ -105,7 +106,7 @@ impl From<u128> for Felt {
 
 impl From<ContractAddress> for Felt {
     fn from(value: ContractAddress) -> Self {
-        value.0.0
+        value.0 .0
     }
 }
 
@@ -154,6 +155,12 @@ impl From<Felt> for starknet_in_rust::utils::ClassHash {
 
 impl From<cairo_felt::Felt252> for Felt {
     fn from(value: cairo_felt::Felt252) -> Self {
+        Self(value.to_be_bytes())
+    }
+}
+
+impl From<&cairo_felt::Felt252> for Felt {
+    fn from(value: &Felt252) -> Self {
         Self(value.to_be_bytes())
     }
 }
@@ -235,12 +242,10 @@ mod tests {
     use crate::traits::ToDecimalString;
     #[test]
     fn correct_conversion_from_hex_str_to_felt() {
-        assert!(
-            Felt::from_prefixed_hex_str(
-                "0x3FCBF77B28C96F4F2FB5BD2D176AB083A12A5E123ADEB0DE955D7EE228C9854"
-            )
-            .is_ok()
+        assert!(Felt::from_prefixed_hex_str(
+            "0x3FCBF77B28C96F4F2FB5BD2D176AB083A12A5E123ADEB0DE955D7EE228C9854"
         )
+        .is_ok())
     }
 
     #[test]

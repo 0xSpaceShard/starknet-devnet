@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, ClassHash, TransactionHash};
 use starknet_types::rpc::block::SyncStatus;
-use starknet_types::rpc::transaction::{
+use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedTransactionWithType, EventFilter, FunctionCall,
 };
@@ -118,7 +118,7 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
     use starknet_types::patricia_key::PatriciaKey;
-    use starknet_types::rpc::transaction::{
+    use starknet_types::rpc::transactions::{
         BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
     };
     use starknet_types::starknet_api::block::BlockNumber;

@@ -1,3 +1,7 @@
+use broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
+use broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
+use declare_transaction_v0v1::DeclareTransactionV0V1;
+use declare_transaction_v2::DeclareTransactionV2;
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
 use starknet_api::transaction::{EthAddress, Fee};
@@ -9,7 +13,11 @@ use crate::felt::{
     BlockHash, Calldata, ClassHash, CompiledClassHash, ContractAddressSalt, EntryPointSelector,
     Felt, Nonce, TransactionHash, TransactionSignature, TransactionVersion,
 };
-use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
+
+pub mod broadcasted_declare_transaction_v1;
+pub mod broadcasted_declare_transaction_v2;
+pub mod declare_transaction_v0v1;
+pub mod declare_transaction_v2;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
@@ -48,29 +56,6 @@ pub enum Transaction {
     Deploy(DeployTransaction),
     Invoke(InvokeTransaction),
     L1Handler(L1HandlerTransaction),
-}
-
-#[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
-pub struct DeclareTransactionV0V1 {
-    pub class_hash: ClassHash,
-    pub sender_address: ContractAddress,
-    pub nonce: Nonce,
-    pub max_fee: Fee,
-    pub version: TransactionVersion,
-    pub transaction_hash: TransactionHash,
-    pub signature: TransactionSignature,
-}
-
-#[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
-pub struct DeclareTransactionV2 {
-    pub class_hash: ClassHash,
-    pub compiled_class_hash: CompiledClassHash,
-    pub sender_address: ContractAddress,
-    pub nonce: Nonce,
-    pub max_fee: Fee,
-    pub version: TransactionVersion,
-    pub transaction_hash: TransactionHash,
-    pub signature: TransactionSignature,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -300,24 +285,6 @@ pub struct BroadcastedInvokeTransactionV1 {
     pub common: BroadcastedTransactionCommon,
     pub sender_address: ContractAddress,
     pub calldata: Calldata,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-pub struct BroadcastedDeclareTransactionV1 {
-    #[serde(flatten)]
-    pub common: BroadcastedTransactionCommon,
-    pub contract_class: DeprecatedContractClass,
-    pub sender_address: ContractAddress,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-pub struct BroadcastedDeclareTransactionV2 {
-    #[serde(flatten)]
-    pub common: BroadcastedTransactionCommon,
-    #[serde(deserialize_with = "deserialize_to_sierra_contract_class")]
-    pub contract_class: starknet_in_rust::SierraContractClass,
-    pub sender_address: ContractAddress,
-    pub compiled_class_hash: CompiledClassHash,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]

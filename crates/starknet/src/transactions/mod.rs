@@ -11,10 +11,10 @@ use starknet_in_rust::execution::{CallInfo, Event, TransactionExecutionInfo};
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_rs_core::types::TransactionStatus;
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
-use starknet_types::rpc::transaction::{
+use starknet_types::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1 as RpcDeclareTransactionV0V1;
+use starknet_types::rpc::transactions::declare_transaction_v2::DeclareTransactionV2 as RpcDeclareTransactionV2;
+use starknet_types::rpc::transactions::{
     DeclareTransaction as RpcDeclareTransaction,
-    DeclareTransactionV0V1 as RpcDeclareTransactionV0V1,
-    DeclareTransactionV2 as RpcDeclareTransactionV2,
     DeployAccountTransaction as RpcDeployAccountTransaction,
     InvokeTransactionV1 as RpcInvokeTransactionV1, Transaction as RpcTransaction,
     TransactionType as RpcTransactionType, TransactionWithType as RpcTransactionWithType,
@@ -59,7 +59,7 @@ impl HashIdentified for StarknetTransactions {
 #[allow(unused)]
 pub struct StarknetTransaction {
     pub(crate) status: TransactionStatus,
-    pub inner: Transaction,
+    pub inner: RpcTransactionWithType,
     pub(crate) block_hash: Option<BlockHash>,
     pub(crate) block_number: Option<BlockNumber>,
     pub(crate) execution_info: Option<starknet_in_rust::execution::TransactionExecutionInfo>,
@@ -67,7 +67,10 @@ pub struct StarknetTransaction {
 }
 
 impl StarknetTransaction {
-    pub fn create_rejected(transaction: Transaction, execution_error: TransactionError) -> Self {
+    pub fn create_rejected(
+        transaction: RpcTransactionWithType,
+        execution_error: TransactionError,
+    ) -> Self {
         Self {
             status: TransactionStatus::Rejected,
             inner: transaction,
@@ -79,7 +82,7 @@ impl StarknetTransaction {
     }
 
     pub fn create_successful(
-        transaction: Transaction,
+        transaction: RpcTransactionWithType,
         execution_info: TransactionExecutionInfo,
     ) -> Self {
         Self {
@@ -248,7 +251,7 @@ impl TryFrom<&Transaction> for RpcTransactionWithType {
                 RpcTransactionWithType {
                     r#type: RpcTransactionType::Invoke,
                     transaction: RpcTransaction::Invoke(
-                        starknet_types::rpc::transaction::InvokeTransaction::Version1(invoke_txn),
+                        starknet_types::rpc::transactions::InvokeTransaction::Version1(invoke_txn),
                     ),
                 }
             }

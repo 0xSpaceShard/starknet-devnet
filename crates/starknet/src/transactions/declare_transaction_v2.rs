@@ -55,7 +55,7 @@ impl DeclareTransactionV2 {
             None,
             compiled_class_hash.into(),
             chain_id.into(),
-            sender_address.try_into()?,
+            sender_address.into(),
             max_fee,
             version.into(),
             signature.iter().map(|felt| felt.into()).collect(),

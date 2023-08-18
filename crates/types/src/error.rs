@@ -5,6 +5,8 @@ pub enum Error {
     #[error(transparent)]
     StarknetApiError(#[from] starknet_api::StarknetApiError),
     #[error(transparent)]
+    HashError(#[from] starknet_in_rust::core::errors::hash_errors::HashError),
+    #[error(transparent)]
     StarknetFfConversionError(#[from] starknet_rs_ff::FromByteSliceError),
     #[error("Error when calling python module")]
     PyModuleError,

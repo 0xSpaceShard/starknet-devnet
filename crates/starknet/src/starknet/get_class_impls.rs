@@ -15,7 +15,7 @@ pub fn get_class_hash_at_impl(
     contract_address: ContractAddress,
 ) -> DevnetResult<ClassHash> {
     let state = starknet.get_state_at(&block_id)?;
-    Ok(state.state.get_class_hash_at(&contract_address.try_into()?)?.into())
+    Ok(state.state.get_class_hash_at(&contract_address.into())?.into())
 }
 
 fn get_sierra_class(
