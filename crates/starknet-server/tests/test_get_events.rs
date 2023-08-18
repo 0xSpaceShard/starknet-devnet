@@ -3,40 +3,17 @@ pub mod common;
 mod get_events_integration_tests {
     use std::sync::Arc;
 
-    use starknet_in_rust::core::contract_address::compute_casm_class_hash;
-    use starknet_in_rust::CasmContractClass;
     use starknet_rs_accounts::{Account, Call, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::chain_id;
-    use starknet_rs_core::types::contract::SierraClass;
-    use starknet_rs_core::types::{
-        BlockId, BlockTag, EventFilter, FieldElement, FlattenedSierraClass,
-    };
+    use starknet_rs_core::types::{BlockId, BlockTag, EventFilter, FieldElement};
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::Provider;
     use starknet_rs_signers::{LocalWallet, SigningKey};
     use starknet_types::felt::Felt;
 
+    use crate::common::data::get_events_contract_in_sierra_and_compiled_class_hash;
     use crate::common::util::{get_json_body, BackgroundDevnet};
-
-    fn get_events_contract_in_sierra_and_compiled_class_hash()
-    -> (FlattenedSierraClass, FieldElement) {
-        let sierra_artifact = std::fs::read_to_string(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_data/cairo1/events/events_2.0.1_compiler.sierra"
-        ))
-        .unwrap();
-        let sierra_class: SierraClass = serde_json::from_str(&sierra_artifact).unwrap();
-
-        let contract_class: starknet_in_rust::ContractClass =
-            serde_json::from_str(&sierra_artifact).unwrap();
-
-        let casm_contract_class =
-            CasmContractClass::from_contract_class(contract_class, false).unwrap();
-        let compiled_class_hash = compute_casm_class_hash(&casm_contract_class).unwrap();
-
-        (sierra_class.flatten().unwrap(), Felt::from(compiled_class_hash).into())
-    }
 
     #[tokio::test]
     /// The test verifies that the `get_events` RPC method returns the correct events.
