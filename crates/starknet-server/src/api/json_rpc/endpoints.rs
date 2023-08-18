@@ -24,7 +24,7 @@ use crate::api::models::state::{
 use crate::api::models::transaction::{
     BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
     BroadcastedTransactionWithType, EventFilter, EventsChunk, FunctionCall, Transaction,
-    TransactionReceipt, TransactionWithType, Transactions,
+    TransactionReceiptWithStatus, TransactionWithType, Transactions,
 };
 use crate::api::models::{BlockId, PatriciaKeyHex};
 
@@ -188,9 +188,16 @@ impl JsonRpcHandler {
     /// starknet_getTransactionReceipt
     pub(crate) async fn get_transaction_receipt_by_hash(
         &self,
-        _transaction_hash: TransactionHash,
-    ) -> RpcResult<TransactionReceipt> {
-        Err(error::ApiError::TransactionNotFound)
+        transaction_hash: TransactionHash,
+    ) -> RpcResult<TransactionReceiptWithStatus> {
+        let starknet = self.api.starknet.read().await;
+        let transaction_to_map = starknet
+            .transactions
+            .get(&transaction_hash)
+            .ok_or(error::ApiError::TransactionNotFound)?;
+        let receipt_with_status = TransactionReceiptWithStatus::try_from(transaction_to_map)?;
+
+        Ok(receipt_with_status)
     }
 
     /// starknet_getClass

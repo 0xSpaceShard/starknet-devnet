@@ -2,7 +2,7 @@
 pub mod common;
 
 mod general_integration_tests {
-    use crate::common::util::BackgroundDevnet;
+    use crate::common::devnet::BackgroundDevnet;
 
     #[tokio::test]
     /// Asserts that a background instance can be spawned
