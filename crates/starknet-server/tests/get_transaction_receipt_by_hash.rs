@@ -2,14 +2,97 @@ pub mod common;
 
 mod get_transaction_receipt_by_hash_integration_tests {
 
+    use std::sync::Arc;
+
+    use starknet_rs_accounts::{Account, SingleOwnerAccount};
+    use starknet_rs_contract::ContractFactory;
+    use starknet_rs_core::chain_id;
     use starknet_rs_core::types::{
-        BroadcastedDeclareTransactionV1, FieldElement, StarknetError, TransactionStatus, MaybePendingTransactionReceipt, TransactionReceipt,
+        BlockId, BlockTag, BroadcastedDeclareTransactionV1, FieldElement,
+        MaybePendingTransactionReceipt, StarknetError, TransactionReceipt, TransactionStatus,
     };
+    use starknet_rs_core::utils::get_udc_deployed_address;
     use starknet_rs_providers::{
         MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
     };
+    use starknet_rs_signers::{LocalWallet, SigningKey};
+    use starknet_types::felt::Felt;
 
-    use crate::common::util::BackgroundDevnet;
+    use crate::common::data::get_events_contract_in_sierra_and_compiled_class_hash;
+    use crate::common::util::{get_json_body, BackgroundDevnet};
+
+    #[tokio::test]
+    async fn deploy_transaction_receipt() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        // get first predeployed account data
+        let predeployed_accounts_response =
+            devnet.get("/predeployed_accounts", None).await.unwrap();
+
+        let predeployed_accounts_json = get_json_body(predeployed_accounts_response).await;
+        let first_account = predeployed_accounts_json.as_array().unwrap().get(0).unwrap();
+
+        let account_address =
+            Felt::from_prefixed_hex_str(first_account["address"].as_str().unwrap()).unwrap();
+        let private_key =
+            Felt::from_prefixed_hex_str(first_account["private_key"].as_str().unwrap()).unwrap();
+
+        // constructs starknet-rs account
+        let signer = LocalWallet::from(SigningKey::from_secret_scalar(private_key.into()));
+        let address = FieldElement::from(account_address);
+
+        let mut predeployed_account =
+            SingleOwnerAccount::new(devnet.clone_provider(), signer, address, chain_id::TESTNET);
+
+        // `SingleOwnerAccount` defaults to checking nonce and estimating fees against the latest
+        // block. Optionally change the target block to pending with the following line:
+        predeployed_account.set_block_id(BlockId::Tag(BlockTag::Pending));
+
+        let (cairo_1_contract, casm_class_hash) =
+            get_events_contract_in_sierra_and_compiled_class_hash();
+
+        // declare the contract
+        let declaration_result = predeployed_account
+            .declare(Arc::new(cairo_1_contract), casm_class_hash)
+            .max_fee(FieldElement::from(1000000000000000000000000000u128))
+            .send()
+            .await
+            .unwrap();
+
+        let predeployed_account = Arc::new(predeployed_account);
+
+        // deploy the contract
+        let contract_factory =
+            ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
+
+        let deployment_result = contract_factory
+            .deploy(vec![], FieldElement::ZERO, false)
+            .max_fee(FieldElement::from(1000000000000000000000000000u128))
+            .send()
+            .await
+            .unwrap();
+
+        // generate the address of the newly deployed contract
+        let new_contract_address = get_udc_deployed_address(
+            FieldElement::ZERO,
+            declaration_result.class_hash,
+            &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+            &[],
+        );
+
+        let deployment_receipt = devnet
+            .json_rpc_client
+            .get_transaction_receipt(deployment_result.transaction_hash)
+            .await
+            .unwrap();
+
+        match deployment_receipt {
+            MaybePendingTransactionReceipt::Receipt(TransactionReceipt::Deploy(receipt)) => {
+                assert_eq!(receipt.contract_address, new_contract_address);
+            }
+            _ => panic!("Invalid receipt {:?}", deployment_receipt),
+        };
+    }
 
     #[tokio::test]
     async fn get_declare_v1_transaction_receipt_by_hash_hash_happy_path() {
@@ -40,7 +123,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
             MaybePendingTransactionReceipt::Receipt(TransactionReceipt::Declare(declare)) => {
                 assert_eq!(declare.status, TransactionStatus::Rejected);
             }
-            _ => panic!("Invalid result: {result:?}")
+            _ => panic!("Invalid result: {result:?}"),
         }
     }
 
