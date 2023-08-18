@@ -3,7 +3,7 @@ pub mod common;
 mod get_transaction_receipt_by_hash_integration_tests {
 
     use starknet_rs_core::types::{
-        BroadcastedDeclareTransactionV1, FieldElement, StarknetError, TransactionStatus,
+        BroadcastedDeclareTransactionV1, FieldElement, StarknetError, TransactionStatus, MaybePendingTransactionReceipt, TransactionReceipt,
     };
     use starknet_rs_providers::{
         MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
@@ -37,15 +37,10 @@ mod get_transaction_receipt_by_hash_integration_tests {
             .unwrap();
 
         match result {
-            starknet_rs_core::types::MaybePendingTransactionReceipt::Receipt(receipt) => {
-                match receipt {
-                    starknet_rs_core::types::TransactionReceipt::Declare(declare) => {
-                        assert_eq!(declare.status, TransactionStatus::Rejected);
-                    }
-                    _ => panic!("Invalid error: {receipt:?}"),
-                }
+            MaybePendingTransactionReceipt::Receipt(TransactionReceipt::Declare(declare)) => {
+                assert_eq!(declare.status, TransactionStatus::Rejected);
             }
-            _ => panic!("Invalid error: {result:?}"),
+            _ => panic!("Invalid result: {result:?}")
         }
     }
 
