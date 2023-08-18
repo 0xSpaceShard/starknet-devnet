@@ -8,17 +8,15 @@ use hyper::http::request;
 use hyper::{Body, Client, Response, StatusCode, Uri};
 use lazy_static::lazy_static;
 use serde_json::json;
-use starknet_rs_core::types::FieldElement;
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::JsonRpcClient;
-use starknet_rs_signers::{LocalWallet, SigningKey};
 use thiserror::Error;
 use tokio::sync::Mutex;
 use url::Url;
 
 use super::constants::{
-    ACCOUNTS, CHAIN_ID_CLI_PARAM, HOST, MAX_PORT, MIN_PORT, PREDEPLOYED_ACCOUNT_ADDRESS,
-    PREDEPLOYED_ACCOUNT_INITIAL_BALANCE, PREDEPLOYED_ACCOUNT_PRIVATE_KEY, SEED,
+    ACCOUNTS, CHAIN_ID_CLI_PARAM, HOST, MAX_PORT, MIN_PORT, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
+    SEED,
 };
 
 #[derive(Error, Debug)]

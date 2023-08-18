@@ -1,29 +1,12 @@
-use std::fmt::LowerHex;
-use std::net::TcpListener;
-use std::process::{Child, Command, Stdio};
-use std::{thread, time};
-
-use hyper::client::HttpConnector;
-use hyper::http::request;
-use hyper::{Body, Client, Response, StatusCode, Uri};
-use lazy_static::lazy_static;
-use serde_json::json;
+use hyper::{Body, Response};
 use starknet_in_rust::core::contract_address::compute_casm_class_hash;
 use starknet_in_rust::CasmContractClass;
 use starknet_rs_core::types::contract::SierraClass;
 use starknet_rs_core::types::{FieldElement, FlattenedSierraClass};
-use starknet_rs_providers::jsonrpc::HttpTransport;
-use starknet_rs_providers::JsonRpcClient;
 use starknet_rs_signers::{LocalWallet, SigningKey};
 use starknet_types::felt::Felt;
-use thiserror::Error;
-use tokio::sync::Mutex;
-use url::Url;
 
-use super::constants::{
-    ACCOUNTS, CHAIN_ID_CLI_PARAM, HOST, MAX_PORT, MIN_PORT, PREDEPLOYED_ACCOUNT_ADDRESS,
-    PREDEPLOYED_ACCOUNT_INITIAL_BALANCE, PREDEPLOYED_ACCOUNT_PRIVATE_KEY, SEED,
-};
+use super::constants::{PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_PRIVATE_KEY};
 
 pub async fn get_json_body(resp: Response<Body>) -> serde_json::Value {
     let resp_body = resp.into_body();
