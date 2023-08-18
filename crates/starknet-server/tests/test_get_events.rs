@@ -12,8 +12,10 @@ mod get_events_integration_tests {
     use starknet_rs_signers::{LocalWallet, SigningKey};
     use starknet_types::felt::Felt;
 
-    use crate::common::data::get_events_contract_in_sierra_and_compiled_class_hash;
-    use crate::common::util::{get_json_body, BackgroundDevnet};
+    use crate::common::devnet::BackgroundDevnet;
+    use crate::common::utils::{
+        get_events_contract_in_sierra_and_compiled_class_hash, get_json_body,
+    };
 
     #[tokio::test]
     /// The test verifies that the `get_events` RPC method returns the correct events.

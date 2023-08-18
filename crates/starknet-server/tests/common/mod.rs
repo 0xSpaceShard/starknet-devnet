@@ -1,3 +1,4 @@
 pub mod constants;
 pub mod data;
-pub mod util;
+pub mod devnet;
+pub mod utils;

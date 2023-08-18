@@ -10,7 +10,7 @@ mod call {
     use crate::common::constants::{
         PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
     };
-    use crate::common::util::BackgroundDevnet;
+    use crate::common::devnet::BackgroundDevnet;
 
     #[tokio::test]
     async fn calling_method_of_undeployed_contract() {

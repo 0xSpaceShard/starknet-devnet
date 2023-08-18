@@ -7,7 +7,7 @@ mod get_class_tests {
     };
 
     use crate::common::constants::PREDEPLOYED_ACCOUNT_ADDRESS;
-    use crate::common::util::BackgroundDevnet;
+    use crate::common::devnet::BackgroundDevnet;
 
     #[tokio::test]
     async fn test_get_class_at() {

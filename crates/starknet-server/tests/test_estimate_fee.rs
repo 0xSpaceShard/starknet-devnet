@@ -25,9 +25,10 @@ mod estimate_fee_tests {
     use crate::common::constants::{
         CAIRO_0_CONTRACT_PATH, CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH, CHAIN_ID,
     };
-    use crate::common::util::{
+    use crate::common::devnet::BackgroundDevnet;
+    use crate::common::utils::{
         get_deployable_account_signer, get_predeployed_account_props, load_json,
-        resolve_crates_path, BackgroundDevnet,
+        resolve_crates_path,
     };
 
     fn assert_fee_estimation(fee_estimation: &FeeEstimate) {

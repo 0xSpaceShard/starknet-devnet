@@ -36,52 +36,6 @@ pub enum TestError {
     DevnetNotStartable,
 }
 
-fn get_free_port() -> Result<u16, TestError> {
-    for port in MIN_PORT..=MAX_PORT {
-        if let Ok(listener) = TcpListener::bind(("127.0.0.1", port)) {
-            return Ok(listener.local_addr().expect("No local addr").port());
-        }
-        // otherwise port is occupied
-    }
-    Err(TestError::NoFreePorts)
-}
-
-pub async fn get_json_body(resp: Response<Body>) -> serde_json::Value {
-    let resp_body = resp.into_body();
-    let resp_body_bytes = hyper::body::to_bytes(resp_body).await.unwrap();
-    serde_json::from_slice(&resp_body_bytes).unwrap()
-}
-
-/// Assumes Devnet has been run with the usual account seed and returns
-/// the signer and address of the 0th account
-pub fn get_predeployed_account_props() -> (LocalWallet, FieldElement) {
-    let signer = LocalWallet::from(SigningKey::from_secret_scalar(
-        FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_PRIVATE_KEY).unwrap(),
-    ));
-    let address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
-    (signer, address)
-}
-
-/// dummy testing value
-pub fn get_deployable_account_signer() -> LocalWallet {
-    let new_account_private_key = "0xc248668388dbe9acdfa3bc734cc2d57a";
-    starknet_rs_signers::LocalWallet::from(starknet_rs_signers::SigningKey::from_secret_scalar(
-        FieldElement::from_hex_be(new_account_private_key).unwrap(),
-    ))
-}
-
-/// resolve a path relative to the crates directory
-pub fn resolve_crates_path(relative_path: &str) -> String {
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
-    format!("{manifest_dir}/../{relative_path}")
-}
-
-pub fn load_json<T: serde::de::DeserializeOwned>(path: &str) -> T {
-    let reader = std::fs::File::open(path).unwrap();
-    let loaded: T = serde_json::from_reader(reader).unwrap();
-    loaded
-}
-
 lazy_static! {
     /// This is to prevent TOCTOU errors; i.e. one background devnet might find one
     /// port to be free, and while it's trying to start listening to it, another instance
@@ -97,6 +51,16 @@ pub struct BackgroundDevnet {
     process: Child,
     url: String,
     rpc_url: Url,
+}
+
+fn get_free_port() -> Result<u16, TestError> {
+    for port in MIN_PORT..=MAX_PORT {
+        if let Ok(listener) = TcpListener::bind(("127.0.0.1", port)) {
+            return Ok(listener.local_addr().expect("No local addr").port());
+        }
+        // otherwise port is occupied
+    }
+    Err(TestError::NoFreePorts)
 }
 
 impl BackgroundDevnet {
