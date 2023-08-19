@@ -122,7 +122,7 @@ mod tests {
         let block_number = starknet.block_number();
         let declare_txn = dummy_declare_transaction_v2(&account.account_address);
 
-        let expected: ContractClass = declare_txn.sierra_contract_class.clone().into();
+        let expected: ContractClass = declare_txn.contract_class.clone().into();
         let (_, class_hash) = starknet.add_declare_transaction_v2(declare_txn).unwrap();
 
         let contract_class =

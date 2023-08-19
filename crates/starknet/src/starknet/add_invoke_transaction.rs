@@ -62,6 +62,7 @@ pub fn add_invoke_transcation_v1(
 
 #[cfg(test)]
 mod tests {
+    use starknet_api::transaction::Fee;
     use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
     use starknet_in_rust::EntryPointType;
     use starknet_rs_core::types::TransactionStatus;
@@ -70,6 +71,7 @@ mod tests {
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
+    use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;
@@ -89,7 +91,7 @@ mod tests {
         function_selector: Felt,
         param: Felt,
         nonce: u128,
-    ) -> InvokeTransactionV1 {
+    ) -> BroadcastedInvokeTransactionV1 {
         let calldata = vec![
             Felt::from(contract_address), // contract address
             function_selector,            // function selector
@@ -97,16 +99,14 @@ mod tests {
             param,                        // calldata
         ];
 
-        InvokeTransactionV1::new(
+        BroadcastedInvokeTransactionV1::new(
             account_address,
-            10000,
-            vec![],
+            Fee(10000),
+            &vec![],
             Felt::from(nonce),
-            calldata,
-            DEVNET_DEFAULT_CHAIN_ID.to_felt().into(),
+            &calldata,
             Felt::from(1),
         )
-        .unwrap()
     }
 
     #[test]
@@ -179,16 +179,14 @@ mod tests {
 
     #[test]
     fn invoke_transaction_with_max_fee_zero_should_return_error() {
-        let invoke_transaction = super::InvokeTransactionV1::new(
+        let invoke_transaction = BroadcastedInvokeTransactionV1::new(
             dummy_contract_address(),
-            0,
-            vec![],
+            Fee(0),
+            &vec![],
             dummy_felt(),
-            vec![],
-            dummy_felt(),
+            &vec![],
             Felt::from(1),
-        )
-        .unwrap();
+        );
 
         let result = Starknet::default().add_invoke_transaction_v1(invoke_transaction);
 

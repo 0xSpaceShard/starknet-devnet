@@ -17,6 +17,7 @@ pub fn state_update_by_block_id(
 
 #[cfg(test)]
 mod tests {
+    use starknet_api::transaction::Fee;
     use starknet_in_rust::core::contract_address::compute_casm_class_hash;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_in_rust::CasmContractClass;
@@ -24,6 +25,7 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
+    use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;
@@ -48,17 +50,15 @@ mod tests {
             CasmContractClass::from_contract_class(contract_class.clone(), true).unwrap();
         let compiled_class_hash = compute_casm_class_hash(&casm_contract_class).unwrap();
 
-        let mut declare_txn = DeclareTransactionV2::new(
-            contract_class,
-            compiled_class_hash.clone().into(),
-            sender_address,
-            2000,
-            Vec::new(),
-            Felt::from(0),
-            StarknetChainId::TestNet.to_felt().into(),
-            Felt::from(2),
-        )
-        .unwrap();
+        let mut declare_txn = BroadcastedDeclareTransactionV2::new(
+            &contract_class,
+            &compiled_class_hash.clone().into(),
+            &sender_address,
+            &Fee(2000),
+            &Vec::new(),
+            &Felt::from(0),
+            &Felt::from(2),
+        );
 
         // first execute declare v2 transaction
         let (txn_hash, _) = starknet.add_declare_transaction_v2(declare_txn.clone()).unwrap();
@@ -98,7 +98,7 @@ mod tests {
 
         // execute the same transaction, but increment nonce, so new transaction hash could be
         // computed
-        declare_txn.nonce = Felt::from(1);
+        declare_txn.common.nonce = Felt::from(1);
         let (txn_hash, _) = starknet.add_declare_transaction_v2(declare_txn).unwrap();
         assert_eq!(
             starknet.transactions.get_by_hash_mut(&txn_hash).unwrap().status,

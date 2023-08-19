@@ -1,5 +1,6 @@
 use cairo_felt::Felt252;
 use serde::{Deserialize, Serialize};
+use starknet_api::transaction::Fee;
 use starknet_in_rust::core::transaction_hash::{
     calculate_transaction_hash_common, TransactionHashPrefix as SirTransactionHashPrefix,
 };
@@ -8,9 +9,11 @@ use starknet_in_rust::definitions::transaction_type::TransactionType as SirTrans
 use starknet_in_rust::transaction::Declare as SirDeclare;
 
 use crate::contract_address::ContractAddress;
-use crate::contract_class::DeprecatedContractClass;
+use crate::contract_class::{Cairo0ContractClass, DeprecatedContractClass};
 use crate::error::DevnetResult;
-use crate::felt::{ClassHash, Felt, TransactionHash};
+use crate::felt::{
+    ClassHash, Felt, Nonce, TransactionHash, TransactionSignature, TransactionVersion,
+};
 use crate::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1;
 use crate::rpc::transactions::BroadcastedTransactionCommon;
 use crate::traits::HashProducer;
@@ -19,14 +22,33 @@ use crate::traits::HashProducer;
 pub struct BroadcastedDeclareTransactionV1 {
     #[serde(flatten)]
     pub common: BroadcastedTransactionCommon,
-    pub contract_class: DeprecatedContractClass,
+    pub contract_class: Cairo0ContractClass,
     pub sender_address: ContractAddress,
 }
 
 impl BroadcastedDeclareTransactionV1 {
-    pub fn compile_sir_declare(&self, class_hash: &ClassHash) -> DevnetResult<SirDeclare> {
+    pub fn new(
+        sender_address: ContractAddress,
+        max_fee: Fee,
+        signature: &TransactionSignature,
+        nonce: Nonce,
+        contract_class: &Cairo0ContractClass,
+        version: TransactionVersion,
+    ) -> Self {
+        Self {
+            sender_address,
+            contract_class: contract_class.clone(),
+            common: BroadcastedTransactionCommon {
+                max_fee,
+                nonce,
+                version,
+                signature: signature.clone(),
+            },
+        }
+    }
+    pub fn compile_sir_declare(&self, class_hash: ClassHash) -> DevnetResult<SirDeclare> {
         Ok(SirDeclare {
-            class_hash: (*class_hash).into(),
+            class_hash: class_hash.into(),
             sender_address: self.sender_address.into(),
             tx_type: SirTransactionType::Declare,
             validate_entry_point_selector: VALIDATE_DECLARE_ENTRY_POINT_SELECTOR.clone(),
@@ -45,16 +67,16 @@ impl BroadcastedDeclareTransactionV1 {
 
     pub fn compile_declare(
         &self,
-        class_hash: &ClassHash,
-        transaction_hash: &TransactionHash,
+        class_hash: ClassHash,
+        transaction_hash: TransactionHash,
     ) -> DeclareTransactionV0V1 {
         DeclareTransactionV0V1 {
-            class_hash: *class_hash,
+            class_hash,
             sender_address: self.sender_address,
             nonce: self.common.nonce,
             max_fee: self.common.max_fee,
             version: self.common.version,
-            transaction_hash: *transaction_hash,
+            transaction_hash,
             signature: self.common.signature.clone(),
         }
     }

@@ -1,10 +1,13 @@
 use serde::{Deserialize, Serialize};
+use starknet_api::transaction::Fee;
 use starknet_in_rust::definitions::constants::EXECUTE_ENTRY_POINT_SELECTOR;
 use starknet_in_rust::transaction::InvokeFunction as SirInvokeFunction;
 
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
-use crate::felt::{Calldata, Felt, TransactionHash};
+use crate::felt::{
+    Calldata, Felt, Nonce, TransactionHash, TransactionSignature, TransactionVersion,
+};
 use crate::rpc::transactions::invoke_transaction_v1::InvokeTransactionV1;
 use crate::rpc::transactions::BroadcastedTransactionCommon;
 
@@ -17,9 +20,25 @@ pub struct BroadcastedInvokeTransactionV1 {
 }
 
 impl BroadcastedInvokeTransactionV1 {
-    // pub fn new(sender_address: ContractAddress, ) -> Self {
-    //
-    // }
+    pub fn new(
+        sender_address: ContractAddress,
+        max_fee: Fee,
+        signature: &TransactionSignature,
+        nonce: Nonce,
+        calldata: &Calldata,
+        version: TransactionVersion,
+    ) -> Self {
+        Self {
+            sender_address,
+            calldata: calldata.clone(),
+            common: BroadcastedTransactionCommon {
+                max_fee,
+                signature: signature.clone(),
+                nonce,
+                version,
+            },
+        }
+    }
 
     pub fn create_sir_invoke_function(&self, chain_id: &Felt) -> DevnetResult<SirInvokeFunction> {
         Ok(SirInvokeFunction::new(

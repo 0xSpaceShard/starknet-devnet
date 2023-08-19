@@ -7,8 +7,11 @@ use starknet_in_rust::transaction::Declare as SirDeclare;
 
 use crate::contract_address::ContractAddress;
 use crate::contract_class::DeprecatedContractClass;
-use crate::error::DevnetResult;
-use crate::felt::{ClassHash, Nonce, TransactionHash, TransactionSignature, TransactionVersion};
+use crate::error::{DevnetResult, Error};
+use crate::felt::{
+    ClassHash, Felt, Nonce, TransactionHash, TransactionSignature, TransactionVersion,
+};
+use crate::traits::HashProducer;
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub struct DeclareTransactionV0V1 {
@@ -42,5 +45,12 @@ impl DeclareTransactionV0V1 {
             skip_fee_transfer: false,
             skip_validate: false,
         })
+    }
+}
+
+impl HashProducer for DeclareTransactionV0V1 {
+    type Error = Error;
+    fn generate_hash(&self) -> DevnetResult<Felt> {
+        Ok(self.transaction_hash)
     }
 }

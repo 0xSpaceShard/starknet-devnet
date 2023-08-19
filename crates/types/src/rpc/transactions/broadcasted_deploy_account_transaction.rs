@@ -1,8 +1,12 @@
 use serde::{Deserialize, Serialize};
+use starknet_api::transaction::Fee;
 use starknet_in_rust::transaction::DeployAccount as SirDeployAccount;
 
 use crate::error::DevnetResult;
-use crate::felt::{Calldata, ClassHash, ContractAddressSalt, Felt, TransactionHash};
+use crate::felt::{
+    Calldata, ClassHash, ContractAddressSalt, Felt, Nonce, TransactionHash, TransactionSignature,
+    TransactionVersion,
+};
 use crate::rpc::transactions::deploy_account_transaction::DeployAccountTransaction;
 use crate::rpc::transactions::BroadcastedTransactionCommon;
 
@@ -16,8 +20,29 @@ pub struct BroadcastedDeployAccountTransaction {
 }
 
 impl BroadcastedDeployAccountTransaction {
+    pub fn new(
+        constructor_calldata: &Calldata,
+        max_fee: Fee,
+        signature: &TransactionSignature,
+        nonce: Nonce,
+        class_hash: ClassHash,
+        contract_address_salt: ContractAddressSalt,
+        version: TransactionVersion,
+    ) -> Self {
+        Self {
+            contract_address_salt,
+            constructor_calldata: constructor_calldata.clone(),
+            class_hash,
+            common: BroadcastedTransactionCommon {
+                max_fee,
+                signature: signature.clone(),
+                nonce,
+                version,
+            },
+        }
+    }
     // TODO: visibility & rename - create
-    pub fn compile_sir_deploy_account(&self, chain_id: &Felt) -> DevnetResult<SirDeployAccount> {
+    pub fn compile_sir_deploy_account(&self, chain_id: Felt) -> DevnetResult<SirDeployAccount> {
         Ok(SirDeployAccount::new(
             self.class_hash.bytes(),
             self.common.max_fee.0,

@@ -26,7 +26,7 @@ pub fn add_deploy_account_transaction(
     }
 
     let sir_deploy_account_transaction = broadcated_deploy_account_transaction
-        .compile_sir_deploy_account(&starknet.config.chain_id.to_felt().into())?;
+        .compile_sir_deploy_account(starknet.config.chain_id.to_felt().into())?;
 
     let transaction_hash = sir_deploy_account_transaction.hash_value().into();
     let deploy_account_transaction =
@@ -65,11 +65,14 @@ pub fn add_deploy_account_transaction(
 
 #[cfg(test)]
 mod tests {
+    use starknet_api::transaction::Fee;
     use starknet_rs_core::types::TransactionStatus;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::Cairo0Json;
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::{ClassHash, Felt};
+    use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
+    use starknet_types::rpc::transactions::BroadcastedTransactionCommon;
     use starknet_types::traits::HashProducer;
 
     use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID};
@@ -80,17 +83,15 @@ mod tests {
 
     #[test]
     fn account_deploy_transaction_with_max_fee_zero_should_return_an_error() {
-        let deploy_account_transaction = super::DeployAccountTransaction::new(
-            vec![0.into(), 1.into()],
-            0,
-            vec![0.into(), 1.into()],
+        let deploy_account_transaction = BroadcastedDeployAccountTransaction::new(
+            &vec![0.into(), 1.into()],
+            Fee(0),
+            &vec![0.into(), 1.into()],
             0.into(),
             0.into(),
             0.into(),
             0.into(),
-            0.into(),
-        )
-        .unwrap();
+        );
 
         let result = Starknet::default().add_deploy_account_transaction(deploy_account_transaction);
 
@@ -107,17 +108,15 @@ mod tests {
     fn deploy_account_transaction_should_fail_due_to_low_balance() {
         let (mut starknet, account_class_hash, _) = setup();
 
-        let transaction = DeployAccountTransaction::new(
-            vec![],
-            2000,
-            vec![],
+        let transaction = BroadcastedDeployAccountTransaction::new(
+            &vec![],
+            Fee(2000),
+            &vec![],
             Felt::from(0),
             account_class_hash,
             Felt::from(13),
-            DEVNET_DEFAULT_CHAIN_ID.to_felt().into(),
             Felt::from(1),
-        )
-        .unwrap();
+        );
 
         let (txn_hash, _) = starknet.add_deploy_account_transaction(transaction).unwrap();
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
@@ -133,21 +132,22 @@ mod tests {
     fn deploy_account_transaction_successful_execution() {
         let (mut starknet, account_class_hash, fee_token_address) = setup();
 
-        let transaction = DeployAccountTransaction::new(
-            vec![],
-            4000,
-            vec![],
+        let transaction = BroadcastedDeployAccountTransaction::new(
+            &vec![],
+            Fee(4000),
+            &vec![],
             Felt::from(0),
             account_class_hash,
             Felt::from(13),
-            DEVNET_DEFAULT_CHAIN_ID.to_felt().into(),
             Felt::from(1),
-        )
-        .unwrap();
+        );
+        let sir_transction = transaction
+            .compile_sir_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt().into())
+            .unwrap();
 
         // change balance at address
         let account_address =
-            ContractAddress::try_from(transaction.inner.contract_address().clone()).unwrap();
+            ContractAddress::try_from(sir_transction.contract_address().clone()).unwrap();
         let balance_storage_var_address =
             get_storage_var_address("ERC20_balances", &[account_address.into()]).unwrap();
         let balance_storage_key =
