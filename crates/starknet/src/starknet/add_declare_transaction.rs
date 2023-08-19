@@ -25,14 +25,14 @@ pub fn add_declare_transaction_v2(
     let sir_declare_transaction = broadcasted_declare_transaction
         .compile_sir_declare(&starknet.config.chain_id.to_felt().into())?;
 
-    let transaction_hash = sir_declare_transaction.hash_value.into();
-    let class_hash: ClassHash = sir_declare_transaction.sierra_class_hash.into();
+    let transaction_hash = sir_declare_transaction.hash_value.clone().into();
+    let class_hash: ClassHash = sir_declare_transaction.sierra_class_hash.clone().into();
 
     let state_before_txn = starknet.state.pending_state.clone();
     let transaction_with_type = TransactionWithType {
         r#type: TransactionType::Declare,
         transaction: Transaction::Declare(DeclareTransaction::Version2(
-            sir_declare_transaction.try_into()?,
+            sir_declare_transaction.clone().try_into()?,
         )),
     };
 
@@ -227,11 +227,13 @@ mod tests {
 
         // check if contract is not declared
         assert!(!starknet.state.is_contract_declared(&expected_class_hash));
-        assert!(!starknet
-            .state
-            .state
-            .casm_contract_classes_mut()
-            .contains_key(&expected_compiled_class_hash.bytes()));
+        assert!(
+            !starknet
+                .state
+                .state
+                .casm_contract_classes_mut()
+                .contains_key(&expected_compiled_class_hash.bytes())
+        );
 
         let (tx_hash, retrieved_class_hash) =
             starknet.add_declare_transaction_v2(declare_txn).unwrap();

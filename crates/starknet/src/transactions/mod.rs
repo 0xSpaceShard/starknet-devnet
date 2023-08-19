@@ -13,10 +13,10 @@ use starknet_rs_core::types::TransactionStatus;
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
 use starknet_types::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1 as RpcDeclareTransactionV0V1;
 use starknet_types::rpc::transactions::declare_transaction_v2::DeclareTransactionV2 as RpcDeclareTransactionV2;
+use starknet_types::rpc::transactions::deploy_account_transaction::DeployAccountTransaction as RpcDeployAccountTransaction;
+use starknet_types::rpc::transactions::invoke_transaction_v1::InvokeTransactionV1 as RpcInvokeTransactionV1;
 use starknet_types::rpc::transactions::{
-    DeclareTransaction as RpcDeclareTransaction,
-    DeployAccountTransaction as RpcDeployAccountTransaction,
-    InvokeTransactionV1 as RpcInvokeTransactionV1, Transaction as RpcTransaction,
+    DeclareTransaction as RpcDeclareTransaction, Transaction as RpcTransaction,
     TransactionType as RpcTransactionType, TransactionWithType as RpcTransactionWithType,
 };
 

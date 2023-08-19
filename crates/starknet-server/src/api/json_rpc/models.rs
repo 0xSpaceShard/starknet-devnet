@@ -2,9 +2,10 @@ use serde::{Deserialize, Serialize};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, ClassHash, TransactionHash};
 use starknet_types::rpc::block::SyncStatus;
+use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
 use starknet_types::rpc::transactions::{
-    BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
-    BroadcastedInvokeTransaction, BroadcastedTransactionWithType, EventFilter, FunctionCall,
+    BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransactionWithType,
+    EventFilter, FunctionCall,
 };
 use starknet_types::starknet_api::block::BlockNumber;
 

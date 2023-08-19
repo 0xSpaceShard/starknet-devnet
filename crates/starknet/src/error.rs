@@ -35,6 +35,8 @@ pub enum Error {
     SierraCompilationError,
     #[error("No transaction found")]
     NoTransaction,
+    #[error("Invalid transaction index in a block")]
+    InvalidTransactionIndexInBlock,
 }
 
 pub type DevnetResult<T, E = Error> = Result<T, E>;

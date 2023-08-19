@@ -6,9 +6,10 @@ use starknet_core::transactions::invoke_transaction::InvokeTransactionV1;
 use starknet_types::felt::Felt;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
+use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
+use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use starknet_types::rpc::transactions::{
-    BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
-    BroadcastedInvokeTransaction, BroadcastedInvokeTransactionV1,
+    BroadcastedDeclareTransaction, BroadcastedInvokeTransaction,
 };
 
 use super::error::ApiError;
@@ -29,7 +30,7 @@ impl JsonRpcHandler {
                 .starknet
                 .write()
                 .await
-                .add_declare_transaction_v1(broadcasted_declare_txn, chain_id.into()?)?,
+                .add_declare_transaction_v1(*broadcasted_declare_txn)?,
             BroadcastedDeclareTransaction::V2(broadcasted_declare_txn) => self
                 .api
                 .starknet
@@ -45,16 +46,12 @@ impl JsonRpcHandler {
         &self,
         request: BroadcastedDeployAccountTransaction,
     ) -> RpcResult<DeployAccountTransactionOutput> {
-        let chain_id = self.api.starknet.read().await.config.chain_id.to_felt();
         let (transaction_hash, contract_address) = self
             .api
             .starknet
             .write()
             .await
-            .add_deploy_account_transaction(convert_to_deploy_account_transaction(
-                request,
-                chain_id.into(),
-            )?)
+            .add_deploy_account_transaction(request)
             .map_err(|err| match err {
                 starknet_core::error::Error::StateError(
                     starknet_in_rust::core::errors::state_errors::StateError::MissingClassHash(),
@@ -74,12 +71,12 @@ impl JsonRpcHandler {
                 Err(ApiError::UnsupportedAction { msg: "Invoke V0 is not supported".into() })
             }
             BroadcastedInvokeTransaction::V1(invoke_transaction) => {
-                let chain_id: Felt =
-                    self.api.starknet.read().await.config.chain_id.to_felt().into();
-                let invoke_request =
-                    convert_to_invoke_transaction_v1(invoke_transaction, chain_id)?;
-                let res =
-                    self.api.starknet.write().await.add_invoke_transaction_v1(invoke_request)?;
+                let res = self
+                    .api
+                    .starknet
+                    .write()
+                    .await
+                    .add_invoke_transaction_v1(invoke_transaction)?;
 
                 Ok(res)
             }
@@ -168,7 +165,7 @@ mod tests {
     };
     use starknet_core::starknet::{Starknet, StarknetConfig};
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
-    use starknet_types::rpc::transactions::BroadcastedDeployAccountTransaction;
+    use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
     use starknet_types::traits::ToHexString;
 
     use crate::api::json_rpc::JsonRpcHandler;

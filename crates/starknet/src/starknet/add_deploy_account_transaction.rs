@@ -2,52 +2,57 @@ use starknet_in_rust::core::errors::state_errors::StateError;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{Felt, TransactionHash};
+use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
+use starknet_types::rpc::transactions::{Transaction, TransactionType, TransactionWithType};
 use starknet_types::traits::HashProducer;
 
 use super::Starknet;
 use crate::error::{DevnetResult, Error};
 use crate::traits::StateExtractor;
-use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
-use crate::transactions::{StarknetTransaction, Transaction};
+use crate::transactions::StarknetTransaction;
 
 pub fn add_deploy_account_transaction(
     starknet: &mut Starknet,
-    deploy_account_transaction: DeployAccountTransaction,
+    broadcated_deploy_account_transaction: BroadcastedDeployAccountTransaction,
 ) -> DevnetResult<(TransactionHash, ContractAddress)> {
-    if deploy_account_transaction.max_fee == 0 {
+    if broadcated_deploy_account_transaction.common.max_fee.0 == 0 {
         return Err(Error::TransactionError(TransactionError::FeeError(
             "For deploy account transaction, max fee cannot be 0".to_string(),
         )));
     }
 
-    if !starknet
-        .state
-        .is_contract_declared(&Felt::new(*deploy_account_transaction.inner.class_hash())?)
-    {
+    if !starknet.state.is_contract_declared(&broadcated_deploy_account_transaction.class_hash) {
         return Err(Error::StateError(StateError::MissingClassHash()));
     }
 
-    let state_before_txn = starknet.state.pending_state.clone();
-    let transaction_hash = deploy_account_transaction.generate_hash()?;
-    let address: ContractAddress =
-        (deploy_account_transaction.inner.contract_address().clone()).try_into()?;
+    let sir_deploy_account_transaction = broadcated_deploy_account_transaction
+        .compile_sir_deploy_account(&starknet.config.chain_id.to_felt().into())?;
 
-    match deploy_account_transaction
-        .inner
+    let transaction_hash = sir_deploy_account_transaction.hash_value().into();
+    let deploy_account_transaction =
+        broadcated_deploy_account_transaction.compile_deploy_account_transaction(&transaction_hash);
+
+    let address: ContractAddress = sir_deploy_account_transaction.contract_address().try_into()?;
+
+    let transaction_with_type = TransactionWithType {
+        r#type: TransactionType::DeployAccount,
+        transaction: Transaction::DeployAccount(deploy_account_transaction),
+    };
+
+    let state_before_txn = starknet.state.pending_state.clone();
+    match sir_deploy_account_transaction
         .execute(&mut starknet.state.pending_state, &starknet.block_context)
     {
         Ok(tx_info) => {
             starknet.handle_successful_transaction(
                 &transaction_hash,
-                Transaction::DeployAccount(Box::new(deploy_account_transaction)),
+                transaction_with_type,
                 tx_info,
             )?;
         }
         Err(tx_err) => {
-            let transaction_to_add = StarknetTransaction::create_rejected(
-                Transaction::DeployAccount(Box::new(deploy_account_transaction)),
-                tx_err,
-            );
+            let transaction_to_add =
+                StarknetTransaction::create_rejected(transaction_with_type, tx_err);
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
             // Revert to previous pending state

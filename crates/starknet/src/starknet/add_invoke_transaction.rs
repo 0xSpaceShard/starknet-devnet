@@ -1,27 +1,41 @@
 use starknet_in_rust::definitions::constants::INITIAL_GAS_COST;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_types::felt::TransactionHash;
+use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
+use starknet_types::rpc::transactions::{
+    InvokeTransaction, Transaction, TransactionType, TransactionWithType,
+};
 use starknet_types::traits::HashProducer;
 
 use super::Starknet;
 use crate::error::{self, DevnetResult};
 use crate::transactions::invoke_transaction::InvokeTransactionV1;
-use crate::transactions::{StarknetTransaction, Transaction};
+use crate::transactions::StarknetTransaction;
 
 pub fn add_invoke_transcation_v1(
     starknet: &mut Starknet,
-    invoke_transaction: InvokeTransactionV1,
+    broadcasted_invoke_transaction: BroadcastedInvokeTransactionV1,
 ) -> DevnetResult<TransactionHash> {
-    if invoke_transaction.max_fee == 0 {
+    if broadcasted_invoke_transaction.common.max_fee.0 == 0 {
         return Err(error::Error::TransactionError(TransactionError::FeeError(
             "For invoke transaction, max fee cannot be 0".to_string(),
         )));
     }
 
-    let state_before_txn = starknet.state.pending_state.clone();
-    let transaction_hash = invoke_transaction.generate_hash()?;
+    let sir_invoke_function = broadcasted_invoke_transaction
+        .create_sir_invoke_function(&starknet.config.chain_id.to_felt().into())?;
+    let transaction_hash = sir_invoke_function.hash_value().into();
+    let invoke_transaction =
+        broadcasted_invoke_transaction.create_invoke_transaction(&transaction_hash);
 
-    match invoke_transaction.inner.execute(
+    let transaction_with_type = TransactionWithType {
+        r#type: TransactionType::Invoke,
+        transaction: Transaction::Invoke(InvokeTransaction::Version1(invoke_transaction)),
+    };
+
+    let state_before_txn = starknet.state.pending_state.clone();
+
+    match sir_invoke_function.execute(
         &mut starknet.state.pending_state,
         &starknet.block_context,
         INITIAL_GAS_COST,
@@ -29,15 +43,13 @@ pub fn add_invoke_transcation_v1(
         Ok(tx_info) => {
             starknet.handle_successful_transaction(
                 &transaction_hash,
-                Transaction::Invoke(Box::new(invoke_transaction)),
+                transaction_with_type,
                 tx_info,
             )?;
         }
         Err(tx_err) => {
-            let transaction_to_add = StarknetTransaction::create_rejected(
-                Transaction::Invoke(Box::new(invoke_transaction)),
-                tx_err,
-            );
+            let transaction_to_add =
+                StarknetTransaction::create_rejected(transaction_with_type, tx_err);
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
             // Revert to previous pending state

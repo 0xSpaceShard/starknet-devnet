@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::time::SystemTime;
 
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
+use starknet_api::transaction::Fee;
 use starknet_in_rust::call_contract;
 use starknet_in_rust::definitions::block_context::{
     BlockContext, StarknetChainId, StarknetOsConfig,
@@ -26,9 +27,14 @@ use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
+use starknet_types::rpc::block::{Block, BlockHeader};
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
-use starknet_types::rpc::transactions::TransactionWithType;
+use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
+use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
+use starknet_types::rpc::transactions::{
+    BroadcastedTransactionCommon, TransactionWithType, Transactions,
+};
 use starknet_types::traits::HashProducer;
 use tracing::error;
 
@@ -426,7 +432,7 @@ impl Starknet {
 
     pub fn add_deploy_account_transaction(
         &mut self,
-        deploy_account_transaction: DeployAccountTransaction,
+        deploy_account_transaction: BroadcastedDeployAccountTransaction,
     ) -> DevnetResult<(TransactionHash, ContractAddress)> {
         add_deploy_account_transaction::add_deploy_account_transaction(
             self,
@@ -436,7 +442,7 @@ impl Starknet {
 
     pub fn add_invoke_transaction_v1(
         &mut self,
-        invoke_transaction: InvokeTransactionV1,
+        invoke_transaction: BroadcastedInvokeTransactionV1,
     ) -> DevnetResult<TransactionHash> {
         add_invoke_transaction::add_invoke_transcation_v1(self, invoke_transaction)
     }
@@ -478,16 +484,28 @@ impl Starknet {
         );
         let signature = signer.sign_hash(&msg_hash_felt).await?;
 
+        let invoke_tx = BroadcastedInvokeTransactionV1 {
+            sender_address: ContractAddress::new(chargeable_address_felt)?,
+            calldata: raw_execution.raw_calldata().into_iter().map(|c| c.into()).collect(),
+            common: BroadcastedTransactionCommon {
+                max_fee: Fee(sufficiently_big_max_fee),
+                version: Felt::from(1),
+                signature: vec![signature.r.into(), signature.s.into()],
+                nonce: nonce.into(),
+            },
+        };
+
+        // TODO: clean
         // apply the invoke tx
-        let invoke_tx = InvokeTransactionV1::new(
-            ContractAddress::new(chargeable_address_felt)?,
-            sufficiently_big_max_fee,
-            vec![signature.r.into(), signature.s.into()],
-            nonce.into(),
-            raw_execution.raw_calldata().into_iter().map(|c| c.into()).collect(),
-            chain_id_felt,
-            Felt::from(1),
-        )?;
+        // let invoke_tx = InvokeTransactionV1::new(
+        //     ContractAddress::new(chargeable_address_felt)?,
+        //     sufficiently_big_max_fee,
+        //     vec![signature.r.into(), signature.s.into()],
+        //     nonce.into(),
+        //     raw_execution.raw_calldata().into_iter().map(|c| c.into()).collect(),
+        //     chain_id_felt,
+        //     Felt::from(1),
+        // )?;
         self.add_invoke_transaction_v1(invoke_tx)
     }
 
@@ -524,23 +542,39 @@ impl Starknet {
     }
 
     pub fn get_block(&self, block_id: BlockId) -> DevnetResult<StarknetBlock> {
-        let block = self.blocks.get_by_block_id(block_id).ok_or(crate::error::Error::NoBlock)?;
+        let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
         Ok(block.clone())
     }
 
-    pub fn get_block_with_transactions(
-        &self,
-        block_id: BlockId,
-    ) -> DevnetResult<(StarknetBlock, Vec<&Transaction>)> {
-        let block = self.blocks.get_by_block_id(block_id).ok_or(crate::error::Error::NoBlock)?;
-        let mut transactions: Vec<&Transaction> = vec![];
+    pub fn get_block_with_transactions(&self, block_id: BlockId) -> DevnetResult<Block> {
+        // TODO: improve
+        let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
+        let mut transactions: Vec<TransactionWithType> = vec![];
         for transaction_hash in block.get_transactions() {
             let transaction =
                 self.transactions.get_by_hash(*transaction_hash).ok_or(Error::NoTransaction)?;
-            transactions.push(&transaction.inner);
+            transactions.push(transaction.inner.clone());
         }
 
-        Ok((block.clone(), transactions))
+        Ok(Block {
+            status: *block.status(),
+            header: BlockHeader::from(block),
+            transactions: Transactions::Full(transactions),
+        })
+    }
+
+    pub fn get_transaction_by_block_id_and_index(
+        &self,
+        block_id: BlockId,
+        index: u64,
+    ) -> DevnetResult<&TransactionWithType> {
+        let block = self.get_block(block_id.into())?;
+        let transaction_hash = block
+            .get_transactions()
+            .get(index as usize)
+            .ok_or(Error::InvalidTransactionIndexInBlock)?;
+
+        self.get_transaction_by_hash(*transaction_hash)
     }
 
     pub fn get_latest_block(&self) -> DevnetResult<StarknetBlock> {
@@ -552,7 +586,10 @@ impl Starknet {
         Ok(block.clone())
     }
 
-    pub fn get_transaction_by_hash(&self, transaction_hash: Felt) -> DevnetResult<&Transaction> {
+    pub fn get_transaction_by_hash(
+        &self,
+        transaction_hash: Felt,
+    ) -> DevnetResult<&TransactionWithType> {
         self.transactions
             .get_by_hash(transaction_hash)
             .map(|starknet_transaction| &starknet_transaction.inner)

@@ -14,13 +14,13 @@ impl ContractStorageKey {
 
 impl From<&ContractStorageKey> for starknet_in_rust::state::state_cache::StorageEntry {
     fn from(value: &ContractStorageKey) -> Self {
-        (Address::from(&value.0), value.1 .0.bytes())
+        (Address::from(&value.0), value.1.0.bytes())
     }
 }
 
 impl From<ContractStorageKey> for starknet_in_rust::state::state_cache::StorageEntry {
     fn from(value: ContractStorageKey) -> Self {
-        (Address::from(value.0), value.1 .0.bytes())
+        (Address::from(value.0), value.1.0.bytes())
     }
 }
 
@@ -46,6 +46,6 @@ mod tests {
         let storage_entry: StarknetInRustStorageEntry = TryFrom::try_from(&storage_key).unwrap();
 
         assert!(test_utils::is_equal(&storage_key.0, &storage_entry.0));
-        assert_eq!(storage_key.1 .0.bytes(), storage_entry.1);
+        assert_eq!(storage_key.1.0.bytes(), storage_entry.1);
     }
 }

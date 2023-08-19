@@ -52,25 +52,12 @@ impl JsonRpcHandler {
 
     /// starknet_getBlockWithTxs
     pub(crate) async fn get_block_with_txs(&self, block_id: BlockId) -> RpcResult<Block> {
-        let starknet = self.api.starknet.read().await;
-        let (block, transactions) =
-            starknet.get_block_with_transactions(block_id.into()).map_err(|err| match err {
+        self.api.starknet.read().await.get_block_with_transactions(block_id.into()).map_err(|err| {
+            match err {
                 Error::NoBlock => ApiError::BlockNotFound,
                 Error::NoTransaction => ApiError::TransactionNotFound,
                 unknown_error => ApiError::StarknetDevnetError(unknown_error),
-            })?;
-
-        let mut transactions_with_type = Vec::<TransactionWithType>::new();
-
-        for transaction in transactions {
-            let txn_to_add = TransactionWithType::try_from(transaction)?;
-
-            transactions_with_type.push(txn_to_add);
-        }
-        Ok(Block {
-            status: *block.status(),
-            header: BlockHeader::from(&block),
-            transactions: Transactions::Full(transactions_with_type),
+            }
         })
     }
 
@@ -154,14 +141,11 @@ impl JsonRpcHandler {
         &self,
         transaction_hash: TransactionHash,
     ) -> RpcResult<TransactionWithType> {
-        let starknet = self.api.starknet.read().await;
-        let transaction_to_map = starknet
-            .transactions
-            .get(&transaction_hash)
-            .ok_or(error::ApiError::TransactionNotFound)?;
-        let transaction = TransactionWithType::try_from(&transaction_to_map.inner)?;
-
-        Ok(transaction)
+        match self.api.starknet.read().await.get_transaction_by_hash(transaction_hash) {
+            Ok(transaction) => Ok(transaction.clone()),
+            Err(Error::NoTransaction) => Err(ApiError::TransactionNotFound),
+            Err(err) => Err(err.into()),
+        }
     }
 
     /// starknet_getTransactionByBlockIdAndIndex
@@ -170,16 +154,16 @@ impl JsonRpcHandler {
         block_id: BlockId,
         index: u64,
     ) -> RpcResult<TransactionWithType> {
-        let starknet = self.api.starknet.read().await;
-        match starknet.get_block(block_id.into()) {
-            Ok(block) => {
-                let transaction_hash = block
-                    .get_transactions()
-                    .get(index as usize)
-                    .ok_or(ApiError::InvalidTransactionIndexInBlock)?;
-
-                let transaction = starknet.get_transaction_by_hash(*transaction_hash)?;
-                Ok(TransactionWithType::try_from(transaction)?)
+        match self
+            .api
+            .starknet
+            .read()
+            .await
+            .get_transaction_by_block_id_and_index(block_id.into(), index)
+        {
+            Ok(transaction) => Ok(transaction.clone()),
+            Err(Error::InvalidTransactionIndexInBlock) => {
+                Err(ApiError::InvalidTransactionIndexInBlock)
             }
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),

@@ -1,4 +1,11 @@
+use cairo_felt::Felt252;
 use serde::{Deserialize, Serialize};
+use starknet_in_rust::core::transaction_hash::{
+    calculate_transaction_hash_common, TransactionHashPrefix as SirTransactionHashPrefix,
+};
+use starknet_in_rust::definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR;
+use starknet_in_rust::definitions::transaction_type::TransactionType as SirTransactionType;
+use starknet_in_rust::transaction::Declare as SirDeclare;
 
 use crate::contract_address::ContractAddress;
 use crate::contract_class::DeprecatedContractClass;
@@ -7,14 +14,6 @@ use crate::felt::{ClassHash, Felt, TransactionHash};
 use crate::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1;
 use crate::rpc::transactions::BroadcastedTransactionCommon;
 use crate::traits::HashProducer;
-use cairo_felt::Felt252;
-use starknet_api::class_hash;
-use starknet_in_rust::core::transaction_hash::{
-    calculate_transaction_hash_common, TransactionHashPrefix as SirTransactionHashPrefix,
-};
-use starknet_in_rust::definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR;
-use starknet_in_rust::definitions::transaction_type::TransactionType as SirTransactionType;
-use starknet_in_rust::transaction::Declare as SirDeclare;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct BroadcastedDeclareTransactionV1 {
@@ -27,7 +26,7 @@ pub struct BroadcastedDeclareTransactionV1 {
 impl BroadcastedDeclareTransactionV1 {
     pub fn compile_sir_declare(&self, class_hash: &ClassHash) -> DevnetResult<SirDeclare> {
         Ok(SirDeclare {
-            class_hash: class_hash.clone().into(),
+            class_hash: (*class_hash).into(),
             sender_address: self.sender_address.into(),
             tx_type: SirTransactionType::Declare,
             validate_entry_point_selector: VALIDATE_DECLARE_ENTRY_POINT_SELECTOR.clone(),
@@ -36,7 +35,8 @@ impl BroadcastedDeclareTransactionV1 {
             signature: self.common.signature.iter().map(|felt| felt.into()).collect(),
             nonce: self.common.nonce.into(),
             hash_value: Felt252::default(),
-            contract_class: self.contract_class.clone().try_into()?, // ? Not present in DeclareTransactionV0V1
+            contract_class: self.contract_class.clone().try_into()?, /* ? Not present in
+                                                                      * DeclareTransactionV0V1 */
             skip_execute: false,
             skip_fee_transfer: false,
             skip_validate: false,
@@ -49,12 +49,12 @@ impl BroadcastedDeclareTransactionV1 {
         transaction_hash: &TransactionHash,
     ) -> DeclareTransactionV0V1 {
         DeclareTransactionV0V1 {
-            class_hash: class_hash.clone(),
+            class_hash: *class_hash,
             sender_address: self.sender_address,
             nonce: self.common.nonce,
             max_fee: self.common.max_fee,
             version: self.common.version,
-            transaction_hash: transaction_hash.clone(),
+            transaction_hash: *transaction_hash,
             signature: self.common.signature.clone(),
         }
     }
@@ -69,12 +69,12 @@ impl BroadcastedDeclareTransactionV1 {
         chain_id: &Felt,
         class_hash: &ClassHash,
     ) -> DevnetResult<ClassHash> {
-        let additional_data: Vec<Felt252> = vec![self.common.nonce.clone().into()];
+        let additional_data: Vec<Felt252> = vec![self.common.nonce.into()];
         let calldata = vec![class_hash.into()];
         // TODO: SirDeclare::new uses same logic, check if can replace
         Ok(calculate_transaction_hash_common(
             SirTransactionHashPrefix::Declare,
-            self.common.version.clone().into(),
+            self.common.version.into(),
             &self.sender_address.into(),
             Felt252::from(0),
             &calldata,

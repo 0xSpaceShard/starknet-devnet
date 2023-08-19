@@ -1,13 +1,12 @@
 use serde::{Deserialize, Serialize};
+use starknet_in_rust::transaction::DeclareV2 as SirDeclareV2;
 
 use crate::contract_address::ContractAddress;
+use crate::error::DevnetResult;
 use crate::felt::{ClassHash, CompiledClassHash, Felt, TransactionHash};
 use crate::rpc::transactions::declare_transaction_v2::DeclareTransactionV2;
 use crate::rpc::transactions::BroadcastedTransactionCommon;
 use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
-
-use crate::error::DevnetResult;
-use starknet_in_rust::transaction::DeclareV2 as SirDeclareV2;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct BroadcastedDeclareTransactionV2 {
@@ -26,13 +25,13 @@ impl BroadcastedDeclareTransactionV2 {
         transaction_hash: &TransactionHash,
     ) -> DeclareTransactionV2 {
         DeclareTransactionV2 {
-            class_hash: class_hash.clone(),
+            class_hash: *class_hash,
             compiled_class_hash: self.compiled_class_hash,
             sender_address: self.sender_address,
             nonce: self.common.nonce,
             max_fee: self.common.max_fee,
             version: self.common.version,
-            transaction_hash: transaction_hash.clone(),
+            transaction_hash: *transaction_hash,
             signature: self.common.signature.clone(),
         }
     }

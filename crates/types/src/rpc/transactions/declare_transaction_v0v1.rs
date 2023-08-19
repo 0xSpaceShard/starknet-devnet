@@ -1,14 +1,14 @@
+use cairo_felt::Felt252;
 use serde::{Deserialize, Serialize};
+use starknet_api::transaction::Fee;
+use starknet_in_rust::definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR;
+use starknet_in_rust::definitions::transaction_type::TransactionType as SirTransactionType;
+use starknet_in_rust::transaction::Declare as SirDeclare;
 
 use crate::contract_address::ContractAddress;
 use crate::contract_class::DeprecatedContractClass;
 use crate::error::DevnetResult;
 use crate::felt::{ClassHash, Nonce, TransactionHash, TransactionSignature, TransactionVersion};
-use cairo_felt::Felt252;
-use starknet_api::transaction::Fee;
-use starknet_in_rust::definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR;
-use starknet_in_rust::definitions::transaction_type::TransactionType as SirTransactionType;
-use starknet_in_rust::transaction::Declare as SirDeclare;
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub struct DeclareTransactionV0V1 {
@@ -36,7 +36,8 @@ impl DeclareTransactionV0V1 {
             signature: self.signature.iter().map(|felt| felt.into()).collect(),
             nonce: self.nonce.into(),
             hash_value: Felt252::default(),
-            contract_class: contract_class.clone().try_into()?, // ? Not present in DeclareTransactionV0V1
+            contract_class: contract_class.try_into()?, /* ? Not present in
+                                                         * DeclareTransactionV0V1 */
             skip_execute: false,
             skip_fee_transfer: false,
             skip_validate: false,
