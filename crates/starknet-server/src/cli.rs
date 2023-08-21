@@ -3,16 +3,9 @@ use starknet_core::constants::{
     DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_HOST, DEVNET_DEFAULT_INITIAL_BALANCE,
     DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
-use starknet_core::starknet::StarknetConfig;
+use starknet_core::starknet::{StarknetConfig, DumpMode};
 use starknet_in_rust::definitions::block_context::StarknetChainId;
 use starknet_types::num_bigint::BigUint;
-
-// Where store this type?
-#[derive(Debug, Clone)]
-enum DumpMode {
-    OnExit,
-    OnTransaction,
-}
 
 /// Run a local instance of Starknet Devnet
 #[derive(Parser, Debug)]
@@ -80,7 +73,7 @@ pub(crate) struct Args {
     #[arg(long = "dump-on")]
     #[arg(value_name = "DUMP_ON")]
     #[arg(help = "Specify when to dump; can dump on: exit, transaction;")]
-    dump_on: Option<DumpMode>,
+    dump_on: Option<String>,
 
     // Dump path as string
     #[arg(long = "dump-path")]
@@ -112,6 +105,12 @@ impl Args {
                 "TESTNET2" => StarknetChainId::TestNet2,
                 _ => panic!("Invalid value for chain-id"),
             },
+            dump_on: match self.dump_on.clone().unwrap_or_default().as_str() {
+                "exit" => Some(DumpMode::OnExit),
+                "transaction" => Some(DumpMode::OnTransaction),
+                _ => None,
+            },
+            dump_path: self.dump_path.clone(),
         }
     }
 }

@@ -60,6 +60,12 @@ mod get_class_impls;
 mod predeployed;
 mod state_update;
 
+#[derive(Debug, Clone)]
+pub enum DumpMode {
+    OnExit,
+    OnTransaction,
+}
+
 #[derive(Clone, Debug)]
 pub struct StarknetConfig {
     pub seed: u32,
@@ -70,6 +76,8 @@ pub struct StarknetConfig {
     pub timeout: u16,
     pub gas_price: u64,
     pub chain_id: StarknetChainId,
+    pub dump_on: Option<DumpMode>,
+    pub dump_path: Option<String>,
 }
 
 impl Default for StarknetConfig {
@@ -83,6 +91,8 @@ impl Default for StarknetConfig {
             timeout: u16::default(),
             gas_price: u64::default(),
             chain_id: StarknetChainId::TestNet,
+            dump_on: None,
+            dump_path: None,
         }
     }
 }
