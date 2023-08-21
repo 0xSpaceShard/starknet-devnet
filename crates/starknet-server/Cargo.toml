@@ -46,6 +46,7 @@ serde_json = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
+bincode = { workspace = true }
 
 [dev-dependencies]
 lazy_static = { workspace = true }
