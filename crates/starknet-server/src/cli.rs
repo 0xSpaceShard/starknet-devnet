@@ -7,6 +7,13 @@ use starknet_core::starknet::StarknetConfig;
 use starknet_in_rust::definitions::block_context::StarknetChainId;
 use starknet_types::num_bigint::BigUint;
 
+// Where store this type?
+#[derive(Debug, Clone)]
+enum DumpMode {
+    OnExit,
+    OnTransaction,
+}
+
 /// Run a local instance of Starknet Devnet
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -68,6 +75,18 @@ pub(crate) struct Args {
     #[arg(default_value = "TESTNET")]
     #[arg(help = "Specify the chain id as one of: {MAINNET, TESTNET, TESTNET2};")]
     chain_id: String,
+
+    // Dump on exit or after transaction
+    #[arg(long = "dump-on")]
+    #[arg(value_name = "DUMP_ON")]
+    #[arg(help = "Specify when to dump; can dump on: exit, transaction;")]
+    dump_on: Option<DumpMode>,
+
+    // Dump path as string
+    #[arg(long = "dump-path")]
+    #[arg(value_name = "DUMP_PATH")]
+    #[arg(help = "Specify the path to dump to;")]
+    dump_path: Option<String>,
 }
 
 impl Args {
