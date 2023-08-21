@@ -224,13 +224,14 @@ mod estimate_fee_tests {
             &UdcUniqueness::NotUnique,
             &constructor_calldata,
         );
-        contract_factory
+        let res = contract_factory
             .deploy(constructor_calldata, salt, false)
             .nonce(FieldElement::ONE)
             // max fee implicitly estimated
             .send()
-            .await
-            .expect("Cannot deploy");
+            .await;
+
+        res.expect("Cannot deploy");
 
         // prepare the call used in estimation and actual invoke
         let increase_amount = FieldElement::from(100u128);

@@ -127,7 +127,7 @@ mod tests {
     use starknet_rs_core::types::TransactionStatus;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};
-    use starknet_types::felt::Felt;
+    use starknet_types::felt::{Felt, TransactionVersion};
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::rpc::transactions::BroadcastedTransactionCommon;
@@ -143,19 +143,20 @@ mod tests {
         dummy_declare_transaction_v2, dummy_felt,
     };
 
-    fn test_declare_transaction_v1(sender_address: ContractAddress) -> DeclareTransactionV1 {
+    // TODO: rename broadcast_
+    fn test_declare_transaction_v1(
+        sender_address: ContractAddress,
+    ) -> BroadcastedDeclareTransactionV1 {
         let contract_class = dummy_cairo_0_contract_class();
 
-        DeclareTransactionV1::new(
+        BroadcastedDeclareTransactionV1::new(
             sender_address,
-            10000,
-            Vec::new(),
+            Fee(10000),
+            &Vec::new(),
             Felt::from(0),
-            contract_class.into(),
-            StarknetChainId::TestNet.to_felt().into(),
+            &contract_class.into(),
             Felt::from(1),
         )
-        .unwrap()
     }
 
     #[test]
@@ -246,99 +247,96 @@ mod tests {
         assert!(starknet.state.is_contract_declared(&expected_class_hash));
     }
 
-    // TODO: resolve
-    // #[test]
-    // fn declare_transaction_v1_with_max_fee_zero_should_return_an_error() {
-    //     let declare_transaction = BroadcastedDeclareTransactionV1 {
-    //         sender_address: dummy_contract_address(),
-    //         common: BroadcastedTransactionCommon {
-    //             max_fee: Fee(0),
-    //             signature: vec![],
-    //             nonce: dummy_felt(),
-    //             version: Felt::from(1),
-    //         },
-    //         contract_class: dummy_cairo_0_contract_class().try_into().unwrap(),
-    //     };
-    //
-    //     let result = Starknet::default().add_declare_transaction_v1(declare_transaction);
-    //
-    //     assert!(result.is_err());
-    //     match result.err().unwrap() {
-    //         crate::error::Error::TransactionError(
-    //             starknet_in_rust::transaction::error::TransactionError::FeeError(msg),
-    //         ) => assert_eq!(msg, "For declare transaction version 1, max fee cannot be 0"),
-    //         _ => panic!("Wrong error type"),
-    //     }
-    // }
+    #[test]
+    fn declare_transaction_v1_with_max_fee_zero_should_return_an_error() {
+        let declare_transaction = BroadcastedDeclareTransactionV1::new(
+            dummy_contract_address(),
+            Fee(0),
+            &vec![],
+            dummy_felt(),
+            &dummy_cairo_0_contract_class().into(),
+            Felt::from(1),
+        );
 
-    // #[test]
-    // fn add_declare_v1_transaction_should_return_rejected_txn_and_not_be_part_of_pending_state() {
-    //     let (mut starknet, sender) = setup(Some(1));
-    //     let initial_cached_state =
-    //         starknet.state.pending_state.contract_classes().as_ref().unwrap().len();
-    //     let declare_txn = test_declare_transaction_v1(sender);
-    //     let (txn_hash, _) = starknet.add_declare_transaction_v1(declare_txn).unwrap();
-    //     let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
-    //
-    //     assert_eq!(txn.status, TransactionStatus::Rejected);
-    //     assert_eq!(
-    //         initial_cached_state,
-    //         starknet.state.pending_state.contract_classes().as_ref().unwrap().len()
-    //     );
-    // }
+        let result = Starknet::default().add_declare_transaction_v1(declare_transaction);
 
-    // #[test]
-    // fn add_declare_v1_transaction_successful_execution() {
-    //     let (mut starknet, sender) = setup(None);
-    //
-    //     let declare_txn = test_declare_transaction_v1(sender);
-    //     let (tx_hash, class_hash) =
-    //         starknet.add_declare_transaction_v1(declare_txn.clone()).unwrap();
-    //
-    //     let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
-    //
-    //     // check if generated class hash is expected one
-    //     assert_eq!(class_hash, declare_txn.contract_class.generate_hash().unwrap());
-    //     // check if txn is with status accepted
-    //     assert_eq!(tx.status, TransactionStatus::AcceptedOnL2);
-    //     // check if contract is successfully declared
-    //     assert!(starknet.state.is_contract_declared(&class_hash));
-    //     // check if pending block is resetted
-    //     assert!(starknet.pending_block().get_transactions().is_empty());
-    //     // check if there is generated block
-    //     assert_eq!(starknet.blocks.num_to_block.len(), 1);
-    //     // check if transaction is in generated block
-    //     assert_eq!(
-    //         *starknet
-    //             .blocks
-    //             .num_to_block
-    //             .get(&BlockNumber(0))
-    //             .unwrap()
-    //             .get_transactions()
-    //             .first()
-    //             .unwrap(),
-    //         tx_hash
-    //     );
-    // }
+        assert!(result.is_err());
+        match result.err().unwrap() {
+            crate::error::Error::TransactionError(
+                starknet_in_rust::transaction::error::TransactionError::FeeError(msg),
+            ) => assert_eq!(msg, "For declare transaction version 1, max fee cannot be 0"),
+            _ => panic!("Wrong error type"),
+        }
+    }
 
-    // #[test]
-    // fn declare_v1_transaction_successful_storage_change() {
-    //     let (mut starknet, sender) = setup(None);
-    //     let declare_txn = test_declare_transaction_v1(sender);
-    //
-    //     let expected_class_hash = declare_txn.contract_class.generate_hash().unwrap();
-    //     // check if contract is not declared
-    //     assert!(!starknet.state.is_contract_declared(&expected_class_hash));
-    //
-    //     let (tx_hash, class_hash) = starknet.add_declare_transaction_v1(declare_txn).unwrap();
-    //
-    //     let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
-    //
-    //     // check if txn is with status accepted
-    //     assert_eq!(tx.status, TransactionStatus::AcceptedOnL2);
-    //     // check if contract is declared
-    //     assert!(starknet.state.is_contract_declared(&class_hash));
-    // }
+    #[test]
+    fn add_declare_v1_transaction_should_return_rejected_txn_and_not_be_part_of_pending_state() {
+        let (mut starknet, sender) = setup(Some(1));
+        let initial_cached_state =
+            starknet.state.pending_state.contract_classes().as_ref().unwrap().len();
+        let declare_txn = test_declare_transaction_v1(sender);
+        let (txn_hash, _) = starknet.add_declare_transaction_v1(declare_txn).unwrap();
+        let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
+
+        assert_eq!(txn.status, TransactionStatus::Rejected);
+        assert_eq!(
+            initial_cached_state,
+            starknet.state.pending_state.contract_classes().as_ref().unwrap().len()
+        );
+    }
+
+    #[test]
+    fn add_declare_v1_transaction_successful_execution() {
+        let (mut starknet, sender) = setup(None);
+
+        let declare_txn = test_declare_transaction_v1(sender);
+        let (tx_hash, class_hash) =
+            starknet.add_declare_transaction_v1(declare_txn.clone()).unwrap();
+
+        let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
+
+        // check if generated class hash is expected one
+        assert_eq!(class_hash, declare_txn.contract_class.generate_hash().unwrap());
+        // check if txn is with status accepted
+        assert_eq!(tx.status, TransactionStatus::AcceptedOnL2);
+        // check if contract is successfully declared
+        assert!(starknet.state.is_contract_declared(&class_hash));
+        // check if pending block is resetted
+        assert!(starknet.pending_block().get_transactions().is_empty());
+        // check if there is generated block
+        assert_eq!(starknet.blocks.num_to_block.len(), 1);
+        // check if transaction is in generated block
+        assert_eq!(
+            *starknet
+                .blocks
+                .num_to_block
+                .get(&BlockNumber(0))
+                .unwrap()
+                .get_transactions()
+                .first()
+                .unwrap(),
+            tx_hash
+        );
+    }
+
+    #[test]
+    fn declare_v1_transaction_successful_storage_change() {
+        let (mut starknet, sender) = setup(None);
+        let declare_txn = test_declare_transaction_v1(sender);
+
+        let expected_class_hash = declare_txn.contract_class.generate_hash().unwrap();
+        // check if contract is not declared
+        assert!(!starknet.state.is_contract_declared(&expected_class_hash));
+
+        let (tx_hash, class_hash) = starknet.add_declare_transaction_v1(declare_txn).unwrap();
+
+        let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
+
+        // check if txn is with status accepted
+        assert_eq!(tx.status, TransactionStatus::AcceptedOnL2);
+        // check if contract is declared
+        assert!(starknet.state.is_contract_declared(&class_hash));
+    }
 
     /// Initializes starknet with 1 account - account without validations
     fn setup(acc_balance: Option<u128>) -> (Starknet, ContractAddress) {

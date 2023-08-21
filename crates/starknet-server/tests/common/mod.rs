@@ -143,9 +143,9 @@ pub mod util {
             let devnet_rpc_url = Url::parse(format!("{}/rpc", devnet_url.as_str()).as_str())?;
             let json_rpc_client = JsonRpcClient::new(HttpTransport::new(devnet_rpc_url.clone()));
 
+            // TODO: revert
             let process = Command::new("cargo")
                 .arg("run")
-                .arg("--release")
                 .arg("--")
                 .arg("--seed")
                 .arg(SEED.to_string())
@@ -161,6 +161,8 @@ pub mod util {
                 .spawn()
                 .expect("Could not start background devnet");
 
+            // TODO: remove
+            let pid = process.id();
             let healthcheck_uri =
                 format!("{}/is_alive", devnet_url.as_str()).as_str().parse::<Uri>()?;
 
