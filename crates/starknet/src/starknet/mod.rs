@@ -33,7 +33,7 @@ use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::Broad
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use starknet_types::rpc::transactions::{
-    BroadcastedTransactionCommon, TransactionWithType, Transactions,
+    BroadcastedTransactionCommon, TransactionReceiptWithStatus, TransactionWithType, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::error;
@@ -606,6 +606,16 @@ impl Starknet {
         limit: Option<usize>,
     ) -> DevnetResult<(Vec<EmittedEvent>, bool)> {
         events::get_events(self, from_block, to_block, address, keys, skip, limit)
+    }
+
+    pub fn get_transaction_receipt_by_hash(
+        &self,
+        transaction_hash: TransactionHash,
+    ) -> DevnetResult<TransactionReceiptWithStatus> {
+        let transaction_to_map =
+            self.transactions.get(&transaction_hash).ok_or(Error::NoTransaction)?;
+
+        transaction_to_map.get_receipt()
     }
 }
 

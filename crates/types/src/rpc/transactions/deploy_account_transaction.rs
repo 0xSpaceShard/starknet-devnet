@@ -20,6 +20,16 @@ pub struct DeployAccountTransaction {
     pub constructor_calldata: Calldata,
 }
 
+impl DeployAccountTransaction {
+    pub fn max_fee(&self) -> Fee {
+        self.max_fee
+    }
+
+    pub fn get_transaction_hash(&self) -> &TransactionHash {
+        &self.transaction_hash
+    }
+}
+
 impl HashProducer for DeployAccountTransaction {
     type Error = Error;
     fn generate_hash(&self) -> DevnetResult<Felt> {

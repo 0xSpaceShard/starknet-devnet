@@ -7,23 +7,29 @@ use std::collections::HashMap;
 
 use starknet_api::block::BlockNumber;
 use starknet_api::transaction::Fee;
-use starknet_in_rust::execution::{CallInfo, Event, TransactionExecutionInfo};
+use starknet_in_rust::execution::{CallInfo, TransactionExecutionInfo};
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_rs_core::types::TransactionStatus;
+use starknet_rs_core::utils::get_selector_from_name;
+use starknet_types::contract_address::ContractAddress;
+use starknet_types::emitted_event::Event;
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
 use starknet_types::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1 as RpcDeclareTransactionV0V1;
 use starknet_types::rpc::transactions::declare_transaction_v2::DeclareTransactionV2 as RpcDeclareTransactionV2;
 use starknet_types::rpc::transactions::deploy_account_transaction::DeployAccountTransaction as RpcDeployAccountTransaction;
 use starknet_types::rpc::transactions::invoke_transaction_v1::InvokeTransactionV1 as RpcInvokeTransactionV1;
 use starknet_types::rpc::transactions::{
-    DeclareTransaction as RpcDeclareTransaction, Transaction as RpcTransaction,
-    TransactionType as RpcTransactionType, TransactionWithType as RpcTransactionWithType,
+    CommonTransactionReceipt, DeclareTransaction as RpcDeclareTransaction,
+    DeployTransactionReceipt, Transaction as RpcTransaction, TransactionOutput, TransactionReceipt,
+    TransactionReceiptWithStatus, TransactionType as RpcTransactionType, TransactionType,
+    TransactionWithType as RpcTransactionWithType,
 };
 
 use self::declare_transaction::DeclareTransactionV1;
 use self::declare_transaction_v2::DeclareTransactionV2;
 use self::deploy_account_transaction::DeployAccountTransaction;
 use self::invoke_transaction::InvokeTransactionV1;
+use crate::constants::UDC_CONTRACT_ADDRESS;
 use crate::error::{DevnetResult, Error};
 use crate::traits::{HashIdentified, HashIdentifiedMut};
 
@@ -97,23 +103,101 @@ impl StarknetTransaction {
     }
 
     pub fn get_events(&self) -> DevnetResult<Vec<Event>> {
-        let mut result = Vec::<Event>::new();
+        let mut starknet_in_rust_events = Vec::<starknet_in_rust::execution::Event>::new();
 
-        fn events_from_call_info(call_info: Option<&CallInfo>) -> DevnetResult<Vec<Event>> {
+        fn events_from_call_info(
+            call_info: Option<&CallInfo>,
+        ) -> DevnetResult<Vec<starknet_in_rust::execution::Event>> {
             if let Some(call_info) = call_info {
                 call_info.get_sorted_events().map_err(crate::error::Error::from)
             } else {
-                Ok(Vec::<Event>::new())
+                Ok(Vec::<starknet_in_rust::execution::Event>::new())
             }
         }
 
         if let Some(execution_info) = &self.execution_info {
-            result.extend(events_from_call_info(execution_info.validate_info.as_ref())?);
-            result.extend(events_from_call_info(execution_info.call_info.as_ref())?);
-            result.extend(events_from_call_info(execution_info.fee_transfer_info.as_ref())?);
+            starknet_in_rust_events
+                .extend(events_from_call_info(execution_info.validate_info.as_ref())?);
+            starknet_in_rust_events
+                .extend(events_from_call_info(execution_info.call_info.as_ref())?);
+            starknet_in_rust_events
+                .extend(events_from_call_info(execution_info.fee_transfer_info.as_ref())?);
+        }
+        let mut result: Vec<Event> = Vec::new();
+        for event in starknet_in_rust_events.into_iter() {
+            result.push(Event {
+                from_address: event.from_address.try_into()?,
+                keys: event.keys.into_iter().map(Felt::from).collect(),
+                data: event.data.into_iter().map(Felt::from).collect(),
+            });
         }
 
         Ok(result)
+    }
+
+    /// Scans through events and gets information from Event generated from UDC with specific
+    /// ContractDeployed. Returns the contract address
+    ///
+    /// # Arguments
+    /// * `events` - The events that will be searched
+    pub fn get_deployed_address_from_events(
+        events: &[Event],
+    ) -> DevnetResult<Option<ContractAddress>> {
+        let contract_deployed_event_key =
+            Felt::from(get_selector_from_name("ContractDeployed").map_err(|_| Error::FormatError)?);
+
+        let udc_address = ContractAddress::new(Felt::from_prefixed_hex_str(UDC_CONTRACT_ADDRESS)?)?;
+
+        let deployed_address = events
+            .iter()
+            .find(|e| {
+                e.from_address == udc_address && e.keys.contains(&contract_deployed_event_key)
+            })
+            .map(|e| e.data.first().cloned().unwrap_or_default());
+
+        Ok(if let Some(contract_address) = deployed_address {
+            Some(ContractAddress::new(contract_address)?)
+        } else {
+            None
+        })
+    }
+
+    pub fn get_receipt(&self) -> DevnetResult<TransactionReceiptWithStatus> {
+        let transaction_events = self.get_events()?;
+
+        let common_receipt = self.inner.create_common_receipt(
+            &transaction_events,
+            &self.block_hash.unwrap_or_default(),
+            self.block_number.unwrap_or_default(),
+        );
+
+        match &self.inner.transaction {
+            RpcTransaction::Invoke(tx) => {
+                let deployed_address =
+                    StarknetTransaction::get_deployed_address_from_events(&transaction_events)?;
+
+                let receipt = if let Some(contract_address) = deployed_address {
+                    TransactionReceiptWithStatus {
+                        status: self.status,
+                        receipt: TransactionReceipt::Deploy(DeployTransactionReceipt {
+                            common: common_receipt,
+                            contract_address,
+                        }),
+                    }
+                } else {
+                    TransactionReceiptWithStatus {
+                        status: self.status,
+                        receipt: TransactionReceipt::Common(common_receipt),
+                    }
+                };
+
+                Ok(receipt)
+            }
+            _ => Ok(TransactionReceiptWithStatus {
+                status: self.status,
+                receipt: TransactionReceipt::Common(common_receipt),
+            }),
+        }
     }
 }
 
@@ -178,87 +262,6 @@ impl Transaction {
             Transaction::DeployAccount(txn) => &txn.version,
             Transaction::Invoke(txn) => &txn.version,
         }
-    }
-}
-
-impl TryFrom<&Transaction> for RpcTransactionWithType {
-    type Error = Error;
-    fn try_from(txn: &Transaction) -> DevnetResult<Self> {
-        let transaction_with_type = match txn {
-            Transaction::Declare(declare_v1) => {
-                let declare_txn = RpcDeclareTransactionV0V1 {
-                    class_hash: *declare_v1.class_hash(),
-                    sender_address: *declare_v1.sender_address(),
-                    nonce: *txn.nonce(),
-                    max_fee: Fee(txn.max_fee()),
-                    version: *txn.version(),
-                    transaction_hash: txn.get_hash(),
-                    signature: txn.signature().to_vec(),
-                };
-                RpcTransactionWithType {
-                    r#type: RpcTransactionType::Declare,
-                    transaction: RpcTransaction::Declare(RpcDeclareTransaction::Version1(
-                        declare_txn,
-                    )),
-                }
-            }
-            Transaction::DeclareV2(declare_v2) => {
-                let declare_txn = RpcDeclareTransactionV2 {
-                    class_hash: *declare_v2.class_hash(),
-                    compiled_class_hash: *declare_v2.compiled_class_hash(),
-                    sender_address: *declare_v2.sender_address(),
-                    nonce: *txn.nonce(),
-                    max_fee: Fee(txn.max_fee()),
-                    version: *txn.version(),
-                    transaction_hash: txn.get_hash(),
-                    signature: txn.signature().to_vec(),
-                };
-
-                RpcTransactionWithType {
-                    r#type: RpcTransactionType::Declare,
-                    transaction: RpcTransaction::Declare(RpcDeclareTransaction::Version2(
-                        declare_txn,
-                    )),
-                }
-            }
-            Transaction::DeployAccount(deploy_account) => {
-                let deploy_account_txn = RpcDeployAccountTransaction {
-                    nonce: *txn.nonce(),
-                    max_fee: Fee(txn.max_fee()),
-                    version: *txn.version(),
-                    transaction_hash: txn.get_hash(),
-                    signature: txn.signature().to_vec(),
-                    class_hash: deploy_account.class_hash()?,
-                    contract_address_salt: deploy_account.contract_address_salt(),
-                    constructor_calldata: deploy_account.constructor_calldata(),
-                };
-
-                RpcTransactionWithType {
-                    r#type: RpcTransactionType::DeployAccount,
-                    transaction: RpcTransaction::DeployAccount(deploy_account_txn),
-                }
-            }
-            Transaction::Invoke(invoke_v1) => {
-                let invoke_txn = RpcInvokeTransactionV1 {
-                    sender_address: invoke_v1.sender_address()?,
-                    nonce: *txn.nonce(),
-                    max_fee: Fee(txn.max_fee()),
-                    version: *txn.version(),
-                    transaction_hash: txn.get_hash(),
-                    signature: txn.signature().to_vec(),
-                    calldata: invoke_v1.calldata().to_vec(),
-                };
-
-                RpcTransactionWithType {
-                    r#type: RpcTransactionType::Invoke,
-                    transaction: RpcTransaction::Invoke(
-                        starknet_types::rpc::transactions::InvokeTransaction::Version1(invoke_txn),
-                    ),
-                }
-            }
-        };
-
-        Ok(transaction_with_type)
     }
 }
 

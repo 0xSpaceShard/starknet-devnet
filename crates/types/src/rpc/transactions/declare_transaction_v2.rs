@@ -21,6 +21,16 @@ pub struct DeclareTransactionV2 {
     pub signature: TransactionSignature,
 }
 
+impl DeclareTransactionV2 {
+    pub fn max_fee(&self) -> Fee {
+        self.max_fee
+    }
+
+    pub fn get_transaction_hash(&self) -> &TransactionHash {
+        &self.transaction_hash
+    }
+}
+
 // TODO: impl compile DeclareTransaction from SirDeclareV2 with passing contract as arg
 
 impl TryFrom<SirDeclareV2> for DeclareTransactionV2 {

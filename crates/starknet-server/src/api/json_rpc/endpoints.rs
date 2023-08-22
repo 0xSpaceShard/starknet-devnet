@@ -10,7 +10,7 @@ use starknet_types::rpc::block::{Block, BlockHeader};
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
     BroadcastedTransactionWithType, EventFilter, EventsChunk, FunctionCall, Transaction,
-    TransactionReceipt, TransactionWithType, Transactions,
+    TransactionReceipt, TransactionReceiptWithStatus, TransactionWithType, Transactions,
 };
 use starknet_types::starknet_api::block::BlockNumber;
 use starknet_types::traits::ToHexString;
@@ -173,9 +173,13 @@ impl JsonRpcHandler {
     /// starknet_getTransactionReceipt
     pub(crate) async fn get_transaction_receipt_by_hash(
         &self,
-        _transaction_hash: TransactionHash,
-    ) -> RpcResult<TransactionReceipt> {
-        Err(error::ApiError::TransactionNotFound)
+        transaction_hash: TransactionHash,
+    ) -> RpcResult<TransactionReceiptWithStatus> {
+        match self.api.starknet.read().await.get_transaction_receipt_by_hash(transaction_hash) {
+            Ok(receipt) => Ok(receipt),
+            Err(Error::NoTransaction) => Err(ApiError::TransactionNotFound),
+            Err(err) => Err(err.into()),
+        }
     }
 
     /// starknet_getClass

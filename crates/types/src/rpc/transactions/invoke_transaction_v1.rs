@@ -19,6 +19,16 @@ pub struct InvokeTransactionV1 {
     pub calldata: Calldata,
 }
 
+impl InvokeTransactionV1 {
+    pub fn max_fee(&self) -> Fee {
+        self.max_fee
+    }
+
+    pub fn get_transaction_hash(&self) -> &TransactionHash {
+        &self.transaction_hash
+    }
+}
+
 impl HashProducer for InvokeTransactionV1 {
     type Error = Error;
     fn generate_hash(&self) -> DevnetResult<Felt> {

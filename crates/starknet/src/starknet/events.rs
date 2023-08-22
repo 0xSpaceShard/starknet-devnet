@@ -1,9 +1,6 @@
-use starknet_in_rust::execution::Event;
-use starknet_in_rust::felt::Felt252;
-use starknet_in_rust::utils::Address;
 use starknet_rs_core::types::BlockId;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::emitted_event::EmittedEvent;
+use starknet_types::emitted_event::{EmittedEvent, Event};
 use starknet_types::felt::Felt;
 
 use super::Starknet;
@@ -32,15 +29,6 @@ pub(crate) fn get_events(
 ) -> DevnetResult<(Vec<EmittedEvent>, bool)> {
     let blocks = starknet.blocks.get_blocks(from_block, to_block)?;
     let mut events: Vec<EmittedEvent> = Vec::new();
-    // convert to starknet_in_rust::utils::Address
-    let address = contract_address.map(Address::from);
-    // convert felts to Felt252
-    let keys_filter: Option<Vec<Vec<Felt252>>> = keys_filter.map(|felts| {
-        felts
-            .into_iter()
-            .map(|inner_felts| inner_felts.into_iter().map(Felt252::from).collect())
-            .collect()
-    });
     let mut elements_added = 0;
 
     // iterate over each block and get the transactions for each one
@@ -54,7 +42,9 @@ pub(crate) fn get_events(
             let filtered_transaction_events = transaction
                 .get_events()?
                 .into_iter()
-                .filter(|event| check_if_filter_applies_for_event(&address, &keys_filter, event))
+                .filter(|event| {
+                    check_if_filter_applies_for_event(&contract_address, &keys_filter, event)
+                })
                 .skip_while(|_| {
                     if skip > 0 {
                         skip -= 1;
@@ -77,9 +67,7 @@ pub(crate) fn get_events(
                     transaction_hash: *transaction_hash,
                     block_hash: block.block_hash(),
                     block_number: block.block_number(),
-                    from_address: transaction_event.from_address.try_into().map_err(Error::from)?,
-                    keys: transaction_event.keys.into_iter().map(|el| el.into()).collect(),
-                    data: transaction_event.data.into_iter().map(|el| el.into()).collect(),
+                    event_data: transaction_event,
                 };
 
                 events.push(emitted_event);
@@ -98,12 +86,12 @@ pub(crate) fn get_events(
 /// * `keys_filter` - Optional. The keys to filter the event by.
 /// * `event` - The event to check if it applies to the filters.
 fn check_if_filter_applies_for_event(
-    address: &Option<starknet_in_rust::utils::Address>,
-    keys_filter: &Option<Vec<Vec<Felt252>>>,
+    address: &Option<ContractAddress>,
+    keys_filter: &Option<Vec<Vec<Felt>>>,
     event: &Event,
 ) -> bool {
     let address_condition = match &address {
-        Some(from_contract_address) => event.from_address == from_contract_address.clone(),
+        Some(from_contract_address) => event.from_address == *from_contract_address,
         None => true,
     };
 
@@ -135,10 +123,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use starknet_in_rust::execution::{CallInfo, Event, OrderedEvent, TransactionExecutionInfo};
+    use starknet_in_rust::execution::{CallInfo, TransactionExecutionInfo};
     use starknet_in_rust::felt::Felt252;
     use starknet_rs_core::types::BlockId;
     use starknet_types::contract_address::ContractAddress;
+    use starknet_types::emitted_event::Event;
     use starknet_types::felt::Felt;
     use starknet_types::rpc::transactions::{
         DeclareTransaction, Transaction, TransactionType, TransactionWithType,
@@ -247,11 +236,11 @@ mod tests {
         let event = dummy_event();
 
         // filter with address that is the same as the on in the event
-        let address = Some(dummy_contract_address().try_into().unwrap());
+        let address = Some(dummy_contract_address());
         assert!(check_if_filter_applies_for_event(&address, &None, &event));
 
         // filter with address that is different from the one in the event
-        let address = ContractAddress::new(Felt::from(0)).unwrap().try_into().unwrap();
+        let address = ContractAddress::new(Felt::from(0)).unwrap();
         assert!(!check_if_filter_applies_for_event(&Some(address), &None, &event));
     }
 
@@ -259,10 +248,10 @@ mod tests {
     fn filter_with_keys_only() {
         let event = dummy_event();
 
-        let keys_filter = vec![vec![Felt252::from(1), Felt252::from(3)]];
+        let keys_filter = vec![vec![Felt::from(1), Felt::from(3)]];
         assert!(!check_if_filter_applies_for_event(&None, &Some(keys_filter), &event));
 
-        let keys_filter = vec![vec![], vec![Felt252::from(1), Felt252::from(3)]];
+        let keys_filter = vec![vec![], vec![Felt::from(1), Felt::from(3)]];
         assert!(check_if_filter_applies_for_event(&None, &Some(keys_filter), &event));
     }
 
@@ -271,23 +260,23 @@ mod tests {
         let event = dummy_event();
 
         // filter with address correct and filter keys correct
-        let address = Some(dummy_contract_address().try_into().unwrap());
-        let keys_filter = vec![vec![Felt252::from(2), Felt252::from(3)]];
+        let address = Some(dummy_contract_address());
+        let keys_filter = vec![vec![Felt::from(2), Felt::from(3)]];
         assert!(check_if_filter_applies_for_event(&address, &Some(keys_filter), &event));
 
         // filter with incorrect address and correct filter keys
-        let address = Some(ContractAddress::new(Felt::from(0)).unwrap().try_into().unwrap());
-        let keys_filter = vec![vec![Felt252::from(2), Felt252::from(3)]];
+        let address = Some(ContractAddress::new(Felt::from(0)).unwrap());
+        let keys_filter = vec![vec![Felt::from(2), Felt::from(3)]];
         assert!(!check_if_filter_applies_for_event(&address, &Some(keys_filter), &event));
 
         // filter with correct address and incorrect filter keys
-        let address = Some(dummy_contract_address().try_into().unwrap());
-        let keys_filter = vec![vec![Felt252::from(1), Felt252::from(3)]];
+        let address = Some(dummy_contract_address());
+        let keys_filter = vec![vec![Felt::from(1), Felt::from(3)]];
         assert!(!check_if_filter_applies_for_event(&address, &Some(keys_filter), &event));
 
         // filter with incorrect address and incorrect filter keys
-        let address = Some(ContractAddress::new(Felt::from(0)).unwrap().try_into().unwrap());
-        let keys_filter = vec![vec![Felt252::from(1), Felt252::from(3)]];
+        let address = Some(ContractAddress::new(Felt::from(0)).unwrap());
+        let keys_filter = vec![vec![Felt::from(1), Felt::from(3)]];
         assert!(!check_if_filter_applies_for_event(&address, &Some(keys_filter), &event));
     }
 
@@ -383,9 +372,9 @@ mod tests {
 
         assert_eq!(events.len(), 1);
         assert_eq!(events[0].transaction_hash, Felt::from(104));
-        assert_eq!(events[0].keys.len(), 1);
-        assert_eq!(events[0].keys[0], Felt::from(15));
-        assert_eq!(events[0].data[0], Felt::from(25));
+        assert_eq!(events[0].event_data.keys.len(), 1);
+        assert_eq!(events[0].event_data.keys[0], Felt::from(15));
+        assert_eq!(events[0].event_data.data[0], Felt::from(25));
 
         let (events, _) =
             get_events(&starknet, None, None, None, Some(vec![vec![Felt::from(12)]]), 0, None)
@@ -396,9 +385,9 @@ mod tests {
         // generated event with key 11
         for (idx, event) in events.iter().enumerate() {
             assert_eq!(event.transaction_hash, Felt::from(101 + idx as u128));
-            assert_eq!(event.keys.len(), 1);
-            assert_eq!(event.keys[0], Felt::from(12));
-            assert_eq!(event.data[0], Felt::from(22));
+            assert_eq!(event.event_data.keys.len(), 1);
+            assert_eq!(event.event_data.keys[0], Felt::from(12));
+            assert_eq!(event.event_data.data[0], Felt::from(22));
         }
     }
 
@@ -438,7 +427,7 @@ mod tests {
         let mut call_info = CallInfo::default();
 
         for idx in 1..=events_count {
-            let event: OrderedEvent = OrderedEvent {
+            let event = starknet_in_rust::execution::OrderedEvent {
                 order: idx as u64,
                 keys: vec![Felt252::from(idx + 10)],
                 data: vec![Felt252::from(idx + 20)],
@@ -450,13 +439,19 @@ mod tests {
     }
 
     fn dummy_event() -> Event {
-        Event::new(
-            OrderedEvent::new(
+        let starknet_in_rust_event = starknet_in_rust::execution::Event::new(
+            starknet_in_rust::execution::OrderedEvent::new(
                 1,
                 vec![Felt252::from(2), Felt252::from(3)],
                 vec![Felt252::from(1), Felt252::from(1)],
             ),
             dummy_contract_address().try_into().unwrap(),
-        )
+        );
+
+        Event {
+            from_address: starknet_in_rust_event.from_address.try_into().unwrap(),
+            keys: starknet_in_rust_event.keys.into_iter().map(Felt::from).collect(),
+            data: starknet_in_rust_event.data.into_iter().map(Felt::from).collect(),
+        }
     }
 }
