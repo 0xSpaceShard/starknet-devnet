@@ -14,7 +14,6 @@ pub struct DeployTransaction {
 
 impl DeployTransaction {
     pub fn max_fee(&self) -> Fee {
-        // TODO: check
         Fee(0)
     }
 

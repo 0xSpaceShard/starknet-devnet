@@ -90,7 +90,7 @@ pub fn add_declare_transaction_v1(
     };
 
     let sir_declare_transaction =
-        broadcasted_declare_transaction.compile_sir_declare(class_hash)?;
+        broadcasted_declare_transaction.compile_sir_declare(class_hash, transaction_hash)?;
 
     match sir_declare_transaction
         .execute(&mut starknet.state.pending_state, &starknet.block_context)

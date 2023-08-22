@@ -495,17 +495,7 @@ impl Starknet {
             },
         };
 
-        // TODO: clean
         // apply the invoke tx
-        // let invoke_tx = InvokeTransactionV1::new(
-        //     ContractAddress::new(chargeable_address_felt)?,
-        //     sufficiently_big_max_fee,
-        //     vec![signature.r.into(), signature.s.into()],
-        //     nonce.into(),
-        //     raw_execution.raw_calldata().into_iter().map(|c| c.into()).collect(),
-        //     chain_id_felt,
-        //     Felt::from(1),
-        // )?;
         self.add_invoke_transaction_v1(invoke_tx)
     }
 

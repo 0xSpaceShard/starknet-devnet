@@ -217,7 +217,6 @@ pub struct L1HandlerTransaction {
 
 impl L1HandlerTransaction {
     pub fn max_fee(&self) -> Fee {
-        // TODO: check
         Fee(0)
     }
 
