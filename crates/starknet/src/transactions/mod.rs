@@ -165,7 +165,7 @@ impl StarknetTransaction {
     pub fn get_receipt(&self) -> DevnetResult<TransactionReceiptWithStatus> {
         let transaction_events = self.get_events()?;
 
-        let common_receipt = self.inner.create_common_receipt(
+        let mut common_receipt = self.inner.create_common_receipt(
             &transaction_events,
             &self.block_hash.unwrap_or_default(),
             self.block_number.unwrap_or_default(),
@@ -177,6 +177,7 @@ impl StarknetTransaction {
                     StarknetTransaction::get_deployed_address_from_events(&transaction_events)?;
 
                 let receipt = if let Some(contract_address) = deployed_address {
+                    common_receipt.r#type = TransactionType::Deploy;
                     TransactionReceiptWithStatus {
                         status: self.status,
                         receipt: TransactionReceipt::Deploy(DeployTransactionReceipt {
