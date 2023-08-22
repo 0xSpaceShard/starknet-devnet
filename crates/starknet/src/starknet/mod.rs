@@ -537,14 +537,17 @@ impl Starknet {
     }
 
     pub fn get_block_with_transactions(&self, block_id: BlockId) -> DevnetResult<Block> {
-        // TODO: improve
         let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
-        let mut transactions: Vec<TransactionWithType> = vec![];
-        for transaction_hash in block.get_transactions() {
-            let transaction =
-                self.transactions.get_by_hash(*transaction_hash).ok_or(Error::NoTransaction)?;
-            transactions.push(transaction.inner.clone());
-        }
+        let transactions = block
+            .get_transactions()
+            .iter()
+            .map(|transaction_hash| {
+                self.transactions
+                    .get_by_hash(*transaction_hash)
+                    .ok_or(Error::NoTransaction)
+                    .map(|transaction| transaction.inner.clone())
+            })
+            .collect::<DevnetResult<Vec<TransactionWithType>>>()?;
 
         Ok(Block {
             status: *block.status(),
