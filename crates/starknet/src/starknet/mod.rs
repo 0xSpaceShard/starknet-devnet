@@ -33,7 +33,9 @@ use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::Broad
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use starknet_types::rpc::transactions::{
-    BroadcastedTransactionCommon, TransactionReceiptWithStatus, TransactionWithType, Transactions,
+    BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
+    BroadcastedTransactionCommon, BroadcastedTransactionWithType, TransactionReceiptWithStatus,
+    TransactionWithType, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::error;
@@ -55,11 +57,7 @@ use crate::traits::{
     AccountGenerator, Accounted, Deployed, HashIdentified, HashIdentifiedMut, StateChanger,
     StateExtractor,
 };
-use crate::transactions::declare_transaction::DeclareTransactionV1;
-use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
-use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
-use crate::transactions::invoke_transaction::InvokeTransactionV1;
-use crate::transactions::{StarknetTransaction, StarknetTransactions, Transaction};
+use crate::transactions::{StarknetTransaction, StarknetTransactions};
 
 mod add_declare_transaction;
 mod add_deploy_account_transaction;
@@ -368,7 +366,7 @@ impl Starknet {
     pub fn estimate_gas_usage(
         &self,
         block_id: BlockId,
-        transactions: &[Transaction],
+        transactions: &[BroadcastedTransactionWithType],
     ) -> DevnetResult<Vec<u64>> {
         let state = self.get_state_at(&block_id)?;
 
@@ -376,27 +374,50 @@ impl Starknet {
         let estimation_pairs = starknet_in_rust::estimate_fee(
             &transactions
                 .iter()
-                .map(|txn| match txn {
-                    Transaction::Declare(declare) => {
-                        starknet_in_rust::transaction::Transaction::Declare(declare.inner.clone())
+                .map(|txn| match &txn.transaction {
+                    BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(
+                        broadcasted_tx,
+                    )) => {
+                        let class_hash = broadcasted_tx.generate_class_hash()?;
+                        let transaction_hash = broadcasted_tx.calculate_transaction_hash(
+                            &self.config.chain_id.to_felt().into(),
+                            &class_hash,
+                        )?;
+
+                        let declare_tx =
+                            broadcasted_tx.compile_sir_declare(class_hash, transaction_hash)?;
+
+                        Ok(starknet_in_rust::transaction::Transaction::Declare(declare_tx))
                     }
-                    Transaction::DeclareV2(declare_v2) => {
-                        starknet_in_rust::transaction::Transaction::DeclareV2(Box::new(
-                            declare_v2.inner.clone(),
-                        ))
+                    BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(
+                        broadcasted_tx,
+                    )) => {
+                        let declare_tx = broadcasted_tx
+                            .compile_sir_declare(&self.config.chain_id.to_felt().into())?;
+
+                        Ok(starknet_in_rust::transaction::Transaction::DeclareV2(Box::new(
+                            declare_tx,
+                        )))
                     }
-                    Transaction::DeployAccount(deploy) => {
-                        starknet_in_rust::transaction::Transaction::DeployAccount(
-                            deploy.inner.clone(),
-                        )
+                    BroadcastedTransaction::DeployAccount(broadcasted_tx) => {
+                        let deploy_tx = broadcasted_tx
+                            .compile_sir_deploy_account(self.config.chain_id.to_felt().into())?;
+
+                        Ok(starknet_in_rust::transaction::Transaction::DeployAccount(deploy_tx))
                     }
-                    Transaction::Invoke(invoke) => {
-                        starknet_in_rust::transaction::Transaction::InvokeFunction(
-                            invoke.inner.clone(),
-                        )
+                    BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(
+                        broadcasted_tx,
+                    )) => {
+                        let invoke_tx = broadcasted_tx
+                            .create_sir_invoke_function(&self.config.chain_id.to_felt().into())?;
+
+                        Ok(starknet_in_rust::transaction::Transaction::InvokeFunction(invoke_tx))
+                    }
+                    BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V0(_)) => {
+                        Err(Error::UnsupportedAction { msg: "Invoke V0 is not supported".into() })
                     }
                 })
-                .collect::<Vec<starknet_in_rust::transaction::Transaction>>(),
+                .collect::<DevnetResult<Vec<starknet_in_rust::transaction::Transaction>>>()?,
             state.pending_state.clone(),
             &self.block_context,
         )?;

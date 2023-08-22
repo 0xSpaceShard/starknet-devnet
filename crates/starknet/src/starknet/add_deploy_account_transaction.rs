@@ -78,7 +78,6 @@ mod tests {
     use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID};
     use crate::starknet::{predeployed, Starknet};
     use crate::traits::{Deployed, HashIdentifiedMut, StateChanger, StateExtractor};
-    use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
     use crate::utils::get_storage_var_address;
 
     #[test]

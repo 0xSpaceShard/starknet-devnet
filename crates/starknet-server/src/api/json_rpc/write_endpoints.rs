@@ -1,8 +1,4 @@
 use server::rpc_core::error::RpcError;
-use starknet_core::transactions::declare_transaction::DeclareTransactionV1;
-use starknet_core::transactions::declare_transaction_v2::DeclareTransactionV2;
-use starknet_core::transactions::deploy_account_transaction::DeployAccountTransaction;
-use starknet_core::transactions::invoke_transaction::InvokeTransactionV1;
 use starknet_types::felt::Felt;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
@@ -86,76 +82,6 @@ impl JsonRpcHandler {
     }
 }
 
-pub(crate) fn convert_to_declare_transaction_v1(
-    value: BroadcastedDeclareTransactionV1,
-    chain_id: Felt,
-) -> RpcResult<DeclareTransactionV1> {
-    DeclareTransactionV1::new(
-        value.sender_address,
-        value.common.max_fee.0,
-        value.common.signature,
-        value.common.nonce,
-        value.contract_class.into(),
-        chain_id,
-        value.common.version,
-    )
-    .map_err(ApiError::StarknetDevnetError)
-}
-
-pub(crate) fn convert_to_deploy_account_transaction(
-    broadcasted_txn: BroadcastedDeployAccountTransaction,
-    chain_id: Felt,
-) -> RpcResult<DeployAccountTransaction> {
-    DeployAccountTransaction::new(
-        broadcasted_txn.constructor_calldata,
-        broadcasted_txn.common.max_fee.0,
-        broadcasted_txn.common.signature,
-        broadcasted_txn.common.nonce,
-        broadcasted_txn.class_hash,
-        broadcasted_txn.contract_address_salt,
-        chain_id,
-        broadcasted_txn.common.version,
-    )
-    .map_err(|err| {
-        ApiError::RpcError(RpcError::invalid_params(format!(
-            "Unable to create DeployAccountTransaction: {}",
-            err
-        )))
-    })
-}
-
-pub(crate) fn convert_to_declare_transaction_v2(
-    value: BroadcastedDeclareTransactionV2,
-    chain_id: Felt,
-) -> RpcResult<DeclareTransactionV2> {
-    DeclareTransactionV2::new(
-        value.contract_class,
-        value.compiled_class_hash,
-        value.sender_address,
-        value.common.max_fee.0,
-        value.common.signature,
-        value.common.nonce,
-        chain_id,
-        value.common.version,
-    )
-    .map_err(ApiError::StarknetDevnetError)
-}
-
-pub(crate) fn convert_to_invoke_transaction_v1(
-    value: BroadcastedInvokeTransactionV1,
-    chain_id: Felt,
-) -> RpcResult<InvokeTransactionV1> {
-    InvokeTransactionV1::new(
-        value.sender_address,
-        value.common.max_fee.0,
-        value.common.signature,
-        value.common.nonce,
-        value.calldata,
-        chain_id,
-        value.common.version,
-    )
-    .map_err(ApiError::StarknetDevnetError)
-}
 #[cfg(test)]
 mod tests {
     use starknet_core::constants::{

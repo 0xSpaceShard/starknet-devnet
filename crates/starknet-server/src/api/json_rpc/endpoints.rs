@@ -17,10 +17,6 @@ use starknet_types::traits::ToHexString;
 
 use super::error::{self, ApiError};
 use super::models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
-use super::write_endpoints::{
-    convert_to_declare_transaction_v1, convert_to_declare_transaction_v2,
-    convert_to_deploy_account_transaction, convert_to_invoke_transaction_v1,
-};
 use super::JsonRpcHandler;
 use crate::api::json_rpc::error::RpcResult;
 use crate::api::models::state::{
@@ -273,16 +269,9 @@ impl JsonRpcHandler {
         block_id: BlockId,
         request: Vec<BroadcastedTransactionWithType>,
     ) -> RpcResult<Vec<EstimateFeeOutput>> {
+        // TODO: move EstimateFeeOutput to types
         let starknet = self.api.starknet.read().await;
-        let mut transactions = vec![];
-        for broadcasted_tx in request {
-            transactions.push(convert_broadcasted_tx(
-                broadcasted_tx.transaction,
-                starknet.config.chain_id,
-            )?);
-        }
-
-        match starknet.estimate_gas_usage(block_id.into(), &transactions) {
+        match starknet.estimate_gas_usage(block_id.into(), &request) {
             Ok(result) => Ok(result
                 .iter()
                 .map(|gas_consumed| EstimateFeeOutput {
@@ -377,37 +366,5 @@ impl JsonRpcHandler {
             })?;
 
         Ok(nonce)
-    }
-}
-
-fn convert_broadcasted_tx(
-    broadcasted_tx: BroadcastedTransaction,
-    chain_id: StarknetChainId,
-) -> RpcResult<starknet_core::transactions::Transaction> {
-    let chain_id = Felt::from(chain_id.to_felt());
-    match broadcasted_tx {
-        BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V0(_)) => {
-            Err(ApiError::UnsupportedAction { msg: "Invoke V0 is not supported".into() })
-        }
-        BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(broadcasted_tx)) => {
-            Ok(starknet_core::transactions::Transaction::Invoke(Box::new(
-                convert_to_invoke_transaction_v1(broadcasted_tx, chain_id)?,
-            )))
-        }
-        BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(broadcasted_tx)) => {
-            Ok(starknet_core::transactions::Transaction::Declare(Box::new(
-                convert_to_declare_transaction_v1(*broadcasted_tx, chain_id)?,
-            )))
-        }
-        BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(broadcasted_tx)) => {
-            Ok(starknet_core::transactions::Transaction::DeclareV2(Box::new(
-                convert_to_declare_transaction_v2(*broadcasted_tx, chain_id)?,
-            )))
-        }
-        BroadcastedTransaction::DeployAccount(broadcasted_tx) => {
-            Ok(starknet_core::transactions::Transaction::DeployAccount(Box::new(
-                convert_to_deploy_account_transaction(broadcasted_tx, chain_id)?,
-            )))
-        }
     }
 }

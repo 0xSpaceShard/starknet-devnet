@@ -1,8 +1,3 @@
-pub mod declare_transaction;
-pub mod declare_transaction_v2;
-pub mod deploy_account_transaction;
-pub mod invoke_transaction;
-
 use std::collections::HashMap;
 
 use starknet_api::block::BlockNumber;
@@ -25,10 +20,6 @@ use starknet_types::rpc::transactions::{
     TransactionWithType as RpcTransactionWithType,
 };
 
-use self::declare_transaction::DeclareTransactionV1;
-use self::declare_transaction_v2::DeclareTransactionV2;
-use self::deploy_account_transaction::DeployAccountTransaction;
-use self::invoke_transaction::InvokeTransactionV1;
 use crate::constants::UDC_CONTRACT_ADDRESS;
 use crate::error::{DevnetResult, Error};
 use crate::traits::{HashIdentified, HashIdentifiedMut};
@@ -198,70 +189,6 @@ impl StarknetTransaction {
                 status: self.status,
                 receipt: TransactionReceipt::Common(common_receipt),
             }),
-        }
-    }
-}
-
-#[derive(Clone, PartialEq, Eq)]
-pub enum Transaction {
-    Declare(Box<DeclareTransactionV1>),
-    DeclareV2(Box<DeclareTransactionV2>),
-    DeployAccount(Box<DeployAccountTransaction>),
-    Invoke(Box<InvokeTransactionV1>),
-}
-
-impl Transaction {
-    pub fn get_hash(&self) -> TransactionHash {
-        match self {
-            Transaction::Declare(tx) => tx.transaction_hash,
-            Transaction::DeclareV2(tx) => tx.transaction_hash,
-            Transaction::DeployAccount(tx) => tx.inner.hash_value().clone().into(),
-            Transaction::Invoke(tx) => tx.inner.hash_value().clone().into(),
-        }
-    }
-
-    pub fn chain_id(&self) -> &Felt {
-        match self {
-            Transaction::Declare(txn) => &txn.chain_id,
-            Transaction::DeclareV2(txn) => &txn.chain_id,
-            Transaction::DeployAccount(txn) => &txn.chain_id,
-            Transaction::Invoke(txn) => &txn.chain_id,
-        }
-    }
-
-    pub fn max_fee(&self) -> u128 {
-        match self {
-            Transaction::Declare(txn) => txn.max_fee,
-            Transaction::DeclareV2(txn) => txn.max_fee,
-            Transaction::DeployAccount(txn) => txn.max_fee,
-            Transaction::Invoke(txn) => txn.max_fee,
-        }
-    }
-
-    pub fn signature(&self) -> &Vec<Felt> {
-        match self {
-            Transaction::Declare(txn) => &txn.signature,
-            Transaction::DeclareV2(txn) => &txn.signature,
-            Transaction::DeployAccount(txn) => &txn.signature,
-            Transaction::Invoke(txn) => &txn.signature,
-        }
-    }
-
-    pub fn nonce(&self) -> &Felt {
-        match self {
-            Transaction::Declare(txn) => &txn.nonce,
-            Transaction::DeclareV2(txn) => &txn.nonce,
-            Transaction::DeployAccount(txn) => &txn.nonce,
-            Transaction::Invoke(txn) => &txn.nonce,
-        }
-    }
-
-    pub fn version(&self) -> &Felt {
-        match self {
-            Transaction::Declare(txn) => &txn.version,
-            Transaction::DeclareV2(txn) => &txn.version,
-            Transaction::DeployAccount(txn) => &txn.version,
-            Transaction::Invoke(txn) => &txn.version,
         }
     }
 }

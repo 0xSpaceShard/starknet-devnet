@@ -9,7 +9,6 @@ use starknet_types::traits::HashProducer;
 
 use super::Starknet;
 use crate::error::{self, DevnetResult};
-use crate::transactions::invoke_transaction::InvokeTransactionV1;
 use crate::transactions::StarknetTransaction;
 
 pub fn add_invoke_transcation_v1(
@@ -78,7 +77,6 @@ mod tests {
     use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID};
     use crate::starknet::{predeployed, Starknet};
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut, StateChanger, StateExtractor};
-    use crate::transactions::invoke_transaction::InvokeTransactionV1;
     use crate::utils::get_storage_var_address;
     use crate::utils::test_utils::{
         cairo_0_account_without_validations, dummy_cairo_0_contract_class, dummy_contract_address,

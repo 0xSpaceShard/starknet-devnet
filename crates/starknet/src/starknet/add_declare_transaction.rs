@@ -137,7 +137,6 @@ mod tests {
     use crate::constants::{self};
     use crate::starknet::{predeployed, Starknet};
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut, StateExtractor};
-    use crate::transactions::declare_transaction::DeclareTransactionV1;
     use crate::utils::test_utils::{
         dummy_cairo_0_contract_class, dummy_cairo_1_contract_class, dummy_contract_address,
         dummy_declare_transaction_v2, dummy_felt,

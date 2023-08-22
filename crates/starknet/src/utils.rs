@@ -55,8 +55,6 @@ pub(crate) mod test_utils {
         DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
     };
     use crate::starknet::StarknetConfig;
-    use crate::transactions::declare_transaction::DeclareTransactionV1;
-    use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
 
     pub fn starknet_config_for_test() -> StarknetConfig {
         StarknetConfig {
