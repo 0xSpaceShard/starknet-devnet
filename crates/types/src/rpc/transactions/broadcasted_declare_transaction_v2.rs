@@ -39,7 +39,7 @@ impl BroadcastedDeclareTransactionV2 {
             compiled_class_hash: *compiled_class_hash,
             common: BroadcastedTransactionCommon {
                 max_fee: *max_fee,
-                version: version.clone(),
+                version: *version,
                 signature: signature.clone(),
                 nonce: *nonce,
             },
@@ -80,16 +80,17 @@ impl BroadcastedDeclareTransactionV2 {
 #[cfg(test)]
 mod tests {
 
-    use crate::contract_address::ContractAddress;
-    use crate::contract_class::ContractClass;
-    use crate::felt::Felt;
-    use crate::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
-    use crate::traits::ToHexString;
     use serde::Deserialize;
     use starknet_api::transaction::Fee;
     use starknet_in_rust::core::contract_address::compute_sierra_class_hash;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_rs_core::types::contract::SierraClass;
+
+    use crate::contract_address::ContractAddress;
+    use crate::contract_class::ContractClass;
+    use crate::felt::Felt;
+    use crate::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
+    use crate::traits::ToHexString;
 
     #[derive(Deserialize)]
     struct FeederGatewayDeclareTransactionV2 {

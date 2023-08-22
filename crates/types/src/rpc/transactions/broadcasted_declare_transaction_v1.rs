@@ -120,14 +120,15 @@ impl BroadcastedDeclareTransactionV1 {
 #[cfg(test)]
 mod tests {
 
+    use serde::Deserialize;
+    use starknet_api::transaction::Fee;
+    use starknet_in_rust::definitions::block_context::StarknetChainId;
+
     use crate::contract_address::ContractAddress;
     use crate::contract_class::Cairo0Json;
     use crate::felt::Felt;
     use crate::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use crate::traits::{HashProducer, ToHexString};
-    use serde::Deserialize;
-    use starknet_api::transaction::Fee;
-    use starknet_in_rust::definitions::block_context::StarknetChainId;
 
     #[derive(Deserialize)]
     struct FeederGatewayDeclareTransactionV1 {

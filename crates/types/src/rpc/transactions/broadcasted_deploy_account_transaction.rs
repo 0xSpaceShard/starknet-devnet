@@ -74,13 +74,14 @@ impl BroadcastedDeployAccountTransaction {
 
 #[cfg(test)]
 mod tests {
+    use serde::Deserialize;
+    use starknet_api::transaction::Fee;
+    use starknet_in_rust::definitions::block_context::StarknetChainId;
+
     use crate::contract_address::ContractAddress;
     use crate::felt::Felt;
     use crate::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
     use crate::traits::ToHexString;
-    use serde::Deserialize;
-    use starknet_api::transaction::Fee;
-    use starknet_in_rust::definitions::block_context::StarknetChainId;
 
     #[derive(Deserialize)]
     struct FeederGatewayDeployAccountTransaction {

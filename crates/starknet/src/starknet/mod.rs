@@ -582,7 +582,7 @@ impl Starknet {
         block_id: BlockId,
         index: u64,
     ) -> DevnetResult<&TransactionWithType> {
-        let block = self.get_block(block_id.into())?;
+        let block = self.get_block(block_id)?;
         let transaction_hash = block
             .get_transactions()
             .get(index as usize)

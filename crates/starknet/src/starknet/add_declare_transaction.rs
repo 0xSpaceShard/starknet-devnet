@@ -43,7 +43,7 @@ pub fn add_declare_transaction_v2(
             // Add sierra contract
             starknet.state.contract_classes.insert(
                 class_hash,
-                ContractClass::Cairo1(broadcasted_declare_transaction.contract_class.clone()),
+                ContractClass::Cairo1(broadcasted_declare_transaction.contract_class),
             );
             starknet.handle_successful_transaction(
                 &transaction_hash,
@@ -99,7 +99,7 @@ pub fn add_declare_transaction_v1(
             starknet
                 .state
                 .contract_classes
-                .insert(class_hash, broadcasted_declare_transaction.contract_class.clone().into());
+                .insert(class_hash, broadcasted_declare_transaction.contract_class.into());
             starknet.handle_successful_transaction(
                 &transaction_hash,
                 transaction_with_type,
@@ -116,7 +116,7 @@ pub fn add_declare_transaction_v1(
         }
     }
 
-    Ok((transaction_hash, class_hash.into()))
+    Ok((transaction_hash, class_hash))
 }
 
 #[cfg(test)]
@@ -227,11 +227,13 @@ mod tests {
 
         // check if contract is not declared
         assert!(!starknet.state.is_contract_declared(&expected_class_hash));
-        assert!(!starknet
-            .state
-            .state
-            .casm_contract_classes_mut()
-            .contains_key(&expected_compiled_class_hash.bytes()));
+        assert!(
+            !starknet
+                .state
+                .state
+                .casm_contract_classes_mut()
+                .contains_key(&expected_compiled_class_hash.bytes())
+        );
 
         let (tx_hash, retrieved_class_hash) =
             starknet.add_declare_transaction_v2(declare_txn).unwrap();

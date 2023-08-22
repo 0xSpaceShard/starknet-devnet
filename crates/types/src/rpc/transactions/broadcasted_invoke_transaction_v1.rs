@@ -71,13 +71,14 @@ impl BroadcastedInvokeTransactionV1 {
 
 #[cfg(test)]
 mod tests {
+    use serde::Deserialize;
+    use starknet_api::transaction::Fee;
+    use starknet_in_rust::definitions::block_context::StarknetChainId;
+
     use crate::contract_address::ContractAddress;
     use crate::felt::Felt;
     use crate::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
     use crate::traits::ToHexString;
-    use serde::Deserialize;
-    use starknet_api::transaction::Fee;
-    use starknet_in_rust::definitions::block_context::StarknetChainId;
 
     #[derive(Deserialize)]
     struct FeederGatewayInvokeTransaction {
@@ -89,7 +90,7 @@ mod tests {
         version: Felt,
     }
 
-    /// Get transaction from feeder gateway by hash and then using the same parameters compute the     
+    /// Get transaction from feeder gateway by hash and then using the same parameters compute the
     /// transaction hash
     #[test]
     fn correct_transaction_hash_computation_compared_to_a_transaction_from_feeder_gateway() {
