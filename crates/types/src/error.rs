@@ -37,3 +37,5 @@ pub enum JsonError {
     #[error("Error: {msg}")]
     Custom { msg: String },
 }
+
+pub type DevnetResult<T> = Result<T, Error>;

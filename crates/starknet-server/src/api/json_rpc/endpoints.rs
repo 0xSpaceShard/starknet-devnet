@@ -15,7 +15,8 @@ use super::write_endpoints::{
     convert_to_declare_transaction_v1, convert_to_declare_transaction_v2,
     convert_to_deploy_account_transaction, convert_to_invoke_transaction_v1,
 };
-use super::{JsonRpcHandler, RpcResult};
+use super::JsonRpcHandler;
+use crate::api::json_rpc::error::RpcResult;
 use crate::api::models::block::{Block, BlockHeader};
 use crate::api::models::state::{
     ClassHashes, ContractNonce, DeployedContract, StateUpdate, StorageDiff, StorageEntry,

@@ -19,7 +19,7 @@ use self::declare_transaction_v2::DeclareTransactionV2;
 use self::deploy_account_transaction::DeployAccountTransaction;
 use self::invoke_transaction::InvokeTransactionV1;
 use crate::constants::UDC_CONTRACT_ADDRESS;
-use crate::error::{self, Result};
+use crate::error::{DevnetResult, Error};
 use crate::traits::{HashIdentified, HashIdentifiedMut};
 
 #[derive(Default)]
@@ -87,12 +87,12 @@ impl StarknetTransaction {
         }
     }
 
-    pub fn get_events(&self) -> Result<Vec<Event>> {
+    pub fn get_events(&self) -> DevnetResult<Vec<Event>> {
         let mut starknet_in_rust_events = Vec::<starknet_in_rust::execution::Event>::new();
 
         fn events_from_call_info(
             call_info: Option<&CallInfo>,
-        ) -> Result<Vec<starknet_in_rust::execution::Event>> {
+        ) -> DevnetResult<Vec<starknet_in_rust::execution::Event>> {
             if let Some(call_info) = call_info {
                 call_info.get_sorted_events().map_err(crate::error::Error::from)
             } else {
@@ -125,10 +125,11 @@ impl StarknetTransaction {
     ///
     /// # Arguments
     /// * `events` - The events that will be searched
-    pub fn get_deployed_address_from_events(events: &[Event]) -> Result<Option<ContractAddress>> {
-        let contract_deployed_event_key = Felt::from(
-            get_selector_from_name("ContractDeployed").map_err(|_| error::Error::FormatError)?,
-        );
+    pub fn get_deployed_address_from_events(
+        events: &[Event],
+    ) -> DevnetResult<Option<ContractAddress>> {
+        let contract_deployed_event_key =
+            Felt::from(get_selector_from_name("ContractDeployed").map_err(|_| Error::FormatError)?);
 
         let udc_address = ContractAddress::new(Felt::from_prefixed_hex_str(UDC_CONTRACT_ADDRESS)?)?;
 

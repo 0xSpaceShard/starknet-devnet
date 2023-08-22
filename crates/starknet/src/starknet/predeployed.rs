@@ -7,13 +7,13 @@ use crate::constants::{
     CHARGEABLE_ACCOUNT_ADDRESS, ERC20_CONTRACT_ADDRESS, ERC20_CONTRACT_CLASS_HASH,
     ERC20_CONTRACT_PATH, UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH, UDC_CONTRACT_PATH,
 };
-use crate::error::{Error, Result};
+use crate::error::{DevnetResult, Error};
 use crate::state::StarknetState;
 use crate::system_contract::SystemContract;
 use crate::traits::StateChanger;
 use crate::utils::get_storage_var_address;
 
-pub(crate) fn create_erc20() -> Result<SystemContract> {
+pub(crate) fn create_erc20() -> DevnetResult<SystemContract> {
     let erc20_contract_class_json_str =
         std::fs::read_to_string(ERC20_CONTRACT_PATH).map_err(|err| Error::ReadFileError {
             source: err,
@@ -29,7 +29,7 @@ pub(crate) fn create_erc20() -> Result<SystemContract> {
 }
 
 /// Set initial values of ERC20 contract storage
-pub(crate) fn initialize_erc20(state: &mut StarknetState) -> Result<()> {
+pub(crate) fn initialize_erc20(state: &mut StarknetState) -> DevnetResult<()> {
     let contract_address =
         ContractAddress::new(Felt::from_prefixed_hex_str(ERC20_CONTRACT_ADDRESS)?)?;
 
@@ -48,7 +48,7 @@ pub(crate) fn initialize_erc20(state: &mut StarknetState) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn create_udc() -> Result<SystemContract> {
+pub(crate) fn create_udc() -> DevnetResult<SystemContract> {
     let udc_contract_class_json_str = std::fs::read_to_string(UDC_CONTRACT_PATH)
         .map_err(|err| Error::ReadFileError { source: err, path: UDC_CONTRACT_PATH.to_string() })?;
     let udc_contract = SystemContract::new(

@@ -3,7 +3,7 @@ use starknet_types::felt::{ClassHash, Felt};
 use starknet_types::patricia_key::PatriciaKey;
 
 use super::state_diff::StateDiff;
-use crate::error::Result;
+use crate::error::DevnetResult;
 
 pub struct StateUpdate {
     pub block_hash: Felt,
@@ -17,7 +17,7 @@ pub struct StateUpdate {
 }
 
 impl StateUpdate {
-    pub fn new(block_hash: Felt, state_diff: StateDiff) -> Result<Self> {
+    pub fn new(block_hash: Felt, state_diff: StateDiff) -> DevnetResult<Self> {
         // declared classes (class hash, compiled class hash) that are not cairo 0
         let declared_classes = state_diff
             .class_hash_to_compiled_class_hash
