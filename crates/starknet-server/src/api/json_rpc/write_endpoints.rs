@@ -1,9 +1,4 @@
-use server::rpc_core::error::RpcError;
-use starknet_types::felt::Felt;
-use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
-use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
-use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedInvokeTransaction,
 };
@@ -151,7 +146,7 @@ mod tests {
         ))
         .unwrap();
 
-        let _broadcasted_declare_transaction_v1: super::BroadcastedDeclareTransactionV1 =
+        let _broadcasted_declare_transaction_v1: BroadcastedDeclareTransactionV1 =
             serde_json::from_str(&json_string).unwrap();
     }
 
@@ -175,7 +170,7 @@ mod tests {
         ))
         .unwrap();
 
-        let broadcasted_declare_transaction_v1: super::BroadcastedDeclareTransactionV1 =
+        let broadcasted_declare_transaction_v1: BroadcastedDeclareTransactionV1 =
             serde_json::from_str(&json_string).unwrap();
 
         broadcasted_declare_transaction_v1

@@ -96,7 +96,8 @@ impl BroadcastedDeployAccountTransaction {
 //     fn correct_transaction_hash_computation_compared_to_a_transaction_from_feeder_gateway() {
 //         let json_obj: serde_json::Value = serde_json::from_reader(std::fs::File::open(concat!(
 //         env!("CARGO_MANIFEST_DIR"),
-//         "/test_artifacts/sequencer_response/deploy_account_testnet_0x23a872d966d4f6091cc3725604fdaa1b39cef76ebf38b9a06a0b71e9ed700ea.json"
+//         "/test_artifacts/sequencer_response/
+// deploy_account_testnet_0x23a872d966d4f6091cc3725604fdaa1b39cef76ebf38b9a06a0b71e9ed700ea.json"
 //         )).unwrap()).unwrap();
 //
 //         let feeder_gateway_transaction: FeederGatewayDeployAccountTransaction =
@@ -104,8 +105,8 @@ impl BroadcastedDeployAccountTransaction {
 //
 //         let deploy_account_transaction = super::DeployAccountTransaction::new(
 //             feeder_gateway_transaction.constructor_calldata,
-//             u128::from_str_radix(&feeder_gateway_transaction.max_fee.to_nonprefixed_hex_str(), 16)
-//                 .unwrap(),
+//             u128::from_str_radix(&feeder_gateway_transaction.max_fee.to_nonprefixed_hex_str(),
+// 16)                 .unwrap(),
 //             vec![],
 //             feeder_gateway_transaction.nonce,
 //             feeder_gateway_transaction.class_hash,
@@ -117,7 +118,8 @@ impl BroadcastedDeployAccountTransaction {
 //
 //         assert_eq!(
 //             ContractAddress::new(feeder_gateway_transaction.contract_address).unwrap(),
-//             ContractAddress::try_from(deploy_account_transaction.inner.contract_address().clone())
+//             
+// ContractAddress::try_from(deploy_account_transaction.inner.contract_address().clone())
 //                 .unwrap()
 //         );
 //         assert_eq!(

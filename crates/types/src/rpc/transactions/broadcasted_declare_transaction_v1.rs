@@ -9,7 +9,7 @@ use starknet_in_rust::definitions::transaction_type::TransactionType as SirTrans
 use starknet_in_rust::transaction::{verify_version, Declare as SirDeclare};
 
 use crate::contract_address::ContractAddress;
-use crate::contract_class::{Cairo0ContractClass, DeprecatedContractClass};
+use crate::contract_class::Cairo0ContractClass;
 use crate::error::DevnetResult;
 use crate::felt::{
     ClassHash, Felt, Nonce, TransactionHash, TransactionSignature, TransactionVersion,

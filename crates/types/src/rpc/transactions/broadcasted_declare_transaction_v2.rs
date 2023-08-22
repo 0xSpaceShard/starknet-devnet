@@ -118,7 +118,8 @@ impl BroadcastedDeclareTransactionV2 {
 //
 //         println!(
 //             "{}",
-//             Felt::from(compute_sierra_class_hash(&cairo_1_contract).unwrap()).to_prefixed_hex_str()
+//             
+// Felt::from(compute_sierra_class_hash(&cairo_1_contract).unwrap()).to_prefixed_hex_str()
 //         );
 //     }
 //
@@ -128,7 +129,8 @@ impl BroadcastedDeclareTransactionV2 {
 //     fn correct_transaction_hash_computation_compared_to_a_transaction_from_feeder_gateway() {
 //         let json_obj: serde_json::Value = serde_json::from_reader(std::fs::File::open(concat!(
 //         env!("CARGO_MANIFEST_DIR"),
-//         "/test_artifacts/sequencer_response/declare_v2_testnet_0x01b852f1fe2b13db21a44f8884bc4b7760dc277bb3820b970dba929860275617.json"
+//         "/test_artifacts/sequencer_response/
+// declare_v2_testnet_0x01b852f1fe2b13db21a44f8884bc4b7760dc277bb3820b970dba929860275617.json"
 //         )).unwrap()).unwrap();
 //
 //         let feeder_gateway_transaction: FeederGatewayDeclareTransactionV2 =
@@ -145,8 +147,8 @@ impl BroadcastedDeclareTransactionV2 {
 //             cairo_1_contract,
 //             feeder_gateway_transaction.compiled_class_hash,
 //             ContractAddress::new(feeder_gateway_transaction.sender_address).unwrap(),
-//             u128::from_str_radix(&feeder_gateway_transaction.max_fee.to_nonprefixed_hex_str(), 16)
-//                 .unwrap(),
+//             u128::from_str_radix(&feeder_gateway_transaction.max_fee.to_nonprefixed_hex_str(),
+// 16)                 .unwrap(),
 //             vec![],
 //             feeder_gateway_transaction.nonce,
 //             StarknetChainId::TestNet.to_felt().into(),

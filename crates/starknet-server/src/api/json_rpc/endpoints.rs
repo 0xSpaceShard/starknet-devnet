@@ -1,6 +1,5 @@
 use starknet_core::error::Error;
 use starknet_in_rust::core::errors::state_errors::StateError;
-use starknet_in_rust::definitions::block_context::StarknetChainId;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::utils::Address;
 use starknet_rs_core::types::ContractClass as CodegenContractClass;
@@ -8,14 +7,13 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::rpc::block::{Block, BlockHeader};
 use starknet_types::rpc::transactions::{
-    BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
     BroadcastedTransactionWithType, EventFilter, EventsChunk, FunctionCall, Transaction,
-    TransactionReceipt, TransactionReceiptWithStatus, TransactionWithType, Transactions,
+    TransactionReceiptWithStatus, TransactionWithType,
 };
 use starknet_types::starknet_api::block::BlockNumber;
 use starknet_types::traits::ToHexString;
 
-use super::error::{self, ApiError};
+use super::error::ApiError;
 use super::models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
 use super::JsonRpcHandler;
 use crate::api::json_rpc::error::RpcResult;

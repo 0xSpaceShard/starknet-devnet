@@ -87,13 +87,14 @@ impl BroadcastedInvokeTransactionV1 {
 //         version: Felt,
 //     }
 //
-//     /// Get transaction from feeder gateway by hash and then using the same parameters compute the
-//     /// transaction hash
+//     /// Get transaction from feeder gateway by hash and then using the same parameters compute
+// the     /// transaction hash
 //     #[test]
 //     fn correct_transaction_hash_computation_compared_to_a_transaction_from_feeder_gateway() {
 //         let json_obj: serde_json::Value = serde_json::from_reader(std::fs::File::open(concat!(
 //         env!("CARGO_MANIFEST_DIR"),
-//         "/test_artifacts/sequencer_response/invoke_v1_testnet_0x068fbb499e59af504491b801b694cb5b7450a2efc338f7480cb1887ea2c9bd01.json"
+//         "/test_artifacts/sequencer_response/
+// invoke_v1_testnet_0x068fbb499e59af504491b801b694cb5b7450a2efc338f7480cb1887ea2c9bd01.json"
 //         )).unwrap()).unwrap();
 //
 //         let feeder_gateway_transaction: FeederGatewayInvokeTransaction =
@@ -101,8 +102,8 @@ impl BroadcastedInvokeTransactionV1 {
 //
 //         let transaction = super::InvokeTransactionV1::new(
 //             ContractAddress::new(feeder_gateway_transaction.sender_address).unwrap(),
-//             u128::from_str_radix(&feeder_gateway_transaction.max_fee.to_nonprefixed_hex_str(), 16)
-//                 .unwrap(),
+//             u128::from_str_radix(&feeder_gateway_transaction.max_fee.to_nonprefixed_hex_str(),
+// 16)                 .unwrap(),
 //             vec![],
 //             feeder_gateway_transaction.nonce,
 //             feeder_gateway_transaction.calldata,

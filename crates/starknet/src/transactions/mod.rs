@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use starknet_api::block::BlockNumber;
-use starknet_api::transaction::Fee;
 use starknet_in_rust::execution::{CallInfo, TransactionExecutionInfo};
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_rs_core::types::TransactionStatus;
@@ -9,15 +8,9 @@ use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::Event;
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
-use starknet_types::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1 as RpcDeclareTransactionV0V1;
-use starknet_types::rpc::transactions::declare_transaction_v2::DeclareTransactionV2 as RpcDeclareTransactionV2;
-use starknet_types::rpc::transactions::deploy_account_transaction::DeployAccountTransaction as RpcDeployAccountTransaction;
-use starknet_types::rpc::transactions::invoke_transaction_v1::InvokeTransactionV1 as RpcInvokeTransactionV1;
 use starknet_types::rpc::transactions::{
-    CommonTransactionReceipt, DeclareTransaction as RpcDeclareTransaction,
-    DeployTransactionReceipt, Transaction as RpcTransaction, TransactionOutput, TransactionReceipt,
-    TransactionReceiptWithStatus, TransactionType as RpcTransactionType, TransactionType,
-    TransactionWithType as RpcTransactionWithType,
+    DeployTransactionReceipt, Transaction as RpcTransaction, TransactionReceipt,
+    TransactionReceiptWithStatus, TransactionType, TransactionWithType as RpcTransactionWithType,
 };
 
 use crate::constants::UDC_CONTRACT_ADDRESS;
@@ -163,7 +156,7 @@ impl StarknetTransaction {
         );
 
         match &self.inner.transaction {
-            RpcTransaction::Invoke(tx) => {
+            RpcTransaction::Invoke(_) => {
                 let deployed_address =
                     StarknetTransaction::get_deployed_address_from_events(&transaction_events)?;
 

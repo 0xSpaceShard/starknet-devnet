@@ -18,7 +18,6 @@ use crate::felt::{
     BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash, TransactionSignature,
     TransactionVersion,
 };
-use crate::rpc::block::Block;
 
 pub mod broadcasted_declare_transaction_v1;
 pub mod broadcasted_declare_transaction_v2;

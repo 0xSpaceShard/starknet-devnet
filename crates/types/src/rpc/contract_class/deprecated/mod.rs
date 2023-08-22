@@ -1,6 +1,6 @@
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::str::FromStr;
 
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_in_rust::core::contract_address::compute_deprecated_class_hash;
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
 use starknet_rs_core::types::CompressedLegacyContractClass;

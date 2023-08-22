@@ -5,7 +5,6 @@ use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::Broadc
 use starknet_types::rpc::transactions::{
     InvokeTransaction, Transaction, TransactionType, TransactionWithType,
 };
-use starknet_types::traits::HashProducer;
 
 use super::Starknet;
 use crate::error::{self, DevnetResult};

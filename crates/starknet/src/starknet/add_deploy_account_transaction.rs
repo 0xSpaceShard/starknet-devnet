@@ -1,10 +1,9 @@
 use starknet_in_rust::core::errors::state_errors::StateError;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{Felt, TransactionHash};
+use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
 use starknet_types::rpc::transactions::{Transaction, TransactionType, TransactionWithType};
-use starknet_types::traits::HashProducer;
 
 use super::Starknet;
 use crate::error::{DevnetResult, Error};
