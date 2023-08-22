@@ -46,6 +46,7 @@ impl BroadcastedDeclareTransactionV1 {
             },
         }
     }
+
     pub fn compile_sir_declare(
         &self,
         class_hash: ClassHash,
@@ -113,5 +114,76 @@ impl BroadcastedDeclareTransactionV1 {
             &additional_data,
         )?
         .into())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use crate::contract_address::ContractAddress;
+    use crate::contract_class::Cairo0Json;
+    use crate::felt::Felt;
+    use crate::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
+    use crate::traits::{HashProducer, ToHexString};
+    use serde::Deserialize;
+    use starknet_api::transaction::Fee;
+    use starknet_in_rust::definitions::block_context::StarknetChainId;
+
+    #[derive(Deserialize)]
+    struct FeederGatewayDeclareTransactionV1 {
+        transaction_hash: Felt,
+        max_fee: Felt,
+        nonce: Felt,
+        class_hash: Felt,
+        sender_address: Felt,
+        version: Felt,
+    }
+
+    #[test]
+    /// test_artifact is taken from starknet-rs. https://github.com/xJonathanLEI/starknet-rs/blob/starknet-core/v0.5.1/starknet-core/test-data/contracts/cairo0/artifacts/event_example.txt
+    fn correct_transaction_hash_computation_compared_to_a_transaction_from_feeder_gateway() {
+        let json_str = std::fs::read_to_string(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test_data/events_cairo0.casm"
+        ))
+        .unwrap();
+        let cairo0 = Cairo0Json::raw_json_from_json_str(&json_str).unwrap();
+
+        // this is declare v1 transaction send with starknet-rs
+        let json_obj: serde_json::Value = serde_json::from_reader(std::fs::File::open(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/test_data/sequencer_response/declare_v1_testnet_0x04f3480733852ec616431fd89a5e3127b49cef0ac7a71440ebdec40b1322ca9d.json"
+        )).unwrap()).unwrap();
+
+        let feeder_gateway_transaction: FeederGatewayDeclareTransactionV1 =
+            serde_json::from_value(json_obj.get("transaction").unwrap().clone()).unwrap();
+
+        assert_eq!(feeder_gateway_transaction.class_hash, cairo0.generate_hash().unwrap());
+
+        let broadcasted_tx = BroadcastedDeclareTransactionV1::new(
+            ContractAddress::new(feeder_gateway_transaction.sender_address).unwrap(),
+            Fee(u128::from_str_radix(
+                &feeder_gateway_transaction.max_fee.to_nonprefixed_hex_str(),
+                16,
+            )
+            .unwrap()),
+            &vec![],
+            feeder_gateway_transaction.nonce,
+            &cairo0.into(),
+            feeder_gateway_transaction.version,
+        );
+
+        let class_hash = broadcasted_tx.generate_class_hash().unwrap();
+        let transaction_hash = broadcasted_tx
+            .calculate_transaction_hash(&StarknetChainId::TestNet.to_felt().into(), &class_hash)
+            .unwrap();
+
+        let sir_declare_transaction =
+            broadcasted_tx.compile_sir_declare(class_hash, transaction_hash).unwrap();
+
+        assert_eq!(
+            feeder_gateway_transaction.transaction_hash,
+            sir_declare_transaction.hash_value.into()
+        );
     }
 }

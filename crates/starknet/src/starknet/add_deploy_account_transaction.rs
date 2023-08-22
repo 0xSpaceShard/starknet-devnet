@@ -71,7 +71,6 @@ mod tests {
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::{ClassHash, Felt};
     use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
-    use starknet_types::rpc::transactions::BroadcastedTransactionCommon;
     use starknet_types::traits::HashProducer;
 
     use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID};
