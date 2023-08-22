@@ -20,7 +20,7 @@ mod get_transaction_by_hash_integration_tests {
     use crate::common::constants::{
         CASM_COMPILED_CLASS_HASH, PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     };
-    use crate::common::util::BackgroundDevnet;
+    use crate::common::devnet::BackgroundDevnet;
 
     pub const DECLARE_V1_TRANSACTION_HASH: &str =
         "0x01d50d192f54d8d75e73c8ab8fb7159e70bfdbccc322abb43a081889a3043627";

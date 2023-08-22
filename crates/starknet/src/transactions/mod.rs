@@ -6,16 +6,20 @@ pub mod invoke_transaction;
 use std::collections::HashMap;
 
 use starknet_api::block::BlockNumber;
-use starknet_in_rust::execution::{CallInfo, Event, TransactionExecutionInfo};
+use starknet_in_rust::execution::{CallInfo, TransactionExecutionInfo};
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_rs_core::types::TransactionStatus;
+use starknet_rs_core::utils::get_selector_from_name;
+use starknet_types::contract_address::ContractAddress;
+use starknet_types::emitted_event::Event;
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
 
 use self::declare_transaction::DeclareTransactionV1;
 use self::declare_transaction_v2::DeclareTransactionV2;
 use self::deploy_account_transaction::DeployAccountTransaction;
 use self::invoke_transaction::InvokeTransactionV1;
-use crate::error::DevnetResult;
+use crate::constants::UDC_CONTRACT_ADDRESS;
+use crate::error::{DevnetResult, Error};
 use crate::traits::{HashIdentified, HashIdentifiedMut};
 
 #[derive(Default)]
@@ -49,10 +53,10 @@ impl HashIdentified for StarknetTransactions {
 
 #[allow(unused)]
 pub struct StarknetTransaction {
-    pub(crate) status: TransactionStatus,
+    pub status: TransactionStatus,
     pub inner: Transaction,
-    pub(crate) block_hash: Option<BlockHash>,
-    pub(crate) block_number: Option<BlockNumber>,
+    pub block_hash: Option<BlockHash>,
+    pub block_number: Option<BlockNumber>,
     pub(crate) execution_info: Option<starknet_in_rust::execution::TransactionExecutionInfo>,
     pub(crate) execution_error: Option<TransactionError>,
 }
@@ -84,23 +88,63 @@ impl StarknetTransaction {
     }
 
     pub fn get_events(&self) -> DevnetResult<Vec<Event>> {
-        let mut result = Vec::<Event>::new();
+        let mut starknet_in_rust_events = Vec::<starknet_in_rust::execution::Event>::new();
 
-        fn events_from_call_info(call_info: Option<&CallInfo>) -> DevnetResult<Vec<Event>> {
+        fn events_from_call_info(
+            call_info: Option<&CallInfo>,
+        ) -> DevnetResult<Vec<starknet_in_rust::execution::Event>> {
             if let Some(call_info) = call_info {
                 call_info.get_sorted_events().map_err(crate::error::Error::from)
             } else {
-                Ok(Vec::<Event>::new())
+                Ok(Vec::<starknet_in_rust::execution::Event>::new())
             }
         }
 
         if let Some(execution_info) = &self.execution_info {
-            result.extend(events_from_call_info(execution_info.validate_info.as_ref())?);
-            result.extend(events_from_call_info(execution_info.call_info.as_ref())?);
-            result.extend(events_from_call_info(execution_info.fee_transfer_info.as_ref())?);
+            starknet_in_rust_events
+                .extend(events_from_call_info(execution_info.validate_info.as_ref())?);
+            starknet_in_rust_events
+                .extend(events_from_call_info(execution_info.call_info.as_ref())?);
+            starknet_in_rust_events
+                .extend(events_from_call_info(execution_info.fee_transfer_info.as_ref())?);
+        }
+        let mut result: Vec<Event> = Vec::new();
+        for event in starknet_in_rust_events.into_iter() {
+            result.push(Event {
+                from_address: event.from_address.try_into()?,
+                keys: event.keys.into_iter().map(Felt::from).collect(),
+                data: event.data.into_iter().map(Felt::from).collect(),
+            });
         }
 
         Ok(result)
+    }
+
+    /// Scans through events and gets information from Event generated from UDC with specific
+    /// ContractDeployed. Returns the contract address
+    ///
+    /// # Arguments
+    /// * `events` - The events that will be searched
+    pub fn get_deployed_address_from_events(
+        events: &[Event],
+    ) -> DevnetResult<Option<ContractAddress>> {
+        let contract_deployed_event_key =
+            Felt::from(get_selector_from_name("ContractDeployed").map_err(|_| Error::FormatError)?);
+
+        let udc_address = ContractAddress::new(Felt::from_prefixed_hex_str(UDC_CONTRACT_ADDRESS)?)?;
+
+        let deployed_address = events
+            .iter()
+            .find(|e| {
+                e.from_address == udc_address && e.keys.contains(&contract_deployed_event_key)
+            })
+            .map(|e| e.data.first().cloned().unwrap_or_default());
+
+        Ok(if let Some(contract_address) = deployed_address {
+            Some(ContractAddress::new(contract_address)?)
+        } else {
+            None
+        })
     }
 }
 
