@@ -1,5 +1,6 @@
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
+use std::time::Duration;
 
 use ::server::ServerConfig;
 use clap::Parser;
@@ -8,8 +9,10 @@ use starknet_core::account::Account;
 use starknet_core::starknet::Starknet;
 use starknet_types::felt::Felt;
 use starknet_types::traits::{ToDecimalString, ToHexString};
+use tokio_graceful_shutdown::SubsystemHandle;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
+use tokio_graceful_shutdown::Toplevel;
 
 mod api;
 mod cli;
@@ -46,8 +49,7 @@ fn log_predeployed_accounts(predeployed_accounts: &Vec<Account>, seed: u32, init
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), anyhow::Error> {
+async fn main2(subsys: SubsystemHandle) -> Result<(), anyhow::Error> {
     configure_tracing();
 
     // parse arguments
@@ -80,4 +82,21 @@ async fn main() -> Result<(), anyhow::Error> {
     let serve = tokio::task::spawn(server);
 
     Ok(serve.await??)
+}
+
+async fn main1(subsys: SubsystemHandle) -> Result<(), anyhow::Error> {
+    subsys.start("Main2", main2);
+    subsys.on_shutdown_requested().await;
+    println!("Subsystem2 stopped.");
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<(), anyhow::Error> {
+    Toplevel::new()
+        .start("Main1", main1)
+        .catch_signals()
+        .handle_shutdown_requests(Duration::from_millis(1000))
+        .await
+        .map_err(Into::into)
 }

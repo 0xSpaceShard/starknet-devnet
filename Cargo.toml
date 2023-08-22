@@ -48,6 +48,7 @@ serde_json = { version = "1.0.81" }
 thiserror = { version = "1.0.32" }
 anyhow = "1"
 bincode = "1.3.3"
+tokio-graceful-shutdown = "0.13.0"
 
 # Starknet dependencies
 starknet_api = { version = "0.3.0", features = ["testing"] }
