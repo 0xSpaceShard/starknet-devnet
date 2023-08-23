@@ -4,8 +4,8 @@ Contains general_config generation functionalities.
 from starkware.starknet.definitions import constants
 from starkware.starknet.definitions.general_config import (
     DEFAULT_GAS_PRICE,
-    DEFAULT_TX_MAX_STEPS,
     DEFAULT_SEQUENCER_ADDRESS,
+    DEFAULT_TX_MAX_STEPS,
     DEFAULT_VALIDATE_MAX_STEPS,
     StarknetChainId,
     build_general_config,
