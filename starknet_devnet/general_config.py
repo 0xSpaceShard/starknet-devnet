@@ -4,7 +4,7 @@ Contains general_config generation functionalities.
 from starkware.starknet.definitions import constants
 from starkware.starknet.definitions.general_config import (
     DEFAULT_GAS_PRICE,
-    DEFAULT_MAX_STEPS,
+    DEFAULT_TX_MAX_STEPS,
     DEFAULT_SEQUENCER_ADDRESS,
     DEFAULT_VALIDATE_MAX_STEPS,
     StarknetChainId,
@@ -26,7 +26,7 @@ def build_devnet_general_config(chain_id: StarknetChainId):
             "enforce_l1_handler_fee": True,
             "event_commitment_tree_height": constants.EVENT_COMMITMENT_TREE_HEIGHT,
             "global_state_commitment_tree_height": constants.CONTRACT_ADDRESS_BITS,
-            "invoke_tx_max_n_steps": DEFAULT_MAX_STEPS,
+            "invoke_tx_max_n_steps": DEFAULT_TX_MAX_STEPS,
             "min_gas_price": DEFAULT_GAS_PRICE,
             "constant_gas_price": True,
             "sequencer_address": hex(DEFAULT_SEQUENCER_ADDRESS),

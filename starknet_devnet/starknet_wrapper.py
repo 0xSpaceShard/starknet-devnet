@@ -251,8 +251,8 @@ class StarknetWrapper:
 
         self._update_block_number()
         state = self.get_state()
-        state_update = await self.update_pending_state()
-        await self.blocks.generate_pending(transactions, state, state_update)
+        # state_update = await self.update_pending_state() // commented just for tests
+        await self.blocks.generate_pending(transactions, state, None)
         await self.generate_latest_block(block_hash=0)
 
         for transaction in transactions:
