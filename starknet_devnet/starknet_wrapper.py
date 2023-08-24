@@ -91,12 +91,7 @@ from .blocks import DevnetBlocks
 from .blueprints.rpc.structures.types import BlockId, Felt
 from .chargeable_account import ChargeableAccount
 from .compiler import select_compiler
-from .constants import (
-    DUMMY_PENDING_BLOCK_HASH,
-    DUMMY_STATE_ROOT,
-    LEGACY_TX_VERSION,
-    STARKNET_CLI_ACCOUNT_CLASS_HASH,
-)
+from .constants import LEGACY_TX_VERSION, STARKNET_CLI_ACCOUNT_CLASS_HASH
 from .devnet_config import DevnetConfig
 from .fee_token import FeeToken
 from .forked_state import get_forked_starknet
@@ -252,7 +247,7 @@ class StarknetWrapper:
         self._update_block_number()
         state = self.get_state()
         state_update = await self.update_pending_state()
-        await self.blocks.generate_pending(transactions, state, None)
+        await self.blocks.generate_pending(transactions, state, state_update)
         await self.generate_latest_block(block_hash=0)
 
         for transaction in transactions:
