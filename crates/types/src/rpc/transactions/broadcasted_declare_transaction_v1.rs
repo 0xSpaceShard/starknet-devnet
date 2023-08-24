@@ -47,7 +47,7 @@ impl BroadcastedDeclareTransactionV1 {
         }
     }
 
-    pub fn compile_sir_declare(
+    pub fn create_sir_declare(
         &self,
         class_hash: ClassHash,
         transaction_hash: TransactionHash,
@@ -74,7 +74,7 @@ impl BroadcastedDeclareTransactionV1 {
         Ok(declare)
     }
 
-    pub fn compile_declare(
+    pub fn create_declare(
         &self,
         class_hash: ClassHash,
         transaction_hash: TransactionHash,
@@ -179,7 +179,7 @@ mod tests {
             .unwrap();
 
         let sir_declare_transaction =
-            broadcasted_tx.compile_sir_declare(class_hash, transaction_hash).unwrap();
+            broadcasted_tx.create_sir_declare(class_hash, transaction_hash).unwrap();
 
         assert_eq!(
             feeder_gateway_transaction.transaction_hash,

@@ -21,10 +21,10 @@ pub fn add_invoke_transcation_v1(
     }
 
     let sir_invoke_function = broadcasted_invoke_transaction
-        .create_sir_invoke_function(&starknet.config.chain_id.to_felt().into())?;
+        .create_sir_invoke_function(starknet.config.chain_id.to_felt().into())?;
     let transaction_hash = sir_invoke_function.hash_value().into();
     let invoke_transaction =
-        broadcasted_invoke_transaction.create_invoke_transaction(&transaction_hash);
+        broadcasted_invoke_transaction.create_invoke_transaction(transaction_hash);
 
     let transaction_with_type = TransactionWithType {
         r#type: TransactionType::Invoke,
@@ -41,13 +41,13 @@ pub fn add_invoke_transcation_v1(
         Ok(tx_info) => {
             starknet.handle_successful_transaction(
                 &transaction_hash,
-                transaction_with_type,
-                tx_info,
+                &transaction_with_type,
+                &tx_info,
             )?;
         }
         Err(tx_err) => {
             let transaction_to_add =
-                StarknetTransaction::create_rejected(transaction_with_type, tx_err);
+                StarknetTransaction::create_rejected(&transaction_with_type, tx_err);
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
             // Revert to previous pending state

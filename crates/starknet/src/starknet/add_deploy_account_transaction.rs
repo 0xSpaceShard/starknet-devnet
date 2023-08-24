@@ -25,7 +25,7 @@ pub fn add_deploy_account_transaction(
     }
 
     let sir_deploy_account_transaction = broadcasted_deploy_account_transaction
-        .compile_sir_deploy_account(starknet.config.chain_id.to_felt().into())?;
+        .create_sir_deploy_account(starknet.config.chain_id.to_felt().into())?;
 
     let transaction_hash = sir_deploy_account_transaction.hash_value().into();
     let deploy_account_transaction = broadcasted_deploy_account_transaction
@@ -45,13 +45,13 @@ pub fn add_deploy_account_transaction(
         Ok(tx_info) => {
             starknet.handle_successful_transaction(
                 &transaction_hash,
-                transaction_with_type,
-                tx_info,
+                &transaction_with_type,
+                &tx_info,
             )?;
         }
         Err(tx_err) => {
             let transaction_to_add =
-                StarknetTransaction::create_rejected(transaction_with_type, tx_err);
+                StarknetTransaction::create_rejected(&transaction_with_type, tx_err);
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
             // Revert to previous pending state
@@ -139,7 +139,7 @@ mod tests {
             Felt::from(1),
         );
         let sir_transction = transaction
-            .compile_sir_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt().into())
+            .create_sir_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt().into())
             .unwrap();
 
         // change balance at address

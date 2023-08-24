@@ -41,8 +41,8 @@ impl BroadcastedDeployAccountTransaction {
             },
         }
     }
-    // TODO: visibility & rename - create
-    pub fn compile_sir_deploy_account(&self, chain_id: Felt) -> DevnetResult<SirDeployAccount> {
+
+    pub fn create_sir_deploy_account(&self, chain_id: Felt) -> DevnetResult<SirDeployAccount> {
         Ok(SirDeployAccount::new(
             self.class_hash.bytes(),
             self.common.max_fee.0,
@@ -124,7 +124,7 @@ mod tests {
         );
 
         let deploy_account_transaction = broadcasted_tx
-            .compile_sir_deploy_account(StarknetChainId::TestNet.to_felt().into())
+            .create_sir_deploy_account(StarknetChainId::TestNet.to_felt().into())
             .unwrap();
 
         assert_eq!(

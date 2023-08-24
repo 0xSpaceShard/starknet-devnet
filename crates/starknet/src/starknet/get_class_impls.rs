@@ -76,7 +76,7 @@ mod tests {
     use crate::starknet::{predeployed, Starknet};
     use crate::state::state_diff::StateDiff;
     use crate::traits::{Accounted, Deployed};
-    use crate::utils::test_utils::{dummy_declare_transaction_v2, dummy_felt};
+    use crate::utils::test_utils::{dummy_broadcasted_declare_transaction_v2, dummy_felt};
 
     fn setup(acc_balance: Option<u128>) -> (Starknet, Account) {
         let mut starknet = Starknet::default();
@@ -120,7 +120,7 @@ mod tests {
         let (mut starknet, account) = setup(Some(100000000));
 
         let block_number = starknet.block_number();
-        let declare_txn = dummy_declare_transaction_v2(&account.account_address);
+        let declare_txn = dummy_broadcasted_declare_transaction_v2(&account.account_address);
 
         let expected: ContractClass = declare_txn.contract_class.clone().into();
         let (_, class_hash) = starknet.add_declare_transaction_v2(declare_txn).unwrap();

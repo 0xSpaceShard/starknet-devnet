@@ -31,8 +31,6 @@ impl DeclareTransactionV2 {
     }
 }
 
-// TODO: impl compile DeclareTransaction from SirDeclareV2 with passing contract as arg
-
 impl TryFrom<SirDeclareV2> for DeclareTransactionV2 {
     type Error = Error;
     fn try_from(value: SirDeclareV2) -> DevnetResult<Self> {

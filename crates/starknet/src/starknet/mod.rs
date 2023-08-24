@@ -212,8 +212,8 @@ impl Starknet {
     pub(crate) fn handle_successful_transaction(
         &mut self,
         transaction_hash: &TransactionHash,
-        transaction: TransactionWithType,
-        tx_info: TransactionExecutionInfo,
+        transaction: &TransactionWithType,
+        tx_info: &TransactionExecutionInfo,
     ) -> DevnetResult<()> {
         let transaction_to_add = StarknetTransaction::create_successful(transaction, tx_info);
 
@@ -385,7 +385,7 @@ impl Starknet {
                         )?;
 
                         let declare_tx =
-                            broadcasted_tx.compile_sir_declare(class_hash, transaction_hash)?;
+                            broadcasted_tx.create_sir_declare(class_hash, transaction_hash)?;
 
                         Ok(starknet_in_rust::transaction::Transaction::Declare(declare_tx))
                     }
@@ -393,7 +393,7 @@ impl Starknet {
                         broadcasted_tx,
                     )) => {
                         let declare_tx = broadcasted_tx
-                            .compile_sir_declare(&self.config.chain_id.to_felt().into())?;
+                            .create_sir_declare(self.config.chain_id.to_felt().into())?;
 
                         Ok(starknet_in_rust::transaction::Transaction::DeclareV2(Box::new(
                             declare_tx,
@@ -401,7 +401,7 @@ impl Starknet {
                     }
                     BroadcastedTransaction::DeployAccount(broadcasted_tx) => {
                         let deploy_tx = broadcasted_tx
-                            .compile_sir_deploy_account(self.config.chain_id.to_felt().into())?;
+                            .create_sir_deploy_account(self.config.chain_id.to_felt().into())?;
 
                         Ok(starknet_in_rust::transaction::Transaction::DeployAccount(deploy_tx))
                     }
@@ -409,7 +409,7 @@ impl Starknet {
                         broadcasted_tx,
                     )) => {
                         let invoke_tx = broadcasted_tx
-                            .create_sir_invoke_function(&self.config.chain_id.to_felt().into())?;
+                            .create_sir_invoke_function(self.config.chain_id.to_felt().into())?;
 
                         Ok(starknet_in_rust::transaction::Transaction::InvokeFunction(invoke_tx))
                     }

@@ -119,11 +119,10 @@ pub(crate) mod test_utils {
         let transaction_hash =
             broadcasted_tx.calculate_transaction_hash(&chain_id, &class_hash).unwrap();
 
-        broadcasted_tx.compile_declare(class_hash, transaction_hash)
+        broadcasted_tx.create_declare(class_hash, transaction_hash)
     }
 
-    // TODO: check/rename to bradcasted declare
-    pub(crate) fn dummy_declare_transaction_v2(
+    pub(crate) fn dummy_broadcasted_declare_transaction_v2(
         sender_address: &ContractAddress,
     ) -> BroadcastedDeclareTransactionV2 {
         let contract_class = dummy_cairo_1_contract_class();
@@ -135,12 +134,12 @@ pub(crate) mod test_utils {
 
         BroadcastedDeclareTransactionV2::new(
             &contract_class,
-            &compiled_class_hash.into(),
-            sender_address,
-            &Fee(2000),
+            compiled_class_hash.into(),
+            *sender_address,
+            Fee(2000),
             &Vec::new(),
-            &Felt::from(0),
-            &Felt::from(2),
+            Felt::from(0),
+            Felt::from(2),
         )
     }
 

@@ -40,7 +40,7 @@ impl BroadcastedInvokeTransactionV1 {
         }
     }
 
-    pub fn create_sir_invoke_function(&self, chain_id: &Felt) -> DevnetResult<SirInvokeFunction> {
+    pub fn create_sir_invoke_function(&self, chain_id: Felt) -> DevnetResult<SirInvokeFunction> {
         Ok(SirInvokeFunction::new(
             self.sender_address.into(),
             EXECUTE_ENTRY_POINT_SELECTOR.clone(),
@@ -55,10 +55,10 @@ impl BroadcastedInvokeTransactionV1 {
 
     pub fn create_invoke_transaction(
         &self,
-        transaction_hash: &TransactionHash,
+        transaction_hash: TransactionHash,
     ) -> InvokeTransactionV1 {
         InvokeTransactionV1 {
-            transaction_hash: *transaction_hash,
+            transaction_hash,
             max_fee: self.common.max_fee,
             version: self.common.version,
             signature: self.common.signature.clone(),
@@ -120,7 +120,7 @@ mod tests {
         );
 
         let transaction = transaction
-            .create_sir_invoke_function(&StarknetChainId::TestNet.to_felt().into())
+            .create_sir_invoke_function(StarknetChainId::TestNet.to_felt().into())
             .unwrap();
 
         assert_eq!(feeder_gateway_transaction.transaction_hash, transaction.hash_value().into());

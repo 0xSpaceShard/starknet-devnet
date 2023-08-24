@@ -26,44 +26,44 @@ pub struct BroadcastedDeclareTransactionV2 {
 impl BroadcastedDeclareTransactionV2 {
     pub fn new(
         contract_class: &SierraContractClass,
-        compiled_class_hash: &CompiledClassHash,
-        sender_address: &ContractAddress,
-        max_fee: &Fee,
+        compiled_class_hash: CompiledClassHash,
+        sender_address: ContractAddress,
+        max_fee: Fee,
         signature: &TransactionSignature,
-        nonce: &Nonce,
-        version: &TransactionVersion,
+        nonce: Nonce,
+        version: TransactionVersion,
     ) -> Self {
         Self {
             contract_class: contract_class.clone(),
-            sender_address: *sender_address,
-            compiled_class_hash: *compiled_class_hash,
+            sender_address,
+            compiled_class_hash,
             common: BroadcastedTransactionCommon {
-                max_fee: *max_fee,
-                version: *version,
+                max_fee,
+                version,
                 signature: signature.clone(),
-                nonce: *nonce,
+                nonce,
             },
         }
     }
 
-    pub fn compile_declare(
+    pub fn create_declare(
         &self,
-        class_hash: &ClassHash,
-        transaction_hash: &TransactionHash,
+        class_hash: ClassHash,
+        transaction_hash: TransactionHash,
     ) -> DeclareTransactionV2 {
         DeclareTransactionV2 {
-            class_hash: *class_hash,
+            class_hash,
             compiled_class_hash: self.compiled_class_hash,
             sender_address: self.sender_address,
             nonce: self.common.nonce,
             max_fee: self.common.max_fee,
             version: self.common.version,
-            transaction_hash: *transaction_hash,
+            transaction_hash,
             signature: self.common.signature.clone(),
         }
     }
 
-    pub fn compile_sir_declare(&self, chain_id: &Felt) -> DevnetResult<SirDeclareV2> {
+    pub fn create_sir_declare(&self, chain_id: Felt) -> DevnetResult<SirDeclareV2> {
         Ok(SirDeclareV2::new(
             &self.contract_class,
             None,
@@ -148,19 +148,19 @@ mod tests {
         .unwrap();
         let broadcasted_declare_transaction = BroadcastedDeclareTransactionV2::new(
             &cairo_1_contract,
-            &feeder_gateway_transaction.compiled_class_hash,
-            &ContractAddress::new(feeder_gateway_transaction.sender_address).unwrap(),
-            &Fee(u128::from_str_radix(
+            feeder_gateway_transaction.compiled_class_hash,
+            ContractAddress::new(feeder_gateway_transaction.sender_address).unwrap(),
+            Fee(u128::from_str_radix(
                 &feeder_gateway_transaction.max_fee.to_nonprefixed_hex_str(),
                 16,
             )
             .unwrap()),
             &vec![],
-            &feeder_gateway_transaction.nonce,
-            &feeder_gateway_transaction.version,
+            feeder_gateway_transaction.nonce,
+            feeder_gateway_transaction.version,
         );
         let declare_transaction = broadcasted_declare_transaction
-            .compile_sir_declare(&StarknetChainId::TestNet.to_felt().into())
+            .create_sir_declare(StarknetChainId::TestNet.to_felt().into())
             .unwrap();
 
         assert_eq!(

@@ -9,8 +9,8 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::Event;
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
 use starknet_types::rpc::transactions::{
-    DeployTransactionReceipt, Transaction as RpcTransaction, TransactionReceipt,
-    TransactionReceiptWithStatus, TransactionType, TransactionWithType as RpcTransactionWithType,
+    DeployTransactionReceipt, Transaction, TransactionReceipt, TransactionReceiptWithStatus,
+    TransactionType, TransactionWithType,
 };
 
 use crate::constants::UDC_CONTRACT_ADDRESS;
@@ -49,7 +49,7 @@ impl HashIdentified for StarknetTransactions {
 #[allow(unused)]
 pub struct StarknetTransaction {
     pub(crate) status: TransactionStatus,
-    pub inner: RpcTransactionWithType,
+    pub inner: TransactionWithType,
     pub(crate) block_hash: Option<BlockHash>,
     pub(crate) block_number: Option<BlockNumber>,
     pub(crate) execution_info: Option<starknet_in_rust::execution::TransactionExecutionInfo>,
@@ -58,12 +58,12 @@ pub struct StarknetTransaction {
 
 impl StarknetTransaction {
     pub fn create_rejected(
-        transaction: RpcTransactionWithType,
+        transaction: &TransactionWithType,
         execution_error: TransactionError,
     ) -> Self {
         Self {
             status: TransactionStatus::Rejected,
-            inner: transaction,
+            inner: transaction.clone(),
             execution_info: None,
             execution_error: Some(execution_error),
             block_hash: None,
@@ -71,15 +71,14 @@ impl StarknetTransaction {
         }
     }
 
-    // TODO: pass by reference
     pub fn create_successful(
-        transaction: RpcTransactionWithType,
-        execution_info: TransactionExecutionInfo,
+        transaction: &TransactionWithType,
+        execution_info: &TransactionExecutionInfo,
     ) -> Self {
         Self {
             status: TransactionStatus::Pending,
-            inner: transaction,
-            execution_info: Some(execution_info),
+            inner: transaction.clone(),
+            execution_info: Some(execution_info.clone()),
             execution_error: None,
             block_hash: None,
             block_number: None,
@@ -156,7 +155,7 @@ impl StarknetTransaction {
         );
 
         match &self.inner.transaction {
-            RpcTransaction::Invoke(_) => {
+            Transaction::Invoke(_) => {
                 let deployed_address =
                     StarknetTransaction::get_deployed_address_from_events(&transaction_events)?;
 
@@ -209,15 +208,15 @@ mod tests {
         };
 
         let sn_tx = StarknetTransaction::create_successful(
-            tx_with_type.clone(),
-            TransactionExecutionInfo::default(),
+            &tx_with_type,
+            &TransactionExecutionInfo::default(),
         );
         let mut sn_txs = StarknetTransactions::default();
         sn_txs.insert(
             &hash,
             StarknetTransaction::create_successful(
-                tx_with_type,
-                TransactionExecutionInfo::default(),
+                &tx_with_type,
+                &TransactionExecutionInfo::default(),
             ),
         );
 
@@ -255,13 +254,10 @@ mod tests {
 
     fn check_correct_transaction_properties(tran: TransactionWithType, is_success: bool) {
         let sn_tran = if is_success {
-            StarknetTransaction::create_successful(
-                tran.clone(),
-                TransactionExecutionInfo::default(),
-            )
+            StarknetTransaction::create_successful(&tran, &TransactionExecutionInfo::default())
         } else {
             StarknetTransaction::create_rejected(
-                tran.clone(),
+                &tran,
                 starknet_in_rust::transaction::error::TransactionError::AttempToUseNoneCodeAddress,
             )
         };

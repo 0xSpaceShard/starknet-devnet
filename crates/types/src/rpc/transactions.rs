@@ -53,7 +53,6 @@ impl TransactionWithType {
         self.transaction.get_transaction_hash()
     }
 
-    // TODO: maybe move to StarknetTransaction
     pub fn create_common_receipt(
         &self,
         transaction_events: &[Event],

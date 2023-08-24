@@ -51,12 +51,12 @@ mod tests {
 
         let mut declare_txn = BroadcastedDeclareTransactionV2::new(
             &contract_class,
-            &compiled_class_hash.clone().into(),
-            &sender_address,
-            &Fee(2000),
+            compiled_class_hash.clone().into(),
+            sender_address,
+            Fee(2000),
             &Vec::new(),
-            &Felt::from(0),
-            &Felt::from(2),
+            Felt::from(0),
+            Felt::from(2),
         );
 
         // first execute declare v2 transaction
