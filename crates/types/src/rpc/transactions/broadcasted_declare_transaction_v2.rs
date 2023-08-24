@@ -45,6 +45,7 @@ impl BroadcastedDeclareTransactionV2 {
             },
         }
     }
+
     pub fn compile_declare(
         &self,
         class_hash: &ClassHash,
@@ -79,7 +80,6 @@ impl BroadcastedDeclareTransactionV2 {
 
 #[cfg(test)]
 mod tests {
-
     use serde::Deserialize;
     use starknet_api::transaction::Fee;
     use starknet_in_rust::core::contract_address::compute_sierra_class_hash;

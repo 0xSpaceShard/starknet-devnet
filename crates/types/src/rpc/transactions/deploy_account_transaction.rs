@@ -21,7 +21,7 @@ pub struct DeployAccountTransaction {
 }
 
 impl DeployAccountTransaction {
-    pub fn max_fee(&self) -> Fee {
+    pub fn get_max_fee(&self) -> Fee {
         self.max_fee
     }
 

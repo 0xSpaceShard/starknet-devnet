@@ -45,8 +45,8 @@ pub struct TransactionWithType {
 }
 
 impl TransactionWithType {
-    pub fn max_fee(&self) -> Fee {
-        self.transaction.max_fee()
+    pub fn get_max_fee(&self) -> Fee {
+        self.transaction.get_max_fee()
     }
 
     pub fn get_transaction_hash(&self) -> &TransactionHash {
@@ -61,7 +61,7 @@ impl TransactionWithType {
         block_number: BlockNumber,
     ) -> CommonTransactionReceipt {
         let output = TransactionOutput {
-            actual_fee: self.max_fee(),
+            actual_fee: self.get_max_fee(),
             messages_sent: Vec::new(),
             events: transaction_events.to_vec(),
         };
@@ -112,13 +112,13 @@ impl Transaction {
         }
     }
 
-    pub fn max_fee(&self) -> Fee {
+    pub fn get_max_fee(&self) -> Fee {
         match self {
-            Transaction::Declare(tx) => tx.max_fee(),
-            Transaction::DeployAccount(tx) => tx.max_fee(),
-            Transaction::Deploy(tx) => tx.max_fee(),
-            Transaction::Invoke(tx) => tx.max_fee(),
-            Transaction::L1Handler(tx) => tx.max_fee(),
+            Transaction::Declare(tx) => tx.get_max_fee(),
+            Transaction::DeployAccount(tx) => tx.get_max_fee(),
+            Transaction::Deploy(tx) => tx.get_max_fee(),
+            Transaction::Invoke(tx) => tx.get_max_fee(),
+            Transaction::L1Handler(tx) => tx.get_max_fee(),
         }
     }
 
@@ -142,11 +142,11 @@ pub enum DeclareTransaction {
 }
 
 impl DeclareTransaction {
-    pub fn max_fee(&self) -> Fee {
+    pub fn get_max_fee(&self) -> Fee {
         match self {
-            DeclareTransaction::Version0(tx) => tx.max_fee(),
-            DeclareTransaction::Version1(tx) => tx.max_fee(),
-            DeclareTransaction::Version2(tx) => tx.max_fee(),
+            DeclareTransaction::Version0(tx) => tx.get_max_fee(),
+            DeclareTransaction::Version1(tx) => tx.get_max_fee(),
+            DeclareTransaction::Version2(tx) => tx.get_max_fee(),
         }
     }
 
@@ -189,10 +189,10 @@ pub enum InvokeTransaction {
 }
 
 impl InvokeTransaction {
-    pub fn max_fee(&self) -> Fee {
+    pub fn get_max_fee(&self) -> Fee {
         match self {
             InvokeTransaction::Version0(tx) => tx.get_max_fee(),
-            InvokeTransaction::Version1(tx) => tx.max_fee(),
+            InvokeTransaction::Version1(tx) => tx.get_max_fee(),
         }
     }
 
@@ -215,7 +215,7 @@ pub struct L1HandlerTransaction {
 }
 
 impl L1HandlerTransaction {
-    pub fn max_fee(&self) -> Fee {
+    pub fn get_max_fee(&self) -> Fee {
         Fee(0)
     }
 

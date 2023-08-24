@@ -12,24 +12,24 @@ use crate::transactions::StarknetTransaction;
 
 pub fn add_deploy_account_transaction(
     starknet: &mut Starknet,
-    broadcated_deploy_account_transaction: BroadcastedDeployAccountTransaction,
+    broadcasted_deploy_account_transaction: BroadcastedDeployAccountTransaction,
 ) -> DevnetResult<(TransactionHash, ContractAddress)> {
-    if broadcated_deploy_account_transaction.common.max_fee.0 == 0 {
+    if broadcasted_deploy_account_transaction.common.max_fee.0 == 0 {
         return Err(Error::TransactionError(TransactionError::FeeError(
             "For deploy account transaction, max fee cannot be 0".to_string(),
         )));
     }
 
-    if !starknet.state.is_contract_declared(&broadcated_deploy_account_transaction.class_hash) {
+    if !starknet.state.is_contract_declared(&broadcasted_deploy_account_transaction.class_hash) {
         return Err(Error::StateError(StateError::MissingClassHash()));
     }
 
-    let sir_deploy_account_transaction = broadcated_deploy_account_transaction
+    let sir_deploy_account_transaction = broadcasted_deploy_account_transaction
         .compile_sir_deploy_account(starknet.config.chain_id.to_felt().into())?;
 
     let transaction_hash = sir_deploy_account_transaction.hash_value().into();
-    let deploy_account_transaction =
-        broadcated_deploy_account_transaction.compile_deploy_account_transaction(&transaction_hash);
+    let deploy_account_transaction = broadcasted_deploy_account_transaction
+        .compile_deploy_account_transaction(&transaction_hash);
 
     let address: ContractAddress = sir_deploy_account_transaction.contract_address().try_into()?;
 

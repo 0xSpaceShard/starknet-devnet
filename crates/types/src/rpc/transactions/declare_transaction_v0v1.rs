@@ -20,7 +20,7 @@ pub struct DeclareTransactionV0V1 {
 }
 
 impl DeclareTransactionV0V1 {
-    pub fn max_fee(&self) -> Fee {
+    pub fn get_max_fee(&self) -> Fee {
         self.max_fee
     }
 
