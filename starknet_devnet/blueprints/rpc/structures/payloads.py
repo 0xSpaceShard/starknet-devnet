@@ -98,7 +98,7 @@ async def rpc_block(
 
     def new_root() -> Felt:
         # pylint: disable=no-member
-        return rpc_root(block.state_root)
+        return rpc_root(block.state_root.hex())
 
     def config() -> StarknetGeneralConfig:
         devnet_state = state.starknet_wrapper.get_state()
@@ -963,15 +963,15 @@ def rpc_state_update(
 
     if state_update.block_hash is None or state_update.block_hash == 0:
         pending_rpc_state: RpcPendingStateUpdate = {
-            "old_root": rpc_root(state_update.old_root.hex()),
+            "old_root": rpc_root(state_update.old_root),
             "state_diff": state_diff,
         }
         return pending_rpc_state
 
     rpc_state: RpcStateUpdate = {
         "block_hash": rpc_felt(state_update.block_hash),
-        "new_root": rpc_root(state_update.new_root.hex()),
-        "old_root": rpc_root(state_update.old_root.hex()),
+        "new_root": rpc_root(state_update.new_root),
+        "old_root": rpc_root(state_update.old_root),
         "state_diff": state_diff,
     }
     return rpc_state
