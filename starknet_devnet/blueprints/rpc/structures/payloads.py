@@ -98,7 +98,7 @@ async def rpc_block(
 
     def new_root() -> Felt:
         # pylint: disable=no-member
-        return rpc_root(block.state_root.hex())
+        return rpc_root(block.state_root)
 
     def config() -> StarknetGeneralConfig:
         devnet_state = state.starknet_wrapper.get_state()
