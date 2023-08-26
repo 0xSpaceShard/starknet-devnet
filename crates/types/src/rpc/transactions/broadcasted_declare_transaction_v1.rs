@@ -94,7 +94,6 @@ impl BroadcastedDeclareTransactionV1 {
         self.contract_class.generate_hash()
     }
 
-    // TODO: Maybe move outside
     pub fn calculate_transaction_hash(
         &self,
         chain_id: &Felt,

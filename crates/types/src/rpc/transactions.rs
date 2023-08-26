@@ -218,7 +218,6 @@ impl L1HandlerTransaction {
         Fee(0)
     }
 
-    // TODO: if tyoe implementing copy shall be returned by reference?
     pub fn get_transaction_hash(&self) -> &TransactionHash {
         &self.transaction_hash
     }
