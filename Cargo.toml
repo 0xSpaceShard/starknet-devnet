@@ -51,12 +51,12 @@ anyhow = "1"
 # Starknet dependencies
 starknet_api = { version = "0.3.0", features = ["testing"] }
 starknet-in-rust = { git = "https://github.com/lambdaclass/starknet_in_rust", rev = "f05da40", package="starknet_in_rust" }
-starknet-rs-signers = { version = "0.3.0", package = "starknet-signers" }
-starknet-rs-ff = { version = "0.3.4", package = "starknet-ff" }
-starknet-rs-core = { version = "0.5.1", package = "starknet-core" }
-starknet-rs-providers = { version = "0.5.0", package = "starknet-providers" }
-starknet-rs-accounts = { version = "0.4.0", package = "starknet-accounts" }
-starknet-rs-contract = { version = "0.4.0", package = "starknet-contract" }
+starknet-rs-signers = { git = "https://github.com/xJonathanLEI/starknet-rs.git", rev = "e9bdd7efeae9c76ef62a130ccef3f4355a864797", package="starknet-signers" }
+starknet-rs-ff = {  git = "https://github.com/xJonathanLEI/starknet-rs.git", rev = "e9bdd7efeae9c76ef62a130ccef3f4355a864797", package = "starknet-ff" }
+starknet-rs-core = {  git = "https://github.com/xJonathanLEI/starknet-rs.git", rev = "e9bdd7efeae9c76ef62a130ccef3f4355a864797", package = "starknet-core" }
+starknet-rs-providers = {  git = "https://github.com/xJonathanLEI/starknet-rs.git", rev = "e9bdd7efeae9c76ef62a130ccef3f4355a864797", package = "starknet-providers" }
+starknet-rs-accounts = {  git = "https://github.com/xJonathanLEI/starknet-rs.git", rev = "e9bdd7efeae9c76ef62a130ccef3f4355a864797", package = "starknet-accounts" }
+starknet-rs-contract = {  git = "https://github.com/xJonathanLEI/starknet-rs.git", rev = "e9bdd7efeae9c76ef62a130ccef3f4355a864797", package = "starknet-contract" }
 cairo-felt = { version = "0.8.5", package = "cairo-felt" }
 url = "2.4"
 

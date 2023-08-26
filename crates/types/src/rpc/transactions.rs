@@ -10,7 +10,7 @@ use invoke_transaction_v1::InvokeTransactionV1;
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
 use starknet_api::transaction::{EthAddress, Fee};
-use starknet_rs_core::types::{BlockId, TransactionStatus};
+use starknet_rs_core::types::{BlockId, TransactionExecutionStatus};
 
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
