@@ -21,7 +21,9 @@ mod tests {
     use starknet_in_rust::core::contract_address::compute_casm_class_hash;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_in_rust::CasmContractClass;
-    use starknet_rs_core::types::TransactionStatus;
+    use starknet_rs_core::types::{
+        ExecutionResult, TransactionExecutionStatus, TransactionFinalityStatus,
+    };
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
@@ -61,10 +63,10 @@ mod tests {
 
         // first execute declare v2 transaction
         let (txn_hash, _) = starknet.add_declare_transaction_v2(declare_txn.clone()).unwrap();
-        assert_eq!(
-            starknet.transactions.get_by_hash_mut(&txn_hash).unwrap().status,
-            TransactionStatus::AcceptedOnL2
-        );
+        let tx = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
+        assert_eq!(tx.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
+        assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
+
         let state_update = starknet
             .block_state_update(starknet_rs_core::types::BlockId::Tag(
                 starknet_rs_core::types::BlockTag::Latest,
@@ -99,10 +101,9 @@ mod tests {
         // computed
         declare_txn.common.nonce = Felt::from(1);
         let (txn_hash, _) = starknet.add_declare_transaction_v2(declare_txn).unwrap();
-        assert_eq!(
-            starknet.transactions.get_by_hash_mut(&txn_hash).unwrap().status,
-            TransactionStatus::AcceptedOnL2
-        );
+        let tx = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
+        assert_eq!(tx.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
+        assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
         let state_update = starknet
             .block_state_update(starknet_rs_core::types::BlockId::Tag(

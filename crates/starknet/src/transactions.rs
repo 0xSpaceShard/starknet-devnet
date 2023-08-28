@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use starknet_api::block::BlockNumber;
 use starknet_in_rust::execution::{CallInfo, TransactionExecutionInfo};
 use starknet_in_rust::transaction::error::TransactionError;
-use starknet_rs_core::types::TransactionStatus;
+use starknet_rs_core::types::{ExecutionResult, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::Event;
@@ -48,24 +48,25 @@ impl HashIdentified for StarknetTransactions {
 
 #[allow(unused)]
 pub struct StarknetTransaction {
-    pub(crate) status: TransactionStatus,
+    pub(crate) finality_status: Option<TransactionFinalityStatus>,
+    pub(crate) execution_result: ExecutionResult,
     pub inner: TransactionWithType,
     pub(crate) block_hash: Option<BlockHash>,
     pub(crate) block_number: Option<BlockNumber>,
     pub(crate) execution_info: Option<starknet_in_rust::execution::TransactionExecutionInfo>,
-    pub(crate) execution_error: Option<TransactionError>,
 }
 
 impl StarknetTransaction {
     pub fn create_rejected(
         transaction: &TransactionWithType,
-        execution_error: TransactionError,
+        finality_status: Option<TransactionFinalityStatus>,
+        execution_error: &str,
     ) -> Self {
         Self {
-            status: TransactionStatus::Rejected,
+            finality_status,
+            execution_result: ExecutionResult::Reverted { reason: execution_error.to_string() },
             inner: transaction.clone(),
             execution_info: None,
-            execution_error: Some(execution_error),
             block_hash: None,
             block_number: None,
         }
@@ -73,13 +74,14 @@ impl StarknetTransaction {
 
     pub fn create_successful(
         transaction: &TransactionWithType,
+        finality_status: Option<TransactionFinalityStatus>,
         execution_info: &TransactionExecutionInfo,
     ) -> Self {
         Self {
-            status: TransactionStatus::Pending,
+            finality_status,
+            execution_result: ExecutionResult::Succeeded,
             inner: transaction.clone(),
             execution_info: Some(execution_info.clone()),
-            execution_error: None,
             block_hash: None,
             block_number: None,
         }
@@ -152,6 +154,7 @@ impl StarknetTransaction {
             &transaction_events,
             &self.block_hash.unwrap_or_default(),
             self.block_number.unwrap_or_default(),
+            &self.execution_result,
         );
 
         match &self.inner.transaction {
@@ -162,7 +165,7 @@ impl StarknetTransaction {
                 let receipt = if let Some(contract_address) = deployed_address {
                     common_receipt.r#type = TransactionType::Deploy;
                     TransactionReceiptWithStatus {
-                        status: self.status,
+                        finality_status: self.finality_status,
                         receipt: TransactionReceipt::Deploy(DeployTransactionReceipt {
                             common: common_receipt,
                             contract_address,
@@ -170,7 +173,7 @@ impl StarknetTransaction {
                     }
                 } else {
                     TransactionReceiptWithStatus {
-                        status: self.status,
+                        finality_status: self.finality_status,
                         receipt: TransactionReceipt::Common(common_receipt),
                     }
                 };
@@ -178,7 +181,7 @@ impl StarknetTransaction {
                 Ok(receipt)
             }
             _ => Ok(TransactionReceiptWithStatus {
-                status: self.status,
+                finality_status: self.finality_status,
                 receipt: TransactionReceipt::Common(common_receipt),
             }),
         }
@@ -188,7 +191,9 @@ impl StarknetTransaction {
 #[cfg(test)]
 mod tests {
     use starknet_in_rust::execution::TransactionExecutionInfo;
-    use starknet_rs_core::types::TransactionStatus;
+    use starknet_rs_core::types::{
+        ExecutionResult, TransactionExecutionStatus, TransactionFinalityStatus,
+    };
     use starknet_types::rpc::transactions::{
         DeclareTransaction, Transaction, TransactionType, TransactionWithType,
     };
@@ -209,6 +214,7 @@ mod tests {
 
         let sn_tx = StarknetTransaction::create_successful(
             &tx_with_type,
+            None,
             &TransactionExecutionInfo::default(),
         );
         let mut sn_txs = StarknetTransactions::default();
@@ -216,6 +222,7 @@ mod tests {
             &hash,
             StarknetTransaction::create_successful(
                 &tx_with_type,
+                None,
                 &TransactionExecutionInfo::default(),
             ),
         );
@@ -225,8 +232,7 @@ mod tests {
         assert_eq!(sn_tx.block_hash, extracted_tran.block_hash);
         assert_eq!(sn_tx.block_number, extracted_tran.block_number);
         assert!(sn_tx.inner == extracted_tran.inner);
-        assert_eq!(sn_tx.status, extracted_tran.status);
-        assert_eq!(sn_tx.execution_error.is_some(), extracted_tran.execution_error.is_some());
+        assert_eq!(sn_tx.finality_status, extracted_tran.finality_status);
         assert_eq!(sn_tx.execution_info.is_some(), extracted_tran.execution_info.is_some());
     }
 
@@ -254,22 +260,28 @@ mod tests {
 
     fn check_correct_transaction_properties(tran: TransactionWithType, is_success: bool) {
         let sn_tran = if is_success {
-            StarknetTransaction::create_successful(&tran, &TransactionExecutionInfo::default())
-        } else {
-            StarknetTransaction::create_rejected(
+            let tx = StarknetTransaction::create_successful(
                 &tran,
-                starknet_in_rust::transaction::error::TransactionError::AttempToUseNoneCodeAddress,
-            )
+                None,
+                &TransactionExecutionInfo::default(),
+            );
+            assert_eq!(tx.finality_status, None);
+            assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
+
+            tx
+        } else {
+            let error_str =
+                starknet_in_rust::transaction::error::TransactionError::AttempToUseNoneCodeAddress
+                    .to_string();
+            let tx = StarknetTransaction::create_rejected(&tran, None, &error_str);
+
+            assert_eq!(tx.execution_result.revert_reason(), Some(error_str.as_str()));
+            assert_eq!(tx.finality_status, None);
+
+            tx
         };
 
-        if is_success {
-            assert!(sn_tran.status == TransactionStatus::Pending);
-        } else {
-            assert!(sn_tran.status == TransactionStatus::Rejected);
-        }
-
         assert_eq!(sn_tran.execution_info.is_some(), is_success);
-        assert_eq!(sn_tran.execution_error.is_none(), is_success);
         assert!(sn_tran.block_hash.is_none());
         assert!(sn_tran.block_number.is_none());
         assert!(sn_tran.inner == tran);

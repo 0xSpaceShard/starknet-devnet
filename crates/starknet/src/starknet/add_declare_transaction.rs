@@ -39,21 +39,34 @@ pub fn add_declare_transaction_v2(
     match sir_declare_transaction
         .execute(&mut starknet.state.pending_state, &starknet.block_context)
     {
-        Ok(tx_info) => {
+        Ok(tx_info) => match tx_info.revert_error {
             // Add sierra contract
-            starknet.state.contract_classes.insert(
-                class_hash,
-                ContractClass::Cairo1(broadcasted_declare_transaction.contract_class),
-            );
-            starknet.handle_successful_transaction(
-                &transaction_hash,
-                &transaction_with_type,
-                &tx_info,
-            )?;
-        }
+            Some(error) => {
+                let transaction_to_add =
+                    StarknetTransaction::create_rejected(&transaction_with_type, None, &error);
+
+                starknet.transactions.insert(&transaction_hash, transaction_to_add);
+                // Revert to previous pending state
+                starknet.state.pending_state = state_before_txn;
+            }
+            None => {
+                starknet.state.contract_classes.insert(
+                    class_hash,
+                    ContractClass::Cairo1(broadcasted_declare_transaction.contract_class),
+                );
+                starknet.handle_successful_transaction(
+                    &transaction_hash,
+                    &transaction_with_type,
+                    &tx_info,
+                )?;
+            }
+        },
         Err(tx_err) => {
-            let transaction_to_add =
-                StarknetTransaction::create_rejected(&transaction_with_type, tx_err);
+            let transaction_to_add = StarknetTransaction::create_rejected(
+                &transaction_with_type,
+                None,
+                &tx_err.to_string(),
+            );
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
             // Revert to previous pending state
@@ -95,20 +108,33 @@ pub fn add_declare_transaction_v1(
     match sir_declare_transaction
         .execute(&mut starknet.state.pending_state, &starknet.block_context)
     {
-        Ok(tx_info) => {
-            starknet
-                .state
-                .contract_classes
-                .insert(class_hash, broadcasted_declare_transaction.contract_class.into());
-            starknet.handle_successful_transaction(
-                &transaction_hash,
-                &transaction_with_type,
-                &tx_info,
-            )?;
-        }
+        Ok(tx_info) => match tx_info.revert_error {
+            Some(error) => {
+                let transaction_to_add =
+                    StarknetTransaction::create_rejected(&transaction_with_type, None, &error);
+
+                starknet.transactions.insert(&transaction_hash, transaction_to_add);
+                // Revert to previous pending state
+                starknet.state.pending_state = state_before_txn;
+            }
+            None => {
+                starknet
+                    .state
+                    .contract_classes
+                    .insert(class_hash, broadcasted_declare_transaction.contract_class.into());
+                starknet.handle_successful_transaction(
+                    &transaction_hash,
+                    &transaction_with_type,
+                    &tx_info,
+                )?;
+            }
+        },
         Err(tx_err) => {
-            let transaction_to_add =
-                StarknetTransaction::create_rejected(&transaction_with_type, tx_err);
+            let transaction_to_add = StarknetTransaction::create_rejected(
+                &transaction_with_type,
+                None,
+                &tx_err.to_string(),
+            );
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
             // Revert to previous pending state
@@ -124,7 +150,9 @@ mod tests {
     use starknet_api::block::BlockNumber;
     use starknet_api::transaction::Fee;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
-    use starknet_rs_core::types::TransactionStatus;
+    use starknet_rs_core::types::{
+        ExecutionResult, TransactionExecutionStatus, TransactionFinalityStatus,
+    };
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
@@ -188,7 +216,8 @@ mod tests {
         let (txn_hash, class_hash) = starknet.add_declare_transaction_v2(declare_txn).unwrap();
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
 
-        assert_eq!(txn.status, TransactionStatus::Rejected);
+        assert_eq!(txn.finality_status, None);
+        assert_eq!(txn.execution_result.status(), TransactionExecutionStatus::Reverted);
         assert_eq!(
             initial_cached_state,
             starknet.state.pending_state.casm_contract_classes().as_ref().unwrap().len()
@@ -212,7 +241,8 @@ mod tests {
             ContractClass::Cairo1(declare_txn.contract_class).generate_hash().unwrap()
         );
         // check if txn is with status accepted
-        assert_eq!(tx.status, TransactionStatus::AcceptedOnL2);
+        assert_eq!(tx.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
+        assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
         assert!(starknet.state.contract_classes.get(&class_hash).is_some());
     }
 
@@ -226,13 +256,11 @@ mod tests {
 
         // check if contract is not declared
         assert!(!starknet.state.is_contract_declared(&expected_class_hash));
-        assert!(
-            !starknet
-                .state
-                .state
-                .casm_contract_classes_mut()
-                .contains_key(&expected_compiled_class_hash.bytes())
-        );
+        assert!(!starknet
+            .state
+            .state
+            .casm_contract_classes_mut()
+            .contains_key(&expected_compiled_class_hash.bytes()));
 
         let (tx_hash, retrieved_class_hash) =
             starknet.add_declare_transaction_v2(declare_txn).unwrap();
@@ -242,7 +270,8 @@ mod tests {
         // check if generated class hash is expected one
         assert_eq!(retrieved_class_hash, expected_class_hash);
         // check if txn is with status accepted
-        assert_eq!(retrieved_txn.status, TransactionStatus::AcceptedOnL2);
+        assert_eq!(retrieved_txn.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
+        assert_eq!(retrieved_txn.execution_result.status(), TransactionExecutionStatus::Succeeded);
         assert!(starknet.state.is_contract_declared(&expected_class_hash));
     }
 
@@ -277,7 +306,8 @@ mod tests {
         let (txn_hash, _) = starknet.add_declare_transaction_v1(declare_txn).unwrap();
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
 
-        assert_eq!(txn.status, TransactionStatus::Rejected);
+        assert_eq!(txn.finality_status, None);
+        assert_eq!(txn.execution_result.status(), TransactionExecutionStatus::Reverted);
         assert_eq!(
             initial_cached_state,
             starknet.state.pending_state.contract_classes().as_ref().unwrap().len()
@@ -297,7 +327,8 @@ mod tests {
         // check if generated class hash is expected one
         assert_eq!(class_hash, declare_txn.contract_class.generate_hash().unwrap());
         // check if txn is with status accepted
-        assert_eq!(tx.status, TransactionStatus::AcceptedOnL2);
+        assert_eq!(tx.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
+        assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
         // check if contract is successfully declared
         assert!(starknet.state.is_contract_declared(&class_hash));
         // check if pending block is resetted
@@ -332,7 +363,9 @@ mod tests {
         let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
 
         // check if txn is with status accepted
-        assert_eq!(tx.status, TransactionStatus::AcceptedOnL2);
+        assert_eq!(tx.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
+        assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
+
         // check if contract is declared
         assert!(starknet.state.is_contract_declared(&class_hash));
     }

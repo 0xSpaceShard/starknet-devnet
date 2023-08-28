@@ -17,7 +17,7 @@ use starknet_in_rust::state::state_api::State;
 use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
 use starknet_in_rust::utils::Address;
-use starknet_rs_core::types::{BlockId, TransactionStatus};
+use starknet_rs_core::types::{BlockId, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::Signer;
@@ -195,7 +195,7 @@ impl Starknet {
             if let Some(tx) = self.transactions.get_by_hash_mut(tx_hash) {
                 tx.block_hash = Some(new_block.header.block_hash.0.into());
                 tx.block_number = Some(new_block_number);
-                tx.status = TransactionStatus::AcceptedOnL2;
+                tx.finality_status = Some(TransactionFinalityStatus::AcceptedOnL2);
             } else {
                 error!("Transaction is not present in the transactions collection");
             }
@@ -215,7 +215,7 @@ impl Starknet {
         transaction: &TransactionWithType,
         tx_info: &TransactionExecutionInfo,
     ) -> DevnetResult<()> {
-        let transaction_to_add = StarknetTransaction::create_successful(transaction, tx_info);
+        let transaction_to_add = StarknetTransaction::create_successful(transaction, None, tx_info);
 
         // add accepted transaction to pending block
         self.blocks.pending_block.add_transaction(*transaction_hash);

@@ -10,7 +10,9 @@ use invoke_transaction_v1::InvokeTransactionV1;
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
 use starknet_api::transaction::{EthAddress, Fee};
-use starknet_rs_core::types::{BlockId, TransactionExecutionStatus};
+use starknet_rs_core::types::{
+    BlockId, ExecutionResult, TransactionExecutionStatus, TransactionFinalityStatus,
+};
 
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
@@ -58,6 +60,7 @@ impl TransactionWithType {
         transaction_events: &[Event],
         block_hash: &BlockHash,
         block_number: BlockNumber,
+        execution_result: &ExecutionResult,
     ) -> CommonTransactionReceipt {
         let output = TransactionOutput {
             actual_fee: self.get_max_fee(),
@@ -71,6 +74,7 @@ impl TransactionWithType {
             block_hash: *block_hash,
             block_number,
             output,
+            execution_result: execution_result.clone(),
         }
     }
 }
@@ -225,7 +229,8 @@ impl L1HandlerTransaction {
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TransactionReceiptWithStatus {
-    pub status: TransactionStatus,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub finality_status: Option<TransactionFinalityStatus>,
     #[serde(flatten)]
     pub receipt: TransactionReceipt,
 }
@@ -244,7 +249,7 @@ pub struct DeployTransactionReceipt {
     pub contract_address: ContractAddress,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommonTransactionReceipt {
     pub transaction_hash: TransactionHash,
     pub r#type: TransactionType,
@@ -252,7 +257,30 @@ pub struct CommonTransactionReceipt {
     pub block_number: BlockNumber,
     #[serde(flatten)]
     pub output: TransactionOutput,
+    pub execution_result: ExecutionResult,
 }
+
+impl PartialEq for CommonTransactionReceipt {
+    fn eq(&self, other: &Self) -> bool {
+        let identical_execution_result = match (&self.execution_result, &other.execution_result) {
+            (ExecutionResult::Succeeded, ExecutionResult::Succeeded) => true,
+            (
+                ExecutionResult::Reverted { reason: reason1 },
+                ExecutionResult::Reverted { reason: reason2 },
+            ) => reason1 == reason2,
+            _ => false,
+        };
+
+        self.transaction_hash == other.transaction_hash
+            && self.r#type == other.r#type
+            && self.block_hash == other.block_hash
+            && self.block_number == other.block_number
+            && self.output == other.output
+            && identical_execution_result
+    }
+}
+
+impl Eq for CommonTransactionReceipt {}
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TransactionOutput {

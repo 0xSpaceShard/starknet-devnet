@@ -8,8 +8,8 @@ mod get_transaction_receipt_by_hash_integration_tests {
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::{
-        BlockId, BlockTag, BroadcastedDeclareTransactionV1, FieldElement,
-        MaybePendingTransactionReceipt, StarknetError, TransactionReceipt, TransactionStatus,
+        BlockId, BlockTag, BroadcastedDeclareTransactionV1, ExecutionResult, FieldElement,
+        MaybePendingTransactionReceipt, StarknetError, TransactionReceipt,
     };
     use starknet_rs_core::utils::get_udc_deployed_address;
     use starknet_rs_providers::{
@@ -123,7 +123,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
         match result {
             MaybePendingTransactionReceipt::Receipt(TransactionReceipt::Declare(declare)) => {
-                assert_eq!(declare.status, TransactionStatus::Rejected);
+                assert_eq!(declare.execution_result.revert_reason(), Some("asdasd"));
             }
             _ => panic!("Invalid result: {result:?}"),
         }

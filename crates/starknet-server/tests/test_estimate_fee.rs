@@ -12,7 +12,7 @@ mod estimate_fee_tests {
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::contract::SierraClass;
     use starknet_rs_core::types::{
-        BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedInvokeTransactionV1,
+        BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedInvokeTransaction,
         BroadcastedTransaction, FeeEstimate, FieldElement, FunctionCall, StarknetError,
     };
     use starknet_rs_core::utils::{
@@ -324,8 +324,7 @@ mod estimate_fee_tests {
                         ),
                     ),
                     BroadcastedTransaction::Invoke(
-                        starknet_rs_core::types::BroadcastedInvokeTransaction::V1(
-                            BroadcastedInvokeTransactionV1 {
+                            BroadcastedInvokeTransaction {
                                 max_fee: FieldElement::ZERO,
                                 // precalculated signature
                                 signature: deployment_signature
@@ -350,9 +349,8 @@ mod estimate_fee_tests {
                                 .map(|s| FieldElement::from_hex_be(s).unwrap())
                                 .collect(),
                                 is_query: false,
-                            },
-                        ),
-                    ),
+                            }
+                    )
                 ],
                 BlockId::Tag(BlockTag::Latest),
             )

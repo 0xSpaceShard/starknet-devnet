@@ -38,16 +38,27 @@ pub fn add_invoke_transcation_v1(
         &starknet.block_context,
         INITIAL_GAS_COST,
     ) {
-        Ok(tx_info) => {
-            starknet.handle_successful_transaction(
+        Ok(tx_info) => match tx_info.revert_error {
+            Some(error) => {
+                let transaction_to_add =
+                    StarknetTransaction::create_rejected(&transaction_with_type, None, &error);
+
+                starknet.transactions.insert(&transaction_hash, transaction_to_add);
+                // Revert to previous pending state
+                starknet.state.pending_state = state_before_txn;
+            }
+            None => starknet.handle_successful_transaction(
                 &transaction_hash,
                 &transaction_with_type,
                 &tx_info,
-            )?;
-        }
+            )?,
+        },
         Err(tx_err) => {
-            let transaction_to_add =
-                StarknetTransaction::create_rejected(&transaction_with_type, tx_err);
+            let transaction_to_add = StarknetTransaction::create_rejected(
+                &transaction_with_type,
+                None,
+                &tx_err.to_string(),
+            );
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
             // Revert to previous pending state
@@ -63,7 +74,9 @@ mod tests {
     use starknet_api::transaction::Fee;
     use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
     use starknet_in_rust::EntryPointType;
-    use starknet_rs_core::types::TransactionStatus;
+    use starknet_rs_core::types::{
+        ExecutionResult, TransactionExecutionStatus, TransactionFinalityStatus,
+    };
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
@@ -123,7 +136,8 @@ mod tests {
 
         let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
 
-        assert_eq!(transaction.status, TransactionStatus::AcceptedOnL2);
+        assert_eq!(transaction.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
+        assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
     }
 
     #[test]
@@ -147,7 +161,8 @@ mod tests {
         // invoke transaction
         let transaction_hash = starknet.add_invoke_transaction_v1(invoke_transaction).unwrap();
         let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
-        assert_eq!(transaction.status, TransactionStatus::AcceptedOnL2);
+        assert_eq!(transaction.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
+        assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
         // check storage
         assert_eq!(
@@ -167,7 +182,8 @@ mod tests {
         let transaction_hash = starknet.add_invoke_transaction_v1(invoke_transaction).unwrap();
         let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
 
-        assert_eq!(transaction.status, TransactionStatus::AcceptedOnL2);
+        assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
+        assert_eq!(transaction.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
         assert_eq!(
             starknet.state.get_storage(balance_var_storage_address).unwrap(),
             Felt::from(25)
@@ -201,30 +217,28 @@ mod tests {
         let (mut starknet, account_address, contract_address, increase_balance_selector, _) =
             setup();
 
+        let nonce = 0;
         let invoke_transaction = test_invoke_transaction_v1(
             account_address,
             contract_address,
             increase_balance_selector,
             Felt::from(10),
-            0,
+            nonce,
         );
 
         let transaction_hash =
             starknet.add_invoke_transaction_v1(invoke_transaction.clone()).unwrap();
         let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
-        assert_eq!(transaction.status, TransactionStatus::AcceptedOnL2);
+        assert_eq!(transaction.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
+        assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
         let transaction_hash = starknet.add_invoke_transaction_v1(invoke_transaction).unwrap();
         let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
-        assert_eq!(transaction.status, TransactionStatus::Rejected);
-
-        match transaction.execution_error.as_ref().unwrap() {
-            starknet_in_rust::transaction::error::TransactionError::InvalidTransactionNonce(
-                _,
-                _,
-            ) => {}
-            err => panic!("Invalid error type {:?}", err),
-        }
+        assert_eq!(transaction.finality_status, None);
+        assert_eq!(
+            transaction.execution_result.revert_reason(),
+            Some(format!("Invalid transaction nonce. Expected: 1 got {}", nonce).as_str())
+        );
     }
 
     /// Initialize starknet object with: erc20 contract, account contract and  simple contract that
