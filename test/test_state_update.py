@@ -2,8 +2,6 @@
 Test get_state_update endpoint
 """
 
-import re
-
 import pytest
 import requests
 from starkware.starknet.core.os.contract_class.deprecated_class_hash import (
@@ -28,6 +26,7 @@ from .shared import (
 from .util import (
     assert_equal,
     assert_hex_equal,
+    assert_state_root,
     assert_transaction,
     devnet_in_background,
     get_block,
@@ -205,17 +204,16 @@ def test_roots():
     state_update = get_state_update()
 
     new_root = state_update["new_root"]
+    old_root = state_update["old_root"]
 
-    assert re.match(r"^[a-fA-F0-9]{64}$", new_root)
-    assert state_update["old_root"] is not None
+    assert_state_root(new_root)
+    assert_state_root(old_root)
 
     # generate second block
     mint(address=dummy_address, amount=dummy_amount, lite=False)
 
     state_update = get_state_update()
-    old_root = state_update["old_root"]
-
-    assert_equal(old_root, new_root)
+    assert_equal(state_update["old_root"], new_root)
 
 
 @pytest.mark.state_update

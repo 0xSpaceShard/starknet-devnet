@@ -648,7 +648,12 @@ def assert_block(latest_block_number, latest_tx_hash):
         latest_block["sequencer_address"], hex(DEFAULT_GENERAL_CONFIG.sequencer_address)
     )
     assert_equal(latest_block["gas_price"], hex(DEFAULT_GENERAL_CONFIG.min_gas_price))
-    assert re.match(r"^[a-fA-F0-9]{64}$", latest_block["state_root"])
+    assert_state_root(latest_block["state_root"])
+
+
+def assert_state_root(state_root: str):
+    """Make a general assertion on the format of state root hex string value"""
+    assert re.match(r"^0x(0|[a-fA-F1-9]{1}[a-fA-F0-9]{0,62})$", state_root)
 
 
 def load_file_content(file_name: str):

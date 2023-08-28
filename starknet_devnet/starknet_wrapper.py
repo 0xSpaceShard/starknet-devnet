@@ -91,7 +91,12 @@ from .blocks import DevnetBlocks
 from .blueprints.rpc.structures.types import BlockId, Felt
 from .chargeable_account import ChargeableAccount
 from .compiler import select_compiler
-from .constants import LEGACY_TX_VERSION, STARKNET_CLI_ACCOUNT_CLASS_HASH
+from .constants import (
+    DUMMY_PENDING_BLOCK_HASH,
+    DUMMY_STATE_ROOT,
+    LEGACY_TX_VERSION,
+    STARKNET_CLI_ACCOUNT_CLASS_HASH,
+)
 from .devnet_config import DevnetConfig
 from .fee_token import FeeToken
 from .forked_state import get_forked_starknet
@@ -346,9 +351,9 @@ class StarknetWrapper:
         )
 
         return BlockStateUpdate(
-            block_hash=1,
-            new_root=1,
-            old_root=0,
+            block_hash=DUMMY_PENDING_BLOCK_HASH,
+            new_root=DUMMY_STATE_ROOT,
+            old_root=DUMMY_STATE_ROOT,
             state_diff=state_diff,
         )
 

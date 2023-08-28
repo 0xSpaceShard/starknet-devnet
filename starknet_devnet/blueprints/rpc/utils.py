@@ -107,7 +107,7 @@ def gateway_felt(value: Union[int, str]) -> str:
     return hex(value)
 
 
-def rpc_root(root: str) -> Felt:
+def rpc_root(root: Union[int, str]) -> Felt:
     """
     Convert 0 prefixed root to 0x prefixed root
     """

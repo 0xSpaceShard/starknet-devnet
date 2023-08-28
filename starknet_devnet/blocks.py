@@ -4,6 +4,7 @@ Class for generating and handling blocks
 
 from typing import Any, Dict, List, Optional, Sequence, Union
 
+from starkware.python.utils import to_bytes
 from starkware.starknet.core.os.block_hash.block_hash import (
     calculate_block_hash,
     calculate_event_hash,
@@ -248,7 +249,7 @@ class DevnetBlocks:
             general_config=state.general_config,
             parent_hash=self.__pending_block.parent_block_hash,
             block_number=block_number,
-            global_state_root=state_root,
+            global_state_root=to_bytes(state_root),
             block_timestamp=self.__pending_block.timestamp,
             tx_hashes=[tx.transaction_hash for tx in self.__pending_block.transactions],
             tx_signatures=self.__pending_signatures,
@@ -273,7 +274,7 @@ class DevnetBlocks:
 
         block_dict["status"] = BlockStatus.ACCEPTED_ON_L2.name
         state_root = DUMMY_STATE_ROOT
-        block_dict["state_root"] = state_root.hex()
+        block_dict["state_root"] = f"{state_root:032x}"
 
         block_number = self.get_next_block_number()
         block_dict["block_number"] = block_number

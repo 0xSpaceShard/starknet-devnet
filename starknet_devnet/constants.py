@@ -21,7 +21,7 @@ SUPPORTED_RPC_TX_VERSION = 1
 SUPPORTED_RPC_DECLARE_TX_VERSION = 2
 DEPRECATED_RPC_DECLARE_TX_VERSION = 1
 
-DUMMY_STATE_ROOT = bytes(32)
+DUMMY_STATE_ROOT = 0
 DUMMY_PENDING_BLOCK_HASH = 0
 
 DEFAULT_TIMEOUT = 60  # seconds
@@ -32,7 +32,7 @@ OLD_SUPPORTED_VERSIONS = [0]
 # poetry run python scripts/compute_deprecated_compiled_class_hash.py \
 #   ~/.cache/pypoetry/virtualenvs/<YOUR_VENV>/lib/python3.9/site-packages/starkware/starknet/third_party/open_zeppelin/account.json
 STARKNET_CLI_ACCOUNT_CLASS_HASH = (
-    0x195c984a44ae2b8ad5d49f48c0aaa0132c42521dcfc66513530203feca48dd6
+    0x195C984A44AE2B8AD5D49F48C0AAA0132C42521DCFC66513530203FECA48DD6
 )
 
 # starkware.starknet.public.abi.get_selector_from_name("replace_class")
