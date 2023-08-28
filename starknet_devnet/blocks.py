@@ -274,7 +274,7 @@ class DevnetBlocks:
 
         block_dict["status"] = BlockStatus.ACCEPTED_ON_L2.name
         state_root = DUMMY_STATE_ROOT
-        block_dict["state_root"] = f"{state_root:032x}"
+        block_dict["state_root"] = hex(state_root)
 
         block_number = self.get_next_block_number()
         block_dict["block_number"] = block_number
