@@ -20,18 +20,45 @@ cargo run
 
 This application is available as a Docker image:
 
-```shell
+```text
 $ docker pull shardlabs/starknet-devnet-rs
-$ docker run \
-    -p <YOUR_PORT>:5050 \
-    shardlabs/starknet-devnet-rs \
-        [CLI_PARAMS]
 ```
 
-The port 5050 is used internally by the container, and by using `-p` you can expose it as `<YOUR_PORT>` on the host machine.
+Commits to the `master` branch of this repository are mostly available as images tagged with their commit hash (the full 40-hex-digits SHA1 digest):
 
-You probably don't need to use the `--port` CLI argument of `starknet-devnet`, but if you do use it, replace the 5050 in the above command with that port.
-You may ignore the message saying `Starknet Devnet listening on 0.0.0.0:5050`. The actual port on your host machine will be the first part of the `-p` argument.
+- `shardlabs/starknet-devnet-rs:<COMMIT_HASH>`
+
+By appending the `-seed0` suffix, you can use images which [predeploy funded accounts](#predeployed-accounts) with `--seed 0`, thus always deploying the same set of accounts. E.g.:
+
+- `shardlabs/starknet-devnet:<VERSION>-seed0`
+
+### Container port publishing
+
+#### Linux
+
+If on a Linux host machine, you can use [`--network host`](https://docs.docker.com/network/host/). This way, the port used internally by the container is also available on your host machine. The `--port` option also has effect.
+
+```text
+$ docker run --network host shardlabs/starknet-devnet-rs [--port <PORT>]
+```
+
+#### Mac, Windows
+
+If not on Linux, you need to publish the container's internally used port to a desired `<PORT>` on your host machine. The internal port is `5050` by default (can be overridden with `--port`).
+
+```text
+docker run -p [HOST:]<PORT>:5050 shardlabs/starknet-devnet-rs
+```
+
+E.g. if you want to use your host machine's `127.0.0.1:5050`, you need to run:
+
+```text
+docker run -p 127.0.0.1:5050:5050 shardlabs/starknet-devnet
+```
+
+You may ignore any address-related output logged on container startup (e.g. `Starknet Devnet listening on 0.0.0.0:5050`). What you will use is what you specified with the `-p` argument.
+
+If you don't specify the `HOST` part, the server will indeed be available on all of your host machine's addresses (localhost, local network IP, etc.), which may present a security issue if you don't want anyone from the local network to access your Devnet instance.
 
 ## CLI options
 

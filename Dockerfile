@@ -15,4 +15,4 @@ RUN apt-get -y update && \
 COPY crates/starknet/accounts_artifacts/ /crates/starknet/accounts_artifacts/
 COPY --from=builder /target/release/starknet-devnet /usr/local/bin/starknet-devnet
 
-ENTRYPOINT [ "tini", "--", "starknet-devnet", "--host", "0.0.0.0", "--port", "5050" ]
+ENTRYPOINT [ "tini", "--", "starknet-devnet", "--host", "0.0.0.0" ]
