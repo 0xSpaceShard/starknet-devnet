@@ -1,0 +1,25 @@
+{
+  "type": "INVOKE",
+  "transaction_hash": "0x5b08d06a7f6422881d6461175f325844d179ca9018dbab5e92dc34e5c176ff1",
+  "actual_fee": "0x2c39df8c1bd1",
+  "finality_status": "ACCEPTED_ON_L1",
+  "block_hash": "0x34687c6aeb4e2a67bc5e2ced6f761c7e425f73557f389dff90873c24f6b50b3",
+  "block_number": 234495,
+  "messages_sent": [],
+  "events": [
+    {
+      "from_address": "0xdfb9e350368c57d9cf5b4a58e5de15f6a97923144bfd6e1b790e266a05a585",
+      "keys": [
+        "0x5ad857f66a5b55f1301ff1ed7e098ac6d4433148f0b72ebc4a2945ab85ad53"
+      ],
+      "data": [
+        "0x5b08d06a7f6422881d6461175f325844d179ca9018dbab5e92dc34e5c176ff1",
+        "0x3",
+        "0x1",
+        "0xac08578f2",
+        "0x0"
+      ]
+    }
+  ],
+  "execution_status": "SUCCEEDED"
+}
