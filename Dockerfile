@@ -5,7 +5,14 @@ RUN cargo build --bin starknet-devnet --release
 
 FROM debian:buster-slim
 
+# Use tini to avoid hanging process on Ctrl+C
+RUN apt-get -y update && \
+    apt-get install tini && \
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 COPY crates/starknet/accounts_artifacts/ /crates/starknet/accounts_artifacts/
 COPY --from=builder /target/release/starknet-devnet /usr/local/bin/starknet-devnet
 
-ENTRYPOINT [ "starknet-devnet", "--host", "0.0.0.0", "--port", "5050" ]
+ENTRYPOINT [ "tini", "--", "starknet-devnet", "--host", "0.0.0.0", "--port", "5050" ]

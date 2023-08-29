@@ -20,7 +20,7 @@ function test_and_push() {
     docker run -d \
         -p "$external_address:$internal_port" \
         --name "$container_name" \
-        --rm \```
+        --rm \
         "$tagged_image" \
         --port "$internal_port"
 
