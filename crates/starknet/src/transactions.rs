@@ -8,10 +8,10 @@ use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::Event;
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
-use starknet_types::rpc::transactions::{
-    DeployTransactionReceipt, Transaction, TransactionReceipt, TransactionReceiptWithStatus,
-    TransactionType, TransactionWithType,
+use starknet_types::rpc::transaction_receipt::{
+    DeployTransactionReceipt, TransactionReceipt, TransactionReceiptWithStatus,
 };
+use starknet_types::rpc::transactions::{Transaction, TransactionType, TransactionWithType};
 
 use crate::constants::UDC_CONTRACT_ADDRESS;
 use crate::error::{DevnetResult, Error};
@@ -48,9 +48,9 @@ impl HashIdentified for StarknetTransactions {
 
 #[allow(unused)]
 pub struct StarknetTransaction {
+    pub inner: TransactionWithType,
     pub(crate) finality_status: Option<TransactionFinalityStatus>,
     pub(crate) execution_result: ExecutionResult,
-    pub inner: TransactionWithType,
     pub(crate) block_hash: Option<BlockHash>,
     pub(crate) block_number: Option<BlockNumber>,
     pub(crate) execution_info: Option<starknet_in_rust::execution::TransactionExecutionInfo>,
@@ -152,9 +152,10 @@ impl StarknetTransaction {
 
         let mut common_receipt = self.inner.create_common_receipt(
             &transaction_events,
-            &self.block_hash.unwrap_or_default(),
-            self.block_number.unwrap_or_default(),
+            self.block_hash.as_ref(),
+            self.block_number,
             &self.execution_result,
+            self.finality_status,
         );
 
         match &self.inner.transaction {
@@ -165,7 +166,6 @@ impl StarknetTransaction {
                 let receipt = if let Some(contract_address) = deployed_address {
                     common_receipt.r#type = TransactionType::Deploy;
                     TransactionReceiptWithStatus {
-                        finality_status: self.finality_status,
                         receipt: TransactionReceipt::Deploy(DeployTransactionReceipt {
                             common: common_receipt,
                             contract_address,
@@ -173,7 +173,6 @@ impl StarknetTransaction {
                     }
                 } else {
                     TransactionReceiptWithStatus {
-                        finality_status: self.finality_status,
                         receipt: TransactionReceipt::Common(common_receipt),
                     }
                 };
@@ -181,7 +180,6 @@ impl StarknetTransaction {
                 Ok(receipt)
             }
             _ => Ok(TransactionReceiptWithStatus {
-                finality_status: self.finality_status,
                 receipt: TransactionReceipt::Common(common_receipt),
             }),
         }

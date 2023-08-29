@@ -135,6 +135,8 @@ pub fn add_declare_transaction_v1(
                 None,
                 &tx_err.to_string(),
             );
+            let err = tx_err.to_string();
+            let err_str = err.as_str();
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
             // Revert to previous pending state

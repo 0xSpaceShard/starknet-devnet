@@ -20,6 +20,9 @@ use crate::felt::{
     BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash, TransactionSignature,
     TransactionVersion,
 };
+use crate::rpc::transaction_receipt::{
+    CommonTransactionReceipt, MaybePendingProperties, TransactionOutput,
+};
 
 pub mod broadcasted_declare_transaction_v1;
 pub mod broadcasted_declare_transaction_v2;
@@ -58,9 +61,10 @@ impl TransactionWithType {
     pub fn create_common_receipt(
         &self,
         transaction_events: &[Event],
-        block_hash: &BlockHash,
-        block_number: BlockNumber,
+        block_hash: Option<&BlockHash>,
+        block_number: Option<BlockNumber>,
         execution_result: &ExecutionResult,
+        finality_status: Option<TransactionFinalityStatus>,
     ) -> CommonTransactionReceipt {
         let output = TransactionOutput {
             actual_fee: self.get_max_fee(),
@@ -68,13 +72,18 @@ impl TransactionWithType {
             events: transaction_events.to_vec(),
         };
 
+        let maybe_pending_properties = MaybePendingProperties {
+            block_number,
+            block_hash: block_hash.cloned(),
+            finality_status,
+        };
+
         CommonTransactionReceipt {
             r#type: self.r#type,
             transaction_hash: *self.get_transaction_hash(),
-            block_hash: *block_hash,
-            block_number,
             output,
-            execution_result: execution_result.clone(),
+            execution_status: execution_result.clone(),
+            maybe_pending_properties,
         }
     }
 }
@@ -225,78 +234,6 @@ impl L1HandlerTransaction {
     pub fn get_transaction_hash(&self) -> &TransactionHash {
         &self.transaction_hash
     }
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct TransactionReceiptWithStatus {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub finality_status: Option<TransactionFinalityStatus>,
-    #[serde(flatten)]
-    pub receipt: TransactionReceipt,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum TransactionReceipt {
-    Deploy(DeployTransactionReceipt),
-    Common(CommonTransactionReceipt),
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct DeployTransactionReceipt {
-    #[serde(flatten)]
-    pub common: CommonTransactionReceipt,
-    pub contract_address: ContractAddress,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CommonTransactionReceipt {
-    pub transaction_hash: TransactionHash,
-    pub r#type: TransactionType,
-    pub block_hash: BlockHash,
-    pub block_number: BlockNumber,
-    #[serde(flatten)]
-    pub output: TransactionOutput,
-    pub execution_result: ExecutionResult,
-}
-
-impl PartialEq for CommonTransactionReceipt {
-    fn eq(&self, other: &Self) -> bool {
-        let identical_execution_result = match (&self.execution_result, &other.execution_result) {
-            (ExecutionResult::Succeeded, ExecutionResult::Succeeded) => true,
-            (
-                ExecutionResult::Reverted { reason: reason1 },
-                ExecutionResult::Reverted { reason: reason2 },
-            ) => reason1 == reason2,
-            _ => false,
-        };
-
-        self.transaction_hash == other.transaction_hash
-            && self.r#type == other.r#type
-            && self.block_hash == other.block_hash
-            && self.block_number == other.block_number
-            && self.output == other.output
-            && identical_execution_result
-    }
-}
-
-impl Eq for CommonTransactionReceipt {}
-
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct TransactionOutput {
-    pub actual_fee: Fee,
-    pub messages_sent: Vec<MessageToL1>,
-    pub events: Vec<Event>,
-}
-
-pub type L2ToL1Payload = Vec<Felt>;
-
-/// An L2 to L1 message.
-#[derive(Debug, Default, Clone, Eq, PartialEq, Deserialize, Serialize)]
-pub struct MessageToL1 {
-    pub from_address: ContractAddress,
-    pub to_address: EthAddress,
-    pub payload: L2ToL1Payload,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]

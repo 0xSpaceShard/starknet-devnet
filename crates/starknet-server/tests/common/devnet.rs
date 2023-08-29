@@ -76,7 +76,6 @@ impl BackgroundDevnet {
 
         let process = Command::new("cargo")
                 .arg("run")
-                .arg("--release")
                 .arg("--")
                 .arg("--seed")
                 .arg(SEED.to_string())
@@ -92,6 +91,7 @@ impl BackgroundDevnet {
                 .spawn()
                 .expect("Could not start background devnet");
 
+        let pid = process.id();
         let healthcheck_uri =
             format!("{}/is_alive", devnet_url.as_str()).as_str().parse::<Uri>()?;
 

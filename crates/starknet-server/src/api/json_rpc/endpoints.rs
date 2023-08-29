@@ -6,9 +6,10 @@ use starknet_rs_core::types::ContractClass as CodegenContractClass;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::rpc::block::{Block, BlockHeader};
+use starknet_types::rpc::transaction_receipt::TransactionReceiptWithStatus;
 use starknet_types::rpc::transactions::{
     BroadcastedTransactionWithType, EventFilter, EventsChunk, FunctionCall, Transaction,
-    TransactionReceiptWithStatus, TransactionWithType,
+    TransactionWithType,
 };
 use starknet_types::starknet_api::block::BlockNumber;
 use starknet_types::traits::ToHexString;

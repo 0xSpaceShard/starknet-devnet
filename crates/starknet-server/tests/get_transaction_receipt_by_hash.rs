@@ -115,7 +115,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
             .await
             .unwrap();
 
-        let result: starknet_rs_core::types::MaybePendingTransactionReceipt = devnet
+        let result: MaybePendingTransactionReceipt = devnet
             .json_rpc_client
             .get_transaction_receipt(declare_transaction.transaction_hash)
             .await
