@@ -2,6 +2,15 @@
 # See: https://circleci.com/docs/configuration-reference
 version: 2.1
 
+aliases:
+  - &on_master
+    context: spaceshard
+    filters:
+      branches:
+        only:
+          # TODO change to master
+          - dockerize
+
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/configuration-reference/#jobs
 jobs:
@@ -30,9 +39,26 @@ jobs:
           # solution: https://stackoverflow.com/questions/71962406/how-to-use-less-memory-when-compiling-to-avoid-killing-the-build
           command: cargo test --jobs 6
 
+  image-build:
+    docker:
+      - image: cimg/base:2021.04
+    resource_class: medium
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.7
+      - run:
+          name: Build amd images
+          command: ./scripts/image_build.sh
+          environment:
+            ARCH_SUFFIX: ""
+            REMOTE: true
+
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
 workflows:
   main:
     jobs:
       - build-and-test
+      - image-build:
+          <<: *on_master
