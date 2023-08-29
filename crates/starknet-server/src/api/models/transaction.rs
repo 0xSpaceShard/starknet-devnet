@@ -312,8 +312,8 @@ impl TryFrom<&starknet_core::transactions::StarknetTransaction> for TransactionR
             starknet_core::transactions::Transaction::DeclareV2(_) => {
                 (TransactionType::Declare, None)
             }
-            starknet_core::transactions::Transaction::DeployAccount(_) => {
-                (TransactionType::DeployAccount, None)
+            starknet_core::transactions::Transaction::DeployAccount(deploy_acccount) => {
+                (TransactionType::DeployAccount, Some(deploy_acccount.contract_address()?))
             }
             starknet_core::transactions::Transaction::Invoke(_) => {
                 let transaction_events = txn.get_events()?;

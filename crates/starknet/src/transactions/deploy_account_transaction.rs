@@ -1,5 +1,6 @@
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::transaction::DeployAccount;
+use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt};
 use starknet_types::traits::HashProducer;
 
@@ -70,6 +71,10 @@ impl DeployAccountTransaction {
 
     pub fn constructor_calldata(&self) -> Vec<Felt> {
         self.inner.constructor_calldata().clone().into_iter().map(|felt| felt.into()).collect()
+    }
+
+    pub fn contract_address(&self) -> DevnetResult<ContractAddress> {
+        self.inner.contract_address().clone().try_into().map_err(Error::from)
     }
 }
 
