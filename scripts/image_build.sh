@@ -17,10 +17,10 @@ function test_and_push() {
     local external_address="127.0.0.1:5050"
 
     echo "Runing $tagged_image in background; sleeping to allow it to start"
+    # not using --rm so that later logs can be printed if debugging is needed
     docker run -d \
         -p "$external_address:$internal_port" \
         --name "$container_name" \
-        --rm \
         "$tagged_image" \
         --port "$internal_port"
 
