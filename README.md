@@ -16,6 +16,23 @@ Install and run the project with:
 cargo run
 ```
 
+## Run with Docker
+
+This application is available as a Docker image:
+
+```shell
+$ docker pull shardlabs/starknet-devnet-rs
+$ docker run \
+    -p <YOUR_PORT>:5050 \
+    shardlabs/starknet-devnet-rs \
+        [CLI_PARAMS]
+```
+
+The port 5050 is used internally by the container, and by using `-p` you can expose it as `<YOUR_PORT>` on the host machine.
+
+You probably don't need to use the `--port` CLI argument of `starknet-devnet`, but if you do use it, replace the 5050 in the above command with that port.
+You may ignore the message saying `Starknet Devnet listening on 0.0.0.0:5050`. The actual port on your host machine will be the first part of the `-p` argument.
+
 ## CLI options
 
 Check out the CLI options with one of:
