@@ -48,6 +48,13 @@ jobs:
       - setup_remote_docker:
           version: 20.10.7
       - run:
+          name: Setup buildx
+          command: |
+            docker --version
+            docker buildx create --use mybuilder
+            docker run --rm --privileged tonistiigi/binfmt --install arm64,amd64
+            docker buildx ls
+      - run:
           name: Build images
           command: ./scripts/image_build.sh
           environment:

@@ -8,7 +8,7 @@ set -eu
 
 IMAGE=shardlabs/starknet-devnet-rs
 
-function test_image() {
+function validate_image() {
     local tagged_image="$IMAGE:$1"
 
     local container_name="devnet"
@@ -35,18 +35,13 @@ function test_image() {
     docker rm -f "$container_name"
 }
 
-# Setup buildx
-docker --version
-docker run --rm --privileged tonistiigi/binfmt --install arm64
-docker buildx ls
-
 docker login --username "$DOCKER_USER" --password "$DOCKER_PASS"
 
-echo "Pushing images tagged with sha1 commit digest"
+echo "Building and pushing images tagged with sha1 commit digest"
 echo "Temporarily pushing tag latest. Once semver is established for this project, this should be done conditionally in a separate script, as was done with devnet-py"
 
 SHA1_TAG="${CIRCLE_SHA1}"
-echo "Building regular image: $SHA1_TAG"
+echo "Building regular (unseeded) image: $SHA1_TAG"
 docker buildx build . \
     -t "$IMAGE:$SHA1_TAG" \
     -t "$IMAGE:latest" \
@@ -65,5 +60,5 @@ docker buildx build . \
 
 echo "Images built and pushed. Validating."
 for testable_tag in $SHA1_TAG $SHA1_SEEDED_TAG; do
-    test_image $testable_tag
+    validate_image $testable_tag
 done
