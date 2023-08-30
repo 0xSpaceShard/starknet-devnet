@@ -37,6 +37,8 @@ function test_and_push() {
     fi
 
     docker push "$tagged_image"
+
+    docker rm -f "$container_name"
 }
 
 SHA1_TAG="${CIRCLE_SHA1}${ARCH_SUFFIX}"
@@ -60,3 +62,7 @@ echo "Pushing images tagged with sha1 commit digest"
 for sha1_pushable_tag in $SHA1_TAG $SHA1_SEEDED_TAG; do
     test_and_push $sha1_pushable_tag
 done
+
+echo "Temporarily pushing tag latest. Once semver is established for this project, this should be done conditionally in a separate script, as was done with devnet-py"
+docker tag "$IMAGE:$SHA1_TAG" "$IMAGE:latest"
+docker push "$IMAGE:latest"
