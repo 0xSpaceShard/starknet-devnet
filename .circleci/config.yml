@@ -14,7 +14,7 @@ aliases:
   - &on_master_after_test_and_build
     <<: *on_master
     requires:
-      - build-and-test
+      # TODO perhaps make build-and-test a condition
       - image-build-amd
       - image-build-arm
 
