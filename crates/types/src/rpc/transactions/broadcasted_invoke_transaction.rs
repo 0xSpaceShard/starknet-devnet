@@ -77,7 +77,7 @@ mod tests {
 
     use crate::contract_address::ContractAddress;
     use crate::felt::Felt;
-    use crate::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransaction;
+    use crate::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
     use crate::traits::ToHexString;
 
     #[derive(Deserialize)]

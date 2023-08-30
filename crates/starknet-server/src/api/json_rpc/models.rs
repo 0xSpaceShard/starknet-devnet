@@ -3,9 +3,9 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, ClassHash, TransactionHash};
 use starknet_types::rpc::block::SyncStatus;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
+use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
 use starknet_types::rpc::transactions::{
-    BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransactionWithType,
-    EventFilter, FunctionCall,
+    BroadcastedDeclareTransaction, BroadcastedTransactionWithType, EventFilter, FunctionCall,
 };
 use starknet_types::starknet_api::block::BlockNumber;
 
@@ -120,7 +120,7 @@ mod tests {
     use starknet_types::felt::Felt;
     use starknet_types::patricia_key::PatriciaKey;
     use starknet_types::rpc::transactions::{
-        BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
+        BroadcastedDeclareTransaction, BroadcastedTransaction,
     };
     use starknet_types::starknet_api::block::BlockNumber;
 
@@ -273,22 +273,18 @@ mod tests {
                 },
                 {
                     "type": "INVOKE",
-                    "max_fee": "0xA",
-                    "version": "0x1",
-                    "signature": ["0xFF", "0xAA"],
-                    "nonce": "0x0",
-                    "contract_address": "0x0001",
-                    "entry_point_selector": "0x01",
-                    "calldata": ["0x01"]
-                }, 
-                {
-                    "type": "INVOKE",
-                    "max_fee": "0xA",
-                    "version": "0x1",
-                    "signature": ["0xFF", "0xAA"],
-                    "nonce": "0x0",
-                    "sender_address": "0x0001",
-                    "calldata": ["0x01"]
+                    "max_fee": "0x1",
+                    "version": "0x100000000000000000000000000000001",
+                    "signature": [
+                    "0x2"
+                    ],
+                    "nonce": "0x1",
+                    "sender_address": "0x3",
+                    "calldata": [
+                    "0x1",
+                    "0x2",
+                    "0x3"
+                  ]
                 },
                 {
                     "type": "DEPLOY_ACCOUNT",
@@ -311,7 +307,7 @@ mod tests {
             estimate_fee_input.block_id
                 == BlockId::HashOrNumber(BlockHashOrNumber::Number(BlockNumber(1)))
         );
-        assert!(estimate_fee_input.request.len() == 5);
+        assert!(estimate_fee_input.request.len() == 4);
         assert!(matches!(
             estimate_fee_input.request[0].transaction,
             BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(_))
@@ -322,14 +318,10 @@ mod tests {
         ));
         assert!(matches!(
             estimate_fee_input.request[2].transaction,
-            BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V0(_))
+            BroadcastedTransaction::Invoke(_)
         ));
         assert!(matches!(
             estimate_fee_input.request[3].transaction,
-            BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(_))
-        ));
-        assert!(matches!(
-            estimate_fee_input.request[4].transaction,
             BroadcastedTransaction::DeployAccount(_)
         ));
     }

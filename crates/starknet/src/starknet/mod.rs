@@ -32,11 +32,10 @@ use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
-use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
+use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
 use starknet_types::rpc::transactions::{
-    BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
-    BroadcastedTransactionCommon, BroadcastedTransactionWithType, TransactionWithType,
-    Transactions,
+    BroadcastedDeclareTransaction, BroadcastedTransaction, BroadcastedTransactionCommon,
+    BroadcastedTransactionWithType, TransactionWithType, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::error;
@@ -406,16 +405,11 @@ impl Starknet {
 
                         Ok(starknet_in_rust::transaction::Transaction::DeployAccount(deploy_tx))
                     }
-                    BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(
-                        broadcasted_tx,
-                    )) => {
+                    BroadcastedTransaction::Invoke(broadcasted_tx) => {
                         let invoke_tx = broadcasted_tx
                             .create_sir_invoke_function(self.config.chain_id.to_felt().into())?;
 
                         Ok(starknet_in_rust::transaction::Transaction::InvokeFunction(invoke_tx))
-                    }
-                    BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V0(_)) => {
-                        Err(Error::UnsupportedAction { msg: "Invoke V0 is not supported".into() })
                     }
                 })
                 .collect::<DevnetResult<Vec<starknet_in_rust::transaction::Transaction>>>()?,
@@ -462,11 +456,11 @@ impl Starknet {
         )
     }
 
-    pub fn add_invoke_transaction_v1(
+    pub fn add_invoke_transaction(
         &mut self,
-        invoke_transaction: BroadcastedInvokeTransactionV1,
+        invoke_transaction: BroadcastedInvokeTransaction,
     ) -> DevnetResult<TransactionHash> {
-        add_invoke_transaction::add_invoke_transcation_v1(self, invoke_transaction)
+        add_invoke_transaction::add_invoke_transaction(self, invoke_transaction)
     }
 
     /// Creates an invoke tx for minting, using the chargeable account.
@@ -506,7 +500,7 @@ impl Starknet {
         );
         let signature = signer.sign_hash(&msg_hash_felt).await?;
 
-        let invoke_tx = BroadcastedInvokeTransactionV1 {
+        let invoke_tx = BroadcastedInvokeTransaction {
             sender_address: ContractAddress::new(chargeable_address_felt)?,
             calldata: raw_execution.raw_calldata().into_iter().map(|c| c.into()).collect(),
             common: BroadcastedTransactionCommon {
@@ -518,7 +512,7 @@ impl Starknet {
         };
 
         // apply the invoke tx
-        self.add_invoke_transaction_v1(invoke_tx)
+        self.add_invoke_transaction(invoke_tx)
     }
 
     pub fn block_state_update(&self, block_id: BlockId) -> DevnetResult<StateUpdate> {
