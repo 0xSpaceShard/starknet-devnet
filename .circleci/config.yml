@@ -98,3 +98,4 @@ workflows:
       - image-build-arm:
           <<: *on_master
       - create-joint-manifest:
+          <<: *on_master_after_test_and_build
