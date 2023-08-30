@@ -9,7 +9,7 @@ use starknet_core::account::Account;
 use starknet_core::starknet::Starknet;
 use starknet_types::felt::Felt;
 use starknet_types::traits::{ToDecimalString, ToHexString};
-use tokio::signal;
+use tokio::signal::unix::{SignalKind, signal};
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
@@ -87,16 +87,22 @@ async fn main() -> Result<(), anyhow::Error> {
 pub async fn shutdown_signal(api: Api) -> (){
 
     println!("Waiting for the end of the world");
+    // Wait for the CTRL+C signal
+    tokio::signal::ctrl_c()
+        .await
+        .expect("failed to install CTRL+C signal handler");
 
     let mut sigterm = signal(SignalKind::terminate()).unwrap();
     let mut sigint = signal(SignalKind::interrupt()).unwrap();
-    let mut sigkill = signal(SignalKind::userdefined1()).unwrap();
+    let mut sigkill = signal(SignalKind::user_defined1()).unwrap();
 
     tokio::select! {
-         = sigterm.recv() => {println!("SIGTERM Shuting down");},
-         = sigint.recv() => {println!("SIGINT Shuting down");},
-         = sigkill.recv() => {println!("Userdefined signal");},
+        _ = sigterm.recv() => {println!("SIGTERM Shuting down");},
+        _ = sigint.recv() => {println!("SIGINT Shuting down");},
+        _ = sigkill.recv() => {println!("Userdefined signal");},
     };
+
+    let transactions = api.starknet.read().await.transactions;
 
     println!("Signal {:?}", api.starknet.read().await.chain_id());
 }

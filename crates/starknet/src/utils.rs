@@ -63,6 +63,8 @@ pub(crate) mod test_utils {
             timeout: DEVNET_DEFAULT_TIMEOUT,
             gas_price: DEVNET_DEFAULT_GAS_PRICE,
             chain_id: DEVNET_DEFAULT_CHAIN_ID,
+            dump_on: None,
+            dump_path: None,
         }
     }
 
