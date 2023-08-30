@@ -8,8 +8,9 @@ mod get_transaction_receipt_by_hash_integration_tests {
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::{
-        BlockId, BlockTag, BroadcastedDeclareTransactionV1, ExecutionResult, FieldElement,
-        MaybePendingTransactionReceipt, StarknetError, TransactionReceipt,
+        BlockId, BlockTag, BroadcastedDeclareTransactionV1, FieldElement,
+        MaybePendingTransactionReceipt, PendingTransactionReceipt, StarknetError,
+        TransactionReceipt,
     };
     use starknet_rs_core::utils::get_udc_deployed_address;
     use starknet_rs_providers::{
@@ -122,8 +123,13 @@ mod get_transaction_receipt_by_hash_integration_tests {
             .unwrap();
 
         match result {
-            MaybePendingTransactionReceipt::Receipt(TransactionReceipt::Declare(declare)) => {
-                assert_eq!(declare.execution_result.revert_reason(), Some("asdasd"));
+            MaybePendingTransactionReceipt::PendingReceipt(PendingTransactionReceipt::Declare(
+                declare,
+            )) => {
+                assert_eq!(
+                    declare.execution_result.revert_reason(),
+                    Some("Invalid transaction nonce. Expected: 0 got 1")
+                );
             }
             _ => panic!("Invalid result: {result:?}"),
         }

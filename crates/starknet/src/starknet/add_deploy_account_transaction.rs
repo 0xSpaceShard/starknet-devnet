@@ -76,9 +76,7 @@ pub fn add_deploy_account_transaction(
 #[cfg(test)]
 mod tests {
     use starknet_api::transaction::Fee;
-    use starknet_rs_core::types::{
-        ExecutionResult, TransactionExecutionStatus, TransactionFinalityStatus,
-    };
+    use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::Cairo0Json;
     use starknet_types::contract_storage_key::ContractStorageKey;

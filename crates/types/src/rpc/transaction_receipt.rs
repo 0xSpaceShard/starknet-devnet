@@ -1,20 +1,12 @@
+use serde::{Deserialize, Serialize, Serializer};
+use starknet_api::block::BlockNumber;
+use starknet_api::transaction::{EthAddress, Fee};
+use starknet_rs_core::types::{ExecutionResult, TransactionFinalityStatus};
+
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
 use crate::felt::{BlockHash, Felt, TransactionHash};
 use crate::rpc::transactions::TransactionType;
-
-use serde::{Deserialize, Serialize, Serializer};
-use starknet_api::block::BlockNumber;
-use starknet_api::transaction::{EthAddress, Fee};
-use starknet_rs_core::types::{
-    ExecutionResult, MaybePendingTransactionReceipt, TransactionFinalityStatus,
-};
-
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct TransactionReceiptWithStatus {
-    #[serde(flatten)]
-    pub receipt: TransactionReceipt,
-}
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -63,14 +55,6 @@ pub struct CommonTransactionReceipt {
     pub maybe_pending_properties: MaybePendingProperties,
 }
 
-// impl From<TransactionReceiptWithStatus> for MaybePendingTransactionReceipt {
-//     fn from(value: TransactionReceiptWithStatus) -> MaybePendingTransactionReceipt {
-//         match value.receipt {
-//             TransactionReceipt::Deploy()
-//         }
-//     }
-// }
-
 impl PartialEq for CommonTransactionReceipt {
     fn eq(&self, other: &Self) -> bool {
         let identical_execution_result = match (&self.execution_status, &other.execution_status) {
@@ -111,12 +95,9 @@ pub struct MessageToL1 {
 
 #[cfg(test)]
 mod tests {
-    use crate::rpc::transaction_receipt::{
-        CommonTransactionReceipt, TransactionReceipt, TransactionReceiptWithStatus,
-    };
-    use starknet_rs_core::types::{
-        MaybePendingTransactionReceipt, TransactionReceipt as SRTransactionReceipt,
-    };
+    use starknet_rs_core::types::MaybePendingTransactionReceipt;
+
+    use crate::rpc::transaction_receipt::TransactionReceipt;
 
     #[test]
     fn test_invoke_accepted_serialization() {
@@ -124,7 +105,7 @@ mod tests {
             concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/rpc/invoke_accepted.json");
         let receipt = std::fs::read_to_string(receipt_path).unwrap();
 
-        let _: TransactionReceiptWithStatus = serde_json::from_str(&receipt).unwrap();
+        let _: TransactionReceipt = serde_json::from_str(&receipt).unwrap();
     }
 
     #[test]
@@ -133,7 +114,9 @@ mod tests {
             concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/rpc/invoke_accepted.json");
         let receipt = std::fs::read_to_string(receipt_path).unwrap();
 
-        let _: MaybePendingTransactionReceipt = serde_json::from_str(&receipt).unwrap();
+        let receipt: TransactionReceipt = serde_json::from_str(&receipt).unwrap();
+        let serialized_receipt = serde_json::to_value(receipt).unwrap();
+        let _: MaybePendingTransactionReceipt = serde_json::from_value(serialized_receipt).unwrap();
     }
 
     #[test]
@@ -142,6 +125,6 @@ mod tests {
             concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/rpc/declare_accepted.json");
         let receipt = std::fs::read_to_string(receipt_path).unwrap();
 
-        let _: TransactionReceiptWithStatus = serde_json::from_str(&receipt).unwrap();
+        let _: TransactionReceipt = serde_json::from_str(&receipt).unwrap();
     }
 }

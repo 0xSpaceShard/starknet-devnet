@@ -135,8 +135,6 @@ pub fn add_declare_transaction_v1(
                 None,
                 &tx_err.to_string(),
             );
-            let err = tx_err.to_string();
-            let err_str = err.as_str();
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
             // Revert to previous pending state
@@ -152,9 +150,7 @@ mod tests {
     use starknet_api::block::BlockNumber;
     use starknet_api::transaction::Fee;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
-    use starknet_rs_core::types::{
-        ExecutionResult, TransactionExecutionStatus, TransactionFinalityStatus,
-    };
+    use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
@@ -258,11 +254,13 @@ mod tests {
 
         // check if contract is not declared
         assert!(!starknet.state.is_contract_declared(&expected_class_hash));
-        assert!(!starknet
-            .state
-            .state
-            .casm_contract_classes_mut()
-            .contains_key(&expected_compiled_class_hash.bytes()));
+        assert!(
+            !starknet
+                .state
+                .state
+                .casm_contract_classes_mut()
+                .contains_key(&expected_compiled_class_hash.bytes())
+        );
 
         let (tx_hash, retrieved_class_hash) =
             starknet.add_declare_transaction_v2(declare_txn).unwrap();

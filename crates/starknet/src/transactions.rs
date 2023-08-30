@@ -2,15 +2,12 @@ use std::collections::HashMap;
 
 use starknet_api::block::BlockNumber;
 use starknet_in_rust::execution::{CallInfo, TransactionExecutionInfo};
-use starknet_in_rust::transaction::error::TransactionError;
 use starknet_rs_core::types::{ExecutionResult, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::Event;
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
-use starknet_types::rpc::transaction_receipt::{
-    DeployTransactionReceipt, TransactionReceipt, TransactionReceiptWithStatus,
-};
+use starknet_types::rpc::transaction_receipt::{DeployTransactionReceipt, TransactionReceipt};
 use starknet_types::rpc::transactions::{Transaction, TransactionType, TransactionWithType};
 
 use crate::constants::UDC_CONTRACT_ADDRESS;
@@ -147,7 +144,7 @@ impl StarknetTransaction {
         })
     }
 
-    pub fn get_receipt(&self) -> DevnetResult<TransactionReceiptWithStatus> {
+    pub fn get_receipt(&self) -> DevnetResult<TransactionReceipt> {
         let transaction_events = self.get_events()?;
 
         let mut common_receipt = self.inner.create_common_receipt(
@@ -165,23 +162,17 @@ impl StarknetTransaction {
 
                 let receipt = if let Some(contract_address) = deployed_address {
                     common_receipt.r#type = TransactionType::Deploy;
-                    TransactionReceiptWithStatus {
-                        receipt: TransactionReceipt::Deploy(DeployTransactionReceipt {
-                            common: common_receipt,
-                            contract_address,
-                        }),
-                    }
+                    TransactionReceipt::Deploy(DeployTransactionReceipt {
+                        common: common_receipt,
+                        contract_address,
+                    })
                 } else {
-                    TransactionReceiptWithStatus {
-                        receipt: TransactionReceipt::Common(common_receipt),
-                    }
+                    TransactionReceipt::Common(common_receipt)
                 };
 
                 Ok(receipt)
             }
-            _ => Ok(TransactionReceiptWithStatus {
-                receipt: TransactionReceipt::Common(common_receipt),
-            }),
+            _ => Ok(TransactionReceipt::Common(common_receipt)),
         }
     }
 }
@@ -189,9 +180,7 @@ impl StarknetTransaction {
 #[cfg(test)]
 mod tests {
     use starknet_in_rust::execution::TransactionExecutionInfo;
-    use starknet_rs_core::types::{
-        ExecutionResult, TransactionExecutionStatus, TransactionFinalityStatus,
-    };
+    use starknet_rs_core::types::TransactionExecutionStatus;
     use starknet_types::rpc::transactions::{
         DeclareTransaction, Transaction, TransactionType, TransactionWithType,
     };

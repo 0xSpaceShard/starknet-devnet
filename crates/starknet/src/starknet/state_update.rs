@@ -21,9 +21,7 @@ mod tests {
     use starknet_in_rust::core::contract_address::compute_casm_class_hash;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_in_rust::CasmContractClass;
-    use starknet_rs_core::types::{
-        ExecutionResult, TransactionExecutionStatus, TransactionFinalityStatus,
-    };
+    use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;

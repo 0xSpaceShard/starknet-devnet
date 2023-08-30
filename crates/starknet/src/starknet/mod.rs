@@ -28,7 +28,7 @@ use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{Block, BlockHeader};
-use starknet_types::rpc::transaction_receipt::TransactionReceiptWithStatus;
+use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
@@ -626,7 +626,7 @@ impl Starknet {
     pub fn get_transaction_receipt_by_hash(
         &self,
         transaction_hash: TransactionHash,
-    ) -> DevnetResult<TransactionReceiptWithStatus> {
+    ) -> DevnetResult<TransactionReceipt> {
         let transaction_to_map =
             self.transactions.get(&transaction_hash).ok_or(Error::NoTransaction)?;
 

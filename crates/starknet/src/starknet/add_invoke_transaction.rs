@@ -74,9 +74,7 @@ mod tests {
     use starknet_api::transaction::Fee;
     use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
     use starknet_in_rust::EntryPointType;
-    use starknet_rs_core::types::{
-        ExecutionResult, TransactionExecutionStatus, TransactionFinalityStatus,
-    };
+    use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};

@@ -6,7 +6,7 @@ use starknet_rs_core::types::ContractClass as CodegenContractClass;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::rpc::block::{Block, BlockHeader};
-use starknet_types::rpc::transaction_receipt::TransactionReceiptWithStatus;
+use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
     BroadcastedTransactionWithType, EventFilter, EventsChunk, FunctionCall, Transaction,
     TransactionWithType,
@@ -169,7 +169,7 @@ impl JsonRpcHandler {
     pub(crate) async fn get_transaction_receipt_by_hash(
         &self,
         transaction_hash: TransactionHash,
-    ) -> RpcResult<TransactionReceiptWithStatus> {
+    ) -> RpcResult<TransactionReceipt> {
         match self.api.starknet.read().await.get_transaction_receipt_by_hash(transaction_hash) {
             Ok(receipt) => Ok(receipt),
             Err(Error::NoTransaction) => Err(ApiError::TransactionNotFound),
