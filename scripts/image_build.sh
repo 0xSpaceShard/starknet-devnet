@@ -30,18 +30,14 @@ function test_and_push() {
     docker logs "$container_name"
 
     echo "Checking if devnet instance is alive"
-    if [ ! -z $REMOTE ]; then
-        ssh remote-docker curl "$external_address/is_alive" -w "\n"
-    else
-        curl "$external_address/is_alive" -w "\n"
-    fi
+    ssh remote-docker curl "$external_address/is_alive" -w "\n"
 
     docker push "$tagged_image"
 
     docker rm -f "$container_name"
 }
 
-SHA1_TAG="${CIRCLE_SHA1}${ARCH_SUFFIX}"
+SHA1_TAG="${CIRCLE_SHA1}"
 echo "Building regular image: $SHA1_TAG"
 docker build . \
     -t "$IMAGE:$SHA1_TAG"
