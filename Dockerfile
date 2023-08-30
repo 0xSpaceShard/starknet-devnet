@@ -2,9 +2,7 @@ FROM rust:1.69.0-slim-buster as builder
 
 COPY . .
 
-# use sparse-registry to prevent out-of-memory error
-RUN rustup update nightly
-RUN cargo +nightly build --bin starknet-devnet --release -Z sparse-registry
+RUN cargo build --bin starknet-devnet --release
 
 FROM debian:buster-slim
 

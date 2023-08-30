@@ -8,7 +8,7 @@ set -eu
 
 IMAGE=shardlabs/starknet-devnet-rs
 
-function validate_image() {
+function validate_and_push() {
     local tagged_image="$IMAGE:$1"
 
     local container_name="devnet"
@@ -30,35 +30,36 @@ function validate_image() {
     docker logs "$container_name"
 
     echo "Checking if devnet instance is alive"
-    ssh remote-docker curl "$external_address/is_alive" -w "\n"
+    if [ ! -z $REMOTE ]; then
+        ssh remote-docker curl "$external_address/is_alive" -w "\n"
+    else
+        curl "$external_address/is_alive" -w "\n"
+    fi
+
+    docker push "$tagged_image"
 
     docker rm -f "$container_name"
 }
 
-docker login --username "$DOCKER_USER" --password "$DOCKER_PASS"
+echo "Building ${ARCH_SUFFIX} images tagged with sha1 commit digest"
 
-echo "Building and pushing images tagged with sha1 commit digest"
-echo "Temporarily pushing tag latest. Once semver is established for this project, this should be done conditionally in a separate script, as was done with devnet-py"
-
-SHA1_TAG="${CIRCLE_SHA1}"
+SHA1_TAG="${CIRCLE_SHA1}${ARCH_SUFFIX}"
 echo "Building regular (unseeded) image: $SHA1_TAG"
-docker buildx build . \
-    -t "$IMAGE:$SHA1_TAG" \
-    -t "$IMAGE:latest" \
-    --platform="$BUILDX_PLATFORMS" \
-    --push
+docker build . \
+    -f Dockerfile \
+    -t "$IMAGE:$SHA1_TAG"
 
 SEED_SUFFIX="-seed0"
 SHA1_SEEDED_TAG="${SHA1_TAG}${SEED_SUFFIX}"
 echo "Building seeded image: $SHA1_SEEDED_TAG"
-docker buildx build . \
+docker build . \
     -f seed0.Dockerfile \
-    --build-arg BASE_TAG=$SHA1_TAG \
     -t "$IMAGE:$SHA1_SEEDED_TAG" \
-    --platform="$BUILDX_PLATFORMS" \
-    --push
+    --build-arg BASE_TAG=$SHA1_TAG
 
-echo "Images built and pushed. Validating."
-for testable_tag in $SHA1_TAG $SHA1_SEEDED_TAG; do
-    validate_image $testable_tag
+echo "Images built. Validating and pushing."
+docker login --username "$DOCKER_USER" --password "$DOCKER_PASS"
+
+for image_tag in $SHA1_TAG $SHA1_SEEDED_TAG; do
+    validate_and_push $image_tag
 done

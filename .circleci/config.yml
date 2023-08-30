@@ -11,6 +11,13 @@ aliases:
           # TODO change to master
           - dockerize
 
+  - &on_master_after_test_and_build
+    <<: *on_master
+    requires:
+      - build-and-test
+      - image-build-amd
+      - image-build-arm
+
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/configuration-reference/#jobs
 jobs:
@@ -39,7 +46,7 @@ jobs:
           # solution: https://stackoverflow.com/questions/71962406/how-to-use-less-memory-when-compiling-to-avoid-killing-the-build
           command: cargo test --jobs 6
 
-  image-build:
+  image-build-amd:
     docker:
       - image: cimg/base:2021.04
     resource_class: large
@@ -48,18 +55,36 @@ jobs:
       - setup_remote_docker:
           version: 20.10.7
       - run:
-          name: Setup buildx
-          command: |
-            set -eu
-            docker --version
-            docker buildx create --use --name mybuilder
-            docker run --rm --privileged tonistiigi/binfmt --install arm64,amd64
-            docker buildx ls
-      - run:
-          name: Build images
+          name: Build amd images
           command: ./scripts/image_build.sh
           environment:
-            BUILDX_PLATFORMS: "linux/arm64,linux/amd64"
+            ARCH_SUFFIX: "-amd"
+            REMOTE: true
+
+  image-build-arm:
+    machine:
+      image: ubuntu-2004:202111-02
+    resource_class: arm.large
+    steps:
+      - checkout
+      - run:
+          name: Build arm images
+          command: ./scripts/image_build.sh
+          environment:
+            ARCH_SUFFIX: -arm
+            REMOTE: ""
+
+  create-joint-manifest:
+    docker:
+      - image: cimg/base:2021.04
+    resource_class: medium
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.7
+      - run:
+          name: Create joint manifest
+          command: ./scripts/create_joint_manifest.sh
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
@@ -68,5 +93,8 @@ workflows:
     jobs:
       # TODO uncomment
       # - build-and-test
-      - image-build:
+      - image-build-amd:
           <<: *on_master
+      - image-build-arm:
+          <<: *on_master
+      - create-joint-manifest:
