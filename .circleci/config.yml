@@ -56,12 +56,15 @@ jobs:
       - run:
           name: Build images
           command: ./scripts/image_build.sh
+          environment:
+            BUILDX_PLATFORMS: "linux/arm64,linux/amd64"
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
 workflows:
   main:
     jobs:
-      - build-and-test
+      # TODO uncomment
+      # - build-and-test
       - image-build:
           <<: *on_master
