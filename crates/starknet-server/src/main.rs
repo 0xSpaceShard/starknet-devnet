@@ -2,6 +2,7 @@ use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
 use std::time::Duration;
 
+use api::Api;
 use ::server::ServerConfig;
 use clap::Parser;
 use cli::Args;
@@ -49,7 +50,8 @@ fn log_predeployed_accounts(predeployed_accounts: &Vec<Account>, seed: u32, init
     }
 }
 
-async fn main2(subsys: SubsystemHandle) -> Result<(), anyhow::Error> {
+#[tokio::main]
+async fn main() -> Result<(), anyhow::Error> {
     configure_tracing();
 
     // parse arguments
@@ -79,24 +81,16 @@ async fn main2(subsys: SubsystemHandle) -> Result<(), anyhow::Error> {
     info!("Starknet Devnet listening on {}", addr);
 
     // spawn the server on a new task
-    let serve = tokio::task::spawn(server);
+    let serve = tokio::task::spawn(server.with_graceful_shutdown(shutdown_signal(api.clone())));
 
     Ok(serve.await??)
 }
 
-async fn main1(subsys: SubsystemHandle) -> Result<(), anyhow::Error> {
-    subsys.start("Main2", main2);
-    subsys.on_shutdown_requested().await;
-    println!("Subsystem2 stopped.");
-    Ok(())
-}
-
-#[tokio::main]
-async fn main() -> Result<(), anyhow::Error> {
-    Toplevel::new()
-        .start("Main1", main1)
-        .catch_signals()
-        .handle_shutdown_requests(Duration::from_millis(1000))
+pub async fn shutdown_signal(api: Api) {
+    // Wait for the CTRL+C signal
+    tokio::signal::ctrl_c()
         .await
-        .map_err(Into::into)
+        .expect("failed to install CTRL+C signal handler");
+
+    println!("Signal {:?}", api.starknet.read().await.chain_id());
 }
