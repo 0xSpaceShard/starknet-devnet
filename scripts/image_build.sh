@@ -35,6 +35,11 @@ function test_image() {
     docker rm -f "$container_name"
 }
 
+# Setup buildx
+docker --version
+docker run --rm --privileged tonistiigi/binfmt --install arm64
+docker buildx ls
+
 docker login --username "$DOCKER_USER" --password "$DOCKER_PASS"
 
 echo "Pushing images tagged with sha1 commit digest"
