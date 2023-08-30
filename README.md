@@ -2,7 +2,7 @@
 
 A local testnet for Starknet... in Rust
 
-This repository is work in progress, please be patient. As of Starknet 0.12.0, the [Pythonic Devnet](https://github.com/0xSpaceShard/starknet-devnet) is still the way to go.
+This repository is work in progress, please be patient. As of Starknet 0.12.2, [Pythonic Devnet](https://github.com/0xSpaceShard/starknet-devnet) is still the way to go.
 
 ## Requirements
 
@@ -10,33 +10,37 @@ It is required to install the latest version of [Rust](https://www.rust-lang.org
 
 ## Run
 
-Install and run the project with:
+After git-cloning this repository, install and run the project with:
 
 ```
-cargo run
+$ cargo run
 ```
 
 ## Run with Docker
 
-This application is available as a Docker image:
+This application is available as a Docker image. To download the image tagged with `latest`, run:
 
 ```text
 $ docker pull shardlabs/starknet-devnet-rs
 ```
 
-Commits to the `master` branch of this repository are mostly available as images tagged with their commit hash (the full 40-hex-digits SHA1 digest):
+Commits to the `master` branch of this repository are mostly available as images tagged with their commit hash (the full 40-lowercase-hex-digits SHA1 digest):
 
-- `shardlabs/starknet-devnet-rs:<COMMIT_HASH>`
+```
+$ shardlabs/starknet-devnet-rs:<COMMIT_HASH>
+```
 
-By appending the `-seed0` suffix, you can use images which [predeploy funded accounts](#predeployed-accounts) with `--seed 0`, thus always deploying the same set of accounts. E.g.:
+By appending the `-seed0` suffix, you can use images which [predeploy funded accounts](#predeployed-accounts) with `--seed 0`, thus always predeploying the same set of accounts. E.g.:
 
-- `shardlabs/starknet-devnet:<VERSION>-seed0`
+```
+$ shardlabs/starknet-devnet-rs:<VERSION>-seed0
+```
 
 ### Container port publishing
 
 #### Linux
 
-If on a Linux host machine, you can use [`--network host`](https://docs.docker.com/network/host/). This way, the port used internally by the container is also available on your host machine. The `--port` option also has effect.
+If on a Linux host machine, you can use [`--network host`](https://docs.docker.com/network/host/). This way, the port used internally by the container is also available on your host machine. The `--port` option can be used (as well as other CLI options).
 
 ```text
 $ docker run --network host shardlabs/starknet-devnet-rs [--port <PORT>]
@@ -44,16 +48,16 @@ $ docker run --network host shardlabs/starknet-devnet-rs [--port <PORT>]
 
 #### Mac, Windows
 
-If not on Linux, you need to publish the container's internally used port to a desired `<PORT>` on your host machine. The internal port is `5050` by default (can be overridden with `--port`).
+If not on Linux, you need to publish the container's internally used port to a desired `<PORT>` on your host machine. The internal port is `5050` by default (probably not your concern, but can be overridden with `--port`).
 
 ```text
-docker run -p [HOST:]<PORT>:5050 shardlabs/starknet-devnet-rs
+$ docker run -p [HOST:]<PORT>:5050 shardlabs/starknet-devnet-rs
 ```
 
 E.g. if you want to use your host machine's `127.0.0.1:5050`, you need to run:
 
 ```text
-docker run -p 127.0.0.1:5050:5050 shardlabs/starknet-devnet
+$ docker run -p 127.0.0.1:5050:5050 shardlabs/starknet-devnet-rs
 ```
 
 You may ignore any address-related output logged on container startup (e.g. `Starknet Devnet listening on 0.0.0.0:5050`). What you will use is what you specified with the `-p` argument.
