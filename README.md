@@ -24,16 +24,18 @@ This application is available as a Docker image. To download the image tagged wi
 $ docker pull shardlabs/starknet-devnet-rs
 ```
 
+To properly run a container, check out the [next paragraph](#container-port-publishing).
+
 Commits to the `master` branch of this repository are mostly available as images tagged with their commit hash (the full 40-lowercase-hex-digits SHA1 digest):
 
 ```
-$ shardlabs/starknet-devnet-rs:<COMMIT_HASH>
+$ docker pull shardlabs/starknet-devnet-rs:<COMMIT_HASH>
 ```
 
 By appending the `-seed0` suffix, you can use images which [predeploy funded accounts](#predeployed-accounts) with `--seed 0`, thus always predeploying the same set of accounts. E.g.:
 
 ```
-$ shardlabs/starknet-devnet-rs:<VERSION>-seed0
+$ docker pull shardlabs/starknet-devnet-rs:<VERSION>-seed0
 ```
 
 ### Container port publishing
