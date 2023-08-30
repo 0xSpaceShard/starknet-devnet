@@ -9,6 +9,7 @@ use starknet_core::account::Account;
 use starknet_core::starknet::Starknet;
 use starknet_types::felt::Felt;
 use starknet_types::traits::{ToDecimalString, ToHexString};
+use tokio::signal;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
@@ -83,11 +84,19 @@ async fn main() -> Result<(), anyhow::Error> {
     Ok(serve.await??)
 }
 
-pub async fn shutdown_signal(api: Api) {
-    // Wait for the CTRL+C signal
-    tokio::signal::ctrl_c()
-        .await
-        .expect("failed to install CTRL+C signal handler");
+pub async fn shutdown_signal(api: Api) -> (){
+
+    println!("Waiting for the end of the world");
+
+    let mut sigterm = signal(SignalKind::terminate()).unwrap();
+    let mut sigint = signal(SignalKind::interrupt()).unwrap();
+    let mut sigkill = signal(SignalKind::userdefined1()).unwrap();
+
+    tokio::select! {
+         = sigterm.recv() => {println!("SIGTERM Shuting down");},
+         = sigint.recv() => {println!("SIGINT Shuting down");},
+         = sigkill.recv() => {println!("Userdefined signal");},
+    };
 
     println!("Signal {:?}", api.starknet.read().await.chain_id());
 }
