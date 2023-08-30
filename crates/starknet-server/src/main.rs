@@ -1,6 +1,5 @@
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
-use std::time::Duration;
 
 use api::Api;
 use ::server::ServerConfig;
@@ -10,10 +9,8 @@ use starknet_core::account::Account;
 use starknet_core::starknet::Starknet;
 use starknet_types::felt::Felt;
 use starknet_types::traits::{ToDecimalString, ToHexString};
-use tokio_graceful_shutdown::SubsystemHandle;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
-use tokio_graceful_shutdown::Toplevel;
 
 mod api;
 mod cli;
