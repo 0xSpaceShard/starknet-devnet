@@ -50,8 +50,9 @@ jobs:
       - run:
           name: Setup buildx
           command: |
+            set -eu
             docker --version
-            docker buildx create --use mybuilder
+            docker buildx create --use --name mybuilder
             docker run --rm --privileged tonistiigi/binfmt --install arm64,amd64
             docker buildx ls
       - run:
