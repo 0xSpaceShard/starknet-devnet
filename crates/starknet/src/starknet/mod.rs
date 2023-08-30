@@ -36,7 +36,7 @@ use crate::constants::{
     CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
     ERC20_CONTRACT_ADDRESS,
 };
-use crate::error::{Error, Result};
+use crate::error::{DevnetResult, Error};
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::raw_execution::{Call, RawExecution};
 use crate::state::state_diff::StateDiff;
@@ -108,7 +108,7 @@ pub struct Starknet {
 }
 
 impl Starknet {
-    pub fn new(config: &StarknetConfig) -> Result<Self> {
+    pub fn new(config: &StarknetConfig) -> DevnetResult<Self> {
         let mut state = StarknetState::default();
         // deploy udc and erc20 contracts
         let erc20_fee_contract = predeployed::create_erc20()?;
@@ -172,7 +172,7 @@ impl Starknet {
 
     // Update block context
     // Initialize values for new pending block
-    pub(crate) fn generate_pending_block(&mut self) -> Result<()> {
+    pub(crate) fn generate_pending_block(&mut self) -> DevnetResult<()> {
         Self::update_block_context(&mut self.block_context);
         self.restart_pending_block()?;
 
@@ -185,7 +185,7 @@ impl Starknet {
         &mut self,
         state_diff: StateDiff,
         state: StarknetState,
-    ) -> Result<BlockNumber> {
+    ) -> DevnetResult<BlockNumber> {
         let mut new_block = self.pending_block().clone();
 
         // set new block header
@@ -217,7 +217,7 @@ impl Starknet {
         transaction_hash: &TransactionHash,
         transaction: Transaction,
         tx_info: TransactionExecutionInfo,
-    ) -> Result<()> {
+    ) -> DevnetResult<()> {
         let transaction_to_add = StarknetTransaction::create_successful(transaction, tx_info);
 
         // add accepted transaction to pending block
@@ -242,7 +242,7 @@ impl Starknet {
         gas_price: u64,
         fee_token_address: &str,
         chain_id: StarknetChainId,
-    ) -> Result<BlockContext> {
+    ) -> DevnetResult<BlockContext> {
         let starknet_os_config = StarknetOsConfig::new(
             chain_id.to_felt(),
             starknet_in_rust::utils::Address(
@@ -286,7 +286,7 @@ impl Starknet {
     }
 
     /// Restarts pending block with information from block_context
-    fn restart_pending_block(&mut self) -> Result<()> {
+    fn restart_pending_block(&mut self) -> DevnetResult<()> {
         let mut block = StarknetBlock::create_pending_block();
 
         block.header.block_number = BlockNumber(self.block_context.block_info().block_number);
@@ -301,7 +301,7 @@ impl Starknet {
         Ok(())
     }
 
-    fn get_state_at(&self, block_id: &BlockId) -> Result<&StarknetState> {
+    fn get_state_at(&self, block_id: &BlockId) -> DevnetResult<&StarknetState> {
         match block_id {
             BlockId::Tag(_) => Ok(&self.state),
             _ => {
@@ -320,11 +320,15 @@ impl Starknet {
         &self,
         block_id: BlockId,
         contract_address: ContractAddress,
-    ) -> Result<ClassHash> {
+    ) -> DevnetResult<ClassHash> {
         get_class_impls::get_class_hash_at_impl(self, block_id, contract_address)
     }
 
-    pub fn get_class(&self, block_id: BlockId, class_hash: ClassHash) -> Result<ContractClass> {
+    pub fn get_class(
+        &self,
+        block_id: BlockId,
+        class_hash: ClassHash,
+    ) -> DevnetResult<ContractClass> {
         get_class_impls::get_class_impl(self, block_id, class_hash)
     }
 
@@ -332,7 +336,7 @@ impl Starknet {
         &self,
         block_id: BlockId,
         contract_address: ContractAddress,
-    ) -> Result<ContractClass> {
+    ) -> DevnetResult<ContractClass> {
         get_class_impls::get_class_at_impl(self, block_id, contract_address)
     }
 
@@ -342,7 +346,7 @@ impl Starknet {
         contract_address: Felt,
         entrypoint_selector: Felt,
         calldata: Vec<Felt>,
-    ) -> Result<Vec<Felt>> {
+    ) -> DevnetResult<Vec<Felt>> {
         let state = self.get_state_at(&block_id)?;
 
         if !self.state.is_contract_deployed(&ContractAddress::new(contract_address)?) {
@@ -366,7 +370,7 @@ impl Starknet {
         &self,
         block_id: BlockId,
         transactions: &[Transaction],
-    ) -> Result<Vec<u64>> {
+    ) -> DevnetResult<Vec<u64>> {
         let state = self.get_state_at(&block_id)?;
 
         // Vec<(Fee, GasUsage)>
@@ -405,14 +409,14 @@ impl Starknet {
     pub fn add_declare_transaction_v1(
         &mut self,
         declare_transaction: DeclareTransactionV1,
-    ) -> Result<(TransactionHash, ClassHash)> {
+    ) -> DevnetResult<(TransactionHash, ClassHash)> {
         add_declare_transaction::add_declare_transaction_v1(self, declare_transaction)
     }
 
     pub fn add_declare_transaction_v2(
         &mut self,
         declare_transaction: DeclareTransactionV2,
-    ) -> Result<(TransactionHash, ClassHash)> {
+    ) -> DevnetResult<(TransactionHash, ClassHash)> {
         add_declare_transaction::add_declare_transaction_v2(self, declare_transaction)
     }
 
@@ -430,7 +434,7 @@ impl Starknet {
     pub fn add_deploy_account_transaction(
         &mut self,
         deploy_account_transaction: DeployAccountTransaction,
-    ) -> Result<(TransactionHash, ContractAddress)> {
+    ) -> DevnetResult<(TransactionHash, ContractAddress)> {
         add_deploy_account_transaction::add_deploy_account_transaction(
             self,
             deploy_account_transaction,
@@ -440,12 +444,12 @@ impl Starknet {
     pub fn add_invoke_transaction_v1(
         &mut self,
         invoke_transaction: InvokeTransactionV1,
-    ) -> Result<TransactionHash> {
+    ) -> DevnetResult<TransactionHash> {
         add_invoke_transaction::add_invoke_transcation_v1(self, invoke_transaction)
     }
 
     /// Creates an invoke tx for minting, using the chargeable account.
-    pub async fn mint(&mut self, address: ContractAddress, amount: u128) -> Result<Felt> {
+    pub async fn mint(&mut self, address: ContractAddress, amount: u128) -> DevnetResult<Felt> {
         let sufficiently_big_max_fee: u128 = self.config.gas_price as u128 * 1_000_000;
         let chargeable_address_felt = Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?;
         let nonce =
@@ -494,11 +498,11 @@ impl Starknet {
         self.add_invoke_transaction_v1(invoke_tx)
     }
 
-    pub fn block_state_update(&self, block_id: BlockId) -> Result<StateUpdate> {
+    pub fn block_state_update(&self, block_id: BlockId) -> DevnetResult<StateUpdate> {
         state_update::state_update_by_block_id(self, block_id)
     }
 
-    pub fn get_block_txs_count(&self, block_id: BlockId) -> Result<u64> {
+    pub fn get_block_txs_count(&self, block_id: BlockId) -> DevnetResult<u64> {
         let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
 
         Ok(block.get_transactions().len() as u64)
@@ -508,7 +512,7 @@ impl Starknet {
         &self,
         block_id: BlockId,
         contract_address: ContractAddress,
-    ) -> Result<Felt> {
+    ) -> DevnetResult<Felt> {
         let state = self.get_state_at(&block_id)?;
         match state.state.address_to_nonce.get(&contract_address.try_into()?) {
             Some(nonce) => Ok(Felt::from(nonce.clone())),
@@ -521,12 +525,12 @@ impl Starknet {
         block_id: BlockId,
         contract_address: ContractAddress,
         storage_key: PatriciaKey,
-    ) -> Result<Felt> {
+    ) -> DevnetResult<Felt> {
         let state = self.get_state_at(&block_id)?;
         state.get_storage(ContractStorageKey::new(contract_address, storage_key))
     }
 
-    pub fn get_block(&self, block_id: BlockId) -> Result<StarknetBlock> {
+    pub fn get_block(&self, block_id: BlockId) -> DevnetResult<StarknetBlock> {
         let block = self.blocks.get_by_block_id(block_id).ok_or(crate::error::Error::NoBlock)?;
         Ok(block.clone())
     }
@@ -534,7 +538,7 @@ impl Starknet {
     pub fn get_block_with_transactions(
         &self,
         block_id: BlockId,
-    ) -> Result<(StarknetBlock, Vec<&Transaction>)> {
+    ) -> DevnetResult<(StarknetBlock, Vec<&Transaction>)> {
         let block = self.blocks.get_by_block_id(block_id).ok_or(crate::error::Error::NoBlock)?;
         let mut transactions: Vec<&Transaction> = vec![];
         for transaction_hash in block.get_transactions() {
@@ -546,7 +550,7 @@ impl Starknet {
         Ok((block.clone(), transactions))
     }
 
-    pub fn get_latest_block(&self) -> Result<StarknetBlock> {
+    pub fn get_latest_block(&self) -> DevnetResult<StarknetBlock> {
         let block = self
             .blocks
             .get_by_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))
@@ -555,7 +559,7 @@ impl Starknet {
         Ok(block.clone())
     }
 
-    pub fn get_transaction_by_hash(&self, transaction_hash: Felt) -> Result<&Transaction> {
+    pub fn get_transaction_by_hash(&self, transaction_hash: Felt) -> DevnetResult<&Transaction> {
         self.transactions
             .get_by_hash(transaction_hash)
             .map(|starknet_transaction| &starknet_transaction.inner)
@@ -570,7 +574,7 @@ impl Starknet {
         keys: Option<Vec<Vec<Felt>>>,
         skip: usize,
         limit: Option<usize>,
-    ) -> Result<(Vec<EmittedEvent>, bool)> {
+    ) -> DevnetResult<(Vec<EmittedEvent>, bool)> {
         events::get_events(self, from_block, to_block, address, keys, skip, limit)
     }
 }
@@ -590,7 +594,7 @@ mod tests {
     use crate::constants::{
         DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_INITIAL_BALANCE, ERC20_CONTRACT_ADDRESS,
     };
-    use crate::error::{Error, Result};
+    use crate::error::{DevnetResult, Error};
     use crate::state::state_diff::StateDiff;
     use crate::traits::{Accounted, StateChanger, StateExtractor};
     use crate::utils::test_utils::{
@@ -793,7 +797,10 @@ mod tests {
     }
 
     /// utility method for happy path balance retrieval
-    fn get_balance_at(starknet: &Starknet, contract_address: ContractAddress) -> Result<Vec<Felt>> {
+    fn get_balance_at(
+        starknet: &Starknet,
+        contract_address: ContractAddress,
+    ) -> DevnetResult<Vec<Felt>> {
         let entry_point_selector =
             starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();
         starknet.call(

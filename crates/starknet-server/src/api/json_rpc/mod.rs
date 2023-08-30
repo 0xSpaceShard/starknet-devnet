@@ -3,6 +3,7 @@ pub mod error;
 mod models;
 mod write_endpoints;
 
+use error::RpcResult;
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
     EstimateFeeInput, EventsInput, GetStorageInput, TransactionHashInput,
@@ -20,8 +21,6 @@ use self::models::{
 };
 use super::Api;
 use crate::api::serde_helpers::empty_params;
-
-pub(crate) type RpcResult<T> = std::result::Result<T, ApiError>;
 
 /// Helper trait to easily convert results to rpc results
 pub(crate) trait ToRpcResponseResult {

@@ -9,7 +9,7 @@ use super::error::ApiError;
 use super::models::{
     DeclareTransactionOutput, DeployAccountTransactionOutput, InvokeTransactionOutput,
 };
-use super::RpcResult;
+use crate::api::json_rpc::error::RpcResult;
 use crate::api::json_rpc::JsonRpcHandler;
 use crate::api::models::transaction::{
     BroadcastedDeclareTransaction, BroadcastedDeclareTransactionV1,

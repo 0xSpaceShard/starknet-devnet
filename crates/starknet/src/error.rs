@@ -37,4 +37,4 @@ pub enum Error {
     NoTransaction,
 }
 
-pub type Result<T, E = Error> = std::result::Result<T, E>;
+pub type DevnetResult<T, E = Error> = Result<T, E>;
