@@ -59,7 +59,7 @@ impl BroadcastedDeployAccountTransaction {
     pub fn compile_deploy_account_transaction(
         &self,
         transaction_hash: &TransactionHash,
-        contract_address: ContractAddress
+        contract_address: ContractAddress,
     ) -> DeployAccountTransaction {
         DeployAccountTransaction {
             transaction_hash: *transaction_hash,
@@ -70,7 +70,7 @@ impl BroadcastedDeployAccountTransaction {
             class_hash: self.class_hash,
             contract_address_salt: self.contract_address_salt,
             constructor_calldata: self.constructor_calldata.clone(),
-            contract_address: contract_address
+            contract_address,
         }
     }
 }

@@ -19,7 +19,7 @@ pub struct DeployAccountTransaction {
     pub class_hash: ClassHash,
     pub contract_address_salt: ContractAddressSalt,
     pub constructor_calldata: Calldata,
-    pub contract_address: ContractAddress
+    pub contract_address: ContractAddress,
 }
 
 impl DeployAccountTransaction {
