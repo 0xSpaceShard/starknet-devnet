@@ -6,7 +6,9 @@ This repository is work in progress, please be patient. As of Starknet 0.12.2, [
 
 ## Requirements
 
-It is required to install the latest version of [Rust](https://www.rust-lang.org/tools/install).
+Make sure to have installed [Rust](https://www.rust-lang.org/tools/install).
+
+The required Rust version is specified in [rust-toolchain.toml](rust-toolchain.toml) and handled automatically by `cargo`.
 
 ## Run
 
@@ -18,13 +20,21 @@ $ cargo run
 
 ## Run with Docker
 
-This application is available as a Docker image (architectures: arm64 and amd64). To download the `latest` image, run:
+This application is available as a Docker image ([Docker Hub link](https://hub.docker.com/r/shardlabs/starknet-devnet-rs/)). To download the `latest` image, run:
 
 ```text
 $ docker pull shardlabs/starknet-devnet-rs
 ```
 
-To properly run a container, check out the [next paragraph](#container-port-publishing).
+Supported architectures: arm64 and amd64.
+
+Running a container is done like this (see [port publishing](#container-port-publishing) for more info):
+
+```text
+$ docker run -p [HOST]:<PORT> shardlabs/starknet-devnet-rs [OPTIONS]
+```
+
+### Docker image tags
 
 Commits to the `main` branch of this repository are mostly available as images tagged with their commit hash (the full 40-lowercase-hex-digits SHA1 digest):
 
@@ -32,7 +42,7 @@ Commits to the `main` branch of this repository are mostly available as images t
 $ docker pull shardlabs/starknet-devnet-rs:<COMMIT_HASH>
 ```
 
-By appending the `-seed0` suffix, you can use images which [predeploy funded accounts](#predeployed-accounts) with `--seed 0`, thus always predeploying the same set of accounts. E.g.:
+By appending the `-seed0` suffix, you can use images which [predeploy funded accounts](#predeployed-contracts) with `--seed 0`, thus always predeploying the same set of accounts:
 
 ```
 $ docker pull shardlabs/starknet-devnet-rs:<VERSION>-seed0
@@ -69,11 +79,16 @@ If you don't specify the `HOST` part, the server will indeed be available on all
 
 ## CLI options
 
-Check out the CLI options with one of:
+Check out the CLI options with:
 
 ```
-cargo run -- -h
-cargo run -- --help
+$ cargo run -- --help
+```
+
+Or if using dockerized Devnet:
+
+```
+$ docker run --rm shardlabs/starknet-devnet-rs --help
 ```
 
 ## Logging
@@ -82,11 +97,21 @@ By default, the logging level is INFO, but this can be changed via the `RUST_LOG
 
 All logging levels: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`
 
-To specify the logging level and run Devnet on the same line, you can do:
+To specify the logging level and run Devnet on the same line:
 
 ```
-RUST_LOG=<LEVEL> cargo run
+$ RUST_LOG=<LEVEL> cargo run
 ```
+
+or if using dockerized Devnet:
+
+```
+$ docker run -e RUST_LOG=<LEVEL> shardlabs/starknet-devnet-rs
+```
+
+## Predeployed contracts
+
+Devnet predeploys a [UDC](https://docs.openzeppelin.com/contracts-cairo/0.6.1/udc), an [ERC20 (fee token)](https://docs.openzeppelin.com/contracts/3.x/api/token/erc20) contract and a set of funded accounts. The information on this is logged on Devnet startup. The set of accounts can be controlled via [CLI options](#cli-options): `--accounts`, `--initial-balance`, `--seed`.
 
 ## Mint token
 
@@ -133,3 +158,16 @@ cargo test
 ```
 
 To ensure that integration tests pass, be sure to have run `cargo build --release` or `cargo run --release` prior to that (this will build the production target that is used in these tests, so spawning Background Devnet won't time out)
+
+## Development - Docker
+
+Due to internal needs, images with arch suffix are built and pushed to Docker Hub, but this is not mentioned in the user docs as users should NOT be needing it.
+
+This is what happens under the hood on `main`:
+
+- build `shardlabs/starknet-devnet-rs-<COMMIT_SHA1>-amd`
+- build `shardlabs/starknet-devnet-rs-<COMMIT_SHA1>-arm`
+- create and push joint docker manifest called `shardlabs/starknet-devnet-rs-<COMMIT_SHA1>`
+  - same for `latest`
+
+In the image, `tini` is used to properly handle killing of dockerized Devnet with Ctrl+C
