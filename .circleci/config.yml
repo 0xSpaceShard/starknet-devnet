@@ -84,7 +84,7 @@ jobs:
           version: 20.10.7
       - run:
           name: Create and push joint image manifest
-          command: ./scripts/create_joint_manifest.sh
+          command: ./scripts/create_joint_image_manifest.sh
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
