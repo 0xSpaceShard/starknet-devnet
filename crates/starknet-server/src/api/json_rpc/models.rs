@@ -4,7 +4,7 @@ use starknet_types::felt::{BlockHash, ClassHash, TransactionHash};
 use starknet_types::rpc::block::SyncStatus;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
 use starknet_types::rpc::transactions::{
-    BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransactionWithType,
+    BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
     EventFilter, FunctionCall,
 };
 use starknet_types::starknet_api::block::BlockNumber;
@@ -54,7 +54,7 @@ pub struct CallInput {
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct EstimateFeeInput {
-    pub request: Vec<BroadcastedTransactionWithType>,
+    pub request: Vec<BroadcastedTransaction>,
     pub block_id: BlockId,
 }
 
@@ -313,25 +313,22 @@ mod tests {
         );
         assert!(estimate_fee_input.request.len() == 5);
         assert!(matches!(
-            estimate_fee_input.request[0].transaction,
+            estimate_fee_input.request[0],
             BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(_))
         ));
         assert!(matches!(
-            estimate_fee_input.request[1].transaction,
+            estimate_fee_input.request[1],
             BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(_))
         ));
         assert!(matches!(
-            estimate_fee_input.request[2].transaction,
+            estimate_fee_input.request[2],
             BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V0(_))
         ));
         assert!(matches!(
-            estimate_fee_input.request[3].transaction,
+            estimate_fee_input.request[3],
             BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(_))
         ));
-        assert!(matches!(
-            estimate_fee_input.request[4].transaction,
-            BroadcastedTransaction::DeployAccount(_)
-        ));
+        assert!(matches!(estimate_fee_input.request[4], BroadcastedTransaction::DeployAccount(_)));
     }
 
     #[test]

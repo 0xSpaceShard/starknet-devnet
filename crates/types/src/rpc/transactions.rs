@@ -37,53 +37,7 @@ pub mod invoke_transaction_v1;
 #[serde(untagged)]
 pub enum Transactions {
     Hashes(Vec<TransactionHash>),
-    Full(Vec<TransactionWithType>),
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-pub struct TransactionWithType {
-    pub r#type: TransactionType,
-    #[serde(flatten)]
-    pub transaction: Transaction,
-}
-
-impl TransactionWithType {
-    pub fn get_max_fee(&self) -> Fee {
-        self.transaction.get_max_fee()
-    }
-
-    pub fn get_transaction_hash(&self) -> &TransactionHash {
-        self.transaction.get_transaction_hash()
-    }
-
-    pub fn create_common_receipt(
-        &self,
-        transaction_events: &[Event],
-        block_hash: Option<&BlockHash>,
-        block_number: Option<BlockNumber>,
-        execution_result: &ExecutionResult,
-        finality_status: Option<TransactionFinalityStatus>,
-    ) -> CommonTransactionReceipt {
-        let output = TransactionOutput {
-            actual_fee: self.get_max_fee(),
-            messages_sent: Vec::new(),
-            events: transaction_events.to_vec(),
-        };
-
-        let maybe_pending_properties = MaybePendingProperties {
-            block_number,
-            block_hash: block_hash.cloned(),
-            finality_status,
-        };
-
-        CommonTransactionReceipt {
-            r#type: self.r#type,
-            transaction_hash: *self.get_transaction_hash(),
-            output,
-            execution_status: execution_result.clone(),
-            maybe_pending_properties,
-        }
-    }
+    Full(Vec<Transaction>),
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize, Default)]
@@ -102,12 +56,17 @@ pub enum TransactionType {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
+#[serde(tag = "type")]
 pub enum Transaction {
+    #[serde(rename = "DECLARE")]
     Declare(DeclareTransaction),
+    #[serde(rename = "DEPLOY_ACCOUNT")]
     DeployAccount(DeployAccountTransaction),
+    #[serde(rename = "DEPLOY")]
     Deploy(DeployTransaction),
+    #[serde(rename = "INVOKE")]
     Invoke(InvokeTransaction),
+    #[serde(rename = "L1_HANDLER")]
     L1Handler(L1HandlerTransaction),
 }
 
@@ -139,6 +98,37 @@ impl Transaction {
             Transaction::DeployAccount(tx) => tx.get_transaction_hash(),
             Transaction::Invoke(tx) => tx.get_transaction_hash(),
             Transaction::Deploy(tx) => tx.get_transaction_hash(),
+        }
+    }
+
+    pub fn create_common_receipt(
+        &self,
+        transaction_events: &[Event],
+        block_hash: Option<&BlockHash>,
+        block_number: Option<BlockNumber>,
+        execution_result: &ExecutionResult,
+        finality_status: Option<TransactionFinalityStatus>,
+    ) -> CommonTransactionReceipt {
+        let r#type = self.get_type();
+
+        let output = TransactionOutput {
+            actual_fee: self.get_max_fee(),
+            messages_sent: Vec::new(),
+            events: transaction_events.to_vec(),
+        };
+
+        let maybe_pending_properties = MaybePendingProperties {
+            block_number,
+            block_hash: block_hash.cloned(),
+            finality_status,
+        };
+
+        CommonTransactionReceipt {
+            r#type,
+            transaction_hash: *self.get_transaction_hash(),
+            output,
+            execution_status: execution_result.clone(),
+            maybe_pending_properties,
         }
     }
 }
@@ -266,17 +256,13 @@ pub struct BroadcastedTransactionCommon {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-pub struct BroadcastedTransactionWithType {
-    pub r#type: TransactionType,
-    #[serde(flatten)]
-    pub transaction: BroadcastedTransaction,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-#[serde(untagged)]
+#[serde(tag = "type")]
 pub enum BroadcastedTransaction {
+    #[serde(rename = "INVOKE")]
     Invoke(BroadcastedInvokeTransaction),
+    #[serde(rename = "DECLARE")]
     Declare(BroadcastedDeclareTransaction),
+    #[serde(rename = "DEPLOY_ACCOUNT")]
     DeployAccount(BroadcastedDeployAccountTransaction),
 }
 

@@ -8,7 +8,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::Event;
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
 use starknet_types::rpc::transaction_receipt::{DeployTransactionReceipt, TransactionReceipt};
-use starknet_types::rpc::transactions::{Transaction, TransactionType, TransactionWithType};
+use starknet_types::rpc::transactions::{Transaction, TransactionType};
 
 use crate::constants::UDC_CONTRACT_ADDRESS;
 use crate::error::{DevnetResult, Error};
@@ -45,7 +45,7 @@ impl HashIdentified for StarknetTransactions {
 
 #[allow(unused)]
 pub struct StarknetTransaction {
-    pub inner: TransactionWithType,
+    pub inner: Transaction,
     pub(crate) finality_status: Option<TransactionFinalityStatus>,
     pub(crate) execution_result: ExecutionResult,
     pub(crate) block_hash: Option<BlockHash>,
@@ -55,7 +55,7 @@ pub struct StarknetTransaction {
 
 impl StarknetTransaction {
     pub fn create_rejected(
-        transaction: &TransactionWithType,
+        transaction: &Transaction,
         finality_status: Option<TransactionFinalityStatus>,
         execution_error: &str,
     ) -> Self {
@@ -70,7 +70,7 @@ impl StarknetTransaction {
     }
 
     pub fn create_successful(
-        transaction: &TransactionWithType,
+        transaction: &Transaction,
         finality_status: Option<TransactionFinalityStatus>,
         execution_info: &TransactionExecutionInfo,
     ) -> Self {
@@ -155,7 +155,7 @@ impl StarknetTransaction {
             self.finality_status,
         );
 
-        match &self.inner.transaction {
+        match &self.inner {
             Transaction::Invoke(_) => {
                 let deployed_address =
                     StarknetTransaction::get_deployed_address_from_events(&transaction_events)?;
@@ -181,9 +181,7 @@ impl StarknetTransaction {
 mod tests {
     use starknet_in_rust::execution::TransactionExecutionInfo;
     use starknet_rs_core::types::TransactionExecutionStatus;
-    use starknet_types::rpc::transactions::{
-        DeclareTransaction, Transaction, TransactionType, TransactionWithType,
-    };
+    use starknet_types::rpc::transactions::{DeclareTransaction, Transaction};
     use starknet_types::traits::HashProducer;
 
     use super::{StarknetTransaction, StarknetTransactions};
@@ -194,24 +192,14 @@ mod tests {
     fn get_transaction_by_hash() {
         let declare_transaction = dummy_declare_transaction_v1();
         let hash = declare_transaction.generate_hash().unwrap();
-        let tx_with_type = TransactionWithType {
-            r#type: TransactionType::Declare,
-            transaction: Transaction::Declare(DeclareTransaction::Version1(declare_transaction)),
-        };
+        let tx = Transaction::Declare(DeclareTransaction::Version1(declare_transaction));
 
-        let sn_tx = StarknetTransaction::create_successful(
-            &tx_with_type,
-            None,
-            &TransactionExecutionInfo::default(),
-        );
+        let sn_tx =
+            StarknetTransaction::create_successful(&tx, None, &TransactionExecutionInfo::default());
         let mut sn_txs = StarknetTransactions::default();
         sn_txs.insert(
             &hash,
-            StarknetTransaction::create_successful(
-                &tx_with_type,
-                None,
-                &TransactionExecutionInfo::default(),
-            ),
+            StarknetTransaction::create_successful(&tx, None, &TransactionExecutionInfo::default()),
         );
 
         let extracted_tran = sn_txs.get_by_hash_mut(&hash).unwrap();
@@ -225,27 +213,17 @@ mod tests {
 
     #[test]
     fn check_correct_rejected_transaction_creation() {
-        let tx = TransactionWithType {
-            r#type: TransactionType::Declare,
-            transaction: Transaction::Declare(DeclareTransaction::Version1(
-                dummy_declare_transaction_v1(),
-            )),
-        };
+        let tx = Transaction::Declare(DeclareTransaction::Version1(dummy_declare_transaction_v1()));
         check_correct_transaction_properties(tx, false);
     }
 
     #[test]
     fn check_correct_successful_transaction_creation() {
-        let tx = TransactionWithType {
-            r#type: TransactionType::Declare,
-            transaction: Transaction::Declare(DeclareTransaction::Version1(
-                dummy_declare_transaction_v1(),
-            )),
-        };
+        let tx = Transaction::Declare(DeclareTransaction::Version1(dummy_declare_transaction_v1()));
         check_correct_transaction_properties(tx, true);
     }
 
-    fn check_correct_transaction_properties(tran: TransactionWithType, is_success: bool) {
+    fn check_correct_transaction_properties(tran: Transaction, is_success: bool) {
         let sn_tran = if is_success {
             let tx = StarknetTransaction::create_successful(
                 &tran,

@@ -8,8 +8,8 @@ use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::rpc::block::{Block, BlockHeader};
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
-    BroadcastedTransactionWithType, EventFilter, EventsChunk, FunctionCall, Transaction,
-    TransactionWithType,
+    BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, Transaction,
+    TransactionReceiptWithStatus,
 };
 use starknet_types::starknet_api::block::BlockNumber;
 use starknet_types::traits::ToHexString;
@@ -135,7 +135,7 @@ impl JsonRpcHandler {
     pub(crate) async fn get_transaction_by_hash(
         &self,
         transaction_hash: TransactionHash,
-    ) -> RpcResult<TransactionWithType> {
+    ) -> RpcResult<Transaction> {
         match self.api.starknet.read().await.get_transaction_by_hash(transaction_hash) {
             Ok(transaction) => Ok(transaction.clone()),
             Err(Error::NoTransaction) => Err(ApiError::TransactionNotFound),
@@ -148,7 +148,7 @@ impl JsonRpcHandler {
         &self,
         block_id: BlockId,
         index: u64,
-    ) -> RpcResult<TransactionWithType> {
+    ) -> RpcResult<Transaction> {
         match self
             .api
             .starknet
@@ -266,7 +266,7 @@ impl JsonRpcHandler {
     pub(crate) async fn estimate_fee(
         &self,
         block_id: BlockId,
-        request: Vec<BroadcastedTransactionWithType>,
+        request: Vec<BroadcastedTransaction>,
     ) -> RpcResult<Vec<EstimateFeeOutput>> {
         // TODO: move EstimateFeeOutput to types
         let starknet = self.api.starknet.read().await;

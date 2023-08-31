@@ -129,9 +129,7 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::emitted_event::Event;
     use starknet_types::felt::Felt;
-    use starknet_types::rpc::transactions::{
-        DeclareTransaction, Transaction, TransactionType, TransactionWithType,
-    };
+    use starknet_types::rpc::transactions::{DeclareTransaction, Transaction};
 
     use super::{check_if_filter_applies_for_event, get_events};
     use crate::starknet::events::check_if_filter_applies_for_event_keys;
@@ -397,12 +395,8 @@ mod tests {
         let mut starknet = Starknet::new(&starknet_config_for_test()).unwrap();
 
         for idx in 0..5 {
-            let transaction = TransactionWithType {
-                r#type: TransactionType::Declare,
-                transaction: Transaction::Declare(DeclareTransaction::Version1(
-                    dummy_declare_transaction_v1(),
-                )),
-            };
+            let transaction =
+                Transaction::Declare(DeclareTransaction::Version1(dummy_declare_transaction_v1()));
 
             let txn_info = TransactionExecutionInfo {
                 call_info: Some(dummy_call_info(idx + 1)),

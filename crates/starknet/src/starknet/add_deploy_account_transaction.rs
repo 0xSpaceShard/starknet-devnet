@@ -3,7 +3,7 @@ use starknet_in_rust::transaction::error::TransactionError;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
-use starknet_types::rpc::transactions::{Transaction, TransactionType, TransactionWithType};
+use starknet_types::rpc::transactions::Transaction;
 
 use super::Starknet;
 use crate::error::{DevnetResult, Error};
@@ -32,11 +32,7 @@ pub fn add_deploy_account_transaction(
         .compile_deploy_account_transaction(&transaction_hash);
 
     let address: ContractAddress = sir_deploy_account_transaction.contract_address().try_into()?;
-
-    let transaction_with_type = TransactionWithType {
-        r#type: TransactionType::DeployAccount,
-        transaction: Transaction::DeployAccount(deploy_account_transaction),
-    };
+    let transaction = Transaction::DeployAccount(deploy_account_transaction);
 
     let state_before_txn = starknet.state.pending_state.clone();
     match sir_deploy_account_transaction
@@ -45,24 +41,19 @@ pub fn add_deploy_account_transaction(
         Ok(tx_info) => match tx_info.revert_error {
             Some(error) => {
                 let transaction_to_add =
-                    StarknetTransaction::create_rejected(&transaction_with_type, None, &error);
+                    StarknetTransaction::create_rejected(&transaction, None, &error);
 
                 starknet.transactions.insert(&transaction_hash, transaction_to_add);
                 // Revert to previous pending state
                 starknet.state.pending_state = state_before_txn;
             }
-            None => starknet.handle_successful_transaction(
-                &transaction_hash,
-                &transaction_with_type,
-                &tx_info,
-            )?,
+            None => {
+                starknet.handle_successful_transaction(&transaction_hash, &transaction, &tx_info)?
+            }
         },
         Err(tx_err) => {
-            let transaction_to_add = StarknetTransaction::create_rejected(
-                &transaction_with_type,
-                None,
-                &tx_err.to_string(),
-            );
+            let transaction_to_add =
+                StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
             // Revert to previous pending state

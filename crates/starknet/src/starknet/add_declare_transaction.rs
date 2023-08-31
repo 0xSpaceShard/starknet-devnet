@@ -2,9 +2,7 @@ use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
-use starknet_types::rpc::transactions::{
-    DeclareTransaction, Transaction, TransactionType, TransactionWithType,
-};
+use starknet_types::rpc::transactions::{DeclareTransaction, Transaction};
 
 use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;
@@ -29,12 +27,9 @@ pub fn add_declare_transaction_v2(
     let class_hash: ClassHash = sir_declare_transaction.sierra_class_hash.clone().into();
 
     let state_before_txn = starknet.state.pending_state.clone();
-    let transaction_with_type = TransactionWithType {
-        r#type: TransactionType::Declare,
-        transaction: Transaction::Declare(DeclareTransaction::Version2(
-            sir_declare_transaction.clone().try_into()?,
-        )),
-    };
+    let transaction = Transaction::Declare(DeclareTransaction::Version2(
+        sir_declare_transaction.clone().try_into()?,
+    ));
 
     match sir_declare_transaction
         .execute(&mut starknet.state.pending_state, &starknet.block_context)
@@ -43,7 +38,7 @@ pub fn add_declare_transaction_v2(
             // Add sierra contract
             Some(error) => {
                 let transaction_to_add =
-                    StarknetTransaction::create_rejected(&transaction_with_type, None, &error);
+                    StarknetTransaction::create_rejected(&transaction, None, &error);
 
                 starknet.transactions.insert(&transaction_hash, transaction_to_add);
                 // Revert to previous pending state
@@ -56,17 +51,14 @@ pub fn add_declare_transaction_v2(
                 );
                 starknet.handle_successful_transaction(
                     &transaction_hash,
-                    &transaction_with_type,
+                    &transaction,
                     &tx_info,
                 )?;
             }
         },
         Err(tx_err) => {
-            let transaction_to_add = StarknetTransaction::create_rejected(
-                &transaction_with_type,
-                None,
-                &tx_err.to_string(),
-            );
+            let transaction_to_add =
+                StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
             // Revert to previous pending state
@@ -97,10 +89,7 @@ pub fn add_declare_transaction_v1(
 
     let declare_transaction =
         broadcasted_declare_transaction.create_declare(class_hash, transaction_hash);
-    let transaction_with_type = TransactionWithType {
-        r#type: TransactionType::Declare,
-        transaction: Transaction::Declare(DeclareTransaction::Version1(declare_transaction)),
-    };
+    let transaction = Transaction::Declare(DeclareTransaction::Version1(declare_transaction));
 
     let sir_declare_transaction =
         broadcasted_declare_transaction.create_sir_declare(class_hash, transaction_hash)?;
@@ -111,7 +100,7 @@ pub fn add_declare_transaction_v1(
         Ok(tx_info) => match tx_info.revert_error {
             Some(error) => {
                 let transaction_to_add =
-                    StarknetTransaction::create_rejected(&transaction_with_type, None, &error);
+                    StarknetTransaction::create_rejected(&transaction, None, &error);
 
                 starknet.transactions.insert(&transaction_hash, transaction_to_add);
                 // Revert to previous pending state
@@ -124,17 +113,14 @@ pub fn add_declare_transaction_v1(
                     .insert(class_hash, broadcasted_declare_transaction.contract_class.into());
                 starknet.handle_successful_transaction(
                     &transaction_hash,
-                    &transaction_with_type,
+                    &transaction,
                     &tx_info,
                 )?;
             }
         },
         Err(tx_err) => {
-            let transaction_to_add = StarknetTransaction::create_rejected(
-                &transaction_with_type,
-                None,
-                &tx_err.to_string(),
-            );
+            let transaction_to_add =
+                StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
             // Revert to previous pending state
@@ -254,13 +240,11 @@ mod tests {
 
         // check if contract is not declared
         assert!(!starknet.state.is_contract_declared(&expected_class_hash));
-        assert!(
-            !starknet
-                .state
-                .state
-                .casm_contract_classes_mut()
-                .contains_key(&expected_compiled_class_hash.bytes())
-        );
+        assert!(!starknet
+            .state
+            .state
+            .casm_contract_classes_mut()
+            .contains_key(&expected_compiled_class_hash.bytes()));
 
         let (tx_hash, retrieved_class_hash) =
             starknet.add_declare_transaction_v2(declare_txn).unwrap();
