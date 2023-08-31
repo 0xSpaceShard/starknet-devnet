@@ -9,7 +9,7 @@ docker login --username "$DOCKER_USER" --password "$DOCKER_PASS"
 echo "Temporarily pushing tag latest. Once semver is established for this project, this should be done conditionally in a separate script, as with devnet-py"
 
 for seed_suffix in "" "-seed0"; do
-    for image_suffix in "-arm" "amd"; do
+    for image_suffix in "-arm" "-amd"; do
         docker pull "$IMAGE:${CIRCLE_SHA1}${image_suffix}${seed_suffix}"
     done
 
