@@ -83,10 +83,8 @@ mod get_transaction_by_hash_integration_tests {
             serde_json::from_reader(std::fs::File::open(path_to_cairo1).unwrap()).unwrap();
 
         // Casm artifact. Output of the `starknet-sierra-compile` command.
-        let path_to_casm = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_data/cairo1/simple_storage/output.casm"
-        );
+        let path_to_casm =
+            concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo1/simple_storage/output.casm");
         let casm_contract_definition: CompiledClass =
             serde_json::from_reader(std::fs::File::open(path_to_casm).unwrap()).unwrap();
         let compiled_class_hash = (casm_contract_definition.class_hash()).unwrap();
