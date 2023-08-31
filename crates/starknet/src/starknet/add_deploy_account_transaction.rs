@@ -167,7 +167,7 @@ mod tests {
         let mut starknet = Starknet::default();
         let account_json_path = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/account_without_validations/account.json"
+            "/test_artifacts/cairo0/account_without_validations/account.json"
         );
         let erc_20_contract = predeployed::create_erc20().unwrap();
         erc_20_contract.deploy(&mut starknet.state).unwrap();

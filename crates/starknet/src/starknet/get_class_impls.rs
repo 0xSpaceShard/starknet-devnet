@@ -82,7 +82,7 @@ mod tests {
         let mut starknet = Starknet::default();
         let account_json_path = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/account_without_validations/account.json"
+            "/test_artifacts/cairo0/account_without_validations/account.json"
         );
         let contract_class = Cairo0Json::raw_json_from_path(account_json_path).unwrap();
 

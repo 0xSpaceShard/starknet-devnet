@@ -146,7 +146,7 @@ pub(crate) mod test_utils {
     pub(crate) fn cairo_0_account_without_validations() -> Cairo0ContractClass {
         let account_json_path = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/account_without_validations/account.json"
+            "/test_artifacts/cairo0/account_without_validations/account.json"
         );
 
         Cairo0Json::raw_json_from_path(account_json_path).unwrap().into()
