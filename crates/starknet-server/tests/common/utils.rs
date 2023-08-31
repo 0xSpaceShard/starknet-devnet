@@ -32,12 +32,6 @@ pub fn get_deployable_account_signer() -> LocalWallet {
     ))
 }
 
-/// resolve a path relative to the crates directory
-pub fn resolve_crates_path(relative_path: &str) -> String {
-    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
-    format!("{manifest_dir}/../{relative_path}")
-}
-
 pub fn load_json<T: serde::de::DeserializeOwned>(path: &str) -> T {
     let reader = std::fs::File::open(path).unwrap();
     let loaded: T = serde_json::from_reader(reader).unwrap();

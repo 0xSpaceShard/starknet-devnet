@@ -28,7 +28,6 @@ mod estimate_fee_tests {
     use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::{
         get_deployable_account_signer, get_predeployed_account_props, load_json,
-        resolve_crates_path,
     };
 
     fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
@@ -136,8 +135,7 @@ mod estimate_fee_tests {
         let (signer, account_address) = get_predeployed_account_props();
 
         // get class
-        let contract_artifact_path = resolve_crates_path(CAIRO_0_CONTRACT_PATH);
-        let contract_artifact: LegacyContractClass = load_json(&contract_artifact_path);
+        let contract_artifact: LegacyContractClass = load_json(CAIRO_0_CONTRACT_PATH);
 
         // declare class
         let account =
@@ -165,8 +163,7 @@ mod estimate_fee_tests {
         let (signer, account_address) = get_predeployed_account_props();
 
         // get class
-        let contract_artifact_path = resolve_crates_path(CAIRO_1_CONTRACT_PATH);
-        let contract_artifact: SierraClass = load_json(&contract_artifact_path);
+        let contract_artifact: SierraClass = load_json(CAIRO_1_CONTRACT_PATH);
         let flattened_contract_artifact = contract_artifact.flatten().unwrap();
         let compiled_class_hash = FieldElement::from_hex_be(CASM_COMPILED_CLASS_HASH).unwrap();
 
@@ -200,9 +197,8 @@ mod estimate_fee_tests {
         ));
 
         // get class
-        let contract_artifact_path = resolve_crates_path(CAIRO_0_CONTRACT_PATH);
         let contract_artifact: Arc<LegacyContractClass> =
-            Arc::new(load_json(&contract_artifact_path));
+            Arc::new(load_json(CAIRO_0_CONTRACT_PATH));
         let class_hash = contract_artifact.class_hash().unwrap();
 
         // declare class
@@ -287,8 +283,7 @@ mod estimate_fee_tests {
         let (_, account_address) = get_predeployed_account_props();
 
         // get class
-        let contract_artifact_path = resolve_crates_path(CAIRO_0_CONTRACT_PATH);
-        let contract_class: Arc<LegacyContractClass> = Arc::new(load_json(&contract_artifact_path));
+        let contract_class: Arc<LegacyContractClass> = Arc::new(load_json(CAIRO_0_CONTRACT_PATH));
         let class_hash = contract_class.class_hash().unwrap();
 
         let deployment_selector =
