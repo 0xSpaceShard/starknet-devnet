@@ -1,43 +1,43 @@
 use starknet_in_rust::definitions::constants::INITIAL_GAS_COST;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_types::felt::TransactionHash;
-use starknet_types::traits::HashProducer;
+use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
+use starknet_types::rpc::transactions::{InvokeTransaction, Transaction};
 
 use super::Starknet;
 use crate::error::{self, DevnetResult};
-use crate::transactions::invoke_transaction::InvokeTransactionV1;
-use crate::transactions::{StarknetTransaction, Transaction};
+use crate::transactions::StarknetTransaction;
 
 pub fn add_invoke_transcation_v1(
     starknet: &mut Starknet,
-    invoke_transaction: InvokeTransactionV1,
+    broadcasted_invoke_transaction: BroadcastedInvokeTransactionV1,
 ) -> DevnetResult<TransactionHash> {
-    if invoke_transaction.max_fee == 0 {
+    if broadcasted_invoke_transaction.common.max_fee.0 == 0 {
         return Err(error::Error::TransactionError(TransactionError::FeeError(
             "For invoke transaction, max fee cannot be 0".to_string(),
         )));
     }
 
-    let state_before_txn = starknet.state.pending_state.clone();
-    let transaction_hash = invoke_transaction.generate_hash()?;
+    let sir_invoke_function = broadcasted_invoke_transaction
+        .create_sir_invoke_function(starknet.config.chain_id.to_felt().into())?;
+    let transaction_hash = sir_invoke_function.hash_value().into();
 
-    match invoke_transaction.inner.execute(
+    let invoke_transaction =
+        broadcasted_invoke_transaction.create_invoke_transaction(transaction_hash);
+    let transaction = Transaction::Invoke(InvokeTransaction::Version1(invoke_transaction));
+
+    let state_before_txn = starknet.state.pending_state.clone();
+
+    match sir_invoke_function.execute(
         &mut starknet.state.pending_state,
         &starknet.block_context,
         INITIAL_GAS_COST,
     ) {
         Ok(tx_info) => {
-            starknet.handle_successful_transaction(
-                &transaction_hash,
-                Transaction::Invoke(Box::new(invoke_transaction)),
-                tx_info,
-            )?;
+            starknet.handle_successful_transaction(&transaction_hash, &transaction, &tx_info)?;
         }
         Err(tx_err) => {
-            let transaction_to_add = StarknetTransaction::create_rejected(
-                Transaction::Invoke(Box::new(invoke_transaction)),
-                tx_err,
-            );
+            let transaction_to_add = StarknetTransaction::create_rejected(&transaction, tx_err);
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
             // Revert to previous pending state
@@ -50,6 +50,7 @@ pub fn add_invoke_transcation_v1(
 
 #[cfg(test)]
 mod tests {
+    use starknet_api::transaction::Fee;
     use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
     use starknet_in_rust::EntryPointType;
     use starknet_rs_core::types::TransactionStatus;
@@ -58,13 +59,13 @@ mod tests {
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
+    use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;
     use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID};
     use crate::starknet::{predeployed, Starknet};
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut, StateChanger, StateExtractor};
-    use crate::transactions::invoke_transaction::InvokeTransactionV1;
     use crate::utils::get_storage_var_address;
     use crate::utils::test_utils::{
         cairo_0_account_without_validations, dummy_cairo_0_contract_class, dummy_contract_address,
@@ -77,7 +78,7 @@ mod tests {
         function_selector: Felt,
         param: Felt,
         nonce: u128,
-    ) -> InvokeTransactionV1 {
+    ) -> BroadcastedInvokeTransactionV1 {
         let calldata = vec![
             Felt::from(contract_address), // contract address
             function_selector,            // function selector
@@ -85,16 +86,14 @@ mod tests {
             param,                        // calldata
         ];
 
-        InvokeTransactionV1::new(
+        BroadcastedInvokeTransactionV1::new(
             account_address,
-            10000,
-            vec![],
+            Fee(10000),
+            &vec![],
             Felt::from(nonce),
-            calldata,
-            DEVNET_DEFAULT_CHAIN_ID.to_felt().into(),
+            &calldata,
             Felt::from(1),
         )
-        .unwrap()
     }
 
     #[test]
@@ -167,16 +166,14 @@ mod tests {
 
     #[test]
     fn invoke_transaction_with_max_fee_zero_should_return_error() {
-        let invoke_transaction = super::InvokeTransactionV1::new(
+        let invoke_transaction = BroadcastedInvokeTransactionV1::new(
             dummy_contract_address(),
-            0,
-            vec![],
+            Fee(0),
+            &vec![],
             dummy_felt(),
-            vec![],
-            dummy_felt(),
+            &vec![],
             Felt::from(1),
-        )
-        .unwrap();
+        );
 
         let result = Starknet::default().add_invoke_transaction_v1(invoke_transaction);
 

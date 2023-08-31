@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_in_rust::core::contract_address::compute_deprecated_class_hash;
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
 use starknet_rs_core::types::CompressedLegacyContractClass;
@@ -20,6 +21,30 @@ pub enum Cairo0ContractClass {
     RawJson(Cairo0Json),
     SIR(StarknetInRustContractClass),
     Rpc(DeprecatedContractClass),
+}
+
+impl Serialize for Cairo0ContractClass {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            Cairo0ContractClass::RawJson(contract_json) => contract_json.serialize(serializer),
+            Cairo0ContractClass::SIR(_) => Err(serde::ser::Error::custom(
+                "Serialization of starknet 0 contract is unavailable",
+            )),
+            Cairo0ContractClass::Rpc(contract) => contract.serialize(serializer),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for Cairo0ContractClass {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Ok(Cairo0ContractClass::Rpc(DeprecatedContractClass::deserialize(deserializer)?))
+    }
 }
 
 impl From<Cairo0Json> for Cairo0ContractClass {

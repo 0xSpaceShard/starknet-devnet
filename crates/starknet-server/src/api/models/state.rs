@@ -1,15 +1,15 @@
 use serde::{Deserialize, Serialize};
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{ClassHash, Felt, Nonce};
+use starknet_types::felt::{BlockHash, ClassHash, Felt, Nonce};
+use starknet_types::rpc::block::GlobalRootHex;
 
-use super::block::{BlockHashHex, GlobalRootHex};
 use super::PatriciaKeyHex;
 
 pub type CompiledClassHashHex = Felt;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct StateUpdate {
-    pub block_hash: BlockHashHex,
+    pub block_hash: BlockHash,
     pub new_root: GlobalRootHex,
     pub old_root: GlobalRootHex,
     pub state_diff: ThinStateDiff,
