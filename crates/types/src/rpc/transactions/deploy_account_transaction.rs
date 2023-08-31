@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
 
+use crate::contract_address::ContractAddress;
 use crate::error::{DevnetResult, Error};
 use crate::felt::{
     Calldata, ClassHash, ContractAddressSalt, Felt, Nonce, TransactionHash, TransactionSignature,
@@ -18,6 +19,7 @@ pub struct DeployAccountTransaction {
     pub class_hash: ClassHash,
     pub contract_address_salt: ContractAddressSalt,
     pub constructor_calldata: Calldata,
+    pub contract_address: ContractAddress
 }
 
 impl DeployAccountTransaction {
