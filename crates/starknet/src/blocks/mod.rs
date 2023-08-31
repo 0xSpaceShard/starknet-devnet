@@ -6,6 +6,7 @@ use starknet_api::stark_felt;
 use starknet_rs_core::types::BlockId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
+use starknet_types::rpc::block::BlockHeader as TypesBlockHeader;
 use starknet_types::traits::HashProducer;
 
 use crate::error::{DevnetResult, Error};
@@ -145,6 +146,19 @@ pub struct StarknetBlock {
     pub(crate) header: BlockHeader,
     transaction_hashes: Vec<TransactionHash>,
     pub(crate) status: BlockStatus,
+}
+
+impl From<&StarknetBlock> for TypesBlockHeader {
+    fn from(value: &StarknetBlock) -> Self {
+        Self {
+            block_hash: value.block_hash(),
+            parent_hash: value.parent_hash(),
+            block_number: value.block_number(),
+            sequencer_address: value.sequencer_address(),
+            new_root: value.new_root(),
+            timestamp: value.timestamp(),
+        }
+    }
 }
 
 impl StarknetBlock {

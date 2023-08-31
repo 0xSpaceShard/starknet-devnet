@@ -1,9 +1,7 @@
-use server::rpc_core::error::RpcError;
-use starknet_core::transactions::declare_transaction::DeclareTransactionV1;
-use starknet_core::transactions::declare_transaction_v2::DeclareTransactionV2;
-use starknet_core::transactions::deploy_account_transaction::DeployAccountTransaction;
-use starknet_core::transactions::invoke_transaction::InvokeTransactionV1;
-use starknet_types::felt::Felt;
+use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
+use starknet_types::rpc::transactions::{
+    BroadcastedDeclareTransaction, BroadcastedInvokeTransaction,
+};
 
 use super::error::ApiError;
 use super::models::{
@@ -11,29 +9,25 @@ use super::models::{
 };
 use crate::api::json_rpc::error::RpcResult;
 use crate::api::json_rpc::JsonRpcHandler;
-use crate::api::models::transaction::{
-    BroadcastedDeclareTransaction, BroadcastedDeclareTransactionV1,
-    BroadcastedDeclareTransactionV2, BroadcastedDeployAccountTransaction,
-    BroadcastedInvokeTransaction, BroadcastedInvokeTransactionV1,
-};
 
 impl JsonRpcHandler {
     pub(crate) async fn add_declare_transaction(
         &self,
         request: BroadcastedDeclareTransaction,
     ) -> RpcResult<DeclareTransactionOutput> {
-        let chain_id = self.api.starknet.read().await.config.chain_id.to_felt();
         let (transaction_hash, class_hash) = match request {
-            BroadcastedDeclareTransaction::V1(broadcasted_declare_txn) => {
-                self.api.starknet.write().await.add_declare_transaction_v1(
-                    (convert_to_declare_transaction_v1(*broadcasted_declare_txn, chain_id.into()))?,
-                )?
-            }
-            BroadcastedDeclareTransaction::V2(broadcasted_declare_txn) => {
-                self.api.starknet.write().await.add_declare_transaction_v2(
-                    convert_to_declare_transaction_v2(*broadcasted_declare_txn, chain_id.into())?,
-                )?
-            }
+            BroadcastedDeclareTransaction::V1(broadcasted_declare_txn) => self
+                .api
+                .starknet
+                .write()
+                .await
+                .add_declare_transaction_v1(*broadcasted_declare_txn)?,
+            BroadcastedDeclareTransaction::V2(broadcasted_declare_txn) => self
+                .api
+                .starknet
+                .write()
+                .await
+                .add_declare_transaction_v2(*broadcasted_declare_txn)?,
         };
 
         Ok(DeclareTransactionOutput { transaction_hash, class_hash })
@@ -43,16 +37,12 @@ impl JsonRpcHandler {
         &self,
         request: BroadcastedDeployAccountTransaction,
     ) -> RpcResult<DeployAccountTransactionOutput> {
-        let chain_id = self.api.starknet.read().await.config.chain_id.to_felt();
         let (transaction_hash, contract_address) = self
             .api
             .starknet
             .write()
             .await
-            .add_deploy_account_transaction(convert_to_deploy_account_transaction(
-                request,
-                chain_id.into(),
-            )?)
+            .add_deploy_account_transaction(request)
             .map_err(|err| match err {
                 starknet_core::error::Error::StateError(
                     starknet_in_rust::core::errors::state_errors::StateError::MissingClassHash(),
@@ -72,12 +62,12 @@ impl JsonRpcHandler {
                 Err(ApiError::UnsupportedAction { msg: "Invoke V0 is not supported".into() })
             }
             BroadcastedInvokeTransaction::V1(invoke_transaction) => {
-                let chain_id: Felt =
-                    self.api.starknet.read().await.config.chain_id.to_felt().into();
-                let invoke_request =
-                    convert_to_invoke_transaction_v1(invoke_transaction, chain_id)?;
-                let res =
-                    self.api.starknet.write().await.add_invoke_transaction_v1(invoke_request)?;
+                let res = self
+                    .api
+                    .starknet
+                    .write()
+                    .await
+                    .add_invoke_transaction_v1(invoke_transaction)?;
 
                 Ok(res)
             }
@@ -87,76 +77,6 @@ impl JsonRpcHandler {
     }
 }
 
-pub(crate) fn convert_to_declare_transaction_v1(
-    value: BroadcastedDeclareTransactionV1,
-    chain_id: Felt,
-) -> RpcResult<DeclareTransactionV1> {
-    DeclareTransactionV1::new(
-        value.sender_address,
-        value.common.max_fee.0,
-        value.common.signature,
-        value.common.nonce,
-        value.contract_class.into(),
-        chain_id,
-        value.common.version,
-    )
-    .map_err(ApiError::StarknetDevnetError)
-}
-
-pub(crate) fn convert_to_deploy_account_transaction(
-    broadcasted_txn: BroadcastedDeployAccountTransaction,
-    chain_id: Felt,
-) -> RpcResult<DeployAccountTransaction> {
-    DeployAccountTransaction::new(
-        broadcasted_txn.constructor_calldata,
-        broadcasted_txn.common.max_fee.0,
-        broadcasted_txn.common.signature,
-        broadcasted_txn.common.nonce,
-        broadcasted_txn.class_hash,
-        broadcasted_txn.contract_address_salt,
-        chain_id,
-        broadcasted_txn.common.version,
-    )
-    .map_err(|err| {
-        ApiError::RpcError(RpcError::invalid_params(format!(
-            "Unable to create DeployAccountTransaction: {}",
-            err
-        )))
-    })
-}
-
-pub(crate) fn convert_to_declare_transaction_v2(
-    value: BroadcastedDeclareTransactionV2,
-    chain_id: Felt,
-) -> RpcResult<DeclareTransactionV2> {
-    DeclareTransactionV2::new(
-        value.contract_class,
-        value.compiled_class_hash,
-        value.sender_address,
-        value.common.max_fee.0,
-        value.common.signature,
-        value.common.nonce,
-        chain_id,
-        value.common.version,
-    )
-    .map_err(ApiError::StarknetDevnetError)
-}
-
-pub(crate) fn convert_to_invoke_transaction_v1(
-    value: BroadcastedInvokeTransactionV1,
-    chain_id: Felt,
-) -> RpcResult<InvokeTransactionV1> {
-    InvokeTransactionV1::new(
-        value.sender_address,
-        value.common.max_fee.0,
-        value.common.signature,
-        value.common.nonce,
-        value.calldata,
-        chain_id,
-        value.common.version,
-    )
-    .map_err(ApiError::StarknetDevnetError)
-}
 #[cfg(test)]
 mod tests {
     use starknet_core::constants::{
@@ -165,12 +85,11 @@ mod tests {
         DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
     };
     use starknet_core::starknet::{Starknet, StarknetConfig};
+    use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
+    use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
     use starknet_types::traits::ToHexString;
 
     use crate::api::json_rpc::JsonRpcHandler;
-    use crate::api::models::transaction::{
-        BroadcastedDeclareTransactionV1, BroadcastedDeployAccountTransaction,
-    };
     use crate::api::Api;
 
     #[tokio::test]
@@ -179,7 +98,7 @@ mod tests {
         let json_rpc_handler = setup();
         let result = json_rpc_handler
             .add_declare_transaction(
-                crate::api::models::transaction::BroadcastedDeclareTransaction::V1(Box::new(
+                starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V1(Box::new(
                     declare_txn_v1.clone(),
                 )),
             )
@@ -227,7 +146,7 @@ mod tests {
         ))
         .unwrap();
 
-        let _broadcasted_declare_transaction_v1: super::BroadcastedDeclareTransactionV1 =
+        let _broadcasted_declare_transaction_v1: BroadcastedDeclareTransactionV1 =
             serde_json::from_str(&json_string).unwrap();
     }
 
@@ -251,7 +170,7 @@ mod tests {
         ))
         .unwrap();
 
-        let broadcasted_declare_transaction_v1: super::BroadcastedDeclareTransactionV1 =
+        let broadcasted_declare_transaction_v1: BroadcastedDeclareTransactionV1 =
             serde_json::from_str(&json_string).unwrap();
 
         broadcasted_declare_transaction_v1

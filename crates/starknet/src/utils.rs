@@ -35,6 +35,7 @@ pub(crate) fn get_storage_var_address(
 
 #[cfg(test)]
 pub(crate) mod test_utils {
+    use starknet_api::transaction::Fee;
     use starknet_in_rust::core::contract_address::compute_casm_class_hash;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_in_rust::{CasmContractClass, SierraContractClass};
@@ -43,6 +44,10 @@ pub(crate) mod test_utils {
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
     use starknet_types::patricia_key::StorageKey;
+    use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
+    use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
+    use starknet_types::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1;
+    use starknet_types::traits::HashProducer;
 
     use crate::constants::{
         DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_HOST,
@@ -50,8 +55,6 @@ pub(crate) mod test_utils {
         DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
     };
     use crate::starknet::StarknetConfig;
-    use crate::transactions::declare_transaction::DeclareTransactionV1;
-    use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
 
     pub fn starknet_config_for_test() -> StarknetConfig {
         StarknetConfig {
@@ -101,24 +104,27 @@ pub(crate) mod test_utils {
         ContractAddress::new(Felt::from_prefixed_hex_str("0xADD4E55").unwrap()).unwrap()
     }
 
-    pub(crate) fn dummy_declare_transaction_v1() -> Box<DeclareTransactionV1> {
-        Box::new(
-            DeclareTransactionV1::new(
-                dummy_contract_address(),
-                100,
-                vec![],
-                dummy_felt(),
-                dummy_cairo_0_contract_class().into(),
-                StarknetChainId::TestNet.to_felt().into(),
-                Felt::from(1),
-            )
-            .unwrap(),
-        )
+    pub(crate) fn dummy_declare_transaction_v1() -> DeclareTransactionV0V1 {
+        let chain_id = StarknetChainId::TestNet.to_felt().into();
+        let contract_class = dummy_cairo_0_contract_class();
+        let broadcasted_tx = BroadcastedDeclareTransactionV1::new(
+            dummy_contract_address(),
+            Fee(100),
+            &vec![],
+            dummy_felt(),
+            &contract_class.clone().into(),
+            Felt::from(1),
+        );
+        let class_hash = contract_class.generate_hash().unwrap();
+        let transaction_hash =
+            broadcasted_tx.calculate_transaction_hash(&chain_id, &class_hash).unwrap();
+
+        broadcasted_tx.create_declare(class_hash, transaction_hash)
     }
 
-    pub(crate) fn dummy_declare_transaction_v2(
+    pub(crate) fn dummy_broadcasted_declare_transaction_v2(
         sender_address: &ContractAddress,
-    ) -> DeclareTransactionV2 {
+    ) -> BroadcastedDeclareTransactionV2 {
         let contract_class = dummy_cairo_1_contract_class();
 
         let compiled_class_hash = compute_casm_class_hash(
@@ -126,17 +132,15 @@ pub(crate) mod test_utils {
         )
         .unwrap();
 
-        DeclareTransactionV2::new(
-            contract_class,
+        BroadcastedDeclareTransactionV2::new(
+            &contract_class,
             compiled_class_hash.into(),
             *sender_address,
-            2000,
-            Vec::new(),
+            Fee(2000),
+            &Vec::new(),
             Felt::from(0),
-            StarknetChainId::TestNet.to_felt().into(),
             Felt::from(2),
         )
-        .unwrap()
     }
 
     pub(crate) fn cairo_0_account_without_validations() -> Cairo0ContractClass {
