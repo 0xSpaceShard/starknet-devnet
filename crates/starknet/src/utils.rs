@@ -83,7 +83,7 @@ pub(crate) mod test_utils {
     pub(crate) fn dummy_cairo_0_contract_class() -> Cairo0Json {
         let json_str = std::fs::read_to_string(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/cairo0/cairo_0_test.json"
+            "/test_artifacts/cairo0/cairo_0_test.casm"
         ))
         .unwrap();
 
@@ -93,7 +93,7 @@ pub(crate) mod test_utils {
     pub(crate) fn dummy_cairo_1_contract_class() -> SierraContractClass {
         let json_str = std::fs::read_to_string(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/cairo1/cairo_1_test.json"
+            "/test_artifacts/cairo1/cairo_1_test.sierra"
         ))
         .unwrap();
 
@@ -146,7 +146,7 @@ pub(crate) mod test_utils {
     pub(crate) fn cairo_0_account_without_validations() -> Cairo0ContractClass {
         let account_json_path = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/cairo0/account_without_validations/account.json"
+            "/test_artifacts/cairo0/account_without_validations/account.casm"
         );
 
         Cairo0Json::raw_json_from_path(account_json_path).unwrap().into()
