@@ -5,7 +5,7 @@ IMAGE=shardlabs/starknet-devnet-rs
 
 docker login --username "$DOCKER_USER" --password "$DOCKER_PASS"
 
-for image_suffix in arm amd arm-seed0 amd-seed0; do
+for image_suffix in -arm -amd -arm-seed0 -amd-seed0; do
     docker pull "$IMAGE:${CIRCLE_SHA1}${image_suffix}"
 done
 
