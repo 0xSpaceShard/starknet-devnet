@@ -26,7 +26,7 @@ $ docker pull shardlabs/starknet-devnet-rs
 
 To properly run a container, check out the [next paragraph](#container-port-publishing).
 
-Commits to the `master` branch of this repository are mostly available as images tagged with their commit hash (the full 40-lowercase-hex-digits SHA1 digest):
+Commits to the `main` branch of this repository are mostly available as images tagged with their commit hash (the full 40-lowercase-hex-digits SHA1 digest):
 
 ```
 $ docker pull shardlabs/starknet-devnet-rs:<COMMIT_HASH>

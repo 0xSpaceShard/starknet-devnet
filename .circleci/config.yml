@@ -3,15 +3,15 @@
 version: 2.1
 
 aliases:
-  - &on_master
+  - &on_main
     context: spaceshard
     filters:
       branches:
         only:
-          - master
+          - main
 
-  - &on_master_after_test_and_build
-    <<: *on_master
+  - &on_main_after_test_and_build
+    <<: *on_main
     requires:
       - build-and-test
       - image-build-amd
@@ -92,8 +92,8 @@ workflows:
     jobs:
       - build-and-test
       - image-build-amd:
-          <<: *on_master
+          <<: *on_main
       - image-build-arm:
-          <<: *on_master
+          <<: *on_main
       - create-joint-image-manifest:
-          <<: *on_master_after_test_and_build
+          <<: *on_main_after_test_and_build
