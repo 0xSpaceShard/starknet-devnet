@@ -56,7 +56,7 @@ jobs:
           version: 20.10.7
       - run:
           name: Build amd images
-          command: ./scripts/image_build.sh
+          command: ./docker/image_build.sh
           environment:
             ARCH_SUFFIX: "-amd"
             REMOTE: true
@@ -69,7 +69,7 @@ jobs:
       - checkout
       - run:
           name: Build arm images
-          command: ./scripts/image_build.sh
+          command: ./docker/image_build.sh
           environment:
             ARCH_SUFFIX: -arm
             REMOTE: ""
@@ -84,7 +84,7 @@ jobs:
           version: 20.10.7
       - run:
           name: Create and push joint image manifest
-          command: ./scripts/create_joint_image_manifest.sh
+          command: ./docker/create_joint_image_manifest.sh
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows

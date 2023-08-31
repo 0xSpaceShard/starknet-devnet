@@ -46,14 +46,14 @@ echo "Building ${ARCH_SUFFIX} images tagged with sha1 commit digest"
 SHA1_TAG="${CIRCLE_SHA1}${ARCH_SUFFIX}"
 echo "Building regular (unseeded) image: $SHA1_TAG"
 docker build . \
-    -f Dockerfile \
+    -f docker/Dockerfile \
     -t "$IMAGE:$SHA1_TAG"
 
 SEED_SUFFIX="-seed0"
 SHA1_SEEDED_TAG="${SHA1_TAG}${SEED_SUFFIX}"
 echo "Building seeded image: $SHA1_SEEDED_TAG"
 docker build . \
-    -f seed0.Dockerfile \
+    -f docker/seed0.Dockerfile \
     -t "$IMAGE:$SHA1_SEEDED_TAG" \
     --build-arg BASE_TAG=$SHA1_TAG
 
