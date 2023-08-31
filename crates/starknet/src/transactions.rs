@@ -1,8 +1,3 @@
-pub mod declare_transaction;
-pub mod declare_transaction_v2;
-pub mod deploy_account_transaction;
-pub mod invoke_transaction;
-
 use std::collections::HashMap;
 
 use starknet_api::block::BlockNumber;
@@ -13,11 +8,11 @@ use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::Event;
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
+use starknet_types::rpc::transactions::{
+    DeployTransactionReceipt, Transaction, TransactionReceipt, TransactionReceiptWithStatus,
+    TransactionType,
+};
 
-use self::declare_transaction::DeclareTransactionV1;
-use self::declare_transaction_v2::DeclareTransactionV2;
-use self::deploy_account_transaction::DeployAccountTransaction;
-use self::invoke_transaction::InvokeTransactionV1;
 use crate::constants::UDC_CONTRACT_ADDRESS;
 use crate::error::{DevnetResult, Error};
 use crate::traits::{HashIdentified, HashIdentifiedMut};
@@ -53,19 +48,19 @@ impl HashIdentified for StarknetTransactions {
 
 #[allow(unused)]
 pub struct StarknetTransaction {
-    pub status: TransactionStatus,
+    pub(crate) status: TransactionStatus,
     pub inner: Transaction,
-    pub block_hash: Option<BlockHash>,
-    pub block_number: Option<BlockNumber>,
+    pub(crate) block_hash: Option<BlockHash>,
+    pub(crate) block_number: Option<BlockNumber>,
     pub(crate) execution_info: Option<starknet_in_rust::execution::TransactionExecutionInfo>,
     pub(crate) execution_error: Option<TransactionError>,
 }
 
 impl StarknetTransaction {
-    pub fn create_rejected(transaction: Transaction, execution_error: TransactionError) -> Self {
+    pub fn create_rejected(transaction: &Transaction, execution_error: TransactionError) -> Self {
         Self {
             status: TransactionStatus::Rejected,
-            inner: transaction,
+            inner: transaction.clone(),
             execution_info: None,
             execution_error: Some(execution_error),
             block_hash: None,
@@ -74,13 +69,13 @@ impl StarknetTransaction {
     }
 
     pub fn create_successful(
-        transaction: Transaction,
-        execution_info: TransactionExecutionInfo,
+        transaction: &Transaction,
+        execution_info: &TransactionExecutionInfo,
     ) -> Self {
         Self {
             status: TransactionStatus::Pending,
-            inner: transaction,
-            execution_info: Some(execution_info),
+            inner: transaction.clone(),
+            execution_info: Some(execution_info.clone()),
             execution_error: None,
             block_hash: None,
             block_number: None,
@@ -146,68 +141,43 @@ impl StarknetTransaction {
             None
         })
     }
-}
 
-#[derive(Clone, PartialEq, Eq)]
-pub enum Transaction {
-    Declare(Box<DeclareTransactionV1>),
-    DeclareV2(Box<DeclareTransactionV2>),
-    DeployAccount(Box<DeployAccountTransaction>),
-    Invoke(Box<InvokeTransactionV1>),
-}
+    pub fn get_receipt(&self) -> DevnetResult<TransactionReceiptWithStatus> {
+        let transaction_events = self.get_events()?;
 
-impl Transaction {
-    pub fn get_hash(&self) -> TransactionHash {
-        match self {
-            Transaction::Declare(tx) => tx.transaction_hash,
-            Transaction::DeclareV2(tx) => tx.transaction_hash,
-            Transaction::DeployAccount(tx) => tx.inner.hash_value().clone().into(),
-            Transaction::Invoke(tx) => tx.inner.hash_value().clone().into(),
-        }
-    }
+        let mut common_receipt = self.inner.create_common_receipt(
+            &transaction_events,
+            &self.block_hash.unwrap_or_default(),
+            self.block_number.unwrap_or_default(),
+        );
 
-    pub fn chain_id(&self) -> &Felt {
-        match self {
-            Transaction::Declare(txn) => &txn.chain_id,
-            Transaction::DeclareV2(txn) => &txn.chain_id,
-            Transaction::DeployAccount(txn) => &txn.chain_id,
-            Transaction::Invoke(txn) => &txn.chain_id,
-        }
-    }
+        match &self.inner {
+            Transaction::Invoke(_) => {
+                let deployed_address =
+                    StarknetTransaction::get_deployed_address_from_events(&transaction_events)?;
 
-    pub fn max_fee(&self) -> u128 {
-        match self {
-            Transaction::Declare(txn) => txn.max_fee,
-            Transaction::DeclareV2(txn) => txn.max_fee,
-            Transaction::DeployAccount(txn) => txn.max_fee,
-            Transaction::Invoke(txn) => txn.max_fee,
-        }
-    }
+                let receipt = if let Some(contract_address) = deployed_address {
+                    common_receipt.r#type = TransactionType::Deploy;
+                    TransactionReceiptWithStatus {
+                        status: self.status,
+                        receipt: TransactionReceipt::Deploy(DeployTransactionReceipt {
+                            common: common_receipt,
+                            contract_address,
+                        }),
+                    }
+                } else {
+                    TransactionReceiptWithStatus {
+                        status: self.status,
+                        receipt: TransactionReceipt::Common(common_receipt),
+                    }
+                };
 
-    pub fn signature(&self) -> &Vec<Felt> {
-        match self {
-            Transaction::Declare(txn) => &txn.signature,
-            Transaction::DeclareV2(txn) => &txn.signature,
-            Transaction::DeployAccount(txn) => &txn.signature,
-            Transaction::Invoke(txn) => &txn.signature,
-        }
-    }
-
-    pub fn nonce(&self) -> &Felt {
-        match self {
-            Transaction::Declare(txn) => &txn.nonce,
-            Transaction::DeclareV2(txn) => &txn.nonce,
-            Transaction::DeployAccount(txn) => &txn.nonce,
-            Transaction::Invoke(txn) => &txn.nonce,
-        }
-    }
-
-    pub fn version(&self) -> &Felt {
-        match self {
-            Transaction::Declare(txn) => &txn.version,
-            Transaction::DeclareV2(txn) => &txn.version,
-            Transaction::DeployAccount(txn) => &txn.version,
-            Transaction::Invoke(txn) => &txn.version,
+                Ok(receipt)
+            }
+            _ => Ok(TransactionReceiptWithStatus {
+                status: self.status,
+                receipt: TransactionReceipt::Common(common_receipt),
+            }),
         }
     }
 }
@@ -216,26 +186,25 @@ impl Transaction {
 mod tests {
     use starknet_in_rust::execution::TransactionExecutionInfo;
     use starknet_rs_core::types::TransactionStatus;
+    use starknet_types::rpc::transactions::{DeclareTransaction, Transaction};
     use starknet_types::traits::HashProducer;
 
-    use super::{StarknetTransaction, StarknetTransactions, Transaction};
+    use super::{StarknetTransaction, StarknetTransactions};
     use crate::traits::HashIdentifiedMut;
     use crate::utils::test_utils::dummy_declare_transaction_v1;
 
     #[test]
     fn get_transaction_by_hash() {
-        let hash = dummy_declare_transaction_v1().generate_hash().unwrap();
-        let sn_tx = StarknetTransaction::create_successful(
-            Transaction::Declare(dummy_declare_transaction_v1()),
-            TransactionExecutionInfo::default(),
-        );
+        let declare_transaction = dummy_declare_transaction_v1();
+        let hash = declare_transaction.generate_hash().unwrap();
+        let tx = Transaction::Declare(DeclareTransaction::Version1(declare_transaction));
+
+        let sn_tx =
+            StarknetTransaction::create_successful(&tx, &TransactionExecutionInfo::default());
         let mut sn_txs = StarknetTransactions::default();
         sn_txs.insert(
             &hash,
-            StarknetTransaction::create_successful(
-                Transaction::Declare(dummy_declare_transaction_v1()),
-                TransactionExecutionInfo::default(),
-            ),
+            StarknetTransaction::create_successful(&tx, &TransactionExecutionInfo::default()),
         );
 
         let extracted_tran = sn_txs.get_by_hash_mut(&hash).unwrap();
@@ -250,29 +219,22 @@ mod tests {
 
     #[test]
     fn check_correct_rejected_transaction_creation() {
-        check_correct_transaction_properties(
-            Transaction::Declare(dummy_declare_transaction_v1()),
-            false,
-        );
+        let tx = Transaction::Declare(DeclareTransaction::Version1(dummy_declare_transaction_v1()));
+        check_correct_transaction_properties(tx, false);
     }
 
     #[test]
     fn check_correct_successful_transaction_creation() {
-        check_correct_transaction_properties(
-            Transaction::Declare(dummy_declare_transaction_v1()),
-            true,
-        );
+        let tx = Transaction::Declare(DeclareTransaction::Version1(dummy_declare_transaction_v1()));
+        check_correct_transaction_properties(tx, true);
     }
 
     fn check_correct_transaction_properties(tran: Transaction, is_success: bool) {
         let sn_tran = if is_success {
-            StarknetTransaction::create_successful(
-                tran.clone(),
-                TransactionExecutionInfo::default(),
-            )
+            StarknetTransaction::create_successful(&tran, &TransactionExecutionInfo::default())
         } else {
             StarknetTransaction::create_rejected(
-                tran.clone(),
+                &tran,
                 starknet_in_rust::transaction::error::TransactionError::AttempToUseNoneCodeAddress,
             )
         };

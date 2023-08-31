@@ -1,31 +1,25 @@
 use starknet_core::error::Error;
 use starknet_in_rust::core::errors::state_errors::StateError;
-use starknet_in_rust::definitions::block_context::StarknetChainId;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::utils::Address;
 use starknet_rs_core::types::ContractClass as CodegenContractClass;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
+use starknet_types::rpc::block::{Block, BlockHeader};
+use starknet_types::rpc::transactions::{
+    BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, Transaction,
+    TransactionReceiptWithStatus,
+};
 use starknet_types::starknet_api::block::BlockNumber;
 use starknet_types::traits::ToHexString;
 
-use super::error::{self, ApiError};
+use super::error::ApiError;
 use super::models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
-use super::write_endpoints::{
-    convert_to_declare_transaction_v1, convert_to_declare_transaction_v2,
-    convert_to_deploy_account_transaction, convert_to_invoke_transaction_v1,
-};
 use super::JsonRpcHandler;
 use crate::api::json_rpc::error::RpcResult;
-use crate::api::models::block::{Block, BlockHeader};
 use crate::api::models::state::{
     ClassHashes, ContractNonce, DeployedContract, StateUpdate, StorageDiff, StorageEntry,
     ThinStateDiff,
-};
-use crate::api::models::transaction::{
-    BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
-    BroadcastedTransactionWithType, EventFilter, EventsChunk, FunctionCall, Transaction,
-    TransactionReceiptWithStatus, TransactionWithType, Transactions,
 };
 use crate::api::models::{BlockId, PatriciaKeyHex};
 
@@ -44,7 +38,7 @@ impl JsonRpcHandler {
         Ok(Block {
             status: *block.status(),
             header: BlockHeader::from(&block),
-            transactions: crate::api::models::transaction::Transactions::Hashes(
+            transactions: starknet_types::rpc::transactions::Transactions::Hashes(
                 block.get_transactions().to_owned(),
             ),
         })
@@ -52,25 +46,12 @@ impl JsonRpcHandler {
 
     /// starknet_getBlockWithTxs
     pub(crate) async fn get_block_with_txs(&self, block_id: BlockId) -> RpcResult<Block> {
-        let starknet = self.api.starknet.read().await;
-        let (block, transactions) =
-            starknet.get_block_with_transactions(block_id.into()).map_err(|err| match err {
+        self.api.starknet.read().await.get_block_with_transactions(block_id.into()).map_err(|err| {
+            match err {
                 Error::NoBlock => ApiError::BlockNotFound,
                 Error::NoTransaction => ApiError::TransactionNotFound,
                 unknown_error => ApiError::StarknetDevnetError(unknown_error),
-            })?;
-
-        let mut transactions_with_type = Vec::<TransactionWithType>::new();
-
-        for transaction in transactions {
-            let txn_to_add = TransactionWithType::try_from(transaction)?;
-
-            transactions_with_type.push(txn_to_add);
-        }
-        Ok(Block {
-            status: *block.status(),
-            header: BlockHeader::from(&block),
-            transactions: Transactions::Full(transactions_with_type),
+            }
         })
     }
 
@@ -153,15 +134,12 @@ impl JsonRpcHandler {
     pub(crate) async fn get_transaction_by_hash(
         &self,
         transaction_hash: TransactionHash,
-    ) -> RpcResult<TransactionWithType> {
-        let starknet = self.api.starknet.read().await;
-        let transaction_to_map = starknet
-            .transactions
-            .get(&transaction_hash)
-            .ok_or(error::ApiError::TransactionNotFound)?;
-        let transaction = TransactionWithType::try_from(&transaction_to_map.inner)?;
-
-        Ok(transaction)
+    ) -> RpcResult<Transaction> {
+        match self.api.starknet.read().await.get_transaction_by_hash(transaction_hash) {
+            Ok(transaction) => Ok(transaction.clone()),
+            Err(Error::NoTransaction) => Err(ApiError::TransactionNotFound),
+            Err(err) => Err(err.into()),
+        }
     }
 
     /// starknet_getTransactionByBlockIdAndIndex
@@ -169,17 +147,17 @@ impl JsonRpcHandler {
         &self,
         block_id: BlockId,
         index: u64,
-    ) -> RpcResult<TransactionWithType> {
-        let starknet = self.api.starknet.read().await;
-        match starknet.get_block(block_id.into()) {
-            Ok(block) => {
-                let transaction_hash = block
-                    .get_transactions()
-                    .get(index as usize)
-                    .ok_or(error::ApiError::InvalidTransactionIndexInBlock)?;
-
-                let transaction = starknet.get_transaction_by_hash(*transaction_hash)?;
-                TransactionWithType::try_from(transaction)
+    ) -> RpcResult<Transaction> {
+        match self
+            .api
+            .starknet
+            .read()
+            .await
+            .get_transaction_by_block_id_and_index(block_id.into(), index)
+        {
+            Ok(transaction) => Ok(transaction.clone()),
+            Err(Error::InvalidTransactionIndexInBlock) => {
+                Err(ApiError::InvalidTransactionIndexInBlock)
             }
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),
@@ -191,14 +169,11 @@ impl JsonRpcHandler {
         &self,
         transaction_hash: TransactionHash,
     ) -> RpcResult<TransactionReceiptWithStatus> {
-        let starknet = self.api.starknet.read().await;
-        let transaction_to_map = starknet
-            .transactions
-            .get(&transaction_hash)
-            .ok_or(error::ApiError::TransactionNotFound)?;
-        let receipt_with_status = TransactionReceiptWithStatus::try_from(transaction_to_map)?;
-
-        Ok(receipt_with_status)
+        match self.api.starknet.read().await.get_transaction_receipt_by_hash(transaction_hash) {
+            Ok(receipt) => Ok(receipt),
+            Err(Error::NoTransaction) => Err(ApiError::TransactionNotFound),
+            Err(err) => Err(err.into()),
+        }
     }
 
     /// starknet_getClass
@@ -290,18 +265,11 @@ impl JsonRpcHandler {
     pub(crate) async fn estimate_fee(
         &self,
         block_id: BlockId,
-        request: Vec<BroadcastedTransactionWithType>,
+        request: Vec<BroadcastedTransaction>,
     ) -> RpcResult<Vec<EstimateFeeOutput>> {
+        // TODO: move EstimateFeeOutput to types
         let starknet = self.api.starknet.read().await;
-        let mut transactions = vec![];
-        for broadcasted_tx in request {
-            transactions.push(convert_broadcasted_tx(
-                broadcasted_tx.transaction,
-                starknet.config.chain_id,
-            )?);
-        }
-
-        match starknet.estimate_gas_usage(block_id.into(), &transactions) {
+        match starknet.estimate_gas_usage(block_id.into(), &request) {
             Ok(result) => Ok(result
                 .iter()
                 .map(|gas_consumed| EstimateFeeOutput {
@@ -396,37 +364,5 @@ impl JsonRpcHandler {
             })?;
 
         Ok(nonce)
-    }
-}
-
-fn convert_broadcasted_tx(
-    broadcasted_tx: BroadcastedTransaction,
-    chain_id: StarknetChainId,
-) -> RpcResult<starknet_core::transactions::Transaction> {
-    let chain_id = Felt::from(chain_id.to_felt());
-    match broadcasted_tx {
-        BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V0(_)) => {
-            Err(ApiError::UnsupportedAction { msg: "Invoke V0 is not supported".into() })
-        }
-        BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(broadcasted_tx)) => {
-            Ok(starknet_core::transactions::Transaction::Invoke(Box::new(
-                convert_to_invoke_transaction_v1(broadcasted_tx, chain_id)?,
-            )))
-        }
-        BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(broadcasted_tx)) => {
-            Ok(starknet_core::transactions::Transaction::Declare(Box::new(
-                convert_to_declare_transaction_v1(*broadcasted_tx, chain_id)?,
-            )))
-        }
-        BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(broadcasted_tx)) => {
-            Ok(starknet_core::transactions::Transaction::DeclareV2(Box::new(
-                convert_to_declare_transaction_v2(*broadcasted_tx, chain_id)?,
-            )))
-        }
-        BroadcastedTransaction::DeployAccount(broadcasted_tx) => {
-            Ok(starknet_core::transactions::Transaction::DeployAccount(Box::new(
-                convert_to_deploy_account_transaction(broadcasted_tx, chain_id)?,
-            )))
-        }
     }
 }

@@ -1,9 +1,7 @@
 use serde::{Deserialize, Serialize};
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{Calldata, EntryPointSelector, Felt, Nonce, TransactionHash};
+use starknet_types::felt::{BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash};
 use starknet_types::starknet_api::transaction::Fee;
-
-use crate::api::models::block::BlockHashHex;
 
 #[derive(Deserialize, Debug)]
 pub(crate) struct Path {
@@ -41,18 +39,18 @@ pub(crate) struct MessageHash {
 
 #[derive(Serialize)]
 pub(crate) struct CreatedBlock {
-    block_hash: BlockHashHex,
+    block_hash: BlockHash,
 }
 
 #[derive(Deserialize)]
 pub(crate) struct AbortingBlocks {
     #[serde(rename = "startingBlockHash")]
-    starting_block_hash: BlockHashHex,
+    starting_block_hash: BlockHash,
 }
 
 #[derive(Serialize)]
 pub(crate) struct AbortedBlocks {
-    aborted: Vec<BlockHashHex>,
+    aborted: Vec<BlockHash>,
 }
 
 #[derive(Deserialize)]

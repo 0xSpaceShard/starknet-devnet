@@ -155,7 +155,7 @@ impl BackgroundDevnet {
         &self,
         path: &str,
         query: Option<String>,
-    ) -> Result<Response<hyper::Body>, hyper::Error> {
+    ) -> Result<Response<Body>, hyper::Error> {
         let uri = if query.is_none() {
             format!("{}{}", self.url, path)
         } else {

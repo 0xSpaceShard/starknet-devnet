@@ -1,7 +1,6 @@
 use starknet_in_rust::utils::Address;
 
 use super::contract_address::ContractAddress;
-use crate::error::Error;
 use crate::patricia_key::StorageKey;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -13,17 +12,15 @@ impl ContractStorageKey {
     }
 }
 
-impl TryFrom<&ContractStorageKey> for starknet_in_rust::state::state_cache::StorageEntry {
-    type Error = Error;
-    fn try_from(value: &ContractStorageKey) -> Result<Self, Self::Error> {
-        Ok((Address::try_from(&value.0)?, value.1.0.bytes()))
+impl From<&ContractStorageKey> for starknet_in_rust::state::state_cache::StorageEntry {
+    fn from(value: &ContractStorageKey) -> Self {
+        (Address::from(&value.0), value.1.0.bytes())
     }
 }
 
-impl TryFrom<ContractStorageKey> for starknet_in_rust::state::state_cache::StorageEntry {
-    type Error = Error;
-    fn try_from(value: ContractStorageKey) -> Result<Self, Self::Error> {
-        Ok((Address::try_from(value.0)?, value.1.0.bytes()))
+impl From<ContractStorageKey> for starknet_in_rust::state::state_cache::StorageEntry {
+    fn from(value: ContractStorageKey) -> Self {
+        (Address::from(value.0), value.1.0.bytes())
     }
 }
 
