@@ -101,8 +101,10 @@ pub(crate) mod test_utils {
         concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/rpc/cairo_0_base64_gzipped_program.json");
 
     /// contract declared in transaction https://alpha4.starknet.io/feeder_gateway/get_transaction?transactionHash=0x01b852f1fe2b13db21a44f8884bc4b7760dc277bb3820b970dba929860275617
-    pub(crate) const CAIRO_1_CONTRACT_PATH: &str =
-        concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo1/events/events_2.0.1_compiler.sierra");
+    pub(crate) const CAIRO_1_CONTRACT_PATH: &str = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/test_data/cairo1/events/events_2.0.1_compiler.sierra"
+    );
 
     pub(crate) const CAIRO_1_CONTRACT_SIERRA_HASH: &str =
         "0x113bf26d112a164297e04381212c9bd7409f07591f0a04f539bdf56693eaaf3";

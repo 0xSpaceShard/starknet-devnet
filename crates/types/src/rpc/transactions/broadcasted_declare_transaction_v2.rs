@@ -105,8 +105,10 @@ mod tests {
 
     #[test]
     fn sierra_hash_from_events_sierra_artifact() {
-        let sierra_contract_path =
-            concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo1/events/events_2.0.1_compiler.sierra");
+        let sierra_contract_path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test_data/cairo1/events/events_2.0.1_compiler.sierra"
+        );
 
         let cairo_1_contract = ContractClass::cairo_1_from_sierra_json_str(
             &std::fs::read_to_string(sierra_contract_path).unwrap(),
@@ -139,8 +141,10 @@ mod tests {
         let feeder_gateway_transaction: FeederGatewayDeclareTransactionV2 =
             serde_json::from_value(json_obj.get("transaction").unwrap().clone()).unwrap();
 
-        let sierra_contract_path =
-            concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo1/events/events_2.0.1_compiler.sierra");
+        let sierra_contract_path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test_data/cairo1/events/events_2.0.1_compiler.sierra"
+        );
 
         let cairo_1_contract = ContractClass::cairo_1_from_sierra_json_str(
             &std::fs::read_to_string(sierra_contract_path).unwrap(),
