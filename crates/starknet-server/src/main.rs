@@ -9,13 +9,19 @@ use starknet_core::account::Account;
 use starknet_core::starknet::Starknet;
 use starknet_types::felt::Felt;
 use starknet_types::traits::{ToDecimalString, ToHexString};
-use tokio::signal::unix::{SignalKind, signal}; // fails on windows machine, fix that later
+use tokio::signal;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
 mod api;
 mod cli;
 mod server;
+
+use std::fs;
+use std::path::Path;
+use std::io;
+use std::io::prelude::*;
+use std::fs::File;
 
 /// Configures tracing with default level INFO,
 /// If the environment variable `RUST_LOG` is set, it will be used instead.
@@ -91,19 +97,27 @@ pub async fn shutdown_signal(api: Api) -> (){
     tokio::signal::ctrl_c()
         .await
         .expect("failed to install CTRL+C signal handler");
+    signal::ctrl_c().await;
+    println!("ctrl-c received!");
 
-    let mut sigterm = signal(SignalKind::terminate()).unwrap();
-    let mut sigint = signal(SignalKind::interrupt()).unwrap();
-    let mut sigkill = signal(SignalKind::user_defined1()).unwrap();
+    //
+    let starknet = api.starknet.read().await;    
 
-    tokio::select! {
-        _ = sigterm.recv() => {println!("SIGTERM Shuting down");},
-        _ = sigint.recv() => {println!("SIGINT Shuting down");},
-        _ = sigkill.recv() => {println!("Userdefined signal");},
-    };
+    // dump
+    let target: Option<String>  = Some("hello world".to_string());
+    // let target = &starknet.transactions;
+    let encoded: Vec<u8> = bincode::serialize(&target).unwrap();
+    let path = Path::new("dump");
+    fs::write(path, encoded).unwrap();
+    
+    // load
+    let mut f = File::open(&Path::new(path));
+    let mut v: Vec<u8> = Vec::new();
+    // let file_content = f.read_to_end(&mut v);
+    // println!("{:?}", file_content);
 
-    let starknet = api.starknet.read().await;
-    // let transactions = api.starknet.read().await.transactions;
+    // let decoded: Option<String> = bincode::deserialize(&encoded[..]).unwrap();
+    // assert_eq!(target, decoded);
 
     println!("Signal {:?}", api.starknet.read().await.chain_id());
 }
