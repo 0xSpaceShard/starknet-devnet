@@ -74,7 +74,7 @@ jobs:
             ARCH_SUFFIX: -arm
             REMOTE: ""
 
-  create-joint-manifest:
+  create-joint-image-manifest:
     docker:
       - image: cimg/base:2021.04
     resource_class: medium
@@ -83,7 +83,7 @@ jobs:
       - setup_remote_docker:
           version: 20.10.7
       - run:
-          name: Create joint manifest
+          name: Create and push joint image manifest
           command: ./scripts/create_joint_manifest.sh
 
 # Orchestrate jobs using workflows
@@ -97,5 +97,5 @@ workflows:
           <<: *on_master
       - image-build-arm:
           <<: *on_master
-      - create-joint-manifest:
+      - create-joint-image-manifest:
           <<: *on_master_after_test_and_build
