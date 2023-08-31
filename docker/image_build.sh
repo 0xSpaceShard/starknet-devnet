@@ -16,7 +16,7 @@ function validate_and_push() {
     local internal_port="5050"
     local external_address="127.0.0.1:5050"
 
-    echo "Runing $tagged_image in background; sleeping to allow it to start"
+    echo "Running $tagged_image in background; sleeping to allow it to start"
     # not using --rm so that later logs can be printed if debugging is needed
     docker run -d \
         -p "$external_address:$internal_port" \
