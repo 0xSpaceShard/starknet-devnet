@@ -89,7 +89,7 @@ pub(crate) mod test_utils {
     use crate::felt::Felt;
 
     pub(crate) const CAIRO_0_ACCOUNT_CONTRACT_PATH: &str =
-        concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/Cairo0_contract.json");
+        concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo0/Cairo0_contract.json");
 
     pub(crate) const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str =
         "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f";
@@ -102,7 +102,7 @@ pub(crate) mod test_utils {
 
     /// contract declared in transaction https://alpha4.starknet.io/feeder_gateway/get_transaction?transactionHash=0x01b852f1fe2b13db21a44f8884bc4b7760dc277bb3820b970dba929860275617
     pub(crate) const CAIRO_1_CONTRACT_PATH: &str =
-        concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/events_cairo1.sierra");
+        concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo1/events/events_2.0.1_compiler.sierra");
 
     pub(crate) const CAIRO_1_CONTRACT_SIERRA_HASH: &str =
         "0x113bf26d112a164297e04381212c9bd7409f07591f0a04f539bdf56693eaaf3";

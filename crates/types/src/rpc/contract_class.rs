@@ -192,7 +192,7 @@ mod tests {
     fn cairo_1_to_codegen() {
         let path = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/test_data/sierra_contract_class_with_abi_as_string.json"
+            "/test_data/cairo1/sierra_contract_class_with_abi_as_string.json"
         );
         let contract_str = std::fs::read_to_string(path).unwrap();
         let mut deserializer = Deserializer::from_str(&contract_str);
