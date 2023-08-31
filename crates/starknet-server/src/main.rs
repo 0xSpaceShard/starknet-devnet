@@ -91,31 +91,24 @@ async fn main() -> Result<(), anyhow::Error> {
 }
 
 pub async fn shutdown_signal(api: Api) -> (){
-
-    println!("Waiting for the end of the world");
-    // Wait for the CTRL+C signal
     tokio::signal::ctrl_c()
         .await
         .expect("failed to install CTRL+C signal handler");
+
+    // Wait for the CTRL+C signal
     signal::ctrl_c().await;
-    println!("ctrl-c received!");
 
-    //
+    // Dump StarknetTransactions
     let starknet = api.starknet.read().await;    
-
-    // dump
-    let target: Option<String>  = Some("hello world".to_string());
-    // let target = &starknet.transactions;
-    let encoded: Vec<u8> = bincode::serialize(&target).unwrap();
+    let encoded: Vec<u8> = bincode::serialize(&starknet.transactions).unwrap();
     let path = Path::new("dump");
     fs::write(path, encoded).unwrap();
     
-    // load
-    let mut f = File::open(&Path::new(path));
-    let mut v: Vec<u8> = Vec::new();
+    // Test load StarknetTransactions
+    // let mut f = File::open(&Path::new(path)).unwrap();
+    // let mut v: Vec<u8> = Vec::new();
     // let file_content = f.read_to_end(&mut v);
     // println!("{:?}", file_content);
-
     // let decoded: Option<String> = bincode::deserialize(&encoded[..]).unwrap();
     // assert_eq!(target, decoded);
 

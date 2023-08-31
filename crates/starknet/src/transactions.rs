@@ -16,8 +16,10 @@ use starknet_types::rpc::transactions::{
 use crate::constants::UDC_CONTRACT_ADDRESS;
 use crate::error::{DevnetResult, Error};
 use crate::traits::{HashIdentified, HashIdentifiedMut};
+use serde::{Serialize, Deserialize};
 
 #[derive(Default)]
+#[derive(Serialize, Debug)]
 pub struct StarknetTransactions(HashMap<TransactionHash, StarknetTransaction>);
 
 impl StarknetTransactions {
@@ -47,12 +49,15 @@ impl HashIdentified for StarknetTransactions {
 }
 
 #[allow(unused)]
+#[derive(Serialize, Debug)]
 pub struct StarknetTransaction {
     pub(crate) status: TransactionStatus,
     pub inner: Transaction,
     pub(crate) block_hash: Option<BlockHash>,
     pub(crate) block_number: Option<BlockNumber>,
+    #[serde(skip_serializing)]
     pub(crate) execution_info: Option<starknet_in_rust::execution::TransactionExecutionInfo>,
+    #[serde(skip_serializing)]
     pub(crate) execution_error: Option<TransactionError>,
 }
 
