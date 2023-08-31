@@ -9,7 +9,7 @@ use starknet_core::account::Account;
 use starknet_core::starknet::Starknet;
 use starknet_types::felt::Felt;
 use starknet_types::traits::{ToDecimalString, ToHexString};
-use tokio::signal::unix::{SignalKind, signal};
+use tokio::signal::unix::{SignalKind, signal}; // fails on windows machine, fix that later
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
@@ -102,7 +102,8 @@ pub async fn shutdown_signal(api: Api) -> (){
         _ = sigkill.recv() => {println!("Userdefined signal");},
     };
 
-    let transactions = api.starknet.read().await.transactions;
+    let starknet = api.starknet.read().await;
+    // let transactions = api.starknet.read().await.transactions;
 
     println!("Signal {:?}", api.starknet.read().await.chain_id());
 }
