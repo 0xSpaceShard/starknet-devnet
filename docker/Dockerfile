@@ -13,6 +13,7 @@ RUN apt-get -y update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Necessary for predeployed contracts
 COPY crates/starknet/accounts_artifacts/ /crates/starknet/accounts_artifacts/
 COPY --from=builder /target/release/starknet-devnet /usr/local/bin/starknet-devnet
 

@@ -8,13 +8,12 @@ aliases:
     filters:
       branches:
         only:
-          # TODO change to master
-          - dockerize
+          - master
 
   - &on_master_after_test_and_build
     <<: *on_master
     requires:
-      # TODO perhaps make build-and-test a condition
+      - build-and-test
       - image-build-amd
       - image-build-arm
 
@@ -91,8 +90,7 @@ jobs:
 workflows:
   main:
     jobs:
-      # TODO uncomment
-      # - build-and-test
+      - build-and-test
       - image-build-amd:
           <<: *on_master
       - image-build-arm:

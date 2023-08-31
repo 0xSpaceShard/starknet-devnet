@@ -18,7 +18,7 @@ $ cargo run
 
 ## Run with Docker
 
-This application is available as a Docker image. To download the image tagged with `latest`, run:
+This application is available as a Docker image (architectures: arm64 and amd64). To download the `latest` image, run:
 
 ```text
 $ docker pull shardlabs/starknet-devnet-rs
@@ -36,6 +36,7 @@ By appending the `-seed0` suffix, you can use images which [predeploy funded acc
 
 ```
 $ docker pull shardlabs/starknet-devnet-rs:<VERSION>-seed0
+$ docker pull shardlabs/starknet-devnet-rs:latest-seed0
 ```
 
 ### Container port publishing

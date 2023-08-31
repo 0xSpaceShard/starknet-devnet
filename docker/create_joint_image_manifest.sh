@@ -6,7 +6,7 @@ IMAGE=shardlabs/starknet-devnet-rs
 docker login --username "$DOCKER_USER" --password "$DOCKER_PASS"
 
 # TODO
-echo "Temporarily pushing tag latest. Once semver is established for this project, this should be done conditionally in a separate script, as with devnet-py"
+echo "Temporarily pushing tag latest. Once semver is established for this project, this should be done conditionally (if version incremented), as with devnet-py"
 
 for seed_suffix in "" "-seed0"; do
     for image_suffix in "-arm" "-amd"; do
