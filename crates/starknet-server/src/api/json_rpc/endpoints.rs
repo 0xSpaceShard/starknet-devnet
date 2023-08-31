@@ -9,7 +9,6 @@ use starknet_types::rpc::block::{Block, BlockHeader};
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
     BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, Transaction,
-    TransactionReceiptWithStatus,
 };
 use starknet_types::starknet_api::block::BlockNumber;
 use starknet_types::traits::ToHexString;
