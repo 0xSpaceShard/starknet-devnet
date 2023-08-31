@@ -1,6 +1,4 @@
-pub(crate) mod block;
 pub(crate) mod state;
-pub(crate) mod transaction;
 
 use serde::{Deserialize, Serialize};
 use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag as ImportedBlockTag};

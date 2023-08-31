@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::time::SystemTime;
 
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
+use starknet_api::transaction::Fee;
 use starknet_in_rust::call_contract;
 use starknet_in_rust::definitions::block_context::{
     BlockContext, StarknetChainId, StarknetOsConfig,
@@ -26,6 +27,15 @@ use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
+use starknet_types::rpc::block::{Block, BlockHeader};
+use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
+use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
+use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
+use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
+use starknet_types::rpc::transactions::{
+    BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
+    BroadcastedTransactionCommon, Transaction, TransactionReceiptWithStatus, Transactions,
+};
 use starknet_types::traits::HashProducer;
 use tracing::error;
 
@@ -46,11 +56,7 @@ use crate::traits::{
     AccountGenerator, Accounted, Deployed, HashIdentified, HashIdentifiedMut, StateChanger,
     StateExtractor,
 };
-use crate::transactions::declare_transaction::DeclareTransactionV1;
-use crate::transactions::declare_transaction_v2::DeclareTransactionV2;
-use crate::transactions::deploy_account_transaction::DeployAccountTransaction;
-use crate::transactions::invoke_transaction::InvokeTransactionV1;
-use crate::transactions::{StarknetTransaction, StarknetTransactions, Transaction};
+use crate::transactions::{StarknetTransaction, StarknetTransactions};
 
 mod add_declare_transaction;
 mod add_deploy_account_transaction;
@@ -215,8 +221,8 @@ impl Starknet {
     pub(crate) fn handle_successful_transaction(
         &mut self,
         transaction_hash: &TransactionHash,
-        transaction: Transaction,
-        tx_info: TransactionExecutionInfo,
+        transaction: &Transaction,
+        tx_info: &TransactionExecutionInfo,
     ) -> DevnetResult<()> {
         let transaction_to_add = StarknetTransaction::create_successful(transaction, tx_info);
 
@@ -360,7 +366,7 @@ impl Starknet {
             &mut state.pending_state.clone(),
             self.block_context.clone(),
             // dummy caller_address since there is no account address
-            ContractAddress::zero().try_into()?,
+            ContractAddress::zero().into(),
         )?;
         Ok(result.iter().map(|e| Felt::from(e.clone())).collect())
     }
@@ -369,7 +375,7 @@ impl Starknet {
     pub fn estimate_gas_usage(
         &self,
         block_id: BlockId,
-        transactions: &[Transaction],
+        transactions: &[BroadcastedTransaction],
     ) -> DevnetResult<Vec<u64>> {
         let state = self.get_state_at(&block_id)?;
 
@@ -377,27 +383,50 @@ impl Starknet {
         let estimation_pairs = starknet_in_rust::estimate_fee(
             &transactions
                 .iter()
-                .map(|txn| match txn {
-                    Transaction::Declare(declare) => {
-                        starknet_in_rust::transaction::Transaction::Declare(declare.inner.clone())
+                .map(|txn| match &txn {
+                    BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(
+                        broadcasted_tx,
+                    )) => {
+                        let class_hash = broadcasted_tx.generate_class_hash()?;
+                        let transaction_hash = broadcasted_tx.calculate_transaction_hash(
+                            &self.config.chain_id.to_felt().into(),
+                            &class_hash,
+                        )?;
+
+                        let declare_tx =
+                            broadcasted_tx.create_sir_declare(class_hash, transaction_hash)?;
+
+                        Ok(starknet_in_rust::transaction::Transaction::Declare(declare_tx))
                     }
-                    Transaction::DeclareV2(declare_v2) => {
-                        starknet_in_rust::transaction::Transaction::DeclareV2(Box::new(
-                            declare_v2.inner.clone(),
-                        ))
+                    BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(
+                        broadcasted_tx,
+                    )) => {
+                        let declare_tx = broadcasted_tx
+                            .create_sir_declare(self.config.chain_id.to_felt().into())?;
+
+                        Ok(starknet_in_rust::transaction::Transaction::DeclareV2(Box::new(
+                            declare_tx,
+                        )))
                     }
-                    Transaction::DeployAccount(deploy) => {
-                        starknet_in_rust::transaction::Transaction::DeployAccount(
-                            deploy.inner.clone(),
-                        )
+                    BroadcastedTransaction::DeployAccount(broadcasted_tx) => {
+                        let deploy_tx = broadcasted_tx
+                            .create_sir_deploy_account(self.config.chain_id.to_felt().into())?;
+
+                        Ok(starknet_in_rust::transaction::Transaction::DeployAccount(deploy_tx))
                     }
-                    Transaction::Invoke(invoke) => {
-                        starknet_in_rust::transaction::Transaction::InvokeFunction(
-                            invoke.inner.clone(),
-                        )
+                    BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(
+                        broadcasted_tx,
+                    )) => {
+                        let invoke_tx = broadcasted_tx
+                            .create_sir_invoke_function(self.config.chain_id.to_felt().into())?;
+
+                        Ok(starknet_in_rust::transaction::Transaction::InvokeFunction(invoke_tx))
+                    }
+                    BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V0(_)) => {
+                        Err(Error::UnsupportedAction { msg: "Invoke V0 is not supported".into() })
                     }
                 })
-                .collect::<Vec<starknet_in_rust::transaction::Transaction>>(),
+                .collect::<DevnetResult<Vec<starknet_in_rust::transaction::Transaction>>>()?,
             state.pending_state.clone(),
             &self.block_context,
         )?;
@@ -408,14 +437,14 @@ impl Starknet {
 
     pub fn add_declare_transaction_v1(
         &mut self,
-        declare_transaction: DeclareTransactionV1,
+        declare_transaction: BroadcastedDeclareTransactionV1,
     ) -> DevnetResult<(TransactionHash, ClassHash)> {
         add_declare_transaction::add_declare_transaction_v1(self, declare_transaction)
     }
 
     pub fn add_declare_transaction_v2(
         &mut self,
-        declare_transaction: DeclareTransactionV2,
+        declare_transaction: BroadcastedDeclareTransactionV2,
     ) -> DevnetResult<(TransactionHash, ClassHash)> {
         add_declare_transaction::add_declare_transaction_v2(self, declare_transaction)
     }
@@ -433,7 +462,7 @@ impl Starknet {
 
     pub fn add_deploy_account_transaction(
         &mut self,
-        deploy_account_transaction: DeployAccountTransaction,
+        deploy_account_transaction: BroadcastedDeployAccountTransaction,
     ) -> DevnetResult<(TransactionHash, ContractAddress)> {
         add_deploy_account_transaction::add_deploy_account_transaction(
             self,
@@ -443,7 +472,7 @@ impl Starknet {
 
     pub fn add_invoke_transaction_v1(
         &mut self,
-        invoke_transaction: InvokeTransactionV1,
+        invoke_transaction: BroadcastedInvokeTransactionV1,
     ) -> DevnetResult<TransactionHash> {
         add_invoke_transaction::add_invoke_transcation_v1(self, invoke_transaction)
     }
@@ -485,16 +514,18 @@ impl Starknet {
         );
         let signature = signer.sign_hash(&msg_hash_felt).await?;
 
+        let invoke_tx = BroadcastedInvokeTransactionV1 {
+            sender_address: ContractAddress::new(chargeable_address_felt)?,
+            calldata: raw_execution.raw_calldata().into_iter().map(|c| c.into()).collect(),
+            common: BroadcastedTransactionCommon {
+                max_fee: Fee(sufficiently_big_max_fee),
+                version: Felt::from(1),
+                signature: vec![signature.r.into(), signature.s.into()],
+                nonce: nonce.into(),
+            },
+        };
+
         // apply the invoke tx
-        let invoke_tx = InvokeTransactionV1::new(
-            ContractAddress::new(chargeable_address_felt)?,
-            sufficiently_big_max_fee,
-            vec![signature.r.into(), signature.s.into()],
-            nonce.into(),
-            raw_execution.raw_calldata().into_iter().map(|c| c.into()).collect(),
-            chain_id_felt,
-            Felt::from(1),
-        )?;
         self.add_invoke_transaction_v1(invoke_tx)
     }
 
@@ -514,7 +545,7 @@ impl Starknet {
         contract_address: ContractAddress,
     ) -> DevnetResult<Felt> {
         let state = self.get_state_at(&block_id)?;
-        match state.state.address_to_nonce.get(&contract_address.try_into()?) {
+        match state.state.address_to_nonce.get(&contract_address.into()) {
             Some(nonce) => Ok(Felt::from(nonce.clone())),
             None => Err(Error::ContractNotFound),
         }
@@ -531,23 +562,42 @@ impl Starknet {
     }
 
     pub fn get_block(&self, block_id: BlockId) -> DevnetResult<StarknetBlock> {
-        let block = self.blocks.get_by_block_id(block_id).ok_or(crate::error::Error::NoBlock)?;
+        let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
         Ok(block.clone())
     }
 
-    pub fn get_block_with_transactions(
+    pub fn get_block_with_transactions(&self, block_id: BlockId) -> DevnetResult<Block> {
+        let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
+        let transactions = block
+            .get_transactions()
+            .iter()
+            .map(|transaction_hash| {
+                self.transactions
+                    .get_by_hash(*transaction_hash)
+                    .ok_or(Error::NoTransaction)
+                    .map(|transaction| transaction.inner.clone())
+            })
+            .collect::<DevnetResult<Vec<Transaction>>>()?;
+
+        Ok(Block {
+            status: *block.status(),
+            header: BlockHeader::from(block),
+            transactions: Transactions::Full(transactions),
+        })
+    }
+
+    pub fn get_transaction_by_block_id_and_index(
         &self,
         block_id: BlockId,
-    ) -> DevnetResult<(StarknetBlock, Vec<&Transaction>)> {
-        let block = self.blocks.get_by_block_id(block_id).ok_or(crate::error::Error::NoBlock)?;
-        let mut transactions: Vec<&Transaction> = vec![];
-        for transaction_hash in block.get_transactions() {
-            let transaction =
-                self.transactions.get_by_hash(*transaction_hash).ok_or(Error::NoTransaction)?;
-            transactions.push(&transaction.inner);
-        }
+        index: u64,
+    ) -> DevnetResult<&Transaction> {
+        let block = self.get_block(block_id)?;
+        let transaction_hash = block
+            .get_transactions()
+            .get(index as usize)
+            .ok_or(Error::InvalidTransactionIndexInBlock)?;
 
-        Ok((block.clone(), transactions))
+        self.get_transaction_by_hash(*transaction_hash)
     }
 
     pub fn get_latest_block(&self) -> DevnetResult<StarknetBlock> {
@@ -576,6 +626,16 @@ impl Starknet {
         limit: Option<usize>,
     ) -> DevnetResult<(Vec<EmittedEvent>, bool)> {
         events::get_events(self, from_block, to_block, address, keys, skip, limit)
+    }
+
+    pub fn get_transaction_receipt_by_hash(
+        &self,
+        transaction_hash: TransactionHash,
+    ) -> DevnetResult<TransactionReceiptWithStatus> {
+        let transaction_to_map =
+            self.transactions.get(&transaction_hash).ok_or(Error::NoTransaction)?;
+
+        transaction_to_map.get_receipt()
     }
 }
 

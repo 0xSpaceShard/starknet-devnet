@@ -31,13 +31,7 @@ impl Serialize for ContractClass {
         S: Serializer,
     {
         match self {
-            ContractClass::Cairo0(cairo0) => match cairo0 {
-                Cairo0ContractClass::RawJson(contract_json) => contract_json.serialize(serializer),
-                Cairo0ContractClass::SIR(_) => Err(serde::ser::Error::custom(
-                    "Serialization of starknet 0 contract is unavailable",
-                )),
-                Cairo0ContractClass::Rpc(contract) => contract.serialize(serializer),
-            },
+            ContractClass::Cairo0(cairo0) => cairo0.serialize(serializer),
             ContractClass::Cairo1(contract) => contract.serialize(serializer),
         }
     }

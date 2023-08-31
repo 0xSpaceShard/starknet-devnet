@@ -57,21 +57,17 @@ impl TryFrom<ContractAddress> for starknet_api::core::ContractAddress {
     }
 }
 
-impl TryFrom<ContractAddress> for starknet_in_rust::utils::Address {
-    type Error = Error;
-
-    fn try_from(value: ContractAddress) -> DevnetResult<Self> {
+impl From<ContractAddress> for starknet_in_rust::utils::Address {
+    fn from(value: ContractAddress) -> Self {
         let felt_252 = cairo_felt::Felt252::from(value.0.0);
-        Ok(Self(felt_252))
+        Self(felt_252)
     }
 }
 
-impl TryFrom<&ContractAddress> for starknet_in_rust::utils::Address {
-    type Error = Error;
-
-    fn try_from(value: &ContractAddress) -> DevnetResult<Self> {
+impl From<&ContractAddress> for starknet_in_rust::utils::Address {
+    fn from(value: &ContractAddress) -> Self {
         let felt_252 = cairo_felt::Felt252::from(&value.0.0);
-        Ok(Self(felt_252))
+        Self(felt_252)
     }
 }
 
@@ -80,6 +76,14 @@ impl TryFrom<starknet_in_rust::utils::Address> for ContractAddress {
 
     fn try_from(value: starknet_in_rust::utils::Address) -> DevnetResult<Self> {
         Self::new(Felt::from(value.0))
+    }
+}
+
+impl TryFrom<&starknet_in_rust::utils::Address> for ContractAddress {
+    type Error = Error;
+
+    fn try_from(value: &starknet_in_rust::utils::Address) -> DevnetResult<Self> {
+        Self::new(Felt::from(&value.0))
     }
 }
 

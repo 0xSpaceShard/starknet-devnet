@@ -230,8 +230,7 @@ mod estimate_fee_tests {
             .nonce(FieldElement::ONE)
             // max fee implicitly estimated
             .send()
-            .await
-            .expect("Cannot deploy");
+            .await.expect("Cannot deploy");
 
         // prepare the call used in estimation and actual invoke
         let increase_amount = FieldElement::from(100u128);
