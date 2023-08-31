@@ -2,9 +2,7 @@ use starknet_in_rust::definitions::constants::INITIAL_GAS_COST;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
-use starknet_types::rpc::transactions::{
-    InvokeTransaction, Transaction, TransactionType, TransactionWithType,
-};
+use starknet_types::rpc::transactions::{InvokeTransaction, Transaction};
 
 use super::Starknet;
 use crate::error::{self, DevnetResult};
@@ -23,13 +21,10 @@ pub fn add_invoke_transcation_v1(
     let sir_invoke_function = broadcasted_invoke_transaction
         .create_sir_invoke_function(starknet.config.chain_id.to_felt().into())?;
     let transaction_hash = sir_invoke_function.hash_value().into();
+
     let invoke_transaction =
         broadcasted_invoke_transaction.create_invoke_transaction(transaction_hash);
-
-    let transaction_with_type = TransactionWithType {
-        r#type: TransactionType::Invoke,
-        transaction: Transaction::Invoke(InvokeTransaction::Version1(invoke_transaction)),
-    };
+    let transaction = Transaction::Invoke(InvokeTransaction::Version1(invoke_transaction));
 
     let state_before_txn = starknet.state.pending_state.clone();
 
@@ -39,15 +34,10 @@ pub fn add_invoke_transcation_v1(
         INITIAL_GAS_COST,
     ) {
         Ok(tx_info) => {
-            starknet.handle_successful_transaction(
-                &transaction_hash,
-                &transaction_with_type,
-                &tx_info,
-            )?;
+            starknet.handle_successful_transaction(&transaction_hash, &transaction, &tx_info)?;
         }
         Err(tx_err) => {
-            let transaction_to_add =
-                StarknetTransaction::create_rejected(&transaction_with_type, tx_err);
+            let transaction_to_add = StarknetTransaction::create_rejected(&transaction, tx_err);
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
             // Revert to previous pending state

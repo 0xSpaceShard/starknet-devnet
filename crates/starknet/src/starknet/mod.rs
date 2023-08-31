@@ -34,8 +34,7 @@ use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::B
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
-    BroadcastedTransactionCommon, BroadcastedTransactionWithType, TransactionReceiptWithStatus,
-    TransactionWithType, Transactions,
+    BroadcastedTransactionCommon, Transaction, TransactionReceiptWithStatus, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::error;
@@ -212,7 +211,7 @@ impl Starknet {
     pub(crate) fn handle_successful_transaction(
         &mut self,
         transaction_hash: &TransactionHash,
-        transaction: &TransactionWithType,
+        transaction: &Transaction,
         tx_info: &TransactionExecutionInfo,
     ) -> DevnetResult<()> {
         let transaction_to_add = StarknetTransaction::create_successful(transaction, tx_info);
@@ -366,7 +365,7 @@ impl Starknet {
     pub fn estimate_gas_usage(
         &self,
         block_id: BlockId,
-        transactions: &[BroadcastedTransactionWithType],
+        transactions: &[BroadcastedTransaction],
     ) -> DevnetResult<Vec<u64>> {
         let state = self.get_state_at(&block_id)?;
 
@@ -374,7 +373,7 @@ impl Starknet {
         let estimation_pairs = starknet_in_rust::estimate_fee(
             &transactions
                 .iter()
-                .map(|txn| match &txn.transaction {
+                .map(|txn| match &txn {
                     BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(
                         broadcasted_tx,
                     )) => {
@@ -568,7 +567,7 @@ impl Starknet {
                     .ok_or(Error::NoTransaction)
                     .map(|transaction| transaction.inner.clone())
             })
-            .collect::<DevnetResult<Vec<TransactionWithType>>>()?;
+            .collect::<DevnetResult<Vec<Transaction>>>()?;
 
         Ok(Block {
             status: *block.status(),
@@ -581,7 +580,7 @@ impl Starknet {
         &self,
         block_id: BlockId,
         index: u64,
-    ) -> DevnetResult<&TransactionWithType> {
+    ) -> DevnetResult<&Transaction> {
         let block = self.get_block(block_id)?;
         let transaction_hash = block
             .get_transactions()
@@ -600,10 +599,7 @@ impl Starknet {
         Ok(block.clone())
     }
 
-    pub fn get_transaction_by_hash(
-        &self,
-        transaction_hash: Felt,
-    ) -> DevnetResult<&TransactionWithType> {
+    pub fn get_transaction_by_hash(&self, transaction_hash: Felt) -> DevnetResult<&Transaction> {
         self.transactions
             .get_by_hash(transaction_hash)
             .map(|starknet_transaction| &starknet_transaction.inner)
