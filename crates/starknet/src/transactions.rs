@@ -19,7 +19,7 @@ use crate::traits::{HashIdentified, HashIdentifiedMut};
 use serde::{Serialize, Deserialize};
 
 #[derive(Default)]
-#[derive(Serialize, Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct StarknetTransactions(HashMap<TransactionHash, StarknetTransaction>);
 
 impl StarknetTransactions {
@@ -49,15 +49,15 @@ impl HashIdentified for StarknetTransactions {
 }
 
 #[allow(unused)]
-#[derive(Serialize, Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct StarknetTransaction {
     pub(crate) status: TransactionStatus,
     pub inner: Transaction,
     pub(crate) block_hash: Option<BlockHash>,
     pub(crate) block_number: Option<BlockNumber>,
-    #[serde(skip_serializing)]
+    #[serde(skip_serializing, skip_deserializing)]
     pub(crate) execution_info: Option<starknet_in_rust::execution::TransactionExecutionInfo>,
-    #[serde(skip_serializing)]
+    #[serde(skip_serializing, skip_deserializing)]
     pub(crate) execution_error: Option<TransactionError>,
 }
 

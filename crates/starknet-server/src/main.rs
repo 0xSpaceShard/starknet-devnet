@@ -7,7 +7,9 @@ use clap::Parser;
 use cli::Args;
 use starknet_core::account::Account;
 use starknet_core::starknet::Starknet;
+use starknet_core::transactions::StarknetTransactions;
 use starknet_types::felt::Felt;
+use starknet_types::rpc::transactions::Transaction;
 use starknet_types::traits::{ToDecimalString, ToHexString};
 use tokio::signal;
 use tracing::info;
@@ -99,18 +101,23 @@ pub async fn shutdown_signal(api: Api) -> (){
     signal::ctrl_c().await;
 
     // Dump StarknetTransactions
-    let starknet = api.starknet.read().await;    
-    let encoded: Vec<u8> = bincode::serialize(&starknet.transactions).unwrap();
+    let starknet = api.starknet.read().await;
+    let data = Some(serde_json::to_string(&starknet.transactions).unwrap());
+    println!("data: {:?}", data);
+    let encoded: Vec<u8> = bincode::serialize(&data).unwrap();
+    // println!("encoded: {:?}", encoded);
     let path = Path::new("dump");
     fs::write(path, encoded).unwrap();
-    
-    // Test load StarknetTransactions
-    // let mut f = File::open(&Path::new(path)).unwrap();
-    // let mut v: Vec<u8> = Vec::new();
-    // let file_content = f.read_to_end(&mut v);
-    // println!("{:?}", file_content);
-    // let decoded: Option<String> = bincode::deserialize(&encoded[..]).unwrap();
-    // assert_eq!(target, decoded);
+    let mut f = File::open(&Path::new(path)).unwrap();
+    let mut v: Vec<u8> = Vec::new();
+    let file_content = f.read_to_end(&mut v);
+    println!("file_content: {:?}", file_content);
+    println!("v: {:?}", v);
+    let decoded: Option<String> = bincode::deserialize(&v[..]).unwrap();
+    println!("assert: {:?}", assert_eq!(data.clone(), decoded.clone()));
+    println!("decoded: {:?}", decoded);
+    let txs: StarknetTransactions = serde_json::from_str(decoded.unwrap().as_str()).unwrap();
+    println!("txs: {:?}", txs);
 
     println!("Signal {:?}", api.starknet.read().await.chain_id());
 }
