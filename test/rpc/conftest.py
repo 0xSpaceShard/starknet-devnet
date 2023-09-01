@@ -161,9 +161,7 @@ def fixture_latest_block_id(latest_block, request) -> dict:
     return _block_to_block_id(latest_block, request.param)
 
 
-@pytest.fixture(
-    name="deploy_account_details",
-)
+@pytest.fixture(name="deploy_account_details")
 def fixture_deploy_account_details() -> dict:
     """Deploy account transaction details"""
     return {

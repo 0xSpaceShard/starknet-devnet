@@ -75,6 +75,7 @@ methods = {
     "addDeclareTransaction": add_declare_transaction,
     "addDeployAccountTransaction": add_deploy_account_transaction,
     "simulateTransaction": simulate_transaction,
+    "simulateTransactions": simulate_transaction,
 }
 
 rpc = Blueprint("rpc", __name__, url_prefix="/rpc")

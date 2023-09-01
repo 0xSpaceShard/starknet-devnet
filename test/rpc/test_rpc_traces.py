@@ -13,7 +13,6 @@ from test.rpc.rpc_utils import (
 )
 from test.rpc.test_rpc_transactions import pad_zero_entry_points
 from test.shared import (
-    PREDEPLOY_ACCOUNT_CLI_ARGS,
     PREDEPLOYED_ACCOUNT_ADDRESS,
     PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     SUPPORTED_RPC_TX_VERSION,
@@ -21,6 +20,7 @@ from test.shared import (
 from test.test_account import deploy_empty_contract
 from test.test_declare_v2 import load_cairo1_contract
 
+import pytest
 from starkware.starknet.core.os.transaction_hash.transaction_hash import (
     calculate_declare_transaction_hash,
     calculate_deprecated_declare_transaction_hash,
@@ -45,17 +45,28 @@ from starknet_devnet.constants import (
     SUPPORTED_RPC_DECLARE_TX_VERSION,
 )
 
-from ..util import devnet_in_background
+SIMULATION_METHOD_0_3_0 = "starknet_simulateTransaction"
+SIMULATION_METHOD_0_4_0 = "starknet_simulateTransactions"
+SIMULATION_METHOD_ARRAY = [SIMULATION_METHOD_0_3_0, SIMULATION_METHOD_0_4_0]
 
 
-@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
-def test_skip_execute_flag(deploy_account_details):
+def dummy_consume_unused(anything):
+    """Method for consuming unused variables"""
+    return anything
+
+
+@pytest.mark.parametrize("simulation_method", SIMULATION_METHOD_ARRAY)
+def test_skip_execute_flag(
+    devnet_with_account, deploy_account_details, simulation_method
+):
     """Test if simulate_transaction with SKIP_EXECUTE flag is raising an exception."""
+    dummy_consume_unused(devnet_with_account)
+
     deploy_account_tx, _ = prepare_deploy_account_tx(**deploy_account_details)
     rpc_deploy_account_tx = rpc_deploy_account_from_gateway(deploy_account_tx)
 
     response = rpc_call_background_devnet(
-        "starknet_simulateTransaction",
+        simulation_method,
         {
             "block_id": "latest",
             "transactions": [rpc_deploy_account_tx],
@@ -65,9 +76,11 @@ def test_skip_execute_flag(deploy_account_details):
     assert response["error"]["message"] == "SKIP_EXECUTE flag is not supported"
 
 
-@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
-def test_simulate_transaction_invoke():
+@pytest.mark.parametrize("simulation_method", SIMULATION_METHOD_ARRAY)
+def test_simulate_transaction_invoke(devnet_with_account, simulation_method):
     """Test simulate_transaction with invoke transaction"""
+    dummy_consume_unused(devnet_with_account)
+
     contract_address = deploy_empty_contract()["address"]
 
     calls = [(contract_address, "sum_point_array", [2, 10, 20, 30, 40])]
@@ -84,7 +97,7 @@ def test_simulate_transaction_invoke():
     )
 
     response_no_flags = rpc_call_background_devnet(
-        "starknet_simulateTransaction",
+        simulation_method,
         {
             "block_id": "latest",
             "transactions": [invoke_transaction],
@@ -92,7 +105,7 @@ def test_simulate_transaction_invoke():
         },
     )["result"][0]
     response_skip_flag = rpc_call_background_devnet(
-        "starknet_simulateTransaction",
+        simulation_method,
         {
             "block_id": "latest",
             "transactions": [invoke_transaction],
@@ -117,9 +130,13 @@ def test_simulate_transaction_invoke():
     assert response_skip_flag["transaction_trace"]["fee_transfer_invocation"] is None
 
 
-@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
-def test_simulate_transaction_declare_v1(declare_content):
+@pytest.mark.parametrize("simulation_method", SIMULATION_METHOD_ARRAY)
+def test_simulate_transaction_declare_v1(
+    devnet_with_account, declare_content, simulation_method
+):
     """Test simulate_transaction with declare v1 transaction"""
+    dummy_consume_unused(devnet_with_account)
+
     contract_class = declare_content["contract_class"]
     pad_zero_entry_points(contract_class["entry_points_by_type"])
 
@@ -154,7 +171,7 @@ def test_simulate_transaction_declare_v1(declare_content):
     )
 
     response_no_flags = rpc_call_background_devnet(
-        "starknet_simulateTransaction",
+        simulation_method,
         {
             "block_id": "latest",
             "transactions": [declare_transaction],
@@ -162,7 +179,7 @@ def test_simulate_transaction_declare_v1(declare_content):
         },
     )["result"][0]
     response_skip_flag = rpc_call_background_devnet(
-        "starknet_simulateTransaction",
+        simulation_method,
         {
             "block_id": "latest",
             "transactions": [declare_transaction],
@@ -181,9 +198,11 @@ def test_simulate_transaction_declare_v1(declare_content):
     assert response_skip_flag["transaction_trace"]["fee_transfer_invocation"] is None
 
 
-@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
-def test_simulate_transaction_declare_v2():
+@pytest.mark.parametrize("simulation_method", SIMULATION_METHOD_ARRAY)
+def test_simulate_transaction_declare_v2(devnet_with_account, simulation_method):
     """Test simulate_transaction with declare v2 transaction"""
+    dummy_consume_unused(devnet_with_account)
+
     contract_class, _, compiled_class_hash = load_cairo1_contract()
 
     nonce = get_nonce(PREDEPLOYED_ACCOUNT_ADDRESS)
@@ -212,7 +231,7 @@ def test_simulate_transaction_declare_v2():
     )
 
     response_no_flags = rpc_call_background_devnet(
-        "starknet_simulateTransaction",
+        simulation_method,
         {
             "block_id": "latest",
             "transactions": [declare_transaction],
@@ -220,7 +239,7 @@ def test_simulate_transaction_declare_v2():
         },
     )["result"][0]
     response_skip_flag = rpc_call_background_devnet(
-        "starknet_simulateTransaction",
+        simulation_method,
         {
             "block_id": "latest",
             "transactions": [declare_transaction],
@@ -239,16 +258,20 @@ def test_simulate_transaction_declare_v2():
     assert response_skip_flag["transaction_trace"]["fee_transfer_invocation"] is None
 
 
-@devnet_in_background(*PREDEPLOY_ACCOUNT_CLI_ARGS)
-def test_simulate_transaction_deploy_account(deploy_account_details):
+@pytest.mark.parametrize("simulation_method", SIMULATION_METHOD_ARRAY)
+def test_simulate_transaction_deploy_account(
+    devnet_with_account, deploy_account_details, simulation_method
+):
     """Test simulate_transaction with deploy account transaction"""
+    dummy_consume_unused(devnet_with_account)
+
     deploy_account_tx, deploy_account_contract_address = prepare_deploy_account_tx(
         **deploy_account_details
     )
     rpc_deploy_account_tx = rpc_deploy_account_from_gateway(deploy_account_tx)
 
     response_no_flags = rpc_call_background_devnet(
-        "starknet_simulateTransaction",
+        simulation_method,
         {
             "block_id": "latest",
             "transactions": [rpc_deploy_account_tx],
@@ -256,7 +279,7 @@ def test_simulate_transaction_deploy_account(deploy_account_details):
         },
     )["result"][0]
     response_skip_flag = rpc_call_background_devnet(
-        "starknet_simulateTransaction",
+        simulation_method,
         {
             "block_id": "latest",
             "transactions": [rpc_deploy_account_tx],

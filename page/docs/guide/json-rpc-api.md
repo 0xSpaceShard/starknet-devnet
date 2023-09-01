@@ -34,7 +34,7 @@ Response:
 
 ## Trace API
 
-Out of [Starknet trace API RPC methods](https://github.com/starkware-libs/starknet-specs/blob/master/api/starknet_trace_api_openrpc.json), only `starknet_simulateTransaction` is supported.
+Out of [Starknet trace API RPC methods](https://github.com/starkware-libs/starknet-specs/blob/master/api/starknet_trace_api_openrpc.json), only `starknet_simulateTransaction` (and `starknet_simulateTransactions`) is supported.
 
 The official specification of `starknet_simulateTransaction` supports `simulation_flags` which can be `SKIP_VALIDATE` and `SKIP_EXECUTE`. At the moment, only `SKIP_VALIDATE` is supported. Dev info: `SKIP_EXECUTE` support is blocked by `InternalInvokeFunctionForSimulate.create_for_simulate` not supporting it. Return type `FUNCTION_INVOCATION` is modified according to suggestions by the Starkware team: `code_address` and `call_type` are replaced with `class_hash`.
 
