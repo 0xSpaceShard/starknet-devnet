@@ -1,7 +1,3 @@
-use crate::error::DevnetResult;
-use crate::felt::Felt;
-use crate::rpc::block::BlockId;
-use crate::rpc::eth_address::EthAddressWrapper;
 use cairo_felt::Felt252;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_in_rust::transaction::L1Handler as SirL1Handler;
@@ -9,10 +5,19 @@ use starknet_in_rust::utils::Address as SirAddress;
 use starknet_rs_core::types::requests::EstimateMessageFeeRequest;
 use starknet_rs_core::types::{BlockId as SrBlockId, FeeEstimate};
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+use crate::error::DevnetResult;
+use crate::felt::Felt;
+use crate::rpc::block::BlockId;
+use crate::rpc::eth_address::EthAddressWrapper;
+use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
+
+#[derive(Debug, Clone)]
 pub struct FeeEstimateWrapper {
     inner: FeeEstimate,
 }
+
+impl_wrapper_serialize!(FeeEstimateWrapper);
+impl_wrapper_deserialize!(FeeEstimateWrapper, FeeEstimate);
 
 impl FeeEstimateWrapper {
     pub fn new(gas_consumed: u64, gas_price: u64, overall_fee: u64) -> Self {

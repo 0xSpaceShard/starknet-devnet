@@ -1,34 +1,22 @@
-use crate::error::{DevnetResult, Error};
-use crate::felt::Felt;
+use std::str::FromStr;
+
 use cairo_felt::Felt252;
 use serde::{Deserialize, Serialize};
 use starknet_in_rust::utils::Address as SirAddress;
 use starknet_rs_core::types::EthAddress;
 use starknet_rs_ff::FieldElement;
-use std::str::FromStr;
+
+use crate::error::{DevnetResult, Error};
+use crate::felt::Felt;
+use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 
 #[derive(Debug, Clone)]
 pub struct EthAddressWrapper {
     pub inner: EthAddress,
 }
 
-impl Serialize for EthAddressWrapper {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        self.inner.serialize(serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for EthAddressWrapper {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        Ok(EthAddressWrapper { inner: EthAddress::deserialize(deserializer)? })
-    }
-}
+impl_wrapper_serialize!(EthAddressWrapper);
+impl_wrapper_deserialize!(EthAddressWrapper, EthAddress);
 
 impl FromStr for EthAddressWrapper {
     type Err = Error;

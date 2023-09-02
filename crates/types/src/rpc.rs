@@ -5,5 +5,6 @@ pub mod emitted_event;
 pub mod estimate_message_fee;
 pub mod eth_address;
 pub mod felt;
+mod macro_utils;
 pub mod transaction_receipt;
 pub mod transactions;
