@@ -59,13 +59,6 @@ pub struct EstimateFeeInput {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-pub struct EstimateFeeOutput {
-    pub gas_consumed: String,
-    pub gas_price: String,
-    pub overall_fee: String,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct BlockHashAndNumberOutput {
     pub block_hash: BlockHash,
     pub block_number: BlockNumber,

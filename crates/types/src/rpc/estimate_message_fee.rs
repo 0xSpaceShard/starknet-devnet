@@ -7,7 +7,18 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_in_rust::transaction::L1Handler as SirL1Handler;
 use starknet_in_rust::utils::Address as SirAddress;
 use starknet_rs_core::types::requests::EstimateMessageFeeRequest;
-use starknet_rs_core::types::BlockId as SirBlockId;
+use starknet_rs_core::types::{BlockId as SrBlockId, FeeEstimate};
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct FeeEstimateWrapper {
+    inner: FeeEstimate,
+}
+
+impl FeeEstimateWrapper {
+    pub fn new(gas_consumed: u64, gas_price: u64, overall_fee: u64) -> Self {
+        FeeEstimateWrapper { inner: FeeEstimate { gas_consumed, gas_price, overall_fee } }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct EstimateMessageFeeRequestWrapper {
@@ -32,11 +43,7 @@ impl EstimateMessageFeeRequestWrapper {
         self.inner.message.payload.iter().map(|el| el.clone().into()).collect()
     }
 
-    pub fn get_block_id(&self) -> BlockId {
-        self.inner.block_id.into()
-    }
-
-    pub fn get_raw_block_id(&self) -> &SirBlockId {
+    pub fn get_raw_block_id(&self) -> &SrBlockId {
         &self.inner.block_id
     }
 

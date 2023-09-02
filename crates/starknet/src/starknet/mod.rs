@@ -28,7 +28,9 @@ use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{Block, BlockHeader};
-use starknet_types::rpc::estimate_message_fee::EstimateMessageFeeRequestWrapper;
+use starknet_types::rpc::estimate_message_fee::{
+    EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
+};
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
@@ -370,7 +372,7 @@ impl Starknet {
         &self,
         block_id: BlockId,
         transactions: &[BroadcastedTransaction],
-    ) -> DevnetResult<Vec<u64>> {
+    ) -> DevnetResult<Vec<FeeEstimateWrapper>> {
         let state = self.get_state_at(&block_id)?;
 
         // Vec<(Fee, GasUsage)>
@@ -426,21 +428,38 @@ impl Starknet {
         )?;
 
         // extract the gas usage because fee is always 0
-        Ok(estimation_pairs.into_iter().map(|(_, gas_usage)| gas_usage as u64).collect())
+        Ok(estimation_pairs
+            .into_iter()
+            .map(|(_, gas_consumed)| {
+                let gas_consumed = gas_consumed as u64;
+                FeeEstimateWrapper::new(
+                    gas_consumed,
+                    self.config.gas_price,
+                    self.config.gas_price * gas_consumed,
+                )
+            })
+            .collect())
     }
 
     pub fn estimate_message_fee(
         &self,
         request: EstimateMessageFeeRequestWrapper,
-    ) -> DevnetResult<()> {
+    ) -> DevnetResult<FeeEstimateWrapper> {
         let state = self.get_state_at(request.get_raw_block_id())?;
         let sir_l1_handler =
             request.create_sir_l1_handler(self.config.chain_id.to_felt().into())?;
-        Ok(starknet_in_rust::estimate_message_fee(
+        let (_, gas_consumed) = starknet_in_rust::estimate_message_fee(
             &sir_l1_handler,
             state.pending_state.clone(),
             &self.block_context,
-        )?)
+        )?;
+
+        let gas_consumed = gas_consumed as u64;
+        Ok(FeeEstimateWrapper::new(
+            gas_consumed,
+            self.config.gas_price,
+            self.config.gas_price * gas_consumed,
+        ))
     }
 
     pub fn add_declare_transaction_v1(

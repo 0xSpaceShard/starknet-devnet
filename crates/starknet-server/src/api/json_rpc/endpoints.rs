@@ -6,7 +6,9 @@ use starknet_rs_core::types::ContractClass as CodegenContractClass;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::rpc::block::{Block, BlockHeader, BlockId};
-use starknet_types::rpc::estimate_message_fee::EstimateMessageFeeRequestWrapper;
+use starknet_types::rpc::estimate_message_fee::{
+    EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
+};
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
     BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, Transaction,
@@ -15,7 +17,7 @@ use starknet_types::starknet_api::block::BlockNumber;
 use starknet_types::traits::ToHexString;
 
 use super::error::ApiError;
-use super::models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
+use super::models::{BlockHashAndNumberOutput, SyncingOutput};
 use super::JsonRpcHandler;
 use crate::api::json_rpc::error::RpcResult;
 use crate::api::models::state::{
@@ -267,18 +269,10 @@ impl JsonRpcHandler {
         &self,
         block_id: BlockId,
         request: Vec<BroadcastedTransaction>,
-    ) -> RpcResult<Vec<EstimateFeeOutput>> {
-        // TODO: move EstimateFeeOutput to types
+    ) -> RpcResult<Vec<FeeEstimateWrapper>> {
         let starknet = self.api.starknet.read().await;
         match starknet.estimate_fee(block_id.into(), &request) {
-            Ok(result) => Ok(result
-                .iter()
-                .map(|gas_consumed| EstimateFeeOutput {
-                    gas_consumed: format!("0x{gas_consumed:x}"),
-                    gas_price: format!("0x{:x}", starknet.config.gas_price),
-                    overall_fee: format!("0x{:x}", starknet.config.gas_price * gas_consumed),
-                })
-                .collect()),
+            Ok(result) => Ok(result),
             Err(err) => Err(ApiError::ContractError { msg: err.to_string() }),
         }
     }
@@ -286,7 +280,7 @@ impl JsonRpcHandler {
     pub(crate) async fn estimate_message_fee(
         &self,
         request: EstimateMessageFeeRequestWrapper,
-    ) -> RpcResult<()> {
+    ) -> RpcResult<FeeEstimateWrapper> {
         Ok(self.api.starknet.read().await.estimate_message_fee(request)?)
     }
 
