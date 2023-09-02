@@ -5,7 +5,7 @@ use starknet_in_rust::utils::Address;
 use starknet_rs_core::types::ContractClass as CodegenContractClass;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
-use starknet_types::rpc::block::{Block, BlockHeader};
+use starknet_types::rpc::block::{Block, BlockHeader, BlockId};
 use starknet_types::rpc::estimate_message_fee::EstimateMessageFeeRequestWrapper;
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
@@ -22,7 +22,7 @@ use crate::api::models::state::{
     ClassHashes, ContractNonce, DeployedContract, StateUpdate, StorageDiff, StorageEntry,
     ThinStateDiff,
 };
-use crate::api::models::{BlockId, PatriciaKeyHex};
+use crate::api::models::PatriciaKeyHex;
 
 const DEFAULT_CONTINUATION_TOKEN: &str = "0";
 

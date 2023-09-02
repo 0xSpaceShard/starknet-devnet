@@ -299,6 +299,7 @@ impl Starknet {
         Ok(())
     }
 
+    // TODO: rewrite using our BlockId.
     fn get_state_at(&self, block_id: &BlockId) -> DevnetResult<&StarknetState> {
         match block_id {
             BlockId::Tag(_) => Ok(&self.state),
@@ -432,9 +433,14 @@ impl Starknet {
         &self,
         request: EstimateMessageFeeRequestWrapper,
     ) -> DevnetResult<()> {
-        todo!()
-        // let
-        //let sir_l1_handler = request.create_sir_l1_handler()
+        let state = self.get_state_at(request.get_raw_block_id())?;
+        let sir_l1_handler =
+            request.create_sir_l1_handler(self.config.chain_id.to_felt().into())?;
+        Ok(starknet_in_rust::estimate_message_fee(
+            &sir_l1_handler,
+            state.pending_state.clone(),
+            &self.block_context,
+        )?)
     }
 
     pub fn add_declare_transaction_v1(

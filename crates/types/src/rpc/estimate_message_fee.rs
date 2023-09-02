@@ -1,11 +1,13 @@
 use crate::error::DevnetResult;
 use crate::felt::Felt;
+use crate::rpc::block::BlockId;
 use crate::rpc::eth_address::EthAddressWrapper;
 use cairo_felt::Felt252;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_in_rust::transaction::L1Handler as SirL1Handler;
 use starknet_in_rust::utils::Address as SirAddress;
 use starknet_rs_core::types::requests::EstimateMessageFeeRequest;
+use starknet_rs_core::types::BlockId as SirBlockId;
 
 #[derive(Debug, Clone)]
 pub struct EstimateMessageFeeRequestWrapper {
@@ -30,7 +32,13 @@ impl EstimateMessageFeeRequestWrapper {
         self.inner.message.payload.iter().map(|el| el.clone().into()).collect()
     }
 
-    // pub fn get_block_id(&self) -> BlockId
+    pub fn get_block_id(&self) -> BlockId {
+        self.inner.block_id.into()
+    }
+
+    pub fn get_raw_block_id(&self) -> &SirBlockId {
+        &self.inner.block_id
+    }
 
     pub fn create_sir_l1_handler(&self, chain_id: Felt) -> DevnetResult<SirL1Handler> {
         let from_address = self.get_from_address();

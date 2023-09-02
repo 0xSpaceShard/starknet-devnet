@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, ClassHash, TransactionHash};
-use starknet_types::rpc::block::SyncStatus;
+use starknet_types::rpc::block::{BlockId, SyncStatus};
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
@@ -9,7 +9,7 @@ use starknet_types::rpc::transactions::{
 };
 use starknet_types::starknet_api::block::BlockNumber;
 
-use crate::api::models::{BlockId, PatriciaKeyHex};
+use crate::api::models::PatriciaKeyHex;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct BlockIdInput {
@@ -119,13 +119,14 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
     use starknet_types::patricia_key::PatriciaKey;
+    use starknet_types::rpc::block::{BlockHashOrNumber, BlockId, Tag};
     use starknet_types::rpc::transactions::{
         BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
     };
     use starknet_types::starknet_api::block::BlockNumber;
 
     use super::{BlockIdInput, EstimateFeeInput, GetStorageInput};
-    use crate::api::models::{BlockHashOrNumber, BlockId, PatriciaKeyHex, Tag};
+    use crate::api::models::PatriciaKeyHex;
 
     #[test]
     fn errored_deserialization_of_estimate_fee_with_broadcasted_declare_transaction() {
