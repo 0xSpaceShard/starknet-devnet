@@ -28,6 +28,7 @@ use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{Block, BlockHeader};
+use starknet_types::rpc::estimate_message_fee::EstimateMessageFeeRequestWrapper;
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
@@ -362,8 +363,9 @@ impl Starknet {
         Ok(result.iter().map(|e| Felt::from(e.clone())).collect())
     }
 
+    // TODO: move to estimate_fee file
     /// Returns just the gas usage, not the overall fee
-    pub fn estimate_gas_usage(
+    pub fn estimate_fee(
         &self,
         block_id: BlockId,
         transactions: &[BroadcastedTransaction],
@@ -424,6 +426,15 @@ impl Starknet {
 
         // extract the gas usage because fee is always 0
         Ok(estimation_pairs.into_iter().map(|(_, gas_usage)| gas_usage as u64).collect())
+    }
+
+    pub fn estimate_message_fee(
+        &self,
+        request: EstimateMessageFeeRequestWrapper,
+    ) -> DevnetResult<()> {
+        todo!()
+        // let
+        //let sir_l1_handler = request.create_sir_l1_handler()
     }
 
     pub fn add_declare_transaction_v1(

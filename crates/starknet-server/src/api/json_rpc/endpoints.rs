@@ -6,6 +6,7 @@ use starknet_rs_core::types::ContractClass as CodegenContractClass;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::rpc::block::{Block, BlockHeader};
+use starknet_types::rpc::estimate_message_fee::EstimateMessageFeeRequestWrapper;
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
     BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, Transaction,
@@ -269,7 +270,7 @@ impl JsonRpcHandler {
     ) -> RpcResult<Vec<EstimateFeeOutput>> {
         // TODO: move EstimateFeeOutput to types
         let starknet = self.api.starknet.read().await;
-        match starknet.estimate_gas_usage(block_id.into(), &request) {
+        match starknet.estimate_fee(block_id.into(), &request) {
             Ok(result) => Ok(result
                 .iter()
                 .map(|gas_consumed| EstimateFeeOutput {
@@ -280,6 +281,13 @@ impl JsonRpcHandler {
                 .collect()),
             Err(err) => Err(ApiError::ContractError { msg: err.to_string() }),
         }
+    }
+
+    pub(crate) async fn estimate_message_fee(
+        &self,
+        request: EstimateMessageFeeRequestWrapper,
+    ) -> RpcResult<()> {
+        Ok(self.api.starknet.read().await.estimate_message_fee(request)?)
     }
 
     /// starknet_blockNumber
