@@ -162,10 +162,15 @@ impl TryInto<CodegenContractClass> for ContractClass {
 
 #[cfg(test)]
 mod tests {
+    use serde::Deserialize;
     use serde_json::Deserializer;
     use starknet_in_rust::SierraContractClass;
+    use starknet_rs_core::types::LegacyEntryPointsByType;
 
-    use crate::contract_class::{convert_sierra_to_codegen, Cairo0Json, ContractClass};
+    use crate::contract_class::deprecated::rpc_contract_class::ContractClassAbiEntryWithType;
+    use crate::contract_class::{
+        convert_sierra_to_codegen, Cairo0Json, ContractClass, DeprecatedContractClass,
+    };
     use crate::felt::Felt;
     use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
     use crate::traits::HashProducer;
@@ -215,5 +220,52 @@ mod tests {
     #[test]
     fn contract_class_cairo_0_from_json_str_doesnt_accept_string_different_from_json() {
         assert!(Cairo0Json::raw_json_from_json_str(" not JSON string").is_err());
+    }
+
+    #[test]
+    fn cairo_0_contract_class_hash_generated_successfully_and_its_the_same_as_raw_json_contract_class_hash(){
+        let contract_class = Cairo0Json::raw_json_from_path(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test_data/ERC20_starknet_js.casm"
+        ))
+        .unwrap();
+        let class_hash = contract_class.generate_hash().unwrap();
+
+        // data taken from https://github.com/0xs34n/starknet.js/blob/ce57fdcaba61a8ef2382acc9233a9aac2ac8589a/__tests__/fixtures.ts#L126
+        let expected_class_hash = Felt::from_prefixed_hex_str(
+            "0x54328a1075b8820eb43caf0caa233923148c983742402dcfc38541dd843d01a",
+        )
+        .unwrap();
+
+        assert_eq!(class_hash, expected_class_hash);
+
+        #[derive(Deserialize)]
+        struct PartialDeprecatedContractClass {
+            pub abi: Vec<ContractClassAbiEntryWithType>,
+            /// The selector of each entry point is a unique identifier in the program.
+            pub entry_points_by_type: LegacyEntryPointsByType,
+        }
+
+        // first check if generated class hash is the same when constructing
+        // `DeprecatedContractClass` via assigning properties
+        let PartialDeprecatedContractClass { abi, entry_points_by_type } =
+            serde_json::from_value::<PartialDeprecatedContractClass>(contract_class.inner.clone())
+                .unwrap();
+        let program = contract_class.inner.get("program").unwrap();
+        let deprecated_contract_class =
+            DeprecatedContractClass { program: program.clone(), abi, entry_points_by_type };
+
+        assert_eq!(deprecated_contract_class.generate_hash().unwrap(), expected_class_hash);
+
+        // check if generated class hash is the same when deserializing to `DeprecatedContractClass`
+        let serialized_deprecated_contract_class =
+            serde_json::to_string(&deprecated_contract_class).unwrap();
+        assert_eq!(
+            DeprecatedContractClass::rpc_from_json_str(&serialized_deprecated_contract_class)
+                .unwrap()
+                .generate_hash()
+                .unwrap(),
+            expected_class_hash
+        );
     }
 }
