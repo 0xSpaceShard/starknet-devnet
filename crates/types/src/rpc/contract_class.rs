@@ -243,6 +243,11 @@ mod tests {
 
         assert_eq!(class_hash, expected_class_hash);
 
+        // this struct is for deserializing part of the raw json artifact
+        // because DeprecatedContractClass expects the program property to be gzipped then base64 encoded
+        // we only take those params that dont have any special encoding
+        // Then to construct the `DeprecatedContractClass` we will assign the program property, instead of going through the process
+        // of gzipping and base64 encoding
         #[derive(Deserialize)]
         struct PartialDeprecatedContractClass {
             pub abi: Vec<ContractClassAbiEntryWithType>,
