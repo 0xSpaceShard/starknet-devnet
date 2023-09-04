@@ -1,7 +1,7 @@
 use starknet_in_rust::definitions::constants::INITIAL_GAS_COST;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_types::felt::TransactionHash;
-use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
+use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
 use starknet_types::rpc::transactions::{InvokeTransaction, Transaction};
 
 use super::Starknet;
