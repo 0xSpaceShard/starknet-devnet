@@ -12,14 +12,14 @@ use crate::rpc::transactions::invoke_transaction_v1::InvokeTransactionV1;
 use crate::rpc::transactions::BroadcastedTransactionCommon;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-pub struct BroadcastedInvokeTransactionV1 {
+pub struct BroadcastedInvokeTransaction {
     #[serde(flatten)]
     pub common: BroadcastedTransactionCommon,
     pub sender_address: ContractAddress,
     pub calldata: Calldata,
 }
 
-impl BroadcastedInvokeTransactionV1 {
+impl BroadcastedInvokeTransaction {
     pub fn new(
         sender_address: ContractAddress,
         max_fee: Fee,
@@ -77,7 +77,7 @@ mod tests {
 
     use crate::contract_address::ContractAddress;
     use crate::felt::Felt;
-    use crate::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
+    use crate::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
     use crate::traits::ToHexString;
 
     #[derive(Deserialize)]
@@ -106,7 +106,7 @@ mod tests {
         let feeder_gateway_transaction: FeederGatewayInvokeTransaction =
             serde_json::from_value(json_obj.get("transaction").unwrap().clone()).unwrap();
 
-        let transaction = BroadcastedInvokeTransactionV1::new(
+        let transaction = BroadcastedInvokeTransaction::new(
             ContractAddress::new(feeder_gateway_transaction.sender_address).unwrap(),
             Fee(u128::from_str_radix(
                 &feeder_gateway_transaction.max_fee.to_nonprefixed_hex_str(),

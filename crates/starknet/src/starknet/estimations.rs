@@ -4,9 +4,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::rpc::estimate_message_fee::{
     EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
 };
-use starknet_types::rpc::transactions::{
-    BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
-};
+use starknet_types::rpc::transactions::{BroadcastedDeclareTransaction, BroadcastedTransaction};
 
 use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;
@@ -53,16 +51,11 @@ pub fn estimate_fee(
 
                     Ok(starknet_in_rust::transaction::Transaction::DeployAccount(deploy_tx))
                 }
-                BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(
-                    broadcasted_tx,
-                )) => {
+                BroadcastedTransaction::Invoke(broadcasted_tx) => {
                     let invoke_tx = broadcasted_tx
                         .create_sir_invoke_function(starknet.config.chain_id.to_felt().into())?;
 
                     Ok(starknet_in_rust::transaction::Transaction::InvokeFunction(invoke_tx))
-                }
-                BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V0(_)) => {
-                    Err(Error::UnsupportedAction { msg: "Invoke V0 is not supported".into() })
                 }
             })
             .collect::<DevnetResult<Vec<starknet_in_rust::transaction::Transaction>>>()?,

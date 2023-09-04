@@ -1,7 +1,7 @@
 use broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
-use broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
+use broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
 use declare_transaction_v0v1::DeclareTransactionV0V1;
 use declare_transaction_v2::DeclareTransactionV2;
 use deploy_account_transaction::DeployAccountTransaction;
@@ -25,7 +25,7 @@ use crate::rpc::transaction_receipt::{
 pub mod broadcasted_declare_transaction_v1;
 pub mod broadcasted_declare_transaction_v2;
 pub mod broadcasted_deploy_account_transaction;
-pub mod broadcasted_invoke_transaction_v1;
+pub mod broadcasted_invoke_transaction;
 
 pub mod declare_transaction_v0v1;
 pub mod declare_transaction_v2;
@@ -267,23 +267,7 @@ pub enum BroadcastedTransaction {
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
-pub enum BroadcastedInvokeTransaction {
-    V0(BroadcastedInvokeTransactionV0),
-    V1(BroadcastedInvokeTransactionV1),
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-#[serde(untagged)]
 pub enum BroadcastedDeclareTransaction {
     V1(Box<BroadcastedDeclareTransactionV1>),
     V2(Box<BroadcastedDeclareTransactionV2>),
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-pub struct BroadcastedInvokeTransactionV0 {
-    #[serde(flatten)]
-    pub common: BroadcastedTransactionCommon,
-    pub contract_address: ContractAddress,
-    pub entry_point_selector: EntryPointSelector,
-    pub calldata: Calldata,
 }
