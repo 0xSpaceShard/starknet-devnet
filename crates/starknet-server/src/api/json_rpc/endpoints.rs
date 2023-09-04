@@ -2,13 +2,11 @@ use starknet_core::error::Error;
 use starknet_in_rust::core::errors::state_errors::StateError;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::utils::Address;
-use starknet_rs_core::types::ContractClass as CodegenContractClass;
+use starknet_rs_core::types::{ContractClass as CodegenContractClass, MsgFromL1};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::rpc::block::{Block, BlockHeader, BlockId};
-use starknet_types::rpc::estimate_message_fee::{
-    EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
-};
+use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
     BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, Transaction,
@@ -279,9 +277,15 @@ impl JsonRpcHandler {
 
     pub(crate) async fn estimate_message_fee(
         &self,
-        request: EstimateMessageFeeRequestWrapper,
+        block_id: BlockId,
+        message: MsgFromL1,
     ) -> RpcResult<FeeEstimateWrapper> {
-        Ok(self.api.starknet.read().await.estimate_message_fee(request)?)
+        match self.api.starknet.read().await.estimate_message_fee(block_id.into(), message) {
+            Ok(result) => Ok(result),
+            Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
+            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
+            Err(err) => Err(ApiError::ContractError { msg: err.to_string() }),
+        }
     }
 
     /// starknet_blockNumber

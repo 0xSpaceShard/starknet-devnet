@@ -17,7 +17,7 @@ use starknet_in_rust::state::state_api::State;
 use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
 use starknet_in_rust::utils::Address;
-use starknet_rs_core::types::{BlockId, TransactionFinalityStatus};
+use starknet_rs_core::types::{BlockId, MsgFromL1, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::Signer;
@@ -28,9 +28,7 @@ use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{Block, BlockHeader};
-use starknet_types::rpc::estimate_message_fee::{
-    EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
-};
+use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
@@ -378,9 +376,10 @@ impl Starknet {
 
     pub fn estimate_message_fee(
         &self,
-        request: EstimateMessageFeeRequestWrapper,
+        block_id: BlockId,
+        message: MsgFromL1,
     ) -> DevnetResult<FeeEstimateWrapper> {
-        estimations::estimate_message_fee(self, request)
+        estimations::estimate_message_fee(self, block_id, message)
     }
 
     pub fn add_declare_transaction_v1(

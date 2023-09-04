@@ -1,4 +1,6 @@
-use starknet_rs_core::types::BlockId;
+use starknet_in_rust::core::errors::state_errors::StateError;
+use starknet_rs_core::types::{BlockId, MsgFromL1};
+use starknet_types::contract_address::ContractAddress;
 use starknet_types::rpc::estimate_message_fee::{
     EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
 };
@@ -84,11 +86,22 @@ pub fn estimate_fee(
 
 pub fn estimate_message_fee(
     starknet: &Starknet,
-    request: EstimateMessageFeeRequestWrapper,
+    block_id: BlockId,
+    message: MsgFromL1,
 ) -> DevnetResult<FeeEstimateWrapper> {
-    let state = starknet.get_state_at(request.get_raw_block_id())?;
+    let estimate_message_fee = EstimateMessageFeeRequestWrapper::new(block_id, message);
+    let state = starknet.get_state_at(estimate_message_fee.get_raw_block_id())?;
+
+    match starknet
+        .get_class_hash_at(block_id, ContractAddress::new(estimate_message_fee.get_to_address())?)
+    {
+        Ok(_) => Ok(()),
+        Err(Error::StateError(StateError::NoneContractState(_))) => Err(Error::ContractNotFound),
+        Err(err) => Err(err),
+    }?;
+
     let sir_l1_handler =
-        request.create_sir_l1_handler(starknet.config.chain_id.to_felt().into())?;
+        estimate_message_fee.create_sir_l1_handler(starknet.config.chain_id.to_felt().into())?;
     let (_, gas_consumed) = starknet_in_rust::estimate_message_fee(
         &sir_l1_handler,
         state.pending_state.clone(),

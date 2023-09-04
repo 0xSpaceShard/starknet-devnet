@@ -3,10 +3,13 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_in_rust::transaction::L1Handler as SirL1Handler;
 use starknet_in_rust::utils::Address as SirAddress;
 use starknet_rs_core::types::requests::EstimateMessageFeeRequest;
-use starknet_rs_core::types::{BlockId as SrBlockId, FeeEstimate};
+use starknet_rs_core::types::{
+    BlockId as SrBlockId, FeeEstimate, MsgFromL1 as SrMsgFromL1, MsgFromL1,
+};
 
 use crate::error::DevnetResult;
 use crate::felt::Felt;
+use crate::rpc::block::BlockId;
 use crate::rpc::eth_address::EthAddressWrapper;
 use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 
@@ -30,6 +33,10 @@ pub struct EstimateMessageFeeRequestWrapper {
 }
 
 impl EstimateMessageFeeRequestWrapper {
+    pub fn new(block_id: SrBlockId, msg_from_l1: MsgFromL1) -> Self {
+        Self { inner: EstimateMessageFeeRequest { message: msg_from_l1, block_id } }
+    }
+
     // TODO: add ref wrapper
     pub fn get_from_address(&self) -> EthAddressWrapper {
         EthAddressWrapper { inner: self.inner.message.from_address.clone() }
@@ -47,8 +54,16 @@ impl EstimateMessageFeeRequestWrapper {
         self.inner.message.payload.iter().map(|el| (*el).into()).collect()
     }
 
+    pub fn get_block_id(&self) -> BlockId {
+        self.inner.block_id.into()
+    }
+
     pub fn get_raw_block_id(&self) -> &SrBlockId {
         &self.inner.block_id
+    }
+
+    pub fn get_raw_message(&self) -> &SrMsgFromL1 {
+        &self.inner.message
     }
 
     pub fn create_sir_l1_handler(&self, chain_id: Felt) -> DevnetResult<SirL1Handler> {
