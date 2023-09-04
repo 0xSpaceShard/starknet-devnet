@@ -119,4 +119,37 @@ mod test_estimate_message_fee {
             _ => panic!("Invalid error: {err:?}"),
         }
     }
+
+    #[tokio::test]
+    async fn estimate_message_fee_block_not_found() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        let err = devnet
+            .json_rpc_client
+            .estimate_message_fee(
+                MsgFromL1 {
+                    from_address: EthAddress::from_hex(
+                        "0x8359E4B0152ed5A731162D3c7B0D8D56edB165A0",
+                    )
+                    .unwrap(),
+                    to_address: FieldElement::from_hex_be("0x1").unwrap(),
+                    entry_point_selector: FieldElement::from_hex_be(
+                        "0xc73f681176fc7b3f9693986fd7b14581e8d540519e27400e88b8713932be01",
+                    )
+                    .unwrap(),
+                    payload: [(1_u32).into(), (10_u32).into()].to_vec(),
+                },
+                BlockId::Number(101),
+            )
+            .await
+            .expect_err("Error expected");
+
+        match err {
+            ProviderError::StarknetError(StarknetErrorWithMessage {
+                code: MaybeUnknownErrorCode::Known(StarknetError::BlockNotFound),
+                ..
+            }) => (),
+            _ => panic!("Invalid error: {err:?}"),
+        }
+    }
 }
