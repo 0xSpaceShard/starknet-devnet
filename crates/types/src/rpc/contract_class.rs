@@ -222,6 +222,9 @@ mod tests {
         assert!(Cairo0Json::raw_json_from_json_str(" not JSON string").is_err());
     }
 
+    /// The test takes a .casm artifact as raw json and generates its class hash.
+    /// Then it takes the same artifact as a `DeprecatedContractClass` and generates its class hash.
+    /// The test checks if both hashes are the same.
     #[test]
     fn cairo_0_contract_class_hash_generated_successfully_and_its_the_same_as_raw_json_contract_class_hash()
      {
