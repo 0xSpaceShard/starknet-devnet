@@ -429,3 +429,15 @@ def test_block_responses_by_hash():
     state_update_by_hash = get_block_traces({"blockHash": latest_block_hash})
     state_update_by_number = get_block_traces({"blockNumber": "latest"})
     assert state_update_by_hash == state_update_by_number
+
+
+@devnet_in_background(*TESTNET_FORK_PARAMS)
+def test_get_state_update():
+    """Test if get_state_update works on blocks not locally present"""
+
+    state_update = get_state_update(block_number=0)
+
+    # make sure we aren't receiving the block that devnet mines on startup
+    assert state_update["block_hash"].startswith("0x")
+    assert state_update["old_root"] == "0x0"
+    assert state_update["new_root"] != "0x0"

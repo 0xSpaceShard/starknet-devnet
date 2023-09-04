@@ -171,11 +171,14 @@ class DevnetBlocks:
         # now either an int or "latest"
         if block_number != LATEST_BLOCK_ID:
             self.__assert_block_number_in_range(block_number)
-            numeric_hash = self.__num2hash[block_number]
-            if numeric_hash in self.__state_updates:
-                return self.__state_updates[numeric_hash]
 
-            return await self.origin.get_state_update(block_hash=numeric_hash)
+            # if block_number not in mapping, poll origin
+            if block_number in self.__num2hash:
+                numeric_hash = self.__num2hash[block_number]
+                if numeric_hash in self.__state_updates:
+                    return self.__state_updates[numeric_hash]
+
+            return await self.origin.get_state_update(block_number=block_number)
 
         # now it's the latest
         return (

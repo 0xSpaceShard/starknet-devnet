@@ -8,6 +8,7 @@ from starkware.starknet.services.api.feeder_gateway.feeder_gateway_client import
     FeederGatewayClient,
 )
 from starkware.starknet.services.api.feeder_gateway.response_objects import (
+    BlockStateUpdate,
     FinalityStatus,
     StarknetBlock,
     TransactionInfo,
@@ -61,7 +62,7 @@ class Origin:
 
     async def get_state_update(
         self, block_hash: str = None, block_number: int = None
-    ) -> dict:
+    ) -> BlockStateUpdate:
         """
         Returns the state update for provided block hash or block number.
         If none are provided return the last state update
@@ -136,7 +137,7 @@ class NullOrigin(Origin):
 
     async def get_state_update(
         self, block_hash: str = None, block_number: int = None
-    ) -> dict:
+    ) -> BlockStateUpdate:
         if block_hash:
             error_message = (
                 f"No state updates saved for the provided block hash {block_hash}"
@@ -225,13 +226,14 @@ class ForkedOrigin(Origin):
 
     async def get_state_update(
         self, block_hash: str = None, block_number: int = None
-    ) -> dict:
+    ) -> BlockStateUpdate:
         try:
             with suppress_feeder_gateway_client_logger:
-                return await self.__feeder_gateway_client.get_state_update(
+                state_update_dict = await self.__feeder_gateway_client.get_state_update(
                     block_hash=block_hash,
                     block_number=block_number,
                 )
+                return BlockStateUpdate.load(state_update_dict)
         except BadRequest as bad_request:
             if is_originally_starknet_exception(bad_request):
                 raise StarknetDevnetException(
