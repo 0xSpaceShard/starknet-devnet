@@ -59,7 +59,7 @@ impl<T: Serialize> ToRpcResponseResult for RpcResult<T> {
                     data: None,
                 },
                 err @ ApiError::TransactionNotFound => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(25),
+                    code: server::rpc_core::error::ErrorCode::ServerError(29),
                     message: err.to_string().into(),
                     data: None,
                 },
