@@ -37,8 +37,7 @@ use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::Broad
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use starknet_types::rpc::transactions::{
-    BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
-    BroadcastedTransactionCommon, Transaction, Transactions,
+    BroadcastedTransaction, BroadcastedTransactionCommon, Transaction, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::error;
@@ -65,6 +64,7 @@ use crate::transactions::{StarknetTransaction, StarknetTransactions};
 mod add_declare_transaction;
 mod add_deploy_account_transaction;
 mod add_invoke_transaction;
+mod estimations;
 mod events;
 mod get_class_impls;
 mod predeployed;
@@ -373,93 +373,14 @@ impl Starknet {
         block_id: BlockId,
         transactions: &[BroadcastedTransaction],
     ) -> DevnetResult<Vec<FeeEstimateWrapper>> {
-        let state = self.get_state_at(&block_id)?;
-
-        // Vec<(Fee, GasUsage)>
-        let estimation_pairs = starknet_in_rust::estimate_fee(
-            &transactions
-                .iter()
-                .map(|txn| match &txn {
-                    BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(
-                        broadcasted_tx,
-                    )) => {
-                        let class_hash = broadcasted_tx.generate_class_hash()?;
-                        let transaction_hash = broadcasted_tx.calculate_transaction_hash(
-                            &self.config.chain_id.to_felt().into(),
-                            &class_hash,
-                        )?;
-
-                        let declare_tx =
-                            broadcasted_tx.create_sir_declare(class_hash, transaction_hash)?;
-
-                        Ok(starknet_in_rust::transaction::Transaction::Declare(declare_tx))
-                    }
-                    BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(
-                        broadcasted_tx,
-                    )) => {
-                        let declare_tx = broadcasted_tx
-                            .create_sir_declare(self.config.chain_id.to_felt().into())?;
-
-                        Ok(starknet_in_rust::transaction::Transaction::DeclareV2(Box::new(
-                            declare_tx,
-                        )))
-                    }
-                    BroadcastedTransaction::DeployAccount(broadcasted_tx) => {
-                        let deploy_tx = broadcasted_tx
-                            .create_sir_deploy_account(self.config.chain_id.to_felt().into())?;
-
-                        Ok(starknet_in_rust::transaction::Transaction::DeployAccount(deploy_tx))
-                    }
-                    BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(
-                        broadcasted_tx,
-                    )) => {
-                        let invoke_tx = broadcasted_tx
-                            .create_sir_invoke_function(self.config.chain_id.to_felt().into())?;
-
-                        Ok(starknet_in_rust::transaction::Transaction::InvokeFunction(invoke_tx))
-                    }
-                    BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V0(_)) => {
-                        Err(Error::UnsupportedAction { msg: "Invoke V0 is not supported".into() })
-                    }
-                })
-                .collect::<DevnetResult<Vec<starknet_in_rust::transaction::Transaction>>>()?,
-            state.pending_state.clone(),
-            &self.block_context,
-        )?;
-
-        // extract the gas usage because fee is always 0
-        Ok(estimation_pairs
-            .into_iter()
-            .map(|(_, gas_consumed)| {
-                let gas_consumed = gas_consumed as u64;
-                FeeEstimateWrapper::new(
-                    gas_consumed,
-                    self.config.gas_price,
-                    self.config.gas_price * gas_consumed,
-                )
-            })
-            .collect())
+        estimations::estimate_fee(self, block_id, transactions)
     }
 
     pub fn estimate_message_fee(
         &self,
         request: EstimateMessageFeeRequestWrapper,
     ) -> DevnetResult<FeeEstimateWrapper> {
-        let state = self.get_state_at(request.get_raw_block_id())?;
-        let sir_l1_handler =
-            request.create_sir_l1_handler(self.config.chain_id.to_felt().into())?;
-        let (_, gas_consumed) = starknet_in_rust::estimate_message_fee(
-            &sir_l1_handler,
-            state.pending_state.clone(),
-            &self.block_context,
-        )?;
-
-        let gas_consumed = gas_consumed as u64;
-        Ok(FeeEstimateWrapper::new(
-            gas_consumed,
-            self.config.gas_price,
-            self.config.gas_price * gas_consumed,
-        ))
+        estimations::estimate_message_fee(self, request)
     }
 
     pub fn add_declare_transaction_v1(

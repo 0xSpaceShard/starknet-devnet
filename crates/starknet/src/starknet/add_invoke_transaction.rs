@@ -77,10 +77,10 @@ mod tests {
     use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID};
     use crate::starknet::{predeployed, Starknet};
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut, StateChanger, StateExtractor};
+    use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::get_storage_var_address;
     use crate::utils::test_utils::{
-        cairo_0_account_without_validations, dummy_cairo_0_contract_class, dummy_contract_address,
-        dummy_felt, get_bytes_from_u32,
+        cairo_0_account_without_validations, dummy_contract_address, dummy_felt, get_bytes_from_u32,
     };
 
     fn test_invoke_transaction_v1(

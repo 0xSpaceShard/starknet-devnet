@@ -7,7 +7,6 @@ use starknet_rs_core::types::{BlockId as SrBlockId, FeeEstimate};
 
 use crate::error::DevnetResult;
 use crate::felt::Felt;
-use crate::rpc::block::BlockId;
 use crate::rpc::eth_address::EthAddressWrapper;
 use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 
@@ -45,7 +44,7 @@ impl EstimateMessageFeeRequestWrapper {
     }
 
     pub fn get_payload(&self) -> Vec<Felt> {
-        self.inner.message.payload.iter().map(|el| el.clone().into()).collect()
+        self.inner.message.payload.iter().map(|el| (*el).into()).collect()
     }
 
     pub fn get_raw_block_id(&self) -> &SrBlockId {

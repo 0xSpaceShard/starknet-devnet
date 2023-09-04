@@ -4,6 +4,7 @@ mod estimate_fee_tests {
     use std::sync::Arc;
 
     use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, UDC_CONTRACT_ADDRESS};
+    use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{
         Account, AccountFactory, AccountFactoryError, Call, OpenZeppelinAccountFactory,
         SingleOwnerAccount,
@@ -22,13 +23,10 @@ mod estimate_fee_tests {
         MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
     };
 
-    use crate::common::constants::{
-        CAIRO_0_CONTRACT_PATH, CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH, CHAIN_ID,
-    };
+    use crate::common::constants::{CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH, CHAIN_ID};
     use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::{
-        get_deployable_account_signer, get_predeployed_account_props, load_json,
-        resolve_crates_path,
+        get_deployable_account_signer, get_predeployed_account_props, load_json, resolve_path,
     };
 
     fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
@@ -136,8 +134,9 @@ mod estimate_fee_tests {
         let (signer, account_address) = get_predeployed_account_props();
 
         // get class
-        let contract_artifact_path = resolve_crates_path(CAIRO_0_CONTRACT_PATH);
-        let contract_artifact: LegacyContractClass = load_json(&contract_artifact_path);
+        let contract_artifact = dummy_cairo_0_contract_class();
+        let contract_artifact: LegacyContractClass =
+            serde_json::from_value(contract_artifact.inner).unwrap();
 
         // declare class
         let account =
@@ -165,7 +164,7 @@ mod estimate_fee_tests {
         let (signer, account_address) = get_predeployed_account_props();
 
         // get class
-        let contract_artifact_path = resolve_crates_path(CAIRO_1_CONTRACT_PATH);
+        let contract_artifact_path = resolve_path(CAIRO_1_CONTRACT_PATH);
         let contract_artifact: SierraClass = load_json(&contract_artifact_path);
         let flattened_contract_artifact = contract_artifact.flatten().unwrap();
         let compiled_class_hash = FieldElement::from_hex_be(CASM_COMPILED_CLASS_HASH).unwrap();
@@ -200,9 +199,9 @@ mod estimate_fee_tests {
         ));
 
         // get class
-        let contract_artifact_path = resolve_crates_path(CAIRO_0_CONTRACT_PATH);
+        let contract_json = dummy_cairo_0_contract_class();
         let contract_artifact: Arc<LegacyContractClass> =
-            Arc::new(load_json(&contract_artifact_path));
+            Arc::new(serde_json::from_value(contract_json.inner).unwrap());
         let class_hash = contract_artifact.class_hash().unwrap();
 
         // declare class
@@ -287,8 +286,9 @@ mod estimate_fee_tests {
         let (_, account_address) = get_predeployed_account_props();
 
         // get class
-        let contract_artifact_path = resolve_crates_path(CAIRO_0_CONTRACT_PATH);
-        let contract_class: Arc<LegacyContractClass> = Arc::new(load_json(&contract_artifact_path));
+        let contract_json = dummy_cairo_0_contract_class();
+        let contract_class: Arc<LegacyContractClass> =
+            Arc::new(serde_json::from_value(contract_json.inner).unwrap());
         let class_hash = contract_class.class_hash().unwrap();
 
         let deployment_selector =

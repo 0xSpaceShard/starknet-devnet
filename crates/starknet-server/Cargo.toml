@@ -52,3 +52,4 @@ lazy_static = { workspace = true }
 starknet-rs-accounts = { workspace = true }
 starknet-rs-contract = { workspace = true }
 starknet-rs-signers = { workspace = true }
+starknet-core = { workspace = true, features = ["test_utils"] }

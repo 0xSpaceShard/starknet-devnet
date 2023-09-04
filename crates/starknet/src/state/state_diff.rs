@@ -93,6 +93,7 @@ mod tests {
     use std::collections::HashMap;
     use std::sync::Arc;
 
+    use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_in_rust::state::cached_state::{CachedState, CasmClassCache, ContractClassCache};
     use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
     use starknet_in_rust::CasmContractClass;
@@ -101,8 +102,7 @@ mod tests {
 
     use super::StateDiff;
     use crate::utils::test_utils::{
-        dummy_cairo_0_contract_class, dummy_cairo_1_contract_class, dummy_contract_address,
-        dummy_felt,
+        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
     };
 
     #[test]

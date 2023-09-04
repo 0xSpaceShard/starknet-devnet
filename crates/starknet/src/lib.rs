@@ -9,6 +9,9 @@ mod state;
 mod system_contract;
 mod traits;
 pub mod transactions;
+#[cfg(not(feature = "test_utils"))]
 mod utils;
+#[cfg(feature = "test_utils")]
+pub mod utils;
 
 pub use blocks::StarknetBlock;

@@ -148,9 +148,10 @@ mod tests {
     use crate::constants::{self};
     use crate::starknet::{predeployed, Starknet};
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut, StateExtractor};
+    use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{
-        dummy_broadcasted_declare_transaction_v2, dummy_cairo_0_contract_class,
-        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
+        dummy_broadcasted_declare_transaction_v2, dummy_cairo_1_contract_class,
+        dummy_contract_address, dummy_felt,
     };
 
     fn broadcasted_declare_transaction_v1(
@@ -240,13 +241,11 @@ mod tests {
 
         // check if contract is not declared
         assert!(!starknet.state.is_contract_declared(&expected_class_hash));
-        assert!(
-            !starknet
-                .state
-                .state
-                .casm_contract_classes_mut()
-                .contains_key(&expected_compiled_class_hash.bytes())
-        );
+        assert!(!starknet
+            .state
+            .state
+            .casm_contract_classes_mut()
+            .contains_key(&expected_compiled_class_hash.bytes()));
 
         let (tx_hash, retrieved_class_hash) =
             starknet.add_declare_transaction_v2(declare_txn).unwrap();
