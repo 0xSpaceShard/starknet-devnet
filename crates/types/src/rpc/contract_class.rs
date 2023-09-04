@@ -223,7 +223,8 @@ mod tests {
     }
 
     #[test]
-    fn cairo_0_contract_class_hash_generated_successfully_and_its_the_same_as_raw_json_contract_class_hash(){
+    fn cairo_0_contract_class_hash_generated_successfully_and_its_the_same_as_raw_json_contract_class_hash()
+     {
         let contract_class = Cairo0Json::raw_json_from_path(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/test_data/ERC20_starknet_js.casm"
