@@ -66,7 +66,7 @@ mod get_class_impls;
 mod predeployed;
 mod state_update;
 
-#[derive(Debug, Clone)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum DumpMode {
     OnExit,
     OnTransaction,

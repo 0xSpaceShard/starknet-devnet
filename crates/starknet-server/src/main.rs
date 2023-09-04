@@ -6,7 +6,7 @@ use ::server::ServerConfig;
 use clap::Parser;
 use cli::Args;
 use starknet_core::account::Account;
-use starknet_core::starknet::Starknet;
+use starknet_core::starknet::{Starknet, DumpMode};
 use starknet_core::transactions::StarknetTransactions;
 use starknet_types::felt::Felt;
 use starknet_types::rpc::transactions::Transaction;
@@ -69,6 +69,29 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let api = api::Api::new(Starknet::new(&starknet_config)?);
 
+    // match &starknet_config.dump_path {
+    //     Some(path) => {
+    //         println!("load: {:?}", encoded); // remove this println
+    
+    //         // let mut f = File::open(&Path::new(path)).unwrap();
+    //         // let mut v: Vec<u8> = Vec::new();
+    //         // let file_content = f.read_to_end(&mut v);
+    //         // println!("file_content: {:?}", file_content);
+    //         // println!("v: {:?}", v);
+    //         // let decoded: Option<String> = bincode::deserialize(&v[..]).unwrap();
+    //         // println!("assert: {:?}", assert_eq!(data.clone(), decoded.clone()));
+    //         // println!("decoded: {:?}", decoded);
+    //         // let txs: StarknetTransactions = serde_json::from_str(decoded.unwrap().as_str()).unwrap();
+    //         // println!("txs: {:?}", txs);
+
+    //         let data = Some(serde_json::to_string(&starknet.transactions).unwrap_or_default());
+    //         let encoded: Vec<u8> = bincode::serialize(&data).unwrap_or_default();
+    //         fs::write(Path::new(path), encoded).unwrap_or_default();
+    //     },
+    //     _ => println!("Dump path is not set."),
+    // }
+
+
     let predeployed_accounts = api.starknet.read().await.get_predeployed_accounts();
     log_predeployed_accounts(
         &predeployed_accounts,
@@ -92,6 +115,15 @@ async fn main() -> Result<(), anyhow::Error> {
     Ok(serve.await??)
 }
 
+fn is_dump_on(dump_on: &Option<DumpMode> ) -> bool {
+    match dump_on {
+        None => false,
+        Some(dump_on) => {
+            *dump_on == DumpMode::OnExit
+        },
+    }
+}
+
 pub async fn shutdown_signal(api: Api) -> (){
     tokio::signal::ctrl_c()
         .await
@@ -101,23 +133,15 @@ pub async fn shutdown_signal(api: Api) -> (){
     signal::ctrl_c().await;
 
     // Dump StarknetTransactions
-    let starknet = api.starknet.read().await;
-    let data = Some(serde_json::to_string(&starknet.transactions).unwrap());
-    println!("data: {:?}", data);
-    let encoded: Vec<u8> = bincode::serialize(&data).unwrap();
-    // println!("encoded: {:?}", encoded);
-    let path = Path::new("dump");
-    fs::write(path, encoded).unwrap();
-    let mut f = File::open(&Path::new(path)).unwrap();
-    let mut v: Vec<u8> = Vec::new();
-    let file_content = f.read_to_end(&mut v);
-    println!("file_content: {:?}", file_content);
-    println!("v: {:?}", v);
-    let decoded: Option<String> = bincode::deserialize(&v[..]).unwrap();
-    println!("assert: {:?}", assert_eq!(data.clone(), decoded.clone()));
-    println!("decoded: {:?}", decoded);
-    let txs: StarknetTransactions = serde_json::from_str(decoded.unwrap().as_str()).unwrap();
-    println!("txs: {:?}", txs);
-
-    println!("Signal {:?}", api.starknet.read().await.chain_id());
+    let starknet: tokio::sync::RwLockReadGuard<'_, Starknet> = api.starknet.read().await;
+    if is_dump_on(&starknet.config.dump_on) {
+        match &starknet.config.dump_path {
+            Some(path) => {
+                let data = Some(serde_json::to_string(&starknet.transactions).unwrap_or_default());
+                let encoded: Vec<u8> = bincode::serialize(&data).unwrap_or_default();
+                fs::write(Path::new(path), encoded).unwrap_or_default();
+            },
+            _ => info!("Failed to dump transactions, dump path is not set."),
+        }
+    }
 }
