@@ -152,6 +152,15 @@ impl StarknetTransaction {
         );
 
         match &self.inner {
+            Transaction::DeployAccount(deploy_account_transaction) => {
+                Ok(TransactionReceiptWithStatus {
+                    status: self.status,
+                    receipt: TransactionReceipt::Deploy(DeployTransactionReceipt {
+                        common: common_receipt,
+                        contract_address: deploy_account_transaction.contract_address,
+                    }),
+                })
+            }
             Transaction::Invoke(_) => {
                 let deployed_address =
                     StarknetTransaction::get_deployed_address_from_events(&transaction_events)?;

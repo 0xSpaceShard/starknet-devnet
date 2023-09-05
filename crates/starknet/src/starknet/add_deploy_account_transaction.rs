@@ -28,10 +28,10 @@ pub fn add_deploy_account_transaction(
         .create_sir_deploy_account(starknet.config.chain_id.to_felt().into())?;
 
     let transaction_hash = sir_deploy_account_transaction.hash_value().into();
-    let deploy_account_transaction = broadcasted_deploy_account_transaction
-        .compile_deploy_account_transaction(&transaction_hash);
-
     let address: ContractAddress = sir_deploy_account_transaction.contract_address().try_into()?;
+    let deploy_account_transaction = broadcasted_deploy_account_transaction
+        .compile_deploy_account_transaction(&transaction_hash, address);
+
     let transaction = Transaction::DeployAccount(deploy_account_transaction);
 
     let state_before_txn = starknet.state.pending_state.clone();

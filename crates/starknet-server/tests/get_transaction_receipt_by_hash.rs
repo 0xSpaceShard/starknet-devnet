@@ -4,7 +4,10 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
     use std::sync::Arc;
 
-    use starknet_rs_accounts::{Account, SingleOwnerAccount};
+    use starknet_core::constants::CAIRO_0_ACCOUNT_CONTRACT_HASH;
+    use starknet_rs_accounts::{
+        Account, AccountFactory, OpenZeppelinAccountFactory, SingleOwnerAccount,
+    };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::{
@@ -18,10 +21,52 @@ mod get_transaction_receipt_by_hash_integration_tests {
     use starknet_rs_signers::{LocalWallet, SigningKey};
     use starknet_types::felt::Felt;
 
+    use crate::common::constants::CHAIN_ID;
     use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::{
-        get_events_contract_in_sierra_and_compiled_class_hash, get_json_body,
+        get_deployable_account_signer, get_events_contract_in_sierra_and_compiled_class_hash,
+        get_json_body,
     };
+
+    #[tokio::test]
+    async fn deploy_account_transaction_receipt() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        // constructs starknet-rs account
+        let signer = get_deployable_account_signer();
+
+        let account_factory = OpenZeppelinAccountFactory::new(
+            FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
+            CHAIN_ID,
+            signer.clone(),
+            devnet.clone_provider(),
+        )
+        .await
+        .unwrap();
+        let new_account_nonce = FieldElement::ZERO;
+        let salt = FieldElement::THREE;
+        let deployment = account_factory.deploy(salt);
+        let fee = deployment.estimate_fee().await.unwrap();
+        let new_account_address = deployment.address();
+        devnet.mint(new_account_address, (fee.overall_fee * 2) as u128).await;
+
+        let deploy_account_result = deployment.nonce(new_account_nonce).send().await.unwrap();
+
+        let deploy_account_receipt = devnet
+            .json_rpc_client
+            .get_transaction_receipt(deploy_account_result.transaction_hash)
+            .await
+            .unwrap();
+
+        match deploy_account_receipt {
+            MaybePendingTransactionReceipt::Receipt(TransactionReceipt::DeployAccount(receipt)) => {
+                assert_eq!(receipt.contract_address, new_account_address);
+            }
+            _ => {
+                panic!("Invalid receipt {:?}", deploy_account_receipt);
+            }
+        }
+    }
 
     #[tokio::test]
     async fn deploy_transaction_receipt() {
