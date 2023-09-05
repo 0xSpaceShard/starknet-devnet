@@ -12,6 +12,10 @@ use starknet_in_rust::definitions::constants::{
     DEFAULT_GLOBAL_STATE_COMMITMENT_TREE_HEIGHT, DEFAULT_INVOKE_TX_MAX_N_STEPS,
     DEFAULT_VALIDATE_MAX_N_STEPS,
 };
+
+use std::time::{Duration, Instant};
+use std::thread::sleep;
+
 use starknet_in_rust::execution::TransactionExecutionInfo;
 use starknet_in_rust::state::state_api::State;
 use starknet_in_rust::state::BlockInfo;
@@ -35,7 +39,7 @@ use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::Broadc
 use starknet_types::rpc::transactions::invoke_transaction_v1::InvokeTransactionV1;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
-    BroadcastedTransactionCommon, Transaction, TransactionReceiptWithStatus, Transactions,
+    BroadcastedTransactionCommon, Transaction, TransactionReceiptWithStatus, Transactions, InvokeTransaction,
 };
 use starknet_types::traits::HashProducer;
 use tracing::error;
@@ -164,75 +168,47 @@ impl Starknet {
                 config.chain_id,
             )?,
             blocks: StarknetBlocks::default(),
-            transactions: match transactions {
-                Some(txs) => txs,
-                _ => StarknetTransactions::default(),
-            },
+            transactions: StarknetTransactions::default(),
             config: config.clone(),
         };
 
         this.restart_pending_block()?;
-        let hash = TransactionHash::from_prefixed_hex_str("0x712206c8edd0ea1f270b918ba09e6d1ac360a384dab2384ebc0cf857afc1986").unwrap();
-        let transaction = this.transactions.get(&hash).unwrap();
-        print!("this.transaction: {:?}", transaction);
-
-        
-        let invoke_txn_v1 = BroadcastedInvokeTransactionV1 {
-            max_fee: FieldElement::from_hex_be("0xde0b6b3a7640000").unwrap(),
-            signature: vec![],
-            nonce: FieldElement::from_hex_be("0x0").unwrap(),
-            sender_address: FieldElement::from_hex_be("0x0").unwrap(),
-            calldata: vec![],
-            is_query: false,
-        };
-
-        let invoke = transaction.inner;
-
-        let tx_mapped = match transaction.inner {
+        let hash = TransactionHash::from_prefixed_hex_str("0xb6a30e9e90f553377027bf4f32bc43d2d36eaeb3c23ad26bfbd078676eb0d").unwrap();
+        let txs = transactions.unwrap();
+        let transaction = txs.get(&hash).unwrap();
+        println!("this.transaction: {:?}", transaction);
+        println!("this.transactions.count(): {:?}", this.transactions.count());
+      
+        match transaction.inner.clone() {
             Transaction::Declare(tx) => {},
             Transaction::DeployAccount(tx) => {},
             Transaction::Deploy(tx) => {},
-            Transaction::Invoke(tx_invoke) => {
-                BroadcastedInvokeTransactionV1 {
-                    max_fee: tx.get_max_fee(),
-                    signature: tx.inner,
-                    nonce: tx.inner.get_nonce(),
-                    sender_address: FieldElement::from_hex_be("0x0").unwrap(),
-                    calldata: vec![],
-                    is_query: false,
-                    common: common,
-                }
+            Transaction::Invoke(InvokeTransaction::Version0(tx)) => {
+
+            },
+            Transaction::Invoke(InvokeTransaction::Version1(tx)) => {
+                println!("BroadcastedInvokeTransactionV1");
+                let invoke_txn_v1 = BroadcastedInvokeTransactionV1::new(
+                    tx.sender_address,
+                    tx.max_fee,
+                    &tx.signature,
+                    tx.nonce,
+                    &tx.calldata,
+                    tx.version,
+                );
+
+                let now = Instant::now();
+                let tx_hash = this.add_invoke_transaction_v1(invoke_txn_v1).unwrap();
+                println!("mili sec: {:.4?}", now.elapsed().as_millis());
+
+                println!("tx_hash: {:?}", tx_hash);
+                println!("this.transactions.count(): {:?}", this.transactions.count());
+                let replay = this.transactions.get(&tx_hash).unwrap();
+                println!("replay tx: {:?}", replay.inner.get_transaction_hash());
+
             },
             Transaction::L1Handler(tx) => {},
         };
-
-        let calldata = vec![
-            Felt::from(contract_address), // contract address
-            function_selector,            // function selector
-            Felt::from(1),                // calldata len
-            param,                        // calldata
-        ];
-
-        let invoke_txn_v1 =BroadcastedInvokeTransactionV1::new(
-            account_address,
-            Fee(10000),
-            &vec![],
-            Felt::from(nonce),
-            &calldata,
-            Felt::from(1),
-        )
-
-        let invoke_txn_v1 = BroadcastedInvokeTransactionV1 {
-            max_fee: transaction.inner.get_max_fee(),
-            signature: transaction.inner,
-            nonce: transaction.inner.get_nonce(),
-            sender_address: FieldElement::from_hex_be("0x0").unwrap(),
-            calldata: vec![],
-            is_query: false,
-            common: common,
-        };
-
-        // this.add_invoke_transaction_v1(tx.inner.into());
 
         Ok(this)
     }

@@ -67,15 +67,19 @@ async fn main() -> Result<(), anyhow::Error> {
         IpAddr::from_str(starknet_config.host.as_str()).expect("Invalid value for host IP address");
     let mut addr = SocketAddr::new(host, starknet_config.port);
 
-    let mut transactions: StarknetTransactions = StarknetTransactions::default();
     // Load StarknetTransactions from file
+    let mut transactions: StarknetTransactions = StarknetTransactions::default();
     match &starknet_config.dump_path {
         Some(path) => {
-            let mut file = File::open(&Path::new(path)).expect("Failed to open file");
-            let mut v: Vec<u8> = Vec::new();
-            file.read_to_end(&mut v);
-            let decoded: Option<String> = bincode::deserialize(&v[..]).expect("Failed to deserialize transactions");
-            transactions = serde_json::from_str(decoded.unwrap().as_str()).expect("Failed to deecode transactions");
+            let file_path = Path::new(path);
+            if file_path.exists() {
+                let mut file = File::open(file_path).expect("Failed to open file");
+                let mut v: Vec<u8> = Vec::new();
+                file.read_to_end(&mut v);
+                let decoded: Option<String> = bincode::deserialize(&v[..]).expect("Failed to deserialize transactions");
+                transactions = serde_json::from_str(decoded.unwrap().as_str()).expect("Failed to deecode transactions");
+                println!("{:?}", transactions)
+            }
         },
         _ => {},
     }

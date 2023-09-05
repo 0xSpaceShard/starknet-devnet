@@ -30,6 +30,10 @@ impl StarknetTransactions {
     pub fn get(&self, transaction_hash: &TransactionHash) -> Option<&StarknetTransaction> {
         self.0.get(transaction_hash)
     }
+
+    pub fn count(&self) -> usize {
+        self.0.keys().len()
+    }
 }
 
 impl HashIdentifiedMut for StarknetTransactions {
