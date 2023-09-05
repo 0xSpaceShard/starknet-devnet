@@ -19,11 +19,34 @@ pub enum AbiEntryType {
 #[serde(untagged)]
 pub enum AbiEntry {
     /// An event abi entry.
-    Event(starknet_api::deprecated_contract_class::EventAbiEntry),
+    Event(EventAbiEntry),
     /// A function abi entry.
     Function(FunctionAbiEntry),
     /// A struct abi entry.
-    Struct(starknet_api::deprecated_contract_class::StructAbiEntry),
+    Struct(StructAbiEntry),
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+pub struct EventAbiEntry {
+    pub data: Vec<starknet_api::deprecated_contract_class::TypedParameter>,
+    pub keys: Vec<starknet_api::deprecated_contract_class::TypedParameter>,
+    pub name: String,
+}
+
+/// A struct abi entry.
+#[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
+pub struct StructAbiEntry {
+    pub members: Vec<StructMember>,
+    pub name: String,
+    pub size: usize,
+}
+
+/// A struct member for [StructAbiEntry](`crate::deprecated_contract_class::StructAbiEntry`).
+#[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
+pub struct StructMember {
+    pub name: String,
+    pub offset: usize,
+    pub r#type: String,
 }
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]

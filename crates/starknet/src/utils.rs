@@ -33,7 +33,7 @@ pub(crate) fn get_storage_var_address(
     Ok(PatriciaKey::new(Felt::new(storage_key.to_be_bytes())?)?)
 }
 
-#[cfg(any(test))]
+#[cfg(test)]
 pub(crate) mod test_utils {
     use starknet_api::transaction::Fee;
     use starknet_in_rust::core::contract_address::compute_casm_class_hash;
