@@ -52,8 +52,8 @@ mod get_transaction_receipt_by_hash_integration_tests {
         .await
         .unwrap();
         let new_account_nonce = FieldElement::ZERO;
-
-        let deployment = account_factory.deploy(FieldElement::THREE);
+        let salt = FieldElement::THREE;
+        let deployment = account_factory.deploy(salt);
         let fee = deployment.estimate_fee().await.unwrap();
         let new_account_address = deployment.address();
         devnet.mint(new_account_address, (fee.overall_fee * 2) as u128).await;
