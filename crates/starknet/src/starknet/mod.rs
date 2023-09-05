@@ -114,7 +114,7 @@ pub struct Starknet {
 }
 
 impl Starknet {
-    pub fn new(config: &StarknetConfig) -> DevnetResult<Self> {
+    pub fn new(config: &StarknetConfig, transactions: Option<StarknetTransactions>) -> DevnetResult<Self> {
         let mut state = StarknetState::default();
         // deploy udc and erc20 contracts
         let erc20_fee_contract = predeployed::create_erc20()?;
@@ -153,8 +153,8 @@ impl Starknet {
 
         // copy already modified state to cached state
         state.synchronize_states();
-
-        let mut this = Self {
+        
+        let mut this: Starknet = Self {
             state,
             predeployed_accounts,
             block_context: Self::get_block_context(
@@ -163,11 +163,28 @@ impl Starknet {
                 config.chain_id,
             )?,
             blocks: StarknetBlocks::default(),
-            transactions: StarknetTransactions::default(),
+            transactions: match transactions {
+                Some(txs) => txs,
+                _ => StarknetTransactions::default(),
+            },
             config: config.clone(),
         };
 
         this.restart_pending_block()?;
+        let hash = TransactionHash::from_prefixed_hex_str("0x712206c8edd0ea1f270b918ba09e6d1ac360a384dab2384ebc0cf857afc1986").unwrap();
+        let tx = this.transactions.get(&hash).unwrap();
+        print!("this.transaction: {:?}", tx);
+        
+        // let invoke_txn_v1 = BroadcastedInvokeTransactionV1 {
+        //     max_fee: FieldElement::from_hex_be("0xde0b6b3a7640000").unwrap(),
+        //     signature: vec![],
+        //     nonce: FieldElement::from_hex_be("0x0").unwrap(),
+        //     sender_address: FieldElement::from_hex_be("0x0").unwrap(),
+        //     calldata: vec![],
+        //     is_query: false,
+        // };
+
+        // this.add_invoke_transaction_v1(tx.inner.into());
 
         Ok(this)
     }
@@ -664,7 +681,7 @@ mod tests {
     #[test]
     fn correct_initial_state_with_test_config() {
         let config = starknet_config_for_test();
-        let mut starknet = Starknet::new(&config).unwrap();
+        let mut starknet = Starknet::new(&config, None).unwrap();
         let predeployed_accounts = starknet.predeployed_accounts.get_accounts();
         let expected_balance = config.predeployed_accounts_initial_balance;
 
@@ -691,7 +708,7 @@ mod tests {
     #[test]
     fn pending_block_is_correct() {
         let config = starknet_config_for_test();
-        let mut starknet = Starknet::new(&config).unwrap();
+        let mut starknet = Starknet::new(&config, None).unwrap();
         let initial_block_number = starknet.block_context.block_info().block_number;
         starknet.generate_pending_block().unwrap();
 
@@ -704,7 +721,7 @@ mod tests {
     #[test]
     fn correct_new_block_creation() {
         let config = starknet_config_for_test();
-        let mut starknet = Starknet::new(&config).unwrap();
+        let mut starknet = Starknet::new(&config, None).unwrap();
 
         let tx = dummy_declare_transaction_v1();
 
@@ -730,7 +747,7 @@ mod tests {
     #[test]
     fn successful_emptying_of_pending_block() {
         let config = starknet_config_for_test();
-        let mut starknet = Starknet::new(&config).unwrap();
+        let mut starknet = Starknet::new(&config, None).unwrap();
 
         let initial_block_number = starknet.block_context.block_info().block_number;
         let initial_gas_price = starknet.block_context.block_info().gas_price;
@@ -779,21 +796,21 @@ mod tests {
     #[test]
     fn getting_state_of_latest_block() {
         let config = starknet_config_for_test();
-        let starknet = Starknet::new(&config).unwrap();
+        let starknet = Starknet::new(&config, None).unwrap();
         starknet.get_state_at(&BlockId::Tag(BlockTag::Latest)).expect("Should be OK");
     }
 
     #[test]
     fn getting_state_of_pending_block() {
         let config = starknet_config_for_test();
-        let starknet = Starknet::new(&config).unwrap();
+        let starknet = Starknet::new(&config, None).unwrap();
         starknet.get_state_at(&BlockId::Tag(BlockTag::Pending)).expect("Should be OK");
     }
 
     #[test]
     fn getting_state_at_block_by_nonexistent_hash() {
         let config = starknet_config_for_test();
-        let mut starknet = Starknet::new(&config).unwrap();
+        let mut starknet = Starknet::new(&config, None).unwrap();
         starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
 
         match starknet.get_state_at(&BlockId::Hash(Felt::from(0).into())) {
@@ -805,7 +822,7 @@ mod tests {
     #[test]
     fn getting_nonexistent_state_at_block_by_number() {
         let config = starknet_config_for_test();
-        let mut starknet = Starknet::new(&config).unwrap();
+        let mut starknet = Starknet::new(&config, None).unwrap();
         starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
         starknet.blocks.num_to_state.remove(&BlockNumber(0));
 
@@ -818,7 +835,7 @@ mod tests {
     #[test]
     fn calling_method_of_undeployed_contract() {
         let config = starknet_config_for_test();
-        let starknet = Starknet::new(&config).unwrap();
+        let starknet = Starknet::new(&config, None).unwrap();
 
         let undeployed_address_hex = "0x1234";
         let undeployed_address = Felt::from_prefixed_hex_str(undeployed_address_hex).unwrap();
@@ -839,7 +856,7 @@ mod tests {
     #[test]
     fn calling_nonexistent_contract_method() {
         let config = starknet_config_for_test();
-        let starknet = Starknet::new(&config).unwrap();
+        let starknet = Starknet::new(&config, None).unwrap();
 
         let predeployed_account = &starknet.predeployed_accounts.get_accounts()[0];
         let entry_point_selector =
@@ -874,7 +891,7 @@ mod tests {
     #[test]
     fn getting_balance_of_predeployed_contract() {
         let config = starknet_config_for_test();
-        let starknet = Starknet::new(&config).unwrap();
+        let starknet = Starknet::new(&config, None).unwrap();
 
         let predeployed_account = &starknet.predeployed_accounts.get_accounts()[0];
         let result = get_balance_at(&starknet, predeployed_account.account_address).unwrap();
@@ -888,7 +905,7 @@ mod tests {
     #[test]
     fn getting_balance_of_undeployed_contract() {
         let config = starknet_config_for_test();
-        let starknet = Starknet::new(&config).unwrap();
+        let starknet = Starknet::new(&config, None).unwrap();
 
         let undeployed_address =
             ContractAddress::new(Felt::from_prefixed_hex_str("0x1234").unwrap()).unwrap();
@@ -902,7 +919,7 @@ mod tests {
     #[test]
     fn returns_block_number() {
         let config = starknet_config_for_test();
-        let mut starknet = Starknet::new(&config).unwrap();
+        let mut starknet = Starknet::new(&config, None).unwrap();
 
         let block_number_no_blocks = starknet.block_number();
         assert_eq!(block_number_no_blocks.0, 0);
@@ -929,7 +946,7 @@ mod tests {
     #[test]
     fn gets_block_txs_count() {
         let config = starknet_config_for_test();
-        let mut starknet = Starknet::new(&config).unwrap();
+        let mut starknet = Starknet::new(&config, None).unwrap();
 
         starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
         starknet.generate_pending_block().unwrap();
@@ -953,7 +970,7 @@ mod tests {
     #[test]
     fn returns_chain_id() {
         let config = starknet_config_for_test();
-        let starknet = Starknet::new(&config).unwrap();
+        let starknet = Starknet::new(&config, None).unwrap();
         let chain_id = starknet.chain_id();
 
         assert_eq!(chain_id.to_string(), DEVNET_DEFAULT_CHAIN_ID.to_string());
@@ -1027,7 +1044,7 @@ mod tests {
     #[test]
     fn gets_latest_block() {
         let config = starknet_config_for_test();
-        let mut starknet = Starknet::new(&config).unwrap();
+        let mut starknet = Starknet::new(&config, None).unwrap();
 
         starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
         starknet.generate_pending_block().unwrap();

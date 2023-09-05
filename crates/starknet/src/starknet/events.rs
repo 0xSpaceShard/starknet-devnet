@@ -392,7 +392,7 @@ mod tests {
     fn setup() -> Starknet {
         // generate 5 transactions
         // each transaction should have events count equal to the order of the transaction
-        let mut starknet = Starknet::new(&starknet_config_for_test()).unwrap();
+        let mut starknet = Starknet::new(&starknet_config_for_test(), None).unwrap();
 
         for idx in 0..5 {
             let transaction =

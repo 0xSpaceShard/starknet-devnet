@@ -67,8 +67,7 @@ async fn main() -> Result<(), anyhow::Error> {
         IpAddr::from_str(starknet_config.host.as_str()).expect("Invalid value for host IP address");
     let mut addr = SocketAddr::new(host, starknet_config.port);
 
-    let api = api::Api::new(Starknet::new(&starknet_config)?);
-
+    let mut transactions: StarknetTransactions = StarknetTransactions::default();
     // Load StarknetTransactions from file
     match &starknet_config.dump_path {
         Some(path) => {
@@ -76,13 +75,12 @@ async fn main() -> Result<(), anyhow::Error> {
             let mut v: Vec<u8> = Vec::new();
             file.read_to_end(&mut v);
             let decoded: Option<String> = bincode::deserialize(&v[..]).expect("Failed to deserialize transactions");
-            let txs: StarknetTransactions = serde_json::from_str(decoded.unwrap().as_str()).expect("Failed to deecode transactions");
-            let starknet: tokio::sync::RwLockReadGuard<'_, Starknet> = api.starknet.read().await;
-            // starknet.transactions = txs;
+            transactions = serde_json::from_str(decoded.unwrap().as_str()).expect("Failed to deecode transactions");
         },
         _ => {},
     }
 
+    let api = api::Api::new(Starknet::new(&starknet_config, Some(transactions))?);
 
     let predeployed_accounts = api.starknet.read().await.get_predeployed_accounts();
     log_predeployed_accounts(
