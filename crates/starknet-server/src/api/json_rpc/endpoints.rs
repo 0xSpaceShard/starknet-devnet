@@ -135,6 +135,7 @@ impl JsonRpcHandler {
         &self,
         transaction_hash: TransactionHash,
     ) -> RpcResult<Transaction> {
+        println!("transaction_hash : {:?}", transaction_hash);
         match self.api.starknet.read().await.get_transaction_by_hash(transaction_hash) {
             Ok(transaction) => Ok(transaction.clone()),
             Err(Error::NoTransaction) => Err(ApiError::TransactionNotFound),
