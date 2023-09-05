@@ -24,24 +24,16 @@ mod get_transaction_receipt_by_hash_integration_tests {
     use crate::common::constants::CHAIN_ID;
     use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::{
-        get_events_contract_in_sierra_and_compiled_class_hash, get_json_body,
+        get_deployable_account_signer, get_events_contract_in_sierra_and_compiled_class_hash,
+        get_json_body,
     };
 
     #[tokio::test]
     async fn deploy_account_transaction_receipt() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-        let predeployed_accounts_response =
-            devnet.get("/predeployed_accounts", None).await.unwrap();
-
-        let predeployed_accounts_json = get_json_body(predeployed_accounts_response).await;
-        let first_account = predeployed_accounts_json.as_array().unwrap().get(0).unwrap();
-
-        let private_key =
-            Felt::from_prefixed_hex_str(first_account["private_key"].as_str().unwrap()).unwrap();
-
         // constructs starknet-rs account
-        let signer = LocalWallet::from(SigningKey::from_secret_scalar(private_key.into()));
+        let signer = get_deployable_account_signer();
 
         let account_factory = OpenZeppelinAccountFactory::new(
             FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
