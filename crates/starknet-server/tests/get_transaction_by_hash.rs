@@ -3,7 +3,7 @@ pub mod common;
 mod get_transaction_by_hash_integration_tests {
     use std::sync::Arc;
 
-    use starknet_rs_accounts::{Account, SingleOwnerAccount};
+    use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
     use starknet_rs_core::types::{
@@ -97,8 +97,13 @@ mod get_transaction_by_hash_integration_tests {
         ));
         let address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
 
-        let mut account =
-            SingleOwnerAccount::new(&devnet.json_rpc_client, signer, address, chain_id::TESTNET);
+        let mut account = SingleOwnerAccount::new(
+            &devnet.json_rpc_client,
+            signer,
+            address,
+            chain_id::TESTNET,
+            ExecutionEncoding::Legacy,
+        );
         account.set_block_id(BlockId::Tag(BlockTag::Latest));
 
         // We need to flatten the ABI into a string first

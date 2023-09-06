@@ -6,8 +6,8 @@ mod estimate_fee_tests {
     use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, UDC_CONTRACT_ADDRESS};
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{
-        Account, AccountFactory, AccountFactoryError, Call, OpenZeppelinAccountFactory,
-        SingleOwnerAccount,
+        Account, AccountFactory, AccountFactoryError, Call, ExecutionEncoding,
+        OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
@@ -139,8 +139,13 @@ mod estimate_fee_tests {
             serde_json::from_value(contract_artifact.inner).unwrap();
 
         // declare class
-        let account =
-            SingleOwnerAccount::new(devnet.clone_provider(), signer, account_address, CHAIN_ID);
+        let account = SingleOwnerAccount::new(
+            devnet.clone_provider(),
+            signer,
+            account_address,
+            CHAIN_ID,
+            ExecutionEncoding::Legacy,
+        );
 
         let _fee_estimation = account
             .declare_legacy(Arc::new(contract_artifact))
@@ -170,8 +175,13 @@ mod estimate_fee_tests {
         let compiled_class_hash = FieldElement::from_hex_be(CASM_COMPILED_CLASS_HASH).unwrap();
 
         // declare class
-        let account =
-            SingleOwnerAccount::new(devnet.clone_provider(), signer, account_address, CHAIN_ID);
+        let account = SingleOwnerAccount::new(
+            devnet.clone_provider(),
+            signer,
+            account_address,
+            CHAIN_ID,
+            ExecutionEncoding::Legacy,
+        );
 
         let fee_estimation = account
             .declare(Arc::new(flattened_contract_artifact), compiled_class_hash)
@@ -196,6 +206,7 @@ mod estimate_fee_tests {
             signer,
             account_address,
             CHAIN_ID,
+            ExecutionEncoding::Legacy,
         ));
 
         // get class

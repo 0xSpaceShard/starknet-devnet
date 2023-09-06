@@ -4,7 +4,7 @@ mod test_estimate_message_fee {
     use std::sync::Arc;
 
     use starknet_core::utils::exported_test_utils::dummy_cairo_l1l2_contract;
-    use starknet_rs_accounts::{Account, SingleOwnerAccount};
+    use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{
@@ -30,6 +30,7 @@ mod test_estimate_message_fee {
             signer,
             account_address,
             CHAIN_ID,
+            ExecutionEncoding::Legacy,
         ));
 
         // get class

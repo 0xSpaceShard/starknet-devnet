@@ -271,6 +271,8 @@ impl JsonRpcHandler {
         let starknet = self.api.starknet.read().await;
         match starknet.estimate_fee(block_id.into(), &request) {
             Ok(result) => Ok(result),
+            Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
+            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(err) => Err(ApiError::ContractError { msg: err.to_string() }),
         }
     }

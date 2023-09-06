@@ -9,8 +9,6 @@ use starknet_types::rpc::transactions::{BroadcastedDeclareTransaction, Broadcast
 use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;
 
-// TODO: move to estimate_fee file
-/// Returns just the gas usage, not the overall fee
 pub fn estimate_fee(
     starknet: &Starknet,
     block_id: BlockId,
