@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
 use starknet_in_rust::transaction::DeployAccount as SirDeployAccount;
 
+use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
 use crate::felt::{
     Calldata, ClassHash, ContractAddressSalt, Felt, Nonce, TransactionHash, TransactionSignature,
@@ -58,6 +59,7 @@ impl BroadcastedDeployAccountTransaction {
     pub fn compile_deploy_account_transaction(
         &self,
         transaction_hash: &TransactionHash,
+        contract_address: ContractAddress,
     ) -> DeployAccountTransaction {
         DeployAccountTransaction {
             transaction_hash: *transaction_hash,
@@ -68,6 +70,7 @@ impl BroadcastedDeployAccountTransaction {
             class_hash: self.class_hash,
             contract_address_salt: self.contract_address_salt,
             constructor_calldata: self.constructor_calldata.clone(),
+            contract_address,
         }
     }
 }
