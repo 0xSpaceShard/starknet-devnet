@@ -17,7 +17,7 @@ use starknet_in_rust::state::state_api::State;
 use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
 use starknet_in_rust::utils::Address;
-use starknet_rs_core::types::{BlockId, TransactionStatus};
+use starknet_rs_core::types::{BlockId, MsgFromL1, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::Signer;
@@ -28,13 +28,14 @@ use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{Block, BlockHeader};
+use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
+use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
-use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
+use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
 use starknet_types::rpc::transactions::{
-    BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
-    BroadcastedTransactionCommon, Transaction, TransactionReceiptWithStatus, Transactions,
+    BroadcastedTransaction, BroadcastedTransactionCommon, Transaction, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::error;
@@ -61,6 +62,7 @@ use crate::transactions::{StarknetTransaction, StarknetTransactions};
 mod add_declare_transaction;
 mod add_deploy_account_transaction;
 mod add_invoke_transaction;
+mod estimations;
 mod events;
 mod get_class_impls;
 mod predeployed;
@@ -194,7 +196,7 @@ impl Starknet {
             if let Some(tx) = self.transactions.get_by_hash_mut(tx_hash) {
                 tx.block_hash = Some(new_block.header.block_hash.0.into());
                 tx.block_number = Some(new_block_number);
-                tx.status = TransactionStatus::AcceptedOnL2;
+                tx.finality_status = Some(TransactionFinalityStatus::AcceptedOnL2);
             } else {
                 error!("Transaction is not present in the transactions collection");
             }
@@ -214,7 +216,7 @@ impl Starknet {
         transaction: &Transaction,
         tx_info: &TransactionExecutionInfo,
     ) -> DevnetResult<()> {
-        let transaction_to_add = StarknetTransaction::create_successful(transaction, tx_info);
+        let transaction_to_add = StarknetTransaction::create_successful(transaction, None, tx_info);
 
         // add accepted transaction to pending block
         self.blocks.pending_block.add_transaction(*transaction_hash);
@@ -297,6 +299,7 @@ impl Starknet {
         Ok(())
     }
 
+    // TODO: rewrite using our BlockId.
     fn get_state_at(&self, block_id: &BlockId) -> DevnetResult<&StarknetState> {
         match block_id {
             BlockId::Tag(_) => Ok(&self.state),
@@ -361,68 +364,22 @@ impl Starknet {
         Ok(result.iter().map(|e| Felt::from(e.clone())).collect())
     }
 
+    // TODO: move to estimate_fee file
     /// Returns just the gas usage, not the overall fee
-    pub fn estimate_gas_usage(
+    pub fn estimate_fee(
         &self,
         block_id: BlockId,
         transactions: &[BroadcastedTransaction],
-    ) -> DevnetResult<Vec<u64>> {
-        let state = self.get_state_at(&block_id)?;
+    ) -> DevnetResult<Vec<FeeEstimateWrapper>> {
+        estimations::estimate_fee(self, block_id, transactions)
+    }
 
-        // Vec<(Fee, GasUsage)>
-        let estimation_pairs = starknet_in_rust::estimate_fee(
-            &transactions
-                .iter()
-                .map(|txn| match &txn {
-                    BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(
-                        broadcasted_tx,
-                    )) => {
-                        let class_hash = broadcasted_tx.generate_class_hash()?;
-                        let transaction_hash = broadcasted_tx.calculate_transaction_hash(
-                            &self.config.chain_id.to_felt().into(),
-                            &class_hash,
-                        )?;
-
-                        let declare_tx =
-                            broadcasted_tx.create_sir_declare(class_hash, transaction_hash)?;
-
-                        Ok(starknet_in_rust::transaction::Transaction::Declare(declare_tx))
-                    }
-                    BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(
-                        broadcasted_tx,
-                    )) => {
-                        let declare_tx = broadcasted_tx
-                            .create_sir_declare(self.config.chain_id.to_felt().into())?;
-
-                        Ok(starknet_in_rust::transaction::Transaction::DeclareV2(Box::new(
-                            declare_tx,
-                        )))
-                    }
-                    BroadcastedTransaction::DeployAccount(broadcasted_tx) => {
-                        let deploy_tx = broadcasted_tx
-                            .create_sir_deploy_account(self.config.chain_id.to_felt().into())?;
-
-                        Ok(starknet_in_rust::transaction::Transaction::DeployAccount(deploy_tx))
-                    }
-                    BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(
-                        broadcasted_tx,
-                    )) => {
-                        let invoke_tx = broadcasted_tx
-                            .create_sir_invoke_function(self.config.chain_id.to_felt().into())?;
-
-                        Ok(starknet_in_rust::transaction::Transaction::InvokeFunction(invoke_tx))
-                    }
-                    BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V0(_)) => {
-                        Err(Error::UnsupportedAction { msg: "Invoke V0 is not supported".into() })
-                    }
-                })
-                .collect::<DevnetResult<Vec<starknet_in_rust::transaction::Transaction>>>()?,
-            state.pending_state.clone(),
-            &self.block_context,
-        )?;
-
-        // extract the gas usage because fee is always 0
-        Ok(estimation_pairs.into_iter().map(|(_, gas_usage)| gas_usage as u64).collect())
+    pub fn estimate_message_fee(
+        &self,
+        block_id: BlockId,
+        message: MsgFromL1,
+    ) -> DevnetResult<FeeEstimateWrapper> {
+        estimations::estimate_message_fee(self, block_id, message)
     }
 
     pub fn add_declare_transaction_v1(
@@ -460,11 +417,11 @@ impl Starknet {
         )
     }
 
-    pub fn add_invoke_transaction_v1(
+    pub fn add_invoke_transaction(
         &mut self,
-        invoke_transaction: BroadcastedInvokeTransactionV1,
+        invoke_transaction: BroadcastedInvokeTransaction,
     ) -> DevnetResult<TransactionHash> {
-        add_invoke_transaction::add_invoke_transcation_v1(self, invoke_transaction)
+        add_invoke_transaction::add_invoke_transaction(self, invoke_transaction)
     }
 
     /// Creates an invoke tx for minting, using the chargeable account.
@@ -504,7 +461,7 @@ impl Starknet {
         );
         let signature = signer.sign_hash(&msg_hash_felt).await?;
 
-        let invoke_tx = BroadcastedInvokeTransactionV1 {
+        let invoke_tx = BroadcastedInvokeTransaction {
             sender_address: ContractAddress::new(chargeable_address_felt)?,
             calldata: raw_execution.raw_calldata().into_iter().map(|c| c.into()).collect(),
             common: BroadcastedTransactionCommon {
@@ -516,7 +473,7 @@ impl Starknet {
         };
 
         // apply the invoke tx
-        self.add_invoke_transaction_v1(invoke_tx)
+        self.add_invoke_transaction(invoke_tx)
     }
 
     pub fn block_state_update(&self, block_id: BlockId) -> DevnetResult<StateUpdate> {
@@ -621,7 +578,7 @@ impl Starknet {
     pub fn get_transaction_receipt_by_hash(
         &self,
         transaction_hash: TransactionHash,
-    ) -> DevnetResult<TransactionReceiptWithStatus> {
+    ) -> DevnetResult<TransactionReceipt> {
         let transaction_to_map =
             self.transactions.get(&transaction_hash).ok_or(Error::NoTransaction)?;
 

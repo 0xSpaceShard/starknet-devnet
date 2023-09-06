@@ -198,9 +198,9 @@ mod tests {
     use super::StarknetState;
     use crate::error::Error;
     use crate::traits::{StateChanger, StateExtractor};
+    use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{
-        dummy_cairo_0_contract_class, dummy_contract_address, dummy_contract_storage_key,
-        dummy_felt,
+        dummy_contract_address, dummy_contract_storage_key, dummy_felt,
     };
 
     #[test]

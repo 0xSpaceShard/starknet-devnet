@@ -1,7 +1,7 @@
 use broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
-use broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
+use broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
 use declare_transaction_v0v1::DeclareTransactionV0V1;
 use declare_transaction_v2::DeclareTransactionV2;
 use deploy_account_transaction::DeployAccountTransaction;
@@ -9,8 +9,8 @@ use deploy_transaction::DeployTransaction;
 use invoke_transaction_v1::InvokeTransactionV1;
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
-use starknet_api::transaction::{EthAddress, Fee};
-use starknet_rs_core::types::{BlockId, TransactionStatus};
+use starknet_api::transaction::Fee;
+use starknet_rs_core::types::{BlockId, ExecutionResult, TransactionFinalityStatus};
 
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
@@ -18,11 +18,14 @@ use crate::felt::{
     BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash, TransactionSignature,
     TransactionVersion,
 };
+use crate::rpc::transaction_receipt::{
+    CommonTransactionReceipt, MaybePendingProperties, TransactionOutput,
+};
 
 pub mod broadcasted_declare_transaction_v1;
 pub mod broadcasted_declare_transaction_v2;
 pub mod broadcasted_deploy_account_transaction;
-pub mod broadcasted_invoke_transaction_v1;
+pub mod broadcasted_invoke_transaction;
 
 pub mod declare_transaction_v0v1;
 pub mod declare_transaction_v2;
@@ -101,8 +104,10 @@ impl Transaction {
     pub fn create_common_receipt(
         &self,
         transaction_events: &[Event],
-        block_hash: &BlockHash,
-        block_number: BlockNumber,
+        block_hash: Option<&BlockHash>,
+        block_number: Option<BlockNumber>,
+        execution_result: &ExecutionResult,
+        finality_status: Option<TransactionFinalityStatus>,
     ) -> CommonTransactionReceipt {
         let r#type = self.get_type();
 
@@ -112,12 +117,18 @@ impl Transaction {
             events: transaction_events.to_vec(),
         };
 
+        let maybe_pending_properties = MaybePendingProperties {
+            block_number,
+            block_hash: block_hash.cloned(),
+            finality_status,
+        };
+
         CommonTransactionReceipt {
             r#type,
             transaction_hash: *self.get_transaction_hash(),
-            block_hash: *block_hash,
-            block_number,
             output,
+            execution_status: execution_result.clone(),
+            maybe_pending_properties,
         }
     }
 }
@@ -154,7 +165,6 @@ pub struct InvokeTransactionV0 {
     pub max_fee: Fee,
     pub version: TransactionVersion,
     pub signature: TransactionSignature,
-    pub nonce: Nonce,
     pub contract_address: ContractAddress,
     pub entry_point_selector: EntryPointSelector,
     pub calldata: Calldata,
@@ -213,54 +223,6 @@ impl L1HandlerTransaction {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct TransactionReceiptWithStatus {
-    pub status: TransactionStatus,
-    #[serde(flatten)]
-    pub receipt: TransactionReceipt,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum TransactionReceipt {
-    Deploy(DeployTransactionReceipt),
-    Common(CommonTransactionReceipt),
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct DeployTransactionReceipt {
-    #[serde(flatten)]
-    pub common: CommonTransactionReceipt,
-    pub contract_address: ContractAddress,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct CommonTransactionReceipt {
-    pub r#type: TransactionType,
-    pub transaction_hash: TransactionHash,
-    pub block_hash: BlockHash,
-    pub block_number: BlockNumber,
-    #[serde(flatten)]
-    pub output: TransactionOutput,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct TransactionOutput {
-    pub actual_fee: Fee,
-    pub messages_sent: Vec<MessageToL1>,
-    pub events: Vec<Event>,
-}
-
-pub type L2ToL1Payload = Vec<Felt>;
-
-/// An L2 to L1 message.
-#[derive(Debug, Default, Clone, Eq, PartialEq, Deserialize, Serialize)]
-pub struct MessageToL1 {
-    pub from_address: ContractAddress,
-    pub to_address: EthAddress,
-    pub payload: L2ToL1Payload,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct EventFilter {
     pub from_block: Option<BlockId>,
@@ -305,23 +267,7 @@ pub enum BroadcastedTransaction {
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
-pub enum BroadcastedInvokeTransaction {
-    V0(BroadcastedInvokeTransactionV0),
-    V1(BroadcastedInvokeTransactionV1),
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-#[serde(untagged)]
 pub enum BroadcastedDeclareTransaction {
     V1(Box<BroadcastedDeclareTransactionV1>),
     V2(Box<BroadcastedDeclareTransactionV2>),
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-pub struct BroadcastedInvokeTransactionV0 {
-    #[serde(flatten)]
-    pub common: BroadcastedTransactionCommon,
-    pub contract_address: ContractAddress,
-    pub entry_point_selector: EntryPointSelector,
-    pub calldata: Calldata,
 }

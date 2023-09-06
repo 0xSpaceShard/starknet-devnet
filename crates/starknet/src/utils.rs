@@ -55,6 +55,7 @@ pub(crate) mod test_utils {
         DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
     };
     use crate::starknet::StarknetConfig;
+    use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
 
     pub fn starknet_config_for_test() -> StarknetConfig {
         StarknetConfig {
@@ -78,16 +79,6 @@ pub(crate) mod test_utils {
             ContractAddress::new(Felt::from_prefixed_hex_str("0xFE").unwrap()).unwrap(),
             StorageKey::try_from(dummy_felt()).unwrap(),
         )
-    }
-
-    pub(crate) fn dummy_cairo_0_contract_class() -> Cairo0Json {
-        let json_str = std::fs::read_to_string(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/cairo_0_test.json"
-        ))
-        .unwrap();
-
-        Cairo0Json::raw_json_from_json_str(&json_str).unwrap()
     }
 
     pub(crate) fn dummy_cairo_1_contract_class() -> SierraContractClass {
@@ -161,6 +152,31 @@ pub(crate) mod test_utils {
         result[starting_idx..ending_idx].copy_from_slice(&num_bytes[..(ending_idx - starting_idx)]);
 
         result
+    }
+}
+
+#[cfg(any(test, feature = "test_utils"))]
+pub mod exported_test_utils {
+    use starknet_types::contract_class::Cairo0Json;
+
+    pub fn dummy_cairo_l1l2_contract() -> Cairo0Json {
+        let json_str = std::fs::read_to_string(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test_artifacts/cairo_0_l1l2.json"
+        ))
+        .unwrap();
+
+        Cairo0Json::raw_json_from_json_str(&json_str).unwrap()
+    }
+
+    pub fn dummy_cairo_0_contract_class() -> Cairo0Json {
+        let json_str = std::fs::read_to_string(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test_artifacts/cairo_0_test.json"
+        ))
+        .unwrap();
+
+        Cairo0Json::raw_json_from_json_str(&json_str).unwrap()
     }
 }
 

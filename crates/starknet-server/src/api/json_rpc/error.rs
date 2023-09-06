@@ -64,7 +64,7 @@ mod tests {
     fn transaction_not_found_error() {
         error_expected_code_and_message(
             ApiError::TransactionNotFound,
-            25,
+            29,
             "Transaction hash not found",
         );
     }

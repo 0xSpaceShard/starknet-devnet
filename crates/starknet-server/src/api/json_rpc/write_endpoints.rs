@@ -1,7 +1,6 @@
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
-use starknet_types::rpc::transactions::{
-    BroadcastedDeclareTransaction, BroadcastedInvokeTransaction,
-};
+use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
+use starknet_types::rpc::transactions::BroadcastedDeclareTransaction;
 
 use super::error::ApiError;
 use super::models::{
@@ -57,23 +56,9 @@ impl JsonRpcHandler {
         &self,
         request: BroadcastedInvokeTransaction,
     ) -> RpcResult<InvokeTransactionOutput> {
-        let hash = match request {
-            BroadcastedInvokeTransaction::V0(_) => {
-                Err(ApiError::UnsupportedAction { msg: "Invoke V0 is not supported".into() })
-            }
-            BroadcastedInvokeTransaction::V1(invoke_transaction) => {
-                let res = self
-                    .api
-                    .starknet
-                    .write()
-                    .await
-                    .add_invoke_transaction_v1(invoke_transaction)?;
+        let transaction_hash = self.api.starknet.write().await.add_invoke_transaction(request)?;
 
-                Ok(res)
-            }
-        }?;
-
-        Ok(InvokeTransactionOutput { transaction_hash: hash })
+        Ok(InvokeTransactionOutput { transaction_hash })
     }
 }
 

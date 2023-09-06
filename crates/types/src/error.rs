@@ -26,6 +26,8 @@ pub enum Error {
     TransactionError(#[from] starknet_in_rust::transaction::error::TransactionError),
     #[error(transparent)]
     IoError(#[from] std::io::Error),
+    #[error(transparent)]
+    FromHexError(#[from] starknet_rs_core::types::eth_address::FromHexError),
 }
 
 #[derive(Error, Debug)]

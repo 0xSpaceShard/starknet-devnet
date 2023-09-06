@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use server::rpc_core::error::RpcError;
 use server::rpc_core::response::ResponseResult;
 use server::rpc_handler::RpcHandler;
+use starknet_types::rpc::estimate_message_fee::EstimateMessageFeeRequestWrapper;
 use tracing::{error, info, trace};
 
 use self::error::ApiError;
@@ -58,7 +59,7 @@ impl<T: Serialize> ToRpcResponseResult for RpcResult<T> {
                     data: None,
                 },
                 err @ ApiError::TransactionNotFound => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(25),
+                    code: server::rpc_core::error::ErrorCode::ServerError(29),
                     message: err.to_string().into(),
                     data: None,
                 },
@@ -226,11 +227,15 @@ impl JsonRpcHandler {
             StarknetRequest::AddInvokeTransaction(BroadcastedInvokeTransactionInput {
                 invoke_transaction,
             }) => self.add_invoke_transaction(invoke_transaction).await.to_rpc_result(),
+            StarknetRequest::EstimateMessageFee(request) => self
+                .estimate_message_fee(request.get_block_id(), request.get_raw_message().clone())
+                .await
+                .to_rpc_result(),
         }
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Deserialize, Eq)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "method", content = "params")]
 pub enum StarknetRequest {
     #[serde(rename = "starknet_getBlockWithTxHashes")]
@@ -279,6 +284,8 @@ pub enum StarknetRequest {
     AddDeployAccountTransaction(BroadcastedDeployAccountTransactionInput),
     #[serde(rename = "starknet_addInvokeTransaction")]
     AddInvokeTransaction(BroadcastedInvokeTransactionInput),
+    #[serde(rename = "starknet_estimateMessageFee")]
+    EstimateMessageFee(EstimateMessageFeeRequestWrapper),
 }
 
 impl std::fmt::Display for StarknetRequest {
@@ -319,6 +326,7 @@ impl std::fmt::Display for StarknetRequest {
                 write!(f, "starknet_addDeployAccountTransaction")
             }
             StarknetRequest::AddInvokeTransaction(_) => write!(f, "starknet_addInvokeTransaction"),
+            StarknetRequest::EstimateMessageFee(_) => write!(f, "starknet_estimateMessageFee"),
         }
     }
 }

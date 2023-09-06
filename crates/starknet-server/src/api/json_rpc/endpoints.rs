@@ -2,26 +2,27 @@ use starknet_core::error::Error;
 use starknet_in_rust::core::errors::state_errors::StateError;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_in_rust::utils::Address;
-use starknet_rs_core::types::ContractClass as CodegenContractClass;
+use starknet_rs_core::types::{ContractClass as CodegenContractClass, MsgFromL1};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
-use starknet_types::rpc::block::{Block, BlockHeader};
+use starknet_types::rpc::block::{Block, BlockHeader, BlockId};
+use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
+use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
     BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, Transaction,
-    TransactionReceiptWithStatus,
 };
 use starknet_types::starknet_api::block::BlockNumber;
 use starknet_types::traits::ToHexString;
 
 use super::error::ApiError;
-use super::models::{BlockHashAndNumberOutput, EstimateFeeOutput, SyncingOutput};
+use super::models::{BlockHashAndNumberOutput, SyncingOutput};
 use super::JsonRpcHandler;
 use crate::api::json_rpc::error::RpcResult;
 use crate::api::models::state::{
     ClassHashes, ContractNonce, DeployedContract, StateUpdate, StorageDiff, StorageEntry,
     ThinStateDiff,
 };
-use crate::api::models::{BlockId, PatriciaKeyHex};
+use crate::api::models::PatriciaKeyHex;
 
 const DEFAULT_CONTINUATION_TOKEN: &str = "0";
 
@@ -168,7 +169,7 @@ impl JsonRpcHandler {
     pub(crate) async fn get_transaction_receipt_by_hash(
         &self,
         transaction_hash: TransactionHash,
-    ) -> RpcResult<TransactionReceiptWithStatus> {
+    ) -> RpcResult<TransactionReceipt> {
         match self.api.starknet.read().await.get_transaction_receipt_by_hash(transaction_hash) {
             Ok(receipt) => Ok(receipt),
             Err(Error::NoTransaction) => Err(ApiError::TransactionNotFound),
@@ -266,18 +267,25 @@ impl JsonRpcHandler {
         &self,
         block_id: BlockId,
         request: Vec<BroadcastedTransaction>,
-    ) -> RpcResult<Vec<EstimateFeeOutput>> {
-        // TODO: move EstimateFeeOutput to types
+    ) -> RpcResult<Vec<FeeEstimateWrapper>> {
         let starknet = self.api.starknet.read().await;
-        match starknet.estimate_gas_usage(block_id.into(), &request) {
-            Ok(result) => Ok(result
-                .iter()
-                .map(|gas_consumed| EstimateFeeOutput {
-                    gas_consumed: format!("0x{gas_consumed:x}"),
-                    gas_price: format!("0x{:x}", starknet.config.gas_price),
-                    overall_fee: format!("0x{:x}", starknet.config.gas_price * gas_consumed),
-                })
-                .collect()),
+        match starknet.estimate_fee(block_id.into(), &request) {
+            Ok(result) => Ok(result),
+            Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
+            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
+            Err(err) => Err(ApiError::ContractError { msg: err.to_string() }),
+        }
+    }
+
+    pub(crate) async fn estimate_message_fee(
+        &self,
+        block_id: BlockId,
+        message: MsgFromL1,
+    ) -> RpcResult<FeeEstimateWrapper> {
+        match self.api.starknet.read().await.estimate_message_fee(block_id.into(), message) {
+            Ok(result) => Ok(result),
+            Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
+            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(err) => Err(ApiError::ContractError { msg: err.to_string() }),
         }
     }

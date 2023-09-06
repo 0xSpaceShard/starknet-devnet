@@ -6,13 +6,14 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
     use starknet_core::constants::CAIRO_0_ACCOUNT_CONTRACT_HASH;
     use starknet_rs_accounts::{
-        Account, AccountFactory, OpenZeppelinAccountFactory, SingleOwnerAccount,
+        Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::{
         BlockId, BlockTag, BroadcastedDeclareTransactionV1, FieldElement,
-        MaybePendingTransactionReceipt, StarknetError, TransactionReceipt, TransactionStatus,
+        MaybePendingTransactionReceipt, PendingTransactionReceipt, StarknetError,
+        TransactionReceipt,
     };
     use starknet_rs_core::utils::get_udc_deployed_address;
     use starknet_rs_providers::{
@@ -88,8 +89,13 @@ mod get_transaction_receipt_by_hash_integration_tests {
         let signer = LocalWallet::from(SigningKey::from_secret_scalar(private_key.into()));
         let address = FieldElement::from(account_address);
 
-        let mut predeployed_account =
-            SingleOwnerAccount::new(devnet.clone_provider(), signer, address, chain_id::TESTNET);
+        let mut predeployed_account = SingleOwnerAccount::new(
+            devnet.clone_provider(),
+            signer,
+            address,
+            chain_id::TESTNET,
+            ExecutionEncoding::Legacy,
+        );
 
         // `SingleOwnerAccount` defaults to checking nonce and estimating fees against the latest
         // block. Optionally change the target block to pending with the following line:
@@ -160,15 +166,20 @@ mod get_transaction_receipt_by_hash_integration_tests {
             .await
             .unwrap();
 
-        let result: starknet_rs_core::types::MaybePendingTransactionReceipt = devnet
+        let result: MaybePendingTransactionReceipt = devnet
             .json_rpc_client
             .get_transaction_receipt(declare_transaction.transaction_hash)
             .await
             .unwrap();
 
         match result {
-            MaybePendingTransactionReceipt::Receipt(TransactionReceipt::Declare(declare)) => {
-                assert_eq!(declare.status, TransactionStatus::Rejected);
+            MaybePendingTransactionReceipt::PendingReceipt(PendingTransactionReceipt::Declare(
+                declare,
+            )) => {
+                assert_eq!(
+                    declare.execution_result.revert_reason(),
+                    Some("Invalid transaction nonce. Expected: 0 got 1")
+                );
             }
             _ => panic!("Invalid result: {result:?}"),
         }
