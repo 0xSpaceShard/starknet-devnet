@@ -133,7 +133,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
             )) => {
                 assert_eq!(
                     declare.execution_result.revert_reason(),
-                    Some("Invalid transaction nonce. Expected: 0 got 1")
+                    Some("Invalid transaction nonce. Expected: 0, got 1")
                 );
             }
             _ => panic!("Invalid result: {result:?}"),
