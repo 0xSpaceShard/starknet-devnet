@@ -224,7 +224,7 @@ mod tests {
         assert_eq!(transaction.finality_status, None);
         assert_eq!(
             transaction.execution_result.revert_reason(),
-            Some(format!("Invalid transaction nonce. Expected: 1, got {}", nonce).as_str())
+            Some(format!("Invalid transaction nonce. Expected: 1 got {}", nonce).as_str())
         );
     }
 
