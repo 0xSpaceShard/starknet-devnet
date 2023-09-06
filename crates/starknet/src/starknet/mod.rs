@@ -13,9 +13,6 @@ use starknet_in_rust::definitions::constants::{
     DEFAULT_VALIDATE_MAX_N_STEPS,
 };
 
-use std::time::{Duration, Instant};
-use std::thread::sleep;
-
 use starknet_in_rust::execution::TransactionExecutionInfo;
 use starknet_in_rust::state::state_api::State;
 use starknet_in_rust::state::BlockInfo;
@@ -199,7 +196,10 @@ impl Starknet {
                                 contract,
                                 tx.version,
                             );
-                            let _result = this.add_declare_transaction_v1(declare_tx);
+                            let result = this.add_declare_transaction_v1(declare_tx);
+                            if result.is_err() {
+                                panic!("Failed to add BroadcastedDeclareTransactionV1");
+                            }
                         } else {
                             panic!("Failed to load Cairo0ContractClass");
                         };
@@ -219,7 +219,10 @@ impl Starknet {
                                 tx.nonce,
                                 tx.version
                             );
-                            let _result = this.add_declare_transaction_v2(declare_tx);
+                            let result = this.add_declare_transaction_v2(declare_tx);
+                            if result.is_err() {
+                                panic!("Failed to add BroadcastedDeclareTransactionV2");
+                            }
                         } else {
                             panic!("Failed to load SierraContractClass");
                         };
@@ -235,9 +238,13 @@ impl Starknet {
                             tx.version,
                         );
                         let result = this.add_deploy_account_transaction(deploy_tx_v1);
+                        if result.is_err() {
+                            panic!("Failed to add BroadcastedDeployAccountTransaction");
+                        }
                     },
                     Transaction::Deploy(tx) => {
-                        panic!("DeployTransaction is not supported");
+                        panic!("TODO");
+                        this.add_deploy_transaction(deploy_account_transaction)
                     },
                     Transaction::Invoke(InvokeTransaction::Version0(tx)) => {
                         panic!("InvokeTransactionV0 is not supported");
@@ -255,7 +262,6 @@ impl Starknet {
                     },
                     Transaction::L1Handler(tx) => {
                         panic!("L1HandlerTransaction is not supported");
-
                     },
                 };
             }
