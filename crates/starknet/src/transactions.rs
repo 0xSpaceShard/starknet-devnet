@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::hash_map::Keys;
 
 use starknet_api::block::BlockNumber;
 use starknet_in_rust::execution::{CallInfo, TransactionExecutionInfo};
@@ -29,6 +30,10 @@ impl StarknetTransactions {
 
     pub fn get(&self, transaction_hash: &TransactionHash) -> Option<&StarknetTransaction> {
         self.0.get(transaction_hash)
+    }
+
+    pub fn iter(&self) -> std::collections::hash_map::Iter<'_, Felt, StarknetTransaction>{
+        self.0.iter()
     }
 
     pub fn count(&self) -> usize {

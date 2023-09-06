@@ -39,7 +39,7 @@ use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::Broadc
 use starknet_types::rpc::transactions::invoke_transaction_v1::InvokeTransactionV1;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
-    BroadcastedTransactionCommon, Transaction, TransactionReceiptWithStatus, Transactions, InvokeTransaction,
+    BroadcastedTransactionCommon, Transaction, TransactionReceiptWithStatus, Transactions, InvokeTransaction, DeclareTransaction,
 };
 use starknet_types::traits::HashProducer;
 use tracing::error;
@@ -173,43 +173,94 @@ impl Starknet {
         };
 
         this.restart_pending_block()?;
-        let hash = TransactionHash::from_prefixed_hex_str("0xb6a30e9e90f553377027bf4f32bc43d2d36eaeb3c23ad26bfbd078676eb0d").unwrap();
-        let txs = transactions.unwrap();
-        let transaction = txs.get(&hash).unwrap();
-        println!("this.transaction: {:?}", transaction);
-        println!("this.transactions.count(): {:?}", this.transactions.count());
-      
-        match transaction.inner.clone() {
-            Transaction::Declare(tx) => {},
-            Transaction::DeployAccount(tx) => {},
-            Transaction::Deploy(tx) => {},
-            Transaction::Invoke(InvokeTransaction::Version0(tx)) => {
 
-            },
-            Transaction::Invoke(InvokeTransaction::Version1(tx)) => {
-                println!("BroadcastedInvokeTransactionV1");
-                let invoke_txn_v1 = BroadcastedInvokeTransactionV1::new(
-                    tx.sender_address,
-                    tx.max_fee,
-                    &tx.signature,
-                    tx.nonce,
-                    &tx.calldata,
-                    tx.version,
-                );
+        // TODO: Load state contracts... and implement it in dump...
 
-                let now = Instant::now();
-                let tx_hash = this.add_invoke_transaction_v1(invoke_txn_v1).unwrap();
-                println!("mili sec: {:.4?}", now.elapsed().as_millis());
+        if transactions.is_some() {
+            for (hash, transaction) in transactions.unwrap_or_default().iter() {
+                println!("hash: {:?}:", hash);
+                println!("transaction: {:?}:", transaction);
 
-                println!("tx_hash: {:?}", tx_hash);
-                println!("this.transactions.count(): {:?}", this.transactions.count());
-                let replay = this.transactions.get(&tx_hash).unwrap();
-                println!("replay tx: {:?}", replay.inner.get_transaction_hash());
+                match transaction.inner.clone() {
+                    Transaction::Declare(DeclareTransaction::Version0(tx)) => {
+                        panic!("DeclareTransactionV0V1 is not supported");
+                    },
+                    Transaction::Declare(DeclareTransaction::Version1(tx)) => {
+                        let contract_class = this.state.contract_classes.get(&tx.class_hash).expect("Failed to load SierraContractClass from state");
+                        if let ContractClass::Cairo0(
+                            contract
+                        ) = contract_class
+                        {
+                            let declare_tx = BroadcastedDeclareTransactionV1::new(
+                                tx.sender_address,
+                                tx.max_fee,
+                                &tx.signature,
+                                tx.nonce,
+                                contract,
+                                tx.version,
+                            );
+                            this.add_declare_transaction_v1(declare_tx)
+                        } else {
+                            panic!("Failed to load SierraContractClass");
+                        };
+                    },
+                    Transaction::Declare(DeclareTransaction::Version2(tx)) => {
+                        let contract_class = this.state.contract_classes.get(&tx.class_hash).expect("Failed to load SierraContractClass from state");
+                        if let ContractClass::Cairo1(
+                            contract
+                        ) = contract_class
+                        {
+                            let declare_tx = BroadcastedDeclareTransactionV2::new(
+                                contract,
+                                tx.compiled_class_hash,
+                                tx.sender_address,
+                                tx.max_fee,
+                                &tx.signature,
+                                tx.nonce,
+                                tx.version
+                            );
+                            this.add_declare_transaction_v2(declare_tx)
+                        } else {
+                            panic!("Failed to load SierraContractClass");
+                        };
+                    },
+                    Transaction::DeployAccount(tx) => {
+                        let deploy_tx_v1 = BroadcastedDeployAccountTransaction::new(
+                            &tx.constructor_calldata,
+                            tx.max_fee,
+                            &tx.signature,
+                            tx.nonce,
+                            tx.class_hash,
+                            tx.contract_address_salt,
+                            tx.version,
+                        );
+                        this.add_deploy_account_transaction(deploy_tx_v1);
+                    },
+                    Transaction::Deploy(tx) => {
+                        panic!("DeployTransaction is not supported");
+                    },
+                    Transaction::Invoke(InvokeTransaction::Version0(tx)) => {
+                        panic!("InvokeTransactionV0 is not supported");
+                    },
+                    Transaction::Invoke(InvokeTransaction::Version1(tx)) => {
+                        let invoke_tx_v1 = BroadcastedInvokeTransactionV1::new(
+                            tx.sender_address,
+                            tx.max_fee,
+                            &tx.signature,
+                            tx.nonce,
+                            &tx.calldata,
+                            tx.version,
+                        );
+                        this.add_invoke_transaction_v1(invoke_tx_v1).unwrap();
+                    },
+                    Transaction::L1Handler(tx) => {
+                        panic!("L1HandlerTransaction is not supported");
 
-            },
-            Transaction::L1Handler(tx) => {},
-        };
-
+                    },
+                };
+            }
+        }
+        
         Ok(this)
     }
 
