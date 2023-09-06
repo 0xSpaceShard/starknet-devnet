@@ -4,7 +4,10 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
     use std::sync::Arc;
 
-    use starknet_rs_accounts::{Account, AccountFactory, ExecutionEncoding, SingleOwnerAccount};
+    use starknet_core::constants::CAIRO_0_ACCOUNT_CONTRACT_HASH;
+    use starknet_rs_accounts::{
+        Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
+    };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::{
