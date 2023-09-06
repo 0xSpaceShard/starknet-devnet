@@ -1,5 +1,4 @@
 use cairo_felt::Felt252;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_in_rust::transaction::L1Handler as SirL1Handler;
 use starknet_in_rust::utils::Address as SirAddress;
 use starknet_rs_core::types::requests::EstimateMessageFeeRequest;
@@ -87,16 +86,5 @@ impl EstimateMessageFeeRequestWrapper {
     }
 }
 
-impl Serialize for EstimateMessageFeeRequestWrapper {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        EstimateMessageFeeRequest::serialize(&self.inner, serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for EstimateMessageFeeRequestWrapper {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        Ok(EstimateMessageFeeRequestWrapper {
-            inner: EstimateMessageFeeRequest::deserialize(deserializer)?,
-        })
-    }
-}
+impl_wrapper_serialize!(EstimateMessageFeeRequestWrapper);
+impl_wrapper_deserialize!(EstimateMessageFeeRequestWrapper, EstimateMessageFeeRequest);

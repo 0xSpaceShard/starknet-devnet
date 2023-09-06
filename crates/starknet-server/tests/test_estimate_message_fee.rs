@@ -1,6 +1,8 @@
 pub mod common;
 
 mod test_estimate_message_fee {
+    const WHITELISTED_L1_ADDRESS: &str = "0x8359E4B0152ed5A731162D3c7B0D8D56edB165A0";
+
     use std::sync::Arc;
 
     use starknet_core::utils::exported_test_utils::dummy_cairo_l1l2_contract;
@@ -69,10 +71,7 @@ mod test_estimate_message_fee {
             .json_rpc_client
             .estimate_message_fee(
                 MsgFromL1 {
-                    from_address: EthAddress::from_hex(
-                        "0x8359E4B0152ed5A731162D3c7B0D8D56edB165A0",
-                    )
-                    .unwrap(),
+                    from_address: EthAddress::from_hex(WHITELISTED_L1_ADDRESS).unwrap(),
                     to_address: contract_address,
                     entry_point_selector: FieldElement::from_hex_be(
                         "0xc73f681176fc7b3f9693986fd7b14581e8d540519e27400e88b8713932be01",
@@ -96,10 +95,7 @@ mod test_estimate_message_fee {
             .json_rpc_client
             .estimate_message_fee(
                 MsgFromL1 {
-                    from_address: EthAddress::from_hex(
-                        "0x8359E4B0152ed5A731162D3c7B0D8D56edB165A0",
-                    )
-                    .unwrap(),
+                    from_address: EthAddress::from_hex(WHITELISTED_L1_ADDRESS).unwrap(),
                     to_address: FieldElement::from_hex_be("0x1").unwrap(),
                     entry_point_selector: FieldElement::from_hex_be(
                         "0xc73f681176fc7b3f9693986fd7b14581e8d540519e27400e88b8713932be01",
@@ -129,10 +125,7 @@ mod test_estimate_message_fee {
             .json_rpc_client
             .estimate_message_fee(
                 MsgFromL1 {
-                    from_address: EthAddress::from_hex(
-                        "0x8359E4B0152ed5A731162D3c7B0D8D56edB165A0",
-                    )
-                    .unwrap(),
+                    from_address: EthAddress::from_hex(WHITELISTED_L1_ADDRESS).unwrap(),
                     to_address: FieldElement::from_hex_be("0x1").unwrap(),
                     entry_point_selector: FieldElement::from_hex_be(
                         "0xc73f681176fc7b3f9693986fd7b14581e8d540519e27400e88b8713932be01",
