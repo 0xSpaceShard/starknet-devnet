@@ -186,7 +186,7 @@ impl Starknet {
                         panic!("DeclareTransactionV0V1 is not supported");
                     },
                     Transaction::Declare(DeclareTransaction::Version1(tx)) => {
-                        let contract_class = this.state.contract_classes.get(&tx.class_hash).expect("Failed to load SierraContractClass from state");
+                        let contract_class = this.state.contract_classes.get(&tx.class_hash).expect("Failed to load Cairo0ContractClass from state");
                         if let ContractClass::Cairo0(
                             contract
                         ) = contract_class
@@ -199,9 +199,9 @@ impl Starknet {
                                 contract,
                                 tx.version,
                             );
-                            this.add_declare_transaction_v1(declare_tx)
+                            let _result = this.add_declare_transaction_v1(declare_tx);
                         } else {
-                            panic!("Failed to load SierraContractClass");
+                            panic!("Failed to load Cairo0ContractClass");
                         };
                     },
                     Transaction::Declare(DeclareTransaction::Version2(tx)) => {
@@ -219,7 +219,7 @@ impl Starknet {
                                 tx.nonce,
                                 tx.version
                             );
-                            this.add_declare_transaction_v2(declare_tx)
+                            let _result = this.add_declare_transaction_v2(declare_tx);
                         } else {
                             panic!("Failed to load SierraContractClass");
                         };
@@ -234,7 +234,7 @@ impl Starknet {
                             tx.contract_address_salt,
                             tx.version,
                         );
-                        this.add_deploy_account_transaction(deploy_tx_v1);
+                        let result = this.add_deploy_account_transaction(deploy_tx_v1);
                     },
                     Transaction::Deploy(tx) => {
                         panic!("DeployTransaction is not supported");
