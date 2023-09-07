@@ -174,9 +174,9 @@ impl Starknet {
         // TODO: Load new not initial contracts here
 
         if transactions.is_some() {
-            for (hash, transaction) in transactions.unwrap_or_default().iter() {
+            for (_hash, transaction) in transactions.unwrap_or_default().iter() {
                 match transaction.inner.clone() {
-                    Transaction::Declare(DeclareTransaction::Version0(tx)) => {
+                    Transaction::Declare(DeclareTransaction::Version0(_tx)) => {
                         panic!("DeclareTransactionV0V1 is not supported");
                     },
                     Transaction::Declare(DeclareTransaction::Version1(tx)) => {
@@ -239,11 +239,11 @@ impl Starknet {
                             panic!("Failed to add BroadcastedDeployAccountTransaction");
                         }
                     },
-                    Transaction::Deploy(tx) => {
+                    Transaction::Deploy(_tx) => {
                         panic!("DeployTransaction is not supported");
 
                     },
-                    Transaction::Invoke(InvokeTransaction::Version0(tx)) => {
+                    Transaction::Invoke(InvokeTransaction::Version0(_tx)) => {
                         panic!("InvokeTransactionV0 is not supported");
                     },
                     Transaction::Invoke(InvokeTransaction::Version1(tx)) => {
@@ -257,7 +257,7 @@ impl Starknet {
                         );
                         this.add_invoke_transaction_v1(invoke_tx_v1).unwrap();
                     },
-                    Transaction::L1Handler(tx) => {
+                    Transaction::L1Handler(_tx) => {
                         panic!("L1HandlerTransaction is not supported");
                     },
                 };
