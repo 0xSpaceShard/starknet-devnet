@@ -12,7 +12,6 @@ use starknet_core::constants::{
 use starknet_core::starknet::{DumpMode, Starknet};
 use starknet_core::transactions::StarknetTransactions;
 use starknet_types::felt::Felt;
-use starknet_types::rpc::transactions::Transaction;
 use starknet_types::traits::{ToDecimalString, ToHexString};
 use tokio::signal;
 use tracing::info;
@@ -22,10 +21,10 @@ mod api;
 mod cli;
 mod server;
 
+use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
-use std::{fs, io};
 
 /// Configures tracing with default level INFO,
 /// If the environment variable `RUST_LOG` is set, it will be used instead.
@@ -71,21 +70,18 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // Load StarknetTransactions from file
     let mut transactions: StarknetTransactions = StarknetTransactions::default();
-    match &starknet_config.dump_path {
-        Some(path) => {
-            let file_path = Path::new(path);
-            if file_path.exists() {
-                let mut file = File::open(file_path).expect("Failed to open file");
-                let mut v: Vec<u8> = Vec::new();
-                file.read_to_end(&mut v);
-                let decoded: Option<String> =
-                    bincode::deserialize(&v[..]).expect("Failed to deserialize transactions");
-                transactions = serde_json::from_str(decoded.unwrap().as_str())
-                    .expect("Failed to deecode transactions");
-                println!("{:?}", transactions)
-            }
+    if let Some(path) = &starknet_config.dump_path {
+        let file_path = Path::new(path);
+        if file_path.exists() {
+            let mut file = File::open(file_path).expect("Failed to open file");
+            let mut v: Vec<u8> = Vec::new();
+            file.read_to_end(&mut v).expect("Failed to read from file");
+            let decoded: Option<String> =
+                bincode::deserialize(&v[..]).expect("Failed to deserialize transactions");
+            transactions = serde_json::from_str(decoded.unwrap().as_str())
+                .expect("Failed to deecode transactions");
+            println!("{:?}", transactions)
         }
-        _ => {}
     }
 
     let api = api::Api::new(Starknet::new(&starknet_config, Some(transactions))?);
@@ -120,11 +116,11 @@ fn is_dump_on(dump_on: &Option<DumpMode>) -> bool {
     }
 }
 
-pub async fn shutdown_signal(api: Api) -> () {
-    tokio::signal::ctrl_c().await.expect("failed to install CTRL+C signal handler");
+pub async fn shutdown_signal(api: Api) {
+    tokio::signal::ctrl_c().await.expect("Failed to install CTRL+C signal handler");
 
     // Wait for the CTRL+C signal
-    signal::ctrl_c().await.map_err(|err| println!("{:?}", err));
+    signal::ctrl_c().await.expect("Failed to read CTRL+C signal");
 
     // Save StarknetTransactions do file
     let starknet: tokio::sync::RwLockReadGuard<'_, Starknet> = api.starknet.read().await;
@@ -146,12 +142,13 @@ pub async fn shutdown_signal(api: Api) -> () {
                     Felt::from_prefixed_hex_str(UDC_CONTRACT_CLASS_HASH).unwrap_or_default(),
                     Felt::from_prefixed_hex_str(ERC20_CONTRACT_CLASS_HASH).unwrap_or_default(),
                 ];
-                for (key, _value) in &starknet.state.contract_classes {
+                for (key, value) in &starknet.state.contract_classes {
                     if !init_contracts.contains(key) {
                         println!(
-                            "TODO: dump new contract with key: {:?}",
+                            "Dump new contract with key here: {:?}",
                             key.to_prefixed_hex_str()
                         );
+                        println!("contract: {:?}", value);
                     }
                 }
 
