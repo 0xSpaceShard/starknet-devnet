@@ -1,13 +1,15 @@
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
 
-use api::Api;
 use ::server::ServerConfig;
+use api::Api;
 use clap::Parser;
 use cli::Args;
 use starknet_core::account::Account;
-use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, UDC_CONTRACT_CLASS_HASH, ERC20_CONTRACT_CLASS_HASH};
-use starknet_core::starknet::{Starknet, DumpMode};
+use starknet_core::constants::{
+    CAIRO_0_ACCOUNT_CONTRACT_HASH, ERC20_CONTRACT_CLASS_HASH, UDC_CONTRACT_CLASS_HASH,
+};
+use starknet_core::starknet::{DumpMode, Starknet};
 use starknet_core::transactions::StarknetTransactions;
 use starknet_types::felt::Felt;
 use starknet_types::rpc::transactions::Transaction;
@@ -20,11 +22,10 @@ mod api;
 mod cli;
 mod server;
 
-use std::fs;
-use std::path::Path;
-use std::io;
-use std::io::prelude::*;
 use std::fs::File;
+use std::io::prelude::*;
+use std::path::Path;
+use std::{fs, io};
 
 /// Configures tracing with default level INFO,
 /// If the environment variable `RUST_LOG` is set, it will be used instead.
@@ -77,12 +78,14 @@ async fn main() -> Result<(), anyhow::Error> {
                 let mut file = File::open(file_path).expect("Failed to open file");
                 let mut v: Vec<u8> = Vec::new();
                 file.read_to_end(&mut v);
-                let decoded: Option<String> = bincode::deserialize(&v[..]).expect("Failed to deserialize transactions");
-                transactions = serde_json::from_str(decoded.unwrap().as_str()).expect("Failed to deecode transactions");
+                let decoded: Option<String> =
+                    bincode::deserialize(&v[..]).expect("Failed to deserialize transactions");
+                transactions = serde_json::from_str(decoded.unwrap().as_str())
+                    .expect("Failed to deecode transactions");
                 println!("{:?}", transactions)
             }
-        },
-        _ => {},
+        }
+        _ => {}
     }
 
     let api = api::Api::new(Starknet::new(&starknet_config, Some(transactions))?);
@@ -110,42 +113,52 @@ async fn main() -> Result<(), anyhow::Error> {
     Ok(serve.await??)
 }
 
-fn is_dump_on(dump_on: &Option<DumpMode> ) -> bool {
+fn is_dump_on(dump_on: &Option<DumpMode>) -> bool {
     match dump_on {
         None => false,
-        Some(dump_on) => {
-            *dump_on == DumpMode::OnExit
-        },
+        Some(dump_on) => *dump_on == DumpMode::OnExit,
     }
 }
 
-pub async fn shutdown_signal(api: Api) -> (){
-    tokio::signal::ctrl_c()
-        .await
-        .expect("failed to install CTRL+C signal handler");
+pub async fn shutdown_signal(api: Api) -> () {
+    tokio::signal::ctrl_c().await.expect("failed to install CTRL+C signal handler");
 
     // Wait for the CTRL+C signal
-    signal::ctrl_c().await;
+    signal::ctrl_c().await.map_err(|err| println!("{:?}", err));
 
     // Save StarknetTransactions do file
     let starknet: tokio::sync::RwLockReadGuard<'_, Starknet> = api.starknet.read().await;
     if is_dump_on(&starknet.config.dump_on) {
         match &starknet.config.dump_path {
             Some(path) => {
-                let data = Some(serde_json::to_string(&starknet.transactions).expect("Failed to serialize transactions"));
+                let data = Some(
+                    serde_json::to_string(&starknet.transactions)
+                        .expect("Failed to serialize transactions"),
+                );
 
                 // TODO: save new contracts from _contract_classes
-                let _contract_classes = Some(serde_json::to_string(&starknet.state.contract_classes).expect("Failed to serialize contract classes"));
-                let mut init_contracts = vec![Felt::from_prefixed_hex_str(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap_or_default(), Felt::from_prefixed_hex_str(UDC_CONTRACT_CLASS_HASH).unwrap_or_default(), Felt::from_prefixed_hex_str(ERC20_CONTRACT_CLASS_HASH).unwrap_or_default()];
+                let _contract_classes = Some(
+                    serde_json::to_string(&starknet.state.contract_classes)
+                        .expect("Failed to serialize contract classes"),
+                );
+                let init_contracts = vec![
+                    Felt::from_prefixed_hex_str(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap_or_default(),
+                    Felt::from_prefixed_hex_str(UDC_CONTRACT_CLASS_HASH).unwrap_or_default(),
+                    Felt::from_prefixed_hex_str(ERC20_CONTRACT_CLASS_HASH).unwrap_or_default(),
+                ];
                 for (key, _value) in &starknet.state.contract_classes {
-                    if !init_contracts.contains(key) { 
-                        println!("TODO: dump new contract with key: {:?}", key.to_prefixed_hex_str());
+                    if !init_contracts.contains(key) {
+                        println!(
+                            "TODO: dump new contract with key: {:?}",
+                            key.to_prefixed_hex_str()
+                        );
                     }
                 }
 
-                let encoded: Vec<u8> = bincode::serialize(&data).expect("Failed to encode transactions");
+                let encoded: Vec<u8> =
+                    bincode::serialize(&data).expect("Failed to encode transactions");
                 fs::write(Path::new(path), encoded).expect("Failed to save transactions");
-            },
+            }
             _ => info!("Failed to dump transactions, dump path is not set"),
         }
     }

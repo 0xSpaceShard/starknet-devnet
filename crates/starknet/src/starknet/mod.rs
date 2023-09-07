@@ -12,7 +12,6 @@ use starknet_in_rust::definitions::constants::{
     DEFAULT_GLOBAL_STATE_COMMITMENT_TREE_HEIGHT, DEFAULT_INVOKE_TX_MAX_N_STEPS,
     DEFAULT_VALIDATE_MAX_N_STEPS,
 };
-
 use starknet_in_rust::execution::TransactionExecutionInfo;
 use starknet_in_rust::state::state_api::State;
 use starknet_in_rust::state::BlockInfo;
@@ -33,10 +32,10 @@ use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::Broad
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
-use starknet_types::rpc::transactions::invoke_transaction_v1::InvokeTransactionV1;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedInvokeTransaction, BroadcastedTransaction,
-    BroadcastedTransactionCommon, Transaction, TransactionReceiptWithStatus, Transactions, InvokeTransaction, DeclareTransaction,
+    BroadcastedTransactionCommon, DeclareTransaction, InvokeTransaction, Transaction,
+    TransactionReceiptWithStatus, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::error;
@@ -116,7 +115,10 @@ pub struct Starknet {
 }
 
 impl Starknet {
-    pub fn new(config: &StarknetConfig, transactions: Option<StarknetTransactions>) -> DevnetResult<Self> {
+    pub fn new(
+        config: &StarknetConfig,
+        transactions: Option<StarknetTransactions>,
+    ) -> DevnetResult<Self> {
         let mut state = StarknetState::default();
         // deploy udc and erc20 contracts
         let erc20_fee_contract = predeployed::create_erc20()?;
@@ -155,7 +157,7 @@ impl Starknet {
 
         // copy already modified state to cached state
         state.synchronize_states();
-        
+
         let mut this: Starknet = Self {
             state,
             predeployed_accounts,
@@ -178,13 +180,14 @@ impl Starknet {
                 match transaction.inner.clone() {
                     Transaction::Declare(DeclareTransaction::Version0(_tx)) => {
                         panic!("DeclareTransactionV0V1 is not supported");
-                    },
+                    }
                     Transaction::Declare(DeclareTransaction::Version1(tx)) => {
-                        let contract_class = this.state.contract_classes.get(&tx.class_hash).expect("Failed to load Cairo0ContractClass from state");
-                        if let ContractClass::Cairo0(
-                            contract
-                        ) = contract_class
-                        {
+                        let contract_class = this
+                            .state
+                            .contract_classes
+                            .get(&tx.class_hash)
+                            .expect("Failed to load Cairo0ContractClass from state");
+                        if let ContractClass::Cairo0(contract) = contract_class {
                             let declare_tx = BroadcastedDeclareTransactionV1::new(
                                 tx.sender_address,
                                 tx.max_fee,
@@ -200,13 +203,14 @@ impl Starknet {
                         } else {
                             panic!("Failed to load Cairo0ContractClass");
                         };
-                    },
+                    }
                     Transaction::Declare(DeclareTransaction::Version2(tx)) => {
-                        let contract_class = this.state.contract_classes.get(&tx.class_hash).expect("Failed to load SierraContractClass from state");
-                        if let ContractClass::Cairo1(
-                            contract
-                        ) = contract_class
-                        {
+                        let contract_class = this
+                            .state
+                            .contract_classes
+                            .get(&tx.class_hash)
+                            .expect("Failed to load SierraContractClass from state");
+                        if let ContractClass::Cairo1(contract) = contract_class {
                             let declare_tx = BroadcastedDeclareTransactionV2::new(
                                 contract,
                                 tx.compiled_class_hash,
@@ -214,7 +218,7 @@ impl Starknet {
                                 tx.max_fee,
                                 &tx.signature,
                                 tx.nonce,
-                                tx.version
+                                tx.version,
                             );
                             let result = this.add_declare_transaction_v2(declare_tx);
                             if result.is_err() {
@@ -223,7 +227,7 @@ impl Starknet {
                         } else {
                             panic!("Failed to load SierraContractClass");
                         };
-                    },
+                    }
                     Transaction::DeployAccount(tx) => {
                         let deploy_account_tx = BroadcastedDeployAccountTransaction::new(
                             &tx.constructor_calldata,
@@ -238,14 +242,13 @@ impl Starknet {
                         if result.is_err() {
                             panic!("Failed to add BroadcastedDeployAccountTransaction");
                         }
-                    },
+                    }
                     Transaction::Deploy(_tx) => {
                         panic!("DeployTransaction is not supported");
-
-                    },
+                    }
                     Transaction::Invoke(InvokeTransaction::Version0(_tx)) => {
                         panic!("InvokeTransactionV0 is not supported");
-                    },
+                    }
                     Transaction::Invoke(InvokeTransaction::Version1(tx)) => {
                         let invoke_tx_v1 = BroadcastedInvokeTransactionV1::new(
                             tx.sender_address,
@@ -256,14 +259,14 @@ impl Starknet {
                             tx.version,
                         );
                         this.add_invoke_transaction_v1(invoke_tx_v1).unwrap();
-                    },
+                    }
                     Transaction::L1Handler(_tx) => {
                         panic!("L1HandlerTransaction is not supported");
-                    },
+                    }
                 };
             }
         }
-        
+
         Ok(this)
     }
 

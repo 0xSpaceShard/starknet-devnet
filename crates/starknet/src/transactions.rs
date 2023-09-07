@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use std::collections::hash_map::Keys;
 
+use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
 use starknet_in_rust::execution::{CallInfo, TransactionExecutionInfo};
 use starknet_in_rust::transaction::error::TransactionError;
@@ -17,7 +17,6 @@ use starknet_types::rpc::transactions::{
 use crate::constants::UDC_CONTRACT_ADDRESS;
 use crate::error::{DevnetResult, Error};
 use crate::traits::{HashIdentified, HashIdentifiedMut};
-use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct StarknetTransactions(HashMap<TransactionHash, StarknetTransaction>);
@@ -31,7 +30,7 @@ impl StarknetTransactions {
         self.0.get(transaction_hash)
     }
 
-    pub fn iter(&self) -> std::collections::hash_map::Iter<'_, Felt, StarknetTransaction>{
+    pub fn iter(&self) -> std::collections::hash_map::Iter<'_, Felt, StarknetTransaction> {
         self.0.iter()
     }
 
