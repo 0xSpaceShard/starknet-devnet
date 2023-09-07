@@ -171,13 +171,10 @@ impl Starknet {
 
         this.restart_pending_block()?;
 
-        // TODO: Load state contracts... and implement it in dump...
+        // TODO: Load new not initial contracts here
 
         if transactions.is_some() {
             for (hash, transaction) in transactions.unwrap_or_default().iter() {
-                println!("hash: {:?}:", hash);
-                println!("transaction: {:?}:", transaction);
-
                 match transaction.inner.clone() {
                     Transaction::Declare(DeclareTransaction::Version0(tx)) => {
                         panic!("DeclareTransactionV0V1 is not supported");
@@ -228,7 +225,7 @@ impl Starknet {
                         };
                     },
                     Transaction::DeployAccount(tx) => {
-                        let deploy_tx_v1 = BroadcastedDeployAccountTransaction::new(
+                        let deploy_account_tx = BroadcastedDeployAccountTransaction::new(
                             &tx.constructor_calldata,
                             tx.max_fee,
                             &tx.signature,
@@ -237,14 +234,14 @@ impl Starknet {
                             tx.contract_address_salt,
                             tx.version,
                         );
-                        let result = this.add_deploy_account_transaction(deploy_tx_v1);
+                        let result = this.add_deploy_account_transaction(deploy_account_tx);
                         if result.is_err() {
                             panic!("Failed to add BroadcastedDeployAccountTransaction");
                         }
                     },
                     Transaction::Deploy(tx) => {
-                        panic!("TODO");
-                        // this.add_deploy_transaction(deploy_account_transaction)
+                        panic!("DeployTransaction is not supported");
+
                     },
                     Transaction::Invoke(InvokeTransaction::Version0(tx)) => {
                         panic!("InvokeTransactionV0 is not supported");
