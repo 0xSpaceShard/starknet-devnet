@@ -19,8 +19,7 @@ use crate::error::{DevnetResult, Error};
 use crate::traits::{HashIdentified, HashIdentifiedMut};
 use serde::{Serialize, Deserialize};
 
-#[derive(Default)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct StarknetTransactions(HashMap<TransactionHash, StarknetTransaction>);
 
 impl StarknetTransactions {

@@ -107,7 +107,7 @@ impl Default for StarknetConfig {
 
 #[derive(Default)]
 pub struct Starknet {
-    pub(in crate::starknet) state: StarknetState,
+    pub state: StarknetState,
     predeployed_accounts: PredeployedAccounts,
     pub(in crate::starknet) block_context: BlockContext,
     blocks: StarknetBlocks,
@@ -244,7 +244,7 @@ impl Starknet {
                     },
                     Transaction::Deploy(tx) => {
                         panic!("TODO");
-                        this.add_deploy_transaction(deploy_account_transaction)
+                        // this.add_deploy_transaction(deploy_account_transaction)
                     },
                     Transaction::Invoke(InvokeTransaction::Version0(tx)) => {
                         panic!("InvokeTransactionV0 is not supported");

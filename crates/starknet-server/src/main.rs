@@ -6,6 +6,7 @@ use ::server::ServerConfig;
 use clap::Parser;
 use cli::Args;
 use starknet_core::account::Account;
+use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, UDC_CONTRACT_CLASS_HASH, ERC20_CONTRACT_CLASS_HASH};
 use starknet_core::starknet::{Starknet, DumpMode};
 use starknet_core::transactions::StarknetTransactions;
 use starknet_types::felt::Felt;
@@ -132,6 +133,16 @@ pub async fn shutdown_signal(api: Api) -> (){
         match &starknet.config.dump_path {
             Some(path) => {
                 let data = Some(serde_json::to_string(&starknet.transactions).expect("Failed to serialize transactions"));
+
+                // TODO: save new contracts from _contract_classes
+                let _contract_classes = Some(serde_json::to_string(&starknet.state.contract_classes).expect("Failed to serialize contract classes"));
+                let mut init_contracts = vec![Felt::from_prefixed_hex_str(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap_or_default(), Felt::from_prefixed_hex_str(UDC_CONTRACT_CLASS_HASH).unwrap_or_default(), Felt::from_prefixed_hex_str(ERC20_CONTRACT_CLASS_HASH).unwrap_or_default()];
+                for (key, _value) in &starknet.state.contract_classes {
+                    if !init_contracts.contains(key) { 
+                        println!("TODO: dump new contract with key: {:?}", key.to_prefixed_hex_str());
+                    }
+                }
+
                 let encoded: Vec<u8> = bincode::serialize(&data).expect("Failed to encode transactions");
                 fs::write(Path::new(path), encoded).expect("Failed to save transactions");
             },
