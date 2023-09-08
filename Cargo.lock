@@ -5041,7 +5041,7 @@ dependencies = [
 [[package]]
 name = "starknet_in_rust"
 version = "0.3.1"
-source = "git+https://github.com/lambdaclass/starknet_in_rust?rev=08c212b#08c212b958c7e8336d1150fe1c6e4cc75dad7a2a"
+source = "git+https://github.com/lambdaclass/starknet_in_rust?rev=89a36ff#89a36ff687f18f567214f3edd71b9618fa9ddf8b"
 dependencies = [
  "anyhow",
  "base64 0.21.2",
