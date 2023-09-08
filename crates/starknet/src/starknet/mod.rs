@@ -89,7 +89,7 @@ impl Default for StarknetConfig {
             host: String::default(),
             port: u16::default(),
             timeout: u16::default(),
-            gas_price: u64::default(),
+            gas_price: Default::default(),
             chain_id: StarknetChainId::TestNet,
         }
     }
