@@ -186,13 +186,12 @@ impl Starknet {
 
         this.restart_pending_block()?;
 
-        // Load Contracts without init contracts
+        // Load contracts without init contracts
         let init_contracts = vec![
             Felt::from_prefixed_hex_str(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap_or_default(),
             Felt::from_prefixed_hex_str(UDC_CONTRACT_CLASS_HASH).unwrap_or_default(),
             Felt::from_prefixed_hex_str(ERC20_CONTRACT_CLASS_HASH).unwrap_or_default(),
         ];
-
         if contract_classes.is_some() {  // is_some() is need here?
             for (hash, value) in contract_classes.unwrap_or_default().iter() {
                 if !init_contracts.contains(hash) {
@@ -206,6 +205,7 @@ impl Starknet {
             }
         }
 
+        // Re-execute transactions
         if transactions.is_some() { // is_some() is need here?
             for (_hash, transaction) in transactions.unwrap_or_default().iter() {       
                 println!("_hash: {:?}", _hash.to_prefixed_hex_str());         
