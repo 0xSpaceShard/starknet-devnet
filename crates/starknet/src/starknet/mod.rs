@@ -108,6 +108,7 @@ impl Default for StarknetConfig {
 #[allow(unused)]
 #[derive(Default, Serialize, Deserialize)]
 pub struct Starknet {
+    #[serde(skip_serializing, skip_deserializing)]
     pub state: StarknetState,
     
     #[serde(skip_serializing, skip_deserializing)]
@@ -205,7 +206,8 @@ impl Starknet {
         // }
 
         if transactions.is_some() {
-            for (_hash, transaction) in transactions.unwrap_or_default().iter() {                
+            for (_hash, transaction) in transactions.unwrap_or_default().iter() {       
+                println!("_hash: {:?}", _hash.to_prefixed_hex_str());         
                 match transaction.inner.clone() {
                     Transaction::Declare(DeclareTransaction::Version0(_tx)) => {
                         panic!("DeclareTransactionV0V1 is not supported");

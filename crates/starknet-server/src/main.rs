@@ -84,7 +84,7 @@ async fn main() -> Result<(), anyhow::Error> {
             starknet = serde_json::from_str(decoded.unwrap().as_str())
                 .expect("Failed to decode state");
             transactions = starknet.transactions;
-            println!("{:?}", transactions);
+            // println!("{:?}", transactions);
             contracts = starknet.state.contract_classes;
             println!("{:?}", contracts);
         }
