@@ -127,8 +127,8 @@ pub async fn shutdown_signal(api: Api) {
                     serde_json::to_string(&starknet.transactions)
                         .expect("Failed to serialize starknet transactions"),
                 );
-                let encoded: Vec<u8> =
-                    bincode::serialize(&starknet_dump).expect("Failed to encode starknet transactions");
+                let encoded: Vec<u8> = bincode::serialize(&starknet_dump)
+                    .expect("Failed to encode starknet transactions");
                 fs::write(Path::new(path), encoded).expect("Failed to save starknet transactions");
             }
             _ => info!("Failed to dump starknet transactions, dump path is not set"),

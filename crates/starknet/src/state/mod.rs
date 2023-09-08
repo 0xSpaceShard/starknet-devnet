@@ -21,10 +21,10 @@ pub(crate) mod state_diff;
 pub mod state_update;
 
 #[derive(Debug, Clone)]
-pub struct StarknetState {
+pub(crate) struct StarknetState {
     pub state: InMemoryStateReader,
     pub pending_state: CachedState<InMemoryStateReader>,
-    pub contract_classes: HashMap<ClassHash, ContractClass>,
+    pub(crate) contract_classes: HashMap<ClassHash, ContractClass>,
 }
 
 impl StarknetState {

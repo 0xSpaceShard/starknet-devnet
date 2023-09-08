@@ -104,10 +104,9 @@ impl Default for StarknetConfig {
     }
 }
 
-#[allow(unused)]
 #[derive(Default)]
 pub struct Starknet {
-    pub state: StarknetState,
+    pub(in crate::starknet) state: StarknetState,
     predeployed_accounts: PredeployedAccounts,
     pub(in crate::starknet) block_context: BlockContext,
     blocks: StarknetBlocks,
@@ -116,7 +115,6 @@ pub struct Starknet {
 }
 
 impl Starknet {
-
     pub fn new(
         config: &StarknetConfig,
         transactions: Option<StarknetTransactions>,
@@ -160,7 +158,7 @@ impl Starknet {
         // copy already modified state to cached state
         state.synchronize_states();
 
-        let mut this: Starknet = Self {
+        let mut this = Self {
             state,
             predeployed_accounts,
             block_context: Self::get_block_context(
@@ -195,9 +193,10 @@ impl Starknet {
         // }
 
         // Re-execute transactions
-        if transactions.is_some() { // is_some() is need here?
-            for (_hash, transaction) in transactions.unwrap_or_default().iter() {       
-                println!("_hash: {:?}", _hash.to_prefixed_hex_str());         
+        if transactions.is_some() {
+            // is_some() is need here?
+            for (_hash, transaction) in transactions.unwrap_or_default().iter() {
+                println!("_hash: {:?}", _hash.to_prefixed_hex_str());
                 match transaction.inner.clone() {
                     Transaction::Declare(DeclareTransaction::Version0(_tx)) => {
                         panic!("DeclareTransactionV0V1 is not supported");
@@ -755,10 +754,6 @@ impl Starknet {
             self.transactions.get(&transaction_hash).ok_or(Error::NoTransaction)?;
 
         transaction_to_map.get_receipt()
-    }
-    
-    pub fn get_starknet(&self) -> &Starknet {
-        self
     }
 }
 

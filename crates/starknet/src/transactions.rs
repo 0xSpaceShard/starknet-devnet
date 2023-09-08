@@ -1,5 +1,4 @@
 use indexmap::IndexMap;
-
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
 use starknet_in_rust::execution::{CallInfo, TransactionExecutionInfo};
@@ -32,10 +31,6 @@ impl StarknetTransactions {
 
     pub fn iter(&self) -> indexmap::map::Iter<'_, Felt, StarknetTransaction> {
         self.0.iter()
-    }
-
-    pub fn count(&self) -> usize {
-        self.0.keys().len()
     }
 }
 
