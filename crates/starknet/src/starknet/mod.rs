@@ -193,19 +193,20 @@ impl Starknet {
             Felt::from_prefixed_hex_str(ERC20_CONTRACT_CLASS_HASH).unwrap_or_default(),
         ];
 
-        // let contract_classes = HashMap::new();
-        // for (hash, value) in contract_classes {
-        //     if !init_contracts.contains(hash) {
-        //         println!(
-        //             "Dump new contract with key here: {:?}",
-        //             hash.to_prefixed_hex_str()
-        //         );
-        //         println!("contract: {:?}", value);
-        //     }
-        //     println!("contract hash: {:?}", key);
-        // }
+        if contract_classes.is_some() {  // is_some() is need here?
+            for (hash, value) in contract_classes.unwrap_or_default().iter() {
+                if !init_contracts.contains(hash) {
+                    println!(
+                        "Dump new contract with key here: {:?}",
+                        hash.to_prefixed_hex_str()
+                    );
+                    println!("contract: {:?}", value);
+                }
+                println!("contract hash: {:?}", hash);
+            }
+        }
 
-        if transactions.is_some() {
+        if transactions.is_some() { // is_some() is need here?
             for (_hash, transaction) in transactions.unwrap_or_default().iter() {       
                 println!("_hash: {:?}", _hash.to_prefixed_hex_str());         
                 match transaction.inner.clone() {
