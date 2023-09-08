@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use indexmap::IndexMap;
 
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
@@ -19,7 +19,7 @@ use crate::error::{DevnetResult, Error};
 use crate::traits::{HashIdentified, HashIdentifiedMut};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
-pub struct StarknetTransactions(HashMap<TransactionHash, StarknetTransaction>);
+pub struct StarknetTransactions(IndexMap<TransactionHash, StarknetTransaction>);
 
 impl StarknetTransactions {
     pub fn insert(&mut self, transaction_hash: &TransactionHash, transaction: StarknetTransaction) {
@@ -30,7 +30,7 @@ impl StarknetTransactions {
         self.0.get(transaction_hash)
     }
 
-    pub fn iter(&self) -> std::collections::hash_map::Iter<'_, Felt, StarknetTransaction> {
+    pub fn iter(&self) -> indexmap::map::Iter<'_, Felt, StarknetTransaction> {
         self.0.iter()
     }
 

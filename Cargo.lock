@@ -4637,6 +4637,7 @@ name = "starknet"
 version = "0.1.0"
 dependencies = [
  "blockifier",
+ "indexmap 2.0.0",
  "jsonschema",
  "random-number-generator",
  "serde",

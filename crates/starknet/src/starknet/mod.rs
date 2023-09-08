@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::time::SystemTime;
 
+use serde::Deserialize;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
 use starknet_api::transaction::Fee;
 use starknet_in_rust::call_contract;
@@ -37,7 +38,7 @@ use starknet_types::rpc::transactions::{
     BroadcastedTransactionCommon, DeclareTransaction, InvokeTransaction, Transaction,
     TransactionReceiptWithStatus, Transactions,
 };
-use starknet_types::traits::HashProducer;
+use starknet_types::traits::{HashProducer, ToHexString};
 use tracing::error;
 
 use self::predeployed::initialize_erc20;
@@ -104,15 +105,30 @@ impl Default for StarknetConfig {
     }
 }
 
-#[derive(Default)]
+#[allow(unused)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub struct Starknet {
     pub state: StarknetState,
+    
+    #[serde(skip_serializing, skip_deserializing)]
     predeployed_accounts: PredeployedAccounts,
+    
+    #[serde(skip_serializing, skip_deserializing)]
     pub(in crate::starknet) block_context: BlockContext,
+    
+    #[serde(skip_serializing, skip_deserializing)]
     blocks: StarknetBlocks,
+
     pub transactions: StarknetTransactions,
+    #[serde(skip_serializing, skip_deserializing)]
     pub config: StarknetConfig,
 }
+
+// #[derive(Debug, Serialize, Deserialize)]
+// pub struct StarknetDump {
+//     pub transactions: StarknetTransactions,
+//     pub contract_classes: HashMap<ClassHash, ContractClass>,
+// }
 
 impl Starknet {
     pub fn new(
@@ -176,7 +192,10 @@ impl Starknet {
         // TODO: Load new not initial contracts here
 
         if transactions.is_some() {
-            for (_hash, transaction) in transactions.unwrap_or_default().iter() {
+            for (hash, transaction) in transactions.unwrap_or_default().iter() {
+                // TODO: fix order of transactions on data structure level
+                println!("hash: {:?}", hash.to_prefixed_hex_str());
+                
                 match transaction.inner.clone() {
                     Transaction::Declare(DeclareTransaction::Version0(_tx)) => {
                         panic!("DeclareTransactionV0V1 is not supported");

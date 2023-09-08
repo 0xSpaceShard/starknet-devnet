@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
 
@@ -9,9 +10,9 @@ use starknet_core::account::Account;
 use starknet_core::constants::{
     CAIRO_0_ACCOUNT_CONTRACT_HASH, ERC20_CONTRACT_CLASS_HASH, UDC_CONTRACT_CLASS_HASH,
 };
-use starknet_core::starknet::{DumpMode, Starknet};
+use starknet_core::starknet::{DumpMode, Starknet, StarknetDump};
 use starknet_core::transactions::StarknetTransactions;
-use starknet_types::felt::Felt;
+use starknet_types::felt::{Felt, ClassHash};
 use starknet_types::traits::{ToDecimalString, ToHexString};
 use tokio::signal;
 use tracing::info;
@@ -127,21 +128,19 @@ pub async fn shutdown_signal(api: Api) {
     if is_dump_on(&starknet.config.dump_on) {
         match &starknet.config.dump_path {
             Some(path) => {
-                let data = Some(
-                    serde_json::to_string(&starknet.transactions)
-                        .expect("Failed to serialize transactions"),
-                );
+                // let transactions = Some(
+                //     serde_json::to_string(&starknet.transactions)
+                //         .expect("Failed to serialize transactions"),
+                // );
 
                 // TODO: save new contracts from _contract_classes
-                let _contract_classes = Some(
-                    serde_json::to_string(&starknet.state.contract_classes)
-                        .expect("Failed to serialize contract classes"),
-                );
                 let init_contracts = vec![
                     Felt::from_prefixed_hex_str(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap_or_default(),
                     Felt::from_prefixed_hex_str(UDC_CONTRACT_CLASS_HASH).unwrap_or_default(),
                     Felt::from_prefixed_hex_str(ERC20_CONTRACT_CLASS_HASH).unwrap_or_default(),
                 ];
+
+                let contract_classes = HashMap::new();
                 for (key, value) in &starknet.state.contract_classes {
                     if !init_contracts.contains(key) {
                         println!(
@@ -150,8 +149,19 @@ pub async fn shutdown_signal(api: Api) {
                         );
                         println!("contract: {:?}", value);
                     }
+                    contract_classes.insert(key, value);
                 }
 
+                // contract_classes = Some(
+                //     serde_json::to_string(&starknet.state.contract_classes)
+                //         .expect("Failed to serialize contract classes"),
+                // );
+
+                let dump = StarknetDump { transactions: &starknet.transactions, contract_classes: contract_classes };
+                let data = Some(
+                    serde_json::to_string(&dump)
+                        .expect("Failed to serialize contract classes"),
+                );
                 let encoded: Vec<u8> =
                     bincode::serialize(&data).expect("Failed to encode transactions");
                 fs::write(Path::new(path), encoded).expect("Failed to save transactions");

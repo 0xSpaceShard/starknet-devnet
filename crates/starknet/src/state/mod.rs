@@ -7,6 +7,7 @@ use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
 use starknet_in_rust::state::state_api::StateReader;
 use starknet_in_rust::utils::Address;
 use starknet_in_rust::CasmContractClass;
+use starknet_rs_core::serde;
 use starknet_types::cairo_felt::Felt252;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
@@ -22,8 +23,11 @@ pub mod state_update;
 
 #[derive(Debug, Clone)]
 pub struct StarknetState {
+    #[serde(skip_serializing, skip_deserializing)]
     pub state: InMemoryStateReader,
+    #[serde(skip_serializing, skip_deserializing)]
     pub pending_state: CachedState<InMemoryStateReader>,
+
     pub contract_classes: HashMap<ClassHash, ContractClass>,
 }
 
