@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
 
@@ -7,12 +6,9 @@ use api::Api;
 use clap::Parser;
 use cli::Args;
 use starknet_core::account::Account;
-use starknet_core::constants::{
-    CAIRO_0_ACCOUNT_CONTRACT_HASH, ERC20_CONTRACT_CLASS_HASH, UDC_CONTRACT_CLASS_HASH,
-};
 use starknet_core::starknet::{DumpMode, Starknet};
 use starknet_core::transactions::StarknetTransactions;
-use starknet_types::felt::{Felt, ClassHash};
+use starknet_types::felt::Felt;
 use starknet_types::traits::{ToDecimalString, ToHexString};
 use tokio::signal;
 use tracing::info;
@@ -69,9 +65,8 @@ async fn main() -> Result<(), anyhow::Error> {
         IpAddr::from_str(starknet_config.host.as_str()).expect("Invalid value for host IP address");
     let mut addr = SocketAddr::new(host, starknet_config.port);
 
-    // Load Starknet transactions and contracts from file
+    // Load starknet transactions
     let mut transactions: StarknetTransactions = StarknetTransactions::default();
-    let mut contracts = HashMap::new();
     if let Some(path) = &starknet_config.dump_path {
         let file_path = Path::new(path);
         if file_path.exists() {
@@ -79,18 +74,13 @@ async fn main() -> Result<(), anyhow::Error> {
             let mut v: Vec<u8> = Vec::new();
             file.read_to_end(&mut v).expect("Failed to read from file");
             let decoded: Option<String> =
-                bincode::deserialize(&v[..]).expect("Failed to deserialize state");
-            let mut starknet: Starknet = Starknet::default();
-            starknet = serde_json::from_str(decoded.unwrap().as_str())
-                .expect("Failed to decode state");
-            transactions = starknet.transactions;
-            // println!("{:?}", transactions);
-            contracts = starknet.state.contract_classes;
-            println!("{:?}", contracts);
+                bincode::deserialize(&v[..]).expect("Failed to deserialize starknet transactions");
+            transactions = serde_json::from_str(decoded.unwrap().as_str())
+                .expect("Failed to decode starknet transactions");
         }
     }
 
-    let api = api::Api::new(Starknet::new(&starknet_config, Some(transactions), Some(contracts))?);
+    let api = api::Api::new(Starknet::new(&starknet_config, Some(transactions))?);
 
     let predeployed_accounts = api.starknet.read().await.get_predeployed_accounts();
     log_predeployed_accounts(
@@ -128,20 +118,20 @@ pub async fn shutdown_signal(api: Api) {
     // Wait for the CTRL+C signal
     signal::ctrl_c().await.expect("Failed to read CTRL+C signal");
 
-    // Save Starknet do file
+    // Save starknet transactions to file
     let starknet = api.starknet.read().await;
     if is_dump_on(&starknet.config.dump_on) {
         match &starknet.config.dump_path {
             Some(path) => {
                 let starknet_dump = Some(
-                    serde_json::to_string(starknet.get_starknet())
-                        .expect("Failed to serialize starknet object"),
+                    serde_json::to_string(&starknet.transactions)
+                        .expect("Failed to serialize starknet transactions"),
                 );
                 let encoded: Vec<u8> =
-                    bincode::serialize(&starknet_dump).expect("Failed to encode starknet object");
-                fs::write(Path::new(path), encoded).expect("Failed to save starknet object");
+                    bincode::serialize(&starknet_dump).expect("Failed to encode starknet transactions");
+                fs::write(Path::new(path), encoded).expect("Failed to save starknet transactions");
             }
-            _ => info!("Failed to dump starknet object, dump path is not set"),
+            _ => info!("Failed to dump starknet transactions, dump path is not set"),
         }
     }
 }

@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::time::SystemTime;
 
-use serde::{Serialize, Deserialize};
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
 use starknet_api::transaction::Fee;
 use starknet_in_rust::call_contract;
@@ -46,7 +45,7 @@ use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
     CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
-    ERC20_CONTRACT_ADDRESS, CAIRO_0_ACCOUNT_CONTRACT_HASH, UDC_CONTRACT_CLASS_HASH, ERC20_CONTRACT_CLASS_HASH,
+    ERC20_CONTRACT_ADDRESS,
 };
 use crate::error::{DevnetResult, Error};
 use crate::predeployed_accounts::PredeployedAccounts;
@@ -106,22 +105,13 @@ impl Default for StarknetConfig {
 }
 
 #[allow(unused)]
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Default)]
 pub struct Starknet {
-    #[serde(skip_serializing, skip_deserializing)]
     pub state: StarknetState,
-    
-    #[serde(skip_serializing, skip_deserializing)]
     predeployed_accounts: PredeployedAccounts,
-    
-    #[serde(skip_serializing, skip_deserializing)]
     pub(in crate::starknet) block_context: BlockContext,
-    
-    #[serde(skip_serializing, skip_deserializing)]
     blocks: StarknetBlocks,
-
     pub transactions: StarknetTransactions,
-    #[serde(skip_serializing, skip_deserializing)]
     pub config: StarknetConfig,
 }
 
@@ -130,7 +120,6 @@ impl Starknet {
     pub fn new(
         config: &StarknetConfig,
         transactions: Option<StarknetTransactions>,
-        contract_classes: Option<HashMap<ClassHash, ContractClass>>,
     ) -> DevnetResult<Self> {
         let mut state = StarknetState::default();
         // deploy udc and erc20 contracts
@@ -186,24 +175,24 @@ impl Starknet {
 
         this.restart_pending_block()?;
 
-        // Load contracts without init contracts
-        let init_contracts = vec![
-            Felt::from_prefixed_hex_str(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap_or_default(),
-            Felt::from_prefixed_hex_str(UDC_CONTRACT_CLASS_HASH).unwrap_or_default(),
-            Felt::from_prefixed_hex_str(ERC20_CONTRACT_CLASS_HASH).unwrap_or_default(),
-        ];
-        if contract_classes.is_some() {  // is_some() is need here?
-            for (hash, value) in contract_classes.unwrap_or_default().iter() {
-                if !init_contracts.contains(hash) {
-                    println!(
-                        "Dump new contract with key here: {:?}",
-                        hash.to_prefixed_hex_str()
-                    );
-                    println!("contract: {:?}", value);
-                }
-                println!("contract hash: {:?}", hash);
-            }
-        }
+        // Load contracts without init contracts - this can be removed later?
+        // let init_contracts = vec![
+        //     Felt::from_prefixed_hex_str(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap_or_default(),
+        //     Felt::from_prefixed_hex_str(UDC_CONTRACT_CLASS_HASH).unwrap_or_default(),
+        //     Felt::from_prefixed_hex_str(ERC20_CONTRACT_CLASS_HASH).unwrap_or_default(),
+        // ];
+        // if contract_classes.is_some() {  // is_some() is need here?
+        //     for (hash, value) in contract_classes.unwrap_or_default().iter() {
+        //         if !init_contracts.contains(hash) {
+        //             println!(
+        //                 "Dump new contract with key here: {:?}",
+        //                 hash.to_prefixed_hex_str()
+        //             );
+        //             println!("contract: {:?}", value);
+        //         }
+        //         println!("contract hash: {:?}", hash);
+        //     }
+        // }
 
         // Re-execute transactions
         if transactions.is_some() { // is_some() is need here?
