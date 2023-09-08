@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::time::SystemTime;
 
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
 use starknet_api::transaction::Fee;
 use starknet_in_rust::call_contract;
@@ -46,7 +46,7 @@ use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
     CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
-    ERC20_CONTRACT_ADDRESS,
+    ERC20_CONTRACT_ADDRESS, CAIRO_0_ACCOUNT_CONTRACT_HASH, UDC_CONTRACT_CLASS_HASH, ERC20_CONTRACT_CLASS_HASH,
 };
 use crate::error::{DevnetResult, Error};
 use crate::predeployed_accounts::PredeployedAccounts;
@@ -106,7 +106,7 @@ impl Default for StarknetConfig {
 }
 
 #[allow(unused)]
-#[derive(Default, Debug, Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct Starknet {
     pub state: StarknetState,
     
@@ -124,16 +124,12 @@ pub struct Starknet {
     pub config: StarknetConfig,
 }
 
-// #[derive(Debug, Serialize, Deserialize)]
-// pub struct StarknetDump {
-//     pub transactions: StarknetTransactions,
-//     pub contract_classes: HashMap<ClassHash, ContractClass>,
-// }
-
 impl Starknet {
+
     pub fn new(
         config: &StarknetConfig,
         transactions: Option<StarknetTransactions>,
+        contract_classes: Option<HashMap<ClassHash, ContractClass>>,
     ) -> DevnetResult<Self> {
         let mut state = StarknetState::default();
         // deploy udc and erc20 contracts
@@ -189,13 +185,27 @@ impl Starknet {
 
         this.restart_pending_block()?;
 
-        // TODO: Load new not initial contracts here
+        // Load Contracts without init contracts
+        let init_contracts = vec![
+            Felt::from_prefixed_hex_str(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap_or_default(),
+            Felt::from_prefixed_hex_str(UDC_CONTRACT_CLASS_HASH).unwrap_or_default(),
+            Felt::from_prefixed_hex_str(ERC20_CONTRACT_CLASS_HASH).unwrap_or_default(),
+        ];
+
+        // let contract_classes = HashMap::new();
+        // for (hash, value) in contract_classes {
+        //     if !init_contracts.contains(hash) {
+        //         println!(
+        //             "Dump new contract with key here: {:?}",
+        //             hash.to_prefixed_hex_str()
+        //         );
+        //         println!("contract: {:?}", value);
+        //     }
+        //     println!("contract hash: {:?}", key);
+        // }
 
         if transactions.is_some() {
-            for (hash, transaction) in transactions.unwrap_or_default().iter() {
-                // TODO: fix order of transactions on data structure level
-                println!("hash: {:?}", hash.to_prefixed_hex_str());
-                
+            for (_hash, transaction) in transactions.unwrap_or_default().iter() {                
                 match transaction.inner.clone() {
                     Transaction::Declare(DeclareTransaction::Version0(_tx)) => {
                         panic!("DeclareTransactionV0V1 is not supported");
@@ -753,6 +763,10 @@ impl Starknet {
             self.transactions.get(&transaction_hash).ok_or(Error::NoTransaction)?;
 
         transaction_to_map.get_receipt()
+    }
+    
+    pub fn get_starknet(&self) -> &Starknet {
+        self
     }
 }
 

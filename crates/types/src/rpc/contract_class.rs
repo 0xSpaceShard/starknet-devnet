@@ -1,7 +1,7 @@
 use core::fmt::Debug;
 use std::cmp::{Eq, PartialEq};
 
-use serde::{Serialize, Serializer};
+use serde::{Serialize, Serializer, Deserializer, Deserialize};
 use starknet_in_rust::core::contract_address::compute_sierra_class_hash;
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
 use starknet_in_rust::SierraContractClass;
@@ -19,7 +19,7 @@ pub use deprecated::json_contract_class::Cairo0Json;
 pub use deprecated::rpc_contract_class::DeprecatedContractClass;
 pub use deprecated::Cairo0ContractClass;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize)]
 pub enum ContractClass {
     Cairo0(Cairo0ContractClass),
     Cairo1(SierraContractClass),
