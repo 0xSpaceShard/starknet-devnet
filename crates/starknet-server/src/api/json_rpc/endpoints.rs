@@ -247,6 +247,7 @@ impl JsonRpcHandler {
         request: FunctionCall,
     ) -> RpcResult<Vec<Felt>> {
         let starknet = self.api.starknet.read().await;
+
         match starknet.call(
             block_id.into(),
             request.contract_address.into(),
