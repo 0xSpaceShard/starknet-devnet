@@ -46,7 +46,7 @@ lazy_static! {
 pub struct BackgroundDevnet {
     pub http_client: Client<HttpConnector>,
     pub json_rpc_client: JsonRpcClient<HttpTransport>,
-    process: Child,
+    pub process: Child,
     url: String,
     rpc_url: Url,
 }
@@ -88,6 +88,10 @@ impl BackgroundDevnet {
                 .arg(PREDEPLOYED_ACCOUNT_INITIAL_BALANCE.to_string())
                 .arg("--chain-id")
                 .arg(CHAIN_ID_CLI_PARAM)
+                .arg("--dump-path") // TODO: this should be parameterized
+                .arg("dump".to_string())
+                .arg("--dump-on") // TODO: add also transaction mode, I forgot about that
+                .arg("exit".to_string())
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .expect("Could not start background devnet");
