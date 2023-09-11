@@ -31,7 +31,7 @@ mod dump_and_load_tests {
         // devnet_dump.process.kill();
 
         devnet_dump.process.kill().unwrap();
-        thread::sleep(Duration::from_secs(30));
+        thread::sleep(Duration::from_secs(5));
         devnet_dump.process.kill().expect("Failed to kill child process");
 
         let devnet_load = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
