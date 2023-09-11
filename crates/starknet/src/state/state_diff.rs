@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass as StarknetInRustCompiledClass;
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as DeprecatedContractClass;
 use starknet_in_rust::state::cached_state::CachedState;
 use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
@@ -50,31 +51,24 @@ impl StateDiff {
             class_hash_to_compiled_class_hash.insert(key, value);
         }
 
-        // extract difference of compiled_class_hash -> CasmContractClass mapping, which is Cairo 1
-        // contract
-        let new_casm_contract_classes =
-            new_state.casm_contract_classes().clone().unwrap_or_default();
-
-        let compiled_class_hash_to_cairo_casm = subtract_mappings(
-            new_casm_contract_classes,
-            old_state.casm_contract_classes_mut().clone(),
+        // extract difference of class hash -> CompiledClass. When CompiledClass is Cairo 1, then
+        // the class hash is compiled class hash
+        let new_compiled_contract_classes = subtract_mappings(
+            new_state.contract_classes().clone(),
+            old_state.class_hash_to_compiled_class_mut().clone(),
         );
 
-        for (compiled_class_hash_bytes, casm_contract_class) in compiled_class_hash_to_cairo_casm {
-            let key = Felt::new(compiled_class_hash_bytes).map_err(crate::error::Error::from)?;
+        for (class_hash, compiled_class) in new_compiled_contract_classes {
+            let key = Felt::new(class_hash).map_err(crate::error::Error::from)?;
 
-            declared_contracts.insert(key, casm_contract_class);
-        }
-
-        // extract difference of class_hash -> Cairo 0 contract class
-        let class_hash_to_cairo_0_contract_class = subtract_mappings(
-            new_state.contract_classes().clone().unwrap_or_default(),
-            old_state.class_hash_to_contract_class.clone(),
-        );
-
-        for (class_hash_bytes, cairo_0_contract_class) in class_hash_to_cairo_0_contract_class {
-            let key = Felt::new(class_hash_bytes).map_err(crate::error::Error::from)?;
-            cairo_0_declared_contracts.insert(key, cairo_0_contract_class);
+            match compiled_class {
+                StarknetInRustCompiledClass::Deprecated(cairo_0) => {
+                    cairo_0_declared_contracts.insert(key, cairo_0.as_ref().clone());
+                }
+                StarknetInRustCompiledClass::Casm(cairo_1) => {
+                    declared_contracts.insert(key, cairo_1.as_ref().clone());
+                }
+            }
         }
 
         let diff = StarknetInRustStateDiff::from_cached_state(new_state)?;
@@ -93,7 +87,8 @@ mod tests {
     use std::collections::HashMap;
     use std::sync::Arc;
 
-    use starknet_in_rust::state::cached_state::{CachedState, CasmClassCache, ContractClassCache};
+    use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass;
+    use starknet_in_rust::state::cached_state::{CachedState, ContractClassCache};
     use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
     use starknet_in_rust::CasmContractClass;
     use starknet_types::contract_class::Cairo0ContractClass;
@@ -143,15 +138,17 @@ mod tests {
     #[test]
     fn correct_difference_in_declared_classes() {
         let old_state = InMemoryStateReader::default();
-        let mut casm_cache = CasmClassCache::default();
+        let mut casm_cache = ContractClassCache::default();
 
         let compiled_class_hash = Felt::from(1);
         casm_cache.insert(
             compiled_class_hash.bytes(),
-            CasmContractClass::from_contract_class(dummy_cairo_1_contract_class(), true).unwrap(),
+            CompiledClass::Casm(Arc::new(
+                CasmContractClass::from_contract_class(dummy_cairo_1_contract_class(), true)
+                    .unwrap(),
+            )),
         );
-        let new_state =
-            CachedState::new(Arc::new(old_state.clone()), Some(HashMap::new()), Some(casm_cache));
+        let new_state = CachedState::new(Arc::new(old_state.clone()), casm_cache);
 
         let generated_diff =
             super::StateDiff::difference_between_old_and_new_state(old_state, new_state).unwrap();
@@ -172,14 +169,12 @@ mod tests {
         let class_hash = Felt::from(1);
         let cairo_0_contract_class: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
         let mut cairo_0_classes = ContractClassCache::new();
-        cairo_0_classes
-            .insert(class_hash.bytes(), cairo_0_contract_class.clone().try_into().unwrap());
-
-        let new_state = CachedState::new(
-            Arc::new(old_state.clone()),
-            Some(cairo_0_classes),
-            Some(HashMap::new()),
+        cairo_0_classes.insert(
+            class_hash.bytes(),
+            CompiledClass::Deprecated(Arc::new(cairo_0_contract_class.clone().try_into().unwrap())),
         );
+
+        let new_state = CachedState::new(Arc::new(old_state.clone()), cairo_0_classes);
 
         let generated_diff =
             super::StateDiff::difference_between_old_and_new_state(old_state, new_state).unwrap();
@@ -229,8 +224,7 @@ mod tests {
 
     fn setup() -> (InMemoryStateReader, CachedState<InMemoryStateReader>) {
         let state = InMemoryStateReader::default();
-        let cached_state =
-            CachedState::new(Arc::new(state.clone()), Some(HashMap::new()), Some(HashMap::new()));
+        let cached_state = CachedState::new(Arc::new(state.clone()), HashMap::new());
 
         (state, cached_state)
     }

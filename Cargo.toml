@@ -50,7 +50,7 @@ anyhow = "1"
 
 # Starknet dependencies
 starknet_api = { version = "0.3.0", features = ["testing"] }
-starknet-in-rust = { git = "https://github.com/lambdaclass/starknet_in_rust", rev = "f05da40", package="starknet_in_rust" }
+starknet-in-rust = { git = "https://github.com/lambdaclass/starknet_in_rust", rev = "579156a", package="starknet_in_rust" }
 starknet-rs-signers = { version = "0.4.0", package="starknet-signers" }
 starknet-rs-ff = { version = "0.3.4", package = "starknet-ff" }
 starknet-rs-core = {  version = "0.6.0", package = "starknet-core" }

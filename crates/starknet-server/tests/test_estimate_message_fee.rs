@@ -83,7 +83,7 @@ mod test_estimate_message_fee {
             .await
             .unwrap();
 
-        assert_eq!(res.gas_consumed, 19695);
+        assert_eq!(res.gas_consumed, 18471);
     }
 
     #[tokio::test]
