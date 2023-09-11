@@ -5039,9 +5039,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "starknet_api"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f6e445fbd6bf3826dda26fd64aa5311353b4799c9bd1119d6ec1906be4c73bf"
+dependencies = [
+ "cairo-lang-starknet 2.1.0",
+ "derive_more",
+ "hex",
+ "indexmap 1.9.3",
+ "once_cell",
+ "primitive-types 0.12.1",
+ "serde",
+ "serde_json",
+ "starknet-crypto 0.5.1",
+ "thiserror",
+]
+
+[[package]]
 name = "starknet_in_rust"
 version = "0.3.1"
-source = "git+https://github.com/lambdaclass/starknet_in_rust?rev=bfd588f#bfd588ff45dec075cdf057c4bb01b810549613c2"
+source = "git+https://github.com/lambdaclass/starknet_in_rust?rev=579156a#579156a8b2cc1f8f4b1d4327183842a62ac37c29"
 dependencies = [
  "anyhow",
  "base64 0.21.2",
@@ -5067,7 +5085,7 @@ dependencies = [
  "sha3 0.10.8",
  "starknet 0.5.0",
  "starknet-crypto 0.5.1",
- "starknet_api 0.3.0",
+ "starknet_api 0.4.1",
  "thiserror",
 ]
 

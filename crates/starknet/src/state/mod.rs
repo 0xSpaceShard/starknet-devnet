@@ -154,7 +154,16 @@ impl StateChanger for StarknetState {
 
 impl StateExtractor for StarknetState {
     fn get_storage(&self, storage_key: ContractStorageKey) -> DevnetResult<Felt> {
-        Ok(self.state.get_storage_at(&storage_key.into()).map(Felt::from)?)
+        let storage_entry = storage_key.into();
+        let data = self.state
+            .get_storage_at(&storage_entry)
+            .map(Felt::from)?;
+
+        if data == Felt::default() {
+            return Err(Error::StateError(starknet_in_rust::core::errors::state_errors::StateError::NoneStorage(storage_entry)));
+        }
+        
+        Ok(data)
     }
 
     fn is_contract_declared(&mut self, class_hash: &ClassHash) -> bool {

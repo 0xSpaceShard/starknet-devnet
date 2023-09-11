@@ -5,7 +5,6 @@ use starknet_in_rust::core::transaction_hash::{
     calculate_transaction_hash_common, TransactionHashPrefix as SirTransactionHashPrefix,
 };
 use starknet_in_rust::definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR;
-use starknet_in_rust::definitions::transaction_type::TransactionType as SirTransactionType;
 use starknet_in_rust::transaction::{verify_version, Declare as SirDeclare};
 
 use crate::contract_address::ContractAddress;
@@ -55,7 +54,6 @@ impl BroadcastedDeclareTransactionV1 {
         let declare = SirDeclare {
             class_hash: class_hash.into(),
             sender_address: self.sender_address.into(),
-            tx_type: SirTransactionType::Declare,
             validate_entry_point_selector: VALIDATE_DECLARE_ENTRY_POINT_SELECTOR.clone(),
             version: self.common.version.into(),
             max_fee: self.common.max_fee.0,

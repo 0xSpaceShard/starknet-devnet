@@ -250,7 +250,7 @@ impl Starknet {
         );
 
         let mut block_info = BlockInfo::empty(TEST_SEQUENCER_ADDRESS.clone());
-        block_info.gas_price = gas_price;
+        block_info.gas_price = gas_price as u128;
 
         let block_context = BlockContext::new(
             starknet_os_config,
@@ -288,7 +288,7 @@ impl Starknet {
         let mut block = StarknetBlock::create_pending_block();
 
         block.header.block_number = BlockNumber(self.block_context.block_info().block_number);
-        block.header.gas_price = GasPrice(self.block_context.block_info().gas_price.into());
+        block.header.gas_price = GasPrice(self.block_context.block_info().gas_price);
         block.header.sequencer =
             ContractAddress::try_from(self.block_context.block_info().sequencer_address.clone())?
                 .try_into()?;
@@ -706,7 +706,7 @@ mod tests {
         );
         assert_eq!(starknet.pending_block().header.block_number, BlockNumber(initial_block_number));
         assert_eq!(starknet.pending_block().header.parent_hash, BlockHash::default());
-        assert_eq!(starknet.pending_block().header.gas_price, GasPrice(initial_gas_price as u128));
+        assert_eq!(starknet.pending_block().header.gas_price, GasPrice(initial_gas_price));
         assert_eq!(
             starknet.pending_block().header.sequencer,
             initial_sequencer.try_into().unwrap()
