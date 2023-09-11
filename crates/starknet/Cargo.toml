@@ -19,6 +19,7 @@ starknet-types = { workspace = true }
 random-number-generator = { workspace = true }
 tracing = { workspace = true }
 indexmap = { workspace = true }
+bincode = { workspace = true }
 
 [dev-dependencies]
 jsonschema = "0.16.0"

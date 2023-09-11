@@ -40,6 +40,11 @@ use starknet_types::rpc::transactions::{
 use starknet_types::traits::{HashProducer, ToHexString};
 use tracing::error;
 
+use std::fs;
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::Path;
+
 use self::predeployed::initialize_erc20;
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
@@ -359,6 +364,10 @@ impl Starknet {
         // clear pending block information
         self.generate_pending_block()?;
 
+        if self.config.dump_on.is_some() && self.config.dump_on == Some(DumpMode::OnTransaction) {
+            self.dump_transactions();
+        }
+
         Ok(())
     }
 
@@ -593,6 +602,25 @@ impl Starknet {
         invoke_transaction: BroadcastedInvokeTransactionV1,
     ) -> DevnetResult<TransactionHash> {
         add_invoke_transaction::add_invoke_transcation_v1(self, invoke_transaction)
+    }
+
+    // save starknet transactions to file
+    pub fn dump_transactions(&self) {
+        println!("dump_transactions!");
+
+        // TODO: attach in OnTransaction mode or dump all??
+        match &self.config.dump_path {
+            Some(path) => {
+                let starknet_dump = Some(
+                    serde_json::to_string(&self.transactions)
+                        .expect("Failed to serialize starknet transactions"),
+                );
+                let encoded: Vec<u8> = bincode::serialize(&starknet_dump)
+                    .expect("Failed to encode starknet transactions");
+                fs::write(Path::new(&path), encoded).expect("Failed to save starknet transactions");
+            }
+            None => {}, // TODO: Error here?
+        }
     }
 
     /// Creates an invoke tx for minting, using the chargeable account.

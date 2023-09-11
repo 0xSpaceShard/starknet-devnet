@@ -91,7 +91,7 @@ impl BackgroundDevnet {
                 .arg("--dump-path") // TODO: this should be parameterized
                 .arg("dump".to_string())
                 .arg("--dump-on") // TODO: add also transaction mode, I forgot about that
-                .arg("exit".to_string())
+                .arg("transaction".to_string())
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .expect("Could not start background devnet");

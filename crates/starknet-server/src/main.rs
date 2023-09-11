@@ -66,6 +66,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let mut addr = SocketAddr::new(host, starknet_config.port);
 
     // Load starknet transactions
+    // TODO: move later to mod.rs? and remove bincode ref?
     let mut transactions: StarknetTransactions = StarknetTransactions::default();
     if let Some(path) = &starknet_config.dump_path {
         let file_path = Path::new(path);
@@ -105,33 +106,14 @@ async fn main() -> Result<(), anyhow::Error> {
     Ok(serve.await??)
 }
 
-fn is_dump_on(dump_on: &Option<DumpMode>) -> bool {
-    match dump_on {
-        None => false,
-        Some(dump_on) => *dump_on == DumpMode::OnExit,
-    }
-}
-
 pub async fn shutdown_signal(api: Api) {
     tokio::signal::ctrl_c().await.expect("Failed to install CTRL+C signal handler");
 
     // Wait for the CTRL+C signal
     signal::ctrl_c().await.expect("Failed to read CTRL+C signal");
 
-    // Save starknet transactions to file
     let starknet = api.starknet.read().await;
-    if is_dump_on(&starknet.config.dump_on) {
-        match &starknet.config.dump_path {
-            Some(path) => {
-                let starknet_dump = Some(
-                    serde_json::to_string(&starknet.transactions)
-                        .expect("Failed to serialize starknet transactions"),
-                );
-                let encoded: Vec<u8> = bincode::serialize(&starknet_dump)
-                    .expect("Failed to encode starknet transactions");
-                fs::write(Path::new(path), encoded).expect("Failed to save starknet transactions");
-            }
-            _ => info!("Failed to dump starknet transactions, dump path is not set"),
-        }
+    if starknet.config.dump_on.is_some() && starknet.config.dump_on == Some(DumpMode::OnExit) {
+        starknet.dump_transactions();
     }
 }
