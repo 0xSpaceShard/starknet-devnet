@@ -195,18 +195,14 @@ mod tests {
     #[test]
     fn add_declare_v2_transaction_should_return_rejected_txn_and_not_be_part_of_pending_state() {
         let (mut starknet, sender) = setup(Some(1));
-        let initial_cached_state =
-            starknet.state.pending_state.contract_classes().len();
+        let initial_cached_state = starknet.state.pending_state.contract_classes().len();
         let declare_txn = dummy_broadcasted_declare_transaction_v2(&sender);
         let (txn_hash, class_hash) = starknet.add_declare_transaction_v2(declare_txn).unwrap();
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
 
         assert_eq!(txn.finality_status, None);
         assert_eq!(txn.execution_result.status(), TransactionExecutionStatus::Reverted);
-        assert_eq!(
-            initial_cached_state,
-            starknet.state.pending_state.contract_classes().len()
-        );
+        assert_eq!(initial_cached_state, starknet.state.pending_state.contract_classes().len());
         assert!(starknet.state.contract_classes.get(&class_hash).is_none())
     }
 
@@ -287,18 +283,14 @@ mod tests {
     #[test]
     fn add_declare_v1_transaction_should_return_rejected_txn_and_not_be_part_of_pending_state() {
         let (mut starknet, sender) = setup(Some(1));
-        let initial_cached_state =
-            starknet.state.pending_state.contract_classes().len();
+        let initial_cached_state = starknet.state.pending_state.contract_classes().len();
         let declare_txn = broadcasted_declare_transaction_v1(sender);
         let (txn_hash, _) = starknet.add_declare_transaction_v1(declare_txn).unwrap();
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
 
         assert_eq!(txn.finality_status, None);
         assert_eq!(txn.execution_result.status(), TransactionExecutionStatus::Reverted);
-        assert_eq!(
-            initial_cached_state,
-            starknet.state.pending_state.contract_classes().len()
-        );
+        assert_eq!(initial_cached_state, starknet.state.pending_state.contract_classes().len());
     }
 
     #[test]

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use starknet_in_rust::services::api::contract_classes::{deprecated_contract_class::ContractClass as DeprecatedContractClass, compiled_class::CompiledClass as StarknetInRustCompiledClass };
+use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass as StarknetInRustCompiledClass;
+use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as DeprecatedContractClass;
 use starknet_in_rust::state::cached_state::CachedState;
 use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
 use starknet_in_rust::state::StateDiff as StarknetInRustStateDiff;
@@ -63,10 +64,10 @@ impl StateDiff {
             match compiled_class {
                 StarknetInRustCompiledClass::Deprecated(cairo_0) => {
                     cairo_0_declared_contracts.insert(key, cairo_0.as_ref().clone());
-                },
+                }
                 StarknetInRustCompiledClass::Casm(cairo_1) => {
                     declared_contracts.insert(key, cairo_1.as_ref().clone());
-                },
+                }
             }
         }
 
@@ -142,10 +143,12 @@ mod tests {
         let compiled_class_hash = Felt::from(1);
         casm_cache.insert(
             compiled_class_hash.bytes(),
-            CompiledClass::Casm(Arc::new(CasmContractClass::from_contract_class(dummy_cairo_1_contract_class(), true).unwrap())),
+            CompiledClass::Casm(Arc::new(
+                CasmContractClass::from_contract_class(dummy_cairo_1_contract_class(), true)
+                    .unwrap(),
+            )),
         );
-        let new_state =
-            CachedState::new(Arc::new(old_state.clone()), casm_cache);
+        let new_state = CachedState::new(Arc::new(old_state.clone()), casm_cache);
 
         let generated_diff =
             super::StateDiff::difference_between_old_and_new_state(old_state, new_state).unwrap();
@@ -166,13 +169,12 @@ mod tests {
         let class_hash = Felt::from(1);
         let cairo_0_contract_class: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
         let mut cairo_0_classes = ContractClassCache::new();
-        cairo_0_classes
-            .insert(class_hash.bytes(), CompiledClass::Deprecated(Arc::new(cairo_0_contract_class.clone().try_into().unwrap())));
-
-        let new_state = CachedState::new(
-            Arc::new(old_state.clone()),
-            cairo_0_classes
+        cairo_0_classes.insert(
+            class_hash.bytes(),
+            CompiledClass::Deprecated(Arc::new(cairo_0_contract_class.clone().try_into().unwrap())),
         );
+
+        let new_state = CachedState::new(Arc::new(old_state.clone()), cairo_0_classes);
 
         let generated_diff =
             super::StateDiff::difference_between_old_and_new_state(old_state, new_state).unwrap();
@@ -222,8 +224,7 @@ mod tests {
 
     fn setup() -> (InMemoryStateReader, CachedState<InMemoryStateReader>) {
         let state = InMemoryStateReader::default();
-        let cached_state =
-            CachedState::new(Arc::new(state.clone()), HashMap::new());
+        let cached_state = CachedState::new(Arc::new(state.clone()), HashMap::new());
 
         (state, cached_state)
     }

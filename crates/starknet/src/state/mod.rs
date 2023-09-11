@@ -117,9 +117,10 @@ impl StateChanger for StarknetState {
 
         // update cairo 0 differences
         for (class_hash, cairo_0_contract_class) in state_diff.cairo_0_declared_contracts {
-            old_state
-                .class_hash_to_compiled_class_mut()
-                .insert(class_hash.bytes(), CompiledClass::Deprecated(Arc::new(cairo_0_contract_class)));
+            old_state.class_hash_to_compiled_class_mut().insert(
+                class_hash.bytes(),
+                CompiledClass::Deprecated(Arc::new(cairo_0_contract_class)),
+            );
         }
 
         // update class_hash -> compiled_class_hash differences
@@ -133,7 +134,9 @@ impl StateChanger for StarknetState {
 
         // update cairo 1 differences
         state_diff.declared_contracts.into_iter().for_each(|(class_hash, cairo_1_casm)| {
-            old_state.class_hash_to_compiled_class_mut().insert(class_hash.bytes(), CompiledClass::Casm(Arc::new(cairo_1_casm)));
+            old_state
+                .class_hash_to_compiled_class_mut()
+                .insert(class_hash.bytes(), CompiledClass::Casm(Arc::new(cairo_1_casm)));
         });
 
         // update deployed contracts
@@ -155,14 +158,16 @@ impl StateChanger for StarknetState {
 impl StateExtractor for StarknetState {
     fn get_storage(&self, storage_key: ContractStorageKey) -> DevnetResult<Felt> {
         let storage_entry = storage_key.into();
-        let data = self.state
-            .get_storage_at(&storage_entry)
-            .map(Felt::from)?;
+        let data = self.state.get_storage_at(&storage_entry).map(Felt::from)?;
 
         if data == Felt::default() {
-            return Err(Error::StateError(starknet_in_rust::core::errors::state_errors::StateError::NoneStorage(storage_entry)));
+            return Err(Error::StateError(
+                starknet_in_rust::core::errors::state_errors::StateError::NoneStorage(
+                    storage_entry,
+                ),
+            ));
         }
-        
+
         Ok(data)
     }
 
@@ -220,7 +225,10 @@ mod tests {
 
         state
             .pending_state
-            .set_contract_class(&class_hash, &CompiledClass::Deprecated(Arc::new(contract_class.try_into().unwrap())))
+            .set_contract_class(
+                &class_hash,
+                &CompiledClass::Deprecated(Arc::new(contract_class.try_into().unwrap())),
+            )
             .unwrap();
 
         assert!(!state.is_contract_declared(&dummy_felt()));
@@ -324,11 +332,11 @@ mod tests {
         assert!(state.state.class_hash_to_compiled_class.len() == 1);
         let declared_contract_class =
             state.state.class_hash_to_compiled_class.get(&class_hash.bytes()).unwrap().to_owned();
-        
+
         match declared_contract_class {
             CompiledClass::Deprecated(deprecated_contract_class) => {
                 assert_eq!(*deprecated_contract_class, contract_class.try_into().unwrap())
-            },
+            }
             _ => panic!("Wrong version of contract class"),
         }
     }
