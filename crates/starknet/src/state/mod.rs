@@ -157,16 +157,12 @@ impl StateChanger for StarknetState {
 
 impl StateExtractor for StarknetState {
     fn get_storage(&self, storage_key: ContractStorageKey) -> DevnetResult<Felt> {
+        if !self.is_contract_deployed(storage_key.get_contract_address()) {
+            return Err(Error::ContractNotFound);
+        }
+
         let storage_entry = storage_key.into();
         let data = self.state.get_storage_at(&storage_entry).map(Felt::from)?;
-
-        if data == Felt::default() {
-            return Err(Error::StateError(
-                starknet_in_rust::core::errors::state_errors::StateError::NoneStorage(
-                    storage_entry,
-                ),
-            ));
-        }
 
         Ok(data)
     }
@@ -200,7 +196,6 @@ impl StateExtractor for StarknetState {
 mod tests {
     use std::sync::Arc;
 
-    use starknet_in_rust::core::errors::state_errors::StateError;
     use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass;
     use starknet_in_rust::state::state_api::{State, StateReader};
     use starknet_types::cairo_felt::Felt252;
@@ -268,13 +263,19 @@ mod tests {
         let mut state = StarknetState::default();
         state
             .pending_state
+            .deploy_contract(
+                dummy_contract_storage_key().get_contract_address().into(),
+                Felt::from(1).into(),
+            )
+            .unwrap();
+
+        state
+            .pending_state
             .set_storage_at(&dummy_contract_storage_key().try_into().unwrap(), dummy_felt().into());
 
         let get_storage_result = state.get_storage(dummy_contract_storage_key());
-        assert!(matches!(
-            get_storage_result.unwrap_err(),
-            Error::StateError(StateError::NoneStorage((_, _)))
-        ));
+
+        assert!(matches!(get_storage_result.unwrap_err(), Error::ContractNotFound));
 
         // apply changes to persistent state
         state
@@ -385,6 +386,9 @@ mod tests {
         let (mut state, _) = setup();
         let expected_result = Felt::from(33);
 
+        state
+            .deploy_contract(*dummy_contract_storage_key().get_contract_address(), dummy_felt())
+            .unwrap();
         state.change_storage(dummy_contract_storage_key(), expected_result).unwrap();
         let generated_result = state.get_storage(dummy_contract_storage_key()).unwrap();
         assert_eq!(expected_result, generated_result);
