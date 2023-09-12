@@ -492,10 +492,7 @@ impl Starknet {
         contract_address: ContractAddress,
     ) -> DevnetResult<Felt> {
         let state = self.get_state_at(&block_id)?;
-        match state.state.address_to_nonce.get(&contract_address.into()) {
-            Some(nonce) => Ok(Felt::from(nonce.clone())),
-            None => Err(Error::ContractNotFound),
-        }
+        state.get_nonce(&contract_address)
     }
 
     pub fn contract_storage_at_block(
