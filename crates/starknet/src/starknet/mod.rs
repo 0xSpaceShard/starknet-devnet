@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
 use std::time::SystemTime;
 
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
@@ -39,9 +41,6 @@ use starknet_types::rpc::transactions::{
 };
 use starknet_types::traits::{HashProducer, ToHexString};
 use tracing::error;
-
-use std::fs;
-use std::path::Path;
 
 use self::predeployed::initialize_erc20;
 use crate::account::Account;
@@ -617,7 +616,7 @@ impl Starknet {
                     .expect("Failed to encode starknet transactions");
                 fs::write(Path::new(&path), encoded).expect("Failed to save starknet transactions");
             }
-            None => {}, // TODO: Error here?
+            None => {} // TODO: Error here?
         }
     }
 
