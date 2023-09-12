@@ -18,7 +18,6 @@ mod api;
 mod cli;
 mod server;
 
-use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
@@ -66,7 +65,6 @@ async fn main() -> Result<(), anyhow::Error> {
     let mut addr = SocketAddr::new(host, starknet_config.port);
 
     // Load starknet transactions
-    // TODO: move later to mod.rs? and remove bincode ref?
     let mut transactions: StarknetTransactions = StarknetTransactions::default();
     if let Some(path) = &starknet_config.dump_path {
         let file_path = Path::new(path);

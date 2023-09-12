@@ -23,7 +23,7 @@ mod get_events_integration_tests {
     /// a contract that emits events.
     /// Then the events are being fetched first all of them then in chunks
     async fn get_events_correct_chunking() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
 
         // get first predeployed account data
         let predeployed_accounts_response =

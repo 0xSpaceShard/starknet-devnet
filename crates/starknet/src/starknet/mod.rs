@@ -41,8 +41,6 @@ use starknet_types::traits::{HashProducer, ToHexString};
 use tracing::error;
 
 use std::fs;
-use std::fs::File;
-use std::io::prelude::*;
 use std::path::Path;
 
 use self::predeployed::initialize_erc20;

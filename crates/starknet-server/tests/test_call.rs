@@ -14,7 +14,7 @@ mod call {
 
     #[tokio::test]
     async fn calling_method_of_undeployed_contract() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
         let contract_address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
         let entry_point_selector =
             starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();
@@ -44,7 +44,7 @@ mod call {
 
     #[tokio::test]
     async fn calling_nonexistent_contract_method() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
         let contract_address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
         let entry_point_selector =
             starknet_rs_core::utils::get_selector_from_name("nonExistentMethod").unwrap();
@@ -73,7 +73,7 @@ mod call {
 
     #[tokio::test]
     async fn getting_balance_of_predeployed_contract() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
         let contract_address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
         let entry_point_selector =
             starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();

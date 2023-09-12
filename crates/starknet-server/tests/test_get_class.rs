@@ -11,7 +11,7 @@ mod get_class_tests {
 
     #[tokio::test]
     async fn test_get_class_at() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
         let contract_address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
 
         let _ = devnet
@@ -23,7 +23,7 @@ mod get_class_tests {
 
     #[tokio::test]
     async fn test_get_class() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
         let contract_address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
 
         let retrieved_hash = devnet
@@ -41,7 +41,7 @@ mod get_class_tests {
 
     #[tokio::test]
     async fn test_get_class_at_invalid_address() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
         let contract_address = FieldElement::from_hex_be("0x22").unwrap();
 
         let err = devnet

@@ -41,7 +41,7 @@ mod estimate_fee_tests {
 
     #[tokio::test]
     async fn estimate_fee_of_deploy_account() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
 
         // define the key of the new account - dummy value
         let new_account_signer = get_deployable_account_signer();
@@ -96,7 +96,7 @@ mod estimate_fee_tests {
 
     #[tokio::test]
     async fn estimate_fee_of_invalid_deploy_account() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
 
         let new_account_signer = get_deployable_account_signer();
         let dummy_invalid_class_hash = FieldElement::from_hex_be("0x123").unwrap();
@@ -130,7 +130,7 @@ mod estimate_fee_tests {
 
     #[tokio::test]
     async fn estimate_fee_of_declare_v1() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
 
         // get account
         let (signer, account_address) = get_predeployed_account_props();
@@ -159,7 +159,7 @@ mod estimate_fee_tests {
     #[ignore] // estimation currently completely failing
     #[tokio::test]
     async fn estimate_fee_of_declare_v2() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
 
         // get account
         let (signer, account_address) = get_predeployed_account_props();
@@ -188,7 +188,7 @@ mod estimate_fee_tests {
 
     #[tokio::test]
     async fn estimate_fee_of_invoke() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
 
         // get account
         let (signer, account_address) = get_predeployed_account_props();
@@ -281,7 +281,7 @@ mod estimate_fee_tests {
     #[tokio::test]
     /// estimate fee of declare + deploy (invoke udc)
     async fn estimate_fee_of_multiple_txs() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
 
         // get account
         let (_, account_address) = get_predeployed_account_props();

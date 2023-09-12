@@ -14,7 +14,7 @@ mod minting_tests {
     static DUMMY_AMOUNT: u128 = 42;
 
     async fn increase_balance_happy_path(address: &str, init_amount: u128, mint_amount: u128) {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
         let req_body = Body::from(
             json!({
                 "address": address,
@@ -69,7 +69,7 @@ mod minting_tests {
 
     #[tokio::test]
     async fn reject_negative_amount() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
         reject_bad_request(
             &devnet,
             json!({
@@ -83,7 +83,7 @@ mod minting_tests {
 
     #[tokio::test]
     async fn reject_missing_address() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
         reject_bad_request(
             &devnet,
             json!({ "amount": DUMMY_AMOUNT }),
@@ -94,7 +94,7 @@ mod minting_tests {
 
     #[tokio::test]
     async fn reject_missing_amount() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
         reject_bad_request(
             &devnet,
             json!({ "address": DUMMY_ADDRESS }),

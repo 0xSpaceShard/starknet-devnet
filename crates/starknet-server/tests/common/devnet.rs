@@ -12,6 +12,7 @@ use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::JsonRpcClient;
 use thiserror::Error;
 use tokio::sync::Mutex;
+use tower::util::Optional;
 use url::Url;
 
 use super::constants::{
@@ -64,7 +65,7 @@ fn get_free_port() -> Result<u16, TestError> {
 impl BackgroundDevnet {
     /// Ensures the background instance spawns at a free port, checks at most `MAX_RETRIES`
     /// times
-    pub(crate) async fn spawn() -> Result<Self, TestError> {
+    pub(crate) async fn spawn(args: Option<Vec<String>>) -> Result<Self, TestError> {
         // we keep the reference, otherwise the mutex unlocks immediately
         let _mutex_guard = BACKGROUND_DEVNET_MUTEX.lock().await;
 
@@ -73,6 +74,11 @@ impl BackgroundDevnet {
         let devnet_url = format!("http://{HOST}:{free_port}");
         let devnet_rpc_url = Url::parse(format!("{}/rpc", devnet_url.as_str()).as_str())?;
         let json_rpc_client = JsonRpcClient::new(HttpTransport::new(devnet_rpc_url.clone()));
+
+        let mut additional_args: Vec<&str> = Vec::new();
+        if let Some(v) = &args {
+            additional_args = v.iter().map(|x| &**x).collect();
+        }
 
         let process = Command::new("cargo")
                 .arg("run")
@@ -88,10 +94,7 @@ impl BackgroundDevnet {
                 .arg(PREDEPLOYED_ACCOUNT_INITIAL_BALANCE.to_string())
                 .arg("--chain-id")
                 .arg(CHAIN_ID_CLI_PARAM)
-                .arg("--dump-path") // TODO: this should be parameterized
-                .arg("dump".to_string())
-                .arg("--dump-on") // TODO: add also transaction mode, I forgot about that
-                .arg("transaction".to_string())
+                .args(additional_args)
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .expect("Could not start background devnet");
