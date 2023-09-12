@@ -12,7 +12,6 @@ use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::JsonRpcClient;
 use thiserror::Error;
 use tokio::sync::Mutex;
-use tower::util::Optional;
 use url::Url;
 
 use super::constants::{

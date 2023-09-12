@@ -1,7 +1,7 @@
 pub mod common;
 
 mod dump_and_load_tests {
-    use std::fs::{self, File};
+    use std::fs::{self};
     use std::path::Path;
     use std::process::Command;
 
@@ -9,8 +9,6 @@ mod dump_and_load_tests {
     use serde_json::json;
     use starknet_rs_core::types::FieldElement;
     use starknet_rs_providers::Provider;
-    use tokio::signal;
-    use tokio::signal::unix::Signal;
 
     use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::get_json_body;
