@@ -259,7 +259,12 @@ mod tests {
         let fee_token_address = dummy_contract_address();
 
         // deploy the erc20 contract
-        state.deploy_contract(fee_token_address, Felt::from_prefixed_hex_str(ERC20_CONTRACT_CLASS_HASH).unwrap()).unwrap();
+        state
+            .deploy_contract(
+                fee_token_address,
+                Felt::from_prefixed_hex_str(ERC20_CONTRACT_CLASS_HASH).unwrap(),
+            )
+            .unwrap();
 
         (
             Account::new(
