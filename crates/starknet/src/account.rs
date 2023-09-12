@@ -135,15 +135,13 @@ impl Accounted for Account {
 
 #[cfg(test)]
 mod tests {
-    use starknet_in_rust::core::errors::state_errors::StateError;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
 
     use super::Account;
-    use crate::error::Error;
     use crate::state::StarknetState;
-    use crate::traits::{Accounted, Deployed};
+    use crate::traits::{Accounted, Deployed, StateChanger};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::get_storage_var_address;
     use crate::utils::test_utils::{dummy_contract_address, dummy_felt};
@@ -221,12 +219,12 @@ mod tests {
     }
 
     #[test]
-    fn account_get_balance_should_return_error_because_balance_was_not_set() {
+    fn account_get_balance_should_return_zero_because_balance_was_not_set() {
         let (account, mut state) = setup();
 
         account.deploy(&mut state).unwrap();
-        let err = account.get_balance(&mut state).unwrap_err();
-        assert!(matches!(err, Error::StateError(StateError::NoneStorage((_, _)))));
+        let balance = account.get_balance(&mut state).unwrap();
+        assert_eq!(balance, Felt::from(0));
     }
 
     #[test]
@@ -256,6 +254,11 @@ mod tests {
     }
 
     fn setup() -> (Account, StarknetState) {
+        let mut state = StarknetState::default();
+        let fee_token_address = dummy_contract_address();
+
+        state.deploy_contract(fee_token_address, Felt::from(2)).unwrap();
+
         (
             Account::new(
                 Felt::from(10),
@@ -263,10 +266,10 @@ mod tests {
                 Felt::from(11),
                 dummy_felt(),
                 dummy_cairo_0_contract_class().into(),
-                dummy_contract_address(),
+                fee_token_address,
             )
             .unwrap(),
-            StarknetState::default(),
+            state,
         )
     }
 }

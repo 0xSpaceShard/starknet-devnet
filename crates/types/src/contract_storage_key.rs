@@ -10,6 +10,10 @@ impl ContractStorageKey {
     pub fn new(address: ContractAddress, storage_key: StorageKey) -> Self {
         Self(address, storage_key)
     }
+
+    pub fn get_contract_address(&self) -> &ContractAddress {
+        &self.0
+    }
 }
 
 impl From<&ContractStorageKey> for starknet_in_rust::state::state_cache::StorageEntry {
