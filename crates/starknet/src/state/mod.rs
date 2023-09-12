@@ -265,7 +265,7 @@ mod tests {
             .pending_state
             .deploy_contract(
                 dummy_contract_storage_key().get_contract_address().into(),
-                Felt::from(1).into(),
+                dummy_felt().into(),
             )
             .unwrap();
 

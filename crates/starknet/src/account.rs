@@ -140,6 +140,7 @@ mod tests {
     use starknet_types::felt::Felt;
 
     use super::Account;
+    use crate::constants::ERC20_CONTRACT_CLASS_HASH;
     use crate::state::StarknetState;
     use crate::traits::{Accounted, Deployed, StateChanger};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
@@ -257,7 +258,8 @@ mod tests {
         let mut state = StarknetState::default();
         let fee_token_address = dummy_contract_address();
 
-        state.deploy_contract(fee_token_address, Felt::from(2)).unwrap();
+        // deploy the erc20 contract
+        state.deploy_contract(fee_token_address, Felt::from_prefixed_hex_str(ERC20_CONTRACT_CLASS_HASH).unwrap()).unwrap();
 
         (
             Account::new(
