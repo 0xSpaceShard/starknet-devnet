@@ -19,7 +19,7 @@ mod dump_and_load_tests {
     #[tokio::test]
     async fn mint_dump_on_transaction_and_load() {
         // dump after transaction
-        let dump_file_name = "dump";
+        let dump_file_name = "dump_on_transaction";
         let devnet_dump = BackgroundDevnet::spawn(Some(
             [
                 "--dump-path".to_string(),
@@ -78,7 +78,7 @@ mod dump_and_load_tests {
     #[tokio::test]
     async fn mint_dump_on_exit_and_load() {
         // dump after transaction
-        let dump_file_name = "dump";
+        let dump_file_name = "dump_on_exit";
         let devnet_dump = BackgroundDevnet::spawn(Some(
             [
                 "--dump-path".to_string(),
@@ -113,7 +113,6 @@ mod dump_and_load_tests {
                 .spawn()
                 .unwrap();
             let _result = kill.wait().unwrap();
-            println!("_i: {:?}", _i);
         }
 
         // load transaction from file and check hashes
@@ -149,4 +148,6 @@ mod dump_and_load_tests {
             fs::remove_file(file_path).expect("Could not remove file");
         }
     }
+
+    // TODO: Add test with declare and deploy and invoke? [also check order of transactions]
 }
