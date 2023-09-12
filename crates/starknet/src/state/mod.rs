@@ -148,7 +148,7 @@ impl StateChanger for StarknetState {
 
         // update accounts nonce
         state_diff.inner.address_to_nonce().iter().for_each(|(contract_address, nonce)| {
-                        old_state.address_to_nonce_mut().insert(contract_address.clone(), nonce.clone());
+            old_state.address_to_nonce_mut().insert(contract_address.clone(), nonce.clone());
         });
 
         Ok(())
@@ -406,8 +406,8 @@ mod tests {
     fn get_nonce_should_return_error_when_contract_not_deployed() {
         let (state, _) = setup();
         match state.get_nonce(&ContractAddress::new(Felt::from(1)).unwrap()) {
-            Err(Error::ContractNotFound) => {},
-            _ => panic!("Expected to return an error - ContractNotFound")
+            Err(Error::ContractNotFound) => {}
+            _ => panic!("Expected to return an error - ContractNotFound"),
         }
     }
 
