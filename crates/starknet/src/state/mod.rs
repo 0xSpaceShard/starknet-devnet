@@ -190,6 +190,14 @@ impl StateExtractor for StarknetState {
             self.pending_state.clone(),
         )
     }
+
+    fn get_nonce(&self, address: &ContractAddress) -> DevnetResult<Felt> {
+        if !self.is_contract_deployed(address) {
+            return Err(Error::ContractNotFound);
+        }
+
+        self.state.get_nonce_at(&address.into()).map(Felt::from).map_err(Error::from)
+    }
 }
 
 #[cfg(test)]
@@ -392,6 +400,21 @@ mod tests {
         state.change_storage(dummy_contract_storage_key(), expected_result).unwrap();
         let generated_result = state.get_storage(dummy_contract_storage_key()).unwrap();
         assert_eq!(expected_result, generated_result);
+    }
+
+    #[test]
+    fn get_nonce_should_return_error_when_contract_not_deployed() {
+        let (state, _) = setup();
+        match state.get_nonce(&ContractAddress::new(Felt::from(1)).unwrap()) {
+            Err(Error::ContractNotFound) => {}
+            _ => panic!("Expected to return an error - ContractNotFound"),
+        }
+    }
+
+    #[test]
+    fn get_nonce_should_return_zero_for_freshly_deployed_contract() {
+        let (state, address) = setup();
+        assert_eq!(state.get_nonce(&address).unwrap(), Felt::from(0));
     }
 
     fn setup() -> (StarknetState, ContractAddress) {
