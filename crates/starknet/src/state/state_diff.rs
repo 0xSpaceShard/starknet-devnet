@@ -37,9 +37,19 @@ impl StateDiff {
         let mut cairo_0_declared_contracts = HashMap::<ClassHash, DeprecatedContractClass>::new();
 
         // extract differences of class_hash -> compile_class_hash mapping
+        // the filter method is applied, because in starknet_in_rust when there is a declare V2,
+        // in the collection there is an entry with an equal key and value, which is added after
+        // sierra class hash is mapped to compiled class hash
+        // More information here https://github.com/lambdaclass/starknet_in_rust/blob/1eb0411cc875c17c4e176d8411dbf27bb81e3d24/src/transaction/declare_v2.rs#L378
         let class_hash_to_compiled_class_hash_subtracted_map = subtract_mappings(
-            new_state.cache_mut().class_hash_to_compiled_class_hash_mut().clone(),
-            old_state.class_hash_to_compiled_class_hash_mut().clone(),
+            &new_state
+                .cache_mut()
+                .class_hash_to_compiled_class_hash_mut()
+                .iter()
+                .filter(|(key, value)| **key != **value)
+                .map(|(key, value)| (*key, *value))
+                .collect(),
+            old_state.class_hash_to_compiled_class_hash_mut(),
         );
 
         for (class_hash_bytes, compiled_class_hash_bytes) in
@@ -54,10 +64,9 @@ impl StateDiff {
         // extract difference of class hash -> CompiledClass. When CompiledClass is Cairo 1, then
         // the class hash is compiled class hash
         let new_compiled_contract_classes = subtract_mappings(
-            new_state.contract_classes().clone(),
-            old_state.class_hash_to_compiled_class_mut().clone(),
+            new_state.contract_classes(),
+            old_state.class_hash_to_compiled_class_mut(),
         );
-
         for (class_hash, compiled_class) in new_compiled_contract_classes {
             let key = Felt::new(class_hash).map_err(crate::error::Error::from)?;
 

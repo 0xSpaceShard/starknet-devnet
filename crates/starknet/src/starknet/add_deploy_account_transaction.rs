@@ -104,7 +104,7 @@ mod tests {
     }
 
     #[test]
-    fn deploy_account_transaction_should_fail_due_to_low_balance() {
+    fn deploy_account_transaction_should_fail_due_to_not_enough_balance() {
         let (mut starknet, account_class_hash, _) = setup();
 
         let fee_raw: u128 = 2000;
@@ -122,9 +122,46 @@ mod tests {
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
 
         assert_eq!(txn.finality_status, None);
+        assert!(txn.execution_result.revert_reason().unwrap().contains("Fee transfer failure"));
+    }
+
+    #[test]
+    fn deploy_account_transaction_should_fail_due_to_not_enough_fee() {
+        let (mut starknet, account_class_hash, fee_token_address) = setup();
+
+        let fee_raw: u128 = 2000;
+        let transaction = BroadcastedDeployAccountTransaction::new(
+            &vec![],
+            Fee(fee_raw),
+            &vec![],
+            Felt::from(0),
+            account_class_hash,
+            Felt::from(13),
+            Felt::from(1),
+        );
+
+        let sir_transaction = transaction
+            .create_sir_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt().into())
+            .unwrap();
+
+        // change balance at address
+        let account_address =
+            ContractAddress::try_from(sir_transaction.contract_address().clone()).unwrap();
+        let balance_storage_var_address =
+            get_storage_var_address("ERC20_balances", &[account_address.into()]).unwrap();
+        let balance_storage_key =
+            ContractStorageKey::new(fee_token_address, balance_storage_var_address);
+
+        starknet.state.change_storage(balance_storage_key, Felt::from(fee_raw)).unwrap();
+        starknet.state.synchronize_states();
+
+        let (txn_hash, _) = starknet.add_deploy_account_transaction(transaction).unwrap();
+        let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
+
+        assert_eq!(txn.finality_status, None);
         assert_eq!(
             txn.execution_result.revert_reason(),
-            Some(format!("Actual fee exceeds max fee. Actual: 3709, Max: {}", fee_raw).as_str())
+            Some(format!("Calculated fee (3709) exceeds max fee ({})", fee_raw).as_str())
         );
     }
 
