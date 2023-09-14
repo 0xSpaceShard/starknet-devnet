@@ -104,7 +104,7 @@ mod tests {
     }
 
     #[test]
-    fn deploy_account_transaction_should_fail_due_to_low_balance() {
+    fn deploy_account_transaction_should_fail_due_to_not_enough_balance() {
         let (mut starknet, account_class_hash, _) = setup();
 
         let fee_raw: u128 = 2000;
