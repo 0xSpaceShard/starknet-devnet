@@ -140,13 +140,13 @@ mod tests {
             Felt::from(1),
         );
 
-        let sir_transction = transaction
+        let sir_transaction = transaction
             .create_sir_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt().into())
             .unwrap();
 
         // change balance at address
         let account_address =
-            ContractAddress::try_from(sir_transction.contract_address().clone()).unwrap();
+            ContractAddress::try_from(sir_transaction.contract_address().clone()).unwrap();
         let balance_storage_var_address =
             get_storage_var_address("ERC20_balances", &[account_address.into()]).unwrap();
         let balance_storage_key =
