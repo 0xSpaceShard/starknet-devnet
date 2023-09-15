@@ -396,12 +396,6 @@ impl Starknet {
         add_declare_transaction::add_declare_transaction_v2(self, declare_transaction)
     }
 
-    /// returning the block number that will be added, ie. the most recent accepted block number
-    pub fn block_number(&self) -> BlockNumber {
-        let block_num: u64 = self.block_context.block_info().block_number;
-        BlockNumber(block_num)
-    }
-
     /// returning the chain id as object
     pub fn chain_id(&self) -> StarknetChainId {
         self.config.chain_id
@@ -847,12 +841,11 @@ mod tests {
     }
 
     #[test]
-    fn returns_block_number() {
+    fn correct_latest_block() {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        let block_number_no_blocks = starknet.block_number();
-        assert_eq!(block_number_no_blocks.0, 0);
+        starknet.get_latest_block().err().unwrap();
 
         starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
         starknet.generate_pending_block().unwrap();
@@ -860,17 +853,17 @@ mod tests {
         // last added block number -> 0
         let added_block = starknet.blocks.num_to_block.get(&BlockNumber(0)).unwrap();
         // number of the accepted block -> 1
-        let block_number = starknet.block_number();
+        let block_number = starknet.get_latest_block().unwrap().block_number();
 
-        assert_eq!(block_number.0 - 1, added_block.header.block_number.0);
+        assert_eq!(block_number.0, added_block.header.block_number.0);
 
         starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
         starknet.generate_pending_block().unwrap();
 
         let added_block2 = starknet.blocks.num_to_block.get(&BlockNumber(1)).unwrap();
-        let block_number2 = starknet.block_number();
+        let block_number2 = starknet.get_latest_block().unwrap().block_number();
 
-        assert_eq!(block_number2.0 - 1, added_block2.header.block_number.0);
+        assert_eq!(block_number2.0, added_block2.header.block_number.0);
     }
 
     #[test]
