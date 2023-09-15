@@ -31,7 +31,7 @@ Supported architectures: arm64 and amd64.
 Running a container is done like this (see [port publishing](#container-port-publishing) for more info):
 
 ```text
-$ docker run -p [HOST]:<PORT> shardlabs/starknet-devnet-rs [OPTIONS]
+$ docker run -p [HOST:]<PORT>:5050 shardlabs/starknet-devnet-rs [OPTIONS]
 ```
 
 ### Docker image tags
