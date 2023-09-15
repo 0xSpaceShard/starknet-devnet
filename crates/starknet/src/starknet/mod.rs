@@ -35,7 +35,8 @@ use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::Broad
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
 use starknet_types::rpc::transactions::{
-    BroadcastedTransaction, BroadcastedTransactionCommon, Transaction, Transactions,
+    BroadcastedDeclareTransaction, BroadcastedTransaction, BroadcastedTransactionCommon,
+    SimulatedTransaction, SimulationFlag, Transaction, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::error;
@@ -580,6 +581,90 @@ impl Starknet {
             self.transactions.get(&transaction_hash).ok_or(Error::NoTransaction)?;
 
         transaction_to_map.get_receipt()
+    }
+
+    // TODO move the logic to a separate file?
+    pub fn simulate_transactions(
+        &self,
+        block_id: BlockId,
+        transactions: &Vec<BroadcastedTransaction>,
+        simulation_flags: Vec<SimulationFlag>,
+    ) -> DevnetResult<Vec<SimulatedTransaction>> {
+        let mut skip_validate = false;
+        let mut skip_fee_charge = false;
+        for flag in simulation_flags.iter() {
+            match flag {
+                SimulationFlag::SkipValidate => skip_validate = true,
+                SimulationFlag::SkipFeeCharge => skip_fee_charge = true,
+            }
+        }
+
+        // these flags cannot be influenced by the user, so we just assume they are not set
+        let skip_execute = false;
+        let ignore_max_fee = false;
+        let skip_nonce_check = false;
+
+        let chain_id: Felt = self.chain_id().to_felt().into();
+
+        for tx in transactions {
+            let simulatable = match tx {
+                BroadcastedTransaction::Invoke(invoke_tx) => {
+                    starknet_in_rust::transaction::Transaction::InvokeFunction(
+                        invoke_tx.create_sir_invoke_function(chain_id)?,
+                    )
+                }
+                BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(declare_tx)) => {
+                    let class_hash = declare_tx.generate_class_hash()?;
+                    starknet_in_rust::transaction::Transaction::Declare(
+                        declare_tx.create_sir_declare(
+                            class_hash,
+                            declare_tx.calculate_transaction_hash(&chain_id, &class_hash)?,
+                        )?,
+                    )
+                }
+                BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(declare_tx)) => {
+                    let sir_declare = declare_tx.create_sir_declare(chain_id)?;
+                    starknet_in_rust::transaction::Transaction::DeclareV2(Box::new(sir_declare))
+                }
+                BroadcastedTransaction::DeployAccount(deploy_account_tx) => {
+                    starknet_in_rust::transaction::Transaction::DeployAccount(
+                        deploy_account_tx.create_sir_deploy_account(chain_id)?,
+                    )
+                }
+            }
+            .create_for_simulation(
+                skip_validate,
+                skip_execute,
+                skip_fee_charge,
+                ignore_max_fee,
+                skip_nonce_check,
+            );
+        }
+        let fee_estimations = estimations::estimate_fee(&self, block_id, &transactions)?;
+        todo!(
+            "Probably need to have one method that will get the estimation and trace, sam as we \
+             did in devnet-py"
+        );
+        // gateway_transactions = list(map(make_transaction, transactions))
+        // traces, fees = await _calculate_traces_and_fees(
+        //     gateway_transactions, block_id, skip_validate
+        // )
+
+        // tx_types = [tx.tx_type for tx in gateway_transactions]
+        // rpc_traces = rpc_map_traces(traces, tx_types)
+        // rpc_estimations = rpc_fee_estimate(fees)
+
+        // # traces number must be equal to estimations
+        // assert len(rpc_traces) == len(rpc_estimations)
+        // simulated_transactions = [
+        //     {
+        //         "transaction_trace": trace,
+        //         "fee_estimation": estimation,
+        //     }
+        //     for trace, estimation in zip(rpc_traces, rpc_estimations)
+        // ]
+
+        // return simulated_transactions
     }
 }
 

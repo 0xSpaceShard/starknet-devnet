@@ -9,7 +9,8 @@ use starknet_types::rpc::block::{Block, BlockHeader, BlockId};
 use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
-    BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, Transaction,
+    BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, SimulatedTransaction,
+    SimulationFlag, Transaction,
 };
 use starknet_types::starknet_api::block::BlockNumber;
 use starknet_types::traits::ToHexString;
@@ -373,5 +374,21 @@ impl JsonRpcHandler {
             })?;
 
         Ok(nonce)
+    }
+
+    /// starknet_simulateTransactions
+    pub(crate) async fn simulate_transactions(
+        &self,
+        block_id: BlockId,
+        transactions: Vec<BroadcastedTransaction>,
+        simulation_flags: Vec<SimulationFlag>,
+    ) -> RpcResult<Vec<SimulatedTransaction>> {
+        let starknet = self.api.starknet.read().await;
+        match starknet.simulate_transactions(block_id.into(), &transactions, simulation_flags) {
+            Ok(result) => Ok(result),
+            Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
+            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
+            Err(err) => Err(ApiError::ContractError { msg: err.to_string() }),
+        }
     }
 }

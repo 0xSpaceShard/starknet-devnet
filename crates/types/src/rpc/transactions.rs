@@ -12,6 +12,7 @@ use starknet_api::block::BlockNumber;
 use starknet_api::transaction::Fee;
 use starknet_rs_core::types::{BlockId, ExecutionResult, TransactionFinalityStatus};
 
+use super::estimate_message_fee::FeeEstimateWrapper;
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
 use crate::felt::{
@@ -270,4 +271,27 @@ pub enum BroadcastedTransaction {
 pub enum BroadcastedDeclareTransaction {
     V1(Box<BroadcastedDeclareTransactionV1>),
     V2(Box<BroadcastedDeclareTransactionV2>),
+}
+
+/// Flags that indicate how to simulate a given transaction.
+/// By default, the sequencer behavior is replicated locally (enough funds are expected to be in the
+/// account, and fee will be deducted from the balance before the simulation of the next
+/// transaction). To skip the fee charge, use the SKIP_FEE_CHARGE flag.
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+pub enum SimulationFlag {
+    #[serde(rename = "SKIP_VALIDATE")]
+    SkipValidate,
+    #[serde(rename = "SKIP_FEE_CHARGE")]
+    SkipFeeCharge,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TransactionTrace {
+    // TODO - import? from starknet-rs?
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct SimulatedTransaction {
+    pub transaction_trace: TransactionTrace,
+    pub fee_estimation: FeeEstimateWrapper,
 }

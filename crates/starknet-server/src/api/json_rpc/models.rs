@@ -6,6 +6,7 @@ use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::B
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedTransaction, EventFilter, FunctionCall,
+    SimulationFlag,
 };
 use starknet_types::starknet_api::block::BlockNumber;
 
@@ -105,6 +106,13 @@ pub struct BroadcastedInvokeTransactionInput {
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct InvokeTransactionOutput {
     pub transaction_hash: TransactionHash,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+pub struct SimulateTransactionsInput {
+    pub block_id: BlockId,
+    pub transactions: Vec<BroadcastedTransaction>,
+    pub simulation_flags: Vec<SimulationFlag>,
 }
 
 #[cfg(test)]
