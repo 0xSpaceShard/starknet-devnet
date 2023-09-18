@@ -1,6 +1,6 @@
 use std::fmt::LowerHex;
 use std::net::TcpListener;
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, Command};
 use std::{thread, time};
 
 use hyper::client::HttpConnector;
