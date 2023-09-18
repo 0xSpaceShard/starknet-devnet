@@ -66,6 +66,7 @@ pub struct BlockHashAndNumberOutput {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(untagged)]
 pub enum SyncingOutput {
     True(SyncStatus),
     False(bool),
