@@ -11,6 +11,7 @@ use crate::felt::{
 };
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct DeclareTransactionV2 {
     pub class_hash: ClassHash,
     pub compiled_class_hash: CompiledClassHash,

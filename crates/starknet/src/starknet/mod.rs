@@ -39,7 +39,7 @@ use starknet_types::rpc::transactions::{
     BroadcastedTransactionCommon, DeclareTransaction, InvokeTransaction, Transaction,
     TransactionReceiptWithStatus, Transactions,
 };
-use starknet_types::traits::{HashProducer, ToHexString};
+use starknet_types::traits::HashProducer;
 use tracing::error;
 
 use self::predeployed::initialize_erc20;
@@ -175,30 +175,10 @@ impl Starknet {
 
         this.restart_pending_block()?;
 
-        // Load contracts without init contracts - this can be removed later?
-        // let init_contracts = vec![
-        //     Felt::from_prefixed_hex_str(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap_or_default(),
-        //     Felt::from_prefixed_hex_str(UDC_CONTRACT_CLASS_HASH).unwrap_or_default(),
-        //     Felt::from_prefixed_hex_str(ERC20_CONTRACT_CLASS_HASH).unwrap_or_default(),
-        // ];
-        // if contract_classes.is_some() {  // is_some() is need here?
-        //     for (hash, value) in contract_classes.unwrap_or_default().iter() {
-        //         if !init_contracts.contains(hash) {
-        //             println!(
-        //                 "Dump new contract with key here: {:?}",
-        //                 hash.to_prefixed_hex_str()
-        //             );
-        //             println!("contract: {:?}", value);
-        //         }
-        //         println!("contract hash: {:?}", hash);
-        //     }
-        // }
-
         // Re-execute transactions
         if transactions.is_some() {
             // is_some() is need here?
             for (_hash, transaction) in transactions.unwrap_or_default().iter() {
-                println!("_hash: {:?}", _hash.to_prefixed_hex_str());
                 match transaction.inner.clone() {
                     Transaction::Declare(DeclareTransaction::Version0(_tx)) => {
                         panic!("DeclareTransactionV0V1 is not supported");
@@ -227,28 +207,19 @@ impl Starknet {
                         };
                     }
                     Transaction::Declare(DeclareTransaction::Version2(tx)) => {
-                        let contract_class = this
-                            .state
-                            .contract_classes
-                            .get(&tx.class_hash)
-                            .expect("Failed to load SierraContractClass from state");
-                        if let ContractClass::Cairo1(contract) = contract_class {
-                            let declare_tx = BroadcastedDeclareTransactionV2::new(
-                                contract,
-                                tx.compiled_class_hash,
-                                tx.sender_address,
-                                tx.max_fee,
-                                &tx.signature,
-                                tx.nonce,
-                                tx.version,
-                            );
-                            let result = this.add_declare_transaction_v2(declare_tx);
-                            if result.is_err() {
-                                panic!("Failed to add BroadcastedDeclareTransactionV2");
-                            }
-                        } else {
-                            panic!("Failed to load SierraContractClass");
-                        };
+                        let declare_tx = BroadcastedDeclareTransactionV2::new(
+                            &tx.contract_class,
+                            tx.compiled_class_hash,
+                            tx.sender_address,
+                            tx.max_fee,
+                            &tx.signature,
+                            tx.nonce,
+                            tx.version,
+                        );
+                        let result = this.add_declare_transaction_v2(declare_tx);
+                        if result.is_err() {
+                            panic!("Failed to add BroadcastedDeclareTransactionV2");
+                        }
                     }
                     Transaction::DeployAccount(tx) => {
                         let deploy_account_tx = BroadcastedDeployAccountTransaction::new(
@@ -260,6 +231,10 @@ impl Starknet {
                             tx.contract_address_salt,
                             tx.version,
                         );
+                        println!("DeployAccount!!!!");
+                        println!("DeployAccount!!!!");
+                        println!("DeployAccount!!!!");
+
                         let result = this.add_deploy_account_transaction(deploy_account_tx);
                         if result.is_err() {
                             panic!("Failed to add BroadcastedDeployAccountTransaction");
@@ -603,8 +578,6 @@ impl Starknet {
 
     // save starknet transactions to file
     pub fn dump_transactions(&self) {
-        println!("dump_transactions!");
-
         // TODO: attach in OnTransaction mode or dump all??
         match &self.config.dump_path {
             Some(path) => {

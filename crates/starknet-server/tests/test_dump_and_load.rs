@@ -8,14 +8,24 @@ mod dump_and_load_tests {
 
     use hyper::{Body, StatusCode};
     use serde_json::json;
-    use starknet_rs_core::types::FieldElement;
     use starknet_rs_providers::Provider;
+    use starknet_types::felt::Felt;
 
     use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::get_json_body;
 
     static DUMMY_ADDRESS: &str = "0x1";
     static DUMMY_AMOUNT: u128 = 1;
+
+    use std::sync::Arc;
+
+    use starknet_rs_accounts::{Account, SingleOwnerAccount};
+    use starknet_rs_contract::ContractFactory;
+    use starknet_rs_core::chain_id;
+    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement};
+    use starknet_rs_signers::{LocalWallet, SigningKey};
+
+    use crate::common::utils::get_events_contract_in_sierra_and_compiled_class_hash;
 
     #[tokio::test]
     async fn mint_dump_on_transaction_and_load() {
@@ -44,7 +54,7 @@ mod dump_and_load_tests {
         let mut resp_body = get_json_body(resp).await;
         let tx_hash_value = resp_body["tx_hash"].take();
 
-        // load transaction from file and check hashes
+        // load transaction from file and check transaction hash
         let devnet_load = BackgroundDevnet::spawn(Some(
             ["--dump-path".to_string(), dump_file_name.to_string()].to_vec(),
         ))
@@ -116,7 +126,7 @@ mod dump_and_load_tests {
             let _result = kill.wait().unwrap();
         }
 
-        // load transaction from file and check hashes
+        // load transaction from file and check transaction hash
         let devnet_load = BackgroundDevnet::spawn(Some(
             ["--dump-path".to_string(), dump_file_name.to_string()].to_vec(),
         ))
@@ -150,5 +160,108 @@ mod dump_and_load_tests {
         }
     }
 
-    // TODO: Add test with declare and deploy and invoke? [also check order of transactions]
+    #[tokio::test]
+    async fn declare_deploy() {
+        let dump_file_name = "dump_declare_deploy";
+        let devnet = BackgroundDevnet::spawn(Some(
+            [
+                "--dump-path".to_string(),
+                dump_file_name.to_string(),
+                "--dump-on".to_string(),
+                "transaction".to_string(),
+            ]
+            .to_vec(),
+        ))
+        .await
+        .expect("Could not start Devnet");
+
+        // get first predeployed account data
+        let predeployed_accounts_response =
+            devnet.get("/predeployed_accounts", None).await.unwrap();
+
+        let predeployed_accounts_json = get_json_body(predeployed_accounts_response).await;
+        let first_account = predeployed_accounts_json.as_array().unwrap().get(0).unwrap();
+
+        let account_address =
+            Felt::from_prefixed_hex_str(first_account["address"].as_str().unwrap()).unwrap();
+        let private_key =
+            Felt::from_prefixed_hex_str(first_account["private_key"].as_str().unwrap()).unwrap();
+
+        // constructs starknet-rs account
+        let signer = LocalWallet::from(SigningKey::from_secret_scalar(private_key.into()));
+        let address = FieldElement::from(account_address);
+
+        let mut predeployed_account =
+            SingleOwnerAccount::new(devnet.clone_provider(), signer, address, chain_id::TESTNET);
+
+        // `SingleOwnerAccount` defaults to checking nonce and estimating fees against the latest
+        // block. Optionally change the target block to pending with the following line:
+        predeployed_account.set_block_id(BlockId::Tag(BlockTag::Pending));
+
+        let (cairo_1_contract, casm_class_hash) =
+            get_events_contract_in_sierra_and_compiled_class_hash();
+
+        // declare the contract
+        let declaration_result = predeployed_account
+            .declare(Arc::new(cairo_1_contract), casm_class_hash)
+            .max_fee(FieldElement::from(1000000000000000000000000000u128))
+            .send()
+            .await
+            .unwrap();
+
+        let predeployed_account = Arc::new(predeployed_account);
+
+        // deploy the contract
+        let contract_factory =
+            ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
+        let deploy_result = contract_factory
+            .deploy(vec![], FieldElement::ZERO, false)
+            .max_fee(FieldElement::from(1000000000000000000000000000u128))
+            .send()
+            .await
+            .unwrap();
+
+        // load transaction from file and check transactions hashes
+        let devnet_load = BackgroundDevnet::spawn(Some(
+            ["--dump-path".to_string(), dump_file_name.to_string()].to_vec(),
+        ))
+        .await
+        .expect("Could not start Devnet");
+
+        // check declare transaction
+        let loaded_declare_v2 = devnet_load
+            .json_rpc_client
+            .get_transaction_by_hash(declaration_result.transaction_hash)
+            .await
+            .unwrap();
+        if let starknet_rs_core::types::Transaction::Declare(
+            starknet_rs_core::types::DeclareTransaction::V2(declare_v2),
+        ) = loaded_declare_v2
+        {
+            assert_eq!(declare_v2.transaction_hash, declaration_result.transaction_hash);
+        } else {
+            panic!("Could not unpack the transaction from {loaded_declare_v2:?}");
+        }
+
+        // check deploy transaction
+        let loaded_deploy_v2 = devnet_load
+            .json_rpc_client
+            .get_transaction_by_hash(deploy_result.transaction_hash)
+            .await
+            .unwrap();
+        if let starknet_rs_core::types::Transaction::Invoke(
+            starknet_rs_core::types::InvokeTransaction::V1(deploy_v2),
+        ) = loaded_deploy_v2
+        {
+            assert_eq!(deploy_v2.transaction_hash, deploy_result.transaction_hash);
+        } else {
+            panic!("Could not unpack the transaction from {loaded_deploy_v2:?}");
+        }
+
+        // remove dump file after test
+        let file_path = Path::new(dump_file_name);
+        if file_path.exists() {
+            fs::remove_file(file_path).expect("Could not remove file");
+        }
+    }
 }
