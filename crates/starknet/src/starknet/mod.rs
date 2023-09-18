@@ -3,7 +3,7 @@ use std::time::SystemTime;
 
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
 use starknet_api::transaction::Fee;
-use starknet_in_rust::call_contract;
+use starknet_in_rust::{call_contract, simulate_transaction};
 use starknet_in_rust::definitions::block_context::{
     BlockContext, StarknetChainId, StarknetOsConfig,
 };
@@ -639,6 +639,8 @@ impl Starknet {
             "Probably need to have one method that will get the estimation and trace, sam as we \
              did in devnet-py"
         );
+
+        simulate_transaction(transactions, state, block_context, remaining_gas, skip_validate, skip_execute, skip_fee_transfer, ignore_max_fee, skip_nonce_check)
         // gateway_transactions = list(map(make_transaction, transactions))
         // traces, fees = await _calculate_traces_and_fees(
         //     gateway_transactions, block_id, skip_validate
