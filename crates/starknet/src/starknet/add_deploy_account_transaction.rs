@@ -28,21 +28,32 @@ pub fn add_deploy_account_transaction(
         .create_sir_deploy_account(starknet.config.chain_id.to_felt().into())?;
 
     let transaction_hash = sir_deploy_account_transaction.hash_value().into();
-    let deploy_account_transaction = broadcasted_deploy_account_transaction
-        .compile_deploy_account_transaction(&transaction_hash);
-
     let address: ContractAddress = sir_deploy_account_transaction.contract_address().try_into()?;
+    let deploy_account_transaction = broadcasted_deploy_account_transaction
+        .compile_deploy_account_transaction(&transaction_hash, address);
+
     let transaction = Transaction::DeployAccount(deploy_account_transaction);
 
     let state_before_txn = starknet.state.pending_state.clone();
     match sir_deploy_account_transaction
         .execute(&mut starknet.state.pending_state, &starknet.block_context)
     {
-        Ok(tx_info) => {
-            starknet.handle_successful_transaction(&transaction_hash, &transaction, &tx_info)?;
-        }
+        Ok(tx_info) => match tx_info.revert_error {
+            Some(error) => {
+                let transaction_to_add =
+                    StarknetTransaction::create_rejected(&transaction, None, &error);
+
+                starknet.transactions.insert(&transaction_hash, transaction_to_add);
+                // Revert to previous pending state
+                starknet.state.pending_state = state_before_txn;
+            }
+            None => {
+                starknet.handle_successful_transaction(&transaction_hash, &transaction, &tx_info)?
+            }
+        },
         Err(tx_err) => {
-            let transaction_to_add = StarknetTransaction::create_rejected(&transaction, tx_err);
+            let transaction_to_add =
+                StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
             // Revert to previous pending state
@@ -56,7 +67,7 @@ pub fn add_deploy_account_transaction(
 #[cfg(test)]
 mod tests {
     use starknet_api::transaction::Fee;
-    use starknet_rs_core::types::TransactionStatus;
+    use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::Cairo0Json;
     use starknet_types::contract_storage_key::ContractStorageKey;
@@ -93,12 +104,13 @@ mod tests {
     }
 
     #[test]
-    fn deploy_account_transaction_should_fail_due_to_low_balance() {
+    fn deploy_account_transaction_should_fail_due_to_not_enough_balance() {
         let (mut starknet, account_class_hash, _) = setup();
 
+        let fee_raw: u128 = 2000;
         let transaction = BroadcastedDeployAccountTransaction::new(
             &vec![],
-            Fee(2000),
+            Fee(fee_raw),
             &vec![],
             Felt::from(0),
             account_class_hash,
@@ -109,7 +121,48 @@ mod tests {
         let (txn_hash, _) = starknet.add_deploy_account_transaction(transaction).unwrap();
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
 
-        assert_eq!(txn.status, TransactionStatus::Rejected);
+        assert_eq!(txn.finality_status, None);
+        assert!(txn.execution_result.revert_reason().unwrap().contains("Fee transfer failure"));
+    }
+
+    #[test]
+    fn deploy_account_transaction_should_fail_due_to_not_enough_fee() {
+        let (mut starknet, account_class_hash, fee_token_address) = setup();
+
+        let fee_raw: u128 = 2000;
+        let transaction = BroadcastedDeployAccountTransaction::new(
+            &vec![],
+            Fee(fee_raw),
+            &vec![],
+            Felt::from(0),
+            account_class_hash,
+            Felt::from(13),
+            Felt::from(1),
+        );
+
+        let sir_transaction = transaction
+            .create_sir_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt().into())
+            .unwrap();
+
+        // change balance at address
+        let account_address =
+            ContractAddress::try_from(sir_transaction.contract_address().clone()).unwrap();
+        let balance_storage_var_address =
+            get_storage_var_address("ERC20_balances", &[account_address.into()]).unwrap();
+        let balance_storage_key =
+            ContractStorageKey::new(fee_token_address, balance_storage_var_address);
+
+        starknet.state.change_storage(balance_storage_key, Felt::from(fee_raw)).unwrap();
+        starknet.state.synchronize_states();
+
+        let (txn_hash, _) = starknet.add_deploy_account_transaction(transaction).unwrap();
+        let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
+
+        assert_eq!(txn.finality_status, None);
+        assert_eq!(
+            txn.execution_result.revert_reason(),
+            Some(format!("Calculated fee (3709) exceeds max fee ({})", fee_raw).as_str())
+        );
     }
 
     fn get_accounts_count(starknet: &Starknet) -> usize {
@@ -154,7 +207,9 @@ mod tests {
         let (txn_hash, _) = starknet.add_deploy_account_transaction(transaction).unwrap();
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
 
-        assert_eq!(txn.status, TransactionStatus::AcceptedOnL2);
+        assert_eq!(txn.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
+        assert_eq!(txn.execution_result.status(), TransactionExecutionStatus::Succeeded);
+
         assert_eq!(get_accounts_count(&starknet), accounts_before_deployment + 1);
         let account_balance_after_deployment =
             starknet.state.get_storage(balance_storage_key).unwrap();

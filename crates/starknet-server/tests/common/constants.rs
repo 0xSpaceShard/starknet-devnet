@@ -18,10 +18,7 @@ pub const PREDEPLOYED_ACCOUNT_PUBLIC_KEY: &str =
 // half the default value - sanity check
 pub const PREDEPLOYED_ACCOUNT_INITIAL_BALANCE: u128 = DEVNET_DEFAULT_INITIAL_BALANCE / 2;
 
-// Example contract - Cairo 0
-pub const CAIRO_0_CONTRACT_PATH: &str = "starknet/test_artifacts/cairo_0_test.json";
 // Example contract - Cairo 1
-pub const CAIRO_1_CONTRACT_PATH: &str =
-    "starknet-server/test_data/rpc/contract_cairo_v1/output.json";
+pub const CAIRO_1_CONTRACT_PATH: &str = "test_data/rpc/contract_cairo_v1/output.json";
 pub const CASM_COMPILED_CLASS_HASH: &str =
     "0x63b33a5f2f46b1445d04c06d7832c48c48ad087ce0803b71f2b8d96353716ca";

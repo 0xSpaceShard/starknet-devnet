@@ -1,0 +1,11 @@
+{
+  "type": "DECLARE",
+  "transaction_hash": "0x21933cb48e59c74caa4575a78e89e6046d043505e5600fd88af7f051d3610ca",
+  "actual_fee": "0x0",
+  "finality_status": "ACCEPTED_ON_L1",
+  "block_hash": "0x2f1335f3dab9f2773598dfdfc3cb0b650ee5bb768b894f629b6e090c189464f",
+  "block_number": 827466,
+  "messages_sent": [],
+  "events": [],
+  "execution_status": "SUCCEEDED"
+}

@@ -1,10 +1,11 @@
+use starknet_in_rust::core::errors::state_errors::StateError;
 use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass;
 use starknet_in_rust::state::state_api::StateReader;
 use starknet_in_rust::SierraContractClass;
 use starknet_rs_core::types::BlockId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
-use starknet_types::felt::ClassHash;
+use starknet_types::felt::{ClassHash, Felt};
 
 use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;
@@ -14,8 +15,15 @@ pub fn get_class_hash_at_impl(
     block_id: BlockId,
     contract_address: ContractAddress,
 ) -> DevnetResult<ClassHash> {
+    let address = contract_address.into();
     let state = starknet.get_state_at(&block_id)?;
-    Ok(state.state.get_class_hash_at(&contract_address.into())?.into())
+    let class_hash = state.state.get_class_hash_at(&address)?.into();
+
+    if class_hash == Felt::default() {
+        return Err(Error::StateError(StateError::NoneContractState(address)));
+    }
+
+    Ok(class_hash)
 }
 
 fn get_sierra_class(
@@ -119,12 +127,12 @@ mod tests {
     fn get_sierra_class() {
         let (mut starknet, account) = setup(Some(100000000));
 
-        let block_number = starknet.block_number();
         let declare_txn = dummy_broadcasted_declare_transaction_v2(&account.account_address);
 
         let expected: ContractClass = declare_txn.contract_class.clone().into();
         let (_, class_hash) = starknet.add_declare_transaction_v2(declare_txn).unwrap();
 
+        let block_number = starknet.get_latest_block().unwrap().block_number();
         let contract_class =
             starknet.get_class(BlockId::Number(block_number.0), class_hash).unwrap();
 
@@ -135,11 +143,11 @@ mod tests {
     fn get_class_hash_at_generated_accounts() {
         let (mut starknet, account) = setup(Some(100000000));
 
-        let block_number = starknet.block_number();
-        let block_id = BlockId::Number(block_number.0);
-
         starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
         starknet.generate_pending_block().unwrap();
+
+        let block_number = starknet.get_latest_block().unwrap().block_number();
+        let block_id = BlockId::Number(block_number.0);
 
         let class_hash = starknet.get_class_hash_at(block_id, account.account_address).unwrap();
         let expected = account.class_hash;
@@ -150,11 +158,11 @@ mod tests {
     fn get_class_at_generated_accounts() {
         let (mut starknet, account) = setup(Some(100000000));
 
-        let block_number = starknet.block_number();
-        let block_id = BlockId::Number(block_number.0);
-
         starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
         starknet.generate_pending_block().unwrap();
+
+        let block_number = starknet.get_latest_block().unwrap().block_number();
+        let block_id = BlockId::Number(block_number.0);
 
         let contract_class = starknet.get_class_at(block_id, account.account_address).unwrap();
         assert_eq!(contract_class, account.contract_class);

@@ -3,12 +3,12 @@ pub mod common;
 mod get_transaction_by_hash_integration_tests {
     use std::sync::Arc;
 
-    use starknet_rs_accounts::{Account, SingleOwnerAccount};
+    use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
     use starknet_rs_core::types::{
         BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedDeployAccountTransaction,
-        BroadcastedInvokeTransactionV1, FieldElement, StarknetError,
+        BroadcastedInvokeTransaction, FieldElement, StarknetError,
     };
     use starknet_rs_providers::{
         MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
@@ -97,8 +97,13 @@ mod get_transaction_by_hash_integration_tests {
         ));
         let address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
 
-        let mut account =
-            SingleOwnerAccount::new(&devnet.json_rpc_client, signer, address, chain_id::TESTNET);
+        let mut account = SingleOwnerAccount::new(
+            &devnet.json_rpc_client,
+            signer,
+            address,
+            chain_id::TESTNET,
+            ExecutionEncoding::Legacy,
+        );
         account.set_block_id(BlockId::Tag(BlockTag::Latest));
 
         // We need to flatten the ABI into a string first
@@ -170,7 +175,7 @@ mod get_transaction_by_hash_integration_tests {
     #[tokio::test]
     async fn get_invoke_v1_transaction_by_hash_happy_path() {
         let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
-        let invoke_txn_v1 = BroadcastedInvokeTransactionV1 {
+        let invoke_txn_v1 = BroadcastedInvokeTransaction {
             max_fee: FieldElement::from_hex_be("0xde0b6b3a7640000").unwrap(),
             signature: vec![],
             nonce: FieldElement::from_hex_be("0x0").unwrap(),
@@ -179,13 +184,8 @@ mod get_transaction_by_hash_integration_tests {
             is_query: false,
         };
 
-        let invoke_transaction = devnet
-            .json_rpc_client
-            .add_invoke_transaction(starknet_rs_core::types::BroadcastedInvokeTransaction::V1(
-                invoke_txn_v1.clone(),
-            ))
-            .await
-            .unwrap();
+        let invoke_transaction =
+            devnet.json_rpc_client.add_invoke_transaction(invoke_txn_v1.clone()).await.unwrap();
 
         let result = devnet
             .json_rpc_client

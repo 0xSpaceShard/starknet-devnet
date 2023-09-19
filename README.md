@@ -31,7 +31,7 @@ Supported architectures: arm64 and amd64.
 Running a container is done like this (see [port publishing](#container-port-publishing) for more info):
 
 ```text
-$ docker run -p [HOST]:<PORT> shardlabs/starknet-devnet-rs [OPTIONS]
+$ docker run -p [HOST:]<PORT>:5050 shardlabs/starknet-devnet-rs [OPTIONS]
 ```
 
 ### Docker image tags
@@ -108,6 +108,10 @@ or if using dockerized Devnet:
 ```
 $ docker run -e RUST_LOG=<LEVEL> shardlabs/starknet-devnet-rs
 ```
+
+## API
+
+Unlike Pythonic Devnet, which supported the gateway and feeder gateway API, Devnet in Rust only supports JSON-RPC, which at the time of writing this is synchronized with [specification v0.4.0](https://github.com/starkware-libs/starknet-specs/tree/v0.4.0/api).
 
 ## Predeployed contracts
 

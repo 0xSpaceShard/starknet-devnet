@@ -53,13 +53,13 @@ indexmap = "2.0.0"
 
 # Starknet dependencies
 starknet_api = { version = "0.3.0", features = ["testing"] }
-starknet-in-rust = { git = "https://github.com/lambdaclass/starknet_in_rust", rev = "f05da40", package="starknet_in_rust" }
-starknet-rs-signers = { version = "0.3.0", package = "starknet-signers" }
+starknet-in-rust = { git = "https://github.com/lambdaclass/starknet_in_rust", rev = "3febaf6", package="starknet_in_rust" }
+starknet-rs-signers = { version = "0.4.0", package="starknet-signers" }
 starknet-rs-ff = { version = "0.3.4", package = "starknet-ff" }
-starknet-rs-core = { version = "0.5.1", package = "starknet-core" }
-starknet-rs-providers = { version = "0.5.0", package = "starknet-providers" }
-starknet-rs-accounts = { version = "0.4.0", package = "starknet-accounts" }
-starknet-rs-contract = { version = "0.4.0", package = "starknet-contract" }
+starknet-rs-core = {  version = "0.6.0", package = "starknet-core" }
+starknet-rs-providers = {  version = "0.6.0", package = "starknet-providers" }
+starknet-rs-accounts = { version = "0.5.0", package = "starknet-accounts" }
+starknet-rs-contract = { version = "0.5.0", package = "starknet-contract" }
 cairo-felt = { version = "0.8.5", package = "cairo-felt" }
 url = "2.4"
 
