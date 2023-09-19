@@ -109,7 +109,7 @@ mod tests {
             seed: DEVNET_DEFAULT_TEST_SEED,
             total_accounts: DEVNET_DEFAULT_TOTAL_ACCOUNTS,
             predeployed_accounts_initial_balance: DEVNET_DEFAULT_INITIAL_BALANCE.into(),
-            host: DEVNET_DEFAULT_HOST.into(),
+            host: DEVNET_DEFAULT_HOST,
             port: DEVNET_DEFAULT_PORT,
             timeout: DEVNET_DEFAULT_TIMEOUT,
             gas_price: DEVNET_DEFAULT_GAS_PRICE,

@@ -1,5 +1,4 @@
-use std::net::{IpAddr, SocketAddr};
-use std::str::FromStr;
+use std::net::SocketAddr;
 
 use ::server::ServerConfig;
 use clap::Parser;
@@ -13,6 +12,7 @@ use tracing_subscriber::EnvFilter;
 
 mod api;
 mod cli;
+mod ip_addr_wrapper;
 mod server;
 
 /// Configures tracing with default level INFO,
@@ -53,9 +53,7 @@ async fn main() -> Result<(), anyhow::Error> {
     // parse arguments
     let args = Args::parse();
     let starknet_config = args.to_starknet_config();
-    let host =
-        IpAddr::from_str(starknet_config.host.as_str()).expect("Invalid value for host IP address");
-    let mut addr = SocketAddr::new(host, starknet_config.port);
+    let mut addr: SocketAddr = SocketAddr::new(starknet_config.host, starknet_config.port);
 
     let api = api::Api::new(Starknet::new(&starknet_config)?);
 
