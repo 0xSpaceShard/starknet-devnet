@@ -1,3 +1,5 @@
+use std::net::{IpAddr, Ipv4Addr};
+
 // use starknet_types::felt::Felt;
 use starknet_in_rust::definitions::block_context::StarknetChainId;
 
@@ -32,7 +34,8 @@ pub const DEVNET_DEFAULT_TEST_SEED: u32 = 123;
 pub const DEVNET_DEFAULT_TOTAL_ACCOUNTS: u8 = 10;
 pub const DEVNET_DEFAULT_INITIAL_BALANCE: u128 = 1_000_000_000_000_000_000_000;
 pub const DEVNET_DEFAULT_GAS_PRICE: u64 = 100_000_000_000;
-pub const DEVNET_DEFAULT_HOST: &str = "127.0.0.1";
+pub const DEVNET_DEFAULT_HOST: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
+pub const DEVNET_DEFAULT_HOST_RAW: &str = "127.0.0.1";
 pub const DEVNET_DEFAULT_PORT: u16 = 5050;
 pub const DEVNET_DEFAULT_TIMEOUT: u16 = 120;
 pub const DEVNET_DEFAULT_CHAIN_ID: StarknetChainId = StarknetChainId::TestNet;

@@ -1,11 +1,30 @@
+use std::net::{AddrParseError, IpAddr, Ipv4Addr};
+use std::str::FromStr;
+
 use clap::Parser;
 use starknet_core::constants::{
-    DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_HOST, DEVNET_DEFAULT_INITIAL_BALANCE,
+    DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_HOST_RAW, DEVNET_DEFAULT_INITIAL_BALANCE,
     DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
 use starknet_core::starknet::StarknetConfig;
 use starknet_in_rust::definitions::block_context::StarknetChainId;
 use starknet_types::num_bigint::BigUint;
+
+#[derive(Debug, Clone)]
+struct IpAddrWrapper {
+    inner: IpAddr,
+}
+
+impl FromStr for IpAddrWrapper {
+    type Err = AddrParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "localhost" => Ok(IpAddrWrapper { inner: IpAddr::V4(Ipv4Addr::LOCALHOST) }),
+            other => Ok(IpAddrWrapper { inner: IpAddr::V4(Ipv4Addr::from_str(other)?) }),
+        }
+    }
+}
 
 /// Run a local instance of Starknet Devnet
 #[derive(Parser, Debug)]
@@ -37,9 +56,9 @@ pub(crate) struct Args {
     // Host address
     #[arg(long = "host")]
     #[arg(value_name = "HOST")]
-    #[arg(default_value = DEVNET_DEFAULT_HOST)]
+    #[arg(default_value = DEVNET_DEFAULT_HOST_RAW)]
     #[arg(help = "Specify the address to listen at;")]
-    host: String,
+    host: IpAddrWrapper,
 
     // Port number
     #[arg(long = "port")]
@@ -83,7 +102,7 @@ impl Args {
                 .clone()
                 .try_into()
                 .expect("Invalid value for initial balance"), // TODO: Doesn't exit nicely.
-            host: self.host.to_string(),
+            host: self.host.inner,
             port: self.port, // TODO: Unification of parsing messages for host and port.
             timeout: self.timeout,
             gas_price: self.gas_price,
