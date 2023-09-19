@@ -121,6 +121,33 @@ Devnet predeploys a [UDC](https://docs.openzeppelin.com/contracts-cairo/0.6.1/ud
 
 For now, you can consult the [Pythonic Devnet docs on minting](https://0xspaceshard.github.io/starknet-devnet/docs/guide/mint-token/), with the difference of lite minting not being supported anymore.
 
+## Dumping & Loading
+
+To preserve your Devnet instance for future use, there are several options:
+- Dumping on exit (handles Ctrl+C, i.e. SIGINT, doesn't handle SIGKILL):
+```
+cargo run -- --dump-on exit --dump-path <PATH>
+```
+
+- Dumping after each transaction (done in background, doesn't block):
+```
+cargo run -- --dump-on transaction --dump-path <PATH>
+```
+
+### Loading
+
+To load a preserved Devnet instance, the options are:
+- Loading on startup:
+```
+cargo run -- --load-path <PATH>
+```
+
+Current load implementation is re-executing transactions stored in the dump file so the state of the blockchain can differ. For example, the timestamps of `StarknetBlock` will be different.
+
+### Cross-version disclaimer
+
+Dumping and loading is not guaranteed to work cross-version. I.e. if you dumped one version of Devnet (e.g. 0.1.0), do not expect it to be loadable with a different version (e.g. 0.2.0).
+
 ## Development - Visual Studio Code
 
 It is highly recommended to get familiar with [Visual Studio Code Dev Containers](https://code.visualstudio.com/docs/devcontainers/create-dev-container#_dockerfile) and install [rust-analyzer](https://code.visualstudio.com/docs/languages/rust) extension.
