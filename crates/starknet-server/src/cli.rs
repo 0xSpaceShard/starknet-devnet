@@ -109,16 +109,30 @@ mod tests {
     use crate::ip_addr_wrapper::IpAddrWrapper;
 
     #[test]
-    fn test_localhost_mapped() {
+    fn valid_ip_address() {
+        Args::parse_from(["--", "--host", "127.0.0.1"]);
+    }
+
+    #[test]
+    fn invalid_ip_address() {
+        let invalid_ip_address = "127.0.0";
+        match Args::try_parse_from(["--", "--host", invalid_ip_address]) {
+            Err(_) => (),
+            Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
+        }
+    }
+
+    #[test]
+    fn localhost_mapped() {
         let args = Args::parse_from(["--", "--host", "localhost"]);
         assert_eq!(args.host, IpAddrWrapper::LOCALHOST);
     }
 
     #[test]
-    fn test_invalid_host() {
+    fn invalid_hostname() {
         match Args::try_parse_from(["--", "--host", "invalid"]) {
             Err(_) => (),
-            parsed => panic!("Should have failed; got: {parsed:?}"),
+            Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
         }
     }
 }
