@@ -12,6 +12,7 @@ use tracing_subscriber::EnvFilter;
 
 mod api;
 mod cli;
+mod ip_addr_wrapper;
 mod server;
 
 /// Configures tracing with default level INFO,

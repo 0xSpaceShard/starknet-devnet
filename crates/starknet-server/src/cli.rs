@@ -1,30 +1,15 @@
-use std::net::{AddrParseError, IpAddr, Ipv4Addr};
-use std::str::FromStr;
+use std::net::{IpAddr, Ipv4Addr};
 
 use clap::Parser;
 use starknet_core::constants::{
-    DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_HOST_RAW, DEVNET_DEFAULT_INITIAL_BALANCE,
-    DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+    DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT,
+    DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
 use starknet_core::starknet::StarknetConfig;
 use starknet_in_rust::definitions::block_context::StarknetChainId;
 use starknet_types::num_bigint::BigUint;
 
-#[derive(Debug, Clone)]
-struct IpAddrWrapper {
-    inner: IpAddr,
-}
-
-impl FromStr for IpAddrWrapper {
-    type Err = AddrParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "localhost" => Ok(IpAddrWrapper { inner: IpAddr::V4(Ipv4Addr::LOCALHOST) }),
-            other => Ok(IpAddrWrapper { inner: IpAddr::V4(Ipv4Addr::from_str(other)?) }),
-        }
-    }
-}
+use crate::ip_addr_wrapper::IpAddrWrapper;
 
 /// Run a local instance of Starknet Devnet
 #[derive(Parser, Debug)]
@@ -56,7 +41,7 @@ pub(crate) struct Args {
     // Host address
     #[arg(long = "host")]
     #[arg(value_name = "HOST")]
-    #[arg(default_value = DEVNET_DEFAULT_HOST_RAW)]
+    #[arg(default_value_t = IpAddrWrapper { inner: IpAddr::V4(Ipv4Addr::LOCALHOST) })]
     #[arg(help = "Specify the address to listen at;")]
     host: IpAddrWrapper,
 
@@ -112,6 +97,28 @@ impl Args {
                 "TESTNET2" => StarknetChainId::TestNet2,
                 _ => panic!("Invalid value for chain-id"),
             },
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::Parser;
+
+    use super::Args;
+    use crate::ip_addr_wrapper::IpAddrWrapper;
+
+    #[test]
+    fn test_localhost_mapped() {
+        let args = Args::parse_from(["--", "--host", "localhost"]);
+        assert_eq!(args.host, IpAddrWrapper::LOCALHOST);
+    }
+
+    #[test]
+    fn test_invalid_host() {
+        match Args::try_parse_from(["--", "--host", "invalid"]) {
+            Err(_) => (),
+            parsed => panic!("Should have failed; got: {parsed:?}"),
         }
     }
 }
