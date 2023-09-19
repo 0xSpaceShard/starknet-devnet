@@ -233,10 +233,6 @@ impl Starknet {
                             tx.contract_address_salt,
                             tx.version,
                         );
-                        println!("DeployAccount!!!!");
-                        println!("DeployAccount!!!!");
-                        println!("DeployAccount!!!!");
-
                         let result = this.add_deploy_account_transaction(deploy_account_tx);
                         if result.is_err() {
                             panic!("Failed to add BroadcastedDeployAccountTransaction");
