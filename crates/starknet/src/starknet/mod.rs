@@ -37,9 +37,8 @@ use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::Broad
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
 use starknet_types::rpc::transactions::{
-    BroadcastedTransaction,
-    BroadcastedTransactionCommon, DeclareTransaction, InvokeTransaction, Transaction,
-    Transactions,
+    BroadcastedTransaction, BroadcastedTransactionCommon, DeclareTransaction, InvokeTransaction,
+    Transaction, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::error;

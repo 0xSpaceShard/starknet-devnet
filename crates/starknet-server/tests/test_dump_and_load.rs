@@ -19,7 +19,7 @@ mod dump_and_load_tests {
 
     use std::sync::Arc;
 
-    use starknet_rs_accounts::{Account, SingleOwnerAccount};
+    use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement};
@@ -191,8 +191,13 @@ mod dump_and_load_tests {
         let signer = LocalWallet::from(SigningKey::from_secret_scalar(private_key.into()));
         let address = FieldElement::from(account_address);
 
-        let mut predeployed_account =
-            SingleOwnerAccount::new(devnet.clone_provider(), signer, address, chain_id::TESTNET);
+        let mut predeployed_account = SingleOwnerAccount::new(
+            devnet.clone_provider(),
+            signer,
+            address,
+            chain_id::TESTNET,
+            ExecutionEncoding::Legacy,
+        );
 
         // `SingleOwnerAccount` defaults to checking nonce and estimating fees against the latest
         // block. Optionally change the target block to pending with the following line:

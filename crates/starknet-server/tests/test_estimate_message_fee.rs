@@ -25,7 +25,7 @@ mod test_estimate_message_fee {
 
     #[tokio::test]
     async fn estimate_message_fee() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
 
         // get account
         let (signer, account_address) = get_predeployed_account_props();
@@ -88,7 +88,7 @@ mod test_estimate_message_fee {
 
     #[tokio::test]
     async fn estimate_message_fee_contract_not_found() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
 
         let err = devnet
             .json_rpc_client
@@ -115,7 +115,7 @@ mod test_estimate_message_fee {
 
     #[tokio::test]
     async fn estimate_message_fee_block_not_found() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
 
         let err = devnet
             .json_rpc_client

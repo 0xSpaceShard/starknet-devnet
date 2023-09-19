@@ -31,7 +31,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
     #[tokio::test]
     async fn deploy_account_transaction_receipt() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
 
         // constructs starknet-rs account
         let signer = get_deployable_account_signer();
