@@ -110,6 +110,6 @@ pub async fn shutdown_signal(api: Api) {
 
     let starknet = api.starknet.read().await;
     if starknet.config.dump_on.is_some() && starknet.config.dump_on == Some(DumpMode::OnExit) {
-        starknet.dump_transactions();
+        starknet.dump_transactions().expect("Failed to dump starknet transactions");
     }
 }

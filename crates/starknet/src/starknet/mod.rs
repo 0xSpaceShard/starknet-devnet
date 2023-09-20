@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fs;
+use std::io::ErrorKind;
 use std::net::IpAddr;
 use std::path::Path;
 use std::time::SystemTime;
@@ -336,7 +337,7 @@ impl Starknet {
         self.generate_pending_block()?;
 
         if self.config.dump_on.is_some() && self.config.dump_on == Some(DumpMode::OnTransaction) {
-            self.dump_transactions();
+            self.dump_transactions()?;
         }
 
         Ok(())
@@ -525,7 +526,7 @@ impl Starknet {
     }
 
     /// save starknet transactions to file
-    pub fn dump_transactions(&self) {
+    pub fn dump_transactions(&self) -> DevnetResult<()> {
         match &self.config.dump_path {
             Some(path) => {
                 let starknet_dump = Some(
@@ -535,8 +536,14 @@ impl Starknet {
                 let encoded: Vec<u8> = bincode::serialize(&starknet_dump)
                     .expect("Failed to encode starknet transactions");
                 fs::write(Path::new(&path), encoded).expect("Failed to save starknet transactions");
+
+                Ok(())
             }
-            None => {}
+            None => {
+                let path_not_set =
+                    std::io::Error::new(ErrorKind::InvalidInput, "Dump path is not set");
+                Err(Error::IoError(path_not_set))
+            }
         }
     }
 
