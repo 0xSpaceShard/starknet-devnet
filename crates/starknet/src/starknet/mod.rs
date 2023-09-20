@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+use std::net::IpAddr;
 use std::time::SystemTime;
 
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
@@ -48,7 +49,7 @@ use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
     CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
-    ERC20_CONTRACT_ADDRESS,
+    DEVNET_DEFAULT_HOST, ERC20_CONTRACT_ADDRESS,
 };
 use crate::error::{DevnetResult, Error};
 use crate::predeployed_accounts::PredeployedAccounts;
@@ -82,7 +83,7 @@ pub struct StarknetConfig {
     pub seed: u32,
     pub total_accounts: u8,
     pub predeployed_accounts_initial_balance: Felt,
-    pub host: String,
+    pub host: IpAddr,
     pub port: u16,
     pub timeout: u16,
     pub gas_price: u64,
@@ -97,7 +98,7 @@ impl Default for StarknetConfig {
             seed: u32::default(),
             total_accounts: u8::default(),
             predeployed_accounts_initial_balance: Felt::default(),
-            host: String::default(),
+            host: DEVNET_DEFAULT_HOST,
             port: u16::default(),
             timeout: u16::default(),
             gas_price: Default::default(),
