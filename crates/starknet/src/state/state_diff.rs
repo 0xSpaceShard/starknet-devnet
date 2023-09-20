@@ -38,9 +38,7 @@ impl StateDiff {
 
         // extract differences of class_hash -> compile_class_hash mapping
         let class_hash_to_compiled_class_hash_subtracted_map = subtract_mappings(
-            new_state
-                .cache_mut()
-                .class_hash_to_compiled_class_hash_mut(),
+            new_state.cache_mut().class_hash_to_compiled_class_hash_mut(),
             old_state.class_hash_to_compiled_class_hash_mut(),
         );
 
