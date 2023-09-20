@@ -71,7 +71,7 @@ async fn main() -> Result<(), anyhow::Error> {
             let mut v: Vec<u8> = Vec::new();
             file.read_to_end(&mut v).expect("Failed to read from file");
             let decoded: Option<String> =
-                bincode::deserialize(&v[..]).expect("Failed to deserialize starknet transactions");
+                bincode::deserialize(&v).expect("Failed to deserialize starknet transactions");
             transactions = serde_json::from_str(decoded.unwrap().as_str())
                 .expect("Failed to decode starknet transactions");
         }
