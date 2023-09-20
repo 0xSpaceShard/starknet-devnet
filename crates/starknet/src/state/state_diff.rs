@@ -37,18 +37,8 @@ impl StateDiff {
         let mut cairo_0_declared_contracts = HashMap::<ClassHash, DeprecatedContractClass>::new();
 
         // extract differences of class_hash -> compile_class_hash mapping
-        // the filter method is applied, because in starknet_in_rust when there is a declare V2,
-        // in the collection there is an entry with an equal key and value, which is added after
-        // sierra class hash is mapped to compiled class hash
-        // More information here https://github.com/lambdaclass/starknet_in_rust/blob/1eb0411cc875c17c4e176d8411dbf27bb81e3d24/src/transaction/declare_v2.rs#L378
         let class_hash_to_compiled_class_hash_subtracted_map = subtract_mappings(
-            &new_state
-                .cache_mut()
-                .class_hash_to_compiled_class_hash_mut()
-                .iter()
-                .filter(|(key, value)| **key != **value)
-                .map(|(key, value)| (*key, *value))
-                .collect(),
+            new_state.cache_mut().class_hash_to_compiled_class_hash_mut(),
             old_state.class_hash_to_compiled_class_hash_mut(),
         );
 

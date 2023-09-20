@@ -236,6 +236,7 @@ pub struct EventFilter {
 #[derive(Debug, Clone, Serialize)]
 pub struct EventsChunk {
     pub events: Vec<crate::emitted_event::EmittedEvent>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub continuation_token: Option<String>,
 }
 
