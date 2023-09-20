@@ -182,7 +182,7 @@ impl Starknet {
         // Re-execute transactions
         if transactions.is_some() {
             // is_some() is need here?
-            for (_hash, transaction) in transactions.unwrap_or_default().iter() {
+            for (_, transaction) in transactions.unwrap_or_default().iter() {
                 match transaction.inner.clone() {
                     Transaction::Declare(DeclareTransaction::Version0(_tx)) => {
                         panic!("DeclareTransactionV0V1 is not supported");
