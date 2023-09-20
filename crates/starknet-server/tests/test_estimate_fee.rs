@@ -26,7 +26,8 @@ mod estimate_fee_tests {
     use crate::common::constants::{CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH, CHAIN_ID};
     use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::{
-        get_deployable_account_signer, get_predeployed_account_props, load_json, resolve_path,
+        assert_tx_reverted, assert_tx_successful, get_deployable_account_signer,
+        get_predeployed_account_props, load_json, resolve_path,
     };
 
     fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
@@ -71,25 +72,30 @@ mod estimate_fee_tests {
         devnet.mint(deployment_address, mint_amount).await;
 
         // try sending with insufficient max fee
-        // TODO uncomment the following section once starknet_in_rust fixes max_fee checking
-        // let unsuccessful_deployment_tx = account_factory
-        //     .deploy(salt)
-        //     .max_fee(FieldElement::from((fee_estimation.overall_fee as f64 * 0.9) as u128))
-        //     .nonce(new_account_nonce)
-        //     .send()
-        //     .await
-        //     .unwrap();
-        // todo!("Assert the tx is not accepted");
+        let unsuccessful_deployment_tx = account_factory
+            .deploy(salt)
+            .max_fee(FieldElement::from((fee_estimation.overall_fee as f64 * 0.9) as u128))
+            .nonce(new_account_nonce)
+            .send()
+            .await
+            .unwrap();
+        assert_tx_reverted(
+            &unsuccessful_deployment_tx.transaction_hash,
+            &devnet.json_rpc_client,
+            &["Calculated fee", "exceeds max fee"],
+        )
+        .await;
 
         // try sending with sufficient max fee
-        let _result = account_factory
+        let successful_deployment = account_factory
             .deploy(salt)
             .max_fee(FieldElement::from((fee_estimation.overall_fee as f64 * 1.1) as u128))
             .nonce(new_account_nonce)
             .send()
             .await
             .expect("Should deploy with sufficient fee");
-        // TODO assert tx is accepted
+        assert_tx_successful(&successful_deployment.transaction_hash, &devnet.json_rpc_client)
+            .await;
     }
 
     #[tokio::test]
