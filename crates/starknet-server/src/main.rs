@@ -63,21 +63,9 @@ async fn main() -> Result<(), anyhow::Error> {
     let mut addr: SocketAddr = SocketAddr::new(starknet_config.host, starknet_config.port);
 
     // Load starknet transactions
-    let mut transactions: StarknetTransactions = StarknetTransactions::default();
-    if let Some(path) = &starknet_config.dump_path {
-        let file_path = Path::new(path);
-        if file_path.exists() {
-            let mut file = File::open(file_path).expect("Failed to open file");
-            let mut v: Vec<u8> = Vec::new();
-            file.read_to_end(&mut v).expect("Failed to read from file");
-            let decoded: Option<String> =
-                bincode::deserialize(&v).expect("Failed to deserialize starknet transactions");
-            transactions = serde_json::from_str(decoded.unwrap().as_str())
-                .expect("Failed to decode starknet transactions");
-        }
-    }
+    let transactions = load_transactions(starknet_config.dump_path.clone()).await;
 
-    let api = api::Api::new(Starknet::new(&starknet_config, Some(transactions))?);
+    let api = api::Api::new(Starknet::new(&starknet_config, transactions)?);
 
     let predeployed_accounts = api.starknet.read().await.get_predeployed_accounts();
     log_predeployed_accounts(
@@ -100,6 +88,27 @@ async fn main() -> Result<(), anyhow::Error> {
     let serve = tokio::task::spawn(server.with_graceful_shutdown(shutdown_signal(api.clone())));
 
     Ok(serve.await??)
+}
+
+pub async fn load_transactions(dump_path: Option<String>) -> Option<StarknetTransactions> {
+    if let Some(path) = &dump_path {
+        let file_path = Path::new(path);
+        if file_path.exists() {
+            let mut file = File::open(file_path).expect("Failed to open file");
+            let mut v: Vec<u8> = Vec::new();
+            file.read_to_end(&mut v).expect("Failed to read from file");
+            let decoded: Option<String> =
+                bincode::deserialize(&v).expect("Failed to deserialize starknet transactions");
+            let transactions = serde_json::from_str(decoded.unwrap().as_str())
+                .expect("Failed to decode starknet transactions");
+
+            transactions
+        } else {
+            None
+        }
+    } else {
+        None
+    }
 }
 
 pub async fn shutdown_signal(api: Api) {
