@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
 use std::net::IpAddr;
+use std::path::Path;
 use std::time::SystemTime;
 
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
