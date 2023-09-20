@@ -523,9 +523,8 @@ impl Starknet {
         add_invoke_transaction::add_invoke_transaction(self, invoke_transaction)
     }
 
-    // save starknet transactions to file
+    /// save starknet transactions to file
     pub fn dump_transactions(&self) {
-        // TODO: attach in OnTransaction mode or dump all??
         match &self.config.dump_path {
             Some(path) => {
                 let starknet_dump = Some(
@@ -536,7 +535,7 @@ impl Starknet {
                     .expect("Failed to encode starknet transactions");
                 fs::write(Path::new(&path), encoded).expect("Failed to save starknet transactions");
             }
-            None => {} // TODO: Error here?
+            None => {}
         }
     }
 
