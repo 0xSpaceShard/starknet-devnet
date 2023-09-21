@@ -385,43 +385,38 @@ mod estimate_fee_tests {
                             },
                         ),
                     ),
-                    BroadcastedTransaction::Invoke(
-                            BroadcastedInvokeTransaction {
-                                max_fee: FieldElement::ZERO,
-                                // precalculated signature
-                                signature: deployment_signature
-                                    .into_iter()
-                                    .map(|s| FieldElement::from_hex_be(s).unwrap())
-                                    .collect(),
-                                nonce: FieldElement::ONE,
-                                sender_address: account_address,
-                                calldata: [
-                                    "0x1",
-                                    UDC_CONTRACT_ADDRESS,
-                                    deployment_selector.as_str(),
-                                    "0x0",
-                                    "0x4",
-                                    "0x4",
-                                    format!("{:x}", class_hash).as_str(),
-                                    "0x123", // salt
-                                    "0x0",
-                                    "0x0",
-                                ]
-                                .into_iter()
-                                .map(|s| FieldElement::from_hex_be(s).unwrap())
-                                .collect(),
-                                is_query: false,
-                            }
-                    )
+                    BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction {
+                        max_fee: FieldElement::ZERO,
+                        // precalculated signature
+                        signature: deployment_signature
+                            .into_iter()
+                            .map(|s| FieldElement::from_hex_be(s).unwrap())
+                            .collect(),
+                        nonce: FieldElement::ONE,
+                        sender_address: account_address,
+                        calldata: [
+                            "0x1",
+                            UDC_CONTRACT_ADDRESS,
+                            deployment_selector.as_str(),
+                            "0x0",
+                            "0x4",
+                            "0x4",
+                            format!("{:x}", class_hash).as_str(),
+                            "0x123", // salt
+                            "0x0",
+                            "0x0",
+                        ]
+                        .into_iter()
+                        .map(|s| FieldElement::from_hex_be(s).unwrap())
+                        .collect(),
+                        is_query: false,
+                    }),
                 ],
                 BlockId::Tag(BlockTag::Latest),
             )
             .await
             .unwrap()
             .iter()
-            // TODO .for_each(assert_fee_estimation)
-            .for_each(|_estimate| {
-                println!("Temporarily not asserting");
-            });
+            .for_each(assert_fee_estimation);
     }
 }
