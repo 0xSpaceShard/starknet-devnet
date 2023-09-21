@@ -165,7 +165,7 @@ mod estimate_fee_tests {
         // let unsuccessful_declare_tx = account
         //     .declare_legacy(Arc::clone(&contract_artifact))
         //     .nonce(FieldElement::ZERO)
-        //     .max_fee(FieldElement::from((1) as u128))
+        //     .max_fee(FieldElement::from((fee_estimation.overall_fee as f64 * 0.9) as u128))
         //     .send()
         //     .await
         //     .unwrap();
@@ -188,7 +188,6 @@ mod estimate_fee_tests {
             .await;
     }
 
-    #[ignore] // estimation currently completely failing
     #[tokio::test]
     async fn estimate_fee_of_declare_v2() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
@@ -199,7 +198,7 @@ mod estimate_fee_tests {
         // get class
         let contract_artifact_path = resolve_path(CAIRO_1_CONTRACT_PATH);
         let contract_artifact: SierraClass = load_json(&contract_artifact_path);
-        let flattened_contract_artifact = contract_artifact.flatten().unwrap();
+        let flattened_contract_artifact = Arc::new(contract_artifact.flatten().unwrap());
         let compiled_class_hash = FieldElement::from_hex_be(CASM_COMPILED_CLASS_HASH).unwrap();
 
         // declare class
@@ -212,15 +211,39 @@ mod estimate_fee_tests {
         );
 
         let fee_estimation = account
-            .declare(Arc::new(flattened_contract_artifact), compiled_class_hash)
+            .declare(Arc::clone(&flattened_contract_artifact), compiled_class_hash)
             .nonce(FieldElement::ONE)
             .fee_estimate_multiplier(1.0)
             .estimate_fee()
             .await
             .unwrap();
         assert_fee_estimation(&fee_estimation);
-        // TODO attempt declaring with max_fee < estimate - expect failure
-        // TODO attempt declaring with max_fee > estimate - expect success
+
+        // TODO // try sending with insufficient max fee
+        // let unsuccessful_declare_tx = account
+        //     .declare(Arc::clone(&flattened_contract_artifact), compiled_class_hash)
+        //     .nonce(FieldElement::ZERO)
+        //     .max_fee(FieldElement::from((fee_estimation.overall_fee as f64 * 0.9) as u128))
+        //     .send()
+        //     .await
+        //     .unwrap();
+        // assert_tx_reverted(
+        //     &unsuccessful_declare_tx.transaction_hash,
+        //     &devnet.json_rpc_client,
+        //     &["Calculated fee", "exceeds max fee"],
+        // )
+        // .await;
+
+        // try sending with sufficient max fee
+        let successful_declare_tx = account
+            .declare(Arc::clone(&flattened_contract_artifact), compiled_class_hash)
+            .nonce(FieldElement::ZERO)
+            .max_fee(FieldElement::from((fee_estimation.overall_fee as f64 * 1.1) as u128))
+            .send()
+            .await
+            .unwrap();
+        assert_tx_successful(&successful_declare_tx.transaction_hash, &devnet.json_rpc_client)
+            .await;
     }
 
     #[tokio::test]
