@@ -318,17 +318,15 @@ mod estimate_fee_tests {
         };
 
         // invoke with max_fee < estimate; expect failure
-        // TODO uncomment the following section once starknet_in_rust fixes max_fee checking
-        // let insufficient_max_fee =
-        //     FieldElement::from((fee_estimation.overall_fee as f64 * 0.9) as u128);
-        // account.execute(invoke_calls.clone()).max_fee(insufficient_max_fee).send().await.
-        // unwrap(); let balance_after_insufficient = devnet
-        //     .json_rpc_client
-        //     .call(call.clone(), BlockId::Tag(BlockTag::Latest))
-        //     .await
-        //     .unwrap();
-        // println!("Balance after insufficient: {balance_after_insufficient:?}");
-        // assert_eq!(balance_after_insufficient, vec![FieldElement::ZERO]);
+        let insufficient_max_fee =
+            FieldElement::from((fee_estimation.overall_fee as f64 * 0.9) as u128);
+        account.execute(invoke_calls.clone()).max_fee(insufficient_max_fee).send().await.unwrap();
+        let balance_after_insufficient = devnet
+            .json_rpc_client
+            .call(call.clone(), BlockId::Tag(BlockTag::Latest))
+            .await
+            .unwrap();
+        assert_eq!(balance_after_insufficient, vec![FieldElement::ZERO]);
 
         // invoke with max_fee > estimate; expect success
         let sufficient_max_fee =
