@@ -84,6 +84,6 @@ pub async fn assert_tx_reverted<T: Provider>(
                 reason.contains(expected_reason);
             }
         }
-        other => panic!("Should have reverted; got: {other:?}"),
+        other => panic!("Should have reverted; got: {other:?}; receipt: {receipt:?}"),
     }
 }

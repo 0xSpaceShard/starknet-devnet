@@ -141,8 +141,7 @@ mod estimate_fee_tests {
 
         // get class
         let contract_artifact = dummy_cairo_0_contract_class();
-        let contract_artifact: LegacyContractClass =
-            serde_json::from_value(contract_artifact.inner).unwrap();
+        let contract_artifact = Arc::new(serde_json::from_value(contract_artifact.inner).unwrap());
 
         // declare class
         let account = SingleOwnerAccount::new(
@@ -153,17 +152,40 @@ mod estimate_fee_tests {
             ExecutionEncoding::Legacy,
         );
 
-        let _fee_estimation = account
-            .declare_legacy(Arc::new(contract_artifact))
+        let fee_estimation = account
+            .declare_legacy(Arc::clone(&contract_artifact))
             .nonce(FieldElement::ZERO)
             .fee_estimate_multiplier(1.0)
             .estimate_fee()
             .await
             .unwrap();
-        // assert_fee_estimation(&fee_estimation); - currently failing as it is 0
+        assert_fee_estimation(&fee_estimation);
 
-        // TODO attempt declaring with max_fee < estimate - expect failure
-        // TODO attempt declaring with max_fee > estimate - expect success
+        // TODO // try sending with insufficient max fee
+        // let unsuccessful_declare_tx = account
+        //     .declare_legacy(Arc::clone(&contract_artifact))
+        //     .nonce(FieldElement::ZERO)
+        //     .max_fee(FieldElement::from((1) as u128))
+        //     .send()
+        //     .await
+        //     .unwrap();
+        // assert_tx_reverted(
+        //     &unsuccessful_declare_tx.transaction_hash,
+        //     &devnet.json_rpc_client,
+        //     &["Calculated fee", "exceeds max fee"],
+        // )
+        // .await;
+
+        // try sending with sufficient max fee
+        let successful_declare_tx = account
+            .declare_legacy(contract_artifact)
+            .nonce(FieldElement::ZERO)
+            .max_fee(FieldElement::from((fee_estimation.overall_fee as f64 * 1.1) as u128))
+            .send()
+            .await
+            .unwrap();
+        assert_tx_successful(&successful_declare_tx.transaction_hash, &devnet.json_rpc_client)
+            .await;
     }
 
     #[ignore] // estimation currently completely failing
