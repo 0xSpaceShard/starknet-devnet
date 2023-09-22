@@ -4,7 +4,6 @@ use std::time::SystemTime;
 
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
 use starknet_api::transaction::Fee;
-use starknet_in_rust::{call_contract, simulate_transaction};
 use starknet_in_rust::definitions::block_context::{
     BlockContext, StarknetChainId, StarknetOsConfig,
 };
@@ -18,6 +17,7 @@ use starknet_in_rust::state::state_api::State;
 use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
 use starknet_in_rust::utils::Address;
+use starknet_in_rust::{call_contract, simulate_transaction};
 use starknet_rs_core::types::{BlockId, MsgFromL1, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
@@ -585,6 +585,8 @@ impl Starknet {
         transactions: &Vec<BroadcastedTransaction>,
         simulation_flags: Vec<SimulationFlag>,
     ) -> DevnetResult<Vec<SimulatedTransaction>> {
+        let state = self.get_state_at(&block_id)?;
+
         let mut skip_validate = false;
         let mut skip_fee_charge = false;
         for flag in simulation_flags.iter() {
@@ -598,11 +600,13 @@ impl Starknet {
         let skip_execute = false;
         let ignore_max_fee = false;
         let skip_nonce_check = false;
+        // TODO move these flags later, I thought I'd need them to create_for_simulate
 
         let chain_id: Felt = self.chain_id().to_felt().into();
 
+        let mut sir_txs = vec![];
         for tx in transactions {
-            let simulatable = match tx {
+            let sir_tx = match tx {
                 BroadcastedTransaction::Invoke(invoke_tx) => {
                     starknet_in_rust::transaction::Transaction::InvokeFunction(
                         invoke_tx.create_sir_invoke_function(chain_id)?,
@@ -626,30 +630,44 @@ impl Starknet {
                         deploy_account_tx.create_sir_deploy_account(chain_id)?,
                     )
                 }
-            }
-            .create_for_simulation(
-                skip_validate,
-                skip_execute,
-                skip_fee_charge,
-                ignore_max_fee,
-                skip_nonce_check,
-            );
+            };
+            sir_txs.push(sir_tx);
         }
-        let fee_estimations = estimations::estimate_fee(&self, block_id, &transactions)?;
-        todo!(
-            "Probably need to have one method that will get the estimation and trace, sam as we \
-             did in devnet-py"
-        );
 
-        simulate_transaction(transactions, state, block_context, remaining_gas, skip_validate, skip_execute, skip_fee_transfer, ignore_max_fee, skip_nonce_check)
-        // gateway_transactions = list(map(make_transaction, transactions))
-        // traces, fees = await _calculate_traces_and_fees(
-        //     gateway_transactions, block_id, skip_validate
-        // )
+        let remaining_gas = 1e8 as u128; // TODO
+        let simulatable: Vec<&starknet_in_rust::transaction::Transaction> =
+            sir_txs.iter().map(|t| t).collect();
+        let simulated = simulate_transaction(
+            simulatable.as_slice(),
+            state.state.clone(),
+            &self.block_context,
+            remaining_gas,
+            skip_validate,
+            skip_execute,
+            skip_fee_charge,
+            ignore_max_fee,
+            skip_nonce_check,
+        )?;
 
-        // tx_types = [tx.tx_type for tx in gateway_transactions]
-        // rpc_traces = rpc_map_traces(traces, tx_types)
-        // rpc_estimations = rpc_fee_estimate(fees)
+        let estimated = self.estimate_fee(block_id, transactions)?;
+
+        assert_eq!(simulated.len(), estimated.len()); // TODO temporary
+
+        Ok(simulated.iter().zip(estimated).map(|(tx_execution_info, fee_estimation)| {
+            let transaction_trace = match tx_execution_info.tx_type {
+                None => todo!(),
+                Some(tx_type) => match tx_type {
+                    starknet_in_rust::definitions::transaction_type::TransactionType::Declare => todo!(),
+                    starknet_in_rust::definitions::transaction_type::TransactionType::Deploy => todo!(),
+                    starknet_in_rust::definitions::transaction_type::TransactionType::DeployAccount => todo!(),
+                    starknet_in_rust::definitions::transaction_type::TransactionType::InitializeBlockInfo => todo!(),
+                    starknet_in_rust::definitions::transaction_type::TransactionType::InvokeFunction => todo!(),
+                    starknet_in_rust::definitions::transaction_type::TransactionType::L1Handler => todo!(),
+                }
+            };
+
+            SimulatedTransaction { transaction_trace, fee_estimation }
+        }).collect())
 
         // # traces number must be equal to estimations
         // assert len(rpc_traces) == len(rpc_estimations)
