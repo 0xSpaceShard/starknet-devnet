@@ -117,7 +117,7 @@ mod tests {
             dump_on: None,
             dump_path: None,
         };
-        let starknet = Starknet::new(&config, None).unwrap();
+        let starknet = Starknet::new(&config).unwrap();
         let api = Api::new(starknet);
         JsonRpcHandler { api }
     }

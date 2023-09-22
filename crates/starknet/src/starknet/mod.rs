@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use std::fs;
-use std::io::ErrorKind;
+use std::fs::{self, File};
+use std::io::Read;
 use std::net::IpAddr;
 use std::path::Path;
 use std::time::SystemTime;
@@ -121,10 +121,7 @@ pub struct Starknet {
 }
 
 impl Starknet {
-    pub fn new(
-        config: &StarknetConfig,
-        transactions: Option<StarknetTransactions>,
-    ) -> DevnetResult<Self> {
+    pub fn new(config: &StarknetConfig) -> DevnetResult<Self> {
         let mut state = StarknetState::default();
         // deploy udc and erc20 contracts
         let erc20_fee_contract = predeployed::create_erc20()?;
@@ -179,92 +176,85 @@ impl Starknet {
 
         this.restart_pending_block()?;
 
-        // Re-execute transactions
-        if transactions.is_some() {
-            // is_some() is need here?
-            for (_, transaction) in transactions.unwrap_or_default().iter() {
-                match transaction.inner.clone() {
-                    Transaction::Declare(DeclareTransaction::Version0(_)) => {
-                        panic!("DeclareTransactionV0V1 is not supported");
-                    }
-                    Transaction::Declare(DeclareTransaction::Version1(tx)) => {
-                        let contract_class = this
-                            .state
-                            .contract_classes
-                            .get(&tx.class_hash)
-                            .expect("Failed to load Cairo0ContractClass from state");
-                        if let ContractClass::Cairo0(contract) = contract_class {
-                            let declare_tx = BroadcastedDeclareTransactionV1::new(
-                                tx.sender_address,
-                                tx.max_fee,
-                                &tx.signature,
-                                tx.nonce,
-                                contract,
-                                tx.version,
-                            );
-                            let result = this.add_declare_transaction_v1(declare_tx);
-                            if result.is_err() {
-                                panic!("Failed to add BroadcastedDeclareTransactionV1");
-                            }
-                        } else {
-                            panic!("Failed to load Cairo0ContractClass");
-                        };
-                    }
-                    Transaction::Declare(DeclareTransaction::Version2(tx)) => {
-                        let declare_tx = BroadcastedDeclareTransactionV2::new(
-                            &tx.contract_class,
-                            tx.compiled_class_hash,
-                            tx.sender_address,
-                            tx.max_fee,
-                            &tx.signature,
-                            tx.nonce,
-                            tx.version,
-                        );
-                        let result = this.add_declare_transaction_v2(declare_tx);
-                        if result.is_err() {
-                            panic!("Failed to add BroadcastedDeclareTransactionV2");
-                        }
-                    }
-                    Transaction::DeployAccount(tx) => {
-                        let deploy_account_tx = BroadcastedDeployAccountTransaction::new(
-                            &tx.constructor_calldata,
-                            tx.max_fee,
-                            &tx.signature,
-                            tx.nonce,
-                            tx.class_hash,
-                            tx.contract_address_salt,
-                            tx.version,
-                        );
-                        let result = this.add_deploy_account_transaction(deploy_account_tx);
-                        if result.is_err() {
-                            panic!("Failed to add BroadcastedDeployAccountTransaction");
-                        }
-                    }
-                    Transaction::Deploy(_) => {
-                        panic!("DeployTransaction is not supported");
-                    }
-                    Transaction::Invoke(InvokeTransaction::Version0(_)) => {
-                        panic!("InvokeTransactionV0 is not supported");
-                    }
-                    Transaction::Invoke(InvokeTransaction::Version1(tx)) => {
-                        let invoke_tx = BroadcastedInvokeTransaction::new(
-                            tx.sender_address,
-                            tx.max_fee,
-                            &tx.signature,
-                            tx.nonce,
-                            &tx.calldata,
-                            tx.version,
-                        );
-                        this.add_invoke_transaction(invoke_tx).unwrap();
-                    }
-                    Transaction::L1Handler(_) => {
-                        panic!("L1HandlerTransaction is not supported");
-                    }
-                };
-            }
+        // Load starknet transactions
+        if this.config.dump_path.is_some() {
+            let transactions = this.load_transactions()?;
+            this.re_execute(transactions)?;
         }
 
         Ok(this)
+    }
+
+    pub fn re_execute(&mut self, transactions: StarknetTransactions) -> DevnetResult<()> {
+        for (_, transaction) in transactions.iter() {
+            match transaction.inner.clone() {
+                Transaction::Declare(DeclareTransaction::Version0(_)) => {
+                    return Err(Error::SerializationNotSupported);
+                }
+                Transaction::Declare(DeclareTransaction::Version1(tx)) => {
+                    let contract_class = self
+                        .state
+                        .contract_classes
+                        .get(&tx.class_hash)
+                        .ok_or(Error::ContractClassLoadError)?;
+                    if let ContractClass::Cairo0(contract) = contract_class {
+                        let declare_tx = BroadcastedDeclareTransactionV1::new(
+                            tx.sender_address,
+                            tx.max_fee,
+                            &tx.signature,
+                            tx.nonce,
+                            contract,
+                            tx.version,
+                        );
+                        self.add_declare_transaction_v1(declare_tx)?;
+                    } else {
+                        return Err(Error::SerializationNotSupported);
+                    };
+                }
+                Transaction::Declare(DeclareTransaction::Version2(tx)) => {
+                    let declare_tx = BroadcastedDeclareTransactionV2::new(
+                        &tx.contract_class,
+                        tx.compiled_class_hash,
+                        tx.sender_address,
+                        tx.max_fee,
+                        &tx.signature,
+                        tx.nonce,
+                        tx.version,
+                    );
+                    self.add_declare_transaction_v2(declare_tx)?;
+                }
+                Transaction::DeployAccount(tx) => {
+                    let deploy_account_tx = BroadcastedDeployAccountTransaction::new(
+                        &tx.constructor_calldata,
+                        tx.max_fee,
+                        &tx.signature,
+                        tx.nonce,
+                        tx.class_hash,
+                        tx.contract_address_salt,
+                        tx.version,
+                    );
+                    self.add_deploy_account_transaction(deploy_account_tx)?;
+                }
+                Transaction::Deploy(_) => return Err(Error::SerializationNotSupported),
+                Transaction::Invoke(InvokeTransaction::Version0(_)) => {
+                    return Err(Error::SerializationNotSupported);
+                }
+                Transaction::Invoke(InvokeTransaction::Version1(tx)) => {
+                    let invoke_tx = BroadcastedInvokeTransaction::new(
+                        tx.sender_address,
+                        tx.max_fee,
+                        &tx.signature,
+                        tx.nonce,
+                        &tx.calldata,
+                        tx.version,
+                    );
+                    self.add_invoke_transaction(invoke_tx)?;
+                }
+                Transaction::L1Handler(_) => return Err(Error::SerializationNotSupported),
+            };
+        }
+        println!("re_execute");
+        Ok(())
     }
 
     pub fn get_predeployed_accounts(&self) -> Vec<Account> {
@@ -529,21 +519,49 @@ impl Starknet {
     pub fn dump_transactions(&self) -> DevnetResult<()> {
         match &self.config.dump_path {
             Some(path) => {
-                let starknet_dump = Some(
-                    serde_json::to_string(&self.transactions)
-                        .expect("Failed to serialize starknet transactions"),
-                );
-                let encoded: Vec<u8> = bincode::serialize(&starknet_dump)
-                    .expect("Failed to encode starknet transactions");
-                fs::write(Path::new(&path), encoded).expect("Failed to save starknet transactions");
+                let starknet_dump = serde_json::to_string(&self.transactions).map_err(|_| {
+                    Error::SerializationError { obj_name: "StarknetTransactions".to_string() }
+                })?;
+                let encoded: Vec<u8> = bincode::serialize(&starknet_dump).map_err(|_| {
+                    Error::SerializationError { obj_name: "StarknetTransactions".to_string() }
+                })?;
+                fs::write(Path::new(&path), encoded)?;
 
                 Ok(())
             }
-            None => {
-                let path_not_set =
-                    std::io::Error::new(ErrorKind::InvalidInput, "Dump path is not set");
-                Err(Error::IoError(path_not_set))
+            None => Err(Error::FormatError),
+        }
+    }
+
+    // load starknet transactions from file
+    pub fn load_transactions(&self) -> DevnetResult<StarknetTransactions> {
+        match &self.config.dump_path {
+            Some(path) => {
+                let file_path = Path::new(path);
+
+                // load only if the file exists, if dump_path is set but the file doesn't exist it
+                // can mean that it's first run with dump_path parameter set to dump, in that case
+                // return default value of StarknetTransactions
+                if file_path.exists() {
+                    let mut file = File::open(file_path)?;
+                    let mut v: Vec<u8> = Vec::new();
+                    file.read_to_end(&mut v)?;
+                    let decoded: Result<String, Error> = bincode::deserialize(&v).map_err(|_| {
+                        Error::DeserializationError { obj_name: "StarknetTransactions".to_string() }
+                    });
+                    let transactions: DevnetResult<StarknetTransactions, Error> =
+                        serde_json::from_str(decoded.unwrap().as_str()).map_err(|_| {
+                            Error::DeserializationError {
+                                obj_name: "StarknetTransactions".to_string(),
+                            }
+                        });
+
+                    transactions
+                } else {
+                    Ok(StarknetTransactions::default())
+                }
             }
+            None => Err(Error::FormatError),
         }
     }
 
@@ -731,7 +749,7 @@ mod tests {
     #[test]
     fn correct_initial_state_with_test_config() {
         let config = starknet_config_for_test();
-        let mut starknet = Starknet::new(&config, None).unwrap();
+        let mut starknet = Starknet::new(&config).unwrap();
         let predeployed_accounts = starknet.predeployed_accounts.get_accounts();
         let expected_balance = config.predeployed_accounts_initial_balance;
 
@@ -758,7 +776,7 @@ mod tests {
     #[test]
     fn pending_block_is_correct() {
         let config = starknet_config_for_test();
-        let mut starknet = Starknet::new(&config, None).unwrap();
+        let mut starknet = Starknet::new(&config).unwrap();
         let initial_block_number = starknet.block_context.block_info().block_number;
         starknet.generate_pending_block().unwrap();
 
@@ -771,7 +789,7 @@ mod tests {
     #[test]
     fn correct_new_block_creation() {
         let config = starknet_config_for_test();
-        let mut starknet = Starknet::new(&config, None).unwrap();
+        let mut starknet = Starknet::new(&config).unwrap();
 
         let tx = dummy_declare_transaction_v1();
 
@@ -797,7 +815,7 @@ mod tests {
     #[test]
     fn successful_emptying_of_pending_block() {
         let config = starknet_config_for_test();
-        let mut starknet = Starknet::new(&config, None).unwrap();
+        let mut starknet = Starknet::new(&config).unwrap();
 
         let initial_block_number = starknet.block_context.block_info().block_number;
         let initial_gas_price = starknet.block_context.block_info().gas_price;
@@ -846,21 +864,21 @@ mod tests {
     #[test]
     fn getting_state_of_latest_block() {
         let config = starknet_config_for_test();
-        let starknet = Starknet::new(&config, None).unwrap();
+        let starknet = Starknet::new(&config).unwrap();
         starknet.get_state_at(&BlockId::Tag(BlockTag::Latest)).expect("Should be OK");
     }
 
     #[test]
     fn getting_state_of_pending_block() {
         let config = starknet_config_for_test();
-        let starknet = Starknet::new(&config, None).unwrap();
+        let starknet = Starknet::new(&config).unwrap();
         starknet.get_state_at(&BlockId::Tag(BlockTag::Pending)).expect("Should be OK");
     }
 
     #[test]
     fn getting_state_at_block_by_nonexistent_hash() {
         let config = starknet_config_for_test();
-        let mut starknet = Starknet::new(&config, None).unwrap();
+        let mut starknet = Starknet::new(&config).unwrap();
         starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
 
         match starknet.get_state_at(&BlockId::Hash(Felt::from(0).into())) {
@@ -872,7 +890,7 @@ mod tests {
     #[test]
     fn getting_nonexistent_state_at_block_by_number() {
         let config = starknet_config_for_test();
-        let mut starknet = Starknet::new(&config, None).unwrap();
+        let mut starknet = Starknet::new(&config).unwrap();
         starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
         starknet.blocks.num_to_state.remove(&BlockNumber(0));
 
@@ -885,7 +903,7 @@ mod tests {
     #[test]
     fn calling_method_of_undeployed_contract() {
         let config = starknet_config_for_test();
-        let starknet = Starknet::new(&config, None).unwrap();
+        let starknet = Starknet::new(&config).unwrap();
 
         let undeployed_address_hex = "0x1234";
         let undeployed_address = Felt::from_prefixed_hex_str(undeployed_address_hex).unwrap();
@@ -906,7 +924,7 @@ mod tests {
     #[test]
     fn calling_nonexistent_contract_method() {
         let config = starknet_config_for_test();
-        let starknet = Starknet::new(&config, None).unwrap();
+        let starknet = Starknet::new(&config).unwrap();
 
         let predeployed_account = &starknet.predeployed_accounts.get_accounts()[0];
         let entry_point_selector =
@@ -941,7 +959,7 @@ mod tests {
     #[test]
     fn getting_balance_of_predeployed_contract() {
         let config = starknet_config_for_test();
-        let starknet = Starknet::new(&config, None).unwrap();
+        let starknet = Starknet::new(&config).unwrap();
 
         let predeployed_account = &starknet.predeployed_accounts.get_accounts()[0];
         let result = get_balance_at(&starknet, predeployed_account.account_address).unwrap();
@@ -955,7 +973,7 @@ mod tests {
     #[test]
     fn getting_balance_of_undeployed_contract() {
         let config = starknet_config_for_test();
-        let starknet = Starknet::new(&config, None).unwrap();
+        let starknet = Starknet::new(&config).unwrap();
 
         let undeployed_address =
             ContractAddress::new(Felt::from_prefixed_hex_str("0x1234").unwrap()).unwrap();
@@ -969,7 +987,7 @@ mod tests {
     #[test]
     fn correct_latest_block() {
         let config = starknet_config_for_test();
-        let mut starknet = Starknet::new(&config, None).unwrap();
+        let mut starknet = Starknet::new(&config).unwrap();
 
         starknet.get_latest_block().err().unwrap();
 
@@ -995,7 +1013,7 @@ mod tests {
     #[test]
     fn gets_block_txs_count() {
         let config = starknet_config_for_test();
-        let mut starknet = Starknet::new(&config, None).unwrap();
+        let mut starknet = Starknet::new(&config).unwrap();
 
         starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
         starknet.generate_pending_block().unwrap();
@@ -1019,7 +1037,7 @@ mod tests {
     #[test]
     fn returns_chain_id() {
         let config = starknet_config_for_test();
-        let starknet = Starknet::new(&config, None).unwrap();
+        let starknet = Starknet::new(&config).unwrap();
         let chain_id = starknet.chain_id();
 
         assert_eq!(chain_id.to_string(), DEVNET_DEFAULT_CHAIN_ID.to_string());
@@ -1093,7 +1111,7 @@ mod tests {
     #[test]
     fn gets_latest_block() {
         let config = starknet_config_for_test();
-        let mut starknet = Starknet::new(&config, None).unwrap();
+        let mut starknet = Starknet::new(&config).unwrap();
 
         starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
         starknet.generate_pending_block().unwrap();
