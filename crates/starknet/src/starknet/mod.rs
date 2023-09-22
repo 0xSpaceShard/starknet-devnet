@@ -326,7 +326,7 @@ impl Starknet {
         // clear pending block information
         self.generate_pending_block()?;
 
-        if self.config.dump_on.is_some() && self.config.dump_on == Some(DumpMode::OnTransaction) {
+        if self.config.dump_on == Some(DumpMode::OnTransaction) {
             self.dump_transactions()?;
         }
 
