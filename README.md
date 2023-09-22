@@ -129,7 +129,7 @@ To preserve your Devnet instance for future use, there are several options:
 cargo run -- --dump-on exit --dump-path <PATH>
 ```
 
-- Dumping after each transaction (done in background, doesn't block):
+- Dumping after each transaction:
 ```
 cargo run -- --dump-on transaction --dump-path <PATH>
 ```
@@ -142,11 +142,12 @@ To load a preserved Devnet instance, the options are:
 cargo run -- --load-path <PATH>
 ```
 
-Current load implementation is re-executing transactions stored in the dump file so the state of the blockchain can differ. For example, the timestamps of `StarknetBlock` will be different.
+Currently, dumping produces a list of received transactions that is stored on disk.
+Conversely, loading is implemented as the re-execution of transactions from a dump. 
 
 ### Cross-version disclaimer
 
-Dumping and loading is not guaranteed to work cross-version. I.e. if you dumped one version of Devnet (e.g. 0.1.0), do not expect it to be loadable with a different version (e.g. 0.2.0).
+Dumping and loading is not guaranteed to work cross-version. I.e. if you dumped one version of Devnet, do not expect it to be loadable with a different version.
 
 ## Development - Visual Studio Code
 
