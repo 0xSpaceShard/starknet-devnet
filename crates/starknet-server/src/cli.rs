@@ -1,11 +1,15 @@
+use std::net::{IpAddr, Ipv4Addr};
+
 use clap::Parser;
 use starknet_core::constants::{
-    DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_HOST, DEVNET_DEFAULT_INITIAL_BALANCE,
-    DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+    DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT,
+    DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
 use starknet_core::starknet::StarknetConfig;
 use starknet_in_rust::definitions::block_context::StarknetChainId;
 use starknet_types::num_bigint::BigUint;
+
+use crate::ip_addr_wrapper::IpAddrWrapper;
 
 /// Run a local instance of Starknet Devnet
 #[derive(Parser, Debug)]
@@ -37,9 +41,9 @@ pub(crate) struct Args {
     // Host address
     #[arg(long = "host")]
     #[arg(value_name = "HOST")]
-    #[arg(default_value = DEVNET_DEFAULT_HOST)]
+    #[arg(default_value_t = IpAddrWrapper { inner: IpAddr::V4(Ipv4Addr::LOCALHOST) })]
     #[arg(help = "Specify the address to listen at;")]
-    host: String,
+    host: IpAddrWrapper,
 
     // Port number
     #[arg(long = "port")]
@@ -83,7 +87,7 @@ impl Args {
                 .clone()
                 .try_into()
                 .expect("Invalid value for initial balance"), // TODO: Doesn't exit nicely.
-            host: self.host.to_string(),
+            host: self.host.inner,
             port: self.port, // TODO: Unification of parsing messages for host and port.
             timeout: self.timeout,
             gas_price: self.gas_price,
@@ -93,6 +97,42 @@ impl Args {
                 "TESTNET2" => StarknetChainId::TestNet2,
                 _ => panic!("Invalid value for chain-id"),
             },
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::Parser;
+
+    use super::Args;
+    use crate::ip_addr_wrapper::IpAddrWrapper;
+
+    #[test]
+    fn valid_ip_address() {
+        Args::parse_from(["--", "--host", "127.0.0.1"]);
+    }
+
+    #[test]
+    fn invalid_ip_address() {
+        let invalid_ip_address = "127.0.0";
+        match Args::try_parse_from(["--", "--host", invalid_ip_address]) {
+            Err(_) => (),
+            Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
+        }
+    }
+
+    #[test]
+    fn localhost_mapped() {
+        let args = Args::parse_from(["--", "--host", "localhost"]);
+        assert_eq!(args.host, IpAddrWrapper::LOCALHOST);
+    }
+
+    #[test]
+    fn invalid_hostname() {
+        match Args::try_parse_from(["--", "--host", "invalid"]) {
+            Err(_) => (),
+            Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
         }
     }
 }
