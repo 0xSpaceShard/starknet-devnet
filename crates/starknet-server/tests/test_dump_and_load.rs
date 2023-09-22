@@ -209,7 +209,7 @@ mod dump_and_load_tests {
         // declare the contract
         let declaration_result = predeployed_account
             .declare(Arc::new(cairo_1_contract), casm_class_hash)
-            .max_fee(FieldElement::from(1000000000000000000000000000u128))
+            .max_fee(FieldElement::from(1e18 as u128))
             .send()
             .await
             .unwrap();
@@ -221,7 +221,7 @@ mod dump_and_load_tests {
             ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
         let deploy_result = contract_factory
             .deploy(vec![], FieldElement::ZERO, false)
-            .max_fee(FieldElement::from(1000000000000000000000000000u128))
+            .max_fee(FieldElement::from(1e18 as u128))
             .send()
             .await
             .unwrap();
