@@ -116,14 +116,18 @@ impl Args {
     }
 
     pub(crate) fn parse_dump_on(&self) -> Option<DumpMode> {
-        if self.dump_path.is_some() {
-            match self.dump_on.clone().unwrap_or_default().as_str() {
+        let dump_on = self.dump_on.clone().unwrap_or_default();
+
+        if self.dump_path.is_some() && !dump_on.as_str().is_empty() {
+            match dump_on.as_str() {
                 "exit" => Some(DumpMode::OnExit),
                 "transaction" => Some(DumpMode::OnTransaction),
                 _ => None,
             }
-        } else {
+        } else if !dump_on.as_str().is_empty() {
             panic!("--dump-path required if --dump-on is present")
+        } else {
+            None
         }
     }
 }
