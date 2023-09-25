@@ -38,8 +38,8 @@ pub fn estimate_fee(
                 BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(
                     broadcasted_tx,
                 )) => {
-                    let declare_tx = broadcasted_tx
-                        .create_sir_declare(starknet.config.chain_id.to_felt())?;
+                    let declare_tx =
+                        broadcasted_tx.create_sir_declare(starknet.config.chain_id.to_felt())?;
 
                     Ok(starknet_in_rust::transaction::Transaction::DeclareV2(Box::new(declare_tx)))
                 }

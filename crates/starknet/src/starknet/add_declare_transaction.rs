@@ -20,8 +20,8 @@ pub fn add_declare_transaction_v2(
         ));
     }
 
-    let sir_declare_transaction = broadcasted_declare_transaction
-        .create_sir_declare(starknet.config.chain_id.to_felt())?;
+    let sir_declare_transaction =
+        broadcasted_declare_transaction.create_sir_declare(starknet.config.chain_id.to_felt())?;
 
     let transaction_hash = sir_declare_transaction.hash_value.clone().into();
     let class_hash: ClassHash = sir_declare_transaction.sierra_class_hash.clone().into();
@@ -131,7 +131,6 @@ pub fn add_declare_transaction_v1(
 mod tests {
     use starknet_api::block::BlockNumber;
     use starknet_api::transaction::Fee;
-    
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};

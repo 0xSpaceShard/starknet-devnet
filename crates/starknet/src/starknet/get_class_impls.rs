@@ -73,7 +73,7 @@ pub fn get_class_at_impl(
 
 #[cfg(test)]
 mod tests {
-    
+
     use starknet_rs_core::types::BlockId;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;

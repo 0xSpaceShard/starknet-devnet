@@ -47,7 +47,7 @@ use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
     CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
-    DEVNET_DEFAULT_HOST, ERC20_CONTRACT_ADDRESS, DEVNET_DEFAULT_CHAIN_ID,
+    DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_HOST, ERC20_CONTRACT_ADDRESS,
 };
 use crate::error::{DevnetResult, Error};
 use crate::predeployed_accounts::PredeployedAccounts;
@@ -581,7 +581,6 @@ impl Starknet {
 #[cfg(test)]
 mod tests {
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
-    
     use starknet_in_rust::felt::Felt252;
     use starknet_in_rust::transaction::error::TransactionError;
     use starknet_rs_core::types::{BlockId, BlockTag};
@@ -707,8 +706,7 @@ mod tests {
 
     #[test]
     fn correct_block_context_update() {
-        let mut block_ctx =
-            Starknet::get_block_context(0, "0x0", DEVNET_DEFAULT_CHAIN_ID).unwrap();
+        let mut block_ctx = Starknet::get_block_context(0, "0x0", DEVNET_DEFAULT_CHAIN_ID).unwrap();
         let initial_block_number = block_ctx.block_info().block_number;
         Starknet::update_block_context(&mut block_ctx);
 
