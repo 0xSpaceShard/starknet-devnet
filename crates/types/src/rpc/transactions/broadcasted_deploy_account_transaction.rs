@@ -81,6 +81,7 @@ mod tests {
     use starknet_api::transaction::Fee;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
 
+    use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
     use crate::felt::Felt;
     use crate::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
@@ -127,7 +128,7 @@ mod tests {
         );
 
         let deploy_account_transaction = broadcasted_tx
-            .create_sir_deploy_account(StarknetChainId::TestNet.to_felt().into())
+            .create_sir_deploy_account(ChainId::TestNet.to_felt())
             .unwrap();
 
         assert_eq!(

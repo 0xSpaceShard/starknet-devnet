@@ -75,6 +75,7 @@ mod tests {
     use starknet_api::transaction::Fee;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
 
+    use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
     use crate::felt::Felt;
     use crate::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
@@ -120,7 +121,7 @@ mod tests {
         );
 
         let transaction = transaction
-            .create_sir_invoke_function(StarknetChainId::TestNet.to_felt().into())
+            .create_sir_invoke_function(ChainId::TestNet.to_felt())
             .unwrap();
 
         assert_eq!(feeder_gateway_transaction.transaction_hash, transaction.hash_value().into());
