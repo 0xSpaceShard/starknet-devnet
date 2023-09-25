@@ -22,6 +22,7 @@ use starknet_rs_core::types::{BlockId, MsgFromL1, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::Signer;
+use starknet_types::chain_id::ChainId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0Json, ContractClass};
 use starknet_types::contract_storage_key::ContractStorageKey;
@@ -78,7 +79,7 @@ pub struct StarknetConfig {
     pub port: u16,
     pub timeout: u16,
     pub gas_price: u64,
-    pub chain_id: StarknetChainId,
+    pub chain_id: ChainId,
 }
 
 impl Default for StarknetConfig {
@@ -153,7 +154,7 @@ impl Starknet {
             block_context: Self::get_block_context(
                 config.gas_price,
                 ERC20_CONTRACT_ADDRESS,
-                config.chain_id,
+                config.chain_id.into(),
             )?,
             blocks: StarknetBlocks::default(),
             transactions: StarknetTransactions::default(),
@@ -240,10 +241,10 @@ impl Starknet {
     fn get_block_context(
         gas_price: u64,
         fee_token_address: &str,
-        chain_id: StarknetChainId,
+        chain_id: ChainId,
     ) -> DevnetResult<BlockContext> {
         let starknet_os_config = StarknetOsConfig::new(
-            chain_id.to_felt(),
+            StarknetChainId::from(chain_id).to_felt(),
             starknet_in_rust::utils::Address(
                 Felt::from_prefixed_hex_str(fee_token_address)?.into(),
             ),
@@ -399,7 +400,7 @@ impl Starknet {
 
     /// returning the chain id as object
     pub fn chain_id(&self) -> StarknetChainId {
-        self.config.chain_id
+        self.config.chain_id.into()
     }
 
     pub fn add_deploy_account_transaction(

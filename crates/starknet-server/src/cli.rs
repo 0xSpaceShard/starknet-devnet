@@ -6,7 +6,7 @@ use starknet_core::constants::{
     DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
 use starknet_core::starknet::StarknetConfig;
-use starknet_in_rust::definitions::block_context::StarknetChainId;
+use starknet_types::chain_id::ChainId;
 use starknet_types::num_bigint::BigUint;
 
 use crate::ip_addr_wrapper::IpAddrWrapper;
@@ -92,9 +92,9 @@ impl Args {
             timeout: self.timeout,
             gas_price: self.gas_price,
             chain_id: match self.chain_id.as_str() {
-                "MAINNET" => StarknetChainId::MainNet,
-                "TESTNET" => StarknetChainId::TestNet,
-                "TESTNET2" => StarknetChainId::TestNet2,
+                "MAINNET" => ChainId::MainNet,
+                "TESTNET" => ChainId::TestNet,
+                "TESTNET2" => ChainId::TestNet2,
                 _ => panic!("Invalid value for chain-id"),
             },
         }
