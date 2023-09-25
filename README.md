@@ -143,7 +143,8 @@ cargo run -- --load-path <PATH>
 ```
 
 Currently, dumping produces a list of received transactions that is stored on disk.
-Conversely, loading is implemented as the re-execution of transactions from a dump. 
+Conversely, loading is implemented as the re-execution of transactions from a dump.
+This means that timestamps of `StarknetBlock` will be different.
 
 ### Cross-version disclaimer
 
