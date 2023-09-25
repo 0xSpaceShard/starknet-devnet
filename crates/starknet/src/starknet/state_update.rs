@@ -29,7 +29,7 @@ mod tests {
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;
-    use crate::constants;
+    use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID};
     use crate::starknet::{predeployed, Starknet};
     use crate::state::state_diff::StateDiff;
     use crate::state::state_update::StateUpdate;
@@ -143,7 +143,7 @@ mod tests {
         starknet.block_context = Starknet::get_block_context(
             1,
             constants::ERC20_CONTRACT_ADDRESS,
-            StarknetChainId::TestNet,
+            DEVNET_DEFAULT_CHAIN_ID,
         )
         .unwrap();
 
