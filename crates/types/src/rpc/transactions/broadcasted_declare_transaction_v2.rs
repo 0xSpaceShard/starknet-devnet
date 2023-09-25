@@ -83,7 +83,6 @@ mod tests {
     use serde::Deserialize;
     use starknet_api::transaction::Fee;
     use starknet_in_rust::core::contract_address::compute_sierra_class_hash;
-    use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_rs_core::types::contract::SierraClass;
 
     use crate::chain_id::ChainId;
@@ -160,9 +159,8 @@ mod tests {
             feeder_gateway_transaction.nonce,
             feeder_gateway_transaction.version,
         );
-        let declare_transaction = broadcasted_declare_transaction
-            .create_sir_declare(ChainId::TestNet.to_felt())
-            .unwrap();
+        let declare_transaction =
+            broadcasted_declare_transaction.create_sir_declare(ChainId::TestNet.to_felt()).unwrap();
 
         assert_eq!(
             feeder_gateway_transaction.class_hash,
