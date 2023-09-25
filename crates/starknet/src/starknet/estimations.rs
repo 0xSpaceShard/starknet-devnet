@@ -26,7 +26,7 @@ pub fn estimate_fee(
                 )) => {
                     let class_hash = broadcasted_tx.generate_class_hash()?;
                     let transaction_hash = broadcasted_tx.calculate_transaction_hash(
-                        &starknet.config.chain_id.to_felt().into(),
+                        &starknet.config.chain_id.to_felt(),
                         &class_hash,
                     )?;
 
@@ -39,19 +39,19 @@ pub fn estimate_fee(
                     broadcasted_tx,
                 )) => {
                     let declare_tx = broadcasted_tx
-                        .create_sir_declare(starknet.config.chain_id.to_felt().into())?;
+                        .create_sir_declare(starknet.config.chain_id.to_felt())?;
 
                     Ok(starknet_in_rust::transaction::Transaction::DeclareV2(Box::new(declare_tx)))
                 }
                 BroadcastedTransaction::DeployAccount(broadcasted_tx) => {
                     let deploy_tx = broadcasted_tx
-                        .create_sir_deploy_account(starknet.config.chain_id.to_felt().into())?;
+                        .create_sir_deploy_account(starknet.config.chain_id.to_felt())?;
 
                     Ok(starknet_in_rust::transaction::Transaction::DeployAccount(deploy_tx))
                 }
                 BroadcastedTransaction::Invoke(broadcasted_tx) => {
                     let invoke_tx = broadcasted_tx
-                        .create_sir_invoke_function(starknet.config.chain_id.to_felt().into())?;
+                        .create_sir_invoke_function(starknet.config.chain_id.to_felt())?;
 
                     Ok(starknet_in_rust::transaction::Transaction::InvokeFunction(invoke_tx))
                 }
@@ -92,7 +92,7 @@ pub fn estimate_message_fee(
     }?;
 
     let sir_l1_handler =
-        estimate_message_fee.create_sir_l1_handler(starknet.config.chain_id.to_felt().into())?;
+        estimate_message_fee.create_sir_l1_handler(starknet.config.chain_id.to_felt())?;
     let (_, gas_consumed) = starknet_in_rust::estimate_message_fee(
         &sir_l1_handler,
         state.pending_state.clone(),

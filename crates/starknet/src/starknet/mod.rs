@@ -154,7 +154,7 @@ impl Starknet {
             block_context: Self::get_block_context(
                 config.gas_price,
                 ERC20_CONTRACT_ADDRESS,
-                config.chain_id.into(),
+                config.chain_id,
             )?,
             blocks: StarknetBlocks::default(),
             transactions: StarknetTransactions::default(),
@@ -445,7 +445,7 @@ impl Starknet {
         };
 
         // generate msg hash (not the same as tx hash)
-        let chain_id_felt: Felt = self.config.chain_id.to_felt().into();
+        let chain_id_felt: Felt = self.config.chain_id.to_felt();
         let msg_hash_felt =
             raw_execution.transaction_hash(chain_id_felt.into(), chargeable_address_felt.into());
 
