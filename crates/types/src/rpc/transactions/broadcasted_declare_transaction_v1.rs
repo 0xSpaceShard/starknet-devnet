@@ -118,7 +118,6 @@ impl BroadcastedDeclareTransactionV1 {
 mod tests {
     use serde::Deserialize;
     use starknet_api::transaction::Fee;
-    use starknet_in_rust::definitions::block_context::StarknetChainId;
 
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
