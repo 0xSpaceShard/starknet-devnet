@@ -30,7 +30,7 @@ mod dump_and_load_tests {
     #[tokio::test]
     async fn check_dump_path_with_dump_on() {
         let devnet_dump =
-            BackgroundDevnet::spawn(Some(["--dump-on".to_string(), "exit".to_string()].to_vec()))
+            BackgroundDevnet::spawn_with_additional_args(Some(["--dump-on", "exit"].to_vec()))
                 .await;
         assert!(devnet_dump.is_err());
     }
@@ -39,14 +39,8 @@ mod dump_and_load_tests {
     async fn mint_dump_on_transaction_and_load() {
         // dump after transaction
         let dump_file_name = "dump_on_transaction";
-        let devnet_dump = BackgroundDevnet::spawn(Some(
-            [
-                "--dump-path".to_string(),
-                dump_file_name.to_string(),
-                "--dump-on".to_string(),
-                "transaction".to_string(),
-            ]
-            .to_vec(),
+        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(Some(
+            ["--dump-path", dump_file_name, "--dump-on", "transaction"].to_vec(),
         ))
         .await
         .expect("Could not start Devnet");
@@ -63,8 +57,8 @@ mod dump_and_load_tests {
         let tx_hash_value = resp_body["tx_hash"].take();
 
         // load transaction from file and check transaction hash
-        let devnet_load = BackgroundDevnet::spawn(Some(
-            ["--dump-path".to_string(), dump_file_name.to_string()].to_vec(),
+        let devnet_load = BackgroundDevnet::spawn_with_additional_args(Some(
+            ["--dump-path", dump_file_name].to_vec(),
         ))
         .await
         .expect("Could not start Devnet");
@@ -98,14 +92,8 @@ mod dump_and_load_tests {
     async fn mint_dump_on_exit_and_load() {
         // dump after transaction
         let dump_file_name = "dump_on_exit";
-        let devnet_dump = BackgroundDevnet::spawn(Some(
-            [
-                "--dump-path".to_string(),
-                dump_file_name.to_string(),
-                "--dump-on".to_string(),
-                "exit".to_string(),
-            ]
-            .to_vec(),
+        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(Some(
+            ["--dump-path", dump_file_name, "--dump-on", "exit"].to_vec(),
         ))
         .await
         .expect("Could not start Devnet");
@@ -135,8 +123,8 @@ mod dump_and_load_tests {
         }
 
         // load transaction from file and check transaction hash
-        let devnet_load = BackgroundDevnet::spawn(Some(
-            ["--dump-path".to_string(), dump_file_name.to_string()].to_vec(),
+        let devnet_load = BackgroundDevnet::spawn_with_additional_args(Some(
+            ["--dump-path", dump_file_name].to_vec(),
         ))
         .await
         .expect("Could not start Devnet");
@@ -171,14 +159,8 @@ mod dump_and_load_tests {
     #[tokio::test]
     async fn declare_deploy() {
         let dump_file_name = "dump_declare_deploy";
-        let devnet = BackgroundDevnet::spawn(Some(
-            [
-                "--dump-path".to_string(),
-                dump_file_name.to_string(),
-                "--dump-on".to_string(),
-                "transaction".to_string(),
-            ]
-            .to_vec(),
+        let devnet = BackgroundDevnet::spawn_with_additional_args(Some(
+            ["--dump-path", dump_file_name, "--dump-on", "transaction"].to_vec(),
         ))
         .await
         .expect("Could not start Devnet");
@@ -235,8 +217,8 @@ mod dump_and_load_tests {
             .unwrap();
 
         // load transaction from file and check transactions hashes
-        let devnet_load = BackgroundDevnet::spawn(Some(
-            ["--dump-path".to_string(), dump_file_name.to_string()].to_vec(),
+        let devnet_load = BackgroundDevnet::spawn_with_additional_args(Some(
+            ["--dump-path", dump_file_name].to_vec(),
         ))
         .await
         .expect("Could not start Devnet");

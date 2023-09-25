@@ -64,7 +64,13 @@ fn get_free_port() -> Result<u16, TestError> {
 impl BackgroundDevnet {
     /// Ensures the background instance spawns at a free port, checks at most `MAX_RETRIES`
     /// times
-    pub(crate) async fn spawn(args: Option<Vec<String>>) -> Result<Self, TestError> {
+    pub(crate) async fn spawn() -> Result<Self, TestError> {
+        BackgroundDevnet::spawn_with_additional_args(None).await
+    }
+
+    pub(crate) async fn spawn_with_additional_args(
+        args: Option<Vec<&str>>,
+    ) -> Result<Self, TestError> {
         // we keep the reference, otherwise the mutex unlocks immediately
         let _mutex_guard = BACKGROUND_DEVNET_MUTEX.lock().await;
 
@@ -73,11 +79,7 @@ impl BackgroundDevnet {
         let devnet_url = format!("http://{HOST}:{free_port}");
         let devnet_rpc_url = Url::parse(format!("{}/rpc", devnet_url.as_str()).as_str())?;
         let json_rpc_client = JsonRpcClient::new(HttpTransport::new(devnet_rpc_url.clone()));
-
-        let mut additional_args: Vec<&str> = Vec::new();
-        if let Some(v) = &args {
-            additional_args = v.iter().map(|x| &**x).collect();
-        }
+        let additional_args = args.unwrap_or(Vec::new());
 
         let process = Command::new("cargo")
                 .arg("run")

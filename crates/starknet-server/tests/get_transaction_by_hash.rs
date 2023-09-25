@@ -36,7 +36,7 @@ mod get_transaction_by_hash_integration_tests {
 
     #[tokio::test]
     async fn get_declare_v1_transaction_by_hash_happy_path() {
-        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let json_string = std::fs::read_to_string(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/test_data/rpc/declare_v1.json"
@@ -74,7 +74,7 @@ mod get_transaction_by_hash_integration_tests {
 
     #[tokio::test]
     async fn get_declare_v2_transaction_by_hash_happy_path() {
-        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         // Sierra class artifact. Output of the `starknet-compile` command.
         let path_to_cairo1 =
@@ -136,7 +136,7 @@ mod get_transaction_by_hash_integration_tests {
 
     #[tokio::test]
     async fn get_deploy_account_transaction_by_hash_happy_path() {
-        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let deploy_account_txn = BroadcastedDeployAccountTransaction {
             max_fee: FieldElement::from_hex_be("0xde0b6b3a7640000").unwrap(),
             signature: vec![
@@ -174,7 +174,7 @@ mod get_transaction_by_hash_integration_tests {
 
     #[tokio::test]
     async fn get_invoke_v1_transaction_by_hash_happy_path() {
-        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let invoke_txn_v1 = BroadcastedInvokeTransaction {
             max_fee: FieldElement::from_hex_be("0xde0b6b3a7640000").unwrap(),
             signature: vec![],
@@ -208,7 +208,7 @@ mod get_transaction_by_hash_integration_tests {
 
     #[tokio::test]
     async fn get_non_existing_transaction() {
-        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let result = devnet
             .json_rpc_client
             .get_transaction_by_hash(FieldElement::from_hex_be("0x0").unwrap())

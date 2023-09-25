@@ -13,7 +13,7 @@ mod get_transaction_by_block_id_and_index_integration_tests {
 
     #[tokio::test]
     async fn get_transaction_by_block_id_and_index_happy_path() {
-        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let req_body = Body::from(
             json!({
                 "address": "0x1",
@@ -46,7 +46,7 @@ mod get_transaction_by_block_id_and_index_integration_tests {
 
     #[tokio::test]
     async fn get_transaction_by_block_id_and_index_wrong_index() {
-        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let req_body = Body::from(
             json!({
                 "address": "0x1",
@@ -73,7 +73,7 @@ mod get_transaction_by_block_id_and_index_integration_tests {
 
     #[tokio::test]
     async fn get_transaction_by_block_id_and_index_wrong_block() {
-        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let result = devnet
             .json_rpc_client
             .get_transaction_by_block_id_and_index(BlockId::Tag(BlockTag::Latest), 1)

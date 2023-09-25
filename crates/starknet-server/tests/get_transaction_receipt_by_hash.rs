@@ -31,7 +31,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
     #[tokio::test]
     async fn deploy_account_transaction_receipt() {
-        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         // constructs starknet-rs account
         let signer = get_deployable_account_signer();
@@ -71,7 +71,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
     #[tokio::test]
     async fn deploy_transaction_receipt() {
-        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         // get first predeployed account data
         let predeployed_accounts_response =
@@ -149,7 +149,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
     #[tokio::test]
     async fn get_declare_v1_transaction_receipt_by_hash_hash_happy_path() {
-        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let json_string = std::fs::read_to_string(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/test_data/rpc/declare_v1.json"
@@ -187,7 +187,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
     #[tokio::test]
     async fn get_non_existing_transaction() {
-        let devnet = BackgroundDevnet::spawn(None).await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let result = devnet
             .json_rpc_client
             .get_transaction_receipt(FieldElement::from_hex_be("0x0").unwrap())
