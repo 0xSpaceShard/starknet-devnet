@@ -399,8 +399,8 @@ impl Starknet {
     }
 
     /// returning the chain id as object
-    pub fn chain_id(&self) -> StarknetChainId {
-        self.config.chain_id.into()
+    pub fn chain_id(&self) -> ChainId {
+        self.config.chain_id
     }
 
     pub fn add_deploy_account_transaction(
