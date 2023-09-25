@@ -37,7 +37,7 @@ pub(crate) fn get_storage_var_address(
 pub(crate) mod test_utils {
     use starknet_api::transaction::Fee;
     use starknet_in_rust::core::contract_address::compute_casm_class_hash;
-    use starknet_in_rust::definitions::block_context::StarknetChainId;
+    
     use starknet_in_rust::{CasmContractClass, SierraContractClass};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};

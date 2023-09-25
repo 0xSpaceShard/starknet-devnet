@@ -131,7 +131,7 @@ pub fn add_declare_transaction_v1(
 mod tests {
     use starknet_api::block::BlockNumber;
     use starknet_api::transaction::Fee;
-    use starknet_in_rust::definitions::block_context::StarknetChainId;
+    
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};
