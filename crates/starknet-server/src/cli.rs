@@ -1,3 +1,4 @@
+use core::panic;
 use std::net::{IpAddr, Ipv4Addr};
 
 use clap::Parser;
@@ -109,12 +110,20 @@ impl Args {
                 "TESTNET2" => StarknetChainId::TestNet2,
                 _ => panic!("Invalid value for chain-id"),
             },
-            dump_on: match self.dump_on.clone().unwrap_or_default().as_str() {
+            dump_on: self.parse_dump_on(),
+            dump_path: self.dump_path.clone(),
+        }
+    }
+
+    pub(crate) fn parse_dump_on(&self) -> Option<DumpMode> {
+        if self.dump_path.is_some() {
+            match self.dump_on.clone().unwrap_or_default().as_str() {
                 "exit" => Some(DumpMode::OnExit),
                 "transaction" => Some(DumpMode::OnTransaction),
                 _ => None,
-            },
-            dump_path: self.dump_path.clone(),
+            }
+        } else {
+            panic!("--dump-path required if --dump-on is present")
         }
     }
 }

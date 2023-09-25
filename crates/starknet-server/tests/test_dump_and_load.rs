@@ -28,6 +28,14 @@ mod dump_and_load_tests {
     use crate::common::utils::get_events_contract_in_sierra_and_compiled_class_hash;
 
     #[tokio::test]
+    async fn check_dump_path_with_dump_on() {
+        let devnet_dump =
+            BackgroundDevnet::spawn(Some(["--dump-on".to_string(), "exit".to_string()].to_vec()))
+                .await;
+        assert_eq!(devnet_dump.is_err(), true);
+    }
+
+    #[tokio::test]
     async fn mint_dump_on_transaction_and_load() {
         // dump after transaction
         let dump_file_name = "dump_on_transaction";
