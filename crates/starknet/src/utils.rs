@@ -96,7 +96,7 @@ pub(crate) mod test_utils {
     }
 
     pub(crate) fn dummy_declare_transaction_v1() -> DeclareTransactionV0V1 {
-        let chain_id = DEVNET_DEFAULT_CHAIN_ID.to_felt().into();
+        let chain_id = DEVNET_DEFAULT_CHAIN_ID.to_felt();
         let contract_class = dummy_cairo_0_contract_class();
         let broadcasted_tx = BroadcastedDeclareTransactionV1::new(
             dummy_contract_address(),

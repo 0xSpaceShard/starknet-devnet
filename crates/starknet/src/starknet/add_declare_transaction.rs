@@ -21,7 +21,7 @@ pub fn add_declare_transaction_v2(
     }
 
     let sir_declare_transaction = broadcasted_declare_transaction
-        .create_sir_declare(starknet.config.chain_id.to_felt().into())?;
+        .create_sir_declare(starknet.config.chain_id.to_felt())?;
 
     let transaction_hash = sir_declare_transaction.hash_value.clone().into();
     let class_hash: ClassHash = sir_declare_transaction.sierra_class_hash.clone().into();
@@ -83,7 +83,7 @@ pub fn add_declare_transaction_v1(
 
     let class_hash = broadcasted_declare_transaction.generate_class_hash()?;
     let transaction_hash = broadcasted_declare_transaction
-        .calculate_transaction_hash(&starknet.config.chain_id.to_felt().into(), &class_hash)?;
+        .calculate_transaction_hash(&starknet.config.chain_id.to_felt(), &class_hash)?;
 
     let declare_transaction =
         broadcasted_declare_transaction.create_declare(class_hash, transaction_hash);
