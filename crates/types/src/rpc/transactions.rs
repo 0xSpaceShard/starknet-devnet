@@ -9,12 +9,16 @@ use deploy_transaction::DeployTransaction;
 use invoke_transaction_v1::InvokeTransactionV1;
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
+use starknet_api::state::EntryPointType;
 use starknet_api::transaction::Fee;
+use starknet_in_rust::execution::{CallInfo, L2toL1MessageInfo, OrderedEvent};
 use starknet_rs_core::types::{BlockId, ExecutionResult, TransactionFinalityStatus};
 
 use super::estimate_message_fee::FeeEstimateWrapper;
+use super::transaction_receipt::MessageToL1;
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
+use crate::error::{Error, ConversionError};
 use crate::felt::{
     BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash, TransactionSignature,
     TransactionVersion,
@@ -287,12 +291,126 @@ pub enum SimulationFlag {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TransactionTrace {
-    // TODO - import? from starknet-rs?
+pub enum CallType {
+    #[serde(rename = "LIBRARY_CALL")]
+    LibraryCall,
+    #[serde(rename = "LIBRARY_CALL")]
+    Call,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FunctionInvocationInternal {
+    caller_address: Felt,
+    class_hash: Felt,
+    entry_point_type: EntryPointType,
+    call_type: CallType,
+    result: Vec<Felt>,
+    calls: Vec<FunctionInvocation>,
+    events: Vec<Event>,
+    messages: Vec<MessageToL1>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FunctionInvocation {
+    function_call: FunctionCall,
+    function_invocation_internal: FunctionInvocationInternal,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum TransactionTrace {
+    Invoke(InvokeTransactionTrace),
+    Declare(DeclareTransactionTrace),
+    DeployAccount(DeployAccountTransactionTrace),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Reversion {
+    pub revert_reason: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ExecutionInvocation {
+    Succeeded(FunctionInvocation),
+    Reverted(Reversion),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InvokeTransactionTrace {
+    pub validate_invocation: FunctionInvocation,
+    pub execution_invocation: ExecutionInvocation,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeclareTransactionTrace {
+    pub validate_invocation: FunctionInvocation,
+    pub fee_transfer_invocation: FunctionInvocation,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeployAccountTransactionTrace {
+    pub validate_invocation: FunctionInvocation,
+    pub constructor_invocation: FunctionInvocation,
+    pub fee_transfer_invocation: FunctionInvocation,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SimulatedTransaction {
     pub transaction_trace: TransactionTrace,
     pub fee_estimation: FeeEstimateWrapper,
+}
+
+impl From<L2toL1MessageInfo> for MessageToL1 {
+    fn from(value: L2toL1MessageInfo) -> Self {
+        Self {
+            from_address: ContractAddress(value.from_address.into()),
+            to_address: starknet_api::transaction::EthAddress(value.to_address.0.into()),
+            payload: value.payload.into_iter().map(|p| p.into()).collect(),
+        }
+    }
+}
+
+impl From<starknet_in_rust::execution::CallType> for CallType {
+    fn from(value: starknet_in_rust::execution::CallType) -> Self {
+        match value {
+            starknet_in_rust::execution::CallType::Call => Self::Call,
+            starknet_in_rust::execution::CallType::Delegate => Self::LibraryCall,
+        }
+    }
+}
+
+impl From<starknet_in_rust::execution::Event> for Event {
+    fn from(value: starknet_in_rust::execution::Event) -> Self {
+        Self {
+            from_address: value.from_address.0.into(),
+            keys: value.keys.into_iter().map(|k| k.into()).collect(),
+            data: value.data.into_iter().map(|d| d.into()).collect(),
+        }
+    }
+}
+
+impl TryFrom<CallInfo> for FunctionInvocation {
+    type Error = Error; // TODO
+
+    fn try_from(call_info: CallInfo) -> Result<Self, Self::Error> {
+        let conversion_error = Error::ConversionError(ConversionError::InvalidFormat);
+
+        // TODO better error type; expand ConversionError?
+        Ok(FunctionInvocation {
+            function_call: FunctionCall {
+                contract_address: call_info.contract_address.try_into()?,
+                entry_point_selector: call_info.entry_point_selector.ok_or(conversion_error)?.into(),
+                calldata: call_info.calldata.into_iter().map(|c| c.into()).collect(),
+            },
+            function_invocation_internal: FunctionInvocationInternal {
+                caller_address: call_info.caller_address.0.into(),
+                class_hash: call_info.class_hash.ok_or(conversion_error)?.into(),
+                entry_point_type: call_info.entry_point_type.ok_or(conversion_error)?.into(),
+                call_type: call_info.call_type.ok_or(conversion_error)?.into(),
+                result: call_info.result().try_into()?,
+                calls: call_info.internal_calls.into_iter().map(|c|c.try_into()?).collect(),
+                events: call_info.get_sorted_events()?.into_iter().map(|e| e.into()).collect(),
+                messages: call_info.get_sorted_l2_to_l1_messages()?.into_iter().map(|c| c.into()).collect(),
+            },
+        })
+    }
 }

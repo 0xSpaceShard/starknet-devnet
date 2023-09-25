@@ -37,7 +37,8 @@ use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::B
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedTransaction, BroadcastedTransactionCommon,
-    SimulatedTransaction, SimulationFlag, Transaction, Transactions,
+    DeclareTransactionTrace, DeployAccountTransactionTrace, InvokeTransactionTrace,
+    SimulatedTransaction, SimulationFlag, Transaction, TransactionTrace, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::error;
@@ -653,33 +654,31 @@ impl Starknet {
 
         assert_eq!(simulated.len(), estimated.len()); // TODO temporary
 
-        Ok(simulated.iter().zip(estimated).map(|(tx_execution_info, fee_estimation)| {
+        let simulation_results = simulated.iter().zip(estimated).map(|(tx_execution_info, fee_estimation)| {
             let transaction_trace = match tx_execution_info.tx_type {
                 None => todo!(),
                 Some(tx_type) => match tx_type {
-                    starknet_in_rust::definitions::transaction_type::TransactionType::Declare => todo!(),
-                    starknet_in_rust::definitions::transaction_type::TransactionType::Deploy => todo!(),
-                    starknet_in_rust::definitions::transaction_type::TransactionType::DeployAccount => todo!(),
-                    starknet_in_rust::definitions::transaction_type::TransactionType::InitializeBlockInfo => todo!(),
-                    starknet_in_rust::definitions::transaction_type::TransactionType::InvokeFunction => todo!(),
-                    starknet_in_rust::definitions::transaction_type::TransactionType::L1Handler => todo!(),
+                    starknet_in_rust::definitions::transaction_type::TransactionType::Declare => TransactionTrace::Declare(DeclareTransactionTrace {
+                        validate_invocation: tx_execution_info.validate_info.into(),
+                        fee_transfer_invocation: tx_execution_info.fee_transfer_info.into(),
+                    }),
+                    starknet_in_rust::definitions::transaction_type::TransactionType::DeployAccount => TransactionTrace::DeployAccount(DeployAccountTransactionTrace {
+                        validate_invocation: tx_execution_info.validate_info.into(),
+                        constructor_invocation: tx_execution_info.call_info.into(),
+                        fee_transfer_invocation: tx_execution_info.fee_transfer_info.into(),
+                    }),
+                    starknet_in_rust::definitions::transaction_type::TransactionType::InvokeFunction => TransactionTrace::Invoke(InvokeTransactionTrace {
+                        validate_invocation: tx_execution_info.validate_info.into(),
+                        execution_invocation: tx_execution_info.call_info.into(),
+                    }),
+                    other => todo!(),
                 }
             };
 
             SimulatedTransaction { transaction_trace, fee_estimation }
-        }).collect())
+        }).collect();
 
-        // # traces number must be equal to estimations
-        // assert len(rpc_traces) == len(rpc_estimations)
-        // simulated_transactions = [
-        //     {
-        //         "transaction_trace": trace,
-        //         "fee_estimation": estimation,
-        //     }
-        //     for trace, estimation in zip(rpc_traces, rpc_estimations)
-        // ]
-
-        // return simulated_transactions
+        Ok(simulation_results)
     }
 }
 
