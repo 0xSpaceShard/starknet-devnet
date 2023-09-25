@@ -140,9 +140,8 @@ mod tests {
             Felt::from(1),
         );
 
-        let sir_transaction = transaction
-            .create_sir_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt())
-            .unwrap();
+        let sir_transaction =
+            transaction.create_sir_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt()).unwrap();
 
         // change balance at address
         let account_address =
@@ -182,9 +181,8 @@ mod tests {
             Felt::from(13),
             Felt::from(1),
         );
-        let sir_transction = transaction
-            .create_sir_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt())
-            .unwrap();
+        let sir_transction =
+            transaction.create_sir_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt()).unwrap();
 
         // change balance at address
         let account_address =

@@ -10,7 +10,7 @@ use crate::felt::Felt;
 pub enum ChainId {
     MainNet,
     TestNet,
-    TestNet2
+    TestNet2,
 }
 
 impl ChainId {
@@ -64,7 +64,6 @@ impl From<ChainId> for starknet_api::core::ChainId {
         starknet_api::core::ChainId(value.to_string())
     }
 }
-
 
 #[cfg(test)]
 mod tests {
