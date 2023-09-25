@@ -32,7 +32,7 @@ mod dump_and_load_tests {
         let devnet_dump =
             BackgroundDevnet::spawn(Some(["--dump-on".to_string(), "exit".to_string()].to_vec()))
                 .await;
-        assert_eq!(devnet_dump.is_err(), true);
+        assert!(devnet_dump.is_err());
     }
 
     #[tokio::test]
