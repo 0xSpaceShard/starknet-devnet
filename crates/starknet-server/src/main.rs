@@ -84,13 +84,12 @@ async fn main() -> Result<(), anyhow::Error> {
 }
 
 pub async fn shutdown_signal(api: Api) {
-    tokio::signal::ctrl_c().await.expect("Failed to install CTRL+C signal handler");
-
-    // Wait for the CTRL+C signal
-    signal::ctrl_c().await.expect("Failed to read CTRL+C signal");
-
     let starknet = api.starknet.read().await;
     if starknet.config.dump_on.is_some() && starknet.config.dump_on == Some(DumpMode::OnExit) {
+        tokio::signal::ctrl_c().await.expect("Failed to install CTRL+C signal handler");
+        // Wait for the CTRL+C signal
+        signal::ctrl_c().await.expect("Failed to read CTRL+C signal");
+
         starknet.dump_transactions().expect("Failed to dump starknet transactions");
     }
 }
