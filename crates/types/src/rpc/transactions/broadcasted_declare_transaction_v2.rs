@@ -86,6 +86,7 @@ mod tests {
     use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_rs_core::types::contract::SierraClass;
 
+    use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
     use crate::contract_class::ContractClass;
     use crate::felt::Felt;
@@ -160,7 +161,7 @@ mod tests {
             feeder_gateway_transaction.version,
         );
         let declare_transaction = broadcasted_declare_transaction
-            .create_sir_declare(StarknetChainId::TestNet.to_felt().into())
+            .create_sir_declare(ChainId::TestNet.to_felt())
             .unwrap();
 
         assert_eq!(
