@@ -22,7 +22,7 @@ aliases:
 jobs:
   build-and-test:
     docker:
-      - image: cimg/rust:1.69.0
+      - image: cimg/rust@sha256:4289011ee6ba27c76c683990a6fd534093062a5ece414b8ab07201220cf53cd8
     resource_class: xlarge
     steps:
       - checkout
@@ -30,14 +30,14 @@ jobs:
           name: Install nightly
           command: rustup install nightly
       - run:
-          name: Build
-          command: cargo build --release
-      - run:
-          name: Clippy check
-          command: ./scripts/clippy_check.sh
+          name: Install trunk
+          command: curl https://get.trunk.io -fsSL | bash
       - run:
           name: Format check
-          command: cargo +nightly fmt --all --check
+          command: trunk check --ci
+      - run:
+          name: Build
+          command: cargo build --release
       - run:
           name: Test
           # if jobs not limited - fails
@@ -47,7 +47,7 @@ jobs:
 
   image-build-amd:
     docker:
-      - image: cimg/base:2021.04
+      - image: cimg/base@sha256:28cd3680dd07a8c889b836b8b8ef56f48dd1a0a349881aede5b2b50c20f50398
     resource_class: large
     steps:
       - checkout
@@ -57,7 +57,7 @@ jobs:
           name: Build amd images
           command: ./docker/image_build.sh
           environment:
-            ARCH_SUFFIX: "-amd"
+            ARCH_SUFFIX: -amd
             REMOTE: true
 
   image-build-arm:
@@ -75,7 +75,7 @@ jobs:
 
   create-joint-image-manifest:
     docker:
-      - image: cimg/base:2021.04
+      - image: cimg/base@sha256:28cd3680dd07a8c889b836b8b8ef56f48dd1a0a349881aede5b2b50c20f50398
     resource_class: medium
     steps:
       - checkout

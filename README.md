@@ -158,33 +158,22 @@ It is highly recommended to get familiar with
 and install [rust-analyzer](https://code.visualstudio.com/docs/languages/rust)
 extension.
 
-## Development - Linter
+## Development - Linters & Formatters
 
-Run the linter with:
+The project uses [trunk.io]. Make sure you have trunk installed:
 
-```sh
-./scripts/clippy_check.sh
+```bash
+curl https://get.trunk.io -fsSL | bash
 ```
 
-## Development - Formatter
+Then run
 
-Run the formatter with:
-
-```sh
-./scripts/format.sh
+```bash
+trunk check
 ```
 
-If you encounter an error like
-
-```sh
-error: toolchain 'nightly-x86_64-unknown-linux-gnu' is not installed
-```
-
-Resolve it with:
-
-```sh
-rustup default nightly
-```
+If you are using VS Code, don't miss their [plug-in](https://marketplace.visualstudio.com/items?itemName=Trunk.io) and set
+is a default formatter.
 
 ## Development - Testing
 
