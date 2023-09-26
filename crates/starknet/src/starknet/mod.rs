@@ -146,7 +146,7 @@ impl Starknet {
         chargeable_account.set_initial_balance(&mut state)?;
 
         // copy already modified state to cached state
-        state.synchronize_states();
+        state.clear_dirty_state();
 
         let mut this = Self {
             state,
@@ -229,7 +229,7 @@ impl Starknet {
         // apply state changes from cached state
         self.state.apply_state_difference(state_difference.clone())?;
         // make cached state part of "persistent" state
-        self.state.synchronize_states();
+        self.state.clear_dirty_state();
         // create new block from pending one
         self.generate_new_block(state_difference, self.state.clone())?;
         // clear pending block information
@@ -358,7 +358,7 @@ impl Starknet {
             contract_address.into(),
             entrypoint_selector.into(),
             calldata.iter().map(|c| c.into()).collect(),
-            &mut state.pending_state.clone(),
+            &mut state.state.clone(),
             self.block_context.clone(),
             // dummy caller_address since there is no account address
             ContractAddress::zero().into(),
@@ -424,8 +424,7 @@ impl Starknet {
     pub async fn mint(&mut self, address: ContractAddress, amount: u128) -> DevnetResult<Felt> {
         let sufficiently_big_max_fee: u128 = self.config.gas_price as u128 * 1_000_000;
         let chargeable_address_felt = Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?;
-        let nonce =
-            self.state.pending_state.get_nonce_at(&Address(chargeable_address_felt.into()))?;
+        let nonce = self.state.state.get_nonce_at(&Address(chargeable_address_felt.into()))?;
 
         let calldata = vec![
             Felt::from(address).into(),
@@ -907,7 +906,7 @@ mod tests {
         // add data to state
         starknet
             .state
-            .pending_state
+            .state
             .cache_mut()
             .nonce_writes_mut()
             .insert(dummy_contract_address().try_into().unwrap(), Felt::from(1).into());
@@ -923,7 +922,7 @@ mod tests {
         // add data to state
         starknet
             .state
-            .pending_state
+            .state
             .cache_mut()
             .nonce_writes_mut()
             .insert(dummy_contract_address().try_into().unwrap(), Felt::from(2).into());
@@ -942,6 +941,7 @@ mod tests {
             .get(&second_block)
             .unwrap()
             .state
+            .state_reader
             .address_to_nonce
             .get(&dummy_contract_address().try_into().unwrap())
             .unwrap();
@@ -954,6 +954,7 @@ mod tests {
             .get(&third_block)
             .unwrap()
             .state
+            .state_reader
             .address_to_nonce
             .get(&dummy_contract_address().try_into().unwrap())
             .unwrap();

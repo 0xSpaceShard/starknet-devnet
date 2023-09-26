@@ -34,9 +34,8 @@ pub fn add_deploy_account_transaction(
 
     let transaction = Transaction::DeployAccount(deploy_account_transaction);
 
-    let state_before_txn = starknet.state.pending_state.clone();
-    match sir_deploy_account_transaction
-        .execute(&mut starknet.state.pending_state, &starknet.block_context)
+    let state_before_txn = starknet.state.state.clone();
+    match sir_deploy_account_transaction.execute(&mut starknet.state.state, &starknet.block_context)
     {
         Ok(tx_info) => match tx_info.revert_error {
             Some(error) => {
@@ -45,7 +44,7 @@ pub fn add_deploy_account_transaction(
 
                 starknet.transactions.insert(&transaction_hash, transaction_to_add);
                 // Revert to previous pending state
-                starknet.state.pending_state = state_before_txn;
+                starknet.state.state = state_before_txn;
             }
             None => {
                 starknet.handle_successful_transaction(&transaction_hash, &transaction, &tx_info)?
@@ -57,7 +56,7 @@ pub fn add_deploy_account_transaction(
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
             // Revert to previous pending state
-            starknet.state.pending_state = state_before_txn;
+            starknet.state.state = state_before_txn;
         }
     }
 
@@ -152,7 +151,7 @@ mod tests {
             ContractStorageKey::new(fee_token_address, balance_storage_var_address);
 
         starknet.state.change_storage(balance_storage_key, Felt::from(fee_raw)).unwrap();
-        starknet.state.synchronize_states();
+        starknet.state.clear_dirty_state();
 
         let (txn_hash, _) = starknet.add_deploy_account_transaction(transaction).unwrap();
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
@@ -165,7 +164,7 @@ mod tests {
     }
 
     fn get_accounts_count(starknet: &Starknet) -> usize {
-        starknet.state.state.address_to_class_hash.len()
+        starknet.state.state.state_reader.address_to_class_hash.len()
     }
 
     #[test]
@@ -197,7 +196,7 @@ mod tests {
             .state
             .change_storage(balance_storage_key, account_balance_before_deployment)
             .unwrap();
-        starknet.state.synchronize_states();
+        starknet.state.clear_dirty_state();
 
         // get accounts count before deployment
         let accounts_before_deployment = get_accounts_count(&starknet);
@@ -229,7 +228,7 @@ mod tests {
         let class_hash = contract_class.generate_hash().unwrap();
 
         starknet.state.declare_contract_class(class_hash, contract_class.into()).unwrap();
-        starknet.state.synchronize_states();
+        starknet.state.clear_dirty_state();
         starknet.block_context = Starknet::get_block_context(
             1,
             constants::ERC20_CONTRACT_ADDRESS,
