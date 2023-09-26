@@ -1,3 +1,4 @@
+use blockifier::transaction::transactions::DeclareTransaction;
 use cairo_felt::Felt252;
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
@@ -44,6 +45,32 @@ impl BroadcastedDeclareTransactionV1 {
                 signature: signature.clone(),
             },
         }
+    }
+
+    pub fn create_blockifier_declare(
+        &self,
+        class_hash: ClassHash,
+        transaction_hash: TransactionHash,
+    ) -> DevnetResult<DeclareTransaction> {
+        let sn_api_declare = starknet_api::transaction::DeclareTransaction::V1(
+            starknet_api::transaction::DeclareTransactionV0V1 {
+                class_hash: class_hash.into(),
+                sender_address: self.sender_address.try_into()?,
+                nonce: starknet_api::core::Nonce(self.common.nonce.into()),
+                max_fee: self.common.max_fee,
+                signature: starknet_api::transaction::TransactionSignature(
+                    self.common.signature.iter().map(|&felt| felt.into()).collect(),
+                ),
+            },
+        );
+
+        Ok(DeclareTransaction::new(
+            sn_api_declare,
+            starknet_api::transaction::TransactionHash(transaction_hash.into()),
+            blockifier::execution::contract_class::ContractClass::V0(
+                self.contract_class.clone().try_into()?,
+            ),
+        )?)
     }
 
     pub fn create_sir_declare(
@@ -178,9 +205,21 @@ mod tests {
         let sir_declare_transaction =
             broadcasted_tx.create_sir_declare(class_hash, transaction_hash).unwrap();
 
+        let blockifier_declare_transaction =
+            broadcasted_tx.create_blockifier_declare(class_hash, transaction_hash).unwrap();
+
         assert_eq!(
             feeder_gateway_transaction.transaction_hash,
             sir_declare_transaction.hash_value.into()
+        );
+
+        assert_eq!(
+            feeder_gateway_transaction.transaction_hash,
+            blockifier_declare_transaction.tx_hash().0.into()
+        );
+        assert_eq!(
+            feeder_gateway_transaction.class_hash,
+            blockifier_declare_transaction.class_hash().0.into()
         );
     }
 }

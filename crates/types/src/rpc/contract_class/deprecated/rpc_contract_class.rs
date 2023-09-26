@@ -100,6 +100,15 @@ impl TryInto<CompressedLegacyContractClass> for DeprecatedContractClass {
     }
 }
 
+impl TryFrom<DeprecatedContractClass> for blockifier::execution::contract_class::ContractClassV0 {
+    type Error = Error;
+
+    fn try_from(value: DeprecatedContractClass) -> Result<Self, Self::Error> {
+        let cairo_0_json = Cairo0Json::try_from(value)?;
+        cairo_0_json.try_into()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use starknet_rs_core::types::CompressedLegacyContractClass;
