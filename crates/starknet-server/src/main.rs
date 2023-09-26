@@ -78,18 +78,20 @@ async fn main() -> Result<(), anyhow::Error> {
     info!("Starknet Devnet listening on {}", addr);
 
     // spawn the server on a new task
-    let serve = tokio::task::spawn(server.with_graceful_shutdown(shutdown_signal(api.clone())));
+    let serve = if starknet_config.dump_on == Some(DumpMode::OnExit) {
+        tokio::task::spawn(server.with_graceful_shutdown(shutdown_signal(api.clone())))
+    } else {
+        tokio::task::spawn(server)
+    };
 
     Ok(serve.await??)
 }
 
 pub async fn shutdown_signal(api: Api) {
-    let starknet = api.starknet.read().await;
-    if starknet.config.dump_on.is_some() && starknet.config.dump_on == Some(DumpMode::OnExit) {
-        tokio::signal::ctrl_c().await.expect("Failed to install CTRL+C signal handler");
-        // Wait for the CTRL+C signal
-        signal::ctrl_c().await.expect("Failed to read CTRL+C signal");
+    tokio::signal::ctrl_c().await.expect("Failed to install CTRL+C signal handler");
+    // Wait for the CTRL+C signal
+    signal::ctrl_c().await.expect("Failed to read CTRL+C signal");
 
-        starknet.dump_transactions().expect("Failed to dump starknet transactions");
-    }
+    let starknet = api.starknet.read().await;
+    starknet.dump_transactions().expect("Failed to dump starknet transactions");
 }

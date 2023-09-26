@@ -64,6 +64,7 @@ fn get_free_port() -> Result<u16, TestError> {
 impl BackgroundDevnet {
     /// Ensures the background instance spawns at a free port, checks at most `MAX_RETRIES`
     /// times
+    #[allow(dead_code)] // dead_code needed to pass clippy
     pub(crate) async fn spawn() -> Result<Self, TestError> {
         BackgroundDevnet::spawn_with_additional_args(None).await
     }
