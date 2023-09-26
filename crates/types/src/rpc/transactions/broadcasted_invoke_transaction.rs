@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use blockifier::transaction::transactions::InvokeTransaction;
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
 use starknet_in_rust::definitions::constants::EXECUTE_ENTRY_POINT_SELECTOR;
@@ -51,6 +54,29 @@ impl BroadcastedInvokeTransaction {
             chain_id.into(),
             Some(self.common.nonce.into()),
         )?)
+    }
+
+    pub fn create_blockifier_invoke_transaction(
+        &self,
+        chain_id: Felt,
+    ) -> DevnetResult<InvokeTransaction> {
+        let txn_hash: Felt = self.create_sir_invoke_function(chain_id)?.hash_value().into();
+        let sn_api_transaction = starknet_api::transaction::InvokeTransactionV1 {
+            max_fee: self.common.max_fee,
+            signature: starknet_api::transaction::TransactionSignature(
+                self.common.signature.iter().map(|f| f.into()).collect(),
+            ),
+            nonce: starknet_api::core::Nonce(self.common.nonce.into()),
+            sender_address: self.sender_address.try_into()?,
+            calldata: starknet_api::transaction::Calldata(Arc::new(
+                self.calldata.iter().map(|f| f.into()).collect(),
+            )),
+        };
+
+        Ok(InvokeTransaction {
+            tx: starknet_api::transaction::InvokeTransaction::V1(sn_api_transaction),
+            tx_hash: starknet_api::transaction::TransactionHash(txn_hash.into()),
+        })
     }
 
     pub fn create_invoke_transaction(
@@ -119,8 +145,13 @@ mod tests {
             feeder_gateway_transaction.version,
         );
 
+        let chain_id = ChainId::TestNet;
+        let blockifier_transaction = transaction.create_blockifier_invoke_transaction( chain_id.to_felt()).unwrap();
+
         let transaction =
-            transaction.create_sir_invoke_function(ChainId::TestNet.to_felt()).unwrap();
+            transaction.create_sir_invoke_function(chain_id.to_felt()).unwrap();
+
+        assert_eq!(feeder_gateway_transaction.transaction_hash, blockifier_transaction.tx_hash.0.into());
 
         assert_eq!(feeder_gateway_transaction.transaction_hash, transaction.hash_value().into());
     }
