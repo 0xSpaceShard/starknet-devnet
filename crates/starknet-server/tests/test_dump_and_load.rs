@@ -53,8 +53,8 @@ mod dump_and_load_tests {
         );
         let resp = devnet_dump.post_json("/mint".into(), req_body).await.unwrap();
         assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
-        let mut resp_body = get_json_body(resp).await;
-        let tx_hash_value = resp_body["tx_hash"].take();
+        let resp_body = get_json_body(resp).await;
+        let tx_hash_value = resp_body["tx_hash"].as_str().unwrap();
 
         // load transaction from file and check transaction hash
         let devnet_load = BackgroundDevnet::spawn_with_additional_args(Some(
@@ -65,7 +65,7 @@ mod dump_and_load_tests {
         let loaded_transaction = devnet_load
             .json_rpc_client
             .get_transaction_by_hash(
-                FieldElement::from_hex_be(tx_hash_value.as_str().unwrap()).unwrap(),
+                FieldElement::from_hex_be(tx_hash_value).unwrap(),
             )
             .await
             .unwrap();
@@ -75,7 +75,7 @@ mod dump_and_load_tests {
         {
             assert_eq!(
                 invoke_v1.transaction_hash,
-                FieldElement::from_hex_be(tx_hash_value.as_str().unwrap()).unwrap()
+                FieldElement::from_hex_be(tx_hash_value).unwrap()
             );
         } else {
             panic!("Could not unpack the transaction from {loaded_transaction:?}");
@@ -108,7 +108,7 @@ mod dump_and_load_tests {
         let resp = devnet_dump.post_json("/mint".into(), req_body).await.unwrap();
         assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
         let mut resp_body = get_json_body(resp).await;
-        let tx_hash_value = resp_body["tx_hash"].take();
+        let tx_hash_value = resp_body["tx_hash"].as_str().unwrap();
 
         // Although dump and load is a multiplatform feature and works on all systems is troublesome
         // on the test level. This test is recommended to run on Linux. There are some problems with
@@ -133,7 +133,7 @@ mod dump_and_load_tests {
         let loaded_transaction = devnet_load
             .json_rpc_client
             .get_transaction_by_hash(
-                FieldElement::from_hex_be(tx_hash_value.as_str().unwrap()).unwrap(),
+                FieldElement::from_hex_be(tx_hash_value).unwrap(),
             )
             .await
             .unwrap();
@@ -143,7 +143,7 @@ mod dump_and_load_tests {
         {
             assert_eq!(
                 invoke_v1.transaction_hash,
-                FieldElement::from_hex_be(tx_hash_value.as_str().unwrap()).unwrap()
+                FieldElement::from_hex_be(tx_hash_value).unwrap()
             );
         } else {
             panic!("Could not unpack the transaction from {loaded_transaction:?}");
