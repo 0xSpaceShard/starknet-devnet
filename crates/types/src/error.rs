@@ -1,3 +1,4 @@
+use blockifier::transaction::errors::TransactionExecutionError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -28,6 +29,14 @@ pub enum Error {
     IoError(#[from] std::io::Error),
     #[error(transparent)]
     FromHexError(#[from] starknet_rs_core::types::eth_address::FromHexError),
+    #[error(transparent)]
+    TransactionExecutionError(#[from] TransactionExecutionError),
+    // TODO import cairo-lang-starknet to the project so this error could be created with its
+    // variants
+    #[error("Sierra compilation error: {reason}")]
+    SierraCompilationError { reason: String },
+    #[error("Program error")]
+    ProgramError,
 }
 
 #[derive(Error, Debug)]

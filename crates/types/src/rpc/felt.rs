@@ -141,6 +141,12 @@ impl From<Felt> for starknet_api::core::ClassHash {
     }
 }
 
+impl From<Felt> for starknet_api::core::CompiledClassHash {
+    fn from(value: Felt) -> Self {
+        Self(starknet_api::hash::StarkFelt::from(value))
+    }
+}
+
 impl From<starknet_in_rust::utils::ClassHash> for Felt {
     fn from(value: starknet_in_rust::utils::ClassHash) -> Self {
         Self(value)

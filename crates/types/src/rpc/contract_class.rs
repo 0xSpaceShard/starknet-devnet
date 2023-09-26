@@ -4,7 +4,7 @@ use std::cmp::{Eq, PartialEq};
 use serde::{Serialize, Serializer};
 use starknet_in_rust::core::contract_address::compute_sierra_class_hash;
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
-use starknet_in_rust::SierraContractClass;
+use starknet_in_rust::{CasmContractClass, SierraContractClass};
 use starknet_rs_core::types::{
     ContractClass as CodegenContractClass, FlattenedSierraClass as CodegenSierraContracrClass,
 };
@@ -101,6 +101,25 @@ impl TryFrom<ContractClass> for Cairo0Json {
     fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
         match value {
             ContractClass::Cairo0(Cairo0ContractClass::RawJson(contract)) => Ok(contract),
+            _ => Err(Error::ConversionError(crate::error::ConversionError::InvalidFormat)),
+        }
+    }
+}
+
+impl TryFrom<ContractClass> for blockifier::execution::contract_class::ContractClassV1 {
+    type Error = Error;
+
+    fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
+        match value {
+            ContractClass::Cairo1(sierra_contract_class) => {
+                let casm_contract_class =
+                    CasmContractClass::from_contract_class(sierra_contract_class, true)
+                        .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
+                let blockifier_contract_class: blockifier::execution::contract_class::ContractClassV1 =
+                    casm_contract_class.try_into().map_err(|_| Error::ProgramError)?;
+
+                Ok(blockifier_contract_class)
+            }
             _ => Err(Error::ConversionError(crate::error::ConversionError::InvalidFormat)),
         }
     }

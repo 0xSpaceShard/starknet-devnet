@@ -609,6 +609,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "blockifier"
+version = "0.2.0-rc0"
+source = "git+https://github.com/starkware-libs/blockifier?rev=v0.2.0-rc0#39730ea3078034367939f1bfa34d5e979ce9f426"
+dependencies = [
+ "ark-ff 0.4.2",
+ "ark-secp256k1",
+ "cached",
+ "cairo-felt 0.8.5",
+ "cairo-lang-casm 2.1.0",
+ "cairo-lang-runner 2.1.0",
+ "cairo-lang-starknet 2.1.0",
+ "cairo-vm 0.8.5",
+ "ctor",
+ "derive_more",
+ "indexmap 1.9.3",
+ "itertools 0.10.5",
+ "keccak",
+ "log",
+ "num-bigint",
+ "num-integer",
+ "num-traits 0.2.15",
+ "phf",
+ "serde",
+ "serde_json",
+ "sha3 0.10.8",
+ "starknet-crypto 0.5.1",
+ "starknet_api 0.4.1",
+ "strum",
+ "strum_macros",
+ "thiserror",
+]
+
+[[package]]
 name = "brotli"
 version = "3.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -658,6 +691,42 @@ name = "bytes"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "89b2fd2a0dcf38d7971e2194b6b6eebab45ae01067456a7fd93d5547a61b70be"
+
+[[package]]
+name = "cached"
+version = "0.44.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b195e4fbc4b6862bbd065b991a34750399c119797efff72492f28a5864de8700"
+dependencies = [
+ "async-trait",
+ "cached_proc_macro",
+ "cached_proc_macro_types",
+ "futures",
+ "hashbrown 0.13.2",
+ "instant",
+ "once_cell",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "cached_proc_macro"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b48814962d2fd604c50d2b9433c2a41a0ab567779ee2c02f7fba6eca1221f082"
+dependencies = [
+ "cached_proc_macro_types",
+ "darling 0.14.4",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "cached_proc_macro_types"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a4f925191b4367301851c6d99b09890311d74b0d43f274c0b34c86d308a3663"
 
 [[package]]
 name = "cairo-felt"
@@ -1888,12 +1957,36 @@ dependencies = [
 
 [[package]]
 name = "darling"
+version = "0.14.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b750cb3417fd1b327431a470f388520309479ab0bf5e323505daf0290cd3850"
+dependencies = [
+ "darling_core 0.14.4",
+ "darling_macro 0.14.4",
+]
+
+[[package]]
+name = "darling"
 version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0558d22a7b463ed0241e993f76f09f30b126687447751a8638587b864e4b3944"
 dependencies = [
- "darling_core",
- "darling_macro",
+ "darling_core 0.20.1",
+ "darling_macro 0.20.1",
+]
+
+[[package]]
+name = "darling_core"
+version = "0.14.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "109c1ca6e6b7f82cc233a97004ea8ed7ca123a9af07a8230878fcfda9b158bf0"
+dependencies = [
+ "fnv",
+ "ident_case",
+ "proc-macro2",
+ "quote",
+ "strsim",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -1912,11 +2005,22 @@ dependencies = [
 
 [[package]]
 name = "darling_macro"
+version = "0.14.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4aab4dbc9f7611d8b55048a3a16d2d010c2c8334e46304b40ac1cc14bf3b48e"
+dependencies = [
+ "darling_core 0.14.4",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "darling_macro"
 version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29a358ff9f12ec09c3e61fef9b5a9902623a695a46a917b07f269bff1445611a"
 dependencies = [
- "darling_core",
+ "darling_core 0.20.1",
  "quote",
  "syn 2.0.28",
 ]
@@ -4291,9 +4395,9 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.164"
+version = "1.0.171"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e8c8cf938e98f769bc164923b06dce91cea1751522f46f8466461af04c9027d"
+checksum = "30e27d1e4fd7659406c492fd6cfaf2066ba8773de45ca75e855590f856dc34a9"
 dependencies = [
  "serde_derive",
 ]
@@ -4309,9 +4413,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.164"
+version = "1.0.171"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9735b638ccc51c28bf6914d90a2e9725b377144fc612c49a611fddd1b631d68"
+checksum = "389894603bd18c46fa56231694f8d827779c0951a667087194cf9de94ed24682"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4395,7 +4499,7 @@ version = "2.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "881b6f881b17d13214e5d494c939ebab463d01264ce1811e9d4ac3a882e7695f"
 dependencies = [
- "darling",
+ "darling 0.20.1",
  "proc-macro2",
  "quote",
  "syn 2.0.28",
@@ -4583,7 +4687,7 @@ dependencies = [
 name = "starknet"
 version = "0.1.0"
 dependencies = [
- "blockifier",
+ "blockifier 0.1.0",
  "jsonschema",
  "random-number-generator",
  "serde",
@@ -4591,7 +4695,7 @@ dependencies = [
  "starknet-core 0.6.0",
  "starknet-ff 0.3.4",
  "starknet-signers 0.4.0",
- "starknet_api 0.3.0",
+ "starknet_api 0.4.1",
  "starknet_in_rust",
  "thiserror",
  "tracing",
@@ -5008,24 +5112,6 @@ dependencies = [
  "starknet-crypto 0.2.0",
  "thiserror",
  "web3",
-]
-
-[[package]]
-name = "starknet_api"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "edfe4732113f66de3d6e9fc77f713b934cfd4b24d43887ca8cbfbe9462ed9119"
-dependencies = [
- "cairo-lang-starknet 2.1.0",
- "derive_more",
- "hex",
- "indexmap 1.9.3",
- "once_cell",
- "primitive-types 0.12.1",
- "serde",
- "serde_json",
- "starknet-crypto 0.5.1",
- "thiserror",
 ]
 
 [[package]]
@@ -5595,6 +5681,7 @@ name = "types"
 version = "0.1.0"
 dependencies = [
  "base64 0.21.2",
+ "blockifier 0.2.0-rc0",
  "cairo-felt 0.8.5",
  "flate2",
  "num-bigint",
@@ -5603,7 +5690,7 @@ dependencies = [
  "serde_json",
  "starknet-core 0.6.0",
  "starknet-ff 0.3.4",
- "starknet_api 0.3.0",
+ "starknet_api 0.4.1",
  "starknet_in_rust",
  "thiserror",
 ]
