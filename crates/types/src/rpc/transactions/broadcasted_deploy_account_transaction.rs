@@ -58,10 +58,14 @@ impl BroadcastedDeployAccountTransaction {
         )?)
     }
 
-    pub fn create_blockifier_deploy_account(&self, chain_id: Felt) -> DevnetResult<blockifier::transaction::transactions::DeployAccountTransaction> {
+    pub fn create_blockifier_deploy_account(
+        &self,
+        chain_id: Felt,
+    ) -> DevnetResult<blockifier::transaction::transactions::DeployAccountTransaction> {
         let starknet_in_rust_deploy_account = self.create_sir_deploy_account(chain_id)?;
         let txn_hash: Felt = starknet_in_rust_deploy_account.hash_value().into();
-        let contract_address: ContractAddress = starknet_in_rust_deploy_account.contract_address().try_into()?;
+        let contract_address: ContractAddress =
+            starknet_in_rust_deploy_account.contract_address().try_into()?;
 
         let sn_api_transaction = starknet_api::transaction::DeployAccountTransaction {
             max_fee: self.common.max_fee,
@@ -71,12 +75,14 @@ impl BroadcastedDeployAccountTransaction {
             ),
             nonce: starknet_api::core::Nonce(self.common.nonce.into()),
             class_hash: self.class_hash.into(),
-            contract_address_salt: starknet_api::transaction::ContractAddressSalt(self.contract_address_salt.into()),
+            contract_address_salt: starknet_api::transaction::ContractAddressSalt(
+                self.contract_address_salt.into(),
+            ),
             constructor_calldata: starknet_api::transaction::Calldata(Arc::new(
                 self.constructor_calldata.iter().map(|felt| felt.into()).collect(),
             )),
         };
-        
+
         Ok(blockifier::transaction::transactions::DeployAccountTransaction {
             tx: sn_api_transaction,
             tx_hash: starknet_api::transaction::TransactionHash(txn_hash.into()),
@@ -158,7 +164,8 @@ mod tests {
         let deploy_account_transaction =
             broadcasted_tx.create_sir_deploy_account(chain_id).unwrap();
 
-        let blockifier_deploy_account_transaction = broadcasted_tx.create_blockifier_deploy_account(chain_id).unwrap();
+        let blockifier_deploy_account_transaction =
+            broadcasted_tx.create_blockifier_deploy_account(chain_id).unwrap();
 
         assert_eq!(
             ContractAddress::new(feeder_gateway_transaction.contract_address).unwrap(),
@@ -170,6 +177,9 @@ mod tests {
             deploy_account_transaction.hash_value().into()
         );
 
-        assert_eq!(feeder_gateway_transaction.transaction_hash, blockifier_deploy_account_transaction.tx_hash.0.into());
+        assert_eq!(
+            feeder_gateway_transaction.transaction_hash,
+            blockifier_deploy_account_transaction.tx_hash.0.into()
+        );
     }
 }
