@@ -9,7 +9,6 @@ mod dump_and_load_tests {
     use hyper::{Body, StatusCode};
     use serde_json::json;
     use starknet_rs_providers::Provider;
-    use starknet_types::felt::Felt;
 
     use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::get_json_body;
@@ -23,9 +22,10 @@ mod dump_and_load_tests {
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement};
-    use starknet_rs_signers::{LocalWallet, SigningKey};
 
-    use crate::common::utils::get_events_contract_in_sierra_and_compiled_class_hash;
+    use crate::common::utils::{
+        get_events_contract_in_sierra_and_compiled_class_hash, get_predeployed_account_props,
+    };
 
     #[tokio::test]
     async fn check_dump_path_with_dump_on() {
@@ -64,9 +64,7 @@ mod dump_and_load_tests {
         .expect("Could not start Devnet");
         let loaded_transaction = devnet_load
             .json_rpc_client
-            .get_transaction_by_hash(
-                FieldElement::from_hex_be(tx_hash_value).unwrap(),
-            )
+            .get_transaction_by_hash(FieldElement::from_hex_be(tx_hash_value).unwrap())
             .await
             .unwrap();
         if let starknet_rs_core::types::Transaction::Invoke(
@@ -107,7 +105,7 @@ mod dump_and_load_tests {
         );
         let resp = devnet_dump.post_json("/mint".into(), req_body).await.unwrap();
         assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
-        let mut resp_body = get_json_body(resp).await;
+        let resp_body = get_json_body(resp).await;
         let tx_hash_value = resp_body["tx_hash"].as_str().unwrap();
 
         // Although dump and load is a multiplatform feature and works on all systems is troublesome
@@ -132,9 +130,7 @@ mod dump_and_load_tests {
         assert_ne!(devnet_dump_pid, devnet_load_pid); // if PID's are different SIGINT signal worked
         let loaded_transaction = devnet_load
             .json_rpc_client
-            .get_transaction_by_hash(
-                FieldElement::from_hex_be(tx_hash_value).unwrap(),
-            )
+            .get_transaction_by_hash(FieldElement::from_hex_be(tx_hash_value).unwrap())
             .await
             .unwrap();
         if let starknet_rs_core::types::Transaction::Invoke(
@@ -165,26 +161,12 @@ mod dump_and_load_tests {
         .await
         .expect("Could not start Devnet");
 
-        // get first predeployed account data
-        let predeployed_accounts_response =
-            devnet.get("/predeployed_accounts", None).await.unwrap();
-
-        let predeployed_accounts_json = get_json_body(predeployed_accounts_response).await;
-        let first_account = predeployed_accounts_json.as_array().unwrap().get(0).unwrap();
-
-        let account_address =
-            Felt::from_prefixed_hex_str(first_account["address"].as_str().unwrap()).unwrap();
-        let private_key =
-            Felt::from_prefixed_hex_str(first_account["private_key"].as_str().unwrap()).unwrap();
-
         // constructs starknet-rs account
-        let signer = LocalWallet::from(SigningKey::from_secret_scalar(private_key.into()));
-        let address = FieldElement::from(account_address);
-
+        let (signer, account_address) = get_predeployed_account_props();
         let mut predeployed_account = SingleOwnerAccount::new(
             devnet.clone_provider(),
             signer,
-            address,
+            account_address,
             chain_id::TESTNET,
             ExecutionEncoding::Legacy,
         );
