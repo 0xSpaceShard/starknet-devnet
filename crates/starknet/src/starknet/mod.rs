@@ -37,8 +37,9 @@ use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::B
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedTransaction, BroadcastedTransactionCommon,
-    DeclareTransactionTrace, DeployAccountTransactionTrace, InvokeTransactionTrace,
-    SimulatedTransaction, SimulationFlag, Transaction, TransactionTrace, Transactions,
+    DeclareTransactionTrace, DeployAccountTransactionTrace, ExecutionInvocation,
+    InvokeTransactionTrace, SimulatedTransaction, SimulationFlag, Transaction, TransactionTrace,
+    Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::error;
@@ -637,7 +638,7 @@ impl Starknet {
 
         let remaining_gas = 1e8 as u128; // TODO
         let simulatable: Vec<&starknet_in_rust::transaction::Transaction> =
-            sir_txs.iter().map(|t| t).collect();
+            sir_txs.iter().collect();
         let simulated = simulate_transaction(
             simulatable.as_slice(),
             state.state.clone(),
@@ -654,29 +655,36 @@ impl Starknet {
 
         assert_eq!(simulated.len(), estimated.len()); // TODO temporary
 
-        let simulation_results = simulated.iter().zip(estimated).map(|(tx_execution_info, fee_estimation)| {
+        let mut simulation_results: Vec<SimulatedTransaction> = vec![];
+        for (tx_execution_info, fee_estimation) in simulated.into_iter().zip(estimated) {
             let transaction_trace = match tx_execution_info.tx_type {
-                None => todo!(),
+                None => panic!("Shouldn't be here"),
                 Some(tx_type) => match tx_type {
                     starknet_in_rust::definitions::transaction_type::TransactionType::Declare => TransactionTrace::Declare(DeclareTransactionTrace {
-                        validate_invocation: tx_execution_info.validate_info.into(),
-                        fee_transfer_invocation: tx_execution_info.fee_transfer_info.into(),
+                        validate_invocation: tx_execution_info.validate_info.try_into()?,
+                        fee_transfer_invocation: tx_execution_info.fee_transfer_info.try_into()?,
                     }),
                     starknet_in_rust::definitions::transaction_type::TransactionType::DeployAccount => TransactionTrace::DeployAccount(DeployAccountTransactionTrace {
-                        validate_invocation: tx_execution_info.validate_info.into(),
-                        constructor_invocation: tx_execution_info.call_info.into(),
-                        fee_transfer_invocation: tx_execution_info.fee_transfer_info.into(),
+                        validate_invocation: tx_execution_info.validate_info.try_into()?,
+                        constructor_invocation: tx_execution_info.call_info.try_into()?,
+                        fee_transfer_invocation: tx_execution_info.fee_transfer_info.try_into()?,
                     }),
-                    starknet_in_rust::definitions::transaction_type::TransactionType::InvokeFunction => TransactionTrace::Invoke(InvokeTransactionTrace {
-                        validate_invocation: tx_execution_info.validate_info.into(),
-                        execution_invocation: tx_execution_info.call_info.into(),
-                    }),
-                    other => todo!(),
+                    starknet_in_rust::definitions::transaction_type::TransactionType::InvokeFunction => {
+                        let call_info = tx_execution_info.call_info.ok_or(starknet_types::error::Error::ConversionError(starknet_types::error::ConversionError::InvalidFormat))?;
+                        TransactionTrace::Invoke(InvokeTransactionTrace {
+                        validate_invocation: tx_execution_info.validate_info.try_into()?,
+                        execution_invocation: match call_info.result().is_success {
+                            true => ExecutionInvocation::Succeeded(call_info.try_into()?),
+                            false => ExecutionInvocation::Reverted(starknet_types::rpc::transactions::Reversion { revert_reason: tx_execution_info.revert_error.unwrap() }),
+                        },
+                    })
+                },
+                    _ => panic!("Shouldn't be here"),
                 }
             };
 
-            SimulatedTransaction { transaction_trace, fee_estimation }
-        }).collect();
+            simulation_results.push(SimulatedTransaction { transaction_trace, fee_estimation });
+        }
 
         Ok(simulation_results)
     }
