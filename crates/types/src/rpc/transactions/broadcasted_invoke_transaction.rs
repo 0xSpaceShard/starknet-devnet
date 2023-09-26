@@ -145,11 +145,11 @@ mod tests {
             feeder_gateway_transaction.version,
         );
 
-        let chain_id = ChainId::TestNet;
-        let blockifier_transaction = transaction.create_blockifier_invoke_transaction( chain_id.to_felt()).unwrap();
+        let chain_id = ChainId::TestNet.to_felt();
+        let blockifier_transaction = transaction.create_blockifier_invoke_transaction( chain_id).unwrap();
 
         let transaction =
-            transaction.create_sir_invoke_function(chain_id.to_felt()).unwrap();
+            transaction.create_sir_invoke_function(chain_id).unwrap();
 
         assert_eq!(feeder_gateway_transaction.transaction_hash, blockifier_transaction.tx_hash.0.into());
 
