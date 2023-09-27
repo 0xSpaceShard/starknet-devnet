@@ -24,7 +24,6 @@ pub mod state_update;
 #[derive(Debug, Clone, Default)]
 pub(crate) struct StarknetState {
     pub state: CachedState<InMemoryStateReader>,
-    // pub pending_state: CachedState<InMemoryStateReader>,
     pub(crate) contract_classes: HashMap<ClassHash, ContractClass>,
 }
 
