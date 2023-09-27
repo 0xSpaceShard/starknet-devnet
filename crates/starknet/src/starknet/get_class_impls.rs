@@ -143,7 +143,7 @@ mod tests {
     fn get_class_hash_at_generated_accounts() {
         let (mut starknet, account) = setup(Some(100000000));
 
-        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
         starknet.generate_pending_block().unwrap();
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
@@ -158,7 +158,7 @@ mod tests {
     fn get_class_at_generated_accounts() {
         let (mut starknet, account) = setup(Some(100000000));
 
-        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
         starknet.generate_pending_block().unwrap();
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
