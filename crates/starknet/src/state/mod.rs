@@ -36,6 +36,16 @@ impl StarknetState {
             self.state.state_reader.class_hash_to_compiled_class.clone(),
         );
     }
+
+    pub(crate) fn make_deep_clone(&self) -> Self {
+        Self {
+            state: CachedState::new(
+                Arc::new(self.state.state_reader.as_ref().clone()),
+                self.state.state_reader.class_hash_to_compiled_class.clone(),
+            ),
+            contract_classes: self.contract_classes.clone(),
+        }
+    }
 }
 
 impl StateChanger for StarknetState {
@@ -434,6 +444,27 @@ mod tests {
     fn get_nonce_should_return_zero_for_freshly_deployed_contract() {
         let (state, address) = setup();
         assert_eq!(state.get_nonce(&address).unwrap(), Felt::from(0));
+    }
+
+    #[test]
+    fn check_clone_derived_vs_make_deep_clone_method() {
+        let state = StarknetState::default();
+
+        let cloned_state = state.clone();
+        let deep_cloned_state = state.make_deep_clone();
+
+        // get pointers to Arcs
+        let p_state = Arc::as_ptr(&state.state.state_reader);
+        let p_cloned_state = Arc::as_ptr(&cloned_state.state.state_reader);
+        let p_deep_cloned_state = Arc::as_ptr(&deep_cloned_state.state.state_reader);
+
+        // deep cloned should not point to the same memory location as the original
+        assert_ne!(p_deep_cloned_state, p_state);
+        assert_ne!(p_deep_cloned_state, p_cloned_state);
+
+        // this is wrong behavior, because the clone should be deep, but because of Arc it makes a
+        // shallow copy
+        assert_eq!(p_cloned_state, p_state);
     }
 
     fn setup() -> (StarknetState, ContractAddress) {

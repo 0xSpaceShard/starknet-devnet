@@ -183,7 +183,7 @@ impl Starknet {
     /// Returns the new block number
     pub(crate) fn generate_new_block(
         &mut self,
-        state_diff: StateDiff
+        state_diff: StateDiff,
     ) -> DevnetResult<BlockNumber> {
         let mut new_block = self.pending_block().clone();
 
@@ -206,7 +206,9 @@ impl Starknet {
         // insert pending block in the blocks collection and connect it to the state diff
         self.blocks.insert(new_block, state_diff);
         // save into blocks state archive
-        self.blocks.save_state_at(new_block_number, self.state.clone());
+
+        let deep_cloned_state = self.state.make_deep_clone();
+        self.blocks.save_state_at(new_block_number, deep_cloned_state);
 
         Ok(new_block_number)
     }
