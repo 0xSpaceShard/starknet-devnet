@@ -2,13 +2,12 @@ pub mod common;
 
 // Important! Use unique file names for dump files, tests can be run in parallel.
 mod dump_and_load_tests {
-    use std::fs::{self};
-    use std::path::Path;
     use std::process::Command;
 
     use starknet_rs_providers::Provider;
 
     use crate::common::devnet::BackgroundDevnet;
+    use crate::common::utils::remove_file;
 
     static DUMMY_ADDRESS: u128 = 1;
     static DUMMY_AMOUNT: u128 = 1;
@@ -60,11 +59,7 @@ mod dump_and_load_tests {
             panic!("Could not unpack the transaction from {loaded_transaction:?}");
         }
 
-        // remove dump file after test
-        let file_path = Path::new(dump_file_name);
-        if file_path.exists() {
-            fs::remove_file(file_path).expect("Could not remove file");
-        }
+        remove_file(dump_file_name);
     }
 
     #[tokio::test]
@@ -110,11 +105,7 @@ mod dump_and_load_tests {
             panic!("Could not unpack the transaction from {loaded_transaction:?}");
         }
 
-        // remove dump file after test
-        let file_path = Path::new(dump_file_name);
-        if file_path.exists() {
-            fs::remove_file(file_path).expect("Could not remove file");
-        }
+        remove_file(dump_file_name);
     }
 
     #[tokio::test]
@@ -200,10 +191,6 @@ mod dump_and_load_tests {
             panic!("Could not unpack the transaction from {loaded_deploy_v2:?}");
         }
 
-        // remove dump file after test
-        let file_path = Path::new(dump_file_name);
-        if file_path.exists() {
-            fs::remove_file(file_path).expect("Could not remove file");
-        }
+        remove_file(dump_file_name);
     }
 }
