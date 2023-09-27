@@ -19,7 +19,7 @@ pub fn add_invoke_transaction(
     }
 
     let sir_invoke_function = broadcasted_invoke_transaction
-        .create_sir_invoke_function(starknet.config.chain_id.to_felt().into())?;
+        .create_sir_invoke_function(starknet.config.chain_id.to_felt())?;
     let transaction_hash = sir_invoke_function.hash_value().into();
 
     let invoke_transaction =

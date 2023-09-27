@@ -319,7 +319,7 @@ impl JsonRpcHandler {
     pub(crate) async fn chain_id(&self) -> RpcResult<String> {
         let chain_id = self.api.starknet.read().await.chain_id();
 
-        Ok(Felt::from(chain_id.to_felt()).to_prefixed_hex_str())
+        Ok(chain_id.to_felt().to_prefixed_hex_str())
     }
 
     /// starknet_pendingTransactions

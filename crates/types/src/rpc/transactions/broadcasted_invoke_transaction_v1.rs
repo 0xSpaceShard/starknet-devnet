@@ -73,7 +73,6 @@ impl BroadcastedInvokeTransactionV1 {
 mod tests {
     use serde::Deserialize;
     use starknet_api::transaction::Fee;
-    use starknet_in_rust::definitions::block_context::StarknetChainId;
 
     use crate::contract_address::ContractAddress;
     use crate::felt::Felt;
@@ -120,7 +119,7 @@ mod tests {
         );
 
         let transaction = transaction
-            .create_sir_invoke_function(StarknetChainId::TestNet.to_felt().into())
+            .create_sir_invoke_function(ChainId::TestNet.to_felt())
             .unwrap();
 
         assert_eq!(feeder_gateway_transaction.transaction_hash, transaction.hash_value().into());
