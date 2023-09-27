@@ -20,8 +20,8 @@ pub fn add_declare_transaction_v2(
         ));
     }
 
-    let sir_declare_transaction = broadcasted_declare_transaction
-        .create_sir_declare(starknet.config.chain_id.to_felt().into())?;
+    let sir_declare_transaction =
+        broadcasted_declare_transaction.create_sir_declare(starknet.config.chain_id.to_felt())?;
 
     let transaction_hash = sir_declare_transaction.hash_value.clone().into();
     let class_hash: ClassHash = sir_declare_transaction.sierra_class_hash.clone().into();
@@ -83,7 +83,7 @@ pub fn add_declare_transaction_v1(
 
     let class_hash = broadcasted_declare_transaction.generate_class_hash()?;
     let transaction_hash = broadcasted_declare_transaction
-        .calculate_transaction_hash(&starknet.config.chain_id.to_felt().into(), &class_hash)?;
+        .calculate_transaction_hash(&starknet.config.chain_id.to_felt(), &class_hash)?;
 
     let declare_transaction =
         broadcasted_declare_transaction.create_declare(class_hash, transaction_hash);
@@ -131,7 +131,6 @@ pub fn add_declare_transaction_v1(
 mod tests {
     use starknet_api::block::BlockNumber;
     use starknet_api::transaction::Fee;
-    use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};
@@ -141,7 +140,7 @@ mod tests {
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;
-    use crate::constants::{self};
+    use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID};
     use crate::starknet::{predeployed, Starknet};
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut, StateExtractor};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
@@ -375,7 +374,7 @@ mod tests {
         starknet.block_context = Starknet::get_block_context(
             1,
             constants::ERC20_CONTRACT_ADDRESS,
-            StarknetChainId::TestNet,
+            DEVNET_DEFAULT_CHAIN_ID,
         )
         .unwrap();
 

@@ -22,6 +22,7 @@ use starknet_rs_core::types::{BlockId, MsgFromL1, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::Signer;
+use starknet_types::chain_id::ChainId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0Json, ContractClass};
 use starknet_types::contract_storage_key::ContractStorageKey;
@@ -46,7 +47,7 @@ use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
     CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
-    DEVNET_DEFAULT_HOST, ERC20_CONTRACT_ADDRESS,
+    DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_HOST, ERC20_CONTRACT_ADDRESS,
 };
 use crate::error::{DevnetResult, Error};
 use crate::predeployed_accounts::PredeployedAccounts;
@@ -78,7 +79,7 @@ pub struct StarknetConfig {
     pub port: u16,
     pub timeout: u16,
     pub gas_price: u64,
-    pub chain_id: StarknetChainId,
+    pub chain_id: ChainId,
 }
 
 impl Default for StarknetConfig {
@@ -91,7 +92,7 @@ impl Default for StarknetConfig {
             port: u16::default(),
             timeout: u16::default(),
             gas_price: Default::default(),
-            chain_id: StarknetChainId::TestNet,
+            chain_id: DEVNET_DEFAULT_CHAIN_ID,
         }
     }
 }
@@ -240,10 +241,10 @@ impl Starknet {
     fn get_block_context(
         gas_price: u64,
         fee_token_address: &str,
-        chain_id: StarknetChainId,
+        chain_id: ChainId,
     ) -> DevnetResult<BlockContext> {
         let starknet_os_config = StarknetOsConfig::new(
-            chain_id.to_felt(),
+            StarknetChainId::from(chain_id).to_felt(),
             starknet_in_rust::utils::Address(
                 Felt::from_prefixed_hex_str(fee_token_address)?.into(),
             ),
@@ -398,7 +399,7 @@ impl Starknet {
     }
 
     /// returning the chain id as object
-    pub fn chain_id(&self) -> StarknetChainId {
+    pub fn chain_id(&self) -> ChainId {
         self.config.chain_id
     }
 
@@ -443,7 +444,7 @@ impl Starknet {
         };
 
         // generate msg hash (not the same as tx hash)
-        let chain_id_felt: Felt = self.config.chain_id.to_felt().into();
+        let chain_id_felt: Felt = self.config.chain_id.to_felt();
         let msg_hash_felt =
             raw_execution.transaction_hash(chain_id_felt.into(), chargeable_address_felt.into());
 
@@ -580,7 +581,6 @@ impl Starknet {
 #[cfg(test)]
 mod tests {
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
-    use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_in_rust::felt::Felt252;
     use starknet_in_rust::transaction::error::TransactionError;
     use starknet_rs_core::types::{BlockId, BlockTag};
@@ -616,7 +616,7 @@ mod tests {
     fn correct_block_context_creation() {
         let fee_token_address =
             ContractAddress::new(Felt::from_prefixed_hex_str("0xAA").unwrap()).unwrap();
-        let block_ctx = Starknet::get_block_context(10, "0xAA", StarknetChainId::TestNet).unwrap();
+        let block_ctx = Starknet::get_block_context(10, "0xAA", DEVNET_DEFAULT_CHAIN_ID).unwrap();
         assert!(block_ctx.block_info().block_number == 0);
         assert!(block_ctx.block_info().block_timestamp == 0);
         assert_eq!(block_ctx.block_info().gas_price, 10);
@@ -706,8 +706,7 @@ mod tests {
 
     #[test]
     fn correct_block_context_update() {
-        let mut block_ctx =
-            Starknet::get_block_context(0, "0x0", StarknetChainId::TestNet).unwrap();
+        let mut block_ctx = Starknet::get_block_context(0, "0x0", DEVNET_DEFAULT_CHAIN_ID).unwrap();
         let initial_block_number = block_ctx.block_info().block_number;
         Starknet::update_block_context(&mut block_ctx);
 

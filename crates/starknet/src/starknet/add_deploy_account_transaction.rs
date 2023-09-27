@@ -25,7 +25,7 @@ pub fn add_deploy_account_transaction(
     }
 
     let sir_deploy_account_transaction = broadcasted_deploy_account_transaction
-        .create_sir_deploy_account(starknet.config.chain_id.to_felt().into())?;
+        .create_sir_deploy_account(starknet.config.chain_id.to_felt())?;
 
     let transaction_hash = sir_deploy_account_transaction.hash_value().into();
     let address: ContractAddress = sir_deploy_account_transaction.contract_address().try_into()?;
@@ -139,9 +139,8 @@ mod tests {
             Felt::from(1),
         );
 
-        let sir_transaction = transaction
-            .create_sir_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt().into())
-            .unwrap();
+        let sir_transaction =
+            transaction.create_sir_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt()).unwrap();
 
         // change balance at address
         let account_address =
@@ -181,9 +180,8 @@ mod tests {
             Felt::from(13),
             Felt::from(1),
         );
-        let sir_transction = transaction
-            .create_sir_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt().into())
-            .unwrap();
+        let sir_transction =
+            transaction.create_sir_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt()).unwrap();
 
         // change balance at address
         let account_address =
