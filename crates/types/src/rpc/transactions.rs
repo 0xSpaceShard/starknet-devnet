@@ -19,7 +19,7 @@ use super::estimate_message_fee::FeeEstimateWrapper;
 use super::transaction_receipt::MessageToL1;
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
-use crate::error::{ConversionError, Error};
+use crate::error::Error;
 use crate::felt::{
     BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash, TransactionSignature,
     TransactionVersion,
@@ -337,21 +337,21 @@ pub enum ExecutionInvocation {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InvokeTransactionTrace {
-    pub validate_invocation: FunctionInvocation,
+    pub validate_invocation: Option<FunctionInvocation>,
     pub execution_invocation: ExecutionInvocation,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeclareTransactionTrace {
-    pub validate_invocation: FunctionInvocation,
-    pub fee_transfer_invocation: FunctionInvocation,
+    pub validate_invocation: Option<FunctionInvocation>,
+    pub fee_transfer_invocation: Option<FunctionInvocation>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeployAccountTransactionTrace {
-    pub validate_invocation: FunctionInvocation,
-    pub constructor_invocation: FunctionInvocation,
-    pub fee_transfer_invocation: FunctionInvocation,
+    pub validate_invocation: Option<FunctionInvocation>,
+    pub constructor_invocation: Option<FunctionInvocation>,
+    pub fee_transfer_invocation: Option<FunctionInvocation>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -394,19 +394,6 @@ impl TryFrom<starknet_in_rust::execution::Event> for Event {
     }
 }
 
-impl TryFrom<Option<CallInfo>> for FunctionInvocation {
-    type Error = Error;
-
-    fn try_from(optional_call_info: Option<CallInfo>) -> Result<Self, Self::Error> {
-        match optional_call_info {
-            Some(call_info) => call_info.try_into(),
-            // TODO here and in other places, ConversionError could be replaced with something
-            // smarter, this is just a quick solution to have it compilable
-            None => Err(Error::ConversionError(ConversionError::InvalidFormat)),
-        }
-    }
-}
-
 impl TryFrom<CallInfo> for FunctionInvocation {
     type Error = Error; // TODO
 
@@ -433,7 +420,7 @@ impl TryFrom<CallInfo> for FunctionInvocation {
                 contract_address: call_info.contract_address.try_into()?,
                 entry_point_selector: call_info
                     .entry_point_selector
-                    .ok_or(Error::ConversionError(ConversionError::InvalidFormat))?
+                    .expect("Should not be None in FunctionCall construction")
                     .into(),
                 calldata: call_info.calldata.iter().map(|c| c.into()).collect(),
             },
@@ -441,19 +428,22 @@ impl TryFrom<CallInfo> for FunctionInvocation {
                 caller_address: call_info.caller_address.0.into(),
                 class_hash: call_info
                     .class_hash
-                    .ok_or(Error::ConversionError(ConversionError::InvalidFormat))?
+                    .expect(
+                        "class hash should not be None in FunctionInvocationInternal construction",
+                    )
                     .into(),
-                entry_point_type: match call_info
-                    .entry_point_type
-                    .ok_or(Error::ConversionError(ConversionError::InvalidFormat))?
-                {
+                entry_point_type: match call_info.entry_point_type.expect(
+                    "entrypoint type should not be None in FunctionInvocationInternal construction",
+                ) {
                     starknet_in_rust::EntryPointType::External => EntryPointType::External,
                     starknet_in_rust::EntryPointType::L1Handler => EntryPointType::L1Handler,
                     starknet_in_rust::EntryPointType::Constructor => EntryPointType::Constructor,
                 },
                 call_type: call_info
                     .call_type
-                    .ok_or(Error::ConversionError(ConversionError::InvalidFormat))?
+                    .expect(
+                        "call_type should not be None in FunctionInvocationInternal construction",
+                    )
                     .into(),
                 result: call_info.retdata.iter().map(|r| r.into()).collect(),
                 calls: internal_calls,

@@ -604,7 +604,7 @@ impl Starknet {
         let skip_nonce_check = false;
         // TODO move these flags later, I thought I'd need them to create_for_simulate
 
-        let chain_id: Felt = self.chain_id().to_felt().into();
+        let chain_id: Felt = self.chain_id().to_felt();
 
         let mut sir_txs = vec![];
         for tx in transactions {
@@ -654,25 +654,43 @@ impl Starknet {
         let estimated = self.estimate_fee(block_id, transactions)?;
 
         assert_eq!(simulated.len(), estimated.len()); // TODO temporary
+        println!("DEBUG simulated: {simulated:?}");
 
         let mut simulation_results: Vec<SimulatedTransaction> = vec![];
         for (tx_execution_info, fee_estimation) in simulated.into_iter().zip(estimated) {
+            let validate_invocation = if let Some(validate_info) = tx_execution_info.validate_info {
+                Some(validate_info.try_into()?)
+            } else {
+                None
+            };
+
+            let fee_transfer_invocation =
+                if let Some(fee_transfer_info) = tx_execution_info.fee_transfer_info {
+                    Some(fee_transfer_info.try_into()?)
+                } else {
+                    None
+                };
+
             let transaction_trace = match tx_execution_info.tx_type {
                 None => panic!("Shouldn't be here"),
                 Some(tx_type) => match tx_type {
                     starknet_in_rust::definitions::transaction_type::TransactionType::Declare => TransactionTrace::Declare(DeclareTransactionTrace {
-                        validate_invocation: tx_execution_info.validate_info.try_into()?,
-                        fee_transfer_invocation: tx_execution_info.fee_transfer_info.try_into()?,
+                        validate_invocation,
+                        fee_transfer_invocation,
                     }),
                     starknet_in_rust::definitions::transaction_type::TransactionType::DeployAccount => TransactionTrace::DeployAccount(DeployAccountTransactionTrace {
-                        validate_invocation: tx_execution_info.validate_info.try_into()?,
-                        constructor_invocation: tx_execution_info.call_info.try_into()?,
-                        fee_transfer_invocation: tx_execution_info.fee_transfer_info.try_into()?,
+                        validate_invocation,
+                        constructor_invocation: if let Some(call_info) = tx_execution_info.call_info {
+                            Some(call_info.try_into()?)
+                        } else {
+                            None
+                        },
+                        fee_transfer_invocation,
                     }),
                     starknet_in_rust::definitions::transaction_type::TransactionType::InvokeFunction => {
-                        let call_info = tx_execution_info.call_info.ok_or(starknet_types::error::Error::ConversionError(starknet_types::error::ConversionError::InvalidFormat))?;
+                        let call_info = tx_execution_info.call_info.expect("Temporary solution"); // TODO
                         TransactionTrace::Invoke(InvokeTransactionTrace {
-                        validate_invocation: tx_execution_info.validate_info.try_into()?,
+                        validate_invocation,
                         execution_invocation: match call_info.result().is_success {
                             true => ExecutionInvocation::Succeeded(call_info.try_into()?),
                             false => ExecutionInvocation::Reverted(starknet_types::rpc::transactions::Reversion { revert_reason: tx_execution_info.revert_error.unwrap() }),
