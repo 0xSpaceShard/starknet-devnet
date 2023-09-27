@@ -45,8 +45,8 @@ impl StateChanger for StarknetState {
         contract_class: ContractClass,
     ) -> DevnetResult<()> {
         self.contract_classes.insert(class_hash, contract_class.clone());
-        
-        let persistent_state = Arc::make_mut(& mut self.state.state_reader);
+
+        let persistent_state = Arc::make_mut(&mut self.state.state_reader);
 
         match contract_class {
             ContractClass::Cairo0(deprecated_contract_class) => {
@@ -436,7 +436,7 @@ mod tests {
         let (state, address) = setup();
         assert_eq!(state.get_nonce(&address).unwrap(), Felt::from(0));
     }
-    
+
     fn setup() -> (StarknetState, ContractAddress) {
         let mut state = StarknetState::default();
         let address = dummy_contract_address();
