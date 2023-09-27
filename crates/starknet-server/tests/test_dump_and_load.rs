@@ -99,19 +99,13 @@ mod dump_and_load_tests {
         .expect("Could not start Devnet");
         let devnet_load_pid = devnet_load.process.id();
         assert_ne!(devnet_dump_pid, devnet_load_pid); // if PID's are different SIGINT signal worked
-        let loaded_transaction = devnet_load
-            .json_rpc_client
-            .get_transaction_by_hash(mint_tx_hash)
-            .await
-            .unwrap();
+        let loaded_transaction =
+            devnet_load.json_rpc_client.get_transaction_by_hash(mint_tx_hash).await.unwrap();
         if let starknet_rs_core::types::Transaction::Invoke(
             starknet_rs_core::types::InvokeTransaction::V1(invoke_v1),
         ) = loaded_transaction
         {
-            assert_eq!(
-                invoke_v1.transaction_hash,
-                mint_tx_hash
-            );
+            assert_eq!(invoke_v1.transaction_hash, mint_tx_hash);
         } else {
             panic!("Could not unpack the transaction from {loaded_transaction:?}");
         }
