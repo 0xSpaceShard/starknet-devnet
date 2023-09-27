@@ -45,7 +45,8 @@ impl StateChanger for StarknetState {
         contract_class: ContractClass,
     ) -> DevnetResult<()> {
         self.contract_classes.insert(class_hash, contract_class.clone());
-        let mut state_reader = self.state.state_reader.as_ref().clone();
+        
+        let state_reader = Arc::make_mut(& mut self.state.state_reader);
 
         match contract_class {
             ContractClass::Cairo0(deprecated_contract_class) => {
@@ -63,9 +64,6 @@ impl StateChanger for StarknetState {
             }
         }
 
-        self.state =
-            CachedState::new(Arc::new(state_reader), self.state.contract_classes().clone());
-
         Ok(())
     }
 
@@ -75,23 +73,18 @@ impl StateChanger for StarknetState {
         class_hash: ClassHash,
     ) -> DevnetResult<()> {
         let addr: Address = address.into();
-        let mut state_reader = self.state.state_reader.as_ref().clone();
+        let state_reader = Arc::make_mut(&mut self.state.state_reader);
 
         state_reader.address_to_class_hash_mut().insert(addr.clone(), class_hash.bytes());
         state_reader.address_to_nonce_mut().insert(addr, Felt252::new(0));
-
-        self.state =
-            CachedState::new(Arc::new(state_reader), self.state.contract_classes().clone());
 
         Ok(())
     }
 
     fn change_storage(&mut self, storage_key: ContractStorageKey, data: Felt) -> DevnetResult<()> {
-        let mut state_reader = self.state.state_reader.as_ref().clone();
+        let state_reader = Arc::make_mut(&mut self.state.state_reader);
 
         state_reader.address_to_storage_mut().insert(storage_key.into(), data.into());
-        self.state =
-            CachedState::new(Arc::new(state_reader), self.state.contract_classes().clone());
 
         Ok(())
     }
@@ -99,18 +92,15 @@ impl StateChanger for StarknetState {
     fn increment_nonce(&mut self, address: ContractAddress) -> DevnetResult<()> {
         let addr: Address = address.into();
         let nonce = self.state.get_nonce_at(&addr)?;
-        let mut state_reader = self.state.state_reader.as_ref().clone();
+        let state_reader = Arc::make_mut(&mut self.state.state_reader);
 
         state_reader.address_to_nonce_mut().insert(addr, nonce + Felt252::new(1));
-
-        self.state =
-            CachedState::new(Arc::new(state_reader), self.state.contract_classes().clone());
 
         Ok(())
     }
 
     fn apply_state_difference(&mut self, state_diff: StateDiff) -> DevnetResult<()> {
-        let mut old_state = self.state.state_reader.as_ref().clone();
+        let old_state = Arc::make_mut(&mut self.state.state_reader);
 
         // update contract storages
         state_diff.inner.storage_updates().iter().for_each(|(contract_address, storages)| {
@@ -156,8 +146,6 @@ impl StateChanger for StarknetState {
         state_diff.inner.address_to_nonce().iter().for_each(|(contract_address, nonce)| {
             old_state.address_to_nonce_mut().insert(contract_address.clone(), nonce.clone());
         });
-
-        self.state = CachedState::new(Arc::new(old_state), self.state.contract_classes().clone());
 
         Ok(())
     }
@@ -448,7 +436,7 @@ mod tests {
         let (state, address) = setup();
         assert_eq!(state.get_nonce(&address).unwrap(), Felt::from(0));
     }
-
+    
     fn setup() -> (StarknetState, ContractAddress) {
         let mut state = StarknetState::default();
         let address = dummy_contract_address();
