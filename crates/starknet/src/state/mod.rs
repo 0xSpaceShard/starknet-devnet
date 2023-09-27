@@ -45,8 +45,6 @@ impl StateChanger for StarknetState {
         contract_class: ContractClass,
     ) -> DevnetResult<()> {
         self.contract_classes.insert(class_hash, contract_class.clone());
-        let mut state_reader = self.state.state_reader.as_ref().clone();
-
         let persistent_state = Arc::make_mut(&mut self.state.state_reader);
 
         match contract_class {
@@ -64,9 +62,6 @@ impl StateChanger for StarknetState {
                 );
             }
         }
-
-        self.state =
-            CachedState::new(Arc::new(state_reader), self.state.contract_classes().clone());
 
         Ok(())
     }
@@ -150,8 +145,6 @@ impl StateChanger for StarknetState {
         state_diff.inner.address_to_nonce().iter().for_each(|(contract_address, nonce)| {
             old_state.address_to_nonce_mut().insert(contract_address.clone(), nonce.clone());
         });
-
-        self.state = CachedState::new(Arc::new(old_state), self.state.contract_classes().clone());
 
         Ok(())
     }
