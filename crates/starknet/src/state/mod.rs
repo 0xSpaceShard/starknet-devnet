@@ -28,8 +28,8 @@ pub(crate) struct StarknetState {
 }
 
 impl StarknetState {
-    // this method clears the state from data that was accumulated in the StateCache
-    // and restores it to the data in the state_reader, which is the "persistent" data
+    /// this method clears the state from data that was accumulated in the StateCache
+    /// and restores it to the data in the state_reader, which is the "persistent" data
     pub(crate) fn clear_dirty_state(&mut self) {
         self.state = CachedState::new(
             self.state.state_reader.clone(),
