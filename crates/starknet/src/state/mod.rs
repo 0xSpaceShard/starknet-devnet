@@ -21,7 +21,7 @@ use crate::traits::{StateChanger, StateExtractor};
 pub(crate) mod state_diff;
 pub mod state_update;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub(crate) struct StarknetState {
     pub state: CachedState<InMemoryStateReader>,
     pub(crate) contract_classes: HashMap<ClassHash, ContractClass>,
@@ -37,6 +37,9 @@ impl StarknetState {
         );
     }
 
+    /// this method is making deep copy of the object
+    /// because CachedState has a property of type Arc
+    /// and the derived clone method is making a shallow copy
     pub(crate) fn make_deep_clone(&self) -> Self {
         Self {
             state: CachedState::new(
@@ -450,21 +453,14 @@ mod tests {
     fn check_clone_derived_vs_make_deep_clone_method() {
         let state = StarknetState::default();
 
-        let cloned_state = state.clone();
         let deep_cloned_state = state.make_deep_clone();
 
         // get pointers to Arcs
         let p_state = Arc::as_ptr(&state.state.state_reader);
-        let p_cloned_state = Arc::as_ptr(&cloned_state.state.state_reader);
         let p_deep_cloned_state = Arc::as_ptr(&deep_cloned_state.state.state_reader);
 
         // deep cloned should not point to the same memory location as the original
         assert_ne!(p_deep_cloned_state, p_state);
-        assert_ne!(p_deep_cloned_state, p_cloned_state);
-
-        // this is wrong behavior, because the clone should be deep, but because of Arc it makes a
-        // shallow copy
-        assert_eq!(p_cloned_state, p_state);
     }
 
     fn setup() -> (StarknetState, ContractAddress) {
