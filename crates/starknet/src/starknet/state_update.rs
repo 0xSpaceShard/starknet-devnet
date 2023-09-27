@@ -139,7 +139,7 @@ mod tests {
         acc.deploy(&mut starknet.state).unwrap();
         acc.set_initial_balance(&mut starknet.state).unwrap();
 
-        starknet.state.synchronize_states();
+        starknet.state.clear_dirty_state();
         starknet.block_context = Starknet::get_block_context(
             1,
             constants::ERC20_CONTRACT_ADDRESS,

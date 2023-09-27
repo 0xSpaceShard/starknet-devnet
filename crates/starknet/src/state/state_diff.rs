@@ -35,7 +35,6 @@ impl StateDiff {
         let mut class_hash_to_compiled_class_hash = HashMap::<ClassHash, ClassHash>::new();
         let mut declared_contracts = HashMap::<ClassHash, CasmContractClass>::new();
         let mut cairo_0_declared_contracts = HashMap::<ClassHash, DeprecatedContractClass>::new();
-
         // extract differences of class_hash -> compile_class_hash mapping
         let class_hash_to_compiled_class_hash_subtracted_map = subtract_mappings(
             new_state.cache_mut().class_hash_to_compiled_class_hash_mut(),
