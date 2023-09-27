@@ -6,14 +6,11 @@ mod dump_and_load_tests {
     use std::path::Path;
     use std::process::Command;
 
-    use hyper::{Body, StatusCode};
-    use serde_json::json;
     use starknet_rs_providers::Provider;
 
     use crate::common::devnet::BackgroundDevnet;
-    use crate::common::utils::get_json_body;
 
-    static DUMMY_ADDRESS: &str = "0x1";
+    static DUMMY_ADDRESS: u128 = 1;
     static DUMMY_AMOUNT: u128 = 1;
 
     use std::sync::Arc;
@@ -44,17 +41,7 @@ mod dump_and_load_tests {
         ))
         .await
         .expect("Could not start Devnet");
-        let req_body = Body::from(
-            json!({
-                "address": DUMMY_ADDRESS,
-                "amount": DUMMY_AMOUNT
-            })
-            .to_string(),
-        );
-        let resp = devnet_dump.post_json("/mint".into(), req_body).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
-        let resp_body = get_json_body(resp).await;
-        let tx_hash_value = resp_body["tx_hash"].as_str().unwrap();
+        let mint_tx_hash = devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
         // load transaction from file and check transaction hash
         let devnet_load = BackgroundDevnet::spawn_with_additional_args(Some(
@@ -62,19 +49,13 @@ mod dump_and_load_tests {
         ))
         .await
         .expect("Could not start Devnet");
-        let loaded_transaction = devnet_load
-            .json_rpc_client
-            .get_transaction_by_hash(FieldElement::from_hex_be(tx_hash_value).unwrap())
-            .await
-            .unwrap();
+        let loaded_transaction =
+            devnet_load.json_rpc_client.get_transaction_by_hash(mint_tx_hash).await.unwrap();
         if let starknet_rs_core::types::Transaction::Invoke(
             starknet_rs_core::types::InvokeTransaction::V1(invoke_v1),
         ) = loaded_transaction
         {
-            assert_eq!(
-                invoke_v1.transaction_hash,
-                FieldElement::from_hex_be(tx_hash_value).unwrap()
-            );
+            assert_eq!(invoke_v1.transaction_hash, mint_tx_hash);
         } else {
             panic!("Could not unpack the transaction from {loaded_transaction:?}");
         }
@@ -96,17 +77,7 @@ mod dump_and_load_tests {
         .await
         .expect("Could not start Devnet");
         let devnet_dump_pid = devnet_dump.process.id();
-        let req_body = Body::from(
-            json!({
-                "address": DUMMY_ADDRESS,
-                "amount": DUMMY_AMOUNT
-            })
-            .to_string(),
-        );
-        let resp = devnet_dump.post_json("/mint".into(), req_body).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
-        let resp_body = get_json_body(resp).await;
-        let tx_hash_value = resp_body["tx_hash"].as_str().unwrap();
+        let mint_tx_hash = devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
         // Although dump and load is a multiplatform feature and works on all systems is troublesome
         // on the test level. This test is recommended to run on Linux. There are some problems with
@@ -130,7 +101,7 @@ mod dump_and_load_tests {
         assert_ne!(devnet_dump_pid, devnet_load_pid); // if PID's are different SIGINT signal worked
         let loaded_transaction = devnet_load
             .json_rpc_client
-            .get_transaction_by_hash(FieldElement::from_hex_be(tx_hash_value).unwrap())
+            .get_transaction_by_hash(mint_tx_hash)
             .await
             .unwrap();
         if let starknet_rs_core::types::Transaction::Invoke(
@@ -139,7 +110,7 @@ mod dump_and_load_tests {
         {
             assert_eq!(
                 invoke_v1.transaction_hash,
-                FieldElement::from_hex_be(tx_hash_value).unwrap()
+                mint_tx_hash
             );
         } else {
             panic!("Could not unpack the transaction from {loaded_transaction:?}");
