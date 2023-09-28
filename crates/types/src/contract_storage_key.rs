@@ -3,7 +3,7 @@ use starknet_in_rust::utils::Address;
 use super::contract_address::ContractAddress;
 use crate::patricia_key::StorageKey;
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ContractStorageKey(ContractAddress, StorageKey);
 
 impl ContractStorageKey {

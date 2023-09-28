@@ -12,7 +12,8 @@ use starknet_types::cairo_felt::Felt252;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::contract_storage_key::ContractStorageKey;
-use starknet_types::felt::{ClassHash, Felt};
+use starknet_types::felt::{ClassHash, CompiledClassHash, Felt};
+use starknet_types::patricia_key::StorageKey;
 
 use self::state_diff::StateDiff;
 use crate::error::{DevnetResult, Error};
@@ -25,6 +26,129 @@ pub mod state_update;
 pub(crate) struct StarknetState {
     pub state: CachedState<InMemoryStateReader>,
     pub(crate) contract_classes: HashMap<ClassHash, ContractClass>,
+}
+
+#[derive(Default)]
+struct DevnetState {
+    pub address_to_class_hash: HashMap<ContractAddress, ClassHash>,
+    pub address_to_nonce: HashMap<ContractAddress, Felt>,
+    pub address_to_storage: HashMap<ContractStorageKey, Felt>,
+    pub class_hash_to_compiled_class: HashMap<ClassHash, ContractClass>,
+    pub class_hash_to_compiled_class_hash: HashMap<ClassHash, CompiledClassHash>,
+}
+
+impl starknet_in_rust::state::state_api::StateReader for DevnetState {
+    fn get_contract_class(
+        &self,
+        class_hash: &starknet_in_rust::utils::ClassHash,
+    ) -> Result<CompiledClass, starknet_in_rust::core::errors::state_errors::StateError> {
+        let class_hash_as_felt = Felt::new(*class_hash).map_err(|err| {
+            starknet_in_rust::core::errors::state_errors::StateError::CustomError(err.to_string())
+        })?;
+
+        // Deprecated contract classes dont have a compiled_class_hash, we dont need to fetch it
+        if let Some(compiled_class) = self.class_hash_to_compiled_class.get(&class_hash_as_felt) {
+            return CompiledClass::try_from(compiled_class.clone()).map_err(|err| {
+                starknet_in_rust::core::errors::state_errors::StateError::CustomError(
+                    err.to_string(),
+                )
+            });
+        }
+
+        // we are sure that compiled_class_hash is in the range of Felt, because it is a hash,
+        // so we can unwrap it
+        let compiled_class_hash = self.get_compiled_class_hash(class_hash)?;
+        if compiled_class_hash != *starknet_in_rust::state::cached_state::UNINITIALIZED_CLASS_HASH {
+            let compiled_class = self
+                .class_hash_to_compiled_class
+                .get(&Felt::new(compiled_class_hash).map_err(|err| {
+                    starknet_in_rust::core::errors::state_errors::StateError::CustomError(
+                        err.to_string(),
+                    )
+                })?)
+                .ok_or(
+                    starknet_in_rust::core::errors::state_errors::StateError::NoneCompiledClass(
+                        compiled_class_hash,
+                    ),
+                )?;
+
+            CompiledClass::try_from(compiled_class.clone()).map_err(|err| {
+                starknet_in_rust::core::errors::state_errors::StateError::CustomError(
+                    err.to_string(),
+                )
+            })
+        } else {
+            Err(starknet_in_rust::core::errors::state_errors::StateError::MissingCasmClass(
+                compiled_class_hash,
+            ))
+        }
+    }
+
+    fn get_class_hash_at(
+        &self,
+        contract_address: &Address,
+    ) -> Result<
+        starknet_in_rust::utils::ClassHash,
+        starknet_in_rust::core::errors::state_errors::StateError,
+    > {
+        let address = ContractAddress::try_from(contract_address).map_err(|err| {
+            starknet_in_rust::core::errors::state_errors::StateError::CustomError(err.to_string())
+        })?;
+
+        Ok(self.address_to_class_hash.get(&address).map(|f| f.bytes()).unwrap_or_default())
+    }
+
+    fn get_nonce_at(
+        &self,
+        contract_address: &Address,
+    ) -> Result<Felt252, starknet_in_rust::core::errors::state_errors::StateError> {
+        let address = ContractAddress::try_from(contract_address).map_err(|err| {
+            starknet_in_rust::core::errors::state_errors::StateError::CustomError(err.to_string())
+        })?;
+        Ok(self.address_to_nonce.get(&address).map(|f| Felt252::from(f)).unwrap_or_default())
+    }
+
+    fn get_storage_at(
+        &self,
+        storage_entry: &starknet_in_rust::state::state_cache::StorageEntry,
+    ) -> Result<Felt252, starknet_in_rust::core::errors::state_errors::StateError> {
+        let contract_address = ContractAddress::try_from(&storage_entry.0).map_err(|err| {
+            starknet_in_rust::core::errors::state_errors::StateError::CustomError(err.to_string())
+        })?;
+        let storage_key = StorageKey::new(Felt::new(storage_entry.1).map_err(|err| {
+            starknet_in_rust::core::errors::state_errors::StateError::CustomError(err.to_string())
+        })?)
+        .map_err(|err| {
+            starknet_in_rust::core::errors::state_errors::StateError::CustomError(err.to_string())
+        })?;
+        Ok(self
+            .address_to_storage
+            .get(&ContractStorageKey::new(contract_address, storage_key))
+            .map(|f| Felt252::from(f))
+            .unwrap_or_default())
+    }
+
+    fn get_compiled_class_hash(
+        &self,
+        class_hash: &starknet_in_rust::utils::ClassHash,
+    ) -> Result<
+        starknet_in_rust::utils::CompiledClassHash,
+        starknet_in_rust::core::errors::state_errors::StateError,
+    > {
+        let compiled_class_hash = self
+            .class_hash_to_compiled_class_hash
+            .get(&Felt::new(*class_hash).map_err(|err| {
+                starknet_in_rust::core::errors::state_errors::StateError::CustomError(
+                    err.to_string(),
+                )
+            })?)
+            .map(|f| f.bytes())
+            .ok_or(starknet_in_rust::core::errors::state_errors::StateError::NoneCompiledHash(
+                *class_hash,
+            ))?;
+
+        Ok(compiled_class_hash)
+    }
 }
 
 impl StarknetState {

@@ -9,7 +9,7 @@ use crate::serde_helpers::hex_string::{
 };
 use crate::traits::ToHexString;
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ContractAddress(pub(crate) PatriciaKey);
 
 impl ContractAddress {

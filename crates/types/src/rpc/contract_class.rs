@@ -1,8 +1,10 @@
 use core::fmt::Debug;
 use std::cmp::{Eq, PartialEq};
+use std::sync::Arc;
 
 use serde::{Serialize, Serializer};
 use starknet_in_rust::core::contract_address::compute_sierra_class_hash;
+use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass;
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
 use starknet_in_rust::{CasmContractClass, SierraContractClass};
 use starknet_rs_core::types::{
@@ -106,13 +108,42 @@ impl TryFrom<ContractClass> for Cairo0Json {
     }
 }
 
+impl TryFrom<ContractClass> for starknet_in_rust::CasmContractClass {
+    type Error = Error;
+
+    fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
+        match value {
+            ContractClass::Cairo1(sierra_contract_class) => {
+                CasmContractClass::from_contract_class(sierra_contract_class, true)
+                    .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })
+            }
+            _ => Err(Error::ConversionError(crate::error::ConversionError::InvalidFormat)),
+        }
+    }
+}
+
+impl TryFrom<ContractClass> for CompiledClass {
+    type Error = Error;
+
+    fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
+        match value {
+            ContractClass::Cairo0(deprecated) => {
+                Ok(CompiledClass::Deprecated(Arc::new(deprecated.try_into()?)))
+            }
+            ContractClass::Cairo1(_) => Ok(CompiledClass::Casm(Arc::new(value.try_into()?))),
+        }
+    }
+}
+
 impl TryFrom<ContractClass> for blockifier::execution::contract_class::ContractClass {
     type Error = Error;
 
     fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
         match value {
             ContractClass::Cairo0(deprecated_contract_class) => {
-                Ok(blockifier::execution::contract_class::ContractClass::V0(deprecated_contract_class.try_into()?))
+                Ok(blockifier::execution::contract_class::ContractClass::V0(
+                    deprecated_contract_class.try_into()?,
+                ))
             }
             ContractClass::Cairo1(sierra_contract_class) => {
                 let casm_contract_class =
@@ -121,7 +152,9 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ContractC
                 let blockifier_contract_class: blockifier::execution::contract_class::ContractClassV1 =
                     casm_contract_class.try_into().map_err(|_| Error::ProgramError)?;
 
-                Ok(blockifier::execution::contract_class::ContractClass::V1(blockifier_contract_class))
+                Ok(blockifier::execution::contract_class::ContractClass::V1(
+                    blockifier_contract_class,
+                ))
             }
         }
     }
