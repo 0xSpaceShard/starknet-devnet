@@ -13,7 +13,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::felt::{ClassHash, CompiledClassHash, Felt};
-use starknet_types::patricia_key::StorageKey;
+use starknet_types::patricia_key::{StorageKey, PatriciaKey};
 
 use self::state_diff::StateDiff;
 use crate::error::{DevnetResult, Error};
@@ -28,14 +28,66 @@ pub(crate) struct StarknetState {
     pub(crate) contract_classes: HashMap<ClassHash, ContractClass>,
 }
 
-#[derive(Default)]
-struct DevnetState {
+#[derive(Default, Clone)]
+pub(crate) struct DevnetState {
     pub address_to_class_hash: HashMap<ContractAddress, ClassHash>,
     pub address_to_nonce: HashMap<ContractAddress, Felt>,
     pub address_to_storage: HashMap<ContractStorageKey, Felt>,
     pub class_hash_to_compiled_class: HashMap<ClassHash, ContractClass>,
     pub class_hash_to_compiled_class_hash: HashMap<ClassHash, CompiledClassHash>,
 }
+
+impl DevnetState {
+    fn from_in_memory_state_reader(value: &InMemoryStateReader, contract_classes: &HashMap<ClassHash, ContractClass>) -> DevnetResult<Self> {
+        let mut this = Self::default();
+
+        this.address_to_class_hash = value.address_to_class_hash.iter().map(|(address, class_hash)| {
+            let contract_address = ContractAddress::try_from(address).map_err(Error::TypesError)?;
+            let class_hash = Felt::new(*class_hash).map_err(Error::TypesError)?;
+            Ok((contract_address, class_hash))
+        })
+        .collect::<Result<HashMap<ContractAddress, ClassHash>, Error>>()?;
+
+        this.address_to_nonce = value.address_to_nonce.iter().map(|(address, nonce)| {
+            let contract_address = ContractAddress::try_from(address).map_err(Error::TypesError)?;
+            let nonce = Felt::from(nonce);
+            Ok((contract_address, nonce))
+        })
+        .collect::<Result<HashMap<ContractAddress, Felt>, Error>>()?;
+
+        this.address_to_storage = value.address_to_storage.iter().map(|(storage_entry, storage)| {
+            let contract_address = ContractAddress::try_from(&storage_entry.0).map_err(Error::TypesError)?;
+            let storage_key = PatriciaKey::new(Felt::new(storage_entry.1)?).map_err(Error::TypesError)?;
+            let storage = Felt::from(storage);
+
+            Ok((ContractStorageKey::new(contract_address, storage_key), storage))
+        })
+        .collect::<Result<HashMap<ContractStorageKey, Felt>, Error>>()?;
+
+        this.class_hash_to_compiled_class_hash = value.class_hash_to_compiled_class_hash.iter().map(|(class_hash, compiled_class_hash)| {
+            Ok((Felt::new(*class_hash).map_err(Error::TypesError)?, Felt::new(*compiled_class_hash).map_err(Error::TypesError)?))
+        })
+        .collect::<Result<HashMap<ClassHash, CompiledClassHash>, Error>>()?;
+
+        this.class_hash_to_compiled_class = value.class_hash_to_compiled_class.iter().map(|(class_hash, compiled_class)| {
+            let class_hash_as_felt = Felt::new(*class_hash).map_err(Error::TypesError)?;
+
+            let contract_class = match compiled_class {
+                CompiledClass::Deprecated(cairo0) => ContractClass::Cairo0(cairo0.as_ref().clone().into()),
+                CompiledClass::Casm(_) => {
+                    let compiled_class_hash = this.class_hash_to_compiled_class_hash.iter().find(|(_, val)| **val == class_hash_as_felt).map(|(k,_)| k).ok_or(Error::ContractNotFound)?;
+                    contract_classes.get(compiled_class_hash).ok_or(Error::ContractNotFound)?.clone()
+                }
+            };
+
+            Ok((class_hash_as_felt, contract_class.clone()))
+        })
+        .collect::<Result<HashMap<ClassHash, ContractClass>, Error>>()?;
+
+        Ok(this)
+    }
+}
+
 
 impl starknet_in_rust::state::state_api::StateReader for DevnetState {
     fn get_contract_class(
@@ -321,8 +373,9 @@ impl StateExtractor for StarknetState {
     }
 
     fn extract_state_diff_from_pending_state(&self) -> DevnetResult<StateDiff> {
-        StateDiff::difference_between_old_and_new_state(
-            self.state.state_reader.as_ref().clone(),
+        let devnet_state = DevnetState::from_in_memory_state_reader(self.state.state_reader.as_ref(), &self.contract_classes)?;
+                StateDiff::difference_between_old_and_new_state(
+            devnet_state,
             self.state.clone(),
         )
     }

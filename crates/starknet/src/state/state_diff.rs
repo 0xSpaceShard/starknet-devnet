@@ -9,7 +9,8 @@ use starknet_in_rust::utils::subtract_mappings;
 use starknet_in_rust::CasmContractClass;
 use starknet_types::felt::{ClassHash, Felt};
 
-use crate::error::DevnetResult;
+use super::DevnetState;
+use crate::error::{DevnetResult, Error};
 
 /// This struct is used to store the difference between state modifications
 #[derive(PartialEq, Default, Debug, Clone)]
@@ -29,7 +30,7 @@ impl Eq for StateDiff {}
 
 impl StateDiff {
     pub(crate) fn difference_between_old_and_new_state(
-        mut old_state: InMemoryStateReader,
+        mut old_state: DevnetState,
         mut new_state: CachedState<InMemoryStateReader>,
     ) -> DevnetResult<Self> {
         let mut class_hash_to_compiled_class_hash = HashMap::<ClassHash, ClassHash>::new();
@@ -38,7 +39,11 @@ impl StateDiff {
         // extract differences of class_hash -> compile_class_hash mapping
         let class_hash_to_compiled_class_hash_subtracted_map = subtract_mappings(
             new_state.cache_mut().class_hash_to_compiled_class_hash_mut(),
-            old_state.class_hash_to_compiled_class_hash_mut(),
+            &old_state
+                .class_hash_to_compiled_class_hash
+                .iter()
+                .map(|(k, v)| (k.bytes(), v.bytes()))
+                .collect::<HashMap<[u8; 32], [u8; 32]>>(),
         );
 
         for (class_hash_bytes, compiled_class_hash_bytes) in
@@ -54,8 +59,18 @@ impl StateDiff {
         // the class hash is compiled class hash
         let new_compiled_contract_classes = subtract_mappings(
             new_state.contract_classes(),
-            old_state.class_hash_to_compiled_class_mut(),
-        );
+            &old_state
+                .class_hash_to_compiled_class
+                .into_iter()
+                .map(|(k,v)| {
+                    //(k.bytes(), v.try_into()?)
+                    let compiled_class: starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass = v.try_into().map_err(Error::TypesError)?;
+
+                    Ok((k.bytes(), compiled_class))
+                })
+                .collect::<DevnetResult<HashMap<[u8;32], starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass>>>()?
+            );
+
         for (class_hash, compiled_class) in new_compiled_contract_classes {
             let key = Felt::new(class_hash).map_err(crate::error::Error::from)?;
 
@@ -93,6 +108,7 @@ mod tests {
     use starknet_types::felt::Felt;
 
     use super::StateDiff;
+    use crate::state::DevnetState;
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{
         dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
@@ -149,7 +165,7 @@ mod tests {
         let new_state = CachedState::new(Arc::new(old_state.clone()), casm_cache);
 
         let generated_diff =
-            super::StateDiff::difference_between_old_and_new_state(old_state, new_state).unwrap();
+            super::StateDiff::difference_between_old_and_new_state(DevnetState::from_in_memory_state_reader(&old_state, &HashMap::new()).unwrap(), new_state).unwrap();
 
         let mut expected_diff = StateDiff::default();
         expected_diff.declared_contracts.insert(
@@ -175,7 +191,7 @@ mod tests {
         let new_state = CachedState::new(Arc::new(old_state.clone()), cairo_0_classes);
 
         let generated_diff =
-            super::StateDiff::difference_between_old_and_new_state(old_state, new_state).unwrap();
+            super::StateDiff::difference_between_old_and_new_state(DevnetState::from_in_memory_state_reader(&old_state, &HashMap::new()).unwrap(), new_state).unwrap();
 
         let expected_diff = StateDiff {
             cairo_0_declared_contracts: vec![(
@@ -220,10 +236,10 @@ mod tests {
         assert_eq!(generated_diff, expected_diff);
     }
 
-    fn setup() -> (InMemoryStateReader, CachedState<InMemoryStateReader>) {
+    fn setup() -> (DevnetState, CachedState<InMemoryStateReader>) {
         let state = InMemoryStateReader::default();
         let cached_state = CachedState::new(Arc::new(state.clone()), HashMap::new());
 
-        (state, cached_state)
+        (DevnetState::from_in_memory_state_reader(&state, &HashMap::new()).unwrap(), cached_state)
     }
 }
