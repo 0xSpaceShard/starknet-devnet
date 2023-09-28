@@ -74,16 +74,13 @@ mod dump_and_load_tests {
         let devnet_dump_pid = devnet_dump.process.id();
         let mint_tx_hash = devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
-        // Although dump and load is a multiplatform feature and works on all systems is troublesome
-        // on the test level. This test is recommended to run on Linux. There are some problems with
-        // the termination process on Windows from the test level. It's required to send a signal
-        // twice on MacOS.
-        for _i in 0..2 {
+        #[cfg(unix)]
+        {
             let mut kill = Command::new("kill")
                 .args(["-s", "SIGINT", &devnet_dump.process.id().to_string()])
                 .spawn()
                 .unwrap();
-            let _result = kill.wait().unwrap();
+            kill.wait().unwrap();
         }
 
         // load transaction from file and check transaction hash

@@ -9,7 +9,6 @@ use starknet_core::account::Account;
 use starknet_core::starknet::{DumpMode, Starknet};
 use starknet_types::felt::Felt;
 use starknet_types::traits::{ToDecimalString, ToHexString};
-use tokio::signal;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
@@ -89,8 +88,6 @@ async fn main() -> Result<(), anyhow::Error> {
 
 pub async fn shutdown_signal(api: Api) {
     tokio::signal::ctrl_c().await.expect("Failed to install CTRL+C signal handler");
-    // Wait for the CTRL+C signal
-    signal::ctrl_c().await.expect("Failed to read CTRL+C signal");
 
     let starknet = api.starknet.read().await;
     starknet.dump_transactions().expect("Failed to dump starknet transactions");
