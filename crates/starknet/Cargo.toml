@@ -7,6 +7,7 @@ repository.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+blockifier = { workspace = true, features = ["testing"]}
 starknet_api = { workspace = true }
 thiserror = { workspace = true }
 starknet-in-rust = { workspace = true }
@@ -21,7 +22,6 @@ tracing = { workspace = true }
 
 [dev-dependencies]
 jsonschema = "0.16.0"
-blockifier = { git = "https://github.com/starkware-libs/blockifier", rev = "f2d237b" }
 
 [features]
 test_utils = []

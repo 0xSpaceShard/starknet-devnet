@@ -111,9 +111,7 @@ impl BroadcastedDeclareTransactionV2 {
         Ok(DeclareTransaction::new(
             sn_api_declare,
             starknet_api::transaction::TransactionHash(txn_hash.into()),
-            blockifier::execution::contract_class::ContractClass::V1(
-                ContractClass::Cairo1(self.contract_class.clone()).try_into()?,
-            ),
+            ContractClass::Cairo1(self.contract_class.clone()).try_into()?,
         )?)
     }
 }

@@ -106,11 +106,14 @@ impl TryFrom<ContractClass> for Cairo0Json {
     }
 }
 
-impl TryFrom<ContractClass> for blockifier::execution::contract_class::ContractClassV1 {
+impl TryFrom<ContractClass> for blockifier::execution::contract_class::ContractClass {
     type Error = Error;
 
     fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
         match value {
+            ContractClass::Cairo0(deprecated_contract_class) => {
+                Ok(blockifier::execution::contract_class::ContractClass::V0(deprecated_contract_class.try_into()?))
+            }
             ContractClass::Cairo1(sierra_contract_class) => {
                 let casm_contract_class =
                     CasmContractClass::from_contract_class(sierra_contract_class, true)
@@ -118,9 +121,8 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ContractC
                 let blockifier_contract_class: blockifier::execution::contract_class::ContractClassV1 =
                     casm_contract_class.try_into().map_err(|_| Error::ProgramError)?;
 
-                Ok(blockifier_contract_class)
+                Ok(blockifier::execution::contract_class::ContractClass::V1(blockifier_contract_class))
             }
-            _ => Err(Error::ConversionError(crate::error::ConversionError::InvalidFormat)),
         }
     }
 }
