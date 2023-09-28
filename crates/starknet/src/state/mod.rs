@@ -209,7 +209,7 @@ impl StarknetState {
     pub(crate) fn clear_dirty_state(&mut self) {
         self.state = CachedState::new(
             self.state.state_reader.clone(),
-            self.state.state_reader.class_hash_to_compiled_class.clone(),
+            self.state.contract_classes().clone(),
         );
     }
 
@@ -220,7 +220,7 @@ impl StarknetState {
         Self {
             state: CachedState::new(
                 Arc::new(self.state.state_reader.as_ref().clone()),
-                self.state.state_reader.class_hash_to_compiled_class.clone(),
+                self.state.contract_classes().clone(),
             ),
             contract_classes: self.contract_classes.clone(),
         }
