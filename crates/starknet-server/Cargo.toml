@@ -48,6 +48,7 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 bincode = { workspace = true }
 tokio-graceful-shutdown = { workspace = true }
+strum = { workspace = true }
 
 [dev-dependencies]
 lazy_static = { workspace = true }

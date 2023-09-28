@@ -9,6 +9,7 @@ use starknet_core::constants::{
 use starknet_core::starknet::{DumpMode, StarknetConfig};
 use starknet_in_rust::definitions::block_context::StarknetChainId;
 use starknet_types::num_bigint::BigUint;
+use strum::IntoEnumIterator;
 
 use crate::ip_addr_wrapper::IpAddrWrapper;
 
@@ -122,7 +123,18 @@ impl Args {
             match dump_on.as_str() {
                 "exit" => Some(DumpMode::OnExit),
                 "transaction" => Some(DumpMode::OnTransaction),
-                _ => None,
+                _ => {
+                    let mut options = String::new();
+                    for mode in DumpMode::iter() {
+                        options.push_str((mode.to_string() + ", ").as_str());
+                    }
+
+                    panic!(
+                        "--dump_on Should be one of: {}; got: {}",
+                        &options[0..options.len() - 2],
+                        dump_on.as_str()
+                    )
+                }
             }
         } else if !dump_on.as_str().is_empty() {
             panic!("--dump-path required if --dump-on is present")

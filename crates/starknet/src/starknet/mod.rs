@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt;
 use std::fs::{self, File};
 use std::io::Read;
 use std::net::IpAddr;
@@ -43,6 +44,7 @@ use starknet_types::rpc::transactions::{
     Transaction, Transactions,
 };
 use starknet_types::traits::HashProducer;
+use strum_macros::EnumIter;
 use tracing::error;
 
 use self::predeployed::initialize_erc20;
@@ -73,10 +75,19 @@ mod get_class_impls;
 mod predeployed;
 mod state_update;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, EnumIter)]
 pub enum DumpMode {
     OnExit,
     OnTransaction,
+}
+
+impl fmt::Display for DumpMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self {
+            DumpMode::OnExit => write!(f, "exit"),
+            DumpMode::OnTransaction => write!(f, "transaction"),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
