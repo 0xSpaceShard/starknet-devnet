@@ -582,7 +582,6 @@ impl Starknet {
 #[cfg(test)]
 mod tests {
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
-    use starknet_in_rust::felt::Felt252;
     use starknet_in_rust::transaction::error::TransactionError;
     use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_types::contract_address::ContractAddress;
@@ -944,7 +943,7 @@ mod tests {
             .state
             .state_reader
             .address_to_nonce
-            .get(&dummy_contract_address().try_into().unwrap())
+            .get(&dummy_contract_address())
             .unwrap();
         let second_block_expected_address_nonce = Felt::from(1);
         assert_eq!(second_block_expected_address_nonce, *second_block_address_nonce);
@@ -957,7 +956,7 @@ mod tests {
             .state
             .state_reader
             .address_to_nonce
-            .get(&dummy_contract_address().try_into().unwrap())
+            .get(&dummy_contract_address())
             .unwrap();
         let third_block_expected_address_nonce = Felt::from(2);
         assert_eq!(third_block_expected_address_nonce, *third_block_address_nonce);

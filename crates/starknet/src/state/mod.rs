@@ -2,12 +2,10 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass;
-use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
 use starknet_in_rust::state::cached_state::CachedState;
 use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
 use starknet_in_rust::state::state_api::StateReader;
 use starknet_in_rust::utils::Address;
-use starknet_in_rust::CasmContractClass;
 use starknet_types::cairo_felt::Felt252;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
@@ -38,6 +36,7 @@ pub(crate) struct DevnetState {
 }
 
 impl DevnetState {
+    #[allow(unused)]
     fn from_in_memory_state_reader(
         value: &InMemoryStateReader,
         contract_classes: &HashMap<ClassHash, ContractClass>,
@@ -115,7 +114,7 @@ impl DevnetState {
                     }
                 };
 
-                Ok((class_hash_as_felt, contract_class.clone()))
+                Ok((class_hash_as_felt, contract_class))
             })
             .collect::<Result<HashMap<ClassHash, ContractClass>, Error>>()?;
 
@@ -191,7 +190,7 @@ impl starknet_in_rust::state::state_api::StateReader for DevnetState {
         let address = ContractAddress::try_from(contract_address).map_err(|err| {
             starknet_in_rust::core::errors::state_errors::StateError::CustomError(err.to_string())
         })?;
-        Ok(self.address_to_nonce.get(&address).map(|f| Felt252::from(f)).unwrap_or_default())
+        Ok(self.address_to_nonce.get(&address).map(Felt252::from).unwrap_or_default())
     }
 
     fn get_storage_at(
@@ -210,7 +209,7 @@ impl starknet_in_rust::state::state_api::StateReader for DevnetState {
         Ok(self
             .address_to_storage
             .get(&ContractStorageKey::new(contract_address, storage_key))
-            .map(|f| Felt252::from(f))
+            .map(Felt252::from)
             .unwrap_or_default())
     }
 
@@ -356,7 +355,7 @@ impl StateChanger for StarknetState {
                     ))?;
 
                 let cairo_1_sierra =
-                    self.contract_classes.get(&class_hash).ok_or(Error::StateError(
+                    self.contract_classes.get(class_hash).ok_or(Error::StateError(
                         starknet_in_rust::core::errors::state_errors::StateError::MissingCasmClass(
                             class_hash.bytes(),
                         ),
@@ -405,7 +404,7 @@ impl StateExtractor for StarknetState {
 
     fn is_contract_declared(&mut self, class_hash: &ClassHash) -> bool {
         self.state.state_reader.class_hash_to_compiled_class_hash.contains_key(class_hash)
-            || self.state.state_reader.class_hash_to_compiled_class.contains_key(&class_hash)
+            || self.state.state_reader.class_hash_to_compiled_class.contains_key(class_hash)
     }
 
     fn is_contract_deployed(&self, address: &ContractAddress) -> bool {
@@ -442,7 +441,6 @@ mod tests {
     use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass;
     use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
     use starknet_in_rust::state::state_api::{State, StateReader};
-    use starknet_types::cairo_felt::Felt252;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::Cairo0ContractClass;
     use starknet_types::felt::Felt;
@@ -609,13 +607,7 @@ mod tests {
 
         assert!(state.change_storage(storage_key, dummy_felt()).is_ok());
         assert!(state.state.state_reader.address_to_storage.len() == 1);
-        assert!(
-            state
-                .state
-                .state_reader
-                .address_to_storage
-                .contains_key(&(storage_key.try_into().unwrap()))
-        );
+        assert!(state.state.state_reader.address_to_storage.contains_key(&(storage_key)));
     }
 
     #[test]
@@ -623,13 +615,7 @@ mod tests {
         let (mut state, address) = setup();
 
         state.increment_nonce(address).unwrap();
-        let nonce = state
-            .state
-            .state_reader
-            .address_to_nonce
-            .get(&address.try_into().unwrap())
-            .unwrap()
-            .clone();
+        let nonce = *state.state.state_reader.address_to_nonce.get(&address).unwrap();
         let expected_nonce = Felt::from(1);
 
         assert_eq!(expected_nonce, nonce);

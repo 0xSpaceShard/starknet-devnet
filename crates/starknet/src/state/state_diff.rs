@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass as StarknetInRustCompiledClass;
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as DeprecatedContractClass;
 use starknet_in_rust::state::cached_state::CachedState;
-use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
 use starknet_in_rust::state::StateDiff as StarknetInRustStateDiff;
 use starknet_in_rust::utils::subtract_mappings;
 use starknet_in_rust::CasmContractClass;
@@ -30,7 +29,7 @@ impl Eq for StateDiff {}
 
 impl StateDiff {
     pub(crate) fn difference_between_old_and_new_state(
-        mut old_state: DevnetState,
+        old_state: DevnetState,
         mut new_state: CachedState<DevnetState>,
     ) -> DevnetResult<Self> {
         let mut class_hash_to_compiled_class_hash = HashMap::<ClassHash, ClassHash>::new();
@@ -102,7 +101,6 @@ mod tests {
 
     use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass;
     use starknet_in_rust::state::cached_state::{CachedState, ContractClassCache};
-    use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
     use starknet_in_rust::CasmContractClass;
     use starknet_types::contract_class::Cairo0ContractClass;
     use starknet_types::felt::Felt;
