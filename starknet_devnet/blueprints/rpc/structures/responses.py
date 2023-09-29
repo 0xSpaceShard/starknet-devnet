@@ -193,6 +193,7 @@ async def rpc_base_transaction_receipt(txr: TransactionReceipt) -> dict:
             TransactionStatus.ACCEPTED_ON_L1: "ACCEPTED_ON_L1",
             TransactionStatus.RECEIVED: "PENDING",
             TransactionStatus.REJECTED: "REJECTED",
+            TransactionStatus.REVERTED: "REVERTED",
         }
         return mapping[txr.status]
 
