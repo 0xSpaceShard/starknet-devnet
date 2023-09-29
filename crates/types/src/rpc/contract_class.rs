@@ -145,10 +145,8 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ContractC
                     deprecated_contract_class.try_into()?,
                 ))
             }
-            ContractClass::Cairo1(sierra_contract_class) => {
-                let casm_contract_class =
-                    CasmContractClass::from_contract_class(sierra_contract_class, true)
-                        .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
+            ContractClass::Cairo1(_) => {
+                let casm_contract_class= CasmContractClass::try_from(value.clone())?;
                 let blockifier_contract_class: blockifier::execution::contract_class::ContractClassV1 =
                     casm_contract_class.try_into().map_err(|_| Error::ProgramError)?;
 
