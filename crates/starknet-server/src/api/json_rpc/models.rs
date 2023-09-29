@@ -109,7 +109,7 @@ pub struct InvokeTransactionOutput {
     pub transaction_hash: TransactionHash,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize)]
 pub struct SimulateTransactionsInput {
     pub block_id: BlockId,
     pub transactions: Vec<BroadcastedTransaction>,

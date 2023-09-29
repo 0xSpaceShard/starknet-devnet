@@ -283,7 +283,7 @@ pub enum BroadcastedDeclareTransaction {
 /// By default, the sequencer behavior is replicated locally (enough funds are expected to be in the
 /// account, and fee will be deducted from the balance before the simulation of the next
 /// transaction). To skip the fee charge, use the SKIP_FEE_CHARGE flag.
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize)]
 pub enum SimulationFlag {
     #[serde(rename = "SKIP_VALIDATE")]
     SkipValidate,
@@ -291,16 +291,18 @@ pub enum SimulationFlag {
     SkipFeeCharge,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub enum CallType {
     #[serde(rename = "LIBRARY_CALL")]
     LibraryCall,
-    #[serde(rename = "LIBRARY_CALL")]
+    #[serde(rename = "CALL")]
     Call,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FunctionInvocationInternal {
+#[derive(Debug, Clone, Serialize)]
+pub struct FunctionInvocation {
+    #[serde(flatten)]
+    function_call: FunctionCall,
     caller_address: Felt,
     class_hash: Felt,
     entry_point_type: EntryPointType,
@@ -311,13 +313,8 @@ pub struct FunctionInvocationInternal {
     messages: Vec<MessageToL1>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FunctionInvocation {
-    function_call: FunctionCall,
-    function_invocation_internal: FunctionInvocationInternal,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
+#[serde(untagged)]
 pub enum TransactionTrace {
     Invoke(InvokeTransactionTrace),
     Declare(DeclareTransactionTrace),
@@ -329,32 +326,33 @@ pub struct Reversion {
     pub revert_reason: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
+#[serde(untagged)]
 pub enum ExecutionInvocation {
     Succeeded(FunctionInvocation),
     Reverted(Reversion),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct InvokeTransactionTrace {
     pub validate_invocation: Option<FunctionInvocation>,
     pub execution_invocation: ExecutionInvocation,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct DeclareTransactionTrace {
     pub validate_invocation: Option<FunctionInvocation>,
     pub fee_transfer_invocation: Option<FunctionInvocation>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct DeployAccountTransactionTrace {
     pub validate_invocation: Option<FunctionInvocation>,
     pub constructor_invocation: Option<FunctionInvocation>,
     pub fee_transfer_invocation: Option<FunctionInvocation>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct SimulatedTransaction {
     pub transaction_trace: TransactionTrace,
     pub fee_estimation: FeeEstimateWrapper,
@@ -424,32 +422,26 @@ impl TryFrom<CallInfo> for FunctionInvocation {
                     .into(),
                 calldata: call_info.calldata.iter().map(|c| c.into()).collect(),
             },
-            function_invocation_internal: FunctionInvocationInternal {
-                caller_address: call_info.caller_address.0.into(),
-                class_hash: call_info
-                    .class_hash
-                    .expect(
-                        "class hash should not be None in FunctionInvocationInternal construction",
-                    )
-                    .into(),
-                entry_point_type: match call_info.entry_point_type.expect(
-                    "entrypoint type should not be None in FunctionInvocationInternal construction",
-                ) {
-                    starknet_in_rust::EntryPointType::External => EntryPointType::External,
-                    starknet_in_rust::EntryPointType::L1Handler => EntryPointType::L1Handler,
-                    starknet_in_rust::EntryPointType::Constructor => EntryPointType::Constructor,
-                },
-                call_type: call_info
-                    .call_type
-                    .expect(
-                        "call_type should not be None in FunctionInvocationInternal construction",
-                    )
-                    .into(),
-                result: call_info.retdata.iter().map(|r| r.into()).collect(),
-                calls: internal_calls,
-                events,
-                messages,
+            caller_address: call_info.caller_address.0.into(),
+            class_hash: call_info
+                .class_hash
+                .expect("class hash should not be None in FunctionInvocationInternal construction")
+                .into(),
+            entry_point_type: match call_info.entry_point_type.expect(
+                "entrypoint type should not be None in FunctionInvocationInternal construction",
+            ) {
+                starknet_in_rust::EntryPointType::External => EntryPointType::External,
+                starknet_in_rust::EntryPointType::L1Handler => EntryPointType::L1Handler,
+                starknet_in_rust::EntryPointType::Constructor => EntryPointType::Constructor,
             },
+            call_type: call_info
+                .call_type
+                .expect("call_type should not be None in FunctionInvocationInternal construction")
+                .into(),
+            result: call_info.retdata.iter().map(|r| r.into()).collect(),
+            calls: internal_calls,
+            events,
+            messages,
         })
     }
 }

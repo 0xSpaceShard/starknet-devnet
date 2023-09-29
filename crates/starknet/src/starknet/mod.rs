@@ -654,7 +654,6 @@ impl Starknet {
         let estimated = self.estimate_fee(block_id, transactions)?;
 
         assert_eq!(simulated.len(), estimated.len()); // TODO temporary
-        println!("DEBUG simulated: {simulated:?}");
 
         let mut simulation_results: Vec<SimulatedTransaction> = vec![];
         for (tx_execution_info, fee_estimation) in simulated.into_iter().zip(estimated) {
