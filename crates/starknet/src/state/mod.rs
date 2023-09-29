@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use starknet_api::hash::StarkFelt;
 use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass;
 use starknet_in_rust::state::cached_state::CachedState;
-use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
 use starknet_in_rust::state::state_api::StateReader;
 use starknet_in_rust::utils::Address;
 use starknet_types::cairo_felt::Felt252;
@@ -33,6 +33,72 @@ pub(crate) struct DevnetState {
     pub address_to_storage: HashMap<ContractStorageKey, Felt>,
     pub class_hash_to_compiled_class: HashMap<ClassHash, ContractClass>,
     pub class_hash_to_compiled_class_hash: HashMap<ClassHash, CompiledClassHash>,
+}
+
+impl blockifier::state::state_api::StateReader for DevnetState {
+    fn get_storage_at(
+        &mut self,
+        contract_address: starknet_api::core::ContractAddress,
+        key: starknet_api::state::StorageKey,
+    ) -> blockifier::state::state_api::StateResult<starknet_api::hash::StarkFelt> {
+        let storage = self
+            .address_to_storage
+            .get(&ContractStorageKey::new(contract_address.into(), key.0.into()))
+            .map(|f| StarkFelt::from(f))
+            .unwrap_or_default();
+        Ok(storage)
+    }
+
+    fn get_nonce_at(
+        &mut self,
+        contract_address: starknet_api::core::ContractAddress,
+    ) -> blockifier::state::state_api::StateResult<starknet_api::core::Nonce> {
+        let nonce = self
+            .address_to_nonce
+            .get(&contract_address.into())
+            .map(|f| StarkFelt::from(f))
+            .unwrap_or_default();
+        Ok(starknet_api::core::Nonce(nonce))
+    }
+
+    fn get_class_hash_at(
+        &mut self,
+        contract_address: starknet_api::core::ContractAddress,
+    ) -> blockifier::state::state_api::StateResult<starknet_api::core::ClassHash> {
+        let class_hash = self
+            .address_to_class_hash
+            .get(&contract_address.into())
+            .map(|f| StarkFelt::from(f))
+            .unwrap_or_default();
+        Ok(starknet_api::core::ClassHash(class_hash))
+    }
+
+    fn get_compiled_contract_class(
+        &mut self,
+        class_hash: &starknet_api::core::ClassHash,
+    ) -> blockifier::state::state_api::StateResult<
+        blockifier::execution::contract_class::ContractClass,
+    > {
+        let contract_class = self.class_hash_to_compiled_class.get(&class_hash.0.into()).cloned();
+        match contract_class {
+            Some(contract_class) => Ok(blockifier::execution::contract_class::ContractClass::try_from(contract_class).map_err(|err| {
+                blockifier::state::errors::StateError::StateReadError(err.to_string())
+            })?),
+            _ => Err(blockifier::state::errors::StateError::UndeclaredClassHash(*class_hash)),
+        }
+    }
+
+    fn get_compiled_class_hash(
+        &mut self,
+        class_hash: starknet_api::core::ClassHash,
+    ) -> blockifier::state::state_api::StateResult<starknet_api::core::CompiledClassHash> {
+        let compiled_class_hash = self
+            .class_hash_to_compiled_class_hash
+            .get(&class_hash.0.into())
+            .map(|f| StarkFelt::from(f))
+            .unwrap_or_default();
+        Ok(starknet_api::core::CompiledClassHash(compiled_class_hash))
+    }
 }
 
 impl starknet_in_rust::state::state_api::StateReader for DevnetState {
