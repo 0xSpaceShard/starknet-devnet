@@ -74,6 +74,16 @@ mod dump_and_load_tests {
         let devnet_dump_pid = devnet_dump.process.id();
         let mint_tx_hash = devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
+        #[cfg(windows)]
+        {
+            // To send SIGINT signal on windows, windows-kill is needed
+            let mut kill = Command::new("windows-kill")
+                .args(["-SIGINT", &devnet_dump.process.id().to_string()])
+                .spawn()
+                .unwrap();
+            kill.wait().unwrap();
+        }
+
         #[cfg(unix)]
         {
             let mut kill = Command::new("kill")
