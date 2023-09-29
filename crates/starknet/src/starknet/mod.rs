@@ -946,7 +946,7 @@ mod tests {
             .address_to_nonce
             .get(&dummy_contract_address().try_into().unwrap())
             .unwrap();
-        let second_block_expected_address_nonce = Felt252::from(1);
+        let second_block_expected_address_nonce = Felt::from(1);
         assert_eq!(second_block_expected_address_nonce, *second_block_address_nonce);
 
         let third_block_address_nonce = starknet
@@ -959,7 +959,7 @@ mod tests {
             .address_to_nonce
             .get(&dummy_contract_address().try_into().unwrap())
             .unwrap();
-        let third_block_expected_address_nonce = Felt252::from(2);
+        let third_block_expected_address_nonce = Felt::from(2);
         assert_eq!(third_block_expected_address_nonce, *third_block_address_nonce);
     }
 

@@ -137,7 +137,7 @@ mod tests {
     use starknet_types::felt::Felt;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
-    use starknet_types::traits::HashProducer;
+    use starknet_types::traits::{HashProducer, ToHexString};
 
     use crate::account::Account;
     use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID};
@@ -238,7 +238,7 @@ mod tests {
                 .state
                 .state_reader
                 .class_hash_to_compiled_class
-                .contains_key(&expected_compiled_class_hash.bytes())
+                .contains_key(&expected_compiled_class_hash)
         );
 
         let (tx_hash, retrieved_class_hash) =

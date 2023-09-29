@@ -31,7 +31,7 @@ impl Eq for StateDiff {}
 impl StateDiff {
     pub(crate) fn difference_between_old_and_new_state(
         mut old_state: DevnetState,
-        mut new_state: CachedState<InMemoryStateReader>,
+        mut new_state: CachedState<DevnetState>,
     ) -> DevnetResult<Self> {
         let mut class_hash_to_compiled_class_hash = HashMap::<ClassHash, ClassHash>::new();
         let mut declared_contracts = HashMap::<ClassHash, CasmContractClass>::new();
@@ -151,7 +151,7 @@ mod tests {
 
     #[test]
     fn correct_difference_in_declared_classes() {
-        let old_state = InMemoryStateReader::default();
+        let old_state = DevnetState::default();
         let mut casm_cache = ContractClassCache::default();
 
         let compiled_class_hash = Felt::from(1);
@@ -165,7 +165,7 @@ mod tests {
         let new_state = CachedState::new(Arc::new(old_state.clone()), casm_cache);
 
         let generated_diff =
-            super::StateDiff::difference_between_old_and_new_state(DevnetState::from_in_memory_state_reader(&old_state, &HashMap::new()).unwrap(), new_state).unwrap();
+            super::StateDiff::difference_between_old_and_new_state(old_state, new_state).unwrap();
 
         let mut expected_diff = StateDiff::default();
         expected_diff.declared_contracts.insert(
@@ -178,7 +178,7 @@ mod tests {
 
     #[test]
     fn correct_difference_in_cairo_0_declared_classes() {
-        let old_state = InMemoryStateReader::default();
+        let old_state = DevnetState::default();
 
         let class_hash = Felt::from(1);
         let cairo_0_contract_class: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
@@ -191,7 +191,7 @@ mod tests {
         let new_state = CachedState::new(Arc::new(old_state.clone()), cairo_0_classes);
 
         let generated_diff =
-            super::StateDiff::difference_between_old_and_new_state(DevnetState::from_in_memory_state_reader(&old_state, &HashMap::new()).unwrap(), new_state).unwrap();
+            super::StateDiff::difference_between_old_and_new_state(old_state, new_state).unwrap();
 
         let expected_diff = StateDiff {
             cairo_0_declared_contracts: vec![(
@@ -236,10 +236,10 @@ mod tests {
         assert_eq!(generated_diff, expected_diff);
     }
 
-    fn setup() -> (DevnetState, CachedState<InMemoryStateReader>) {
-        let state = InMemoryStateReader::default();
+    fn setup() -> (DevnetState, CachedState<DevnetState>) {
+        let state = DevnetState::default();
         let cached_state = CachedState::new(Arc::new(state.clone()), HashMap::new());
 
-        (DevnetState::from_in_memory_state_reader(&state, &HashMap::new()).unwrap(), cached_state)
+        (state, cached_state)
     }
 }

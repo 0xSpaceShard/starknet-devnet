@@ -13,7 +13,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::felt::{ClassHash, CompiledClassHash, Felt};
-use starknet_types::patricia_key::{StorageKey, PatriciaKey};
+use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 
 use self::state_diff::StateDiff;
 use crate::error::{DevnetResult, Error};
@@ -22,9 +22,9 @@ use crate::traits::{StateChanger, StateExtractor};
 pub(crate) mod state_diff;
 pub mod state_update;
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub(crate) struct StarknetState {
-    pub state: CachedState<InMemoryStateReader>,
+    pub state: CachedState<DevnetState>,
     pub(crate) contract_classes: HashMap<ClassHash, ContractClass>,
 }
 
@@ -38,56 +38,90 @@ pub(crate) struct DevnetState {
 }
 
 impl DevnetState {
-    fn from_in_memory_state_reader(value: &InMemoryStateReader, contract_classes: &HashMap<ClassHash, ContractClass>) -> DevnetResult<Self> {
+    fn from_in_memory_state_reader(
+        value: &InMemoryStateReader,
+        contract_classes: &HashMap<ClassHash, ContractClass>,
+    ) -> DevnetResult<Self> {
         let mut this = Self::default();
 
-        this.address_to_class_hash = value.address_to_class_hash.iter().map(|(address, class_hash)| {
-            let contract_address = ContractAddress::try_from(address).map_err(Error::TypesError)?;
-            let class_hash = Felt::new(*class_hash).map_err(Error::TypesError)?;
-            Ok((contract_address, class_hash))
-        })
-        .collect::<Result<HashMap<ContractAddress, ClassHash>, Error>>()?;
+        this.address_to_class_hash = value
+            .address_to_class_hash
+            .iter()
+            .map(|(address, class_hash)| {
+                let contract_address =
+                    ContractAddress::try_from(address).map_err(Error::TypesError)?;
+                let class_hash = Felt::new(*class_hash).map_err(Error::TypesError)?;
+                Ok((contract_address, class_hash))
+            })
+            .collect::<Result<HashMap<ContractAddress, ClassHash>, Error>>()?;
 
-        this.address_to_nonce = value.address_to_nonce.iter().map(|(address, nonce)| {
-            let contract_address = ContractAddress::try_from(address).map_err(Error::TypesError)?;
-            let nonce = Felt::from(nonce);
-            Ok((contract_address, nonce))
-        })
-        .collect::<Result<HashMap<ContractAddress, Felt>, Error>>()?;
+        this.address_to_nonce = value
+            .address_to_nonce
+            .iter()
+            .map(|(address, nonce)| {
+                let contract_address =
+                    ContractAddress::try_from(address).map_err(Error::TypesError)?;
+                let nonce = Felt::from(nonce);
+                Ok((contract_address, nonce))
+            })
+            .collect::<Result<HashMap<ContractAddress, Felt>, Error>>()?;
 
-        this.address_to_storage = value.address_to_storage.iter().map(|(storage_entry, storage)| {
-            let contract_address = ContractAddress::try_from(&storage_entry.0).map_err(Error::TypesError)?;
-            let storage_key = PatriciaKey::new(Felt::new(storage_entry.1)?).map_err(Error::TypesError)?;
-            let storage = Felt::from(storage);
+        this.address_to_storage = value
+            .address_to_storage
+            .iter()
+            .map(|(storage_entry, storage)| {
+                let contract_address =
+                    ContractAddress::try_from(&storage_entry.0).map_err(Error::TypesError)?;
+                let storage_key =
+                    PatriciaKey::new(Felt::new(storage_entry.1)?).map_err(Error::TypesError)?;
+                let storage = Felt::from(storage);
 
-            Ok((ContractStorageKey::new(contract_address, storage_key), storage))
-        })
-        .collect::<Result<HashMap<ContractStorageKey, Felt>, Error>>()?;
+                Ok((ContractStorageKey::new(contract_address, storage_key), storage))
+            })
+            .collect::<Result<HashMap<ContractStorageKey, Felt>, Error>>()?;
 
-        this.class_hash_to_compiled_class_hash = value.class_hash_to_compiled_class_hash.iter().map(|(class_hash, compiled_class_hash)| {
-            Ok((Felt::new(*class_hash).map_err(Error::TypesError)?, Felt::new(*compiled_class_hash).map_err(Error::TypesError)?))
-        })
-        .collect::<Result<HashMap<ClassHash, CompiledClassHash>, Error>>()?;
+        this.class_hash_to_compiled_class_hash = value
+            .class_hash_to_compiled_class_hash
+            .iter()
+            .map(|(class_hash, compiled_class_hash)| {
+                Ok((
+                    Felt::new(*class_hash).map_err(Error::TypesError)?,
+                    Felt::new(*compiled_class_hash).map_err(Error::TypesError)?,
+                ))
+            })
+            .collect::<Result<HashMap<ClassHash, CompiledClassHash>, Error>>()?;
 
-        this.class_hash_to_compiled_class = value.class_hash_to_compiled_class.iter().map(|(class_hash, compiled_class)| {
-            let class_hash_as_felt = Felt::new(*class_hash).map_err(Error::TypesError)?;
+        this.class_hash_to_compiled_class = value
+            .class_hash_to_compiled_class
+            .iter()
+            .map(|(class_hash, compiled_class)| {
+                let class_hash_as_felt = Felt::new(*class_hash).map_err(Error::TypesError)?;
 
-            let contract_class = match compiled_class {
-                CompiledClass::Deprecated(cairo0) => ContractClass::Cairo0(cairo0.as_ref().clone().into()),
-                CompiledClass::Casm(_) => {
-                    let compiled_class_hash = this.class_hash_to_compiled_class_hash.iter().find(|(_, val)| **val == class_hash_as_felt).map(|(k,_)| k).ok_or(Error::ContractNotFound)?;
-                    contract_classes.get(compiled_class_hash).ok_or(Error::ContractNotFound)?.clone()
-                }
-            };
+                let contract_class = match compiled_class {
+                    CompiledClass::Deprecated(cairo0) => {
+                        ContractClass::Cairo0(cairo0.as_ref().clone().into())
+                    }
+                    CompiledClass::Casm(_) => {
+                        let compiled_class_hash = this
+                            .class_hash_to_compiled_class_hash
+                            .iter()
+                            .find(|(_, val)| **val == class_hash_as_felt)
+                            .map(|(k, _)| k)
+                            .ok_or(Error::ContractNotFound)?;
+                        contract_classes
+                            .get(compiled_class_hash)
+                            .ok_or(Error::ContractNotFound)?
+                            .clone()
+                    }
+                };
 
-            Ok((class_hash_as_felt, contract_class.clone()))
-        })
-        .collect::<Result<HashMap<ClassHash, ContractClass>, Error>>()?;
+                Ok((class_hash_as_felt, contract_class.clone()))
+            })
+            .collect::<Result<HashMap<ClassHash, ContractClass>, Error>>()?;
 
         Ok(this)
     }
 }
-
 
 impl starknet_in_rust::state::state_api::StateReader for DevnetState {
     fn get_contract_class(
@@ -236,21 +270,7 @@ impl StateChanger for StarknetState {
         self.contract_classes.insert(class_hash, contract_class.clone());
         let persistent_state = Arc::make_mut(&mut self.state.state_reader);
 
-        match contract_class {
-            ContractClass::Cairo0(deprecated_contract_class) => {
-                persistent_state.class_hash_to_compiled_class_mut().insert(
-                    class_hash.bytes(),
-                    starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass::Deprecated(Arc::new(StarknetInRustContractClass::try_from(deprecated_contract_class)?)),
-                );
-            }
-            ContractClass::Cairo1(sierra_contract_class) => {
-                persistent_state.class_hash_to_compiled_class_mut().insert(
-                    class_hash.bytes(),
-                    starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass::Casm(Arc::new(CasmContractClass::from_contract_class(sierra_contract_class, true)
-                        .map_err(|_| Error::SierraCompilationError)?)),
-                );
-            }
-        }
+        persistent_state.class_hash_to_compiled_class.insert(class_hash, contract_class);
 
         Ok(())
     }
@@ -260,11 +280,10 @@ impl StateChanger for StarknetState {
         address: ContractAddress,
         class_hash: ClassHash,
     ) -> DevnetResult<()> {
-        let addr: Address = address.into();
         let persistent_state = Arc::make_mut(&mut self.state.state_reader);
 
-        persistent_state.address_to_class_hash_mut().insert(addr.clone(), class_hash.bytes());
-        persistent_state.address_to_nonce_mut().insert(addr, Felt252::new(0));
+        persistent_state.address_to_class_hash.insert(address, class_hash);
+        persistent_state.address_to_nonce.insert(address, Felt::from(0));
 
         Ok(())
     }
@@ -272,17 +291,16 @@ impl StateChanger for StarknetState {
     fn change_storage(&mut self, storage_key: ContractStorageKey, data: Felt) -> DevnetResult<()> {
         let persistent_state = Arc::make_mut(&mut self.state.state_reader);
 
-        persistent_state.address_to_storage_mut().insert(storage_key.into(), data.into());
+        persistent_state.address_to_storage.insert(storage_key, data);
 
         Ok(())
     }
 
     fn increment_nonce(&mut self, address: ContractAddress) -> DevnetResult<()> {
-        let addr: Address = address.into();
-        let nonce = self.state.get_nonce_at(&addr)?;
+        let nonce = self.state.state_reader.get_nonce_at(&address.into())?;
         let persistent_state = Arc::make_mut(&mut self.state.state_reader);
 
-        persistent_state.address_to_nonce_mut().insert(addr, nonce + Felt252::new(1));
+        persistent_state.address_to_nonce.insert(address, (nonce + Felt252::new(1)).into());
 
         Ok(())
     }
@@ -291,49 +309,83 @@ impl StateChanger for StarknetState {
         let old_state = Arc::make_mut(&mut self.state.state_reader);
 
         // update contract storages
-        state_diff.inner.storage_updates().iter().for_each(|(contract_address, storages)| {
-            storages.iter().for_each(|(key, value)| {
-                // old_state.storage_view.insert((contract_address, key), value);
-                let key = (contract_address.clone(), key.to_be_bytes());
-                old_state.address_to_storage_mut().insert(key, value.clone());
-            })
-        });
+        state_diff.inner.storage_updates().iter().try_for_each(
+            |(contract_address, storages)| {
+                let address = ContractAddress::try_from(contract_address)?;
+                storages.iter().try_for_each(|(key, value)| -> DevnetResult<()> {
+                    let storage_key = PatriciaKey::new(Felt::from(key))?;
+
+                    old_state
+                        .address_to_storage
+                        .insert(ContractStorageKey::new(address, storage_key), Felt::from(value));
+
+                    Ok(())
+                })
+            },
+        )?;
 
         // update cairo 0 differences
         for (class_hash, cairo_0_contract_class) in state_diff.cairo_0_declared_contracts {
-            old_state.class_hash_to_compiled_class_mut().insert(
-                class_hash.bytes(),
-                CompiledClass::Deprecated(Arc::new(cairo_0_contract_class)),
-            );
+            old_state
+                .class_hash_to_compiled_class
+                .insert(class_hash, cairo_0_contract_class.into());
         }
 
         // update class_hash -> compiled_class_hash differences
         state_diff.class_hash_to_compiled_class_hash.into_iter().for_each(
             |(class_hash, compiled_class_hash)| {
-                old_state
-                    .class_hash_to_compiled_class_hash_mut()
-                    .insert(class_hash.bytes(), compiled_class_hash.bytes());
+                old_state.class_hash_to_compiled_class_hash.insert(class_hash, compiled_class_hash);
             },
         );
 
         // update cairo 1 differences
-        state_diff.declared_contracts.into_iter().for_each(|(class_hash, cairo_1_casm)| {
-            old_state
-                .class_hash_to_compiled_class_mut()
-                .insert(class_hash.bytes(), CompiledClass::Casm(Arc::new(cairo_1_casm)));
-        });
+        // Note: due to the fact that starknet_in_rust holds Cairo 1 as CasmContractClass
+        // We cant transform it to ContractClass, because there is no conversion from casm to sierra
+        // so we use our mapping contract_classes of the state to get the sierra representation
+        state_diff.declared_contracts.into_iter().try_for_each(
+            |(compiled_class_hash, _)| -> DevnetResult<()> {
+                let class_hash = old_state
+                    .class_hash_to_compiled_class_hash
+                    .iter()
+                    .find(|(_, val)| compiled_class_hash == **val)
+                    .map(|(key, _)| key)
+                    .ok_or(Error::StateError(
+                        starknet_in_rust::core::errors::state_errors::StateError::NoneCompiledClass(
+                            compiled_class_hash.bytes(),
+                        ),
+                    ))?;
+
+                let cairo_1_sierra =
+                    self.contract_classes.get(&class_hash).ok_or(Error::StateError(
+                        starknet_in_rust::core::errors::state_errors::StateError::MissingCasmClass(
+                            class_hash.bytes(),
+                        ),
+                    ))?;
+                old_state
+                    .class_hash_to_compiled_class
+                    .insert(compiled_class_hash, cairo_1_sierra.clone());
+
+                Ok(())
+            },
+        )?;
 
         // update deployed contracts
-        state_diff.inner.address_to_class_hash().iter().for_each(
-            |(contract_address, class_hash)| {
-                old_state.address_to_class_hash_mut().insert(contract_address.clone(), *class_hash);
+        state_diff.inner.address_to_class_hash().iter().try_for_each(
+            |(contract_address, class_hash)| -> DevnetResult<()> {
+                old_state
+                    .address_to_class_hash
+                    .insert(contract_address.try_into()?, Felt::new(*class_hash)?);
+                Ok(())
             },
-        );
+        )?;
 
         // update accounts nonce
-        state_diff.inner.address_to_nonce().iter().for_each(|(contract_address, nonce)| {
-            old_state.address_to_nonce_mut().insert(contract_address.clone(), nonce.clone());
-        });
+        state_diff.inner.address_to_nonce().iter().try_for_each(
+            |(contract_address, nonce)| -> DevnetResult<()> {
+                old_state.address_to_nonce.insert(contract_address.try_into()?, Felt::from(nonce));
+                Ok(())
+            },
+        )?;
 
         Ok(())
     }
@@ -352,17 +404,12 @@ impl StateExtractor for StarknetState {
     }
 
     fn is_contract_declared(&mut self, class_hash: &ClassHash) -> bool {
-        self.state.state_reader.class_hash_to_compiled_class_hash.contains_key(&class_hash.bytes())
-            || self
-                .state
-                .state_reader
-                .class_hash_to_compiled_class
-                .contains_key(&class_hash.bytes())
+        self.state.state_reader.class_hash_to_compiled_class_hash.contains_key(class_hash)
+            || self.state.state_reader.class_hash_to_compiled_class.contains_key(&class_hash)
     }
 
     fn is_contract_deployed(&self, address: &ContractAddress) -> bool {
-        let address_felt: Felt252 = (*address).into();
-        self.state.state_reader.address_to_class_hash.contains_key(&Address(address_felt))
+        self.state.state_reader.address_to_class_hash.contains_key(address)
     }
 
     fn get_class_hash_at_contract_address(
@@ -373,9 +420,8 @@ impl StateExtractor for StarknetState {
     }
 
     fn extract_state_diff_from_pending_state(&self) -> DevnetResult<StateDiff> {
-        let devnet_state = DevnetState::from_in_memory_state_reader(self.state.state_reader.as_ref(), &self.contract_classes)?;
-                StateDiff::difference_between_old_and_new_state(
-            devnet_state,
+        StateDiff::difference_between_old_and_new_state(
+            self.state.state_reader.as_ref().clone(),
             self.state.clone(),
         )
     }
@@ -394,6 +440,7 @@ mod tests {
     use std::sync::Arc;
 
     use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass;
+    use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
     use starknet_in_rust::state::state_api::{State, StateReader};
     use starknet_types::cairo_felt::Felt252;
     use starknet_types::contract_address::ContractAddress;
@@ -480,8 +527,7 @@ mod tests {
         let mut state = StarknetState::default();
 
         state.deploy_contract(dummy_contract_address(), dummy_felt()).unwrap();
-        let starknet_in_rust_address: starknet_in_rust::utils::Address =
-            dummy_contract_address().try_into().unwrap();
+        let contract_address = dummy_contract_address();
 
         // check if current nonce is 0
         assert!(
@@ -489,13 +535,13 @@ mod tests {
                 .state
                 .state_reader
                 .address_to_nonce
-                .get(&starknet_in_rust_address)
+                .get(&contract_address)
                 .unwrap()
-                .eq(&Felt252::from(0))
+                .eq(&Felt::from(0))
         );
 
         state.clear_dirty_state();
-        state.state.increment_nonce(&starknet_in_rust_address).unwrap();
+        state.state.increment_nonce(&contract_address.try_into().unwrap()).unwrap();
         state
             .apply_state_difference(state.extract_state_diff_from_pending_state().unwrap())
             .unwrap();
@@ -506,9 +552,9 @@ mod tests {
                 .state
                 .state_reader
                 .address_to_nonce
-                .get(&starknet_in_rust_address)
+                .get(&contract_address)
                 .unwrap()
-                .eq(&Felt252::from(1))
+                .eq(&Felt::from(1))
         );
     }
 
@@ -528,13 +574,16 @@ mod tests {
             .state
             .state_reader
             .class_hash_to_compiled_class
-            .get(&class_hash.bytes())
+            .get(&class_hash)
             .unwrap()
             .to_owned();
 
         match declared_contract_class {
-            CompiledClass::Deprecated(deprecated_contract_class) => {
-                assert_eq!(*deprecated_contract_class, contract_class.try_into().unwrap())
+            starknet_types::contract_class::ContractClass::Cairo0(deprecated_contract_class) => {
+                assert_eq!(
+                    StarknetInRustContractClass::try_from(deprecated_contract_class).unwrap(),
+                    StarknetInRustContractClass::try_from(contract_class).unwrap()
+                );
             }
             _ => panic!("Wrong version of contract class"),
         }
@@ -547,21 +596,9 @@ mod tests {
 
         assert!(state.deploy_contract(address, felt).is_ok());
         assert!(state.state.state_reader.address_to_class_hash.len() == 1);
+        assert!(state.state.state_reader.address_to_class_hash.contains_key(&address));
         assert!(
-            state
-                .state
-                .state_reader
-                .address_to_class_hash
-                .contains_key(&(address.try_into().unwrap()))
-        );
-        assert!(
-            state
-                .state
-                .state_reader
-                .address_to_nonce
-                .get(&(address.try_into().unwrap()))
-                .unwrap()
-                .eq(&Felt252::from(0))
+            state.state.state_reader.address_to_nonce.get(&address).unwrap().eq(&Felt::from(0))
         );
     }
 
@@ -593,7 +630,7 @@ mod tests {
             .get(&address.try_into().unwrap())
             .unwrap()
             .clone();
-        let expected_nonce = Felt252::from(1);
+        let expected_nonce = Felt::from(1);
 
         assert_eq!(expected_nonce, nonce);
     }
