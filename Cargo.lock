@@ -5603,7 +5603,6 @@ dependencies = [
  "serde_json",
  "starknet-core 0.6.0",
  "starknet-ff 0.3.4",
- "starknet-providers 0.6.0",
  "starknet_api 0.3.0",
  "starknet_in_rust",
  "thiserror",

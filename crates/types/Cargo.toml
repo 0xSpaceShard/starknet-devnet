@@ -12,7 +12,6 @@ starknet_api = { workspace = true }
 thiserror = { workspace = true }
 starknet-in-rust = { workspace = true }
 starknet-rs-core = { workspace = true }
-starknet-rs-providers = { workspace = true }
 serde = { workspace = true }
 serde_json = { version = "1.0.81", features = ["arbitrary_precision", "preserve_order"] }
 starknet-rs-ff = { workspace = true }
