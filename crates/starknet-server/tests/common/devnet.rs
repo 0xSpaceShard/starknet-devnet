@@ -99,7 +99,7 @@ impl BackgroundDevnet {
                 .arg("--chain-id")
                 .arg(CHAIN_ID_CLI_PARAM)
                 .args(additional_args)
-                .stdout(Stdio::piped()) // comment this out for complete devnet stdout
+                //.stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .expect("Could not start background devnet");
 
