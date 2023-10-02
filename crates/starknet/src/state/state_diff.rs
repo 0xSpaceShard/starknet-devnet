@@ -4,7 +4,9 @@ use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledC
 use starknet_in_rust::state::cached_state::CachedState;
 use starknet_in_rust::state::StateDiff as StarknetInRustStateDiff;
 use starknet_in_rust::utils::subtract_mappings;
+use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt};
+use starknet_types::patricia_key::StorageKey;
 
 use super::DevnetState;
 use crate::error::{DevnetResult, Error};
@@ -12,8 +14,9 @@ use crate::error::{DevnetResult, Error};
 /// This struct is used to store the difference between state modifications
 #[derive(PartialEq, Default, Debug, Clone)]
 pub struct StateDiff {
-    // data taken from starknet_in_rust
-    pub(crate) inner: StarknetInRustStateDiff,
+    pub(crate) storage_updates: HashMap<ContractAddress, HashMap<StorageKey, Felt>>,
+    pub(crate) address_to_nonce: HashMap<ContractAddress, Felt>,
+    pub(crate) address_to_class_hash: HashMap<ContractAddress, ClassHash>,
     // class hash to compiled_class_hash difference, used when declaring contracts
     // that are different from cairo 0
     pub(crate) class_hash_to_compiled_class_hash: HashMap<ClassHash, ClassHash>,
@@ -83,8 +86,54 @@ impl StateDiff {
 
         let diff = StarknetInRustStateDiff::from_cached_state(new_state)?;
 
+        let address_to_class_hash = diff
+            .address_to_class_hash()
+            .iter()
+            .map(|(address, class_hash)| {
+                let contract_address =
+                    ContractAddress::try_from(address).map_err(Error::TypesError)?;
+                let class_hash = Felt::new(*class_hash).map_err(Error::TypesError)?;
+
+                Ok((contract_address, class_hash))
+            })
+            .collect::<DevnetResult<HashMap<ContractAddress, ClassHash>>>()?;
+
+        let address_to_nonce = diff
+            .address_to_nonce()
+            .iter()
+            .map(|(address, nonce)| {
+                let contract_address =
+                    ContractAddress::try_from(address).map_err(Error::TypesError)?;
+                let nonce = nonce.into();
+
+                Ok((contract_address, nonce))
+            })
+            .collect::<DevnetResult<HashMap<ContractAddress, Felt>>>()?;
+
+        let storage_updates = diff
+            .storage_updates()
+            .iter()
+            .map(|(address, storage)| {
+                let contract_address =
+                    ContractAddress::try_from(address).map_err(Error::TypesError)?;
+                let storage = storage
+                    .iter()
+                    .map(|(key, value)| {
+                        let key = StorageKey::new(Felt::from(key))?;
+                        let value = Felt::from(value);
+
+                        Ok((key, value))
+                    })
+                    .collect::<DevnetResult<HashMap<StorageKey, Felt>>>()?;
+
+                Ok((contract_address, storage))
+            })
+            .collect::<DevnetResult<HashMap<ContractAddress, HashMap<StorageKey, Felt>>>>()?;
+
         Ok(StateDiff {
-            inner: diff,
+            address_to_class_hash,
+            address_to_nonce,
+            storage_updates,
             class_hash_to_compiled_class_hash,
             cairo_0_declared_contracts,
             declared_contracts,
@@ -210,14 +259,7 @@ mod tests {
                 .unwrap();
 
         let expected_diff = StateDiff {
-            inner: starknet_in_rust::state::StateDiff::new(
-                vec![(contract_address.try_into().unwrap(), class_hash.bytes())]
-                    .into_iter()
-                    .collect(),
-                HashMap::new(),
-                HashMap::new(),
-                HashMap::new(),
-            ),
+            address_to_class_hash: vec![(contract_address, class_hash)].into_iter().collect(),
             ..StateDiff::default()
         };
 

@@ -11,7 +11,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::felt::{ClassHash, CompiledClassHash, Felt};
-use starknet_types::patricia_key::{PatriciaKey, StorageKey};
+use starknet_types::patricia_key::StorageKey;
 
 use self::state_diff::StateDiff;
 use crate::error::{DevnetResult, Error};
@@ -290,42 +290,36 @@ impl StateChanger for StarknetState {
         let old_state = Arc::make_mut(&mut self.state.state_reader);
         let contract_classes_cache = &self.contract_classes;
 
-        // update contract storages
-        state_diff.inner.storage_updates().iter().try_for_each(
-            |(contract_address, storages)| {
-                let address = ContractAddress::try_from(contract_address)?;
-                storages.iter().try_for_each(|(key, value)| -> DevnetResult<()> {
-                    let storage_key = PatriciaKey::new(Felt::from(key))?;
-
-                    old_state
-                        .address_to_storage
-                        .insert(ContractStorageKey::new(address, storage_key), Felt::from(value));
-
-                    Ok(())
+        let storage_updates =
+            state_diff.storage_updates.into_iter().flat_map(|(address, entries)| {
+                entries.into_iter().map(move |(storage_key, value)| {
+                    (ContractStorageKey::new(address, storage_key), value)
                 })
-            },
-        )?;
+            });
+
+        old_state.address_to_storage.extend(storage_updates);
 
         // update cairo 0 differences
         for class_hash in state_diff.cairo_0_declared_contracts {
             let cairo_0_contract_class =
-            contract_classes_cache.get(&class_hash).ok_or(Error::StateError(
+                contract_classes_cache.get(&class_hash).ok_or(Error::StateError(
                     starknet_in_rust::core::errors::state_errors::StateError::MissingClassHash(),
                 ))?;
-            old_state.class_hash_to_compiled_class.insert(class_hash, cairo_0_contract_class.clone());
+            old_state
+                .class_hash_to_compiled_class
+                .insert(class_hash, cairo_0_contract_class.clone());
         }
 
         // update class_hash -> compiled_class_hash differences
-        state_diff.class_hash_to_compiled_class_hash.into_iter().for_each(
-            |(class_hash, compiled_class_hash)| {
-                old_state.class_hash_to_compiled_class_hash.insert(class_hash, compiled_class_hash);
-            },
-        );
+        old_state
+            .class_hash_to_compiled_class_hash
+            .extend(state_diff.class_hash_to_compiled_class_hash.iter());
 
         // update cairo 1 differences
         // Note: due to the fact that starknet_in_rust holds Cairo 1 as CasmContractClass
         // We cant transform it to ContractClass, because there is no conversion from casm to sierra
-        // so we use our mapping contract_classes of the StarknetState to get the sierra representation
+        // so we use our mapping contract_classes of the StarknetState to get the sierra
+        // representation
         state_diff.declared_contracts.into_iter().try_for_each(
             |compiled_class_hash| -> DevnetResult<()> {
                 let class_hash = old_state
@@ -354,22 +348,10 @@ impl StateChanger for StarknetState {
         )?;
 
         // update deployed contracts
-        state_diff.inner.address_to_class_hash().iter().try_for_each(
-            |(contract_address, class_hash)| -> DevnetResult<()> {
-                old_state
-                    .address_to_class_hash
-                    .insert(contract_address.try_into()?, Felt::new(*class_hash)?);
-                Ok(())
-            },
-        )?;
+        old_state.address_to_class_hash.extend(state_diff.address_to_class_hash.iter());
 
         // update accounts nonce
-        state_diff.inner.address_to_nonce().iter().try_for_each(
-            |(contract_address, nonce)| -> DevnetResult<()> {
-                old_state.address_to_nonce.insert(contract_address.try_into()?, Felt::from(nonce));
-                Ok(())
-            },
-        )?;
+        old_state.address_to_nonce.extend(state_diff.address_to_nonce.iter());
 
         Ok(())
     }
