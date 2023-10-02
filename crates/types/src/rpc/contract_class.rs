@@ -146,7 +146,7 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ContractC
                 ))
             }
             ContractClass::Cairo1(_) => {
-                let casm_contract_class= CasmContractClass::try_from(value.clone())?;
+                let casm_contract_class = CasmContractClass::try_from(value.clone())?;
                 let blockifier_contract_class: blockifier::execution::contract_class::ContractClassV1 =
                     casm_contract_class.try_into().map_err(|_| Error::ProgramError)?;
 

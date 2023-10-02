@@ -14,6 +14,10 @@ impl ContractStorageKey {
     pub fn get_contract_address(&self) -> &ContractAddress {
         &self.0
     }
+
+    pub fn get_storage_key(&self) -> &StorageKey {
+        &self.1
+    }
 }
 
 impl From<&ContractStorageKey> for starknet_in_rust::state::state_cache::StorageEntry {
