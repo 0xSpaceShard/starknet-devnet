@@ -11,12 +11,11 @@ use starknet_types::rpc::transactions::{DeclareTransaction, InvokeTransaction, T
 
 use super::Starknet;
 use crate::error::{DevnetResult, Error};
-use crate::transactions::StarknetTransactions;
 
 impl Starknet {
-    pub fn re_execute(&mut self, transactions: StarknetTransactions) -> DevnetResult<()> {
-        for (_, transaction) in transactions.iter() {
-            match transaction.inner.clone() {
+    pub fn re_execute(&mut self, transactions: Vec<Transaction>) -> DevnetResult<()> {
+        for transaction in transactions.iter() {
+            match transaction {
                 Transaction::Declare(DeclareTransaction::Version0(_)) => {
                     return Err(Error::SerializationNotSupported);
                 }
@@ -86,15 +85,31 @@ impl Starknet {
         Ok(())
     }
 
+    /// attach starknet transaction to end of existing file
+    pub fn dump_transaction(&self, transaction: &Transaction) -> DevnetResult<()> {
+        match &self.config.dump_path {
+            Some(path) => {
+                println!("path: {:?}", path);
+                println!("transaction: {:?}", transaction);
+
+                // TODO: implement
+
+                Ok(())
+            }
+            None => Err(Error::FormatError),
+        }
+    }
+
     /// save starknet transactions to file
     pub fn dump_transactions(&self) -> DevnetResult<()> {
         match &self.config.dump_path {
             Some(path) => {
-                let starknet_dump = serde_json::to_string(&self.transactions).map_err(|_| {
-                    Error::SerializationError { obj_name: "StarknetTransactions".to_string() }
+                let transactions = &self.transactions.iter().map(|x| x.1.inner.clone()).collect::<Vec<Transaction>>();
+                let starknet_dump = serde_json::to_string(transactions).map_err(|_| {
+                    Error::SerializationError { obj_name: "Vec<Transaction>".to_string() }
                 })?;
                 let encoded: Vec<u8> = bincode::serialize(&starknet_dump).map_err(|_| {
-                    Error::SerializationError { obj_name: "StarknetTransactions".to_string() }
+                    Error::SerializationError { obj_name: "Vec<Transaction>".to_string() }
                 })?;
                 fs::write(Path::new(&path), encoded)?;
 
@@ -105,31 +120,31 @@ impl Starknet {
     }
 
     // load starknet transactions from file
-    pub fn load_transactions(&self) -> DevnetResult<StarknetTransactions> {
+    pub fn load_transactions(&self) -> DevnetResult<Vec<Transaction>> {
         match &self.config.dump_path {
             Some(path) => {
                 let file_path = Path::new(path);
 
                 // load only if the file exists, if dump_path is set but the file doesn't exist it
                 // can mean that it's first run with dump_path parameter set to dump, in that case
-                // return default value of StarknetTransactions
+                // return empty vector
                 if file_path.exists() {
                     let mut file = File::open(file_path)?;
                     let mut v: Vec<u8> = Vec::new();
                     file.read_to_end(&mut v)?;
                     let decoded: Result<String, Error> = bincode::deserialize(&v).map_err(|_| {
-                        Error::DeserializationError { obj_name: "StarknetTransactions".to_string() }
+                        Error::DeserializationError { obj_name: "Vec<Transaction>".to_string() }
                     });
-                    let transactions: DevnetResult<StarknetTransactions, Error> =
+                    let transactions: DevnetResult<Vec<Transaction>, Error> =
                         serde_json::from_str(decoded.unwrap().as_str()).map_err(|_| {
                             Error::DeserializationError {
-                                obj_name: "StarknetTransactions".to_string(),
+                                obj_name: "Vec<Transaction>".to_string(),
                             }
                         });
 
                     transactions
                 } else {
-                    Ok(StarknetTransactions::default())
+                    Ok(Vec::new())
                 }
             }
             None => Err(Error::FormatError),
