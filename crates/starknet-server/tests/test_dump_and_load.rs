@@ -40,7 +40,8 @@ mod dump_and_load_tests {
         ))
         .await
         .expect("Could not start Devnet");
-        let mint_tx_hash = devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+        let mint_tx_hash_1 = devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+        let mint_tx_hash_2 = devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
         // load transaction from file and check transaction hash
         let devnet_load = BackgroundDevnet::spawn_with_additional_args(Some(
@@ -48,15 +49,26 @@ mod dump_and_load_tests {
         ))
         .await
         .expect("Could not start Devnet");
-        let loaded_transaction =
-            devnet_load.json_rpc_client.get_transaction_by_hash(mint_tx_hash).await.unwrap();
+        let loaded_transaction_1 =
+            devnet_load.json_rpc_client.get_transaction_by_hash(mint_tx_hash_1).await.unwrap();
         if let starknet_rs_core::types::Transaction::Invoke(
             starknet_rs_core::types::InvokeTransaction::V1(invoke_v1),
-        ) = loaded_transaction
+        ) = loaded_transaction_1
         {
-            assert_eq!(invoke_v1.transaction_hash, mint_tx_hash);
+            assert_eq!(invoke_v1.transaction_hash, mint_tx_hash_1);
         } else {
-            panic!("Could not unpack the transaction from {loaded_transaction:?}");
+            panic!("Could not unpack the transaction from {loaded_transaction_1:?}");
+        }
+
+        let loaded_transaction_2 =
+            devnet_load.json_rpc_client.get_transaction_by_hash(mint_tx_hash_2).await.unwrap();
+        if let starknet_rs_core::types::Transaction::Invoke(
+            starknet_rs_core::types::InvokeTransaction::V1(invoke_v1),
+        ) = loaded_transaction_2
+        {
+            assert_eq!(invoke_v1.transaction_hash, mint_tx_hash_2);
+        } else {
+            panic!("Could not unpack the transaction from {loaded_transaction_2:?}");
         }
 
         remove_file(dump_file_name);
