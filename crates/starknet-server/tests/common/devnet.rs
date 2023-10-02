@@ -30,7 +30,7 @@ pub enum TestError {
     #[error("Invalid URI")]
     InvalidUri(#[from] hyper::http::uri::InvalidUri),
 
-    #[error("Could not start Devnet")]
+    #[error("Could not start Devnet. Make sure you've built it with: `cargo build --release`")]
     DevnetNotStartable,
 }
 
