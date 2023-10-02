@@ -71,9 +71,7 @@ mod tests {
             .unwrap();
 
         let expected_state_diff = StateDiff {
-            declared_contracts: vec![(compiled_class_hash.clone().into(), casm_contract_class)]
-                .into_iter()
-                .collect(),
+            declared_contracts: vec![compiled_class_hash.clone().into()],
             class_hash_to_compiled_class_hash: vec![(
                 sierra_class_hash,
                 compiled_class_hash.into(),

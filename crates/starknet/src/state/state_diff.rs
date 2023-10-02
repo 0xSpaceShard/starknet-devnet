@@ -1,11 +1,9 @@
 use std::collections::HashMap;
 
 use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass as StarknetInRustCompiledClass;
-use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as DeprecatedContractClass;
 use starknet_in_rust::state::cached_state::CachedState;
 use starknet_in_rust::state::StateDiff as StarknetInRustStateDiff;
 use starknet_in_rust::utils::subtract_mappings;
-use starknet_in_rust::CasmContractClass;
 use starknet_types::felt::{ClassHash, Felt};
 
 use super::DevnetState;
@@ -20,9 +18,9 @@ pub struct StateDiff {
     // that are different from cairo 0
     pub(crate) class_hash_to_compiled_class_hash: HashMap<ClassHash, ClassHash>,
     // declare contracts that are not cairo 0
-    pub(crate) declared_contracts: HashMap<ClassHash, CasmContractClass>,
+    pub(crate) declared_contracts: Vec<ClassHash>,
     // cairo 0 declared contracts
-    pub(crate) cairo_0_declared_contracts: HashMap<ClassHash, DeprecatedContractClass>,
+    pub(crate) cairo_0_declared_contracts: Vec<ClassHash>,
 }
 
 impl Eq for StateDiff {}
@@ -33,8 +31,8 @@ impl StateDiff {
         mut new_state: CachedState<DevnetState>,
     ) -> DevnetResult<Self> {
         let mut class_hash_to_compiled_class_hash = HashMap::<ClassHash, ClassHash>::new();
-        let mut declared_contracts = HashMap::<ClassHash, CasmContractClass>::new();
-        let mut cairo_0_declared_contracts = HashMap::<ClassHash, DeprecatedContractClass>::new();
+        let mut declared_contracts = Vec::<ClassHash>::new();
+        let mut cairo_0_declared_contracts = Vec::<ClassHash>::new();
         // extract differences of class_hash -> compile_class_hash mapping
         let class_hash_to_compiled_class_hash_subtracted_map = subtract_mappings(
             new_state.cache_mut().class_hash_to_compiled_class_hash_mut(),
@@ -74,11 +72,11 @@ impl StateDiff {
             let key = Felt::new(class_hash).map_err(crate::error::Error::from)?;
 
             match compiled_class {
-                StarknetInRustCompiledClass::Deprecated(cairo_0) => {
-                    cairo_0_declared_contracts.insert(key, cairo_0.as_ref().clone());
+                StarknetInRustCompiledClass::Deprecated(_) => {
+                    cairo_0_declared_contracts.push(key);
                 }
-                StarknetInRustCompiledClass::Casm(cairo_1) => {
-                    declared_contracts.insert(key, cairo_1.as_ref().clone());
+                StarknetInRustCompiledClass::Casm(_) => {
+                    declared_contracts.push(key);
                 }
             }
         }
@@ -166,10 +164,7 @@ mod tests {
             super::StateDiff::difference_between_old_and_new_state(old_state, new_state).unwrap();
 
         let mut expected_diff = StateDiff::default();
-        expected_diff.declared_contracts.insert(
-            compiled_class_hash,
-            CasmContractClass::from_contract_class(dummy_cairo_1_contract_class(), true).unwrap(),
-        );
+        expected_diff.declared_contracts.push(compiled_class_hash);
 
         assert_eq!(generated_diff, expected_diff);
     }
@@ -183,7 +178,7 @@ mod tests {
         let mut cairo_0_classes = ContractClassCache::new();
         cairo_0_classes.insert(
             class_hash.bytes(),
-            CompiledClass::Deprecated(Arc::new(cairo_0_contract_class.clone().try_into().unwrap())),
+            CompiledClass::Deprecated(Arc::new(cairo_0_contract_class.try_into().unwrap())),
         );
 
         let new_state = CachedState::new(Arc::new(old_state.clone()), cairo_0_classes);
@@ -192,12 +187,7 @@ mod tests {
             super::StateDiff::difference_between_old_and_new_state(old_state, new_state).unwrap();
 
         let expected_diff = StateDiff {
-            cairo_0_declared_contracts: vec![(
-                class_hash,
-                cairo_0_contract_class.try_into().unwrap(),
-            )]
-            .into_iter()
-            .collect(),
+            cairo_0_declared_contracts: vec![class_hash].into_iter().collect(),
             ..StateDiff::default()
         };
 

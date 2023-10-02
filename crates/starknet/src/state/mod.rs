@@ -288,6 +288,7 @@ impl StateChanger for StarknetState {
 
     fn apply_state_difference(&mut self, state_diff: StateDiff) -> DevnetResult<()> {
         let old_state = Arc::make_mut(&mut self.state.state_reader);
+        let contract_classes_cache = &self.contract_classes;
 
         // update contract storages
         state_diff.inner.storage_updates().iter().try_for_each(
@@ -306,10 +307,12 @@ impl StateChanger for StarknetState {
         )?;
 
         // update cairo 0 differences
-        for (class_hash, cairo_0_contract_class) in state_diff.cairo_0_declared_contracts {
-            old_state
-                .class_hash_to_compiled_class
-                .insert(class_hash, cairo_0_contract_class.into());
+        for class_hash in state_diff.cairo_0_declared_contracts {
+            let cairo_0_contract_class =
+            contract_classes_cache.get(&class_hash).ok_or(Error::StateError(
+                    starknet_in_rust::core::errors::state_errors::StateError::MissingClassHash(),
+                ))?;
+            old_state.class_hash_to_compiled_class.insert(class_hash, cairo_0_contract_class.clone());
         }
 
         // update class_hash -> compiled_class_hash differences
@@ -322,9 +325,9 @@ impl StateChanger for StarknetState {
         // update cairo 1 differences
         // Note: due to the fact that starknet_in_rust holds Cairo 1 as CasmContractClass
         // We cant transform it to ContractClass, because there is no conversion from casm to sierra
-        // so we use our mapping contract_classes of the state to get the sierra representation
+        // so we use our mapping contract_classes of the StarknetState to get the sierra representation
         state_diff.declared_contracts.into_iter().try_for_each(
-            |(compiled_class_hash, _)| -> DevnetResult<()> {
+            |compiled_class_hash| -> DevnetResult<()> {
                 let class_hash = old_state
                     .class_hash_to_compiled_class_hash
                     .iter()
@@ -337,7 +340,7 @@ impl StateChanger for StarknetState {
                     ))?;
 
                 let cairo_1_sierra =
-                    self.contract_classes.get(class_hash).ok_or(Error::StateError(
+                    contract_classes_cache.get(class_hash).ok_or(Error::StateError(
                         starknet_in_rust::core::errors::state_errors::StateError::MissingCasmClass(
                             class_hash.bytes(),
                         ),
@@ -450,9 +453,11 @@ mod tests {
             .state
             .set_contract_class(
                 &class_hash,
-                &CompiledClass::Deprecated(Arc::new(contract_class.try_into().unwrap())),
+                &CompiledClass::Deprecated(Arc::new(contract_class.clone().try_into().unwrap())),
             )
             .unwrap();
+
+        state.contract_classes.insert(class_hash.into(), contract_class.into());
 
         assert!(!state.is_contract_declared(&dummy_felt()));
         state.state.get_contract_class(&class_hash).unwrap();

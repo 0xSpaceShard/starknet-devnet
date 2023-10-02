@@ -20,14 +20,11 @@ impl StateUpdate {
     pub fn new(block_hash: Felt, state_diff: StateDiff) -> DevnetResult<Self> {
         // declared classes (class hash, compiled class hash) that are not cairo 0
         let declared_classes = state_diff
-            .class_hash_to_compiled_class_hash
-            .into_iter()
-            .map(|(class_hash, compiled_class_hash)| (class_hash, compiled_class_hash))
-            .collect();
+            .class_hash_to_compiled_class_hash.into_iter().collect();
 
         // cairo 0 declarations
         let cairo_0_declared_classes: Vec<Felt> =
-            state_diff.cairo_0_declared_contracts.into_keys().collect();
+            state_diff.cairo_0_declared_contracts;
 
         // storage updates (contract address -> [(storage_entry, value)])
         let mut storage_updates = Vec::<(ContractAddress, Vec<(PatriciaKey, Felt)>)>::new();
