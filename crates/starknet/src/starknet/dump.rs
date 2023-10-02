@@ -104,7 +104,11 @@ impl Starknet {
     pub fn dump_transactions(&self) -> DevnetResult<()> {
         match &self.config.dump_path {
             Some(path) => {
-                let transactions = &self.transactions.iter().map(|x| x.1.inner.clone()).collect::<Vec<Transaction>>();
+                let transactions = &self
+                    .transactions
+                    .iter()
+                    .map(|x| x.1.inner.clone())
+                    .collect::<Vec<Transaction>>();
                 let starknet_dump = serde_json::to_string(transactions).map_err(|_| {
                     Error::SerializationError { obj_name: "Vec<Transaction>".to_string() }
                 })?;
@@ -137,9 +141,7 @@ impl Starknet {
                     });
                     let transactions: DevnetResult<Vec<Transaction>, Error> =
                         serde_json::from_str(decoded.unwrap().as_str()).map_err(|_| {
-                            Error::DeserializationError {
-                                obj_name: "Vec<Transaction>".to_string(),
-                            }
+                            Error::DeserializationError { obj_name: "Vec<Transaction>".to_string() }
                         });
 
                     transactions
