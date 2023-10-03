@@ -19,7 +19,6 @@ starknet-types = { workspace = true }
 random-number-generator = { workspace = true }
 tracing = { workspace = true }
 indexmap = { workspace = true }
-bincode = { workspace = true }
 strum = { workspace = true }
 strum_macros = { workspace = true }
 

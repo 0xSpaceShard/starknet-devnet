@@ -1,6 +1,5 @@
 use std::fs::{self, File, OpenOptions};
-use std::io::{Read, SeekFrom, Seek};
-use std::io::Write;
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 
 use starknet_types::contract_class::ContractClass;
@@ -82,7 +81,7 @@ impl Starknet {
                 Transaction::L1Handler(_) => return Err(Error::SerializationNotSupported),
             };
         }
-        println!("re_execute");
+
         Ok(())
     }
 
@@ -92,43 +91,25 @@ impl Starknet {
             Some(path) => {
                 let file_path = Path::new(path);
                 if file_path.exists() {
-                    // TODO append
-
-                    // let mut file = File::open(file_path)?;
-                    // let mut v: Vec<u8> = Vec::new();
-                    // file.read_to_end(&mut v)?;
-                    // let decoded: Result<String, Error> = bincode::deserialize(&v).map_err(|_| {
-                    //     Error::DeserializationError { obj_name: "Vec<Transaction>".to_string() }
-                    // });
-                    // let transactions: DevnetResult<Vec<Transaction>, Error> =
-                    //     serde_json::from_str(decoded.unwrap().as_str()).map_err(|_| {
-                    //         Error::DeserializationError { obj_name: "Vec<Transaction>".to_string() }
-                    //     });
-
                     let transaction_dump = serde_json::to_string(transaction).map_err(|_| {
                         Error::SerializationError { obj_name: "Vec<Transaction>".to_string() }
                     })?;
-                    let encoded: Vec<u8> = bincode::serialize(&transaction_dump).map_err(|_| {
-                        Error::SerializationError { obj_name: "Vec<Transaction>".to_string() }
-                    })?;
-                    let mut file = OpenOptions::new().append(true).write(true).open("dump").expect("TODO 1");
-                    let lenght = file.seek(SeekFrom::End(0));
-                    print!("lenght: {:?}", lenght);
-                    file.set_len(lenght.unwrap() - 1);
-                    file.write_all(", ".as_bytes()).expect("TODO failed 2");
-                    file.write_all(&encoded).expect("TODO failed 2");
-                    file.write_all("]".as_bytes()).expect("TODO failed 3");
+                    let mut file = OpenOptions::new()
+                        .append(true)
+                        .write(true)
+                        .open(file_path)
+                        .map_err(Error::IoError)?;
+                    let lenght = file.seek(SeekFrom::End(0)).map_err(Error::IoError)?;
+                    file.set_len(lenght - 1).map_err(Error::IoError)?; // remove last "[" with set_len
+                    file.write_all(format!(", {transaction_dump}]").as_bytes())
+                        .map_err(Error::IoError)?;
                 } else {
                     // create file scenario
-                    let mut transactions = Vec::new();
-                    transactions.push(transaction);
-                    let starknet_dump = serde_json::to_string(&transactions).map_err(|_| {
+                    let transactions = vec![transaction];
+                    let transactions_dump = serde_json::to_string(&transactions).map_err(|_| {
                         Error::SerializationError { obj_name: "Vec<Transaction>".to_string() }
                     })?;
-                    let encoded: Vec<u8> = bincode::serialize(&starknet_dump).map_err(|_| {
-                        Error::SerializationError { obj_name: "Vec<Transaction>".to_string() }
-                    })?;
-                    fs::write(Path::new(&path), encoded)?;
+                    fs::write(Path::new(&path), transactions_dump)?;
                 }
 
                 Ok(())
@@ -146,13 +127,10 @@ impl Starknet {
                     .iter()
                     .map(|x| x.1.inner.clone())
                     .collect::<Vec<Transaction>>();
-                let starknet_dump = serde_json::to_string(transactions).map_err(|_| {
+                let transactions_dump = serde_json::to_string(transactions).map_err(|_| {
                     Error::SerializationError { obj_name: "Vec<Transaction>".to_string() }
                 })?;
-                let encoded: Vec<u8> = bincode::serialize(&starknet_dump).map_err(|_| {
-                    Error::SerializationError { obj_name: "Vec<Transaction>".to_string() }
-                })?;
-                fs::write(Path::new(&path), encoded)?;
+                fs::write(Path::new(&path), transactions_dump.as_bytes())?;
 
                 Ok(())
             }
@@ -162,14 +140,6 @@ impl Starknet {
 
     // load starknet transactions from file
     pub fn load_transactions(&self) -> DevnetResult<Vec<Transaction>> {
-        let mut file = OpenOptions::new().append(true).write(true).open("dump").expect("TODO 1");
-        let lenght = file.seek(SeekFrom::End(0));
-        println!("lenght: {:?}", lenght);
-        let x = file.set_len(1);
-        print!("x: {:?}", x);
-        let lenght = file.seek(SeekFrom::End(0));
-        println!("lenght: {:?}", lenght);
-
         match &self.config.dump_path {
             Some(path) => {
                 let file_path = Path::new(path);
@@ -178,18 +148,15 @@ impl Starknet {
                 // can mean that it's first run with dump_path parameter set to dump, in that case
                 // return empty vector
                 if file_path.exists() {
-                    let mut file = File::open(file_path)?;
-                    let mut v: Vec<u8> = Vec::new();
-                    file.read_to_end(&mut v)?;
-                    let decoded: Result<String, Error> = bincode::deserialize(&v).map_err(|_| {
-                        Error::DeserializationError { obj_name: "Vec<Transaction> 123".to_string() }
-                    });
-                    let transactions: DevnetResult<Vec<Transaction>, Error> =
-                        serde_json::from_str(decoded.unwrap().as_str()).map_err(|_| {
-                            Error::DeserializationError { obj_name: "Vec<Transaction>".to_string() }
-                        });
+                    let mut file = File::open(file_path).map_err(Error::IoError)?;
+                    let mut data = String::new();
+                    file.read_to_string(&mut data).map_err(Error::IoError)?;
+                    let transactions: Vec<Transaction> =
+                        serde_json::from_str(&data).map_err(|_| Error::DeserializationError {
+                            obj_name: "Vec<Transaction>".to_string(),
+                        })?;
 
-                    transactions
+                    Ok(transactions)
                 } else {
                     Ok(Vec::new())
                 }
