@@ -91,6 +91,7 @@ impl Starknet {
             Some(path) => {
                 let file_path = Path::new(path);
                 if file_path.exists() {
+                    // attach to file
                     let transaction_dump = serde_json::to_string(transaction).map_err(|_| {
                         Error::SerializationError { obj_name: "Vec<Transaction>".to_string() }
                     })?;
@@ -104,7 +105,7 @@ impl Starknet {
                     file.write_all(format!(", {transaction_dump}]").as_bytes())
                         .map_err(Error::IoError)?;
                 } else {
-                    // create file scenario
+                    // create file
                     let transactions = vec![transaction];
                     let transactions_dump = serde_json::to_string(&transactions).map_err(|_| {
                         Error::SerializationError { obj_name: "Vec<Transaction>".to_string() }
