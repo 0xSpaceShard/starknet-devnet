@@ -1,3 +1,4 @@
+use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_in_rust::definitions::constants::INITIAL_GAS_COST;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_types::felt::TransactionHash;
@@ -26,6 +27,13 @@ pub fn add_invoke_transaction(
         broadcasted_invoke_transaction.create_invoke_transaction(transaction_hash);
     let transaction = Transaction::Invoke(InvokeTransaction::Version1(invoke_transaction));
 
+    // for now only handle the successful transaction execution info
+    let mut blockifier_cached_state = blockifier::state::cached_state::CachedState::from(starknet.state.state.state_reader.as_ref().clone());
+    let blockifier_invoke_transaction = broadcasted_invoke_transaction.create_blockifier_invoke_transaction(starknet.chain_id().to_felt())?;
+
+    let blockifier_execution_result = blockifier::transaction::account_transaction::AccountTransaction::Invoke(blockifier_invoke_transaction)
+        .execute(&mut blockifier_cached_state, &starknet.block_context.to_blockifier()?, true, true);
+
     let state_before_txn = starknet.state.state.clone();
 
     match sir_invoke_function.execute(
@@ -43,7 +51,7 @@ pub fn add_invoke_transaction(
                 starknet.state.state = state_before_txn;
             }
             None => {
-                starknet.handle_successful_transaction(&transaction_hash, &transaction, &tx_info, Default::default())?
+                starknet.handle_successful_transaction(&transaction_hash, &transaction, &tx_info, blockifier_execution_result.unwrap())?
             }
         },
         Err(tx_err) => {
@@ -99,7 +107,7 @@ mod tests {
 
         BroadcastedInvokeTransaction::new(
             account_address,
-            Fee(10000),
+            Fee(5000),
             &vec![],
             Felt::from(nonce),
             &calldata,

@@ -71,7 +71,7 @@ mod get_events_integration_tests {
             ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
         contract_factory
             .deploy(vec![], FieldElement::ZERO, false)
-            .max_fee(FieldElement::from(1000000000000000000000000000u128))
+            .max_fee(FieldElement::from(100000000000000000000u128))
             .send()
             .await
             .unwrap();
@@ -95,7 +95,7 @@ mod get_events_integration_tests {
         for _ in 0..n_events_contract_invokations {
                         predeployed_account
                 .execute(events_contract_call.clone())
-                .max_fee(FieldElement::from(1000000000000000000000000000u128))
+                .max_fee(FieldElement::from(100000000000000000000u128))
                                 .send()
                 .await
                 .unwrap();

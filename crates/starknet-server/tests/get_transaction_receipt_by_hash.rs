@@ -120,7 +120,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
         let deployment_result = contract_factory
             .deploy(vec![], FieldElement::ZERO, false)
-            .max_fee(FieldElement::from(1000000000000000000000000000u128))
+            .max_fee(FieldElement::from(10000000000000000000u128))
             .send()
             .await
             .unwrap();
