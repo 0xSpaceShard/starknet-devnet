@@ -35,7 +35,7 @@ pub fn add_deploy_account_transaction(
     let transaction = Transaction::DeployAccount(deploy_account_transaction);
 
     let state_before_txn = starknet.state.state.clone();
-    match sir_deploy_account_transaction.execute(&mut starknet.state.state, &starknet.block_context)
+    match sir_deploy_account_transaction.execute(&mut starknet.state.state, &starknet.block_context.to_starknet_in_rust()?)
     {
         Ok(tx_info) => match tx_info.revert_error {
             Some(error) => {

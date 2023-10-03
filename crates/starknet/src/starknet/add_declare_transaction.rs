@@ -40,7 +40,7 @@ pub fn add_declare_transaction_v2(
     //         Err(_) => todo!(),
     //     }
 
-    match sir_declare_transaction.execute(&mut starknet.state.state, &starknet.block_context) {
+    match sir_declare_transaction.execute(&mut starknet.state.state, &starknet.block_context.to_starknet_in_rust()?) {
         Ok(tx_info) => match tx_info.revert_error {
             // Add sierra contract
             Some(error) => {
@@ -102,7 +102,7 @@ pub fn add_declare_transaction_v1(
     let sir_declare_transaction =
         broadcasted_declare_transaction.create_sir_declare(class_hash, transaction_hash)?;
 
-    match sir_declare_transaction.execute(&mut starknet.state.state, &starknet.block_context) {
+    match sir_declare_transaction.execute(&mut starknet.state.state, &starknet.block_context.to_starknet_in_rust()?) {
         Ok(tx_info) => match tx_info.revert_error {
             Some(error) => {
                 let transaction_to_add =

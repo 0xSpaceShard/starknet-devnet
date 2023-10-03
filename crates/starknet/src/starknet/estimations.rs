@@ -58,7 +58,7 @@ pub fn estimate_fee(
             })
             .collect::<DevnetResult<Vec<starknet_in_rust::transaction::Transaction>>>()?,
         state.state.clone(),
-        &starknet.block_context,
+        &starknet.block_context.to_starknet_in_rust()?,
     )?;
 
     // extract the gas usage because fee is always 0
@@ -96,7 +96,7 @@ pub fn estimate_message_fee(
     let (_, gas_consumed) = starknet_in_rust::estimate_message_fee(
         &sir_l1_handler,
         state.state.clone(),
-        &starknet.block_context,
+        &starknet.block_context.to_starknet_in_rust()?,
     )?;
 
     let gas_consumed = gas_consumed as u64;

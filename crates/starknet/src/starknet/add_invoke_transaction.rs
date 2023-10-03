@@ -30,7 +30,7 @@ pub fn add_invoke_transaction(
 
     match sir_invoke_function.execute(
         &mut starknet.state.state,
-        &starknet.block_context,
+        &starknet.block_context.to_starknet_in_rust()?,
         INITIAL_GAS_COST,
     ) {
         Ok(tx_info) => match tx_info.revert_error {
