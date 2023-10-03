@@ -19,17 +19,17 @@ pub fn add_invoke_transaction(
     }
 
     let sir_invoke_function = broadcasted_invoke_transaction
-        .create_sir_invoke_function(starknet.config.chain_id.to_felt().into())?;
+        .create_sir_invoke_function(starknet.config.chain_id.to_felt())?;
     let transaction_hash = sir_invoke_function.hash_value().into();
 
     let invoke_transaction =
         broadcasted_invoke_transaction.create_invoke_transaction(transaction_hash);
     let transaction = Transaction::Invoke(InvokeTransaction::Version1(invoke_transaction));
 
-    let state_before_txn = starknet.state.pending_state.clone();
+    let state_before_txn = starknet.state.state.clone();
 
     match sir_invoke_function.execute(
-        &mut starknet.state.pending_state,
+        &mut starknet.state.state,
         &starknet.block_context,
         INITIAL_GAS_COST,
     ) {
@@ -40,7 +40,7 @@ pub fn add_invoke_transaction(
 
                 starknet.transactions.insert(&transaction_hash, transaction_to_add);
                 // Revert to previous pending state
-                starknet.state.pending_state = state_before_txn;
+                starknet.state.state = state_before_txn;
             }
             None => {
                 starknet.handle_successful_transaction(&transaction_hash, &transaction, &tx_info)?
@@ -52,7 +52,7 @@ pub fn add_invoke_transaction(
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
             // Revert to previous pending state
-            starknet.state.pending_state = state_before_txn;
+            starknet.state.state = state_before_txn;
         }
     }
 
@@ -288,7 +288,7 @@ mod tests {
         // change storage of dummy contract
         // starknet.state.change_storage(contract_storage_key, Felt::from(0)).unwrap();
 
-        starknet.state.synchronize_states();
+        starknet.state.clear_dirty_state();
         starknet.block_context = Starknet::get_block_context(
             1,
             constants::ERC20_CONTRACT_ADDRESS,

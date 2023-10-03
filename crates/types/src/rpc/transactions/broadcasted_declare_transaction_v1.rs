@@ -118,8 +118,8 @@ impl BroadcastedDeclareTransactionV1 {
 mod tests {
     use serde::Deserialize;
     use starknet_api::transaction::Fee;
-    use starknet_in_rust::definitions::block_context::StarknetChainId;
 
+    use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
     use crate::contract_class::Cairo0Json;
     use crate::felt::Felt;
@@ -172,7 +172,7 @@ mod tests {
 
         let class_hash = broadcasted_tx.generate_class_hash().unwrap();
         let transaction_hash = broadcasted_tx
-            .calculate_transaction_hash(&StarknetChainId::TestNet.to_felt().into(), &class_hash)
+            .calculate_transaction_hash(&ChainId::TestNet.to_felt(), &class_hash)
             .unwrap();
 
         let sir_declare_transaction =

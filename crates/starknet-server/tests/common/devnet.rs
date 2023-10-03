@@ -16,8 +16,8 @@ use tokio::sync::Mutex;
 use url::Url;
 
 use super::constants::{
-    ACCOUNTS, CHAIN_ID_CLI_PARAM, HOST, MAX_PORT, MIN_PORT, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
-    SEED,
+    ACCOUNTS, CHAIN_ID_CLI_PARAM, HEALTHCHECK_PATH, HOST, MAX_PORT, MIN_PORT,
+    PREDEPLOYED_ACCOUNT_INITIAL_BALANCE, RPC_PATH, SEED,
 };
 use crate::common::utils::get_json_body;
 
@@ -80,7 +80,7 @@ impl BackgroundDevnet {
         let free_port = get_free_port().expect("No free ports");
 
         let devnet_url = format!("http://{HOST}:{free_port}");
-        let devnet_rpc_url = Url::parse(format!("{}/rpc", devnet_url.as_str()).as_str())?;
+        let devnet_rpc_url = Url::parse(format!("{}{RPC_PATH}", devnet_url.as_str()).as_str())?;
         let json_rpc_client = JsonRpcClient::new(HttpTransport::new(devnet_rpc_url.clone()));
         let additional_args = args.unwrap_or(Vec::new());
 
@@ -104,7 +104,7 @@ impl BackgroundDevnet {
                 .expect("Could not start background devnet");
 
         let healthcheck_uri =
-            format!("{}/is_alive", devnet_url.as_str()).as_str().parse::<Uri>()?;
+            format!("{}{HEALTHCHECK_PATH}", devnet_url.as_str()).as_str().parse::<Uri>()?;
 
         let mut retries = 0;
         let max_retries = 30; // limit the number of times we check if devnet is spawned

@@ -73,14 +73,14 @@ pub fn get_class_at_impl(
 
 #[cfg(test)]
 mod tests {
-    use starknet_in_rust::definitions::block_context::StarknetChainId;
+
     use starknet_rs_core::types::BlockId;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;
-    use crate::constants::{self};
+    use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID};
     use crate::starknet::{predeployed, Starknet};
     use crate::state::state_diff::StateDiff;
     use crate::traits::{Accounted, Deployed};
@@ -110,11 +110,11 @@ mod tests {
         acc.deploy(&mut starknet.state).unwrap();
         acc.set_initial_balance(&mut starknet.state).unwrap();
 
-        starknet.state.synchronize_states();
+        starknet.state.clear_dirty_state();
         starknet.block_context = Starknet::get_block_context(
             1,
             constants::ERC20_CONTRACT_ADDRESS,
-            StarknetChainId::TestNet,
+            DEVNET_DEFAULT_CHAIN_ID,
         )
         .unwrap();
 
