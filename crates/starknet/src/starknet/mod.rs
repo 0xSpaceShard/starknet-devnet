@@ -61,6 +61,7 @@ use crate::traits::{
 };
 use crate::transactions::{StarknetTransaction, StarknetTransactions};
 
+
 mod add_declare_transaction;
 mod add_deploy_account_transaction;
 mod add_invoke_transaction;
@@ -103,7 +104,7 @@ struct BlockContextBuilder {
     fee_token_address: String,
     chain_id: ChainId,
     block_number: u64,
-    block_timestamp: u64,
+    block_timestamp: u64
 }
 
 impl Default for BlockContextBuilder {
@@ -112,7 +113,8 @@ impl Default for BlockContextBuilder {
             gas_price: 0, 
             fee_token_address: ERC20_CONTRACT_ADDRESS.to_string(), 
             block_number: 0, 
-            block_timestamp: 0 }
+            block_timestamp: 0
+        }
     }
 }
 
@@ -144,6 +146,20 @@ impl BlockContextBuilder {
             HashMap::default(),
             true,
         );
+
+        Ok(block_context)
+    }
+
+    fn to_blockifier(&self) -> DevnetResult<blockifier::block_context::BlockContext> {
+        let mut block_context = blockifier::block_context::BlockContext::create_for_testing();
+
+        block_context.block_number = BlockNumber(self.block_number);
+        block_context.block_timestamp = BlockTimestamp(self.block_timestamp);
+        block_context.gas_price = self.gas_price as u128;
+        block_context.chain_id = self.chain_id.into();
+        block_context.fee_token_address = ContractAddress::new(Felt::from_prefixed_hex_str(&self.fee_token_address)?)?.try_into()?;
+        // inject cairo resource fee weights from starknet_in_rust
+        block_context.vm_resource_fee_cost = std::sync::Arc::new(DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS.clone());
 
         Ok(block_context)
     }
