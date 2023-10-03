@@ -4,15 +4,21 @@ mod estimate_fee_tests {
     use std::sync::Arc;
 
     use serde_json::json;
+    use starknet_core::constants::CAIRO_0_ACCOUNT_CONTRACT_HASH;
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
-    use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
+    use starknet_rs_accounts::{
+        Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
+    };
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::contract::SierraClass;
     use starknet_rs_core::types::FieldElement;
+    use starknet_rs_signers::Signer;
 
     use crate::common::constants::{CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH, CHAIN_ID};
     use crate::common::devnet::BackgroundDevnet;
-    use crate::common::utils::{get_predeployed_account_props, load_json, resolve_path};
+    use crate::common::utils::{
+        get_deployable_account_signer, get_predeployed_account_props, load_json, resolve_path,
+    };
 
     fn extract_overall_fee(simulation_result: &serde_json::Value) -> u128 {
         let fee_hex = simulation_result["fee_estimation"]["overall_fee"].as_str().unwrap();
@@ -20,15 +26,16 @@ mod estimate_fee_tests {
         u128::from_str_radix(fee_hex_stripped, 16).unwrap()
     }
 
-    fn make_declaration_assertions(
+    /// Assert difference when no validation; assert no fee transfered
+    fn make_basic_assertions(
         resp_no_flags: &serde_json::Value,
         resp_skip_validation: &serde_json::Value,
-        sender_address_hex: &str,
+        expected_contract_adddress: &str,
     ) {
         let no_flags_trace = &resp_no_flags["transaction_trace"];
         assert_eq!(
             no_flags_trace["validate_invocation"]["contract_address"].as_str().unwrap(),
-            sender_address_hex
+            expected_contract_adddress
         );
         assert!(no_flags_trace["fee_transfer_invocation"].as_object().is_none());
 
@@ -104,7 +111,7 @@ mod estimate_fee_tests {
             .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
             .await["result"][0];
 
-        make_declaration_assertions(resp_no_flags, resp_skip_validation, &sender_address_hex);
+        make_basic_assertions(resp_no_flags, resp_skip_validation, &sender_address_hex);
     }
 
     #[tokio::test]
@@ -172,16 +179,83 @@ mod estimate_fee_tests {
             .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
             .await["result"][0];
 
-        make_declaration_assertions(resp_no_flags, resp_skip_validation, &sender_address_hex);
+        make_basic_assertions(resp_no_flags, resp_skip_validation, &sender_address_hex);
     }
 
     #[tokio::test]
     async fn simulate_deploy_account() {
-        //
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        // define the key of the new account - dummy value
+        let new_account_signer = get_deployable_account_signer();
+        let account_factory = OpenZeppelinAccountFactory::new(
+            FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
+            CHAIN_ID,
+            new_account_signer.clone(),
+            devnet.clone_provider(),
+        )
+        .await
+        .unwrap();
+
+        let nonce = FieldElement::ZERO;
+        let salt_hex = "0x123";
+        let max_fee = FieldElement::from(0 as u128);
+        let deployment = account_factory
+            .deploy(FieldElement::from_hex_be(salt_hex).unwrap())
+            .max_fee(max_fee)
+            .nonce(nonce)
+            .prepared()
+            .unwrap();
+        let deployment_tx_hash = deployment.transaction_hash();
+        let signature = new_account_signer.sign_hash(&deployment_tx_hash).await.unwrap();
+        let signature_hex: Vec<String> =
+            [signature.r, signature.s].iter().map(|s| format!("{s:#x}")).collect();
+
+        let get_params = |simulation_flags: &[&str]| -> serde_json::Value {
+            json!({
+                "block_id": "latest",
+                "simulation_flags": simulation_flags,
+                "transactions": [
+                    {
+                        "type": "DEPLOY_ACCOUNT",
+                        "max_fee": format!("{max_fee:#x}"),
+                        "version": "0x1",
+                        "signature": signature_hex,
+                        "nonce": format!("{nonce:#x}"),
+                        "contract_address_salt": salt_hex,
+                        "constructor_calldata": [],
+                        "class_hash": CAIRO_0_ACCOUNT_CONTRACT_HASH
+                    }
+                ]
+            })
+        };
+
+        let account_address = deployment.address();
+        devnet.mint(account_address, 1e18 as u128).await;
+
+        let params_no_flags = get_params(&[]);
+        let resp_no_flags = &devnet
+            .send_custom_rpc("starknet_simulateTransactions", params_no_flags)
+            .await["result"][0]; // TODO it's null here
+        let params_skip_validation = get_params(&["SKIP_VALIDATE"]);
+        let resp_skip_validation = &devnet
+            .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
+            .await["result"][0];
+
+        // {"jsonrpc":"2.0","id":0,"error":{"code":40,"message":"Error at pc=0:368:\nAn ASSERT_EQ instruction failed: 11:1 != 11:0.\n"}}
+        println!("DEBUG resp_no_flags: {resp_no_flags}");
+
+        let account_address_hex = format!("{account_address:#x}");
+        make_basic_assertions(resp_no_flags, resp_skip_validation, &account_address_hex);
+    }
+
+    #[tokio::test]
+    async fn simulate_deploy_account_with_skipped_fee_charging() {
+        todo!();
     }
 
     #[tokio::test]
     async fn simulate_invoke() {
-        //
+        todo!();
     }
 }
