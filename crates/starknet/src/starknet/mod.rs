@@ -639,7 +639,7 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
 
-    use super::Starknet;
+    use super::{Starknet, BlockContextBuilder};
     use crate::blocks::StarknetBlock;
     use crate::constants::{
         DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_INITIAL_BALANCE, ERC20_CONTRACT_ADDRESS,
@@ -1028,5 +1028,19 @@ mod tests {
         let latest_block = starknet.get_latest_block();
 
         assert_eq!(latest_block.unwrap().block_number(), BlockNumber(2));
+    }
+
+    #[test]
+    fn compare_starknet_in_rust_to_blockifier_block_context() {
+        let blockifier_block_context = BlockContextBuilder::default().to_blockifier().unwrap();
+        let starknet_in_rust_block_context = BlockContextBuilder::default().to_starknet_in_rust().unwrap();
+
+        assert_eq!(blockifier_block_context.block_number.0, starknet_in_rust_block_context.block_info().block_number);
+        assert_eq!(blockifier_block_context.block_timestamp.0, starknet_in_rust_block_context.block_info().block_timestamp);
+        assert_eq!(blockifier_block_context.gas_price, *starknet_in_rust_block_context.starknet_os_config().gas_price());
+        // because as_hex() method returns with 0x prefix, then make the comparison from the third element
+        assert_eq!(blockifier_block_context.chain_id.as_hex()[2..], starknet_in_rust_block_context.starknet_os_config().chain_id().to_str_radix(16));
+        assert_eq!(blockifier_block_context.vm_resource_fee_cost.as_ref(), starknet_in_rust_block_context.cairo_resource_fee_weights());
+        assert_eq!(blockifier_block_context.invoke_tx_max_n_steps as u64, starknet_in_rust_block_context.invoke_tx_max_n_steps());
     }
 }
