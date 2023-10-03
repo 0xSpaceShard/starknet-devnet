@@ -9,7 +9,7 @@ use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::B
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
 use starknet_types::rpc::transactions::{DeclareTransaction, InvokeTransaction, Transaction};
 
-use super::Starknet;
+use super::{DumpMode, Starknet};
 use crate::error::{DevnetResult, Error};
 
 impl Starknet {
@@ -101,7 +101,7 @@ impl Starknet {
                         .open(file_path)
                         .map_err(Error::IoError)?;
                     let lenght = file.seek(SeekFrom::End(0)).map_err(Error::IoError)?;
-                    file.set_len(lenght - 1).map_err(Error::IoError)?; // remove last "[" with set_len
+                    file.set_len(lenght - 1).map_err(Error::IoError)?; // remove last "]" with set_len
                     file.write_all(format!(", {transaction_dump}]").as_bytes())
                         .map_err(Error::IoError)?;
                 } else {
@@ -128,10 +128,14 @@ impl Starknet {
                     .iter()
                     .map(|x| x.1.inner.clone())
                     .collect::<Vec<Transaction>>();
-                let transactions_dump = serde_json::to_string(transactions).map_err(|_| {
-                    Error::SerializationError { obj_name: "Vec<Transaction>".to_string() }
-                })?;
-                fs::write(Path::new(&path), transactions_dump.as_bytes())?;
+
+                // dump only if there are transactions to dump
+                if !transactions.is_empty() {
+                    let transactions_dump = serde_json::to_string(transactions).map_err(|_| {
+                        Error::SerializationError { obj_name: "Vec<Transaction>".to_string() }
+                    })?;
+                    fs::write(Path::new(&path), transactions_dump)?;
+                }
 
                 Ok(())
             }
@@ -156,6 +160,12 @@ impl Starknet {
                         serde_json::from_str(&data).map_err(|_| Error::DeserializationError {
                             obj_name: "Vec<Transaction>".to_string(),
                         })?;
+
+                    // to avoid doublets in transaction mode during load, we need to remove the file
+                    // because they will be re-executed and saved again
+                    if self.config.dump_on == Some(DumpMode::OnTransaction) {
+                        fs::remove_file(file_path).map_err(Error::IoError)?;
+                    }
 
                     Ok(transactions)
                 } else {
