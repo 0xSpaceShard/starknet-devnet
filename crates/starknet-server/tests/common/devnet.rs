@@ -18,6 +18,7 @@ use super::constants::{
     ACCOUNTS, CHAIN_ID_CLI_PARAM, HEALTHCHECK_PATH, HOST, MAX_PORT, MIN_PORT,
     PREDEPLOYED_ACCOUNT_INITIAL_BALANCE, RPC_PATH, SEED,
 };
+use super::utils::get_json_body;
 
 #[derive(Error, Debug)]
 pub enum TestError {
@@ -132,6 +133,23 @@ impl BackgroundDevnet {
             .body(body)
             .unwrap();
         self.http_client.request(req).await
+    }
+
+    pub async fn send_custom_rpc(
+        &self,
+        method: &str,
+        params: serde_json::Value,
+    ) -> serde_json::Value {
+        let body_json = json!({
+            "jsonrpc": "2.0",
+            "id": 0,
+            "method": method,
+            "params": params
+        });
+
+        let body = hyper::Body::from(body_json.to_string());
+        let resp = self.post_json(RPC_PATH.into(), body).await.unwrap();
+        get_json_body(resp).await
     }
 
     pub fn clone_provider(&self) -> JsonRpcClient<HttpTransport> {
