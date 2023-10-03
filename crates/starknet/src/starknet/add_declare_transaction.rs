@@ -32,13 +32,12 @@ pub fn add_declare_transaction_v2(
         sir_declare_transaction.clone().try_into()?,
     ));
 
-    // let mut blockifier_cached_state = blockifier::state::cached_state::CachedState::from(starknet.state.state.state_reader.as_ref().clone());
-    // let blockifier_declare_transaction = broadcasted_declare_transaction.create_blockifier_declare(starknet.chain_id().to_felt())?;
-    // let blockifier_execution_result = match blockifier::transaction::account_transaction::AccountTransaction::Declare(blockifier_declare_transaction)
-    //     .execute(&mut blockifier_cached_state, Default::default(), true, true) {
-    //         Ok(_) => todo!(),
-    //         Err(_) => todo!(),
-    //     }
+    // for now only handle the successful transaction execution info
+    let mut blockifier_cached_state = blockifier::state::cached_state::CachedState::from(starknet.state.state.state_reader.as_ref().clone());
+    let blockifier_declare_transaction = broadcasted_declare_transaction.create_blockifier_declare(starknet.chain_id().to_felt())?;
+
+    let blockifier_execution_result = blockifier::transaction::account_transaction::AccountTransaction::Declare(blockifier_declare_transaction)
+        .execute(&mut blockifier_cached_state, &starknet.block_context.to_blockifier()?, true, true);
 
     match sir_declare_transaction.execute(&mut starknet.state.state, &starknet.block_context.to_starknet_in_rust()?) {
         Ok(tx_info) => match tx_info.revert_error {
@@ -60,7 +59,7 @@ pub fn add_declare_transaction_v2(
                     &transaction_hash,
                     &transaction,
                     &tx_info,
-                    Default::default()
+                    blockifier_execution_result.unwrap()
                 )?;
             }
         },
@@ -102,6 +101,13 @@ pub fn add_declare_transaction_v1(
     let sir_declare_transaction =
         broadcasted_declare_transaction.create_sir_declare(class_hash, transaction_hash)?;
 
+    // for now only handle the successful transaction execution info
+    let mut blockifier_cached_state = blockifier::state::cached_state::CachedState::from(starknet.state.state.state_reader.as_ref().clone());
+    let blockifier_declare_transaction = broadcasted_declare_transaction.create_blockifier_declare(class_hash, transaction_hash)?;
+
+    let blockifier_execution_result = blockifier::transaction::account_transaction::AccountTransaction::Declare(blockifier_declare_transaction)
+        .execute(&mut blockifier_cached_state, &starknet.block_context.to_blockifier()?, true, true);
+
     match sir_declare_transaction.execute(&mut starknet.state.state, &starknet.block_context.to_starknet_in_rust()?) {
         Ok(tx_info) => match tx_info.revert_error {
             Some(error) => {
@@ -121,7 +127,7 @@ pub fn add_declare_transaction_v1(
                     &transaction_hash,
                     &transaction,
                     &tx_info,
-                    Default::default()
+                    blockifier_execution_result.unwrap()
                 )?;
             }
         },

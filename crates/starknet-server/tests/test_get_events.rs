@@ -59,7 +59,7 @@ mod get_events_integration_tests {
         // declare the contract
         let declaration_result = predeployed_account
             .declare(Arc::new(cairo_1_contract), casm_class_hash)
-            .max_fee(FieldElement::from(1000000000000000000000000000u128))
+            .max_fee(FieldElement::from(100000000000000000000u128))
             .send()
             .await
             .unwrap();
@@ -93,10 +93,10 @@ mod get_events_integration_tests {
         // invoke 10 times the contract to emit event, it should produce 10 events
         let n_events_contract_invokations = 10;
         for _ in 0..n_events_contract_invokations {
-            predeployed_account
+                        predeployed_account
                 .execute(events_contract_call.clone())
                 .max_fee(FieldElement::from(1000000000000000000000000000u128))
-                .send()
+                                .send()
                 .await
                 .unwrap();
         }

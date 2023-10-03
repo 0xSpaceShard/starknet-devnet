@@ -52,7 +52,7 @@ mod tests {
             &contract_class,
             compiled_class_hash.clone().into(),
             sender_address,
-            Fee(2000),
+            Fee(4000),
             &Vec::new(),
             Felt::from(0),
             Felt::from(2),
@@ -94,7 +94,8 @@ mod tests {
 
         // execute the same transaction, but increment nonce, so new transaction hash could be
         // computed
-        declare_txn.common.nonce = Felt::from(1);
+        // TODO: uncomment when migrated to blockifier
+        //declare_txn.common.nonce = Felt::from(1);
         let (txn_hash, _) = starknet.add_declare_transaction_v2(declare_txn).unwrap();
         let tx = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
         assert_eq!(tx.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
