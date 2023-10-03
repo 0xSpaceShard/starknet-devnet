@@ -43,7 +43,7 @@ pub fn add_invoke_transaction(
                 starknet.state.state = state_before_txn;
             }
             None => {
-                starknet.handle_successful_transaction(&transaction_hash, &transaction, &tx_info)?
+                starknet.handle_successful_transaction(&transaction_hash, &transaction, &tx_info, Default::default())?
             }
         },
         Err(tx_err) => {

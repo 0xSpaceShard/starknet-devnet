@@ -218,8 +218,9 @@ impl Starknet {
         transaction_hash: &TransactionHash,
         transaction: &Transaction,
         tx_info: &TransactionExecutionInfo,
+        blockifier_tx_info: blockifier::transaction::objects::TransactionExecutionInfo
     ) -> DevnetResult<()> {
-        let transaction_to_add = StarknetTransaction::create_successful(transaction, None, tx_info);
+        let transaction_to_add = StarknetTransaction::create_successful(transaction, None, tx_info, blockifier_tx_info);
 
         // add accepted transaction to pending block
         self.blocks.pending_block.add_transaction(*transaction_hash);

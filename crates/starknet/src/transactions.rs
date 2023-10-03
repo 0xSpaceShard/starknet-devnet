@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
 use starknet_api::block::BlockNumber;
-use starknet_in_rust::execution::{CallInfo, TransactionExecutionInfo};
+use starknet_in_rust::execution::{CallInfo, TransactionExecutionInfo as SirTransactionExecutionInfo};
+use blockifier::transaction::objects::TransactionExecutionInfo as BlockifierTransactionExecutionInfo;
 use starknet_rs_core::types::{ExecutionResult, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
@@ -51,6 +52,7 @@ pub struct StarknetTransaction {
     pub(crate) block_hash: Option<BlockHash>,
     pub(crate) block_number: Option<BlockNumber>,
     pub(crate) execution_info: Option<starknet_in_rust::execution::TransactionExecutionInfo>,
+    pub(crate) blockifier_execution_info: Option<BlockifierTransactionExecutionInfo>,
 }
 
 impl StarknetTransaction {
@@ -66,13 +68,15 @@ impl StarknetTransaction {
             execution_info: None,
             block_hash: None,
             block_number: None,
+            blockifier_execution_info: None,
         }
     }
 
     pub fn create_successful(
         transaction: &Transaction,
         finality_status: Option<TransactionFinalityStatus>,
-        execution_info: &TransactionExecutionInfo,
+        execution_info: &SirTransactionExecutionInfo,
+        blockifier_execution_info: BlockifierTransactionExecutionInfo,
     ) -> Self {
         Self {
             finality_status,
@@ -81,6 +85,7 @@ impl StarknetTransaction {
             execution_info: Some(execution_info.clone()),
             block_hash: None,
             block_number: None,
+            blockifier_execution_info: Some(blockifier_execution_info),
         }
     }
 
@@ -201,11 +206,11 @@ mod tests {
         let tx = Transaction::Declare(DeclareTransaction::Version1(declare_transaction));
 
         let sn_tx =
-            StarknetTransaction::create_successful(&tx, None, &TransactionExecutionInfo::default());
+            StarknetTransaction::create_successful(&tx, None, &TransactionExecutionInfo::default(), Default::default());
         let mut sn_txs = StarknetTransactions::default();
         sn_txs.insert(
             &hash,
-            StarknetTransaction::create_successful(&tx, None, &TransactionExecutionInfo::default()),
+            StarknetTransaction::create_successful(&tx, None, &TransactionExecutionInfo::default(), Default::default()),
         );
 
         let extracted_tran = sn_txs.get_by_hash_mut(&hash).unwrap();
@@ -235,6 +240,7 @@ mod tests {
                 &tran,
                 None,
                 &TransactionExecutionInfo::default(),
+                Default::default(),
             );
             assert_eq!(tx.finality_status, None);
             assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);

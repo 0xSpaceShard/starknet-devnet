@@ -1,3 +1,4 @@
+use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
@@ -31,6 +32,14 @@ pub fn add_declare_transaction_v2(
         sir_declare_transaction.clone().try_into()?,
     ));
 
+    // let mut blockifier_cached_state = blockifier::state::cached_state::CachedState::from(starknet.state.state.state_reader.as_ref().clone());
+    // let blockifier_declare_transaction = broadcasted_declare_transaction.create_blockifier_declare(starknet.chain_id().to_felt())?;
+    // let blockifier_execution_result = match blockifier::transaction::account_transaction::AccountTransaction::Declare(blockifier_declare_transaction)
+    //     .execute(&mut blockifier_cached_state, Default::default(), true, true) {
+    //         Ok(_) => todo!(),
+    //         Err(_) => todo!(),
+    //     }
+
     match sir_declare_transaction.execute(&mut starknet.state.state, &starknet.block_context) {
         Ok(tx_info) => match tx_info.revert_error {
             // Add sierra contract
@@ -51,6 +60,7 @@ pub fn add_declare_transaction_v2(
                     &transaction_hash,
                     &transaction,
                     &tx_info,
+                    Default::default()
                 )?;
             }
         },
@@ -111,6 +121,7 @@ pub fn add_declare_transaction_v1(
                     &transaction_hash,
                     &transaction,
                     &tx_info,
+                    Default::default()
                 )?;
             }
         },

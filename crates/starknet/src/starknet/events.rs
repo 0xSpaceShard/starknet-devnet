@@ -405,7 +405,7 @@ mod tests {
             let transaction_hash = Felt::from(idx as u128 + 100);
 
             starknet
-                .handle_successful_transaction(&transaction_hash, &transaction, &txn_info)
+                .handle_successful_transaction(&transaction_hash, &transaction, &txn_info, Default::default())
                 .unwrap();
         }
 
