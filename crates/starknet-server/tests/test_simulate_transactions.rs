@@ -239,14 +239,15 @@ mod estimate_fee_tests {
         };
 
         let account_address = deployment.address();
+        let account_address_hex = format!("{account_address:#x}");
         devnet.mint(account_address, 1e18 as u128).await;
 
+        // no flags
         let params_no_flags = get_params(&[]);
         let resp_no_flags = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_no_flags)
             .await["result"][0];
 
-        let account_address_hex = format!("{account_address:#x}");
         let no_flags_trace = &resp_no_flags["transaction_trace"];
         assert_eq!(
             no_flags_trace["validate_invocation"]["contract_address"].as_str().unwrap(),
@@ -261,6 +262,7 @@ mod estimate_fee_tests {
             account_address_hex
         );
 
+        // skipped validation
         let params_skip_validation = get_params(&["SKIP_VALIDATE"]);
         let resp_skip_validation = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
@@ -278,6 +280,7 @@ mod estimate_fee_tests {
 
         assert_fee_in_resp_greater(resp_no_flags, resp_skip_validation);
 
+        // skipped validation and fee charging (everything)
         let params_skip_everything = get_params(&["SKIP_VALIDATE", "SKIP_FEE_CHARGE"]);
         let resp_skip_everything = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_skip_everything)
