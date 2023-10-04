@@ -79,15 +79,34 @@ impl blockifier::state::state_api::StateReader for DevnetState {
     ) -> blockifier::state::state_api::StateResult<
         blockifier::execution::contract_class::ContractClass,
     > {
-        let contract_class = self.class_hash_to_compiled_class.get(&class_hash.0.into()).cloned();
-        match contract_class {
-            Some(contract_class) => {
-                Ok(blockifier::execution::contract_class::ContractClass::try_from(contract_class)
-                    .map_err(|err| {
+        let class_hash_as_felt: Felt = class_hash.0.into();
+        if let Some(deprecated_contract_class) =
+            self.class_hash_to_compiled_class.get(&class_hash_as_felt)
+        {
+            return Ok(blockifier::execution::contract_class::ContractClass::try_from(
+                deprecated_contract_class.clone(),
+            )
+            .map_err(|err| {
+                blockifier::state::errors::StateError::StateReadError(err.to_string())
+            })?);
+        }
+
+        let compiled_class_hash =
+            self.class_hash_to_compiled_class_hash
+                .get(&class_hash_as_felt)
+                .ok_or(blockifier::state::errors::StateError::UndeclaredClassHash(*class_hash))?;
+
+        if let Some(contract_class) = self.class_hash_to_compiled_class.get(compiled_class_hash) {
+            blockifier::execution::contract_class::ContractClass::try_from(contract_class.clone())
+                .map_err(|err| {
                     blockifier::state::errors::StateError::StateReadError(err.to_string())
-                })?)
-            }
-            _ => Err(blockifier::state::errors::StateError::UndeclaredClassHash(*class_hash)),
+                })
+        } else {
+            Err(blockifier::state::errors::StateError::UndeclaredClassHash(
+                starknet_api::core::ClassHash(starknet_api::hash::StarkFelt::from(
+                    *compiled_class_hash,
+                )),
+            ))
         }
     }
 
