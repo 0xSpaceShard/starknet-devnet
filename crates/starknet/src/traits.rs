@@ -64,6 +64,14 @@ pub trait StateExtractor {
     fn get_nonce(&self, address: &ContractAddress) -> DevnetResult<Felt>;
 }
 
+pub trait DevnetStateReader {
+    fn compiled_class_hash_at(&self, class_hash: &ClassHash) -> ClassHash;
+    fn storage_at(&self, storage_key: &ContractStorageKey) -> Felt;
+    fn nonce_at(&self, address: &ContractAddress) -> Felt;
+    fn class_hash_at(&self, address: &ContractAddress) -> ClassHash;
+    fn contract_class_at(&self, class_hash: &ClassHash) -> DevnetResult<ContractClass>;
+}
+
 /// This trait should be implemented by structures that generate accounts
 pub trait AccountGenerator {
     type Acc: Accounted;
