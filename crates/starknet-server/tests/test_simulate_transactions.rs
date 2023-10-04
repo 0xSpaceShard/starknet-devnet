@@ -26,8 +26,17 @@ mod estimate_fee_tests {
         u128::from_str_radix(fee_hex_stripped, 16).unwrap()
     }
 
+    fn assert_fee_difference_with_skipped_validation(
+        resp_no_flags: &serde_json::Value,
+        resp_skip_validation: &serde_json::Value,
+    ) {
+        let no_flags_fee = extract_overall_fee(resp_no_flags);
+        let skip_validation_fee = extract_overall_fee(resp_skip_validation);
+        assert!(no_flags_fee.ge(&skip_validation_fee)); // TODO should be .gt, reported in https://github.com/lambdaclass/starknet_in_rust/issues/1051
+    }
+
     /// Assert difference when no validation; assert no fee transfered
-    fn make_basic_assertions(
+    fn assert_declaration_simulation(
         resp_no_flags: &serde_json::Value,
         resp_skip_validation: &serde_json::Value,
         expected_contract_adddress: &str,
@@ -43,9 +52,7 @@ mod estimate_fee_tests {
         assert!(skip_validation_trace["validate_invocation"].as_object().is_none());
         assert!(skip_validation_trace["fee_transfer_invocation"].as_object().is_none());
 
-        let no_flags_fee = extract_overall_fee(resp_no_flags);
-        let skip_validation_fee = extract_overall_fee(resp_skip_validation);
-        assert!(no_flags_fee.ge(&skip_validation_fee)); // TODO should be .gt, reported in https://github.com/lambdaclass/starknet_in_rust/issues/1051
+        assert_fee_difference_with_skipped_validation(resp_no_flags, resp_skip_validation);
     }
 
     #[tokio::test]
@@ -111,7 +118,7 @@ mod estimate_fee_tests {
             .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
             .await["result"][0];
 
-        make_basic_assertions(resp_no_flags, resp_skip_validation, &sender_address_hex);
+        assert_declaration_simulation(resp_no_flags, resp_skip_validation, &sender_address_hex);
     }
 
     #[tokio::test]
@@ -179,7 +186,7 @@ mod estimate_fee_tests {
             .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
             .await["result"][0];
 
-        make_basic_assertions(resp_no_flags, resp_skip_validation, &sender_address_hex);
+        assert_declaration_simulation(resp_no_flags, resp_skip_validation, &sender_address_hex);
     }
 
     #[tokio::test]
@@ -261,9 +268,7 @@ mod estimate_fee_tests {
             ERC20_CONTRACT_ADDRESS.to_lowercase()
         );
 
-        let no_flags_fee = extract_overall_fee(resp_no_flags);
-        let skip_validation_fee = extract_overall_fee(resp_skip_validation);
-        assert!(no_flags_fee.ge(&skip_validation_fee)); // TODO should be .gt, reported in https://github.com/lambdaclass/starknet_in_rust/issues/1051
+        assert_fee_difference_with_skipped_validation(resp_no_flags, resp_skip_validation);
     }
 
     #[tokio::test]
