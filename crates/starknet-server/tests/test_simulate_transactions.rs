@@ -4,7 +4,7 @@ mod estimate_fee_tests {
     use std::sync::Arc;
 
     use serde_json::json;
-    use starknet_core::constants::CAIRO_0_ACCOUNT_CONTRACT_HASH;
+    use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ERC20_CONTRACT_ADDRESS};
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{
         Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
@@ -199,7 +199,7 @@ mod estimate_fee_tests {
 
         let nonce = FieldElement::ZERO;
         let salt_hex = "0x123";
-        let max_fee = FieldElement::from(0 as u128);
+        let max_fee = FieldElement::from(1e18 as u128);
         let deployment = account_factory
             .deploy(FieldElement::from_hex_be(salt_hex).unwrap())
             .max_fee(max_fee)
@@ -210,6 +210,7 @@ mod estimate_fee_tests {
         let signature = new_account_signer.sign_hash(&deployment_tx_hash).await.unwrap();
         let signature_hex: Vec<String> =
             [signature.r, signature.s].iter().map(|s| format!("{s:#x}")).collect();
+        let account_public_key = new_account_signer.get_public_key().await.unwrap().scalar();
 
         let get_params = |simulation_flags: &[&str]| -> serde_json::Value {
             json!({
@@ -223,7 +224,7 @@ mod estimate_fee_tests {
                         "signature": signature_hex,
                         "nonce": format!("{nonce:#x}"),
                         "contract_address_salt": salt_hex,
-                        "constructor_calldata": [],
+                        "constructor_calldata": [format!("{account_public_key:#x}")],
                         "class_hash": CAIRO_0_ACCOUNT_CONTRACT_HASH
                     }
                 ]
@@ -236,17 +237,33 @@ mod estimate_fee_tests {
         let params_no_flags = get_params(&[]);
         let resp_no_flags = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_no_flags)
-            .await["result"][0]; // TODO it's null here
+            .await["result"][0];
         let params_skip_validation = get_params(&["SKIP_VALIDATE"]);
         let resp_skip_validation = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
             .await["result"][0];
 
-        // {"jsonrpc":"2.0","id":0,"error":{"code":40,"message":"Error at pc=0:368:\nAn ASSERT_EQ instruction failed: 11:1 != 11:0.\n"}}
-        println!("DEBUG resp_no_flags: {resp_no_flags}");
-
         let account_address_hex = format!("{account_address:#x}");
-        make_basic_assertions(resp_no_flags, resp_skip_validation, &account_address_hex);
+        let no_flags_trace = &resp_no_flags["transaction_trace"];
+        assert_eq!(
+            no_flags_trace["validate_invocation"]["contract_address"].as_str().unwrap(),
+            account_address_hex
+        );
+        assert_eq!(
+            no_flags_trace["fee_transfer_invocation"]["contract_address"].as_str().unwrap(),
+            ERC20_CONTRACT_ADDRESS.to_lowercase()
+        );
+
+        let skip_validation_trace = &resp_skip_validation["transaction_trace"];
+        assert!(skip_validation_trace["validate_invocation"].as_object().is_none());
+        assert_eq!(
+            skip_validation_trace["fee_transfer_invocation"]["contract_address"].as_str().unwrap(),
+            ERC20_CONTRACT_ADDRESS.to_lowercase()
+        );
+
+        let no_flags_fee = extract_overall_fee(resp_no_flags);
+        let skip_validation_fee = extract_overall_fee(resp_skip_validation);
+        assert!(no_flags_fee.ge(&skip_validation_fee)); // TODO should be .gt, reported in https://github.com/lambdaclass/starknet_in_rust/issues/1051
     }
 
     #[tokio::test]
