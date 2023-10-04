@@ -39,6 +39,8 @@ pub enum Error {
     InvalidTransactionIndexInBlock,
     #[error("{msg}")]
     UnsupportedAction { msg: String },
+    #[error("{msg}")]
+    SimulationError { msg: String },
 }
 
 pub type DevnetResult<T, E = Error> = Result<T, E>;

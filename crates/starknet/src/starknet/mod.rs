@@ -50,7 +50,7 @@ use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
     CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
-    DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_HOST, ERC20_CONTRACT_ADDRESS,
+    DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_HOST, ERC20_CONTRACT_ADDRESS, SIMULATION_INITIAL_GAS,
 };
 use crate::error::{DevnetResult, Error};
 use crate::predeployed_accounts::PredeployedAccounts;
@@ -580,7 +580,6 @@ impl Starknet {
         transaction_to_map.get_receipt()
     }
 
-    // TODO move the logic to a separate file?
     pub fn simulate_transactions(
         &self,
         block_id: BlockId,
@@ -599,12 +598,6 @@ impl Starknet {
                 SimulationFlag::SkipFeeCharge => skip_fee_charge = true,
             }
         }
-
-        // these flags cannot be influenced by the user, so we just assume they are not set
-        let skip_execute = false;
-        let ignore_max_fee = false;
-        let skip_nonce_check = false;
-        // TODO move these flags later, I thought I'd need them to create_for_simulate
 
         let chain_id: Felt = self.chain_id().to_felt();
 
@@ -638,14 +631,18 @@ impl Starknet {
             sir_txs.push(sir_tx);
         }
 
-        let remaining_gas = 1e8 as u128; // TODO
+        // these flags cannot be influenced by the user, so we just assume they are not set
+        let skip_execute = false;
+        let ignore_max_fee = false;
+        let skip_nonce_check = false;
+
         let simulatable: Vec<&starknet_in_rust::transaction::Transaction> =
             sir_txs.iter().collect();
         let simulated = simulate_transaction(
             simulatable.as_slice(),
             state.state.clone(),
             &self.block_context,
-            remaining_gas,
+            SIMULATION_INITIAL_GAS,
             skip_validate,
             skip_execute,
             skip_fee_charge,
@@ -655,7 +652,17 @@ impl Starknet {
 
         let estimated = self.estimate_fee(block_id, transactions)?;
 
-        assert_eq!(simulated.len(), estimated.len()); // TODO temporary
+        // if the underlying simulation is correct, this should never be the case
+        // in alignment with always avoiding assertions in production code, this has to be done
+        if simulated.len() != estimated.len() {
+            return Err(Error::SimulationError {
+                msg: format!(
+                    "Non-matching number of simulations ({}) and estimations ({})",
+                    simulated.len(),
+                    estimated.len()
+                ),
+            });
+        }
 
         let mut simulation_results: Vec<SimulatedTransaction> = vec![];
         for (tx_execution_info, fee_estimation) in simulated.into_iter().zip(estimated) {
