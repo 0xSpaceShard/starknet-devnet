@@ -119,9 +119,14 @@ impl Starknet {
         }
     }
 
-    /// save starknet transactions to file
     pub fn dump_transactions(&self) -> DevnetResult<()> {
-        match &self.config.dump_path {
+        self.dump_transactions_custom_path(None)
+    }
+
+    /// save starknet transactions to file
+    pub fn dump_transactions_custom_path(&self, custom_path: Option<String>) -> DevnetResult<()> {
+        let dump_path = if custom_path.is_some() { &custom_path } else { &self.config.dump_path };
+        match dump_path {
             Some(path) => {
                 let transactions = &self
                     .transactions
@@ -143,9 +148,17 @@ impl Starknet {
         }
     }
 
-    // load starknet transactions from file
     pub fn load_transactions(&self) -> DevnetResult<Vec<Transaction>> {
-        match &self.config.dump_path {
+        self.load_transactions_custom_path(None)
+    }
+
+    // load starknet transactions from file
+    pub fn load_transactions_custom_path(
+        &self,
+        custom_path: Option<String>,
+    ) -> DevnetResult<Vec<Transaction>> {
+        let dump_path = if custom_path.is_some() { &custom_path } else { &self.config.dump_path };
+        match dump_path {
             Some(path) => {
                 let file_path = Path::new(path);
 

@@ -5,7 +5,7 @@ use starknet_types::starknet_api::transaction::Fee;
 
 #[derive(Deserialize, Debug)]
 pub(crate) struct Path {
-    path: String,
+    pub path: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -96,4 +96,9 @@ pub(crate) struct MintTokensResponse {
 pub(crate) struct ForkStatus {
     url: String,
     block: u128,
+}
+
+#[derive(Serialize)]
+pub(crate) struct DumpLoadResponse {
+    pub(crate) path: String,
 }
