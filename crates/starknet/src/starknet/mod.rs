@@ -673,38 +673,35 @@ impl Starknet {
                 };
 
             let transaction_trace = match tx_execution_info.tx_type {
-                None => panic!("Shouldn't be here"),
-                Some(tx_type) => match tx_type {
-                    starknet_in_rust::definitions::transaction_type::TransactionType::Declare => TransactionTrace::Declare(DeclareTransactionTrace {
+                Some(starknet_in_rust::definitions::transaction_type::TransactionType::Declare) => TransactionTrace::Declare(DeclareTransactionTrace {
                         validate_invocation,
                         fee_transfer_invocation,
                     }),
-                    starknet_in_rust::definitions::transaction_type::TransactionType::DeployAccount => TransactionTrace::DeployAccount(DeployAccountTransactionTrace {
+                Some(starknet_in_rust::definitions::transaction_type::TransactionType::DeployAccount) => TransactionTrace::DeployAccount(DeployAccountTransactionTrace {
+                    validate_invocation,
+                    constructor_invocation: if let Some(call_info) = tx_execution_info.call_info {
+                        Some(call_info.try_into()?)
+                    } else {
+                        None
+                    },
+                    fee_transfer_invocation,
+                }),
+                Some(starknet_in_rust::definitions::transaction_type::TransactionType::InvokeFunction) => {
+                    let call_info = tx_execution_info.call_info.clone();
+                    let success = call_info.is_some() && call_info.unwrap().result().is_success;
+                    TransactionTrace::Invoke(InvokeTransactionTrace {
                         validate_invocation,
-                        constructor_invocation: if let Some(call_info) = tx_execution_info.call_info {
-                            Some(call_info.try_into()?)
-                        } else {
-                            None
-                        },
-                        fee_transfer_invocation,
-                    }),
-                    starknet_in_rust::definitions::transaction_type::TransactionType::InvokeFunction => {
-                        let call_info = tx_execution_info.call_info.clone();
-                        let success = call_info.is_some() && call_info.unwrap().result().is_success;
-                        TransactionTrace::Invoke(InvokeTransactionTrace {
-                            validate_invocation,
-                            execution_invocation: match success {
-                                // safe to unwrap, checked above
-                                true => ExecutionInvocation::Succeeded(tx_execution_info.call_info.unwrap().try_into()?),
-                                false => {
-                                    let revert_reason = tx_execution_info.revert_error.unwrap_or("No revert reason".into());
-                                    ExecutionInvocation::Reverted(starknet_types::rpc::transactions::Reversion { revert_reason })
-                                },
+                        execution_invocation: match success {
+                            // safe to unwrap, checked above
+                            true => ExecutionInvocation::Succeeded(tx_execution_info.call_info.unwrap().try_into()?),
+                            false => {
+                                let revert_reason = tx_execution_info.revert_error.unwrap_or("No revert reason".into());
+                                ExecutionInvocation::Reverted(starknet_types::rpc::transactions::Reversion { revert_reason })
                             },
+                        },
                     })
                 },
-                    _ => panic!("Shouldn't be here"),
-                }
+                other => return Err(Error::UnsupportedAction { msg: format!("Cannot simulate tx of type {other:?}") }),
             };
 
             simulation_results.push(SimulatedTransaction { transaction_trace, fee_estimation });

@@ -393,11 +393,11 @@ impl TryFrom<starknet_in_rust::execution::Event> for Event {
 }
 
 impl TryFrom<CallInfo> for FunctionInvocation {
-    type Error = Error; // TODO
+    type Error = Error;
 
     fn try_from(call_info: CallInfo) -> Result<Self, Self::Error> {
-        // done here because Result handling (e.g with ? operator) can't be used in closure passed
-        // to .map(...)
+        // done here because Result handling (e.g with ? operator) can't simply
+        // be used in closure passed to .map(...)
         let mut internal_calls: Vec<FunctionInvocation> = vec![];
         for internal_call in call_info.internal_calls.clone() {
             internal_calls.push(internal_call.try_into()?);
