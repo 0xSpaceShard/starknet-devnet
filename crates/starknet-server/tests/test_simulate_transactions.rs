@@ -26,8 +26,7 @@ mod estimate_fee_tests {
         u128::from_str_radix(fee_hex_stripped, 16).unwrap()
     }
 
-    // TODO rename to assert_fee_greater
-    fn assert_fee_difference_with_skipped_validation(
+    fn assert_fee_in_resp_greater(
         resp_no_flags: &serde_json::Value,
         resp_skip_validation: &serde_json::Value,
     ) {
@@ -53,7 +52,7 @@ mod estimate_fee_tests {
         assert!(skip_validation_trace["validate_invocation"].as_object().is_none());
         assert!(skip_validation_trace["fee_transfer_invocation"].as_object().is_none());
 
-        assert_fee_difference_with_skipped_validation(resp_no_flags, resp_skip_validation);
+        assert_fee_in_resp_greater(resp_no_flags, resp_skip_validation);
     }
 
     #[tokio::test]
@@ -275,9 +274,9 @@ mod estimate_fee_tests {
         assert_eq!(
             skip_validation_trace["constructor_invocation"]["contract_address"].as_str().unwrap(),
             account_address_hex
-        ); // TODO extract address assertion
+        );
 
-        assert_fee_difference_with_skipped_validation(resp_no_flags, resp_skip_validation);
+        assert_fee_in_resp_greater(resp_no_flags, resp_skip_validation);
 
         let params_skip_everything = get_params(&["SKIP_VALIDATE", "SKIP_FEE_CHARGE"]);
         let resp_skip_everything = &devnet
