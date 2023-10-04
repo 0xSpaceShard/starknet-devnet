@@ -40,8 +40,7 @@ mod estimate_fee_tests {
         assert!(no_flags_fee.ge(&skip_validation_fee)); // TODO should be .gt, reported in https://github.com/lambdaclass/starknet_in_rust/issues/1051
     }
 
-    /// Assert difference when no validation; assert no fee transfered
-    fn assert_declaration_simulation(
+    fn assert_difference_if_validation(
         resp_no_flags: &serde_json::Value,
         resp_skip_validation: &serde_json::Value,
         expected_contract_adddress: &str,
@@ -123,7 +122,7 @@ mod estimate_fee_tests {
             .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
             .await["result"][0];
 
-        assert_declaration_simulation(resp_no_flags, resp_skip_validation, &sender_address_hex);
+        assert_difference_if_validation(resp_no_flags, resp_skip_validation, &sender_address_hex);
     }
 
     #[tokio::test]
@@ -191,7 +190,7 @@ mod estimate_fee_tests {
             .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
             .await["result"][0];
 
-        assert_declaration_simulation(resp_no_flags, resp_skip_validation, &sender_address_hex);
+        assert_difference_if_validation(resp_no_flags, resp_skip_validation, &sender_address_hex);
     }
 
     #[tokio::test]
@@ -336,7 +335,7 @@ mod estimate_fee_tests {
         );
         contract_factory.deploy(constructor_calldata, salt, false).send().await.unwrap();
 
-        // prepare the call used in estimation and actual invoke
+        // prepare the call used in simulation
         let increase_amount = FieldElement::from(100u128);
         let invoke_calls = vec![Call {
             to: contract_address,
@@ -346,7 +345,7 @@ mod estimate_fee_tests {
 
         // TODO fails if max_fee too low, can be used to test reverted case
         let max_fee = FieldElement::from(1e18 as u128);
-        let nonce = FieldElement::from(2_u32);
+        let nonce = FieldElement::from(2_u32); // after declare+deploy
         let invoke_request = account
             .execute(invoke_calls.clone())
             .max_fee(max_fee)
@@ -386,13 +385,20 @@ mod estimate_fee_tests {
         let resp_no_flags = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_no_flags)
             .await["result"][0];
+        assert_eq!(
+            resp_no_flags["transaction_trace"]["execution_invocation"]["contract_address"],
+            sender_address_hex
+        );
 
         let params_skip_validation = get_params(&["SKIP_VALIDATE"]);
         let resp_skip_validation = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
             .await["result"][0];
+        assert_eq!(
+            resp_skip_validation["transaction_trace"]["execution_invocation"]["contract_address"],
+            sender_address_hex
+        );
 
-        // TODO rename
-        assert_declaration_simulation(resp_no_flags, resp_skip_validation, &sender_address_hex);
+        assert_difference_if_validation(resp_no_flags, resp_skip_validation, &sender_address_hex);
     }
 }

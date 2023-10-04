@@ -19,7 +19,7 @@ use super::estimate_message_fee::FeeEstimateWrapper;
 use super::transaction_receipt::MessageToL1;
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
-use crate::error::Error;
+use crate::error::{ConversionError, Error};
 use crate::felt::{
     BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash, TransactionSignature,
     TransactionVersion,
@@ -418,25 +418,34 @@ impl TryFrom<CallInfo> for FunctionInvocation {
                 contract_address: call_info.contract_address.try_into()?,
                 entry_point_selector: call_info
                     .entry_point_selector
-                    .expect("Should not be None in FunctionCall construction")
+                    .ok_or(ConversionError::InvalidInternalStructure(
+                        "entry_point_selector is unexpectedly undefined".into(),
+                    ))?
                     .into(),
                 calldata: call_info.calldata.iter().map(|c| c.into()).collect(),
             },
             caller_address: call_info.caller_address.0.into(),
             class_hash: call_info
                 .class_hash
-                .expect("class hash should not be None in FunctionInvocationInternal construction")
+                .ok_or(ConversionError::InvalidInternalStructure(
+                    "class_hash is unexpectedly undefined".into(),
+                ))?
                 .into(),
-            entry_point_type: match call_info.entry_point_type.expect(
-                "entrypoint type should not be None in FunctionInvocationInternal construction",
-            ) {
-                starknet_in_rust::EntryPointType::External => EntryPointType::External,
-                starknet_in_rust::EntryPointType::L1Handler => EntryPointType::L1Handler,
-                starknet_in_rust::EntryPointType::Constructor => EntryPointType::Constructor,
-            },
+            entry_point_type: (match call_info.entry_point_type {
+                Some(starknet_in_rust::EntryPointType::External) => Ok(EntryPointType::External),
+                Some(starknet_in_rust::EntryPointType::L1Handler) => Ok(EntryPointType::L1Handler),
+                Some(starknet_in_rust::EntryPointType::Constructor) => {
+                    Ok(EntryPointType::Constructor)
+                }
+                None => Err(ConversionError::InvalidInternalStructure(
+                    "entry_point_type is unexpectedly undefined".into(),
+                )),
+            })?,
             call_type: call_info
                 .call_type
-                .expect("call_type should not be None in FunctionInvocationInternal construction")
+                .ok_or(ConversionError::InvalidInternalStructure(
+                    "call_type is unexpectedly undefined".into(),
+                ))?
                 .into(),
             result: call_info.retdata.iter().map(|r| r.into()).collect(),
             calls: internal_calls,
