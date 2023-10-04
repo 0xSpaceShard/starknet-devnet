@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
-use starknet_api::block::BlockNumber;
-use starknet_in_rust::execution::{CallInfo, TransactionExecutionInfo as SirTransactionExecutionInfo};
 use blockifier::transaction::objects::TransactionExecutionInfo as BlockifierTransactionExecutionInfo;
+use starknet_api::block::BlockNumber;
+use starknet_in_rust::execution::{
+    CallInfo, TransactionExecutionInfo as SirTransactionExecutionInfo,
+};
 use starknet_rs_core::types::{ExecutionResult, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
@@ -89,37 +91,42 @@ impl StarknetTransaction {
         }
     }
 
-    pub fn get_events(&self) -> DevnetResult<Vec<Event>> {
-        let mut starknet_in_rust_events = Vec::<starknet_in_rust::execution::Event>::new();
+    pub fn get_blockifier_events(&self) -> Vec<Event> {
+        let mut events: Vec<Event> = vec![];
 
-        fn events_from_call_info(
-            call_info: Option<&CallInfo>,
-        ) -> DevnetResult<Vec<starknet_in_rust::execution::Event>> {
-            if let Some(call_info) = call_info {
-                call_info.get_sorted_events().map_err(crate::error::Error::from)
-            } else {
-                Ok(Vec::<starknet_in_rust::execution::Event>::new())
+        fn get_blockifier_events_recursively(
+            call_info: &blockifier::execution::entry_point::CallInfo,
+        ) -> Vec<Event> {
+            let mut events: Vec<Event> = vec![];
+
+            events.extend(call_info.execution.events.iter().map(|e| Event {
+                from_address: call_info.call.storage_address.into(),
+                data: e.event.data.0.iter().map(|d| (*d).into()).collect(),
+                keys: e.event.keys.iter().map(|k| k.0.into()).collect(),
+            }));
+
+            call_info.inner_calls.iter().for_each(|call| {
+                events.extend(get_blockifier_events_recursively(call));
+            });
+
+            events
+        }
+
+        if let Some(execution_info) = self.blockifier_execution_info.as_ref() {
+            if let Some(validate_call_info) = execution_info.validate_call_info.as_ref() {
+                events.extend(get_blockifier_events_recursively(validate_call_info));
+            }
+
+            if let Some(execution_call_info) = execution_info.execute_call_info.as_ref() {
+                events.extend(get_blockifier_events_recursively(execution_call_info));
+            }
+
+            if let Some(fee_transfer_call_info) = execution_info.fee_transfer_call_info.as_ref() {
+                events.extend(get_blockifier_events_recursively(fee_transfer_call_info));
             }
         }
 
-        if let Some(execution_info) = &self.execution_info {
-            starknet_in_rust_events
-                .extend(events_from_call_info(execution_info.validate_info.as_ref())?);
-            starknet_in_rust_events
-                .extend(events_from_call_info(execution_info.call_info.as_ref())?);
-            starknet_in_rust_events
-                .extend(events_from_call_info(execution_info.fee_transfer_info.as_ref())?);
-        }
-        let mut result: Vec<Event> = Vec::new();
-        for event in starknet_in_rust_events.into_iter() {
-            result.push(Event {
-                from_address: event.from_address.try_into()?,
-                keys: event.keys.into_iter().map(Felt::from).collect(),
-                data: event.data.into_iter().map(Felt::from).collect(),
-            });
-        }
-
-        Ok(result)
+        events
     }
 
     /// Scans through events and gets information from Event generated from UDC with specific
@@ -150,7 +157,7 @@ impl StarknetTransaction {
     }
 
     pub fn get_receipt(&self) -> DevnetResult<TransactionReceipt> {
-        let transaction_events = self.get_events()?;
+        let transaction_events = self.get_blockifier_events();
 
         let mut common_receipt = self.inner.create_common_receipt(
             &transaction_events,
@@ -205,12 +212,21 @@ mod tests {
         let hash = declare_transaction.generate_hash().unwrap();
         let tx = Transaction::Declare(DeclareTransaction::Version1(declare_transaction));
 
-        let sn_tx =
-            StarknetTransaction::create_successful(&tx, None, &TransactionExecutionInfo::default(), Default::default());
+        let sn_tx = StarknetTransaction::create_successful(
+            &tx,
+            None,
+            &TransactionExecutionInfo::default(),
+            Default::default(),
+        );
         let mut sn_txs = StarknetTransactions::default();
         sn_txs.insert(
             &hash,
-            StarknetTransaction::create_successful(&tx, None, &TransactionExecutionInfo::default(), Default::default()),
+            StarknetTransaction::create_successful(
+                &tx,
+                None,
+                &TransactionExecutionInfo::default(),
+                Default::default(),
+            ),
         );
 
         let extracted_tran = sn_txs.get_by_hash_mut(&hash).unwrap();

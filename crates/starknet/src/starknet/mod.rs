@@ -61,7 +61,6 @@ use crate::traits::{
 };
 use crate::transactions::{StarknetTransaction, StarknetTransactions};
 
-
 mod add_declare_transaction;
 mod add_deploy_account_transaction;
 mod add_invoke_transaction;
@@ -104,22 +103,25 @@ struct BlockContextBuilder {
     fee_token_address: String,
     chain_id: ChainId,
     block_number: u64,
-    block_timestamp: u64
+    block_timestamp: u64,
 }
 
 impl Default for BlockContextBuilder {
     fn default() -> Self {
-        Self { chain_id: DEVNET_DEFAULT_CHAIN_ID, 
-            gas_price: 0, 
-            fee_token_address: ERC20_CONTRACT_ADDRESS.to_string(), 
-            block_number: 0, 
-            block_timestamp: 0
+        Self {
+            chain_id: DEVNET_DEFAULT_CHAIN_ID,
+            gas_price: 0,
+            fee_token_address: ERC20_CONTRACT_ADDRESS.to_string(),
+            block_number: 0,
+            block_timestamp: 0,
         }
     }
 }
 
 impl BlockContextBuilder {
-    fn to_starknet_in_rust(&self) -> DevnetResult<starknet_in_rust::definitions::block_context::BlockContext> {
+    fn to_starknet_in_rust(
+        &self,
+    ) -> DevnetResult<starknet_in_rust::definitions::block_context::BlockContext> {
         let starknet_os_config = StarknetOsConfig::new(
             StarknetChainId::from(self.chain_id).to_felt(),
             starknet_in_rust::utils::Address(
@@ -157,9 +159,12 @@ impl BlockContextBuilder {
         block_context.block_timestamp = BlockTimestamp(self.block_timestamp);
         block_context.gas_price = self.gas_price as u128;
         block_context.chain_id = self.chain_id.into();
-        block_context.fee_token_address = ContractAddress::new(Felt::from_prefixed_hex_str(&self.fee_token_address)?)?.try_into()?;
+        block_context.fee_token_address =
+            ContractAddress::new(Felt::from_prefixed_hex_str(&self.fee_token_address)?)?
+                .try_into()?;
         // inject cairo resource fee weights from starknet_in_rust
-        block_context.vm_resource_fee_cost = std::sync::Arc::new(DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS.clone());
+        block_context.vm_resource_fee_cost =
+            std::sync::Arc::new(DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS.clone());
 
         Ok(block_context)
     }
@@ -285,9 +290,10 @@ impl Starknet {
         transaction_hash: &TransactionHash,
         transaction: &Transaction,
         tx_info: &TransactionExecutionInfo,
-        blockifier_tx_info: blockifier::transaction::objects::TransactionExecutionInfo
+        blockifier_tx_info: blockifier::transaction::objects::TransactionExecutionInfo,
     ) -> DevnetResult<()> {
-        let transaction_to_add = StarknetTransaction::create_successful(transaction, None, tx_info, blockifier_tx_info);
+        let transaction_to_add =
+            StarknetTransaction::create_successful(transaction, None, tx_info, blockifier_tx_info);
 
         // add accepted transaction to pending block
         self.blocks.pending_block.add_transaction(*transaction_hash);
@@ -639,7 +645,7 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
 
-    use super::{Starknet, BlockContextBuilder};
+    use super::{BlockContextBuilder, Starknet};
     use crate::blocks::StarknetBlock;
     use crate::constants::{
         DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_INITIAL_BALANCE, ERC20_CONTRACT_ADDRESS,
@@ -668,7 +674,10 @@ mod tests {
     fn correct_block_context_creation() {
         let fee_token_address =
             ContractAddress::new(Felt::from_prefixed_hex_str("0xAA").unwrap()).unwrap();
-        let block_ctx = Starknet::get_block_context(10, "0xAA", DEVNET_DEFAULT_CHAIN_ID).unwrap().to_starknet_in_rust().unwrap();
+        let block_ctx = Starknet::get_block_context(10, "0xAA", DEVNET_DEFAULT_CHAIN_ID)
+            .unwrap()
+            .to_starknet_in_rust()
+            .unwrap();
         assert!(block_ctx.block_info().block_number == 0);
         assert!(block_ctx.block_info().block_timestamp == 0);
         assert_eq!(block_ctx.block_info().gas_price, 10);
@@ -682,7 +691,8 @@ mod tests {
     fn pending_block_is_correct() {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
-        let initial_block_number = starknet.block_context.to_starknet_in_rust().unwrap().block_info().block_number;
+        let initial_block_number =
+            starknet.block_context.to_starknet_in_rust().unwrap().block_info().block_number;
         starknet.generate_pending_block().unwrap();
 
         assert_eq!(
@@ -722,11 +732,21 @@ mod tests {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        let initial_block_number = starknet.block_context.to_starknet_in_rust().unwrap().block_info().block_number;
-        let initial_gas_price = starknet.block_context.to_starknet_in_rust().unwrap().block_info().gas_price;
-        let initial_block_timestamp = starknet.block_context.to_starknet_in_rust().unwrap().block_info().block_timestamp;
-        let initial_sequencer: ContractAddress =
-            starknet.block_context.to_starknet_in_rust().unwrap().block_info().sequencer_address.clone().try_into().unwrap();
+        let initial_block_number =
+            starknet.block_context.to_starknet_in_rust().unwrap().block_info().block_number;
+        let initial_gas_price =
+            starknet.block_context.to_starknet_in_rust().unwrap().block_info().gas_price;
+        let initial_block_timestamp =
+            starknet.block_context.to_starknet_in_rust().unwrap().block_info().block_timestamp;
+        let initial_sequencer: ContractAddress = starknet
+            .block_context
+            .to_starknet_in_rust()
+            .unwrap()
+            .block_info()
+            .sequencer_address
+            .clone()
+            .try_into()
+            .unwrap();
 
         // create pending block with some information in it
         let mut pending_block = StarknetBlock::create_pending_block();
@@ -759,10 +779,14 @@ mod tests {
     #[test]
     fn correct_block_context_update() {
         let mut block_ctx = Starknet::get_block_context(0, "0x0", DEVNET_DEFAULT_CHAIN_ID).unwrap();
-        let initial_block_number = block_ctx.to_starknet_in_rust().unwrap().block_info().block_number;
+        let initial_block_number =
+            block_ctx.to_starknet_in_rust().unwrap().block_info().block_number;
         Starknet::update_block_context(&mut block_ctx);
 
-        assert_eq!(block_ctx.to_starknet_in_rust().unwrap().block_info().block_number, initial_block_number + 1);
+        assert_eq!(
+            block_ctx.to_starknet_in_rust().unwrap().block_info().block_number,
+            initial_block_number + 1
+        );
     }
 
     #[test]
@@ -1033,14 +1057,34 @@ mod tests {
     #[test]
     fn compare_starknet_in_rust_to_blockifier_block_context() {
         let blockifier_block_context = BlockContextBuilder::default().to_blockifier().unwrap();
-        let starknet_in_rust_block_context = BlockContextBuilder::default().to_starknet_in_rust().unwrap();
+        let starknet_in_rust_block_context =
+            BlockContextBuilder::default().to_starknet_in_rust().unwrap();
 
-        assert_eq!(blockifier_block_context.block_number.0, starknet_in_rust_block_context.block_info().block_number);
-        assert_eq!(blockifier_block_context.block_timestamp.0, starknet_in_rust_block_context.block_info().block_timestamp);
-        assert_eq!(blockifier_block_context.gas_price, *starknet_in_rust_block_context.starknet_os_config().gas_price());
-        // because as_hex() method returns with 0x prefix, then make the comparison from the third element
-        assert_eq!(blockifier_block_context.chain_id.as_hex()[2..], starknet_in_rust_block_context.starknet_os_config().chain_id().to_str_radix(16));
-        assert_eq!(blockifier_block_context.vm_resource_fee_cost.as_ref(), starknet_in_rust_block_context.cairo_resource_fee_weights());
-        assert_eq!(blockifier_block_context.invoke_tx_max_n_steps as u64, starknet_in_rust_block_context.invoke_tx_max_n_steps());
+        assert_eq!(
+            blockifier_block_context.block_number.0,
+            starknet_in_rust_block_context.block_info().block_number
+        );
+        assert_eq!(
+            blockifier_block_context.block_timestamp.0,
+            starknet_in_rust_block_context.block_info().block_timestamp
+        );
+        assert_eq!(
+            blockifier_block_context.gas_price,
+            *starknet_in_rust_block_context.starknet_os_config().gas_price()
+        );
+        // because as_hex() method returns with 0x prefix, then make the comparison from the third
+        // element
+        assert_eq!(
+            blockifier_block_context.chain_id.as_hex()[2..],
+            starknet_in_rust_block_context.starknet_os_config().chain_id().to_str_radix(16)
+        );
+        assert_eq!(
+            blockifier_block_context.vm_resource_fee_cost.as_ref(),
+            starknet_in_rust_block_context.cairo_resource_fee_weights()
+        );
+        assert_eq!(
+            blockifier_block_context.invoke_tx_max_n_steps as u64,
+            starknet_in_rust_block_context.invoke_tx_max_n_steps()
+        );
     }
 }

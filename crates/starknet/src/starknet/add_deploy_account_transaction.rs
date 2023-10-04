@@ -36,15 +36,26 @@ pub fn add_deploy_account_transaction(
     let transaction = Transaction::DeployAccount(deploy_account_transaction);
 
     // for now only handle the successful transaction execution info
-    let mut blockifier_cached_state = blockifier::state::cached_state::CachedState::from(starknet.state.state.state_reader.as_ref().clone());
-    let blockifier_deploy_account_transaction = broadcasted_deploy_account_transaction.create_blockifier_deploy_account(starknet.chain_id().to_felt())?;
+    let mut blockifier_cached_state = blockifier::state::cached_state::CachedState::from(
+        starknet.state.state.state_reader.as_ref().clone(),
+    );
+    let blockifier_deploy_account_transaction = broadcasted_deploy_account_transaction
+        .create_blockifier_deploy_account(starknet.chain_id().to_felt())?;
 
-    let blockifier_execution_result = blockifier::transaction::account_transaction::AccountTransaction::DeployAccount(blockifier_deploy_account_transaction)
-        .execute(&mut blockifier_cached_state, &starknet.block_context.to_blockifier()?, true, true);
-
+    let blockifier_execution_result =
+        blockifier::transaction::account_transaction::AccountTransaction::DeployAccount(
+            blockifier_deploy_account_transaction,
+        )
+        .execute(
+            &mut blockifier_cached_state,
+            &starknet.block_context.to_blockifier()?,
+            true,
+            true,
+        );
 
     let state_before_txn = starknet.state.state.clone();
-    match sir_deploy_account_transaction.execute(&mut starknet.state.state, &starknet.block_context.to_starknet_in_rust()?)
+    match sir_deploy_account_transaction
+        .execute(&mut starknet.state.state, &starknet.block_context.to_starknet_in_rust()?)
     {
         Ok(tx_info) => match tx_info.revert_error {
             Some(error) => {
@@ -55,9 +66,12 @@ pub fn add_deploy_account_transaction(
                 // Revert to previous pending state
                 starknet.state.state = state_before_txn;
             }
-            None => {
-                starknet.handle_successful_transaction(&transaction_hash, &transaction, &tx_info, blockifier_execution_result.unwrap())?
-            }
+            None => starknet.handle_successful_transaction(
+                &transaction_hash,
+                &transaction,
+                &tx_info,
+                blockifier_execution_result.unwrap(),
+            )?,
         },
         Err(tx_err) => {
             let transaction_to_add =
