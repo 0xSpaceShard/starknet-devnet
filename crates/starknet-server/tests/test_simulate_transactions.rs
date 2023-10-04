@@ -7,11 +7,16 @@ mod estimate_fee_tests {
     use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ERC20_CONTRACT_ADDRESS};
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{
-        Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
+        Account, AccountFactory, Call, ExecutionEncoding, OpenZeppelinAccountFactory,
+        SingleOwnerAccount,
     };
+    use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::contract::SierraClass;
     use starknet_rs_core::types::FieldElement;
+    use starknet_rs_core::utils::{
+        get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
+    };
     use starknet_rs_signers::Signer;
 
     use crate::common::constants::{CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH, CHAIN_ID};
@@ -73,7 +78,7 @@ mod estimate_fee_tests {
         let contract_artifact: Arc<LegacyContractClass> =
             Arc::new(serde_json::from_value(contract_json.inner).unwrap());
 
-        let max_fee = FieldElement::ZERO;
+        let max_fee = FieldElement::ZERO; // TODO try 1e18 as u128 instead
         let nonce = FieldElement::ZERO;
 
         let signature = account
@@ -296,6 +301,98 @@ mod estimate_fee_tests {
 
     #[tokio::test]
     async fn simulate_invoke() {
-        todo!();
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        // get account
+        let (signer, account_address) = get_predeployed_account_props();
+        let account = Arc::new(SingleOwnerAccount::new(
+            devnet.clone_provider(),
+            signer,
+            account_address,
+            CHAIN_ID,
+            ExecutionEncoding::Legacy,
+        ));
+
+        // get class
+        let contract_json = dummy_cairo_0_contract_class();
+        let contract_artifact: Arc<LegacyContractClass> =
+            Arc::new(serde_json::from_value(contract_json.inner).unwrap());
+        let class_hash = contract_artifact.class_hash().unwrap();
+
+        // declare class
+        let declaration_result =
+            account.declare_legacy(contract_artifact.clone()).send().await.unwrap();
+        assert_eq!(declaration_result.class_hash, class_hash);
+
+        // deploy instance of class
+        let contract_factory = ContractFactory::new(class_hash, account.clone());
+        let salt = FieldElement::from_hex_be("0x123").unwrap();
+        let constructor_calldata = vec![];
+        let contract_address = get_udc_deployed_address(
+            salt,
+            class_hash,
+            &UdcUniqueness::NotUnique,
+            &constructor_calldata,
+        );
+        contract_factory.deploy(constructor_calldata, salt, false).send().await.unwrap();
+
+        // prepare the call used in estimation and actual invoke
+        let increase_amount = FieldElement::from(100u128);
+        let invoke_calls = vec![Call {
+            to: contract_address,
+            selector: get_selector_from_name("increase_balance").unwrap(),
+            calldata: vec![increase_amount],
+        }];
+
+        // TODO fails if max_fee too low, can be used to test reverted case
+        let max_fee = FieldElement::from(1e18 as u128);
+        let nonce = FieldElement::from(2_u32);
+        let invoke_request = account
+            .execute(invoke_calls.clone())
+            .max_fee(max_fee)
+            .nonce(nonce)
+            .prepared()
+            .unwrap()
+            .get_invoke_request()
+            .await
+            .unwrap();
+        let signature_hex: Vec<String> =
+            invoke_request.signature.iter().map(|s| format!("{s:#x}")).collect();
+
+        let calldata_hex: Vec<String> =
+            invoke_request.calldata.iter().map(|s| format!("{s:#x}")).collect();
+
+        let sender_address_hex = format!("{:#x}", account.address());
+
+        let get_params = |simulation_flags: &[&str]| -> serde_json::Value {
+            json!({
+                "block_id": "latest",
+                "simulation_flags": simulation_flags,
+                "transactions": [
+                    {
+                        "type": "INVOKE",
+                        "max_fee": format!("{max_fee:#x}"),
+                        "version": "0x1",
+                        "signature": signature_hex,
+                        "nonce": format!("{nonce:#x}"),
+                        "calldata": calldata_hex,
+                        "sender_address": sender_address_hex,
+                    }
+                ]
+            })
+        };
+
+        let params_no_flags = get_params(&[]);
+        let resp_no_flags = &devnet
+            .send_custom_rpc("starknet_simulateTransactions", params_no_flags)
+            .await["result"][0];
+
+        let params_skip_validation = get_params(&["SKIP_VALIDATE"]);
+        let resp_skip_validation = &devnet
+            .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
+            .await["result"][0];
+
+        // TODO rename
+        assert_declaration_simulation(resp_no_flags, resp_skip_validation, &sender_address_hex);
     }
 }

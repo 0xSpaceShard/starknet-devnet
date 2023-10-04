@@ -689,13 +689,18 @@ impl Starknet {
                         fee_transfer_invocation,
                     }),
                     starknet_in_rust::definitions::transaction_type::TransactionType::InvokeFunction => {
-                        let call_info = tx_execution_info.call_info.expect("Temporary solution"); // TODO
+                        let call_info = tx_execution_info.call_info.clone();
+                        let success = call_info.is_some() && call_info.unwrap().result().is_success;
                         TransactionTrace::Invoke(InvokeTransactionTrace {
-                        validate_invocation,
-                        execution_invocation: match call_info.result().is_success {
-                            true => ExecutionInvocation::Succeeded(call_info.try_into()?),
-                            false => ExecutionInvocation::Reverted(starknet_types::rpc::transactions::Reversion { revert_reason: tx_execution_info.revert_error.unwrap() }),
-                        },
+                            validate_invocation,
+                            execution_invocation: match success {
+                                // safe to unwrap, checked above
+                                true => ExecutionInvocation::Succeeded(tx_execution_info.call_info.unwrap().try_into()?),
+                                false => {
+                                    let revert_reason = tx_execution_info.revert_error.unwrap_or("No revert reason".into());
+                                    ExecutionInvocation::Reverted(starknet_types::rpc::transactions::Reversion { revert_reason })
+                                },
+                            },
                     })
                 },
                     _ => panic!("Shouldn't be here"),
