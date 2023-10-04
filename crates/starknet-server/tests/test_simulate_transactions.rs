@@ -26,6 +26,7 @@ mod estimate_fee_tests {
         u128::from_str_radix(fee_hex_stripped, 16).unwrap()
     }
 
+    // TODO rename to assert_fee_greater
     fn assert_fee_difference_with_skipped_validation(
         resp_no_flags: &serde_json::Value,
         resp_skip_validation: &serde_json::Value,
@@ -245,10 +246,6 @@ mod estimate_fee_tests {
         let resp_no_flags = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_no_flags)
             .await["result"][0];
-        let params_skip_validation = get_params(&["SKIP_VALIDATE"]);
-        let resp_skip_validation = &devnet
-            .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
-            .await["result"][0];
 
         let account_address_hex = format!("{account_address:#x}");
         let no_flags_trace = &resp_no_flags["transaction_trace"];
@@ -260,20 +257,39 @@ mod estimate_fee_tests {
             no_flags_trace["fee_transfer_invocation"]["contract_address"].as_str().unwrap(),
             ERC20_CONTRACT_ADDRESS.to_lowercase()
         );
+        assert_eq!(
+            no_flags_trace["constructor_invocation"]["contract_address"].as_str().unwrap(),
+            account_address_hex
+        );
 
+        let params_skip_validation = get_params(&["SKIP_VALIDATE"]);
+        let resp_skip_validation = &devnet
+            .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
+            .await["result"][0];
         let skip_validation_trace = &resp_skip_validation["transaction_trace"];
         assert!(skip_validation_trace["validate_invocation"].as_object().is_none());
         assert_eq!(
             skip_validation_trace["fee_transfer_invocation"]["contract_address"].as_str().unwrap(),
             ERC20_CONTRACT_ADDRESS.to_lowercase()
         );
+        assert_eq!(
+            skip_validation_trace["constructor_invocation"]["contract_address"].as_str().unwrap(),
+            account_address_hex
+        ); // TODO extract address assertion
 
         assert_fee_difference_with_skipped_validation(resp_no_flags, resp_skip_validation);
-    }
 
-    #[tokio::test]
-    async fn simulate_deploy_account_with_skipped_fee_charging() {
-        todo!();
+        let params_skip_everything = get_params(&["SKIP_VALIDATE", "SKIP_FEE_CHARGE"]);
+        let resp_skip_everything = &devnet
+            .send_custom_rpc("starknet_simulateTransactions", params_skip_everything)
+            .await["result"][0];
+        let skip_everything_trace = &resp_skip_everything["transaction_trace"];
+        assert!(skip_everything_trace["validate_invocation"].as_object().is_none());
+        assert!(skip_everything_trace["fee_transfer_invocation"].as_object().is_none());
+        assert_eq!(
+            skip_everything_trace["constructor_invocation"]["contract_address"].as_str().unwrap(),
+            account_address_hex
+        );
     }
 
     #[tokio::test]
