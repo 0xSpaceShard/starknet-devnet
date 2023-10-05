@@ -1,4 +1,3 @@
-use blockifier::state::errors::StateError;
 use starknet_rs_core::types::BlockId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
@@ -17,9 +16,7 @@ pub fn get_class_hash_at_impl(
     let class_hash = state.state.state.class_hash_at(&contract_address);
 
     if class_hash == Felt::default() {
-        return Err(Error::BlockifierStateError(StateError::UnavailableContractAddress(
-            contract_address.try_into()?,
-        )));
+        return Err(Error::ContractNotFound);
     }
 
     Ok(class_hash)

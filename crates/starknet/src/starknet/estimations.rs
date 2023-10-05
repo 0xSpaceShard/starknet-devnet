@@ -1,11 +1,6 @@
-use std::sync::Arc;
-
 use blockifier::fee::fee_utils::{calculate_l1_gas_by_vm_usage, extract_l1_gas_and_vm_usage};
 use blockifier::transaction::account_transaction::AccountTransaction;
-use blockifier::transaction::transactions::{ExecutableTransaction, L1HandlerTransaction};
-use starknet_api::core::EntryPointSelector;
-use starknet_api::transaction::Calldata;
-use starknet_in_rust::core::errors::state_errors::StateError;
+use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_rs_core::types::{BlockId, MsgFromL1};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::rpc::estimate_message_fee::{
@@ -68,7 +63,13 @@ pub fn estimate_fee(
     transactions
         .into_iter()
         .map(|transaction| {
-            estimate_transaction_fee(&mut state, &block_context, blockifier::transaction::transaction_execution::Transaction::AccountTransaction(transaction))
+            estimate_transaction_fee(
+                &mut state,
+                &block_context,
+                blockifier::transaction::transaction_execution::Transaction::AccountTransaction(
+                    transaction,
+                ),
+            )
         })
         .collect()
 }
@@ -79,19 +80,25 @@ pub fn estimate_message_fee(
     message: MsgFromL1,
 ) -> DevnetResult<FeeEstimateWrapper> {
     let estimate_message_fee = EstimateMessageFeeRequestWrapper::new(block_id, message);
-    let mut state = starknet.get_state_at(estimate_message_fee.get_raw_block_id())?.make_deep_clone();
+    let mut state =
+        starknet.get_state_at(estimate_message_fee.get_raw_block_id())?.make_deep_clone();
 
     match starknet
         .get_class_hash_at(block_id, ContractAddress::new(estimate_message_fee.get_to_address())?)
     {
         Ok(_) => Ok(()),
-        Err(Error::StateError(StateError::NoneContractState(_))) => Err(Error::ContractNotFound),
         Err(err) => Err(err),
     }?;
 
     let l1_transaction = estimate_message_fee.create_blockifier_l1_transaction()?;
 
-    estimate_transaction_fee(&mut state, &starknet.block_context.to_blockifier()?, blockifier::transaction::transaction_execution::Transaction::L1HandlerTransaction(l1_transaction))
+    estimate_transaction_fee(
+        &mut state,
+        &starknet.block_context.to_blockifier()?,
+        blockifier::transaction::transaction_execution::Transaction::L1HandlerTransaction(
+            l1_transaction,
+        ),
+    )
 }
 
 fn estimate_transaction_fee(
@@ -114,7 +121,7 @@ fn estimate_transaction_fee(
 
     let (l1_gas_usage, vm_resources) =
         extract_l1_gas_and_vm_usage(&transaction_execution_info.actual_resources);
-    let l1_gas_by_vm_usage = calculate_l1_gas_by_vm_usage(&block_context, &vm_resources)?;
+    let l1_gas_by_vm_usage = calculate_l1_gas_by_vm_usage(block_context, &vm_resources)?;
     let total_l1_gas_usage = l1_gas_usage as f64 + l1_gas_by_vm_usage;
     let total_l1_gas_usage = total_l1_gas_usage.ceil() as u64;
 

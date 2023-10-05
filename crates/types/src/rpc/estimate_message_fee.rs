@@ -79,13 +79,11 @@ impl EstimateMessageFeeRequestWrapper {
                     starknet_api::hash::StarkFelt::from(self.get_to_address()),
                 )?,
                 entry_point_selector: EntryPointSelector(self.get_entry_point_selector().into()),
-                calldata: Calldata(Arc::new(
-                    calldata.into_iter().map(|f| f.into()).collect(),
-                )),
+                calldata: Calldata(Arc::new(calldata.into_iter().map(|f| f.into()).collect())),
                 ..Default::default()
             },
             paid_fee_on_l1: starknet_api::transaction::Fee(1),
-            tx_hash: Default::default()
+            tx_hash: Default::default(),
         };
 
         Ok(l1_transaction)
