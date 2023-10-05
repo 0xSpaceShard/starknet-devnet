@@ -93,10 +93,10 @@ mod get_events_integration_tests {
         // invoke 10 times the contract to emit event, it should produce 10 events
         let n_events_contract_invokations = 10;
         for _ in 0..n_events_contract_invokations {
-                        predeployed_account
+            predeployed_account
                 .execute(events_contract_call.clone())
                 .max_fee(FieldElement::from(100000000000000000000u128))
-                                .send()
+                .send()
                 .await
                 .unwrap();
         }

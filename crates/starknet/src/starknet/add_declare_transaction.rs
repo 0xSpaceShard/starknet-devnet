@@ -27,9 +27,8 @@ pub fn add_declare_transaction_v2(
     let transaction_hash = sir_declare_transaction.hash_value.clone().into();
     let class_hash: ClassHash = sir_declare_transaction.sierra_class_hash.clone().into();
 
-    let transaction = Transaction::Declare(DeclareTransaction::Version2(
-        sir_declare_transaction.clone().try_into()?,
-    ));
+    let transaction =
+        Transaction::Declare(DeclareTransaction::Version2(sir_declare_transaction.try_into()?));
 
     let blockifier_declare_transaction =
         broadcasted_declare_transaction.create_blockifier_declare(starknet.chain_id().to_felt())?;
@@ -98,7 +97,7 @@ pub fn add_declare_transaction_v1(
         broadcasted_declare_transaction.create_declare(class_hash, transaction_hash);
     let transaction = Transaction::Declare(DeclareTransaction::Version1(declare_transaction));
 
-    let sir_declare_transaction =
+    let _sir_declare_transaction =
         broadcasted_declare_transaction.create_sir_declare(class_hash, transaction_hash)?;
 
     let blockifier_declare_transaction =
@@ -217,7 +216,10 @@ mod tests {
 
         assert_eq!(txn.finality_status, None);
         assert_eq!(txn.execution_result.status(), TransactionExecutionStatus::Reverted);
-        assert_eq!(initial_cached_state, starknet.state.state.state.class_hash_to_compiled_class.len());
+        assert_eq!(
+            initial_cached_state,
+            starknet.state.state.state.class_hash_to_compiled_class.len()
+        );
         assert!(starknet.state.contract_classes.get(&class_hash).is_none())
     }
 
@@ -299,7 +301,7 @@ mod tests {
     #[test]
     fn add_declare_v1_transaction_should_return_rejected_txn_and_not_be_part_of_pending_state() {
         let (mut starknet, sender) = setup(Some(1));
-        
+
         let initial_cached_state = starknet.state.state.state.class_hash_to_compiled_class.len();
         let declare_txn = broadcasted_declare_transaction_v1(sender);
         let (txn_hash, _) = starknet.add_declare_transaction_v1(declare_txn).unwrap();
@@ -307,7 +309,10 @@ mod tests {
 
         assert_eq!(txn.finality_status, None);
         assert_eq!(txn.execution_result.status(), TransactionExecutionStatus::Reverted);
-        assert_eq!(initial_cached_state, starknet.state.state.state.class_hash_to_compiled_class.len());
+        assert_eq!(
+            initial_cached_state,
+            starknet.state.state.state.class_hash_to_compiled_class.len()
+        );
     }
 
     #[test]

@@ -49,8 +49,7 @@ pub fn add_deploy_account_transaction(
             true,
         );
 
-    match blockifier_execution_result
-    {
+    match blockifier_execution_result {
         Ok(tx_info) => match tx_info.revert_error {
             Some(error) => {
                 let transaction_to_add =
@@ -173,7 +172,9 @@ mod tests {
         assert_eq!(txn.finality_status, None);
         assert_eq!(
             txn.execution_result.revert_reason(),
-            Some(format!("Max fee (Fee({})) is too low. Minimum fee: Fee(3097).", fee_raw).as_str())
+            Some(
+                format!("Max fee (Fee({})) is too low. Minimum fee: Fee(3097).", fee_raw).as_str()
+            )
         );
     }
 

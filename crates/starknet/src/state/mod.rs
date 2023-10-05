@@ -13,7 +13,7 @@ use starknet_types::patricia_key::StorageKey;
 
 use self::state_diff::StateDiff;
 use crate::error::{DevnetResult, Error};
-use crate::traits::{StateChanger, StateExtractor, DevnetStateReader};
+use crate::traits::{DevnetStateReader, StateChanger, StateExtractor};
 
 pub(crate) mod state_diff;
 pub mod state_update;
@@ -125,9 +125,8 @@ impl blockifier::state::state_api::StateReader for DevnetState {
                     blockifier::state::errors::StateError::UndeclaredClassHash(*class_hash)
                 })?;
 
-        Ok(blockifier::execution::contract_class::ContractClass::try_from(contract_class).map_err(
-            |err| blockifier::state::errors::StateError::StateReadError(err.to_string()),
-        )?)
+        blockifier::execution::contract_class::ContractClass::try_from(contract_class)
+            .map_err(|err| blockifier::state::errors::StateError::StateReadError(err.to_string()))
     }
 
     fn get_compiled_class_hash(
@@ -149,23 +148,36 @@ impl starknet_in_rust::state::state_api::StateReader for DevnetState {
             starknet_in_rust::core::errors::state_errors::StateError::CustomError(err.to_string())
         })?;
 
-        let contract_class = crate::traits::DevnetStateReader::contract_class_at(self, &class_hash_as_felt)
-            .map_err(|err| match err {
-                Error::StateError(starknet_in_rust::core::errors::state_errors::StateError::MissingCasmClass(reason)) => {
-                    starknet_in_rust::core::errors::state_errors::StateError::MissingCasmClass(reason)
-                },
-                Error::StateError(starknet_in_rust::core::errors::state_errors::StateError::NoneCompiledHash(reason)) => {
-                    starknet_in_rust::core::errors::state_errors::StateError::NoneCompiledHash(reason)
-                }
-                general_error => {
-                    starknet_in_rust::core::errors::state_errors::StateError::CustomError(general_error.to_string())
-                },
-            })?;
+        let contract_class =
+            crate::traits::DevnetStateReader::contract_class_at(self, &class_hash_as_felt)
+                .map_err(|err| match err {
+                    Error::StateError(
+                        starknet_in_rust::core::errors::state_errors::StateError::MissingCasmClass(
+                            reason,
+                        ),
+                    ) => {
+                        starknet_in_rust::core::errors::state_errors::StateError::MissingCasmClass(
+                            reason,
+                        )
+                    }
+                    Error::StateError(
+                        starknet_in_rust::core::errors::state_errors::StateError::NoneCompiledHash(
+                            reason,
+                        ),
+                    ) => {
+                        starknet_in_rust::core::errors::state_errors::StateError::NoneCompiledHash(
+                            reason,
+                        )
+                    }
+                    general_error => {
+                        starknet_in_rust::core::errors::state_errors::StateError::CustomError(
+                            general_error.to_string(),
+                        )
+                    }
+                })?;
 
-        CompiledClass::try_from(contract_class.clone()).map_err(|err| {
-            starknet_in_rust::core::errors::state_errors::StateError::CustomError(
-                err.to_string(),
-            )
+        CompiledClass::try_from(contract_class).map_err(|err| {
+            starknet_in_rust::core::errors::state_errors::StateError::CustomError(err.to_string())
         })
     }
 
@@ -225,18 +237,17 @@ impl starknet_in_rust::state::state_api::StateReader for DevnetState {
         starknet_in_rust::core::errors::state_errors::StateError,
     > {
         let class_hash_as_felt = Felt::new(*class_hash).map_err(|err| {
-            starknet_in_rust::core::errors::state_errors::StateError::CustomError(
-                err.to_string(),
-            )
+            starknet_in_rust::core::errors::state_errors::StateError::CustomError(err.to_string())
         })?;
 
-        let compiled_class_hash = crate::traits::DevnetStateReader::compiled_class_hash_at(self, &class_hash_as_felt);
+        let compiled_class_hash =
+            crate::traits::DevnetStateReader::compiled_class_hash_at(self, &class_hash_as_felt);
         if compiled_class_hash == Felt::default() {
             return Err(starknet_in_rust::core::errors::state_errors::StateError::NoneCompiledHash(
                 *class_hash,
-            ))
+            ));
         }
-       
+
         Ok(compiled_class_hash.bytes())
     }
 }
@@ -342,26 +353,28 @@ impl StateChanger for StarknetState {
         // so we use our mapping contract_classes of the StarknetState to get the sierra
         // representation
         state_diff.declared_contracts.iter().try_for_each(|class_hash| -> DevnetResult<()> {
-            let compiled_class_hash = old_state.class_hash_to_compiled_class_hash.get(class_hash).ok_or(Error::StateError(
+            let compiled_class_hash = old_state
+                .class_hash_to_compiled_class_hash
+                .get(class_hash)
+                .ok_or(Error::StateError(
                 starknet_in_rust::core::errors::state_errors::StateError::NoneCompiledHash(
                     class_hash.bytes(),
                 ),
             ))?;
 
             let cairo_1_sierra =
-                    contract_classes_cache.get(class_hash).ok_or(Error::StateError(
-                        starknet_in_rust::core::errors::state_errors::StateError::MissingCasmClass(
-                            class_hash.bytes(),
-                        ),
-                    ))?;
+                contract_classes_cache.get(class_hash).ok_or(Error::StateError(
+                    starknet_in_rust::core::errors::state_errors::StateError::MissingCasmClass(
+                        class_hash.bytes(),
+                    ),
+                ))?;
 
             old_state
-            .class_hash_to_compiled_class
-            .insert(*compiled_class_hash, cairo_1_sierra.clone());
+                .class_hash_to_compiled_class
+                .insert(*compiled_class_hash, cairo_1_sierra.clone());
 
             Ok(())
         })?;
-
 
         // update deployed contracts
         old_state.address_to_class_hash.extend(state_diff.address_to_class_hash.iter());
@@ -379,10 +392,7 @@ impl StateExtractor for StarknetState {
             return Err(Error::ContractNotFound);
         }
 
-        let data = self
-            .state
-            .state
-            .storage_at(&storage_key);
+        let data = self.state.state.storage_at(&storage_key);
 
         Ok(data)
     }
@@ -415,8 +425,7 @@ impl StateExtractor for StarknetState {
             return Err(Error::ContractNotFound);
         }
 
-       Ok(self.state
-            .state.nonce_at(address))
+        Ok(self.state.state.nonce_at(address))
     }
 }
 
@@ -462,9 +471,7 @@ mod tests {
         assert!(!state.is_contract_declared(&dummy_felt()));
         state.state.get_compiled_contract_class(&class_hash).unwrap();
         let state_diff = state.extract_state_diff_from_pending_state().unwrap();
-        state
-            .apply_state_difference(state_diff)
-            .unwrap();
+        state.apply_state_difference(state_diff).unwrap();
 
         assert!(state.is_contract_declared(&dummy_felt()));
     }
@@ -472,12 +479,15 @@ mod tests {
     #[test]
     fn synchronize_states_after_changing_pending_state_it_should_be_empty() {
         let mut state = StarknetState::default();
-        let contract_address = starknet_api::core::ContractAddress::try_from(*dummy_contract_storage_key().get_contract_address()).unwrap();
-        let storage_key = starknet_api::state::StorageKey((*dummy_contract_storage_key().get_storage_key()).try_into().unwrap());
+        let contract_address = starknet_api::core::ContractAddress::try_from(
+            *dummy_contract_storage_key().get_contract_address(),
+        )
+        .unwrap();
+        let storage_key = starknet_api::state::StorageKey(
+            (*dummy_contract_storage_key().get_storage_key()).try_into().unwrap(),
+        );
 
-        state
-            .state
-            .set_storage_at(contract_address, storage_key, dummy_felt().into());
+        state.state.set_storage_at(contract_address, storage_key, dummy_felt().into());
 
         state.state.get_storage_at(contract_address, storage_key).unwrap();
 
@@ -494,11 +504,19 @@ mod tests {
         let mut state = StarknetState::default();
 
         let contract_address = *dummy_contract_storage_key().get_contract_address();
-        state.state.set_class_hash_at(contract_address.try_into().unwrap(), starknet_api::core::ClassHash(dummy_felt().into())).unwrap();
-
         state
             .state
-            .set_storage_at(contract_address.try_into().unwrap(), StorageKey((*dummy_contract_storage_key().get_storage_key()).try_into().unwrap()), dummy_felt().into());
+            .set_class_hash_at(
+                contract_address.try_into().unwrap(),
+                starknet_api::core::ClassHash(dummy_felt().into()),
+            )
+            .unwrap();
+
+        state.state.set_storage_at(
+            contract_address.try_into().unwrap(),
+            StorageKey((*dummy_contract_storage_key().get_storage_key()).try_into().unwrap()),
+            dummy_felt().into(),
+        );
 
         let get_storage_result = state.get_storage(dummy_contract_storage_key());
 
@@ -506,9 +524,7 @@ mod tests {
 
         // apply changes to persistent state
         let state_diff = state.extract_state_diff_from_pending_state().unwrap();
-        state
-            .apply_state_difference(state_diff)
-            .unwrap();
+        state.apply_state_difference(state_diff).unwrap();
         assert_eq!(state.get_storage(dummy_contract_storage_key()).unwrap(), dummy_felt());
     }
 
@@ -521,31 +537,17 @@ mod tests {
 
         // check if current nonce is 0
         assert!(
-            state
-                .state
-                .state
-                .address_to_nonce
-                .get(&contract_address)
-                .unwrap()
-                .eq(&Felt::from(0))
+            state.state.state.address_to_nonce.get(&contract_address).unwrap().eq(&Felt::from(0))
         );
 
         state.clear_dirty_state();
         state.state.increment_nonce(contract_address.try_into().unwrap()).unwrap();
         let state_diff = state.extract_state_diff_from_pending_state().unwrap();
-        state
-            .apply_state_difference(state_diff)
-            .unwrap();
+        state.apply_state_difference(state_diff).unwrap();
 
         // check if nonce update was correct
         assert!(
-            state
-                .state
-                .state
-                .address_to_nonce
-                .get(&contract_address)
-                .unwrap()
-                .eq(&Felt::from(1))
+            state.state.state.address_to_nonce.get(&contract_address).unwrap().eq(&Felt::from(1))
         );
     }
 
@@ -561,13 +563,8 @@ mod tests {
                 .is_ok()
         );
         assert!(state.state.state.class_hash_to_compiled_class.len() == 1);
-        let declared_contract_class = state
-            .state
-            .state
-            .class_hash_to_compiled_class
-            .get(&class_hash)
-            .unwrap()
-            .to_owned();
+        let declared_contract_class =
+            state.state.state.class_hash_to_compiled_class.get(&class_hash).unwrap().to_owned();
 
         match declared_contract_class {
             starknet_types::contract_class::ContractClass::Cairo0(deprecated_contract_class) => {
@@ -588,9 +585,7 @@ mod tests {
         assert!(state.deploy_contract(address, felt).is_ok());
         assert!(state.state.state.address_to_class_hash.len() == 1);
         assert!(state.state.state.address_to_class_hash.contains_key(&address));
-        assert!(
-            state.state.state.address_to_nonce.get(&address).unwrap().eq(&Felt::from(0))
-        );
+        assert!(state.state.state.address_to_nonce.get(&address).unwrap().eq(&Felt::from(0)));
     }
 
     #[test]

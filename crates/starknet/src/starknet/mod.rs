@@ -6,7 +6,6 @@ use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::state_api::StateReader;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
 use starknet_api::transaction::Fee;
-use starknet_in_rust::call_contract;
 use starknet_in_rust::definitions::block_context::{
     BlockContext, StarknetChainId, StarknetOsConfig,
 };
@@ -335,7 +334,7 @@ impl Starknet {
             .expect("should get current UNIX timestamp")
             .as_secs();
 
-        block_context.block_number = block_context.block_number + 1;
+        block_context.block_number += 1;
         block_context.block_timestamp = current_timestamp_secs;
     }
 
@@ -414,9 +413,13 @@ impl Starknet {
         }
 
         let call = CallEntryPoint {
-            calldata: starknet_api::transaction::Calldata(std::sync::Arc::new(calldata.iter().map(|f| f.into()).collect())),
+            calldata: starknet_api::transaction::Calldata(std::sync::Arc::new(
+                calldata.iter().map(|f| f.into()).collect(),
+            )),
             storage_address: starknet_api::hash::StarkFelt::from(contract_address).try_into()?,
-            entry_point_selector: starknet_api::core::EntryPointSelector(entrypoint_selector.into()),
+            entry_point_selector: starknet_api::core::EntryPointSelector(
+                entrypoint_selector.into(),
+            ),
             initial_gas: 1000000000,
             ..Default::default()
         };
@@ -428,7 +431,8 @@ impl Starknet {
                 self.block_context.to_blockifier()?,
                 blockifier::transaction::objects::AccountTransactionContext::default(),
                 1000000000,
-            ),)?;
+            ),
+        )?;
 
         Ok(res.execution.retdata.0.into_iter().map(Felt::from).collect())
     }
@@ -652,7 +656,6 @@ impl Starknet {
 mod tests {
     use blockifier::state::state_api::State;
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
-    use starknet_in_rust::transaction::error::TransactionError;
     use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
@@ -876,7 +879,11 @@ mod tests {
             entry_point_selector.into(),
             vec![Felt::from(predeployed_account.account_address)],
         ) {
-            Err(Error::EntryPointExectionError(blockifier::execution::errors::EntryPointExecutionError::PreExecutionError(blockifier::execution::errors::PreExecutionError::EntryPointNotFound(_)))) => (),
+            Err(Error::EntryPointExectionError(
+                blockifier::execution::errors::EntryPointExecutionError::PreExecutionError(
+                    blockifier::execution::errors::PreExecutionError::EntryPointNotFound(_),
+                ),
+            )) => (),
             unexpected => panic!("Should have failed; got {unexpected:?}"),
         }
     }

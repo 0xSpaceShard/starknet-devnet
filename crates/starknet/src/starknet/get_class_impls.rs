@@ -1,9 +1,7 @@
 use blockifier::state::errors::StateError;
-use blockifier::state::state_api::StateReader;
-use starknet_in_rust::SierraContractClass;
 use starknet_rs_core::types::BlockId;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
+use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Felt};
 
 use crate::error::{DevnetResult, Error};
@@ -16,33 +14,15 @@ pub fn get_class_hash_at_impl(
     contract_address: ContractAddress,
 ) -> DevnetResult<ClassHash> {
     let state = starknet.get_state_at(&block_id)?;
-    let class_hash = state.state.state.class_hash_at(&contract_address).into();
+    let class_hash = state.state.state.class_hash_at(&contract_address);
 
     if class_hash == Felt::default() {
-        return Err(Error::BlockifierStateError(StateError::UnavailableContractAddress(contract_address.try_into()?)));
+        return Err(Error::BlockifierStateError(StateError::UnavailableContractAddress(
+            contract_address.try_into()?,
+        )));
     }
 
     Ok(class_hash)
-}
-
-fn get_sierra_class(
-    starknet: &Starknet,
-    class_hash: &ClassHash,
-) -> DevnetResult<SierraContractClass> {
-    match starknet.state.contract_classes.get(class_hash) {
-        Some(contract) => Ok(contract.clone().try_into()?),
-        None => Err(Error::ContractNotFound),
-    }
-}
-
-fn get_cairo_0_class(
-    starknet: &Starknet,
-    class_hash: &ClassHash,
-) -> DevnetResult<Cairo0ContractClass> {
-    match starknet.state.contract_classes.get(class_hash) {
-        Some(contract) => Ok(contract.clone().try_into()?),
-        None => Err(Error::ContractNotFound),
-    }
 }
 
 pub fn get_class_impl(

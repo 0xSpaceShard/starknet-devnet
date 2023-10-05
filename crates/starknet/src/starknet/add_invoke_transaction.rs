@@ -1,5 +1,4 @@
 use blockifier::transaction::transactions::ExecutableTransaction;
-use starknet_in_rust::definitions::constants::INITIAL_GAS_COST;
 use starknet_in_rust::transaction::error::TransactionError;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
@@ -230,7 +229,13 @@ mod tests {
         let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
         let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
         assert_eq!(transaction.finality_status, None);
-        assert!(transaction.execution_result.revert_reason().unwrap().contains("Invalid transaction nonce"));
+        assert!(
+            transaction
+                .execution_result
+                .revert_reason()
+                .unwrap()
+                .contains("Invalid transaction nonce")
+        );
     }
 
     /// Initialize starknet object with: erc20 contract, account contract and  simple contract that

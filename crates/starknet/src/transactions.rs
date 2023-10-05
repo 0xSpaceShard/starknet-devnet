@@ -2,9 +2,7 @@ use std::collections::HashMap;
 
 use blockifier::transaction::objects::TransactionExecutionInfo as BlockifierTransactionExecutionInfo;
 use starknet_api::block::BlockNumber;
-use starknet_in_rust::execution::{
-    CallInfo, TransactionExecutionInfo as SirTransactionExecutionInfo,
-};
+use starknet_in_rust::execution::TransactionExecutionInfo as SirTransactionExecutionInfo;
 use starknet_rs_core::types::{ExecutionResult, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;

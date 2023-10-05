@@ -43,10 +43,9 @@ impl StateDiff {
         for (class_hash, class) in new_state.global_class_hash_to_class().get_order().iter() {
             let class_hash_as_felt: Felt = class_hash.0.into();
 
-            if !(
-                old_state.class_hash_to_compiled_class.contains_key(&class_hash_as_felt) 
-                || old_state.class_hash_to_compiled_class_hash.contains_key(&class_hash_as_felt)
-            ) {
+            if !(old_state.class_hash_to_compiled_class.contains_key(&class_hash_as_felt)
+                || old_state.class_hash_to_compiled_class_hash.contains_key(&class_hash_as_felt))
+            {
                 match class {
                     blockifier::execution::contract_class::ContractClass::V0(_) => {
                         cairo_0_declared_contracts.push(class_hash_as_felt)
@@ -121,16 +120,11 @@ impl StateDiff {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    use std::sync::Arc;
 
-    use blockifier::state::cached_state::{CachedState, GlobalContractCache};
+    use blockifier::state::cached_state::CachedState;
     use blockifier::state::state_api::State;
     use starknet_api::core::ClassHash;
     use starknet_api::hash::StarkFelt;
-    use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass;
-    use starknet_in_rust::state::cached_state::ContractClassCache;
-    use starknet_in_rust::CasmContractClass;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::felt::Felt;
 
@@ -146,7 +140,8 @@ mod tests {
         let (old_state, mut new_state) = setup();
 
         let generated_diff =
-            super::StateDiff::difference_between_old_and_new_state(old_state, &mut new_state).unwrap();
+            super::StateDiff::difference_between_old_and_new_state(old_state, &mut new_state)
+                .unwrap();
 
         let expected_diff = StateDiff::default();
 
@@ -156,11 +151,16 @@ mod tests {
     #[test]
     fn correct_difference_in_class_hash_to_compiled_class_hash() {
         let (old_state, mut new_state) = setup();
-        
+
         let class_hash = StarkFelt::from(1u8);
         let compiled_class_hash = StarkFelt::from(2u8);
 
-        new_state.set_compiled_class_hash(ClassHash(class_hash), starknet_api::core::CompiledClassHash(compiled_class_hash)).unwrap();
+        new_state
+            .set_compiled_class_hash(
+                ClassHash(class_hash),
+                starknet_api::core::CompiledClassHash(compiled_class_hash),
+            )
+            .unwrap();
 
         let generated_diff =
             super::StateDiff::difference_between_old_and_new_state(old_state, &mut new_state)
@@ -180,10 +180,16 @@ mod tests {
         let compiled_class_hash = Felt::from(1);
 
         let mut new_state = CachedState::from(old_state.clone());
-        new_state.set_contract_class(&ClassHash(compiled_class_hash.into()), ContractClass::Cairo1(dummy_cairo_1_contract_class()).try_into().unwrap()).unwrap();
+        new_state
+            .set_contract_class(
+                &ClassHash(compiled_class_hash.into()),
+                ContractClass::Cairo1(dummy_cairo_1_contract_class()).try_into().unwrap(),
+            )
+            .unwrap();
 
         let generated_diff =
-            super::StateDiff::difference_between_old_and_new_state(old_state, &mut new_state).unwrap();
+            super::StateDiff::difference_between_old_and_new_state(old_state, &mut new_state)
+                .unwrap();
 
         let mut expected_diff = StateDiff::default();
         expected_diff.declared_contracts.push(compiled_class_hash);
@@ -199,10 +205,16 @@ mod tests {
         let cairo_0_contract_class: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
 
         let mut new_state = CachedState::from(old_state.clone());
-        new_state.set_contract_class(&ClassHash(class_hash.into()), ContractClass::Cairo0(cairo_0_contract_class).try_into().unwrap()).unwrap();
+        new_state
+            .set_contract_class(
+                &ClassHash(class_hash.into()),
+                ContractClass::Cairo0(cairo_0_contract_class).try_into().unwrap(),
+            )
+            .unwrap();
 
         let generated_diff =
-            super::StateDiff::difference_between_old_and_new_state(old_state, &mut new_state).unwrap();
+            super::StateDiff::difference_between_old_and_new_state(old_state, &mut new_state)
+                .unwrap();
 
         let expected_diff = StateDiff {
             cairo_0_declared_contracts: vec![class_hash].into_iter().collect(),
