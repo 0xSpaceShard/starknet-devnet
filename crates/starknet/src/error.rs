@@ -8,6 +8,10 @@ pub enum Error {
     #[error(transparent)]
     StateError(#[from] starknet_in_rust::core::errors::state_errors::StateError),
     #[error(transparent)]
+    BlockifierStateError(#[from] blockifier::state::errors::StateError),
+    #[error(transparent)]
+    EntryPointExectionError(#[from] blockifier::execution::errors::EntryPointExecutionError),
+    #[error(transparent)]
     TransactionError(#[from] starknet_in_rust::transaction::error::TransactionError),
     #[error("Types error")]
     TypesError(#[from] starknet_types::error::Error),

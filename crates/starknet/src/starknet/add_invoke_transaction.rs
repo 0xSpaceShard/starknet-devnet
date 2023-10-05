@@ -27,10 +27,6 @@ pub fn add_invoke_transaction(
         broadcasted_invoke_transaction.create_invoke_transaction(transaction_hash);
     let transaction = Transaction::Invoke(InvokeTransaction::Version1(invoke_transaction));
 
-    // for now only handle the successful transaction execution info
-    let mut blockifier_cached_state = blockifier::state::cached_state::CachedState::from(
-        starknet.state.state.state_reader.as_ref().clone(),
-    );
     let blockifier_invoke_transaction = broadcasted_invoke_transaction
         .create_blockifier_invoke_transaction(starknet.chain_id().to_felt())?;
 
@@ -39,33 +35,25 @@ pub fn add_invoke_transaction(
             blockifier_invoke_transaction,
         )
         .execute(
-            &mut blockifier_cached_state,
+            &mut starknet.state.state,
             &starknet.block_context.to_blockifier()?,
             true,
             true,
         );
 
-    let state_before_txn = starknet.state.state.clone();
-
-    match sir_invoke_function.execute(
-        &mut starknet.state.state,
-        &starknet.block_context.to_starknet_in_rust()?,
-        INITIAL_GAS_COST,
-    ) {
+    match blockifier_execution_result {
         Ok(tx_info) => match tx_info.revert_error {
             Some(error) => {
                 let transaction_to_add =
                     StarknetTransaction::create_rejected(&transaction, None, &error);
 
                 starknet.transactions.insert(&transaction_hash, transaction_to_add);
-                // Revert to previous pending state
-                starknet.state.state = state_before_txn;
             }
             None => starknet.handle_successful_transaction(
                 &transaction_hash,
                 &transaction,
-                &tx_info,
-                blockifier_execution_result.unwrap(),
+                &Default::default(),
+                tx_info,
             )?,
         },
         Err(tx_err) => {
@@ -73,8 +61,6 @@ pub fn add_invoke_transaction(
                 StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
-            // Revert to previous pending state
-            starknet.state.state = state_before_txn;
         }
     }
 
@@ -244,10 +230,7 @@ mod tests {
         let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
         let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
         assert_eq!(transaction.finality_status, None);
-        assert_eq!(
-            transaction.execution_result.revert_reason(),
-            Some(format!("Invalid transaction nonce. Expected: 1 got {}", nonce).as_str())
-        );
+        assert!(transaction.execution_result.revert_reason().unwrap().contains("Invalid transaction nonce"));
     }
 
     /// Initialize starknet object with: erc20 contract, account contract and  simple contract that

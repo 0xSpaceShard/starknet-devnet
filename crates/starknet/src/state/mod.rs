@@ -1,10 +1,8 @@
 use std::collections::HashMap;
-use std::sync::Arc;
 
-use starknet_api::hash::StarkFelt;
+use blockifier::state::cached_state::CachedState;
+use blockifier::state::state_api::StateReader;
 use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass;
-use starknet_in_rust::state::cached_state::CachedState;
-use starknet_in_rust::state::state_api::StateReader;
 use starknet_in_rust::utils::Address;
 use starknet_types::cairo_felt::Felt252;
 use starknet_types::contract_address::ContractAddress;
@@ -15,15 +13,25 @@ use starknet_types::patricia_key::StorageKey;
 
 use self::state_diff::StateDiff;
 use crate::error::{DevnetResult, Error};
-use crate::traits::{StateChanger, StateExtractor};
+use crate::traits::{StateChanger, StateExtractor, DevnetStateReader};
 
 pub(crate) mod state_diff;
 pub mod state_update;
 
-#[derive(Default)]
 pub(crate) struct StarknetState {
     pub state: CachedState<DevnetState>,
+    pub sir_state: starknet_in_rust::state::cached_state::CachedState<DevnetState>,
     pub(crate) contract_classes: HashMap<ClassHash, ContractClass>,
+}
+
+impl Default for StarknetState {
+    fn default() -> Self {
+        Self {
+            state: CachedState::new(Default::default(), Default::default()),
+            sir_state: Default::default(),
+            contract_classes: Default::default(),
+        }
+    }
 }
 
 #[derive(Default, Clone)]
@@ -237,22 +245,17 @@ impl StarknetState {
     /// this method clears the state from data that was accumulated in the StateCache
     /// and restores it to the data in the state_reader, which is the "persistent" data
     pub(crate) fn clear_dirty_state(&mut self) {
-        self.state = CachedState::new(
-            self.state.state_reader.clone(),
-            self.state.contract_classes().clone(),
-        );
+        self.state = CachedState::new(self.state.state.clone(), Default::default());
     }
 
     /// this method is making deep copy of the object
-    /// because CachedState has a property of type Arc
+    /// because starknet_in_rust::CachedState has a property of type Arc
     /// and the derived clone method is making a shallow copy
     pub(crate) fn make_deep_clone(&self) -> Self {
         Self {
-            state: CachedState::new(
-                Arc::new(self.state.state_reader.as_ref().clone()),
-                self.state.contract_classes().clone(),
-            ),
+            state: CachedState::new(self.state.state.clone(), Default::default()),
             contract_classes: self.contract_classes.clone(),
+            sir_state: Clone::clone(&self.sir_state),
         }
     }
 }
@@ -264,7 +267,7 @@ impl StateChanger for StarknetState {
         contract_class: ContractClass,
     ) -> DevnetResult<()> {
         self.contract_classes.insert(class_hash, contract_class.clone());
-        let persistent_state = Arc::make_mut(&mut self.state.state_reader);
+        let persistent_state = &mut self.state.state;
 
         persistent_state.class_hash_to_compiled_class.insert(class_hash, contract_class);
 
@@ -276,7 +279,7 @@ impl StateChanger for StarknetState {
         address: ContractAddress,
         class_hash: ClassHash,
     ) -> DevnetResult<()> {
-        let persistent_state = Arc::make_mut(&mut self.state.state_reader);
+        let persistent_state = &mut self.state.state;
 
         persistent_state.address_to_class_hash.insert(address, class_hash);
         persistent_state.address_to_nonce.insert(address, Felt::from(0));
@@ -285,7 +288,7 @@ impl StateChanger for StarknetState {
     }
 
     fn change_storage(&mut self, storage_key: ContractStorageKey, data: Felt) -> DevnetResult<()> {
-        let persistent_state = Arc::make_mut(&mut self.state.state_reader);
+        let persistent_state = &mut self.state.state;
 
         persistent_state.address_to_storage.insert(storage_key, data);
 
@@ -293,16 +296,19 @@ impl StateChanger for StarknetState {
     }
 
     fn increment_nonce(&mut self, address: ContractAddress) -> DevnetResult<()> {
-        let nonce = self.state.state_reader.get_nonce_at(&address.into())?;
-        let persistent_state = Arc::make_mut(&mut self.state.state_reader);
+        let nonce = self.state.state.get_nonce_at(address.try_into()?)?;
+        let persistent_state = &mut self.state.state;
 
-        persistent_state.address_to_nonce.insert(address, (nonce + Felt252::new(1)).into());
+        let nonce = Felt::from(nonce.0);
+        persistent_state
+            .address_to_nonce
+            .insert(address, (Felt252::from(nonce) + Felt252::new(1)).into());
 
         Ok(())
     }
 
     fn apply_state_difference(&mut self, state_diff: StateDiff) -> DevnetResult<()> {
-        let old_state = Arc::make_mut(&mut self.state.state_reader);
+        let old_state = &mut self.state.state;
         let contract_classes_cache = &self.contract_classes;
 
         let storage_updates =
@@ -335,32 +341,27 @@ impl StateChanger for StarknetState {
         // We cant transform it to ContractClass, because there is no conversion from casm to sierra
         // so we use our mapping contract_classes of the StarknetState to get the sierra
         // representation
-        state_diff.declared_contracts.into_iter().try_for_each(
-            |compiled_class_hash| -> DevnetResult<()> {
-                let class_hash = old_state
-                    .class_hash_to_compiled_class_hash
-                    .iter()
-                    .find(|(_, val)| compiled_class_hash == **val)
-                    .map(|(key, _)| key)
-                    .ok_or(Error::StateError(
-                        starknet_in_rust::core::errors::state_errors::StateError::NoneCompiledClass(
-                            compiled_class_hash.bytes(),
-                        ),
-                    ))?;
+        state_diff.declared_contracts.iter().try_for_each(|class_hash| -> DevnetResult<()> {
+            let compiled_class_hash = old_state.class_hash_to_compiled_class_hash.get(class_hash).ok_or(Error::StateError(
+                starknet_in_rust::core::errors::state_errors::StateError::NoneCompiledHash(
+                    class_hash.bytes(),
+                ),
+            ))?;
 
-                let cairo_1_sierra =
+            let cairo_1_sierra =
                     contract_classes_cache.get(class_hash).ok_or(Error::StateError(
                         starknet_in_rust::core::errors::state_errors::StateError::MissingCasmClass(
                             class_hash.bytes(),
                         ),
                     ))?;
-                old_state
-                    .class_hash_to_compiled_class
-                    .insert(compiled_class_hash, cairo_1_sierra.clone());
 
-                Ok(())
-            },
-        )?;
+            old_state
+            .class_hash_to_compiled_class
+            .insert(*compiled_class_hash, cairo_1_sierra.clone());
+
+            Ok(())
+        })?;
+
 
         // update deployed contracts
         old_state.address_to_class_hash.extend(state_diff.address_to_class_hash.iter());
@@ -378,33 +379,35 @@ impl StateExtractor for StarknetState {
             return Err(Error::ContractNotFound);
         }
 
-        let storage_entry = storage_key.into();
-        let data = self.state.get_storage_at(&storage_entry).map(Felt::from)?;
+        let data = self
+            .state
+            .state
+            .storage_at(&storage_key);
 
         Ok(data)
     }
 
     fn is_contract_declared(&mut self, class_hash: &ClassHash) -> bool {
-        self.state.state_reader.class_hash_to_compiled_class_hash.contains_key(class_hash)
-            || self.state.state_reader.class_hash_to_compiled_class.contains_key(class_hash)
+        self.state.state.class_hash_to_compiled_class_hash.contains_key(class_hash)
+            || self.state.state.class_hash_to_compiled_class.contains_key(class_hash)
     }
 
     fn is_contract_deployed(&self, address: &ContractAddress) -> bool {
-        self.state.state_reader.address_to_class_hash.contains_key(address)
+        self.state.state.address_to_class_hash.contains_key(address)
     }
 
     fn get_class_hash_at_contract_address(
         &mut self,
         contract_address: &ContractAddress,
     ) -> DevnetResult<ClassHash> {
-        Ok(self.state.get_class_hash_at(&contract_address.into()).map(Felt::new)??)
+        Ok(self
+            .state
+            .get_class_hash_at((*contract_address).try_into()?)
+            .map(|f| Felt::from(f.0))?)
     }
 
-    fn extract_state_diff_from_pending_state(&self) -> DevnetResult<StateDiff> {
-        StateDiff::difference_between_old_and_new_state(
-            self.state.state_reader.as_ref().clone(),
-            self.state.clone(),
-        )
+    fn extract_state_diff_from_pending_state(&mut self) -> DevnetResult<StateDiff> {
+        StateDiff::difference_between_old_and_new_state(self.state.state.clone(), &mut self.state)
     }
 
     fn get_nonce(&self, address: &ContractAddress) -> DevnetResult<Felt> {
@@ -412,21 +415,21 @@ impl StateExtractor for StarknetState {
             return Err(Error::ContractNotFound);
         }
 
-        self.state.get_nonce_at(&address.into()).map(Felt::from).map_err(Error::from)
+       Ok(self.state
+            .state.nonce_at(address))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
+    use blockifier::state::state_api::{State, StateReader};
     use blockifier::test_utils::DictStateReader;
+    use starknet_api::state::StorageKey;
     use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass;
     use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
     use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
-    use starknet_in_rust::state::state_api::{State, StateReader};
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::Cairo0ContractClass;
+    use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::{ClassHash, Felt};
 
@@ -443,23 +446,24 @@ mod tests {
     fn apply_state_update_for_contract_class_successfully() {
         let mut state = StarknetState::default();
 
-        let class_hash = dummy_felt().bytes();
+        let class_hash = dummy_felt().into();
         let contract_class: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
 
         state
             .state
             .set_contract_class(
                 &class_hash,
-                &CompiledClass::Deprecated(Arc::new(contract_class.clone().try_into().unwrap())),
+                ContractClass::Cairo0(contract_class.clone()).try_into().unwrap(),
             )
             .unwrap();
 
         state.contract_classes.insert(class_hash.into(), contract_class.into());
 
         assert!(!state.is_contract_declared(&dummy_felt()));
-        state.state.get_contract_class(&class_hash).unwrap();
+        state.state.get_compiled_contract_class(&class_hash).unwrap();
+        let state_diff = state.extract_state_diff_from_pending_state().unwrap();
         state
-            .apply_state_difference(state.extract_state_diff_from_pending_state().unwrap())
+            .apply_state_difference(state_diff)
             .unwrap();
 
         assert!(state.is_contract_declared(&dummy_felt()));
@@ -468,16 +472,19 @@ mod tests {
     #[test]
     fn synchronize_states_after_changing_pending_state_it_should_be_empty() {
         let mut state = StarknetState::default();
+        let contract_address = starknet_api::core::ContractAddress::try_from(*dummy_contract_storage_key().get_contract_address()).unwrap();
+        let storage_key = starknet_api::state::StorageKey((*dummy_contract_storage_key().get_storage_key()).try_into().unwrap());
+
         state
             .state
-            .set_storage_at(&dummy_contract_storage_key().try_into().unwrap(), dummy_felt().into());
+            .set_storage_at(contract_address, storage_key, dummy_felt().into());
 
-        state.state.get_storage_at(&dummy_contract_storage_key().try_into().unwrap()).unwrap();
+        state.state.get_storage_at(contract_address, storage_key).unwrap();
 
         state.clear_dirty_state();
 
         assert_eq!(
-            state.state.get_storage_at(&dummy_contract_storage_key().try_into().unwrap()).unwrap(),
+            state.state.get_storage_at(contract_address, storage_key).unwrap(),
             Felt::default().into()
         );
     }
@@ -485,25 +492,22 @@ mod tests {
     #[test]
     fn apply_state_updates_for_storage_successfully() {
         let mut state = StarknetState::default();
-        state
-            .state
-            .deploy_contract(
-                dummy_contract_storage_key().get_contract_address().into(),
-                dummy_felt().into(),
-            )
-            .unwrap();
+
+        let contract_address = *dummy_contract_storage_key().get_contract_address();
+        state.state.set_class_hash_at(contract_address.try_into().unwrap(), starknet_api::core::ClassHash(dummy_felt().into())).unwrap();
 
         state
             .state
-            .set_storage_at(&dummy_contract_storage_key().try_into().unwrap(), dummy_felt().into());
+            .set_storage_at(contract_address.try_into().unwrap(), StorageKey((*dummy_contract_storage_key().get_storage_key()).try_into().unwrap()), dummy_felt().into());
 
         let get_storage_result = state.get_storage(dummy_contract_storage_key());
 
         assert!(matches!(get_storage_result.unwrap_err(), Error::ContractNotFound));
 
         // apply changes to persistent state
+        let state_diff = state.extract_state_diff_from_pending_state().unwrap();
         state
-            .apply_state_difference(state.extract_state_diff_from_pending_state().unwrap())
+            .apply_state_difference(state_diff)
             .unwrap();
         assert_eq!(state.get_storage(dummy_contract_storage_key()).unwrap(), dummy_felt());
     }
@@ -519,7 +523,7 @@ mod tests {
         assert!(
             state
                 .state
-                .state_reader
+                .state
                 .address_to_nonce
                 .get(&contract_address)
                 .unwrap()
@@ -527,16 +531,17 @@ mod tests {
         );
 
         state.clear_dirty_state();
-        state.state.increment_nonce(&contract_address.try_into().unwrap()).unwrap();
+        state.state.increment_nonce(contract_address.try_into().unwrap()).unwrap();
+        let state_diff = state.extract_state_diff_from_pending_state().unwrap();
         state
-            .apply_state_difference(state.extract_state_diff_from_pending_state().unwrap())
+            .apply_state_difference(state_diff)
             .unwrap();
 
         // check if nonce update was correct
         assert!(
             state
                 .state
-                .state_reader
+                .state
                 .address_to_nonce
                 .get(&contract_address)
                 .unwrap()
@@ -555,10 +560,10 @@ mod tests {
                 .declare_contract_class(class_hash, contract_class.clone().try_into().unwrap())
                 .is_ok()
         );
-        assert!(state.state.state_reader.class_hash_to_compiled_class.len() == 1);
+        assert!(state.state.state.class_hash_to_compiled_class.len() == 1);
         let declared_contract_class = state
             .state
-            .state_reader
+            .state
             .class_hash_to_compiled_class
             .get(&class_hash)
             .unwrap()
@@ -581,10 +586,10 @@ mod tests {
         let felt = dummy_felt();
 
         assert!(state.deploy_contract(address, felt).is_ok());
-        assert!(state.state.state_reader.address_to_class_hash.len() == 1);
-        assert!(state.state.state_reader.address_to_class_hash.contains_key(&address));
+        assert!(state.state.state.address_to_class_hash.len() == 1);
+        assert!(state.state.state.address_to_class_hash.contains_key(&address));
         assert!(
-            state.state.state_reader.address_to_nonce.get(&address).unwrap().eq(&Felt::from(0))
+            state.state.state.address_to_nonce.get(&address).unwrap().eq(&Felt::from(0))
         );
     }
 
@@ -594,8 +599,8 @@ mod tests {
         let storage_key = dummy_contract_storage_key();
 
         assert!(state.change_storage(storage_key, dummy_felt()).is_ok());
-        assert!(state.state.state_reader.address_to_storage.len() == 1);
-        assert!(state.state.state_reader.address_to_storage.contains_key(&(storage_key)));
+        assert!(state.state.state.address_to_storage.len() == 1);
+        assert!(state.state.state.address_to_storage.contains_key(&(storage_key)));
     }
 
     #[test]
@@ -603,7 +608,7 @@ mod tests {
         let (mut state, address) = setup();
 
         state.increment_nonce(address).unwrap();
-        let nonce = *state.state.state_reader.address_to_nonce.get(&address).unwrap();
+        let nonce = *state.state.state.address_to_nonce.get(&address).unwrap();
         let expected_nonce = Felt::from(1);
 
         assert_eq!(expected_nonce, nonce);
@@ -635,20 +640,6 @@ mod tests {
     fn get_nonce_should_return_zero_for_freshly_deployed_contract() {
         let (state, address) = setup();
         assert_eq!(state.get_nonce(&address).unwrap(), Felt::from(0));
-    }
-
-    #[test]
-    fn check_clone_derived_vs_make_deep_clone_method() {
-        let state = StarknetState::default();
-
-        let deep_cloned_state = state.make_deep_clone();
-
-        // get pointers to Arcs
-        let p_state = Arc::as_ptr(&state.state.state_reader);
-        let p_deep_cloned_state = Arc::as_ptr(&deep_cloned_state.state.state_reader);
-
-        // deep cloned should not point to the same memory location as the original
-        assert_ne!(p_deep_cloned_state, p_state);
     }
 
     #[test]

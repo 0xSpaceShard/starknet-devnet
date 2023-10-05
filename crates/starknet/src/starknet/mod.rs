@@ -2,6 +2,8 @@ use std::collections::HashMap;
 use std::net::IpAddr;
 use std::time::SystemTime;
 
+use blockifier::execution::entry_point::CallEntryPoint;
+use blockifier::state::state_api::StateReader;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
 use starknet_api::transaction::Fee;
 use starknet_in_rust::call_contract;
@@ -14,10 +16,8 @@ use starknet_in_rust::definitions::constants::{
     DEFAULT_VALIDATE_MAX_N_STEPS,
 };
 use starknet_in_rust::execution::TransactionExecutionInfo;
-use starknet_in_rust::state::state_api::State;
 use starknet_in_rust::state::BlockInfo;
 use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
-use starknet_in_rust::utils::Address;
 use starknet_rs_core::types::{BlockId, MsgFromL1, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
@@ -413,16 +413,24 @@ impl Starknet {
             return Err(Error::ContractNotFound);
         }
 
-        let result = call_contract(
-            contract_address.into(),
-            entrypoint_selector.into(),
-            calldata.iter().map(|c| c.into()).collect(),
-            &mut state.state.clone(),
-            self.block_context.clone().to_starknet_in_rust()?,
-            // dummy caller_address since there is no account address
-            ContractAddress::zero().into(),
-        )?;
-        Ok(result.iter().map(|e| Felt::from(e.clone())).collect())
+        let call = CallEntryPoint {
+            calldata: starknet_api::transaction::Calldata(std::sync::Arc::new(calldata.iter().map(|f| f.into()).collect())),
+            storage_address: starknet_api::hash::StarkFelt::from(contract_address).try_into()?,
+            entry_point_selector: starknet_api::core::EntryPointSelector(entrypoint_selector.into()),
+            initial_gas: 1000000000,
+            ..Default::default()
+        };
+
+        let res = call.execute(
+            &mut state.make_deep_clone().state,
+            &mut blockifier::execution::entry_point::ExecutionResources::default(),
+            &mut blockifier::execution::entry_point::EntryPointExecutionContext::new(
+                self.block_context.to_blockifier()?,
+                blockifier::transaction::objects::AccountTransactionContext::default(),
+                1000000000,
+            ),)?;
+
+        Ok(res.execution.retdata.0.into_iter().map(Felt::from).collect())
     }
 
     // TODO: move to estimate_fee file
@@ -483,7 +491,10 @@ impl Starknet {
     pub async fn mint(&mut self, address: ContractAddress, amount: u128) -> DevnetResult<Felt> {
         let sufficiently_big_max_fee: u128 = self.config.gas_price as u128 * 1_000_000;
         let chargeable_address_felt = Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?;
-        let nonce = self.state.state.get_nonce_at(&Address(chargeable_address_felt.into()))?;
+        let nonce =
+            self.state.state.get_nonce_at(starknet_api::core::ContractAddress::try_from(
+                starknet_api::hash::StarkFelt::from(chargeable_address_felt),
+            )?)?;
 
         let calldata = vec![
             Felt::from(address).into(),
@@ -498,7 +509,7 @@ impl Starknet {
                 selector: get_selector_from_name("mint").unwrap(),
                 calldata: calldata.clone(),
             }],
-            nonce: Felt::from(nonce.clone()).into(),
+            nonce: Felt::from(nonce.0).into(),
             max_fee: FieldElement::from(sufficiently_big_max_fee),
         };
 
@@ -522,7 +533,7 @@ impl Starknet {
                 max_fee: Fee(sufficiently_big_max_fee),
                 version: Felt::from(1),
                 signature: vec![signature.r.into(), signature.s.into()],
-                nonce: nonce.into(),
+                nonce: nonce.0.into(),
             },
         };
 
@@ -639,6 +650,7 @@ impl Starknet {
 
 #[cfg(test)]
 mod tests {
+    use blockifier::state::state_api::State;
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
     use starknet_in_rust::transaction::error::TransactionError;
     use starknet_rs_core::types::{BlockId, BlockTag};
@@ -864,7 +876,7 @@ mod tests {
             entry_point_selector.into(),
             vec![Felt::from(predeployed_account.account_address)],
         ) {
-            Err(Error::TransactionError(TransactionError::EntryPointNotFound)) => (),
+            Err(Error::EntryPointExectionError(blockifier::execution::errors::EntryPointExecutionError::PreExecutionError(blockifier::execution::errors::PreExecutionError::EntryPointNotFound(_)))) => (),
             unexpected => panic!("Should have failed; got {unexpected:?}"),
         }
     }
@@ -980,12 +992,7 @@ mod tests {
 
         // **generate second block**
         // add data to state
-        starknet
-            .state
-            .state
-            .cache_mut()
-            .nonce_writes_mut()
-            .insert(dummy_contract_address().try_into().unwrap(), Felt::from(1).into());
+        starknet.state.state.increment_nonce(dummy_contract_address().try_into().unwrap()).unwrap();
         // get state difference
         let state_diff = starknet.state.extract_state_diff_from_pending_state().unwrap();
         // move data from pending_state to state
@@ -996,12 +1003,7 @@ mod tests {
 
         // **generate third block**
         // add data to state
-        starknet
-            .state
-            .state
-            .cache_mut()
-            .nonce_writes_mut()
-            .insert(dummy_contract_address().try_into().unwrap(), Felt::from(2).into());
+        starknet.state.state.increment_nonce(dummy_contract_address().try_into().unwrap()).unwrap();
         // get state difference
         let state_diff = starknet.state.extract_state_diff_from_pending_state().unwrap();
         // move data from pending_state to state
@@ -1017,7 +1019,7 @@ mod tests {
             .get(&second_block)
             .unwrap()
             .state
-            .state_reader
+            .state
             .address_to_nonce
             .get(&dummy_contract_address())
             .unwrap();
@@ -1030,7 +1032,7 @@ mod tests {
             .get(&third_block)
             .unwrap()
             .state
-            .state_reader
+            .state
             .address_to_nonce
             .get(&dummy_contract_address())
             .unwrap();

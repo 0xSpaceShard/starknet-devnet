@@ -27,15 +27,10 @@ pub fn add_declare_transaction_v2(
     let transaction_hash = sir_declare_transaction.hash_value.clone().into();
     let class_hash: ClassHash = sir_declare_transaction.sierra_class_hash.clone().into();
 
-    let state_before_txn = starknet.state.state.clone();
     let transaction = Transaction::Declare(DeclareTransaction::Version2(
         sir_declare_transaction.clone().try_into()?,
     ));
 
-    // for now only handle the successful transaction execution info
-    let mut blockifier_cached_state = blockifier::state::cached_state::CachedState::from(
-        starknet.state.state.state_reader.as_ref().clone(),
-    );
     let blockifier_declare_transaction =
         broadcasted_declare_transaction.create_blockifier_declare(starknet.chain_id().to_felt())?;
 
@@ -44,15 +39,13 @@ pub fn add_declare_transaction_v2(
             blockifier_declare_transaction,
         )
         .execute(
-            &mut blockifier_cached_state,
+            &mut starknet.state.state,
             &starknet.block_context.to_blockifier()?,
             true,
             true,
         );
 
-    match sir_declare_transaction
-        .execute(&mut starknet.state.state, &starknet.block_context.to_starknet_in_rust()?)
-    {
+    match blockifier_execution_result {
         Ok(tx_info) => match tx_info.revert_error {
             // Add sierra contract
             Some(error) => {
@@ -60,8 +53,6 @@ pub fn add_declare_transaction_v2(
                     StarknetTransaction::create_rejected(&transaction, None, &error);
 
                 starknet.transactions.insert(&transaction_hash, transaction_to_add);
-                // Revert to previous pending state
-                starknet.state.state = state_before_txn;
             }
             None => {
                 starknet.state.contract_classes.insert(
@@ -71,8 +62,8 @@ pub fn add_declare_transaction_v2(
                 starknet.handle_successful_transaction(
                     &transaction_hash,
                     &transaction,
-                    &tx_info,
-                    blockifier_execution_result.unwrap(),
+                    &Default::default(),
+                    tx_info,
                 )?;
             }
         },
@@ -81,8 +72,6 @@ pub fn add_declare_transaction_v2(
                 StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
-            // Revert to previous pending state
-            starknet.state.state = state_before_txn;
         }
     }
 
@@ -101,8 +90,6 @@ pub fn add_declare_transaction_v1(
         ));
     }
 
-    let state_before_txn = starknet.state.state.clone();
-
     let class_hash = broadcasted_declare_transaction.generate_class_hash()?;
     let transaction_hash = broadcasted_declare_transaction
         .calculate_transaction_hash(&starknet.config.chain_id.to_felt(), &class_hash)?;
@@ -114,10 +101,6 @@ pub fn add_declare_transaction_v1(
     let sir_declare_transaction =
         broadcasted_declare_transaction.create_sir_declare(class_hash, transaction_hash)?;
 
-    // for now only handle the successful transaction execution info
-    let mut blockifier_cached_state = blockifier::state::cached_state::CachedState::from(
-        starknet.state.state.state_reader.as_ref().clone(),
-    );
     let blockifier_declare_transaction =
         broadcasted_declare_transaction.create_blockifier_declare(class_hash, transaction_hash)?;
 
@@ -126,23 +109,19 @@ pub fn add_declare_transaction_v1(
             blockifier_declare_transaction,
         )
         .execute(
-            &mut blockifier_cached_state,
+            &mut starknet.state.state,
             &starknet.block_context.to_blockifier()?,
             true,
             true,
         );
 
-    match sir_declare_transaction
-        .execute(&mut starknet.state.state, &starknet.block_context.to_starknet_in_rust()?)
-    {
+    match blockifier_execution_result {
         Ok(tx_info) => match tx_info.revert_error {
             Some(error) => {
                 let transaction_to_add =
                     StarknetTransaction::create_rejected(&transaction, None, &error);
 
                 starknet.transactions.insert(&transaction_hash, transaction_to_add);
-                // Revert to previous pending state
-                starknet.state.state = state_before_txn;
             }
             None => {
                 starknet
@@ -152,8 +131,8 @@ pub fn add_declare_transaction_v1(
                 starknet.handle_successful_transaction(
                     &transaction_hash,
                     &transaction,
-                    &tx_info,
-                    blockifier_execution_result.unwrap(),
+                    &Default::default(),
+                    tx_info,
                 )?;
             }
         },
@@ -162,8 +141,6 @@ pub fn add_declare_transaction_v1(
                 StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
-            // Revert to previous pending state
-            starknet.state.state = state_before_txn;
         }
     }
 
@@ -233,14 +210,14 @@ mod tests {
     #[test]
     fn add_declare_v2_transaction_should_return_rejected_txn_and_not_be_part_of_pending_state() {
         let (mut starknet, sender) = setup(Some(1));
-        let initial_cached_state = starknet.state.state.contract_classes().len();
+        let initial_cached_state = starknet.state.state.state.class_hash_to_compiled_class.len();
         let declare_txn = dummy_broadcasted_declare_transaction_v2(&sender);
         let (txn_hash, class_hash) = starknet.add_declare_transaction_v2(declare_txn).unwrap();
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
 
         assert_eq!(txn.finality_status, None);
         assert_eq!(txn.execution_result.status(), TransactionExecutionStatus::Reverted);
-        assert_eq!(initial_cached_state, starknet.state.state.contract_classes().len());
+        assert_eq!(initial_cached_state, starknet.state.state.state.class_hash_to_compiled_class.len());
         assert!(starknet.state.contract_classes.get(&class_hash).is_none())
     }
 
@@ -279,7 +256,7 @@ mod tests {
             !starknet
                 .state
                 .state
-                .state_reader
+                .state
                 .class_hash_to_compiled_class
                 .contains_key(&expected_compiled_class_hash)
         );
@@ -322,14 +299,15 @@ mod tests {
     #[test]
     fn add_declare_v1_transaction_should_return_rejected_txn_and_not_be_part_of_pending_state() {
         let (mut starknet, sender) = setup(Some(1));
-        let initial_cached_state = starknet.state.state.contract_classes().len();
+        
+        let initial_cached_state = starknet.state.state.state.class_hash_to_compiled_class.len();
         let declare_txn = broadcasted_declare_transaction_v1(sender);
         let (txn_hash, _) = starknet.add_declare_transaction_v1(declare_txn).unwrap();
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
 
         assert_eq!(txn.finality_status, None);
         assert_eq!(txn.execution_result.status(), TransactionExecutionStatus::Reverted);
-        assert_eq!(initial_cached_state, starknet.state.state.contract_classes().len());
+        assert_eq!(initial_cached_state, starknet.state.state.state.class_hash_to_compiled_class.len());
     }
 
     #[test]

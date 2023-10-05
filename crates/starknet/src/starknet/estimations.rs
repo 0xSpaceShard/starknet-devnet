@@ -57,7 +57,7 @@ pub fn estimate_fee(
                 }
             })
             .collect::<DevnetResult<Vec<starknet_in_rust::transaction::Transaction>>>()?,
-        state.state.clone(),
+        state.sir_state.clone(),
         &starknet.block_context.to_starknet_in_rust()?,
     )?;
 
@@ -95,7 +95,7 @@ pub fn estimate_message_fee(
         estimate_message_fee.create_sir_l1_handler(starknet.config.chain_id.to_felt())?;
     let (_, gas_consumed) = starknet_in_rust::estimate_message_fee(
         &sir_l1_handler,
-        state.state.clone(),
+        state.sir_state.clone(),
         &starknet.block_context.to_starknet_in_rust()?,
     )?;
 

@@ -60,7 +60,7 @@ pub trait StateExtractor {
         &mut self,
         address: &ContractAddress,
     ) -> DevnetResult<ClassHash>;
-    fn extract_state_diff_from_pending_state(&self) -> DevnetResult<StateDiff>;
+    fn extract_state_diff_from_pending_state(&mut self) -> DevnetResult<StateDiff>;
     fn get_nonce(&self, address: &ContractAddress) -> DevnetResult<Felt>;
 }
 

@@ -35,10 +35,6 @@ pub fn add_deploy_account_transaction(
 
     let transaction = Transaction::DeployAccount(deploy_account_transaction);
 
-    // for now only handle the successful transaction execution info
-    let mut blockifier_cached_state = blockifier::state::cached_state::CachedState::from(
-        starknet.state.state.state_reader.as_ref().clone(),
-    );
     let blockifier_deploy_account_transaction = broadcasted_deploy_account_transaction
         .create_blockifier_deploy_account(starknet.chain_id().to_felt())?;
 
@@ -47,15 +43,13 @@ pub fn add_deploy_account_transaction(
             blockifier_deploy_account_transaction,
         )
         .execute(
-            &mut blockifier_cached_state,
+            &mut starknet.state.state,
             &starknet.block_context.to_blockifier()?,
             true,
             true,
         );
 
-    let state_before_txn = starknet.state.state.clone();
-    match sir_deploy_account_transaction
-        .execute(&mut starknet.state.state, &starknet.block_context.to_starknet_in_rust()?)
+    match blockifier_execution_result
     {
         Ok(tx_info) => match tx_info.revert_error {
             Some(error) => {
@@ -63,14 +57,12 @@ pub fn add_deploy_account_transaction(
                     StarknetTransaction::create_rejected(&transaction, None, &error);
 
                 starknet.transactions.insert(&transaction_hash, transaction_to_add);
-                // Revert to previous pending state
-                starknet.state.state = state_before_txn;
             }
             None => starknet.handle_successful_transaction(
                 &transaction_hash,
                 &transaction,
-                &tx_info,
-                blockifier_execution_result.unwrap(),
+                &Default::default(),
+                tx_info,
             )?,
         },
         Err(tx_err) => {
@@ -78,8 +70,6 @@ pub fn add_deploy_account_transaction(
                 StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
-            // Revert to previous pending state
-            starknet.state.state = state_before_txn;
         }
     }
 
@@ -129,7 +119,7 @@ mod tests {
     fn deploy_account_transaction_should_fail_due_to_not_enough_balance() {
         let (mut starknet, account_class_hash, _) = setup();
 
-        let fee_raw: u128 = 2000;
+        let fee_raw: u128 = 4000;
         let transaction = BroadcastedDeployAccountTransaction::new(
             &vec![],
             Fee(fee_raw),
@@ -144,7 +134,8 @@ mod tests {
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
 
         assert_eq!(txn.finality_status, None);
-        assert!(txn.execution_result.revert_reason().unwrap().contains("Fee transfer failure"));
+        println!("{}", txn.execution_result.revert_reason().unwrap());
+        assert!(txn.execution_result.revert_reason().unwrap().contains("exceeds balance"));
     }
 
     #[test]
@@ -182,12 +173,12 @@ mod tests {
         assert_eq!(txn.finality_status, None);
         assert_eq!(
             txn.execution_result.revert_reason(),
-            Some(format!("Calculated fee (3709) exceeds max fee ({})", fee_raw).as_str())
+            Some(format!("Max fee (Fee({})) is too low. Minimum fee: Fee(3097).", fee_raw).as_str())
         );
     }
 
     fn get_accounts_count(starknet: &Starknet) -> usize {
-        starknet.state.state.state_reader.address_to_class_hash.len()
+        starknet.state.state.state.address_to_class_hash.len()
     }
 
     #[test]
