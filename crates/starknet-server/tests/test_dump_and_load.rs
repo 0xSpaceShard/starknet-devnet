@@ -2,8 +2,11 @@ pub mod common;
 
 // Important! Use unique file names for dump files, tests can be run in parallel.
 mod dump_and_load_tests {
+    use std::path::Path;
     use std::process::Command;
 
+    use hyper::Body;
+    use serde_json::json;
     use starknet_rs_providers::Provider;
 
     use crate::common::devnet::BackgroundDevnet;
@@ -211,5 +214,52 @@ mod dump_and_load_tests {
         }
 
         remove_file(dump_file_name);
+    }
+
+    #[tokio::test]
+    async fn dump_load_endpoint() {
+        let dump_file_name = "dump_endpoint";
+        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(Some(
+            ["--dump-path", dump_file_name, "--dump-on", "exit"].to_vec(),
+        ))
+        .await
+        .expect("Could not start Devnet");
+
+        let mint_tx_hash = devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+        let dump_body = Body::from(
+            json!({
+                "path": dump_file_name
+            })
+            .to_string(),
+        );
+        devnet_dump.post_json("/dump".into(), dump_body).await.unwrap();
+        let file_path = Path::new(dump_file_name);
+        assert!(file_path.exists());
+
+        let devnet_load = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let load_body = Body::from(
+            json!({
+                "path": dump_file_name
+            })
+            .to_string(),
+        );
+        devnet_load.post_json("/load".into(), load_body).await.unwrap();
+
+        let loaded_transaction =
+            devnet_load.json_rpc_client.get_transaction_by_hash(mint_tx_hash).await.unwrap();
+        if let starknet_rs_core::types::Transaction::Invoke(
+            starknet_rs_core::types::InvokeTransaction::V1(invoke_v1),
+        ) = loaded_transaction
+        {
+            assert_eq!(invoke_v1.transaction_hash, mint_tx_hash);
+        } else {
+            panic!("Could not unpack the transaction from {loaded_transaction:?}");
+        }
+
+        if file_path.exists() {
+            remove_file(dump_file_name);
+        } else {
+            panic!("Could not find dump file {}", dump_file_name);
+        }
     }
 }
