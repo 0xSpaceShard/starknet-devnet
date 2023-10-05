@@ -35,12 +35,13 @@ use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
-use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
+use starknet_types::rpc::transactions::broadcasted_invoke_transaction::{
+    create_sir_transactions, BroadcastedInvokeTransaction,
+};
 use starknet_types::rpc::transactions::{
-    BroadcastedDeclareTransaction, BroadcastedTransaction, BroadcastedTransactionCommon,
-    DeclareTransactionTrace, DeployAccountTransactionTrace, ExecutionInvocation,
-    InvokeTransactionTrace, SimulatedTransaction, SimulationFlag, Transaction, TransactionTrace,
-    Transactions,
+    BroadcastedTransaction, BroadcastedTransactionCommon, DeclareTransactionTrace,
+    DeployAccountTransactionTrace, ExecutionInvocation, InvokeTransactionTrace,
+    SimulatedTransaction, SimulationFlag, Transaction, TransactionTrace, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, warn};
@@ -600,45 +601,15 @@ impl Starknet {
             }
         }
 
-        let chain_id: Felt = self.chain_id().to_felt();
-
-        let mut sir_txs = vec![];
-        for tx in transactions {
-            let sir_tx = match tx {
-                BroadcastedTransaction::Invoke(invoke_tx) => {
-                    starknet_in_rust::transaction::Transaction::InvokeFunction(
-                        invoke_tx.create_sir_invoke_function(chain_id)?,
-                    )
-                }
-                BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(declare_tx)) => {
-                    let class_hash = declare_tx.generate_class_hash()?;
-                    starknet_in_rust::transaction::Transaction::Declare(
-                        declare_tx.create_sir_declare(
-                            class_hash,
-                            declare_tx.calculate_transaction_hash(&chain_id, &class_hash)?,
-                        )?,
-                    )
-                }
-                BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(declare_tx)) => {
-                    let sir_declare = declare_tx.create_sir_declare(chain_id)?;
-                    starknet_in_rust::transaction::Transaction::DeclareV2(Box::new(sir_declare))
-                }
-                BroadcastedTransaction::DeployAccount(deploy_account_tx) => {
-                    starknet_in_rust::transaction::Transaction::DeployAccount(
-                        deploy_account_tx.create_sir_deploy_account(chain_id)?,
-                    )
-                }
-            };
-            sir_txs.push(sir_tx);
-        }
+        let sir_txs = create_sir_transactions(transactions, self.chain_id().to_felt())?;
+        let simulatable: Vec<&starknet_in_rust::transaction::Transaction> =
+            sir_txs.iter().collect();
 
         // these flags cannot be influenced by the user, so we just assume they are not set
         let skip_execute = false;
         let ignore_max_fee = false;
         let skip_nonce_check = false;
 
-        let simulatable: Vec<&starknet_in_rust::transaction::Transaction> =
-            sir_txs.iter().collect();
         let simulated = simulate_transaction(
             simulatable.as_slice(),
             state.state.clone(),
