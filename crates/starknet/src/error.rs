@@ -10,9 +10,9 @@ pub enum Error {
     #[error(transparent)]
     BlockifierStateError(#[from] blockifier::state::errors::StateError),
     #[error(transparent)]
-    EntryPointExectionError(#[from] blockifier::execution::errors::EntryPointExecutionError),
-    #[error(transparent)]
     TransactionError(#[from] starknet_in_rust::transaction::error::TransactionError),
+    #[error(transparent)]
+    BlockifierTransactionError(#[from] blockifier::transaction::errors::TransactionExecutionError),
     #[error("Types error")]
     TypesError(#[from] starknet_types::error::Error),
     #[error("I/O error")]

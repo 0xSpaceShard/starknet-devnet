@@ -432,7 +432,7 @@ impl Starknet {
                 blockifier::transaction::objects::AccountTransactionContext::default(),
                 1000000000,
             ),
-        )?;
+        ).map_err(|err| Error::BlockifierTransactionError(blockifier::transaction::errors::TransactionExecutionError::EntryPointExecutionError(err)))?;
 
         Ok(res.execution.retdata.0.into_iter().map(Felt::from).collect())
     }
@@ -655,6 +655,7 @@ impl Starknet {
 #[cfg(test)]
 mod tests {
     use blockifier::state::state_api::State;
+    use blockifier::transaction::errors::TransactionExecutionError;
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
     use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_types::contract_address::ContractAddress;
@@ -879,9 +880,11 @@ mod tests {
             entry_point_selector.into(),
             vec![Felt::from(predeployed_account.account_address)],
         ) {
-            Err(Error::EntryPointExectionError(
-                blockifier::execution::errors::EntryPointExecutionError::PreExecutionError(
-                    blockifier::execution::errors::PreExecutionError::EntryPointNotFound(_),
+            Err(Error::BlockifierTransactionError(
+                TransactionExecutionError::EntryPointExecutionError(
+                    blockifier::execution::errors::EntryPointExecutionError::PreExecutionError(
+                        blockifier::execution::errors::PreExecutionError::EntryPointNotFound(_),
+                    ),
                 ),
             )) => (),
             unexpected => panic!("Should have failed; got {unexpected:?}"),

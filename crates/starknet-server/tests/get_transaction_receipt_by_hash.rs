@@ -176,10 +176,9 @@ mod get_transaction_receipt_by_hash_integration_tests {
             MaybePendingTransactionReceipt::PendingReceipt(PendingTransactionReceipt::Declare(
                 declare,
             )) => {
-                assert_eq!(
-                    declare.execution_result.revert_reason(),
-                    Some("Invalid transaction nonce. Expected: 0 got 1")
-                );
+                assert!(declare.execution_result.revert_reason().unwrap().contains(
+                    format!("Max fee (Fee({})) is too low", declare_txn_v1.max_fee).as_str()
+                ));
             }
             _ => panic!("Invalid result: {result:?}"),
         }

@@ -243,9 +243,11 @@ impl starknet_in_rust::state::state_api::StateReader for DevnetState {
         let compiled_class_hash =
             crate::traits::DevnetStateReader::compiled_class_hash_at(self, &class_hash_as_felt);
         if compiled_class_hash == Felt::default() {
-            return Err(starknet_in_rust::core::errors::state_errors::StateError::NoneCompiledHash(
-                *class_hash,
-            ));
+            return Err(
+                starknet_in_rust::core::errors::state_errors::StateError::NoneCompiledHash(
+                    *class_hash,
+                ),
+            );
         }
 
         Ok(compiled_class_hash.bytes())

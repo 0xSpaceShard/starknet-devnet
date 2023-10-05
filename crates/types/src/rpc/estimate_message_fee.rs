@@ -1,4 +1,9 @@
+use std::sync::Arc;
+
+use blockifier::transaction::transactions::L1HandlerTransaction;
 use cairo_felt::Felt252;
+use starknet_api::core::EntryPointSelector;
+use starknet_api::transaction::Calldata;
 use starknet_in_rust::transaction::L1Handler as SirL1Handler;
 use starknet_in_rust::utils::Address as SirAddress;
 use starknet_rs_core::types::requests::EstimateMessageFeeRequest;
@@ -63,6 +68,27 @@ impl EstimateMessageFeeRequestWrapper {
 
     pub fn get_raw_message(&self) -> &SrMsgFromL1 {
         &self.inner.message
+    }
+
+    pub fn create_blockifier_l1_transaction(&self) -> DevnetResult<L1HandlerTransaction> {
+        let calldata = [&[self.get_from_address().into()], self.get_payload().as_slice()].concat();
+
+        let l1_transaction = L1HandlerTransaction {
+            tx: starknet_api::transaction::L1HandlerTransaction {
+                contract_address: starknet_api::core::ContractAddress::try_from(
+                    starknet_api::hash::StarkFelt::from(self.get_to_address()),
+                )?,
+                entry_point_selector: EntryPointSelector(self.get_entry_point_selector().into()),
+                calldata: Calldata(Arc::new(
+                    calldata.into_iter().map(|f| f.into()).collect(),
+                )),
+                ..Default::default()
+            },
+            paid_fee_on_l1: starknet_api::transaction::Fee(1),
+            tx_hash: Default::default()
+        };
+
+        Ok(l1_transaction)
     }
 
     pub fn create_sir_l1_handler(&self, chain_id: Felt) -> DevnetResult<SirL1Handler> {

@@ -83,7 +83,7 @@ mod test_estimate_message_fee {
             .await
             .unwrap();
 
-        assert_eq!(res.gas_consumed, 18471);
+        assert_eq!(res.gas_consumed, 18485);
     }
 
     #[tokio::test]
@@ -103,6 +103,8 @@ mod test_estimate_message_fee {
             )
             .await
             .expect_err("Error expected");
+
+        println!("{:?}", err);
 
         match err {
             ProviderError::StarknetError(StarknetErrorWithMessage {
