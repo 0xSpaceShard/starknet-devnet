@@ -22,7 +22,8 @@ mod estimate_fee_tests {
     use crate::common::constants::{CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH, CHAIN_ID};
     use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::{
-        get_deployable_account_signer, get_predeployed_account_props, load_json, resolve_path,
+        get_deployable_account_signer, get_predeployed_account_props, iter_to_hex_felt, load_json,
+        resolve_path, to_hex_felt, to_num_as_hex,
     };
 
     fn extract_overall_fee(simulation_result: &serde_json::Value) -> u128 {
@@ -90,9 +91,9 @@ mod estimate_fee_tests {
             .await
             .unwrap()
             .signature;
-        let signature_hex: Vec<String> = signature.iter().map(|s| format!("{s:#x}")).collect();
+        let signature_hex: Vec<String> = iter_to_hex_felt(&signature);
 
-        let sender_address_hex = format!("{account_address:#x}");
+        let sender_address_hex = to_hex_felt(&account_address);
 
         let get_params = |simulation_flags: &[&str]| -> serde_json::Value {
             json!({
@@ -102,10 +103,10 @@ mod estimate_fee_tests {
                     {
                         "type": "DECLARE",
                         "sender_address": sender_address_hex,
-                        "max_fee": format!("{max_fee:#x}"),
+                        "max_fee": to_hex_felt(&max_fee),
                         "version": "0x1",
                         "signature": signature_hex,
-                        "nonce": format!("{nonce:#x}"),
+                        "nonce": to_num_as_hex(&nonce),
                         "contract_class": contract_artifact.compress().unwrap(),
                     }
                 ]
@@ -157,9 +158,9 @@ mod estimate_fee_tests {
             .await
             .unwrap()
             .signature;
-        let signature_hex: Vec<String> = signature.iter().map(|s| format!("{s:#x}")).collect();
+        let signature_hex: Vec<String> = iter_to_hex_felt(&signature);
 
-        let sender_address_hex = format!("{account_address:#x}");
+        let sender_address_hex = to_hex_felt(&account_address);
 
         let get_params = |simulation_flags: &[&str]| -> serde_json::Value {
             json!({
@@ -169,11 +170,11 @@ mod estimate_fee_tests {
                     {
                         "type": "DECLARE",
                         "sender_address": sender_address_hex,
-                        "compiled_class_hash": format!("{compiled_class_hash:#x}"),
-                        "max_fee": format!("{max_fee:#x}"),
+                        "compiled_class_hash": to_hex_felt(&compiled_class_hash),
+                        "max_fee": to_hex_felt(&max_fee),
                         "version": "0x2",
                         "signature": signature_hex,
-                        "nonce": format!("{nonce:#x}"),
+                        "nonce": to_num_as_hex(&nonce),
                         "contract_class": contract_artifact,
                     }
                 ]
@@ -218,9 +219,9 @@ mod estimate_fee_tests {
             .prepared()
             .unwrap();
         let deployment_tx_hash = deployment.transaction_hash();
+
         let signature = new_account_signer.sign_hash(&deployment_tx_hash).await.unwrap();
-        let signature_hex: Vec<String> =
-            [signature.r, signature.s].iter().map(|s| format!("{s:#x}")).collect();
+        let signature_hex: Vec<String> = iter_to_hex_felt(&[signature.r, signature.s]);
         let account_public_key = new_account_signer.get_public_key().await.unwrap().scalar();
 
         let get_params = |simulation_flags: &[&str]| -> serde_json::Value {
@@ -230,12 +231,12 @@ mod estimate_fee_tests {
                 "transactions": [
                     {
                         "type": "DEPLOY_ACCOUNT",
-                        "max_fee": format!("{max_fee:#x}"),
+                        "max_fee": to_hex_felt(&max_fee),
                         "version": "0x1",
                         "signature": signature_hex,
-                        "nonce": format!("{nonce:#x}"),
+                        "nonce": to_num_as_hex(&nonce),
                         "contract_address_salt": salt_hex,
-                        "constructor_calldata": [format!("{account_public_key:#x}")],
+                        "constructor_calldata": [to_hex_felt(&account_public_key)],
                         "class_hash": CAIRO_0_ACCOUNT_CONTRACT_HASH
                     }
                 ]
@@ -243,7 +244,7 @@ mod estimate_fee_tests {
         };
 
         let account_address = deployment.address();
-        let account_address_hex = format!("{account_address:#x}");
+        let account_address_hex = to_hex_felt(&account_address);
         devnet.mint(account_address, 1e18 as u128).await;
 
         // no flags
@@ -355,13 +356,11 @@ mod estimate_fee_tests {
             .get_invoke_request()
             .await
             .unwrap();
-        let signature_hex: Vec<String> =
-            invoke_request.signature.iter().map(|s| format!("{s:#x}")).collect();
+        let signature_hex: Vec<String> = iter_to_hex_felt(&invoke_request.signature);
 
-        let calldata_hex: Vec<String> =
-            invoke_request.calldata.iter().map(|s| format!("{s:#x}")).collect();
+        let calldata_hex: Vec<String> = iter_to_hex_felt(&invoke_request.calldata);
 
-        let sender_address_hex = format!("{:#x}", account.address());
+        let sender_address_hex = to_hex_felt(&account.address());
 
         let get_params = |simulation_flags: &[&str]| -> serde_json::Value {
             json!({
@@ -370,10 +369,10 @@ mod estimate_fee_tests {
                 "transactions": [
                     {
                         "type": "INVOKE",
-                        "max_fee": format!("{max_fee:#x}"),
+                        "max_fee": to_hex_felt(&max_fee),
                         "version": "0x1",
                         "signature": signature_hex,
-                        "nonce": format!("{nonce:#x}"),
+                        "nonce": to_num_as_hex(&nonce),
                         "calldata": calldata_hex,
                         "sender_address": sender_address_hex,
                     }
