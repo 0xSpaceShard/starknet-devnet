@@ -50,7 +50,7 @@ use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
     CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
-    DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_HOST, ERC20_CONTRACT_ADDRESS, SIMULATION_INITIAL_GAS,
+    DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_HOST, ERC20_CONTRACT_ADDRESS, INITIAL_SIMULATION_GAS,
 };
 use crate::error::{DevnetResult, Error};
 use crate::predeployed_accounts::PredeployedAccounts;
@@ -643,7 +643,7 @@ impl Starknet {
             simulatable.as_slice(),
             state.state.clone(),
             &self.block_context,
-            SIMULATION_INITIAL_GAS,
+            INITIAL_SIMULATION_GAS,
             skip_validate,
             skip_execute,
             skip_fee_charge,
@@ -656,7 +656,7 @@ impl Starknet {
         // if the underlying simulation is correct, this should never be the case
         // in alignment with always avoiding assertions in production code, this has to be done
         if simulated.len() != estimated.len() {
-            return Err(Error::SimulationError {
+            return Err(Error::UnexpectedInternalError {
                 msg: format!(
                     "Non-matching number of simulations ({}) and estimations ({})",
                     simulated.len(),
