@@ -43,7 +43,7 @@ use starknet_types::rpc::transactions::{
     Transactions,
 };
 use starknet_types::traits::HashProducer;
-use tracing::error;
+use tracing::{error, warn};
 
 use self::predeployed::initialize_erc20;
 use crate::account::Account;
@@ -590,11 +590,12 @@ impl Starknet {
 
         let mut skip_validate = false;
         let mut skip_fee_charge = false;
-        // TODO if SkipValidate is not working as expected but user selects it, we could log a
-        // warning here
         for flag in simulation_flags.iter() {
             match flag {
-                SimulationFlag::SkipValidate => skip_validate = true,
+                SimulationFlag::SkipValidate => {
+                    skip_validate = true;
+                    warn!("SKIP_VALIDATE chosen in simulation, but does not affect fee estimation");
+                }
                 SimulationFlag::SkipFeeCharge => skip_fee_charge = true,
             }
         }
