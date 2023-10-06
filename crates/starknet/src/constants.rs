@@ -6,9 +6,16 @@ pub(crate) const CAIRO_0_ACCOUNT_CONTRACT_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/accounts_artifacts/OpenZeppelin/0.5.1/Account.cairo/Account.json"
 );
-
 pub const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str =
     "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f";
+
+// TODO consider naming according to the exact version (if we want to support multiple versions)
+pub(crate) const CAIRO_1_ACCOUNT_CONTRACT_PATH: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/accounts_artifacts/OpenZeppelin/0.7.0/Account.cairo/Account.json"
+);
+pub const CAIRO_1_ACCOUNT_CONTRACT_HASH: &str =
+    "0x2b513521d389c0477b3a9a90a1ff4822bcd957a9c8ba0dfc49918b59a19cf8a"; // TODO this is casm hash - which one do we need? currently both artifacts are stored
 
 pub(crate) const ERC20_CONTRACT_PATH: &str =
     concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/ERC20_Mintable_OZ_0.2.0.json");
