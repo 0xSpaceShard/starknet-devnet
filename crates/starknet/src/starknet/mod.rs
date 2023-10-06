@@ -345,14 +345,12 @@ impl Starknet {
     /// Restarts pending block with information from block_context
     fn restart_pending_block(&mut self) -> DevnetResult<()> {
         let mut block = StarknetBlock::create_pending_block();
-        let block_context = self.block_context.to_starknet_in_rust()?;
+        let block_context = self.block_context.to_blockifier()?;
 
-        block.header.block_number = BlockNumber(block_context.block_info().block_number);
-        block.header.gas_price = GasPrice(block_context.block_info().gas_price);
-        block.header.sequencer =
-            ContractAddress::try_from(block_context.block_info().sequencer_address.clone())?
-                .try_into()?;
-        block.header.timestamp = BlockTimestamp(block_context.block_info().block_timestamp);
+        block.header.block_number = block_context.block_number;
+        block.header.gas_price = GasPrice(block_context.gas_price);
+        block.header.sequencer = block_context.sequencer_address;
+        block.header.timestamp = block_context.block_timestamp;
 
         self.blocks.pending_block = block;
 
@@ -708,12 +706,12 @@ mod tests {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
         let initial_block_number =
-            starknet.block_context.to_starknet_in_rust().unwrap().block_info().block_number;
+            starknet.block_context.to_blockifier().unwrap().block_number;
         starknet.generate_pending_block().unwrap();
 
         assert_eq!(
             starknet.pending_block().header.block_number,
-            BlockNumber(initial_block_number + 1)
+            initial_block_number.next()
         );
     }
 
@@ -749,20 +747,16 @@ mod tests {
         let mut starknet = Starknet::new(&config).unwrap();
 
         let initial_block_number =
-            starknet.block_context.to_starknet_in_rust().unwrap().block_info().block_number;
+            starknet.block_context.to_blockifier().unwrap().block_number;
         let initial_gas_price =
-            starknet.block_context.to_starknet_in_rust().unwrap().block_info().gas_price;
+            starknet.block_context.to_blockifier().unwrap().gas_price;
         let initial_block_timestamp =
-            starknet.block_context.to_starknet_in_rust().unwrap().block_info().block_timestamp;
-        let initial_sequencer: ContractAddress = starknet
+            starknet.block_context.to_blockifier().unwrap().block_timestamp;
+        let initial_sequencer = starknet
             .block_context
-            .to_starknet_in_rust()
+            .to_blockifier()
             .unwrap()
-            .block_info()
-            .sequencer_address
-            .clone()
-            .try_into()
-            .unwrap();
+            .sequencer_address;
 
         // create pending block with some information in it
         let mut pending_block = StarknetBlock::create_pending_block();
@@ -781,14 +775,14 @@ mod tests {
         assert!(starknet.pending_block().get_transactions().is_empty());
         assert_eq!(
             starknet.pending_block().header.timestamp,
-            BlockTimestamp(initial_block_timestamp)
+            initial_block_timestamp
         );
-        assert_eq!(starknet.pending_block().header.block_number, BlockNumber(initial_block_number));
+        assert_eq!(starknet.pending_block().header.block_number,initial_block_number);
         assert_eq!(starknet.pending_block().header.parent_hash, BlockHash::default());
         assert_eq!(starknet.pending_block().header.gas_price, GasPrice(initial_gas_price));
         assert_eq!(
             starknet.pending_block().header.sequencer,
-            initial_sequencer.try_into().unwrap()
+            initial_sequencer
         );
     }
 
@@ -796,12 +790,12 @@ mod tests {
     fn correct_block_context_update() {
         let mut block_ctx = Starknet::get_block_context(0, "0x0", DEVNET_DEFAULT_CHAIN_ID).unwrap();
         let initial_block_number =
-            block_ctx.to_starknet_in_rust().unwrap().block_info().block_number;
+            block_ctx.to_blockifier().unwrap().block_number;
         Starknet::update_block_context(&mut block_ctx);
 
         assert_eq!(
-            block_ctx.to_starknet_in_rust().unwrap().block_info().block_number,
-            initial_block_number + 1
+            block_ctx.to_blockifier().unwrap().block_number,
+            initial_block_number.next()
         );
     }
 
