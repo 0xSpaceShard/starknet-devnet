@@ -8,7 +8,7 @@ repository.workspace = true
 
 [dependencies]
 blockifier = { workspace = true, features = ["testing"]}
-starknet_api = { workspace = true }
+starknet_api = { workspace = true, features = ["testing"] }
 thiserror = { workspace = true }
 starknet-in-rust = { workspace = true }
 serde = { workspace = true }

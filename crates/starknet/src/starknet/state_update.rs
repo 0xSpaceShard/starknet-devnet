@@ -140,12 +140,11 @@ mod tests {
         acc.set_initial_balance(&mut starknet.state).unwrap();
 
         starknet.state.clear_dirty_state();
-        starknet.block_context = Starknet::get_block_context(
+        starknet.block_context = Starknet::init_block_context(
             1,
             constants::ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
-        )
-        .unwrap();
+        );
 
         starknet.restart_pending_block().unwrap();
 

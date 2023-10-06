@@ -18,7 +18,6 @@ pub fn estimate_fee(
     transactions: &[BroadcastedTransaction],
 ) -> DevnetResult<Vec<FeeEstimateWrapper>> {
     let mut state = starknet.get_state_at(&block_id)?.make_deep_clone();
-    let block_context = starknet.block_context.to_blockifier()?;
     let chain_id = starknet.chain_id().to_felt();
 
     let transactions = transactions
@@ -65,7 +64,7 @@ pub fn estimate_fee(
         .map(|transaction| {
             estimate_transaction_fee(
                 &mut state,
-                &block_context,
+                &starknet.block_context,
                 blockifier::transaction::transaction_execution::Transaction::AccountTransaction(
                     transaction,
                 ),
@@ -94,7 +93,7 @@ pub fn estimate_message_fee(
 
     estimate_transaction_fee(
         &mut state,
-        &starknet.block_context.to_blockifier()?,
+        &starknet.block_context,
         blockifier::transaction::transaction_execution::Transaction::L1HandlerTransaction(
             l1_transaction,
         ),

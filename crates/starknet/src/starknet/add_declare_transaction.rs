@@ -37,12 +37,7 @@ pub fn add_declare_transaction_v2(
         blockifier::transaction::account_transaction::AccountTransaction::Declare(
             blockifier_declare_transaction,
         )
-        .execute(
-            &mut starknet.state.state,
-            &starknet.block_context.to_blockifier()?,
-            true,
-            true,
-        );
+        .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
     match blockifier_execution_result {
         Ok(tx_info) => match tx_info.revert_error {
@@ -107,12 +102,7 @@ pub fn add_declare_transaction_v1(
         blockifier::transaction::account_transaction::AccountTransaction::Declare(
             blockifier_declare_transaction,
         )
-        .execute(
-            &mut starknet.state.state,
-            &starknet.block_context.to_blockifier()?,
-            true,
-            true,
-        );
+        .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
     match blockifier_execution_result {
         Ok(tx_info) => match tx_info.revert_error {
@@ -397,12 +387,11 @@ mod tests {
         acc.set_initial_balance(&mut starknet.state).unwrap();
 
         starknet.state.clear_dirty_state();
-        starknet.block_context = Starknet::get_block_context(
+        starknet.block_context = Starknet::init_block_context(
             1,
             constants::ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
-        )
-        .unwrap();
+        );
 
         starknet.restart_pending_block().unwrap();
 

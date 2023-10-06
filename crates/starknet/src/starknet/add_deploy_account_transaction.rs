@@ -42,12 +42,7 @@ pub fn add_deploy_account_transaction(
         blockifier::transaction::account_transaction::AccountTransaction::DeployAccount(
             blockifier_deploy_account_transaction,
         )
-        .execute(
-            &mut starknet.state.state,
-            &starknet.block_context.to_blockifier()?,
-            true,
-            true,
-        );
+        .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
     match blockifier_execution_result {
         Ok(tx_info) => match tx_info.revert_error {
@@ -244,12 +239,11 @@ mod tests {
 
         starknet.state.declare_contract_class(class_hash, contract_class.into()).unwrap();
         starknet.state.clear_dirty_state();
-        starknet.block_context = Starknet::get_block_context(
+        starknet.block_context = Starknet::init_block_context(
             1,
             constants::ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
-        )
-        .unwrap();
+        );
 
         starknet.restart_pending_block().unwrap();
 
