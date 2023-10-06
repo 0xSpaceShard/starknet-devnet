@@ -1,5 +1,5 @@
 use std::fs::{self, File, OpenOptions};
-use std::io::{Seek, SeekFrom, Write};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 
 use starknet_types::contract_class::ContractClass;
@@ -98,12 +98,23 @@ impl Starknet {
                     let mut file = OpenOptions::new()
                         .append(true)
                         .write(true)
+                        .read(true)
                         .open(file_path)
                         .map_err(Error::IoError)?;
-                    let length = file.seek(SeekFrom::End(0)).map_err(Error::IoError)?;
-                    file.set_len(length - 1).map_err(Error::IoError)?; // remove last "]" with set_len
-                    file.write_all(format!(", {transaction_dump}]").as_bytes())
-                        .map_err(Error::IoError)?;
+                    let mut buffer = [0; 1];
+                    file.seek(SeekFrom::End(-1))?;
+                    file.read_exact(&mut buffer)?;
+                    if String::from_utf8_lossy(&buffer).into_owned() == "]" {
+                        // if the last character is "]", remove it and add transaction at the end
+                        let length = file.seek(SeekFrom::End(0)).map_err(Error::IoError)?;
+                        file.set_len(length - 1).map_err(Error::IoError)?; // remove last "]" with set_len
+                        file.write_all(format!(", {transaction_dump}]").as_bytes())
+                            .map_err(Error::IoError)?;
+                    } else {
+                        // if the last character is not "]" it means that it's a wrongly formatted
+                        // file
+                        return Err(Error::FormatError);
+                    }
                 } else {
                     // create file
                     let transactions = vec![transaction];
