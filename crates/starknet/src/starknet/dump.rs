@@ -1,5 +1,5 @@
 use std::fs::{self, File, OpenOptions};
-use std::io::{Read, Seek, SeekFrom, Write};
+use std::io::{Seek, SeekFrom, Write};
 use std::path::Path;
 
 use starknet_types::contract_class::ContractClass;
@@ -153,11 +153,9 @@ impl Starknet {
                 // can mean that it's first run with dump_path parameter set to dump, in that case
                 // return empty vector
                 if file_path.exists() {
-                    let mut file = File::open(file_path).map_err(Error::IoError)?;
-                    let mut data = String::new();
-                    file.read_to_string(&mut data).map_err(Error::IoError)?;
+                    let file = File::open(file_path).map_err(Error::IoError)?;
                     let transactions: Vec<Transaction> =
-                        serde_json::from_str(&data).map_err(|_| Error::DeserializationError {
+                        serde_json::from_reader(file).map_err(|_| Error::DeserializationError {
                             obj_name: "Vec<Transaction>".to_string(),
                         })?;
 
