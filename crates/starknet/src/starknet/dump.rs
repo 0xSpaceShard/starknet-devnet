@@ -100,7 +100,7 @@ impl Starknet {
                         .write(true)
                         .open(file_path)
                         .map_err(Error::IoError)?;
-                    let lenght = file.seek(SeekFrom::End(0)).map_err(Error::IoError)?;
+                    let length = file.seek(SeekFrom::End(0)).map_err(Error::IoError)?;
                     file.set_len(lenght - 1).map_err(Error::IoError)?; // remove last "]" with set_len
                     file.write_all(format!(", {transaction_dump}]").as_bytes())
                         .map_err(Error::IoError)?;
