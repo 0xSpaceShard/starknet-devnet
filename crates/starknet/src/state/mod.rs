@@ -20,7 +20,6 @@ pub mod state_update;
 
 pub(crate) struct StarknetState {
     pub state: CachedState<DevnetState>,
-    pub sir_state: starknet_in_rust::state::cached_state::CachedState<DevnetState>,
     pub(crate) contract_classes: HashMap<ClassHash, ContractClass>,
 }
 
@@ -28,7 +27,6 @@ impl Default for StarknetState {
     fn default() -> Self {
         Self {
             state: CachedState::new(Default::default(), Default::default()),
-            sir_state: Default::default(),
             contract_classes: Default::default(),
         }
     }
@@ -268,7 +266,6 @@ impl StarknetState {
         Self {
             state: CachedState::new(self.state.state.clone(), Default::default()),
             contract_classes: self.contract_classes.clone(),
-            sir_state: Clone::clone(&self.sir_state),
         }
     }
 }
