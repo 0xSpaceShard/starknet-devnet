@@ -4,9 +4,9 @@ pub mod common;
 mod dump_and_load_tests {
     use std::path::Path;
     use std::process::Command;
+
     use hyper::Body;
     use serde_json::json;
-    use std::process::Command;
     use starknet_rs_providers::Provider;
 
     use crate::common::devnet::BackgroundDevnet;
@@ -224,9 +224,12 @@ mod dump_and_load_tests {
     #[tokio::test]
     async fn dump_load_endpoint() {
         let dump_file_name = "dump_endpoint";
-        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(Some(
-            ["--dump-path", dump_file_name, "--dump-on", "exit"].to_vec(),
-        ))
+        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-path",
+            dump_file_name,
+            "--dump-on",
+            "exit",
+        ])
         .await
         .expect("Could not start Devnet");
 

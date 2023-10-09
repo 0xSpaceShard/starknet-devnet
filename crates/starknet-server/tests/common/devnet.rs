@@ -74,13 +74,10 @@ impl BackgroundDevnet {
     pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
         // we keep the reference, otherwise the mutex unlocks immediately
         let _mutex_guard = BACKGROUND_DEVNET_MUTEX.lock().await;
-
         let free_port = get_free_port().expect("No free ports");
-
         let devnet_url = format!("http://{HOST}:{free_port}");
         let devnet_rpc_url = Url::parse(format!("{}{RPC_PATH}", devnet_url.as_str()).as_str())?;
         let json_rpc_client = JsonRpcClient::new(HttpTransport::new(devnet_rpc_url.clone()));
-        let additional_args = args.unwrap_or(Vec::new());
 
         let process = Command::new("cargo")
                 .arg("run")
