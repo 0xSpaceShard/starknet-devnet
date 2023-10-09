@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use starknet_in_rust::utils::Address;
 
 use super::contract_address::ContractAddress;
@@ -32,6 +34,11 @@ impl From<ContractStorageKey> for starknet_in_rust::state::state_cache::StorageE
     }
 }
 
+impl Display for ContractStorageKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("({0}, {1})", self.0, self.1.0))
+    }
+}
 #[cfg(test)]
 mod tests {
     use starknet_in_rust::state::state_cache::StorageEntry as StarknetInRustStorageEntry;

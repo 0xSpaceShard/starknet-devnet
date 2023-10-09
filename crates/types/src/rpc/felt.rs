@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::str::FromStr;
 
 use cairo_felt::Felt252;
@@ -222,6 +223,12 @@ impl TryFrom<BigUint> for Felt {
 impl From<Felt> for BigUint {
     fn from(felt: Felt) -> Self {
         BigUint::from_str(&felt.to_decimal_string()).expect("Should never fail: felt is 251 bits")
+    }
+}
+
+impl Display for Felt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.to_prefixed_hex_str().as_str())
     }
 }
 

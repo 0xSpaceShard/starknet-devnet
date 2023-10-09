@@ -14,11 +14,9 @@ pub fn add_declare_transaction_v2(
     broadcasted_declare_transaction: BroadcastedDeclareTransactionV2,
 ) -> DevnetResult<(TransactionHash, ClassHash)> {
     if broadcasted_declare_transaction.common.max_fee.0 == 0 {
-        return Err(Error::TransactionError(
-            starknet_in_rust::transaction::error::TransactionError::FeeError(
-                "For declare transaction version 2, max fee cannot be 0".to_string(),
-            ),
-        ));
+        return Err(Error::FeeError {
+            reason: "For declare transaction version 2, max fee cannot be 0".to_string(),
+        });
     }
 
     let blockifier_declare_transaction =
@@ -75,11 +73,9 @@ pub fn add_declare_transaction_v1(
     broadcasted_declare_transaction: BroadcastedDeclareTransactionV1,
 ) -> DevnetResult<(TransactionHash, ClassHash)> {
     if broadcasted_declare_transaction.common.max_fee.0 == 0 {
-        return Err(Error::TransactionError(
-            starknet_in_rust::transaction::error::TransactionError::FeeError(
-                "For declare transaction version 1, max fee cannot be 0".to_string(),
-            ),
-        ));
+        return Err(Error::FeeError {
+            reason: "For declare transaction version 1, max fee cannot be 0".to_string(),
+        });
     }
 
     let class_hash = broadcasted_declare_transaction.generate_class_hash()?;
@@ -184,9 +180,9 @@ mod tests {
 
         assert!(result.is_err());
         match result.err().unwrap() {
-            crate::error::Error::TransactionError(
-                starknet_in_rust::transaction::error::TransactionError::FeeError(msg),
-            ) => assert_eq!(msg, "For declare transaction version 2, max fee cannot be 0"),
+            crate::error::Error::FeeError { reason: msg } => {
+                assert_eq!(msg, "For declare transaction version 2, max fee cannot be 0")
+            }
             _ => panic!("Wrong error type"),
         }
     }
@@ -276,9 +272,9 @@ mod tests {
 
         assert!(result.is_err());
         match result.err().unwrap() {
-            crate::error::Error::TransactionError(
-                starknet_in_rust::transaction::error::TransactionError::FeeError(msg),
-            ) => assert_eq!(msg, "For declare transaction version 1, max fee cannot be 0"),
+            crate::error::Error::FeeError { reason: msg } => {
+                assert_eq!(msg, "For declare transaction version 1, max fee cannot be 0")
+            }
             _ => panic!("Wrong error type"),
         }
     }

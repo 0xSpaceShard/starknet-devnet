@@ -1,6 +1,4 @@
 use blockifier::transaction::transactions::ExecutableTransaction;
-use starknet_in_rust::core::errors::state_errors::StateError;
-use starknet_in_rust::transaction::error::TransactionError;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
@@ -16,13 +14,15 @@ pub fn add_deploy_account_transaction(
     broadcasted_deploy_account_transaction: BroadcastedDeployAccountTransaction,
 ) -> DevnetResult<(TransactionHash, ContractAddress)> {
     if broadcasted_deploy_account_transaction.common.max_fee.0 == 0 {
-        return Err(Error::TransactionError(TransactionError::FeeError(
-            "For deploy account transaction, max fee cannot be 0".to_string(),
-        )));
+        return Err(Error::FeeError {
+            reason: "For deploy account transaction, max fee cannot be 0".to_string(),
+        });
     }
 
     if !starknet.state.is_contract_declared(&broadcasted_deploy_account_transaction.class_hash) {
-        return Err(Error::StateError(StateError::MissingClassHash()));
+        return Err(Error::StateError(crate::error::StateError::NoneClassHash(
+            broadcasted_deploy_account_transaction.class_hash,
+        )));
     }
 
     let blockifier_deploy_account_transaction = broadcasted_deploy_account_transaction
@@ -99,9 +99,9 @@ mod tests {
 
         assert!(result.is_err());
         match result.err().unwrap() {
-            crate::error::Error::TransactionError(
-                starknet_in_rust::transaction::error::TransactionError::FeeError(msg),
-            ) => assert_eq!(msg, "For deploy account transaction, max fee cannot be 0"),
+            crate::error::Error::FeeError { reason: msg } => {
+                assert_eq!(msg, "For deploy account transaction, max fee cannot be 0")
+            }
             _ => panic!("Wrong error type"),
         }
     }

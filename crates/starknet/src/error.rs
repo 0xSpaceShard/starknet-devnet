@@ -1,16 +1,17 @@
+use starknet_types;
+use starknet_types::contract_address::ContractAddress;
+use starknet_types::contract_storage_key::ContractStorageKey;
+use starknet_types::felt::Felt;
 use thiserror::Error;
-use {starknet_in_rust, starknet_types};
 
 #[derive(Error, Debug)]
 pub enum Error {
     #[error(transparent)]
     StarknetApiError(#[from] starknet_api::StarknetApiError),
     #[error(transparent)]
-    StateError(#[from] starknet_in_rust::core::errors::state_errors::StateError),
+    StateError(#[from] StateError),
     #[error(transparent)]
     BlockifierStateError(#[from] blockifier::state::errors::StateError),
-    #[error(transparent)]
-    TransactionError(#[from] starknet_in_rust::transaction::error::TransactionError),
     #[error(transparent)]
     BlockifierTransactionError(#[from] blockifier::transaction::errors::TransactionExecutionError),
     #[error("Types error")]
@@ -21,10 +22,6 @@ pub enum Error {
     ReadFileError { source: std::io::Error, path: String },
     #[error("Contract not found")]
     ContractNotFound,
-    #[error(transparent)]
-    SyscallHandlerError(
-        #[from] starknet_in_rust::syscalls::syscall_handler_errors::SyscallHandlerError,
-    ),
     #[error(transparent)]
     SignError(#[from] starknet_rs_signers::local_wallet::SignError),
     #[error("{msg}")]
@@ -43,6 +40,22 @@ pub enum Error {
     InvalidTransactionIndexInBlock,
     #[error("{msg}")]
     UnsupportedAction { msg: String },
+    #[error("{reason}")]
+    FeeError { reason: String },
+}
+
+#[derive(Debug, Error)]
+pub enum StateError {
+    #[error("No class hash {0} found")]
+    NoneClassHash(Felt),
+    #[error("No compiled class hash found for class_hash {0}")]
+    NoneCompiledHash(Felt),
+    #[error("No casm class found for hash {0}")]
+    NoneCasmClass(Felt),
+    #[error("No contract state assigned for contact address: {0}")]
+    NoneContractState(ContractAddress),
+    #[error("No storage value assigned for: {0}")]
+    NoneStorage(ContractStorageKey),
 }
 
 pub type DevnetResult<T, E = Error> = Result<T, E>;

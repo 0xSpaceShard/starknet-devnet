@@ -1,5 +1,4 @@
 use blockifier::transaction::transactions::ExecutableTransaction;
-use starknet_in_rust::transaction::error::TransactionError;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
 use starknet_types::rpc::transactions::{InvokeTransaction, Transaction};
@@ -13,9 +12,9 @@ pub fn add_invoke_transaction(
     broadcasted_invoke_transaction: BroadcastedInvokeTransaction,
 ) -> DevnetResult<TransactionHash> {
     if broadcasted_invoke_transaction.common.max_fee.0 == 0 {
-        return Err(error::Error::TransactionError(TransactionError::FeeError(
-            "For invoke transaction, max fee cannot be 0".to_string(),
-        )));
+        return Err(error::Error::FeeError {
+            reason: "For invoke transaction, max fee cannot be 0".to_string(),
+        });
     }
 
     let blockifier_invoke_transaction = broadcasted_invoke_transaction
@@ -192,9 +191,9 @@ mod tests {
 
         assert!(result.is_err());
         match result.err().unwrap() {
-            crate::error::Error::TransactionError(
-                starknet_in_rust::transaction::error::TransactionError::FeeError(msg),
-            ) => assert_eq!(msg, "For invoke transaction, max fee cannot be 0"),
+            crate::error::Error::FeeError { reason: msg } => {
+                assert_eq!(msg, "For invoke transaction, max fee cannot be 0")
+            }
             _ => panic!("Wrong error type"),
         }
     }

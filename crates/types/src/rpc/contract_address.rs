@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use cairo_felt::Felt252;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -100,6 +102,12 @@ impl ToHexString for ContractAddress {
 
     fn to_nonprefixed_hex_str(&self) -> String {
         self.0.0.to_nonprefixed_hex_str()
+    }
+}
+
+impl Display for ContractAddress {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.0.0.to_prefixed_hex_str().as_str())
     }
 }
 
