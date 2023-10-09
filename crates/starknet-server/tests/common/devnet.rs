@@ -68,12 +68,10 @@ impl BackgroundDevnet {
     /// times
     #[allow(dead_code)] // dead_code needed to pass clippy
     pub(crate) async fn spawn() -> Result<Self, TestError> {
-        BackgroundDevnet::spawn_with_additional_args(None).await
+        BackgroundDevnet::spawn_with_additional_args(&[]).await
     }
 
-    pub(crate) async fn spawn_with_additional_args(
-        args: Option<Vec<&str>>,
-    ) -> Result<Self, TestError> {
+    pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
         // we keep the reference, otherwise the mutex unlocks immediately
         let _mutex_guard = BACKGROUND_DEVNET_MUTEX.lock().await;
 
@@ -98,7 +96,7 @@ impl BackgroundDevnet {
                 .arg(PREDEPLOYED_ACCOUNT_INITIAL_BALANCE.to_string())
                 .arg("--chain-id")
                 .arg(CHAIN_ID_CLI_PARAM)
-                .args(additional_args)
+                .args(args)
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .expect("Could not start background devnet");

@@ -4,9 +4,9 @@ pub mod common;
 mod dump_and_load_tests {
     use std::path::Path;
     use std::process::Command;
-
     use hyper::Body;
     use serde_json::json;
+    use std::process::Command;
     use starknet_rs_providers::Provider;
 
     use crate::common::devnet::BackgroundDevnet;
@@ -29,8 +29,7 @@ mod dump_and_load_tests {
     #[tokio::test]
     async fn check_dump_path_with_dump_on() {
         let devnet_dump =
-            BackgroundDevnet::spawn_with_additional_args(Some(["--dump-on", "exit"].to_vec()))
-                .await;
+            BackgroundDevnet::spawn_with_additional_args(&["--dump-on", "exit"]).await;
         assert!(devnet_dump.is_err());
     }
 
@@ -38,20 +37,22 @@ mod dump_and_load_tests {
     async fn mint_dump_on_transaction_and_load() {
         // dump after transaction
         let dump_file_name = "dump_on_transaction";
-        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(Some(
-            ["--dump-path", dump_file_name, "--dump-on", "transaction"].to_vec(),
-        ))
+        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-path",
+            dump_file_name,
+            "--dump-on",
+            "transaction",
+        ])
         .await
         .expect("Could not start Devnet");
         let mint_tx_hash_1 = devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
         let mint_tx_hash_2 = devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
         // load transaction from file and check transaction hash
-        let devnet_load = BackgroundDevnet::spawn_with_additional_args(Some(
-            ["--dump-path", dump_file_name].to_vec(),
-        ))
-        .await
-        .expect("Could not start Devnet");
+        let devnet_load =
+            BackgroundDevnet::spawn_with_additional_args(&["--dump-path", dump_file_name])
+                .await
+                .expect("Could not start Devnet");
         let loaded_transaction_1 =
             devnet_load.json_rpc_client.get_transaction_by_hash(mint_tx_hash_1).await.unwrap();
         if let starknet_rs_core::types::Transaction::Invoke(
@@ -81,9 +82,12 @@ mod dump_and_load_tests {
     async fn mint_dump_on_exit_and_load() {
         // dump after transaction
         let dump_file_name = "dump_on_exit";
-        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(Some(
-            ["--dump-path", dump_file_name, "--dump-on", "exit"].to_vec(),
-        ))
+        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-path",
+            dump_file_name,
+            "--dump-on",
+            "exit",
+        ])
         .await
         .expect("Could not start Devnet");
         let devnet_dump_pid = devnet_dump.process.id();
@@ -109,11 +113,10 @@ mod dump_and_load_tests {
         }
 
         // load transaction from file and check transaction hash
-        let devnet_load = BackgroundDevnet::spawn_with_additional_args(Some(
-            ["--dump-path", dump_file_name].to_vec(),
-        ))
-        .await
-        .expect("Could not start Devnet");
+        let devnet_load =
+            BackgroundDevnet::spawn_with_additional_args(&["--dump-path", dump_file_name])
+                .await
+                .expect("Could not start Devnet");
         let devnet_load_pid = devnet_load.process.id();
         assert_ne!(devnet_dump_pid, devnet_load_pid); // if PID's are different SIGINT signal worked
         let loaded_transaction =
@@ -133,9 +136,12 @@ mod dump_and_load_tests {
     #[tokio::test]
     async fn declare_deploy() {
         let dump_file_name = "dump_declare_deploy";
-        let devnet = BackgroundDevnet::spawn_with_additional_args(Some(
-            ["--dump-path", dump_file_name, "--dump-on", "transaction"].to_vec(),
-        ))
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-path",
+            dump_file_name,
+            "--dump-on",
+            "transaction",
+        ])
         .await
         .expect("Could not start Devnet");
 
@@ -177,11 +183,10 @@ mod dump_and_load_tests {
             .unwrap();
 
         // load transaction from file and check transactions hashes
-        let devnet_load = BackgroundDevnet::spawn_with_additional_args(Some(
-            ["--dump-path", dump_file_name].to_vec(),
-        ))
-        .await
-        .expect("Could not start Devnet");
+        let devnet_load =
+            BackgroundDevnet::spawn_with_additional_args(&["--dump-path", dump_file_name])
+                .await
+                .expect("Could not start Devnet");
 
         // check declare transaction
         let loaded_declare_v2 = devnet_load
