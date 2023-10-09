@@ -17,7 +17,7 @@ pub fn estimate_fee(
     block_id: BlockId,
     transactions: &[BroadcastedTransaction],
 ) -> DevnetResult<Vec<FeeEstimateWrapper>> {
-    let mut state = starknet.get_state_at(&block_id)?.make_deep_clone();
+    let mut state = starknet.get_state_at(&block_id)?.clone();
     let chain_id = starknet.chain_id().to_felt();
 
     let transactions = transactions
@@ -79,8 +79,7 @@ pub fn estimate_message_fee(
     message: MsgFromL1,
 ) -> DevnetResult<FeeEstimateWrapper> {
     let estimate_message_fee = EstimateMessageFeeRequestWrapper::new(block_id, message);
-    let mut state =
-        starknet.get_state_at(estimate_message_fee.get_raw_block_id())?.make_deep_clone();
+    let mut state = starknet.get_state_at(estimate_message_fee.get_raw_block_id())?.clone();
 
     match starknet
         .get_class_hash_at(block_id, ContractAddress::new(estimate_message_fee.get_to_address())?)

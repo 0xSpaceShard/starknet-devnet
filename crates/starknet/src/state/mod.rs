@@ -134,9 +134,10 @@ impl StarknetState {
     pub(crate) fn clear_dirty_state(&mut self) {
         self.state = CachedState::new(self.state.state.clone(), Default::default());
     }
+}
 
-    /// this method is making deep copy of the object
-    pub(crate) fn make_deep_clone(&self) -> Self {
+impl Clone for StarknetState {
+    fn clone(&self) -> Self {
         Self {
             state: CachedState::new(self.state.state.clone(), Default::default()),
             contract_classes: self.contract_classes.clone(),
@@ -331,11 +332,10 @@ mod tests {
                 )
             })?;
 
-            let contract_class = crate::traits::DevnetStateReader::contract_class_at(
-                self,
-                &class_hash_as_felt,
-            )
-            .map_err(|err| match err {
+            let contract_class =
+                crate::traits::DevnetStateReader::contract_class_at(self, &class_hash_as_felt)
+                    .map_err(|err| {
+                        match err {
                 Error::StateError(StateError::NoneCasmClass(class_hash)) => {
                     starknet_in_rust::core::errors::state_errors::StateError::MissingCasmClass(
                         class_hash.bytes(),
@@ -351,7 +351,8 @@ mod tests {
                         general_error.to_string(),
                     )
                 }
-            })?;
+            }
+                    })?;
 
             starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass::try_from(
                 contract_class,
