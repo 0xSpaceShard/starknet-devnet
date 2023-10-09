@@ -364,7 +364,6 @@ impl TryFrom<L2toL1MessageInfo> for MessageToL1 {
     fn try_from(value: L2toL1MessageInfo) -> Result<Self, Self::Error> {
         Ok(Self {
             from_address: value.from_address.try_into()?,
-            // to_address: starknet_api::transaction::EthAddress(value.to_address.0.into()),
             to_address: EthAddress::try_from(StarkFelt::from(Felt::from(value.to_address.0)))?,
             payload: value.payload.into_iter().map(|p| p.into()).collect(),
         })
