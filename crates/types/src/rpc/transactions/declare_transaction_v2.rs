@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
 use starknet_in_rust::transaction::DeclareV2 as SirDeclareV2;
+use starknet_in_rust::SierraContractClass;
 
 use crate::contract_address::ContractAddress;
 use crate::error::{DevnetResult, Error};
@@ -9,10 +10,12 @@ use crate::felt::{
     TransactionVersion,
 };
 
-#[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct DeclareTransactionV2 {
     pub class_hash: ClassHash,
     pub compiled_class_hash: CompiledClassHash,
+    pub contract_class: SierraContractClass,
     pub sender_address: ContractAddress,
     pub nonce: Nonce,
     pub max_fee: Fee,
@@ -38,6 +41,7 @@ impl TryFrom<SirDeclareV2> for DeclareTransactionV2 {
             class_hash: value.sierra_class_hash.into(),
             compiled_class_hash: value.compiled_class_hash.into(),
             sender_address: value.sender_address.try_into()?,
+            contract_class: value.sierra_contract_class,
             nonce: value.nonce.into(),
             max_fee: Fee(value.max_fee),
             version: value.version.into(),

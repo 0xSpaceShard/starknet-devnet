@@ -1,3 +1,4 @@
+use std::fmt;
 use std::net::IpAddr;
 use std::time::SystemTime;
 
@@ -30,6 +31,7 @@ use starknet_types::rpc::transactions::{
     BroadcastedTransaction, BroadcastedTransactionCommon, Transaction, Transactions,
 };
 use starknet_types::traits::HashProducer;
+use strum_macros::EnumIter;
 use tracing::error;
 
 use self::predeployed::initialize_erc20;
@@ -54,11 +56,27 @@ use crate::transactions::{StarknetTransaction, StarknetTransactions};
 mod add_declare_transaction;
 mod add_deploy_account_transaction;
 mod add_invoke_transaction;
+mod dump;
 mod estimations;
 mod events;
 mod get_class_impls;
 mod predeployed;
 mod state_update;
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, EnumIter)]
+pub enum DumpMode {
+    OnExit,
+    OnTransaction,
+}
+
+impl fmt::Display for DumpMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self {
+            DumpMode::OnExit => write!(f, "exit"),
+            DumpMode::OnTransaction => write!(f, "transaction"),
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct StarknetConfig {
@@ -70,6 +88,8 @@ pub struct StarknetConfig {
     pub timeout: u16,
     pub gas_price: u64,
     pub chain_id: ChainId,
+    pub dump_on: Option<DumpMode>,
+    pub dump_path: Option<String>,
 }
 
 impl Default for StarknetConfig {
@@ -83,6 +103,8 @@ impl Default for StarknetConfig {
             timeout: u16::default(),
             gas_price: Default::default(),
             chain_id: DEVNET_DEFAULT_CHAIN_ID,
+            dump_on: None,
+            dump_path: None,
         }
     }
 }
@@ -169,6 +191,12 @@ impl Starknet {
 
         this.restart_pending_block()?;
 
+        // Load starknet transactions
+        if this.config.dump_path.is_some() {
+            let transactions = this.load_transactions()?;
+            this.re_execute(transactions)?;
+        }
+
         Ok(this)
     }
 
@@ -243,6 +271,10 @@ impl Starknet {
         self.generate_new_block(state_difference)?;
         // clear pending block information
         self.generate_pending_block()?;
+
+        if self.config.dump_on == Some(DumpMode::OnTransaction) {
+            self.dump_transaction(transaction)?;
+        }
 
         Ok(())
     }

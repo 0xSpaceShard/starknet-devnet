@@ -40,6 +40,14 @@ pub enum Error {
     InvalidTransactionIndexInBlock,
     #[error("{msg}")]
     UnsupportedAction { msg: String },
+    #[error("Failed to load ContractClass")]
+    ContractClassLoadError,
+    #[error("Deserialization error of {obj_name}")]
+    DeserializationError { obj_name: String },
+    #[error("Serialization error of {obj_name}")]
+    SerializationError { obj_name: String },
+    #[error("Serialization not supported")]
+    SerializationNotSupported,
     #[error("{reason}")]
     FeeError { reason: String },
 }

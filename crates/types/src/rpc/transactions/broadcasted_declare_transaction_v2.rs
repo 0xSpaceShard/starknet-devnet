@@ -57,6 +57,7 @@ impl BroadcastedDeclareTransactionV2 {
         DeclareTransactionV2 {
             class_hash,
             compiled_class_hash: self.compiled_class_hash,
+            contract_class: self.contract_class.clone(),
             sender_address: self.sender_address,
             nonce: self.common.nonce,
             max_fee: self.common.max_fee,

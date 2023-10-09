@@ -111,6 +111,8 @@ mod tests {
             timeout: DEVNET_DEFAULT_TIMEOUT,
             gas_price: DEVNET_DEFAULT_GAS_PRICE,
             chain_id: DEVNET_DEFAULT_CHAIN_ID,
+            dump_on: None,
+            dump_path: None,
         };
         let starknet = Starknet::new(&config).unwrap();
         let api = Api::new(starknet);
