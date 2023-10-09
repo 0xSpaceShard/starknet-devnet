@@ -97,7 +97,6 @@ impl Starknet {
                     })?;
                     let mut file = OpenOptions::new()
                         .append(true)
-                        .write(true)
                         .read(true)
                         .open(file_path)
                         .map_err(Error::IoError)?;
