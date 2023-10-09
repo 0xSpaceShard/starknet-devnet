@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
 use starknet_in_rust::core::contract_address::compute_sierra_class_hash;
 use starknet_in_rust::core::transaction_hash::calculate_declare_v2_transaction_hash;
-use starknet_in_rust::transaction::DeclareV2 as SirDeclareV2;
 use starknet_in_rust::SierraContractClass;
 
 use crate::contract_address::ContractAddress;
@@ -65,20 +64,6 @@ impl BroadcastedDeclareTransactionV2 {
             transaction_hash,
             signature: self.common.signature.clone(),
         }
-    }
-
-    pub fn create_sir_declare(&self, chain_id: Felt) -> DevnetResult<SirDeclareV2> {
-        Ok(SirDeclareV2::new(
-            &self.contract_class,
-            None,
-            self.compiled_class_hash.into(),
-            chain_id.into(),
-            self.sender_address.into(),
-            self.common.max_fee.0,
-            self.common.version.into(),
-            self.common.signature.iter().map(|felt| felt.into()).collect(),
-            self.common.nonce.into(),
-        )?)
     }
 
     pub fn create_blockifier_declare(&self, chain_id: Felt) -> DevnetResult<DeclareTransaction> {
@@ -197,21 +182,10 @@ mod tests {
             feeder_gateway_transaction.nonce,
             feeder_gateway_transaction.version,
         );
-        let sir_declare_transaction =
-            broadcasted_declare_transaction.create_sir_declare(ChainId::TestNet.to_felt()).unwrap();
 
         let blockifier_declare_transaction = broadcasted_declare_transaction
             .create_blockifier_declare(ChainId::TestNet.to_felt())
             .unwrap();
-
-        assert_eq!(
-            feeder_gateway_transaction.class_hash,
-            sir_declare_transaction.sierra_class_hash.into()
-        );
-        assert_eq!(
-            feeder_gateway_transaction.transaction_hash,
-            sir_declare_transaction.hash_value.into()
-        );
 
         assert_eq!(
             feeder_gateway_transaction.class_hash,

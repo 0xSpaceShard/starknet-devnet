@@ -21,17 +21,15 @@ pub fn add_declare_transaction_v2(
         ));
     }
 
-    let sir_declare_transaction =
-        broadcasted_declare_transaction.create_sir_declare(starknet.config.chain_id.to_felt())?;
-
-    let transaction_hash = sir_declare_transaction.hash_value.clone().into();
-    let class_hash: ClassHash = sir_declare_transaction.sierra_class_hash.clone().into();
-
-    let transaction =
-        Transaction::Declare(DeclareTransaction::Version2(sir_declare_transaction.try_into()?));
-
     let blockifier_declare_transaction =
         broadcasted_declare_transaction.create_blockifier_declare(starknet.chain_id().to_felt())?;
+
+    let transaction_hash = blockifier_declare_transaction.tx_hash().0.into();
+    let class_hash = blockifier_declare_transaction.class_hash().0.into();
+
+    let transaction = Transaction::Declare(DeclareTransaction::Version2(
+        broadcasted_declare_transaction.create_declare(class_hash, transaction_hash),
+    ));
 
     let blockifier_execution_result =
         blockifier::transaction::account_transaction::AccountTransaction::Declare(
@@ -91,9 +89,6 @@ pub fn add_declare_transaction_v1(
     let declare_transaction =
         broadcasted_declare_transaction.create_declare(class_hash, transaction_hash);
     let transaction = Transaction::Declare(DeclareTransaction::Version1(declare_transaction));
-
-    let _sir_declare_transaction =
-        broadcasted_declare_transaction.create_sir_declare(class_hash, transaction_hash)?;
 
     let blockifier_declare_transaction =
         broadcasted_declare_transaction.create_blockifier_declare(class_hash, transaction_hash)?;

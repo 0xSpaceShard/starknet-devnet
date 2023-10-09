@@ -25,18 +25,15 @@ pub fn add_deploy_account_transaction(
         return Err(Error::StateError(StateError::MissingClassHash()));
     }
 
-    let sir_deploy_account_transaction = broadcasted_deploy_account_transaction
-        .create_sir_deploy_account(starknet.config.chain_id.to_felt())?;
+    let blockifier_deploy_account_transaction = broadcasted_deploy_account_transaction
+        .create_blockifier_deploy_account(starknet.chain_id().to_felt())?;
 
-    let transaction_hash = sir_deploy_account_transaction.hash_value().into();
-    let address: ContractAddress = sir_deploy_account_transaction.contract_address().try_into()?;
+    let transaction_hash = blockifier_deploy_account_transaction.tx_hash.0.into();
+    let address: ContractAddress = blockifier_deploy_account_transaction.contract_address.into();
     let deploy_account_transaction = broadcasted_deploy_account_transaction
         .compile_deploy_account_transaction(&transaction_hash, address);
 
     let transaction = Transaction::DeployAccount(deploy_account_transaction);
-
-    let blockifier_deploy_account_transaction = broadcasted_deploy_account_transaction
-        .create_blockifier_deploy_account(starknet.chain_id().to_felt())?;
 
     let blockifier_execution_result =
         blockifier::transaction::account_transaction::AccountTransaction::DeployAccount(
@@ -147,12 +144,12 @@ mod tests {
             Felt::from(1),
         );
 
-        let sir_transaction =
-            transaction.create_sir_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt()).unwrap();
+        let blockifier_transaction = transaction
+            .create_blockifier_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt())
+            .unwrap();
 
         // change balance at address
-        let account_address =
-            ContractAddress::try_from(sir_transaction.contract_address().clone()).unwrap();
+        let account_address = ContractAddress::from(blockifier_transaction.contract_address);
         let balance_storage_var_address =
             get_storage_var_address("ERC20_balances", &[account_address.into()]).unwrap();
         let balance_storage_key =
@@ -190,12 +187,12 @@ mod tests {
             Felt::from(13),
             Felt::from(1),
         );
-        let sir_transction =
-            transaction.create_sir_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt()).unwrap();
+        let blockifier_transaction = transaction
+            .create_blockifier_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt())
+            .unwrap();
 
         // change balance at address
-        let account_address =
-            ContractAddress::try_from(sir_transction.contract_address().clone()).unwrap();
+        let account_address = ContractAddress::from(blockifier_transaction.contract_address);
         let balance_storage_var_address =
             get_storage_var_address("ERC20_balances", &[account_address.into()]).unwrap();
         let balance_storage_key =

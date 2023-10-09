@@ -18,16 +18,13 @@ pub fn add_invoke_transaction(
         )));
     }
 
-    let sir_invoke_function = broadcasted_invoke_transaction
-        .create_sir_invoke_function(starknet.config.chain_id.to_felt())?;
-    let transaction_hash = sir_invoke_function.hash_value().into();
+    let blockifier_invoke_transaction = broadcasted_invoke_transaction
+        .create_blockifier_invoke_transaction(starknet.chain_id().to_felt())?;
+    let transaction_hash = blockifier_invoke_transaction.tx_hash.0.into();
 
     let invoke_transaction =
         broadcasted_invoke_transaction.create_invoke_transaction(transaction_hash);
     let transaction = Transaction::Invoke(InvokeTransaction::Version1(invoke_transaction));
-
-    let blockifier_invoke_transaction = broadcasted_invoke_transaction
-        .create_blockifier_invoke_transaction(starknet.chain_id().to_felt())?;
 
     let blockifier_execution_result =
         blockifier::transaction::account_transaction::AccountTransaction::Invoke(

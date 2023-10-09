@@ -5,8 +5,6 @@ use starknet_api::transaction::Fee;
 use starknet_in_rust::core::transaction_hash::{
     calculate_transaction_hash_common, TransactionHashPrefix as SirTransactionHashPrefix,
 };
-use starknet_in_rust::definitions::constants::VALIDATE_DECLARE_ENTRY_POINT_SELECTOR;
-use starknet_in_rust::transaction::{verify_version, Declare as SirDeclare};
 
 use crate::contract_address::ContractAddress;
 use crate::contract_class::Cairo0ContractClass;
@@ -71,32 +69,6 @@ impl BroadcastedDeclareTransactionV1 {
                 self.contract_class.clone().try_into()?,
             ),
         )?)
-    }
-
-    pub fn create_sir_declare(
-        &self,
-        class_hash: ClassHash,
-        transaction_hash: TransactionHash,
-    ) -> DevnetResult<SirDeclare> {
-        let declare = SirDeclare {
-            class_hash: class_hash.into(),
-            sender_address: self.sender_address.into(),
-            validate_entry_point_selector: VALIDATE_DECLARE_ENTRY_POINT_SELECTOR.clone(),
-            version: self.common.version.into(),
-            max_fee: self.common.max_fee.0,
-            signature: self.common.signature.iter().map(|felt| felt.into()).collect(),
-            nonce: self.common.nonce.into(),
-            hash_value: transaction_hash.into(),
-            contract_class: self.contract_class.clone().try_into()?, /* ? Not present in
-                                                                      * DeclareTransactionV0V1 */
-            skip_execute: false,
-            skip_fee_transfer: false,
-            skip_validate: false,
-        };
-
-        verify_version(&declare.version, declare.max_fee, &declare.nonce, &declare.signature)?;
-
-        Ok(declare)
     }
 
     pub fn create_declare(
@@ -202,16 +174,8 @@ mod tests {
             .calculate_transaction_hash(&ChainId::TestNet.to_felt(), &class_hash)
             .unwrap();
 
-        let sir_declare_transaction =
-            broadcasted_tx.create_sir_declare(class_hash, transaction_hash).unwrap();
-
         let blockifier_declare_transaction =
             broadcasted_tx.create_blockifier_declare(class_hash, transaction_hash).unwrap();
-
-        assert_eq!(
-            feeder_gateway_transaction.transaction_hash,
-            sir_declare_transaction.hash_value.into()
-        );
 
         assert_eq!(
             feeder_gateway_transaction.transaction_hash,
