@@ -1,10 +1,12 @@
 use std::net::SocketAddr;
 
 use ::server::ServerConfig;
+use anyhow::Ok;
+use api::Api;
 use clap::Parser;
 use cli::Args;
 use starknet_core::account::Account;
-use starknet_core::starknet::Starknet;
+use starknet_core::starknet::{DumpMode, Starknet};
 use starknet_types::felt::Felt;
 use starknet_types::traits::{ToDecimalString, ToHexString};
 use tracing::info;
@@ -75,7 +77,18 @@ async fn main() -> Result<(), anyhow::Error> {
     info!("Starknet Devnet listening on {}", addr);
 
     // spawn the server on a new task
-    let serve = tokio::task::spawn(server);
+    let serve = if starknet_config.dump_on == Some(DumpMode::OnExit) {
+        tokio::task::spawn(server.with_graceful_shutdown(shutdown_signal(api.clone())))
+    } else {
+        tokio::task::spawn(server)
+    };
 
     Ok(serve.await??)
+}
+
+pub async fn shutdown_signal(api: Api) {
+    tokio::signal::ctrl_c().await.expect("Failed to install CTRL+C signal handler");
+
+    let starknet = api.starknet.read().await;
+    starknet.dump_transactions().expect("Failed to dump starknet transactions");
 }

@@ -8,6 +8,7 @@ use hyper::http::request;
 use hyper::{Body, Client, Response, StatusCode, Uri};
 use lazy_static::lazy_static;
 use serde_json::json;
+use starknet_rs_core::types::FieldElement;
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::JsonRpcClient;
 use thiserror::Error;
@@ -18,6 +19,7 @@ use super::constants::{
     ACCOUNTS, CHAIN_ID_CLI_PARAM, HEALTHCHECK_PATH, HOST, MAX_PORT, MIN_PORT,
     PREDEPLOYED_ACCOUNT_INITIAL_BALANCE, RPC_PATH, SEED,
 };
+use crate::common::utils::get_json_body;
 
 #[derive(Error, Debug)]
 pub enum TestError {
@@ -46,7 +48,7 @@ lazy_static! {
 pub struct BackgroundDevnet {
     pub http_client: Client<HttpConnector>,
     pub json_rpc_client: JsonRpcClient<HttpTransport>,
-    process: Child,
+    pub process: Child,
     url: String,
     rpc_url: Url,
 }
@@ -64,7 +66,12 @@ fn get_free_port() -> Result<u16, TestError> {
 impl BackgroundDevnet {
     /// Ensures the background instance spawns at a free port, checks at most `MAX_RETRIES`
     /// times
+    #[allow(dead_code)] // dead_code needed to pass clippy
     pub(crate) async fn spawn() -> Result<Self, TestError> {
+        BackgroundDevnet::spawn_with_additional_args(&[]).await
+    }
+
+    pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
         // we keep the reference, otherwise the mutex unlocks immediately
         let _mutex_guard = BACKGROUND_DEVNET_MUTEX.lock().await;
 
@@ -88,6 +95,7 @@ impl BackgroundDevnet {
                 .arg(PREDEPLOYED_ACCOUNT_INITIAL_BALANCE.to_string())
                 .arg("--chain-id")
                 .arg(CHAIN_ID_CLI_PARAM)
+                .args(args)
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .expect("Could not start background devnet");
@@ -138,7 +146,7 @@ impl BackgroundDevnet {
         JsonRpcClient::new(HttpTransport::new(self.rpc_url.clone()))
     }
 
-    pub async fn mint(&self, address: impl LowerHex, mint_amount: u128) {
+    pub async fn mint(&self, address: impl LowerHex, mint_amount: u128) -> FieldElement {
         let req_body = Body::from(
             json!({
                 "address": format!("{address:#x}"),
@@ -149,6 +157,9 @@ impl BackgroundDevnet {
 
         let resp = self.post_json("/mint".into(), req_body).await.unwrap();
         assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
+        let resp_body = get_json_body(resp).await;
+
+        FieldElement::from_hex_be(resp_body["tx_hash"].as_str().unwrap()).unwrap()
     }
 
     pub async fn get(
