@@ -1,5 +1,5 @@
-use std::collections::HashMap;
-
+use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
 use starknet_in_rust::execution::{CallInfo, TransactionExecutionInfo};
 use starknet_rs_core::types::{ExecutionResult, TransactionFinalityStatus};
@@ -14,8 +14,8 @@ use crate::constants::UDC_CONTRACT_ADDRESS;
 use crate::error::{DevnetResult, Error};
 use crate::traits::{HashIdentified, HashIdentifiedMut};
 
-#[derive(Default)]
-pub struct StarknetTransactions(HashMap<TransactionHash, StarknetTransaction>);
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct StarknetTransactions(IndexMap<TransactionHash, StarknetTransaction>);
 
 impl StarknetTransactions {
     pub fn insert(&mut self, transaction_hash: &TransactionHash, transaction: StarknetTransaction) {
@@ -24,6 +24,10 @@ impl StarknetTransactions {
 
     pub fn get(&self, transaction_hash: &TransactionHash) -> Option<&StarknetTransaction> {
         self.0.get(transaction_hash)
+    }
+
+    pub fn iter(&self) -> indexmap::map::Iter<'_, Felt, StarknetTransaction> {
+        self.0.iter()
     }
 }
 
@@ -44,12 +48,14 @@ impl HashIdentified for StarknetTransactions {
 }
 
 #[allow(unused)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct StarknetTransaction {
     pub inner: Transaction,
     pub(crate) finality_status: Option<TransactionFinalityStatus>,
     pub(crate) execution_result: ExecutionResult,
     pub(crate) block_hash: Option<BlockHash>,
     pub(crate) block_number: Option<BlockNumber>,
+    #[serde(skip_serializing, skip_deserializing)]
     pub(crate) execution_info: Option<starknet_in_rust::execution::TransactionExecutionInfo>,
 }
 
