@@ -665,21 +665,21 @@ impl Starknet {
                     },
                     fee_transfer_invocation,
                 }),
-                Some(starknet_in_rust::definitions::transaction_type::TransactionType::InvokeFunction) => {
-                    let call_info = tx_execution_info.call_info.clone();
-                    let success = call_info.is_some() && call_info.unwrap().result().is_success;
-                    TransactionTrace::Invoke(InvokeTransactionTrace {
-                        validate_invocation,
-                        execution_invocation: match success {
-                            // safe to unwrap, checked above
-                            true => ExecutionInvocation::Succeeded(tx_execution_info.call_info.unwrap().try_into()?),
-                            false => {
-                                let revert_reason = tx_execution_info.revert_error.unwrap_or("No revert reason".into());
-                                ExecutionInvocation::Reverted(starknet_types::rpc::transactions::Reversion { revert_reason })
-                            },
+                Some(starknet_in_rust::definitions::transaction_type::TransactionType::InvokeFunction) => TransactionTrace::Invoke(InvokeTransactionTrace {
+                    validate_invocation,
+                    execution_invocation: match tx_execution_info.call_info {
+                        Some(call_info) => match call_info.result().is_success {
+                            true => ExecutionInvocation::Succeeded(call_info.try_into()?),
+                            false => ExecutionInvocation::Reverted(starknet_types::rpc::transactions::Reversion {
+                                revert_reason: tx_execution_info.revert_error.unwrap_or("Revert reason not found".into())
+                            })
                         },
-                    })
-                },
+                        None => match tx_execution_info.revert_error {
+                            Some(revert_reason) => ExecutionInvocation::Reverted(starknet_types::rpc::transactions::Reversion { revert_reason }),
+                            None => return Err(Error::UnexpectedInternalError { msg: "Simulation contains neither call_info nor revert_error".into() }),
+                        }
+                    },
+                }),
                 other => return Err(Error::UnsupportedAction { msg: format!("Cannot simulate tx of type {other:?}") }),
             };
 
