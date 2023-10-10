@@ -174,9 +174,9 @@ impl Starknet {
             Some(path) => {
                 let file_path = Path::new(path);
 
-                // load only if the file exists, if dump_path is set but the file doesn't exist it
-                // can mean that it's first run with dump_path parameter set to dump, in that case
-                // return empty vector
+                // load only if the file exists, if config.dump_path is set but the file doesn't
+                // exist it means that it's first execution and in that case return an empty vector,
+                // in case of load from HTTP endpoint return FileNotFound error
                 if file_path.exists() {
                     let file = File::open(file_path).map_err(Error::IoError)?;
                     let transactions: Vec<Transaction> =
@@ -191,6 +191,9 @@ impl Starknet {
                     }
 
                     Ok(transactions)
+                } else if custom_path.is_some() {
+                    // in case of load from http endpoint return error
+                    Err(Error::FileNotFound)
                 } else {
                     Ok(Vec::new())
                 }

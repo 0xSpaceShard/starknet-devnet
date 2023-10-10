@@ -15,6 +15,8 @@ pub enum Error {
     IoError(#[from] std::io::Error),
     #[error("Error when reading file {path}")]
     ReadFileError { source: std::io::Error, path: String },
+    #[error("The file does not exist")]
+    FileNotFound,
     #[error("Contract not found")]
     ContractNotFound,
     #[error(transparent)]
