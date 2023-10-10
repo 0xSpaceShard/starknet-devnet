@@ -36,6 +36,8 @@ pub enum ConversionError {
     FromByteArrayError,
     #[error("Invalid format")]
     InvalidFormat,
+    #[error("Invalid internal structure: {0}")]
+    InvalidInternalStructure(String),
 }
 
 #[derive(Error, Debug)]

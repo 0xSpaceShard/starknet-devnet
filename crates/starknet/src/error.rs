@@ -39,6 +39,8 @@ pub enum Error {
     InvalidTransactionIndexInBlock,
     #[error("{msg}")]
     UnsupportedAction { msg: String },
+    #[error("Unexpected internal error: {msg}")]
+    UnexpectedInternalError { msg: String },
     #[error("Failed to load ContractClass")]
     ContractClassLoadError,
     #[error("Deserialization error of {obj_name}")]

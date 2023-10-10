@@ -1,3 +1,4 @@
+use std::fmt::LowerHex;
 use std::fs;
 use std::path::Path;
 
@@ -71,4 +72,16 @@ pub fn get_events_contract_in_sierra_and_compiled_class_hash()
     let compiled_class_hash = compute_casm_class_hash(&casm_contract_class).unwrap();
 
     (sierra_class.flatten().unwrap(), Felt::from(compiled_class_hash).into())
+}
+
+pub fn to_hex_felt<T: LowerHex>(value: &T) -> String {
+    format!("{value:#x}")
+}
+
+pub fn to_num_as_hex<T: LowerHex>(value: &T) -> String {
+    format!("{value:#x}")
+}
+
+pub fn iter_to_hex_felt<T: LowerHex>(iterable: &[T]) -> Vec<String> {
+    iterable.iter().map(to_hex_felt).collect()
 }

@@ -125,13 +125,16 @@ For now, you can consult the [Pythonic Devnet docs on minting](https://0xspacesh
 
 ## Dumping & Loading
 
-To preserve your Devnet instance for future use, there are several options:
+To preserve your Devnet instance for future use, these are the options:
+
 - Dumping on exit (handles Ctrl+C, i.e. SIGINT, doesn't handle SIGKILL):
+
 ```
 cargo run -- --dump-on exit --dump-path <PATH>
 ```
 
 - Dumping after each transaction:
+
 ```
 cargo run -- --dump-on transaction --dump-path <PATH>
 ```
@@ -139,9 +142,11 @@ cargo run -- --dump-on transaction --dump-path <PATH>
 ### Loading
 
 To load a preserved Devnet instance, the options are:
-- Loading on startup:
+
+- Loading on startup (note the argument name is not `--load-path` as it was in Devnet-py):
+
 ```
-cargo run -- --load-path <PATH>
+cargo run -- --dump-path <PATH>
 ```
 
 Currently, dumping produces a list of received transactions that is stored on disk.
