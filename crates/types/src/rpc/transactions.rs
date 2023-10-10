@@ -9,11 +9,17 @@ use deploy_transaction::DeployTransaction;
 use invoke_transaction_v1::InvokeTransactionV1;
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
-use starknet_api::transaction::Fee;
+use starknet_api::deprecated_contract_class::EntryPointType;
+use starknet_api::hash::StarkFelt;
+use starknet_api::transaction::{EthAddress, Fee};
+use starknet_in_rust::execution::{CallInfo, L2toL1MessageInfo};
 use starknet_rs_core::types::{BlockId, ExecutionResult, TransactionFinalityStatus};
 
+use super::estimate_message_fee::FeeEstimateWrapper;
+use super::transaction_receipt::MessageToL1;
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
+use crate::error::{ConversionError, Error};
 use crate::felt::{
     BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash, TransactionSignature,
     TransactionVersion,
@@ -271,4 +277,179 @@ pub enum BroadcastedTransaction {
 pub enum BroadcastedDeclareTransaction {
     V1(Box<BroadcastedDeclareTransactionV1>),
     V2(Box<BroadcastedDeclareTransactionV2>),
+}
+
+/// Flags that indicate how to simulate a given transaction.
+/// By default, the sequencer behavior is replicated locally (enough funds are expected to be in the
+/// account, and fee will be deducted from the balance before the simulation of the next
+/// transaction). To skip the fee charge, use the SKIP_FEE_CHARGE flag.
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize)]
+pub enum SimulationFlag {
+    #[serde(rename = "SKIP_VALIDATE")]
+    SkipValidate,
+    #[serde(rename = "SKIP_FEE_CHARGE")]
+    SkipFeeCharge,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub enum CallType {
+    #[serde(rename = "LIBRARY_CALL")]
+    LibraryCall,
+    #[serde(rename = "CALL")]
+    Call,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct FunctionInvocation {
+    #[serde(flatten)]
+    function_call: FunctionCall,
+    caller_address: Felt,
+    class_hash: Felt,
+    entry_point_type: EntryPointType,
+    call_type: CallType,
+    result: Vec<Felt>,
+    calls: Vec<FunctionInvocation>,
+    events: Vec<Event>,
+    messages: Vec<MessageToL1>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(untagged)]
+pub enum TransactionTrace {
+    Invoke(InvokeTransactionTrace),
+    Declare(DeclareTransactionTrace),
+    DeployAccount(DeployAccountTransactionTrace),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Reversion {
+    pub revert_reason: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(untagged)]
+pub enum ExecutionInvocation {
+    Succeeded(FunctionInvocation),
+    Reverted(Reversion),
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct InvokeTransactionTrace {
+    pub validate_invocation: Option<FunctionInvocation>,
+    pub execution_invocation: ExecutionInvocation,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DeclareTransactionTrace {
+    pub validate_invocation: Option<FunctionInvocation>,
+    pub fee_transfer_invocation: Option<FunctionInvocation>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DeployAccountTransactionTrace {
+    pub validate_invocation: Option<FunctionInvocation>,
+    pub constructor_invocation: Option<FunctionInvocation>,
+    pub fee_transfer_invocation: Option<FunctionInvocation>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SimulatedTransaction {
+    pub transaction_trace: TransactionTrace,
+    pub fee_estimation: FeeEstimateWrapper,
+}
+
+impl TryFrom<L2toL1MessageInfo> for MessageToL1 {
+    type Error = Error;
+
+    fn try_from(value: L2toL1MessageInfo) -> Result<Self, Self::Error> {
+        Ok(Self {
+            from_address: value.from_address.try_into()?,
+            to_address: EthAddress::try_from(StarkFelt::from(Felt::from(value.to_address.0)))?,
+            payload: value.payload.into_iter().map(|p| p.into()).collect(),
+        })
+    }
+}
+
+impl From<starknet_in_rust::execution::CallType> for CallType {
+    fn from(value: starknet_in_rust::execution::CallType) -> Self {
+        match value {
+            starknet_in_rust::execution::CallType::Call => Self::Call,
+            starknet_in_rust::execution::CallType::Delegate => Self::LibraryCall,
+        }
+    }
+}
+
+impl TryFrom<starknet_in_rust::execution::Event> for Event {
+    type Error = Error;
+
+    fn try_from(value: starknet_in_rust::execution::Event) -> Result<Self, Self::Error> {
+        Ok(Self {
+            from_address: value.from_address.try_into()?,
+            keys: value.keys.into_iter().map(|k| k.into()).collect(),
+            data: value.data.into_iter().map(|d| d.into()).collect(),
+        })
+    }
+}
+
+impl TryFrom<CallInfo> for FunctionInvocation {
+    type Error = Error;
+
+    fn try_from(call_info: CallInfo) -> Result<Self, Self::Error> {
+        // done here because Result handling (e.g with ? operator) can't simply
+        // be used in closure passed to .map(...)
+        let mut internal_calls: Vec<FunctionInvocation> = vec![];
+        for internal_call in call_info.internal_calls.clone() {
+            internal_calls.push(internal_call.try_into()?);
+        }
+
+        let mut messages: Vec<MessageToL1> = vec![];
+        for message in call_info.get_sorted_l2_to_l1_messages()? {
+            messages.push(message.try_into()?);
+        }
+
+        let mut events: Vec<Event> = vec![];
+        for event in call_info.get_sorted_events()? {
+            events.push(event.try_into()?);
+        }
+
+        Ok(FunctionInvocation {
+            function_call: FunctionCall {
+                contract_address: call_info.contract_address.try_into()?,
+                entry_point_selector: call_info
+                    .entry_point_selector
+                    .ok_or(ConversionError::InvalidInternalStructure(
+                        "entry_point_selector is unexpectedly undefined".into(),
+                    ))?
+                    .into(),
+                calldata: call_info.calldata.iter().map(|c| c.into()).collect(),
+            },
+            caller_address: call_info.caller_address.0.into(),
+            class_hash: call_info
+                .class_hash
+                .ok_or(ConversionError::InvalidInternalStructure(
+                    "class_hash is unexpectedly undefined".into(),
+                ))?
+                .into(),
+            entry_point_type: (match call_info.entry_point_type {
+                Some(starknet_in_rust::EntryPointType::External) => Ok(EntryPointType::External),
+                Some(starknet_in_rust::EntryPointType::L1Handler) => Ok(EntryPointType::L1Handler),
+                Some(starknet_in_rust::EntryPointType::Constructor) => {
+                    Ok(EntryPointType::Constructor)
+                }
+                None => Err(ConversionError::InvalidInternalStructure(
+                    "entry_point_type is unexpectedly undefined".into(),
+                )),
+            })?,
+            call_type: call_info
+                .call_type
+                .ok_or(ConversionError::InvalidInternalStructure(
+                    "call_type is unexpectedly undefined".into(),
+                ))?
+                .into(),
+            result: call_info.retdata.iter().map(|r| r.into()).collect(),
+            calls: internal_calls,
+            events,
+            messages,
+        })
+    }
 }
