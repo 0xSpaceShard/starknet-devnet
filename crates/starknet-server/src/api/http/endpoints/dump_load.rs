@@ -23,7 +23,8 @@ pub(crate) async fn load(
     Json(path): Json<Path>,
     Extension(state): Extension<HttpApiHandler>,
 ) -> HttpApiResult<Json<DumpLoadResponse>> {
-    if path.path.is_empty() {
+    let file_path = std::path::Path::new(&path.path);
+    if path.path.is_empty() || !file_path.exists() {
         return Err(HttpApiError::PathNotFound);
     }
 
