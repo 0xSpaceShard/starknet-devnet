@@ -99,6 +99,11 @@ pub(crate) struct ForkStatus {
 }
 
 #[derive(Serialize)]
-pub(crate) struct DumpLoadResponse {
+pub(crate) struct DumpResponse {
+    pub(crate) path: String,
+}
+
+#[derive(Serialize)]
+pub(crate) struct LoadResponse {
     pub(crate) path: String,
 }
