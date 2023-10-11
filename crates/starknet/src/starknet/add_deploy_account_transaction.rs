@@ -122,7 +122,6 @@ mod tests {
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
 
         assert_eq!(txn.finality_status, None);
-        println!("{}", txn.execution_result.revert_reason().unwrap());
         assert!(txn.execution_result.revert_reason().unwrap().contains("exceeds balance"));
     }
 
