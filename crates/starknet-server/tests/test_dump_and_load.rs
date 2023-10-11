@@ -17,11 +17,11 @@ mod dump_and_load_tests {
 
     use std::sync::Arc;
 
+    use starknet_core::constants::ERC20_CONTRACT_ADDRESS;
     use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, FunctionCall};
-    use starknet_core::constants::ERC20_CONTRACT_ADDRESS;
 
     use crate::common::utils::{
         get_events_contract_in_sierra_and_compiled_class_hash, get_predeployed_account_props,
@@ -246,7 +246,7 @@ mod dump_and_load_tests {
         );
         devnet_load.post_json("/load".into(), load_body).await.unwrap();
         let entry_point_selector =
-        starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();
+            starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();
         let balance_result = devnet_load
             .json_rpc_client
             .call(
