@@ -37,7 +37,6 @@ mod tests {
 
     #[test]
     /// This test checks that the state update is correct after a declare transaction v2.
-    /// Then checks that the state update is empty after executing the same declare transaction
     fn correct_state_update_after_declare_transaction_v2() {
         let (mut starknet, sender_address) = setup();
         let contract_class = dummy_cairo_1_contract_class();
@@ -91,26 +90,6 @@ mod tests {
             expected_state_update.cairo_0_declared_classes
         );
         assert_eq!(state_update.declared_classes, expected_state_update.declared_classes);
-
-        // execute the same transaction, but increment nonce, so new transaction hash could be
-        // computed
-        // TODO: uncomment when migrated to blockifier
-        // TODO: blockifier returns an error if contract class is being redeclared
-        // TODO: either remove the following part of the test or adapt it
-        // declare_txn.common.nonce = Felt::from(1);
-        // let (txn_hash, _) = starknet.add_declare_transaction_v2(declare_txn).unwrap();
-        // let tx = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
-        // assert_eq!(tx.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
-        // assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
-
-        // let state_update = starknet
-        //     .block_state_update(starknet_rs_core::types::BlockId::Tag(
-        //         starknet_rs_core::types::BlockTag::Latest,
-        //     ))
-        //     .unwrap();
-
-        // assert!(state_update.declared_classes.is_empty());
-        // assert!(state_update.cairo_0_declared_classes.is_empty());
     }
 
     /// Initializes starknet with account_without_validations
