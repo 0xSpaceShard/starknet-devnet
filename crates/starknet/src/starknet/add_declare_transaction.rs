@@ -52,7 +52,6 @@ pub fn add_declare_transaction_v2(
                 starknet.handle_successful_transaction(
                     &transaction_hash,
                     &transaction,
-                    &Default::default(),
                     tx_info,
                 )?;
             }
@@ -111,7 +110,6 @@ pub fn add_declare_transaction_v1(
                 starknet.handle_successful_transaction(
                     &transaction_hash,
                     &transaction,
-                    &Default::default(),
                     tx_info,
                 )?;
             }

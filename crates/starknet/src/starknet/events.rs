@@ -407,7 +407,6 @@ mod tests {
                 .handle_successful_transaction(
                     &transaction_hash,
                     &transaction,
-                    &Default::default(),
                     txn_info,
                 )
                 .unwrap();

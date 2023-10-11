@@ -1,8 +1,7 @@
-use blockifier::transaction::objects::TransactionExecutionInfo as BlockifierTransactionExecutionInfo;
+use blockifier::transaction::objects::TransactionExecutionInfo;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
-use starknet_in_rust::execution::TransactionExecutionInfo as SirTransactionExecutionInfo;
 use starknet_rs_core::types::{ExecutionResult, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
@@ -56,10 +55,8 @@ pub struct StarknetTransaction {
     pub(crate) execution_result: ExecutionResult,
     pub(crate) block_hash: Option<BlockHash>,
     pub(crate) block_number: Option<BlockNumber>,
-    #[serde(skip_serializing, skip_deserializing)]
-    pub(crate) execution_info: Option<starknet_in_rust::execution::TransactionExecutionInfo>,
     #[serde(skip)]
-    pub(crate) blockifier_execution_info: Option<BlockifierTransactionExecutionInfo>,
+    pub(crate) execution_info: Option<TransactionExecutionInfo>,
 }
 
 impl StarknetTransaction {
@@ -72,27 +69,24 @@ impl StarknetTransaction {
             finality_status,
             execution_result: ExecutionResult::Reverted { reason: execution_error.to_string() },
             inner: transaction.clone(),
-            execution_info: None,
             block_hash: None,
             block_number: None,
-            blockifier_execution_info: None,
+            execution_info: None,
         }
     }
 
     pub fn create_successful(
         transaction: &Transaction,
         finality_status: Option<TransactionFinalityStatus>,
-        execution_info: &SirTransactionExecutionInfo,
-        blockifier_execution_info: BlockifierTransactionExecutionInfo,
+        execution_info: TransactionExecutionInfo,
     ) -> Self {
         Self {
             finality_status,
             execution_result: ExecutionResult::Succeeded,
             inner: transaction.clone(),
-            execution_info: Some(execution_info.clone()),
             block_hash: None,
             block_number: None,
-            blockifier_execution_info: Some(blockifier_execution_info),
+            execution_info: Some(execution_info),
         }
     }
 
@@ -122,7 +116,7 @@ impl StarknetTransaction {
             events
         }
 
-        if let Some(execution_info) = self.blockifier_execution_info.as_ref() {
+        if let Some(execution_info) = self.execution_info.as_ref() {
             if let Some(validate_call_info) = execution_info.validate_call_info.as_ref() {
                 let mut not_sorted_events = get_blockifier_events_recursively(validate_call_info);
                 not_sorted_events.sort_by_key(|(order, _)| *order);
@@ -214,7 +208,7 @@ impl StarknetTransaction {
 
 #[cfg(test)]
 mod tests {
-    use starknet_in_rust::execution::TransactionExecutionInfo;
+    use blockifier::transaction::objects::TransactionExecutionInfo;
     use starknet_rs_core::types::TransactionExecutionStatus;
     use starknet_types::rpc::transactions::{DeclareTransaction, Transaction};
     use starknet_types::traits::HashProducer;
@@ -232,8 +226,7 @@ mod tests {
         let sn_tx = StarknetTransaction::create_successful(
             &tx,
             None,
-            &TransactionExecutionInfo::default(),
-            Default::default(),
+            TransactionExecutionInfo::default(),
         );
         let mut sn_txs = StarknetTransactions::default();
         sn_txs.insert(
@@ -241,8 +234,7 @@ mod tests {
             StarknetTransaction::create_successful(
                 &tx,
                 None,
-                &TransactionExecutionInfo::default(),
-                Default::default(),
+                TransactionExecutionInfo::default(),
             ),
         );
 
@@ -272,8 +264,7 @@ mod tests {
             let tx = StarknetTransaction::create_successful(
                 &tran,
                 None,
-                &TransactionExecutionInfo::default(),
-                Default::default(),
+                TransactionExecutionInfo::default(),
             );
             assert_eq!(tx.finality_status, None);
             assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);

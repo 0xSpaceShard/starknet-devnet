@@ -5,11 +5,11 @@ use std::time::SystemTime;
 use blockifier::block_context::BlockContext;
 use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::state_api::StateReader;
+use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
 use starknet_api::transaction::Fee;
 use starknet_in_rust::definitions::constants::DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS;
-// use starknet_in_rust::execution::TransactionExecutionInfo;
 use starknet_rs_core::types::{BlockId, MsgFromL1, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
@@ -254,11 +254,10 @@ impl Starknet {
         &mut self,
         transaction_hash: &TransactionHash,
         transaction: &Transaction,
-        tx_info: &starknet_in_rust::execution::TransactionExecutionInfo,
-        blockifier_tx_info: blockifier::transaction::objects::TransactionExecutionInfo,
+        tx_info: TransactionExecutionInfo,
     ) -> DevnetResult<()> {
         let transaction_to_add =
-            StarknetTransaction::create_successful(transaction, None, tx_info, blockifier_tx_info);
+            StarknetTransaction::create_successful(transaction, None, tx_info);
 
         // add accepted transaction to pending block
         self.blocks.pending_block.add_transaction(*transaction_hash);

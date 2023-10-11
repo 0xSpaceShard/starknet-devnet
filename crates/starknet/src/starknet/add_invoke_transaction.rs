@@ -42,7 +42,6 @@ pub fn add_invoke_transaction(
             None => starknet.handle_successful_transaction(
                 &transaction_hash,
                 &transaction,
-                &Default::default(),
                 tx_info,
             )?,
         },
