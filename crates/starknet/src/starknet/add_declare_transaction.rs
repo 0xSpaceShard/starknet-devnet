@@ -49,11 +49,7 @@ pub fn add_declare_transaction_v2(
                     class_hash,
                     ContractClass::Cairo1(broadcasted_declare_transaction.contract_class),
                 );
-                starknet.handle_successful_transaction(
-                    &transaction_hash,
-                    &transaction,
-                    tx_info,
-                )?;
+                starknet.handle_successful_transaction(&transaction_hash, &transaction, tx_info)?;
             }
         },
         Err(tx_err) => {
@@ -107,11 +103,7 @@ pub fn add_declare_transaction_v1(
                     .state
                     .contract_classes
                     .insert(class_hash, broadcasted_declare_transaction.contract_class.into());
-                starknet.handle_successful_transaction(
-                    &transaction_hash,
-                    &transaction,
-                    tx_info,
-                )?;
+                starknet.handle_successful_transaction(&transaction_hash, &transaction, tx_info)?;
             }
         },
         Err(tx_err) => {

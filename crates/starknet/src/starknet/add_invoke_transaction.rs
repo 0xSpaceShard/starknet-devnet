@@ -39,11 +39,9 @@ pub fn add_invoke_transaction(
 
                 starknet.transactions.insert(&transaction_hash, transaction_to_add);
             }
-            None => starknet.handle_successful_transaction(
-                &transaction_hash,
-                &transaction,
-                tx_info,
-            )?,
+            None => {
+                starknet.handle_successful_transaction(&transaction_hash, &transaction, tx_info)?
+            }
         },
         Err(tx_err) => {
             let transaction_to_add =

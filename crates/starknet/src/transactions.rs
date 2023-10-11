@@ -223,19 +223,12 @@ mod tests {
         let hash = declare_transaction.generate_hash().unwrap();
         let tx = Transaction::Declare(DeclareTransaction::Version1(declare_transaction));
 
-        let sn_tx = StarknetTransaction::create_successful(
-            &tx,
-            None,
-            TransactionExecutionInfo::default(),
-        );
+        let sn_tx =
+            StarknetTransaction::create_successful(&tx, None, TransactionExecutionInfo::default());
         let mut sn_txs = StarknetTransactions::default();
         sn_txs.insert(
             &hash,
-            StarknetTransaction::create_successful(
-                &tx,
-                None,
-                TransactionExecutionInfo::default(),
-            ),
+            StarknetTransaction::create_successful(&tx, None, TransactionExecutionInfo::default()),
         );
 
         let extracted_tran = sn_txs.get_by_hash_mut(&hash).unwrap();
