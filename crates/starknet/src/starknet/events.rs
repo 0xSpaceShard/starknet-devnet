@@ -424,7 +424,7 @@ mod tests {
     fn dummy_call_info(events_count: usize) -> CallInfo {
         let mut call_info = CallInfo::default();
 
-        for idx in 1..=events_count {
+        for idx in (1..=events_count).rev() {
             let event = blockifier::execution::entry_point::OrderedEvent {
                 order: idx,
                 event: starknet_api::transaction::EventContent {
