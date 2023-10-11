@@ -26,6 +26,8 @@ const QUERY_VERSION_OFFSET: FieldElement = FieldElement::from_mont([
     576460752142434320,
 ]);
 
+const SUPPORTED_TX_VERSION: FieldElement = FieldElement::ONE;
+
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct BroadcastedInvokeTransaction {
     #[serde(flatten)]
@@ -60,7 +62,7 @@ impl BroadcastedInvokeTransaction {
         chain_id: Felt,
     ) -> DevnetResult<InvokeTransaction> {
         let (entry_point_selector_field, additional_data) = if (QUERY_VERSION_OFFSET
-            + FieldElement::ONE)
+            + SUPPORTED_TX_VERSION)
             == FieldElement::from(self.common.version)
         {
             (Felt::from(EXECUTE_ENTRY_POINT_SELECTOR.clone()), Vec::<Felt>::new())
