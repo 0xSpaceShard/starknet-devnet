@@ -192,7 +192,6 @@ impl Starknet {
 
                     Ok(transactions)
                 } else if custom_path.is_some() {
-                    // in case of load from http endpoint return error
                     Err(Error::FileNotFound)
                 } else {
                     Ok(Vec::new())

@@ -9,8 +9,9 @@ pub(crate) async fn dump(
     Extension(state): Extension<HttpApiHandler>,
 ) -> HttpApiResult<Json<DumpLoadResponse>> {
     if path.path.is_empty() {
-        return Err(HttpApiError::PathNotFound);
+        return Err(HttpApiError::FileNotFound);
     }
+
     let starknet = state.api.starknet.write().await;
     starknet
         .dump_transactions_custom_path(Some(path.path.clone()))
@@ -25,7 +26,7 @@ pub(crate) async fn load(
 ) -> HttpApiResult<Json<DumpLoadResponse>> {
     let file_path = std::path::Path::new(&path.path);
     if path.path.is_empty() || !file_path.exists() {
-        return Err(HttpApiError::PathNotFound);
+        return Err(HttpApiError::FileNotFound);
     }
 
     let mut starknet = state.api.starknet.write().await;

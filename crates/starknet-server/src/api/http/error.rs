@@ -12,6 +12,8 @@ pub enum HttpApiError {
     GeneralError,
     #[error("Minting error: {msg}")]
     MintingError { msg: String },
+    #[error("The file does not exist")]
+    FileNotFound,
 }
 
 impl IntoResponse for HttpApiError {
