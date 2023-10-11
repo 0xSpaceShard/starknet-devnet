@@ -104,11 +104,16 @@ impl StarknetTransaction {
         ) -> Vec<(usize, Event)> {
             let mut events: Vec<(usize, Event)> = vec![];
 
-            events.extend(call_info.execution.events.iter().map(|e| (e.order, Event {
-                from_address: call_info.call.storage_address.into(),
-                data: e.event.data.0.iter().map(|d| (*d).into()).collect(),
-                keys: e.event.keys.iter().map(|k| k.0.into()).collect(),
-            })));
+            events.extend(call_info.execution.events.iter().map(|e| {
+                (
+                    e.order,
+                    Event {
+                        from_address: call_info.call.storage_address.into(),
+                        data: e.event.data.0.iter().map(|d| (*d).into()).collect(),
+                        keys: e.event.keys.iter().map(|k| k.0.into()).collect(),
+                    },
+                )
+            }));
 
             call_info.inner_calls.iter().for_each(|call| {
                 events.extend(get_blockifier_events_recursively(call));
@@ -131,7 +136,8 @@ impl StarknetTransaction {
             }
 
             if let Some(fee_transfer_call_info) = execution_info.fee_transfer_call_info.as_ref() {
-                let mut not_sorted_events = get_blockifier_events_recursively(fee_transfer_call_info);
+                let mut not_sorted_events =
+                    get_blockifier_events_recursively(fee_transfer_call_info);
                 not_sorted_events.sort_by_key(|(order, _)| *order);
                 events.extend(not_sorted_events.into_iter().map(|(_, e)| e));
             }

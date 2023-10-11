@@ -5,15 +5,11 @@ use std::time::SystemTime;
 use blockifier::block_context::BlockContext;
 use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::state_api::StateReader;
+use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
 use starknet_api::transaction::Fee;
 use starknet_in_rust::definitions::constants::DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS;
-use starknet_in_rust::execution::TransactionExecutionInfo;
-use starknet_in_rust::state::state_api::State;
-use starknet_in_rust::state::BlockInfo;
-use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
-use starknet_in_rust::utils::Address;
-use starknet_in_rust::{call_contract, simulate_transaction};
+// use starknet_in_rust::execution::TransactionExecutionInfo;
 use starknet_rs_core::types::{BlockId, MsgFromL1, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
@@ -31,12 +27,10 @@ use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
-use starknet_types::rpc::transactions::broadcasted_invoke_transaction::{
-    create_sir_transactions, BroadcastedInvokeTransaction,
-};
+use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
 use starknet_types::rpc::transactions::{
     BroadcastedTransaction, BroadcastedTransactionCommon, DeclareTransactionTrace,
-    DeployAccountTransactionTrace, ExecutionInvocation, InvokeTransactionTrace,
+    DeployAccountTransactionTrace, ExecutionInvocation, FunctionInvocation, InvokeTransactionTrace,
     SimulatedTransaction, SimulationFlag, Transaction, TransactionTrace, Transactions,
 };
 use starknet_types::traits::HashProducer;
@@ -48,7 +42,7 @@ use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
     CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
-    DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_HOST, ERC20_CONTRACT_ADDRESS, INITIAL_SIMULATION_GAS,
+    DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_HOST, ERC20_CONTRACT_ADDRESS,
 };
 use crate::error::{DevnetResult, Error};
 use crate::predeployed_accounts::PredeployedAccounts;
@@ -260,7 +254,7 @@ impl Starknet {
         &mut self,
         transaction_hash: &TransactionHash,
         transaction: &Transaction,
-        tx_info: &TransactionExecutionInfo,
+        tx_info: &starknet_in_rust::execution::TransactionExecutionInfo,
         blockifier_tx_info: blockifier::transaction::objects::TransactionExecutionInfo,
     ) -> DevnetResult<()> {
         let transaction_to_add =
@@ -636,10 +630,11 @@ impl Starknet {
     pub fn simulate_transactions(
         &self,
         block_id: BlockId,
-        transactions: &Vec<BroadcastedTransaction>,
+        transactions: &[BroadcastedTransaction],
         simulation_flags: Vec<SimulationFlag>,
     ) -> DevnetResult<Vec<SimulatedTransaction>> {
-        let state = self.get_state_at(&block_id)?;
+        let mut state = self.get_state_at(&block_id)?.clone();
+        let chain_id = self.chain_id().to_felt();
 
         let mut skip_validate = false;
         let mut skip_fee_charge = false;
@@ -653,90 +648,123 @@ impl Starknet {
             }
         }
 
-        let sir_txs = create_sir_transactions(transactions, self.chain_id().to_felt())?;
-        let simulatable: Vec<&starknet_in_rust::transaction::Transaction> =
-            sir_txs.iter().collect();
+        let mut transactions_traces: Vec<TransactionTrace> = vec![];
 
-        // these flags cannot be influenced by the user, so we just assume they are not set
-        let skip_execute = false;
-        let ignore_max_fee = false;
-        let skip_nonce_check = false;
+        for broadcasted_transaction in transactions.iter() {
+            let blockifier_transaction =
+                broadcasted_transaction.to_blockifier_account_transaction(chain_id)?;
+            let tx_execution_info = blockifier_transaction.execute(
+                &mut state.state,
+                &self.block_context,
+                !skip_fee_charge,
+                !skip_validate,
+            )?;
+            let address_to_class_hash_map = &state.state.state.address_to_class_hash;
 
-        let simulated = simulate_transaction(
-            simulatable.as_slice(),
-            state.state.clone(),
-            &self.block_context,
-            INITIAL_SIMULATION_GAS,
-            skip_validate,
-            skip_execute,
-            skip_fee_charge,
-            ignore_max_fee,
-            skip_nonce_check,
-        )?;
+            let validate_invocation =
+                if let Some(validate_info) = tx_execution_info.validate_call_info {
+                    Some(FunctionInvocation::try_from_call_info(
+                        validate_info,
+                        address_to_class_hash_map,
+                    )?)
+                } else {
+                    None
+                };
+
+            let fee_transfer_invocation =
+                if let Some(fee_transfer_info) = tx_execution_info.fee_transfer_call_info {
+                    Some(FunctionInvocation::try_from_call_info(
+                        fee_transfer_info,
+                        address_to_class_hash_map,
+                    )?)
+                } else {
+                    None
+                };
+
+            let trace = match broadcasted_transaction {
+                BroadcastedTransaction::Declare(_) => {
+                    TransactionTrace::Declare(DeclareTransactionTrace {
+                        validate_invocation,
+                        fee_transfer_invocation,
+                    })
+                }
+                BroadcastedTransaction::DeployAccount(_) => {
+                    TransactionTrace::DeployAccount(DeployAccountTransactionTrace {
+                        validate_invocation,
+                        constructor_invocation: if let Some(call_info) =
+                            tx_execution_info.execute_call_info
+                        {
+                            Some(FunctionInvocation::try_from_call_info(
+                                call_info,
+                                address_to_class_hash_map,
+                            )?)
+                        } else {
+                            None
+                        },
+                        fee_transfer_invocation,
+                    })
+                }
+                BroadcastedTransaction::Invoke(_) => {
+                    TransactionTrace::Invoke(InvokeTransactionTrace {
+                        validate_invocation,
+                        execution_invocation: match tx_execution_info.execute_call_info {
+                            Some(call_info) => match call_info.execution.failed {
+                                false => ExecutionInvocation::Succeeded(
+                                    FunctionInvocation::try_from_call_info(
+                                        call_info,
+                                        address_to_class_hash_map,
+                                    )?,
+                                ),
+                                true => ExecutionInvocation::Reverted(
+                                    starknet_types::rpc::transactions::Reversion {
+                                        revert_reason: tx_execution_info
+                                            .revert_error
+                                            .unwrap_or("Revert reason not found".into()),
+                                    },
+                                ),
+                            },
+                            None => match tx_execution_info.revert_error {
+                                Some(revert_reason) => ExecutionInvocation::Reverted(
+                                    starknet_types::rpc::transactions::Reversion { revert_reason },
+                                ),
+                                None => {
+                                    return Err(Error::UnexpectedInternalError {
+                                        msg: "Simulation contains neither call_info nor \
+                                              revert_error"
+                                            .into(),
+                                    });
+                                }
+                            },
+                        },
+                    })
+                }
+            };
+
+            transactions_traces.push(trace);
+        }
 
         let estimated = self.estimate_fee(block_id, transactions)?;
 
         // if the underlying simulation is correct, this should never be the case
         // in alignment with always avoiding assertions in production code, this has to be done
-        if simulated.len() != estimated.len() {
+        if transactions_traces.len() != estimated.len() {
             return Err(Error::UnexpectedInternalError {
                 msg: format!(
                     "Non-matching number of simulations ({}) and estimations ({})",
-                    simulated.len(),
+                    transactions_traces.len(),
                     estimated.len()
                 ),
             });
         }
 
-        let mut simulation_results: Vec<SimulatedTransaction> = vec![];
-        for (tx_execution_info, fee_estimation) in simulated.into_iter().zip(estimated) {
-            let validate_invocation = if let Some(validate_info) = tx_execution_info.validate_info {
-                Some(validate_info.try_into()?)
-            } else {
-                None
-            };
-
-            let fee_transfer_invocation =
-                if let Some(fee_transfer_info) = tx_execution_info.fee_transfer_info {
-                    Some(fee_transfer_info.try_into()?)
-                } else {
-                    None
-                };
-
-            let transaction_trace = match tx_execution_info.tx_type {
-                Some(starknet_in_rust::definitions::transaction_type::TransactionType::Declare) => TransactionTrace::Declare(DeclareTransactionTrace {
-                        validate_invocation,
-                        fee_transfer_invocation,
-                    }),
-                Some(starknet_in_rust::definitions::transaction_type::TransactionType::DeployAccount) => TransactionTrace::DeployAccount(DeployAccountTransactionTrace {
-                    validate_invocation,
-                    constructor_invocation: if let Some(call_info) = tx_execution_info.call_info {
-                        Some(call_info.try_into()?)
-                    } else {
-                        None
-                    },
-                    fee_transfer_invocation,
-                }),
-                Some(starknet_in_rust::definitions::transaction_type::TransactionType::InvokeFunction) => TransactionTrace::Invoke(InvokeTransactionTrace {
-                    validate_invocation,
-                    execution_invocation: match tx_execution_info.call_info {
-                        Some(call_info) => match call_info.result().is_success {
-                            true => ExecutionInvocation::Succeeded(call_info.try_into()?),
-                            false => ExecutionInvocation::Reverted(starknet_types::rpc::transactions::Reversion {
-                                revert_reason: tx_execution_info.revert_error.unwrap_or("Revert reason not found".into())
-                            })
-                        },
-                        None => match tx_execution_info.revert_error {
-                            Some(revert_reason) => ExecutionInvocation::Reverted(starknet_types::rpc::transactions::Reversion { revert_reason }),
-                            None => return Err(Error::UnexpectedInternalError { msg: "Simulation contains neither call_info nor revert_error".into() }),
-                        }
-                    },
-                }),
-                other => return Err(Error::UnsupportedAction { msg: format!("Cannot simulate tx of type {other:?}") }),
-            };
-
-            simulation_results.push(SimulatedTransaction { transaction_trace, fee_estimation });
-        }
+        let simulation_results = transactions_traces
+            .into_iter()
+            .zip(estimated)
+            .map(|(trace, fee_estimation)| SimulatedTransaction {
+                transaction_trace: trace,
+                fee_estimation,
+            })
+            .collect();
 
         Ok(simulation_results)
     }
