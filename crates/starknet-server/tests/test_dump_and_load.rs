@@ -224,14 +224,7 @@ mod dump_and_load_tests {
     #[tokio::test]
     async fn dump_load_endpoint() {
         let dump_file_name = "dump_endpoint";
-        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
-            "--dump-path",
-            dump_file_name,
-            "--dump-on",
-            "exit",
-        ])
-        .await
-        .expect("Could not start Devnet");
+        let devnet_dump = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         let mint_tx_hash = devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
         let dump_body = Body::from(
