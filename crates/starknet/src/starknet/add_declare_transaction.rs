@@ -273,7 +273,8 @@ mod tests {
     fn add_declare_v1_transaction_should_return_rejected_txn_and_not_be_part_of_pending_state() {
         let (mut starknet, sender) = setup(Some(1));
 
-        let initial_cached_state = starknet.state.state.state.class_hash_to_compiled_class.len();
+        let initial_cached_state_contract_classes_length =
+            starknet.state.state.state.class_hash_to_compiled_class.len();
         let declare_txn = broadcasted_declare_transaction_v1(sender);
         let (txn_hash, _) = starknet.add_declare_transaction_v1(declare_txn).unwrap();
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
@@ -281,7 +282,7 @@ mod tests {
         assert_eq!(txn.finality_status, None);
         assert_eq!(txn.execution_result.status(), TransactionExecutionStatus::Reverted);
         assert_eq!(
-            initial_cached_state,
+            initial_cached_state_contract_classes_length,
             starknet.state.state.state.class_hash_to_compiled_class.len()
         );
     }
