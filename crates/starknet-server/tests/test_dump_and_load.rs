@@ -20,7 +20,8 @@ mod dump_and_load_tests {
     use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::chain_id;
-    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement};
+    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, FunctionCall};
+    use starknet_core::constants::ERC20_CONTRACT_ADDRESS;
 
     use crate::common::utils::{
         get_events_contract_in_sierra_and_compiled_class_hash, get_predeployed_account_props,
@@ -222,10 +223,9 @@ mod dump_and_load_tests {
     }
 
     #[tokio::test]
-    async fn dump_load_endpoint() {
+    async fn dump_load_endpoints_transaction_and_state_after_load_is_valid() {
         let dump_file_name = "dump_endpoint";
         let devnet_dump = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-
         let mint_tx_hash = devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
         let dump_body = Body::from(
             json!({
@@ -245,6 +245,21 @@ mod dump_and_load_tests {
             .to_string(),
         );
         devnet_load.post_json("/load".into(), load_body).await.unwrap();
+        let entry_point_selector =
+        starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();
+        let balance_result = devnet_load
+            .json_rpc_client
+            .call(
+                FunctionCall {
+                    contract_address: FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap(),
+                    entry_point_selector,
+                    calldata: vec![DUMMY_ADDRESS.into()],
+                },
+                BlockId::Tag(BlockTag::Latest),
+            )
+            .await
+            .expect("Failed to call contract");
+        assert_eq!(balance_result[0], DUMMY_AMOUNT.into());
 
         let loaded_transaction =
             devnet_load.json_rpc_client.get_transaction_by_hash(mint_tx_hash).await.unwrap();
