@@ -225,17 +225,27 @@ mod dump_and_load_tests {
     #[tokio::test]
     async fn dump_load_endpoints_transaction_and_state_after_load_is_valid() {
         let dump_file_name = "dump_endpoint";
-        let devnet_dump = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let dump_file_name_custom_path = "dump_endpoint_custom_path";
+        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&["--dump-path", dump_file_name])
+            .await
+            .expect("Could not start Devnet");
         let mint_tx_hash = devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
         let dump_body = Body::from(
             json!({
-                "path": dump_file_name
+                "path": ""
             })
             .to_string(),
         );
         devnet_dump.post_json("/dump".into(), dump_body).await.unwrap();
-        let file_path = Path::new(dump_file_name);
-        assert!(file_path.exists());
+        assert!(Path::new(dump_file_name).exists());
+        let dump_body_custom_path = Body::from(
+            json!({
+                "path": dump_file_name_custom_path
+            })
+            .to_string(),
+        );
+        devnet_dump.post_json("/dump".into(), dump_body_custom_path).await.unwrap();
+        assert!(Path::new(dump_file_name_custom_path).exists());
 
         let devnet_load = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let load_body = Body::from(
@@ -272,10 +282,15 @@ mod dump_and_load_tests {
             panic!("Could not unpack the transaction from {loaded_transaction:?}");
         }
 
-        if file_path.exists() {
+        if Path::new(dump_file_name).exists() {
             remove_file(dump_file_name);
         } else {
             panic!("Could not find dump file {}", dump_file_name);
+        }
+        if Path::new(dump_file_name_custom_path).exists() {
+            remove_file(dump_file_name_custom_path);
+        } else {
+            panic!("Could not find dump file {}", dump_file_name_custom_path);
         }
     }
 }

@@ -8,14 +8,14 @@ pub(crate) async fn dump(
     Json(path): Json<Path>,
     Extension(state): Extension<HttpApiHandler>,
 ) -> HttpApiResult<Json<DumpResponse>> {
-    if path.path.is_empty() {
-        return Err(HttpApiError::FileNotFound);
-    }
-
     let starknet = state.api.starknet.write().await;
-    starknet
-        .dump_transactions_custom_path(Some(path.path.clone()))
-        .map_err(|_| HttpApiError::DumpError)?;
+    if path.path.is_empty() {
+        starknet.dump_transactions().map_err(|_| HttpApiError::DumpError)?;
+    } else {
+        starknet
+            .dump_transactions_custom_path(Some(path.path.clone()))
+            .map_err(|_| HttpApiError::DumpError)?;
+    }
 
     Ok(Json(DumpResponse { path: path.path }))
 }
