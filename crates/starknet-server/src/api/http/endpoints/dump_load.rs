@@ -15,7 +15,7 @@ pub(crate) async fn dump(
     let starknet = state.api.starknet.write().await;
     starknet
         .dump_transactions_custom_path(Some(path.path.clone()))
-        .map_err(|_| HttpApiError::GeneralError)?;
+        .map_err(|_| HttpApiError::DumpError)?;
 
     Ok(Json(DumpLoadResponse { path: path.path }))
 }
@@ -32,8 +32,8 @@ pub(crate) async fn load(
     let mut starknet = state.api.starknet.write().await;
     let transactions = starknet
         .load_transactions_custom_path(Some(path.path.clone()))
-        .map_err(|_| HttpApiError::GeneralError)?;
-    starknet.re_execute(transactions).map_err(|_| HttpApiError::GeneralError)?;
+        .map_err(|_| HttpApiError::LoadError)?;
+    starknet.re_execute(transactions).map_err(|_| HttpApiError::ReExecutionError)?;
 
     Ok(Json(DumpLoadResponse { path: path.path }))
 }

@@ -14,6 +14,12 @@ pub enum HttpApiError {
     MintingError { msg: String },
     #[error("The file does not exist")]
     FileNotFound,
+    #[error("The dump operation failed")]
+    DumpError,
+    #[error("The load operation failed")]
+    LoadError,
+    #[error("The re-execution operation failed")]
+    ReExecutionError,
 }
 
 impl IntoResponse for HttpApiError {
