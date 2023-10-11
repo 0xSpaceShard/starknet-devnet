@@ -104,8 +104,6 @@ mod test_estimate_message_fee {
             .await
             .expect_err("Error expected");
 
-        println!("{:?}", err);
-
         match err {
             ProviderError::StarknetError(StarknetErrorWithMessage {
                 code: MaybeUnknownErrorCode::Known(StarknetError::ContractNotFound),
