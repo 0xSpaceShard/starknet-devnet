@@ -221,10 +221,6 @@ impl StateChanger for StarknetState {
             .extend(state_diff.class_hash_to_compiled_class_hash.iter());
 
         // update cairo 1 differences
-        // Note: due to the fact that starknet_in_rust holds Cairo 1 as CasmContractClass
-        // We cant transform it to ContractClass, because there is no conversion from casm to sierra
-        // so we use our mapping contract_classes of the StarknetState to get the sierra
-        // representation
         state_diff.declared_contracts.iter().try_for_each(|class_hash| -> DevnetResult<()> {
             let compiled_class_hash =
                 old_state.class_hash_to_compiled_class_hash.get(class_hash).ok_or(
