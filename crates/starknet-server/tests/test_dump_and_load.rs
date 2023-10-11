@@ -226,9 +226,10 @@ mod dump_and_load_tests {
     async fn dump_load_endpoints_transaction_and_state_after_load_is_valid() {
         let dump_file_name = "dump_endpoint";
         let dump_file_name_custom_path = "dump_endpoint_custom_path";
-        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&["--dump-path", dump_file_name])
-            .await
-            .expect("Could not start Devnet");
+        let devnet_dump =
+            BackgroundDevnet::spawn_with_additional_args(&["--dump-path", dump_file_name])
+                .await
+                .expect("Could not start Devnet");
         let mint_tx_hash = devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
         let dump_body = Body::from(
             json!({
