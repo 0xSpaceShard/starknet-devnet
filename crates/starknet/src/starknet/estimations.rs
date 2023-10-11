@@ -6,7 +6,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::rpc::estimate_message_fee::{
     EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
 };
-use starknet_types::rpc::transactions::{BroadcastedDeclareTransaction, BroadcastedTransaction};
+use starknet_types::rpc::transactions::BroadcastedTransaction;
 
 use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;
@@ -22,41 +22,7 @@ pub fn estimate_fee(
 
     let transactions = transactions
         .iter()
-        .map(|txn| match txn {
-            BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(broadcasted_tx)) => {
-                let class_hash = broadcasted_tx.generate_class_hash()?;
-                let transaction_hash =
-                    broadcasted_tx.calculate_transaction_hash(&chain_id, &class_hash)?;
-
-                let declare_tx =
-                    broadcasted_tx.create_blockifier_declare(class_hash, transaction_hash)?;
-
-                Ok(blockifier::transaction::account_transaction::AccountTransaction::Declare(
-                    declare_tx,
-                ))
-            }
-            BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(broadcasted_tx)) => {
-                let declare_tx = broadcasted_tx.create_blockifier_declare(chain_id)?;
-
-                Ok(blockifier::transaction::account_transaction::AccountTransaction::Declare(
-                    declare_tx,
-                ))
-            }
-            BroadcastedTransaction::DeployAccount(broadcasted_tx) => {
-                let deploy_tx = broadcasted_tx.create_blockifier_deploy_account(chain_id)?;
-
-                Ok(blockifier::transaction::account_transaction::AccountTransaction::DeployAccount(
-                    deploy_tx,
-                ))
-            }
-            BroadcastedTransaction::Invoke(broadcasted_tx) => {
-                let invoke_tx = broadcasted_tx.create_blockifier_invoke_transaction(chain_id)?;
-
-                Ok(blockifier::transaction::account_transaction::AccountTransaction::Invoke(
-                    invoke_tx,
-                ))
-            }
-        })
+        .map(|txn| Ok(txn.to_blockifier_account_transaction(chain_id)?))
         .collect::<DevnetResult<Vec<AccountTransaction>>>()?;
 
     transactions
