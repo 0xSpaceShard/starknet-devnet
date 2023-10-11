@@ -181,10 +181,9 @@ impl StateChanger for StarknetState {
     }
 
     fn increment_nonce(&mut self, address: ContractAddress) -> DevnetResult<()> {
-        let nonce = self.state.state.get_nonce_at(address.try_into()?)?;
+        let nonce = self.state.state.nonce_at(&address);
         let persistent_state = &mut self.state.state;
 
-        let nonce = Felt::from(nonce.0);
         persistent_state
             .address_to_nonce
             .insert(address, (Felt252::from(nonce) + Felt252::new(1)).into());
