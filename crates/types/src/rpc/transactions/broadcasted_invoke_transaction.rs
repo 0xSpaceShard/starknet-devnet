@@ -11,6 +11,7 @@ use starknet_in_rust::core::transaction_hash::{
 use starknet_in_rust::definitions::constants::EXECUTE_ENTRY_POINT_SELECTOR;
 use starknet_rs_ff::FieldElement;
 
+use super::{BroadcastedDeclareTransaction, BroadcastedTransaction};
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
 use crate::felt::{
@@ -113,6 +114,41 @@ impl BroadcastedInvokeTransaction {
             calldata: self.calldata.clone(),
         }
     }
+}
+
+pub fn create_sir_transactions(
+    transactions: &Vec<BroadcastedTransaction>,
+    chain_id: Felt,
+) -> DevnetResult<Vec<starknet_in_rust::transaction::Transaction>> {
+    let mut sir_txs = vec![];
+    for tx in transactions {
+        let sir_tx = match tx {
+            BroadcastedTransaction::Invoke(invoke_tx) => {
+                starknet_in_rust::transaction::Transaction::InvokeFunction(
+                    invoke_tx.create_sir_invoke_function(chain_id)?,
+                )
+            }
+            BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(declare_tx)) => {
+                let class_hash = declare_tx.generate_class_hash()?;
+                starknet_in_rust::transaction::Transaction::Declare(declare_tx.create_sir_declare(
+                    class_hash,
+                    declare_tx.calculate_transaction_hash(&chain_id, &class_hash)?,
+                )?)
+            }
+            BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(declare_tx)) => {
+                let sir_declare = declare_tx.create_sir_declare(chain_id)?;
+                starknet_in_rust::transaction::Transaction::DeclareV2(Box::new(sir_declare))
+            }
+            BroadcastedTransaction::DeployAccount(deploy_account_tx) => {
+                starknet_in_rust::transaction::Transaction::DeployAccount(
+                    deploy_account_tx.create_sir_deploy_account(chain_id)?,
+                )
+            }
+        };
+        sir_txs.push(sir_tx);
+    }
+
+    Ok(sir_txs)
 }
 
 #[cfg(test)]
