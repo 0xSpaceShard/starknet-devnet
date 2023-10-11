@@ -394,7 +394,7 @@ impl Starknet {
             entry_point_selector: starknet_api::core::EntryPointSelector(
                 entrypoint_selector.into(),
             ),
-            initial_gas: 1000000000,
+            initial_gas: blockifier::transaction::transaction_execution::Transaction::initial_gas(),
             ..Default::default()
         };
 
@@ -404,7 +404,7 @@ impl Starknet {
             &mut blockifier::execution::entry_point::EntryPointExecutionContext::new(
                 self.block_context.clone(),
                 blockifier::transaction::objects::AccountTransactionContext::default(),
-                1000000000,
+                self.block_context.invoke_tx_max_n_steps as usize,
             ),
         ).map_err(|err| Error::BlockifierTransactionError(blockifier::transaction::errors::TransactionExecutionError::EntryPointExecutionError(err)))?;
 
