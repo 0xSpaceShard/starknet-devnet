@@ -88,26 +88,6 @@ impl EstimateMessageFeeRequestWrapper {
 
         Ok(l1_transaction)
     }
-
-    pub fn create_sir_l1_handler(&self, chain_id: Felt) -> DevnetResult<SirL1Handler> {
-        let from_address = self.get_from_address();
-        let entry_point_selector: Felt = self.get_entry_point_selector();
-        let payload: Vec<Felt> = self.get_payload();
-
-        let sir_nonce: Felt252 = 0.into();
-        let sir_payload: Vec<Felt252> = payload.iter().map(Felt252::from).collect::<Vec<Felt252>>();
-        let sir_calldata = [&[from_address.into()], sir_payload.as_slice()].concat();
-        let sir_paid_fee_on_l1 = None;
-
-        Ok(SirL1Handler::new(
-            SirAddress(self.get_to_address().into()),
-            entry_point_selector.into(),
-            sir_calldata,
-            sir_nonce,
-            chain_id.into(),
-            sir_paid_fee_on_l1,
-        )?)
-    }
 }
 
 impl_wrapper_serialize!(EstimateMessageFeeRequestWrapper);
