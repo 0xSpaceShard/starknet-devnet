@@ -191,13 +191,19 @@ rustup default nightly
 
 ## Development - Testing
 
-Run all tests with:
+To ensure that integration tests pass, be sure to have run `cargo build --release` or `cargo run --release` prior to testing. This builds the production target used in integration tests, so spawning Background Devnet won't time out.
+
+Run all tests using all available CPUs with:
 
 ```
 cargo test
 ```
 
-To ensure that integration tests pass, be sure to have run `cargo build --release` or `cargo run --release` prior to that (this will build the production target that is used in these tests, so spawning Background Devnet won't time out)
+The previous command might cause your testing to die along the way due to memory issues. In that case, limiting the number of jobs helps, but depends on your machine (rule of thumb: N=6):
+
+```
+cargo test --jobs <N>
+```
 
 ## Development - Docker
 
