@@ -56,13 +56,13 @@ pub enum Error {
 
 #[derive(Debug, Error)]
 pub enum StateError {
-    #[error("No class hash {0} found")]
+    #[error("No class hash {0:x} found")]
     NoneClassHash(Felt),
-    #[error("No compiled class hash found for class_hash {0}")]
+    #[error("No compiled class hash found for class_hash {0:x}")]
     NoneCompiledHash(Felt),
-    #[error("No casm class found for hash {0}")]
+    #[error("No casm class found for hash {0:x}")]
     NoneCasmClass(Felt),
-    #[error("No contract state assigned for contact address: {0}")]
+    #[error("No contract state assigned for contact address: {0:x}")]
     NoneContractState(ContractAddress),
     #[error("No storage value assigned for: {0}")]
     NoneStorage(ContractStorageKey),

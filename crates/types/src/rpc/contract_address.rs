@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::LowerHex;
 
 use cairo_felt::Felt252;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -105,7 +105,7 @@ impl ToHexString for ContractAddress {
     }
 }
 
-impl Display for ContractAddress {
+impl LowerHex for ContractAddress {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.0.0.to_prefixed_hex_str().as_str())
     }

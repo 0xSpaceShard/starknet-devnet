@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::LowerHex;
 use std::str::FromStr;
 
 use cairo_felt::Felt252;
@@ -226,7 +226,7 @@ impl From<Felt> for BigUint {
     }
 }
 
-impl Display for Felt {
+impl LowerHex for Felt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.to_prefixed_hex_str().as_str())
     }
