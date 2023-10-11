@@ -191,10 +191,8 @@ impl Starknet {
                     }
 
                     Ok(transactions)
-                } else if custom_path.is_some() {
-                    Err(Error::FileNotFound)
                 } else {
-                    Ok(Vec::new())
+                    Err(Error::FileNotFound)
                 }
             }
             None => Err(Error::FormatError),
