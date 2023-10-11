@@ -107,7 +107,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
         // declare the contract
         let declaration_result = predeployed_account
             .declare(Arc::new(cairo_1_contract), casm_class_hash)
-            .max_fee(FieldElement::from(1e19 as u128))
+            .max_fee(FieldElement::from(1e18 as u128))
             .send()
             .await
             .unwrap();
@@ -120,7 +120,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
         let deployment_result = contract_factory
             .deploy(vec![], FieldElement::ZERO, false)
-            .max_fee(FieldElement::from(1e19 as u128))
+            .max_fee(FieldElement::from(1e18 as u128))
             .send()
             .await
             .unwrap();

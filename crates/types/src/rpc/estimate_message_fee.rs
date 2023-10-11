@@ -1,11 +1,8 @@
 use std::sync::Arc;
 
 use blockifier::transaction::transactions::L1HandlerTransaction;
-use cairo_felt::Felt252;
 use starknet_api::core::EntryPointSelector;
 use starknet_api::transaction::Calldata;
-use starknet_in_rust::transaction::L1Handler as SirL1Handler;
-use starknet_in_rust::utils::Address as SirAddress;
 use starknet_rs_core::types::requests::EstimateMessageFeeRequest;
 use starknet_rs_core::types::{
     BlockId as SrBlockId, FeeEstimate, MsgFromL1 as SrMsgFromL1, MsgFromL1,
