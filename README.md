@@ -113,6 +113,8 @@ $ docker run -e RUST_LOG=<LEVEL> shardlabs/starknet-devnet-rs
 
 Unlike Pythonic Devnet, which supported the gateway and feeder gateway API, Devnet in Rust only supports JSON-RPC, which at the time of writing this is synchronized with [specification v0.4.0](https://github.com/starkware-libs/starknet-specs/tree/v0.4.0/api).
 
+The JSON-RPC API is reachable via `/rpc` and `/` (e.g. if spawning Devnet with default settings, these URLs have the equivalent functionality: `http://127.0.0.1:5050/rpc` and `http://127.0.0.1:5050/`)
+
 ## Predeployed contracts
 
 Devnet predeploys a [UDC](https://docs.openzeppelin.com/contracts-cairo/0.6.1/udc), an [ERC20 (fee token)](https://docs.openzeppelin.com/contracts/3.x/api/token/erc20) contract and a set of funded accounts. The information on this is logged on Devnet startup. The set of accounts can be controlled via [CLI options](#cli-options): `--accounts`, `--initial-balance`, `--seed`.
@@ -120,6 +122,40 @@ Devnet predeploys a [UDC](https://docs.openzeppelin.com/contracts-cairo/0.6.1/ud
 ## Mint token
 
 For now, you can consult the [Pythonic Devnet docs on minting](https://0xspaceshard.github.io/starknet-devnet/docs/guide/mint-token/), with the difference of lite minting not being supported anymore.
+
+## Dumping & Loading
+
+To preserve your Devnet instance for future use, these are the options:
+
+- Dumping on exit (handles Ctrl+C, i.e. SIGINT, doesn't handle SIGKILL):
+
+```
+cargo run -- --dump-on exit --dump-path <PATH>
+```
+
+- Dumping after each transaction:
+
+```
+cargo run -- --dump-on transaction --dump-path <PATH>
+```
+
+### Loading
+
+To load a preserved Devnet instance, the options are:
+
+- Loading on startup (note the argument name is not `--load-path` as it was in Devnet-py):
+
+```
+cargo run -- --dump-path <PATH>
+```
+
+Currently, dumping produces a list of received transactions that is stored on disk.
+Conversely, loading is implemented as the re-execution of transactions from a dump.
+This means that timestamps of `StarknetBlock` will be different.
+
+### Cross-version disclaimer
+
+Dumping and loading is not guaranteed to work cross-version. I.e. if you dumped one version of Devnet, do not expect it to be loadable with a different version.
 
 ## Development - Visual Studio Code
 
@@ -155,13 +191,19 @@ rustup default nightly
 
 ## Development - Testing
 
-Run all tests with:
+To ensure that integration tests pass, be sure to have run `cargo build --release` or `cargo run --release` prior to testing. This builds the production target used in integration tests, so spawning Background Devnet won't time out.
+
+Run all tests using all available CPUs with:
 
 ```
 cargo test
 ```
 
-To ensure that integration tests pass, be sure to have run `cargo build --release` or `cargo run --release` prior to that (this will build the production target that is used in these tests, so spawning Background Devnet won't time out)
+The previous command might cause your testing to die along the way due to memory issues. In that case, limiting the number of jobs helps, but depends on your machine (rule of thumb: N=6):
+
+```
+cargo test --jobs <N>
+```
 
 ## Development - Docker
 

@@ -1,7 +1,15 @@
+use std::sync::Arc;
+
+use blockifier::transaction::transactions::InvokeTransaction;
+use cairo_felt::Felt252;
 use serde::{Deserialize, Serialize};
+use starknet_api::hash::StarkFelt;
 use starknet_api::transaction::Fee;
+use starknet_in_rust::core::transaction_hash::{
+    calculate_transaction_hash_common, TransactionHashPrefix,
+};
 use starknet_in_rust::definitions::constants::EXECUTE_ENTRY_POINT_SELECTOR;
-use starknet_in_rust::transaction::InvokeFunction as SirInvokeFunction;
+use starknet_rs_ff::FieldElement;
 
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
@@ -10,6 +18,15 @@ use crate::felt::{
 };
 use crate::rpc::transactions::invoke_transaction_v1::InvokeTransactionV1;
 use crate::rpc::transactions::BroadcastedTransactionCommon;
+
+const QUERY_VERSION_OFFSET: FieldElement = FieldElement::from_mont([
+    18446744073700081665,
+    17407,
+    18446744073709551584,
+    576460752142434320,
+]);
+
+const SUPPORTED_TX_VERSION: FieldElement = FieldElement::ONE;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct BroadcastedInvokeTransaction {
@@ -40,17 +57,48 @@ impl BroadcastedInvokeTransaction {
         }
     }
 
-    pub fn create_sir_invoke_function(&self, chain_id: Felt) -> DevnetResult<SirInvokeFunction> {
-        Ok(SirInvokeFunction::new(
-            self.sender_address.into(),
-            EXECUTE_ENTRY_POINT_SELECTOR.clone(),
-            self.common.max_fee.0,
+    pub fn create_blockifier_invoke_transaction(
+        &self,
+        chain_id: Felt,
+    ) -> DevnetResult<InvokeTransaction> {
+        let (entry_point_selector_field, additional_data) = if (QUERY_VERSION_OFFSET
+            + SUPPORTED_TX_VERSION)
+            == FieldElement::from(self.common.version)
+        {
+            (Felt::from(EXECUTE_ENTRY_POINT_SELECTOR.clone()), Vec::<Felt>::new())
+        } else {
+            let additional_data = vec![self.common.nonce];
+            (Felt::default(), additional_data)
+        };
+
+        let txn_hash: Felt = calculate_transaction_hash_common(
+            TransactionHashPrefix::Invoke,
             self.common.version.into(),
-            self.calldata.iter().map(|f| f.into()).collect(),
-            self.common.signature.iter().map(|f| f.into()).collect(),
+            &self.sender_address.into(),
+            entry_point_selector_field.into(),
+            self.calldata.iter().map(Felt252::from).collect::<Vec<Felt252>>().as_slice(),
+            self.common.max_fee.0,
             chain_id.into(),
-            Some(self.common.nonce.into()),
-        )?)
+            additional_data.iter().map(Felt252::from).collect::<Vec<Felt252>>().as_slice(),
+        )?
+        .into();
+
+        let sn_api_transaction = starknet_api::transaction::InvokeTransactionV1 {
+            max_fee: self.common.max_fee,
+            signature: starknet_api::transaction::TransactionSignature(
+                self.common.signature.iter().map(|f| f.into()).collect(),
+            ),
+            nonce: starknet_api::core::Nonce(self.common.nonce.into()),
+            sender_address: self.sender_address.try_into()?,
+            calldata: starknet_api::transaction::Calldata(Arc::new(
+                self.calldata.iter().map(StarkFelt::from).collect::<Vec<StarkFelt>>(),
+            )),
+        };
+
+        Ok(InvokeTransaction {
+            tx: starknet_api::transaction::InvokeTransaction::V1(sn_api_transaction),
+            tx_hash: starknet_api::transaction::TransactionHash(txn_hash.into()),
+        })
     }
 
     pub fn create_invoke_transaction(
@@ -73,8 +121,8 @@ impl BroadcastedInvokeTransaction {
 mod tests {
     use serde::Deserialize;
     use starknet_api::transaction::Fee;
-    use starknet_in_rust::definitions::block_context::StarknetChainId;
 
+    use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
     use crate::felt::Felt;
     use crate::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
@@ -119,10 +167,13 @@ mod tests {
             feeder_gateway_transaction.version,
         );
 
-        let transaction = transaction
-            .create_sir_invoke_function(StarknetChainId::TestNet.to_felt().into())
-            .unwrap();
+        let chain_id = ChainId::TestNet.to_felt();
+        let blockifier_transaction =
+            transaction.create_blockifier_invoke_transaction(chain_id).unwrap();
 
-        assert_eq!(feeder_gateway_transaction.transaction_hash, transaction.hash_value().into());
+        assert_eq!(
+            feeder_gateway_transaction.transaction_hash,
+            blockifier_transaction.tx_hash.0.into()
+        );
     }
 }

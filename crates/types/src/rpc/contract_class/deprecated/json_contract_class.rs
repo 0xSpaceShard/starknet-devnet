@@ -231,6 +231,15 @@ impl TryFrom<DeprecatedContractClass> for Cairo0Json {
     }
 }
 
+impl TryFrom<Cairo0Json> for blockifier::execution::contract_class::ContractClassV0 {
+    type Error = Error;
+
+    fn try_from(value: Cairo0Json) -> Result<Self, Self::Error> {
+        serde_json::from_value(value.inner)
+            .map_err(|err| Error::JsonError(JsonError::SerdeJsonError(err)))
+    }
+}
+
 // TODO: figure out if needed
 // pub fn raw_program_into_json(program: &[u8]) -> DevnetResult<Value> {
 //     let decoder = flate2::read::GzDecoder::new(program);

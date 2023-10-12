@@ -37,7 +37,6 @@ pub(crate) fn get_storage_var_address(
 pub(crate) mod test_utils {
     use starknet_api::transaction::Fee;
     use starknet_in_rust::core::contract_address::compute_casm_class_hash;
-    use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_in_rust::{CasmContractClass, SierraContractClass};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
@@ -67,6 +66,8 @@ pub(crate) mod test_utils {
             timeout: DEVNET_DEFAULT_TIMEOUT,
             gas_price: DEVNET_DEFAULT_GAS_PRICE,
             chain_id: DEVNET_DEFAULT_CHAIN_ID,
+            dump_on: None,
+            dump_path: None,
         }
     }
 
@@ -96,7 +97,7 @@ pub(crate) mod test_utils {
     }
 
     pub(crate) fn dummy_declare_transaction_v1() -> DeclareTransactionV0V1 {
-        let chain_id = StarknetChainId::TestNet.to_felt().into();
+        let chain_id = DEVNET_DEFAULT_CHAIN_ID.to_felt();
         let contract_class = dummy_cairo_0_contract_class();
         let broadcasted_tx = BroadcastedDeclareTransactionV1::new(
             dummy_contract_address(),
@@ -127,7 +128,7 @@ pub(crate) mod test_utils {
             &contract_class,
             compiled_class_hash.into(),
             *sender_address,
-            Fee(2000),
+            Fee(4000),
             &Vec::new(),
             Felt::from(0),
             Felt::from(2),

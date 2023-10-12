@@ -1,3 +1,7 @@
+use std::fmt::LowerHex;
+use std::fs;
+use std::path::Path;
+
 use hyper::{Body, Response};
 use starknet_in_rust::core::contract_address::compute_casm_class_hash;
 use starknet_in_rust::CasmContractClass;
@@ -37,6 +41,13 @@ pub fn get_deployable_account_signer() -> LocalWallet {
 pub fn resolve_path(relative_path: &str) -> String {
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
     format!("{manifest_dir}/{relative_path}")
+}
+
+pub fn remove_file(path: &str) {
+    let file_path = Path::new(path);
+    if file_path.exists() {
+        fs::remove_file(file_path).expect("Could not remove file");
+    }
 }
 
 pub fn load_json<T: serde::de::DeserializeOwned>(path: &str) -> T {
@@ -86,4 +97,16 @@ pub async fn assert_tx_reverted<T: Provider>(
         }
         other => panic!("Should have reverted; got: {other:?}; receipt: {receipt:?}"),
     }
+}
+
+pub fn to_hex_felt<T: LowerHex>(value: &T) -> String {
+    format!("{value:#x}")
+}
+
+pub fn to_num_as_hex<T: LowerHex>(value: &T) -> String {
+    format!("{value:#x}")
+}
+
+pub fn iter_to_hex_felt<T: LowerHex>(iterable: &[T]) -> Vec<String> {
+    iterable.iter().map(to_hex_felt).collect()
 }

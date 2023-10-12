@@ -1,3 +1,4 @@
+use std::fmt::LowerHex;
 use std::str::FromStr;
 
 use cairo_felt::Felt252;
@@ -141,6 +142,12 @@ impl From<Felt> for starknet_api::core::ClassHash {
     }
 }
 
+impl From<Felt> for starknet_api::core::CompiledClassHash {
+    fn from(value: Felt) -> Self {
+        Self(starknet_api::hash::StarkFelt::from(value))
+    }
+}
+
 impl From<starknet_in_rust::utils::ClassHash> for Felt {
     fn from(value: starknet_in_rust::utils::ClassHash) -> Self {
         Self(value)
@@ -216,6 +223,12 @@ impl TryFrom<BigUint> for Felt {
 impl From<Felt> for BigUint {
     fn from(felt: Felt) -> Self {
         BigUint::from_str(&felt.to_decimal_string()).expect("Should never fail: felt is 251 bits")
+    }
+}
+
+impl LowerHex for Felt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.to_prefixed_hex_str().as_str())
     }
 }
 

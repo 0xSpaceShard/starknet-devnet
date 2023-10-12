@@ -9,6 +9,10 @@ pub const ACCOUNTS: usize = 3;
 pub const CHAIN_ID: FieldElement = starknet_rs_core::chain_id::TESTNET;
 pub const CHAIN_ID_CLI_PARAM: &str = "TESTNET";
 
+// URL paths
+pub const RPC_PATH: &str = "/rpc";
+pub const HEALTHCHECK_PATH: &str = "/is_alive";
+
 // predeployed account info with seed=42
 pub const PREDEPLOYED_ACCOUNT_ADDRESS: &str =
     "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba";

@@ -36,18 +36,15 @@ impl JsonRpcHandler {
         &self,
         request: BroadcastedDeployAccountTransaction,
     ) -> RpcResult<DeployAccountTransactionOutput> {
-        let (transaction_hash, contract_address) = self
-            .api
-            .starknet
-            .write()
-            .await
-            .add_deploy_account_transaction(request)
-            .map_err(|err| match err {
-                starknet_core::error::Error::StateError(
-                    starknet_in_rust::core::errors::state_errors::StateError::MissingClassHash(),
-                ) => ApiError::ClassHashNotFound,
-                unknown_error => ApiError::StarknetDevnetError(unknown_error),
-            })?;
+        let (transaction_hash, contract_address) =
+            self.api.starknet.write().await.add_deploy_account_transaction(request).map_err(
+                |err| match err {
+                    starknet_core::error::Error::StateError(
+                        starknet_core::error::StateError::NoneClassHash(_),
+                    ) => ApiError::ClassHashNotFound,
+                    unknown_error => ApiError::StarknetDevnetError(unknown_error),
+                },
+            )?;
 
         Ok(DeployAccountTransactionOutput { transaction_hash, contract_address })
     }
@@ -114,6 +111,8 @@ mod tests {
             timeout: DEVNET_DEFAULT_TIMEOUT,
             gas_price: DEVNET_DEFAULT_GAS_PRICE,
             chain_id: DEVNET_DEFAULT_CHAIN_ID,
+            dump_on: None,
+            dump_path: None,
         };
         let starknet = Starknet::new(&config).unwrap();
         let api = Api::new(starknet);

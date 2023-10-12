@@ -1,49 +1,25 @@
-use starknet_in_rust::core::errors::state_errors::StateError;
-use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass;
-use starknet_in_rust::state::state_api::StateReader;
-use starknet_in_rust::SierraContractClass;
 use starknet_rs_core::types::BlockId;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
+use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Felt};
 
 use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;
+use crate::traits::DevnetStateReader;
 
 pub fn get_class_hash_at_impl(
     starknet: &Starknet,
     block_id: BlockId,
     contract_address: ContractAddress,
 ) -> DevnetResult<ClassHash> {
-    let address = contract_address.into();
     let state = starknet.get_state_at(&block_id)?;
-    let class_hash = state.state.get_class_hash_at(&address)?.into();
+    let class_hash = state.state.state.class_hash_at(&contract_address);
 
     if class_hash == Felt::default() {
-        return Err(Error::StateError(StateError::NoneContractState(address)));
+        return Err(Error::ContractNotFound);
     }
 
     Ok(class_hash)
-}
-
-fn get_sierra_class(
-    starknet: &Starknet,
-    class_hash: &ClassHash,
-) -> DevnetResult<SierraContractClass> {
-    match starknet.state.contract_classes.get(class_hash) {
-        Some(contract) => Ok(contract.clone().try_into()?),
-        None => Err(Error::ContractNotFound),
-    }
-}
-
-fn get_cairo_0_class(
-    starknet: &Starknet,
-    class_hash: &ClassHash,
-) -> DevnetResult<Cairo0ContractClass> {
-    match starknet.state.contract_classes.get(class_hash) {
-        Some(contract) => Ok(contract.clone().try_into()?),
-        None => Err(Error::ContractNotFound),
-    }
 }
 
 pub fn get_class_impl(
@@ -52,14 +28,7 @@ pub fn get_class_impl(
     class_hash: ClassHash,
 ) -> DevnetResult<ContractClass> {
     let state = starknet.get_state_at(&block_id)?;
-
-    match state.state.get_contract_class(&class_hash.into()) {
-        Ok(compiled_class) => match compiled_class {
-            CompiledClass::Casm(_) => Ok(get_sierra_class(starknet, &class_hash)?.into()),
-            CompiledClass::Deprecated(_) => Ok(get_cairo_0_class(starknet, &class_hash)?.into()),
-        },
-        Err(err) => Err(err.into()),
-    }
+    state.state.state.contract_class_at(&class_hash)
 }
 
 pub fn get_class_at_impl(
@@ -73,14 +42,14 @@ pub fn get_class_at_impl(
 
 #[cfg(test)]
 mod tests {
-    use starknet_in_rust::definitions::block_context::StarknetChainId;
+
     use starknet_rs_core::types::BlockId;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;
-    use crate::constants::{self};
+    use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID};
     use crate::starknet::{predeployed, Starknet};
     use crate::state::state_diff::StateDiff;
     use crate::traits::{Accounted, Deployed};
@@ -110,13 +79,12 @@ mod tests {
         acc.deploy(&mut starknet.state).unwrap();
         acc.set_initial_balance(&mut starknet.state).unwrap();
 
-        starknet.state.synchronize_states();
-        starknet.block_context = Starknet::get_block_context(
+        starknet.state.clear_dirty_state();
+        starknet.block_context = Starknet::init_block_context(
             1,
             constants::ERC20_CONTRACT_ADDRESS,
-            StarknetChainId::TestNet,
-        )
-        .unwrap();
+            DEVNET_DEFAULT_CHAIN_ID,
+        );
 
         starknet.restart_pending_block().unwrap();
 
@@ -143,7 +111,7 @@ mod tests {
     fn get_class_hash_at_generated_accounts() {
         let (mut starknet, account) = setup(Some(100000000));
 
-        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
         starknet.generate_pending_block().unwrap();
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
@@ -158,7 +126,7 @@ mod tests {
     fn get_class_at_generated_accounts() {
         let (mut starknet, account) = setup(Some(100000000));
 
-        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
         starknet.generate_pending_block().unwrap();
 
         let block_number = starknet.get_latest_block().unwrap().block_number();

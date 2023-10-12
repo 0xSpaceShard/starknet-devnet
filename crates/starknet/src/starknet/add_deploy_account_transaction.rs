@@ -1,5 +1,4 @@
-use starknet_in_rust::core::errors::state_errors::StateError;
-use starknet_in_rust::transaction::error::TransactionError;
+use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
@@ -15,40 +14,43 @@ pub fn add_deploy_account_transaction(
     broadcasted_deploy_account_transaction: BroadcastedDeployAccountTransaction,
 ) -> DevnetResult<(TransactionHash, ContractAddress)> {
     if broadcasted_deploy_account_transaction.common.max_fee.0 == 0 {
-        return Err(Error::TransactionError(TransactionError::FeeError(
-            "For deploy account transaction, max fee cannot be 0".to_string(),
-        )));
+        return Err(Error::FeeError {
+            reason: "For deploy account transaction, max fee cannot be 0".to_string(),
+        });
     }
 
     if !starknet.state.is_contract_declared(&broadcasted_deploy_account_transaction.class_hash) {
-        return Err(Error::StateError(StateError::MissingClassHash()));
+        return Err(Error::StateError(crate::error::StateError::NoneClassHash(
+            broadcasted_deploy_account_transaction.class_hash,
+        )));
     }
 
-    let sir_deploy_account_transaction = broadcasted_deploy_account_transaction
-        .create_sir_deploy_account(starknet.config.chain_id.to_felt().into())?;
+    let blockifier_deploy_account_transaction = broadcasted_deploy_account_transaction
+        .create_blockifier_deploy_account(starknet.chain_id().to_felt())?;
 
-    let transaction_hash = sir_deploy_account_transaction.hash_value().into();
-    let address: ContractAddress = sir_deploy_account_transaction.contract_address().try_into()?;
+    let transaction_hash = blockifier_deploy_account_transaction.tx_hash.0.into();
+    let address: ContractAddress = blockifier_deploy_account_transaction.contract_address.into();
     let deploy_account_transaction = broadcasted_deploy_account_transaction
         .compile_deploy_account_transaction(&transaction_hash, address);
 
     let transaction = Transaction::DeployAccount(deploy_account_transaction);
 
-    let state_before_txn = starknet.state.pending_state.clone();
-    match sir_deploy_account_transaction
-        .execute(&mut starknet.state.pending_state, &starknet.block_context)
-    {
+    let blockifier_execution_result =
+        blockifier::transaction::account_transaction::AccountTransaction::DeployAccount(
+            blockifier_deploy_account_transaction,
+        )
+        .execute(&mut starknet.state.state, &starknet.block_context, true, true);
+
+    match blockifier_execution_result {
         Ok(tx_info) => match tx_info.revert_error {
             Some(error) => {
                 let transaction_to_add =
                     StarknetTransaction::create_rejected(&transaction, None, &error);
 
                 starknet.transactions.insert(&transaction_hash, transaction_to_add);
-                // Revert to previous pending state
-                starknet.state.pending_state = state_before_txn;
             }
             None => {
-                starknet.handle_successful_transaction(&transaction_hash, &transaction, &tx_info)?
+                starknet.handle_successful_transaction(&transaction_hash, &transaction, tx_info)?
             }
         },
         Err(tx_err) => {
@@ -56,8 +58,6 @@ pub fn add_deploy_account_transaction(
                 StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
-            // Revert to previous pending state
-            starknet.state.pending_state = state_before_txn;
         }
     }
 
@@ -96,9 +96,9 @@ mod tests {
 
         assert!(result.is_err());
         match result.err().unwrap() {
-            crate::error::Error::TransactionError(
-                starknet_in_rust::transaction::error::TransactionError::FeeError(msg),
-            ) => assert_eq!(msg, "For deploy account transaction, max fee cannot be 0"),
+            crate::error::Error::FeeError { reason: msg } => {
+                assert_eq!(msg, "For deploy account transaction, max fee cannot be 0")
+            }
             _ => panic!("Wrong error type"),
         }
     }
@@ -107,7 +107,7 @@ mod tests {
     fn deploy_account_transaction_should_fail_due_to_not_enough_balance() {
         let (mut starknet, account_class_hash, _) = setup();
 
-        let fee_raw: u128 = 2000;
+        let fee_raw: u128 = 4000;
         let transaction = BroadcastedDeployAccountTransaction::new(
             &vec![],
             Fee(fee_raw),
@@ -122,7 +122,7 @@ mod tests {
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
 
         assert_eq!(txn.finality_status, None);
-        assert!(txn.execution_result.revert_reason().unwrap().contains("Fee transfer failure"));
+        assert!(txn.execution_result.revert_reason().unwrap().contains("exceeds balance"));
     }
 
     #[test]
@@ -140,20 +140,19 @@ mod tests {
             Felt::from(1),
         );
 
-        let sir_transaction = transaction
-            .create_sir_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt().into())
+        let blockifier_transaction = transaction
+            .create_blockifier_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt())
             .unwrap();
 
         // change balance at address
-        let account_address =
-            ContractAddress::try_from(sir_transaction.contract_address().clone()).unwrap();
+        let account_address = ContractAddress::from(blockifier_transaction.contract_address);
         let balance_storage_var_address =
             get_storage_var_address("ERC20_balances", &[account_address.into()]).unwrap();
         let balance_storage_key =
             ContractStorageKey::new(fee_token_address, balance_storage_var_address);
 
         starknet.state.change_storage(balance_storage_key, Felt::from(fee_raw)).unwrap();
-        starknet.state.synchronize_states();
+        starknet.state.clear_dirty_state();
 
         let (txn_hash, _) = starknet.add_deploy_account_transaction(transaction).unwrap();
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
@@ -161,12 +160,14 @@ mod tests {
         assert_eq!(txn.finality_status, None);
         assert_eq!(
             txn.execution_result.revert_reason(),
-            Some(format!("Calculated fee (3709) exceeds max fee ({})", fee_raw).as_str())
+            Some(
+                format!("Max fee (Fee({})) is too low. Minimum fee: Fee(3097).", fee_raw).as_str()
+            )
         );
     }
 
     fn get_accounts_count(starknet: &Starknet) -> usize {
-        starknet.state.state.address_to_class_hash.len()
+        starknet.state.state.state.address_to_class_hash.len()
     }
 
     #[test]
@@ -182,13 +183,12 @@ mod tests {
             Felt::from(13),
             Felt::from(1),
         );
-        let sir_transction = transaction
-            .create_sir_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt().into())
+        let blockifier_transaction = transaction
+            .create_blockifier_deploy_account(DEVNET_DEFAULT_CHAIN_ID.to_felt())
             .unwrap();
 
         // change balance at address
-        let account_address =
-            ContractAddress::try_from(sir_transction.contract_address().clone()).unwrap();
+        let account_address = ContractAddress::from(blockifier_transaction.contract_address);
         let balance_storage_var_address =
             get_storage_var_address("ERC20_balances", &[account_address.into()]).unwrap();
         let balance_storage_key =
@@ -199,7 +199,7 @@ mod tests {
             .state
             .change_storage(balance_storage_key, account_balance_before_deployment)
             .unwrap();
-        starknet.state.synchronize_states();
+        starknet.state.clear_dirty_state();
 
         // get accounts count before deployment
         let accounts_before_deployment = get_accounts_count(&starknet);
@@ -231,13 +231,12 @@ mod tests {
         let class_hash = contract_class.generate_hash().unwrap();
 
         starknet.state.declare_contract_class(class_hash, contract_class.into()).unwrap();
-        starknet.state.synchronize_states();
-        starknet.block_context = Starknet::get_block_context(
+        starknet.state.clear_dirty_state();
+        starknet.block_context = Starknet::init_block_context(
             1,
             constants::ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
-        )
-        .unwrap();
+        );
 
         starknet.restart_pending_block().unwrap();
 

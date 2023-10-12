@@ -19,7 +19,6 @@ pub fn state_update_by_block_id(
 mod tests {
     use starknet_api::transaction::Fee;
     use starknet_in_rust::core::contract_address::compute_casm_class_hash;
-    use starknet_in_rust::definitions::block_context::StarknetChainId;
     use starknet_in_rust::CasmContractClass;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::contract_address::ContractAddress;
@@ -29,7 +28,7 @@ mod tests {
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;
-    use crate::constants;
+    use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID};
     use crate::starknet::{predeployed, Starknet};
     use crate::state::state_diff::StateDiff;
     use crate::state::state_update::StateUpdate;
@@ -38,7 +37,6 @@ mod tests {
 
     #[test]
     /// This test checks that the state update is correct after a declare transaction v2.
-    /// Then checks that the state update is empty after executing the same declare transaction
     fn correct_state_update_after_declare_transaction_v2() {
         let (mut starknet, sender_address) = setup();
         let contract_class = dummy_cairo_1_contract_class();
@@ -49,18 +47,18 @@ mod tests {
             CasmContractClass::from_contract_class(contract_class.clone(), true).unwrap();
         let compiled_class_hash = compute_casm_class_hash(&casm_contract_class).unwrap();
 
-        let mut declare_txn = BroadcastedDeclareTransactionV2::new(
+        let declare_txn = BroadcastedDeclareTransactionV2::new(
             &contract_class,
             compiled_class_hash.clone().into(),
             sender_address,
-            Fee(2000),
+            Fee(4000),
             &Vec::new(),
             Felt::from(0),
             Felt::from(2),
         );
 
         // first execute declare v2 transaction
-        let (txn_hash, _) = starknet.add_declare_transaction_v2(declare_txn.clone()).unwrap();
+        let (txn_hash, _) = starknet.add_declare_transaction_v2(declare_txn).unwrap();
         let tx = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
         assert_eq!(tx.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
@@ -72,9 +70,7 @@ mod tests {
             .unwrap();
 
         let expected_state_diff = StateDiff {
-            declared_contracts: vec![(compiled_class_hash.clone().into(), casm_contract_class)]
-                .into_iter()
-                .collect(),
+            declared_contracts: vec![compiled_class_hash.clone().into()],
             class_hash_to_compiled_class_hash: vec![(
                 sierra_class_hash,
                 compiled_class_hash.into(),
@@ -94,23 +90,6 @@ mod tests {
             expected_state_update.cairo_0_declared_classes
         );
         assert_eq!(state_update.declared_classes, expected_state_update.declared_classes);
-
-        // execute the same transaction, but increment nonce, so new transaction hash could be
-        // computed
-        declare_txn.common.nonce = Felt::from(1);
-        let (txn_hash, _) = starknet.add_declare_transaction_v2(declare_txn).unwrap();
-        let tx = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
-        assert_eq!(tx.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
-        assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
-
-        let state_update = starknet
-            .block_state_update(starknet_rs_core::types::BlockId::Tag(
-                starknet_rs_core::types::BlockTag::Latest,
-            ))
-            .unwrap();
-
-        assert!(state_update.declared_classes.is_empty());
-        assert!(state_update.cairo_0_declared_classes.is_empty());
     }
 
     /// Initializes starknet with account_without_validations
@@ -139,13 +118,12 @@ mod tests {
         acc.deploy(&mut starknet.state).unwrap();
         acc.set_initial_balance(&mut starknet.state).unwrap();
 
-        starknet.state.synchronize_states();
-        starknet.block_context = Starknet::get_block_context(
+        starknet.state.clear_dirty_state();
+        starknet.block_context = Starknet::init_block_context(
             1,
             constants::ERC20_CONTRACT_ADDRESS,
-            StarknetChainId::TestNet,
-        )
-        .unwrap();
+            DEVNET_DEFAULT_CHAIN_ID,
+        );
 
         starknet.restart_pending_block().unwrap();
 

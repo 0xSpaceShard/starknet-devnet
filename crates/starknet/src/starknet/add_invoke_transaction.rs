@@ -1,5 +1,4 @@
-use starknet_in_rust::definitions::constants::INITIAL_GAS_COST;
-use starknet_in_rust::transaction::error::TransactionError;
+use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
 use starknet_types::rpc::transactions::{InvokeTransaction, Transaction};
@@ -13,37 +12,35 @@ pub fn add_invoke_transaction(
     broadcasted_invoke_transaction: BroadcastedInvokeTransaction,
 ) -> DevnetResult<TransactionHash> {
     if broadcasted_invoke_transaction.common.max_fee.0 == 0 {
-        return Err(error::Error::TransactionError(TransactionError::FeeError(
-            "For invoke transaction, max fee cannot be 0".to_string(),
-        )));
+        return Err(error::Error::FeeError {
+            reason: "For invoke transaction, max fee cannot be 0".to_string(),
+        });
     }
 
-    let sir_invoke_function = broadcasted_invoke_transaction
-        .create_sir_invoke_function(starknet.config.chain_id.to_felt().into())?;
-    let transaction_hash = sir_invoke_function.hash_value().into();
+    let blockifier_invoke_transaction = broadcasted_invoke_transaction
+        .create_blockifier_invoke_transaction(starknet.chain_id().to_felt())?;
+    let transaction_hash = blockifier_invoke_transaction.tx_hash.0.into();
 
     let invoke_transaction =
         broadcasted_invoke_transaction.create_invoke_transaction(transaction_hash);
     let transaction = Transaction::Invoke(InvokeTransaction::Version1(invoke_transaction));
 
-    let state_before_txn = starknet.state.pending_state.clone();
+    let blockifier_execution_result =
+        blockifier::transaction::account_transaction::AccountTransaction::Invoke(
+            blockifier_invoke_transaction,
+        )
+        .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
-    match sir_invoke_function.execute(
-        &mut starknet.state.pending_state,
-        &starknet.block_context,
-        INITIAL_GAS_COST,
-    ) {
+    match blockifier_execution_result {
         Ok(tx_info) => match tx_info.revert_error {
             Some(error) => {
                 let transaction_to_add =
                     StarknetTransaction::create_rejected(&transaction, None, &error);
 
                 starknet.transactions.insert(&transaction_hash, transaction_to_add);
-                // Revert to previous pending state
-                starknet.state.pending_state = state_before_txn;
             }
             None => {
-                starknet.handle_successful_transaction(&transaction_hash, &transaction, &tx_info)?
+                starknet.handle_successful_transaction(&transaction_hash, &transaction, tx_info)?
             }
         },
         Err(tx_err) => {
@@ -51,8 +48,6 @@ pub fn add_invoke_transaction(
                 StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
 
             starknet.transactions.insert(&transaction_hash, transaction_to_add);
-            // Revert to previous pending state
-            starknet.state.pending_state = state_before_txn;
         }
     }
 
@@ -99,7 +94,7 @@ mod tests {
 
         BroadcastedInvokeTransaction::new(
             account_address,
-            Fee(10000),
+            Fee(5000),
             &vec![],
             Felt::from(nonce),
             &calldata,
@@ -193,9 +188,9 @@ mod tests {
 
         assert!(result.is_err());
         match result.err().unwrap() {
-            crate::error::Error::TransactionError(
-                starknet_in_rust::transaction::error::TransactionError::FeeError(msg),
-            ) => assert_eq!(msg, "For invoke transaction, max fee cannot be 0"),
+            crate::error::Error::FeeError { reason: msg } => {
+                assert_eq!(msg, "For invoke transaction, max fee cannot be 0")
+            }
             _ => panic!("Wrong error type"),
         }
     }
@@ -222,9 +217,12 @@ mod tests {
         let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
         let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
         assert_eq!(transaction.finality_status, None);
-        assert_eq!(
-            transaction.execution_result.revert_reason(),
-            Some(format!("Invalid transaction nonce. Expected: 1 got {}", nonce).as_str())
+        assert!(
+            transaction
+                .execution_result
+                .revert_reason()
+                .unwrap()
+                .contains("Invalid transaction nonce")
         );
     }
 
@@ -288,13 +286,12 @@ mod tests {
         // change storage of dummy contract
         // starknet.state.change_storage(contract_storage_key, Felt::from(0)).unwrap();
 
-        starknet.state.synchronize_states();
-        starknet.block_context = Starknet::get_block_context(
+        starknet.state.clear_dirty_state();
+        starknet.block_context = Starknet::init_block_context(
             1,
             constants::ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
-        )
-        .unwrap();
+        );
 
         starknet.restart_pending_block().unwrap();
 

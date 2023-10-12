@@ -19,49 +19,23 @@ pub struct StateUpdate {
 impl StateUpdate {
     pub fn new(block_hash: Felt, state_diff: StateDiff) -> DevnetResult<Self> {
         // declared classes (class hash, compiled class hash) that are not cairo 0
-        let declared_classes = state_diff
-            .class_hash_to_compiled_class_hash
-            .into_iter()
-            .map(|(class_hash, compiled_class_hash)| (class_hash, compiled_class_hash))
-            .collect();
+        let declared_classes = state_diff.class_hash_to_compiled_class_hash.into_iter().collect();
 
         // cairo 0 declarations
-        let cairo_0_declared_classes: Vec<Felt> =
-            state_diff.cairo_0_declared_contracts.into_keys().collect();
+        let cairo_0_declared_classes: Vec<Felt> = state_diff.cairo_0_declared_contracts;
 
         // storage updates (contract address -> [(storage_entry, value)])
-        let mut storage_updates = Vec::<(ContractAddress, Vec<(PatriciaKey, Felt)>)>::new();
-
-        for (address, storage_entry) in state_diff.inner.storage_updates() {
-            let mut storage_entry_updates = Vec::<(PatriciaKey, Felt)>::new();
-
-            for (key, value) in storage_entry.clone().into_iter() {
-                storage_entry_updates.push((PatriciaKey::new(Felt::from(key))?, Felt::from(value)));
-            }
-
-            let contract_address =
-                ContractAddress::try_from(address.clone()).map_err(crate::error::Error::from)?;
-
-            storage_updates.push((contract_address, storage_entry_updates));
-        }
+        let storage_updates = state_diff
+            .storage_updates
+            .into_iter()
+            .map(|(address, entries)| (address, entries.into_iter().collect()))
+            .collect();
 
         // contract nonces
-        let mut nonces = Vec::<(ContractAddress, Felt)>::new();
-        for (address, nonce) in state_diff.inner.address_to_nonce() {
-            let contract_address =
-                ContractAddress::try_from(address.clone()).map_err(crate::error::Error::from)?;
-
-            nonces.push((contract_address, Felt::from(nonce.clone())));
-        }
+        let nonces = state_diff.address_to_nonce.into_iter().collect();
 
         // deployed contracts (address -> class hash)
-        let mut deployed_contracts = Vec::new();
-        for (address, class_hash) in state_diff.inner.address_to_class_hash() {
-            let contract_address =
-                ContractAddress::try_from(address.clone()).map_err(crate::error::Error::from)?;
-            let class_hash = Felt::new(*class_hash).map_err(crate::error::Error::from)?;
-            deployed_contracts.push((contract_address, class_hash));
-        }
+        let deployed_contracts = state_diff.address_to_class_hash.into_iter().collect();
 
         // TODO new and old root are not computed, they are not part of the MVP
         Ok(Self {

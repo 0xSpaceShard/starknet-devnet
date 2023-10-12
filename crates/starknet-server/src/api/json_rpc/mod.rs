@@ -21,6 +21,7 @@ use self::models::{
     BroadcastedInvokeTransactionInput,
 };
 use super::Api;
+use crate::api::json_rpc::models::SimulateTransactionsInput;
 use crate::api::serde_helpers::empty_params;
 
 /// Helper trait to easily convert results to rpc results
@@ -231,6 +232,14 @@ impl JsonRpcHandler {
                 .estimate_message_fee(request.get_block_id(), request.get_raw_message().clone())
                 .await
                 .to_rpc_result(),
+            StarknetRequest::SimulateTransactions(SimulateTransactionsInput {
+                block_id,
+                transactions,
+                simulation_flags,
+            }) => self
+                .simulate_transactions(block_id, transactions, simulation_flags)
+                .await
+                .to_rpc_result(),
         }
     }
 }
@@ -286,6 +295,8 @@ pub enum StarknetRequest {
     AddInvokeTransaction(BroadcastedInvokeTransactionInput),
     #[serde(rename = "starknet_estimateMessageFee")]
     EstimateMessageFee(EstimateMessageFeeRequestWrapper),
+    #[serde(rename = "starknet_simulateTransactions")]
+    SimulateTransactions(SimulateTransactionsInput),
 }
 
 impl std::fmt::Display for StarknetRequest {
@@ -327,6 +338,7 @@ impl std::fmt::Display for StarknetRequest {
             }
             StarknetRequest::AddInvokeTransaction(_) => write!(f, "starknet_addInvokeTransaction"),
             StarknetRequest::EstimateMessageFee(_) => write!(f, "starknet_estimateMessageFee"),
+            StarknetRequest::SimulateTransactions(_) => write!(f, "starknet_simulateTransactions"),
         }
     }
 }

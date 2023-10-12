@@ -21,6 +21,7 @@ pub fn serve_http_api_json_rpc(
 
     server::builder::Builder::<JsonRpcHandler, HttpApiHandler>::new(addr, json_rpc, http)
         .set_config(config)
+        .json_rpc_route("/")
         .json_rpc_route("/rpc")
         .http_api_route("/is_alive", get(http::is_alive))
         .http_api_route("/dump", post(http::dump_load::dump))

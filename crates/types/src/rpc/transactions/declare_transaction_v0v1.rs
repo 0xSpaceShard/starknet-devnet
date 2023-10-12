@@ -9,6 +9,7 @@ use crate::felt::{
 use crate::traits::HashProducer;
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct DeclareTransactionV0V1 {
     pub class_hash: ClassHash,
     pub sender_address: ContractAddress,
