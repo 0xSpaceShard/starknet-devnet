@@ -61,15 +61,9 @@ impl BroadcastedInvokeTransaction {
         &self,
         chain_id: Felt,
     ) -> DevnetResult<InvokeTransaction> {
-        let (entry_point_selector_field, additional_data) = if (QUERY_VERSION_OFFSET
-            + SUPPORTED_TX_VERSION)
-            == FieldElement::from(self.common.version)
-        {
-            (Felt::from(EXECUTE_ENTRY_POINT_SELECTOR.clone()), Vec::<Felt>::new())
-        } else {
+        let entry_point_selector_field = Felt::default();
+        //(Felt::default(), additional_data)
             let additional_data = vec![self.common.nonce];
-            (Felt::default(), additional_data)
-        };
 
         let txn_hash: Felt = calculate_transaction_hash_common(
             TransactionHashPrefix::Invoke,
