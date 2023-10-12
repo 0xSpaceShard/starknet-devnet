@@ -4,6 +4,7 @@ use blockifier::transaction::transactions::InvokeTransaction;
 use cairo_felt::Felt252;
 use serde::{Deserialize, Serialize};
 use starknet_api::hash::StarkFelt;
+use starknet_api::hash::StarkFelt;
 use starknet_api::transaction::Fee;
 use starknet_in_rust::core::transaction_hash::{
     calculate_transaction_hash_common, TransactionHashPrefix,
@@ -16,6 +17,15 @@ use crate::felt::{
 };
 use crate::rpc::transactions::invoke_transaction_v1::InvokeTransactionV1;
 use crate::rpc::transactions::BroadcastedTransactionCommon;
+
+const QUERY_VERSION_OFFSET: FieldElement = FieldElement::from_mont([
+    18446744073700081665,
+    17407,
+    18446744073709551584,
+    576460752142434320,
+]);
+
+const SUPPORTED_TX_VERSION: FieldElement = FieldElement::ONE;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct BroadcastedInvokeTransaction {
