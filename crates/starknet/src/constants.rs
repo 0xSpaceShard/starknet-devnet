@@ -14,8 +14,8 @@ pub(crate) const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/accounts_artifacts/OpenZeppelin/0.7.0/Account.cairo/Account.sierra.json"
 );
-pub const CAIRO_1_ACCOUNT_CONTRACT_HASH: &str =
-    "0x2b513521d389c0477b3a9a90a1ff4822bcd957a9c8ba0dfc49918b59a19cf8a"; // TODO this is casm hash - which one do we need? currently both artifacts are stored
+pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
+    "0x04c6d6cf894f8bc96bb9c525e6853e5483177841f7388f74a46cfda6f028c755";
 
 pub(crate) const ERC20_CONTRACT_PATH: &str =
     concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/ERC20_Mintable_OZ_0.2.0.json");

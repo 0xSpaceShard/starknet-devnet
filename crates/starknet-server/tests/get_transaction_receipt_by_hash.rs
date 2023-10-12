@@ -4,7 +4,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
     use std::sync::Arc;
 
-    use starknet_core::constants::CAIRO_0_ACCOUNT_CONTRACT_HASH;
+    use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
     use starknet_rs_accounts::{
         Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
@@ -36,8 +36,9 @@ mod get_transaction_receipt_by_hash_integration_tests {
         // constructs starknet-rs account
         let signer = get_deployable_account_signer();
 
+        // TODO temporarily modified test
         let account_factory = OpenZeppelinAccountFactory::new(
-            FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
+            FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap(),
             CHAIN_ID,
             signer.clone(),
             devnet.clone_provider(),
@@ -46,12 +47,11 @@ mod get_transaction_receipt_by_hash_integration_tests {
         .unwrap();
         let new_account_nonce = FieldElement::ZERO;
         let salt = FieldElement::THREE;
-        let deployment = account_factory.deploy(salt);
-        let fee = deployment.estimate_fee().await.unwrap();
+        let deployment = account_factory.deploy(salt).nonce(new_account_nonce);
         let new_account_address = deployment.address();
-        devnet.mint(new_account_address, (fee.overall_fee * 2) as u128).await;
+        devnet.mint(new_account_address, 1e18 as u128).await;
 
-        let deploy_account_result = deployment.nonce(new_account_nonce).send().await.unwrap();
+        let deploy_account_result = deployment.send().await.unwrap();
 
         let deploy_account_receipt = devnet
             .json_rpc_client

@@ -156,9 +156,7 @@ impl Starknet {
         let account_contract_class = ContractClass::Cairo1(
             ContractClass::cairo_1_from_sierra_json_str(&contract_class_str)?,
         );
-        // let account_contract_class =
-        // Cairo0Json::raw_json_from_path(CAIRO_0_ACCOUNT_CONTRACT_PATH)?;
-        let class_hash = account_contract_class.generate_hash()?;
+        let class_hash = account_contract_class.generate_hash()?; // TODO replace with constant
 
         let accounts = predeployed_accounts.generate_accounts(
             config.total_accounts,
