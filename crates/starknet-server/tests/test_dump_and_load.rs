@@ -28,9 +28,35 @@ mod dump_and_load_tests {
     };
 
     #[tokio::test]
-    async fn check_dump_path_with_dump_on() {
+    async fn dump_wrong_cli_parameters_no_path() {
         let devnet_dump =
             BackgroundDevnet::spawn_with_additional_args(&["--dump-on", "exit"]).await;
+        assert!(devnet_dump.is_err());
+    }
+
+    #[tokio::test]
+    async fn dump_wrong_cli_parameters_path() {
+        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-path",
+            "///",
+            "--dump-on",
+            "transaction",
+        ])
+        .await;
+
+        assert!(devnet_dump.is_err());
+    }
+
+    #[tokio::test]
+    async fn dump_wrong_cli_parameters_mode() {
+        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-path",
+            "dump_wrong_cli_mode",
+            "--dump-on",
+            "e",
+        ])
+        .await;
+
         assert!(devnet_dump.is_err());
     }
 
@@ -81,7 +107,7 @@ mod dump_and_load_tests {
 
     #[tokio::test]
     async fn mint_dump_on_exit_and_load() {
-        // dump after transaction
+        // dump on exit
         let dump_file_name = "dump_on_exit";
         let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
             "--dump-path",
@@ -220,6 +246,100 @@ mod dump_and_load_tests {
         }
 
         remove_file(dump_file_name);
+    }
+
+    #[tokio::test]
+    async fn dump_without_transaction() {
+        // dump on exit
+        let dump_file_name = "dump_without_transaction";
+        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-path",
+            dump_file_name,
+            "--dump-on",
+            "exit",
+        ])
+        .await
+        .expect("Could not start Devnet");
+
+        #[cfg(windows)]
+        {
+            // To send SIGINT signal on windows, windows-kill is needed
+            let mut kill = Command::new("windows-kill")
+                .args(["-SIGINT", &devnet_dump.process.id().to_string()])
+                .spawn()
+                .unwrap();
+            kill.wait().unwrap();
+        }
+
+        #[cfg(unix)]
+        {
+            let mut kill = Command::new("kill")
+                .args(["-s", "SIGINT", &devnet_dump.process.id().to_string()])
+                .spawn()
+                .unwrap();
+            kill.wait().unwrap();
+        }
+
+        // file should not be created if there are no transactions
+        if Path::new(dump_file_name).exists() {
+            panic!(
+                "Could find the dump file but there were no transactions to dump {}",
+                dump_file_name
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn dump_endpoint_fail_with_wrong_request() {
+        let devnet_dump = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let dump_body = Body::from(
+            json!({
+                "test": ""
+            })
+            .to_string(),
+        );
+        let result = devnet_dump.post_json("/dump".into(), dump_body).await.unwrap();
+        assert_eq!(result.status(), 422);
+    }
+
+    #[tokio::test]
+    async fn load_endpoint_fail_with_wrong_request() {
+        let devnet_load = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let load_body = Body::from(
+            json!({
+                "test": ""
+            })
+            .to_string(),
+        );
+        let result = devnet_load.post_json("/load".into(), load_body).await.unwrap();
+        assert_eq!(result.status(), 422);
+    }
+
+    #[tokio::test]
+    async fn dump_endpoint_fail_with_wrong_file_name() {
+        let devnet_dump = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let dump_body = Body::from(
+            json!({
+                "path": "///"
+            })
+            .to_string(),
+        );
+        let result = devnet_dump.post_json("/dump".into(), dump_body).await.unwrap();
+        assert_eq!(result.status(), 500);
+    }
+
+    #[tokio::test]
+    async fn load_endpoint_fail_with_wrong_path() {
+        let load_file_name = "load_file_name";
+        let devnet_load = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let load_body = Body::from(
+            json!({
+                "path": load_file_name
+            })
+            .to_string(),
+        );
+        let result = devnet_load.post_json("/load".into(), load_body).await.unwrap();
+        assert_eq!(result.status(), 400);
     }
 
     #[tokio::test]
