@@ -1,7 +1,4 @@
-use starknet_core::error::Error;
-use starknet_in_rust::core::errors::state_errors::StateError;
-use starknet_in_rust::transaction::error::TransactionError;
-use starknet_in_rust::utils::Address;
+use starknet_core::error::{Error, StateError};
 use starknet_rs_core::types::{ContractClass as CodegenContractClass, MsgFromL1};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
@@ -9,7 +6,8 @@ use starknet_types::rpc::block::{Block, BlockHeader, BlockId};
 use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
-    BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, Transaction,
+    BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, SimulatedTransaction,
+    SimulationFlag, Transaction,
 };
 use starknet_types::starknet_api::block::BlockNumber;
 use starknet_types::traits::ToHexString;
@@ -123,7 +121,7 @@ impl JsonRpcHandler {
             .contract_storage_at_block(block_id.into(), contract_address, key.0)
             .map_err(|err| match err {
                 Error::NoBlock => ApiError::BlockNotFound,
-                Error::StateError(StateError::NoneStorage((_, _)))
+                Error::StateError(StateError::NoneStorage(_))
                 | Error::NoStateAtBlock { block_number: _ } => ApiError::ContractNotFound,
                 unknown_error => ApiError::StarknetDevnetError(unknown_error),
             })?;
@@ -255,9 +253,7 @@ impl JsonRpcHandler {
             request.calldata,
         ) {
             Ok(result) => Ok(result),
-            Err(Error::TransactionError(TransactionError::State(
-                StateError::NoneContractState(Address(_address)),
-            ))) => Err(ApiError::ContractNotFound),
+            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
             Err(err) => Err(ApiError::ContractError { msg: err.to_string() }),
         }
@@ -377,5 +373,21 @@ impl JsonRpcHandler {
             })?;
 
         Ok(nonce)
+    }
+
+    /// starknet_simulateTransactions
+    pub(crate) async fn simulate_transactions(
+        &self,
+        block_id: BlockId,
+        transactions: Vec<BroadcastedTransaction>,
+        simulation_flags: Vec<SimulationFlag>,
+    ) -> RpcResult<Vec<SimulatedTransaction>> {
+        let starknet = self.api.starknet.read().await;
+        match starknet.simulate_transactions(block_id.into(), &transactions, simulation_flags) {
+            Ok(result) => Ok(result),
+            Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
+            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
+            Err(err) => Err(ApiError::ContractError { msg: err.to_string() }),
+        }
     }
 }

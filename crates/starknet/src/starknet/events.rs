@@ -40,7 +40,7 @@ pub(crate) fn get_events(
 
             // filter the events from the transaction
             let filtered_transaction_events = transaction
-                .get_events()?
+                .get_events()
                 .into_iter()
                 .filter(|event| {
                     check_if_filter_applies_for_event(&contract_address, &keys_filter, event)
@@ -123,8 +123,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use starknet_in_rust::execution::{CallInfo, TransactionExecutionInfo};
-    use starknet_in_rust::felt::Felt252;
+    use blockifier::execution::entry_point::CallInfo;
     use starknet_rs_core::types::BlockId;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::emitted_event::Event;
@@ -398,14 +397,14 @@ mod tests {
             let transaction =
                 Transaction::Declare(DeclareTransaction::Version1(dummy_declare_transaction_v1()));
 
-            let txn_info = TransactionExecutionInfo {
-                call_info: Some(dummy_call_info(idx + 1)),
+            let txn_info = blockifier::transaction::objects::TransactionExecutionInfo {
+                execute_call_info: Some(dummy_call_info(idx + 1)),
                 ..Default::default()
             };
             let transaction_hash = Felt::from(idx as u128 + 100);
 
             starknet
-                .handle_successful_transaction(&transaction_hash, &transaction, &txn_info)
+                .handle_successful_transaction(&transaction_hash, &transaction, txn_info)
                 .unwrap();
         }
 
@@ -420,32 +419,33 @@ mod tests {
     fn dummy_call_info(events_count: usize) -> CallInfo {
         let mut call_info = CallInfo::default();
 
-        for idx in 1..=events_count {
-            let event = starknet_in_rust::execution::OrderedEvent {
-                order: idx as u64,
-                keys: vec![Felt252::from(idx + 10)],
-                data: vec![Felt252::from(idx + 20)],
+        // reverse the order of the events, for example: [{order: 3, event: E3}, {order: 2, event:
+        // E2}, {order: 1, event: E1}] so we can check that events are returned in ascending
+        // order based on the "order" field of the object when extracting them from
+        // transaction execution call info
+        for idx in (1..=events_count).rev() {
+            let event = blockifier::execution::entry_point::OrderedEvent {
+                order: idx,
+                event: starknet_api::transaction::EventContent {
+                    keys: vec![starknet_api::transaction::EventKey(
+                        starknet_api::hash::StarkFelt::from(idx as u128 + 10),
+                    )],
+                    data: starknet_api::transaction::EventData(vec![
+                        starknet_api::hash::StarkFelt::from(idx as u128 + 20),
+                    ]),
+                },
             };
-            call_info.events.push(event);
+            call_info.execution.events.push(event);
         }
 
         call_info
     }
 
     fn dummy_event() -> Event {
-        let starknet_in_rust_event = starknet_in_rust::execution::Event::new(
-            starknet_in_rust::execution::OrderedEvent::new(
-                1,
-                vec![Felt252::from(2), Felt252::from(3)],
-                vec![Felt252::from(1), Felt252::from(1)],
-            ),
-            dummy_contract_address().try_into().unwrap(),
-        );
-
         Event {
-            from_address: starknet_in_rust_event.from_address.try_into().unwrap(),
-            keys: starknet_in_rust_event.keys.into_iter().map(Felt::from).collect(),
-            data: starknet_in_rust_event.data.into_iter().map(Felt::from).collect(),
+            from_address: dummy_contract_address(),
+            keys: vec![Felt::from(2), Felt::from(3)],
+            data: vec![Felt::from(1), Felt::from(1)],
         }
     }
 }

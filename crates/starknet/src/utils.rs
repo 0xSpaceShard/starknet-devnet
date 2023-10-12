@@ -128,7 +128,7 @@ pub(crate) mod test_utils {
             &contract_class,
             compiled_class_hash.into(),
             *sender_address,
-            Fee(2000),
+            Fee(4000),
             &Vec::new(),
             Felt::from(0),
             Felt::from(2),

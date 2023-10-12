@@ -32,7 +32,7 @@ pub enum TestError {
     #[error("Invalid URI")]
     InvalidUri(#[from] hyper::http::uri::InvalidUri),
 
-    #[error("Could not start Devnet")]
+    #[error("Could not start Devnet. Make sure you've built it with: `cargo build --release`")]
     DevnetNotStartable,
 }
 
@@ -140,6 +140,23 @@ impl BackgroundDevnet {
             .body(body)
             .unwrap();
         self.http_client.request(req).await
+    }
+
+    pub async fn send_custom_rpc(
+        &self,
+        method: &str,
+        params: serde_json::Value,
+    ) -> serde_json::Value {
+        let body_json = json!({
+            "jsonrpc": "2.0",
+            "id": 0,
+            "method": method,
+            "params": params
+        });
+
+        let body = hyper::Body::from(body_json.to_string());
+        let resp = self.post_json(RPC_PATH.into(), body).await.unwrap();
+        get_json_body(resp).await
     }
 
     pub fn clone_provider(&self) -> JsonRpcClient<HttpTransport> {

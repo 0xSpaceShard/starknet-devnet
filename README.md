@@ -125,13 +125,16 @@ For now, you can consult the [Pythonic Devnet docs on minting](https://0xspacesh
 
 ## Dumping & Loading
 
-To preserve your Devnet instance for future use, there are several options:
+To preserve your Devnet instance for future use, these are the options:
+
 - Dumping on exit (handles Ctrl+C, i.e. SIGINT, doesn't handle SIGKILL):
+
 ```
 cargo run -- --dump-on exit --dump-path <PATH>
 ```
 
 - Dumping after each transaction:
+
 ```
 cargo run -- --dump-on transaction --dump-path <PATH>
 ```
@@ -144,9 +147,11 @@ curl -X POST http://<HOST>:<PORT>/dump -d '{ "path": <PATH> }' -H "Content-Type:
 ### Loading
 
 To load a preserved Devnet instance, the options are:
-- Loading on startup:
+
+- Loading on startup (note the argument name is not `--load-path` as it was in Devnet-py):
+
 ```
-cargo run -- --load-path <PATH>
+cargo run -- --dump-path <PATH>
 ```
 
 Currently, dumping produces a list of received transactions that is stored on disk.
@@ -196,13 +201,19 @@ rustup default nightly
 
 ## Development - Testing
 
-Run all tests with:
+To ensure that integration tests pass, be sure to have run `cargo build --release` or `cargo run --release` prior to testing. This builds the production target used in integration tests, so spawning Background Devnet won't time out.
+
+Run all tests using all available CPUs with:
 
 ```
 cargo test
 ```
 
-To ensure that integration tests pass, be sure to have run `cargo build --release` or `cargo run --release` prior to that (this will build the production target that is used in these tests, so spawning Background Devnet won't time out)
+The previous command might cause your testing to die along the way due to memory issues. In that case, limiting the number of jobs helps, but depends on your machine (rule of thumb: N=6):
+
+```
+cargo test --jobs <N>
+```
 
 ## Development - Docker
 

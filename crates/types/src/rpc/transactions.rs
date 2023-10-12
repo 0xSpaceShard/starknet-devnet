@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+
+use blockifier::transaction::account_transaction::AccountTransaction;
 use broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
@@ -9,11 +12,15 @@ use deploy_transaction::DeployTransaction;
 use invoke_transaction_v1::InvokeTransactionV1;
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
+use starknet_api::deprecated_contract_class::EntryPointType;
 use starknet_api::transaction::Fee;
 use starknet_rs_core::types::{BlockId, ExecutionResult, TransactionFinalityStatus};
 
+use super::estimate_message_fee::FeeEstimateWrapper;
+use super::transaction_receipt::MessageToL1;
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
+use crate::error::{ConversionError, DevnetResult};
 use crate::felt::{
     BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash, TransactionSignature,
     TransactionVersion,
@@ -266,9 +273,200 @@ pub enum BroadcastedTransaction {
     DeployAccount(BroadcastedDeployAccountTransaction),
 }
 
+impl BroadcastedTransaction {
+    pub fn to_blockifier_account_transaction(
+        &self,
+        chain_id: Felt,
+    ) -> DevnetResult<blockifier::transaction::account_transaction::AccountTransaction> {
+        let blockifier_transaction = match self {
+            BroadcastedTransaction::Invoke(invoke_txn) => {
+                let blockifier_invoke_txn =
+                    invoke_txn.create_blockifier_invoke_transaction(chain_id)?;
+                AccountTransaction::Invoke(blockifier_invoke_txn)
+            }
+            BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(declare_v1)) => {
+                let class_hash = declare_v1.generate_class_hash()?;
+                let transaction_hash =
+                    declare_v1.calculate_transaction_hash(&chain_id, &class_hash)?;
+                AccountTransaction::Declare(
+                    declare_v1.create_blockifier_declare(class_hash, transaction_hash)?,
+                )
+            }
+            BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(declare_v2)) => {
+                AccountTransaction::Declare(declare_v2.create_blockifier_declare(chain_id)?)
+            }
+            BroadcastedTransaction::DeployAccount(deploy_account) => {
+                AccountTransaction::DeployAccount(
+                    deploy_account.create_blockifier_deploy_account(chain_id)?,
+                )
+            }
+        };
+
+        Ok(blockifier_transaction)
+    }
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum BroadcastedDeclareTransaction {
     V1(Box<BroadcastedDeclareTransactionV1>),
     V2(Box<BroadcastedDeclareTransactionV2>),
+}
+
+/// Flags that indicate how to simulate a given transaction.
+/// By default, the sequencer behavior is replicated locally (enough funds are expected to be in the
+/// account, and fee will be deducted from the balance before the simulation of the next
+/// transaction). To skip the fee charge, use the SKIP_FEE_CHARGE flag.
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize)]
+pub enum SimulationFlag {
+    #[serde(rename = "SKIP_VALIDATE")]
+    SkipValidate,
+    #[serde(rename = "SKIP_FEE_CHARGE")]
+    SkipFeeCharge,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub enum CallType {
+    #[serde(rename = "LIBRARY_CALL")]
+    LibraryCall,
+    #[serde(rename = "CALL")]
+    Call,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct FunctionInvocation {
+    #[serde(flatten)]
+    function_call: FunctionCall,
+    caller_address: ContractAddress,
+    class_hash: Felt,
+    entry_point_type: EntryPointType,
+    call_type: CallType,
+    result: Vec<Felt>,
+    calls: Vec<FunctionInvocation>,
+    events: Vec<Event>,
+    messages: Vec<MessageToL1>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(untagged)]
+pub enum TransactionTrace {
+    Invoke(InvokeTransactionTrace),
+    Declare(DeclareTransactionTrace),
+    DeployAccount(DeployAccountTransactionTrace),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Reversion {
+    pub revert_reason: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(untagged)]
+pub enum ExecutionInvocation {
+    Succeeded(FunctionInvocation),
+    Reverted(Reversion),
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct InvokeTransactionTrace {
+    pub validate_invocation: Option<FunctionInvocation>,
+    pub execution_invocation: ExecutionInvocation,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DeclareTransactionTrace {
+    pub validate_invocation: Option<FunctionInvocation>,
+    pub fee_transfer_invocation: Option<FunctionInvocation>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DeployAccountTransactionTrace {
+    pub validate_invocation: Option<FunctionInvocation>,
+    pub constructor_invocation: Option<FunctionInvocation>,
+    pub fee_transfer_invocation: Option<FunctionInvocation>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SimulatedTransaction {
+    pub transaction_trace: TransactionTrace,
+    pub fee_estimation: FeeEstimateWrapper,
+}
+
+impl FunctionInvocation {
+    pub fn try_from_call_info(
+        mut call_info: blockifier::execution::entry_point::CallInfo,
+        address_to_class_hash: &HashMap<ContractAddress, Felt>,
+    ) -> DevnetResult<Self> {
+        let mut internal_calls: Vec<FunctionInvocation> = vec![];
+        for internal_call in call_info.inner_calls {
+            internal_calls.push(FunctionInvocation::try_from_call_info(
+                internal_call,
+                address_to_class_hash,
+            )?);
+        }
+
+        // the logic for getting the sorted l2-l1 messages
+        // is creating an array with enough room for all objects + 1
+        // then based on the order we use this index
+
+        call_info.execution.l2_to_l1_messages.sort_by_key(|msg| msg.order);
+
+        let messages: Vec<MessageToL1> = call_info
+            .execution
+            .l2_to_l1_messages
+            .into_iter()
+            .map(|msg| MessageToL1 {
+                from_address: call_info.call.caller_address.into(),
+                to_address: msg.message.to_address,
+                payload: msg.message.payload.0.into_iter().map(Felt::from).collect(),
+            })
+            .collect();
+
+        call_info.execution.events.sort_by_key(|event| event.order);
+
+        let events: Vec<Event> = call_info
+            .execution
+            .events
+            .into_iter()
+            .map(|event| Event {
+                from_address: call_info.call.storage_address.into(),
+                keys: event.event.keys.into_iter().map(|key| Felt::from(key.0)).collect(),
+                data: event.event.data.0.into_iter().map(Felt::from).collect(),
+            })
+            .collect();
+
+        let function_call = FunctionCall {
+            contract_address: call_info.call.storage_address.into(),
+            entry_point_selector: call_info.call.entry_point_selector.0.into(),
+            calldata: call_info.call.calldata.0.iter().map(|f| Felt::from(*f)).collect(),
+        };
+
+        // call_info.call.class_hash could be None, so we deduce it from
+        // call_info.call.storage_address which is function_call.contract_address
+        let class_hash = if let Some(class_hash) = call_info.call.class_hash {
+            class_hash.into()
+        } else {
+            address_to_class_hash
+                .get(&function_call.contract_address)
+                .ok_or(ConversionError::InvalidInternalStructure(
+                    "class_hash is unexpectedly undefined".into(),
+                ))
+                .cloned()?
+        };
+
+        Ok(FunctionInvocation {
+            function_call,
+            caller_address: call_info.call.caller_address.into(),
+            class_hash,
+            entry_point_type: call_info.call.entry_point_type,
+            call_type: match call_info.call.call_type {
+                blockifier::execution::entry_point::CallType::Call => CallType::Call,
+                blockifier::execution::entry_point::CallType::Delegate => CallType::LibraryCall,
+            },
+            result: call_info.execution.retdata.0.into_iter().map(Felt::from).collect(),
+            calls: internal_calls,
+            events,
+            messages,
+        })
+    }
 }
