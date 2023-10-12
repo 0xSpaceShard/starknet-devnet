@@ -3,8 +3,8 @@ use std::sync::Arc;
 use cairo_felt::Felt252;
 use serde::{Deserialize, Serialize};
 use starknet_api::core::calculate_contract_address;
-use starknet_api::hash::StarkFelt;
 use starknet_api::transaction::Fee;
+use starknet_rs_ff::FieldElement;
 
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
@@ -14,6 +14,8 @@ use crate::felt::{
 };
 use crate::rpc::transactions::deploy_account_transaction::DeployAccountTransaction;
 use crate::rpc::transactions::BroadcastedTransactionCommon;
+
+const TRANSACTION_VERSION: FieldElement = FieldElement::ONE;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct BroadcastedDeployAccountTransaction {
@@ -75,7 +77,7 @@ impl BroadcastedDeployAccountTransaction {
 
         let sn_api_transaction = starknet_api::transaction::DeployAccountTransaction {
             max_fee: self.common.max_fee,
-            version: starknet_api::transaction::TransactionVersion(StarkFelt::from(1u8)),
+            version: starknet_api::transaction::TransactionVersion(TRANSACTION_VERSION.into()),
             signature: starknet_api::transaction::TransactionSignature(
                 self.common.signature.iter().map(|felt| felt.into()).collect(),
             ),
