@@ -102,7 +102,7 @@ impl Args {
                 .try_into()
                 .expect("Invalid value for initial balance"), // TODO: Doesn't exit nicely.
             host: self.host.inner,
-            port: self.port, // TODO: Unification of parsing messages for host and port.
+            port: self.port,
             timeout: self.timeout,
             gas_price: self.gas_price,
             chain_id: match self.chain_id.as_str() {

@@ -333,7 +333,6 @@ impl Starknet {
         Ok(())
     }
 
-    // TODO: rewrite using our BlockId.
     fn get_state_at(&self, block_id: &BlockId) -> DevnetResult<&StarknetState> {
         match block_id {
             BlockId::Tag(_) => Ok(&self.state),
@@ -411,8 +410,6 @@ impl Starknet {
         Ok(res.execution.retdata.0.into_iter().map(Felt::from).collect())
     }
 
-    // TODO: move to estimate_fee file
-    /// Returns just the gas usage, not the overall fee
     pub fn estimate_fee(
         &self,
         block_id: BlockId,
