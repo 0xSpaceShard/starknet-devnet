@@ -419,6 +419,10 @@ mod tests {
     fn dummy_call_info(events_count: usize) -> CallInfo {
         let mut call_info = CallInfo::default();
 
+        // reverse the order of the events, for example: [{order: 3, event: E3}, {order: 2, event:
+        // E2}, {order: 1, event: E1}] so we can check that events are returned in ascending
+        // order based on the "order" field of the object when extracting them from
+        // transaction execution call info
         for idx in (1..=events_count).rev() {
             let event = blockifier::execution::entry_point::OrderedEvent {
                 order: idx,
