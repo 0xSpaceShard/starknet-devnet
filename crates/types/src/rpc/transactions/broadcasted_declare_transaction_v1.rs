@@ -98,7 +98,6 @@ impl BroadcastedDeclareTransactionV1 {
     ) -> DevnetResult<ClassHash> {
         let additional_data: Vec<Felt252> = vec![self.common.nonce.into()];
         let calldata = vec![class_hash.into()];
-        // TODO: Remove when SirDeclare::new will give same hash
         Ok(calculate_transaction_hash_common(
             SirTransactionHashPrefix::Declare,
             self.common.version.into(),
