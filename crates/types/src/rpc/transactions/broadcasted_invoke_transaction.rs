@@ -50,14 +50,14 @@ impl BroadcastedInvokeTransaction {
         &self,
         chain_id: Felt,
     ) -> DevnetResult<InvokeTransaction> {
-        let entry_point_selector_field = Felt::default();
+        let entry_point_selector_field = Felt252::from(0u8);
         let additional_data = vec![self.common.nonce];
 
         let txn_hash: Felt = calculate_transaction_hash_common(
             TransactionHashPrefix::Invoke,
             self.common.version.into(),
             &self.sender_address.into(),
-            entry_point_selector_field.into(),
+            entry_point_selector_field,
             self.calldata.iter().map(Felt252::from).collect::<Vec<Felt252>>().as_slice(),
             self.common.max_fee.0,
             chain_id.into(),
