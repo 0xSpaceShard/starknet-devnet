@@ -90,7 +90,7 @@ impl StarknetTransaction {
         }
     }
 
-    pub fn get_blockifier_events(&self) -> Vec<Event> {
+    pub fn get_events(&self) -> Vec<Event> {
         let mut events: Vec<Event> = vec![];
 
         fn get_blockifier_events_recursively(
@@ -168,7 +168,7 @@ impl StarknetTransaction {
     }
 
     pub fn get_receipt(&self) -> DevnetResult<TransactionReceipt> {
-        let transaction_events = self.get_blockifier_events();
+        let transaction_events = self.get_events();
 
         let mut common_receipt = self.inner.create_common_receipt(
             &transaction_events,

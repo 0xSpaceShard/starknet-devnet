@@ -40,7 +40,7 @@ pub(crate) fn get_events(
 
             // filter the events from the transaction
             let filtered_transaction_events = transaction
-                .get_blockifier_events()
+                .get_events()
                 .into_iter()
                 .filter(|event| {
                     check_if_filter_applies_for_event(&contract_address, &keys_filter, event)
