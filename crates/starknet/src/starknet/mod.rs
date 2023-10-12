@@ -1,24 +1,15 @@
-use std::collections::HashMap;
 use std::fmt;
 use std::net::IpAddr;
 use std::time::SystemTime;
 
+use blockifier::block_context::BlockContext;
+use blockifier::execution::entry_point::CallEntryPoint;
+use blockifier::state::state_api::StateReader;
+use blockifier::transaction::objects::TransactionExecutionInfo;
+use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
 use starknet_api::transaction::Fee;
-use starknet_in_rust::definitions::block_context::{
-    BlockContext, StarknetChainId, StarknetOsConfig,
-};
-use starknet_in_rust::definitions::constants::{
-    DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS, DEFAULT_CONTRACT_STORAGE_COMMITMENT_TREE_HEIGHT,
-    DEFAULT_GLOBAL_STATE_COMMITMENT_TREE_HEIGHT, DEFAULT_INVOKE_TX_MAX_N_STEPS,
-    DEFAULT_VALIDATE_MAX_N_STEPS,
-};
-use starknet_in_rust::execution::TransactionExecutionInfo;
-use starknet_in_rust::state::state_api::State;
-use starknet_in_rust::state::BlockInfo;
-use starknet_in_rust::testing::TEST_SEQUENCER_ADDRESS;
-use starknet_in_rust::utils::Address;
-use starknet_in_rust::{call_contract, simulate_transaction};
+use starknet_in_rust::definitions::constants::DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS;
 use starknet_rs_core::types::{BlockId, MsgFromL1, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
@@ -36,12 +27,10 @@ use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
-use starknet_types::rpc::transactions::broadcasted_invoke_transaction::{
-    create_sir_transactions, BroadcastedInvokeTransaction,
-};
+use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
 use starknet_types::rpc::transactions::{
     BroadcastedTransaction, BroadcastedTransactionCommon, DeclareTransactionTrace,
-    DeployAccountTransactionTrace, ExecutionInvocation, InvokeTransactionTrace,
+    DeployAccountTransactionTrace, ExecutionInvocation, FunctionInvocation, InvokeTransactionTrace,
     SimulatedTransaction, SimulationFlag, Transaction, TransactionTrace, Transactions,
 };
 use starknet_types::traits::HashProducer;
@@ -53,7 +42,7 @@ use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
     CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
-    DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_HOST, ERC20_CONTRACT_ADDRESS, INITIAL_SIMULATION_GAS,
+    DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_HOST, ERC20_CONTRACT_ADDRESS,
 };
 use crate::error::{DevnetResult, Error};
 use crate::predeployed_accounts::PredeployedAccounts;
@@ -123,7 +112,6 @@ impl Default for StarknetConfig {
     }
 }
 
-#[derive(Default)]
 pub struct Starknet {
     pub(in crate::starknet) state: StarknetState,
     predeployed_accounts: PredeployedAccounts,
@@ -131,6 +119,23 @@ pub struct Starknet {
     blocks: StarknetBlocks,
     pub transactions: StarknetTransactions,
     pub config: StarknetConfig,
+}
+
+impl Default for Starknet {
+    fn default() -> Self {
+        Self {
+            block_context: Self::init_block_context(
+                0,
+                ERC20_CONTRACT_ADDRESS,
+                DEVNET_DEFAULT_CHAIN_ID,
+            ),
+            state: Default::default(),
+            predeployed_accounts: Default::default(),
+            blocks: Default::default(),
+            transactions: Default::default(),
+            config: Default::default(),
+        }
+    }
 }
 
 impl Starknet {
@@ -177,11 +182,11 @@ impl Starknet {
         let mut this = Self {
             state,
             predeployed_accounts,
-            block_context: Self::get_block_context(
+            block_context: Self::init_block_context(
                 config.gas_price,
                 ERC20_CONTRACT_ADDRESS,
                 config.chain_id,
-            )?,
+            ),
             blocks: StarknetBlocks::default(),
             transactions: StarknetTransactions::default(),
             config: config.clone(),
@@ -216,7 +221,6 @@ impl Starknet {
     pub(crate) fn generate_new_block(
         &mut self,
         state_diff: StateDiff,
-        state: StarknetState,
     ) -> DevnetResult<BlockNumber> {
         let mut new_block = self.pending_block().clone();
 
@@ -239,7 +243,9 @@ impl Starknet {
         // insert pending block in the blocks collection and connect it to the state diff
         self.blocks.insert(new_block, state_diff);
         // save into blocks state archive
-        self.blocks.save_state_at(new_block_number, state);
+
+        let deep_cloned_state = self.state.clone();
+        self.blocks.save_state_at(new_block_number, deep_cloned_state);
 
         Ok(new_block_number)
     }
@@ -248,7 +254,7 @@ impl Starknet {
         &mut self,
         transaction_hash: &TransactionHash,
         transaction: &Transaction,
-        tx_info: &TransactionExecutionInfo,
+        tx_info: TransactionExecutionInfo,
     ) -> DevnetResult<()> {
         let transaction_to_add = StarknetTransaction::create_successful(transaction, None, tx_info);
 
@@ -263,7 +269,7 @@ impl Starknet {
         // make cached state part of "persistent" state
         self.state.clear_dirty_state();
         // create new block from pending one
-        self.generate_new_block(state_difference, self.state.clone())?;
+        self.generate_new_block(state_difference)?;
         // clear pending block information
         self.generate_pending_block()?;
 
@@ -274,35 +280,27 @@ impl Starknet {
         Ok(())
     }
 
-    fn get_block_context(
+    fn init_block_context(
         gas_price: u64,
         fee_token_address: &str,
         chain_id: ChainId,
-    ) -> DevnetResult<BlockContext> {
-        let starknet_os_config = StarknetOsConfig::new(
-            StarknetChainId::from(chain_id).to_felt(),
-            starknet_in_rust::utils::Address(
-                Felt::from_prefixed_hex_str(fee_token_address)?.into(),
-            ),
-            gas_price as u128,
-        );
+    ) -> BlockContext {
+        use starknet_api::core::{ContractAddress, PatriciaKey};
+        use starknet_api::hash::StarkHash;
+        use starknet_api::{contract_address, patricia_key};
 
-        let mut block_info = BlockInfo::empty(TEST_SEQUENCER_ADDRESS.clone());
-        block_info.gas_price = gas_price as u128;
+        let mut block_context = blockifier::block_context::BlockContext::create_for_testing();
 
-        let block_context = BlockContext::new(
-            starknet_os_config,
-            DEFAULT_CONTRACT_STORAGE_COMMITMENT_TREE_HEIGHT,
-            DEFAULT_GLOBAL_STATE_COMMITMENT_TREE_HEIGHT,
-            DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS.clone(),
-            DEFAULT_INVOKE_TX_MAX_N_STEPS,
-            DEFAULT_VALIDATE_MAX_N_STEPS,
-            block_info,
-            HashMap::default(),
-            true,
-        );
+        block_context.block_number = BlockNumber(0);
+        block_context.block_timestamp = BlockTimestamp(0);
+        block_context.gas_price = gas_price as u128;
+        block_context.chain_id = chain_id.into();
+        block_context.fee_token_address = contract_address!(fee_token_address);
+        // inject cairo resource fee weights from starknet_in_rust
+        block_context.vm_resource_fee_cost =
+            std::sync::Arc::new(DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS.clone());
 
-        Ok(block_context)
+        block_context
     }
 
     /// Should update block context with new block timestamp
@@ -313,8 +311,8 @@ impl Starknet {
             .expect("should get current UNIX timestamp")
             .as_secs();
 
-        block_context.block_info_mut().block_number = block_context.block_info().block_number + 1;
-        block_context.block_info_mut().block_timestamp = current_timestamp_secs;
+        block_context.block_number = block_context.block_number.next();
+        block_context.block_timestamp = BlockTimestamp(current_timestamp_secs);
     }
 
     fn pending_block(&self) -> &StarknetBlock {
@@ -325,12 +323,10 @@ impl Starknet {
     fn restart_pending_block(&mut self) -> DevnetResult<()> {
         let mut block = StarknetBlock::create_pending_block();
 
-        block.header.block_number = BlockNumber(self.block_context.block_info().block_number);
-        block.header.gas_price = GasPrice(self.block_context.block_info().gas_price);
-        block.header.sequencer =
-            ContractAddress::try_from(self.block_context.block_info().sequencer_address.clone())?
-                .try_into()?;
-        block.header.timestamp = BlockTimestamp(self.block_context.block_info().block_timestamp);
+        block.header.block_number = self.block_context.block_number;
+        block.header.gas_price = GasPrice(self.block_context.gas_price);
+        block.header.sequencer = self.block_context.sequencer_address;
+        block.header.timestamp = self.block_context.block_timestamp;
 
         self.blocks.pending_block = block;
 
@@ -390,16 +386,29 @@ impl Starknet {
             return Err(Error::ContractNotFound);
         }
 
-        let result = call_contract(
-            contract_address.into(),
-            entrypoint_selector.into(),
-            calldata.iter().map(|c| c.into()).collect(),
-            &mut state.state.clone(),
-            self.block_context.clone(),
-            // dummy caller_address since there is no account address
-            ContractAddress::zero().into(),
-        )?;
-        Ok(result.iter().map(|e| Felt::from(e.clone())).collect())
+        let call = CallEntryPoint {
+            calldata: starknet_api::transaction::Calldata(std::sync::Arc::new(
+                calldata.iter().map(|f| f.into()).collect(),
+            )),
+            storage_address: starknet_api::hash::StarkFelt::from(contract_address).try_into()?,
+            entry_point_selector: starknet_api::core::EntryPointSelector(
+                entrypoint_selector.into(),
+            ),
+            initial_gas: blockifier::transaction::transaction_execution::Transaction::initial_gas(),
+            ..Default::default()
+        };
+
+        let res = call.execute(
+            &mut state.clone().state,
+            &mut blockifier::execution::entry_point::ExecutionResources::default(),
+            &mut blockifier::execution::entry_point::EntryPointExecutionContext::new(
+                self.block_context.clone(),
+                blockifier::transaction::objects::AccountTransactionContext::default(),
+                self.block_context.invoke_tx_max_n_steps as usize,
+            ),
+        ).map_err(|err| Error::BlockifierTransactionError(blockifier::transaction::errors::TransactionExecutionError::EntryPointExecutionError(err)))?;
+
+        Ok(res.execution.retdata.0.into_iter().map(Felt::from).collect())
     }
 
     // TODO: move to estimate_fee file
@@ -460,7 +469,10 @@ impl Starknet {
     pub async fn mint(&mut self, address: ContractAddress, amount: u128) -> DevnetResult<Felt> {
         let sufficiently_big_max_fee: u128 = self.config.gas_price as u128 * 1_000_000;
         let chargeable_address_felt = Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?;
-        let nonce = self.state.state.get_nonce_at(&Address(chargeable_address_felt.into()))?;
+        let nonce =
+            self.state.state.get_nonce_at(starknet_api::core::ContractAddress::try_from(
+                starknet_api::hash::StarkFelt::from(chargeable_address_felt),
+            )?)?;
 
         let calldata = vec![
             Felt::from(address).into(),
@@ -475,7 +487,7 @@ impl Starknet {
                 selector: get_selector_from_name("mint").unwrap(),
                 calldata: calldata.clone(),
             }],
-            nonce: Felt::from(nonce.clone()).into(),
+            nonce: Felt::from(nonce.0).into(),
             max_fee: FieldElement::from(sufficiently_big_max_fee),
         };
 
@@ -499,7 +511,7 @@ impl Starknet {
                 max_fee: Fee(sufficiently_big_max_fee),
                 version: Felt::from(1),
                 signature: vec![signature.r.into(), signature.s.into()],
-                nonce: nonce.into(),
+                nonce: nonce.0.into(),
             },
         };
 
@@ -616,10 +628,11 @@ impl Starknet {
     pub fn simulate_transactions(
         &self,
         block_id: BlockId,
-        transactions: &Vec<BroadcastedTransaction>,
+        transactions: &[BroadcastedTransaction],
         simulation_flags: Vec<SimulationFlag>,
     ) -> DevnetResult<Vec<SimulatedTransaction>> {
-        let state = self.get_state_at(&block_id)?;
+        let mut state = self.get_state_at(&block_id)?.clone();
+        let chain_id = self.chain_id().to_felt();
 
         let mut skip_validate = false;
         let mut skip_fee_charge = false;
@@ -633,90 +646,123 @@ impl Starknet {
             }
         }
 
-        let sir_txs = create_sir_transactions(transactions, self.chain_id().to_felt())?;
-        let simulatable: Vec<&starknet_in_rust::transaction::Transaction> =
-            sir_txs.iter().collect();
+        let mut transactions_traces: Vec<TransactionTrace> = vec![];
 
-        // these flags cannot be influenced by the user, so we just assume they are not set
-        let skip_execute = false;
-        let ignore_max_fee = false;
-        let skip_nonce_check = false;
+        for broadcasted_transaction in transactions.iter() {
+            let blockifier_transaction =
+                broadcasted_transaction.to_blockifier_account_transaction(chain_id)?;
+            let tx_execution_info = blockifier_transaction.execute(
+                &mut state.state,
+                &self.block_context,
+                !skip_fee_charge,
+                !skip_validate,
+            )?;
+            let address_to_class_hash_map = &state.state.state.address_to_class_hash;
 
-        let simulated = simulate_transaction(
-            simulatable.as_slice(),
-            state.state.clone(),
-            &self.block_context,
-            INITIAL_SIMULATION_GAS,
-            skip_validate,
-            skip_execute,
-            skip_fee_charge,
-            ignore_max_fee,
-            skip_nonce_check,
-        )?;
+            let validate_invocation =
+                if let Some(validate_info) = tx_execution_info.validate_call_info {
+                    Some(FunctionInvocation::try_from_call_info(
+                        validate_info,
+                        address_to_class_hash_map,
+                    )?)
+                } else {
+                    None
+                };
+
+            let fee_transfer_invocation =
+                if let Some(fee_transfer_info) = tx_execution_info.fee_transfer_call_info {
+                    Some(FunctionInvocation::try_from_call_info(
+                        fee_transfer_info,
+                        address_to_class_hash_map,
+                    )?)
+                } else {
+                    None
+                };
+
+            let trace = match broadcasted_transaction {
+                BroadcastedTransaction::Declare(_) => {
+                    TransactionTrace::Declare(DeclareTransactionTrace {
+                        validate_invocation,
+                        fee_transfer_invocation,
+                    })
+                }
+                BroadcastedTransaction::DeployAccount(_) => {
+                    TransactionTrace::DeployAccount(DeployAccountTransactionTrace {
+                        validate_invocation,
+                        constructor_invocation: if let Some(call_info) =
+                            tx_execution_info.execute_call_info
+                        {
+                            Some(FunctionInvocation::try_from_call_info(
+                                call_info,
+                                address_to_class_hash_map,
+                            )?)
+                        } else {
+                            None
+                        },
+                        fee_transfer_invocation,
+                    })
+                }
+                BroadcastedTransaction::Invoke(_) => {
+                    TransactionTrace::Invoke(InvokeTransactionTrace {
+                        validate_invocation,
+                        execution_invocation: match tx_execution_info.execute_call_info {
+                            Some(call_info) => match call_info.execution.failed {
+                                false => ExecutionInvocation::Succeeded(
+                                    FunctionInvocation::try_from_call_info(
+                                        call_info,
+                                        address_to_class_hash_map,
+                                    )?,
+                                ),
+                                true => ExecutionInvocation::Reverted(
+                                    starknet_types::rpc::transactions::Reversion {
+                                        revert_reason: tx_execution_info
+                                            .revert_error
+                                            .unwrap_or("Revert reason not found".into()),
+                                    },
+                                ),
+                            },
+                            None => match tx_execution_info.revert_error {
+                                Some(revert_reason) => ExecutionInvocation::Reverted(
+                                    starknet_types::rpc::transactions::Reversion { revert_reason },
+                                ),
+                                None => {
+                                    return Err(Error::UnexpectedInternalError {
+                                        msg: "Simulation contains neither call_info nor \
+                                              revert_error"
+                                            .into(),
+                                    });
+                                }
+                            },
+                        },
+                    })
+                }
+            };
+
+            transactions_traces.push(trace);
+        }
 
         let estimated = self.estimate_fee(block_id, transactions)?;
 
         // if the underlying simulation is correct, this should never be the case
         // in alignment with always avoiding assertions in production code, this has to be done
-        if simulated.len() != estimated.len() {
+        if transactions_traces.len() != estimated.len() {
             return Err(Error::UnexpectedInternalError {
                 msg: format!(
                     "Non-matching number of simulations ({}) and estimations ({})",
-                    simulated.len(),
+                    transactions_traces.len(),
                     estimated.len()
                 ),
             });
         }
 
-        let mut simulation_results: Vec<SimulatedTransaction> = vec![];
-        for (tx_execution_info, fee_estimation) in simulated.into_iter().zip(estimated) {
-            let validate_invocation = if let Some(validate_info) = tx_execution_info.validate_info {
-                Some(validate_info.try_into()?)
-            } else {
-                None
-            };
-
-            let fee_transfer_invocation =
-                if let Some(fee_transfer_info) = tx_execution_info.fee_transfer_info {
-                    Some(fee_transfer_info.try_into()?)
-                } else {
-                    None
-                };
-
-            let transaction_trace = match tx_execution_info.tx_type {
-                Some(starknet_in_rust::definitions::transaction_type::TransactionType::Declare) => TransactionTrace::Declare(DeclareTransactionTrace {
-                        validate_invocation,
-                        fee_transfer_invocation,
-                    }),
-                Some(starknet_in_rust::definitions::transaction_type::TransactionType::DeployAccount) => TransactionTrace::DeployAccount(DeployAccountTransactionTrace {
-                    validate_invocation,
-                    constructor_invocation: if let Some(call_info) = tx_execution_info.call_info {
-                        Some(call_info.try_into()?)
-                    } else {
-                        None
-                    },
-                    fee_transfer_invocation,
-                }),
-                Some(starknet_in_rust::definitions::transaction_type::TransactionType::InvokeFunction) => TransactionTrace::Invoke(InvokeTransactionTrace {
-                    validate_invocation,
-                    execution_invocation: match tx_execution_info.call_info {
-                        Some(call_info) => match call_info.result().is_success {
-                            true => ExecutionInvocation::Succeeded(call_info.try_into()?),
-                            false => ExecutionInvocation::Reverted(starknet_types::rpc::transactions::Reversion {
-                                revert_reason: tx_execution_info.revert_error.unwrap_or("Revert reason not found".into())
-                            })
-                        },
-                        None => match tx_execution_info.revert_error {
-                            Some(revert_reason) => ExecutionInvocation::Reverted(starknet_types::rpc::transactions::Reversion { revert_reason }),
-                            None => return Err(Error::UnexpectedInternalError { msg: "Simulation contains neither call_info nor revert_error".into() }),
-                        }
-                    },
-                }),
-                other => return Err(Error::UnsupportedAction { msg: format!("Cannot simulate tx of type {other:?}") }),
-            };
-
-            simulation_results.push(SimulatedTransaction { transaction_trace, fee_estimation });
-        }
+        let simulation_results = transactions_traces
+            .into_iter()
+            .zip(estimated)
+            .map(|(trace, fee_estimation)| SimulatedTransaction {
+                transaction_trace: trace,
+                fee_estimation,
+            })
+            .collect();
 
         Ok(simulation_results)
     }
@@ -724,9 +770,9 @@ impl Starknet {
 
 #[cfg(test)]
 mod tests {
+    use blockifier::state::state_api::State;
+    use blockifier::transaction::errors::TransactionExecutionError;
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
-    use starknet_in_rust::felt::Felt252;
-    use starknet_in_rust::transaction::error::TransactionError;
     use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
@@ -760,27 +806,21 @@ mod tests {
     fn correct_block_context_creation() {
         let fee_token_address =
             ContractAddress::new(Felt::from_prefixed_hex_str("0xAA").unwrap()).unwrap();
-        let block_ctx = Starknet::get_block_context(10, "0xAA", DEVNET_DEFAULT_CHAIN_ID).unwrap();
-        assert!(block_ctx.block_info().block_number == 0);
-        assert!(block_ctx.block_info().block_timestamp == 0);
-        assert_eq!(block_ctx.block_info().gas_price, 10);
-        assert_eq!(
-            block_ctx.starknet_os_config().fee_token_address().clone(),
-            fee_token_address.try_into().unwrap()
-        );
+        let block_ctx = Starknet::init_block_context(10, "0xAA", DEVNET_DEFAULT_CHAIN_ID);
+        assert_eq!(block_ctx.block_number, BlockNumber(0));
+        assert_eq!(block_ctx.block_timestamp, BlockTimestamp(0));
+        assert_eq!(block_ctx.gas_price, 10);
+        assert_eq!(ContractAddress::from(block_ctx.fee_token_address), fee_token_address);
     }
 
     #[test]
     fn pending_block_is_correct() {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
-        let initial_block_number = starknet.block_context.block_info().block_number;
+        let initial_block_number = starknet.block_context.block_number;
         starknet.generate_pending_block().unwrap();
 
-        assert_eq!(
-            starknet.pending_block().header.block_number,
-            BlockNumber(initial_block_number + 1)
-        );
+        assert_eq!(starknet.pending_block().header.block_number, initial_block_number.next());
     }
 
     #[test]
@@ -798,7 +838,7 @@ mod tests {
         // blocks collection is empty
         assert!(starknet.blocks.num_to_block.is_empty());
 
-        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
         // blocks collection should not be empty
         assert!(!starknet.blocks.num_to_block.is_empty());
 
@@ -814,11 +854,10 @@ mod tests {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        let initial_block_number = starknet.block_context.block_info().block_number;
-        let initial_gas_price = starknet.block_context.block_info().gas_price;
-        let initial_block_timestamp = starknet.block_context.block_info().block_timestamp;
-        let initial_sequencer: ContractAddress =
-            starknet.block_context.block_info().sequencer_address.clone().try_into().unwrap();
+        let initial_block_number = starknet.block_context.block_number;
+        let initial_gas_price = starknet.block_context.gas_price;
+        let initial_block_timestamp = starknet.block_context.block_timestamp;
+        let initial_sequencer = starknet.block_context.sequencer_address;
 
         // create pending block with some information in it
         let mut pending_block = StarknetBlock::create_pending_block();
@@ -835,26 +874,20 @@ mod tests {
         assert!(*starknet.pending_block() != pending_block);
         assert_eq!(starknet.pending_block().status, BlockStatus::Pending);
         assert!(starknet.pending_block().get_transactions().is_empty());
-        assert_eq!(
-            starknet.pending_block().header.timestamp,
-            BlockTimestamp(initial_block_timestamp)
-        );
-        assert_eq!(starknet.pending_block().header.block_number, BlockNumber(initial_block_number));
+        assert_eq!(starknet.pending_block().header.timestamp, initial_block_timestamp);
+        assert_eq!(starknet.pending_block().header.block_number, initial_block_number);
         assert_eq!(starknet.pending_block().header.parent_hash, BlockHash::default());
         assert_eq!(starknet.pending_block().header.gas_price, GasPrice(initial_gas_price));
-        assert_eq!(
-            starknet.pending_block().header.sequencer,
-            initial_sequencer.try_into().unwrap()
-        );
+        assert_eq!(starknet.pending_block().header.sequencer, initial_sequencer);
     }
 
     #[test]
     fn correct_block_context_update() {
-        let mut block_ctx = Starknet::get_block_context(0, "0x0", DEVNET_DEFAULT_CHAIN_ID).unwrap();
-        let initial_block_number = block_ctx.block_info().block_number;
+        let mut block_ctx = Starknet::init_block_context(0, "0x0", DEVNET_DEFAULT_CHAIN_ID);
+        let initial_block_number = block_ctx.block_number;
         Starknet::update_block_context(&mut block_ctx);
 
-        assert_eq!(block_ctx.block_info().block_number, initial_block_number + 1);
+        assert_eq!(block_ctx.block_number, initial_block_number.next());
     }
 
     #[test]
@@ -875,7 +908,7 @@ mod tests {
     fn getting_state_at_block_by_nonexistent_hash() {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
-        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
 
         match starknet.get_state_at(&BlockId::Hash(Felt::from(0).into())) {
             Err(Error::NoBlock) => (),
@@ -887,7 +920,7 @@ mod tests {
     fn getting_nonexistent_state_at_block_by_number() {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
-        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
         starknet.blocks.num_to_state.remove(&BlockNumber(0));
 
         match starknet.get_state_at(&BlockId::Number(0)) {
@@ -932,7 +965,13 @@ mod tests {
             entry_point_selector.into(),
             vec![Felt::from(predeployed_account.account_address)],
         ) {
-            Err(Error::TransactionError(TransactionError::EntryPointNotFound)) => (),
+            Err(Error::BlockifierTransactionError(
+                TransactionExecutionError::EntryPointExecutionError(
+                    blockifier::execution::errors::EntryPointExecutionError::PreExecutionError(
+                        blockifier::execution::errors::PreExecutionError::EntryPointNotFound(_),
+                    ),
+                ),
+            )) => (),
             unexpected => panic!("Should have failed; got {unexpected:?}"),
         }
     }
@@ -987,7 +1026,7 @@ mod tests {
 
         starknet.get_latest_block().err().unwrap();
 
-        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
         starknet.generate_pending_block().unwrap();
 
         // last added block number -> 0
@@ -997,7 +1036,7 @@ mod tests {
 
         assert_eq!(block_number.0, added_block.header.block_number.0);
 
-        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
         starknet.generate_pending_block().unwrap();
 
         let added_block2 = starknet.blocks.num_to_block.get(&BlockNumber(1)).unwrap();
@@ -1011,7 +1050,7 @@ mod tests {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
         starknet.generate_pending_block().unwrap();
 
         let num_no_transactions = starknet.get_block_txs_count(BlockId::Number(0));
@@ -1023,7 +1062,7 @@ mod tests {
         // add transaction hash to pending block
         starknet.blocks.pending_block.add_transaction(tx.transaction_hash);
 
-        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
 
         let num_one_transaction = starknet.get_block_txs_count(BlockId::Number(1));
 
@@ -1043,39 +1082,29 @@ mod tests {
     fn correct_state_at_specific_block() {
         let mut starknet = Starknet::default();
         // generate initial block with empty state
-        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
         starknet.generate_pending_block().unwrap();
 
         // **generate second block**
         // add data to state
-        starknet
-            .state
-            .state
-            .cache_mut()
-            .nonce_writes_mut()
-            .insert(dummy_contract_address().try_into().unwrap(), Felt::from(1).into());
+        starknet.state.state.increment_nonce(dummy_contract_address().try_into().unwrap()).unwrap();
         // get state difference
         let state_diff = starknet.state.extract_state_diff_from_pending_state().unwrap();
         // move data from pending_state to state
         starknet.state.apply_state_difference(state_diff.clone()).unwrap();
         // generate new block and save the state
-        let second_block = starknet.generate_new_block(state_diff, starknet.state.clone()).unwrap();
+        let second_block = starknet.generate_new_block(state_diff).unwrap();
         starknet.generate_pending_block().unwrap();
 
         // **generate third block**
         // add data to state
-        starknet
-            .state
-            .state
-            .cache_mut()
-            .nonce_writes_mut()
-            .insert(dummy_contract_address().try_into().unwrap(), Felt::from(2).into());
+        starknet.state.state.increment_nonce(dummy_contract_address().try_into().unwrap()).unwrap();
         // get state difference
         let state_diff = starknet.state.extract_state_diff_from_pending_state().unwrap();
         // move data from pending_state to state
         starknet.state.apply_state_difference(state_diff.clone()).unwrap();
         // generate new block and save the state
-        let third_block = starknet.generate_new_block(state_diff, starknet.state.clone()).unwrap();
+        let third_block = starknet.generate_new_block(state_diff).unwrap();
         starknet.generate_pending_block().unwrap();
 
         // check modified state at block 1 and 2 to contain the correct value for the nonce
@@ -1085,11 +1114,11 @@ mod tests {
             .get(&second_block)
             .unwrap()
             .state
-            .state_reader
+            .state
             .address_to_nonce
-            .get(&dummy_contract_address().try_into().unwrap())
+            .get(&dummy_contract_address())
             .unwrap();
-        let second_block_expected_address_nonce = Felt252::from(1);
+        let second_block_expected_address_nonce = Felt::from(1);
         assert_eq!(second_block_expected_address_nonce, *second_block_address_nonce);
 
         let third_block_address_nonce = starknet
@@ -1098,11 +1127,11 @@ mod tests {
             .get(&third_block)
             .unwrap()
             .state
-            .state_reader
+            .state
             .address_to_nonce
-            .get(&dummy_contract_address().try_into().unwrap())
+            .get(&dummy_contract_address())
             .unwrap();
-        let third_block_expected_address_nonce = Felt252::from(2);
+        let third_block_expected_address_nonce = Felt::from(2);
         assert_eq!(third_block_expected_address_nonce, *third_block_address_nonce);
     }
 
@@ -1111,11 +1140,11 @@ mod tests {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
         starknet.generate_pending_block().unwrap();
-        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
         starknet.generate_pending_block().unwrap();
-        starknet.generate_new_block(StateDiff::default(), starknet.state.clone()).unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
 
         let latest_block = starknet.get_latest_block();
 

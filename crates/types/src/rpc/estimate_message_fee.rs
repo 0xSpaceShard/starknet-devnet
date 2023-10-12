@@ -1,6 +1,8 @@
-use cairo_felt::Felt252;
-use starknet_in_rust::transaction::L1Handler as SirL1Handler;
-use starknet_in_rust::utils::Address as SirAddress;
+use std::sync::Arc;
+
+use blockifier::transaction::transactions::L1HandlerTransaction;
+use starknet_api::core::EntryPointSelector;
+use starknet_api::transaction::Calldata;
 use starknet_rs_core::types::requests::EstimateMessageFeeRequest;
 use starknet_rs_core::types::{
     BlockId as SrBlockId, FeeEstimate, MsgFromL1 as SrMsgFromL1, MsgFromL1,
@@ -65,24 +67,23 @@ impl EstimateMessageFeeRequestWrapper {
         &self.inner.message
     }
 
-    pub fn create_sir_l1_handler(&self, chain_id: Felt) -> DevnetResult<SirL1Handler> {
-        let from_address = self.get_from_address();
-        let entry_point_selector: Felt = self.get_entry_point_selector();
-        let payload: Vec<Felt> = self.get_payload();
+    pub fn create_blockifier_l1_transaction(&self) -> DevnetResult<L1HandlerTransaction> {
+        let calldata = [&[self.get_from_address().into()], self.get_payload().as_slice()].concat();
 
-        let sir_nonce: Felt252 = 0.into();
-        let sir_payload: Vec<Felt252> = payload.iter().map(Felt252::from).collect::<Vec<Felt252>>();
-        let sir_calldata = [&[from_address.into()], sir_payload.as_slice()].concat();
-        let sir_paid_fee_on_l1 = None;
+        let l1_transaction = L1HandlerTransaction {
+            tx: starknet_api::transaction::L1HandlerTransaction {
+                contract_address: starknet_api::core::ContractAddress::try_from(
+                    starknet_api::hash::StarkFelt::from(self.get_to_address()),
+                )?,
+                entry_point_selector: EntryPointSelector(self.get_entry_point_selector().into()),
+                calldata: Calldata(Arc::new(calldata.into_iter().map(|f| f.into()).collect())),
+                ..Default::default()
+            },
+            paid_fee_on_l1: starknet_api::transaction::Fee(1),
+            tx_hash: Default::default(),
+        };
 
-        Ok(SirL1Handler::new(
-            SirAddress(self.get_to_address().into()),
-            entry_point_selector.into(),
-            sir_calldata,
-            sir_nonce,
-            chain_id.into(),
-            sir_paid_fee_on_l1,
-        )?)
+        Ok(l1_transaction)
     }
 }
 

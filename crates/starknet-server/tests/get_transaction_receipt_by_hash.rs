@@ -148,7 +148,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
     }
 
     #[tokio::test]
-    async fn get_declare_v1_transaction_receipt_by_hash_hash_happy_path() {
+    async fn get_declare_v1_transaction_receipt_by_hash_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let json_string = std::fs::read_to_string(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -176,10 +176,9 @@ mod get_transaction_receipt_by_hash_integration_tests {
             MaybePendingTransactionReceipt::PendingReceipt(PendingTransactionReceipt::Declare(
                 declare,
             )) => {
-                assert_eq!(
-                    declare.execution_result.revert_reason(),
-                    Some("Invalid transaction nonce. Expected: 0 got 1")
-                );
+                assert!(declare.execution_result.revert_reason().unwrap().contains(
+                    format!("Max fee (Fee({})) is too low", declare_txn_v1.max_fee).as_str()
+                ));
             }
             _ => panic!("Invalid result: {result:?}"),
         }

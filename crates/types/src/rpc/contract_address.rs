@@ -1,3 +1,5 @@
+use std::fmt::LowerHex;
+
 use cairo_felt::Felt252;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -9,7 +11,7 @@ use crate::serde_helpers::hex_string::{
 };
 use crate::traits::ToHexString;
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ContractAddress(pub(crate) PatriciaKey);
 
 impl ContractAddress {
@@ -100,6 +102,12 @@ impl ToHexString for ContractAddress {
 
     fn to_nonprefixed_hex_str(&self) -> String {
         self.0.0.to_nonprefixed_hex_str()
+    }
+}
+
+impl LowerHex for ContractAddress {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.0.0.to_prefixed_hex_str().as_str())
     }
 }
 
