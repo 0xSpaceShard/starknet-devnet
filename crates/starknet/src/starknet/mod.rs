@@ -293,9 +293,9 @@ impl Starknet {
 
         block_context.block_number = BlockNumber(0);
         block_context.block_timestamp = BlockTimestamp(0);
-        block_context.gas_price = gas_price as u128;
+        block_context.gas_prices.eth_l1_gas_price = gas_price as u128;
         block_context.chain_id = chain_id.into();
-        block_context.fee_token_address = contract_address!(fee_token_address);
+        block_context.fee_token_addresses.eth_fee_token_address = contract_address!(fee_token_address);
         // inject cairo resource fee weights from starknet_in_rust
         block_context.vm_resource_fee_cost =
             std::sync::Arc::new(DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS.clone());
@@ -324,7 +324,7 @@ impl Starknet {
         let mut block = StarknetBlock::create_pending_block();
 
         block.header.block_number = self.block_context.block_number;
-        block.header.gas_price = GasPrice(self.block_context.gas_price);
+        block.header.gas_price = GasPrice(self.block_context.gas_prices.eth_l1_gas_price);
         block.header.sequencer = self.block_context.sequencer_address;
         block.header.timestamp = self.block_context.block_timestamp;
 

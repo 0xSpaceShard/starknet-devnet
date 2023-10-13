@@ -505,10 +505,12 @@ dependencies = [
 [[package]]
 name = "blockifier"
 version = "0.2.0-rc0"
-source = "git+https://github.com/starkware-libs/blockifier?rev=ea6a3f7483d02813066dc03f8f86e0545404a977#ea6a3f7483d02813066dc03f8f86e0545404a977"
+source = "git+https://github.com/starkware-libs/blockifier?rev=f46101544c54e433adea39c56eeee63d0715e49d#f46101544c54e433adea39c56eeee63d0715e49d"
 dependencies = [
+ "ark-ec",
  "ark-ff",
  "ark-secp256k1",
+ "ark-secp256r1",
  "cached",
  "cairo-felt",
  "cairo-lang-casm",
