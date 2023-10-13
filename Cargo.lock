@@ -505,7 +505,7 @@ dependencies = [
 [[package]]
 name = "blockifier"
 version = "0.2.0-rc0"
-source = "git+https://github.com/starkware-libs/blockifier?rev=f46101544c54e433adea39c56eeee63d0715e49d#f46101544c54e433adea39c56eeee63d0715e49d"
+source = "git+https://github.com/starkware-libs/blockifier?rev=3bbb037e7cd5c8d235770e5a64310fb9ad902ec5#3bbb037e7cd5c8d235770e5a64310fb9ad902ec5"
 dependencies = [
  "ark-ec",
  "ark-ff",

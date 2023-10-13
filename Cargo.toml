@@ -55,7 +55,7 @@ strum_macros = "0.25"
 # Starknet dependencies
 starknet_api = { version = "0.4.1", features = ["testing"] }
 starknet-in-rust = { git = "https://github.com/lambdaclass/starknet_in_rust", rev = "a7e2e56", package="starknet_in_rust" }
-blockifier = { git = "https://github.com/starkware-libs/blockifier", rev = "f46101544c54e433adea39c56eeee63d0715e49d", package = "blockifier" }
+blockifier = { git = "https://github.com/starkware-libs/blockifier", rev = "3bbb037e7cd5c8d235770e5a64310fb9ad902ec5", package = "blockifier" }
 starknet-rs-signers = { version = "0.4.0", package="starknet-signers" }
 starknet-rs-ff = { version = "0.3.4", package = "starknet-ff" }
 starknet-rs-core = {  version = "0.6.0", package = "starknet-core" }
