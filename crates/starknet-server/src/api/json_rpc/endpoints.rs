@@ -184,11 +184,9 @@ impl JsonRpcHandler {
         match self.api.starknet.read().await.get_class(block_id.into(), class_hash) {
             Ok(contract_class) => Ok(contract_class.try_into()?),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
-            Err(
-                Error::ContractNotFound
-                | Error::StateError(StateError::NoneContractState(_))
-                | Error::NoStateAtBlock { block_number: _ },
-            ) => Err(ApiError::ContractNotFound),
+            Err(Error::StateError(_) | Error::NoStateAtBlock { block_number: _ }) => {
+                Err(ApiError::ClassHashNotFound)
+            }
             Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),
         }
     }
@@ -204,7 +202,7 @@ impl JsonRpcHandler {
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(
                 Error::ContractNotFound
-                | Error::StateError(StateError::NoneContractState(_))
+                | Error::StateError(_)
                 | Error::NoStateAtBlock { block_number: _ },
             ) => Err(ApiError::ContractNotFound),
             Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),
@@ -220,11 +218,9 @@ impl JsonRpcHandler {
         match self.api.starknet.read().await.get_class_hash_at(block_id.into(), contract_address) {
             Ok(class_hash) => Ok(class_hash),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
-            Err(
-                Error::ContractNotFound
-                | Error::StateError(StateError::NoneContractState(_))
-                | Error::NoStateAtBlock { block_number: _ },
-            ) => Err(ApiError::ContractNotFound),
+            Err(Error::ContractNotFound | Error::NoStateAtBlock { block_number: _ }) => {
+                Err(ApiError::ContractNotFound)
+            }
             Err(unknown_error) => Err(ApiError::StarknetDevnetError(unknown_error)),
         }
     }
