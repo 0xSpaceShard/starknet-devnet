@@ -344,6 +344,8 @@ mod dump_and_load_tests {
 
     #[tokio::test]
     async fn dump_load_endpoints_transaction_and_state_after_load_is_valid() {
+        // check if the dump with the default path "dump_endpoint" works as expected when path is
+        // empty, later check the dump with the custom path "dump_endpoint_custom_path" also works
         let dump_file_name = "dump_endpoint";
         let dump_file_name_custom_path = "dump_endpoint_custom_path";
         let devnet_dump =
@@ -368,6 +370,8 @@ mod dump_and_load_tests {
         devnet_dump.post_json("/dump".into(), dump_body_custom_path).await.unwrap();
         assert!(Path::new(dump_file_name_custom_path).exists());
 
+        // load and re-execute from "dump_endpoint" file and check is transaction and state of the
+        // blockchain is valid
         let devnet_load = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let load_body = Body::from(
             json!({
@@ -376,6 +380,7 @@ mod dump_and_load_tests {
             .to_string(),
         );
         devnet_load.post_json("/load".into(), load_body).await.unwrap();
+
         let entry_point_selector =
             starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();
         let balance_result = devnet_load
@@ -403,15 +408,7 @@ mod dump_and_load_tests {
             panic!("Could not unpack the transaction from {loaded_transaction:?}");
         }
 
-        if Path::new(dump_file_name).exists() {
-            remove_file(dump_file_name);
-        } else {
-            panic!("Could not find dump file {}", dump_file_name);
-        }
-        if Path::new(dump_file_name_custom_path).exists() {
-            remove_file(dump_file_name_custom_path);
-        } else {
-            panic!("Could not find dump file {}", dump_file_name_custom_path);
-        }
+        remove_file(dump_file_name);
+        remove_file(dump_file_name_custom_path);
     }
 }
