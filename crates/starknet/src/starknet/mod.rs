@@ -250,13 +250,16 @@ impl Starknet {
         Ok(new_block_number)
     }
 
-    pub(crate) fn handle_successful_transaction(
+    /// Handles suceeded and reverted transactions.
+    /// The tx is stored and potentially dumped.
+    /// A new block is generated.
+    pub(crate) fn handle_accepted_transaction(
         &mut self,
         transaction_hash: &TransactionHash,
         transaction: &Transaction,
         tx_info: TransactionExecutionInfo,
     ) -> DevnetResult<()> {
-        let transaction_to_add = StarknetTransaction::create_successful(transaction, None, tx_info);
+        let transaction_to_add = StarknetTransaction::create_accepted(transaction, tx_info);
 
         // add accepted transaction to pending block
         self.blocks.pending_block.add_transaction(*transaction_hash);
