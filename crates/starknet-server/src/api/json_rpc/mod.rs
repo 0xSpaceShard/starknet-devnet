@@ -229,7 +229,7 @@ impl JsonRpcHandler {
                 invoke_transaction,
             }) => self.add_invoke_transaction(invoke_transaction).await.to_rpc_result(),
             StarknetRequest::EstimateMessageFee(request) => self
-                .estimate_message_fee(request.get_block_id(), request.get_raw_message().clone())
+                .estimate_message_fee(*request.get_block_id(), request.get_raw_message().clone())
                 .await
                 .to_rpc_result(),
             StarknetRequest::SimulateTransactions(SimulateTransactionsInput {

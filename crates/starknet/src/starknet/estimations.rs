@@ -45,7 +45,7 @@ pub fn estimate_message_fee(
     message: MsgFromL1,
 ) -> DevnetResult<FeeEstimateWrapper> {
     let estimate_message_fee = EstimateMessageFeeRequestWrapper::new(block_id, message);
-    let mut state = starknet.get_state_at(estimate_message_fee.get_raw_block_id())?.clone();
+    let mut state = starknet.get_state_at(estimate_message_fee.get_block_id())?.clone();
 
     match starknet
         .get_class_hash_at(block_id, ContractAddress::new(estimate_message_fee.get_to_address())?)
