@@ -808,7 +808,10 @@ mod tests {
         assert_eq!(block_ctx.block_number, BlockNumber(0));
         assert_eq!(block_ctx.block_timestamp, BlockTimestamp(0));
         assert_eq!(block_ctx.gas_prices.eth_l1_gas_price, 10);
-        assert_eq!(ContractAddress::from(block_ctx.fee_token_addresses.eth_fee_token_address), fee_token_address);
+        assert_eq!(
+            ContractAddress::from(block_ctx.fee_token_addresses.eth_fee_token_address),
+            fee_token_address
+        );
     }
 
     #[test]
