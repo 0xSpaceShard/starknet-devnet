@@ -102,13 +102,3 @@ pub(crate) struct ForkStatus {
     url: String,
     block: u128,
 }
-
-#[derive(Serialize)]
-pub(crate) struct DumpResponse {
-    pub(crate) path: String,
-}
-
-#[derive(Serialize)]
-pub(crate) struct LoadResponse {
-    pub(crate) path: String,
-}
