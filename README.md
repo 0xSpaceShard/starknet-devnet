@@ -10,7 +10,7 @@
     <img src="https://img.shields.io/badge/dockerhub-images-important.svg?logo=Docker" style="max-width: 100%;">
   </a>
   <a href="https://starkware.co/" target="_blank">
-    <img src="https://camo.githubusercontent.com/240467f370298129062e58749519b51d717c54d9b6415fcd676c099773319ebc/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f706f77657265645f62792d537461726b576172652d6e617679" data-canonical-src="https://img.shields.io/badge/powered_by-StarkWare-navy" style="max-width: 100%;">
+    <img src="https://img.shields.io/badge/powered_by-StarkWare-navy" style="max-width: 100%;">
   </a>
 </p>
 
