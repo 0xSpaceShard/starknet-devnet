@@ -288,35 +288,24 @@ impl Starknet {
                         _ => {}
                     };
                 }
-                self.handle_accepted_transaction(&transaction_hash, &transaction, tx_info)?;
+                self.handle_accepted_transaction(&transaction_hash, &transaction, tx_info)
             }
             Err(tx_err) => {
                 // based on this https://community.starknet.io/t/efficient-utilization-of-sequencer-capacity-in-starknet-v0-12-1/95607#the-validation-phase-in-the-gateway-5
                 // we should not save transactions that failed with one of the following errors
                 match tx_err {
-                    blockifier::transaction::errors::TransactionExecutionError::InvalidNonce { .. } => {
-                        return Err(TransactionValidationError::InvalidTransactionNonce.into());
-                    },
-                    blockifier::transaction::errors::TransactionExecutionError::MaxFeeExceedsBalance { .. } => {
-                        return Err(TransactionValidationError::InsufficientAccountBalance.into());
-                    },
-                    blockifier::transaction::errors::TransactionExecutionError::MaxFeeTooLow { .. } => {
-                        return Err(TransactionValidationError::InsufficientMaxFee.into());
-                    },
-                    blockifier::transaction::errors::TransactionExecutionError::ValidateTransactionError(..) => {
-                        return Err(TransactionValidationError::GeneralFailure.into());
-                    },
-                    _ => {
-                        let transaction_to_add =
-                            StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
-
-                        self.transactions.insert(&transaction_hash, transaction_to_add);
-                    }
-                };
+                    blockifier::transaction::errors::TransactionExecutionError::InvalidNonce { .. } =>
+                        Err(TransactionValidationError::InvalidTransactionNonce.into()),
+                    blockifier::transaction::errors::TransactionExecutionError::MaxFeeExceedsBalance { .. } =>
+                        Err(TransactionValidationError::InsufficientAccountBalance.into()),
+                    blockifier::transaction::errors::TransactionExecutionError::MaxFeeTooLow { .. } =>
+                        Err(TransactionValidationError::InsufficientMaxFee.into()),
+                    blockifier::transaction::errors::TransactionExecutionError::ValidateTransactionError(..) =>
+                        Err(TransactionValidationError::GeneralFailure.into()),
+                    _ => Err(tx_err.into())
+                }
             }
-        };
-
-        Ok(())
+        }
     }
 
     /// Handles suceeded and reverted transactions.
