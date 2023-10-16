@@ -177,7 +177,7 @@ mod tests {
     }
 
     #[test]
-    fn invoke_transaction_should_fail_if_same_nonce_supplied() {
+    fn invoke_transaction_should_return_an_error_if_same_nonce_supplied() {
         let (mut starknet, account_address, contract_address, increase_balance_selector, _) =
             setup();
 
@@ -195,16 +195,14 @@ mod tests {
         assert_eq!(transaction.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
         assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
-        let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
-        let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
-        assert_eq!(transaction.finality_status, None);
-        assert!(
-            transaction
-                .execution_result
-                .revert_reason()
-                .unwrap()
-                .contains("Invalid transaction nonce")
-        );
+        match starknet.add_invoke_transaction(invoke_transaction).unwrap_err() {
+            crate::error::Error::TransasctionValidationError(
+                crate::error::TransactionValidationError::InvalidTransactionNonce,
+            ) => {}
+            err => {
+                panic!("Wrong error type: {:?}", err);
+            }
+        }
     }
 
     #[test]

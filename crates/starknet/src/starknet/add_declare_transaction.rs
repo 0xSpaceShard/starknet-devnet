@@ -133,18 +133,16 @@ mod tests {
     #[test]
     fn add_declare_v2_transaction_should_return_rejected_txn_and_not_be_part_of_pending_state() {
         let (mut starknet, sender) = setup(Some(1));
-        let initial_cached_state = starknet.state.state.state.class_hash_to_compiled_class.len();
         let declare_txn = dummy_broadcasted_declare_transaction_v2(&sender);
-        let (txn_hash, class_hash) = starknet.add_declare_transaction_v2(declare_txn).unwrap();
-        let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
 
-        assert_eq!(txn.finality_status, None);
-        assert_eq!(txn.execution_result.status(), TransactionExecutionStatus::Reverted);
-        assert_eq!(
-            initial_cached_state,
-            starknet.state.state.state.class_hash_to_compiled_class.len()
-        );
-        assert!(starknet.state.contract_classes.get(&class_hash).is_none())
+        match starknet.add_declare_transaction_v2(declare_txn).unwrap_err() {
+            crate::error::Error::TransasctionValidationError(
+                crate::error::TransactionValidationError::InsufficientAccountBalance,
+            ) => {}
+            err => {
+                panic!("Wrong error type received {:?}", err);
+            }
+        }
     }
 
     #[test]
@@ -223,21 +221,35 @@ mod tests {
     }
 
     #[test]
-    fn add_declare_v1_transaction_should_return_rejected_txn_and_not_be_part_of_pending_state() {
+    fn add_declare_v1_transaction_should_return_an_error_due_to_low_max_fee() {
+        let (mut starknet, sender) = setup(Some(20000));
+
+        let mut declare_txn = broadcasted_declare_transaction_v1(sender);
+        declare_txn.common.max_fee = Fee(declare_txn.common.max_fee.0 / 10);
+
+        match starknet.add_declare_transaction_v1(declare_txn).unwrap_err() {
+            crate::error::Error::TransasctionValidationError(
+                crate::error::TransactionValidationError::InsufficientMaxFee,
+            ) => {}
+            err => {
+                panic!("Wrong error type received {:?}", err);
+            }
+        }
+    }
+
+    #[test]
+    fn add_declare_v1_transaction_should_return_an_error_due_to_not_enough_balance_on_account() {
         let (mut starknet, sender) = setup(Some(1));
 
-        let initial_cached_state_contract_classes_length =
-            starknet.state.state.state.class_hash_to_compiled_class.len();
         let declare_txn = broadcasted_declare_transaction_v1(sender);
-        let (txn_hash, _) = starknet.add_declare_transaction_v1(declare_txn).unwrap();
-        let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
-
-        assert_eq!(txn.finality_status, None);
-        assert_eq!(txn.execution_result.status(), TransactionExecutionStatus::Reverted);
-        assert_eq!(
-            initial_cached_state_contract_classes_length,
-            starknet.state.state.state.class_hash_to_compiled_class.len()
-        );
+        match starknet.add_declare_transaction_v1(declare_txn).unwrap_err() {
+            crate::error::Error::TransasctionValidationError(
+                crate::error::TransactionValidationError::InsufficientAccountBalance,
+            ) => {}
+            err => {
+                panic!("Wrong error type received {:?}", err);
+            }
+        }
     }
 
     #[test]
