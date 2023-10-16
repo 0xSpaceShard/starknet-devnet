@@ -12,7 +12,9 @@ pub(crate) async fn dump(
     match path.path {
         None => {
             // path not present
-            starknet.dump_transactions().map_err(|_| HttpApiError::DumpError)?;
+            starknet
+                .dump_transactions()
+                .map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
             Ok(Json(DumpResponse { path: "".to_string() }))
         }
         Some(path) => {
@@ -20,11 +22,13 @@ pub(crate) async fn dump(
                 // path is present and it's not empty
                 starknet
                     .dump_transactions_custom_path(Some(path.clone()))
-                    .map_err(|_| HttpApiError::DumpError)?;
+                    .map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
                 Ok(Json(DumpResponse { path }))
             } else {
                 // path is present but it's empty
-                starknet.dump_transactions().map_err(|_| HttpApiError::DumpError)?;
+                starknet
+                    .dump_transactions()
+                    .map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
                 Ok(Json(DumpResponse { path: "".to_string() }))
             }
         }
