@@ -20,7 +20,6 @@ This repository is work in progress, please be patient. Please check below the s
 
 ### Supported Features
 
-- [x] `blockifier` version v0.3.0-rc0
 - [x] RPC v0.4.0
 - [x] [Dump & Load](https://github.com/0xSpaceShard/starknet-devnet-rs#dumping--loading)
 - [x] [Mint token - Local faucet](https://0xspaceshard.github.io/starknet-devnet/docs/guide/mint-token)
