@@ -40,6 +40,15 @@ pub enum ApiError {
     OnlyLatestBlock,
     #[error("{msg}")]
     UnsupportedAction { msg: String },
+    #[error("Invalid transaction nonce")]
+    InvalidTransactionNonce,
+    #[error("Max fee is smaller than the minimal transaction cost (validation plus fee transfer)")]
+    InsufficientMaxFee,
+    #[error("Account balance is smaller than the transaction's max_fee")]
+    InsufficientAccountBalance,
+    #[error("Account validation failed")]
+    ValidationFailure,
+}
 }
 
 pub(crate) type RpcResult<T> = Result<T, ApiError>;
