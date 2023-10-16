@@ -353,7 +353,7 @@ mod dump_and_load_tests {
         devnet_dump.post_json("/dump".into(), dump_body_custom_path).await.unwrap();
         assert!(Path::new(dump_file_name_custom_path).exists());
 
-        // load and re-execute from "dump_endpoint" file and check is transaction and state of the
+        // load and re-execute from "dump_endpoint" file and check if transaction and state of the
         // blockchain is valid
         let devnet_load = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let load_body = Body::from(
