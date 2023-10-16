@@ -32,17 +32,9 @@ pub fn add_invoke_transaction(
         .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
     match blockifier_execution_result {
-        Ok(tx_info) => match tx_info.revert_error {
-            Some(error) => {
-                let transaction_to_add =
-                    StarknetTransaction::create_rejected(&transaction, None, &error);
-
-                starknet.transactions.insert(&transaction_hash, transaction_to_add);
-            }
-            None => {
-                starknet.handle_successful_transaction(&transaction_hash, &transaction, tx_info)?
-            }
-        },
+        Ok(tx_info) => {
+            starknet.handle_accepted_transaction(&transaction_hash, &transaction, tx_info)?
+        }
         Err(tx_err) => {
             let transaction_to_add =
                 StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
@@ -224,6 +216,40 @@ mod tests {
                 .unwrap()
                 .contains("Invalid transaction nonce")
         );
+    }
+
+    #[test]
+    fn nonce_should_be_incremented_if_invoke_reverted() {
+        let (mut starknet, account_address, contract_address, increase_balance_selector, _) =
+            setup();
+
+        let initial_nonce = starknet.state.get_nonce(&account_address).unwrap();
+        assert_eq!(initial_nonce, Felt::from(0));
+
+        let calldata = vec![
+            Felt::from(contract_address), // contract address
+            increase_balance_selector,    // function selector
+            Felt::from(1),                // calldata len
+            Felt::from(10),               // calldata
+        ];
+
+        let insufficient_max_fee = 2482; // this is minimum fee (enough for passing validation), anything lower than that is bounced back
+        let invoke_transaction = BroadcastedInvokeTransaction::new(
+            account_address,
+            Fee(insufficient_max_fee),
+            &vec![],
+            initial_nonce,
+            &calldata,
+            Felt::from(1),
+        );
+
+        let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
+        let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
+        assert_eq!(transaction.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
+        assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Reverted);
+
+        let nonce_after_reverted = starknet.state.get_nonce(&account_address).unwrap();
+        assert_eq!(nonce_after_reverted, Felt::from(1));
     }
 
     /// Initialize starknet object with: erc20 contract, account contract and  simple contract that

@@ -36,22 +36,16 @@ pub fn add_declare_transaction_v2(
         .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
     match blockifier_execution_result {
-        Ok(tx_info) => match tx_info.revert_error {
+        Ok(tx_info) => {
             // Add sierra contract
-            Some(error) => {
-                let transaction_to_add =
-                    StarknetTransaction::create_rejected(&transaction, None, &error);
-
-                starknet.transactions.insert(&transaction_hash, transaction_to_add);
-            }
-            None => {
+            if !tx_info.is_reverted() {
                 starknet.state.contract_classes.insert(
                     class_hash,
                     ContractClass::Cairo1(broadcasted_declare_transaction.contract_class),
                 );
-                starknet.handle_successful_transaction(&transaction_hash, &transaction, tx_info)?;
             }
-        },
+            starknet.handle_accepted_transaction(&transaction_hash, &transaction, tx_info)?;
+        }
         Err(tx_err) => {
             let transaction_to_add =
                 StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
@@ -91,21 +85,15 @@ pub fn add_declare_transaction_v1(
         .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
     match blockifier_execution_result {
-        Ok(tx_info) => match tx_info.revert_error {
-            Some(error) => {
-                let transaction_to_add =
-                    StarknetTransaction::create_rejected(&transaction, None, &error);
-
-                starknet.transactions.insert(&transaction_hash, transaction_to_add);
-            }
-            None => {
+        Ok(tx_info) => {
+            if !tx_info.is_reverted() {
                 starknet
                     .state
                     .contract_classes
                     .insert(class_hash, broadcasted_declare_transaction.contract_class.into());
-                starknet.handle_successful_transaction(&transaction_hash, &transaction, tx_info)?;
+                starknet.handle_accepted_transaction(&transaction_hash, &transaction, tx_info)?;
             }
-        },
+        }
         Err(tx_err) => {
             let transaction_to_add =
                 StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());

@@ -42,17 +42,9 @@ pub fn add_deploy_account_transaction(
         .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
     match blockifier_execution_result {
-        Ok(tx_info) => match tx_info.revert_error {
-            Some(error) => {
-                let transaction_to_add =
-                    StarknetTransaction::create_rejected(&transaction, None, &error);
-
-                starknet.transactions.insert(&transaction_hash, transaction_to_add);
-            }
-            None => {
-                starknet.handle_successful_transaction(&transaction_hash, &transaction, tx_info)?
-            }
-        },
+        Ok(tx_info) => {
+            starknet.handle_accepted_transaction(&transaction_hash, &transaction, tx_info)?
+        }
         Err(tx_err) => {
             let transaction_to_add =
                 StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
