@@ -1,8 +1,43 @@
-# starknet-devnet-rs
+<!-- logo / title -->
+<p align="center" style="margin-bottom: 0px !important">
+  <img width="200" src="https://user-images.githubusercontent.com/2848732/193076972-da6fa36e-11f7-4cb3-aa29-673224f8576d.png" alt="Devnet-RS" align="center">
+</p>
 
-A local testnet for Starknet... in Rust
+<h1 align="center" style="margin-top: 12px !important">Starknet Devnet RS</h1>
 
-This repository is work in progress, please be patient. As of Starknet 0.12.2, [Pythonic Devnet](https://github.com/0xSpaceShard/starknet-devnet) is still the way to go.
+<p align="center" dir="auto">
+  <a href="https://hub.docker.com/r/shardlabs/starknet-devnet-rs/tags" target="_blank">
+    <img src="https://img.shields.io/badge/dockerhub-images-important.svg?logo=Docker" style="max-width: 100%;">
+  </a>
+  <a href="https://starkware.co/" target="_blank">
+    <img src="https://img.shields.io/badge/powered_by-StarkWare-navy" style="max-width: 100%;">
+  </a>
+</p>
+
+A local testnet for Starknet... in Rust!
+
+This repository is work in progress, please be patient. Please check below the status of features compared with the [Pythonic Devnet](https://github.com/0xSpaceShard/starknet-devnet):
+
+### Supported Features
+
+- [x] RPC v0.4.0
+- [x] [Dump & Load](https://github.com/0xSpaceShard/starknet-devnet-rs#dumping--loading)
+- [x] [Mint token - Local faucet](https://0xspaceshard.github.io/starknet-devnet/docs/guide/mint-token)
+- [x] Starknet.js test suite passes 100%
+
+### TODO
+
+- [ ] RPC v0.5.0
+
+### TODO to reach feature parity with the Pythonic Devnet
+
+- [ ] Availability as a package (crate)
+- [ ] [Custom accounts implementation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/accounts#custom-implementation)
+  - [ ] [PR](https://github.com/0xSpaceShard/starknet-devnet-rs/pull/196)
+- [ ] [Forking](https://0xspaceshard.github.io/starknet-devnet/docs/guide/fork)
+- [ ] [L1-L2 Postman integration](https://0xspaceshard.github.io/starknet-devnet/docs/guide/postman)
+- [ ] [Block manipulation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/blocks)
+- [ ] [Advancing time](https://0xspaceshard.github.io/starknet-devnet/docs/guide/advancing-time)
 
 ## Requirements
 
@@ -115,6 +150,10 @@ Unlike Pythonic Devnet, which supported the gateway and feeder gateway API, Devn
 
 The JSON-RPC API is reachable via `/rpc` and `/` (e.g. if spawning Devnet with default settings, these URLs have the equivalent functionality: `http://127.0.0.1:5050/rpc` and `http://127.0.0.1:5050/`)
 
+> **Note:**
+>
+> Out of Starknet **trace** API RPC methods, only `starknet_simulateTransactions` is supported.
+
 ## Predeployed contracts
 
 Devnet predeploys a [UDC](https://docs.openzeppelin.com/contracts-cairo/0.6.1/udc), an [ERC20 (fee token)](https://docs.openzeppelin.com/contracts/3.x/api/token/erc20) contract and a set of funded accounts. The information on this is logged on Devnet startup. The set of accounts can be controlled via [CLI options](#cli-options): `--accounts`, `--initial-balance`, `--seed`.
@@ -217,3 +256,13 @@ This is what happens under the hood on `main`:
   - same for `latest`
 
 In the image, `tini` is used to properly handle killing of dockerized Devnet with Ctrl+C
+
+## ✏️ Contributing
+
+We ❤️ and encourage all contributions!
+
+[Click here](https://0xspaceshard.github.io/starknet-devnet/docs/guide/development) for the development guide.
+
+## 🙌 Special Thanks
+
+Special thanks to all the [contributors](https://github.com/0xSpaceShard/starknet-devnet-rs/graphs/contributors)!
