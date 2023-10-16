@@ -193,6 +193,21 @@ impl BackgroundDevnet {
         let response = self.http_client.get(uri.as_str().parse::<Uri>().unwrap()).await.unwrap();
         Ok(response)
     }
+
+    /// This method returns the private key and the address of the first predeployed account
+    pub async fn get_first_predeployed_account(&self) -> (FieldElement, FieldElement) {
+        let predeployed_accounts_response = self.get("/predeployed_accounts", None).await.unwrap();
+
+        let predeployed_accounts_json = get_json_body(predeployed_accounts_response).await;
+        let first_account = predeployed_accounts_json.as_array().unwrap().get(0).unwrap();
+
+        let account_address =
+            FieldElement::from_hex_be(first_account["address"].as_str().unwrap()).unwrap();
+        let private_key =
+            FieldElement::from_hex_be(first_account["private_key"].as_str().unwrap()).unwrap();
+
+        (private_key, account_address)
+    }
 }
 
 /// By implementing Drop, we ensure there are no zombie background Devnet processes

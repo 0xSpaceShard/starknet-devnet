@@ -148,7 +148,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
     }
 
     #[tokio::test]
-    async fn get_declare_v1_transaction_receipt_by_hash_happy_path() {
+    async fn declare_v1_transaction_fails_with_insufficient_max_fee() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let json_string = std::fs::read_to_string(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -158,29 +158,23 @@ mod get_transaction_receipt_by_hash_integration_tests {
         let declare_txn_v1: BroadcastedDeclareTransactionV1 =
             serde_json::from_str(&json_string).unwrap();
 
-        let declare_transaction = devnet
+        let declare_transaction_result = devnet
             .json_rpc_client
             .add_declare_transaction(starknet_rs_core::types::BroadcastedDeclareTransaction::V1(
                 declare_txn_v1.clone(),
             ))
-            .await
-            .unwrap();
+            .await;
 
-        let result: MaybePendingTransactionReceipt = devnet
-            .json_rpc_client
-            .get_transaction_receipt(declare_transaction.transaction_hash)
-            .await
-            .unwrap();
-
-        match result {
-            MaybePendingTransactionReceipt::PendingReceipt(PendingTransactionReceipt::Declare(
-                declare,
-            )) => {
-                assert!(declare.execution_result.revert_reason().unwrap().contains(
-                    format!("Max fee (Fee({})) is too low", declare_txn_v1.max_fee).as_str()
-                ));
+        match declare_transaction_result {
+            Err(ProviderError::StarknetError(StarknetErrorWithMessage { code, message: _ })) => {
+                match code {
+                    MaybeUnknownErrorCode::Known(StarknetError::InsufficientMaxFee) => (),
+                    _ => panic!("Invalid error: {:?}", code),
+                }
             }
-            _ => panic!("Invalid result: {result:?}"),
+            _ => {
+                panic!("Invalid result: {:?}", declare_transaction_result);
+            }
         }
     }
 

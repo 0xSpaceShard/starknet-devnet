@@ -74,28 +74,6 @@ mod tests {
     use crate::api::json_rpc::JsonRpcHandler;
     use crate::api::Api;
 
-    #[tokio::test]
-    async fn add_declare_transaction_v1_should_be_successful() {
-        let declare_txn_v1 = test_broadcasted_declare_transaction_v1();
-        let json_rpc_handler = setup();
-        let result = json_rpc_handler
-            .add_declare_transaction(
-                starknet_types::rpc::transactions::BroadcastedDeclareTransaction::V1(Box::new(
-                    declare_txn_v1.clone(),
-                )),
-            )
-            .await
-            .unwrap();
-
-        // Data taken from transaction execution to https://alpha4.starknet.io/gateway/add_transaction
-        // which resulted in transaction_hash
-        // 0x1d50d192f54d8d75e73c8ab8fb7159e70bfdbccc322abb43a081889a3043627 Could be checked in https://testnet.starkscan.co/tx/0x1d50d192f54d8d75e73c8ab8fb7159e70bfdbccc322abb43a081889a3043627
-        assert_eq!(
-            result.class_hash.to_prefixed_hex_str(),
-            "0x399998c787e0a063c3ac1d2abac084dcbe09954e3b156d53a8c43a02aa27d35"
-        );
-    }
-
     #[test]
     fn check_correct_deserialization_of_deploy_account_transaction_request() {
         test_deploy_account_transaction();

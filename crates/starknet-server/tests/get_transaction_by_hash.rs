@@ -3,36 +3,43 @@ pub mod common;
 mod get_transaction_by_hash_integration_tests {
     use std::sync::Arc;
 
-    use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
+    use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ERC20_CONTRACT_ADDRESS};
+    use starknet_rs_accounts::{
+        Account, AccountFactory, Call, ExecutionEncoding, OpenZeppelinAccountFactory,
+        SingleOwnerAccount,
+    };
     use starknet_rs_core::chain_id;
+    use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
     use starknet_rs_core::types::{
-        BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedDeployAccountTransaction,
-        BroadcastedInvokeTransaction, FieldElement, StarknetError,
+        BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedInvokeTransaction,
+        FieldElement, StarknetError,
     };
+    use starknet_rs_core::utils::get_selector_from_name;
     use starknet_rs_providers::{
         MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
     };
     use starknet_rs_signers::{LocalWallet, SigningKey};
+    use starknet_types::contract_class::{Cairo0Json, DeprecatedContractClass};
     use starknet_types::felt::Felt;
     use starknet_types::traits::ToHexString;
 
     use crate::common::constants::{
         CASM_COMPILED_CLASS_HASH, PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     };
-    use crate::common::devnet::BackgroundDevnet;
+    use crate::common::devnet::{self, BackgroundDevnet};
 
     pub const DECLARE_V1_TRANSACTION_HASH: &str =
-        "0x01d50d192f54d8d75e73c8ab8fb7159e70bfdbccc322abb43a081889a3043627";
+        "0x03260006dbb34ad0c3b70a39c9eaf84aade3d289a5a5517fc37b303f5f01ac1a";
 
     pub const DECLARE_V2_TRANSACTION_HASH: &str =
         "0x040b80108251e5991622eb2ff6061313dabe66a52f550c59867c027910777e7e";
 
     pub const DEPLOY_ACCOUNT_TRANSACTION_HASH: &str =
-        "0x01b815e18639e72c8f56f5dbee70c5997f127e6183e46ea26a41b7f2944be593";
+        "0x03d0611c4f16d9efb35a6e6aa53bc077b880ef9261866e082d8be0df74ad1291";
 
     pub const INVOKE_V1_TRANSACTION_HASH: &str =
-        "0x057c60c720f9ce34cd0a411e5c2ded91dfd2a912c11a26508c796da53d1b73c6";
+        "0x008aa91514421bb9826d6821789580ff8fe2f9eb225f7b3bc79ec0c81d9eb58c";
 
     #[tokio::test]
     async fn get_declare_v1_transaction_by_hash_happy_path() {
@@ -45,11 +52,30 @@ mod get_transaction_by_hash_integration_tests {
         let declare_txn_v1: BroadcastedDeclareTransactionV1 =
             serde_json::from_str(&json_string).unwrap();
 
-        let declare_transaction = devnet
-            .json_rpc_client
-            .add_declare_transaction(starknet_rs_core::types::BroadcastedDeclareTransaction::V1(
-                declare_txn_v1.clone(),
-            ))
+        let (private_key, account_address) = devnet.get_first_predeployed_account().await;
+
+        let signer = LocalWallet::from(SigningKey::from_secret_scalar(private_key));
+
+        let mut account = SingleOwnerAccount::new(
+            &devnet.json_rpc_client,
+            signer,
+            account_address,
+            chain_id::TESTNET,
+            ExecutionEncoding::Legacy,
+        );
+        account.set_block_id(BlockId::Tag(BlockTag::Latest));
+        let legacy_contract_class = DeprecatedContractClass::rpc_from_json_str(
+            &serde_json::to_string(declare_txn_v1.contract_class.as_ref()).unwrap(),
+        )
+        .unwrap();
+        let legacy_contract_class = Cairo0Json::try_from(legacy_contract_class).unwrap();
+        let legacy_contract_class: LegacyContractClass =
+            serde_json::from_value(legacy_contract_class.inner).unwrap();
+
+        let declare_transaction = account
+            .declare_legacy(Arc::new(legacy_contract_class))
+            .nonce(FieldElement::ZERO)
+            .send()
             .await
             .unwrap();
 
@@ -137,28 +163,34 @@ mod get_transaction_by_hash_integration_tests {
     #[tokio::test]
     async fn get_deploy_account_transaction_by_hash_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let deploy_account_txn = BroadcastedDeployAccountTransaction {
-            max_fee: FieldElement::from_hex_be("0xde0b6b3a7640000").unwrap(),
-            signature: vec![
-                FieldElement::from_hex_be("0x1").unwrap(),
-                FieldElement::from_hex_be("0x1").unwrap(),
-            ],
-            nonce: FieldElement::from_hex_be("0x0").unwrap(),
-            class_hash: FieldElement::from_hex_be(
-                "0x7B3E05F48F0C69E4A65CE5E076A66271A527AFF2C34CE1083EC6E1526997A69", // UDC_CONTRACT_CLASS_HASH as string
-            )
-            .unwrap(),
-            contract_address_salt: FieldElement::from_hex_be("0x1").unwrap(),
-            constructor_calldata: vec![FieldElement::from_hex_be("0x1").unwrap()],
-            is_query: false,
-        };
 
-        let deploy_transaction =
-            devnet.json_rpc_client.add_deploy_account_transaction(deploy_account_txn.clone()).await;
+        let (private_key, _) = devnet.get_first_predeployed_account().await;
+        let signer = LocalWallet::from(SigningKey::from_secret_scalar(private_key));
+
+        let factory = OpenZeppelinAccountFactory::new(
+            FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
+            chain_id::TESTNET,
+            signer,
+            devnet.clone_provider(),
+        )
+        .await
+        .unwrap();
+
+        let salt = FieldElement::from_hex_be("0x123").unwrap();
+        let deployment = factory.deploy(salt);
+        let deployment_address = deployment.address();
+        let fee_estimation =
+            factory.deploy(salt).fee_estimate_multiplier(1.0).estimate_fee().await.unwrap();
+
+        // fund the account before deployment
+        let mint_amount = fee_estimation.overall_fee as u128 * 2;
+        devnet.mint(deployment_address, mint_amount).await;
+
+        let deploy_account_result = factory.deploy(salt).send().await.unwrap();
 
         let result = devnet
             .json_rpc_client
-            .get_transaction_by_hash(deploy_transaction.unwrap().transaction_hash)
+            .get_transaction_by_hash(deploy_account_result.transaction_hash)
             .await
             .unwrap();
 
@@ -175,17 +207,29 @@ mod get_transaction_by_hash_integration_tests {
     #[tokio::test]
     async fn get_invoke_v1_transaction_by_hash_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let invoke_txn_v1 = BroadcastedInvokeTransaction {
-            max_fee: FieldElement::from_hex_be("0xde0b6b3a7640000").unwrap(),
-            signature: vec![],
-            nonce: FieldElement::from_hex_be("0x0").unwrap(),
-            sender_address: FieldElement::from_hex_be("0x0").unwrap(),
-            calldata: vec![],
-            is_query: false,
-        };
+        let (private_key, account_address) = devnet.get_first_predeployed_account().await;
 
-        let invoke_transaction =
-            devnet.json_rpc_client.add_invoke_transaction(invoke_txn_v1.clone()).await.unwrap();
+        let account = SingleOwnerAccount::new(
+            &devnet.json_rpc_client,
+            LocalWallet::from(SigningKey::from_secret_scalar(private_key)),
+            account_address,
+            chain_id::TESTNET,
+            ExecutionEncoding::Legacy,
+        );
+
+        let invoke_transaction = account
+            .execute(vec![Call {
+                to: FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap(),
+                selector: get_selector_from_name("transfer").unwrap(),
+                calldata: vec![
+                    FieldElement::ONE,
+                    FieldElement::from_dec_str("1000000000").unwrap(),
+                    FieldElement::ZERO,
+                ],
+            }])
+            .send()
+            .await
+            .unwrap();
 
         let result = devnet
             .json_rpc_client
