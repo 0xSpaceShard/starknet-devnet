@@ -331,8 +331,9 @@ mod dump_and_load_tests {
 
     #[tokio::test]
     async fn dump_load_endpoints_transaction_and_state_after_load_is_valid() {
-        // check if the dump with the default path "dump_endpoint" works as expected when path is
-        // empty, later check the dump with the custom path "dump_endpoint_custom_path" also works
+        // check if the dump with the default path "dump_endpoint" works as expected when json body
+        // is empty, later check if the dump with the custom path "dump_endpoint_custom_path"
+        // works
         let dump_file_name = "dump_endpoint";
         let dump_file_name_custom_path = "dump_endpoint_custom_path";
         let devnet_dump =
@@ -340,12 +341,7 @@ mod dump_and_load_tests {
                 .await
                 .expect("Could not start Devnet");
         let mint_tx_hash = devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
-        let dump_body = Body::from(
-            json!({
-                "path": ""
-            })
-            .to_string(),
-        );
+        let dump_body = Body::from(json!({}).to_string());
         devnet_dump.post_json("/dump".into(), dump_body).await.unwrap();
         assert!(Path::new(dump_file_name).exists());
         let dump_body_custom_path = Body::from(
