@@ -6,10 +6,10 @@
 <h1 align="center" style="margin-top: 12px !important">Starknet Devnet RS</h1>
 
 <p align="center" dir="auto">
-  <a href="https://hub.docker.com/r/shardlabs/starknet-devnet-rs/tags">
+  <a href="https://hub.docker.com/r/shardlabs/starknet-devnet-rs/tags" target="_blank">
     <img src="https://img.shields.io/badge/dockerhub-images-important.svg?logo=Docker" style="max-width: 100%;">
   </a>
-  <a href="https://starkware.co/" rel="nofollow">
+  <a href="https://starkware.co/" target="_blank">
     <img src="https://camo.githubusercontent.com/240467f370298129062e58749519b51d717c54d9b6415fcd676c099773319ebc/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f706f77657265645f62792d537461726b576172652d6e617679" data-canonical-src="https://img.shields.io/badge/powered_by-StarkWare-navy" style="max-width: 100%;">
   </a>
 </p>
@@ -26,11 +26,15 @@ This repository is work in progress, please be patient. Please check below the s
 - [x] [Mint token - Local faucet] https://0xspaceshard.github.io/starknet-devnet/docs/guide/mint-token
 - [x] Starknet.js test suite passes 100%
 
+### TODO
+
+- [ ] RPC v0.5.0
+
 ### TODO to reach feature parity with the Pythonic Devnet
 
+- [ ] Availability as a package (crate)
 - [ ] [Custom accounts implementation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/accounts#custom-implementation)
   - [ ] [PR](https://github.com/0xSpaceShard/starknet-devnet-rs/pull/196)
-- [ ] RPC v0.5.0
 - [ ] [Forking](https://0xspaceshard.github.io/starknet-devnet/docs/guide/fork)
 - [ ] [L1-L2 Postman integration](https://0xspaceshard.github.io/starknet-devnet/docs/guide/postman)
 - [ ] [Block manipulation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/blocks)
@@ -147,6 +151,8 @@ Unlike Pythonic Devnet, which supported the gateway and feeder gateway API, Devn
 
 The JSON-RPC API is reachable via `/rpc` and `/` (e.g. if spawning Devnet with default settings, these URLs have the equivalent functionality: `http://127.0.0.1:5050/rpc` and `http://127.0.0.1:5050/`)
 
+> **Note:**
+>
 > Out of Starknet **trace** API RPC methods, only `starknet_simulateTransactions` is supported.
 
 ## Predeployed contracts
