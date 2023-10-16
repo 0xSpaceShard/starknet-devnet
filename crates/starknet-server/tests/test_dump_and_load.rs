@@ -27,12 +27,12 @@ mod dump_and_load_tests {
         get_events_contract_in_sierra_and_compiled_class_hash, get_predeployed_account_props,
     };
 
-    async fn send_ctrl_c_signal(devnet_dump: BackgroundDevnet) {
+    async fn send_ctrl_c_signal(devnet_dump: &BackgroundDevnet) {
         #[cfg(windows)]
         {
             // To send SIGINT signal on windows, windows-kill is needed
             let mut kill = Command::new("windows-kill")
-                .args(["-SIGINT", &devnet_dump.process.id().to_string()])
+                .args(["-SIGINT", devnet_dump.process.id().to_string().as_str()])
                 .spawn()
                 .unwrap();
             kill.wait().unwrap();
@@ -41,7 +41,7 @@ mod dump_and_load_tests {
         #[cfg(unix)]
         {
             let mut kill = Command::new("kill")
-                .args(["-s", "SIGINT", &devnet_dump.process.id().to_string()])
+                .args(["-s", "SIGINT", devnet_dump.process.id().to_string().as_str()])
                 .spawn()
                 .unwrap();
             kill.wait().unwrap();
@@ -141,7 +141,7 @@ mod dump_and_load_tests {
         let devnet_dump_pid = devnet_dump.process.id();
         let mint_tx_hash = devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
-        send_ctrl_c_signal(devnet_dump).await;
+        send_ctrl_c_signal(&devnet_dump).await;
 
         // load transaction from file and check transaction hash
         let devnet_load =
@@ -265,7 +265,7 @@ mod dump_and_load_tests {
         .await
         .expect("Could not start Devnet");
 
-        send_ctrl_c_signal(devnet_dump).await;
+        send_ctrl_c_signal(&devnet_dump).await;
 
         // file should not be created if there are no transactions
         if Path::new(dump_file_name).exists() {
