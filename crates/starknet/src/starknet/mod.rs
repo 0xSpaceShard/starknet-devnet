@@ -29,9 +29,10 @@ use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::Broad
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
 use starknet_types::rpc::transactions::{
-    BroadcastedTransaction, BroadcastedTransactionCommon, DeclareTransactionTrace,
-    DeployAccountTransactionTrace, ExecutionInvocation, FunctionInvocation, InvokeTransactionTrace,
-    SimulatedTransaction, SimulationFlag, Transaction, TransactionTrace, Transactions,
+    BroadcastedTransaction, BroadcastedTransactionCommon, DeclareTransaction,
+    DeclareTransactionTrace, DeployAccountTransactionTrace, ExecutionInvocation,
+    FunctionInvocation, InvokeTransactionTrace, SimulatedTransaction, SimulationFlag, Transaction,
+    TransactionTrace, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use strum_macros::EnumIter;
@@ -248,6 +249,56 @@ impl Starknet {
         self.blocks.save_state_at(new_block_number, deep_cloned_state);
 
         Ok(new_block_number)
+    }
+
+    /// Handles transaction result either Ok or Error and updates the state accordingly.
+    ///
+    /// # Arguments
+    ///
+    /// * `transaction` - Transaction to be added in the collection of transactions.
+    /// * `transaction_result` - Result with transaction_execution_info
+    pub(crate) fn handle_transaction_result(
+        &mut self,
+        transaction: Transaction,
+        transaction_result: Result<
+            TransactionExecutionInfo,
+            blockifier::transaction::errors::TransactionExecutionError,
+        >,
+    ) -> DevnetResult<()> {
+        let transaction_hash = *transaction.get_transaction_hash();
+
+        match transaction_result {
+            Ok(tx_info) => {
+                // If transaction is not reverted
+                // then save the contract class in the state cache for Declare V1/V2 transactions
+                if !tx_info.is_reverted() {
+                    match &transaction {
+                        Transaction::Declare(DeclareTransaction::Version1(declare_v1)) => {
+                            self.state.contract_classes.insert(
+                                declare_v1.class_hash,
+                                declare_v1.contract_class.clone().into(),
+                            );
+                        }
+                        Transaction::Declare(DeclareTransaction::Version2(declare_v2)) => {
+                            self.state.contract_classes.insert(
+                                declare_v2.class_hash,
+                                declare_v2.contract_class.clone().into(),
+                            );
+                        }
+                        _ => {}
+                    };
+                }
+                self.handle_accepted_transaction(&transaction_hash, &transaction, tx_info)?;
+            }
+            Err(tx_err) => {
+                let transaction_to_add =
+                    StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
+
+                self.transactions.insert(&transaction_hash, transaction_to_add);
+            }
+        };
+
+        Ok(())
     }
 
     /// Handles suceeded and reverted transactions.
