@@ -1,5 +1,4 @@
 use blockifier::transaction::transactions::ExecutableTransaction;
-use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
@@ -7,7 +6,6 @@ use starknet_types::rpc::transactions::{DeclareTransaction, Transaction};
 
 use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;
-use crate::transactions::StarknetTransaction;
 
 pub fn add_declare_transaction_v2(
     starknet: &mut Starknet,
@@ -35,24 +33,7 @@ pub fn add_declare_transaction_v2(
         )
         .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
-    match blockifier_execution_result {
-        Ok(tx_info) => {
-            // Add sierra contract
-            if !tx_info.is_reverted() {
-                starknet.state.contract_classes.insert(
-                    class_hash,
-                    ContractClass::Cairo1(broadcasted_declare_transaction.contract_class),
-                );
-            }
-            starknet.handle_accepted_transaction(&transaction_hash, &transaction, tx_info)?;
-        }
-        Err(tx_err) => {
-            let transaction_to_add =
-                StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
-
-            starknet.transactions.insert(&transaction_hash, transaction_to_add);
-        }
-    }
+    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
 
     Ok((transaction_hash, class_hash))
 }
@@ -84,23 +65,7 @@ pub fn add_declare_transaction_v1(
         )
         .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
-    match blockifier_execution_result {
-        Ok(tx_info) => {
-            if !tx_info.is_reverted() {
-                starknet
-                    .state
-                    .contract_classes
-                    .insert(class_hash, broadcasted_declare_transaction.contract_class.into());
-                starknet.handle_accepted_transaction(&transaction_hash, &transaction, tx_info)?;
-            }
-        }
-        Err(tx_err) => {
-            let transaction_to_add =
-                StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
-
-            starknet.transactions.insert(&transaction_hash, transaction_to_add);
-        }
-    }
+    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
 
     Ok((transaction_hash, class_hash))
 }

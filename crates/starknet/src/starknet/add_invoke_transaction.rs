@@ -5,7 +5,6 @@ use starknet_types::rpc::transactions::{InvokeTransaction, Transaction};
 
 use super::Starknet;
 use crate::error::{self, DevnetResult};
-use crate::transactions::StarknetTransaction;
 
 pub fn add_invoke_transaction(
     starknet: &mut Starknet,
@@ -31,17 +30,7 @@ pub fn add_invoke_transaction(
         )
         .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
-    match blockifier_execution_result {
-        Ok(tx_info) => {
-            starknet.handle_accepted_transaction(&transaction_hash, &transaction, tx_info)?
-        }
-        Err(tx_err) => {
-            let transaction_to_add =
-                StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
-
-            starknet.transactions.insert(&transaction_hash, transaction_to_add);
-        }
-    }
+    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
 
     Ok(transaction_hash)
 }
