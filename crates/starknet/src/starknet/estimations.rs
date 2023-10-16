@@ -89,7 +89,7 @@ fn estimate_transaction_fee(
     let total_l1_gas_usage = l1_gas_usage as f64 + l1_gas_by_vm_usage;
     let total_l1_gas_usage = total_l1_gas_usage.ceil() as u64;
 
-    let gas_price = block_context.gas_price as u64;
+    let gas_price = block_context.gas_prices.eth_l1_gas_price as u64;
 
     Ok(FeeEstimateWrapper::new(total_l1_gas_usage, gas_price, total_l1_gas_usage * gas_price))
 }

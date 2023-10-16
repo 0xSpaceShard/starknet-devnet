@@ -75,14 +75,21 @@ impl StarknetTransaction {
         }
     }
 
-    pub fn create_successful(
+    pub fn create_accepted(
         transaction: &Transaction,
-        finality_status: Option<TransactionFinalityStatus>,
         execution_info: TransactionExecutionInfo,
     ) -> Self {
         Self {
-            finality_status,
-            execution_result: ExecutionResult::Succeeded,
+            finality_status: Some(TransactionFinalityStatus::AcceptedOnL2),
+            execution_result: match execution_info.is_reverted() {
+                true => ExecutionResult::Reverted {
+                    reason: execution_info
+                        .revert_error
+                        .clone()
+                        .unwrap_or("No revert error".to_string()),
+                },
+                false => ExecutionResult::Succeeded,
+            },
             inner: transaction.clone(),
             block_hash: None,
             block_number: None,
@@ -94,7 +101,7 @@ impl StarknetTransaction {
         let mut events: Vec<Event> = vec![];
 
         fn get_blockifier_events_recursively(
-            call_info: &blockifier::execution::entry_point::CallInfo,
+            call_info: &blockifier::execution::call_info::CallInfo,
         ) -> Vec<(usize, Event)> {
             let mut events: Vec<(usize, Event)> = vec![];
 
@@ -209,7 +216,7 @@ impl StarknetTransaction {
 #[cfg(test)]
 mod tests {
     use blockifier::transaction::objects::TransactionExecutionInfo;
-    use starknet_rs_core::types::TransactionExecutionStatus;
+    use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::rpc::transactions::{DeclareTransaction, Transaction};
     use starknet_types::traits::HashProducer;
 
@@ -223,12 +230,11 @@ mod tests {
         let hash = declare_transaction.generate_hash().unwrap();
         let tx = Transaction::Declare(DeclareTransaction::Version1(declare_transaction));
 
-        let sn_tx =
-            StarknetTransaction::create_successful(&tx, None, TransactionExecutionInfo::default());
+        let sn_tx = StarknetTransaction::create_accepted(&tx, TransactionExecutionInfo::default());
         let mut sn_txs = StarknetTransactions::default();
         sn_txs.insert(
             &hash,
-            StarknetTransaction::create_successful(&tx, None, TransactionExecutionInfo::default()),
+            StarknetTransaction::create_accepted(&tx, TransactionExecutionInfo::default()),
         );
 
         let extracted_tran = sn_txs.get_by_hash_mut(&hash).unwrap();
@@ -254,12 +260,9 @@ mod tests {
 
     fn check_correct_transaction_properties(tran: Transaction, is_success: bool) {
         let sn_tran = if is_success {
-            let tx = StarknetTransaction::create_successful(
-                &tran,
-                None,
-                TransactionExecutionInfo::default(),
-            );
-            assert_eq!(tx.finality_status, None);
+            let tx =
+                StarknetTransaction::create_accepted(&tran, TransactionExecutionInfo::default());
+            assert_eq!(tx.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
             assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
             tx
@@ -269,8 +272,8 @@ mod tests {
                     .to_string();
             let tx = StarknetTransaction::create_rejected(&tran, None, &error_str);
 
-            assert_eq!(tx.execution_result.revert_reason(), Some(error_str.as_str()));
             assert_eq!(tx.finality_status, None);
+            assert_eq!(tx.execution_result.revert_reason(), Some(error_str.as_str()));
 
             tx
         };

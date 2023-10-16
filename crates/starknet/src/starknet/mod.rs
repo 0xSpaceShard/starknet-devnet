@@ -250,13 +250,16 @@ impl Starknet {
         Ok(new_block_number)
     }
 
-    pub(crate) fn handle_successful_transaction(
+    /// Handles suceeded and reverted transactions.
+    /// The tx is stored and potentially dumped.
+    /// A new block is generated.
+    pub(crate) fn handle_accepted_transaction(
         &mut self,
         transaction_hash: &TransactionHash,
         transaction: &Transaction,
         tx_info: TransactionExecutionInfo,
     ) -> DevnetResult<()> {
-        let transaction_to_add = StarknetTransaction::create_successful(transaction, None, tx_info);
+        let transaction_to_add = StarknetTransaction::create_accepted(transaction, tx_info);
 
         // add accepted transaction to pending block
         self.blocks.pending_block.add_transaction(*transaction_hash);
@@ -293,9 +296,10 @@ impl Starknet {
 
         block_context.block_number = BlockNumber(0);
         block_context.block_timestamp = BlockTimestamp(0);
-        block_context.gas_price = gas_price as u128;
+        block_context.gas_prices.eth_l1_gas_price = gas_price as u128;
         block_context.chain_id = chain_id.into();
-        block_context.fee_token_address = contract_address!(fee_token_address);
+        block_context.fee_token_addresses.eth_fee_token_address =
+            contract_address!(fee_token_address);
         // inject cairo resource fee weights from starknet_in_rust
         block_context.vm_resource_fee_cost =
             std::sync::Arc::new(DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS.clone());
@@ -324,7 +328,7 @@ impl Starknet {
         let mut block = StarknetBlock::create_pending_block();
 
         block.header.block_number = self.block_context.block_number;
-        block.header.gas_price = GasPrice(self.block_context.gas_price);
+        block.header.gas_price = GasPrice(self.block_context.gas_prices.eth_l1_gas_price);
         block.header.sequencer = self.block_context.sequencer_address;
         block.header.timestamp = self.block_context.block_timestamp;
 
@@ -806,8 +810,11 @@ mod tests {
         let block_ctx = Starknet::init_block_context(10, "0xAA", DEVNET_DEFAULT_CHAIN_ID);
         assert_eq!(block_ctx.block_number, BlockNumber(0));
         assert_eq!(block_ctx.block_timestamp, BlockTimestamp(0));
-        assert_eq!(block_ctx.gas_price, 10);
-        assert_eq!(ContractAddress::from(block_ctx.fee_token_address), fee_token_address);
+        assert_eq!(block_ctx.gas_prices.eth_l1_gas_price, 10);
+        assert_eq!(
+            ContractAddress::from(block_ctx.fee_token_addresses.eth_fee_token_address),
+            fee_token_address
+        );
     }
 
     #[test]
@@ -852,7 +859,7 @@ mod tests {
         let mut starknet = Starknet::new(&config).unwrap();
 
         let initial_block_number = starknet.block_context.block_number;
-        let initial_gas_price = starknet.block_context.gas_price;
+        let initial_gas_price = starknet.block_context.gas_prices.eth_l1_gas_price;
         let initial_block_timestamp = starknet.block_context.block_timestamp;
         let initial_sequencer = starknet.block_context.sequencer_address;
 
