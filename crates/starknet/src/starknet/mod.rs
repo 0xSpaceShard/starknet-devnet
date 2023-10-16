@@ -291,10 +291,22 @@ impl Starknet {
                 self.handle_accepted_transaction(&transaction_hash, &transaction, tx_info)?;
             }
             Err(tx_err) => {
-                let transaction_to_add =
-                    StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
+                // based on this https://community.starknet.io/t/efficient-utilization-of-sequencer-capacity-in-starknet-v0-12-1/95607#the-validation-phase-in-the-gateway-5
+                // we should not save transactions that failed with one of the following errors
+                match tx_err {
+                    blockifier::transaction::errors::TransactionExecutionError::InvalidNonce { .. }
+                    | blockifier::transaction::errors::TransactionExecutionError::MaxFeeExceedsBalance { .. }
+                    | blockifier::transaction::errors::TransactionExecutionError::MaxFeeTooLow { .. }
+                    | blockifier::transaction::errors::TransactionExecutionError::ValidateTransactionError(..) => {
+                        return Err(Error::BlockifierTransactionError(tx_err));
+                    }
+                    _ => {
+                        let transaction_to_add =
+                            StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
 
-                self.transactions.insert(&transaction_hash, transaction_to_add);
+                        self.transactions.insert(&transaction_hash, transaction_to_add);
+                    }
+                };
             }
         };
 
