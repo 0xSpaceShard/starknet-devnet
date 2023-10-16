@@ -45,7 +45,7 @@ use crate::constants::{
     CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
     DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_HOST, ERC20_CONTRACT_ADDRESS,
 };
-use crate::error::{DevnetResult, Error};
+use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::raw_execution::{Call, RawExecution};
 use crate::state::state_diff::StateDiff;
@@ -294,12 +294,18 @@ impl Starknet {
                 // based on this https://community.starknet.io/t/efficient-utilization-of-sequencer-capacity-in-starknet-v0-12-1/95607#the-validation-phase-in-the-gateway-5
                 // we should not save transactions that failed with one of the following errors
                 match tx_err {
-                    blockifier::transaction::errors::TransactionExecutionError::InvalidNonce { .. }
-                    | blockifier::transaction::errors::TransactionExecutionError::MaxFeeExceedsBalance { .. }
-                    | blockifier::transaction::errors::TransactionExecutionError::MaxFeeTooLow { .. }
-                    | blockifier::transaction::errors::TransactionExecutionError::ValidateTransactionError(..) => {
-                        return Err(Error::BlockifierTransactionError(tx_err));
-                    }
+                    blockifier::transaction::errors::TransactionExecutionError::InvalidNonce { .. } => {
+                        return Err(TransactionValidationError::InvalidTransactionNonce.into());
+                    },
+                    blockifier::transaction::errors::TransactionExecutionError::MaxFeeExceedsBalance { .. } => {
+                        return Err(TransactionValidationError::InsufficientAccountBalance.into());
+                    },
+                    blockifier::transaction::errors::TransactionExecutionError::MaxFeeTooLow { .. } => {
+                        return Err(TransactionValidationError::InsufficientMaxFee.into());
+                    },
+                    blockifier::transaction::errors::TransactionExecutionError::ValidateTransactionError(..) => {
+                        return Err(TransactionValidationError::GeneralFailure.into());
+                    },
                     _ => {
                         let transaction_to_add =
                             StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
