@@ -3,7 +3,7 @@ use starknet_api::core::{CONTRACT_ADDRESS_DOMAIN_SIZE, PATRICIA_KEY_UPPER_BOUND}
 use crate::error::{DevnetResult, Error};
 use crate::felt::Felt;
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PatriciaKey(pub(crate) Felt);
 
 impl PatriciaKey {

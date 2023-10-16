@@ -231,14 +231,14 @@ impl TryFrom<DeprecatedContractClass> for Cairo0Json {
     }
 }
 
-// TODO: figure out if needed
-// pub fn raw_program_into_json(program: &[u8]) -> DevnetResult<Value> {
-//     let decoder = flate2::read::GzDecoder::new(program);
-//     let starknet_program: LegacyProgram =
-//         serde_json::from_reader(decoder).map_err(JsonError::SerdeJsonError)?;
-//
-//     Ok(serde_json::to_value(starknet_program).map_err(JsonError::SerdeJsonError)?)
-// }
+impl TryFrom<Cairo0Json> for blockifier::execution::contract_class::ContractClassV0 {
+    type Error = Error;
+
+    fn try_from(value: Cairo0Json) -> Result<Self, Self::Error> {
+        serde_json::from_value(value.inner)
+            .map_err(|err| Error::JsonError(JsonError::SerdeJsonError(err)))
+    }
+}
 
 pub fn json_into_raw_program(json_data: &Value) -> DevnetResult<Vec<u8>> {
     let mut buffer = Vec::new();

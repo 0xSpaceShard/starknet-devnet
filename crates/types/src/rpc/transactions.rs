@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+
+use blockifier::transaction::account_transaction::AccountTransaction;
 use broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
@@ -10,16 +13,14 @@ use invoke_transaction_v1::InvokeTransactionV1;
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
 use starknet_api::deprecated_contract_class::EntryPointType;
-use starknet_api::hash::StarkFelt;
-use starknet_api::transaction::{EthAddress, Fee};
-use starknet_in_rust::execution::{CallInfo, L2toL1MessageInfo};
+use starknet_api::transaction::Fee;
 use starknet_rs_core::types::{BlockId, ExecutionResult, TransactionFinalityStatus};
 
 use super::estimate_message_fee::FeeEstimateWrapper;
 use super::transaction_receipt::MessageToL1;
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
-use crate::error::{ConversionError, Error};
+use crate::error::{ConversionError, DevnetResult};
 use crate::felt::{
     BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash, TransactionSignature,
     TransactionVersion,
@@ -272,6 +273,39 @@ pub enum BroadcastedTransaction {
     DeployAccount(BroadcastedDeployAccountTransaction),
 }
 
+impl BroadcastedTransaction {
+    pub fn to_blockifier_account_transaction(
+        &self,
+        chain_id: Felt,
+    ) -> DevnetResult<blockifier::transaction::account_transaction::AccountTransaction> {
+        let blockifier_transaction = match self {
+            BroadcastedTransaction::Invoke(invoke_txn) => {
+                let blockifier_invoke_txn =
+                    invoke_txn.create_blockifier_invoke_transaction(chain_id)?;
+                AccountTransaction::Invoke(blockifier_invoke_txn)
+            }
+            BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(declare_v1)) => {
+                let class_hash = declare_v1.generate_class_hash()?;
+                let transaction_hash =
+                    declare_v1.calculate_transaction_hash(&chain_id, &class_hash)?;
+                AccountTransaction::Declare(
+                    declare_v1.create_blockifier_declare(class_hash, transaction_hash)?,
+                )
+            }
+            BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(declare_v2)) => {
+                AccountTransaction::Declare(declare_v2.create_blockifier_declare(chain_id)?)
+            }
+            BroadcastedTransaction::DeployAccount(deploy_account) => {
+                AccountTransaction::DeployAccount(
+                    deploy_account.create_blockifier_deploy_account(chain_id)?,
+                )
+            }
+        };
+
+        Ok(blockifier_transaction)
+    }
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum BroadcastedDeclareTransaction {
@@ -303,7 +337,7 @@ pub enum CallType {
 pub struct FunctionInvocation {
     #[serde(flatten)]
     function_call: FunctionCall,
-    caller_address: Felt,
+    caller_address: ContractAddress,
     class_hash: Felt,
     entry_point_type: EntryPointType,
     call_type: CallType,
@@ -358,95 +392,78 @@ pub struct SimulatedTransaction {
     pub fee_estimation: FeeEstimateWrapper,
 }
 
-impl TryFrom<L2toL1MessageInfo> for MessageToL1 {
-    type Error = Error;
-
-    fn try_from(value: L2toL1MessageInfo) -> Result<Self, Self::Error> {
-        Ok(Self {
-            from_address: value.from_address.try_into()?,
-            to_address: EthAddress::try_from(StarkFelt::from(Felt::from(value.to_address.0)))?,
-            payload: value.payload.into_iter().map(|p| p.into()).collect(),
-        })
-    }
-}
-
-impl From<starknet_in_rust::execution::CallType> for CallType {
-    fn from(value: starknet_in_rust::execution::CallType) -> Self {
-        match value {
-            starknet_in_rust::execution::CallType::Call => Self::Call,
-            starknet_in_rust::execution::CallType::Delegate => Self::LibraryCall,
-        }
-    }
-}
-
-impl TryFrom<starknet_in_rust::execution::Event> for Event {
-    type Error = Error;
-
-    fn try_from(value: starknet_in_rust::execution::Event) -> Result<Self, Self::Error> {
-        Ok(Self {
-            from_address: value.from_address.try_into()?,
-            keys: value.keys.into_iter().map(|k| k.into()).collect(),
-            data: value.data.into_iter().map(|d| d.into()).collect(),
-        })
-    }
-}
-
-impl TryFrom<CallInfo> for FunctionInvocation {
-    type Error = Error;
-
-    fn try_from(call_info: CallInfo) -> Result<Self, Self::Error> {
-        // done here because Result handling (e.g with ? operator) can't simply
-        // be used in closure passed to .map(...)
+impl FunctionInvocation {
+    pub fn try_from_call_info(
+        mut call_info: blockifier::execution::call_info::CallInfo,
+        address_to_class_hash: &HashMap<ContractAddress, Felt>,
+    ) -> DevnetResult<Self> {
         let mut internal_calls: Vec<FunctionInvocation> = vec![];
-        for internal_call in call_info.internal_calls.clone() {
-            internal_calls.push(internal_call.try_into()?);
+        for internal_call in call_info.inner_calls {
+            internal_calls.push(FunctionInvocation::try_from_call_info(
+                internal_call,
+                address_to_class_hash,
+            )?);
         }
 
-        let mut messages: Vec<MessageToL1> = vec![];
-        for message in call_info.get_sorted_l2_to_l1_messages()? {
-            messages.push(message.try_into()?);
-        }
+        // the logic for getting the sorted l2-l1 messages
+        // is creating an array with enough room for all objects + 1
+        // then based on the order we use this index
 
-        let mut events: Vec<Event> = vec![];
-        for event in call_info.get_sorted_events()? {
-            events.push(event.try_into()?);
-        }
+        call_info.execution.l2_to_l1_messages.sort_by_key(|msg| msg.order);
 
-        Ok(FunctionInvocation {
-            function_call: FunctionCall {
-                contract_address: call_info.contract_address.try_into()?,
-                entry_point_selector: call_info
-                    .entry_point_selector
-                    .ok_or(ConversionError::InvalidInternalStructure(
-                        "entry_point_selector is unexpectedly undefined".into(),
-                    ))?
-                    .into(),
-                calldata: call_info.calldata.iter().map(|c| c.into()).collect(),
-            },
-            caller_address: call_info.caller_address.0.into(),
-            class_hash: call_info
-                .class_hash
+        let messages: Vec<MessageToL1> = call_info
+            .execution
+            .l2_to_l1_messages
+            .into_iter()
+            .map(|msg| MessageToL1 {
+                from_address: call_info.call.caller_address.into(),
+                to_address: msg.message.to_address,
+                payload: msg.message.payload.0.into_iter().map(Felt::from).collect(),
+            })
+            .collect();
+
+        call_info.execution.events.sort_by_key(|event| event.order);
+
+        let events: Vec<Event> = call_info
+            .execution
+            .events
+            .into_iter()
+            .map(|event| Event {
+                from_address: call_info.call.storage_address.into(),
+                keys: event.event.keys.into_iter().map(|key| Felt::from(key.0)).collect(),
+                data: event.event.data.0.into_iter().map(Felt::from).collect(),
+            })
+            .collect();
+
+        let function_call = FunctionCall {
+            contract_address: call_info.call.storage_address.into(),
+            entry_point_selector: call_info.call.entry_point_selector.0.into(),
+            calldata: call_info.call.calldata.0.iter().map(|f| Felt::from(*f)).collect(),
+        };
+
+        // call_info.call.class_hash could be None, so we deduce it from
+        // call_info.call.storage_address which is function_call.contract_address
+        let class_hash = if let Some(class_hash) = call_info.call.class_hash {
+            class_hash.into()
+        } else {
+            address_to_class_hash
+                .get(&function_call.contract_address)
                 .ok_or(ConversionError::InvalidInternalStructure(
                     "class_hash is unexpectedly undefined".into(),
-                ))?
-                .into(),
-            entry_point_type: (match call_info.entry_point_type {
-                Some(starknet_in_rust::EntryPointType::External) => Ok(EntryPointType::External),
-                Some(starknet_in_rust::EntryPointType::L1Handler) => Ok(EntryPointType::L1Handler),
-                Some(starknet_in_rust::EntryPointType::Constructor) => {
-                    Ok(EntryPointType::Constructor)
-                }
-                None => Err(ConversionError::InvalidInternalStructure(
-                    "entry_point_type is unexpectedly undefined".into(),
-                )),
-            })?,
-            call_type: call_info
-                .call_type
-                .ok_or(ConversionError::InvalidInternalStructure(
-                    "call_type is unexpectedly undefined".into(),
-                ))?
-                .into(),
-            result: call_info.retdata.iter().map(|r| r.into()).collect(),
+                ))
+                .cloned()?
+        };
+
+        Ok(FunctionInvocation {
+            function_call,
+            caller_address: call_info.call.caller_address.into(),
+            class_hash,
+            entry_point_type: call_info.call.entry_point_type,
+            call_type: match call_info.call.call_type {
+                blockifier::execution::entry_point::CallType::Call => CallType::Call,
+                blockifier::execution::entry_point::CallType::Delegate => CallType::LibraryCall,
+            },
+            result: call_info.execution.retdata.0.into_iter().map(Felt::from).collect(),
             calls: internal_calls,
             events,
             messages,

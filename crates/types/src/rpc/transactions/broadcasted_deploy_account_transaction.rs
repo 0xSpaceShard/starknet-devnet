@@ -1,6 +1,9 @@
+use std::sync::Arc;
+
+use cairo_felt::Felt252;
 use serde::{Deserialize, Serialize};
+use starknet_api::core::calculate_contract_address;
 use starknet_api::transaction::Fee;
-use starknet_in_rust::transaction::DeployAccount as SirDeployAccount;
 
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
@@ -43,17 +46,52 @@ impl BroadcastedDeployAccountTransaction {
         }
     }
 
-    pub fn create_sir_deploy_account(&self, chain_id: Felt) -> DevnetResult<SirDeployAccount> {
-        Ok(SirDeployAccount::new(
-            self.class_hash.bytes(),
-            self.common.max_fee.0,
-            self.common.version.into(),
-            self.common.nonce.into(),
-            self.constructor_calldata.iter().map(|h| h.into()).collect(),
-            self.common.signature.iter().map(|h| h.into()).collect(),
-            self.contract_address_salt.into(),
-            chain_id.into(),
-        )?)
+    pub fn create_blockifier_deploy_account(
+        &self,
+        chain_id: Felt,
+    ) -> DevnetResult<blockifier::transaction::transactions::DeployAccountTransaction> {
+        let contract_address = calculate_contract_address(
+            starknet_api::transaction::ContractAddressSalt(self.contract_address_salt.into()),
+            starknet_api::core::ClassHash(self.class_hash.into()),
+            &starknet_api::transaction::Calldata(Arc::new(
+                self.constructor_calldata.iter().map(|felt| felt.into()).collect(),
+            )),
+            starknet_api::core::ContractAddress::from(0u8),
+        )?;
+
+        let transaction_hash: Felt =
+            starknet_in_rust::core::transaction_hash::calculate_deploy_account_transaction_hash(
+                self.common.version.into(),
+                &(ContractAddress::from(contract_address).into()),
+                self.class_hash.into(),
+                &self.constructor_calldata.iter().map(|f| f.into()).collect::<Vec<Felt252>>(),
+                self.common.max_fee.0,
+                self.common.nonce.into(),
+                self.contract_address_salt.into(),
+                chain_id.into(),
+            )?
+            .into();
+
+        let sn_api_transaction = starknet_api::transaction::DeployAccountTransactionV1 {
+            max_fee: self.common.max_fee,
+            signature: starknet_api::transaction::TransactionSignature(
+                self.common.signature.iter().map(|felt| felt.into()).collect(),
+            ),
+            nonce: starknet_api::core::Nonce(self.common.nonce.into()),
+            class_hash: self.class_hash.into(),
+            contract_address_salt: starknet_api::transaction::ContractAddressSalt(
+                self.contract_address_salt.into(),
+            ),
+            constructor_calldata: starknet_api::transaction::Calldata(Arc::new(
+                self.constructor_calldata.iter().map(|felt| felt.into()).collect(),
+            )),
+        };
+
+        Ok(blockifier::transaction::transactions::DeployAccountTransaction {
+            tx: starknet_api::transaction::DeployAccountTransaction::V1(sn_api_transaction),
+            tx_hash: starknet_api::transaction::TransactionHash(transaction_hash.into()),
+            contract_address,
+        })
     }
 
     pub fn compile_deploy_account_transaction(
@@ -126,17 +164,19 @@ mod tests {
             feeder_gateway_transaction.version,
         );
 
-        let deploy_account_transaction =
-            broadcasted_tx.create_sir_deploy_account(ChainId::TestNet.to_felt()).unwrap();
+        let chain_id = ChainId::TestNet.to_felt();
+
+        let blockifier_deploy_account_transaction =
+            broadcasted_tx.create_blockifier_deploy_account(chain_id).unwrap();
 
         assert_eq!(
             ContractAddress::new(feeder_gateway_transaction.contract_address).unwrap(),
-            ContractAddress::try_from(deploy_account_transaction.contract_address().clone())
-                .unwrap()
+            ContractAddress::from(blockifier_deploy_account_transaction.contract_address)
         );
+
         assert_eq!(
             feeder_gateway_transaction.transaction_hash,
-            deploy_account_transaction.hash_value().into()
+            blockifier_deploy_account_transaction.tx_hash.0.into()
         );
     }
 }

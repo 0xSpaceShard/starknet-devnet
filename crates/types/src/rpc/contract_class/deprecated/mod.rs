@@ -106,3 +106,16 @@ impl TryInto<CompressedLegacyContractClass> for Cairo0ContractClass {
         }
     }
 }
+
+impl TryFrom<Cairo0ContractClass> for blockifier::execution::contract_class::ContractClassV0 {
+    type Error = Error;
+    fn try_from(value: Cairo0ContractClass) -> Result<Self, Self::Error> {
+        match value {
+            Cairo0ContractClass::RawJson(contract_class) => contract_class.try_into(),
+            Cairo0ContractClass::SIR(_) => {
+                Err(Error::ConversionError(crate::error::ConversionError::InvalidFormat))
+            }
+            Cairo0ContractClass::Rpc(contract_class) => contract_class.try_into(),
+        }
+    }
+}

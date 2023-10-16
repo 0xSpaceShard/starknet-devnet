@@ -1,9 +1,12 @@
+use blockifier::transaction::transactions::DeclareTransaction;
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
-use starknet_in_rust::transaction::DeclareV2 as SirDeclareV2;
+use starknet_in_rust::core::contract_address::compute_sierra_class_hash;
+use starknet_in_rust::core::transaction_hash::calculate_declare_v2_transaction_hash;
 use starknet_in_rust::SierraContractClass;
 
 use crate::contract_address::ContractAddress;
+use crate::contract_class::ContractClass;
 use crate::error::DevnetResult;
 use crate::felt::{
     ClassHash, CompiledClassHash, Felt, Nonce, TransactionHash, TransactionSignature,
@@ -64,17 +67,37 @@ impl BroadcastedDeclareTransactionV2 {
         }
     }
 
-    pub fn create_sir_declare(&self, chain_id: Felt) -> DevnetResult<SirDeclareV2> {
-        Ok(SirDeclareV2::new(
-            &self.contract_class,
-            None,
+    pub fn create_blockifier_declare(&self, chain_id: Felt) -> DevnetResult<DeclareTransaction> {
+        let sierra_class_hash: Felt = compute_sierra_class_hash(&self.contract_class)?.into();
+
+        let sn_api_declare = starknet_api::transaction::DeclareTransaction::V2(
+            starknet_api::transaction::DeclareTransactionV2 {
+                max_fee: self.common.max_fee,
+                signature: starknet_api::transaction::TransactionSignature(
+                    self.common.signature.iter().map(|&felt| felt.into()).collect(),
+                ),
+                nonce: starknet_api::core::Nonce(self.common.nonce.into()),
+                class_hash: sierra_class_hash.into(),
+                compiled_class_hash: self.compiled_class_hash.into(),
+                sender_address: self.sender_address.try_into()?,
+            },
+        );
+
+        let txn_hash: Felt = calculate_declare_v2_transaction_hash(
+            sierra_class_hash.into(),
             self.compiled_class_hash.into(),
             chain_id.into(),
-            self.sender_address.into(),
+            &self.sender_address.into(),
             self.common.max_fee.0,
             self.common.version.into(),
-            self.common.signature.iter().map(|felt| felt.into()).collect(),
             self.common.nonce.into(),
+        )?
+        .into();
+
+        Ok(DeclareTransaction::new(
+            sn_api_declare,
+            starknet_api::transaction::TransactionHash(txn_hash.into()),
+            ContractClass::Cairo1(self.contract_class.clone()).try_into()?,
         )?)
     }
 }
@@ -160,16 +183,18 @@ mod tests {
             feeder_gateway_transaction.nonce,
             feeder_gateway_transaction.version,
         );
-        let declare_transaction =
-            broadcasted_declare_transaction.create_sir_declare(ChainId::TestNet.to_felt()).unwrap();
+
+        let blockifier_declare_transaction = broadcasted_declare_transaction
+            .create_blockifier_declare(ChainId::TestNet.to_felt())
+            .unwrap();
 
         assert_eq!(
             feeder_gateway_transaction.class_hash,
-            declare_transaction.sierra_class_hash.into()
+            blockifier_declare_transaction.class_hash().into()
         );
         assert_eq!(
             feeder_gateway_transaction.transaction_hash,
-            declare_transaction.hash_value.into()
+            blockifier_declare_transaction.tx_hash().0.into()
         );
     }
 }
