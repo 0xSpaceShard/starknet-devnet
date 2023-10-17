@@ -101,7 +101,7 @@ impl StarknetTransaction {
         let mut events: Vec<Event> = vec![];
 
         fn get_blockifier_events_recursively(
-            call_info: &blockifier::execution::entry_point::CallInfo,
+            call_info: &blockifier::execution::call_info::CallInfo,
         ) -> Vec<(usize, Event)> {
             let mut events: Vec<(usize, Event)> = vec![];
 

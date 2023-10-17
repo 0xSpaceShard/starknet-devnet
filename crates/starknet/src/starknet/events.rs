@@ -123,7 +123,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use blockifier::execution::entry_point::CallInfo;
+    use blockifier::execution::call_info::CallInfo;
     use starknet_rs_core::types::BlockId;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::emitted_event::Event;
@@ -424,7 +424,7 @@ mod tests {
         // order based on the "order" field of the object when extracting them from
         // transaction execution call info
         for idx in (1..=events_count).rev() {
-            let event = blockifier::execution::entry_point::OrderedEvent {
+            let event = blockifier::execution::call_info::OrderedEvent {
                 order: idx,
                 event: starknet_api::transaction::EventContent {
                     keys: vec![starknet_api::transaction::EventKey(

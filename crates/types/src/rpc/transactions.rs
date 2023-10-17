@@ -394,7 +394,7 @@ pub struct SimulatedTransaction {
 
 impl FunctionInvocation {
     pub fn try_from_call_info(
-        mut call_info: blockifier::execution::entry_point::CallInfo,
+        mut call_info: blockifier::execution::call_info::CallInfo,
         address_to_class_hash: &HashMap<ContractAddress, Felt>,
     ) -> DevnetResult<Self> {
         let mut internal_calls: Vec<FunctionInvocation> = vec![];

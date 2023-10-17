@@ -4,8 +4,13 @@ use starknet_types::felt::{BlockHash, Calldata, EntryPointSelector, Felt, Nonce,
 use starknet_types::starknet_api::transaction::Fee;
 
 #[derive(Deserialize, Debug)]
-pub(crate) struct Path {
-    path: String,
+pub(crate) struct DumpPath {
+    pub path: Option<String>,
+}
+
+#[derive(Deserialize, Debug)]
+pub(crate) struct LoadPath {
+    pub path: String,
 }
 
 #[derive(Deserialize, Debug)]
