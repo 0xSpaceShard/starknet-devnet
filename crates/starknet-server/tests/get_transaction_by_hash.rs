@@ -17,7 +17,7 @@ mod get_transaction_by_hash_integration_tests {
         MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
     };
     use starknet_rs_signers::{LocalWallet, SigningKey};
-    use starknet_types::contract_class::{Cairo0Json, DeprecatedContractClass};
+    use starknet_types::contract_class::Cairo0Json;
     use starknet_types::felt::Felt;
     use starknet_types::traits::ToHexString;
 
@@ -25,6 +25,7 @@ mod get_transaction_by_hash_integration_tests {
         CASM_COMPILED_CLASS_HASH, PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     };
     use crate::common::devnet::BackgroundDevnet;
+    use crate::common::utils::resolve_path;
 
     pub const DECLARE_V1_TRANSACTION_HASH: &str =
         "0x03260006dbb34ad0c3b70a39c9eaf84aade3d289a5a5517fc37b303f5f01ac1a";
@@ -41,21 +42,11 @@ mod get_transaction_by_hash_integration_tests {
     #[tokio::test]
     async fn get_declare_v1_transaction_by_hash_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let json_string = std::fs::read_to_string(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_data/rpc/declare_v1.json"
-        ))
-        .unwrap();
+        let json_string =
+            std::fs::read_to_string(resolve_path("../starknet/test_artifacts/cairo_0_test.json"))
+                .unwrap();
 
-        let contract_class_json_value = serde_json::from_str::<serde_json::Value>(&json_string)
-            .unwrap()
-            .get("contract_class")
-            .unwrap()
-            .clone();
-
-        let legacy_contract_class: DeprecatedContractClass =
-            serde_json::from_value(contract_class_json_value).unwrap();
-        let legacy_contract_class = Cairo0Json::try_from(legacy_contract_class).unwrap();
+        let legacy_contract_class = Cairo0Json::raw_json_from_json_str(&json_string).unwrap();
         let legacy_contract_class: LegacyContractClass =
             serde_json::from_value(legacy_contract_class.inner).unwrap();
 
