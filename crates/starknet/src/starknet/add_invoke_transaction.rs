@@ -5,7 +5,6 @@ use starknet_types::rpc::transactions::{InvokeTransaction, Transaction};
 
 use super::Starknet;
 use crate::error::{self, DevnetResult};
-use crate::transactions::StarknetTransaction;
 
 pub fn add_invoke_transaction(
     starknet: &mut Starknet,
@@ -31,17 +30,7 @@ pub fn add_invoke_transaction(
         )
         .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
-    match blockifier_execution_result {
-        Ok(tx_info) => {
-            starknet.handle_accepted_transaction(&transaction_hash, &transaction, tx_info)?
-        }
-        Err(tx_err) => {
-            let transaction_to_add =
-                StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
-
-            starknet.transactions.insert(&transaction_hash, transaction_to_add);
-        }
-    }
+    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
 
     Ok(transaction_hash)
 }
@@ -188,7 +177,7 @@ mod tests {
     }
 
     #[test]
-    fn invoke_transaction_should_fail_if_same_nonce_supplied() {
+    fn invoke_transaction_should_return_an_error_if_same_nonce_supplied() {
         let (mut starknet, account_address, contract_address, increase_balance_selector, _) =
             setup();
 
@@ -206,16 +195,14 @@ mod tests {
         assert_eq!(transaction.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
         assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
-        let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
-        let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
-        assert_eq!(transaction.finality_status, None);
-        assert!(
-            transaction
-                .execution_result
-                .revert_reason()
-                .unwrap()
-                .contains("Invalid transaction nonce")
-        );
+        match starknet.add_invoke_transaction(invoke_transaction).unwrap_err() {
+            crate::error::Error::TransactionValidationError(
+                crate::error::TransactionValidationError::InvalidTransactionNonce,
+            ) => {}
+            err => {
+                panic!("Wrong error type: {:?}", err);
+            }
+        }
     }
 
     #[test]

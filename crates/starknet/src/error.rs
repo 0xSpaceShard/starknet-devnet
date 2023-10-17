@@ -54,6 +54,8 @@ pub enum Error {
     SerializationNotSupported,
     #[error("{reason}")]
     FeeError { reason: String },
+    #[error(transparent)]
+    TransactionValidationError(#[from] TransactionValidationError),
 }
 
 #[derive(Debug, Error)]
@@ -68,6 +70,18 @@ pub enum StateError {
     NoneContractState(ContractAddress),
     #[error("No storage value assigned for: {0}")]
     NoneStorage(ContractStorageKey),
+}
+
+#[derive(Debug, Error)]
+pub enum TransactionValidationError {
+    #[error("Provided max fee is not enough to cover the transaction cost.")]
+    InsufficientMaxFee,
+    #[error("Account transaction nonce is invalid.")]
+    InvalidTransactionNonce,
+    #[error("Account balance is not enough to cover the transaction cost.")]
+    InsufficientAccountBalance,
+    #[error("Account validation failed.")]
+    ValidationFailure,
 }
 
 pub type DevnetResult<T, E = Error> = Result<T, E>;

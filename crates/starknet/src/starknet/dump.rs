@@ -2,7 +2,6 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 
-use starknet_types::contract_class::ContractClass;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
@@ -20,24 +19,15 @@ impl Starknet {
                     return Err(Error::SerializationNotSupported);
                 }
                 Transaction::Declare(DeclareTransaction::Version1(tx)) => {
-                    let contract_class = self
-                        .state
-                        .contract_classes
-                        .get(&tx.class_hash)
-                        .ok_or(Error::ContractClassLoadError)?;
-                    if let ContractClass::Cairo0(contract) = contract_class {
-                        let declare_tx = BroadcastedDeclareTransactionV1::new(
-                            tx.sender_address,
-                            tx.max_fee,
-                            &tx.signature,
-                            tx.nonce,
-                            contract,
-                            tx.version,
-                        );
-                        self.add_declare_transaction_v1(declare_tx)?;
-                    } else {
-                        return Err(Error::SerializationNotSupported);
-                    };
+                    let declare_tx = BroadcastedDeclareTransactionV1::new(
+                        tx.sender_address,
+                        tx.max_fee,
+                        &tx.signature,
+                        tx.nonce,
+                        &tx.contract_class,
+                        tx.version,
+                    );
+                    self.add_declare_transaction_v1(declare_tx)?;
                 }
                 Transaction::Declare(DeclareTransaction::Version2(tx)) => {
                     let declare_tx = BroadcastedDeclareTransactionV2::new(

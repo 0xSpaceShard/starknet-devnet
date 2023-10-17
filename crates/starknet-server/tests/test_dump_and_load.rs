@@ -23,9 +23,7 @@ mod dump_and_load_tests {
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, FunctionCall};
 
-    use crate::common::utils::{
-        get_events_contract_in_sierra_and_compiled_class_hash, get_predeployed_account_props,
-    };
+    use crate::common::utils::get_events_contract_in_sierra_and_compiled_class_hash;
 
     async fn send_ctrl_c_signal(devnet_dump: &BackgroundDevnet) {
         #[cfg(windows)]
@@ -177,7 +175,7 @@ mod dump_and_load_tests {
         .expect("Could not start Devnet");
 
         // constructs starknet-rs account
-        let (signer, account_address) = get_predeployed_account_props();
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
         let mut predeployed_account = SingleOwnerAccount::new(
             devnet.clone_provider(),
             signer,

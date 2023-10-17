@@ -7,25 +7,13 @@ use starknet_in_rust::core::contract_address::compute_casm_class_hash;
 use starknet_in_rust::CasmContractClass;
 use starknet_rs_core::types::contract::SierraClass;
 use starknet_rs_core::types::{FieldElement, FlattenedSierraClass};
-use starknet_rs_signers::{LocalWallet, SigningKey};
+use starknet_rs_signers::LocalWallet;
 use starknet_types::felt::Felt;
-
-use super::constants::{PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_PRIVATE_KEY};
 
 pub async fn get_json_body(resp: Response<Body>) -> serde_json::Value {
     let resp_body = resp.into_body();
     let resp_body_bytes = hyper::body::to_bytes(resp_body).await.unwrap();
     serde_json::from_slice(&resp_body_bytes).unwrap()
-}
-
-/// Assumes Devnet has been run with the usual account seed and returns
-/// the signer and address of the 0th account
-pub fn get_predeployed_account_props() -> (LocalWallet, FieldElement) {
-    let signer = LocalWallet::from(SigningKey::from_secret_scalar(
-        FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_PRIVATE_KEY).unwrap(),
-    ));
-    let address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
-    (signer, address)
 }
 
 /// dummy testing value
@@ -36,7 +24,7 @@ pub fn get_deployable_account_signer() -> LocalWallet {
     ))
 }
 
-/// resolve a path relative to the crates directory
+/// resolve a path relative to the current directory (starknet-server)
 pub fn resolve_path(relative_path: &str) -> String {
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
     format!("{manifest_dir}/{relative_path}")

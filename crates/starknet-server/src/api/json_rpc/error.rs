@@ -3,6 +3,8 @@ use starknet_types;
 use thiserror::Error;
 use tracing::error;
 
+use super::WILDCARD_RPC_ERROR_CODE;
+
 #[allow(unused)]
 #[derive(Error, Debug)]
 pub enum ApiError {
@@ -40,6 +42,134 @@ pub enum ApiError {
     OnlyLatestBlock,
     #[error("{msg}")]
     UnsupportedAction { msg: String },
+    #[error("Invalid transaction nonce")]
+    InvalidTransactionNonce,
+    #[error("Max fee is smaller than the minimal transaction cost (validation plus fee transfer)")]
+    InsufficientMaxFee,
+    #[error("Account balance is smaller than the transaction's max_fee")]
+    InsufficientAccountBalance,
+    #[error("Account validation failed")]
+    ValidationFailure,
+}
+
+impl ApiError {
+    pub(crate) fn api_error_to_rpc_error(self) -> RpcError {
+        match self {
+            ApiError::RpcError(rpc_error) => rpc_error,
+            err @ ApiError::BlockNotFound => RpcError {
+                code: server::rpc_core::error::ErrorCode::ServerError(24),
+                message: err.to_string().into(),
+                data: None,
+            },
+            err @ ApiError::ContractNotFound => RpcError {
+                code: server::rpc_core::error::ErrorCode::ServerError(20),
+                message: err.to_string().into(),
+                data: None,
+            },
+            err @ ApiError::TransactionNotFound => RpcError {
+                code: server::rpc_core::error::ErrorCode::ServerError(29),
+                message: err.to_string().into(),
+                data: None,
+            },
+            err @ ApiError::InvalidTransactionIndexInBlock => RpcError {
+                code: server::rpc_core::error::ErrorCode::ServerError(27),
+                message: err.to_string().into(),
+                data: None,
+            },
+            err @ ApiError::ClassHashNotFound => RpcError {
+                code: server::rpc_core::error::ErrorCode::ServerError(28),
+                message: err.to_string().into(),
+                data: None,
+            },
+            ApiError::ContractError { msg } => RpcError {
+                code: server::rpc_core::error::ErrorCode::ServerError(40),
+                message: msg.into(),
+                data: None,
+            },
+            err @ ApiError::NoBlocks => RpcError {
+                code: server::rpc_core::error::ErrorCode::ServerError(32),
+                message: err.to_string().into(),
+                data: None,
+            },
+            err @ ApiError::RequestPageSizeTooBig => RpcError {
+                code: server::rpc_core::error::ErrorCode::ServerError(31),
+                message: err.to_string().into(),
+                data: None,
+            },
+            err @ ApiError::InvalidContinuationToken => RpcError {
+                code: server::rpc_core::error::ErrorCode::ServerError(33),
+                message: err.to_string().into(),
+                data: None,
+            },
+            err @ ApiError::TooManyKeysInFilter => RpcError {
+                code: server::rpc_core::error::ErrorCode::ServerError(34),
+                message: err.to_string().into(),
+                data: None,
+            },
+            err @ ApiError::ClassAlreadyDeclared => RpcError {
+                code: server::rpc_core::error::ErrorCode::ServerError(51),
+                message: err.to_string().into(),
+                data: None,
+            },
+            err @ ApiError::InvalidContractClass => RpcError {
+                code: server::rpc_core::error::ErrorCode::ServerError(50),
+                message: err.to_string().into(),
+                data: None,
+            },
+            err @ ApiError::TypesError(_) => RpcError {
+                code: server::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
+                message: err.to_string().into(),
+                data: None,
+            },
+            err @ ApiError::OnlyLatestBlock => RpcError {
+                code: server::rpc_core::error::ErrorCode::ServerError(24),
+                message: err.to_string().into(),
+                data: None,
+            },
+            ApiError::UnsupportedAction { msg } => RpcError {
+                code: server::rpc_core::error::ErrorCode::InvalidRequest,
+                message: msg.into(),
+                data: None,
+            },
+            err @ ApiError::InsufficientMaxFee => RpcError {
+                code: server::rpc_core::error::ErrorCode::ServerError(53),
+                message: err.to_string().into(),
+                data: None,
+            },
+            err @ ApiError::InvalidTransactionNonce => RpcError {
+                code: server::rpc_core::error::ErrorCode::ServerError(52),
+                message: err.to_string().into(),
+                data: None,
+            },
+            err @ ApiError::InsufficientAccountBalance => RpcError {
+                code: server::rpc_core::error::ErrorCode::ServerError(54),
+                message: err.to_string().into(),
+                data: None,
+            },
+            err @ ApiError::ValidationFailure => RpcError {
+                code: server::rpc_core::error::ErrorCode::ServerError(55),
+                message: err.to_string().into(),
+                data: None,
+            },
+            ApiError::StarknetDevnetError(
+                starknet_core::error::Error::TransactionValidationError(validation_error),
+            ) => {
+                let api_err = match validation_error {
+                    starknet_core::error::TransactionValidationError::InsufficientMaxFee => ApiError::InsufficientMaxFee,
+                    starknet_core::error::TransactionValidationError::InvalidTransactionNonce => ApiError::InvalidTransactionNonce,
+                    starknet_core::error::TransactionValidationError::InsufficientAccountBalance => ApiError::InsufficientAccountBalance,
+                    starknet_core::error::TransactionValidationError::ValidationFailure => ApiError::ValidationFailure,
+                };
+
+                api_err.api_error_to_rpc_error()
+            }
+            ApiError::StarknetDevnetError(error) => RpcError {
+                code: server::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
+                message: error.to_string().into(),
+                data: None,
+            },
+        }
+    }
 }
 
 pub(crate) type RpcResult<T> = Result<T, ApiError>;
@@ -121,6 +251,78 @@ mod tests {
             ApiError::ContractError { msg: "Contract error".into() },
             40,
             "Contract error",
+        );
+    }
+
+    #[test]
+    fn invalid_transaction_nonce_error() {
+        let devnet_error =
+            ApiError::StarknetDevnetError(starknet_core::error::Error::TransactionValidationError(
+                starknet_core::error::TransactionValidationError::InvalidTransactionNonce,
+            ));
+
+        assert_eq!(
+            devnet_error.api_error_to_rpc_error(),
+            ApiError::InvalidTransactionNonce.api_error_to_rpc_error()
+        );
+        error_expected_code_and_message(
+            ApiError::InvalidTransactionNonce,
+            52,
+            "Invalid transaction nonce",
+        );
+    }
+
+    #[test]
+    fn insufficient_max_fee_error() {
+        let devnet_error =
+            ApiError::StarknetDevnetError(starknet_core::error::Error::TransactionValidationError(
+                starknet_core::error::TransactionValidationError::InsufficientMaxFee,
+            ));
+
+        assert_eq!(
+            devnet_error.api_error_to_rpc_error(),
+            ApiError::InsufficientMaxFee.api_error_to_rpc_error()
+        );
+        error_expected_code_and_message(
+            ApiError::InsufficientMaxFee,
+            53,
+            "Max fee is smaller than the minimal transaction cost (validation plus fee transfer)",
+        );
+    }
+
+    #[test]
+    fn insufficient_account_balance_error() {
+        let devnet_error =
+            ApiError::StarknetDevnetError(starknet_core::error::Error::TransactionValidationError(
+                starknet_core::error::TransactionValidationError::InsufficientAccountBalance,
+            ));
+
+        assert_eq!(
+            devnet_error.api_error_to_rpc_error(),
+            ApiError::InsufficientAccountBalance.api_error_to_rpc_error()
+        );
+        error_expected_code_and_message(
+            ApiError::InsufficientAccountBalance,
+            54,
+            "Account balance is smaller than the transaction's max_fee",
+        );
+    }
+
+    #[test]
+    fn account_validation_error() {
+        let devnet_error =
+            ApiError::StarknetDevnetError(starknet_core::error::Error::TransactionValidationError(
+                starknet_core::error::TransactionValidationError::ValidationFailure,
+            ));
+
+        assert_eq!(
+            devnet_error.api_error_to_rpc_error(),
+            ApiError::ValidationFailure.api_error_to_rpc_error()
+        );
+        error_expected_code_and_message(
+            ApiError::ValidationFailure,
+            55,
+            "Account validation failed",
         );
     }
 

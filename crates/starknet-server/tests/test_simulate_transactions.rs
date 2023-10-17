@@ -22,8 +22,8 @@ mod estimate_fee_tests {
     use crate::common::constants::{CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH, CHAIN_ID};
     use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::{
-        get_deployable_account_signer, get_predeployed_account_props, iter_to_hex_felt, load_json,
-        resolve_path, to_hex_felt, to_num_as_hex,
+        get_deployable_account_signer, iter_to_hex_felt, load_json, resolve_path, to_hex_felt,
+        to_num_as_hex,
     };
 
     fn extract_overall_fee(simulation_result: &serde_json::Value) -> u128 {
@@ -65,7 +65,7 @@ mod estimate_fee_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         // get account
-        let (signer, account_address) = get_predeployed_account_props();
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
         let account = SingleOwnerAccount::new(
             devnet.clone_provider(),
             signer,
@@ -131,7 +131,7 @@ mod estimate_fee_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         // get account
-        let (signer, account_address) = get_predeployed_account_props();
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
         let account = SingleOwnerAccount::new(
             devnet.clone_provider(),
             signer,
@@ -304,7 +304,7 @@ mod estimate_fee_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         // get account
-        let (signer, account_address) = get_predeployed_account_props();
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
         let account = Arc::new(SingleOwnerAccount::new(
             devnet.clone_provider(),
             signer,
