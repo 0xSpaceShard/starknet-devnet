@@ -61,40 +61,12 @@ impl JsonRpcHandler {
 
 #[cfg(test)]
 mod tests {
-    use starknet_core::constants::{
-        DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_HOST,
-        DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TEST_SEED,
-        DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
-    };
-    use starknet_core::starknet::{Starknet, StarknetConfig};
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
-    use starknet_types::traits::ToHexString;
-
-    use crate::api::json_rpc::JsonRpcHandler;
-    use crate::api::Api;
 
     #[test]
     fn check_correct_deserialization_of_deploy_account_transaction_request() {
         test_deploy_account_transaction();
-    }
-
-    fn setup() -> JsonRpcHandler {
-        let config: StarknetConfig = StarknetConfig {
-            seed: DEVNET_DEFAULT_TEST_SEED,
-            total_accounts: DEVNET_DEFAULT_TOTAL_ACCOUNTS,
-            predeployed_accounts_initial_balance: DEVNET_DEFAULT_INITIAL_BALANCE.into(),
-            host: DEVNET_DEFAULT_HOST,
-            port: DEVNET_DEFAULT_PORT,
-            timeout: DEVNET_DEFAULT_TIMEOUT,
-            gas_price: DEVNET_DEFAULT_GAS_PRICE,
-            chain_id: DEVNET_DEFAULT_CHAIN_ID,
-            dump_on: None,
-            dump_path: None,
-        };
-        let starknet = Starknet::new(&config).unwrap();
-        let api = Api::new(starknet);
-        JsonRpcHandler { api }
     }
 
     /// The example uses declare_v1.json from test_data/rpc/declare_v1.json
@@ -123,18 +95,5 @@ mod tests {
             serde_json::from_str(&json_string).unwrap();
 
         broadcasted_deploy_account_transaction
-    }
-
-    fn test_broadcasted_declare_transaction_v1() -> BroadcastedDeclareTransactionV1 {
-        let json_string = std::fs::read_to_string(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_data/rpc/declare_v1.json"
-        ))
-        .unwrap();
-
-        let broadcasted_declare_transaction_v1: BroadcastedDeclareTransactionV1 =
-            serde_json::from_str(&json_string).unwrap();
-
-        broadcasted_declare_transaction_v1
     }
 }
