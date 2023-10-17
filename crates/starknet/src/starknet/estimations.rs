@@ -16,6 +16,8 @@ pub fn estimate_fee(
     starknet: &Starknet,
     block_id: BlockId,
     transactions: &[BroadcastedTransaction],
+    charge_fee: Option<bool>,
+    validate: Option<bool>,
 ) -> DevnetResult<Vec<FeeEstimateWrapper>> {
     let mut state = starknet.get_state_at(&block_id)?.clone();
     let chain_id = starknet.chain_id().to_felt();
@@ -34,6 +36,8 @@ pub fn estimate_fee(
                 blockifier::transaction::transaction_execution::Transaction::AccountTransaction(
                     transaction,
                 ),
+                charge_fee,
+                validate,
             )
         })
         .collect()
@@ -62,6 +66,8 @@ pub fn estimate_message_fee(
         blockifier::transaction::transaction_execution::Transaction::L1HandlerTransaction(
             l1_transaction,
         ),
+        None,
+        None,
     )
 }
 
@@ -69,9 +75,15 @@ fn estimate_transaction_fee(
     state: &mut StarknetState,
     block_context: &blockifier::block_context::BlockContext,
     transaction: blockifier::transaction::transaction_execution::Transaction,
+    charge_fee: Option<bool>,
+    validate: Option<bool>,
 ) -> DevnetResult<FeeEstimateWrapper> {
-    let transaction_execution_info =
-        transaction.execute(&mut state.state, block_context, false, true)?;
+    let transaction_execution_info = transaction.execute(
+        &mut state.state,
+        block_context,
+        charge_fee.unwrap_or(false),
+        validate.unwrap_or(true),
+    )?;
 
     if transaction_execution_info.revert_error.is_some() {
         return Err(Error::BlockifierTransactionError(
