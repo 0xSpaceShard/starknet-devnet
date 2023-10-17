@@ -152,7 +152,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
-        
+
         let mut predeployed_account = SingleOwnerAccount::new(
             devnet.clone_provider(),
             signer,
@@ -169,9 +169,9 @@ mod get_transaction_receipt_by_hash_integration_tests {
             to: FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap(),
             selector: get_selector_from_name("transfer").unwrap(),
             calldata: vec![
-                FieldElement::ONE,
-                FieldElement::from_dec_str("1000000000").unwrap(),
-                FieldElement::ZERO,
+                FieldElement::ONE, // recipient
+                FieldElement::from_dec_str("1000000000").unwrap(), // low part of uint256
+                FieldElement::ZERO, // high part of uint256
             ],
         }]);
 
