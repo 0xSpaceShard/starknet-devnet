@@ -178,6 +178,11 @@ cargo run -- --dump-on exit --dump-path <PATH>
 cargo run -- --dump-on transaction --dump-path <PATH>
 ```
 
+- Dumping on request (replace <HOST>, <PORT> and <PATH> with your own):
+```
+curl -X POST http://<HOST>:<PORT>/dump -d '{ "path": <PATH> }' -H "Content-Type: application/json"
+```
+
 ### Loading
 
 To load a preserved Devnet instance, the options are:
@@ -186,6 +191,11 @@ To load a preserved Devnet instance, the options are:
 
 ```
 cargo run -- --dump-path <PATH>
+```
+
+- Loading on request:
+```
+curl -X POST http://<HOST>:<PORT>/load -d '{ "path": <PATH> }' -H "Content-Type: application/json"
 ```
 
 Currently, dumping produces a list of received transactions that is stored on disk.

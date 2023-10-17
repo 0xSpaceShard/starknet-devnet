@@ -196,8 +196,12 @@ impl Starknet {
 
         // Load starknet transactions
         if this.config.dump_path.is_some() {
-            let transactions = this.load_transactions()?;
-            this.re_execute(transactions)?;
+            // Try to load transactions from dump_path, if there is no file skip this step
+            match this.load_transactions() {
+                Ok(txs) => this.re_execute(txs)?,
+                Err(Error::FileNotFound) => {}
+                Err(err) => return Err(err),
+            };
         }
 
         Ok(this)
