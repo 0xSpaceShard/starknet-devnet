@@ -11,6 +11,7 @@ use serde_json::json;
 use starknet_rs_core::types::FieldElement;
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::JsonRpcClient;
+use starknet_rs_signers::{LocalWallet, SigningKey};
 use thiserror::Error;
 use tokio::sync::Mutex;
 use url::Url;
@@ -195,7 +196,7 @@ impl BackgroundDevnet {
     }
 
     /// This method returns the private key and the address of the first predeployed account
-    pub async fn get_first_predeployed_account(&self) -> (FieldElement, FieldElement) {
+    pub async fn get_first_predeployed_account(&self) -> (LocalWallet, FieldElement) {
         let predeployed_accounts_response = self.get("/predeployed_accounts", None).await.unwrap();
 
         let predeployed_accounts_json = get_json_body(predeployed_accounts_response).await;
@@ -206,7 +207,9 @@ impl BackgroundDevnet {
         let private_key =
             FieldElement::from_hex_be(first_account["private_key"].as_str().unwrap()).unwrap();
 
-        (private_key, account_address)
+        let signer = LocalWallet::from(SigningKey::from_secret_scalar(private_key));
+
+        (signer, account_address)
     }
 }
 

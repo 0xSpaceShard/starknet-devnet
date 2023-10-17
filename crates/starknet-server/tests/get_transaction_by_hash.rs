@@ -12,7 +12,7 @@ mod get_transaction_by_hash_integration_tests {
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
     use starknet_rs_core::types::{
-        BlockId, BlockTag, BroadcastedDeclareTransactionV1, FieldElement, StarknetError,
+        BlockId, BlockTag, FieldElement, StarknetError,
     };
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_rs_providers::{
@@ -48,12 +48,20 @@ mod get_transaction_by_hash_integration_tests {
             "/test_data/rpc/declare_v1.json"
         ))
         .unwrap();
-        let declare_txn_v1: BroadcastedDeclareTransactionV1 =
-            serde_json::from_str(&json_string).unwrap();
 
-        let (private_key, account_address) = devnet.get_first_predeployed_account().await;
+        let contract_class_json_value = serde_json::from_str::<serde_json::Value>(&json_string)
+            .unwrap()
+            .get("contract_class")
+            .unwrap()
+            .clone();
 
-        let signer = LocalWallet::from(SigningKey::from_secret_scalar(private_key));
+        let legacy_contract_class: DeprecatedContractClass =
+            serde_json::from_value(contract_class_json_value).unwrap();
+        let legacy_contract_class = Cairo0Json::try_from(legacy_contract_class).unwrap();
+        let legacy_contract_class: LegacyContractClass =
+            serde_json::from_value(legacy_contract_class.inner).unwrap();
+
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
 
         let mut account = SingleOwnerAccount::new(
             &devnet.json_rpc_client,
@@ -63,13 +71,7 @@ mod get_transaction_by_hash_integration_tests {
             ExecutionEncoding::Legacy,
         );
         account.set_block_id(BlockId::Tag(BlockTag::Latest));
-        let legacy_contract_class = DeprecatedContractClass::rpc_from_json_str(
-            &serde_json::to_string(declare_txn_v1.contract_class.as_ref()).unwrap(),
-        )
-        .unwrap();
-        let legacy_contract_class = Cairo0Json::try_from(legacy_contract_class).unwrap();
-        let legacy_contract_class: LegacyContractClass =
-            serde_json::from_value(legacy_contract_class.inner).unwrap();
+
 
         let declare_transaction = account
             .declare_legacy(Arc::new(legacy_contract_class))
@@ -163,8 +165,7 @@ mod get_transaction_by_hash_integration_tests {
     async fn get_deploy_account_transaction_by_hash_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-        let (private_key, _) = devnet.get_first_predeployed_account().await;
-        let signer = LocalWallet::from(SigningKey::from_secret_scalar(private_key));
+        let (signer, _) = devnet.get_first_predeployed_account().await;
 
         let factory = OpenZeppelinAccountFactory::new(
             FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
@@ -206,11 +207,11 @@ mod get_transaction_by_hash_integration_tests {
     #[tokio::test]
     async fn get_invoke_v1_transaction_by_hash_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let (private_key, account_address) = devnet.get_first_predeployed_account().await;
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
 
         let account = SingleOwnerAccount::new(
             &devnet.json_rpc_client,
-            LocalWallet::from(SigningKey::from_secret_scalar(private_key)),
+            signer,
             account_address,
             chain_id::TESTNET,
             ExecutionEncoding::Legacy,
@@ -221,9 +222,9 @@ mod get_transaction_by_hash_integration_tests {
                 to: FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap(),
                 selector: get_selector_from_name("transfer").unwrap(),
                 calldata: vec![
-                    FieldElement::ONE,
-                    FieldElement::from_dec_str("1000000000").unwrap(),
-                    FieldElement::ZERO,
+                    FieldElement::ONE, // recipient
+                    FieldElement::from_dec_str("1000000000").unwrap(), // low part of uint256
+                    FieldElement::ZERO, // high part of uint256
                 ],
             }])
             .send()
