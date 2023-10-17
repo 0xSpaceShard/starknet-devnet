@@ -158,7 +158,7 @@ impl ApiError {
                     starknet_core::error::TransactionValidationError::InsufficientMaxFee => ApiError::InsufficientMaxFee,
                     starknet_core::error::TransactionValidationError::InvalidTransactionNonce => ApiError::InvalidTransactionNonce,
                     starknet_core::error::TransactionValidationError::InsufficientAccountBalance => ApiError::InsufficientAccountBalance,
-                    starknet_core::error::TransactionValidationError::GeneralFailure => ApiError::ValidationFailure,
+                    starknet_core::error::TransactionValidationError::ValidationFailure => ApiError::ValidationFailure,
                 };
 
                 api_err.api_error_to_rpc_error()
@@ -312,7 +312,7 @@ mod tests {
     fn account_validation_error() {
         let devnet_error =
             ApiError::StarknetDevnetError(starknet_core::error::Error::TransactionValidationError(
-                starknet_core::error::TransactionValidationError::GeneralFailure,
+                starknet_core::error::TransactionValidationError::ValidationFailure,
             ));
 
         assert_eq!(

@@ -305,7 +305,7 @@ impl Starknet {
                     blockifier::transaction::errors::TransactionExecutionError::MaxFeeTooLow { .. } =>
                         Err(TransactionValidationError::InsufficientMaxFee.into()),
                     blockifier::transaction::errors::TransactionExecutionError::ValidateTransactionError(..) =>
-                        Err(TransactionValidationError::GeneralFailure.into()),
+                        Err(TransactionValidationError::ValidationFailure.into()),
                     _ => Err(tx_err.into())
                 }
             }

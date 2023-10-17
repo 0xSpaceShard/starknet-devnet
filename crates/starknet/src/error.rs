@@ -81,7 +81,7 @@ pub enum TransactionValidationError {
     #[error("Account balance is not enough to cover the transaction cost.")]
     InsufficientAccountBalance,
     #[error("Account validation failed.")]
-    GeneralFailure,
+    ValidationFailure,
 }
 
 pub type DevnetResult<T, E = Error> = Result<T, E>;
