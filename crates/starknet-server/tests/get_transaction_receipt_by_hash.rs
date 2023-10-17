@@ -151,11 +151,8 @@ mod get_transaction_receipt_by_hash_integration_tests {
     async fn reverted_invoke_transaction_receipt() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-        let (private_key, account_address) = devnet.get_first_predeployed_account().await;
-
-        // constructs starknet-rs account
-        let signer = LocalWallet::from(SigningKey::from_secret_scalar(private_key));
-
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+        
         let mut predeployed_account = SingleOwnerAccount::new(
             devnet.clone_provider(),
             signer,
