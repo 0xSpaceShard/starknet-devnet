@@ -169,9 +169,9 @@ mod get_transaction_receipt_by_hash_integration_tests {
             to: FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap(),
             selector: get_selector_from_name("transfer").unwrap(),
             calldata: vec![
-                FieldElement::ONE, // recipient
+                FieldElement::ONE,                                 // recipient
                 FieldElement::from_dec_str("1000000000").unwrap(), // low part of uint256
-                FieldElement::ZERO, // high part of uint256
+                FieldElement::ZERO,                                // high part of uint256
             ],
         }]);
 

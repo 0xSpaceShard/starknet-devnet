@@ -22,8 +22,8 @@ mod estimate_fee_tests {
     use crate::common::constants::{CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH, CHAIN_ID};
     use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::{
-        get_deployable_account_signer, iter_to_hex_felt, load_json,
-        resolve_path, to_hex_felt, to_num_as_hex,
+        get_deployable_account_signer, iter_to_hex_felt, load_json, resolve_path, to_hex_felt,
+        to_num_as_hex,
     };
 
     fn extract_overall_fee(simulation_result: &serde_json::Value) -> u128 {

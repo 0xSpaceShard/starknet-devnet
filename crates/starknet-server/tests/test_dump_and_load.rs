@@ -23,9 +23,7 @@ mod dump_and_load_tests {
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, FunctionCall};
 
-    use crate::common::utils::{
-        get_events_contract_in_sierra_and_compiled_class_hash,
-    };
+    use crate::common::utils::get_events_contract_in_sierra_and_compiled_class_hash;
 
     async fn send_ctrl_c_signal(devnet_dump: &BackgroundDevnet) {
         #[cfg(windows)]

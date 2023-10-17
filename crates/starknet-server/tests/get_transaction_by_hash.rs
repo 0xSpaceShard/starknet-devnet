@@ -11,9 +11,7 @@ mod get_transaction_by_hash_integration_tests {
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
-    use starknet_rs_core::types::{
-        BlockId, BlockTag, FieldElement, StarknetError,
-    };
+    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_rs_providers::{
         MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
@@ -71,7 +69,6 @@ mod get_transaction_by_hash_integration_tests {
             ExecutionEncoding::Legacy,
         );
         account.set_block_id(BlockId::Tag(BlockTag::Latest));
-
 
         let declare_transaction = account
             .declare_legacy(Arc::new(legacy_contract_class))
@@ -222,9 +219,9 @@ mod get_transaction_by_hash_integration_tests {
                 to: FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap(),
                 selector: get_selector_from_name("transfer").unwrap(),
                 calldata: vec![
-                    FieldElement::ONE, // recipient
+                    FieldElement::ONE,                                 // recipient
                     FieldElement::from_dec_str("1000000000").unwrap(), // low part of uint256
-                    FieldElement::ZERO, // high part of uint256
+                    FieldElement::ZERO,                                // high part of uint256
                 ],
             }])
             .send()
