@@ -4,18 +4,18 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
     use std::sync::Arc;
 
-    use starknet_core::constants::CAIRO_0_ACCOUNT_CONTRACT_HASH;
+    use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ERC20_CONTRACT_ADDRESS};
     use starknet_rs_accounts::{
-        Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
+        Account, AccountFactory, Call, ExecutionEncoding, OpenZeppelinAccountFactory,
+        SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::{
         BlockId, BlockTag, BroadcastedDeclareTransactionV1, FieldElement,
-        MaybePendingTransactionReceipt, PendingTransactionReceipt, StarknetError,
-        TransactionReceipt,
+        MaybePendingTransactionReceipt, StarknetError, TransactionReceipt,
     };
-    use starknet_rs_core::utils::get_udc_deployed_address;
+    use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::{
         MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
     };
@@ -145,6 +145,61 @@ mod get_transaction_receipt_by_hash_integration_tests {
             }
             _ => panic!("Invalid receipt {:?}", deployment_receipt),
         };
+    }
+
+    #[tokio::test]
+    async fn reverted_invoke_transaction_receipt() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        let (private_key, account_address) = devnet.get_first_predeployed_account().await;
+
+        // constructs starknet-rs account
+        let signer = LocalWallet::from(SigningKey::from_secret_scalar(private_key.into()));
+        let address = FieldElement::from(account_address);
+
+        let mut predeployed_account = SingleOwnerAccount::new(
+            devnet.clone_provider(),
+            signer,
+            address,
+            chain_id::TESTNET,
+            ExecutionEncoding::Legacy,
+        );
+
+        // `SingleOwnerAccount` defaults to checking nonce and estimating fees against the latest
+        // block. Optionally change the target block to pending with the following line:
+        predeployed_account.set_block_id(BlockId::Tag(BlockTag::Pending));
+
+        let transfer_execution = predeployed_account.execute(vec![
+            Call { 
+                to: FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap(), 
+                selector: get_selector_from_name("transfer").unwrap(), 
+                calldata: vec![
+                    FieldElement::ONE,
+                    FieldElement::from_dec_str("1000000000").unwrap(),
+                    FieldElement::ZERO,
+                ]}]);
+
+        let fee = transfer_execution.estimate_fee().await.unwrap();
+
+        // send transaction with lower than estimated fee
+        // should revert
+        let transfer_result = transfer_execution.max_fee(FieldElement::from(fee.overall_fee - 1)).send().await.unwrap();
+
+        let transfer_receipt = devnet
+            .json_rpc_client
+            .get_transaction_receipt(transfer_result.transaction_hash)
+            .await
+            .unwrap();
+
+        match transfer_receipt {
+            MaybePendingTransactionReceipt::Receipt(TransactionReceipt::Invoke(receipt)) => {
+                match receipt.execution_result {
+                    starknet_rs_core::types::ExecutionResult::Reverted { .. } => (),
+                    _ => panic!("Invalid receipt {:?}", receipt),
+                }
+            }
+            _ => panic!("Invalid receipt {:?}", transfer_receipt),
+        };        
     }
 
     #[tokio::test]

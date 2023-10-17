@@ -12,8 +12,7 @@ mod get_transaction_by_hash_integration_tests {
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
     use starknet_rs_core::types::{
-        BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedInvokeTransaction,
-        FieldElement, StarknetError,
+        BlockId, BlockTag, BroadcastedDeclareTransactionV1, FieldElement, StarknetError,
     };
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_rs_providers::{
@@ -27,7 +26,7 @@ mod get_transaction_by_hash_integration_tests {
     use crate::common::constants::{
         CASM_COMPILED_CLASS_HASH, PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
     };
-    use crate::common::devnet::{self, BackgroundDevnet};
+    use crate::common::devnet::BackgroundDevnet;
 
     pub const DECLARE_V1_TRANSACTION_HASH: &str =
         "0x03260006dbb34ad0c3b70a39c9eaf84aade3d289a5a5517fc37b303f5f01ac1a";
