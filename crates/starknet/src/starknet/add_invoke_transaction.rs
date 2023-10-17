@@ -196,7 +196,7 @@ mod tests {
         assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
         match starknet.add_invoke_transaction(invoke_transaction).unwrap_err() {
-            crate::error::Error::TransasctionValidationError(
+            crate::error::Error::TransactionValidationError(
                 crate::error::TransactionValidationError::InvalidTransactionNonce,
             ) => {}
             err => {

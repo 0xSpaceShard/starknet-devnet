@@ -136,7 +136,7 @@ mod tests {
         let declare_txn = dummy_broadcasted_declare_transaction_v2(&sender);
 
         match starknet.add_declare_transaction_v2(declare_txn).unwrap_err() {
-            crate::error::Error::TransasctionValidationError(
+            crate::error::Error::TransactionValidationError(
                 crate::error::TransactionValidationError::InsufficientAccountBalance,
             ) => {}
             err => {
@@ -228,7 +228,7 @@ mod tests {
         declare_txn.common.max_fee = Fee(declare_txn.common.max_fee.0 / 10);
 
         match starknet.add_declare_transaction_v1(declare_txn).unwrap_err() {
-            crate::error::Error::TransasctionValidationError(
+            crate::error::Error::TransactionValidationError(
                 crate::error::TransactionValidationError::InsufficientMaxFee,
             ) => {}
             err => {
@@ -243,7 +243,7 @@ mod tests {
 
         let declare_txn = broadcasted_declare_transaction_v1(sender);
         match starknet.add_declare_transaction_v1(declare_txn).unwrap_err() {
-            crate::error::Error::TransasctionValidationError(
+            crate::error::Error::TransactionValidationError(
                 crate::error::TransactionValidationError::InsufficientAccountBalance,
             ) => {}
             err => {

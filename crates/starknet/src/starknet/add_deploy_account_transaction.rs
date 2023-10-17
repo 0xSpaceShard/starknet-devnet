@@ -101,7 +101,7 @@ mod tests {
         );
 
         match starknet.add_deploy_account_transaction(transaction).unwrap_err() {
-            Error::TransasctionValidationError(
+            Error::TransactionValidationError(
                 crate::error::TransactionValidationError::InsufficientAccountBalance,
             ) => {}
             err => {
@@ -140,7 +140,7 @@ mod tests {
         starknet.state.clear_dirty_state();
 
         match starknet.add_deploy_account_transaction(transaction).unwrap_err() {
-            Error::TransasctionValidationError(
+            Error::TransactionValidationError(
                 crate::error::TransactionValidationError::InsufficientMaxFee,
             ) => {}
             err => {

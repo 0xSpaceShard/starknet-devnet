@@ -53,7 +53,7 @@ pub enum Error {
     #[error("{reason}")]
     FeeError { reason: String },
     #[error(transparent)]
-    TransasctionValidationError(#[from] TransactionValidationError),
+    TransactionValidationError(#[from] TransactionValidationError),
 }
 
 #[derive(Debug, Error)]

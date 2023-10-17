@@ -152,7 +152,7 @@ impl ApiError {
                 data: None,
             },
             ApiError::StarknetDevnetError(
-                starknet_core::error::Error::TransasctionValidationError(validation_error),
+                starknet_core::error::Error::TransactionValidationError(validation_error),
             ) => {
                 let api_err = match validation_error {
                     starknet_core::error::TransactionValidationError::InsufficientMaxFee => ApiError::InsufficientMaxFee,
@@ -256,11 +256,10 @@ mod tests {
 
     #[test]
     fn invalid_transaction_nonce_error() {
-        let devnet_error = ApiError::StarknetDevnetError(
-            starknet_core::error::Error::TransasctionValidationError(
+        let devnet_error =
+            ApiError::StarknetDevnetError(starknet_core::error::Error::TransactionValidationError(
                 starknet_core::error::TransactionValidationError::InvalidTransactionNonce,
-            ),
-        );
+            ));
 
         assert_eq!(
             devnet_error.api_error_to_rpc_error(),
@@ -275,11 +274,10 @@ mod tests {
 
     #[test]
     fn insufficient_max_fee_error() {
-        let devnet_error = ApiError::StarknetDevnetError(
-            starknet_core::error::Error::TransasctionValidationError(
+        let devnet_error =
+            ApiError::StarknetDevnetError(starknet_core::error::Error::TransactionValidationError(
                 starknet_core::error::TransactionValidationError::InsufficientMaxFee,
-            ),
-        );
+            ));
 
         assert_eq!(
             devnet_error.api_error_to_rpc_error(),
@@ -294,11 +292,10 @@ mod tests {
 
     #[test]
     fn insufficient_account_balance_error() {
-        let devnet_error = ApiError::StarknetDevnetError(
-            starknet_core::error::Error::TransasctionValidationError(
+        let devnet_error =
+            ApiError::StarknetDevnetError(starknet_core::error::Error::TransactionValidationError(
                 starknet_core::error::TransactionValidationError::InsufficientAccountBalance,
-            ),
-        );
+            ));
 
         assert_eq!(
             devnet_error.api_error_to_rpc_error(),
@@ -313,11 +310,10 @@ mod tests {
 
     #[test]
     fn account_validation_error() {
-        let devnet_error = ApiError::StarknetDevnetError(
-            starknet_core::error::Error::TransasctionValidationError(
+        let devnet_error =
+            ApiError::StarknetDevnetError(starknet_core::error::Error::TransactionValidationError(
                 starknet_core::error::TransactionValidationError::GeneralFailure,
-            ),
-        );
+            ));
 
         assert_eq!(
             devnet_error.api_error_to_rpc_error(),
