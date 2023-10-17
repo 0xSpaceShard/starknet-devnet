@@ -2,16 +2,18 @@ use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
 
 use crate::contract_address::ContractAddress;
+use crate::contract_class::Cairo0ContractClass;
 use crate::error::{DevnetResult, Error};
 use crate::felt::{
     ClassHash, Felt, Nonce, TransactionHash, TransactionSignature, TransactionVersion,
 };
 use crate::traits::HashProducer;
 
-#[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct DeclareTransactionV0V1 {
     pub class_hash: ClassHash,
+    pub contract_class: Cairo0ContractClass,
     pub sender_address: ContractAddress,
     pub nonce: Nonce,
     pub max_fee: Fee,

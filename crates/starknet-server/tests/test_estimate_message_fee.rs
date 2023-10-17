@@ -21,14 +21,13 @@ mod test_estimate_message_fee {
 
     use crate::common::constants::CHAIN_ID;
     use crate::common::devnet::BackgroundDevnet;
-    use crate::common::utils::get_predeployed_account_props;
 
     #[tokio::test]
     async fn estimate_message_fee() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         // get account
-        let (signer, account_address) = get_predeployed_account_props();
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
         let account = Arc::new(SingleOwnerAccount::new(
             devnet.clone_provider(),
             signer,
