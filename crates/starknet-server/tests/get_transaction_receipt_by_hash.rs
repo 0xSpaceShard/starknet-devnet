@@ -154,13 +154,12 @@ mod get_transaction_receipt_by_hash_integration_tests {
         let (private_key, account_address) = devnet.get_first_predeployed_account().await;
 
         // constructs starknet-rs account
-        let signer = LocalWallet::from(SigningKey::from_secret_scalar(private_key.into()));
-        let address = FieldElement::from(account_address);
+        let signer = LocalWallet::from(SigningKey::from_secret_scalar(private_key));
 
         let mut predeployed_account = SingleOwnerAccount::new(
             devnet.clone_provider(),
             signer,
-            address,
+            account_address,
             chain_id::TESTNET,
             ExecutionEncoding::Legacy,
         );
@@ -169,21 +168,25 @@ mod get_transaction_receipt_by_hash_integration_tests {
         // block. Optionally change the target block to pending with the following line:
         predeployed_account.set_block_id(BlockId::Tag(BlockTag::Pending));
 
-        let transfer_execution = predeployed_account.execute(vec![
-            Call { 
-                to: FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap(), 
-                selector: get_selector_from_name("transfer").unwrap(), 
-                calldata: vec![
-                    FieldElement::ONE,
-                    FieldElement::from_dec_str("1000000000").unwrap(),
-                    FieldElement::ZERO,
-                ]}]);
+        let transfer_execution = predeployed_account.execute(vec![Call {
+            to: FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap(),
+            selector: get_selector_from_name("transfer").unwrap(),
+            calldata: vec![
+                FieldElement::ONE,
+                FieldElement::from_dec_str("1000000000").unwrap(),
+                FieldElement::ZERO,
+            ],
+        }]);
 
         let fee = transfer_execution.estimate_fee().await.unwrap();
 
         // send transaction with lower than estimated fee
         // should revert
-        let transfer_result = transfer_execution.max_fee(FieldElement::from(fee.overall_fee - 1)).send().await.unwrap();
+        let transfer_result = transfer_execution
+            .max_fee(FieldElement::from(fee.overall_fee - 1))
+            .send()
+            .await
+            .unwrap();
 
         let transfer_receipt = devnet
             .json_rpc_client
@@ -199,7 +202,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
                 }
             }
             _ => panic!("Invalid receipt {:?}", transfer_receipt),
-        };        
+        };
     }
 
     #[tokio::test]
