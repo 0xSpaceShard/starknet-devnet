@@ -14,5 +14,6 @@
 - [ ] Rebased to the last commit of the target branch (or merged it into my branch)
 - [ ] Documented the changes
 - [ ] Linked the issues which this PR resolves
+- [ ] Checked the TODO section in README.md if this PR resolves it
 - [ ] Updated the tests
 - [ ] All tests are passing - `cargo test`

@@ -29,9 +29,10 @@ use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::Broad
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
 use starknet_types::rpc::transactions::{
-    BroadcastedTransaction, BroadcastedTransactionCommon, DeclareTransactionTrace,
-    DeployAccountTransactionTrace, ExecutionInvocation, FunctionInvocation, InvokeTransactionTrace,
-    SimulatedTransaction, SimulationFlag, Transaction, TransactionTrace, Transactions,
+    BroadcastedTransaction, BroadcastedTransactionCommon, DeclareTransaction,
+    DeclareTransactionTrace, DeployAccountTransactionTrace, ExecutionInvocation,
+    FunctionInvocation, InvokeTransactionTrace, SimulatedTransaction, SimulationFlag, Transaction,
+    TransactionTrace, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use strum_macros::EnumIter;
@@ -44,7 +45,7 @@ use crate::constants::{
     CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
     DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_HOST, ERC20_CONTRACT_ADDRESS,
 };
-use crate::error::{DevnetResult, Error};
+use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::raw_execution::{Call, RawExecution};
 use crate::state::state_diff::StateDiff;
@@ -196,8 +197,12 @@ impl Starknet {
 
         // Load starknet transactions
         if this.config.dump_path.is_some() {
-            let transactions = this.load_transactions()?;
-            this.re_execute(transactions)?;
+            // Try to load transactions from dump_path, if there is no file skip this step
+            match this.load_transactions() {
+                Ok(txs) => this.re_execute(txs)?,
+                Err(Error::FileNotFound) => {}
+                Err(err) => return Err(err),
+            };
         }
 
         Ok(this)
@@ -248,6 +253,63 @@ impl Starknet {
         self.blocks.save_state_at(new_block_number, deep_cloned_state);
 
         Ok(new_block_number)
+    }
+
+    /// Handles transaction result either Ok or Error and updates the state accordingly.
+    ///
+    /// # Arguments
+    ///
+    /// * `transaction` - Transaction to be added in the collection of transactions.
+    /// * `transaction_result` - Result with transaction_execution_info
+    pub(crate) fn handle_transaction_result(
+        &mut self,
+        transaction: Transaction,
+        transaction_result: Result<
+            TransactionExecutionInfo,
+            blockifier::transaction::errors::TransactionExecutionError,
+        >,
+    ) -> DevnetResult<()> {
+        let transaction_hash = *transaction.get_transaction_hash();
+
+        match transaction_result {
+            Ok(tx_info) => {
+                // If transaction is not reverted
+                // then save the contract class in the state cache for Declare V1/V2 transactions
+                if !tx_info.is_reverted() {
+                    match &transaction {
+                        Transaction::Declare(DeclareTransaction::Version1(declare_v1)) => {
+                            self.state.contract_classes.insert(
+                                declare_v1.class_hash,
+                                declare_v1.contract_class.clone().into(),
+                            );
+                        }
+                        Transaction::Declare(DeclareTransaction::Version2(declare_v2)) => {
+                            self.state.contract_classes.insert(
+                                declare_v2.class_hash,
+                                declare_v2.contract_class.clone().into(),
+                            );
+                        }
+                        _ => {}
+                    };
+                }
+                self.handle_accepted_transaction(&transaction_hash, &transaction, tx_info)
+            }
+            Err(tx_err) => {
+                // based on this https://community.starknet.io/t/efficient-utilization-of-sequencer-capacity-in-starknet-v0-12-1/95607#the-validation-phase-in-the-gateway-5
+                // we should not save transactions that failed with one of the following errors
+                match tx_err {
+                    blockifier::transaction::errors::TransactionExecutionError::InvalidNonce { .. } =>
+                        Err(TransactionValidationError::InvalidTransactionNonce.into()),
+                    blockifier::transaction::errors::TransactionExecutionError::MaxFeeExceedsBalance { .. } =>
+                        Err(TransactionValidationError::InsufficientAccountBalance.into()),
+                    blockifier::transaction::errors::TransactionExecutionError::MaxFeeTooLow { .. } =>
+                        Err(TransactionValidationError::InsufficientMaxFee.into()),
+                    blockifier::transaction::errors::TransactionExecutionError::ValidateTransactionError(..) =>
+                        Err(TransactionValidationError::ValidationFailure.into()),
+                    _ => Err(tx_err.into())
+                }
+            }
+        }
     }
 
     /// Handles suceeded and reverted transactions.

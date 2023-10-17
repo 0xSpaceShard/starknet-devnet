@@ -26,8 +26,8 @@ mod estimate_fee_tests {
     use crate::common::constants::{CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH, CHAIN_ID};
     use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::{
-        assert_tx_reverted, assert_tx_successful, get_deployable_account_signer,
-        get_predeployed_account_props, load_json, resolve_path,
+        assert_tx_reverted, assert_tx_successful, get_deployable_account_signer, load_json,
+        resolve_path,
     };
 
     fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
@@ -137,7 +137,7 @@ mod estimate_fee_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         // get account
-        let (signer, account_address) = get_predeployed_account_props();
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
 
         // get class
         let contract_artifact = dummy_cairo_0_contract_class();
@@ -193,7 +193,7 @@ mod estimate_fee_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         // get account
-        let (signer, account_address) = get_predeployed_account_props();
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
 
         // get class
         let contract_artifact_path = resolve_path(CAIRO_1_CONTRACT_PATH);
@@ -251,7 +251,7 @@ mod estimate_fee_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         // get account
-        let (signer, account_address) = get_predeployed_account_props();
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
         let account = Arc::new(SingleOwnerAccount::new(
             devnet.clone_provider(),
             signer,
@@ -343,7 +343,7 @@ mod estimate_fee_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         // get account
-        let (_, account_address) = get_predeployed_account_props();
+        let (_, account_address) = devnet.get_first_predeployed_account().await;
 
         // get class
         let contract_json = dummy_cairo_0_contract_class();

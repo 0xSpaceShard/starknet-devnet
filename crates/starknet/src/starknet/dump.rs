@@ -2,7 +2,6 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 
-use starknet_types::contract_class::ContractClass;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
@@ -20,24 +19,15 @@ impl Starknet {
                     return Err(Error::SerializationNotSupported);
                 }
                 Transaction::Declare(DeclareTransaction::Version1(tx)) => {
-                    let contract_class = self
-                        .state
-                        .contract_classes
-                        .get(&tx.class_hash)
-                        .ok_or(Error::ContractClassLoadError)?;
-                    if let ContractClass::Cairo0(contract) = contract_class {
-                        let declare_tx = BroadcastedDeclareTransactionV1::new(
-                            tx.sender_address,
-                            tx.max_fee,
-                            &tx.signature,
-                            tx.nonce,
-                            contract,
-                            tx.version,
-                        );
-                        self.add_declare_transaction_v1(declare_tx)?;
-                    } else {
-                        return Err(Error::SerializationNotSupported);
-                    };
+                    let declare_tx = BroadcastedDeclareTransactionV1::new(
+                        tx.sender_address,
+                        tx.max_fee,
+                        &tx.signature,
+                        tx.nonce,
+                        &tx.contract_class,
+                        tx.version,
+                    );
+                    self.add_declare_transaction_v1(declare_tx)?;
                 }
                 Transaction::Declare(DeclareTransaction::Version2(tx)) => {
                     let declare_tx = BroadcastedDeclareTransactionV2::new(
@@ -129,9 +119,14 @@ impl Starknet {
         }
     }
 
-    /// save starknet transactions to file
     pub fn dump_transactions(&self) -> DevnetResult<()> {
-        match &self.config.dump_path {
+        self.dump_transactions_custom_path(None)
+    }
+
+    /// save starknet transactions to file
+    pub fn dump_transactions_custom_path(&self, custom_path: Option<String>) -> DevnetResult<()> {
+        let dump_path = if custom_path.is_some() { &custom_path } else { &self.config.dump_path };
+        match dump_path {
             Some(path) => {
                 let transactions = &self
                     .transactions
@@ -145,23 +140,33 @@ impl Starknet {
                         Error::SerializationError { obj_name: "Vec<Transaction>".to_string() }
                     })?;
                     fs::write(Path::new(&path), transactions_dump)?;
+
+                    return Ok(());
                 }
 
-                Ok(())
+                Err(Error::NoTransaction)
             }
             None => Err(Error::FormatError),
         }
     }
 
-    // load starknet transactions from file
     pub fn load_transactions(&self) -> DevnetResult<Vec<Transaction>> {
-        match &self.config.dump_path {
+        self.load_transactions_custom_path(None)
+    }
+
+    // load starknet transactions from file
+    pub fn load_transactions_custom_path(
+        &self,
+        custom_path: Option<String>,
+    ) -> DevnetResult<Vec<Transaction>> {
+        let dump_path = if custom_path.is_some() { &custom_path } else { &self.config.dump_path };
+        match dump_path {
             Some(path) => {
                 let file_path = Path::new(path);
 
-                // load only if the file exists, if dump_path is set but the file doesn't exist it
-                // can mean that it's first run with dump_path parameter set to dump, in that case
-                // return empty vector
+                // load only if the file exists, if config.dump_path is set but the file doesn't
+                // exist it means that it's first execution and in that case return an empty vector,
+                // in case of load from HTTP endpoint return FileNotFound error
                 if file_path.exists() {
                     let file = File::open(file_path).map_err(Error::IoError)?;
                     let transactions: Vec<Transaction> =
@@ -177,7 +182,7 @@ impl Starknet {
 
                     Ok(transactions)
                 } else {
-                    Ok(Vec::new())
+                    Err(Error::FileNotFound)
                 }
             }
             None => Err(Error::FormatError),

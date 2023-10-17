@@ -7,7 +7,6 @@ use starknet_types::rpc::transactions::Transaction;
 use super::Starknet;
 use crate::error::{DevnetResult, Error};
 use crate::traits::StateExtractor;
-use crate::transactions::StarknetTransaction;
 
 pub fn add_deploy_account_transaction(
     starknet: &mut Starknet,
@@ -41,17 +40,7 @@ pub fn add_deploy_account_transaction(
         )
         .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
-    match blockifier_execution_result {
-        Ok(tx_info) => {
-            starknet.handle_accepted_transaction(&transaction_hash, &transaction, tx_info)?
-        }
-        Err(tx_err) => {
-            let transaction_to_add =
-                StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
-
-            starknet.transactions.insert(&transaction_hash, transaction_to_add);
-        }
-    }
+    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
 
     Ok((transaction_hash, address))
 }
@@ -68,6 +57,7 @@ mod tests {
     use starknet_types::traits::HashProducer;
 
     use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID};
+    use crate::error::Error;
     use crate::starknet::{predeployed, Starknet};
     use crate::traits::{Deployed, HashIdentifiedMut, StateChanger, StateExtractor};
     use crate::utils::get_storage_var_address;
@@ -96,7 +86,7 @@ mod tests {
     }
 
     #[test]
-    fn deploy_account_transaction_should_fail_due_to_not_enough_balance() {
+    fn deploy_account_transaction_should_return_an_error_due_to_not_enough_balance() {
         let (mut starknet, account_class_hash, _) = setup();
 
         let fee_raw: u128 = 4000;
@@ -110,15 +100,18 @@ mod tests {
             Felt::from(1),
         );
 
-        let (txn_hash, _) = starknet.add_deploy_account_transaction(transaction).unwrap();
-        let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
-
-        assert_eq!(txn.finality_status, None);
-        assert!(txn.execution_result.revert_reason().unwrap().contains("exceeds balance"));
+        match starknet.add_deploy_account_transaction(transaction).unwrap_err() {
+            Error::TransactionValidationError(
+                crate::error::TransactionValidationError::InsufficientAccountBalance,
+            ) => {}
+            err => {
+                panic!("Wrong error type: {:?}", err);
+            }
+        }
     }
 
     #[test]
-    fn deploy_account_transaction_should_fail_due_to_not_enough_fee() {
+    fn deploy_account_transaction_should_return_an_error_due_to_not_enough_fee() {
         let (mut starknet, account_class_hash, fee_token_address) = setup();
 
         let fee_raw: u128 = 2000;
@@ -146,16 +139,14 @@ mod tests {
         starknet.state.change_storage(balance_storage_key, Felt::from(fee_raw)).unwrap();
         starknet.state.clear_dirty_state();
 
-        let (txn_hash, _) = starknet.add_deploy_account_transaction(transaction).unwrap();
-        let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
-
-        assert_eq!(txn.finality_status, None);
-        assert_eq!(
-            txn.execution_result.revert_reason(),
-            Some(
-                format!("Max fee (Fee({})) is too low. Minimum fee: Fee(3097).", fee_raw).as_str()
-            )
-        );
+        match starknet.add_deploy_account_transaction(transaction).unwrap_err() {
+            Error::TransactionValidationError(
+                crate::error::TransactionValidationError::InsufficientMaxFee,
+            ) => {}
+            err => {
+                panic!("Wrong error type: {:?}", err);
+            }
+        }
     }
 
     fn get_accounts_count(starknet: &Starknet) -> usize {

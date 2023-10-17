@@ -1,5 +1,4 @@
 use blockifier::transaction::transactions::ExecutableTransaction;
-use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
@@ -7,7 +6,6 @@ use starknet_types::rpc::transactions::{DeclareTransaction, Transaction};
 
 use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;
-use crate::transactions::StarknetTransaction;
 
 pub fn add_declare_transaction_v2(
     starknet: &mut Starknet,
@@ -35,24 +33,7 @@ pub fn add_declare_transaction_v2(
         )
         .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
-    match blockifier_execution_result {
-        Ok(tx_info) => {
-            // Add sierra contract
-            if !tx_info.is_reverted() {
-                starknet.state.contract_classes.insert(
-                    class_hash,
-                    ContractClass::Cairo1(broadcasted_declare_transaction.contract_class),
-                );
-            }
-            starknet.handle_accepted_transaction(&transaction_hash, &transaction, tx_info)?;
-        }
-        Err(tx_err) => {
-            let transaction_to_add =
-                StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
-
-            starknet.transactions.insert(&transaction_hash, transaction_to_add);
-        }
-    }
+    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
 
     Ok((transaction_hash, class_hash))
 }
@@ -84,23 +65,7 @@ pub fn add_declare_transaction_v1(
         )
         .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
-    match blockifier_execution_result {
-        Ok(tx_info) => {
-            if !tx_info.is_reverted() {
-                starknet
-                    .state
-                    .contract_classes
-                    .insert(class_hash, broadcasted_declare_transaction.contract_class.into());
-                starknet.handle_accepted_transaction(&transaction_hash, &transaction, tx_info)?;
-            }
-        }
-        Err(tx_err) => {
-            let transaction_to_add =
-                StarknetTransaction::create_rejected(&transaction, None, &tx_err.to_string());
-
-            starknet.transactions.insert(&transaction_hash, transaction_to_add);
-        }
-    }
+    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
 
     Ok((transaction_hash, class_hash))
 }
@@ -168,18 +133,16 @@ mod tests {
     #[test]
     fn add_declare_v2_transaction_should_return_rejected_txn_and_not_be_part_of_pending_state() {
         let (mut starknet, sender) = setup(Some(1));
-        let initial_cached_state = starknet.state.state.state.class_hash_to_compiled_class.len();
         let declare_txn = dummy_broadcasted_declare_transaction_v2(&sender);
-        let (txn_hash, class_hash) = starknet.add_declare_transaction_v2(declare_txn).unwrap();
-        let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
 
-        assert_eq!(txn.finality_status, None);
-        assert_eq!(txn.execution_result.status(), TransactionExecutionStatus::Reverted);
-        assert_eq!(
-            initial_cached_state,
-            starknet.state.state.state.class_hash_to_compiled_class.len()
-        );
-        assert!(starknet.state.contract_classes.get(&class_hash).is_none())
+        match starknet.add_declare_transaction_v2(declare_txn).unwrap_err() {
+            crate::error::Error::TransactionValidationError(
+                crate::error::TransactionValidationError::InsufficientAccountBalance,
+            ) => {}
+            err => {
+                panic!("Wrong error type received {:?}", err);
+            }
+        }
     }
 
     #[test]
@@ -258,21 +221,35 @@ mod tests {
     }
 
     #[test]
-    fn add_declare_v1_transaction_should_return_rejected_txn_and_not_be_part_of_pending_state() {
+    fn add_declare_v1_transaction_should_return_an_error_due_to_low_max_fee() {
+        let (mut starknet, sender) = setup(Some(20000));
+
+        let mut declare_txn = broadcasted_declare_transaction_v1(sender);
+        declare_txn.common.max_fee = Fee(declare_txn.common.max_fee.0 / 10);
+
+        match starknet.add_declare_transaction_v1(declare_txn).unwrap_err() {
+            crate::error::Error::TransactionValidationError(
+                crate::error::TransactionValidationError::InsufficientMaxFee,
+            ) => {}
+            err => {
+                panic!("Wrong error type received {:?}", err);
+            }
+        }
+    }
+
+    #[test]
+    fn add_declare_v1_transaction_should_return_an_error_due_to_not_enough_balance_on_account() {
         let (mut starknet, sender) = setup(Some(1));
 
-        let initial_cached_state_contract_classes_length =
-            starknet.state.state.state.class_hash_to_compiled_class.len();
         let declare_txn = broadcasted_declare_transaction_v1(sender);
-        let (txn_hash, _) = starknet.add_declare_transaction_v1(declare_txn).unwrap();
-        let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
-
-        assert_eq!(txn.finality_status, None);
-        assert_eq!(txn.execution_result.status(), TransactionExecutionStatus::Reverted);
-        assert_eq!(
-            initial_cached_state_contract_classes_length,
-            starknet.state.state.state.class_hash_to_compiled_class.len()
-        );
+        match starknet.add_declare_transaction_v1(declare_txn).unwrap_err() {
+            crate::error::Error::TransactionValidationError(
+                crate::error::TransactionValidationError::InsufficientAccountBalance,
+            ) => {}
+            err => {
+                panic!("Wrong error type received {:?}", err);
+            }
+        }
     }
 
     #[test]

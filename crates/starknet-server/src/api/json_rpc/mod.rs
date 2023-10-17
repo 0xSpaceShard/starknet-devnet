@@ -15,7 +15,6 @@ use server::rpc_handler::RpcHandler;
 use starknet_types::rpc::estimate_message_fee::EstimateMessageFeeRequestWrapper;
 use tracing::{error, info, trace};
 
-use self::error::ApiError;
 use self::models::{
     BlockIdInput, BroadcastedDeclareTransactionInput, BroadcastedDeployAccountTransactionInput,
     BroadcastedInvokeTransactionInput,
@@ -47,90 +46,7 @@ impl<T: Serialize> ToRpcResponseResult for RpcResult<T> {
     fn to_rpc_result(self) -> ResponseResult {
         match self {
             Ok(data) => to_rpc_result(data),
-            Err(err) => match err {
-                ApiError::RpcError(rpc_error) => rpc_error,
-                err @ ApiError::BlockNotFound => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(24),
-                    message: err.to_string().into(),
-                    data: None,
-                },
-                err @ ApiError::ContractNotFound => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(20),
-                    message: err.to_string().into(),
-                    data: None,
-                },
-                err @ ApiError::TransactionNotFound => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(29),
-                    message: err.to_string().into(),
-                    data: None,
-                },
-                err @ ApiError::InvalidTransactionIndexInBlock => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(27),
-                    message: err.to_string().into(),
-                    data: None,
-                },
-                err @ ApiError::ClassHashNotFound => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(28),
-                    message: err.to_string().into(),
-                    data: None,
-                },
-                ApiError::ContractError { msg } => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(40),
-                    message: msg.into(),
-                    data: None,
-                },
-                err @ ApiError::NoBlocks => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(32),
-                    message: err.to_string().into(),
-                    data: None,
-                },
-                err @ ApiError::RequestPageSizeTooBig => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(31),
-                    message: err.to_string().into(),
-                    data: None,
-                },
-                err @ ApiError::InvalidContinuationToken => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(33),
-                    message: err.to_string().into(),
-                    data: None,
-                },
-                err @ ApiError::TooManyKeysInFilter => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(34),
-                    message: err.to_string().into(),
-                    data: None,
-                },
-                err @ ApiError::ClassAlreadyDeclared => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(51),
-                    message: err.to_string().into(),
-                    data: None,
-                },
-                err @ ApiError::InvalidContractClass => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(50),
-                    message: err.to_string().into(),
-                    data: None,
-                },
-                err @ ApiError::TypesError(_) => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
-                    message: err.to_string().into(),
-                    data: None,
-                },
-                ApiError::StarknetDevnetError(error) => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
-                    message: error.to_string().into(),
-                    data: None,
-                },
-                err @ ApiError::OnlyLatestBlock => RpcError {
-                    code: server::rpc_core::error::ErrorCode::ServerError(24),
-                    message: err.to_string().into(),
-                    data: None,
-                },
-                ApiError::UnsupportedAction { msg } => RpcError {
-                    code: server::rpc_core::error::ErrorCode::InvalidRequest,
-                    message: msg.into(),
-                    data: None,
-                },
-            }
-            .into(),
+            Err(err) => err.api_error_to_rpc_error().into(),
         }
     }
 }

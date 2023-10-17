@@ -6,6 +6,10 @@ use api::Api;
 use clap::Parser;
 use cli::Args;
 use starknet_core::account::Account;
+use starknet_core::constants::{
+    ERC20_CONTRACT_ADDRESS, ERC20_CONTRACT_CLASS_HASH, UDC_CONTRACT_ADDRESS,
+    UDC_CONTRACT_CLASS_HASH,
+};
 use starknet_core::starknet::{DumpMode, Starknet};
 use starknet_types::felt::Felt;
 use starknet_types::traits::{ToDecimalString, ToHexString};
@@ -48,6 +52,16 @@ fn log_predeployed_accounts(predeployed_accounts: &Vec<Account>, seed: u32, init
     }
 }
 
+fn print_predeployed_contracts() {
+    println!("Predeployed FeeToken");
+    println!("Address: {ERC20_CONTRACT_ADDRESS}");
+    println!("Class Hash: {ERC20_CONTRACT_CLASS_HASH}");
+    println!();
+    println!("Predeployed UDC");
+    println!("Address: {UDC_CONTRACT_ADDRESS}");
+    println!("Class Hash: {UDC_CONTRACT_CLASS_HASH}");
+}
+
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     configure_tracing();
@@ -58,6 +72,8 @@ async fn main() -> Result<(), anyhow::Error> {
     let mut addr: SocketAddr = SocketAddr::new(starknet_config.host, starknet_config.port);
 
     let api = api::Api::new(Starknet::new(&starknet_config)?);
+
+    print_predeployed_contracts();
 
     let predeployed_accounts = api.starknet.read().await.get_predeployed_accounts();
     log_predeployed_accounts(
