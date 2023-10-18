@@ -302,7 +302,8 @@ impl Starknet {
                         Err(TransactionValidationError::InvalidTransactionNonce.into()),
                     blockifier::transaction::errors::TransactionExecutionError::MaxFeeExceedsBalance { .. } =>
                         Err(TransactionValidationError::InsufficientAccountBalance.into()),
-                    blockifier::transaction::errors::TransactionExecutionError::MaxFeeTooLow { .. } =>
+                    blockifier::transaction::errors::TransactionExecutionError::FeeTransferError { .. }
+                    | blockifier::transaction::errors::TransactionExecutionError::MaxFeeTooLow { .. } =>
                         Err(TransactionValidationError::InsufficientMaxFee.into()),
                     blockifier::transaction::errors::TransactionExecutionError::ValidateTransactionError(..) =>
                         Err(TransactionValidationError::ValidationFailure.into()),

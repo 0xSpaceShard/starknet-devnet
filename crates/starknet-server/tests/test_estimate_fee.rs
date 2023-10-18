@@ -6,7 +6,7 @@ mod estimate_fee_tests {
     use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, UDC_CONTRACT_ADDRESS};
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{
-        Account, AccountFactory, AccountFactoryError, Call, ExecutionEncoding,
+        Account, AccountError, AccountFactory, AccountFactoryError, Call, ExecutionEncoding,
         OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
@@ -74,17 +74,19 @@ mod estimate_fee_tests {
         // try sending with insufficient max fee
         let unsuccessful_deployment_tx = account_factory
             .deploy(salt)
-            .max_fee(FieldElement::from((fee_estimation.overall_fee as f64 * 0.9) as u128))
+            .max_fee(FieldElement::from((fee_estimation.overall_fee - 1) as u128))
             .nonce(new_account_nonce)
             .send()
-            .await
-            .unwrap();
-        assert_tx_reverted(
-            &unsuccessful_deployment_tx.transaction_hash,
-            &devnet.json_rpc_client,
-            &["Calculated fee", "exceeds max fee"],
-        )
-        .await;
+            .await;
+        match unsuccessful_deployment_tx {
+            Err(AccountFactoryError::Provider(ProviderError::StarknetError(
+                StarknetErrorWithMessage {
+                    code: MaybeUnknownErrorCode::Known(StarknetError::InsufficientMaxFee),
+                    ..
+                },
+            ))) => (),
+            other => panic!("Unexpected result: {other:?}"),
+        };
 
         // try sending with sufficient max fee
         let successful_deployment = account_factory
@@ -165,16 +167,18 @@ mod estimate_fee_tests {
         let unsuccessful_declare_tx = account
             .declare_legacy(Arc::clone(&contract_artifact))
             .nonce(FieldElement::ZERO)
-            .max_fee(FieldElement::from((fee_estimation.overall_fee as f64 * 0.9) as u128))
+            .max_fee(FieldElement::from((fee_estimation.overall_fee - 1) as u128))
             .send()
-            .await
-            .unwrap();
-        assert_tx_reverted(
-            &unsuccessful_declare_tx.transaction_hash,
-            &devnet.json_rpc_client,
-            &["Calculated fee", "exceeds max fee"],
-        )
-        .await;
+            .await;
+        match unsuccessful_declare_tx {
+            Err(AccountError::Provider(ProviderError::StarknetError(
+                StarknetErrorWithMessage {
+                    code: MaybeUnknownErrorCode::Known(StarknetError::InsufficientMaxFee),
+                    ..
+                },
+            ))) => (),
+            other => panic!("Unexpected result: {other:?}"),
+        };
 
         // try sending with sufficient max fee
         let successful_declare_tx = account
@@ -223,16 +227,18 @@ mod estimate_fee_tests {
         let unsuccessful_declare_tx = account
             .declare(Arc::clone(&flattened_contract_artifact), compiled_class_hash)
             .nonce(FieldElement::ZERO)
-            .max_fee(FieldElement::from((fee_estimation.overall_fee as f64 * 0.9) as u128))
+            .max_fee(FieldElement::from((fee_estimation.overall_fee - 1) as u128))
             .send()
-            .await
-            .unwrap();
-        assert_tx_reverted(
-            &unsuccessful_declare_tx.transaction_hash,
-            &devnet.json_rpc_client,
-            &["Calculated fee", "exceeds max fee"],
-        )
-        .await;
+            .await;
+        match unsuccessful_declare_tx {
+            Err(AccountError::Provider(ProviderError::StarknetError(
+                StarknetErrorWithMessage {
+                    code: MaybeUnknownErrorCode::Known(StarknetError::InsufficientMaxFee),
+                    ..
+                },
+            ))) => (),
+            other => panic!("Unexpected result: {other:?}"),
+        };
 
         // try sending with sufficient max fee
         let successful_declare_tx = account
@@ -318,15 +324,26 @@ mod estimate_fee_tests {
         };
 
         // invoke with insufficient max_fee
-        let insufficient_max_fee =
-            FieldElement::from((fee_estimation.overall_fee as f64 * 0.9) as u128);
-        account.execute(invoke_calls.clone()).max_fee(insufficient_max_fee).send().await.unwrap();
+        let insufficient_max_fee = FieldElement::from((fee_estimation.overall_fee - 1) as u128);
+        let unsuccessful_invoke_tx = account
+            .execute(invoke_calls.clone())
+            .max_fee(insufficient_max_fee)
+            .send()
+            .await
+            .unwrap();
         let balance_after_insufficient = devnet
             .json_rpc_client
             .call(call.clone(), BlockId::Tag(BlockTag::Latest))
             .await
             .unwrap();
         assert_eq!(balance_after_insufficient, vec![FieldElement::ZERO]);
+
+        assert_tx_reverted(
+            &unsuccessful_invoke_tx.transaction_hash,
+            &devnet.json_rpc_client,
+            &["Calculated fee", "exceeds max fee"],
+        )
+        .await;
 
         // invoke with sufficient max_fee
         let sufficient_max_fee =
