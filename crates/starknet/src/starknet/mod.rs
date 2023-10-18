@@ -302,7 +302,8 @@ impl Starknet {
                         Err(TransactionValidationError::InvalidTransactionNonce.into()),
                     blockifier::transaction::errors::TransactionExecutionError::MaxFeeExceedsBalance { .. } =>
                         Err(TransactionValidationError::InsufficientAccountBalance.into()),
-                    blockifier::transaction::errors::TransactionExecutionError::MaxFeeTooLow { .. } =>
+                    blockifier::transaction::errors::TransactionExecutionError::FeeTransferError { .. }
+                    | blockifier::transaction::errors::TransactionExecutionError::MaxFeeTooLow { .. } =>
                         Err(TransactionValidationError::InsufficientMaxFee.into()),
                     blockifier::transaction::errors::TransactionExecutionError::ValidateTransactionError(..) =>
                         Err(TransactionValidationError::ValidationFailure.into()),
@@ -481,7 +482,7 @@ impl Starknet {
         block_id: BlockId,
         transactions: &[BroadcastedTransaction],
     ) -> DevnetResult<Vec<FeeEstimateWrapper>> {
-        estimations::estimate_fee(self, block_id, transactions)
+        estimations::estimate_fee(self, block_id, transactions, None, None)
     }
 
     pub fn estimate_message_fee(
@@ -804,7 +805,13 @@ impl Starknet {
             transactions_traces.push(trace);
         }
 
-        let estimated = self.estimate_fee(block_id, transactions)?;
+        let estimated = estimations::estimate_fee(
+            self,
+            block_id,
+            transactions,
+            Some(!skip_fee_charge),
+            Some(!skip_validate),
+        )?;
 
         // if the underlying simulation is correct, this should never be the case
         // in alignment with always avoiding assertions in production code, this has to be done
