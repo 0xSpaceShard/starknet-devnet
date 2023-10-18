@@ -167,18 +167,14 @@ impl Starknet {
         let accounts = predeployed_accounts.generate_accounts(
             config.total_accounts,
             class_hash,
-            account_contract_class.clone(),
+            account_contract_class,
         )?;
         for account in accounts {
             account.deploy(&mut state)?;
             account.set_initial_balance(&mut state)?;
         }
 
-        let chargeable_account = Account::new_chargeable(
-            class_hash,
-            account_contract_class,
-            erc20_fee_contract.get_address(),
-        );
+        let chargeable_account = Account::new_chargeable(erc20_fee_contract.get_address())?;
         chargeable_account.deploy(&mut state)?;
         chargeable_account.set_initial_balance(&mut state)?;
 
