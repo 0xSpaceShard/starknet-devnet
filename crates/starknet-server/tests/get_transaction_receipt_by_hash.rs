@@ -12,8 +12,8 @@ mod get_transaction_receipt_by_hash_integration_tests {
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::{
-        BlockId, BlockTag, BroadcastedDeclareTransactionV1, FieldElement,
-        MaybePendingTransactionReceipt, StarknetError, TransactionReceipt,
+        BroadcastedDeclareTransactionV1, FieldElement, MaybePendingTransactionReceipt,
+        StarknetError, TransactionReceipt,
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::{
@@ -30,9 +30,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
     async fn deploy_account_transaction_receipt() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-        // constructs starknet-rs account
         let signer = get_deployable_account_signer();
-
         let account_factory = OpenZeppelinAccountFactory::new(
             FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
             CHAIN_ID,
@@ -70,17 +68,13 @@ mod get_transaction_receipt_by_hash_integration_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         let (signer, address) = devnet.get_first_predeployed_account().await;
-        let mut predeployed_account = SingleOwnerAccount::new(
+        let predeployed_account = SingleOwnerAccount::new(
             devnet.clone_provider(),
             signer,
             address,
             chain_id::TESTNET,
             ExecutionEncoding::Legacy,
         );
-
-        // `SingleOwnerAccount` defaults to checking nonce and estimating fees against the latest
-        // block. Optionally change the target block to pending with the following line:
-        predeployed_account.set_block_id(BlockId::Tag(BlockTag::Pending));
 
         let (cairo_1_contract, casm_class_hash) =
             get_events_contract_in_sierra_and_compiled_class_hash();
@@ -134,17 +128,13 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
 
-        let mut predeployed_account = SingleOwnerAccount::new(
+        let predeployed_account = SingleOwnerAccount::new(
             devnet.clone_provider(),
             signer,
             account_address,
             chain_id::TESTNET,
             ExecutionEncoding::Legacy,
         );
-
-        // `SingleOwnerAccount` defaults to checking nonce and estimating fees against the latest
-        // block. Optionally change the target block to pending with the following line:
-        predeployed_account.set_block_id(BlockId::Tag(BlockTag::Pending));
 
         let transfer_execution = predeployed_account.execute(vec![Call {
             to: FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap(),

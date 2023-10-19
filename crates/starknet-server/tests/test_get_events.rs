@@ -22,17 +22,13 @@ mod get_events_integration_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         let (signer, address) = devnet.get_first_predeployed_account().await;
-        let mut predeployed_account = SingleOwnerAccount::new(
+        let predeployed_account = SingleOwnerAccount::new(
             devnet.clone_provider(),
             signer,
             address,
             chain_id::TESTNET,
             ExecutionEncoding::Legacy,
         );
-
-        // `SingleOwnerAccount` defaults to checking nonce and estimating fees against the latest
-        // block. Optionally change the target block to pending with the following line:
-        predeployed_account.set_block_id(BlockId::Tag(BlockTag::Pending));
 
         let (cairo_1_contract, casm_class_hash) =
             get_events_contract_in_sierra_and_compiled_class_hash();
