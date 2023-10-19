@@ -19,14 +19,11 @@ mod get_transaction_receipt_by_hash_integration_tests {
     use starknet_rs_providers::{
         MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
     };
-    use starknet_rs_signers::{LocalWallet, SigningKey};
-    use starknet_types::felt::Felt;
 
     use crate::common::constants::CHAIN_ID;
     use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::{
         get_deployable_account_signer, get_events_contract_in_sierra_and_compiled_class_hash,
-        get_json_body,
     };
 
     #[tokio::test]
@@ -72,22 +69,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
     async fn deploy_transaction_receipt() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-        // get first predeployed account data
-        let predeployed_accounts_response =
-            devnet.get("/predeployed_accounts", None).await.unwrap();
-
-        let predeployed_accounts_json = get_json_body(predeployed_accounts_response).await;
-        let first_account = predeployed_accounts_json.as_array().unwrap().get(0).unwrap();
-
-        let account_address =
-            Felt::from_prefixed_hex_str(first_account["address"].as_str().unwrap()).unwrap();
-        let private_key =
-            Felt::from_prefixed_hex_str(first_account["private_key"].as_str().unwrap()).unwrap();
-
-        // constructs starknet-rs account
-        let signer = LocalWallet::from(SigningKey::from_secret_scalar(private_key.into()));
-        let address = FieldElement::from(account_address);
-
+        let (signer, address) = devnet.get_first_predeployed_account().await;
         let mut predeployed_account = SingleOwnerAccount::new(
             devnet.clone_provider(),
             signer,

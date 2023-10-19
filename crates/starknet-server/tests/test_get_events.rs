@@ -9,13 +9,9 @@ mod get_events_integration_tests {
     use starknet_rs_core::types::{BlockId, BlockTag, EventFilter, FieldElement};
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::Provider;
-    use starknet_rs_signers::{LocalWallet, SigningKey};
-    use starknet_types::felt::Felt;
 
     use crate::common::devnet::BackgroundDevnet;
-    use crate::common::utils::{
-        get_events_contract_in_sierra_and_compiled_class_hash, get_json_body,
-    };
+    use crate::common::utils::get_events_contract_in_sierra_and_compiled_class_hash;
 
     #[tokio::test]
     /// The test verifies that the `get_events` RPC method returns the correct events.
@@ -25,22 +21,7 @@ mod get_events_integration_tests {
     async fn get_events_correct_chunking() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-        // get first predeployed account data
-        let predeployed_accounts_response =
-            devnet.get("/predeployed_accounts", None).await.unwrap();
-
-        let predeployed_accounts_json = get_json_body(predeployed_accounts_response).await;
-        let first_account = predeployed_accounts_json.as_array().unwrap().get(0).unwrap();
-
-        let account_address =
-            Felt::from_prefixed_hex_str(first_account["address"].as_str().unwrap()).unwrap();
-        let private_key =
-            Felt::from_prefixed_hex_str(first_account["private_key"].as_str().unwrap()).unwrap();
-
-        // constructs starknet-rs account
-        let signer = LocalWallet::from(SigningKey::from_secret_scalar(private_key.into()));
-        let address = FieldElement::from(account_address);
-
+        let (signer, address) = devnet.get_first_predeployed_account().await;
         let mut predeployed_account = SingleOwnerAccount::new(
             devnet.clone_provider(),
             signer,
