@@ -1,5 +1,4 @@
 use core::panic;
-use std::net::{IpAddr, Ipv4Addr};
 
 use clap::Parser;
 use starknet_core::constants::{
@@ -11,6 +10,7 @@ use starknet_types::chain_id::ChainId;
 use starknet_types::num_bigint::BigUint;
 use strum::IntoEnumIterator;
 
+use crate::contract_class_choice::ContractClassChoice;
 use crate::ip_addr_wrapper::IpAddrWrapper;
 
 /// Run a local instance of Starknet Devnet
@@ -24,6 +24,13 @@ pub(crate) struct Args {
     #[arg(default_value_t = DEVNET_DEFAULT_TOTAL_ACCOUNTS)]
     #[arg(help = "Specify the number of accounts to be predeployed;")]
     accounts_count: u8,
+
+    /// Class used for account predeployment
+    #[arg(long = "account-class")]
+    #[arg(value_name = "ACCOUNT_CLASS")]
+    #[arg(default_value = "cairo0")]
+    #[arg(help = "Specify the class used by predeployed accounts;")]
+    account_class: ContractClassChoice,
 
     /// Initial balance of predeployed accounts
     #[arg(long = "initial-balance")]
@@ -43,7 +50,7 @@ pub(crate) struct Args {
     // Host address
     #[arg(long = "host")]
     #[arg(value_name = "HOST")]
-    #[arg(default_value_t = IpAddrWrapper { inner: IpAddr::V4(Ipv4Addr::LOCALHOST) })]
+    #[arg(default_value_t = IpAddrWrapper::LOCALHOST)]
     #[arg(help = "Specify the address to listen at;")]
     host: IpAddrWrapper,
 
@@ -96,6 +103,11 @@ impl Args {
                 None => random_number_generator::generate_u32_random_number(),
             },
             total_accounts: self.accounts_count,
+            account_contract_class: self.account_class.get_class().expect("Invalid account class"),
+            account_contract_class_hash: self
+                .account_class
+                .get_hash()
+                .expect("Invalid account class hash"),
             predeployed_accounts_initial_balance: self
                 .initial_balance
                 .clone()

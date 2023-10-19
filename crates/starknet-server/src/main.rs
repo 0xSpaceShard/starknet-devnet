@@ -18,6 +18,7 @@ use tracing_subscriber::EnvFilter;
 
 mod api;
 mod cli;
+mod contract_class_choice;
 mod ip_addr_wrapper;
 mod server;
 

@@ -4,7 +4,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
     use std::sync::Arc;
 
-    use starknet_core::constants::{CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, ERC20_CONTRACT_ADDRESS};
+    use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ERC20_CONTRACT_ADDRESS};
     use starknet_rs_accounts::{
         Account, AccountFactory, Call, ExecutionEncoding, OpenZeppelinAccountFactory,
         SingleOwnerAccount,
@@ -36,9 +36,8 @@ mod get_transaction_receipt_by_hash_integration_tests {
         // constructs starknet-rs account
         let signer = get_deployable_account_signer();
 
-        // TODO temporarily modified test
         let account_factory = OpenZeppelinAccountFactory::new(
-            FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap(),
+            FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
             CHAIN_ID,
             signer.clone(),
             devnet.clone_provider(),

@@ -16,7 +16,7 @@ use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::Signer;
 use starknet_types::chain_id::ChainId;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::ContractClass;
+use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
 use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
@@ -42,9 +42,8 @@ use self::predeployed::initialize_erc20;
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
-    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH, CHARGEABLE_ACCOUNT_ADDRESS,
-    CHARGEABLE_ACCOUNT_PRIVATE_KEY, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_HOST,
-    ERC20_CONTRACT_ADDRESS,
+    CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
+    DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_HOST, ERC20_CONTRACT_ADDRESS,
 };
 use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::predeployed_accounts::PredeployedAccounts;
@@ -87,6 +86,8 @@ impl fmt::Display for DumpMode {
 pub struct StarknetConfig {
     pub seed: u32,
     pub total_accounts: u8,
+    pub account_contract_class: ContractClass,
+    pub account_contract_class_hash: Felt,
     pub predeployed_accounts_initial_balance: Felt,
     pub host: IpAddr,
     pub port: u16,
@@ -99,9 +100,15 @@ pub struct StarknetConfig {
 
 impl Default for StarknetConfig {
     fn default() -> Self {
+        let account_contract_class =
+            Cairo0Json::raw_json_from_path(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
         Self {
             seed: u32::default(),
             total_accounts: u8::default(),
+            account_contract_class: ContractClass::Cairo0(Cairo0ContractClass::RawJson(
+                account_contract_class.clone(),
+            )),
+            account_contract_class_hash: account_contract_class.generate_hash().unwrap(),
             predeployed_accounts_initial_balance: Felt::default(),
             host: DEVNET_DEFAULT_HOST,
             port: u16::default(),
@@ -158,16 +165,10 @@ impl Starknet {
             erc20_fee_contract.get_address(),
         );
 
-        let contract_class_str = std::fs::read_to_string(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH)?;
-        let account_contract_class = ContractClass::Cairo1(
-            ContractClass::cairo_1_from_sierra_json_str(&contract_class_str)?,
-        );
-        let class_hash = account_contract_class.generate_hash()?; // TODO replace with constant
-
         let accounts = predeployed_accounts.generate_accounts(
             config.total_accounts,
-            class_hash,
-            account_contract_class,
+            config.account_contract_class_hash,
+            config.account_contract_class.clone(),
         )?;
         for account in accounts {
             account.deploy(&mut state)?;

@@ -49,17 +49,23 @@ pub(crate) mod test_utils {
     use starknet_types::traits::HashProducer;
 
     use crate::constants::{
-        DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_HOST,
-        DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TEST_SEED,
-        DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+        CAIRO_0_ACCOUNT_CONTRACT_PATH, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE,
+        DEVNET_DEFAULT_HOST, DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT,
+        DEVNET_DEFAULT_TEST_SEED, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
     };
     use crate::starknet::StarknetConfig;
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
 
     pub fn starknet_config_for_test() -> StarknetConfig {
+        let account_contract_class =
+            Cairo0Json::raw_json_from_path(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
         StarknetConfig {
             seed: DEVNET_DEFAULT_TEST_SEED,
             total_accounts: DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+            account_contract_class: ContractClass::Cairo0(Cairo0ContractClass::RawJson(
+                account_contract_class.clone(),
+            )),
+            account_contract_class_hash: account_contract_class.generate_hash().unwrap(),
             predeployed_accounts_initial_balance: DEVNET_DEFAULT_INITIAL_BALANCE.into(),
             host: DEVNET_DEFAULT_HOST,
             port: DEVNET_DEFAULT_PORT,
