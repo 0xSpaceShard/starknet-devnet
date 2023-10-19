@@ -60,7 +60,19 @@ pub(crate) struct AbortedBlocks {
 
 #[derive(Deserialize)]
 pub(crate) struct Time {
-    time: u64,
+    pub time: u64,
+}
+
+#[derive(Serialize)]
+pub(crate) struct SetTime {
+    pub block_timestamp: u64,
+    pub block_hash: BlockHash,
+}
+
+#[derive(Serialize)]
+pub(crate) struct IncreaseTime {
+    pub timestamp_increased_by: u64,
+    pub block_hash: BlockHash,
 }
 
 #[derive(Serialize)]

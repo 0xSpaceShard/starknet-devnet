@@ -214,7 +214,7 @@ impl Starknet {
 
     // Update block context
     // Initialize values for new pending block
-    pub(crate) fn generate_pending_block(&mut self) -> DevnetResult<()> {
+    pub fn generate_pending_block(&mut self) -> DevnetResult<()> {
         Self::update_block_context(&mut self.block_context);
         self.restart_pending_block()?;
 
@@ -370,16 +370,18 @@ impl Starknet {
         block_context
     }
 
+    fn get_current_timestamp_secs() -> u64 {
+        SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .expect("should get current UNIX timestamp")
+            .as_secs()
+    }
+
     /// Should update block context with new block timestamp
     /// and pointer to the next block number
     fn update_block_context(block_context: &mut BlockContext) {
-        let current_timestamp_secs = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .expect("should get current UNIX timestamp")
-            .as_secs();
-
         block_context.block_number = block_context.block_number.next();
-        block_context.block_timestamp = BlockTimestamp(current_timestamp_secs);
+        block_context.block_timestamp = BlockTimestamp(Self::get_current_timestamp_secs());
     }
 
     fn pending_block(&self) -> &StarknetBlock {
@@ -835,6 +837,18 @@ impl Starknet {
             .collect();
 
         Ok(simulation_results)
+    }
+
+    pub fn set_time(&self, timestamp: u64) {
+        // TODO: can it be done in one line? is it working at all?
+        let mut block_timestamp = &self.block_context.block_timestamp;
+        block_timestamp = &BlockTimestamp(timestamp);
+    }
+
+    pub fn increase_time(&self, timestamp: u64) {
+        // TODO: can it be done in one line? is it working at all?
+        let mut block_timestamp = &self.block_context.block_timestamp;
+        block_timestamp = &BlockTimestamp(Self::get_current_timestamp_secs() + timestamp);
     }
 }
 

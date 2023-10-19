@@ -15,7 +15,7 @@ pub struct StateUpdate {
     pub state_diff: ThinStateDiff,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Default, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct ThinStateDiff {
     pub deployed_contracts: Vec<DeployedContract>,
     pub storage_diffs: Vec<StorageDiff>,
