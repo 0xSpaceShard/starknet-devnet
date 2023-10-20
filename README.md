@@ -33,7 +33,6 @@ This repository is work in progress, please be patient. Please check below the s
 
 - [ ] Availability as a package (crate)
 - [ ] [Custom accounts implementation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/accounts#custom-implementation)
-  - [ ] [PR](https://github.com/0xSpaceShard/starknet-devnet-rs/pull/196)
 - [ ] [Forking](https://0xspaceshard.github.io/starknet-devnet/docs/guide/fork)
 - [ ] [L1-L2 Postman integration](https://0xspaceshard.github.io/starknet-devnet/docs/guide/postman)
 - [ ] [Block manipulation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/blocks)
