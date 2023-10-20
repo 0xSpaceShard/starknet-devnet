@@ -6,10 +6,9 @@ use starknet_core::constants::{
     DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT,
     DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
-use starknet_core::starknet::starknet_config::{DumpMode, StarknetConfig};
+use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
 use starknet_types::chain_id::ChainId;
 use starknet_types::num_bigint::BigUint;
-use strum::IntoEnumIterator;
 
 use crate::ip_addr_wrapper::IpAddrWrapper;
 
@@ -75,11 +74,11 @@ pub(crate) struct Args {
     #[arg(help = "Specify the chain id as one of: {MAINNET, TESTNET, TESTNET2};")]
     chain_id: String,
 
-    // Dump on exit or after transaction
     #[arg(long = "dump-on")]
-    #[arg(value_name = "DUMP_ON")]
-    #[arg(help = "Specify when to dump; can dump on: exit, transaction;")]
-    dump_on: Option<String>,
+    #[arg(value_name = "WHEN")]
+    #[arg(help = "Specify when to dump the state of Devnet;")]
+    #[arg(requires = "dump_path")] // TODO not working
+    dump_on: Option<DumpOn>,
 
     // Dump path as string
     #[arg(long = "dump-path")]
@@ -111,35 +110,8 @@ impl Args {
                 "TESTNET2" => ChainId::TestNet2,
                 _ => panic!("Invalid value for chain-id"),
             },
-            dump_on: self.parse_dump_on(),
+            dump_on: self.dump_on,
             dump_path: self.dump_path.clone(),
-        }
-    }
-
-    pub(crate) fn parse_dump_on(&self) -> Option<DumpMode> {
-        let dump_on = self.dump_on.clone().unwrap_or_default();
-
-        if self.dump_path.is_some() && !dump_on.as_str().is_empty() {
-            match dump_on.as_str() {
-                "exit" => Some(DumpMode::OnExit),
-                "transaction" => Some(DumpMode::OnTransaction),
-                _ => {
-                    let mut options = String::new();
-                    for mode in DumpMode::iter() {
-                        options.push_str((mode.to_string() + ", ").as_str());
-                    }
-
-                    panic!(
-                        "--dump_on Should be one of: {}; got: {}",
-                        &options[0..options.len() - 2],
-                        dump_on.as_str()
-                    )
-                }
-            }
-        } else if !dump_on.as_str().is_empty() {
-            panic!("--dump-path required if --dump-on is present")
-        } else {
-            None
         }
     }
 }

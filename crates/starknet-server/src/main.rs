@@ -10,7 +10,7 @@ use starknet_core::constants::{
     ERC20_CONTRACT_ADDRESS, ERC20_CONTRACT_CLASS_HASH, UDC_CONTRACT_ADDRESS,
     UDC_CONTRACT_CLASS_HASH,
 };
-use starknet_core::starknet::starknet_config::DumpMode;
+use starknet_core::starknet::starknet_config::DumpOn;
 use starknet_core::starknet::Starknet;
 use starknet_types::felt::Felt;
 use starknet_types::traits::{ToDecimalString, ToHexString};
@@ -94,7 +94,7 @@ async fn main() -> Result<(), anyhow::Error> {
     info!("Starknet Devnet listening on {}", addr);
 
     // spawn the server on a new task
-    let serve = if starknet_config.dump_on == Some(DumpMode::OnExit) {
+    let serve = if starknet_config.dump_on == Some(DumpOn::Exit) {
         tokio::task::spawn(server.with_graceful_shutdown(shutdown_signal(api.clone())))
     } else {
         tokio::task::spawn(server)

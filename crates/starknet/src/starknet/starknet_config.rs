@@ -3,21 +3,20 @@ use std::net::IpAddr;
 
 use starknet_types::chain_id::ChainId;
 use starknet_types::felt::Felt;
-use strum_macros::EnumIter;
 
 use crate::constants::{DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_HOST};
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, EnumIter)]
-pub enum DumpMode {
-    OnExit,
-    OnTransaction,
+#[derive(Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum)]
+pub enum DumpOn {
+    Exit,
+    Transaction,
 }
 
-impl fmt::Display for DumpMode {
+impl fmt::Display for DumpOn {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self {
-            DumpMode::OnExit => write!(f, "exit"),
-            DumpMode::OnTransaction => write!(f, "transaction"),
+            DumpOn::Exit => write!(f, "exit"),
+            DumpOn::Transaction => write!(f, "transaction"),
         }
     }
 }
@@ -32,7 +31,7 @@ pub struct StarknetConfig {
     pub timeout: u16,
     pub gas_price: u64,
     pub chain_id: ChainId,
-    pub dump_on: Option<DumpMode>,
+    pub dump_on: Option<DumpOn>,
     pub dump_path: Option<String>,
 }
 

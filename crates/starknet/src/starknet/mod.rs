@@ -36,7 +36,7 @@ use starknet_types::traits::HashProducer;
 use tracing::{error, warn};
 
 use self::predeployed::initialize_erc20;
-use self::starknet_config::{DumpMode, StarknetConfig};
+use self::starknet_config::{DumpOn, StarknetConfig};
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
@@ -292,7 +292,7 @@ impl Starknet {
         // clear pending block information
         self.generate_pending_block()?;
 
-        if self.config.dump_on == Some(DumpMode::OnTransaction) {
+        if self.config.dump_on == Some(DumpOn::Transaction) {
             self.dump_transaction(transaction)?;
         }
 
