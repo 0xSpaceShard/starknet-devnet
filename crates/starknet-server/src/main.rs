@@ -10,7 +10,8 @@ use starknet_core::constants::{
     ERC20_CONTRACT_ADDRESS, ERC20_CONTRACT_CLASS_HASH, UDC_CONTRACT_ADDRESS,
     UDC_CONTRACT_CLASS_HASH,
 };
-use starknet_core::starknet::{DumpMode, Starknet};
+use starknet_core::starknet::starknet_config::DumpMode;
+use starknet_core::starknet::Starknet;
 use starknet_types::felt::Felt;
 use starknet_types::traits::{ToDecimalString, ToHexString};
 use tracing::info;

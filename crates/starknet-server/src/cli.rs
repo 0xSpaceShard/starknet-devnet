@@ -6,7 +6,7 @@ use starknet_core::constants::{
     DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT,
     DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
-use starknet_core::starknet::{DumpMode, StarknetConfig};
+use starknet_core::starknet::starknet_config::{DumpMode, StarknetConfig};
 use starknet_types::chain_id::ChainId;
 use starknet_types::num_bigint::BigUint;
 use strum::IntoEnumIterator;
