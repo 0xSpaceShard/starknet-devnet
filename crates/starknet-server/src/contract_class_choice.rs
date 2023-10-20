@@ -6,16 +6,16 @@ use starknet_types::felt::Felt;
 use starknet_types::traits::HashProducer;
 
 #[derive(clap::ValueEnum, Debug, Clone)]
-pub enum ContractClassChoice {
+pub enum AccountContractClassChoice {
     Cairo0,
     Cairo1,
 }
 
-impl ContractClassChoice {
+impl AccountContractClassChoice {
     pub fn get_path(&self) -> &str {
         match self {
-            ContractClassChoice::Cairo0 => CAIRO_0_ACCOUNT_CONTRACT_PATH,
-            ContractClassChoice::Cairo1 => CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
+            AccountContractClassChoice::Cairo0 => CAIRO_0_ACCOUNT_CONTRACT_PATH,
+            AccountContractClassChoice::Cairo1 => CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
         }
     }
 
@@ -33,10 +33,10 @@ impl ContractClassChoice {
 
     pub fn get_hash(&self) -> Result<Felt, anyhow::Error> {
         let hash = match self {
-            ContractClassChoice::Cairo0 => {
+            AccountContractClassChoice::Cairo0 => {
                 Cairo0Json::raw_json_from_path(self.get_path())?.generate_hash()?
             }
-            ContractClassChoice::Cairo1 => {
+            AccountContractClassChoice::Cairo1 => {
                 let contract_class_str = std::fs::read_to_string(self.get_path())?;
                 let account_contract_class = ContractClass::Cairo1(
                     ContractClass::cairo_1_from_sierra_json_str(&contract_class_str)?,
@@ -45,5 +45,20 @@ impl ContractClassChoice {
             }
         };
         Ok(hash)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::ValueEnum;
+
+    use super::AccountContractClassChoice;
+
+    #[test]
+    fn all_methods_work_with_all_options() {
+        for implementation in AccountContractClassChoice::value_variants().iter() {
+            assert!(implementation.get_class().is_ok());
+            assert!(implementation.get_hash().is_ok());
+        }
     }
 }

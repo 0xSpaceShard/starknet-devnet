@@ -10,7 +10,7 @@ use starknet_types::chain_id::ChainId;
 use starknet_types::num_bigint::BigUint;
 use strum::IntoEnumIterator;
 
-use crate::contract_class_choice::ContractClassChoice;
+use crate::contract_class_choice::AccountContractClassChoice;
 use crate::ip_addr_wrapper::IpAddrWrapper;
 
 /// Run a local instance of Starknet Devnet
@@ -30,7 +30,7 @@ pub(crate) struct Args {
     #[arg(value_name = "ACCOUNT_CLASS")]
     #[arg(default_value = "cairo0")]
     #[arg(help = "Specify the class used by predeployed accounts;")]
-    account_class: ContractClassChoice,
+    account_class: AccountContractClassChoice,
 
     /// Initial balance of predeployed accounts
     #[arg(long = "initial-balance")]
