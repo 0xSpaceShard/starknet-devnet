@@ -8,7 +8,9 @@ use crate::felt::Felt;
 
 #[derive(Clone, Copy, Debug, clap::ValueEnum)]
 pub enum ChainId {
+    #[clap(name = "MAINNET")]
     Mainnet,
+    #[clap(name = "TESTNET")]
     Testnet,
 }
 
