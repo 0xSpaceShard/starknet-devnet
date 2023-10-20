@@ -214,7 +214,7 @@ impl Starknet {
 
     // Update block context
     // Initialize values for new pending block
-    pub fn generate_pending_block(&mut self) -> DevnetResult<()> {
+    pub(crate) fn generate_pending_block(&mut self) -> DevnetResult<()> {
         Self::update_block_context(&mut self.block_context);
         self.restart_pending_block()?;
 
@@ -839,16 +839,17 @@ impl Starknet {
         Ok(simulation_results)
     }
 
-    pub fn set_time(&self, timestamp: u64) {
-        // TODO: can it be done in one line? is it working at all?
-        let mut block_timestamp = &self.block_context.block_timestamp;
-        block_timestamp = &BlockTimestamp(timestamp);
+    pub fn create_empy_block(&mut self) -> DevnetResult<BlockNumber, Error>
+    {
+        self.generate_new_block(StateDiff::default())
     }
 
-    pub fn increase_time(&self, timestamp: u64) {
-        // TODO: can it be done in one line? is it working at all?
-        let mut block_timestamp = &self.block_context.block_timestamp;
-        block_timestamp = &BlockTimestamp(Self::get_current_timestamp_secs() + timestamp);
+    pub fn set_time(&mut self, timestamp: u64) {
+        self.blocks.pending_block.header.timestamp = BlockTimestamp(timestamp);
+    }
+
+    pub fn increase_time(&mut self, timestamp: u64) {
+        self.blocks.pending_block.header.timestamp = BlockTimestamp(Self::get_current_timestamp_secs() + timestamp);
     }
 }
 
