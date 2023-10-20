@@ -13,7 +13,7 @@ pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/accounts_artifacts/OpenZeppelin/0.7.0/Account.cairo/Account.sierra.json"
 );
-pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str = // TODO should it be casm
+pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
     "0x04c6d6cf894f8bc96bb9c525e6853e5483177841f7388f74a46cfda6f028c755";
 
 pub(crate) const ERC20_CONTRACT_PATH: &str =

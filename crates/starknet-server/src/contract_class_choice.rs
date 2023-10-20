@@ -37,8 +37,7 @@ impl ContractClassChoice {
                 Cairo0Json::raw_json_from_path(self.get_path())?.generate_hash()?
             }
             ContractClassChoice::Cairo1 => {
-                let contract_class_str =
-                    std::fs::read_to_string(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH)?;
+                let contract_class_str = std::fs::read_to_string(self.get_path())?;
                 let account_contract_class = ContractClass::Cairo1(
                     ContractClass::cairo_1_from_sierra_json_str(&contract_class_str)?,
                 );
