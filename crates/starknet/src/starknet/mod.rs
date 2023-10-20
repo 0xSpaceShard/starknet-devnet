@@ -839,8 +839,7 @@ impl Starknet {
         Ok(simulation_results)
     }
 
-    pub fn create_empy_block(&mut self) -> DevnetResult<BlockNumber, Error>
-    {
+    pub fn create_empy_block(&mut self) -> DevnetResult<BlockNumber, Error> {
         self.generate_new_block(StateDiff::default())
     }
 
@@ -849,7 +848,8 @@ impl Starknet {
     }
 
     pub fn increase_time(&mut self, timestamp: u64) {
-        self.blocks.pending_block.header.timestamp = BlockTimestamp(Self::get_current_timestamp_secs() + timestamp);
+        self.blocks.pending_block.header.timestamp =
+            BlockTimestamp(Self::get_current_timestamp_secs() + timestamp);
     }
 }
 

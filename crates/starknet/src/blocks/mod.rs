@@ -141,7 +141,7 @@ impl StarknetBlocks {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct StarknetBlock {
     pub(crate) header: BlockHeader,
     transaction_hashes: Vec<TransactionHash>,
