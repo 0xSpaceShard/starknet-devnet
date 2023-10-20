@@ -2,13 +2,13 @@ use std::net::{IpAddr, Ipv4Addr};
 
 use clap::Parser;
 use starknet_core::constants::{
-    DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT,
-    DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+    DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TIMEOUT,
+    DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
 use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
 use starknet_types::chain_id::ChainId;
-use starknet_types::num_bigint::BigUint;
 
+use crate::initial_balance_wrapper::InitialBalanceWrapper;
 use crate::ip_addr_wrapper::IpAddrWrapper;
 
 /// Run a local instance of Starknet Devnet
@@ -26,10 +26,10 @@ pub(crate) struct Args {
     /// Initial balance of predeployed accounts
     #[arg(long = "initial-balance")]
     #[arg(short = 'e')]
-    #[arg(value_name = "INITIAL_BALANCE")]
-    #[arg(default_value_t = BigUint::from(DEVNET_DEFAULT_INITIAL_BALANCE))]
+    #[arg(value_name = "DECIMAL_VALUE")]
+    #[arg(default_value_t = InitialBalanceWrapper::default())]
     #[arg(help = "Specify the initial balance in WEI of accounts to be predeployed;")]
-    initial_balance: BigUint,
+    initial_balance: InitialBalanceWrapper,
 
     // Seed for predeployed accounts
     #[arg(long = "seed")]
@@ -93,11 +93,7 @@ impl Args {
                 None => random_number_generator::generate_u32_random_number(),
             },
             total_accounts: self.accounts_count,
-            predeployed_accounts_initial_balance: self
-                .initial_balance
-                .clone()
-                .try_into()
-                .expect("Invalid value for initial balance"), // TODO: Doesn't exit nicely.
+            predeployed_accounts_initial_balance: self.initial_balance.0,
             host: self.host.inner,
             port: self.port,
             timeout: self.timeout,
