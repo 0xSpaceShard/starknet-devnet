@@ -1,4 +1,3 @@
-use std::fmt;
 use std::net::IpAddr;
 
 use starknet_types::chain_id::ChainId;
@@ -10,15 +9,6 @@ use crate::constants::{DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_HOST};
 pub enum DumpOn {
     Exit,
     Transaction,
-}
-
-impl fmt::Display for DumpOn {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self {
-            DumpOn::Exit => write!(f, "exit"),
-            DumpOn::Transaction => write!(f, "transaction"),
-        }
-    }
 }
 
 #[derive(Clone, Debug)]

@@ -1,4 +1,3 @@
-use core::panic;
 use std::net::{IpAddr, Ipv4Addr};
 
 use clap::Parser;
@@ -67,17 +66,16 @@ pub(crate) struct Args {
     #[arg(help = "Specify the gas price in wei per gas unit;")]
     gas_price: u64,
 
-    // Chain id as string
     #[arg(long = "chain-id")]
     #[arg(value_name = "CHAIN_ID")]
     #[arg(default_value = "TESTNET")]
-    #[arg(help = "Specify the chain id as one of: {MAINNET, TESTNET, TESTNET2};")]
-    chain_id: String,
+    #[arg(help = "Specify the chain ID;")]
+    chain_id: ChainId,
 
     #[arg(long = "dump-on")]
     #[arg(value_name = "WHEN")]
     #[arg(help = "Specify when to dump the state of Devnet;")]
-    #[arg(requires = "dump_path")] // TODO not working
+    #[arg(requires = "dump_path")]
     dump_on: Option<DumpOn>,
 
     // Dump path as string
@@ -104,12 +102,7 @@ impl Args {
             port: self.port,
             timeout: self.timeout,
             gas_price: self.gas_price,
-            chain_id: match self.chain_id.as_str() {
-                "MAINNET" => ChainId::MainNet,
-                "TESTNET" => ChainId::TestNet,
-                "TESTNET2" => ChainId::TestNet2,
-                _ => panic!("Invalid value for chain-id"),
-            },
+            chain_id: self.chain_id,
             dump_on: self.dump_on,
             dump_path: self.dump_path.clone(),
         }

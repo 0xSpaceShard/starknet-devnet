@@ -4380,6 +4380,7 @@ dependencies = [
  "base64 0.21.2",
  "blockifier",
  "cairo-felt",
+ "clap",
  "flate2",
  "num-bigint",
  "num-integer",

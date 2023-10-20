@@ -171,7 +171,7 @@ mod tests {
 
         let class_hash = broadcasted_tx.generate_class_hash().unwrap();
         let transaction_hash = broadcasted_tx
-            .calculate_transaction_hash(&ChainId::TestNet.to_felt(), &class_hash)
+            .calculate_transaction_hash(&ChainId::Testnet.to_felt(), &class_hash)
             .unwrap();
 
         let blockifier_declare_transaction =
