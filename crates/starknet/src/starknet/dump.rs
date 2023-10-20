@@ -140,11 +140,9 @@ impl Starknet {
                         Error::SerializationError { obj_name: "Vec<Transaction>".to_string() }
                     })?;
                     fs::write(Path::new(&path), transactions_dump)?;
-
-                    return Ok(());
                 }
 
-                Err(Error::NoTransaction)
+                Ok(())
             }
             None => Err(Error::FormatError),
         }
