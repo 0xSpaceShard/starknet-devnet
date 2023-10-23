@@ -42,7 +42,7 @@ pub const DEVNET_DEFAULT_GAS_PRICE: u64 = 100_000_000_000;
 pub const DEVNET_DEFAULT_HOST: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
 pub const DEVNET_DEFAULT_PORT: u16 = 5050;
 pub const DEVNET_DEFAULT_TIMEOUT: u16 = 120;
-pub const DEVNET_DEFAULT_CHAIN_ID: ChainId = ChainId::TestNet;
+pub const DEVNET_DEFAULT_CHAIN_ID: ChainId = ChainId::Testnet;
 
 pub const SUPPORTED_TX_VERSION: u32 = 1;
 

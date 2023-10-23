@@ -1,5 +1,3 @@
-use std::fmt;
-use std::net::IpAddr;
 use std::time::SystemTime;
 
 use blockifier::block_context::BlockContext;
@@ -16,7 +14,7 @@ use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::Signer;
 use starknet_types::chain_id::ChainId;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
+use starknet_types::contract_class::ContractClass;
 use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
@@ -35,15 +33,15 @@ use starknet_types::rpc::transactions::{
     TransactionTrace, Transactions,
 };
 use starknet_types::traits::HashProducer;
-use strum_macros::EnumIter;
 use tracing::{error, warn};
 
 use self::predeployed::initialize_erc20;
+use self::starknet_config::{DumpOn, StarknetConfig};
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
-    CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
-    DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_HOST, ERC20_CONTRACT_ADDRESS,
+    CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, DEVNET_DEFAULT_CHAIN_ID,
+    ERC20_CONTRACT_ADDRESS,
 };
 use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::predeployed_accounts::PredeployedAccounts;
@@ -65,61 +63,8 @@ mod estimations;
 mod events;
 mod get_class_impls;
 mod predeployed;
+pub mod starknet_config;
 mod state_update;
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq, EnumIter)]
-pub enum DumpMode {
-    OnExit,
-    OnTransaction,
-}
-
-impl fmt::Display for DumpMode {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self {
-            DumpMode::OnExit => write!(f, "exit"),
-            DumpMode::OnTransaction => write!(f, "transaction"),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct StarknetConfig {
-    pub seed: u32,
-    pub total_accounts: u8,
-    pub account_contract_class: ContractClass,
-    pub account_contract_class_hash: Felt,
-    pub predeployed_accounts_initial_balance: Felt,
-    pub host: IpAddr,
-    pub port: u16,
-    pub timeout: u16,
-    pub gas_price: u64,
-    pub chain_id: ChainId,
-    pub dump_on: Option<DumpMode>,
-    pub dump_path: Option<String>,
-}
-
-impl Default for StarknetConfig {
-    fn default() -> Self {
-        let account_contract_class =
-            Cairo0Json::raw_json_from_path(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
-        Self {
-            seed: u32::default(),
-            total_accounts: u8::default(),
-            account_contract_class: ContractClass::Cairo0(Cairo0ContractClass::RawJson(
-                account_contract_class.clone(),
-            )),
-            account_contract_class_hash: account_contract_class.generate_hash().unwrap(),
-            predeployed_accounts_initial_balance: Felt::default(),
-            host: DEVNET_DEFAULT_HOST,
-            port: u16::default(),
-            timeout: u16::default(),
-            gas_price: Default::default(),
-            chain_id: DEVNET_DEFAULT_CHAIN_ID,
-            dump_on: None,
-            dump_path: None,
-        }
-    }
-}
 
 pub struct Starknet {
     pub(in crate::starknet) state: StarknetState,
@@ -341,7 +286,7 @@ impl Starknet {
         // clear pending block information
         self.generate_pending_block()?;
 
-        if self.config.dump_on == Some(DumpMode::OnTransaction) {
+        if self.config.dump_on == Some(DumpOn::Transaction) {
             self.dump_transaction(transaction)?;
         }
 
