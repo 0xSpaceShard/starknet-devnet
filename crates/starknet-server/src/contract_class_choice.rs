@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use starknet_core::constants::{
     CAIRO_0_ACCOUNT_CONTRACT_PATH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
 };
@@ -45,6 +47,20 @@ impl AccountContractClassChoice {
             }
         };
         Ok(hash)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct AccountClassPathWrapper {
+    contract_class: ContractClass,
+    class_hash: Felt,
+}
+
+impl FromStr for AccountClassPathWrapper {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }
 

@@ -6,7 +6,7 @@ use starknet_core::constants::{
 use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
 use starknet_types::chain_id::ChainId;
 
-use crate::contract_class_choice::AccountContractClassChoice;
+use crate::contract_class_choice::{AccountClassPathWrapper, AccountContractClassChoice};
 use crate::initial_balance_wrapper::InitialBalanceWrapper;
 use crate::ip_addr_wrapper::IpAddrWrapper;
 
@@ -28,6 +28,12 @@ pub(crate) struct Args {
     #[arg(default_value = "cairo0")]
     #[arg(help = "Specify the class used by predeployed accounts;")]
     account_class: AccountContractClassChoice,
+
+    #[arg(long = "account-class-path")]
+    #[arg(value_name = "PATH")]
+    #[arg(conflicts_with = "account_class")]
+    #[arg(help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;")]
+    account_class_path: AccountClassPathWrapper,
 
     /// Initial balance of predeployed accounts
     #[arg(long = "initial-balance")]
@@ -145,6 +151,36 @@ mod tests {
         match Args::try_parse_from(["--", "--host", "invalid"]) {
             Err(_) => (),
             Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
+        }
+    }
+
+    #[test]
+    fn not_allowing_account_class_and_account_class_path() {
+        match Args::try_parse_from([
+            "--",
+            "--account-class",
+            "cairo1",
+            "--account-class-path",
+            "/path/to/account.sierra",
+        ]) {
+            Err(_) => (),
+            Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
+        }
+    }
+
+    #[test]
+    fn allowing_only_account_class() {
+        match Args::try_parse_from(["--", "--account-class", "cairo1"]) {
+            Ok(_) => (),
+            Err(err) => panic!("Should have passed; got: {err:?}"),
+        }
+    }
+
+    #[test]
+    fn allowing_only_account_class_path() {
+        match Args::try_parse_from(["--", "--account-class-path", "/path/to/account.sierra"]) {
+            Ok(_) => (),
+            Err(err) => panic!("Should have passed; got: {err:?}"),
         }
     }
 }
