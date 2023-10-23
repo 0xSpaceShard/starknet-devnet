@@ -1,5 +1,3 @@
-use std::net::{IpAddr, Ipv4Addr};
-
 use clap::Parser;
 use starknet_core::constants::{
     DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TIMEOUT,
@@ -8,6 +6,7 @@ use starknet_core::constants::{
 use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
 use starknet_types::chain_id::ChainId;
 
+use crate::contract_class_choice::AccountContractClassChoice;
 use crate::initial_balance_wrapper::InitialBalanceWrapper;
 use crate::ip_addr_wrapper::IpAddrWrapper;
 
@@ -22,6 +21,13 @@ pub(crate) struct Args {
     #[arg(default_value_t = DEVNET_DEFAULT_TOTAL_ACCOUNTS)]
     #[arg(help = "Specify the number of accounts to be predeployed;")]
     accounts_count: u8,
+
+    /// Class used for account predeployment
+    #[arg(long = "account-class")]
+    #[arg(value_name = "ACCOUNT_CLASS")]
+    #[arg(default_value = "cairo0")]
+    #[arg(help = "Specify the class used by predeployed accounts;")]
+    account_class: AccountContractClassChoice,
 
     /// Initial balance of predeployed accounts
     #[arg(long = "initial-balance")]
@@ -41,7 +47,7 @@ pub(crate) struct Args {
     // Host address
     #[arg(long = "host")]
     #[arg(value_name = "HOST")]
-    #[arg(default_value_t = IpAddrWrapper { inner: IpAddr::V4(Ipv4Addr::LOCALHOST) })]
+    #[arg(default_value_t = IpAddrWrapper::LOCALHOST)]
     #[arg(help = "Specify the address to listen at;")]
     host: IpAddrWrapper,
 
@@ -86,13 +92,15 @@ pub(crate) struct Args {
 }
 
 impl Args {
-    pub(crate) fn to_starknet_config(&self) -> StarknetConfig {
-        StarknetConfig {
+    pub(crate) fn to_starknet_config(&self) -> Result<StarknetConfig, anyhow::Error> {
+        Ok(StarknetConfig {
             seed: match self.seed {
                 Some(seed) => seed,
                 None => random_number_generator::generate_u32_random_number(),
             },
             total_accounts: self.accounts_count,
+            account_contract_class: self.account_class.get_class()?,
+            account_contract_class_hash: self.account_class.get_hash()?,
             predeployed_accounts_initial_balance: self.initial_balance.0,
             host: self.host.inner,
             port: self.port,
@@ -101,7 +109,7 @@ impl Args {
             chain_id: self.chain_id,
             dump_on: self.dump_on,
             dump_path: self.dump_path.clone(),
-        }
+        })
     }
 }
 

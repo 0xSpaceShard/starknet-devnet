@@ -2,13 +2,19 @@ use std::net::{IpAddr, Ipv4Addr};
 
 use starknet_types::chain_id::ChainId;
 
-pub(crate) const CAIRO_0_ACCOUNT_CONTRACT_PATH: &str = concat!(
+pub const CAIRO_0_ACCOUNT_CONTRACT_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/accounts_artifacts/OpenZeppelin/0.5.1/Account.cairo/Account.json"
+    "/accounts_artifacts/OpenZeppelin/0.5.1/Account.cairo/Account.casm"
 );
-
 pub const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str =
     "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f";
+
+pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/accounts_artifacts/OpenZeppelin/0.7.0/Account.cairo/Account.sierra"
+);
+pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
+    "0x04c6d6cf894f8bc96bb9c525e6853e5483177841f7388f74a46cfda6f028c755";
 
 pub(crate) const ERC20_CONTRACT_PATH: &str =
     concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/ERC20_Mintable_OZ_0.2.0.json");

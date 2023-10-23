@@ -14,7 +14,7 @@ use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::Signer;
 use starknet_types::chain_id::ChainId;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::{Cairo0Json, ContractClass};
+use starknet_types::contract_class::ContractClass;
 use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
@@ -40,8 +40,8 @@ use self::starknet_config::{DumpOn, StarknetConfig};
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
-    CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
-    DEVNET_DEFAULT_CHAIN_ID, ERC20_CONTRACT_ADDRESS,
+    CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, DEVNET_DEFAULT_CHAIN_ID,
+    ERC20_CONTRACT_ADDRESS,
 };
 use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::predeployed_accounts::PredeployedAccounts;
@@ -109,24 +109,18 @@ impl Starknet {
             config.predeployed_accounts_initial_balance,
             erc20_fee_contract.get_address(),
         );
-        let account_contract_class = Cairo0Json::raw_json_from_path(CAIRO_0_ACCOUNT_CONTRACT_PATH)?;
-        let class_hash = account_contract_class.generate_hash()?;
 
         let accounts = predeployed_accounts.generate_accounts(
             config.total_accounts,
-            class_hash,
-            account_contract_class.clone().into(),
+            config.account_contract_class_hash,
+            config.account_contract_class.clone(),
         )?;
         for account in accounts {
             account.deploy(&mut state)?;
             account.set_initial_balance(&mut state)?;
         }
 
-        let chargeable_account = Account::new_chargeable(
-            class_hash,
-            account_contract_class.into(),
-            erc20_fee_contract.get_address(),
-        );
+        let chargeable_account = Account::new_chargeable(erc20_fee_contract.get_address())?;
         chargeable_account.deploy(&mut state)?;
         chargeable_account.set_initial_balance(&mut state)?;
 

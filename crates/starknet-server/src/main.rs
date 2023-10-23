@@ -19,6 +19,7 @@ use tracing_subscriber::EnvFilter;
 
 mod api;
 mod cli;
+mod contract_class_choice;
 mod initial_balance_wrapper;
 mod ip_addr_wrapper;
 mod server;
@@ -70,7 +71,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // parse arguments
     let args = Args::parse();
-    let starknet_config = args.to_starknet_config();
+    let starknet_config = args.to_starknet_config()?;
     let mut addr: SocketAddr = SocketAddr::new(starknet_config.host, starknet_config.port);
 
     let api = api::Api::new(Starknet::new(&starknet_config)?);
