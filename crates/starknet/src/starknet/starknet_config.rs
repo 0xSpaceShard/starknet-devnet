@@ -38,10 +38,10 @@ impl Default for StarknetConfig {
         Self {
             seed: u32::default(),
             total_accounts: u8::default(),
-            account_contract_class: ContractClass::Cairo0(Cairo0ContractClass::RawJson(
-                account_contract_class.clone(),
-            )),
             account_contract_class_hash: account_contract_class.generate_hash().unwrap(),
+            account_contract_class: ContractClass::Cairo0(Cairo0ContractClass::RawJson(
+                account_contract_class,
+            )),
             predeployed_accounts_initial_balance: Felt::default(),
             host: DEVNET_DEFAULT_HOST,
             port: u16::default(),
