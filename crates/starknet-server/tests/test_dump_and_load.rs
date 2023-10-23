@@ -288,6 +288,20 @@ mod dump_and_load_tests {
     }
 
     #[tokio::test]
+    async fn dump_endpoint_fail_with_wrong_file_name() {
+        let devnet_dump = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+        let dump_body = Body::from(
+            json!({
+                "path": "///"
+            })
+            .to_string(),
+        );
+        let result = devnet_dump.post_json("/dump".into(), dump_body).await.unwrap();
+        assert_eq!(result.status(), 400);
+    }
+
+    #[tokio::test]
     async fn load_endpoint_fail_with_wrong_request() {
         let devnet_load = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let load_body = Body::from(
