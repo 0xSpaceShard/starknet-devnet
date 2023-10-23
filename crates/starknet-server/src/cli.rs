@@ -1,16 +1,14 @@
-use core::panic;
 use std::net::{IpAddr, Ipv4Addr};
 
 use clap::Parser;
 use starknet_core::constants::{
-    DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT,
-    DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+    DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TIMEOUT,
+    DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
-use starknet_core::starknet::{DumpMode, StarknetConfig};
+use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
 use starknet_types::chain_id::ChainId;
-use starknet_types::num_bigint::BigUint;
-use strum::IntoEnumIterator;
 
+use crate::initial_balance_wrapper::InitialBalanceWrapper;
 use crate::ip_addr_wrapper::IpAddrWrapper;
 
 /// Run a local instance of Starknet Devnet
@@ -28,10 +26,10 @@ pub(crate) struct Args {
     /// Initial balance of predeployed accounts
     #[arg(long = "initial-balance")]
     #[arg(short = 'e')]
-    #[arg(value_name = "INITIAL_BALANCE")]
-    #[arg(default_value_t = BigUint::from(DEVNET_DEFAULT_INITIAL_BALANCE))]
+    #[arg(value_name = "DECIMAL_VALUE")]
+    #[arg(default_value_t = InitialBalanceWrapper::default())]
     #[arg(help = "Specify the initial balance in WEI of accounts to be predeployed;")]
-    initial_balance: BigUint,
+    initial_balance: InitialBalanceWrapper,
 
     // Seed for predeployed accounts
     #[arg(long = "seed")]
@@ -68,18 +66,17 @@ pub(crate) struct Args {
     #[arg(help = "Specify the gas price in wei per gas unit;")]
     gas_price: u64,
 
-    // Chain id as string
     #[arg(long = "chain-id")]
     #[arg(value_name = "CHAIN_ID")]
     #[arg(default_value = "TESTNET")]
-    #[arg(help = "Specify the chain id as one of: {MAINNET, TESTNET, TESTNET2};")]
-    chain_id: String,
+    #[arg(help = "Specify the chain ID;")]
+    chain_id: ChainId,
 
-    // Dump on exit or after transaction
     #[arg(long = "dump-on")]
-    #[arg(value_name = "DUMP_ON")]
-    #[arg(help = "Specify when to dump; can dump on: exit, transaction;")]
-    dump_on: Option<String>,
+    #[arg(value_name = "WHEN")]
+    #[arg(help = "Specify when to dump the state of Devnet;")]
+    #[arg(requires = "dump_path")]
+    dump_on: Option<DumpOn>,
 
     // Dump path as string
     #[arg(long = "dump-path")]
@@ -96,50 +93,14 @@ impl Args {
                 None => random_number_generator::generate_u32_random_number(),
             },
             total_accounts: self.accounts_count,
-            predeployed_accounts_initial_balance: self
-                .initial_balance
-                .clone()
-                .try_into()
-                .expect("Invalid value for initial balance"), // TODO: Doesn't exit nicely.
+            predeployed_accounts_initial_balance: self.initial_balance.0,
             host: self.host.inner,
             port: self.port,
             timeout: self.timeout,
             gas_price: self.gas_price,
-            chain_id: match self.chain_id.as_str() {
-                "MAINNET" => ChainId::MainNet,
-                "TESTNET" => ChainId::TestNet,
-                "TESTNET2" => ChainId::TestNet2,
-                _ => panic!("Invalid value for chain-id"),
-            },
-            dump_on: self.parse_dump_on(),
+            chain_id: self.chain_id,
+            dump_on: self.dump_on,
             dump_path: self.dump_path.clone(),
-        }
-    }
-
-    pub(crate) fn parse_dump_on(&self) -> Option<DumpMode> {
-        let dump_on = self.dump_on.clone().unwrap_or_default();
-
-        if self.dump_path.is_some() && !dump_on.as_str().is_empty() {
-            match dump_on.as_str() {
-                "exit" => Some(DumpMode::OnExit),
-                "transaction" => Some(DumpMode::OnTransaction),
-                _ => {
-                    let mut options = String::new();
-                    for mode in DumpMode::iter() {
-                        options.push_str((mode.to_string() + ", ").as_str());
-                    }
-
-                    panic!(
-                        "--dump_on Should be one of: {}; got: {}",
-                        &options[0..options.len() - 2],
-                        dump_on.as_str()
-                    )
-                }
-            }
-        } else if !dump_on.as_str().is_empty() {
-            panic!("--dump-path required if --dump-on is present")
-        } else {
-            None
         }
     }
 }
