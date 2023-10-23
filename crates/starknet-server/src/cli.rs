@@ -92,18 +92,15 @@ pub(crate) struct Args {
 }
 
 impl Args {
-    pub(crate) fn to_starknet_config(&self) -> StarknetConfig {
-        StarknetConfig {
+    pub(crate) fn to_starknet_config(&self) -> Result<StarknetConfig, anyhow::Error> {
+        Ok(StarknetConfig {
             seed: match self.seed {
                 Some(seed) => seed,
                 None => random_number_generator::generate_u32_random_number(),
             },
             total_accounts: self.accounts_count,
-            account_contract_class: self.account_class.get_class().expect("Invalid account class"),
-            account_contract_class_hash: self
-                .account_class
-                .get_hash()
-                .expect("Invalid account class hash"),
+            account_contract_class: self.account_class.get_class()?,
+            account_contract_class_hash: self.account_class.get_hash()?,
             predeployed_accounts_initial_balance: self.initial_balance.0,
             host: self.host.inner,
             port: self.port,
@@ -112,7 +109,7 @@ impl Args {
             chain_id: self.chain_id,
             dump_on: self.dump_on,
             dump_path: self.dump_path.clone(),
-        }
+        })
     }
 }
 
