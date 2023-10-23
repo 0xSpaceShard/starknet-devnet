@@ -53,7 +53,7 @@ pub(crate) mod test_utils {
         DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TEST_SEED,
         DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
     };
-    use crate::starknet::StarknetConfig;
+    use crate::starknet::starknet_config::StarknetConfig;
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
 
     pub fn starknet_config_for_test() -> StarknetConfig {

@@ -8,7 +8,7 @@ use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::B
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
 use starknet_types::rpc::transactions::{DeclareTransaction, InvokeTransaction, Transaction};
 
-use super::{DumpMode, Starknet};
+use super::{DumpOn, Starknet};
 use crate::error::{DevnetResult, Error};
 
 impl Starknet {
@@ -176,7 +176,7 @@ impl Starknet {
 
                     // to avoid doublets in transaction mode during load, we need to remove the file
                     // because they will be re-executed and saved again
-                    if self.config.dump_on == Some(DumpMode::OnTransaction) {
+                    if self.config.dump_on == Some(DumpOn::Transaction) {
                         fs::remove_file(file_path).map_err(Error::IoError)?;
                     }
 
