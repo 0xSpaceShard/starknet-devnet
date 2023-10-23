@@ -51,14 +51,33 @@ impl AccountContractClassChoice {
 #[cfg(test)]
 mod tests {
     use clap::ValueEnum;
+    use starknet_core::constants::{
+        CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
+    };
+    use starknet_types::felt::Felt;
+    use starknet_types::traits::HashProducer;
 
     use super::AccountContractClassChoice;
 
     #[test]
     fn all_methods_work_with_all_options() {
         for implementation in AccountContractClassChoice::value_variants().iter() {
-            assert!(implementation.get_class().is_ok());
-            assert!(implementation.get_hash().is_ok());
+            let contract_class = implementation.get_class().unwrap();
+            let generated_hash = contract_class.generate_hash().unwrap();
+            assert_eq!(generated_hash, implementation.get_hash().unwrap());
         }
+    }
+
+    #[test]
+    fn correct_hash_calculated() {
+        assert_eq!(
+            AccountContractClassChoice::Cairo0.get_hash().unwrap(),
+            Felt::from_prefixed_hex_str(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap()
+        );
+
+        assert_eq!(
+            AccountContractClassChoice::Cairo1.get_hash().unwrap(),
+            Felt::from_prefixed_hex_str(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
+        )
     }
 }
