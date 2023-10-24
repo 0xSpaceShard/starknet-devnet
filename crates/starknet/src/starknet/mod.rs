@@ -843,6 +843,11 @@ impl Starknet {
         self.generate_new_block(StateDiff::default())
     }
 
+    pub fn set_current_time(&mut self) {
+        self.blocks.pending_block.header.timestamp =
+            BlockTimestamp(Self::get_current_timestamp_secs());
+    }
+
     pub fn set_time(&mut self, timestamp: u64) {
         self.blocks.pending_block.header.timestamp = BlockTimestamp(timestamp);
     }
