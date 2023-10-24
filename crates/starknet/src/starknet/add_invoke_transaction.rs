@@ -267,11 +267,16 @@ mod tests {
 
         // dummy contract
         let dummy_contract: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
-        let blockifier = blockifier::execution::contract_class::ContractClassV0::try_from(dummy_contract.clone()).unwrap();
-        let increase_balance_selector: StarkFelt = get_selector_from_name("increase_balance").unwrap().into();
+        let blockifier = blockifier::execution::contract_class::ContractClassV0::try_from(
+            dummy_contract.clone(),
+        )
+        .unwrap();
+        let increase_balance_selector: StarkFelt =
+            get_selector_from_name("increase_balance").unwrap().into();
 
         // check if increase_balance function is present in the contract class
-        blockifier.entry_points_by_type
+        blockifier
+            .entry_points_by_type
             .get(&starknet_api::deprecated_contract_class::EntryPointType::External)
             .unwrap()
             .iter()
