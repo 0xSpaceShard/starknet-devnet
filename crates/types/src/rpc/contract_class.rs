@@ -1,16 +1,16 @@
 use core::fmt::Debug;
 use std::cmp::{Eq, PartialEq};
 
-use serde::{Serialize, Serializer};
-use starknet_in_rust::core::contract_address::compute_sierra_class_hash;
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
+use serde::{Serialize, Serializer};
+use starknet_rs_core::types::contract::SierraClass;
 use starknet_rs_core::types::{
     ContractClass as CodegenContractClass, FlattenedSierraClass as CodegenSierraContracrClass,
 };
 use starknet_rs_ff::FieldElement;
 
-use crate::error::{DevnetResult, Error, JsonError};
+use crate::error::{ConversionError, DevnetResult, Error, JsonError};
 use crate::felt::Felt;
 use crate::traits::HashProducer;
 
@@ -177,6 +177,15 @@ fn convert_sierra_to_codegen(
     })
 }
 
+pub fn compute_sierra_class_hash(contract_class: &SierraContractClass) -> DevnetResult<Felt> {
+    let sierra_class: SierraClass = serde_json::from_value(
+        serde_json::to_value(contract_class).map_err(JsonError::SerdeJsonError)?,
+    )
+    .map_err(JsonError::SerdeJsonError)?;
+
+    Ok(sierra_class.class_hash().map_err(|_| Error::ConversionError(ConversionError::InvalidFormat))?.into())
+}
+
 impl TryInto<CodegenContractClass> for ContractClass {
     type Error = Error;
     fn try_into(self) -> Result<CodegenContractClass, Self::Error> {
@@ -193,9 +202,9 @@ impl TryInto<CodegenContractClass> for ContractClass {
 
 #[cfg(test)]
 mod tests {
+    use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
     use serde::Deserialize;
     use serde_json::Deserializer;
-    use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
     use starknet_rs_core::types::LegacyEntryPointsByType;
 
     use crate::contract_class::deprecated::rpc_contract_class::ContractClassAbiEntryWithType;
