@@ -6,7 +6,7 @@ use starknet_core::constants::{
 use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
 use starknet_types::chain_id::ChainId;
 
-use crate::contract_class_choice::{AccountClassPathWrapper, AccountContractClassChoice};
+use crate::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
 use crate::initial_balance_wrapper::InitialBalanceWrapper;
 use crate::ip_addr_wrapper::IpAddrWrapper;
 
@@ -33,7 +33,7 @@ pub(crate) struct Args {
     #[arg(value_name = "PATH")]
     #[arg(conflicts_with = "account_class")]
     #[arg(help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;")]
-    account_class_path: AccountClassPathWrapper,
+    account_class_custom: Option<AccountClassWrapper>,
 
     /// Initial balance of predeployed accounts
     #[arg(long = "initial-balance")]
@@ -99,14 +99,22 @@ pub(crate) struct Args {
 
 impl Args {
     pub(crate) fn to_starknet_config(&self) -> Result<StarknetConfig, anyhow::Error> {
+        let (account_contract_class, account_contract_class_hash) = match &self.account_class_custom
+        {
+            Some(account_class_wrapper) => {
+                (account_class_wrapper.contract_class.clone(), account_class_wrapper.class_hash)
+            }
+            None => (self.account_class.get_class()?, self.account_class.get_hash()?),
+        };
+
         Ok(StarknetConfig {
             seed: match self.seed {
                 Some(seed) => seed,
                 None => random_number_generator::generate_u32_random_number(),
             },
             total_accounts: self.accounts_count,
-            account_contract_class: self.account_class.get_class()?,
-            account_contract_class_hash: self.account_class.get_hash()?,
+            account_contract_class,
+            account_contract_class_hash,
             predeployed_accounts_initial_balance: self.initial_balance.0,
             host: self.host.inner,
             port: self.port,
@@ -122,6 +130,7 @@ impl Args {
 #[cfg(test)]
 mod tests {
     use clap::Parser;
+    use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH;
 
     use super::Args;
     use crate::ip_addr_wrapper::IpAddrWrapper;
@@ -161,9 +170,17 @@ mod tests {
             "--account-class",
             "cairo1",
             "--account-class-path",
-            "/path/to/account.sierra",
+            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
         ]) {
-            Err(_) => (),
+            Err(err) => {
+                let err_str = err.to_string();
+                let first_line = err_str.split('\n').next().unwrap();
+                assert_eq!(
+                    first_line,
+                    "error: the argument '--account-class <ACCOUNT_CLASS>' cannot be used with \
+                     '--account-class-path <PATH>'"
+                );
+            }
             Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
         }
     }
@@ -178,7 +195,11 @@ mod tests {
 
     #[test]
     fn allowing_only_account_class_path() {
-        match Args::try_parse_from(["--", "--account-class-path", "/path/to/account.sierra"]) {
+        match Args::try_parse_from([
+            "--",
+            "--account-class-path",
+            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
+        ]) {
             Ok(_) => (),
             Err(err) => panic!("Should have passed; got: {err:?}"),
         }

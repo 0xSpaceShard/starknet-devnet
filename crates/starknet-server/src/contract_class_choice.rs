@@ -3,6 +3,8 @@ use std::str::FromStr;
 use starknet_core::constants::{
     CAIRO_0_ACCOUNT_CONTRACT_PATH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
 };
+use starknet_rs_core::types::FieldElement;
+use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
 use starknet_types::felt::Felt;
 use starknet_types::traits::HashProducer;
@@ -13,8 +15,9 @@ pub enum AccountContractClassChoice {
     Cairo1,
 }
 
+// TODO refactor to rely on AccountClassWrapper
 impl AccountContractClassChoice {
-    pub fn get_path(&self) -> &str {
+    fn get_path(&self) -> &str {
         match self {
             AccountContractClassChoice::Cairo0 => CAIRO_0_ACCOUNT_CONTRACT_PATH,
             AccountContractClassChoice::Cairo1 => CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
@@ -51,16 +54,45 @@ impl AccountContractClassChoice {
 }
 
 #[derive(Clone, Debug)]
-pub struct AccountClassPathWrapper {
-    contract_class: ContractClass,
-    class_hash: Felt,
+pub struct AccountClassWrapper {
+    pub contract_class: ContractClass,
+    pub class_hash: Felt,
 }
 
-impl FromStr for AccountClassPathWrapper {
+impl FromStr for AccountClassWrapper {
     type Err = anyhow::Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(path_candidate: &str) -> Result<Self, Self::Err> {
+        // load artifact
+        let contract_class = ContractClass::cairo_1_from_sierra_json_str(
+            std::fs::read_to_string(path_candidate)?.as_str(),
+        )?;
+
+        // check that artifact is really account
+        let execute_selector: FieldElement = get_selector_from_name("__execute__").unwrap();
+        let validate_selector: FieldElement = get_selector_from_name("__validate__").unwrap();
+        let mut has_execute = false;
+        let mut has_validate = false;
+        for entry_point in contract_class.entry_points_by_type.external.iter() {
+            let selector_bytes = entry_point.selector.to_bytes_be();
+            match FieldElement::from_byte_slice_be(&selector_bytes) {
+                Ok(selector) if selector == execute_selector => has_execute = true,
+                Ok(selector) if selector == validate_selector => has_validate = true,
+                _ => (),
+            }
+        }
+        if !has_execute || !has_validate {
+            let msg = format!(
+                "Not a valid Sierra account artifact; has __execute__: {has_execute}; has \
+                 __validate__: {has_validate}"
+            );
+            return Err(anyhow::Error::msg(msg));
+        }
+
+        // generate the hash and return
+        let contract_class = ContractClass::Cairo1(contract_class);
+        let class_hash = contract_class.generate_hash()?;
+        Ok(Self { contract_class, class_hash })
     }
 }
 
