@@ -4,7 +4,9 @@ pub mod common;
 mod test_account_selection {
     use std::sync::Arc;
 
-    use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH;
+    use starknet_core::constants::{
+        CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
+    };
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{
         Account, AccountFactory, Call, ExecutionEncoding, OpenZeppelinAccountFactory,
@@ -36,10 +38,18 @@ mod test_account_selection {
     }
 
     #[tokio::test]
-    async fn correct_cairo1_artifact() {
-        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--account-class", "cairo1"])
-            .await
-            .unwrap();
+    async fn spawnable_with_custom_account() {
+        BackgroundDevnet::spawn_with_additional_args(&[
+            "--account-class-custom",
+            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
+        ])
+        .await
+        .unwrap();
+    }
+
+    /// Common body for tests defined below
+    async fn correct_artifact_test_body(devnet_args: &[&str], expected_hash: &str) {
+        let devnet = BackgroundDevnet::spawn_with_additional_args(devnet_args).await.unwrap();
 
         let (_, account_address) = devnet.get_first_predeployed_account().await;
         let retrieved_class_hash = devnet
@@ -47,16 +57,31 @@ mod test_account_selection {
             .get_class_hash_at(BlockId::Tag(BlockTag::Latest), account_address)
             .await
             .unwrap();
-        let expected_class_hash =
-            FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap();
+        let expected_class_hash = FieldElement::from_hex_be(expected_hash).unwrap();
         assert_eq!(retrieved_class_hash, expected_class_hash);
     }
 
     #[tokio::test]
-    async fn can_deploy_new_cairo1_account() {
-        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--account-class", "cairo1"])
-            .await
-            .unwrap();
+    async fn correct_cairo1_artifact() {
+        correct_artifact_test_body(
+            &["--account-class", "cairo1"],
+            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
+        )
+        .await;
+    }
+
+    #[tokio::test]
+    async fn correct_custom_artifact() {
+        correct_artifact_test_body(
+            &["--account-class-custom", CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH],
+            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
+        )
+        .await;
+    }
+
+    /// Common body for tests defined below
+    async fn can_deploy_new_account_test_body(devnet_args: &[&str]) {
+        let devnet = BackgroundDevnet::spawn_with_additional_args(devnet_args).await.unwrap();
 
         let signer = get_deployable_account_signer();
 
@@ -68,6 +93,7 @@ mod test_account_selection {
         )
         .await
         .unwrap();
+
         let new_account_nonce = FieldElement::ZERO;
         let salt = FieldElement::THREE;
         let deployment = account_factory.deploy(salt).nonce(new_account_nonce);
@@ -93,10 +119,22 @@ mod test_account_selection {
     }
 
     #[tokio::test]
-    async fn can_declare_deploy_invoke_using_predeployed_cairo1() {
-        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--account-class", "cairo1"])
-            .await
-            .unwrap();
+    async fn can_deploy_new_cairo1_account() {
+        can_deploy_new_account_test_body(&["--account-class", "cairo1"]).await;
+    }
+
+    #[tokio::test]
+    async fn can_deploy_new_custom_account() {
+        can_deploy_new_account_test_body(&[
+            "--account-class-custom",
+            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
+        ])
+        .await;
+    }
+
+    /// Common body for tests defined below
+    async fn can_declare_deploy_invoke_using_predeployed_test_body(devnet_args: &[&str]) {
+        let devnet = BackgroundDevnet::spawn_with_additional_args(devnet_args).await.unwrap();
 
         // get account
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
@@ -160,5 +198,19 @@ mod test_account_selection {
         let balance_after_sufficient =
             devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap();
         assert_eq!(balance_after_sufficient, vec![increase_amount]);
+    }
+
+    #[tokio::test]
+    async fn can_declare_deploy_invoke_using_predeployed_cairo1() {
+        can_declare_deploy_invoke_using_predeployed_test_body(&["--account-class", "cairo1"]).await;
+    }
+
+    #[tokio::test]
+    async fn can_declare_deploy_invoke_using_predeployed_custom() {
+        can_declare_deploy_invoke_using_predeployed_test_body(&[
+            "--account-class-custom",
+            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
+        ])
+        .await;
     }
 }
