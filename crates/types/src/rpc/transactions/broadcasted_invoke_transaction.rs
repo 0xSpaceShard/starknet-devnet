@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
 use blockifier::transaction::transactions::InvokeTransaction;
-use starknet_in_rust::felt::Felt252;
 use serde::{Deserialize, Serialize};
 use starknet_api::hash::StarkFelt;
 use starknet_api::transaction::Fee;
 use starknet_in_rust::core::transaction_hash::{
     calculate_transaction_hash_common, TransactionHashPrefix,
 };
+use starknet_in_rust::felt::Felt252;
 
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
