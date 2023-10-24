@@ -1,11 +1,10 @@
+use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
-use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
 
 use crate::contract_address::ContractAddress;
 use crate::felt::{
-    ClassHash, CompiledClassHash, Nonce, TransactionHash, TransactionSignature,
-    TransactionVersion,
+    ClassHash, CompiledClassHash, Nonce, TransactionHash, TransactionSignature, TransactionVersion,
 };
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]

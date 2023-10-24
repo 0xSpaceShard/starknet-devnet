@@ -1,12 +1,11 @@
 use blockifier::transaction::transactions::DeclareTransaction;
+use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
-use starknet_in_rust::core::contract_address::compute_sierra_class_hash;
 use starknet_in_rust::core::transaction_hash::calculate_declare_v2_transaction_hash;
-use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
 
 use crate::contract_address::ContractAddress;
-use crate::contract_class::ContractClass;
+use crate::contract_class::{ContractClass, compute_sierra_class_hash};
 use crate::error::DevnetResult;
 use crate::felt::{
     ClassHash, CompiledClassHash, Felt, Nonce, TransactionHash, TransactionSignature,
@@ -68,7 +67,7 @@ impl BroadcastedDeclareTransactionV2 {
     }
 
     pub fn create_blockifier_declare(&self, chain_id: Felt) -> DevnetResult<DeclareTransaction> {
-        let sierra_class_hash: Felt = compute_sierra_class_hash(&self.contract_class)?.into();
+        let sierra_class_hash: Felt = compute_sierra_class_hash(&self.contract_class)?;
 
         let sn_api_declare = starknet_api::transaction::DeclareTransaction::V2(
             starknet_api::transaction::DeclareTransactionV2 {
@@ -107,7 +106,6 @@ mod tests {
     use serde::Deserialize;
     use starknet_api::transaction::Fee;
     use starknet_in_rust::core::contract_address::compute_sierra_class_hash;
-    use starknet_rs_core::types::contract::SierraClass;
 
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
@@ -136,14 +134,10 @@ mod tests {
             &std::fs::read_to_string(sierra_contract_path).unwrap(),
         )
         .unwrap();
-        let sierra_class: SierraClass =
-            serde_json::from_value(serde_json::to_value(cairo_1_contract.clone()).unwrap())
-                .unwrap();
-        println!("{}", Felt::from(sierra_class.class_hash().unwrap()).to_prefixed_hex_str());
 
-        println!(
-            "{}",
-            Felt::from(compute_sierra_class_hash(&cairo_1_contract).unwrap()).to_prefixed_hex_str()
+        assert_eq!(
+            crate::contract_class::compute_sierra_class_hash(&cairo_1_contract).unwrap(),
+            Felt::from(compute_sierra_class_hash(&cairo_1_contract).unwrap()).into()
         );
     }
 

@@ -84,8 +84,7 @@ impl Cairo0Json {
         let mut buffer = Vec::with_capacity(128);
         let mut serializer = JsonSerializer::with_formatter(&mut buffer, StarknetFormatter);
         modified_abi_program_json.serialize(&mut serializer).map_err(JsonError::SerdeJsonError)?;
-        
-        
+
         Ok(StarkFelt::from(starknet_rs_core::utils::starknet_keccak(&buffer)))
     }
 

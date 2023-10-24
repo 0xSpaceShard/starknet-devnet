@@ -54,9 +54,8 @@ impl From<ChainId> for starknet_api::core::ChainId {
 
 #[cfg(test)]
 mod tests {
-    use crate::traits::ToHexString;
-
     use super::ChainId;
+    use crate::traits::ToHexString;
 
     #[test]
     fn check_conversion_to_starknet_api() {

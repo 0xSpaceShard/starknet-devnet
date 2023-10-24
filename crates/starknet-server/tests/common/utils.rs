@@ -2,9 +2,9 @@ use std::fmt::LowerHex;
 use std::fs;
 use std::path::Path;
 
+use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use hyper::{Body, Response};
 use starknet_in_rust::core::contract_address::compute_casm_class_hash;
-use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use starknet_rs_core::types::contract::SierraClass;
 use starknet_rs_core::types::{ExecutionResult, FieldElement, FlattenedSierraClass};
 use starknet_rs_providers::Provider;
