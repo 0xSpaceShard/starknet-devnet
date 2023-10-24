@@ -267,13 +267,11 @@ mod tests {
 
             tx
         } else {
-            let error_str =
-                starknet_in_rust::transaction::error::TransactionError::AttempToUseNoneCodeAddress
-                    .to_string();
+            let error_str = "Dummy error";
             let tx = StarknetTransaction::create_rejected(&tran, None, &error_str);
 
             assert_eq!(tx.finality_status, None);
-            assert_eq!(tx.execution_result.revert_reason(), Some(error_str.as_str()));
+            assert_eq!(tx.execution_result.revert_reason(), Some(error_str));
 
             tx
         };
