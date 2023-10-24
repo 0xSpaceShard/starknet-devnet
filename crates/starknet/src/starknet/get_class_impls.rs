@@ -13,13 +13,16 @@ pub fn get_class_hash_at_impl(
     contract_address: ContractAddress,
 ) -> DevnetResult<ClassHash> {
     let state = starknet.get_state_at(&block_id)?;
-    let class_hash = state.state.state.class_hash_at(&contract_address);
-
-    if class_hash == Felt::default() {
-        return Err(Error::ContractNotFound);
+    match state.state.state.class_hash_at(&contract_address) {
+        Ok(class_hash) => {
+            if class_hash == Felt::default() {
+                Err(Error::ContractNotFound)
+            } else {
+                Ok(class_hash)
+            }
+        },
+        Err(err) => Err(err),
     }
-
-    Ok(class_hash)
 }
 
 pub fn get_class_impl(
