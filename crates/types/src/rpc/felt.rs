@@ -1,7 +1,7 @@
 use std::fmt::LowerHex;
 use std::str::FromStr;
 
-use cairo_felt::Felt252;
+use starknet_in_rust::felt::Felt252;
 use num_bigint::BigUint;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_api::serde_utils::{bytes_from_hex_str, hex_str_from_bytes};
@@ -160,25 +160,25 @@ impl From<Felt> for starknet_in_rust::utils::ClassHash {
     }
 }
 
-impl From<cairo_felt::Felt252> for Felt {
-    fn from(value: cairo_felt::Felt252) -> Self {
+impl From<starknet_in_rust::felt::Felt252> for Felt {
+    fn from(value: starknet_in_rust::felt::Felt252) -> Self {
         Self(value.to_be_bytes())
     }
 }
 
-impl From<&cairo_felt::Felt252> for Felt {
+impl From<&starknet_in_rust::felt::Felt252> for Felt {
     fn from(value: &Felt252) -> Self {
         Self(value.to_be_bytes())
     }
 }
 
-impl From<Felt> for cairo_felt::Felt252 {
+impl From<Felt> for starknet_in_rust::felt::Felt252 {
     fn from(value: Felt) -> Self {
         Self::from_bytes_be(&value.0)
     }
 }
 
-impl From<&Felt> for cairo_felt::Felt252 {
+impl From<&Felt> for starknet_in_rust::felt::Felt252 {
     fn from(value: &Felt) -> Self {
         Self::from_bytes_be(&value.0)
     }

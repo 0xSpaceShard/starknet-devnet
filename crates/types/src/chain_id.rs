@@ -64,7 +64,7 @@ impl From<ChainId> for starknet_api::core::ChainId {
 
 #[cfg(test)]
 mod tests {
-    use cairo_felt::Felt252;
+    use starknet_in_rust::felt::Felt252;
     use starknet_in_rust::definitions::block_context::StarknetChainId;
 
     use super::ChainId;

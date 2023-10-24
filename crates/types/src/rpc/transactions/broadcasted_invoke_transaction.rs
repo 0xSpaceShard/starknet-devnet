@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use blockifier::transaction::transactions::InvokeTransaction;
-use cairo_felt::Felt252;
+use starknet_in_rust::felt::Felt252;
 use serde::{Deserialize, Serialize};
 use starknet_api::hash::StarkFelt;
 use starknet_api::transaction::Fee;

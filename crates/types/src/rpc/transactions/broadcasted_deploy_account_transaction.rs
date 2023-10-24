@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use cairo_felt::Felt252;
+use starknet_in_rust::felt::Felt252;
 use serde::{Deserialize, Serialize};
 use starknet_api::core::calculate_contract_address;
 use starknet_api::transaction::Fee;

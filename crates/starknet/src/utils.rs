@@ -1,7 +1,7 @@
 use starknet_api::hash::{pedersen_hash, StarkFelt};
 use starknet_in_rust::utils::calculate_sn_keccak;
-use starknet_types::cairo_felt::Felt252;
 use starknet_types::felt::Felt;
+use starknet_in_rust::felt::Felt252;
 use starknet_types::num_integer::Integer;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 

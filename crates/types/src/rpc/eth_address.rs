@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use cairo_felt::Felt252;
+use starknet_in_rust::felt::Felt252;
 use starknet_in_rust::utils::Address as SirAddress;
 use starknet_rs_core::types::EthAddress;
 use starknet_rs_ff::FieldElement;

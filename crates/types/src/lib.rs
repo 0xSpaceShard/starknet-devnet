@@ -9,4 +9,4 @@ mod utils;
 
 // Re export libraries
 pub use rpc::{contract_address, contract_class, emitted_event, felt};
-pub use {cairo_felt, num_bigint, num_integer, starknet_api};
+pub use {num_bigint, num_integer, starknet_api};

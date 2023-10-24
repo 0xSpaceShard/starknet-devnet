@@ -1,5 +1,5 @@
 use blockifier::transaction::transactions::DeclareTransaction;
-use cairo_felt::Felt252;
+use starknet_in_rust::felt::Felt252;
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
 use starknet_in_rust::core::transaction_hash::{

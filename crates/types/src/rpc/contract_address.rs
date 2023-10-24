@@ -1,6 +1,6 @@
 use std::fmt::LowerHex;
 
-use cairo_felt::Felt252;
+use starknet_in_rust::felt::Felt252;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::error::{DevnetResult, Error};
@@ -61,14 +61,14 @@ impl TryFrom<ContractAddress> for starknet_api::core::ContractAddress {
 
 impl From<ContractAddress> for starknet_in_rust::utils::Address {
     fn from(value: ContractAddress) -> Self {
-        let felt_252 = cairo_felt::Felt252::from(value.0.0);
+        let felt_252 = starknet_in_rust::felt::Felt252::from(value.0.0);
         Self(felt_252)
     }
 }
 
 impl From<&ContractAddress> for starknet_in_rust::utils::Address {
     fn from(value: &ContractAddress) -> Self {
-        let felt_252 = cairo_felt::Felt252::from(&value.0.0);
+        let felt_252 = starknet_in_rust::felt::Felt252::from(&value.0.0);
         Self(felt_252)
     }
 }
