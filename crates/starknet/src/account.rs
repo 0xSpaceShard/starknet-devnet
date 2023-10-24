@@ -5,14 +5,16 @@ use starknet_api::hash::{StarkFelt, StarkHash};
 use starknet_api::transaction::{Calldata, ContractAddressSalt};
 use starknet_api::{patricia_key, stark_felt};
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_class::ContractClass;
+use starknet_types::contract_class::{Cairo0Json, ContractClass};
 use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::error::Error;
 use starknet_types::felt::{Balance, ClassHash, Felt, Key};
 use starknet_types::num_bigint::BigUint;
+use starknet_types::traits::HashProducer;
 
 use crate::constants::{
-    CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, CHARGEABLE_ACCOUNT_PUBLIC_KEY,
+    CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
+    CHARGEABLE_ACCOUNT_PUBLIC_KEY,
 };
 use crate::error::DevnetResult;
 use crate::traits::{Accounted, Deployed, StateChanger, StateExtractor};
@@ -34,15 +36,14 @@ pub struct Account {
 }
 
 impl Account {
-    pub(crate) fn new_chargeable(
-        class_hash: ClassHash,
-        contract_class: ContractClass,
-        fee_token_address: ContractAddress,
-    ) -> Self {
+    pub(crate) fn new_chargeable(fee_token_address: ContractAddress) -> DevnetResult<Self> {
+        let account_contract_class = Cairo0Json::raw_json_from_path(CAIRO_0_ACCOUNT_CONTRACT_PATH)?;
+        let class_hash = account_contract_class.generate_hash()?;
+
         // insanely big - should practically never run out of funds
         let initial_balance = BigUint::from(u128::MAX);
         let initial_balance_hex = format!("0x{}", initial_balance.to_str_radix(16));
-        Self {
+        Ok(Self {
             public_key: Key::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_PUBLIC_KEY).unwrap(),
             private_key: Key::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_PRIVATE_KEY).unwrap(),
             account_address: ContractAddress::new(
@@ -51,9 +52,9 @@ impl Account {
             .unwrap(),
             initial_balance: Felt::from_prefixed_hex_str(&initial_balance_hex).unwrap(),
             class_hash,
-            contract_class,
+            contract_class: account_contract_class.into(),
             fee_token_address,
-        }
+        })
     }
 
     pub(crate) fn new(

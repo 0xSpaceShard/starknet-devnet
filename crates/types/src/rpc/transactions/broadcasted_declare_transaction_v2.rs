@@ -185,7 +185,7 @@ mod tests {
         );
 
         let blockifier_declare_transaction = broadcasted_declare_transaction
-            .create_blockifier_declare(ChainId::TestNet.to_felt())
+            .create_blockifier_declare(ChainId::Testnet.to_felt())
             .unwrap();
 
         assert_eq!(

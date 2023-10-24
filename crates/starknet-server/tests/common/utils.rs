@@ -6,7 +6,8 @@ use hyper::{Body, Response};
 use starknet_in_rust::core::contract_address::compute_casm_class_hash;
 use starknet_in_rust::CasmContractClass;
 use starknet_rs_core::types::contract::SierraClass;
-use starknet_rs_core::types::{FieldElement, FlattenedSierraClass};
+use starknet_rs_core::types::{ExecutionResult, FieldElement, FlattenedSierraClass};
+use starknet_rs_providers::Provider;
 use starknet_rs_signers::LocalWallet;
 use starknet_types::felt::Felt;
 
@@ -60,6 +61,30 @@ pub fn get_events_contract_in_sierra_and_compiled_class_hash()
     let compiled_class_hash = compute_casm_class_hash(&casm_contract_class).unwrap();
 
     (sierra_class.flatten().unwrap(), Felt::from(compiled_class_hash).into())
+}
+
+pub async fn assert_tx_successful<T: Provider>(tx_hash: &FieldElement, client: &T) {
+    let receipt = client.get_transaction_receipt(tx_hash).await.unwrap();
+    match receipt.execution_result() {
+        ExecutionResult::Succeeded => (),
+        other => panic!("Should have succeeded; got: {other:?}"),
+    }
+}
+
+pub async fn assert_tx_reverted<T: Provider>(
+    tx_hash: &FieldElement,
+    client: &T,
+    expected_failure_reasons: &[&str],
+) {
+    let receipt = client.get_transaction_receipt(tx_hash).await.unwrap();
+    match receipt.execution_result() {
+        ExecutionResult::Reverted { reason } => {
+            for expected_reason in expected_failure_reasons {
+                reason.contains(expected_reason);
+            }
+        }
+        other => panic!("Should have reverted; got: {other:?}; receipt: {receipt:?}"),
+    }
 }
 
 pub fn to_hex_felt<T: LowerHex>(value: &T) -> String {

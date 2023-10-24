@@ -38,7 +38,7 @@ mod estimate_fee_tests {
     ) {
         let no_flags_fee = extract_overall_fee(resp_no_flags);
         let skip_validation_fee = extract_overall_fee(resp_skip_validation);
-        assert!(no_flags_fee.ge(&skip_validation_fee)); // TODO should be .gt, reported in https://github.com/lambdaclass/starknet_in_rust/issues/1051
+        assert!(no_flags_fee.gt(&skip_validation_fee));
     }
 
     fn assert_difference_if_validation(

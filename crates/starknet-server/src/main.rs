@@ -10,7 +10,8 @@ use starknet_core::constants::{
     ERC20_CONTRACT_ADDRESS, ERC20_CONTRACT_CLASS_HASH, UDC_CONTRACT_ADDRESS,
     UDC_CONTRACT_CLASS_HASH,
 };
-use starknet_core::starknet::{DumpMode, Starknet};
+use starknet_core::starknet::starknet_config::DumpOn;
+use starknet_core::starknet::Starknet;
 use starknet_types::felt::Felt;
 use starknet_types::traits::{ToDecimalString, ToHexString};
 use tracing::info;
@@ -18,6 +19,8 @@ use tracing_subscriber::EnvFilter;
 
 mod api;
 mod cli;
+mod contract_class_choice;
+mod initial_balance_wrapper;
 mod ip_addr_wrapper;
 mod server;
 
@@ -68,7 +71,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // parse arguments
     let args = Args::parse();
-    let starknet_config = args.to_starknet_config();
+    let starknet_config = args.to_starknet_config()?;
     let mut addr: SocketAddr = SocketAddr::new(starknet_config.host, starknet_config.port);
 
     let api = api::Api::new(Starknet::new(&starknet_config)?);
@@ -93,7 +96,7 @@ async fn main() -> Result<(), anyhow::Error> {
     info!("Starknet Devnet listening on {}", addr);
 
     // spawn the server on a new task
-    let serve = if starknet_config.dump_on == Some(DumpMode::OnExit) {
+    let serve = if starknet_config.dump_on == Some(DumpOn::Exit) {
         tokio::task::spawn(server.with_graceful_shutdown(shutdown_signal(api.clone())))
     } else {
         tokio::task::spawn(server)

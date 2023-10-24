@@ -174,19 +174,14 @@ mod dump_and_load_tests {
         .await
         .expect("Could not start Devnet");
 
-        // constructs starknet-rs account
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
-        let mut predeployed_account = SingleOwnerAccount::new(
+        let predeployed_account = SingleOwnerAccount::new(
             devnet.clone_provider(),
             signer,
             account_address,
             chain_id::TESTNET,
             ExecutionEncoding::Legacy,
         );
-
-        // `SingleOwnerAccount` defaults to checking nonce and estimating fees against the latest
-        // block. Optionally change the target block to pending with the following line:
-        predeployed_account.set_block_id(BlockId::Tag(BlockTag::Pending));
 
         let (cairo_1_contract, casm_class_hash) =
             get_events_contract_in_sierra_and_compiled_class_hash();
@@ -288,6 +283,20 @@ mod dump_and_load_tests {
     }
 
     #[tokio::test]
+    async fn dump_endpoint_fail_with_wrong_file_name() {
+        let devnet_dump = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+        let dump_body = Body::from(
+            json!({
+                "path": "///"
+            })
+            .to_string(),
+        );
+        let result = devnet_dump.post_json("/dump".into(), dump_body).await.unwrap();
+        assert_eq!(result.status(), 400);
+    }
+
+    #[tokio::test]
     async fn load_endpoint_fail_with_wrong_request() {
         let devnet_load = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let load_body = Body::from(
@@ -298,19 +307,6 @@ mod dump_and_load_tests {
         );
         let result = devnet_load.post_json("/load".into(), load_body).await.unwrap();
         assert_eq!(result.status(), 422);
-    }
-
-    #[tokio::test]
-    async fn dump_endpoint_fail_with_wrong_file_name() {
-        let devnet_dump = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let dump_body = Body::from(
-            json!({
-                "path": "///"
-            })
-            .to_string(),
-        );
-        let result = devnet_dump.post_json("/dump".into(), dump_body).await.unwrap();
-        assert_eq!(result.status(), 400);
     }
 
     #[tokio::test]
