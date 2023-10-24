@@ -27,11 +27,11 @@ pub(crate) struct Args {
     #[arg(value_name = "ACCOUNT_CLASS")]
     #[arg(default_value = "cairo0")]
     #[arg(help = "Specify the class used by predeployed accounts;")]
-    account_class: AccountContractClassChoice,
+    account_class_choice: AccountContractClassChoice,
 
     #[arg(long = "account-class-custom")]
     #[arg(value_name = "PATH")]
-    #[arg(conflicts_with = "account_class")]
+    #[arg(conflicts_with = "account_class_choice")]
     #[arg(help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;")]
     account_class_custom: Option<AccountClassWrapper>,
 
@@ -99,12 +99,10 @@ pub(crate) struct Args {
 
 impl Args {
     pub(crate) fn to_starknet_config(&self) -> Result<StarknetConfig, anyhow::Error> {
-        let (account_contract_class, account_contract_class_hash) = match &self.account_class_custom
-        {
-            Some(account_class_wrapper) => {
-                (account_class_wrapper.contract_class.clone(), account_class_wrapper.class_hash)
-            }
-            None => (self.account_class.get_class()?, self.account_class.get_hash()?),
+        // use account-class-custom if specified; otherwise default to predefined account-class
+        let account_class_wrapper = match self.account_class_custom.clone() {
+            Some(account_class_custom) => account_class_custom,
+            None => self.account_class_choice.get_class_wrapper()?,
         };
 
         Ok(StarknetConfig {
@@ -113,8 +111,8 @@ impl Args {
                 None => random_number_generator::generate_u32_random_number(),
             },
             total_accounts: self.accounts_count,
-            account_contract_class,
-            account_contract_class_hash,
+            account_contract_class: account_class_wrapper.contract_class,
+            account_contract_class_hash: account_class_wrapper.class_hash,
             predeployed_accounts_initial_balance: self.initial_balance.0,
             host: self.host.inner,
             port: self.port,
