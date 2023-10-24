@@ -155,9 +155,11 @@ The JSON-RPC API is reachable via `/rpc` and `/` (e.g. if spawning Devnet with d
 
 ## Predeployed contracts
 
-Devnet predeploys a [UDC](https://docs.openzeppelin.com/contracts-cairo/0.6.1/udc), an [ERC20 (fee token)](https://docs.openzeppelin.com/contracts/3.x/api/token/erc20) contract and a set of funded accounts. The information on this is logged on Devnet startup. The set of accounts can be controlled via [CLI options](#cli-options): `--accounts`, `--initial-balance`, `--seed`.
+Devnet predeploys a [UDC](https://docs.openzeppelin.com/contracts-cairo/0.6.1/udc), an [ERC20 (fee token)](https://docs.openzeppelin.com/contracts/3.x/api/token/erc20) contract and a set of predeployed funded accounts. The information on this is logged on Devnet startup. The set of accounts can be controlled via [CLI options](#cli-options): `--accounts`, `--initial-balance`, `--seed`.
 
 Retrieve the predeployed accounts in JSON format by sending a `GET` request to `/predeployed_accounts` of your Devnet.
+
+Choose between predeploying Cairo 0 (OpenZeppelin 0.5.1) or Cairo 1 (OpenZeppelin 0.7.0) accounts by using the `--account-class <IMPLEMENTATION>` CLI argument. Alternatively, provide a path to the Sierra artifact of your custom account using `--account-class-custom <SIERRA_PATH>`.
 
 ## Mint token
 
