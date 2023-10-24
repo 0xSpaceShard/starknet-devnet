@@ -427,8 +427,8 @@ mod tests {
         match declared_contract_class {
             starknet_types::contract_class::ContractClass::Cairo0(deprecated_contract_class) => {
                 assert_eq!(
-                    serde_json::to_string(&deprecated_contract_class).unwrap(),
-                    serde_json::to_string(&contract_class).unwrap()
+                    blockifier::execution::contract_class::ContractClassV0::try_from(deprecated_contract_class).unwrap(),
+                    blockifier::execution::contract_class::ContractClassV0::try_from(contract_class).unwrap()
                 );
             }
             _ => panic!("Wrong version of contract class"),
