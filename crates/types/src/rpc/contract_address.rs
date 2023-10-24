@@ -1,7 +1,7 @@
 use std::fmt::LowerHex;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use starknet_in_rust::felt::Felt252;
+use cairo_felt::Felt252;
 
 use crate::error::{DevnetResult, Error};
 use crate::felt::Felt;

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::StateReader;
-use starknet_in_rust::felt::Felt252;
+use cairo_felt::Felt252;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::contract_storage_key::ContractStorageKey;

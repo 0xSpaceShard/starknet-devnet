@@ -8,6 +8,8 @@ edition = "2021"
 [dependencies]
 base64 = { workspace = true }
 blockifier = { workspace = true }
+cairo-felt = { workspace = true }
+cairo-lang-starknet = { workspace = true }
 clap = { workspace = true }
 flate2 = { workspace = true }
 starknet_api = { workspace = true }

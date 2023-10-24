@@ -4,7 +4,7 @@ use std::path::Path;
 
 use hyper::{Body, Response};
 use starknet_in_rust::core::contract_address::compute_casm_class_hash;
-use starknet_in_rust::CasmContractClass;
+use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use starknet_rs_core::types::contract::SierraClass;
 use starknet_rs_core::types::{ExecutionResult, FieldElement, FlattenedSierraClass};
 use starknet_rs_providers::Provider;
@@ -53,7 +53,7 @@ pub fn get_events_contract_in_sierra_and_compiled_class_hash()
     .unwrap();
     let sierra_class: SierraClass = serde_json::from_str(&sierra_artifact).unwrap();
 
-    let contract_class: starknet_in_rust::ContractClass =
+    let contract_class: cairo_lang_starknet::contract_class::ContractClass =
         serde_json::from_str(&sierra_artifact).unwrap();
 
     let casm_contract_class =

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use starknet_api::core::calculate_contract_address;
 use starknet_api::transaction::Fee;
-use starknet_in_rust::felt::Felt252;
+use cairo_felt::Felt252;
 
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;

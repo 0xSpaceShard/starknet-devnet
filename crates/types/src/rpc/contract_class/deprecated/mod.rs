@@ -1,12 +1,9 @@
-use std::str::FromStr;
-
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
 use starknet_rs_core::types::CompressedLegacyContractClass;
 
 use crate::contract_class::deprecated::rpc_contract_class::DeprecatedContractClass;
 use crate::contract_class::Cairo0Json;
-use crate::error::{DevnetResult, Error, JsonError};
+use crate::error::{DevnetResult, Error};
 use crate::felt::Felt;
 use crate::traits::HashProducer;
 
@@ -51,21 +48,6 @@ impl From<Cairo0Json> for Cairo0ContractClass {
 impl From<DeprecatedContractClass> for Cairo0ContractClass {
     fn from(value: DeprecatedContractClass) -> Self {
         Cairo0ContractClass::Rpc(value)
-    }
-}
-
-impl TryFrom<Cairo0ContractClass> for StarknetInRustContractClass {
-    type Error = Error;
-    fn try_from(value: Cairo0ContractClass) -> Result<Self, Self::Error> {
-        match value {
-            Cairo0ContractClass::RawJson(json_value) => {
-                let starknet_in_rust_contract_class =
-                    StarknetInRustContractClass::from_str(&json_value.to_string())
-                        .map_err(|err| JsonError::Custom { msg: err.to_string() })?;
-                Ok(starknet_in_rust_contract_class)
-            }
-            Cairo0ContractClass::Rpc(contract) => contract.try_into(),
-        }
     }
 }
 

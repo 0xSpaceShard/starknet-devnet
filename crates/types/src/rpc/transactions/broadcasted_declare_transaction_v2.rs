@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
 use starknet_in_rust::core::contract_address::compute_sierra_class_hash;
 use starknet_in_rust::core::transaction_hash::calculate_declare_v2_transaction_hash;
-use starknet_in_rust::SierraContractClass;
+use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
 
 use crate::contract_address::ContractAddress;
 use crate::contract_class::ContractClass;

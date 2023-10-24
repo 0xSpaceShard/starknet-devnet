@@ -3,7 +3,7 @@ pub mod rpc_sierra_contract_class_to_sierra_contract_class {
 
     pub fn deserialize_to_sierra_contract_class<'de, D>(
         deserializer: D,
-    ) -> Result<starknet_in_rust::ContractClass, D::Error>
+    ) -> Result<cairo_lang_starknet::contract_class::ContractClass, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -35,7 +35,7 @@ pub mod rpc_sierra_contract_class_to_sierra_contract_class {
             struct TestDeserialization(
                 #[allow(unused)]
                 #[serde(deserialize_with = "deserialize_to_sierra_contract_class")]
-                starknet_in_rust::ContractClass,
+                cairo_lang_starknet::contract_class::ContractClass,
             );
 
             let path = concat!(

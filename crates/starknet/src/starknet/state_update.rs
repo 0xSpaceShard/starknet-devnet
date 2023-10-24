@@ -19,7 +19,7 @@ pub fn state_update_by_block_id(
 mod tests {
     use starknet_api::transaction::Fee;
     use starknet_in_rust::core::contract_address::compute_casm_class_hash;
-    use starknet_in_rust::CasmContractClass;
+    use cairo_lang_starknet::casm_contract_class::CasmContractClass;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};

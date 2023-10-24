@@ -1,10 +1,8 @@
 use core::fmt::Debug;
 use std::cmp::{Eq, PartialEq};
-use std::sync::Arc;
 
 use serde::{Serialize, Serializer};
 use starknet_in_rust::core::contract_address::compute_sierra_class_hash;
-use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass;
 use starknet_in_rust::{CasmContractClass, SierraContractClass};
 use starknet_rs_core::types::{
     ContractClass as CodegenContractClass, FlattenedSierraClass as CodegenSierraContracrClass,
@@ -111,19 +109,6 @@ impl TryFrom<ContractClass> for starknet_in_rust::CasmContractClass {
                     .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })
             }
             _ => Err(Error::ConversionError(crate::error::ConversionError::InvalidFormat)),
-        }
-    }
-}
-
-impl TryFrom<ContractClass> for CompiledClass {
-    type Error = Error;
-
-    fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
-        match value {
-            ContractClass::Cairo0(deprecated) => {
-                Ok(CompiledClass::Deprecated(Arc::new(deprecated.try_into()?)))
-            }
-            ContractClass::Cairo1(_) => Ok(CompiledClass::Casm(Arc::new(value.try_into()?))),
         }
     }
 }

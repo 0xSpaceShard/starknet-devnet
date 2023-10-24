@@ -5,7 +5,7 @@ use num_bigint::BigUint;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_api::serde_utils::{bytes_from_hex_str, hex_str_from_bytes};
 use starknet_api::StarknetApiError;
-use starknet_in_rust::felt::Felt252;
+use cairo_felt::Felt252;
 
 use crate::contract_address::ContractAddress;
 use crate::error::{DevnetResult, Error};

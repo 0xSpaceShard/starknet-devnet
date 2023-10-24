@@ -12,6 +12,7 @@ path = "src/main.rs"
 [dependencies]
 
 # devnet
+cairo-lang-starknet = { workspace = true }
 random-number-generator = { workspace = true }
 server = { path = "../server" }
 starknet-core = { workspace = true }

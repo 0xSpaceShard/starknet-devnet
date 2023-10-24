@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
 use starknet_in_rust::transaction::DeclareV2 as SirDeclareV2;
-use starknet_in_rust::SierraContractClass;
+use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
 
 use crate::contract_address::ContractAddress;
 use crate::error::{DevnetResult, Error};
