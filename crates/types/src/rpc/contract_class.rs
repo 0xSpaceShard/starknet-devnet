@@ -3,7 +3,8 @@ use std::cmp::{Eq, PartialEq};
 
 use serde::{Serialize, Serializer};
 use starknet_in_rust::core::contract_address::compute_sierra_class_hash;
-use starknet_in_rust::{CasmContractClass, SierraContractClass};
+use cairo_lang_starknet::casm_contract_class::CasmContractClass;
+use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
 use starknet_rs_core::types::{
     ContractClass as CodegenContractClass, FlattenedSierraClass as CodegenSierraContracrClass,
 };
@@ -99,7 +100,7 @@ impl TryFrom<ContractClass> for Cairo0Json {
     }
 }
 
-impl TryFrom<ContractClass> for starknet_in_rust::CasmContractClass {
+impl TryFrom<ContractClass> for cairo_lang_starknet::casm_contract_class::CasmContractClass {
     type Error = Error;
 
     fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
@@ -194,7 +195,7 @@ impl TryInto<CodegenContractClass> for ContractClass {
 mod tests {
     use serde::Deserialize;
     use serde_json::Deserializer;
-    use starknet_in_rust::SierraContractClass;
+    use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
     use starknet_rs_core::types::LegacyEntryPointsByType;
 
     use crate::contract_class::deprecated::rpc_contract_class::ContractClassAbiEntryWithType;
