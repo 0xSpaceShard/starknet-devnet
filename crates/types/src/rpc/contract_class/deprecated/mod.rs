@@ -1,7 +1,6 @@
 use std::str::FromStr;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use starknet_in_rust::core::contract_address::compute_deprecated_class_hash;
 use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
 use starknet_rs_core::types::CompressedLegacyContractClass;
 
@@ -19,7 +18,6 @@ pub mod rpc_contract_class;
 pub enum Cairo0ContractClass {
     // TODO: remove once starknet_api raised
     RawJson(Cairo0Json),
-    SIR(StarknetInRustContractClass),
     Rpc(DeprecatedContractClass),
 }
 
@@ -30,9 +28,6 @@ impl Serialize for Cairo0ContractClass {
     {
         match self {
             Cairo0ContractClass::RawJson(contract_json) => contract_json.serialize(serializer),
-            Cairo0ContractClass::SIR(_) => Err(serde::ser::Error::custom(
-                "Serialization of starknet 0 contract is unavailable",
-            )),
             Cairo0ContractClass::Rpc(contract) => contract.serialize(serializer),
         }
     }
@@ -53,12 +48,6 @@ impl From<Cairo0Json> for Cairo0ContractClass {
     }
 }
 
-impl From<StarknetInRustContractClass> for Cairo0ContractClass {
-    fn from(value: StarknetInRustContractClass) -> Self {
-        Cairo0ContractClass::SIR(value)
-    }
-}
-
 impl From<DeprecatedContractClass> for Cairo0ContractClass {
     fn from(value: DeprecatedContractClass) -> Self {
         Cairo0ContractClass::Rpc(value)
@@ -75,7 +64,6 @@ impl TryFrom<Cairo0ContractClass> for StarknetInRustContractClass {
                         .map_err(|err| JsonError::Custom { msg: err.to_string() })?;
                 Ok(starknet_in_rust_contract_class)
             }
-            Cairo0ContractClass::SIR(contract) => Ok(contract),
             Cairo0ContractClass::Rpc(contract) => contract.try_into(),
         }
     }
@@ -86,9 +74,6 @@ impl HashProducer for Cairo0ContractClass {
     fn generate_hash(&self) -> DevnetResult<Felt> {
         match self {
             Cairo0ContractClass::RawJson(contract_json) => Ok(contract_json.generate_hash()?),
-            Cairo0ContractClass::SIR(contract) => {
-                Ok(compute_deprecated_class_hash(contract)?.into())
-            }
             Cairo0ContractClass::Rpc(contract) => Ok(contract.generate_hash()?),
         }
     }
@@ -100,9 +85,6 @@ impl TryInto<CompressedLegacyContractClass> for Cairo0ContractClass {
         match self {
             Cairo0ContractClass::Rpc(contract_class) => contract_class.try_into(),
             Cairo0ContractClass::RawJson(contract_class) => contract_class.try_into(),
-            Cairo0ContractClass::SIR(_) => {
-                Err(Error::ConversionError(crate::error::ConversionError::InvalidFormat))
-            }
         }
     }
 }
@@ -112,9 +94,6 @@ impl TryFrom<Cairo0ContractClass> for blockifier::execution::contract_class::Con
     fn try_from(value: Cairo0ContractClass) -> Result<Self, Self::Error> {
         match value {
             Cairo0ContractClass::RawJson(contract_class) => contract_class.try_into(),
-            Cairo0ContractClass::SIR(_) => {
-                Err(Error::ConversionError(crate::error::ConversionError::InvalidFormat))
-            }
             Cairo0ContractClass::Rpc(contract_class) => contract_class.try_into(),
         }
     }

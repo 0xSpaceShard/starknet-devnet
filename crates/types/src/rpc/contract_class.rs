@@ -5,7 +5,6 @@ use std::sync::Arc;
 use serde::{Serialize, Serializer};
 use starknet_in_rust::core::contract_address::compute_sierra_class_hash;
 use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass;
-use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
 use starknet_in_rust::{CasmContractClass, SierraContractClass};
 use starknet_rs_core::types::{
     ContractClass as CodegenContractClass, FlattenedSierraClass as CodegenSierraContracrClass,
@@ -51,12 +50,6 @@ impl ContractClass {
 impl From<Cairo0ContractClass> for ContractClass {
     fn from(value: Cairo0ContractClass) -> Self {
         ContractClass::Cairo0(value)
-    }
-}
-
-impl From<StarknetInRustContractClass> for ContractClass {
-    fn from(value: StarknetInRustContractClass) -> Self {
-        ContractClass::Cairo0(value.into())
     }
 }
 
