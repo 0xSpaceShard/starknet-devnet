@@ -208,13 +208,30 @@ mod tests {
     }
 
     #[test]
-    fn not_allowing_regular_contract_as_custom_account() {
-        match Args::try_parse_from(["--", "--account-class-custom", ERC20_CONTRACT_PATH]) {
+    fn not_allowing_regular_cairo0_contract_as_custom_account() {
+        let custom_path = ERC20_CONTRACT_PATH;
+        match Args::try_parse_from(["--", "--account-class-custom", custom_path]) {
             Err(err) => assert_eq!(
                 get_first_line(&err.to_string()),
                 format!(
-                    "error: invalid value '{ERC20_CONTRACT_PATH}' for '--account-class-custom \
-                     <PATH>': missing field `kind` at line 1 column 292"
+                    "error: invalid value '{custom_path}' for '--account-class-custom <PATH>': \
+                     missing field `kind` at line 1 column 292"
+                )
+            ),
+            Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
+        }
+    }
+
+    #[test]
+    fn not_allowing_regular_cairo1_contract_as_custom_account() {
+        let custom_path = "test_data/rpc/contract_cairo_v1/output.json";
+        match Args::try_parse_from(["--", "--account-class-custom", custom_path]) {
+            Err(err) => assert_eq!(
+                get_first_line(&err.to_string()),
+                format!(
+                    "error: invalid value '{custom_path}' for '--account-class-custom <PATH>': \
+                     Not a valid Sierra account artifact; has __execute__: false; has \
+                     __validate__: false"
                 )
             ),
             Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
