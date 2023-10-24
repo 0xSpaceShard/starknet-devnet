@@ -29,7 +29,7 @@ pub(crate) struct Args {
     #[arg(help = "Specify the class used by predeployed accounts;")]
     account_class: AccountContractClassChoice,
 
-    #[arg(long = "account-class-path")]
+    #[arg(long = "account-class-custom")]
     #[arg(value_name = "PATH")]
     #[arg(conflicts_with = "account_class")]
     #[arg(help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;")]
@@ -130,7 +130,7 @@ impl Args {
 #[cfg(test)]
 mod tests {
     use clap::Parser;
-    use starknet_core::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH;
+    use starknet_core::constants::{CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH, ERC20_CONTRACT_PATH};
 
     use super::Args;
     use crate::ip_addr_wrapper::IpAddrWrapper;
@@ -163,22 +163,24 @@ mod tests {
         }
     }
 
+    fn get_first_line(text: &str) -> &str {
+        text.split('\n').next().unwrap()
+    }
+
     #[test]
     fn not_allowing_account_class_and_account_class_path() {
         match Args::try_parse_from([
             "--",
             "--account-class",
             "cairo1",
-            "--account-class-path",
+            "--account-class-custom",
             CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
         ]) {
             Err(err) => {
-                let err_str = err.to_string();
-                let first_line = err_str.split('\n').next().unwrap();
                 assert_eq!(
-                    first_line,
+                    get_first_line(&err.to_string()),
                     "error: the argument '--account-class <ACCOUNT_CLASS>' cannot be used with \
-                     '--account-class-path <PATH>'"
+                     '--account-class-custom <PATH>'"
                 );
             }
             Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
@@ -189,7 +191,7 @@ mod tests {
     fn allowing_only_account_class() {
         match Args::try_parse_from(["--", "--account-class", "cairo1"]) {
             Ok(_) => (),
-            Err(err) => panic!("Should have passed; got: {err:?}"),
+            Err(err) => panic!("Should have passed; got: {err}"),
         }
     }
 
@@ -197,11 +199,25 @@ mod tests {
     fn allowing_only_account_class_path() {
         match Args::try_parse_from([
             "--",
-            "--account-class-path",
+            "--account-class-custom",
             CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
         ]) {
             Ok(_) => (),
-            Err(err) => panic!("Should have passed; got: {err:?}"),
+            Err(err) => panic!("Should have passed; got: {err}"),
+        }
+    }
+
+    #[test]
+    fn not_allowing_regular_contract_as_custom_account() {
+        match Args::try_parse_from(["--", "--account-class-custom", ERC20_CONTRACT_PATH]) {
+            Err(err) => assert_eq!(
+                get_first_line(&err.to_string()),
+                format!(
+                    "error: invalid value '{ERC20_CONTRACT_PATH}' for '--account-class-custom \
+                     <PATH>': missing field `kind` at line 1 column 292"
+                )
+            ),
+            Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
         }
     }
 }
