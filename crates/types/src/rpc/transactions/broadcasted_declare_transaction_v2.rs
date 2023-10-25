@@ -5,7 +5,7 @@ use starknet_api::transaction::Fee;
 use starknet_in_rust::core::transaction_hash::calculate_declare_v2_transaction_hash;
 
 use crate::contract_address::ContractAddress;
-use crate::contract_class::{ContractClass, compute_sierra_class_hash};
+use crate::contract_class::{compute_sierra_class_hash, ContractClass};
 use crate::error::DevnetResult;
 use crate::felt::{
     ClassHash, CompiledClassHash, Felt, Nonce, TransactionHash, TransactionSignature,
@@ -137,7 +137,7 @@ mod tests {
 
         assert_eq!(
             crate::contract_class::compute_sierra_class_hash(&cairo_1_contract).unwrap(),
-            Felt::from(compute_sierra_class_hash(&cairo_1_contract).unwrap()).into()
+            Felt::from(compute_sierra_class_hash(&cairo_1_contract).unwrap())
         );
     }
 

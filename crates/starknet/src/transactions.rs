@@ -268,7 +268,7 @@ mod tests {
             tx
         } else {
             let error_str = "Dummy error";
-            let tx = StarknetTransaction::create_rejected(&tran, None, &error_str);
+            let tx = StarknetTransaction::create_rejected(&tran, None, error_str);
 
             assert_eq!(tx.finality_status, None);
             assert_eq!(tx.execution_result.revert_reason(), Some(error_str));

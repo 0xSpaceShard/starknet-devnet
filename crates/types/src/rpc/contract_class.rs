@@ -4,7 +4,7 @@ use std::cmp::{Eq, PartialEq};
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
 use serde::{Serialize, Serializer};
-use starknet_rs_core::types::contract::SierraClass;
+use starknet_rs_core::types::contract::{SierraClass, SierraClassDebugInfo};
 use starknet_rs_core::types::{
     ContractClass as CodegenContractClass, FlattenedSierraClass as CodegenSierraContracrClass,
 };
@@ -144,7 +144,7 @@ impl HashProducer for ContractClass {
             ContractClass::Cairo0(contract) => Ok(contract.generate_hash()?),
             ContractClass::Cairo1(sierra) => {
                 let sierra_felt252_hash = compute_sierra_class_hash(sierra)?;
-                Ok(Felt::from(sierra_felt252_hash))
+                Ok(sierra_felt252_hash)
             }
         }
     }
@@ -178,12 +178,30 @@ fn convert_sierra_to_codegen(
 }
 
 pub fn compute_sierra_class_hash(contract_class: &SierraContractClass) -> DevnetResult<Felt> {
-    let sierra_class: SierraClass = serde_json::from_value(
-        serde_json::to_value(contract_class).map_err(JsonError::SerdeJsonError)?,
-    )
-    .map_err(JsonError::SerdeJsonError)?;
+    let mut contract_class_json_value =
+        serde_json::to_value(contract_class).map_err(JsonError::SerdeJsonError)?;
 
-    Ok(sierra_class.class_hash().map_err(|_| Error::ConversionError(ConversionError::InvalidFormat))?.into())
+    // to match SierraClass struct, the field sierra_program_debug_info dont have to be
+    // Option::None, because during serialization it gets converted to null
+    // and the next deserialzation to SierraClas will fail, because it expects this key to have some
+    // value
+    if contract_class.sierra_program_debug_info.is_none() {
+        contract_class_json_value["sierra_program_debug_info"] =
+            serde_json::to_value(SierraClassDebugInfo {
+                type_names: Default::default(),
+                libfunc_names: Default::default(),
+                user_func_names: Default::default(),
+            })
+            .map_err(JsonError::SerdeJsonError)?;
+    }
+
+    let sierra_class: SierraClass =
+        serde_json::from_value(contract_class_json_value).map_err(JsonError::SerdeJsonError)?;
+
+    Ok(sierra_class
+        .class_hash()
+        .map_err(|_| Error::ConversionError(ConversionError::InvalidFormat))?
+        .into())
 }
 
 impl TryInto<CodegenContractClass> for ContractClass {
