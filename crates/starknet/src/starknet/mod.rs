@@ -282,7 +282,7 @@ impl Starknet {
         self.state.apply_state_difference(state_difference.clone())?;
         // make cached state part of "persistent" state
         self.state.clear_dirty_state();
-        
+
         // TODO: add something here? like update time?
 
         // create new block from pending one
