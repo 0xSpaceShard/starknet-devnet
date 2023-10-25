@@ -23,6 +23,7 @@ This repository is work in progress, please be patient. Please check below the s
 - [x] RPC v0.4.0
 - [x] [Dump & Load](https://github.com/0xSpaceShard/starknet-devnet-rs#dumping--loading)
 - [x] [Mint token - Local faucet](https://0xspaceshard.github.io/starknet-devnet/docs/guide/mint-token)
+- [x] [Customizable predeployed accounts](#predeployed-contracts)
 - [x] Starknet.js test suite passes 100%
 
 ### TODO
@@ -32,7 +33,6 @@ This repository is work in progress, please be patient. Please check below the s
 ### TODO to reach feature parity with the Pythonic Devnet
 
 - [ ] Availability as a package (crate)
-- [x] [Custom accounts implementation](#predeployed-contracts)
 - [ ] [Forking](https://0xspaceshard.github.io/starknet-devnet/docs/guide/fork)
 - [ ] [L1-L2 Postman integration](https://0xspaceshard.github.io/starknet-devnet/docs/guide/postman)
 - [ ] [Block manipulation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/blocks)
