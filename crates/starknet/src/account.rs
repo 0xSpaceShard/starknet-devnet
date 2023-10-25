@@ -30,7 +30,7 @@ pub struct Account {
     pub private_key: Key,
     pub account_address: ContractAddress,
     pub initial_balance: Balance,
-    pub(crate) class_hash: ClassHash,
+    pub class_hash: ClassHash,
     pub(crate) contract_class: ContractClass,
     pub(crate) fee_token_address: ContractAddress,
 }
