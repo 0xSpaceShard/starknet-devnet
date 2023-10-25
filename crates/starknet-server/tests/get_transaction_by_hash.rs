@@ -16,14 +16,11 @@ mod get_transaction_by_hash_integration_tests {
     use starknet_rs_providers::{
         MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
     };
-    use starknet_rs_signers::{LocalWallet, SigningKey};
     use starknet_types::contract_class::Cairo0Json;
     use starknet_types::felt::Felt;
     use starknet_types::traits::ToHexString;
 
-    use crate::common::constants::{
-        CASM_COMPILED_CLASS_HASH, PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_PRIVATE_KEY,
-    };
+    use crate::common::constants::CASM_COMPILED_CLASS_HASH;
     use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::resolve_path;
 
@@ -107,11 +104,7 @@ mod get_transaction_by_hash_integration_tests {
         let compiled_class_hash = (casm_contract_definition.class_hash()).unwrap();
         assert_eq!(Felt::from(compiled_class_hash).to_prefixed_hex_str(), CASM_COMPILED_CLASS_HASH);
 
-        let signer = LocalWallet::from(SigningKey::from_secret_scalar(
-            FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_PRIVATE_KEY).unwrap(),
-        ));
-        let address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
-
+        let (signer, address) = devnet.get_first_predeployed_account().await;
         let mut account = SingleOwnerAccount::new(
             &devnet.json_rpc_client,
             signer,

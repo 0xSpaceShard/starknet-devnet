@@ -164,7 +164,7 @@ mod tests {
             feeder_gateway_transaction.version,
         );
 
-        let chain_id = ChainId::TestNet.to_felt();
+        let chain_id = ChainId::Testnet.to_felt();
 
         let blockifier_deploy_account_transaction =
             broadcasted_tx.create_blockifier_deploy_account(chain_id).unwrap();

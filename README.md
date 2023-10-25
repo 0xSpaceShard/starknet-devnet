@@ -33,7 +33,6 @@ This repository is work in progress, please be patient. Please check below the s
 
 - [ ] Availability as a package (crate)
 - [ ] [Custom accounts implementation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/accounts#custom-implementation)
-  - [ ] [PR](https://github.com/0xSpaceShard/starknet-devnet-rs/pull/196)
 - [ ] [Forking](https://0xspaceshard.github.io/starknet-devnet/docs/guide/fork)
 - [ ] [L1-L2 Postman integration](https://0xspaceshard.github.io/starknet-devnet/docs/guide/postman)
 - [ ] [Block manipulation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/blocks)
@@ -158,6 +157,8 @@ The JSON-RPC API is reachable via `/rpc` and `/` (e.g. if spawning Devnet with d
 
 Devnet predeploys a [UDC](https://docs.openzeppelin.com/contracts-cairo/0.6.1/udc), an [ERC20 (fee token)](https://docs.openzeppelin.com/contracts/3.x/api/token/erc20) contract and a set of funded accounts. The information on this is logged on Devnet startup. The set of accounts can be controlled via [CLI options](#cli-options): `--accounts`, `--initial-balance`, `--seed`.
 
+Retrieve the predeployed accounts in JSON format by sending a `GET` request to `/predeployed_accounts` of your Devnet.
+
 ## Mint token
 
 For now, you can consult the [Pythonic Devnet docs on minting](https://0xspaceshard.github.io/starknet-devnet/docs/guide/mint-token/), with the difference of lite minting not being supported anymore.
@@ -179,6 +180,7 @@ cargo run -- --dump-on transaction --dump-path <PATH>
 ```
 
 - Dumping on request (replace <HOST>, <PORT> and <PATH> with your own):
+
 ```
 curl -X POST http://<HOST>:<PORT>/dump -d '{ "path": <PATH> }' -H "Content-Type: application/json"
 ```
@@ -194,6 +196,7 @@ cargo run -- --dump-path <PATH>
 ```
 
 - Loading on request:
+
 ```
 curl -X POST http://<HOST>:<PORT>/load -d '{ "path": <PATH> }' -H "Content-Type: application/json"
 ```
