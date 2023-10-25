@@ -283,8 +283,8 @@ impl Starknet {
         // make cached state part of "persistent" state
         self.state.clear_dirty_state();
 
-        // TODO: add something here? like update time?
-
+        // update timestamp before block creation
+        self.update_pending_block_timestamp();
         // create new block from pending one
         self.generate_new_block(state_difference)?;
         // clear pending block information

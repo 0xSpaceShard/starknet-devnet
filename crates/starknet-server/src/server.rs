@@ -37,6 +37,7 @@ pub fn serve_http_api_json_rpc(
             post(http::postman::postman_consume_message_from_l2),
         )
         .http_api_route("/create_block", post(http::blocks::create_block))
+        .http_api_route("/get_latest_block", post(http::blocks::get_latest_block))
         .http_api_route("/abort_blocks", post(http::blocks::abort_blocks))
         .http_api_route("/restart", post(http::restart))
         .http_api_route("/set_time", post(http::time::set_time))
