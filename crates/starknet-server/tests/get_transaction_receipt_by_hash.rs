@@ -90,6 +90,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
         let contract_factory =
             ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
 
+        // deploy the contract
         let salt = FieldElement::ZERO;
         let constructor_args = Vec::<FieldElement>::new();
         let deployment_result = contract_factory
