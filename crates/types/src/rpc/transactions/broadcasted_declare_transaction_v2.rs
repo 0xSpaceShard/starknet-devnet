@@ -109,7 +109,6 @@ impl BroadcastedDeclareTransactionV2 {
 mod tests {
     use serde::Deserialize;
     use starknet_api::transaction::Fee;
-    use starknet_in_rust::core::contract_address::compute_sierra_class_hash;
 
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
@@ -141,7 +140,7 @@ mod tests {
 
         assert_eq!(
             crate::contract_class::compute_sierra_class_hash(&cairo_1_contract).unwrap(),
-            Felt::from(compute_sierra_class_hash(&cairo_1_contract).unwrap())
+            Felt::from(starknet_in_rust::core::contract_address::compute_sierra_class_hash(&cairo_1_contract).unwrap())
         );
     }
 

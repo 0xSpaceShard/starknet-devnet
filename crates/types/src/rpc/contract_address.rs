@@ -60,13 +60,6 @@ impl TryFrom<ContractAddress> for starknet_api::core::ContractAddress {
     }
 }
 
-impl From<ContractAddress> for starknet_in_rust::utils::Address {
-    fn from(value: ContractAddress) -> Self {
-        let felt_252 = cairo_felt::Felt252::from(value.0.0);
-        Self(felt_252)
-    }
-}
-
 impl From<ContractAddress> for Felt252 {
     fn from(value: ContractAddress) -> Self {
         Felt::from(value).into()
