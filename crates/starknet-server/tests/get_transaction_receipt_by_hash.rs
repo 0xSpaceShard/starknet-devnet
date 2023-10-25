@@ -87,10 +87,10 @@ mod get_transaction_receipt_by_hash_integration_tests {
             .await
             .unwrap();
 
+        // deploy the contract
         let contract_factory =
             ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
 
-        // deploy the contract
         let salt = FieldElement::ZERO;
         let constructor_args = Vec::<FieldElement>::new();
         let deployment_result = contract_factory
@@ -144,10 +144,10 @@ mod get_transaction_receipt_by_hash_integration_tests {
             .await
             .unwrap();
 
+        // try deploying with invalid constructor args - none are expected, we are providing [1]
         let contract_factory =
             ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
 
-        // try deploying with invalid constructor args - none are expected, we are providing [1]
         let salt = FieldElement::ZERO;
         let invalid_constructor_args = vec![FieldElement::ONE];
         let invalid_deployment_result = contract_factory
