@@ -29,6 +29,7 @@ pub struct StarknetConfig {
     pub chain_id: ChainId,
     pub dump_on: Option<DumpOn>,
     pub dump_path: Option<String>,
+    pub pending_block_timestamp_shift: u64,
 }
 
 impl Default for StarknetConfig {
@@ -50,6 +51,7 @@ impl Default for StarknetConfig {
             chain_id: DEVNET_DEFAULT_CHAIN_ID,
             dump_on: None,
             dump_path: None,
+            pending_block_timestamp_shift: 0,
         }
     }
 }

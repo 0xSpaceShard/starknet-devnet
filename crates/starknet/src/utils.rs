@@ -74,6 +74,7 @@ pub(crate) mod test_utils {
             chain_id: DEVNET_DEFAULT_CHAIN_ID,
             dump_on: None,
             dump_path: None,
+            pending_block_timestamp_shift: 0,
         }
     }
 

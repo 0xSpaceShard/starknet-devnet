@@ -163,6 +163,7 @@ impl Starknet {
     // Initialize values for new pending block
     pub(crate) fn generate_pending_block(&mut self) -> DevnetResult<()> {
         Self::update_block_context(&mut self.block_context);
+        self.update_pending_block_timestamp();
         self.restart_pending_block()?;
 
         Ok(())
@@ -281,6 +282,9 @@ impl Starknet {
         self.state.apply_state_difference(state_difference.clone())?;
         // make cached state part of "persistent" state
         self.state.clear_dirty_state();
+        
+        // TODO: add something here? like update time?
+
         // create new block from pending one
         self.generate_new_block(state_difference)?;
         // clear pending block information
@@ -324,11 +328,9 @@ impl Starknet {
             .as_secs()
     }
 
-    /// Should update block context with new block timestamp
-    /// and pointer to the next block number
+    /// Should update block context with the next block number
     fn update_block_context(block_context: &mut BlockContext) {
         block_context.block_number = block_context.block_number.next();
-        block_context.block_timestamp = BlockTimestamp(Self::get_current_timestamp_secs());
     }
 
     fn pending_block(&self) -> &StarknetBlock {
@@ -786,22 +788,30 @@ impl Starknet {
         Ok(simulation_results)
     }
 
-    pub fn create_empy_block(&mut self) -> DevnetResult<BlockNumber, Error> {
-        self.generate_new_block(StateDiff::default())
+    pub fn create_block(&mut self) -> DevnetResult<(), Error> {
+        // create new block from pending one
+        self.generate_new_block(StateDiff::default())?;
+        // clear pending block information
+        self.generate_pending_block()?;
+
+        Ok(())
     }
 
-    pub fn set_current_time(&mut self) {
-        self.blocks.pending_block.header.timestamp =
-            BlockTimestamp(Self::get_current_timestamp_secs());
-    }
-
-    pub fn set_time(&mut self, timestamp: u64) {
+    // Explicit set of pending block timestamp
+    pub fn set_pending_block_timestamp(&mut self, timestamp: u64) {
         self.blocks.pending_block.header.timestamp = BlockTimestamp(timestamp);
     }
 
+    // Update of pending block timestamp based on pending_block_timestamp_shift from config
+    pub fn update_pending_block_timestamp(&mut self) {
+        self.blocks.pending_block.header.timestamp = BlockTimestamp(
+            Self::get_current_timestamp_secs() + self.config.pending_block_timestamp_shift,
+        );
+    }
+
+    // Set timestamp shift in config for next blocks
     pub fn increase_time(&mut self, timestamp: u64) {
-        self.blocks.pending_block.header.timestamp =
-            BlockTimestamp(Self::get_current_timestamp_secs() + timestamp);
+        self.config.pending_block_timestamp_shift = timestamp;
     }
 }
 

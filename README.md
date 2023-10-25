@@ -227,15 +227,13 @@ Warning: block time can be set in the past and future which might lead to unexpe
 
 ### Increase time
 
-Increases the block timestamp by the provided amount and generates a new block.
+Increases the block timestamp by the provided amount and generates a new block. All subsequent blocks will keep this increment.
 ```
 POST /increase_time
 {
     "time": TIME_IN_SECONDS
 }
 ```
-
-Warning: block time can be set in the future which might lead to unexpected behavior!
 
 ## Development - Visual Studio Code
 
