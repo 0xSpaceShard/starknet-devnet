@@ -1,10 +1,16 @@
 use blockifier::transaction::transactions::DeclareTransaction;
-use cairo_felt::Felt252;
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
-use starknet_in_rust::core::transaction_hash::{
-    calculate_transaction_hash_common, TransactionHashPrefix as SirTransactionHashPrefix,
-};
+use starknet_rs_core::crypto::compute_hash_on_elements;
+use starknet_rs_ff::FieldElement;
+
+/// Cairo string for "declare" from starknet-rs
+pub(crate) const PREFIX_DECLARE: FieldElement = FieldElement::from_mont([
+    17542456862011667323,
+    18446744073709551615,
+    18446744073709551615,
+    191557713328401194,
+]);
 
 use crate::contract_address::ContractAddress;
 use crate::contract_class::Cairo0ContractClass;
@@ -97,18 +103,16 @@ impl BroadcastedDeclareTransactionV1 {
         chain_id: &Felt,
         class_hash: &ClassHash,
     ) -> DevnetResult<ClassHash> {
-        let additional_data: Vec<Felt252> = vec![self.common.nonce.into()];
-        let calldata = vec![class_hash.into()];
-        Ok(calculate_transaction_hash_common(
-            SirTransactionHashPrefix::Declare,
+        Ok(compute_hash_on_elements(&[
+            PREFIX_DECLARE,
             self.common.version.into(),
-            &self.sender_address.into(),
-            Felt252::from(0),
-            &calldata,
-            self.common.max_fee.0,
-            chain_id.into(),
-            &additional_data,
-        )?
+            self.sender_address.into(),
+            FieldElement::ZERO, // entry_point_selector
+            compute_hash_on_elements(&[FieldElement::from(*class_hash)]),
+            self.common.max_fee.0.into(),
+            FieldElement::from(*chain_id),
+            self.common.nonce.into(),
+        ])
         .into())
     }
 }

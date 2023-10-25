@@ -2,6 +2,7 @@ use std::fmt::LowerHex;
 
 use cairo_felt::Felt252;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use starknet_rs_ff::FieldElement;
 
 use crate::error::{DevnetResult, Error};
 use crate::felt::Felt;
@@ -69,6 +70,12 @@ impl From<ContractAddress> for starknet_in_rust::utils::Address {
 impl From<ContractAddress> for Felt252 {
     fn from(value: ContractAddress) -> Self {
         Felt::from(value).into()
+    }
+}
+
+impl From<ContractAddress> for FieldElement {
+    fn from(value: ContractAddress) -> Self {
+        FieldElement::from(value.0.0)
     }
 }
 

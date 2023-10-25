@@ -86,7 +86,6 @@ impl Formatter for StarknetFormatter {
 
 #[cfg(test)]
 pub(crate) mod test_utils {
-    use crate::felt::Felt;
 
     pub(crate) const CAIRO_0_ACCOUNT_CONTRACT_PATH: &str =
         concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/Cairo0_contract.json");
@@ -106,10 +105,6 @@ pub(crate) mod test_utils {
 
     pub(crate) const CAIRO_1_CONTRACT_SIERRA_HASH: &str =
         "0x113bf26d112a164297e04381212c9bd7409f07591f0a04f539bdf56693eaaf3";
-
-    pub(crate) fn dummy_felt() -> Felt {
-        Felt::from_prefixed_hex_str("0xF9").unwrap()
-    }
 }
 
 #[cfg(test)]

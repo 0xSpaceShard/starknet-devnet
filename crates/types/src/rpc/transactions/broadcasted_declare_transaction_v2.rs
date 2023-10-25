@@ -2,8 +2,10 @@ use blockifier::transaction::transactions::DeclareTransaction;
 use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
-use starknet_in_rust::core::transaction_hash::calculate_declare_v2_transaction_hash;
+use starknet_rs_core::crypto::compute_hash_on_elements;
+use starknet_rs_ff::FieldElement;
 
+use super::broadcasted_declare_transaction_v1::PREFIX_DECLARE;
 use crate::contract_address::ContractAddress;
 use crate::contract_class::{compute_sierra_class_hash, ContractClass};
 use crate::error::DevnetResult;
@@ -82,15 +84,17 @@ impl BroadcastedDeclareTransactionV2 {
             },
         );
 
-        let txn_hash: Felt = calculate_declare_v2_transaction_hash(
-            sierra_class_hash.into(),
-            self.compiled_class_hash.into(),
-            chain_id.into(),
-            &self.sender_address.into(),
-            self.common.max_fee.0,
+        let txn_hash: Felt = compute_hash_on_elements(&[
+            PREFIX_DECLARE,
             self.common.version.into(),
+            self.sender_address.into(),
+            FieldElement::ZERO, // entry_point_selector
+            compute_hash_on_elements(&[sierra_class_hash.into()]),
+            self.common.max_fee.0.into(),
+            FieldElement::from(chain_id),
             self.common.nonce.into(),
-        )?
+            self.compiled_class_hash.into(),
+        ])
         .into();
 
         Ok(DeclareTransaction::new(
