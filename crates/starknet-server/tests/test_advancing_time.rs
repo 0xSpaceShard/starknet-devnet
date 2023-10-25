@@ -40,7 +40,7 @@ mod advancing_time_tests {
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
 
-        // check if after mint block_timestamp is greater than create block timestamp
+        // check if after mint block_timestamp is greater than last block
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
         let resp_latest_block = devnet
             .post_json("/get_latest_block".into(), Body::from(json!({}).to_string()))
@@ -79,7 +79,7 @@ mod advancing_time_tests {
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
 
-        // check if after mint block_timestamp is greater than than last block
+        // check if after mint block_timestamp is greater than last block
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
         let resp_latest_block = devnet
             .post_json("/get_latest_block".into(), Body::from(json!({}).to_string()))
