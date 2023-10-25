@@ -155,11 +155,13 @@ The JSON-RPC API is reachable via `/rpc` and `/` (e.g. if spawning Devnet with d
 
 ## Predeployed contracts
 
-Devnet predeploys a [UDC](https://docs.openzeppelin.com/contracts-cairo/0.6.1/udc), an [ERC20 (fee token)](https://docs.openzeppelin.com/contracts/3.x/api/token/erc20) contract and a set of predeployed funded accounts. The information on this is logged on Devnet startup. The set of accounts can be controlled via [CLI options](#cli-options): `--accounts`, `--initial-balance`, `--seed`.
+Devnet predeploys a [UDC](https://docs.openzeppelin.com/contracts-cairo/0.6.1/udc), an [ERC20 (fee token)](https://docs.openzeppelin.com/contracts/3.x/api/token/erc20) contract and a set of predeployed funded accounts.
 
-Retrieve the predeployed accounts in JSON format by sending a `GET` request to `/predeployed_accounts` of your Devnet.
+The set of accounts can be controlled via [CLI options](#cli-options): `--accounts <NUMBER_OF>`, `--initial-balance <WEI>`, `--seed <VALUE>`.
 
-Choose between predeploying Cairo 0 (OpenZeppelin 0.5.1) or Cairo 1 (OpenZeppelin 0.7.0) accounts by using the `--account-class <IMPLEMENTATION>` CLI argument. Alternatively, provide a path to the Sierra artifact of your custom account using `--account-class-custom <SIERRA_PATH>`.
+Choose between predeploying Cairo 0 (OpenZeppelin 0.5.1) or Cairo 1 (OpenZeppelin 0.7.0) accounts by using `--account-class [cairo0 | cairo1]`. Alternatively, provide a path to the [Sierra artifact](https://github.com/starkware-libs/cairo#compiling-and-running-cairo-files) of your custom account using `--account-class-custom <SIERRA_PATH>`.
+
+The predeployment information is logged on Devnet startup. Predeployed accounts can be retrieved in JSON format by sending a `GET` request to `/predeployed_accounts` of your Devnet.
 
 ## Mint token
 
