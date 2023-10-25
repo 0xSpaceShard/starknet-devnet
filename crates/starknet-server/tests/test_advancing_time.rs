@@ -17,25 +17,25 @@ mod advancing_time_tests {
     #[tokio::test]
     async fn set_time_in_past() {
         // set time and assert
-        let time_to_set = 1;
+        let past_time = 1;
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let set_time_body = Body::from(
             json!({
-                "time": time_to_set
+                "time": past_time
             })
             .to_string(),
         );
         let resp_set_time = devnet.post_json("/set_time".into(), set_time_body).await.unwrap();
         let resp_body_set_time = get_json_body(resp_set_time).await;
-        assert_eq!(resp_body_set_time["block_timestamp"], time_to_set);
+        assert_eq!(resp_body_set_time["block_timestamp"], past_time);
 
-        // create block and check if block_timestamp is greater than time_to_set
+        // create block and check if block_timestamp is greater than past_time
         let resp_create_block = devnet
             .post_json("/create_block".into(), Body::from(json!({}).to_string()))
             .await
             .unwrap();
         let resp_body_create_block = get_json_body(resp_create_block).await;
-        assert!(resp_body_create_block["block_timestamp"].as_u64() > Some(time_to_set));
+        assert!(resp_body_create_block["block_timestamp"].as_u64() > Some(past_time));
 
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
@@ -56,30 +56,30 @@ mod advancing_time_tests {
     #[tokio::test]
     async fn set_time_in_far_future() {
         // set time and assert
-        let time: u64 = 3376684800;
+        let future_time: u64 = 3376684800;
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let set_time_body = Body::from(
             json!({
-                "time": time
+                "time": future_time
             })
             .to_string(),
         );
         let resp = devnet.post_json("/set_time".into(), set_time_body).await.unwrap();
         let resp_body = get_json_body(resp).await;
-        assert_eq!(resp_body["block_timestamp"], time);
+        assert_eq!(resp_body["block_timestamp"], future_time);
 
-        // create block and check if block_timestamp is less than time
+        // create block and check if block_timestamp is less than future_time
         let resp_create_block = devnet
             .post_json("/create_block".into(), Body::from(json!({}).to_string()))
             .await
             .unwrap();
         let resp_body_create_block = get_json_body(resp_create_block).await;
-        assert!(resp_body_create_block["block_timestamp"].as_u64() < Some(time));
+        assert!(resp_body_create_block["block_timestamp"].as_u64() < Some(future_time));
 
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
 
-        // check if after mint block_timestamp is greater than create block timestamp
+        // check if after mint block_timestamp is greater than than last block
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
         let resp_latest_block = devnet
             .post_json("/get_latest_block".into(), Body::from(json!({}).to_string()))
@@ -136,7 +136,7 @@ mod advancing_time_tests {
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
 
-        // create block and check again if block_timestamp is greater than than last block
+        // create block and check again if block_timestamp is greater than last block
         let resp_create_block = devnet
             .post_json("/create_block".into(), Body::from(json!({}).to_string()))
             .await
@@ -150,7 +150,7 @@ mod advancing_time_tests {
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
 
-        // check if after mint block_timestamp is greater than create block timestamp
+        // check if after mint block_timestamp is greater than last block
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
         let resp_latest_block = devnet
             .post_json("/get_latest_block".into(), Body::from(json!({}).to_string()))
