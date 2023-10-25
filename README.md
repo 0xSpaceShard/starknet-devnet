@@ -206,6 +206,34 @@ This means that timestamps of `StarknetBlock` will be different.
 
 Dumping and loading is not guaranteed to work cross-version. I.e. if you dumped one version of Devnet, do not expect it to be loadable with a different version.
 
+## Advancing time
+
+Block timestamp can be manipulated by setting the exact time or setting the time offset. Timestamps methods `/set_time` and `/increase_time` will generate a new block. All values should be set in Unix time and seconds.
+
+### Set time
+
+Sets the exact time and generates a new block.
+```
+POST /set_time
+{
+    "time": TIME_IN_SECONDS
+}
+```
+
+Warning: block time can be set in the past and future which might lead to unexpected behavior!
+
+### Increase time
+
+Increases the block timestamp by the provided amount and generates a new block.
+```
+POST /increase_time
+{
+    "time": TIME_IN_SECONDS
+}
+```
+
+Warning: block time can be set in the future which might lead to unexpected behavior!
+
 ## Development - Visual Studio Code
 
 It is highly recommended to get familiar with [Visual Studio Code Dev Containers](https://code.visualstudio.com/docs/devcontainers/create-dev-container#_dockerfile) and install [rust-analyzer](https://code.visualstudio.com/docs/languages/rust) extension.
