@@ -186,7 +186,7 @@ mod tests {
     }
 
     #[test]
-    fn allowing_only_account_class() {
+    fn allowing_if_only_account_class() {
         match Args::try_parse_from(["--", "--account-class", "cairo1"]) {
             Ok(_) => (),
             Err(err) => panic!("Should have passed; got: {err}"),
@@ -194,7 +194,7 @@ mod tests {
     }
 
     #[test]
-    fn allowing_only_account_class_path() {
+    fn allowing_if_only_account_class_path() {
         match Args::try_parse_from([
             "--",
             "--account-class-custom",
@@ -222,6 +222,7 @@ mod tests {
 
     #[test]
     fn not_allowing_regular_cairo1_contract_as_custom_account() {
+        // path to a regular cairo1 contract (not an account)
         let custom_path = "test_data/rpc/contract_cairo_v1/output.json";
         match Args::try_parse_from(["--", "--account-class-custom", custom_path]) {
             Err(err) => assert_eq!(
