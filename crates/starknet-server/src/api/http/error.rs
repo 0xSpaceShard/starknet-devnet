@@ -30,26 +30,26 @@ impl IntoResponse for HttpApiError {
     fn into_response(self) -> axum::response::Response {
         let (status, error_message) = match self {
             HttpApiError::GeneralError => {
-                (StatusCode::INTERNAL_SERVER_ERROR, String::from("general error"))
+                (StatusCode::INTERNAL_SERVER_ERROR, HttpApiError::GeneralError.to_string())
             }
             HttpApiError::FileNotFound => {
-                (StatusCode::BAD_REQUEST, String::from("file does not exist"))
+                (StatusCode::BAD_REQUEST, HttpApiError::FileNotFound.to_string())
             }
             err @ HttpApiError::DumpError { msg: _ } => (StatusCode::BAD_REQUEST, err.to_string()),
             HttpApiError::LoadError => {
-                (StatusCode::BAD_REQUEST, String::from("load operation failed"))
+                (StatusCode::BAD_REQUEST, HttpApiError::LoadError.to_string())
             }
             HttpApiError::ReExecutionError => {
-                (StatusCode::BAD_REQUEST, String::from("re-execution operation failed"))
+                (StatusCode::BAD_REQUEST, HttpApiError::ReExecutionError.to_string())
             }
             HttpApiError::CreateEmptyBlockError => {
-                (StatusCode::BAD_REQUEST, String::from("creation of empty block failed"))
+                (StatusCode::BAD_REQUEST, HttpApiError::CreateEmptyBlockError.to_string())
             }
             HttpApiError::SetTimeError => {
-                (StatusCode::BAD_REQUEST, String::from("set time operation failed"))
+                (StatusCode::BAD_REQUEST, HttpApiError::SetTimeError.to_string())
             }
             HttpApiError::IncreaseTimeError => {
-                (StatusCode::BAD_REQUEST, String::from("increase time operation failed"))
+                (StatusCode::BAD_REQUEST, HttpApiError::IncreaseTimeError.to_string())
             }
             err @ HttpApiError::MintingError { msg: _ } => {
                 (StatusCode::BAD_REQUEST, err.to_string())
