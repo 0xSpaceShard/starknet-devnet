@@ -24,8 +24,6 @@ pub enum HttpApiError {
     SetTimeError,
     #[error("The increase time operation failed")]
     IncreaseTimeError,
-    #[error("The get of latest block failed")]
-    GetLatestBlockError,
 }
 
 impl IntoResponse for HttpApiError {
@@ -52,9 +50,6 @@ impl IntoResponse for HttpApiError {
             }
             HttpApiError::IncreaseTimeError => {
                 (StatusCode::BAD_REQUEST, String::from("increase time operation failed"))
-            }
-            HttpApiError::GetLatestBlockError => {
-                (StatusCode::BAD_REQUEST, String::from("get of latest block failed"))
             }
             err @ HttpApiError::MintingError { msg: _ } => {
                 (StatusCode::BAD_REQUEST, err.to_string())

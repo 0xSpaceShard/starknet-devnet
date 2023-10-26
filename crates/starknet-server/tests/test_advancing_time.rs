@@ -40,15 +40,13 @@ mod advancing_time_tests {
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
 
-        // check if after mint block_timestamp is greater than last block
+        // check if after mint timestamp is greater than last block
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
-        let resp_latest_block = devnet
-            .post_json("/get_latest_block".into(), Body::from(json!({}).to_string()))
-            .await
-            .unwrap();
-        let resp_body_latest_block = get_json_body(resp_latest_block).await;
+        let resp_latest_block_rpc = &devnet
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
         assert!(
-            resp_body_latest_block["block_timestamp"].as_u64()
+            resp_latest_block_rpc["timestamp"].as_u64()
                 > resp_body_create_block["block_timestamp"].as_u64()
         );
     }
@@ -79,15 +77,13 @@ mod advancing_time_tests {
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
 
-        // check if after mint block_timestamp is greater than last block
+        // check if after mint timestamp is greater than last block
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
-        let resp_latest_block = devnet
-            .post_json("/get_latest_block".into(), Body::from(json!({}).to_string()))
-            .await
-            .unwrap();
-        let resp_body_latest_block = get_json_body(resp_latest_block).await;
+        let resp_latest_block_rpc = &devnet
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
         assert!(
-            resp_body_latest_block["block_timestamp"].as_u64()
+            resp_latest_block_rpc["timestamp"].as_u64()
                 > resp_body_create_block["block_timestamp"].as_u64()
         );
     }
@@ -150,15 +146,13 @@ mod advancing_time_tests {
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
 
-        // check if after mint block_timestamp is greater than last block
+        // check if after mint timestamp is greater than last block
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
-        let resp_latest_block = devnet
-            .post_json("/get_latest_block".into(), Body::from(json!({}).to_string()))
-            .await
-            .unwrap();
-        let resp_body_latest_block = get_json_body(resp_latest_block).await;
+        let resp_latest_block_rpc = &devnet
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
         assert!(
-            resp_body_latest_block["block_timestamp"].as_u64()
+            resp_latest_block_rpc["timestamp"].as_u64()
                 > resp_body_create_block["block_timestamp"].as_u64()
         );
     }
