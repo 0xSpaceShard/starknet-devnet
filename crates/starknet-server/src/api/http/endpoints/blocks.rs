@@ -9,7 +9,7 @@ pub(crate) async fn create_block(
 ) -> HttpApiResult<Json<CreatedBlock>> {
     let mut starknet = state.api.starknet.write().await;
     starknet.update_pending_block_timestamp();
-    let _ = starknet.create_block().map_err(|_| HttpApiError::CreateEmptyBlockError);
+    starknet.create_block().map_err(|_| HttpApiError::CreateEmptyBlockError)?;
     let last_block = starknet.get_latest_block();
 
     match last_block {

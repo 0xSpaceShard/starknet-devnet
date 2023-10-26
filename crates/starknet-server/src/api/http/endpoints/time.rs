@@ -10,7 +10,7 @@ pub(crate) async fn set_time(
 ) -> HttpApiResult<Json<SetTime>> {
     let mut starknet = state.api.starknet.write().await;
     starknet.set_pending_block_timestamp(data.time);
-    let _ = starknet.create_block().map_err(|_| HttpApiError::CreateEmptyBlockError);
+    starknet.create_block().map_err(|_| HttpApiError::CreateEmptyBlockError)?;
 
     let last_block = starknet.get_latest_block();
     match last_block {
@@ -29,7 +29,7 @@ pub(crate) async fn increase_time(
     let mut starknet = state.api.starknet.write().await;
     starknet.increase_time(data.time);
     starknet.update_pending_block_timestamp();
-    let _ = starknet.create_block().map_err(|_| HttpApiError::CreateEmptyBlockError);
+    starknet.create_block().map_err(|_| HttpApiError::CreateEmptyBlockError)?;
 
     let last_block = starknet.get_latest_block();
     match last_block {
