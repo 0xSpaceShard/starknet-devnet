@@ -6,7 +6,7 @@ use starknet_core::constants::{
 use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
 use starknet_types::chain_id::ChainId;
 
-use crate::contract_class_choice::AccountContractClassChoice;
+use crate::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
 use crate::initial_balance_wrapper::InitialBalanceWrapper;
 use crate::ip_addr_wrapper::IpAddrWrapper;
 
@@ -27,7 +27,13 @@ pub(crate) struct Args {
     #[arg(value_name = "ACCOUNT_CLASS")]
     #[arg(default_value = "cairo0")]
     #[arg(help = "Specify the class used by predeployed accounts;")]
-    account_class: AccountContractClassChoice,
+    account_class_choice: AccountContractClassChoice,
+
+    #[arg(long = "account-class-custom")]
+    #[arg(value_name = "PATH")]
+    #[arg(conflicts_with = "account_class_choice")]
+    #[arg(help = "Specify the path to a Cairo Sierra artifact to be used by predeployed accounts;")]
+    account_class_custom: Option<AccountClassWrapper>,
 
     /// Initial balance of predeployed accounts
     #[arg(long = "initial-balance")]
@@ -93,14 +99,20 @@ pub(crate) struct Args {
 
 impl Args {
     pub(crate) fn to_starknet_config(&self) -> Result<StarknetConfig, anyhow::Error> {
+        // use account-class-custom if specified; otherwise default to predefined account-class
+        let account_class_wrapper = match self.account_class_custom.clone() {
+            Some(account_class_custom) => account_class_custom,
+            None => self.account_class_choice.get_class_wrapper()?,
+        };
+
         Ok(StarknetConfig {
             seed: match self.seed {
                 Some(seed) => seed,
                 None => random_number_generator::generate_u32_random_number(),
             },
             total_accounts: self.accounts_count,
-            account_contract_class: self.account_class.get_class()?,
-            account_contract_class_hash: self.account_class.get_hash()?,
+            account_contract_class: account_class_wrapper.contract_class,
+            account_contract_class_hash: account_class_wrapper.class_hash,
             predeployed_accounts_initial_balance: self.initial_balance.0,
             host: self.host.inner,
             port: self.port,
@@ -116,6 +128,7 @@ impl Args {
 #[cfg(test)]
 mod tests {
     use clap::Parser;
+    use starknet_core::constants::{CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH, ERC20_CONTRACT_PATH};
 
     use super::Args;
     use crate::ip_addr_wrapper::IpAddrWrapper;
@@ -144,6 +157,82 @@ mod tests {
     fn invalid_hostname() {
         match Args::try_parse_from(["--", "--host", "invalid"]) {
             Err(_) => (),
+            Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
+        }
+    }
+
+    fn get_first_line(text: &str) -> &str {
+        text.split('\n').next().unwrap()
+    }
+
+    #[test]
+    fn not_allowing_account_class_and_account_class_path() {
+        match Args::try_parse_from([
+            "--",
+            "--account-class",
+            "cairo1",
+            "--account-class-custom",
+            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
+        ]) {
+            Err(err) => {
+                assert_eq!(
+                    get_first_line(&err.to_string()),
+                    "error: the argument '--account-class <ACCOUNT_CLASS>' cannot be used with \
+                     '--account-class-custom <PATH>'"
+                );
+            }
+            Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
+        }
+    }
+
+    #[test]
+    fn allowing_if_only_account_class() {
+        match Args::try_parse_from(["--", "--account-class", "cairo1"]) {
+            Ok(_) => (),
+            Err(err) => panic!("Should have passed; got: {err}"),
+        }
+    }
+
+    #[test]
+    fn allowing_if_only_account_class_path() {
+        match Args::try_parse_from([
+            "--",
+            "--account-class-custom",
+            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
+        ]) {
+            Ok(_) => (),
+            Err(err) => panic!("Should have passed; got: {err}"),
+        }
+    }
+
+    #[test]
+    fn not_allowing_regular_cairo0_contract_as_custom_account() {
+        let custom_path = ERC20_CONTRACT_PATH;
+        match Args::try_parse_from(["--", "--account-class-custom", custom_path]) {
+            Err(err) => assert_eq!(
+                get_first_line(&err.to_string()),
+                format!(
+                    "error: invalid value '{custom_path}' for '--account-class-custom <PATH>': \
+                     missing field `kind` at line 1 column 292"
+                )
+            ),
+            Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
+        }
+    }
+
+    #[test]
+    fn not_allowing_regular_cairo1_contract_as_custom_account() {
+        // path to a regular cairo1 contract (not an account)
+        let custom_path = "test_data/rpc/contract_cairo_v1/output.json";
+        match Args::try_parse_from(["--", "--account-class-custom", custom_path]) {
+            Err(err) => assert_eq!(
+                get_first_line(&err.to_string()),
+                format!(
+                    "error: invalid value '{custom_path}' for '--account-class-custom <PATH>': \
+                     Not a valid Sierra account artifact; has __execute__: false; has \
+                     __validate__: false"
+                )
+            ),
             Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
         }
     }

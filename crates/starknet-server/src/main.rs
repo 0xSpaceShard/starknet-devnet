@@ -50,6 +50,8 @@ fn log_predeployed_accounts(predeployed_accounts: &Vec<Account>, seed: u32, init
 
     if !predeployed_accounts.is_empty() {
         println!();
+        let class_hash = predeployed_accounts.get(0).unwrap().class_hash.to_prefixed_hex_str();
+        println!("Predeployed accounts using class with hash: {class_hash}");
         println!("Initial balance of each account: {} WEI", initial_balance.to_decimal_string());
         println!("Seed to replicate this account sequence: {seed}");
     }
