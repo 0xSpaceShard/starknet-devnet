@@ -13,7 +13,6 @@ cairo-lang-starknet = { workspace = true }
 clap = { workspace = true }
 starknet_api = { workspace = true, features = ["testing"] }
 thiserror = { workspace = true }
-starknet-in-rust = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 starknet-rs-signers = { workspace = true }
