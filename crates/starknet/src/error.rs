@@ -56,6 +56,9 @@ pub enum Error {
     FeeError { reason: String },
     #[error(transparent)]
     TransactionValidationError(#[from] TransactionValidationError),
+    // TODO: should probably be under StateError
+    #[error("{msg}")]
+    StateReadError { msg: String },
 }
 
 #[derive(Debug, Error)]
