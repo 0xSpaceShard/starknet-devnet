@@ -10,7 +10,7 @@ use starknet_api::hash::{pedersen_hash_array, StarkFelt};
 use starknet_rs_core::types::CompressedLegacyContractClass;
 
 use crate::contract_class::deprecated::rpc_contract_class::DeprecatedContractClass;
-use crate::error::{DevnetResult, Error, JsonError, ConversionError};
+use crate::error::{ConversionError, DevnetResult, Error, JsonError};
 use crate::felt::Felt;
 use crate::traits::HashProducer;
 use crate::utils::StarknetFormatter;
@@ -106,7 +106,9 @@ impl Cairo0Json {
             |entry_point_type: EntryPointType| -> DevnetResult<StarkFelt> {
                 let felts: Vec<StarkFelt> = entry_points_by_type
                     .get(&entry_point_type)
-                    .ok_or(ConversionError::InvalidInternalStructure("Missing entry point type".to_string()))?
+                    .ok_or(ConversionError::InvalidInternalStructure(
+                        "Missing entry point type".to_string(),
+                    ))?
                     .iter()
                     .flat_map(|entry_point| {
                         let selector = entry_point.selector.0;

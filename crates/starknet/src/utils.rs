@@ -38,9 +38,10 @@ pub(crate) mod test_utils {
     use cairo_lang_starknet::casm_contract_class::CasmContractClass;
     use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
     use starknet_api::transaction::Fee;
-    use starknet_in_rust::core::contract_address::compute_casm_class_hash;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
+    use starknet_types::contract_class::{
+        compute_casm_class_hash, Cairo0ContractClass, Cairo0Json, ContractClass,
+    };
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
     use starknet_types::patricia_key::StorageKey;
@@ -133,7 +134,7 @@ pub(crate) mod test_utils {
 
         BroadcastedDeclareTransactionV2::new(
             &contract_class,
-            compiled_class_hash.into(),
+            compiled_class_hash,
             *sender_address,
             Fee(4000),
             &Vec::new(),

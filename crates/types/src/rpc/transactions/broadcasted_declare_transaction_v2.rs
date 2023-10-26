@@ -129,7 +129,7 @@ mod tests {
     }
 
     #[test]
-    fn sierra_hash_from_events_sierra_artifact() {
+    fn compare_sierra_hash_from_events_sierra_artifact_with_starknet_in_rust_implementation() {
         let sierra_contract_path =
             concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/events_cairo1.sierra");
 
@@ -140,7 +140,12 @@ mod tests {
 
         assert_eq!(
             crate::contract_class::compute_sierra_class_hash(&cairo_1_contract).unwrap(),
-            Felt::from(starknet_in_rust::core::contract_address::compute_sierra_class_hash(&cairo_1_contract).unwrap())
+            Felt::from(
+                starknet_in_rust::core::contract_address::compute_sierra_class_hash(
+                    &cairo_1_contract
+                )
+                .unwrap()
+            )
         );
     }
 

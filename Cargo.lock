@@ -4391,6 +4391,7 @@ dependencies = [
  "serde",
  "serde_json",
  "starknet-core 0.6.0",
+ "starknet-crypto 0.6.0",
  "starknet-ff",
  "starknet_api 0.5.0-rc1",
  "starknet_in_rust",
