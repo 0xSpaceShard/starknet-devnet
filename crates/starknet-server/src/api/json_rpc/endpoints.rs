@@ -251,7 +251,7 @@ impl JsonRpcHandler {
             Ok(result) => Ok(result),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
-            Err(err) => Err(ApiError::ContractError { error: err }),
+            Err(err) => Err(ApiError::ContractError { msg: err.to_string() }),
         }
     }
 
@@ -266,7 +266,7 @@ impl JsonRpcHandler {
             Ok(result) => Ok(result),
             Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
-            Err(err) => Err(ApiError::ContractError { error: err }),
+            Err(err) => Err(ApiError::ContractError { msg: err.to_string() }),
         }
     }
 
@@ -279,7 +279,7 @@ impl JsonRpcHandler {
             Ok(result) => Ok(result),
             Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
-            Err(err) => Err(ApiError::ContractError { error: err }),
+            Err(err) => Err(ApiError::ContractError { msg: err.to_string() }),
         }
     }
 
@@ -383,7 +383,7 @@ impl JsonRpcHandler {
             Ok(result) => Ok(result),
             Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
-            Err(err) => Err(ApiError::ContractError { error: err }),
+            Err(err) => Err(ApiError::ContractError { msg: err.to_string() }),
         }
     }
 }

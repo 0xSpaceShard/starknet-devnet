@@ -31,10 +31,7 @@ fn get_balance(starknet: &Starknet, address: ContractAddress) -> Result<BigUint,
     if new_balance_raw.len() != 2 {
         let msg =
             format!("Fee token contract expected to return 2 values; got: {:?}", new_balance_raw);
-
-        return Err(ApiError::ContractError {
-            error: starknet_core::error::Error::UnexpectedInternalError { msg },
-        });
+        return Err(ApiError::ContractError { msg });
     }
     let new_balance_low: BigUint = (*new_balance_raw.get(0).unwrap()).into();
     let new_balance_high: BigUint = (*new_balance_raw.get(1).unwrap()).into();
