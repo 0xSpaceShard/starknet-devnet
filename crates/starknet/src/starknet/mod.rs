@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::time::SystemTime;
 
 use blockifier::block_context::BlockContext;
@@ -7,7 +8,6 @@ use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
 use starknet_api::transaction::Fee;
-use starknet_in_rust::definitions::constants::DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS;
 use starknet_rs_core::types::{BlockId, MsgFromL1, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
@@ -304,15 +304,29 @@ impl Starknet {
 
         let mut block_context = blockifier::block_context::BlockContext::create_for_testing();
 
+        // copied from starknet_in_rust
+        /// The (empirical) L1 gas cost of each Cairo step.
+        const N_STEPS_FEE_WEIGHT: f64 = 0.01;
+
         block_context.block_number = BlockNumber(0);
         block_context.block_timestamp = BlockTimestamp(0);
         block_context.gas_prices.eth_l1_gas_price = gas_price as u128;
         block_context.chain_id = chain_id.into();
         block_context.fee_token_addresses.eth_fee_token_address =
             contract_address!(fee_token_address);
-        // inject cairo resource fee weights from starknet_in_rust
-        block_context.vm_resource_fee_cost =
-            std::sync::Arc::new(DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS.clone());
+        // copied cairo resource fee weights from starknet_in_rust
+        block_context.vm_resource_fee_cost = std::sync::Arc::new(HashMap::from([
+            ("n_steps".to_string(), N_STEPS_FEE_WEIGHT),
+            ("output_builtin".to_string(), 0.0),
+            ("pedersen_builtin".to_string(), N_STEPS_FEE_WEIGHT * 32.0),
+            ("range_check_builtin".to_string(), N_STEPS_FEE_WEIGHT * 16.0),
+            ("ecdsa_builtin".to_string(), N_STEPS_FEE_WEIGHT * 2048.0),
+            ("bitwise_builtin".to_string(), N_STEPS_FEE_WEIGHT * 64.0),
+            ("ec_op_builtin".to_string(), N_STEPS_FEE_WEIGHT * 1024.0),
+            ("poseidon_builtin".to_string(), N_STEPS_FEE_WEIGHT * 32.0),
+            ("segment_arena_builtin".to_string(), N_STEPS_FEE_WEIGHT * 10.0),
+            ("keccak_builtin".to_string(), N_STEPS_FEE_WEIGHT * 2048.0), // 2**11
+        ]));
 
         block_context
     }

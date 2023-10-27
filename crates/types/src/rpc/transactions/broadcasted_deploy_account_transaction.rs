@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
-use cairo_felt::Felt252;
 use serde::{Deserialize, Serialize};
 use starknet_api::core::calculate_contract_address;
 use starknet_api::transaction::Fee;
+use starknet_rs_core::crypto::compute_hash_on_elements;
+use starknet_rs_ff::FieldElement;
 
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
@@ -13,6 +14,14 @@ use crate::felt::{
 };
 use crate::rpc::transactions::deploy_account_transaction::DeployAccountTransaction;
 use crate::rpc::transactions::BroadcastedTransactionCommon;
+
+/// Cairo string for "deploy_account" from starknet-rs
+const PREFIX_DEPLOY_ACCOUNT: FieldElement = FieldElement::from_mont([
+    3350261884043292318,
+    18443211694809419988,
+    18446744073709551615,
+    461298303000467581,
+]);
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct BroadcastedDeployAccountTransaction {
@@ -59,18 +68,23 @@ impl BroadcastedDeployAccountTransaction {
             starknet_api::core::ContractAddress::from(0u8),
         )?;
 
-        let transaction_hash: Felt =
-            starknet_in_rust::core::transaction_hash::calculate_deploy_account_transaction_hash(
-                self.common.version.into(),
-                &(ContractAddress::from(contract_address).into()),
-                self.class_hash.into(),
-                &self.constructor_calldata.iter().map(|f| f.into()).collect::<Vec<Felt252>>(),
-                self.common.max_fee.0,
-                self.common.nonce.into(),
-                self.contract_address_salt.into(),
-                chain_id.into(),
-            )?
-            .into();
+        let mut calldata_to_hash = vec![self.class_hash, self.contract_address_salt];
+        calldata_to_hash.extend(self.constructor_calldata.iter());
+
+        let calldata_to_hash: Vec<FieldElement> =
+            calldata_to_hash.into_iter().map(FieldElement::from).collect();
+
+        let transaction_hash: Felt = compute_hash_on_elements(&[
+            PREFIX_DEPLOY_ACCOUNT,
+            self.common.version.into(),
+            ContractAddress::from(contract_address).into(),
+            FieldElement::ZERO, // entry_point_selector
+            compute_hash_on_elements(&calldata_to_hash),
+            self.common.max_fee.0.into(),
+            chain_id.into(),
+            self.common.nonce.into(),
+        ])
+        .into();
 
         let sn_api_transaction = starknet_api::transaction::DeployAccountTransactionV1 {
             max_fee: self.common.max_fee,

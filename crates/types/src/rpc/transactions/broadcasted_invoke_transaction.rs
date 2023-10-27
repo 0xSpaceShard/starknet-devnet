@@ -1,13 +1,11 @@
 use std::sync::Arc;
 
 use blockifier::transaction::transactions::InvokeTransaction;
-use cairo_felt::Felt252;
 use serde::{Deserialize, Serialize};
 use starknet_api::hash::StarkFelt;
 use starknet_api::transaction::Fee;
-use starknet_in_rust::core::transaction_hash::{
-    calculate_transaction_hash_common, TransactionHashPrefix,
-};
+use starknet_rs_core::crypto::compute_hash_on_elements;
+use starknet_rs_ff::FieldElement;
 
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
@@ -16,6 +14,14 @@ use crate::felt::{
 };
 use crate::rpc::transactions::invoke_transaction_v1::InvokeTransactionV1;
 use crate::rpc::transactions::BroadcastedTransactionCommon;
+
+/// Cairo string for "invoke" from starknet-rs
+const PREFIX_INVOKE: FieldElement = FieldElement::from_mont([
+    18443034532770911073,
+    18446744073709551615,
+    18446744073709551615,
+    513398556346534256,
+]);
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct BroadcastedInvokeTransaction {
@@ -50,19 +56,22 @@ impl BroadcastedInvokeTransaction {
         &self,
         chain_id: Felt,
     ) -> DevnetResult<InvokeTransaction> {
-        let entry_point_selector_field = Felt252::from(0u8);
-        let additional_data = vec![self.common.nonce];
-
-        let txn_hash: Felt = calculate_transaction_hash_common(
-            TransactionHashPrefix::Invoke,
-            self.common.version.into(),
-            &self.sender_address.into(),
-            entry_point_selector_field,
-            self.calldata.iter().map(Felt252::from).collect::<Vec<Felt252>>().as_slice(),
-            self.common.max_fee.0,
+        let txn_hash: Felt = compute_hash_on_elements(&[
+            PREFIX_INVOKE,
+            self.common.version.into(), // version
+            self.sender_address.into(),
+            FieldElement::ZERO, // entry_point_selector
+            compute_hash_on_elements(
+                &self
+                    .calldata
+                    .iter()
+                    .map(|felt| FieldElement::from(*felt))
+                    .collect::<Vec<FieldElement>>(),
+            ),
+            self.common.max_fee.0.into(),
             chain_id.into(),
-            additional_data.iter().map(Felt252::from).collect::<Vec<Felt252>>().as_slice(),
-        )?
+            self.common.nonce.into(),
+        ])
         .into();
 
         let sn_api_transaction = starknet_api::transaction::InvokeTransactionV1 {

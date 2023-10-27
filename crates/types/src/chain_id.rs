@@ -1,6 +1,5 @@
 use std::fmt::Display;
 
-use starknet_in_rust::definitions::block_context::StarknetChainId;
 use starknet_rs_core::chain_id::{MAINNET, TESTNET};
 use starknet_rs_ff::FieldElement;
 
@@ -47,15 +46,6 @@ impl From<&ChainId> for FieldElement {
     }
 }
 
-impl From<ChainId> for StarknetChainId {
-    fn from(value: ChainId) -> Self {
-        match value {
-            ChainId::Mainnet => StarknetChainId::MainNet,
-            ChainId::Testnet => StarknetChainId::TestNet,
-        }
-    }
-}
-
 impl From<ChainId> for starknet_api::core::ChainId {
     fn from(value: ChainId) -> Self {
         starknet_api::core::ChainId(value.to_string())
@@ -64,17 +54,14 @@ impl From<ChainId> for starknet_api::core::ChainId {
 
 #[cfg(test)]
 mod tests {
-    use cairo_felt::Felt252;
-    use starknet_in_rust::definitions::block_context::StarknetChainId;
-
     use super::ChainId;
+    use crate::traits::ToHexString;
 
     #[test]
-    fn check_conversion_to_starknet_in_rust_and_starknet_api() {
+    fn check_conversion_to_starknet_api() {
         let t = ChainId::Testnet;
-        let st: StarknetChainId = t.into();
         let sat: starknet_api::core::ChainId = t.into();
 
-        assert_eq!(st.to_felt(), Felt252::from_bytes_be(sat.to_string().as_bytes()));
+        assert_eq!(t.to_felt().to_prefixed_hex_str(), sat.as_hex());
     }
 }

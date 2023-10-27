@@ -8,10 +8,11 @@ repository.workspace = true
 
 [dependencies]
 blockifier = { workspace = true, features = ["testing"]}
+cairo-felt = { workspace = true }
+cairo-lang-starknet = { workspace = true }
 clap = { workspace = true }
 starknet_api = { workspace = true, features = ["testing"] }
 thiserror = { workspace = true }
-starknet-in-rust = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 starknet-rs-signers = { workspace = true }

@@ -1,18 +1,18 @@
 use core::fmt::Debug;
 use std::cmp::{Eq, PartialEq};
-use std::sync::Arc;
 
+use cairo_lang_starknet::casm_contract_class::{CasmContractClass, CasmContractEntryPoint};
+use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
 use serde::{Serialize, Serializer};
-use starknet_in_rust::core::contract_address::compute_sierra_class_hash;
-use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass;
-use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
-use starknet_in_rust::{CasmContractClass, SierraContractClass};
+use starknet_api::deprecated_contract_class::EntryPointType;
+use starknet_rs_core::types::contract::{SierraClass, SierraClassDebugInfo};
 use starknet_rs_core::types::{
     ContractClass as CodegenContractClass, FlattenedSierraClass as CodegenSierraContracrClass,
 };
+use starknet_rs_crypto::poseidon_hash_many;
 use starknet_rs_ff::FieldElement;
 
-use crate::error::{DevnetResult, Error, JsonError};
+use crate::error::{ConversionError, DevnetResult, Error, JsonError};
 use crate::felt::Felt;
 use crate::traits::HashProducer;
 
@@ -51,12 +51,6 @@ impl ContractClass {
 impl From<Cairo0ContractClass> for ContractClass {
     fn from(value: Cairo0ContractClass) -> Self {
         ContractClass::Cairo0(value)
-    }
-}
-
-impl From<StarknetInRustContractClass> for ContractClass {
-    fn from(value: StarknetInRustContractClass) -> Self {
-        ContractClass::Cairo0(value.into())
     }
 }
 
@@ -108,7 +102,7 @@ impl TryFrom<ContractClass> for Cairo0Json {
     }
 }
 
-impl TryFrom<ContractClass> for starknet_in_rust::CasmContractClass {
+impl TryFrom<ContractClass> for cairo_lang_starknet::casm_contract_class::CasmContractClass {
     type Error = Error;
 
     fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
@@ -118,19 +112,6 @@ impl TryFrom<ContractClass> for starknet_in_rust::CasmContractClass {
                     .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })
             }
             _ => Err(Error::ConversionError(crate::error::ConversionError::InvalidFormat)),
-        }
-    }
-}
-
-impl TryFrom<ContractClass> for CompiledClass {
-    type Error = Error;
-
-    fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
-        match value {
-            ContractClass::Cairo0(deprecated) => {
-                Ok(CompiledClass::Deprecated(Arc::new(deprecated.try_into()?)))
-            }
-            ContractClass::Cairo1(_) => Ok(CompiledClass::Casm(Arc::new(value.try_into()?))),
         }
     }
 }
@@ -165,7 +146,21 @@ impl HashProducer for ContractClass {
             ContractClass::Cairo0(contract) => Ok(contract.generate_hash()?),
             ContractClass::Cairo1(sierra) => {
                 let sierra_felt252_hash = compute_sierra_class_hash(sierra)?;
-                Ok(Felt::from(sierra_felt252_hash))
+                Ok(sierra_felt252_hash)
+            }
+        }
+    }
+}
+
+impl TryInto<CodegenContractClass> for ContractClass {
+    type Error = Error;
+    fn try_into(self) -> Result<CodegenContractClass, Self::Error> {
+        match self {
+            ContractClass::Cairo0(contract_class) => {
+                Ok(CodegenContractClass::Legacy(contract_class.try_into()?))
+            }
+            ContractClass::Cairo1(contract_class) => {
+                Ok(CodegenContractClass::Sierra(convert_sierra_to_codegen(&contract_class)?))
             }
         }
     }
@@ -198,25 +193,114 @@ fn convert_sierra_to_codegen(
     })
 }
 
-impl TryInto<CodegenContractClass> for ContractClass {
-    type Error = Error;
-    fn try_into(self) -> Result<CodegenContractClass, Self::Error> {
-        match self {
-            ContractClass::Cairo0(contract_class) => {
-                Ok(CodegenContractClass::Legacy(contract_class.try_into()?))
-            }
-            ContractClass::Cairo1(contract_class) => {
-                Ok(CodegenContractClass::Sierra(convert_sierra_to_codegen(&contract_class)?))
-            }
-        }
+pub fn compute_sierra_class_hash(contract_class: &SierraContractClass) -> DevnetResult<Felt> {
+    let mut contract_class_json_value =
+        serde_json::to_value(contract_class).map_err(JsonError::SerdeJsonError)?;
+
+    // to match SierraClass struct, the field sierra_program_debug_info dont have to be
+    // Option::None, because during serialization it gets converted to null
+    // and the next deserialzation to SierraClas will fail, because it expects this key to have some
+    // value
+    if contract_class.sierra_program_debug_info.is_none() {
+        contract_class_json_value["sierra_program_debug_info"] =
+            serde_json::to_value(SierraClassDebugInfo {
+                type_names: Default::default(),
+                libfunc_names: Default::default(),
+                user_func_names: Default::default(),
+            })
+            .map_err(JsonError::SerdeJsonError)?;
+    }
+
+    let sierra_class: SierraClass =
+        serde_json::from_value(contract_class_json_value).map_err(JsonError::SerdeJsonError)?;
+
+    Ok(sierra_class
+        .class_hash()
+        .map_err(|_| Error::ConversionError(ConversionError::InvalidFormat))?
+        .into())
+}
+
+/// Computes cairo_lang_starknet::CasmContractClass hash.
+/// Implementation copied from starknet_in_rust
+/// # Arguments
+///
+/// * `contract_class` - The contract class in casm format.
+pub fn compute_casm_class_hash(contract_class: &CasmContractClass) -> DevnetResult<Felt> {
+    const CONTRACT_CLASS_VERSION: &[u8] = b"COMPILED_CLASS_V1";
+
+    let api_version = FieldElement::from_byte_slice_be(CONTRACT_CLASS_VERSION)?;
+
+    // Entrypoints by type, hashed.
+    let external_functions =
+        get_contract_entry_points_hashed(contract_class, &EntryPointType::External)?;
+    let l1_handlers = get_contract_entry_points_hashed(contract_class, &EntryPointType::L1Handler)?;
+    let constructors =
+        get_contract_entry_points_hashed(contract_class, &EntryPointType::Constructor)?;
+
+    let mut casm_program_vector = Vec::with_capacity(contract_class.bytecode.len());
+    for number in &contract_class.bytecode {
+        casm_program_vector.push(FieldElement::from_byte_slice_be(&number.value.to_bytes_be())?);
+    }
+
+    // Hash casm program.
+    let casm_program_ptr = poseidon_hash_many(&casm_program_vector);
+
+    let flatted_contract_class =
+        vec![api_version, external_functions, l1_handlers, constructors, casm_program_ptr];
+
+    Ok(poseidon_hash_many(&flatted_contract_class).into())
+}
+
+/// Return hashed entry points for a given contract class and entry point type.
+/// # Arguments
+///
+/// * `contract_class` - Optional. The block id to start the query from.
+/// * `entry_point_type` - The entry point type to hash.
+fn get_contract_entry_points_hashed(
+    contract_class: &CasmContractClass,
+    entry_point_type: &EntryPointType,
+) -> DevnetResult<FieldElement> {
+    let contract_entry_points = get_contract_entry_points(contract_class, entry_point_type);
+
+    // for each entry_point, we need to store 3 FieldElements: [selector, offset,
+    // poseidon_hash_many(builtin_list)].
+    let mut entry_points_flatted = Vec::with_capacity(contract_entry_points.len() * 3);
+
+    for entry_point in contract_entry_points {
+        entry_points_flatted
+            .push(FieldElement::from_byte_slice_be(&entry_point.selector.to_bytes_be())?);
+        entry_points_flatted.push(FieldElement::from(entry_point.offset));
+        let builtins_flatted = entry_point
+            .builtins
+            .iter()
+            .map(|builtin| FieldElement::from_byte_slice_be(builtin.as_bytes()))
+            .collect::<Result<Vec<FieldElement>, _>>()?;
+        entry_points_flatted.push(poseidon_hash_many(&builtins_flatted));
+    }
+
+    Ok(poseidon_hash_many(&entry_points_flatted))
+}
+
+/// Helper function to fetch entry points based on their type.
+/// # Arguments
+/// * `contract_class` - The contract class in casm format.
+/// * `entry_point_type` - The entry point type to fetch.
+fn get_contract_entry_points(
+    contract_class: &CasmContractClass,
+    entry_point_type: &EntryPointType,
+) -> Vec<CasmContractEntryPoint> {
+    match entry_point_type {
+        EntryPointType::Constructor => contract_class.entry_points_by_type.constructor.clone(),
+        EntryPointType::External => contract_class.entry_points_by_type.external.clone(),
+        EntryPointType::L1Handler => contract_class.entry_points_by_type.l1_handler.clone(),
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
     use serde::Deserialize;
     use serde_json::Deserializer;
-    use starknet_in_rust::SierraContractClass;
     use starknet_rs_core::types::LegacyEntryPointsByType;
 
     use crate::contract_class::deprecated::rpc_contract_class::ContractClassAbiEntryWithType;
@@ -230,6 +314,37 @@ mod tests {
         CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_0_ACCOUNT_CONTRACT_PATH, CAIRO_1_CONTRACT_PATH,
         CAIRO_1_CONTRACT_SIERRA_HASH,
     };
+
+    #[test]
+    fn compare_casm_class_hash_computation_with_starknet_in_rust() {
+        use starknet_in_rust::core::contract_address::compute_casm_class_hash as sir_compute_casm_class_hash;
+        let cairo_1_sierra_string = std::fs::read_to_string(CAIRO_1_CONTRACT_PATH).unwrap();
+
+        let cairo_1_sierra =
+            ContractClass::cairo_1_from_sierra_json_str(&cairo_1_sierra_string).unwrap();
+
+        let cairo_1_casm =
+            cairo_lang_starknet::casm_contract_class::CasmContractClass::from_contract_class(
+                cairo_1_sierra.clone(),
+                true,
+            )
+            .unwrap();
+        assert_eq!(
+            sir_compute_casm_class_hash(&cairo_1_casm).unwrap().to_be_bytes(),
+            crate::contract_class::compute_casm_class_hash(&cairo_1_casm).unwrap().bytes()
+        );
+
+        let cairo_1_casm =
+            cairo_lang_starknet::casm_contract_class::CasmContractClass::from_contract_class(
+                cairo_1_sierra,
+                false,
+            )
+            .unwrap();
+        assert_eq!(
+            sir_compute_casm_class_hash(&cairo_1_casm).unwrap().to_be_bytes(),
+            crate::contract_class::compute_casm_class_hash(&cairo_1_casm).unwrap().bytes()
+        );
+    }
 
     #[test]
     fn cairo_1_contract_class_hash_generated_successfully() {

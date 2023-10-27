@@ -17,12 +17,11 @@ pub fn state_update_by_block_id(
 
 #[cfg(test)]
 mod tests {
+    use cairo_lang_starknet::casm_contract_class::CasmContractClass;
     use starknet_api::transaction::Fee;
-    use starknet_in_rust::core::contract_address::compute_casm_class_hash;
-    use starknet_in_rust::CasmContractClass;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{Cairo0Json, ContractClass};
+    use starknet_types::contract_class::{compute_casm_class_hash, Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::traits::HashProducer;
@@ -49,7 +48,7 @@ mod tests {
 
         let declare_txn = BroadcastedDeclareTransactionV2::new(
             &contract_class,
-            compiled_class_hash.clone().into(),
+            compiled_class_hash,
             sender_address,
             Fee(4000),
             &Vec::new(),
@@ -70,13 +69,10 @@ mod tests {
             .unwrap();
 
         let expected_state_diff = StateDiff {
-            declared_contracts: vec![compiled_class_hash.clone().into()],
-            class_hash_to_compiled_class_hash: vec![(
-                sierra_class_hash,
-                compiled_class_hash.into(),
-            )]
-            .into_iter()
-            .collect(),
+            declared_contracts: vec![compiled_class_hash],
+            class_hash_to_compiled_class_hash: vec![(sierra_class_hash, compiled_class_hash)]
+                .into_iter()
+                .collect(),
             ..Default::default()
         };
 

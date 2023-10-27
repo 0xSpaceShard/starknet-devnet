@@ -225,7 +225,7 @@ mod tests {
     }
 
     #[test]
-    fn correct_difference_in_starknet_in_rust_state_diff_object() {
+    fn correct_difference_in_state_diff_object() {
         let (old_state, mut new_state) = setup();
         let class_hash = dummy_felt();
         let contract_address = dummy_contract_address();

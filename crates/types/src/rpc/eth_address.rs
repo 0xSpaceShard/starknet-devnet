@@ -1,7 +1,6 @@
 use std::str::FromStr;
 
 use cairo_felt::Felt252;
-use starknet_in_rust::utils::Address as SirAddress;
 use starknet_rs_core::types::EthAddress;
 use starknet_rs_ff::FieldElement;
 
@@ -38,11 +37,5 @@ impl From<EthAddressWrapper> for Felt252 {
         let felt: FieldElement = value.inner.into();
         let raw_felt = felt.to_bytes_be();
         Felt252::from_bytes_be(&raw_felt)
-    }
-}
-
-impl From<EthAddressWrapper> for SirAddress {
-    fn from(value: EthAddressWrapper) -> Self {
-        SirAddress(value.into())
     }
 }

@@ -1,13 +1,10 @@
+use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
-use starknet_in_rust::transaction::DeclareV2 as SirDeclareV2;
-use starknet_in_rust::SierraContractClass;
 
 use crate::contract_address::ContractAddress;
-use crate::error::{DevnetResult, Error};
 use crate::felt::{
-    ClassHash, CompiledClassHash, Felt, Nonce, TransactionHash, TransactionSignature,
-    TransactionVersion,
+    ClassHash, CompiledClassHash, Nonce, TransactionHash, TransactionSignature, TransactionVersion,
 };
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
@@ -31,22 +28,5 @@ impl DeclareTransactionV2 {
 
     pub fn get_transaction_hash(&self) -> &TransactionHash {
         &self.transaction_hash
-    }
-}
-
-impl TryFrom<SirDeclareV2> for DeclareTransactionV2 {
-    type Error = Error;
-    fn try_from(value: SirDeclareV2) -> DevnetResult<Self> {
-        Ok(Self {
-            class_hash: value.sierra_class_hash.into(),
-            compiled_class_hash: value.compiled_class_hash.into(),
-            sender_address: value.sender_address.try_into()?,
-            contract_class: value.sierra_contract_class,
-            nonce: value.nonce.into(),
-            max_fee: Fee(value.max_fee),
-            version: value.version.into(),
-            transaction_hash: value.hash_value.into(),
-            signature: value.signature.iter().map(Felt::from).collect(),
-        })
     }
 }

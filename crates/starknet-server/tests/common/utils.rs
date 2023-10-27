@@ -2,14 +2,13 @@ use std::fmt::LowerHex;
 use std::fs;
 use std::path::Path;
 
+use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use hyper::{Body, Response};
-use starknet_in_rust::core::contract_address::compute_casm_class_hash;
-use starknet_in_rust::CasmContractClass;
 use starknet_rs_core::types::contract::SierraClass;
 use starknet_rs_core::types::{ExecutionResult, FieldElement, FlattenedSierraClass};
 use starknet_rs_providers::Provider;
 use starknet_rs_signers::LocalWallet;
-use starknet_types::felt::Felt;
+use starknet_types::contract_class::compute_casm_class_hash;
 
 pub async fn get_json_body(resp: Response<Body>) -> serde_json::Value {
     let resp_body = resp.into_body();
@@ -53,14 +52,14 @@ pub fn get_events_contract_in_sierra_and_compiled_class_hash()
     .unwrap();
     let sierra_class: SierraClass = serde_json::from_str(&sierra_artifact).unwrap();
 
-    let contract_class: starknet_in_rust::ContractClass =
+    let contract_class: cairo_lang_starknet::contract_class::ContractClass =
         serde_json::from_str(&sierra_artifact).unwrap();
 
     let casm_contract_class =
         CasmContractClass::from_contract_class(contract_class, false).unwrap();
     let compiled_class_hash = compute_casm_class_hash(&casm_contract_class).unwrap();
 
-    (sierra_class.flatten().unwrap(), Felt::from(compiled_class_hash).into())
+    (sierra_class.flatten().unwrap(), compiled_class_hash.into())
 }
 
 pub async fn assert_tx_successful<T: Provider>(tx_hash: &FieldElement, client: &T) {

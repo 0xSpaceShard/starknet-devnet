@@ -1,6 +1,5 @@
+use cairo_felt::Felt252;
 use starknet_api::hash::{pedersen_hash, StarkFelt};
-use starknet_in_rust::utils::calculate_sn_keccak;
-use starknet_types::cairo_felt::Felt252;
 use starknet_types::felt::Felt;
 use starknet_types::num_integer::Integer;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
@@ -19,8 +18,9 @@ pub(crate) fn get_storage_var_address(
     storage_var_name: &str,
     args: &[Felt],
 ) -> DevnetResult<StorageKey> {
-    let storage_var_name_hash = calculate_sn_keccak(storage_var_name.as_bytes());
-    let storage_var_name_hash = StarkFelt::new(storage_var_name_hash)?;
+    let storage_var_name_hash =
+        starknet_rs_core::utils::starknet_keccak(storage_var_name.as_bytes());
+    let storage_var_name_hash = StarkFelt::from(storage_var_name_hash);
 
     let storage_key_hash = args
         .iter()
@@ -35,11 +35,13 @@ pub(crate) fn get_storage_var_address(
 
 #[cfg(test)]
 pub(crate) mod test_utils {
+    use cairo_lang_starknet::casm_contract_class::CasmContractClass;
+    use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
     use starknet_api::transaction::Fee;
-    use starknet_in_rust::core::contract_address::compute_casm_class_hash;
-    use starknet_in_rust::{CasmContractClass, SierraContractClass};
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
+    use starknet_types::contract_class::{
+        compute_casm_class_hash, Cairo0ContractClass, Cairo0Json, ContractClass,
+    };
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
     use starknet_types::patricia_key::StorageKey;
@@ -132,7 +134,7 @@ pub(crate) mod test_utils {
 
         BroadcastedDeclareTransactionV2::new(
             &contract_class,
-            compiled_class_hash.into(),
+            compiled_class_hash,
             *sender_address,
             Fee(4000),
             &Vec::new(),

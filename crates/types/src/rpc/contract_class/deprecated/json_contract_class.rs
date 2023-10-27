@@ -7,12 +7,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Serializer as JsonSerializer, Value};
 use starknet_api::deprecated_contract_class::{EntryPoint, EntryPointType};
 use starknet_api::hash::{pedersen_hash_array, StarkFelt};
-use starknet_in_rust::core::errors::contract_address_errors::ContractAddressError;
-use starknet_in_rust::utils::calculate_sn_keccak;
 use starknet_rs_core::types::CompressedLegacyContractClass;
 
 use crate::contract_class::deprecated::rpc_contract_class::DeprecatedContractClass;
-use crate::error::{DevnetResult, Error, JsonError};
+use crate::error::{ConversionError, DevnetResult, Error, JsonError};
 use crate::felt::Felt;
 use crate::traits::HashProducer;
 use crate::utils::StarknetFormatter;
@@ -86,7 +84,7 @@ impl Cairo0Json {
         let mut serializer = JsonSerializer::with_formatter(&mut buffer, StarknetFormatter);
         modified_abi_program_json.serialize(&mut serializer).map_err(JsonError::SerdeJsonError)?;
 
-        Ok(StarkFelt::new(calculate_sn_keccak(&buffer))?)
+        Ok(StarkFelt::from(starknet_rs_core::utils::starknet_keccak(&buffer)))
     }
 
     fn compute_cairo_0_contract_class_hash(json_class: &Value) -> crate::error::DevnetResult<Felt> {
@@ -108,7 +106,9 @@ impl Cairo0Json {
             |entry_point_type: EntryPointType| -> DevnetResult<StarkFelt> {
                 let felts: Vec<StarkFelt> = entry_points_by_type
                     .get(&entry_point_type)
-                    .ok_or(ContractAddressError::NoneExistingEntryPointType)?
+                    .ok_or(ConversionError::InvalidInternalStructure(
+                        "Missing entry point type".to_string(),
+                    ))?
                     .iter()
                     .flat_map(|entry_point| {
                         let selector = entry_point.selector.0;

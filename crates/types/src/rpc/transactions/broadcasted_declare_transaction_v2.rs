@@ -1,12 +1,13 @@
 use blockifier::transaction::transactions::DeclareTransaction;
+use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
-use starknet_in_rust::core::contract_address::compute_sierra_class_hash;
-use starknet_in_rust::core::transaction_hash::calculate_declare_v2_transaction_hash;
-use starknet_in_rust::SierraContractClass;
+use starknet_rs_core::crypto::compute_hash_on_elements;
+use starknet_rs_ff::FieldElement;
 
+use super::broadcasted_declare_transaction_v1::PREFIX_DECLARE;
 use crate::contract_address::ContractAddress;
-use crate::contract_class::ContractClass;
+use crate::contract_class::{compute_sierra_class_hash, ContractClass};
 use crate::error::DevnetResult;
 use crate::felt::{
     ClassHash, CompiledClassHash, Felt, Nonce, TransactionHash, TransactionSignature,
@@ -68,7 +69,7 @@ impl BroadcastedDeclareTransactionV2 {
     }
 
     pub fn create_blockifier_declare(&self, chain_id: Felt) -> DevnetResult<DeclareTransaction> {
-        let sierra_class_hash: Felt = compute_sierra_class_hash(&self.contract_class)?.into();
+        let sierra_class_hash: Felt = compute_sierra_class_hash(&self.contract_class)?;
 
         let sn_api_declare = starknet_api::transaction::DeclareTransaction::V2(
             starknet_api::transaction::DeclareTransactionV2 {
@@ -83,15 +84,17 @@ impl BroadcastedDeclareTransactionV2 {
             },
         );
 
-        let txn_hash: Felt = calculate_declare_v2_transaction_hash(
-            sierra_class_hash.into(),
-            self.compiled_class_hash.into(),
-            chain_id.into(),
-            &self.sender_address.into(),
-            self.common.max_fee.0,
+        let txn_hash: Felt = compute_hash_on_elements(&[
+            PREFIX_DECLARE,
             self.common.version.into(),
+            self.sender_address.into(),
+            FieldElement::ZERO, // entry_point_selector
+            compute_hash_on_elements(&[sierra_class_hash.into()]),
+            self.common.max_fee.0.into(),
+            FieldElement::from(chain_id),
             self.common.nonce.into(),
-        )?
+            self.compiled_class_hash.into(),
+        ])
         .into();
 
         Ok(DeclareTransaction::new(
@@ -106,8 +109,6 @@ impl BroadcastedDeclareTransactionV2 {
 mod tests {
     use serde::Deserialize;
     use starknet_api::transaction::Fee;
-    use starknet_in_rust::core::contract_address::compute_sierra_class_hash;
-    use starknet_rs_core::types::contract::SierraClass;
 
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
@@ -128,7 +129,7 @@ mod tests {
     }
 
     #[test]
-    fn sierra_hash_from_events_sierra_artifact() {
+    fn compare_sierra_hash_from_events_sierra_artifact_with_starknet_in_rust_implementation() {
         let sierra_contract_path =
             concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/events_cairo1.sierra");
 
@@ -136,14 +137,15 @@ mod tests {
             &std::fs::read_to_string(sierra_contract_path).unwrap(),
         )
         .unwrap();
-        let sierra_class: SierraClass =
-            serde_json::from_value(serde_json::to_value(cairo_1_contract.clone()).unwrap())
-                .unwrap();
-        println!("{}", Felt::from(sierra_class.class_hash().unwrap()).to_prefixed_hex_str());
 
-        println!(
-            "{}",
-            Felt::from(compute_sierra_class_hash(&cairo_1_contract).unwrap()).to_prefixed_hex_str()
+        assert_eq!(
+            crate::contract_class::compute_sierra_class_hash(&cairo_1_contract).unwrap(),
+            Felt::from(
+                starknet_in_rust::core::contract_address::compute_sierra_class_hash(
+                    &cairo_1_contract
+                )
+                .unwrap()
+            )
         );
     }
 

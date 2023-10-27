@@ -6,12 +6,6 @@ pub enum Error {
     #[error(transparent)]
     StarknetApiError(#[from] starknet_api::StarknetApiError),
     #[error(transparent)]
-    HashError(#[from] starknet_in_rust::core::errors::hash_errors::HashError),
-    #[error(transparent)]
-    SyscallErrorHandlerError(
-        #[from] starknet_in_rust::syscalls::syscall_handler_errors::SyscallHandlerError,
-    ),
-    #[error(transparent)]
     StarknetFfConversionError(#[from] starknet_rs_ff::FromByteSliceError),
     #[error("Error when calling python module")]
     PyModuleError,
@@ -19,12 +13,6 @@ pub enum Error {
     ConversionError(#[from] ConversionError),
     #[error(transparent)]
     JsonError(#[from] JsonError),
-    #[error(transparent)]
-    ContractAddressError(
-        #[from] starknet_in_rust::core::errors::contract_address_errors::ContractAddressError,
-    ),
-    #[error(transparent)]
-    TransactionError(#[from] starknet_in_rust::transaction::error::TransactionError),
     #[error(transparent)]
     IoError(#[from] std::io::Error),
     #[error(transparent)]

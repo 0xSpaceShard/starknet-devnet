@@ -37,9 +37,8 @@ pub fn add_invoke_transaction(
 
 #[cfg(test)]
 mod tests {
+    use starknet_api::hash::StarkFelt;
     use starknet_api::transaction::Fee;
-    use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
-    use starknet_in_rust::EntryPointType;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::contract_address::ContractAddress;
@@ -268,15 +267,20 @@ mod tests {
 
         // dummy contract
         let dummy_contract: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
-        let sir = StarknetInRustContractClass::try_from(dummy_contract.clone()).unwrap();
-        let increase_balance_selector = get_selector_from_name("increase_balance").unwrap();
+        let blockifier = blockifier::execution::contract_class::ContractClassV0::try_from(
+            dummy_contract.clone(),
+        )
+        .unwrap();
+        let increase_balance_selector: StarkFelt =
+            get_selector_from_name("increase_balance").unwrap().into();
 
         // check if increase_balance function is present in the contract class
-        sir.entry_points_by_type()
-            .get(&EntryPointType::External)
+        blockifier
+            .entry_points_by_type
+            .get(&starknet_api::deprecated_contract_class::EntryPointType::External)
             .unwrap()
             .iter()
-            .find(|el| el.selector().to_be_bytes() == increase_balance_selector.to_bytes_be())
+            .find(|el| el.selector.0 == increase_balance_selector)
             .unwrap();
 
         let mut address_bytes = get_bytes_from_u32(5);
