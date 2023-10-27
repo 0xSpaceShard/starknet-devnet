@@ -209,6 +209,18 @@ This means that timestamps of `StarknetBlock` will be different.
 
 Dumping and loading is not guaranteed to work cross-version. I.e. if you dumped one version of Devnet, do not expect it to be loadable with a different version.
 
+## Blocks
+Devnet offers block manipulation endpoints for example creating empty blocks on demand.
+
+### Create an empty block
+To create an empty block without transactions, POST a request to /create_block:
+
+POST /create_block
+
+Response:
+
+{'block_hash': '0x115e1b390cafa7942b6ab141ab85040defe7dee9bef3bc31d8b5b3d01cc9c67', 'block_timestamp': '1698407205'}
+
 ## Advancing time
 
 Block timestamp can be manipulated by setting the exact time or setting the time offset. Timestamps methods `/set_time` and `/increase_time` will generate a new block. All values should be set in Unix time and seconds.
@@ -223,7 +235,7 @@ POST /set_time
 }
 ```
 
-Warning: block time can be set in the past and future which might lead to unexpected behavior!
+Warning: block time can be set in the past which might lead to unexpected behavior!
 
 ### Increase time
 
