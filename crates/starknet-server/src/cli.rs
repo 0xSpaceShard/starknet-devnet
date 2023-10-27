@@ -109,7 +109,6 @@ impl Args {
             chain_id: self.chain_id,
             dump_on: self.dump_on,
             dump_path: self.dump_path.clone(),
-            pending_block_timestamp_shift: 0,
         })
     }
 }

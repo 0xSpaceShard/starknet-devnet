@@ -73,6 +73,7 @@ pub struct Starknet {
     blocks: StarknetBlocks,
     pub transactions: StarknetTransactions,
     pub config: StarknetConfig,
+    pub pending_block_timestamp_shift: u64,
 }
 
 impl Default for Starknet {
@@ -88,6 +89,7 @@ impl Default for Starknet {
             blocks: Default::default(),
             transactions: Default::default(),
             config: Default::default(),
+            pending_block_timestamp_shift: 0,
         }
     }
 }
@@ -138,6 +140,7 @@ impl Starknet {
             blocks: StarknetBlocks::default(),
             transactions: StarknetTransactions::default(),
             config: config.clone(),
+            pending_block_timestamp_shift: 0,
         };
 
         this.restart_pending_block()?;
@@ -804,14 +807,13 @@ impl Starknet {
 
     // Update of pending block timestamp based on pending_block_timestamp_shift from config
     pub fn update_pending_block_timestamp(&mut self) {
-        self.blocks.pending_block.header.timestamp = BlockTimestamp(
-            Self::get_current_timestamp_secs() + self.config.pending_block_timestamp_shift,
-        );
+        self.blocks.pending_block.header.timestamp =
+            BlockTimestamp(Self::get_current_timestamp_secs() + self.pending_block_timestamp_shift);
     }
 
     // Set timestamp shift in config for next blocks
     pub fn increase_time(&mut self, timestamp: u64) {
-        self.config.pending_block_timestamp_shift = timestamp;
+        self.pending_block_timestamp_shift = timestamp;
     }
 }
 
