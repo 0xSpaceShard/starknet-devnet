@@ -313,11 +313,6 @@ impl JsonRpcHandler {
         Ok(chain_id.to_felt().to_prefixed_hex_str())
     }
 
-    /// starknet_pendingTransactions
-    pub(crate) async fn pending_transactions(&self) -> RpcResult<Vec<Transaction>> {
-        Ok(vec![])
-    }
-
     /// starknet_syncing
     pub(crate) async fn syncing(&self) -> RpcResult<SyncingOutput> {
         Ok(SyncingOutput::False(false))

@@ -121,9 +121,6 @@ impl JsonRpcHandler {
                 self.block_hash_and_number().await.to_rpc_result()
             }
             StarknetRequest::ChainId => self.chain_id().await.to_rpc_result(),
-            StarknetRequest::PendingTransactions => {
-                self.pending_transactions().await.to_rpc_result()
-            }
             StarknetRequest::Syncing => self.syncing().await.to_rpc_result(),
             StarknetRequest::Events(EventsInput { filter }) => {
                 self.get_events(filter).await.to_rpc_result()
@@ -195,8 +192,6 @@ pub enum StarknetRequest {
     BlockHashAndNumber,
     #[serde(rename = "starknet_chainId", with = "empty_params")]
     ChainId,
-    #[serde(rename = "starknet_pendingTransactions", with = "empty_params")]
-    PendingTransactions,
     #[serde(rename = "starknet_syncing", with = "empty_params")]
     Syncing,
     #[serde(rename = "starknet_getEvents")]
@@ -242,7 +237,6 @@ impl std::fmt::Display for StarknetRequest {
             StarknetRequest::BlockNumber => write!(f, "starknet_blockNumber"),
             StarknetRequest::BlockHashAndNumber => write!(f, "starknet_blockHashAndNumber"),
             StarknetRequest::ChainId => write!(f, "starknet_chainId"),
-            StarknetRequest::PendingTransactions => write!(f, "starknet_pendingTransactions"),
             StarknetRequest::Syncing => write!(f, "starknet_syncing"),
             StarknetRequest::Events(_) => write!(f, "starknet_getEvents"),
             StarknetRequest::ContractNonce(_) => write!(f, "starknet_getNonce"),
