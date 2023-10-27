@@ -211,7 +211,7 @@ Dumping and loading is not guaranteed to work cross-version. I.e. if you dumped 
 
 ## Blocks
 
-A new block is generated with each new transaction, unless you opt for creating an empty block yourself.
+A new block is generated with each new transaction, and you can create an empty block by yourself.
 
 ### Create an empty block
 
