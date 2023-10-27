@@ -2,7 +2,6 @@ use cairo_lang_utils::bigint::BigUintAsHex;
 use flate2::read::GzDecoder;
 use std::collections::HashMap;
 use std::io::Read;
-use starknet_api::deprecated_contract_class::{EntryPoint, EntryPointType};
 
 use starknet_rs_core::types::{ContractClass as ContractClassStarknet, LegacyEntryPointsByType};
 use starknet_in_rust::SierraContractClass;
@@ -31,14 +30,42 @@ use starknet_types::contract_class::deprecated::rpc_contract_class::ContractClas
 use cairo_lang_starknet::contract_class::ContractEntryPoints;
 use cairo_lang_starknet::abi::Contract;
 
-#[derive(Default, Clone)]
+// #[derive(Clone)]
 pub(crate) struct DevnetState {
     pub address_to_class_hash: HashMap<ContractAddress, ClassHash>,
     pub address_to_nonce: HashMap<ContractAddress, Felt>,
     pub address_to_storage: HashMap<ContractStorageKey, Felt>,
     pub class_hash_to_compiled_class: HashMap<ClassHash, ContractClass>,
     pub class_hash_to_compiled_class_hash: HashMap<ClassHash, CompiledClassHash>,
+    fork_reader: Option<ForkStateReader>,
 }
+
+impl Default for DevnetState {
+    fn default() -> Self {
+        Self {
+            address_to_class_hash: Default::default(),
+            address_to_nonce: Default::default(),
+            address_to_storage: Default::default(),
+            class_hash_to_compiled_class: Default::default(),
+            class_hash_to_compiled_class_hash: Default::default(),
+            fork_reader: None
+        }
+     }
+}
+
+impl Clone for DevnetState {
+    fn clone(&self) -> Self {
+        Self {
+            address_to_class_hash: self.address_to_class_hash.clone(),
+            address_to_nonce: self.address_to_nonce.clone(),
+            address_to_storage: self.address_to_storage.clone(),
+            class_hash_to_compiled_class: self.class_hash_to_compiled_class.clone(),
+            class_hash_to_compiled_class_hash: self.class_hash_to_compiled_class_hash.clone(),
+            fork_reader: None // TODO: fix it later
+        }
+    }
+}
+
 
 impl crate::traits::DevnetStateReader for DevnetState {
     fn compiled_class_hash_at(&self, class_hash: &ClassHash) -> DevnetResult<ClassHash> {
@@ -46,30 +73,59 @@ impl crate::traits::DevnetStateReader for DevnetState {
     }
 
     fn storage_at(&self, storage_key: &ContractStorageKey) -> DevnetResult<Felt> {
-        Ok(self.address_to_storage.get(storage_key).cloned().unwrap_or_default())
+        self.address_to_storage.get(storage_key).cloned()
+        .map_or_else(
+            || self.fork_reader.as_ref().map_or(DevnetResult::Ok(Felt::default()), |fork| {
+                fork.storage_at(storage_key)
+            }),
+            |r| DevnetResult::Ok(r)
+        )
     }
 
     fn nonce_at(&self, address: &ContractAddress) -> DevnetResult<Felt> {
-        Ok(self.address_to_nonce.get(address).cloned().unwrap_or_default())
+        self.address_to_nonce.get(address).cloned()
+        .map_or_else(
+            || self.fork_reader.as_ref().map_or(DevnetResult::Ok(Felt::default()), |fork| {
+                fork.nonce_at(address)
+            }),
+            |r| DevnetResult::Ok(r)
+        )
     }
 
     fn class_hash_at(&self, address: &ContractAddress) -> DevnetResult<ClassHash> {
-        Ok(self.address_to_class_hash.get(address).cloned().unwrap_or_default())
+        self.address_to_class_hash.get(address).cloned()
+        .map_or_else(
+            || self.fork_reader.as_ref().map_or(DevnetResult::Ok(Felt::default()), |fork| {
+                fork.class_hash_at(address)
+            }),
+            |r| DevnetResult::Ok(r)
+        )
     }
 
     fn contract_class_at(&self, class_hash: &ClassHash) -> DevnetResult<ContractClass> {
-        if let Some(deprecated_contract_class) = self.class_hash_to_compiled_class.get(class_hash) {
-            Ok(deprecated_contract_class.clone())
-        } else {
-            let compiled_class_hash = self
-                .class_hash_to_compiled_class_hash
-                .get(class_hash)
-                .ok_or(Error::StateError(StateError::NoneCompiledHash(*class_hash)))?;
+        let get_class = || {
+            if let Some(deprecated_contract_class) = self.class_hash_to_compiled_class.get(class_hash) {
+                Ok(deprecated_contract_class.clone())
+            } else {
+                let compiled_class_hash = self
+                    .class_hash_to_compiled_class_hash
+                    .get(class_hash)
+                    .ok_or(Error::StateError(StateError::NoneCompiledHash(*class_hash)))?;
 
-            self.class_hash_to_compiled_class
-                .get(compiled_class_hash)
-                .ok_or(Error::StateError(StateError::NoneCasmClass(*compiled_class_hash)))
-                .cloned()
+                self.class_hash_to_compiled_class
+                    .get(compiled_class_hash)
+                    .ok_or(Error::StateError(StateError::NoneCasmClass(*compiled_class_hash)))
+                    .cloned()
+            }
+        };
+        match get_class() {
+            Ok(class) => Ok(class),
+            Err(Error::StateError(StateError::NoneCompiledHash(_))) => {
+                self.fork_reader.as_ref().map_or(Err(Error::StateError(StateError::NoneClassHash(*class_hash))), |fork| {
+                    fork.contract_class_at(class_hash)
+                })
+            },
+            Err(err) => Err(err)
         }
     }
 }
