@@ -30,12 +30,11 @@ mod advancing_time_tests {
         assert_eq!(resp_body_set_time["block_timestamp"], past_time);
 
         // create block and check if block_timestamp is greater than past_time
-        let resp_create_block = devnet
-            .post_json("/create_block".into(), Body::from(json!({}).to_string()))
-            .await
-            .unwrap();
-        let resp_body_create_block = get_json_body(resp_create_block).await;
-        assert!(resp_body_create_block["block_timestamp"].as_u64() > Some(past_time));
+        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        let last_block = &devnet
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
+        assert!(last_block["timestamp"].as_u64() > Some(past_time));
 
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
@@ -46,8 +45,7 @@ mod advancing_time_tests {
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
         assert!(
-            resp_latest_block_rpc["timestamp"].as_u64()
-                > resp_body_create_block["block_timestamp"].as_u64()
+            resp_latest_block_rpc["timestamp"].as_u64() > last_block["block_timestamp"].as_u64()
         );
     }
 
@@ -67,12 +65,11 @@ mod advancing_time_tests {
         assert_eq!(resp_body["block_timestamp"], future_time);
 
         // create block and check if block_timestamp is less than future_time
-        let resp_create_block = devnet
-            .post_json("/create_block".into(), Body::from(json!({}).to_string()))
-            .await
-            .unwrap();
-        let resp_body_create_block = get_json_body(resp_create_block).await;
-        assert!(resp_body_create_block["block_timestamp"].as_u64() < Some(future_time));
+        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        let last_block = &devnet
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
+        assert!(last_block["timestamp"].as_u64() < Some(future_time));
 
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
@@ -82,10 +79,7 @@ mod advancing_time_tests {
         let resp_latest_block_rpc = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
-        assert!(
-            resp_latest_block_rpc["timestamp"].as_u64()
-                > resp_body_create_block["block_timestamp"].as_u64()
-        );
+        assert!(resp_latest_block_rpc["timestamp"].as_u64() > last_block["timestamp"].as_u64());
     }
 
     #[tokio::test]
@@ -133,14 +127,12 @@ mod advancing_time_tests {
         thread::sleep(time::Duration::from_secs(1));
 
         // create block and check again if block_timestamp is greater than last block
-        let resp_create_block = devnet
-            .post_json("/create_block".into(), Body::from(json!({}).to_string()))
-            .await
-            .unwrap();
-        let resp_body_create_block = get_json_body(resp_create_block).await;
+        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        let last_block = &devnet
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
         assert!(
-            resp_body_create_block["block_timestamp"].as_u64()
-                > resp_body_increase_time["block_timestamp"].as_u64()
+            last_block["timestamp"].as_u64() > resp_body_increase_time["block_timestamp"].as_u64() + 3600
         );
 
         // wait 1 second
@@ -151,10 +143,7 @@ mod advancing_time_tests {
         let resp_latest_block_rpc = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
-        assert!(
-            resp_latest_block_rpc["timestamp"].as_u64()
-                > resp_body_create_block["block_timestamp"].as_u64()
-        );
+        assert!(resp_latest_block_rpc["timestamp"].as_u64() > last_block["timestamp"].as_u64());
     }
 
     #[tokio::test]

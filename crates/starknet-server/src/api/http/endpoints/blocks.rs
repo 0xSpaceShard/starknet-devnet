@@ -13,10 +13,7 @@ pub(crate) async fn create_block(
     let last_block = starknet.get_latest_block();
 
     match last_block {
-        Ok(block) => Ok(Json(CreatedBlock {
-            block_hash: block.block_hash(),
-            block_timestamp: block.timestamp().0,
-        })),
+        Ok(block) => Ok(Json(CreatedBlock { block_hash: block.block_hash() })),
         Err(_err) => Err(HttpApiError::BlockSetTimeError),
     }
 }

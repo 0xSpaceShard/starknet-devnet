@@ -45,7 +45,6 @@ pub(crate) struct MessageHash {
 #[derive(Serialize)]
 pub(crate) struct CreatedBlock {
     pub block_hash: BlockHash,
-    pub block_timestamp: u64,
 }
 
 #[derive(Deserialize)]
