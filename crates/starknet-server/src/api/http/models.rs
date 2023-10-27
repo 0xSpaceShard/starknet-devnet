@@ -65,13 +65,13 @@ pub(crate) struct Time {
 }
 
 #[derive(Serialize)]
-pub(crate) struct SetTime {
+pub(crate) struct SetTimeResponse {
     pub block_timestamp: u64,
     pub block_hash: BlockHash,
 }
 
 #[derive(Serialize)]
-pub(crate) struct IncreaseTime {
+pub(crate) struct IncreaseTimeResponse {
     pub timestamp_increased_by: u64,
     pub block_timestamp: u64,
     pub block_hash: BlockHash,
