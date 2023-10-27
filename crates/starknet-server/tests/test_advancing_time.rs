@@ -121,7 +121,7 @@ mod advancing_time_tests {
         let resp_increase_time =
             devnet.post_json("/increase_time".into(), increase_time_body).await.unwrap();
         let resp_body_increase_time = get_json_body(resp_increase_time).await;
-        assert!(resp_body_increase_time["block_timestamp"].as_u64() > Some(now));
+        assert!(resp_body_increase_time["block_timestamp"].as_u64() >= Some(now + time));
 
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
@@ -132,7 +132,7 @@ mod advancing_time_tests {
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
         assert!(
-            last_block["timestamp"].as_u64() > resp_body_increase_time["block_timestamp"].as_u64() + 3600
+            last_block["timestamp"].as_u64() > resp_body_increase_time["block_timestamp"].as_u64()
         );
 
         // wait 1 second
