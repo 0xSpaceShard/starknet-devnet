@@ -219,11 +219,11 @@ POST /create_block
 
 Response:
 
-{'block_hash': '0x115e1b390cafa7942b6ab141ab85040defe7dee9bef3bc31d8b5b3d01cc9c67', 'block_timestamp': '1698407205'}
+{'block_hash': '0x115e1b390cafa7942b6ab141ab85040defe7dee9bef3bc31d8b5b3d01cc9c67', 'block_timestamp': 1698407205}
 
 ## Advancing time
 
-Block timestamp can be manipulated by setting the exact time or setting the time offset. Timestamps methods `/set_time` and `/increase_time` will generate a new block. All values should be set in Unix time and seconds.
+Block timestamp can be manipulated by setting the exact time or setting the time offset. Timestamps methods `/set_time` and `/increase_time` will generate a new block. All values should be set in Unix time seconds [Unix time seconds](https://en.wikipedia.org/wiki/Unix_time).
 
 ### Set time
 
