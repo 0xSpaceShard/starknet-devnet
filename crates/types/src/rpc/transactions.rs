@@ -114,7 +114,7 @@ impl Transaction {
         block_hash: Option<&BlockHash>,
         block_number: Option<BlockNumber>,
         execution_result: &ExecutionResult,
-        finality_status: Option<TransactionFinalityStatus>,
+        finality_status: TransactionFinalityStatus,
     ) -> CommonTransactionReceipt {
         let r#type = self.get_type();
 

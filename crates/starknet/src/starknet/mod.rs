@@ -8,7 +8,9 @@ use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
 use starknet_api::transaction::Fee;
-use starknet_rs_core::types::{BlockId, MsgFromL1, TransactionFinalityStatus};
+use starknet_rs_core::types::{
+    BlockId, MsgFromL1, TransactionExecutionStatus, TransactionFinalityStatus,
+};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::Signer;
@@ -186,7 +188,7 @@ impl Starknet {
             if let Some(tx) = self.transactions.get_by_hash_mut(tx_hash) {
                 tx.block_hash = Some(new_block.header.block_hash.0.into());
                 tx.block_number = Some(new_block_number);
-                tx.finality_status = Some(TransactionFinalityStatus::AcceptedOnL2);
+                tx.finality_status = TransactionFinalityStatus::AcceptedOnL2;
             } else {
                 error!("Transaction is not present in the transactions collection");
             }
@@ -648,6 +650,15 @@ impl Starknet {
             self.transactions.get(&transaction_hash).ok_or(Error::NoTransaction)?;
 
         transaction_to_map.get_receipt()
+    }
+
+    pub fn get_transaction_execution_and_finality_status(
+        &self,
+        transaction_hash: TransactionHash,
+    ) -> DevnetResult<(TransactionExecutionStatus, TransactionFinalityStatus)> {
+        let transaction = self.transactions.get(&transaction_hash).ok_or(Error::NoTransaction)?;
+
+        Ok((transaction.execution_result.status(), transaction.finality_status))
     }
 
     pub fn simulate_transactions(

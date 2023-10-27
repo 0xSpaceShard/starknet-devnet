@@ -88,6 +88,9 @@ impl JsonRpcHandler {
             StarknetRequest::StorageAt(GetStorageInput { contract_address, key, block_id }) => {
                 self.get_storage_at(contract_address, key, block_id).await.to_rpc_result()
             }
+            StarknetRequest::TransactionStatusByHash(TransactionHashInput { transaction_hash }) => {
+                self.get_transaction_status_by_hash(transaction_hash).await.to_rpc_result()
+            }
             StarknetRequest::TransactionByHash(TransactionHashInput { transaction_hash }) => {
                 self.get_transaction_by_hash(transaction_hash).await.to_rpc_result()
             }
@@ -177,6 +180,8 @@ pub enum StarknetRequest {
     TransactionByBlockAndIndex(BlockAndIndexInput),
     #[serde(rename = "starknet_getTransactionReceipt")]
     TransactionReceiptByTransactionHash(TransactionHashInput),
+    #[serde(rename = "starknet_getTransactionStatus")]
+    TransactionStatusByHash(TransactionHashInput),
     #[serde(rename = "starknet_getClass")]
     ClassByHash(BlockAndClassHashInput),
     #[serde(rename = "starknet_getClassHashAt")]
@@ -224,6 +229,9 @@ impl std::fmt::Display for StarknetRequest {
             StarknetRequest::StateUpdate(_) => write!(f, "starknet_getStateUpdate"),
             StarknetRequest::StorageAt(_) => write!(f, "starknet_getStorageAt"),
             StarknetRequest::TransactionByHash(_) => write!(f, "starknet_getTransactionByHash"),
+            StarknetRequest::TransactionStatusByHash(_) => {
+                write!(f, "starknet_getTransactionStatus")
+            }
             StarknetRequest::TransactionByBlockAndIndex(_) => {
                 write!(f, "starknet_getTransactionByBlockIdAndIndex")
             }

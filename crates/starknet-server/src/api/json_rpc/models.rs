@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, ClassHash, TransactionHash};
 use starknet_types::rpc::block::{BlockId, SyncStatus};
@@ -114,6 +115,12 @@ pub struct SimulateTransactionsInput {
     pub block_id: BlockId,
     pub transactions: Vec<BroadcastedTransaction>,
     pub simulation_flags: Vec<SimulationFlag>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TransactionStatusOutput {
+    pub finality_status: TransactionFinalityStatus,
+    pub execution_status: TransactionExecutionStatus,
 }
 
 #[cfg(test)]

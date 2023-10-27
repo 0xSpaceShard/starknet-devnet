@@ -13,7 +13,7 @@ use starknet_types::starknet_api::block::BlockNumber;
 use starknet_types::traits::ToHexString;
 
 use super::error::ApiError;
-use super::models::{BlockHashAndNumberOutput, SyncingOutput};
+use super::models::{BlockHashAndNumberOutput, SyncingOutput, TransactionStatusOutput};
 use super::JsonRpcHandler;
 use crate::api::json_rpc::error::RpcResult;
 use crate::api::models::state::{
@@ -142,6 +142,26 @@ impl JsonRpcHandler {
     ) -> RpcResult<Transaction> {
         match self.api.starknet.read().await.get_transaction_by_hash(transaction_hash) {
             Ok(transaction) => Ok(transaction.clone()),
+            Err(Error::NoTransaction) => Err(ApiError::TransactionNotFound),
+            Err(err) => Err(err.into()),
+        }
+    }
+
+    /// starknet_getTransactionStatus
+    pub(crate) async fn get_transaction_status_by_hash(
+        &self,
+        transaction_hash: TransactionHash,
+    ) -> RpcResult<TransactionStatusOutput> {
+        match self
+            .api
+            .starknet
+            .read()
+            .await
+            .get_transaction_execution_and_finality_status(transaction_hash)
+        {
+            Ok((execution_status, finality_status)) => {
+                Ok(TransactionStatusOutput { execution_status, finality_status })
+            }
             Err(Error::NoTransaction) => Err(ApiError::TransactionNotFound),
             Err(err) => Err(err.into()),
         }
