@@ -92,6 +92,17 @@ pub struct BlockHeader {
     pub sequencer_address: ContractAddress,
     pub new_root: GlobalRootHex,
     pub timestamp: BlockTimestamp,
+    pub starknet_version: String,
+    pub l1_gas_price: ResourcePrice,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+pub struct ResourcePrice {
+    // for now this will be always None, this field is introduced in 0.5.0
+    // but current version of blockifier doesnt return this value
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub price_in_strk: Option<Felt>,
+    pub price_in_wei: Felt,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
