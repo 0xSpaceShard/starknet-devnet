@@ -21,9 +21,9 @@ pub enum HttpApiError {
     #[error("The creation of empty block failed")]
     CreateEmptyBlockError,
     #[error("The set time operation failed")]
-    SetTimeError,
+    BlockSetTimeError,
     #[error("The increase time operation failed")]
-    IncreaseTimeError,
+    BlockIncreaseTimeError,
 }
 
 impl IntoResponse for HttpApiError {
@@ -45,11 +45,11 @@ impl IntoResponse for HttpApiError {
             HttpApiError::CreateEmptyBlockError => {
                 (StatusCode::BAD_REQUEST, HttpApiError::CreateEmptyBlockError.to_string())
             }
-            HttpApiError::SetTimeError => {
-                (StatusCode::BAD_REQUEST, HttpApiError::SetTimeError.to_string())
+            HttpApiError::BlockSetTimeError => {
+                (StatusCode::BAD_REQUEST, HttpApiError::BlockSetTimeError.to_string())
             }
-            HttpApiError::IncreaseTimeError => {
-                (StatusCode::BAD_REQUEST, HttpApiError::IncreaseTimeError.to_string())
+            HttpApiError::BlockIncreaseTimeError => {
+                (StatusCode::BAD_REQUEST, HttpApiError::BlockIncreaseTimeError.to_string())
             }
             err @ HttpApiError::MintingError { msg: _ } => {
                 (StatusCode::BAD_REQUEST, err.to_string())

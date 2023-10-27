@@ -17,7 +17,7 @@ pub(crate) async fn create_block(
             block_hash: block.block_hash(),
             block_timestamp: block.timestamp().0,
         })),
-        Err(_err) => Err(HttpApiError::SetTimeError),
+        Err(_err) => Err(HttpApiError::BlockSetTimeError),
     }
 }
 

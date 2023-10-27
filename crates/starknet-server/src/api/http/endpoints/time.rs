@@ -18,7 +18,7 @@ pub(crate) async fn set_time(
             block_timestamp: block.timestamp().0,
             block_hash: block.block_hash(),
         })),
-        Err(_err) => Err(HttpApiError::SetTimeError),
+        Err(_err) => Err(HttpApiError::BlockSetTimeError),
     }
 }
 
@@ -38,6 +38,6 @@ pub(crate) async fn increase_time(
             block_timestamp: block.timestamp().0,
             block_hash: block.block_hash(),
         })),
-        Err(_err) => Err(HttpApiError::IncreaseTimeError),
+        Err(_err) => Err(HttpApiError::BlockIncreaseTimeError),
     }
 }
