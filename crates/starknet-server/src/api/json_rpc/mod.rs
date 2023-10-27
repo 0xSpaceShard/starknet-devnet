@@ -75,6 +75,7 @@ impl JsonRpcHandler {
         trace!(target: "JsonRpcHandler::execute", "executing starknet request");
 
         match request {
+            StarknetRequest::SpecVersion => self.spec_version().to_rpc_result(),
             StarknetRequest::BlockWithTransactionHashes(block) => {
                 self.get_block_with_tx_hashes(block.block_id).await.to_rpc_result()
             }
@@ -160,6 +161,8 @@ impl JsonRpcHandler {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "method", content = "params")]
 pub enum StarknetRequest {
+    #[serde(rename = "starknet_specVersion", with = "empty_params")]
+    SpecVersion,
     #[serde(rename = "starknet_getBlockWithTxHashes")]
     BlockWithTransactionHashes(BlockIdInput),
     #[serde(rename = "starknet_getBlockWithTxs")]
@@ -213,6 +216,7 @@ pub enum StarknetRequest {
 impl std::fmt::Display for StarknetRequest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            StarknetRequest::SpecVersion => write!(f, "starknet_specVersion"),
             StarknetRequest::BlockWithTransactionHashes(_) => {
                 write!(f, "starknet_getBlockWithTxHashes")
             }

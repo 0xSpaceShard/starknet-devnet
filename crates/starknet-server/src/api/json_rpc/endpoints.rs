@@ -26,6 +26,12 @@ const DEFAULT_CONTINUATION_TOKEN: &str = "0";
 
 /// here are the definitions and stub implementations of all JSON-RPC read endpoints
 impl JsonRpcHandler {
+    /// starknet_specVersion
+    /// TODO improve this to use data from Cargo.toml
+    pub(crate) fn spec_version(&self) -> RpcResult<String> {
+        Ok("0.5.0".to_string())
+    }
+
     /// starknet_getBlockWithTxHashes
     pub(crate) async fn get_block_with_tx_hashes(&self, block_id: BlockId) -> RpcResult<Block> {
         let block =
