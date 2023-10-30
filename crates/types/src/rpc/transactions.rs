@@ -119,8 +119,8 @@ impl Transaction {
         let r#type = self.get_type();
 
         let output = TransactionOutput {
-            actual_fee: self.get_max_fee(),
-            messages_sent: Vec::new(),
+            actual_fee: self.get_max_fee(), // TODO wrong
+            messages_sent: Vec::new(),      // TODO wrong
             events: transaction_events.to_vec(),
         };
 
