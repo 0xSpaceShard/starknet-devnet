@@ -1,8 +1,9 @@
+use blockifier::execution::call_info::CallInfo;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
-use starknet_rs_core::types::{ExecutionResult, TransactionFinalityStatus};
+use starknet_rs_core::types::{ExecutionResult, FieldElement, MsgToL1, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::Event;
@@ -100,9 +101,7 @@ impl StarknetTransaction {
     pub fn get_events(&self) -> Vec<Event> {
         let mut events: Vec<Event> = vec![];
 
-        fn get_blockifier_events_recursively(
-            call_info: &blockifier::execution::call_info::CallInfo,
-        ) -> Vec<(usize, Event)> {
+        fn get_blockifier_events_recursively(call_info: &CallInfo) -> Vec<(usize, Event)> {
             let mut events: Vec<(usize, Event)> = vec![];
 
             events.extend(call_info.execution.events.iter().map(|e| {
@@ -210,6 +209,43 @@ impl StarknetTransaction {
             }
             _ => Ok(TransactionReceipt::Common(common_receipt)),
         }
+    }
+
+    pub fn get_l2_to_l1_messages(&self) -> Vec<MsgToL1> {
+        let mut messages = vec![];
+
+        fn get_blockifier_messages_recursively(call_info: &CallInfo) -> Vec<MsgToL1> {
+            let mut messages = vec![];
+
+            messages.extend(call_info.execution.l2_to_l1_messages.iter().map(|m| MsgToL1 {
+                to_address:
+                    FieldElement::from_byte_slice_be(m.message.to_address.0.as_bytes()).unwrap(),
+                from_address: (*call_info.call.caller_address.0.key()).into(),
+                payload: m.message.payload.0.iter().map(|p| (*p).into()).collect(),
+            }));
+
+            call_info.inner_calls.iter().for_each(|call| {
+                messages.extend(get_blockifier_messages_recursively(call));
+            });
+
+            messages
+        }
+
+        if let Some(execution_info) = self.execution_info.as_ref() {
+            if let Some(info) = execution_info.validate_call_info.as_ref() {
+                messages.extend(get_blockifier_messages_recursively(info));
+            }
+
+            if let Some(info) = execution_info.execute_call_info.as_ref() {
+                messages.extend(get_blockifier_messages_recursively(info));
+            }
+
+            if let Some(info) = execution_info.fee_transfer_call_info.as_ref() {
+                messages.extend(get_blockifier_messages_recursively(info));
+            }
+        }
+
+        messages
     }
 }
 
