@@ -51,10 +51,12 @@ pub struct EthereumMessaging {
     provider: Arc<Provider<Http>>,
     provider_signer: Arc<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
     messaging_contract_address: Address,
-    // Keep track of the sync. Must be also dumped in the future to
-    // avoid fetching already fetched messages.
+    // Keep track of the sync.
+    // TODO: Must be also dumped in the future to
+    // avoid fetching already fetched messages. Or use the nonce instead
+    // to not re-send already sent messages.
     last_fetched_block: u64,
-    // TODO: add a message nonce verification.
+    // TODO: add a message nonce verification too.
 }
 
 impl EthereumMessaging {
@@ -99,6 +101,10 @@ impl EthereumMessaging {
     }
 
     /// Fetches all the messages that were not already fetched from the L1 node.
+    ///
+    /// # Arguments
+    ///
+    /// * `chain_id` - The chain ID to include in the transaction hash computation.
     pub async fn fetch_messages(
         &mut self,
         chain_id: Felt,

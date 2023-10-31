@@ -18,6 +18,8 @@ pub enum HttpApiError {
     LoadError,
     #[error("The re-execution operation failed")]
     ReExecutionError,
+    #[error("Messaging error: {msg}")]
+    MessagingError { msg: String },
 }
 
 impl IntoResponse for HttpApiError {
@@ -37,6 +39,9 @@ impl IntoResponse for HttpApiError {
                 (StatusCode::BAD_REQUEST, String::from("re-execution operation failed"))
             }
             err @ HttpApiError::MintingError { msg: _ } => {
+                (StatusCode::BAD_REQUEST, err.to_string())
+            }
+            err @ HttpApiError::MessagingError { msg: _ } => {
                 (StatusCode::BAD_REQUEST, err.to_string())
             }
         };

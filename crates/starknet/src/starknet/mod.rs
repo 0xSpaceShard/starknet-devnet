@@ -75,6 +75,8 @@ pub struct Starknet {
     // TODO: to avoid repeating some logic from blocks,
     // and keeping messaging isolated, having `blocks` public
     // allows to re-use functions like `get_blocks()`.
+    // This may be removed if the messaging code is externalised.
+    // It will then use `get_block_with_transactions`.
     pub(crate) blocks: StarknetBlocks,
     pub transactions: StarknetTransactions,
     pub config: StarknetConfig,
