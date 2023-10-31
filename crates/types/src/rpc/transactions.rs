@@ -115,12 +115,13 @@ impl Transaction {
         block_number: Option<BlockNumber>,
         execution_result: &ExecutionResult,
         finality_status: Option<TransactionFinalityStatus>,
+        actual_fee: Fee,
     ) -> CommonTransactionReceipt {
         let r#type = self.get_type();
 
         let output = TransactionOutput {
-            actual_fee: self.get_max_fee(), // TODO wrong
-            messages_sent: Vec::new(),      // TODO wrong
+            actual_fee,
+            messages_sent: Vec::new(), // TODO wrong
             events: transaction_events.to_vec(),
         };
 

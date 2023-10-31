@@ -93,9 +93,10 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
         let salt = FieldElement::ZERO;
         let constructor_args = Vec::<FieldElement>::new();
+        let max_fee = FieldElement::from(1e18 as u128);
         let deployment_result = contract_factory
             .deploy(constructor_args.clone(), salt, false)
-            .max_fee(FieldElement::from(1e18 as u128))
+            .max_fee(max_fee)
             .send()
             .await
             .unwrap();
@@ -115,6 +116,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
                     &constructor_args,
                 );
                 assert_eq!(receipt.contract_address, expected_contract_address);
+                assert!(receipt.actual_fee < max_fee);
             }
             _ => panic!("Invalid receipt {:?}", deployment_receipt),
         };
@@ -150,9 +152,10 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
         let salt = FieldElement::ZERO;
         let invalid_constructor_args = vec![FieldElement::ONE];
+        let max_fee = FieldElement::from(1e18 as u128);
         let invalid_deployment_result = contract_factory
             .deploy(invalid_constructor_args, salt, false)
-            .max_fee(FieldElement::from(1e18 as u128))
+            .max_fee(max_fee)
             .send()
             .await
             .unwrap();
@@ -166,10 +169,11 @@ mod get_transaction_receipt_by_hash_integration_tests {
             MaybePendingTransactionReceipt::Receipt(TransactionReceipt::Invoke(receipt)) => {
                 match receipt.execution_result {
                     ExecutionResult::Reverted { reason } => {
-                        assert!(reason.contains("Input too long for arguments"))
+                        assert!(reason.contains("Input too long for arguments"));
                     }
                     other => panic!("Invalid execution result {other:?}"),
                 }
+                assert!(receipt.actual_fee < max_fee);
             }
             _ => panic!("Invalid receipt {:?}", invalid_deployment_receipt),
         };
@@ -203,11 +207,8 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
         // send transaction with lower than estimated fee
         // should revert
-        let transfer_result = transfer_execution
-            .max_fee(FieldElement::from(fee.overall_fee - 1))
-            .send()
-            .await
-            .unwrap();
+        let max_fee = FieldElement::from(fee.overall_fee - 1);
+        let transfer_result = transfer_execution.max_fee(max_fee).send().await.unwrap();
 
         let transfer_receipt = devnet
             .json_rpc_client
@@ -221,6 +222,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
                     starknet_rs_core::types::ExecutionResult::Reverted { .. } => (),
                     _ => panic!("Invalid receipt {:?}", receipt),
                 }
+                assert_eq!(receipt.actual_fee, max_fee);
             }
             _ => panic!("Invalid receipt {:?}", transfer_receipt),
         };
