@@ -162,7 +162,6 @@ impl From<&StarknetBlock> for TypesBlockHeader {
                 price_in_strk: None,
                 price_in_wei: value.header.gas_price.0.into(),
             },
-            
         }
     }
 }
