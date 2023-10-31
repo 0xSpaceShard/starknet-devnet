@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::time::SystemTime;
 
 use blockifier::block_context::BlockContext;
 use blockifier::execution::entry_point::CallEntryPoint;
@@ -189,6 +188,7 @@ impl Starknet {
         // set new block header
         new_block.set_block_hash(new_block.generate_hash()?);
         new_block.status = BlockStatus::AcceptedOnL2;
+        new_block.set_timestamp(BlockTimestamp(Starknet::get_unix_timestamp_as_seconds()));
         let new_block_number = new_block.block_number();
 
         // update txs block hash block number for each transaction in the pending block
@@ -341,16 +341,11 @@ impl Starknet {
         block_context
     }
 
-    /// Should update block context with new block timestamp
-    /// and pointer to the next block number
+    /// Update block context block_number with the next one
+    /// # Arguments
+    /// * `block_context` - BlockContext to be updated
     fn update_block_context(block_context: &mut BlockContext) {
-        let current_timestamp_secs = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .expect("should get current UNIX timestamp")
-            .as_secs();
-
         block_context.block_number = block_context.block_number.next();
-        block_context.block_timestamp = BlockTimestamp(current_timestamp_secs);
     }
 
     fn pending_block(&self) -> &StarknetBlock {
@@ -364,7 +359,6 @@ impl Starknet {
         block.header.block_number = self.block_context.block_number;
         block.header.gas_price = GasPrice(self.block_context.gas_prices.eth_l1_gas_price);
         block.header.sequencer = self.block_context.sequencer_address;
-        block.header.timestamp = self.block_context.block_timestamp;
 
         self.blocks.pending_block = block;
 
@@ -814,10 +808,20 @@ impl Starknet {
 
         Ok(simulation_results)
     }
+
+    fn get_unix_timestamp_as_seconds() -> u64 {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("should get current UNIX timestamp")
+            .as_secs()
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::thread;
+    use std::time::Duration;
+
     use blockifier::state::state_api::State;
     use blockifier::transaction::errors::TransactionExecutionError;
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
@@ -1200,5 +1204,28 @@ mod tests {
         let latest_block = starknet.get_latest_block();
 
         assert_eq!(latest_block.unwrap().block_number(), BlockNumber(2));
+    }
+    #[test]
+    fn check_timestamp_of_newly_generated_block() {
+        let config = starknet_config_for_test();
+        let mut starknet = Starknet::new(&config).unwrap();
+
+        Starknet::update_block_context(&mut starknet.block_context);
+        starknet.generate_pending_block().unwrap();
+        starknet
+            .blocks
+            .pending_block
+            .set_timestamp(BlockTimestamp(Starknet::get_unix_timestamp_as_seconds()));
+        let pending_block_timestamp = starknet.pending_block().header.timestamp;
+
+        let sleep_duration_secs = 5;
+        thread::sleep(Duration::from_secs(sleep_duration_secs));
+        starknet.generate_new_block(StateDiff::default()).unwrap();
+
+        let block_timestamp = starknet.get_latest_block().unwrap().header.timestamp;
+        // check if the pending_block_timestamp is less than the block_timestamp,
+        // by number of sleep seconds because the timeline of events is this:
+        // ----(pending block timestamp)----(sleep)----(new block timestamp)
+        assert!(pending_block_timestamp.0 + sleep_duration_secs <= block_timestamp.0);
     }
 }
