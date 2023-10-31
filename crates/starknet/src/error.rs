@@ -56,6 +56,8 @@ pub enum Error {
     FeeError { reason: String },
     #[error(transparent)]
     TransactionValidationError(#[from] TransactionValidationError),
+    #[error(transparent)]
+    MessagingError(#[from] MessagingError),
 }
 
 #[derive(Debug, Error)]
@@ -82,6 +84,12 @@ pub enum TransactionValidationError {
     InsufficientAccountBalance,
     #[error("Account validation failed.")]
     ValidationFailure,
+}
+
+#[derive(Debug, Error)]
+pub enum MessagingError {
+    #[error("Ethers error: {0}")]
+    EthersError(String),
 }
 
 pub type DevnetResult<T, E = Error> = Result<T, E>;

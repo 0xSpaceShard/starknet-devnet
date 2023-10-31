@@ -11,6 +11,11 @@ blockifier = { workspace = true, features = ["testing"]}
 cairo-felt = { workspace = true }
 cairo-lang-starknet = { workspace = true }
 clap = { workspace = true }
+
+# TODO: perhaps not the best solution to have ethers inside Starknet crate.
+# Here for the MVP, to be checked with spaceshard team.
+ethers = { version = "2.0.8" }
+
 starknet_api = { workspace = true, features = ["testing"] }
 thiserror = { workspace = true }
 serde = { workspace = true }
