@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
+use blockifier::execution::call_info::CallInfo;
 use blockifier::transaction::account_transaction::AccountTransaction;
+use blockifier::transaction::objects::TransactionExecutionInfo;
 use broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
@@ -17,7 +19,8 @@ use starknet_api::transaction::Fee;
 use starknet_rs_core::types::{BlockId, ExecutionResult, TransactionFinalityStatus};
 
 use super::estimate_message_fee::FeeEstimateWrapper;
-use super::transaction_receipt::MessageToL1;
+use super::transaction_receipt::{ExecutionResources, MessageToL1};
+use crate::constants::{N_STEPS, RANGE_CHECK_BUILTIN_NAME, HASH_BUILTIN_NAME, POSEIDON_BUILTIN_NAME, EC_OP_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME, BITWISE_BUILTIN_NAME, KECCAK_BUILTIN_NAME};
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
 use crate::error::{ConversionError, DevnetResult};
@@ -115,8 +118,34 @@ impl Transaction {
         block_number: Option<BlockNumber>,
         execution_result: &ExecutionResult,
         finality_status: TransactionFinalityStatus,
+        execution_info: &TransactionExecutionInfo,
     ) -> CommonTransactionReceipt {
         let r#type = self.get_type();
+
+        fn get_memory_holes_from_call_info(call_info: &Option<CallInfo>) -> usize {
+            if let Some(call) = call_info { call.vm_resources.n_memory_holes } else { 0 }
+        }
+
+        fn get_resource_from_execution_info(execution_info: &TransactionExecutionInfo, resource_name: &str) -> Felt {
+            let resource = execution_info.actual_resources.0.get(resource_name).cloned().unwrap_or_default();
+            Felt::from(resource as u128)
+        }
+
+        let total_memory_holes = get_memory_holes_from_call_info(&execution_info.execute_call_info)
+            + get_memory_holes_from_call_info(&execution_info.validate_call_info)
+            + get_memory_holes_from_call_info(&execution_info.fee_transfer_call_info);
+
+        let execution_resources = ExecutionResources {
+            steps: get_resource_from_execution_info(execution_info, N_STEPS),
+            memory_holes: Felt::from(total_memory_holes as u128),
+            range_check_builtin_applications: get_resource_from_execution_info(execution_info, RANGE_CHECK_BUILTIN_NAME),
+            pedersen_builtin_applications: get_resource_from_execution_info(execution_info, HASH_BUILTIN_NAME),
+            poseidon_builtin_applications: get_resource_from_execution_info(execution_info, POSEIDON_BUILTIN_NAME),
+            ec_op_builtin_applications: get_resource_from_execution_info(execution_info, EC_OP_BUILTIN_NAME),
+            ecdsa_builtin_applications: get_resource_from_execution_info(execution_info, SIGNATURE_BUILTIN_NAME),
+            bitwise_builtin_applications: get_resource_from_execution_info(execution_info, BITWISE_BUILTIN_NAME),
+            keccak_builtin_applications: get_resource_from_execution_info(execution_info, KECCAK_BUILTIN_NAME),
+        };
 
         let output = TransactionOutput {
             actual_fee: self.get_max_fee(),
@@ -136,6 +165,7 @@ impl Transaction {
             output,
             execution_status: execution_result.clone(),
             maybe_pending_properties,
+            execution_resources
         }
     }
 }
