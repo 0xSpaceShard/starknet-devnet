@@ -40,6 +40,8 @@ pub mod deploy_account_transaction;
 pub mod deploy_transaction;
 pub mod invoke_transaction_v1;
 
+pub mod l1_handler_transaction;
+
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum Transactions {
@@ -218,6 +220,7 @@ pub struct L1HandlerTransaction {
     pub contract_address: ContractAddress,
     pub entry_point_selector: EntryPointSelector,
     pub calldata: Calldata,
+    pub paid_fee_on_l1: u128,
 }
 
 impl L1HandlerTransaction {

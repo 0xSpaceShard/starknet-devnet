@@ -4697,6 +4697,7 @@ dependencies = [
  "random-number-generator",
  "serde",
  "serde_json",
+ "sha3",
  "starknet-core 0.6.0",
  "starknet-ff",
  "starknet-signers 0.4.0",

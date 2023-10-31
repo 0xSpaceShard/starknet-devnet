@@ -88,7 +88,9 @@ pub enum TransactionValidationError {
 
 #[derive(Debug, Error)]
 pub enum MessagingError {
-    #[error("Ethers error: {0}")]
+    #[error("Message is not configured, ensure you've used `postman_load` first.")]
+    NotConfigured,
+    #[error("Ethers error: {0}.")]
     EthersError(String),
 }
 

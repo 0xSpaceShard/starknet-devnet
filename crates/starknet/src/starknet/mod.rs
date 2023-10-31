@@ -29,8 +29,8 @@ use starknet_types::rpc::transactions::broadcasted_invoke_transaction::Broadcast
 use starknet_types::rpc::transactions::{
     BroadcastedTransaction, BroadcastedTransactionCommon, DeclareTransaction,
     DeclareTransactionTrace, DeployAccountTransactionTrace, ExecutionInvocation,
-    FunctionInvocation, InvokeTransactionTrace, SimulatedTransaction, SimulationFlag, Transaction,
-    TransactionTrace, Transactions,
+    FunctionInvocation, InvokeTransactionTrace, L1HandlerTransaction, SimulatedTransaction,
+    SimulationFlag, Transaction, TransactionTrace, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, warn};
@@ -44,6 +44,7 @@ use crate::constants::{
     ERC20_CONTRACT_ADDRESS,
 };
 use crate::error::{DevnetResult, Error, TransactionValidationError};
+use crate::messaging::EthereumMessaging;
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::raw_execution::{Call, RawExecution};
 use crate::state::state_diff::StateDiff;
@@ -58,6 +59,7 @@ use crate::transactions::{StarknetTransaction, StarknetTransactions};
 mod add_declare_transaction;
 mod add_deploy_account_transaction;
 mod add_invoke_transaction;
+mod add_l1_handler_transaction;
 mod dump;
 mod estimations;
 mod events;
@@ -76,6 +78,7 @@ pub struct Starknet {
     pub(crate) blocks: StarknetBlocks,
     pub transactions: StarknetTransactions,
     pub config: StarknetConfig,
+    pub messaging: Option<EthereumMessaging>,
 }
 
 impl Default for Starknet {
@@ -91,6 +94,7 @@ impl Default for Starknet {
             blocks: Default::default(),
             transactions: Default::default(),
             config: Default::default(),
+            messaging: Default::default(),
         }
     }
 }
@@ -141,6 +145,7 @@ impl Starknet {
             blocks: StarknetBlocks::default(),
             transactions: StarknetTransactions::default(),
             config: config.clone(),
+            messaging: Default::default(),
         };
 
         this.restart_pending_block()?;
@@ -491,6 +496,13 @@ impl Starknet {
         invoke_transaction: BroadcastedInvokeTransaction,
     ) -> DevnetResult<TransactionHash> {
         add_invoke_transaction::add_invoke_transaction(self, invoke_transaction)
+    }
+
+    pub fn add_l1_handler_transaction(
+        &mut self,
+        l1_handler_transaction: L1HandlerTransaction,
+    ) -> DevnetResult<TransactionHash> {
+        add_l1_handler_transaction::add_l1_handler_transaction(self, l1_handler_transaction)
     }
 
     /// Creates an invoke tx for minting, using the chargeable account.

@@ -32,49 +32,90 @@
 //! contract (`mockSendMessageFromL2` entrypoint).
 use starknet_rs_core::types::{BlockId, MsgToL1};
 
-use crate::error::{DevnetResult, Error};
+use crate::error::{DevnetResult, Error, MessagingError};
 use crate::starknet::Starknet;
 use crate::traits::HashIdentified;
 use crate::StarknetBlock;
 
 mod ethereum;
+pub use ethereum::EthereumMessaging;
 
 impl Starknet {
+    /// Configures the messaging from the given L1 node parameters.
+    /// Calling this function multiple time will overwrite the previous
+    /// configuration, if any.
+    ///
+    /// # Arguments
+    ///
+    /// * `rpc_url` - The L1 node RPC URL.
+    /// * `contract_address` - The messaging contract address deployed on L1 node.
+    /// * `private_key` - Private key associated with an EOA account to send transactions.
+    pub async fn configure_messaging(
+        &mut self,
+        rpc_url: &str,
+        contract_address: &str,
+        private_key: &str,
+    ) -> DevnetResult<()> {
+        self.messaging =
+            Some(EthereumMessaging::new(rpc_url, contract_address, private_key).await?);
+
+        Ok(())
+    }
+
     /// Collects and sends to L1 all messages found between
     /// `from` to the Latest Starknet block, including both blocks.
     ///
     /// # Arguments
     /// * `from` - The block id from which (and including which) the messages are collected.
-    async fn collect_and_send_messages_to_l1(&self, from: BlockId) -> DevnetResult<()> {
+    pub async fn collect_and_send_messages_to_l1(&self, from: BlockId) -> DevnetResult<()> {
+        if self.messaging.is_none() {
+            return Err(Error::MessagingError(MessagingError::NotConfigured));
+        }
+
+        let messaging = self.messaging.as_ref().unwrap();
+
         let mut messages = vec![];
 
-        // TODO: check if it's the latest block we have as expected here
-        // for the upper limit.
         for block in self.blocks.get_blocks(Some(from), None)? {
             messages.extend(self.get_block_messages(block)?);
         }
 
-        // For each message -> send TX to L1 with ether-rs.
+        messaging.send_mock_messages(&messages).await
+    }
+
+    /// Fetches all messages from L1 and executes them by executing a `L1HandlerTransaction`
+    /// for each one of them.
+    pub async fn fetch_and_execute_messages_to_l2(&mut self) -> DevnetResult<()> {
+        if self.messaging.is_none() {
+            return Err(Error::MessagingError(MessagingError::NotConfigured));
+        }
+
+        let chain_id = self.chain_id().to_felt();
+        let messaging = self.messaging.as_mut().unwrap();
+
+        let transactions = messaging.fetch_messages(chain_id).await?;
+
+        for transaction in transactions {
+            self.add_l1_handler_transaction(transaction)?;
+        }
 
         Ok(())
     }
 
-    // Same for fetch_and_execute_messages_from_l1(&self, ethereum_url? ethereum_from_block?).
-    // gather them and add l1 handler tx already validated?
-
     /// Collects all messages for all the transactions of the the given block.
     ///
     /// # Arguments
+    ///
     /// * `block` - The block from which messages are collected.
     fn get_block_messages(&self, block: &StarknetBlock) -> DevnetResult<Vec<MsgToL1>> {
         let mut messages = vec![];
 
-        let transactions = block.get_transactions().iter().for_each(|transaction_hash| {
-            let transaction = self
-                .transactions
-                .get_by_hash(*transaction_hash)
-                .ok_or(Error::NoTransaction)
-                .map(|transaction| messages.extend(transaction.get_l2_to_l1_messages()));
+        block.get_transactions().iter().for_each(|transaction_hash| {
+            if let Ok(transaction) =
+                self.transactions.get_by_hash(*transaction_hash).ok_or(Error::NoTransaction)
+            {
+                messages.extend(transaction.get_l2_to_l1_messages())
+            }
         });
 
         Ok(messages)
