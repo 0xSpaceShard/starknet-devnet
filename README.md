@@ -34,7 +34,7 @@ This repository is work in progress, please be patient. Please check below the s
 
 - [ ] Availability as a package (crate)
 - [ ] [Forking](https://0xspaceshard.github.io/starknet-devnet/docs/guide/fork)
-- [ ] [L1-L2 Postman integration](https://0xspaceshard.github.io/starknet-devnet/docs/guide/postman)
+- [x] [L1-L2 Postman integration](https://0xspaceshard.github.io/starknet-devnet/docs/guide/postman)
 - [ ] [Block manipulation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/blocks)
 - [ ] [Advancing time](https://0xspaceshard.github.io/starknet-devnet/docs/guide/advancing-time)
 
