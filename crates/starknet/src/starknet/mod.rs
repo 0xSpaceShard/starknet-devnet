@@ -179,12 +179,7 @@ impl Starknet {
         // set new block header
         new_block.set_block_hash(new_block.generate_hash()?);
         new_block.status = BlockStatus::AcceptedOnL2;
-        new_block.set_timestamp(BlockTimestamp(
-            SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .expect("should get current UNIX timestamp")
-                .as_secs(),
-        ));
+        new_block.set_timestamp(BlockTimestamp(Starknet::get_unix_timestamp_as_seconds()));
         let new_block_number = new_block.block_number();
 
         // update txs block hash block number for each transaction in the pending block
@@ -797,6 +792,13 @@ impl Starknet {
 
         Ok(simulation_results)
     }
+
+    fn get_unix_timestamp_as_seconds() -> u64 {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("should get current UNIX timestamp")
+            .as_secs()
+    }
 }
 
 #[cfg(test)]
@@ -1194,16 +1196,16 @@ mod tests {
 
         Starknet::update_block_context(&mut starknet.block_context);
         starknet.generate_pending_block().unwrap();
-        starknet.blocks.pending_block.set_timestamp(BlockTimestamp(
-            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs(),
-        ));
+        starknet
+            .blocks
+            .pending_block
+            .set_timestamp(BlockTimestamp(Starknet::get_unix_timestamp_as_seconds()));
         let pending_block_timestamp = starknet.pending_block().header.timestamp;
 
         let sleep_duration_secs = 5;
         thread::sleep(Duration::from_secs(sleep_duration_secs));
         starknet.generate_new_block(StateDiff::default()).unwrap();
-        let now =
-            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
+        let now = Starknet::get_unix_timestamp_as_seconds();
 
         let block_timestamp = starknet.get_latest_block().unwrap().header.timestamp;
         // check if the pending_block_timestamp is less than the block_timestamp, by at least the
