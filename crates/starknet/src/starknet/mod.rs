@@ -1204,7 +1204,6 @@ mod tests {
         let sleep_duration_secs = 5;
         thread::sleep(Duration::from_secs(sleep_duration_secs));
         starknet.generate_new_block(StateDiff::default()).unwrap();
-        let now = Starknet::get_unix_timestamp_as_seconds();
 
         let block_timestamp = starknet.get_latest_block().unwrap().header.timestamp;
         // check if the pending_block_timestamp is less than the block_timestamp,
