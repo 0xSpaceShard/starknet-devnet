@@ -1207,8 +1207,8 @@ mod tests {
         let now = Starknet::get_unix_timestamp_as_seconds();
 
         let block_timestamp = starknet.get_latest_block().unwrap().header.timestamp;
-        // check if the pending_block_timestamp is less than the block_timestamp, by number of sleep seconds
-        // because the timeline of events is this:
+        // check if the pending_block_timestamp is less than the block_timestamp, by number of sleep
+        // seconds because the timeline of events is this:
         // ----(pending block timestamp)----(sleep)----(new block timestamp)
         assert!(pending_block_timestamp.0 + sleep_duration_secs <= block_timestamp.0);
         // check if now is close to the block_timestamp
