@@ -42,6 +42,20 @@ pub struct CommonTransactionReceipt {
     pub execution_status: ExecutionResult,
     #[serde(flatten)]
     pub maybe_pending_properties: MaybePendingProperties,
+    pub execution_resources: ExecutionResources
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+pub struct ExecutionResources {
+    pub steps: Felt,
+    pub memory_holes: Felt,
+    pub range_check_builtin_applications: Felt,
+    pub pedersen_builtin_applications: Felt,
+    pub poseidon_builtin_applications: Felt,
+    pub ec_op_builtin_applications: Felt,
+    pub ecdsa_builtin_applications: Felt,
+    pub bitwise_builtin_applications: Felt,
+    pub keccak_builtin_applications: Felt,
 }
 
 impl PartialEq for CommonTransactionReceipt {
@@ -59,6 +73,7 @@ impl PartialEq for CommonTransactionReceipt {
             && self.r#type == other.r#type
             && self.maybe_pending_properties == other.maybe_pending_properties
             && self.output == other.output
+            && self.execution_resources == other.execution_resources
             && identical_execution_result
     }
 }
