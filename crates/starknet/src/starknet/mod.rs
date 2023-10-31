@@ -1194,7 +1194,9 @@ mod tests {
 
         Starknet::update_block_context(&mut starknet.block_context);
         starknet.generate_pending_block().unwrap();
-        starknet.blocks.pending_block.set_timestamp(BlockTimestamp(std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs()));
+        starknet.blocks.pending_block.set_timestamp(BlockTimestamp(
+            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs(),
+        ));
         let pending_block_timestamp = starknet.pending_block().header.timestamp;
 
         let sleep_duration_secs = 5;
@@ -1204,7 +1206,8 @@ mod tests {
             std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
 
         let block_timestamp = starknet.get_latest_block().unwrap().header.timestamp;
-        // check if the pending_block_timestamp is less than the block_timestamp, by at least the sleep duration - 1
+        // check if the pending_block_timestamp is less than the block_timestamp, by at least the
+        // sleep duration - 1
         assert!(pending_block_timestamp.0 + sleep_duration_secs - 1 < block_timestamp.0);
         // check if now is close to the block_timestamp
         assert!(now - block_timestamp.0 <= 1);
