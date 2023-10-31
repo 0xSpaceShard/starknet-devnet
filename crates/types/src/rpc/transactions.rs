@@ -88,16 +88,6 @@ impl Transaction {
         }
     }
 
-    pub fn get_max_fee(&self) -> Fee {
-        match self {
-            Transaction::Declare(tx) => tx.get_max_fee(),
-            Transaction::DeployAccount(tx) => tx.get_max_fee(),
-            Transaction::Deploy(tx) => tx.get_max_fee(),
-            Transaction::Invoke(tx) => tx.get_max_fee(),
-            Transaction::L1Handler(tx) => tx.get_max_fee(),
-        }
-    }
-
     pub fn get_transaction_hash(&self) -> &TransactionHash {
         match self {
             Transaction::Declare(tx) => tx.get_transaction_hash(),
@@ -150,14 +140,6 @@ pub enum DeclareTransaction {
 }
 
 impl DeclareTransaction {
-    pub fn get_max_fee(&self) -> Fee {
-        match self {
-            DeclareTransaction::Version0(tx) => tx.get_max_fee(),
-            DeclareTransaction::Version1(tx) => tx.get_max_fee(),
-            DeclareTransaction::Version2(tx) => tx.get_max_fee(),
-        }
-    }
-
     pub fn get_transaction_hash(&self) -> &TransactionHash {
         match self {
             DeclareTransaction::Version0(tx) => tx.get_transaction_hash(),
@@ -179,10 +161,6 @@ pub struct InvokeTransactionV0 {
 }
 
 impl InvokeTransactionV0 {
-    pub fn get_max_fee(&self) -> Fee {
-        self.max_fee
-    }
-
     pub fn get_transaction_hash(&self) -> &TransactionHash {
         &self.transaction_hash
     }
@@ -196,13 +174,6 @@ pub enum InvokeTransaction {
 }
 
 impl InvokeTransaction {
-    pub fn get_max_fee(&self) -> Fee {
-        match self {
-            InvokeTransaction::Version0(tx) => tx.get_max_fee(),
-            InvokeTransaction::Version1(tx) => tx.get_max_fee(),
-        }
-    }
-
     pub fn get_transaction_hash(&self) -> &TransactionHash {
         match self {
             InvokeTransaction::Version0(tx) => tx.get_transaction_hash(),
@@ -222,10 +193,6 @@ pub struct L1HandlerTransaction {
 }
 
 impl L1HandlerTransaction {
-    pub fn get_max_fee(&self) -> Fee {
-        Fee(0)
-    }
-
     pub fn get_transaction_hash(&self) -> &TransactionHash {
         &self.transaction_hash
     }
