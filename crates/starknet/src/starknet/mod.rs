@@ -186,7 +186,7 @@ impl Starknet {
             if let Some(tx) = self.transactions.get_by_hash_mut(tx_hash) {
                 tx.block_hash = Some(new_block.header.block_hash.0.into());
                 tx.block_number = Some(new_block_number);
-                tx.finality_status = Some(TransactionFinalityStatus::AcceptedOnL2);
+                tx.finality_status = TransactionFinalityStatus::AcceptedOnL2;
             } else {
                 error!("Transaction is not present in the transactions collection");
             }

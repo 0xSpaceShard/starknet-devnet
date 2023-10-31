@@ -104,7 +104,7 @@ impl Transaction {
         block_hash: Option<&BlockHash>,
         block_number: Option<BlockNumber>,
         execution_result: &ExecutionResult,
-        finality_status: Option<TransactionFinalityStatus>,
+        finality_status: TransactionFinalityStatus,
         actual_fee: Fee,
     ) -> CommonTransactionReceipt {
         let r#type = self.get_type();
@@ -115,17 +115,15 @@ impl Transaction {
             events: transaction_events.to_vec(),
         };
 
-        let maybe_pending_properties = MaybePendingProperties {
-            block_number,
-            block_hash: block_hash.cloned(),
-            finality_status,
-        };
+        let maybe_pending_properties =
+            MaybePendingProperties { block_number, block_hash: block_hash.cloned() };
 
         CommonTransactionReceipt {
             r#type,
             transaction_hash: *self.get_transaction_hash(),
             output,
             execution_status: execution_result.clone(),
+            finality_status,
             maybe_pending_properties,
         }
     }

@@ -161,7 +161,7 @@ mod tests {
             ContractClass::Cairo1(declare_txn.contract_class).generate_hash().unwrap()
         );
         // check if txn is with status accepted
-        assert_eq!(tx.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
+        assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
         assert!(starknet.state.contract_classes.get(&class_hash).is_some());
     }
@@ -193,7 +193,7 @@ mod tests {
         // check if generated class hash is expected one
         assert_eq!(retrieved_class_hash, expected_class_hash);
         // check if txn is with status accepted
-        assert_eq!(retrieved_txn.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
+        assert_eq!(retrieved_txn.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(retrieved_txn.execution_result.status(), TransactionExecutionStatus::Succeeded);
         assert!(starknet.state.is_contract_declared(&expected_class_hash));
     }
@@ -265,7 +265,7 @@ mod tests {
         // check if generated class hash is expected one
         assert_eq!(class_hash, declare_txn.contract_class.generate_hash().unwrap());
         // check if txn is with status accepted
-        assert_eq!(tx.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
+        assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
         // check if contract is successfully declared
         assert!(starknet.state.is_contract_declared(&class_hash));
@@ -301,7 +301,7 @@ mod tests {
         let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
 
         // check if txn is with status accepted
-        assert_eq!(tx.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
+        assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
         // check if contract is declared

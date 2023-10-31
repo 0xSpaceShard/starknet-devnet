@@ -51,8 +51,7 @@ impl HashIdentified for StarknetTransactions {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StarknetTransaction {
     pub inner: Transaction,
-    // TODO these properties might not need to be Option + might require serde changes
-    pub(crate) finality_status: Option<TransactionFinalityStatus>,
+    pub(crate) finality_status: TransactionFinalityStatus,
     pub(crate) execution_result: ExecutionResult,
     pub(crate) block_hash: Option<BlockHash>,
     pub(crate) block_number: Option<BlockNumber>,
@@ -66,7 +65,7 @@ impl StarknetTransaction {
         execution_info: TransactionExecutionInfo,
     ) -> Self {
         Self {
-            finality_status: Some(TransactionFinalityStatus::AcceptedOnL2),
+            finality_status: TransactionFinalityStatus::AcceptedOnL2,
             execution_result: match execution_info.is_reverted() {
                 true => ExecutionResult::Reverted {
                     reason: execution_info
@@ -236,7 +235,7 @@ mod tests {
 
         let sn_tran =
             StarknetTransaction::create_accepted(&tx, TransactionExecutionInfo::default());
-        assert_eq!(sn_tran.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
+        assert_eq!(sn_tran.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(sn_tran.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
         assert!(sn_tran.block_hash.is_none());
