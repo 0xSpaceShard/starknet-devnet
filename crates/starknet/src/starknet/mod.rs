@@ -15,6 +15,7 @@ use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::Signer;
 use starknet_types::chain_id::ChainId;
+use starknet_types::constants::{OUTPUT_BUILTIN_NAME, HASH_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, POSEIDON_BUILTIN_NAME, SEGMENT_ARENA_BUILTIN_NAME, KECCAK_BUILTIN_NAME, N_STEPS};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::contract_storage_key::ContractStorageKey;
@@ -318,16 +319,16 @@ impl Starknet {
             contract_address!(fee_token_address);
         // copied cairo resource fee weights from starknet_in_rust
         block_context.vm_resource_fee_cost = std::sync::Arc::new(HashMap::from([
-            ("n_steps".to_string(), N_STEPS_FEE_WEIGHT),
-            ("output_builtin".to_string(), 0.0),
-            ("pedersen_builtin".to_string(), N_STEPS_FEE_WEIGHT * 32.0),
-            ("range_check_builtin".to_string(), N_STEPS_FEE_WEIGHT * 16.0),
-            ("ecdsa_builtin".to_string(), N_STEPS_FEE_WEIGHT * 2048.0),
-            ("bitwise_builtin".to_string(), N_STEPS_FEE_WEIGHT * 64.0),
-            ("ec_op_builtin".to_string(), N_STEPS_FEE_WEIGHT * 1024.0),
-            ("poseidon_builtin".to_string(), N_STEPS_FEE_WEIGHT * 32.0),
-            ("segment_arena_builtin".to_string(), N_STEPS_FEE_WEIGHT * 10.0),
-            ("keccak_builtin".to_string(), N_STEPS_FEE_WEIGHT * 2048.0), // 2**11
+            (N_STEPS.to_string(), N_STEPS_FEE_WEIGHT),
+            (OUTPUT_BUILTIN_NAME.to_string(), 0.0),
+            (HASH_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 32.0),
+            (RANGE_CHECK_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 16.0),
+            (SIGNATURE_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 2048.0),
+            (BITWISE_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 64.0),
+            (EC_OP_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 1024.0),
+            (POSEIDON_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 32.0),
+            (SEGMENT_ARENA_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 10.0),
+            (KECCAK_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 2048.0), // 2**11
         ]));
 
         block_context
