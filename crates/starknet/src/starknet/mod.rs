@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::time::SystemTime;
 
 use blockifier::block_context::BlockContext;
 use blockifier::execution::entry_point::CallEntryPoint;
@@ -1208,9 +1207,10 @@ mod tests {
         let now = Starknet::get_unix_timestamp_as_seconds();
 
         let block_timestamp = starknet.get_latest_block().unwrap().header.timestamp;
-        // check if the pending_block_timestamp is less than the block_timestamp, by at least the
-        // sleep duration - 1
-        assert!(pending_block_timestamp.0 + sleep_duration_secs - 1 < block_timestamp.0);
+        // check if the pending_block_timestamp is less than the block_timestamp, by number of sleep seconds
+        // because the timeline of events is this:
+        // ----(pending block timestamp)----(sleep)----(new block timestamp)
+        assert!(pending_block_timestamp.0 + sleep_duration_secs <= block_timestamp.0);
         // check if now is close to the block_timestamp
         assert!(now - block_timestamp.0 <= 1);
     }
