@@ -8,7 +8,9 @@ use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::Event;
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
-use starknet_types::rpc::transaction_receipt::{DeployTransactionReceipt, TransactionReceipt};
+use starknet_types::rpc::transaction_receipt::{
+    DeployTransactionReceipt, MessageToL1, TransactionReceipt,
+};
 use starknet_types::rpc::transactions::{Transaction, TransactionType};
 
 use crate::constants::UDC_CONTRACT_ADDRESS;
@@ -176,8 +178,14 @@ impl StarknetTransaction {
     pub fn get_receipt(&self) -> DevnetResult<TransactionReceipt> {
         let transaction_events = self.get_events();
 
+        let mut transaction_messages: Vec<MessageToL1> = vec![];
+        for message in self.get_l2_to_l1_messages().into_iter() {
+            transaction_messages.push(message.try_into()?);
+        }
+
         let mut common_receipt = self.inner.create_common_receipt(
             &transaction_events,
+            &transaction_messages,
             self.block_hash.as_ref(),
             self.block_number,
             &self.execution_result,

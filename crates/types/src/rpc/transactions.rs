@@ -113,6 +113,7 @@ impl Transaction {
     pub fn create_common_receipt(
         &self,
         transaction_events: &[Event],
+        transaction_messages: &[MessageToL1],
         block_hash: Option<&BlockHash>,
         block_number: Option<BlockNumber>,
         execution_result: &ExecutionResult,
@@ -122,7 +123,7 @@ impl Transaction {
 
         let output = TransactionOutput {
             actual_fee: self.get_max_fee(),
-            messages_sent: Vec::new(),
+            messages_sent: transaction_messages.to_vec(),
             events: transaction_events.to_vec(),
         };
 

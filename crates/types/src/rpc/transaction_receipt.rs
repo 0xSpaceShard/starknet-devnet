@@ -1,11 +1,13 @@
 use serde::{Deserialize, Serialize, Serializer};
 use starknet_api::block::BlockNumber;
 use starknet_api::core::EthAddress;
+use starknet_api::hash::StarkFelt;
 use starknet_api::transaction::Fee;
-use starknet_rs_core::types::{ExecutionResult, TransactionFinalityStatus};
+use starknet_rs_core::types::{ExecutionResult, MsgToL1, TransactionFinalityStatus};
 
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
+use crate::error::{DevnetResult, Error};
 use crate::felt::{BlockHash, Felt, TransactionHash};
 use crate::rpc::transactions::TransactionType;
 
@@ -92,6 +94,25 @@ pub struct MessageToL1 {
     pub from_address: ContractAddress,
     pub to_address: EthAddress,
     pub payload: L2ToL1Payload,
+}
+
+impl TryFrom<MsgToL1> for MessageToL1 {
+    type Error = Error;
+
+    fn try_from(msg: MsgToL1) -> DevnetResult<Self> {
+        // TODO: check if `to_address` may be of type `EthAddressWarpper`?
+        // As here we've to make some convertions just to reach
+        // the starknet_api type.
+        let to_address: Felt = msg.to_address.into();
+        let to_address: StarkFelt = to_address.into();
+        let to_address: EthAddress = to_address.try_into()?;
+
+        Ok(MessageToL1 {
+            from_address: ContractAddress::new(msg.from_address.into())?,
+            to_address,
+            payload: msg.payload.iter().map(|fe| (*fe).into()).collect(),
+        })
+    }
 }
 
 #[cfg(test)]
