@@ -294,7 +294,6 @@ impl Starknet {
         self.state.apply_state_difference(state_difference.clone())?;
         // make cached state part of "persistent" state
         self.state.clear_dirty_state();
-
         // create new block from pending one
         self.generate_new_block(state_difference, None)?;
         // clear pending block information
@@ -815,19 +814,18 @@ impl Starknet {
         Ok(())
     }
 
-    // Explicit set and create empty block
+    // Create empty block
     pub fn set_time(&mut self, timestamp: u64) -> DevnetResult<(), Error> {
-        // self.blocks.pending_block.header.timestamp = BlockTimestamp(timestamp);
         self.create_block(Some(timestamp))
     }
 
-    // Set timestamp shift and create new block
+    // Set timestamp shift and create empty block
     pub fn increase_time(&mut self, timestamp: u64) -> DevnetResult<(), Error> {
         self.set_block_timestamp_shift(timestamp);
         self.create_block(None)
     }
 
-    // Set timestamp shift in config for next blocks
+    // Set timestamp shift for next blocks
     pub fn set_block_timestamp_shift(&mut self, timestamp: u64) {
         self.pending_block_timestamp_shift = timestamp;
     }
