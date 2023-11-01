@@ -1,4 +1,4 @@
-use std::time::SystemTime;
+use std::collections::HashMap;
 
 use blockifier::block_context::BlockContext;
 use blockifier::execution::entry_point::CallEntryPoint;
@@ -7,7 +7,6 @@ use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
 use starknet_api::transaction::Fee;
-use starknet_in_rust::definitions::constants::DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS;
 use starknet_rs_core::types::{BlockId, MsgFromL1, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
@@ -183,6 +182,7 @@ impl Starknet {
         // set new block header
         new_block.set_block_hash(new_block.generate_hash()?);
         new_block.status = BlockStatus::AcceptedOnL2;
+        new_block.set_timestamp(BlockTimestamp(Starknet::get_unix_timestamp_as_seconds()));
         let new_block_number = new_block.block_number();
 
         // update txs block hash block number for each transaction in the pending block
@@ -311,27 +311,36 @@ impl Starknet {
 
         let mut block_context = blockifier::block_context::BlockContext::create_for_testing();
 
+        // copied from starknet_in_rust
+        /// The (empirical) L1 gas cost of each Cairo step.
+        const N_STEPS_FEE_WEIGHT: f64 = 0.01;
+
         block_context.block_number = BlockNumber(0);
         block_context.block_timestamp = BlockTimestamp(0);
         block_context.gas_prices.eth_l1_gas_price = gas_price as u128;
         block_context.chain_id = chain_id.into();
         block_context.fee_token_addresses.eth_fee_token_address =
             contract_address!(fee_token_address);
-        // inject cairo resource fee weights from starknet_in_rust
-        block_context.vm_resource_fee_cost =
-            std::sync::Arc::new(DEFAULT_CAIRO_RESOURCE_FEE_WEIGHTS.clone());
+        // copied cairo resource fee weights from starknet_in_rust
+        block_context.vm_resource_fee_cost = std::sync::Arc::new(HashMap::from([
+            ("n_steps".to_string(), N_STEPS_FEE_WEIGHT),
+            ("output_builtin".to_string(), 0.0),
+            ("pedersen_builtin".to_string(), N_STEPS_FEE_WEIGHT * 32.0),
+            ("range_check_builtin".to_string(), N_STEPS_FEE_WEIGHT * 16.0),
+            ("ecdsa_builtin".to_string(), N_STEPS_FEE_WEIGHT * 2048.0),
+            ("bitwise_builtin".to_string(), N_STEPS_FEE_WEIGHT * 64.0),
+            ("ec_op_builtin".to_string(), N_STEPS_FEE_WEIGHT * 1024.0),
+            ("poseidon_builtin".to_string(), N_STEPS_FEE_WEIGHT * 32.0),
+            ("segment_arena_builtin".to_string(), N_STEPS_FEE_WEIGHT * 10.0),
+            ("keccak_builtin".to_string(), N_STEPS_FEE_WEIGHT * 2048.0), // 2**11
+        ]));
 
         block_context
     }
 
-    fn get_current_timestamp_secs() -> u64 {
-        SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .expect("should get current UNIX timestamp")
-            .as_secs()
-    }
-
-    /// Should update block context with the next block number
+    /// Update block context block_number with the next one
+    /// # Arguments
+    /// * `block_context` - BlockContext to be updated
     fn update_block_context(block_context: &mut BlockContext) {
         block_context.block_number = block_context.block_number.next();
     }
@@ -347,7 +356,6 @@ impl Starknet {
         block.header.block_number = self.block_context.block_number;
         block.header.gas_price = GasPrice(self.block_context.gas_prices.eth_l1_gas_price);
         block.header.sequencer = self.block_context.sequencer_address;
-        block.header.timestamp = self.block_context.block_timestamp;
 
         self.blocks.pending_block = block;
 
@@ -808,17 +816,27 @@ impl Starknet {
     // Update of pending block timestamp based on pending_block_timestamp_shift from config
     pub fn update_pending_block_timestamp(&mut self) {
         self.blocks.pending_block.header.timestamp =
-            BlockTimestamp(Self::get_current_timestamp_secs() + self.pending_block_timestamp_shift);
+            BlockTimestamp(Self::get_unix_timestamp_as_seconds() + self.pending_block_timestamp_shift);
     }
 
     // Set timestamp shift in config for next blocks
     pub fn increase_time(&mut self, timestamp: u64) {
         self.pending_block_timestamp_shift = timestamp;
     }
+
+    fn get_unix_timestamp_as_seconds() -> u64 {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("should get current UNIX timestamp")
+            .as_secs()
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::thread;
+    use std::time::Duration;
+
     use blockifier::state::state_api::State;
     use blockifier::transaction::errors::TransactionExecutionError;
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
@@ -1201,5 +1219,28 @@ mod tests {
         let latest_block = starknet.get_latest_block();
 
         assert_eq!(latest_block.unwrap().block_number(), BlockNumber(2));
+    }
+    #[test]
+    fn check_timestamp_of_newly_generated_block() {
+        let config = starknet_config_for_test();
+        let mut starknet = Starknet::new(&config).unwrap();
+
+        Starknet::update_block_context(&mut starknet.block_context);
+        starknet.generate_pending_block().unwrap();
+        starknet
+            .blocks
+            .pending_block
+            .set_timestamp(BlockTimestamp(Starknet::get_unix_timestamp_as_seconds()));
+        let pending_block_timestamp = starknet.pending_block().header.timestamp;
+
+        let sleep_duration_secs = 5;
+        thread::sleep(Duration::from_secs(sleep_duration_secs));
+        starknet.generate_new_block(StateDiff::default()).unwrap();
+
+        let block_timestamp = starknet.get_latest_block().unwrap().header.timestamp;
+        // check if the pending_block_timestamp is less than the block_timestamp,
+        // by number of sleep seconds because the timeline of events is this:
+        // ----(pending block timestamp)----(sleep)----(new block timestamp)
+        assert!(pending_block_timestamp.0 + sleep_duration_secs <= block_timestamp.0);
     }
 }

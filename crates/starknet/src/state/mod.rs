@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::StateReader;
-use starknet_types::cairo_felt::Felt252;
+use cairo_felt::Felt252;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::contract_storage_key::ContractStorageKey;
@@ -295,154 +295,19 @@ mod tests {
     use blockifier::state::state_api::{State, StateReader};
     use blockifier::test_utils::DictStateReader;
     use starknet_api::state::StorageKey;
-    use starknet_in_rust::felt::Felt252;
-    use starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass;
-    use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
-    use starknet_in_rust::state::in_memory_state_reader::InMemoryStateReader;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::{ClassHash, Felt};
 
     use super::{DevnetState, StarknetState};
-    use crate::error::{Error, StateError};
+    use crate::error::Error;
     use crate::traits::{StateChanger, StateExtractor};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{
         dummy_cairo_1_contract_class, dummy_contract_address, dummy_contract_storage_key,
         dummy_felt,
     };
-
-    impl starknet_in_rust::state::state_api::StateReader for DevnetState {
-        fn get_contract_class(
-            &self,
-            class_hash: &starknet_in_rust::utils::ClassHash,
-        ) -> Result<
-            starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass,
-            starknet_in_rust::core::errors::state_errors::StateError,
-        > {
-            let class_hash_as_felt = Felt::new(*class_hash).map_err(|err| {
-                starknet_in_rust::core::errors::state_errors::StateError::CustomError(
-                    err.to_string(),
-                )
-            })?;
-
-            let contract_class =
-                crate::traits::DevnetStateReader::contract_class_at(self, &class_hash_as_felt)
-                    .map_err(|err| {
-                        match err {
-                Error::StateError(StateError::NoneCasmClass(class_hash)) => {
-                    starknet_in_rust::core::errors::state_errors::StateError::MissingCasmClass(
-                        class_hash.bytes(),
-                    )
-                }
-                Error::StateError(StateError::NoneCompiledHash(compiled_class_hash)) => {
-                    starknet_in_rust::core::errors::state_errors::StateError::NoneCompiledHash(
-                        compiled_class_hash.bytes(),
-                    )
-                }
-                general_error => {
-                    starknet_in_rust::core::errors::state_errors::StateError::CustomError(
-                        general_error.to_string(),
-                    )
-                }
-            }
-                    })?;
-
-            starknet_in_rust::services::api::contract_classes::compiled_class::CompiledClass::try_from(
-                contract_class,
-            )
-            .map_err(|err| {
-                starknet_in_rust::core::errors::state_errors::StateError::CustomError(err.to_string())
-            })
-        }
-
-        fn get_class_hash_at(
-            &self,
-            contract_address: &starknet_in_rust::utils::Address,
-        ) -> Result<
-            starknet_in_rust::utils::ClassHash,
-            starknet_in_rust::core::errors::state_errors::StateError,
-        > {
-            let address = ContractAddress::try_from(contract_address).map_err(|err| {
-                starknet_in_rust::core::errors::state_errors::StateError::CustomError(
-                    err.to_string(),
-                )
-            })?;
-            let class_hash = crate::traits::DevnetStateReader::class_hash_at(self, &address);
-
-            Ok(class_hash.bytes())
-        }
-
-        fn get_nonce_at(
-            &self,
-            contract_address: &starknet_in_rust::utils::Address,
-        ) -> Result<Felt252, starknet_in_rust::core::errors::state_errors::StateError> {
-            let address = ContractAddress::try_from(contract_address).map_err(|err| {
-                starknet_in_rust::core::errors::state_errors::StateError::CustomError(
-                    err.to_string(),
-                )
-            })?;
-            let nonce = crate::traits::DevnetStateReader::nonce_at(self, &address);
-
-            Ok(nonce.into())
-        }
-
-        fn get_storage_at(
-            &self,
-            storage_entry: &starknet_in_rust::state::state_cache::StorageEntry,
-        ) -> Result<Felt252, starknet_in_rust::core::errors::state_errors::StateError> {
-            let contract_address = ContractAddress::try_from(&storage_entry.0).map_err(|err| {
-                starknet_in_rust::core::errors::state_errors::StateError::CustomError(
-                    err.to_string(),
-                )
-            })?;
-            let storage_key = starknet_types::patricia_key::StorageKey::new(
-                Felt::new(storage_entry.1).map_err(|err| {
-                    starknet_in_rust::core::errors::state_errors::StateError::CustomError(
-                        err.to_string(),
-                    )
-                })?,
-            )
-            .map_err(|err| {
-                starknet_in_rust::core::errors::state_errors::StateError::CustomError(
-                    err.to_string(),
-                )
-            })?;
-
-            let storage = crate::traits::DevnetStateReader::storage_at(
-                self,
-                &ContractStorageKey::new(contract_address, storage_key),
-            );
-            Ok(storage.into())
-        }
-
-        fn get_compiled_class_hash(
-            &self,
-            class_hash: &starknet_in_rust::utils::ClassHash,
-        ) -> Result<
-            starknet_in_rust::utils::CompiledClassHash,
-            starknet_in_rust::core::errors::state_errors::StateError,
-        > {
-            let class_hash_as_felt = Felt::new(*class_hash).map_err(|err| {
-                starknet_in_rust::core::errors::state_errors::StateError::CustomError(
-                    err.to_string(),
-                )
-            })?;
-
-            let compiled_class_hash =
-                crate::traits::DevnetStateReader::compiled_class_hash_at(self, &class_hash_as_felt);
-            if compiled_class_hash == Felt::default() {
-                return Err(
-                    starknet_in_rust::core::errors::state_errors::StateError::NoneCompiledHash(
-                        *class_hash,
-                    ),
-                );
-            }
-
-            Ok(compiled_class_hash.bytes())
-        }
-    }
 
     #[test]
     fn apply_state_update_for_contract_class_successfully() {
@@ -562,8 +427,14 @@ mod tests {
         match declared_contract_class {
             starknet_types::contract_class::ContractClass::Cairo0(deprecated_contract_class) => {
                 assert_eq!(
-                    StarknetInRustContractClass::try_from(deprecated_contract_class).unwrap(),
-                    StarknetInRustContractClass::try_from(contract_class).unwrap()
+                    blockifier::execution::contract_class::ContractClassV0::try_from(
+                        deprecated_contract_class
+                    )
+                    .unwrap(),
+                    blockifier::execution::contract_class::ContractClassV0::try_from(
+                        contract_class
+                    )
+                    .unwrap()
                 );
             }
             _ => panic!("Wrong version of contract class"),
@@ -628,101 +499,6 @@ mod tests {
     fn get_nonce_should_return_zero_for_freshly_deployed_contract() {
         let (state, address) = setup();
         assert_eq!(state.get_nonce(&address).unwrap(), Felt::from(0));
-    }
-
-    #[test]
-    fn check_devnet_state_with_starknet_in_rust_in_memory_state_reader() {
-        let mut in_memory_state_reader = InMemoryStateReader::default();
-        let (devnet_state, class_hash, address, storage_key) = setup_devnet_state();
-
-        devnet_state.address_to_class_hash.iter().for_each(|(k, v)| {
-            in_memory_state_reader
-                .address_to_class_hash
-                .insert(starknet_in_rust::utils::Address::from(*k), v.bytes());
-        });
-
-        devnet_state.address_to_nonce.iter().for_each(|(k, v)| {
-            in_memory_state_reader
-                .address_to_nonce
-                .insert(starknet_in_rust::utils::Address::from(*k), v.into());
-        });
-
-        devnet_state.address_to_storage.iter().for_each(|(k, v)| {
-            in_memory_state_reader.address_to_storage.insert(k.into(), v.into());
-        });
-
-        devnet_state.class_hash_to_compiled_class_hash.iter().for_each(|(k, v)| {
-            in_memory_state_reader.class_hash_to_compiled_class_hash.insert(k.bytes(), v.bytes());
-        });
-
-        devnet_state.class_hash_to_compiled_class.iter().for_each(|(k, v)| {
-            in_memory_state_reader
-                .class_hash_to_compiled_class
-                .insert(k.bytes(), CompiledClass::try_from(v.clone()).unwrap());
-        });
-
-        fn assert_equal_results(
-            first: &impl starknet_in_rust::state::state_api::StateReader,
-            second: &impl starknet_in_rust::state::state_api::StateReader,
-            address: starknet_in_rust::utils::Address,
-            class_hash: [u8; 32],
-            storage_key: starknet_in_rust::state::state_cache::StorageEntry,
-        ) {
-            let second_result = second.get_nonce_at(&address);
-            match first.get_nonce_at(&address) {
-                Ok(nonce) => assert_eq!(nonce, second_result.unwrap()),
-                Err(err) => {
-                    assert_eq!(err.to_string(), second_result.unwrap_err().to_string());
-                }
-            }
-
-            let second_result = second.get_class_hash_at(&address);
-            match first.get_class_hash_at(&address) {
-                Ok(class_hash) => assert_eq!(class_hash, second_result.unwrap()),
-                Err(err) => {
-                    assert_eq!(err.to_string(), second_result.unwrap_err().to_string());
-                }
-            }
-
-            let second_result = second.get_storage_at(&storage_key);
-            match first.get_storage_at(&storage_key) {
-                Ok(storage) => assert_eq!(storage, second_result.unwrap()),
-                Err(err) => {
-                    assert_eq!(err.to_string(), second_result.unwrap_err().to_string());
-                }
-            }
-
-            let second_result = second.get_compiled_class_hash(&class_hash);
-            match first.get_compiled_class_hash(&class_hash) {
-                Ok(compiled_class_hash) => assert_eq!(compiled_class_hash, second_result.unwrap()),
-                Err(err) => {
-                    assert_eq!(err.to_string(), second_result.unwrap_err().to_string());
-                }
-            }
-
-            let second_result = second.get_contract_class(&class_hash);
-            match first.get_contract_class(&class_hash) {
-                Ok(contract_class) => assert_eq!(contract_class, second_result.unwrap()),
-                Err(err) => {
-                    assert_eq!(err.to_string(), second_result.unwrap_err().to_string());
-                }
-            }
-        }
-
-        assert_equal_results(
-            &devnet_state,
-            &in_memory_state_reader,
-            address.into(),
-            class_hash.into(),
-            storage_key.into(),
-        );
-        assert_equal_results(
-            &devnet_state,
-            &in_memory_state_reader,
-            ContractAddress::default().into(),
-            Felt::default().into(),
-            ContractStorageKey::default().into(),
-        );
     }
 
     #[test]

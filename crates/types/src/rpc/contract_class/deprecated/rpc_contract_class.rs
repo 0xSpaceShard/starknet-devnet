@@ -1,8 +1,5 @@
-use std::str::FromStr;
-
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use starknet_in_rust::services::api::contract_classes::deprecated_contract_class::ContractClass as StarknetInRustContractClass;
 use starknet_rs_core::types::{CompressedLegacyContractClass, LegacyEntryPointsByType};
 
 use crate::contract_class::deprecated::abi_entry::{AbiEntry, AbiEntryType};
@@ -76,18 +73,6 @@ impl HashProducer for DeprecatedContractClass {
     fn generate_hash(&self) -> DevnetResult<Felt> {
         let json_value: Cairo0Json = self.clone().try_into()?;
         json_value.generate_hash()
-    }
-}
-
-impl TryFrom<DeprecatedContractClass> for StarknetInRustContractClass {
-    type Error = Error;
-    fn try_from(value: DeprecatedContractClass) -> Result<Self, Self::Error> {
-        let json_value: Cairo0Json = value.try_into()?;
-        let starknet_in_rust_contract_class =
-            StarknetInRustContractClass::from_str(&json_value.inner.to_string())
-                .map_err(|err| JsonError::Custom { msg: err.to_string() })?;
-
-        Ok(starknet_in_rust_contract_class)
     }
 }
 

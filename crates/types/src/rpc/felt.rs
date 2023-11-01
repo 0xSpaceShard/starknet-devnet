@@ -148,18 +148,6 @@ impl From<Felt> for starknet_api::core::CompiledClassHash {
     }
 }
 
-impl From<starknet_in_rust::utils::ClassHash> for Felt {
-    fn from(value: starknet_in_rust::utils::ClassHash) -> Self {
-        Self(value)
-    }
-}
-
-impl From<Felt> for starknet_in_rust::utils::ClassHash {
-    fn from(value: Felt) -> Self {
-        value.0
-    }
-}
-
 impl From<cairo_felt::Felt252> for Felt {
     fn from(value: cairo_felt::Felt252) -> Self {
         Self(value.to_be_bytes())

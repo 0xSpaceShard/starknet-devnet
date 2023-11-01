@@ -2,6 +2,7 @@ use std::fmt::LowerHex;
 
 use cairo_felt::Felt252;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use starknet_rs_ff::FieldElement;
 
 use crate::error::{DevnetResult, Error};
 use crate::felt::Felt;
@@ -59,39 +60,15 @@ impl TryFrom<ContractAddress> for starknet_api::core::ContractAddress {
     }
 }
 
-impl From<ContractAddress> for starknet_in_rust::utils::Address {
-    fn from(value: ContractAddress) -> Self {
-        let felt_252 = cairo_felt::Felt252::from(value.0.0);
-        Self(felt_252)
-    }
-}
-
-impl From<&ContractAddress> for starknet_in_rust::utils::Address {
-    fn from(value: &ContractAddress) -> Self {
-        let felt_252 = cairo_felt::Felt252::from(&value.0.0);
-        Self(felt_252)
-    }
-}
-
-impl TryFrom<starknet_in_rust::utils::Address> for ContractAddress {
-    type Error = Error;
-
-    fn try_from(value: starknet_in_rust::utils::Address) -> DevnetResult<Self> {
-        Self::new(Felt::from(value.0))
-    }
-}
-
-impl TryFrom<&starknet_in_rust::utils::Address> for ContractAddress {
-    type Error = Error;
-
-    fn try_from(value: &starknet_in_rust::utils::Address) -> DevnetResult<Self> {
-        Self::new(Felt::from(&value.0))
-    }
-}
-
 impl From<ContractAddress> for Felt252 {
     fn from(value: ContractAddress) -> Self {
         Felt::from(value).into()
+    }
+}
+
+impl From<ContractAddress> for FieldElement {
+    fn from(value: ContractAddress) -> Self {
+        FieldElement::from(value.0.0)
     }
 }
 
@@ -108,33 +85,5 @@ impl ToHexString for ContractAddress {
 impl LowerHex for ContractAddress {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.0.0.to_prefixed_hex_str().as_str())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use starknet_in_rust::utils::Address;
-
-    use super::ContractAddress;
-    use crate::contract_address::test_utils;
-    use crate::utils::test_utils::dummy_felt;
-
-    #[test]
-    fn correct_convertion_to_starknet_in_rust_address() {
-        let address = ContractAddress::new(dummy_felt()).unwrap();
-        let sn_address: Address = TryFrom::try_from(&address).unwrap();
-
-        assert!(test_utils::is_equal(&address, &sn_address));
-    }
-}
-
-#[cfg(test)]
-pub(crate) mod test_utils {
-    use starknet_in_rust::utils::Address;
-
-    use super::ContractAddress;
-
-    pub fn is_equal(lhs: &ContractAddress, rhs: &Address) -> bool {
-        lhs.0.0.bytes() == rhs.0.to_be_bytes()
     }
 }
