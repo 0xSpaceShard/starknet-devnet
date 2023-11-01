@@ -165,7 +165,6 @@ impl Starknet {
     // Initialize values for new pending block
     pub(crate) fn generate_pending_block(&mut self) -> DevnetResult<()> {
         Self::update_block_context(&mut self.block_context);
-        self.update_pending_block_timestamp();
         self.restart_pending_block()?;
 
         Ok(())
@@ -176,13 +175,21 @@ impl Starknet {
     pub(crate) fn generate_new_block(
         &mut self,
         state_diff: StateDiff,
+        timestamp: Option<u64>
     ) -> DevnetResult<BlockNumber> {
         let mut new_block = self.pending_block().clone();
 
         // set new block header
         new_block.set_block_hash(new_block.generate_hash()?);
         new_block.status = BlockStatus::AcceptedOnL2;
-        new_block.set_timestamp(BlockTimestamp(Starknet::get_unix_timestamp_as_seconds()));
+        match timestamp {
+            Some(timestamp) => {
+                new_block.set_timestamp(BlockTimestamp(timestamp));
+            },
+            None => {
+                new_block.set_timestamp(BlockTimestamp(Starknet::get_unix_timestamp_as_seconds() + self.pending_block_timestamp_shift));
+            },
+        }
         let new_block_number = new_block.block_number();
 
         // update txs block hash block number for each transaction in the pending block
@@ -286,10 +293,8 @@ impl Starknet {
         // make cached state part of "persistent" state
         self.state.clear_dirty_state();
 
-        // update timestamp before block creation
-        self.update_pending_block_timestamp();
         // create new block from pending one
-        self.generate_new_block(state_difference)?;
+        self.generate_new_block(state_difference, None)?;
         // clear pending block information
         self.generate_pending_block()?;
 
@@ -799,28 +804,29 @@ impl Starknet {
         Ok(simulation_results)
     }
 
-    pub fn create_block(&mut self) -> DevnetResult<(), Error> {
+    pub fn create_block(&mut self, timestamp: Option<u64>) -> DevnetResult<(), Error> {
         // create new block from pending one
-        self.generate_new_block(StateDiff::default())?;
+        self.generate_new_block(StateDiff::default(), timestamp)?;
         // clear pending block information
         self.generate_pending_block()?;
 
         Ok(())
     }
 
-    // Explicit set of pending block timestamp
-    pub fn set_pending_block_timestamp(&mut self, timestamp: u64) {
-        self.blocks.pending_block.header.timestamp = BlockTimestamp(timestamp);
+    // Explicit set and create empty block
+    pub fn set_time(&mut self, timestamp: u64) -> DevnetResult<(), Error> {
+        // self.blocks.pending_block.header.timestamp = BlockTimestamp(timestamp);
+        self.create_block(Some(timestamp))
     }
 
-    // Update of pending block timestamp based on pending_block_timestamp_shift from config
-    pub fn update_pending_block_timestamp(&mut self) {
-        self.blocks.pending_block.header.timestamp =
-            BlockTimestamp(Self::get_unix_timestamp_as_seconds() + self.pending_block_timestamp_shift);
+    // Set timestamp shift and create new block
+    pub fn increase_time(&mut self, timestamp: u64) -> DevnetResult<(), Error> {
+        self.set_block_timestamp_shift(timestamp);
+        self.create_block(None)
     }
 
     // Set timestamp shift in config for next blocks
-    pub fn increase_time(&mut self, timestamp: u64) {
+    pub fn set_block_timestamp_shift(&mut self, timestamp: u64) {
         self.pending_block_timestamp_shift = timestamp;
     }
 
@@ -908,7 +914,7 @@ mod tests {
         // blocks collection is empty
         assert!(starknet.blocks.num_to_block.is_empty());
 
-        starknet.generate_new_block(StateDiff::default()).unwrap();
+        starknet.generate_new_block(StateDiff::default(), None).unwrap();
         // blocks collection should not be empty
         assert!(!starknet.blocks.num_to_block.is_empty());
 
@@ -978,7 +984,7 @@ mod tests {
     fn getting_state_at_block_by_nonexistent_hash() {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
-        starknet.generate_new_block(StateDiff::default()).unwrap();
+        starknet.generate_new_block(StateDiff::default(), None).unwrap();
 
         match starknet.get_state_at(&BlockId::Hash(Felt::from(0).into())) {
             Err(Error::NoBlock) => (),
@@ -990,7 +996,7 @@ mod tests {
     fn getting_nonexistent_state_at_block_by_number() {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
-        starknet.generate_new_block(StateDiff::default()).unwrap();
+        starknet.generate_new_block(StateDiff::default(), None).unwrap();
         starknet.blocks.num_to_state.remove(&BlockNumber(0));
 
         match starknet.get_state_at(&BlockId::Number(0)) {
@@ -1096,7 +1102,7 @@ mod tests {
 
         starknet.get_latest_block().err().unwrap();
 
-        starknet.generate_new_block(StateDiff::default()).unwrap();
+        starknet.generate_new_block(StateDiff::default(), None).unwrap();
         starknet.generate_pending_block().unwrap();
 
         // last added block number -> 0
@@ -1106,7 +1112,7 @@ mod tests {
 
         assert_eq!(block_number.0, added_block.header.block_number.0);
 
-        starknet.generate_new_block(StateDiff::default()).unwrap();
+        starknet.generate_new_block(StateDiff::default(), None).unwrap();
         starknet.generate_pending_block().unwrap();
 
         let added_block2 = starknet.blocks.num_to_block.get(&BlockNumber(1)).unwrap();
@@ -1120,7 +1126,7 @@ mod tests {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        starknet.generate_new_block(StateDiff::default()).unwrap();
+        starknet.generate_new_block(StateDiff::default(), None).unwrap();
         starknet.generate_pending_block().unwrap();
 
         let num_no_transactions = starknet.get_block_txs_count(BlockId::Number(0));
@@ -1132,7 +1138,7 @@ mod tests {
         // add transaction hash to pending block
         starknet.blocks.pending_block.add_transaction(tx.transaction_hash);
 
-        starknet.generate_new_block(StateDiff::default()).unwrap();
+        starknet.generate_new_block(StateDiff::default(), None).unwrap();
 
         let num_one_transaction = starknet.get_block_txs_count(BlockId::Number(1));
 
@@ -1152,7 +1158,7 @@ mod tests {
     fn correct_state_at_specific_block() {
         let mut starknet = Starknet::default();
         // generate initial block with empty state
-        starknet.generate_new_block(StateDiff::default()).unwrap();
+        starknet.generate_new_block(StateDiff::default(), None).unwrap();
         starknet.generate_pending_block().unwrap();
 
         // **generate second block**
@@ -1163,7 +1169,7 @@ mod tests {
         // move data from pending_state to state
         starknet.state.apply_state_difference(state_diff.clone()).unwrap();
         // generate new block and save the state
-        let second_block = starknet.generate_new_block(state_diff).unwrap();
+        let second_block = starknet.generate_new_block(state_diff, None).unwrap();
         starknet.generate_pending_block().unwrap();
 
         // **generate third block**
@@ -1174,7 +1180,7 @@ mod tests {
         // move data from pending_state to state
         starknet.state.apply_state_difference(state_diff.clone()).unwrap();
         // generate new block and save the state
-        let third_block = starknet.generate_new_block(state_diff).unwrap();
+        let third_block = starknet.generate_new_block(state_diff, None).unwrap();
         starknet.generate_pending_block().unwrap();
 
         // check modified state at block 1 and 2 to contain the correct value for the nonce
@@ -1210,11 +1216,11 @@ mod tests {
         let config = starknet_config_for_test();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        starknet.generate_new_block(StateDiff::default()).unwrap();
+        starknet.generate_new_block(StateDiff::default(), None).unwrap();
         starknet.generate_pending_block().unwrap();
-        starknet.generate_new_block(StateDiff::default()).unwrap();
+        starknet.generate_new_block(StateDiff::default(), None).unwrap();
         starknet.generate_pending_block().unwrap();
-        starknet.generate_new_block(StateDiff::default()).unwrap();
+        starknet.generate_new_block(StateDiff::default(), None).unwrap();
 
         let latest_block = starknet.get_latest_block();
 
@@ -1235,7 +1241,7 @@ mod tests {
 
         let sleep_duration_secs = 5;
         thread::sleep(Duration::from_secs(sleep_duration_secs));
-        starknet.generate_new_block(StateDiff::default()).unwrap();
+        starknet.generate_new_block(StateDiff::default(), None).unwrap();
 
         let block_timestamp = starknet.get_latest_block().unwrap().header.timestamp;
         // check if the pending_block_timestamp is less than the block_timestamp,
