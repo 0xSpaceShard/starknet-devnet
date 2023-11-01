@@ -19,11 +19,11 @@ pub enum HttpApiError {
     #[error("The re-execution operation failed")]
     ReExecutionError,
     #[error("The creation of empty block failed")]
-    CreateEmptyBlockError,
+    CreateEmptyBlockError { msg: String },
     #[error("The set time operation failed")]
-    BlockSetTimeError,
+    BlockSetTimeError { msg: String },
     #[error("The increase time operation failed")]
-    BlockIncreaseTimeError,
+    BlockIncreaseTimeError { msg: String },
 }
 
 impl IntoResponse for HttpApiError {
@@ -34,9 +34,13 @@ impl IntoResponse for HttpApiError {
             err @ HttpApiError::DumpError { msg: _ } => (StatusCode::BAD_REQUEST, err.to_string()),
             err @ HttpApiError::LoadError => (StatusCode::BAD_REQUEST, err.to_string()),
             err @ HttpApiError::ReExecutionError => (StatusCode::BAD_REQUEST, err.to_string()),
-            err @ HttpApiError::CreateEmptyBlockError => (StatusCode::BAD_REQUEST, err.to_string()),
-            err @ HttpApiError::BlockSetTimeError => (StatusCode::BAD_REQUEST, err.to_string()),
-            err @ HttpApiError::BlockIncreaseTimeError => {
+            err @ HttpApiError::CreateEmptyBlockError { msg: _ } => {
+                (StatusCode::BAD_REQUEST, err.to_string())
+            }
+            err @ HttpApiError::BlockSetTimeError { msg: _ } => {
+                (StatusCode::BAD_REQUEST, err.to_string())
+            }
+            err @ HttpApiError::BlockIncreaseTimeError { msg: _ } => {
                 (StatusCode::BAD_REQUEST, err.to_string())
             }
             err @ HttpApiError::MintingError { msg: _ } => {

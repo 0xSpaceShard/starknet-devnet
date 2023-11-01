@@ -9,7 +9,9 @@ pub(crate) async fn set_time(
     Extension(state): Extension<HttpApiHandler>,
 ) -> HttpApiResult<Json<SetTimeResponse>> {
     let mut starknet = state.api.starknet.write().await;
-    starknet.set_time(data.time).map_err(|_| HttpApiError::BlockSetTimeError)?;
+    starknet
+        .set_time(data.time)
+        .map_err(|err| HttpApiError::BlockSetTimeError { msg: err.to_string() })?;
 
     let last_block = starknet.get_latest_block();
     match last_block {
@@ -17,7 +19,7 @@ pub(crate) async fn set_time(
             block_timestamp: block.timestamp().0,
             block_hash: block.block_hash(),
         })),
-        Err(_err) => Err(HttpApiError::CreateEmptyBlockError),
+        Err(err) => Err(HttpApiError::CreateEmptyBlockError { msg: err.to_string() }),
     }
 }
 
@@ -26,7 +28,9 @@ pub(crate) async fn increase_time(
     Extension(state): Extension<HttpApiHandler>,
 ) -> HttpApiResult<Json<IncreaseTimeResponse>> {
     let mut starknet = state.api.starknet.write().await;
-    starknet.increase_time(data.time).map_err(|_| HttpApiError::BlockIncreaseTimeError)?;
+    starknet
+        .increase_time(data.time)
+        .map_err(|err| HttpApiError::BlockIncreaseTimeError { msg: err.to_string() })?;
 
     let last_block = starknet.get_latest_block();
     match last_block {
@@ -34,6 +38,6 @@ pub(crate) async fn increase_time(
             timestamp_increased_by: data.time,
             block_hash: block.block_hash(),
         })),
-        Err(_err) => Err(HttpApiError::CreateEmptyBlockError),
+        Err(err) => Err(HttpApiError::CreateEmptyBlockError { msg: err.to_string() }),
     }
 }
