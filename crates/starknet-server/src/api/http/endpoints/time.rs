@@ -32,7 +32,6 @@ pub(crate) async fn increase_time(
     match last_block {
         Ok(block) => Ok(Json(IncreaseTimeResponse {
             timestamp_increased_by: data.time,
-            block_timestamp: block.timestamp().0,
             block_hash: block.block_hash(),
         })),
         Err(_err) => Err(HttpApiError::CreateEmptyBlockError),

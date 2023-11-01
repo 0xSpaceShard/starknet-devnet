@@ -52,7 +52,11 @@ mod advancing_time_tests {
     #[tokio::test]
     async fn set_time_in_far_future() {
         // set time and assert
-        let future_time: u64 = 3376684800;
+        let now = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .expect("should get current UNIX timestamp")
+            .as_secs();
+        let future_time = now + 100;
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let set_time_body = Body::from(
             json!({
@@ -118,10 +122,11 @@ mod advancing_time_tests {
             })
             .to_string(),
         );
-        let resp_increase_time =
-            devnet.post_json("/increase_time".into(), increase_time_body).await.unwrap();
-        let resp_body_increase_time = get_json_body(resp_increase_time).await;
-        assert!(resp_body_increase_time["block_timestamp"].as_u64() >= Some(now + time));
+        devnet.post_json("/increase_time".into(), increase_time_body).await.unwrap();
+        let increase_time_block = &devnet
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
+        assert!(increase_time_block["timestamp"].as_u64() >= Some(now + time));
 
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
@@ -131,9 +136,7 @@ mod advancing_time_tests {
         let last_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
-        assert!(
-            last_block["timestamp"].as_u64() > resp_body_increase_time["block_timestamp"].as_u64()
-        );
+        assert!(last_block["timestamp"].as_u64() > increase_time_block["timestamp"].as_u64());
 
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));

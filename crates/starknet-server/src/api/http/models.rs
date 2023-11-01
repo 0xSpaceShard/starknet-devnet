@@ -72,7 +72,6 @@ pub(crate) struct SetTimeResponse {
 #[derive(Serialize)]
 pub(crate) struct IncreaseTimeResponse {
     pub timestamp_increased_by: u64,
-    pub block_timestamp: u64,
     pub block_hash: BlockHash,
 }
 
