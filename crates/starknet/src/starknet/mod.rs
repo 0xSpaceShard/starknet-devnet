@@ -175,7 +175,7 @@ impl Starknet {
     pub(crate) fn generate_new_block(
         &mut self,
         state_diff: StateDiff,
-        timestamp: Option<u64>
+        timestamp: Option<u64>,
     ) -> DevnetResult<BlockNumber> {
         let mut new_block = self.pending_block().clone();
 
@@ -185,10 +185,12 @@ impl Starknet {
         match timestamp {
             Some(timestamp) => {
                 new_block.set_timestamp(BlockTimestamp(timestamp));
-            },
+            }
             None => {
-                new_block.set_timestamp(BlockTimestamp(Starknet::get_unix_timestamp_as_seconds() + self.pending_block_timestamp_shift));
-            },
+                new_block.set_timestamp(BlockTimestamp(
+                    Starknet::get_unix_timestamp_as_seconds() + self.pending_block_timestamp_shift,
+                ));
+            }
         }
         let new_block_number = new_block.block_number();
 
