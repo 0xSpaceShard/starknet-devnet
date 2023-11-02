@@ -276,7 +276,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
             .unwrap();
         for entry_point in entry_points {
             // We are assuming hex string format in the loaded artifact;
-            // Converting it to numeric value to test what the title says
+            // Converting it to numeric value to test that case
             let offset_hex_string = entry_point["offset"].as_str().unwrap();
             entry_point["offset"] =
                 u32::from_str_radix(&offset_hex_string[2..], 16).unwrap().into();
