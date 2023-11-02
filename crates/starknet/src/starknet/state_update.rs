@@ -59,7 +59,7 @@ mod tests {
         // first execute declare v2 transaction
         let (txn_hash, _) = starknet.add_declare_transaction_v2(declare_txn).unwrap();
         let tx = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
-        assert_eq!(tx.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
+        assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
         let state_update = starknet
