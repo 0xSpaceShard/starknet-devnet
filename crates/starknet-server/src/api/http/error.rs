@@ -18,6 +18,8 @@ pub enum HttpApiError {
     LoadError,
     #[error("The re-execution operation failed")]
     ReExecutionError,
+    #[error("Could not restart: {msg}")]
+    RestartError { msg: String },
 }
 
 impl IntoResponse for HttpApiError {
@@ -29,15 +31,16 @@ impl IntoResponse for HttpApiError {
             HttpApiError::FileNotFound => {
                 (StatusCode::BAD_REQUEST, String::from("file does not exist"))
             }
-            err @ HttpApiError::DumpError { msg: _ } => (StatusCode::BAD_REQUEST, err.to_string()),
+            err @ HttpApiError::DumpError { .. } => (StatusCode::BAD_REQUEST, err.to_string()),
             HttpApiError::LoadError => {
                 (StatusCode::BAD_REQUEST, String::from("load operation failed"))
             }
             HttpApiError::ReExecutionError => {
                 (StatusCode::BAD_REQUEST, String::from("re-execution operation failed"))
             }
-            err @ HttpApiError::MintingError { msg: _ } => {
-                (StatusCode::BAD_REQUEST, err.to_string())
+            err @ HttpApiError::MintingError { .. } => (StatusCode::BAD_REQUEST, err.to_string()),
+            err @ HttpApiError::RestartError { .. } => {
+                (StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
             }
         };
 

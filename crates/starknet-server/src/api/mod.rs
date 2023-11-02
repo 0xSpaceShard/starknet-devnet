@@ -5,6 +5,7 @@ pub(crate) mod serde_helpers;
 
 use std::sync::Arc;
 
+use starknet_core::error::DevnetResult;
 use starknet_core::starknet::Starknet;
 use tokio::sync::RwLock;
 
@@ -19,5 +20,11 @@ pub struct Api {
 impl Api {
     pub fn new(starknet: Starknet) -> Self {
         Self { starknet: Arc::new(RwLock::new(starknet)) }
+    }
+
+    pub async fn restart(&mut self) -> DevnetResult<()> {
+        let config = self.starknet.read().await.config.clone();
+        self.starknet = Arc::new(RwLock::new(Starknet::new(&config)?));
+        Ok(())
     }
 }
