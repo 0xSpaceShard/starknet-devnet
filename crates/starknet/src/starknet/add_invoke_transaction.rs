@@ -99,7 +99,7 @@ mod tests {
 
         let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
 
-        assert_eq!(transaction.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
+        assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
     }
 
@@ -124,7 +124,7 @@ mod tests {
         // invoke transaction
         let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
         let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
-        assert_eq!(transaction.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
+        assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
         // check storage
@@ -146,7 +146,7 @@ mod tests {
         let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
 
         assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
-        assert_eq!(transaction.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
+        assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(
             starknet.state.get_storage(balance_var_storage_address).unwrap(),
             Felt::from(25)
@@ -191,7 +191,7 @@ mod tests {
 
         let transaction_hash = starknet.add_invoke_transaction(invoke_transaction.clone()).unwrap();
         let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
-        assert_eq!(transaction.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
+        assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
         match starknet.add_invoke_transaction(invoke_transaction).unwrap_err() {
@@ -231,7 +231,7 @@ mod tests {
 
         let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
         let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
-        assert_eq!(transaction.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
+        assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Reverted);
 
         let nonce_after_reverted = starknet.state.get_nonce(&account_address).unwrap();

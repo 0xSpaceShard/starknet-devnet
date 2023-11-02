@@ -190,7 +190,7 @@ mod tests {
         let (txn_hash, _) = starknet.add_deploy_account_transaction(transaction).unwrap();
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
 
-        assert_eq!(txn.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
+        assert_eq!(txn.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(txn.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
         assert_eq!(get_accounts_count(&starknet), accounts_before_deployment + 1);
