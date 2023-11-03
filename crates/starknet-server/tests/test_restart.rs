@@ -13,5 +13,23 @@ mod test_restart {
         assert_eq!(resp.status(), StatusCode::OK);
     }
 
-    // TODO add more
+    #[tokio::test]
+    async fn assert_tx_not_present_after_restart() {
+        todo!();
+    }
+
+    #[tokio::test]
+    async fn assert_storage_restarted() {
+        todo!();
+    }
+
+    #[tokio::test]
+    async fn assert_gas_price_unaffected_by_restart() {
+        todo!();
+    }
+
+    #[tokio::test]
+    async fn assert_predeployed_account_still_prefunded() {
+        todo!();
+    }
 }
