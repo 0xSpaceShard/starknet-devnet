@@ -157,6 +157,11 @@ impl Starknet {
         Ok(this)
     }
 
+    pub fn restart(&mut self) -> DevnetResult<()> {
+        *self = Starknet::new(&self.config)?;
+        Ok(())
+    }
+
     pub fn get_predeployed_accounts(&self) -> Vec<Account> {
         self.predeployed_accounts.get_accounts().to_vec()
     }

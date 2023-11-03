@@ -28,8 +28,14 @@ pub(crate) async fn is_alive() -> HttpApiResult<String> {
 }
 
 /// Restart
-pub(crate) async fn restart(Extension(mut state): Extension<HttpApiHandler>) -> HttpApiResult<()> {
-    state.api.restart().await.map_err(|err| HttpApiError::RestartError { msg: err.to_string() })?;
+pub(crate) async fn restart(Extension(state): Extension<HttpApiHandler>) -> HttpApiResult<()> {
+    state
+        .api
+        .starknet
+        .write()
+        .await
+        .restart()
+        .map_err(|err| HttpApiError::RestartError { msg: err.to_string() })?;
     Ok(())
 }
 
