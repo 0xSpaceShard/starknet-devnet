@@ -12,17 +12,17 @@ pub enum HttpApiError {
     MintingError { msg: String },
     #[error("The file does not exist")]
     FileNotFound,
-    #[error("The dump operation failed")]
+    #[error("The dump operation failed: {msg}")]
     DumpError { msg: String },
     #[error("The load operation failed")]
     LoadError,
     #[error("The re-execution operation failed")]
     ReExecutionError,
-    #[error("The creation of empty block failed")]
+    #[error("The creation of empty block failed: {msg}")]
     CreateEmptyBlockError { msg: String },
-    #[error("The set time operation failed")]
+    #[error("The set time operation failed: {msg}")]
     BlockSetTimeError { msg: String },
-    #[error("The increase time operation failed")]
+    #[error("The increase time operation failed: {msg}")]
     BlockIncreaseTimeError { msg: String },
 }
 
