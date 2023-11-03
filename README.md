@@ -25,6 +25,7 @@ This repository is work in progress, please be patient. Please check below the s
 - [x] [Mint token - Local faucet](https://0xspaceshard.github.io/starknet-devnet/docs/guide/mint-token)
 - [x] [Customizable predeployed accounts](#predeployed-contracts)
 - [x] Starknet.js test suite passes 100%
+- [x] [Advancing time](https://0xspaceshard.github.io/starknet-devnet/docs/guide/advancing-time)
 
 ### TODO
 
@@ -36,7 +37,7 @@ This repository is work in progress, please be patient. Please check below the s
 - [ ] [Forking](https://0xspaceshard.github.io/starknet-devnet/docs/guide/fork)
 - [ ] [L1-L2 Postman integration](https://0xspaceshard.github.io/starknet-devnet/docs/guide/postman)
 - [ ] [Block manipulation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/blocks)
-- [ ] [Advancing time](https://0xspaceshard.github.io/starknet-devnet/docs/guide/advancing-time)
+  - [x] Create an empty block
 
 ## Requirements
 
@@ -212,6 +213,46 @@ This means that timestamps of `StarknetBlock` will be different.
 ### Cross-version disclaimer
 
 Dumping and loading is not guaranteed to work cross-version. I.e. if you dumped one version of Devnet, do not expect it to be loadable with a different version.
+
+## Blocks
+
+A new block is generated with each new transaction, and you can create an empty block by yourself.
+
+### Create an empty block
+
+To create an empty block without transactions, POST a request to /create_block:
+
+POST /create_block
+
+Response:
+
+{'block_hash': '0x115e1b390cafa7942b6ab141ab85040defe7dee9bef3bc31d8b5b3d01cc9c67'}
+
+## Advancing time
+
+Block timestamp can be manipulated by setting the exact time or setting the time offset. Timestamps methods `/set_time` and `/increase_time` will generate a new block. All values should be set in Unix time seconds [Unix time seconds](https://en.wikipedia.org/wiki/Unix_time).
+
+### Set time
+
+Sets the exact time and generates a new block.
+```
+POST /set_time
+{
+    "time": TIME_IN_SECONDS
+}
+```
+
+Warning: block time can be set in the past which might lead to unexpected behavior!
+
+### Increase time
+
+Increases the block timestamp by the provided amount and generates a new block. All subsequent blocks will keep this increment.
+```
+POST /increase_time
+{
+    "time": TIME_IN_SECONDS
+}
+```
 
 ## Development - Visual Studio Code
 
