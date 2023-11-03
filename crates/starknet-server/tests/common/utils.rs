@@ -97,3 +97,10 @@ pub fn to_num_as_hex<T: LowerHex>(value: &T) -> String {
 pub fn iter_to_hex_felt<T: LowerHex>(iterable: &[T]) -> Vec<String> {
     iterable.iter().map(to_hex_felt).collect()
 }
+
+pub fn get_unix_timestamp_as_seconds() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("should get current UNIX timestamp")
+        .as_secs()
+}

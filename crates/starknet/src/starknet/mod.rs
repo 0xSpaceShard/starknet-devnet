@@ -816,12 +816,14 @@ impl Starknet {
 
     // Create empty block
     pub fn set_time(&mut self, timestamp: u64) -> DevnetResult<(), Error> {
+        let diff = timestamp - Starknet::get_unix_timestamp_as_seconds();
+        self.set_block_timestamp_shift(diff);
         self.create_block(Some(timestamp))
     }
 
     // Set timestamp shift and create empty block
-    pub fn increase_time(&mut self, timestamp: u64) -> DevnetResult<(), Error> {
-        self.set_block_timestamp_shift(timestamp);
+    pub fn increase_time(&mut self, time_shift: u64) -> DevnetResult<(), Error> {
+        self.set_block_timestamp_shift(self.pending_block_timestamp_shift + time_shift);
         self.create_block(None)
     }
 
