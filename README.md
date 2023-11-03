@@ -25,6 +25,7 @@ This repository is work in progress, please be patient. Please check below the s
 - [x] [Mint token - Local faucet](https://0xspaceshard.github.io/starknet-devnet/docs/guide/mint-token)
 - [x] [Customizable predeployed accounts](#predeployed-contracts)
 - [x] Starknet.js test suite passes 100%
+- [x] [Advancing time](https://0xspaceshard.github.io/starknet-devnet/docs/guide/advancing-time)
 
 ### TODO
 
@@ -36,7 +37,7 @@ This repository is work in progress, please be patient. Please check below the s
 - [ ] [Forking](https://0xspaceshard.github.io/starknet-devnet/docs/guide/fork)
 - [ ] [L1-L2 Postman integration](https://0xspaceshard.github.io/starknet-devnet/docs/guide/postman)
 - [ ] [Block manipulation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/blocks)
-- [ ] [Advancing time](https://0xspaceshard.github.io/starknet-devnet/docs/guide/advancing-time)
+  - [x] Create an empty block
 
 ## Requirements
 
