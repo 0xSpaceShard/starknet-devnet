@@ -211,6 +211,10 @@ impl BackgroundDevnet {
 
         (signer, account_address)
     }
+
+    pub async fn restart(&self) -> Result<Response<Body>, hyper::Error> {
+        self.post_json("/restart".into(), Body::empty()).await
+    }
 }
 
 /// By implementing Drop, we ensure there are no zombie background Devnet processes
