@@ -15,9 +15,10 @@ use tracing::{trace, warn};
 
 use crate::error::{DevnetResult, Error, MessagingError};
 
+// The provided artifact must contain "abi" and "bytecode" objects.
 abigen!(
     MockStarknetMessaging,
-    "contracts/MockStarknetMessaging.json",
+    "contracts/artifacts/MockStarknetMessaging.json",
     event_derives(serde::Serialize, serde::Deserialize)
 );
 
@@ -69,7 +70,7 @@ impl EthereumMessaging {
     /// * `private_key` - Private key associated with an EOA account to send transactions.
     pub async fn new(
         rpc_url: &str,
-        contract_address: &str,
+        contract_address: Option<&str>,
         private_key: &str,
     ) -> DevnetResult<EthereumMessaging> {
         let provider = Provider::<Http>::try_from(rpc_url).map_err(|e| {
@@ -85,19 +86,29 @@ impl EthereumMessaging {
             private_key.parse::<LocalWallet>()?.with_chain_id(chain_id.as_u32());
 
         let provider_signer = SignerMiddleware::new(provider.clone(), wallet);
-        let messaging_contract_address = Address::from_str(contract_address).map_err(|e| {
-            Error::MessagingError(MessagingError::EthersError(format!(
-                "Address can't be parse from string: {} ({})",
-                contract_address, e
-            )))
-        })?;
 
-        Ok(EthereumMessaging {
+        let mut ethereum = EthereumMessaging {
             provider: Arc::new(provider),
             provider_signer: Arc::new(provider_signer),
-            messaging_contract_address,
+            messaging_contract_address: Address::zero(),
             last_fetched_block: 0,
-        })
+        };
+
+        if let Some(address) = contract_address {
+            ethereum.messaging_contract_address = Address::from_str(address).map_err(|e| {
+                Error::MessagingError(MessagingError::EthersError(format!(
+                    "Address can't be parse from string: {} ({})",
+                    address, e
+                )))
+            })?;
+        } else {
+            // TODO: this may come from the configuration.
+            let cancellation_delay_seconds: U256 = (60 * 60 * 24).into();
+            ethereum.messaging_contract_address =
+                ethereum.deploy_messaging_contract(cancellation_delay_seconds).await?;
+        }
+
+        Ok(ethereum)
     }
 
     /// Fetches all the messages that were not already fetched from the L1 node.
@@ -115,13 +126,6 @@ impl EthereumMessaging {
             .await?
             .try_into()
             .expect("Can't convert latest block number into u64.");
-
-        // +1 as the from_block counts as 1 block fetched.
-        // let to_block = if from_block + max_blocks + 1 < chain_latest_block {
-        //     from_block + max_blocks
-        // } else {
-        //     chain_latest_block
-        // };
 
         // For now we fetch all the blocks, without attempting to limit
         // the number of block as the RPC of dev nodes are more permissive.
@@ -259,6 +263,36 @@ impl EthereumMessaging {
             });
 
         Ok(block_to_logs)
+    }
+
+    /// Deploys an instance of the `MockStarknetMessaging` contract and returns it's address.
+    ///
+    /// # Arguments
+    ///
+    /// * `cancellation_delay_seconds` - Cancellation delay in seconds passed to the contract's
+    ///   constructor.
+    pub async fn deploy_messaging_contract(
+        &self,
+        cancellation_delay_seconds: U256,
+    ) -> DevnetResult<Address> {
+        let contract =
+            MockStarknetMessaging::deploy(self.provider_signer.clone(), cancellation_delay_seconds)
+                .map_err(|e| {
+                    Error::MessagingError(MessagingError::EthersError(format!(
+                        "Error formatting messaging contract deploy request: {}",
+                        e.to_string()
+                    )))
+                })?
+                .send()
+                .await
+                .map_err(|e| {
+                    Error::MessagingError(MessagingError::EthersError(format!(
+                        "Error deploying messaging contract: {}",
+                        e.to_string()
+                    )))
+                })?;
+
+        Ok(contract.address())
     }
 }
 
