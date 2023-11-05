@@ -16,6 +16,10 @@ use tracing::{trace, warn};
 use crate::error::{DevnetResult, Error, MessagingError};
 
 // The provided artifact must contain "abi" and "bytecode" objects.
+//
+// TODO: for now, the path is duplicated. Need to find the best way to
+// include MockStarknetMessaging.json, even when tests are run like `cargo test -p starknet -j 6`,
+// as the path is relative to the Cargo manifest.
 abigen!(
     MockStarknetMessaging,
     "contracts/artifacts/MockStarknetMessaging.json",
@@ -398,4 +402,87 @@ fn u256_to_felt_devnet(v: &U256) -> DevnetResult<Felt> {
 /// * `address` - The `Address` to be converted.
 fn address_to_felt_devnet(address: &Address) -> DevnetResult<Felt> {
     Ok(Felt::from_prefixed_hex_str(format!("0x{:064x}", address).as_str())?)
+}
+
+#[cfg(test)]
+mod tests {
+
+    use starknet_rs_core::utils::get_selector_from_name;
+    use starknet_types::chain_id::ChainId;
+
+    use super::*;
+
+    #[test]
+    fn l1_handler_tx_from_log_parse_ok() {
+        let from_address = "0x000000000000000000000000be3C44c09bc1a3566F3e1CA12e5AbA0fA4Ca72Be";
+        let to_address = "0x039dc79e64f4bb3289240f88e0bae7d21735bef0d1a51b2bf3c4730cb16983e1";
+        let selector = "0x02f15cff7b0eed8b9beb162696cf4e3e0e35fa7032af69cd1b7d2ac67a13f40f";
+        let nonce = 783082_u128;
+        let fee = 30000_u128;
+
+        // Payload two values: [1, 2].
+        let payload_buf = hex::decode("000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000bf2ea0000000000000000000000000000000000000000000000000000000000007530000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000002").unwrap();
+
+        let calldata: Vec<Felt> =
+            vec![Felt::from_prefixed_hex_str(from_address).unwrap(), 1.into(), 2.into()];
+
+        let transaction_hash = Felt::from_prefixed_hex_str(
+            "0x6182c63599a9638272f1ce5b5cadabece9c81c2d2b8f88ab7a294472b8fce8b",
+        )
+        .unwrap();
+
+        let log = Log {
+            address: H160::from_str("0xde29d060D45901Fb19ED6C6e959EB22d8626708e").unwrap(),
+            topics: vec![
+                H256::from_str(
+                    "0xdb80dd488acf86d17c747445b0eabb5d57c541d3bd7b6b87af987858e5066b2b",
+                )
+                .unwrap(),
+                H256::from_str(from_address).unwrap(),
+                H256::from_str(to_address).unwrap(),
+                H256::from_str(selector).unwrap(),
+            ],
+            data: payload_buf.into(),
+            ..Default::default()
+        };
+
+        let chain_id = ChainId::Testnet.to_felt();
+
+        let expected = L1HandlerTransaction {
+            contract_address: ContractAddress::new(
+                Felt::from_prefixed_hex_str(to_address).unwrap(),
+            )
+            .unwrap(),
+            entry_point_selector: Felt::from_prefixed_hex_str(selector).unwrap(),
+            calldata,
+            nonce: nonce.into(),
+            paid_fee_on_l1: fee,
+            transaction_hash,
+            ..Default::default()
+        };
+
+        let transaction: L1HandlerTransaction =
+            l1_handler_tx_from_log(log, chain_id).expect("bad log format");
+
+        assert_eq!(transaction, expected);
+    }
+
+    #[test]
+    fn compute_message_hash_ok() {
+        let from_address = get_selector_from_name("from_address").unwrap();
+        let to_address = get_selector_from_name("to_address").unwrap();
+        let payload = vec![FieldElement::ONE, FieldElement::TWO];
+
+        let message = MsgToL1 { from_address, to_address, payload };
+
+        let expected_hash = U256::from_str_radix(
+            "0x5ba1d2e131360f15e26dd4f6ff10550685611cc25f75e7950b704adb04b36162",
+            16,
+        )
+        .unwrap();
+
+        let hash = compute_message_hash(&message);
+
+        assert_eq!(hash, expected_hash);
+    }
 }

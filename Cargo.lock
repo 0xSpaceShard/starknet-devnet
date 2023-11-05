@@ -4692,6 +4692,7 @@ dependencies = [
  "cairo-lang-starknet",
  "clap",
  "ethers",
+ "hex",
  "indexmap 2.0.0",
  "jsonschema",
  "random-number-generator",
