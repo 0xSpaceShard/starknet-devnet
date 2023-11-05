@@ -90,16 +90,6 @@ impl Transaction {
         }
     }
 
-    pub fn get_max_fee(&self) -> Fee {
-        match self {
-            Transaction::Declare(tx) => tx.get_max_fee(),
-            Transaction::DeployAccount(tx) => tx.get_max_fee(),
-            Transaction::Deploy(tx) => tx.get_max_fee(),
-            Transaction::Invoke(tx) => tx.get_max_fee(),
-            Transaction::L1Handler(tx) => tx.get_max_fee(),
-        }
-    }
-
     pub fn get_transaction_hash(&self) -> &TransactionHash {
         match self {
             Transaction::Declare(tx) => tx.get_transaction_hash(),
@@ -117,27 +107,26 @@ impl Transaction {
         block_hash: Option<&BlockHash>,
         block_number: Option<BlockNumber>,
         execution_result: &ExecutionResult,
-        finality_status: Option<TransactionFinalityStatus>,
+        finality_status: TransactionFinalityStatus,
+        actual_fee: Fee,
     ) -> CommonTransactionReceipt {
         let r#type = self.get_type();
 
         let output = TransactionOutput {
-            actual_fee: self.get_max_fee(),
+            actual_fee,
             messages_sent: transaction_messages.to_vec(),
             events: transaction_events.to_vec(),
         };
 
-        let maybe_pending_properties = MaybePendingProperties {
-            block_number,
-            block_hash: block_hash.cloned(),
-            finality_status,
-        };
+        let maybe_pending_properties =
+            MaybePendingProperties { block_number, block_hash: block_hash.cloned() };
 
         CommonTransactionReceipt {
             r#type,
             transaction_hash: *self.get_transaction_hash(),
             output,
             execution_status: execution_result.clone(),
+            finality_status,
             maybe_pending_properties,
         }
     }
@@ -152,14 +141,6 @@ pub enum DeclareTransaction {
 }
 
 impl DeclareTransaction {
-    pub fn get_max_fee(&self) -> Fee {
-        match self {
-            DeclareTransaction::Version0(tx) => tx.get_max_fee(),
-            DeclareTransaction::Version1(tx) => tx.get_max_fee(),
-            DeclareTransaction::Version2(tx) => tx.get_max_fee(),
-        }
-    }
-
     pub fn get_transaction_hash(&self) -> &TransactionHash {
         match self {
             DeclareTransaction::Version0(tx) => tx.get_transaction_hash(),
@@ -181,10 +162,6 @@ pub struct InvokeTransactionV0 {
 }
 
 impl InvokeTransactionV0 {
-    pub fn get_max_fee(&self) -> Fee {
-        self.max_fee
-    }
-
     pub fn get_transaction_hash(&self) -> &TransactionHash {
         &self.transaction_hash
     }
@@ -198,13 +175,6 @@ pub enum InvokeTransaction {
 }
 
 impl InvokeTransaction {
-    pub fn get_max_fee(&self) -> Fee {
-        match self {
-            InvokeTransaction::Version0(tx) => tx.get_max_fee(),
-            InvokeTransaction::Version1(tx) => tx.get_max_fee(),
-        }
-    }
-
     pub fn get_transaction_hash(&self) -> &TransactionHash {
         match self {
             InvokeTransaction::Version0(tx) => tx.get_transaction_hash(),
@@ -225,10 +195,6 @@ pub struct L1HandlerTransaction {
 }
 
 impl L1HandlerTransaction {
-    pub fn get_max_fee(&self) -> Fee {
-        Fee(0)
-    }
-
     pub fn get_transaction_hash(&self) -> &TransactionHash {
         &self.transaction_hash
     }

@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
 use starknet_api::core::EthAddress;
 use starknet_api::hash::StarkFelt;
@@ -27,23 +27,10 @@ pub struct DeployTransactionReceipt {
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct MaybePendingProperties {
-    #[serde(serialize_with = "serialize_finality_status")]
-    pub finality_status: Option<TransactionFinalityStatus>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub block_hash: Option<BlockHash>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub block_number: Option<BlockNumber>,
-}
-
-pub fn serialize_finality_status<S>(
-    finality_status: &Option<TransactionFinalityStatus>,
-    s: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    let finality_status = finality_status.unwrap_or(TransactionFinalityStatus::AcceptedOnL2);
-    finality_status.serialize(s)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -54,6 +41,7 @@ pub struct CommonTransactionReceipt {
     pub output: TransactionOutput,
     #[serde(flatten)]
     pub execution_status: ExecutionResult,
+    pub finality_status: TransactionFinalityStatus,
     #[serde(flatten)]
     pub maybe_pending_properties: MaybePendingProperties,
 }

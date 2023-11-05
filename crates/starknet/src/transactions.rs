@@ -54,36 +54,21 @@ impl HashIdentified for StarknetTransactions {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StarknetTransaction {
     pub inner: Transaction,
-    pub(crate) finality_status: Option<TransactionFinalityStatus>,
+    pub(crate) finality_status: TransactionFinalityStatus,
     pub(crate) execution_result: ExecutionResult,
     pub(crate) block_hash: Option<BlockHash>,
     pub(crate) block_number: Option<BlockNumber>,
     #[serde(skip)]
-    pub(crate) execution_info: Option<TransactionExecutionInfo>,
+    pub(crate) execution_info: TransactionExecutionInfo,
 }
 
 impl StarknetTransaction {
-    pub fn create_rejected(
-        transaction: &Transaction,
-        finality_status: Option<TransactionFinalityStatus>,
-        execution_error: &str,
-    ) -> Self {
-        Self {
-            finality_status,
-            execution_result: ExecutionResult::Reverted { reason: execution_error.to_string() },
-            inner: transaction.clone(),
-            block_hash: None,
-            block_number: None,
-            execution_info: None,
-        }
-    }
-
     pub fn create_accepted(
         transaction: &Transaction,
         execution_info: TransactionExecutionInfo,
     ) -> Self {
         Self {
-            finality_status: Some(TransactionFinalityStatus::AcceptedOnL2),
+            finality_status: TransactionFinalityStatus::AcceptedOnL2,
             execution_result: match execution_info.is_reverted() {
                 true => ExecutionResult::Reverted {
                     reason: execution_info
@@ -96,7 +81,7 @@ impl StarknetTransaction {
             inner: transaction.clone(),
             block_hash: None,
             block_number: None,
-            execution_info: Some(execution_info),
+            execution_info,
         }
     }
 
@@ -124,25 +109,22 @@ impl StarknetTransaction {
             events
         }
 
-        if let Some(execution_info) = self.execution_info.as_ref() {
-            if let Some(validate_call_info) = execution_info.validate_call_info.as_ref() {
-                let mut not_sorted_events = get_blockifier_events_recursively(validate_call_info);
-                not_sorted_events.sort_by_key(|(order, _)| *order);
-                events.extend(not_sorted_events.into_iter().map(|(_, e)| e));
-            }
+        if let Some(validate_call_info) = self.execution_info.validate_call_info.as_ref() {
+            let mut not_sorted_events = get_blockifier_events_recursively(validate_call_info);
+            not_sorted_events.sort_by_key(|(order, _)| *order);
+            events.extend(not_sorted_events.into_iter().map(|(_, e)| e));
+        }
 
-            if let Some(execution_call_info) = execution_info.execute_call_info.as_ref() {
-                let mut not_sorted_events = get_blockifier_events_recursively(execution_call_info);
-                not_sorted_events.sort_by_key(|(order, _)| *order);
-                events.extend(not_sorted_events.into_iter().map(|(_, e)| e));
-            }
+        if let Some(execution_call_info) = self.execution_info.execute_call_info.as_ref() {
+            let mut not_sorted_events = get_blockifier_events_recursively(execution_call_info);
+            not_sorted_events.sort_by_key(|(order, _)| *order);
+            events.extend(not_sorted_events.into_iter().map(|(_, e)| e));
+        }
 
-            if let Some(fee_transfer_call_info) = execution_info.fee_transfer_call_info.as_ref() {
-                let mut not_sorted_events =
-                    get_blockifier_events_recursively(fee_transfer_call_info);
-                not_sorted_events.sort_by_key(|(order, _)| *order);
-                events.extend(not_sorted_events.into_iter().map(|(_, e)| e));
-            }
+        if let Some(fee_transfer_call_info) = self.execution_info.fee_transfer_call_info.as_ref() {
+            let mut not_sorted_events = get_blockifier_events_recursively(fee_transfer_call_info);
+            not_sorted_events.sort_by_key(|(order, _)| *order);
+            events.extend(not_sorted_events.into_iter().map(|(_, e)| e));
         }
 
         events
@@ -190,6 +172,7 @@ impl StarknetTransaction {
             self.block_number,
             &self.execution_result,
             self.finality_status,
+            self.execution_info.actual_fee,
         );
 
         match &self.inner {
@@ -287,42 +270,20 @@ mod tests {
         assert_eq!(sn_tx.block_number, extracted_tran.block_number);
         assert!(sn_tx.inner == extracted_tran.inner);
         assert_eq!(sn_tx.finality_status, extracted_tran.finality_status);
-        assert_eq!(sn_tx.execution_info.is_some(), extracted_tran.execution_info.is_some());
-    }
-
-    #[test]
-    fn check_correct_rejected_transaction_creation() {
-        let tx = Transaction::Declare(DeclareTransaction::Version1(dummy_declare_transaction_v1()));
-        check_correct_transaction_properties(tx, false);
+        assert_eq!(sn_tx.execution_info, extracted_tran.execution_info);
     }
 
     #[test]
     fn check_correct_successful_transaction_creation() {
         let tx = Transaction::Declare(DeclareTransaction::Version1(dummy_declare_transaction_v1()));
-        check_correct_transaction_properties(tx, true);
-    }
 
-    fn check_correct_transaction_properties(tran: Transaction, is_success: bool) {
-        let sn_tran = if is_success {
-            let tx =
-                StarknetTransaction::create_accepted(&tran, TransactionExecutionInfo::default());
-            assert_eq!(tx.finality_status, Some(TransactionFinalityStatus::AcceptedOnL2));
-            assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
+        let sn_tran =
+            StarknetTransaction::create_accepted(&tx, TransactionExecutionInfo::default());
+        assert_eq!(sn_tran.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+        assert_eq!(sn_tran.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
-            tx
-        } else {
-            let error_str = "Dummy error";
-            let tx = StarknetTransaction::create_rejected(&tran, None, error_str);
-
-            assert_eq!(tx.finality_status, None);
-            assert_eq!(tx.execution_result.revert_reason(), Some(error_str));
-
-            tx
-        };
-
-        assert_eq!(sn_tran.execution_info.is_some(), is_success);
         assert!(sn_tran.block_hash.is_none());
         assert!(sn_tran.block_number.is_none());
-        assert!(sn_tran.inner == tran);
+        assert_eq!(sn_tran.inner, tx);
     }
 }
