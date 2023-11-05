@@ -222,18 +222,16 @@ impl StarknetTransaction {
             messages
         }
 
-        if let Some(execution_info) = self.execution_info.as_ref() {
-            if let Some(info) = execution_info.validate_call_info.as_ref() {
-                messages.extend(get_blockifier_messages_recursively(info));
-            }
+        if let Some(info) = self.execution_info.validate_call_info.as_ref() {
+            messages.extend(get_blockifier_messages_recursively(info));
+        }
 
-            if let Some(info) = execution_info.execute_call_info.as_ref() {
-                messages.extend(get_blockifier_messages_recursively(info));
-            }
+        if let Some(info) = self.execution_info.execute_call_info.as_ref() {
+            messages.extend(get_blockifier_messages_recursively(info));
+        }
 
-            if let Some(info) = execution_info.fee_transfer_call_info.as_ref() {
-                messages.extend(get_blockifier_messages_recursively(info));
-            }
+        if let Some(info) = self.execution_info.fee_transfer_call_info.as_ref() {
+            messages.extend(get_blockifier_messages_recursively(info));
         }
 
         messages
