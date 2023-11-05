@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash};
-use starknet_types::starknet_api::transaction::Fee;
+use starknet_types::rpc::transactions::L1HandlerTransaction;
+
+use crate::api::http::error::HttpApiError;
 
 #[derive(Deserialize, Debug)]
 pub(crate) struct DumpPath {
@@ -16,18 +18,46 @@ pub(crate) struct LoadPath {
 #[derive(Deserialize, Debug)]
 pub(crate) struct PostmanLoadL1MessagingContract {
     #[serde(rename = "networkUrl")]
-    network_url: String,
-    address: ContractAddress,
+    pub network_url: String,
+    pub address: Option<String>,
+
+    // TODO: THIS IS FOR TESTING PURPOSE ONLY.
+    #[serde(rename = "privateKey")]
+    pub private_key: String,
 }
 
 #[derive(Deserialize)]
 pub(crate) struct MessageToL2 {
-    l2_contract_address: ContractAddress,
-    entry_point_selector: EntryPointSelector,
-    l1_contract_addresss: ContractAddress,
-    payload: Calldata,
-    paid_fee_on_l1: Fee,
-    nonce: Nonce,
+    #[serde(rename = "l2ContractAddress")]
+    pub l2_contract_address: ContractAddress,
+    #[serde(rename = "entryPointSelector")]
+    pub entry_point_selector: EntryPointSelector,
+    #[serde(rename = "l1ContractAddress")]
+    pub l1_contract_address: ContractAddress,
+    pub payload: Calldata,
+    // TODO: using `u128` as type here will not allow hexadecimal strings. Is that ok?
+    // or do we prefer `Felt` to accept hexadecimal and then convert into `u128`?
+    #[serde(rename = "paidFeeOnL1")]
+    pub paid_fee_on_l1: u128,
+    pub nonce: Nonce,
+}
+
+impl From<MessageToL2> for L1HandlerTransaction {
+    fn from(msg: MessageToL2) -> Self {
+        // The first argument of a `#l1_handler` function must be the address
+        // of the L1 contract which have sent the message.
+        let mut calldata = msg.payload.clone();
+        calldata.insert(0, msg.l1_contract_address.into());
+
+        L1HandlerTransaction {
+            contract_address: msg.l2_contract_address,
+            entry_point_selector: msg.entry_point_selector,
+            calldata,
+            nonce: msg.nonce,
+            paid_fee_on_l1: msg.paid_fee_on_l1,
+            ..Default::default()
+        }
+    }
 }
 
 #[derive(Deserialize)]

@@ -1,6 +1,7 @@
 use axum::{Extension, Json};
 use starknet_rs_core::types::BlockId;
 use starknet_types::felt::TransactionHash;
+use starknet_types::rpc::transactions::L1HandlerTransaction;
 
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{
@@ -9,13 +10,22 @@ use crate::api::http::models::{
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 
 pub(crate) async fn postman_load(
-    Json(_l1_contract): Json<PostmanLoadL1MessagingContract>,
+    Extension(state): Extension<HttpApiHandler>,
+    Json(data): Json<PostmanLoadL1MessagingContract>,
 ) -> HttpApiResult<()> {
-    // TODO: we need here to be able to initialize a new EthereumMessaging.
-    // However, the private key will not be sent by HTTP,
-    // but surely loaded from env / CLI at devnet startup.
-    // Hence, we need to add a configuration
-    Err(HttpApiError::GeneralError)
+    let mut starknet = state.api.starknet.write().await;
+
+    starknet
+        .configure_messaging(
+            &data.network_url,
+            data.address.as_deref(),
+            // TODO: THIS IS FOR TESTING ONLY. The private key MUST be OOB.
+            &data.private_key,
+        )
+        .await
+        .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
+
+    Ok(())
 }
 
 pub(crate) async fn postman_flush(
@@ -45,10 +55,21 @@ pub(crate) async fn postman_flush(
 }
 
 pub(crate) async fn postman_send_message_to_l2(
-    Json(_data): Json<MessageToL2>,
+    Extension(state): Extension<HttpApiHandler>,
+    Json(data): Json<MessageToL2>,
 ) -> HttpApiResult<Json<TransactionHash>> {
-    // TODO: get info from the model and use add_l1_handler_transaction.
-    Err(HttpApiError::GeneralError)
+    let mut starknet = state.api.starknet.write().await;
+
+    let chain_id = starknet.chain_id().to_felt();
+
+    let transaction = L1HandlerTransaction::from(data).with_hash(chain_id);
+    let transaction_hash = transaction.transaction_hash.clone();
+
+    starknet
+        .add_l1_handler_transaction(transaction)
+        .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
+
+    Ok(Json(transaction_hash))
 }
 
 pub(crate) async fn postman_consume_message_from_l2(

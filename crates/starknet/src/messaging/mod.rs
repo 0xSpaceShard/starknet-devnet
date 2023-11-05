@@ -53,7 +53,7 @@ impl Starknet {
     pub async fn configure_messaging(
         &mut self,
         rpc_url: &str,
-        contract_address: &str,
+        contract_address: Option<&str>,
         private_key: &str,
     ) -> DevnetResult<()> {
         self.messaging =
