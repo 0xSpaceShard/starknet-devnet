@@ -2,9 +2,16 @@
 pub mod common;
 
 mod test_restart {
+    use std::sync::Arc;
+
     use hyper::StatusCode;
     use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ERC20_CONTRACT_ADDRESS};
-    use starknet_rs_accounts::{AccountFactory, OpenZeppelinAccountFactory};
+    use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
+    use starknet_rs_accounts::{
+        Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
+    };
+    use starknet_rs_core::chain_id;
+    use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
     use starknet_rs_core::utils::get_storage_var_address;
     use starknet_rs_providers::{
@@ -27,7 +34,7 @@ mod test_restart {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
 
         // generate tx
-        let dummy_address = FieldElement::from_hex_be("0x1").unwrap();
+        let dummy_address = FieldElement::ONE;
         let mint_hash = devnet.mint(dummy_address, 100).await;
         assert!(devnet.json_rpc_client.get_transaction_by_hash(mint_hash).await.is_ok());
 
@@ -118,7 +125,40 @@ mod test_restart {
 
     #[tokio::test]
     async fn assert_gas_price_unaffected_by_restart() {
-        todo!();
+        let expected_gas_price = 1_000_000_u64;
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--gas-price",
+            expected_gas_price.to_string().as_str(),
+        ])
+        .await
+        .unwrap();
+
+        let (signer, address) = devnet.get_first_predeployed_account().await;
+        let predeployed_account = Arc::new(SingleOwnerAccount::new(
+            devnet.clone_provider(),
+            signer,
+            address,
+            chain_id::TESTNET,
+            ExecutionEncoding::Legacy,
+        ));
+
+        let contract_json = dummy_cairo_0_contract_class();
+        let contract_artifact: Arc<LegacyContractClass> =
+            Arc::new(serde_json::from_value(contract_json.inner).unwrap());
+
+        let estimate_before = predeployed_account
+            .declare_legacy(contract_artifact.clone())
+            .estimate_fee()
+            .await
+            .unwrap();
+        assert_eq!(estimate_before.gas_price, expected_gas_price);
+
+        devnet.restart().await.unwrap();
+        let estimate_after =
+            predeployed_account.declare_legacy(contract_artifact).estimate_fee().await.unwrap();
+
+        assert_eq!(estimate_before.gas_price, estimate_after.gas_price);
+        assert_eq!(estimate_before.overall_fee, estimate_after.overall_fee);
     }
 
     #[tokio::test]
