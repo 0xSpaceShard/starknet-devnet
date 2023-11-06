@@ -128,11 +128,12 @@ mod test_restart {
         let expected_gas_price = 1_000_000_u64;
         let devnet = BackgroundDevnet::spawn_with_additional_args(&[
             "--gas-price",
-            expected_gas_price.to_string().as_str(),
+            &expected_gas_price.to_string(),
         ])
         .await
         .unwrap();
 
+        // get a predeployed account
         let (signer, address) = devnet.get_first_predeployed_account().await;
         let predeployed_account = Arc::new(SingleOwnerAccount::new(
             devnet.clone_provider(),
@@ -142,10 +143,12 @@ mod test_restart {
             ExecutionEncoding::Legacy,
         ));
 
+        // prepare class for estimation of declaration
         let contract_json = dummy_cairo_0_contract_class();
         let contract_artifact: Arc<LegacyContractClass> =
             Arc::new(serde_json::from_value(contract_json.inner).unwrap());
 
+        // check gas price via fee estimation
         let estimate_before = predeployed_account
             .declare_legacy(contract_artifact.clone())
             .estimate_fee()
@@ -154,15 +157,36 @@ mod test_restart {
         assert_eq!(estimate_before.gas_price, expected_gas_price);
 
         devnet.restart().await.unwrap();
+
         let estimate_after =
             predeployed_account.declare_legacy(contract_artifact).estimate_fee().await.unwrap();
 
+        // assert gas_price and fee are equal to the values before restart
         assert_eq!(estimate_before.gas_price, estimate_after.gas_price);
         assert_eq!(estimate_before.overall_fee, estimate_after.overall_fee);
     }
 
     #[tokio::test]
-    async fn assert_predeployed_account_still_prefunded_and_usable() {
-        todo!();
+    async fn assert_predeployed_account_is_prefunded_after_restart() {
+        let initial_balance = 1_000_000;
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--initial-balance",
+            &initial_balance.to_string(),
+        ])
+        .await
+        .unwrap();
+
+        let predeployed_account_addresss = devnet.get_first_predeployed_account().await.1;
+        let get_balance = || {
+            // check balance by minting 0
+            devnet.mint(predeployed_account_addresss, 0)
+        };
+
+        let balance_before = get_balance().await;
+
+        devnet.restart().await.unwrap();
+
+        let balance_after = get_balance().await;
+        assert_eq!(balance_before, balance_after);
     }
 }
