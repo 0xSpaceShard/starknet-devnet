@@ -87,7 +87,7 @@ mod estimate_fee_tests {
             .nonce(nonce)
             .prepared()
             .unwrap()
-            .get_declare_request()
+            .get_declare_request(false)
             .await
             .unwrap()
             .signature;
@@ -154,7 +154,7 @@ mod estimate_fee_tests {
             .nonce(nonce)
             .prepared()
             .unwrap()
-            .get_declare_request()
+            .get_declare_request(false)
             .await
             .unwrap()
             .signature;
@@ -353,7 +353,7 @@ mod estimate_fee_tests {
             .nonce(nonce)
             .prepared()
             .unwrap()
-            .get_invoke_request()
+            .get_invoke_request(false)
             .await
             .unwrap();
         let signature_hex: Vec<String> = iter_to_hex_felt(&invoke_request.signature);
