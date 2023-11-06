@@ -1,9 +1,11 @@
 use serde::{Deserialize, Serialize};
+use serde_with::serde_as;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash};
 use starknet_types::rpc::transactions::L1HandlerTransaction;
 
 use crate::api::http::error::HttpApiError;
+use crate::api::serde_helpers::U128HexOrDec;
 
 #[derive(Deserialize, Debug)]
 pub(crate) struct DumpPath {
@@ -26,6 +28,7 @@ pub(crate) struct PostmanLoadL1MessagingContract {
     pub private_key: String,
 }
 
+#[serde_as]
 #[derive(Deserialize)]
 pub(crate) struct MessageToL2 {
     #[serde(rename = "l2ContractAddress")]
@@ -35,16 +38,15 @@ pub(crate) struct MessageToL2 {
     #[serde(rename = "l1ContractAddress")]
     pub l1_contract_address: ContractAddress,
     pub payload: Calldata,
-    // TODO: using `u128` as type here will not allow hexadecimal strings. Is that ok?
-    // or do we prefer `Felt` to accept hexadecimal and then convert into `u128`?
     #[serde(rename = "paidFeeOnL1")]
+    #[serde_as(as = "U128HexOrDec")]
     pub paid_fee_on_l1: u128,
     pub nonce: Nonce,
 }
 
 impl From<MessageToL2> for L1HandlerTransaction {
     fn from(msg: MessageToL2) -> Self {
-        // The first argument of a `#l1_handler` function must be the address
+        // The first argument of a `#l1_handler` Cairo function must be the address
         // of the L1 contract which have sent the message.
         let mut calldata = msg.payload.clone();
         calldata.insert(0, msg.l1_contract_address.into());

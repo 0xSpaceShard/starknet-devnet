@@ -45,6 +45,7 @@ clap = { version = "4.3.2", features = ["derive"] }
 flate2 = { version = "1.0.26" }
 serde = { version = "1.0.171", features = ["derive"] }
 serde_json = { version = "1.0.81" }
+serde_with = { version = "1.0" }
 thiserror = { version = "1.0.32" }
 anyhow = "1"
 tokio-graceful-shutdown = "0.13.0"
