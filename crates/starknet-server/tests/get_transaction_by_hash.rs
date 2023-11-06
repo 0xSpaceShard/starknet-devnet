@@ -22,16 +22,10 @@ mod get_transaction_by_hash_integration_tests {
 
     use crate::common::constants::CASM_COMPILED_CLASS_HASH;
     use crate::common::devnet::BackgroundDevnet;
-    use crate::common::utils::resolve_path;
+    use crate::common::utils::{get_deployable_account_signer, resolve_path};
 
     pub const DECLARE_V1_TRANSACTION_HASH: &str =
         "0x03260006dbb34ad0c3b70a39c9eaf84aade3d289a5a5517fc37b303f5f01ac1a";
-
-    pub const DECLARE_V2_TRANSACTION_HASH: &str =
-        "0x040b80108251e5991622eb2ff6061313dabe66a52f550c59867c027910777e7e";
-
-    pub const DEPLOY_ACCOUNT_TRANSACTION_HASH: &str =
-        "0x03d0611c4f16d9efb35a6e6aa53bc077b880ef9261866e082d8be0df74ad1291";
 
     pub const INVOKE_V1_TRANSACTION_HASH: &str =
         "0x008aa91514421bb9826d6821789580ff8fe2f9eb225f7b3bc79ec0c81d9eb58c";
@@ -119,7 +113,6 @@ mod get_transaction_by_hash_integration_tests {
         let declare_result = account
             .declare(Arc::new(flattened_class), compiled_class_hash)
             .nonce(FieldElement::ZERO)
-            .max_fee(FieldElement::from_hex_be("0xde0b6b3a7640000").unwrap()) // Specified max fee of 10^18 to declare v2 transaction, can be removed once fee estimation will work
             .send()
             .await;
 
@@ -133,10 +126,8 @@ mod get_transaction_by_hash_integration_tests {
             starknet_rs_core::types::DeclareTransaction::V2(declare_v2),
         ) = result
         {
-            assert_eq!(
-                declare_v2.transaction_hash,
-                FieldElement::from_hex_be(DECLARE_V2_TRANSACTION_HASH).unwrap()
-            );
+            let expected = "0x013070e9ff8b554254fb2d577ea75f0ed925947902893a23b8c738f8fbe5e122";
+            assert_eq!(declare_v2.transaction_hash, FieldElement::from_hex_be(expected).unwrap());
         } else {
             panic!("Could not unpack the transaction from {result:?}");
         }
@@ -146,7 +137,7 @@ mod get_transaction_by_hash_integration_tests {
     async fn get_deploy_account_transaction_by_hash_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-        let (signer, _) = devnet.get_first_predeployed_account().await;
+        let signer = get_deployable_account_signer();
 
         let factory = OpenZeppelinAccountFactory::new(
             FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
@@ -167,7 +158,7 @@ mod get_transaction_by_hash_integration_tests {
         let mint_amount = fee_estimation.overall_fee as u128 * 2;
         devnet.mint(deployment_address, mint_amount).await;
 
-        let deploy_account_result = factory.deploy(salt).send().await.unwrap();
+        let deploy_account_result = deployment.send().await.unwrap();
 
         let result = devnet
             .json_rpc_client
@@ -176,10 +167,8 @@ mod get_transaction_by_hash_integration_tests {
             .unwrap();
 
         if let starknet_rs_core::types::Transaction::DeployAccount(deploy) = result {
-            assert_eq!(
-                deploy.transaction_hash,
-                FieldElement::from_hex_be(DEPLOY_ACCOUNT_TRANSACTION_HASH).unwrap()
-            );
+            let expected = "0x02b4b37075273f836aa055c7a53e4e2635abcbd776ebef2ab1b74abd7235ac06";
+            assert_eq!(deploy.transaction_hash, FieldElement::from_hex_be(expected).unwrap());
         } else {
             panic!("Could not unpack the transaction from {result:?}");
         }

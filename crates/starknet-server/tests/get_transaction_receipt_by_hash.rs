@@ -184,7 +184,6 @@ mod get_transaction_receipt_by_hash_integration_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
-
         let predeployed_account = SingleOwnerAccount::new(
             devnet.clone_provider(),
             signer,
