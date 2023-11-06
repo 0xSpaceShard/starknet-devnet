@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt::LowerHex;
 use std::net::TcpListener;
 use std::process::{Child, Command, Stdio};
@@ -64,12 +65,38 @@ fn get_free_port() -> Result<u16, TestError> {
     Err(TestError::NoFreePorts)
 }
 
+lazy_static! {
+    static ref CLI_MAP: HashMap<&'static str, String> = HashMap::from([
+        ("--seed", SEED.to_string()),
+        ("--accounts", ACCOUNTS.to_string()),
+        ("--initial-balance", PREDEPLOYED_ACCOUNT_INITIAL_BALANCE.to_string()),
+        ("--chain-id", CHAIN_ID_CLI_PARAM.to_string())
+    ]);
+}
+
 impl BackgroundDevnet {
     /// Ensures the background instance spawns at a free port, checks at most `MAX_RETRIES`
     /// times
     #[allow(dead_code)] // dead_code needed to pass clippy
     pub(crate) async fn spawn() -> Result<Self, TestError> {
         BackgroundDevnet::spawn_with_additional_args(&[]).await
+    }
+
+    /// Takes user specified args and adds default values for args that are missing
+    fn add_default_args<'a>(user_args: &[&'a str]) -> Vec<&'a str> {
+        let mut substituted_args: Vec<&'a str> = vec![];
+        for (arg, default_value) in CLI_MAP.iter() {
+            substituted_args.push(arg);
+
+            let value = user_args
+                .iter()
+                .position(|arg_candidate| arg_candidate == arg)
+                .map(|pos| user_args[pos + 1])
+                .unwrap_or(default_value);
+            substituted_args.push(value);
+        }
+
+        substituted_args
     }
 
     pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
@@ -86,17 +113,9 @@ impl BackgroundDevnet {
                 .arg("run")
                 .arg("--release")
                 .arg("--")
-                .arg("--seed")
-                .arg(SEED.to_string())
-                .arg("--accounts")
-                .arg(ACCOUNTS.to_string())
                 .arg("--port")
                 .arg(free_port.to_string())
-                .arg("--initial-balance")
-                .arg(PREDEPLOYED_ACCOUNT_INITIAL_BALANCE.to_string())
-                .arg("--chain-id")
-                .arg(CHAIN_ID_CLI_PARAM)
-                .args(args)
+                .args(Self::add_default_args(args))
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .expect("Could not start background devnet");
