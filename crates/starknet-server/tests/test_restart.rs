@@ -3,14 +3,17 @@ pub mod common;
 
 mod test_restart {
     use hyper::StatusCode;
-    use starknet_core::constants::ERC20_CONTRACT_ADDRESS;
+    use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ERC20_CONTRACT_ADDRESS};
+    use starknet_rs_accounts::{AccountFactory, OpenZeppelinAccountFactory};
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
     use starknet_rs_core::utils::get_storage_var_address;
     use starknet_rs_providers::{
         MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
     };
 
+    use crate::common::constants::CHAIN_ID;
     use crate::common::devnet::BackgroundDevnet;
+    use crate::common::utils::get_deployable_account_signer;
 
     #[tokio::test]
     async fn assert_restartable() {
@@ -21,8 +24,9 @@ mod test_restart {
 
     #[tokio::test]
     async fn assert_tx_not_present_after_restart() {
-        // generate tx
         let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+        // generate tx
         let dummy_address = FieldElement::from_hex_be("0x1").unwrap();
         let mint_hash = devnet.mint(dummy_address, 100).await;
         assert!(devnet.json_rpc_client.get_transaction_by_hash(mint_hash).await.is_ok());
@@ -41,8 +45,9 @@ mod test_restart {
 
     #[tokio::test]
     async fn assert_storage_restarted() {
-        // change storage
         let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+        // change storage
         let dummy_address = FieldElement::from_hex_be("0x1").unwrap();
         let mint_amount = 100;
         devnet.mint(dummy_address, mint_amount).await;
@@ -68,7 +73,47 @@ mod test_restart {
 
     #[tokio::test]
     async fn assert_account_deployment_reverted() {
-        todo!();
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+        // deploy new account
+        let account_signer = get_deployable_account_signer();
+        let account_factory = OpenZeppelinAccountFactory::new(
+            FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
+            CHAIN_ID,
+            account_signer.clone(),
+            devnet.clone_provider(),
+        )
+        .await
+        .unwrap();
+        let salt = FieldElement::ONE;
+        let deployment = account_factory.deploy(salt);
+        let deployment_address = deployment.address();
+        devnet.mint(deployment_address, 1e18 as u128).await;
+        deployment.send().await.unwrap();
+
+        // assert deployment address has the deployed class
+        devnet
+            .json_rpc_client
+            .get_class_at(BlockId::Tag(BlockTag::Latest), deployment_address)
+            .await
+            .unwrap();
+
+        devnet.restart().await.unwrap();
+
+        // expect ContractNotFound error since account not present anymore
+        match devnet
+            .json_rpc_client
+            .get_class_at(BlockId::Tag(BlockTag::Latest), deployment_address)
+            .await
+        {
+            Err(ProviderError::StarknetError(StarknetErrorWithMessage { code, .. })) => {
+                match code {
+                    MaybeUnknownErrorCode::Known(StarknetError::ContractNotFound) => (),
+                    _ => panic!("Invalid error: {:?}", code),
+                }
+            }
+            other => panic!("Invalid response: {other:?}"),
+        }
     }
 
     #[tokio::test]
@@ -77,7 +122,7 @@ mod test_restart {
     }
 
     #[tokio::test]
-    async fn assert_predeployed_account_still_prefunded() {
+    async fn assert_predeployed_account_still_prefunded_and_usable() {
         todo!();
     }
 }
