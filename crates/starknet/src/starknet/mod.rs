@@ -72,8 +72,7 @@ pub struct Starknet {
     blocks: StarknetBlocks,
     pub transactions: StarknetTransactions,
     pub config: StarknetConfig,
-    pub pending_block_timestamp_shift: u64,
-    pub startup_timestamp: u64,
+    pub pending_block_timestamp_shift: i64,
 }
 
 impl Default for Starknet {
@@ -90,7 +89,6 @@ impl Default for Starknet {
             transactions: Default::default(),
             config: Default::default(),
             pending_block_timestamp_shift: 0,
-            startup_timestamp: 0,
         }
     }
 }
@@ -142,7 +140,6 @@ impl Starknet {
             transactions: StarknetTransactions::default(),
             config: config.clone(),
             pending_block_timestamp_shift: 0,
-            startup_timestamp: 0,
         };
 
         this.restart_pending_block()?;
@@ -185,29 +182,19 @@ impl Starknet {
         // set new block header
         new_block.set_block_hash(new_block.generate_hash()?);
         new_block.status = BlockStatus::AcceptedOnL2;
-
-        // TODO: move to get_block_timestamp(), this time logic have too many lines
         match timestamp {
             Some(timestamp) => {
                 new_block.set_timestamp(BlockTimestamp(timestamp));
             }
             None => {
-                println!("self.config.start_time: {:?}", self.config.start_time);
-                if self.config.start_time > 0
-                // TODO: this will not cover edge case with --start-time 0, change to option?
-                {
-                    new_block.set_timestamp(BlockTimestamp(
-                        Starknet::get_unix_timestamp_as_seconds()
-                            + self.pending_block_timestamp_shift
-                            + self.config.start_time
-                            - self.startup_timestamp,
-                    ));
-                } else {
-                    new_block.set_timestamp(BlockTimestamp(
-                        Starknet::get_unix_timestamp_as_seconds()
-                            + self.pending_block_timestamp_shift,
-                    ));
-                }
+                println!(
+                    "self.pending_block_timestamp_shift: {:?}",
+                    self.pending_block_timestamp_shift
+                ); // TODO: remove later
+                new_block.set_timestamp(BlockTimestamp(
+                    (Starknet::get_unix_timestamp_as_seconds() as i64
+                        + self.pending_block_timestamp_shift) as u64,
+                ));
             }
         }
         let new_block_number = new_block.block_number();
@@ -835,25 +822,20 @@ impl Starknet {
 
     // Create empty block
     pub fn set_time(&mut self, timestamp: u64) -> DevnetResult<(), Error> {
-        let diff = timestamp - Starknet::get_unix_timestamp_as_seconds();
+        let diff: i64 = timestamp as i64 - Starknet::get_unix_timestamp_as_seconds() as i64;
         self.set_block_timestamp_shift(diff);
         self.create_block(Some(timestamp))
     }
 
     // Set timestamp shift and create empty block
     pub fn increase_time(&mut self, time_shift: u64) -> DevnetResult<(), Error> {
-        self.set_block_timestamp_shift(self.pending_block_timestamp_shift + time_shift);
+        self.set_block_timestamp_shift(self.pending_block_timestamp_shift + time_shift as i64);
         self.create_block(None)
     }
 
     // Set timestamp shift for next blocks
-    pub fn set_block_timestamp_shift(&mut self, timestamp: u64) {
+    pub fn set_block_timestamp_shift(&mut self, timestamp: i64) {
         self.pending_block_timestamp_shift = timestamp;
-    }
-
-    // Set startup timestamp used with start-time cli argument
-    pub fn set_startup_timestamp(&mut self, timestamp: u64) {
-        self.startup_timestamp = timestamp;
     }
 
     pub fn get_unix_timestamp_as_seconds() -> u64 {
