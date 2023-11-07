@@ -168,7 +168,7 @@ mod test_restart {
 
     #[tokio::test]
     async fn assert_predeployed_account_is_prefunded_after_restart() {
-        let initial_balance = 1_000_000;
+        let initial_balance = 1_000_000_u32;
         let devnet = BackgroundDevnet::spawn_with_additional_args(&[
             "--initial-balance",
             &initial_balance.to_string(),
@@ -177,16 +177,13 @@ mod test_restart {
         .unwrap();
 
         let predeployed_account_addresss = devnet.get_first_predeployed_account().await.1;
-        let get_balance = || {
-            // check balance by minting 0
-            devnet.mint(predeployed_account_addresss, 0)
-        };
 
-        let balance_before = get_balance().await;
+        let balance_before = devnet.get_balance(&predeployed_account_addresss).await.unwrap();
+        assert_eq!(balance_before, FieldElement::from(initial_balance));
 
         devnet.restart().await.unwrap();
 
-        let balance_after = get_balance().await;
+        let balance_after = devnet.get_balance(&predeployed_account_addresss).await.unwrap();
         assert_eq!(balance_before, balance_after);
     }
 }

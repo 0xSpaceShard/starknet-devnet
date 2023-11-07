@@ -9,10 +9,14 @@ use hyper::http::request;
 use hyper::{Body, Client, Response, StatusCode, Uri};
 use lazy_static::lazy_static;
 use serde_json::json;
-use starknet_rs_core::types::FieldElement;
+use starknet_core::constants::ERC20_CONTRACT_ADDRESS;
+use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, FunctionCall};
+use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_providers::jsonrpc::HttpTransport;
-use starknet_rs_providers::JsonRpcClient;
+use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::{LocalWallet, SigningKey};
+use starknet_types::felt::Felt;
+use starknet_types::num_bigint::BigUint;
 use thiserror::Error;
 use tokio::sync::Mutex;
 use url::Url;
@@ -86,8 +90,9 @@ impl BackgroundDevnet {
     fn add_default_args<'a>(specified_args: &[&'a str]) -> Vec<&'a str> {
         let mut specified_args_vec: Vec<&str> = specified_args.to_vec();
         let mut final_args: Vec<&str> = vec![];
-        // iterate through default args, and remove from specified when found
-        // that way in the end we can just extend the final vec with the remaining specified args
+
+        // Iterate through default args, and remove from specified args when found
+        // That way in the end we can just append the non-removed args
         for (arg_name, default_value) in DEFAULT_CLI_MAP.iter() {
             let value =
                 match specified_args_vec.iter().position(|arg_candidate| arg_candidate == arg_name)
@@ -103,7 +108,8 @@ impl BackgroundDevnet {
             final_args.push(value);
         }
 
-        final_args.extend(specified_args_vec);
+        // simply append those args that don't have an entry in DEFAULT_CLI_MAP
+        final_args.append(&mut specified_args_vec);
         final_args
     }
 
@@ -205,6 +211,21 @@ impl BackgroundDevnet {
         let resp_body = get_json_body(resp).await;
 
         FieldElement::from_hex_be(resp_body["tx_hash"].as_str().unwrap()).unwrap()
+    }
+
+    /// Get balance at contract_address, as written in ERC20
+    pub async fn get_balance(&self, address: &FieldElement) -> Result<FieldElement, anyhow::Error> {
+        let call = FunctionCall {
+            contract_address: FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap(),
+            entry_point_selector: get_selector_from_name("balanceOf").unwrap(),
+            calldata: vec![*address],
+        };
+        let balance_raw = self.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await?;
+        assert_eq!(balance_raw.len(), 2);
+        let balance_low: BigUint = (Felt::from(*balance_raw.get(0).unwrap())).into();
+        let balance_high: BigUint = (Felt::from(*balance_raw.get(1).unwrap())).into();
+        let balance: BigUint = (balance_high << 128) + balance_low;
+        Ok(FieldElement::from_byte_slice_be(&balance.to_bytes_be())?)
     }
 
     pub async fn get(

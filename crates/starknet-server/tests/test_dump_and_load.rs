@@ -17,11 +17,10 @@ mod dump_and_load_tests {
 
     use std::sync::Arc;
 
-    use starknet_core::constants::ERC20_CONTRACT_ADDRESS;
     use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::chain_id;
-    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, FunctionCall};
+    use starknet_rs_core::types::FieldElement;
 
     use crate::common::utils::get_events_contract_in_sierra_and_compiled_class_hash;
 
@@ -313,12 +312,7 @@ mod dump_and_load_tests {
     async fn load_endpoint_fail_with_wrong_path() {
         let load_file_name = "load_file_name";
         let devnet_load = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let load_body = Body::from(
-            json!({
-                "path": load_file_name
-            })
-            .to_string(),
-        );
+        let load_body = Body::from(json!({ "path": load_file_name }).to_string());
         let result = devnet_load.post_json("/load".into(), load_body).await.unwrap();
         assert_eq!(result.status(), 400);
     }
@@ -338,41 +332,20 @@ mod dump_and_load_tests {
         let dump_body = Body::from(json!({}).to_string());
         devnet_dump.post_json("/dump".into(), dump_body).await.unwrap();
         assert!(Path::new(dump_file_name).exists());
-        let dump_body_custom_path = Body::from(
-            json!({
-                "path": dump_file_name_custom_path
-            })
-            .to_string(),
-        );
+        let dump_body_custom_path =
+            Body::from(json!({ "path": dump_file_name_custom_path }).to_string());
         devnet_dump.post_json("/dump".into(), dump_body_custom_path).await.unwrap();
         assert!(Path::new(dump_file_name_custom_path).exists());
 
         // load and re-execute from "dump_endpoint" file and check if transaction and state of the
         // blockchain is valid
         let devnet_load = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let load_body = Body::from(
-            json!({
-                "path": dump_file_name
-            })
-            .to_string(),
-        );
+        let load_body = Body::from(json!({ "path": dump_file_name }).to_string());
         devnet_load.post_json("/load".into(), load_body).await.unwrap();
 
-        let entry_point_selector =
-            starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();
-        let balance_result = devnet_load
-            .json_rpc_client
-            .call(
-                FunctionCall {
-                    contract_address: FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap(),
-                    entry_point_selector,
-                    calldata: vec![DUMMY_ADDRESS.into()],
-                },
-                BlockId::Tag(BlockTag::Latest),
-            )
-            .await
-            .expect("Failed to call contract");
-        assert_eq!(balance_result[0], DUMMY_AMOUNT.into());
+        let balance_result =
+            devnet_load.get_balance(&FieldElement::from(DUMMY_ADDRESS)).await.unwrap();
+        assert_eq!(balance_result, DUMMY_AMOUNT.into());
 
         let loaded_transaction =
             devnet_load.json_rpc_client.get_transaction_by_hash(mint_tx_hash).await.unwrap();
