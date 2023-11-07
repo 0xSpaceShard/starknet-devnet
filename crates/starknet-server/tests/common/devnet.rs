@@ -66,7 +66,7 @@ fn get_free_port() -> Result<u16, TestError> {
 }
 
 lazy_static! {
-    static ref CLI_MAP: HashMap<&'static str, String> = HashMap::from([
+    static ref DEFAULT_CLI_MAP: HashMap<&'static str, String> = HashMap::from([
         ("--seed", SEED.to_string()),
         ("--accounts", ACCOUNTS.to_string()),
         ("--initial-balance", PREDEPLOYED_ACCOUNT_INITIAL_BALANCE.to_string()),
@@ -82,22 +82,29 @@ impl BackgroundDevnet {
         BackgroundDevnet::spawn_with_additional_args(&[]).await
     }
 
-    /// Takes user specified args and adds default values for args that are missing
-    fn add_default_args<'a>(user_args: &[&'a str]) -> Vec<&'a str> {
-        let mut substituted_args: Vec<&'a str> = vec![];
-        for (arg_name, default_value) in CLI_MAP.iter() {
-            substituted_args.push(arg_name);
-
-            let value = user_args
-                .iter()
-                .position(|arg_candidate| arg_candidate == arg_name)
-                // arg value comes after name
-                .map(|pos| user_args[pos + 1])
-                .unwrap_or(default_value);
-            substituted_args.push(value);
+    /// Takes specified args and adds default values for args that are missing
+    fn add_default_args<'a>(specified_args: &[&'a str]) -> Vec<&'a str> {
+        let mut specified_args_vec: Vec<&str> = specified_args.to_vec();
+        let mut final_args: Vec<&str> = vec![];
+        // iterate through default args, and remove from specified when found
+        // that way in the end we can just extend the final vec with the remaining specified args
+        for (arg_name, default_value) in DEFAULT_CLI_MAP.iter() {
+            let value =
+                match specified_args_vec.iter().position(|arg_candidate| arg_candidate == arg_name)
+                {
+                    Some(pos) => {
+                        // arg value comes after name
+                        specified_args_vec.remove(pos);
+                        specified_args_vec.remove(pos)
+                    }
+                    None => default_value,
+                };
+            final_args.push(arg_name);
+            final_args.push(value);
         }
 
-        substituted_args
+        final_args.extend(specified_args_vec);
+        final_args
     }
 
     pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
