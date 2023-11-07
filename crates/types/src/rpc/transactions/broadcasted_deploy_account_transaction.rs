@@ -105,6 +105,7 @@ impl BroadcastedDeployAccountTransaction {
             tx: starknet_api::transaction::DeployAccountTransaction::V1(sn_api_transaction),
             tx_hash: starknet_api::transaction::TransactionHash(transaction_hash.into()),
             contract_address,
+            only_query: false,
         })
     }
 

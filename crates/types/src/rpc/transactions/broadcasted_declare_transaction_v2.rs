@@ -128,27 +128,6 @@ mod tests {
         version: Felt,
     }
 
-    #[test]
-    fn compare_sierra_hash_from_events_sierra_artifact_with_starknet_in_rust_implementation() {
-        let sierra_contract_path =
-            concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/events_cairo1.sierra");
-
-        let cairo_1_contract = ContractClass::cairo_1_from_sierra_json_str(
-            &std::fs::read_to_string(sierra_contract_path).unwrap(),
-        )
-        .unwrap();
-
-        assert_eq!(
-            crate::contract_class::compute_sierra_class_hash(&cairo_1_contract).unwrap(),
-            Felt::from(
-                starknet_in_rust::core::contract_address::compute_sierra_class_hash(
-                    &cairo_1_contract
-                )
-                .unwrap()
-            )
-        );
-    }
-
     /// Data for the contract artifact is taken from
     /// test_data/cairo1/events/events_2.0.1_compiler.sierra Which in turn is taken from cairo package https://github.com/starkware-libs/cairo/blob/98eb937c6e7e12b16c0471f087309c10bffe5013/crates/cairo-lang-starknet/cairo_level_tests/events.cairo
     #[test]

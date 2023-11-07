@@ -316,37 +316,6 @@ mod tests {
     };
 
     #[test]
-    fn compare_casm_class_hash_computation_with_starknet_in_rust() {
-        use starknet_in_rust::core::contract_address::compute_casm_class_hash as sir_compute_casm_class_hash;
-        let cairo_1_sierra_string = std::fs::read_to_string(CAIRO_1_CONTRACT_PATH).unwrap();
-
-        let cairo_1_sierra =
-            ContractClass::cairo_1_from_sierra_json_str(&cairo_1_sierra_string).unwrap();
-
-        let cairo_1_casm =
-            cairo_lang_starknet::casm_contract_class::CasmContractClass::from_contract_class(
-                cairo_1_sierra.clone(),
-                true,
-            )
-            .unwrap();
-        assert_eq!(
-            sir_compute_casm_class_hash(&cairo_1_casm).unwrap().to_be_bytes(),
-            crate::contract_class::compute_casm_class_hash(&cairo_1_casm).unwrap().bytes()
-        );
-
-        let cairo_1_casm =
-            cairo_lang_starknet::casm_contract_class::CasmContractClass::from_contract_class(
-                cairo_1_sierra,
-                false,
-            )
-            .unwrap();
-        assert_eq!(
-            sir_compute_casm_class_hash(&cairo_1_casm).unwrap().to_be_bytes(),
-            crate::contract_class::compute_casm_class_hash(&cairo_1_casm).unwrap().bytes()
-        );
-    }
-
-    #[test]
     fn cairo_1_contract_class_hash_generated_successfully() {
         let cairo_1_contract_sierra = ContractClass::Cairo1(
             ContractClass::cairo_1_from_sierra_json_str(

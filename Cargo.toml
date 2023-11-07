@@ -51,9 +51,8 @@ tokio-graceful-shutdown = "0.13.0"
 indexmap = "2.0.0"
 
 # Starknet dependencies
-starknet_api = { version = "0.5.0-rc1", features = ["testing"] }
-starknet-in-rust = { git = "https://github.com/lambdaclass/starknet_in_rust", rev = "a7e2e56", package="starknet_in_rust" }
-blockifier = { git = "https://github.com/starkware-libs/blockifier", rev = "v0.3.0-rc0", package = "blockifier" }
+starknet_api = { version = "0.6.0-rc0", features = ["testing"] }
+blockifier = { git = "https://github.com/starkware-libs/blockifier", rev = "v0.4.0-rc3", package = "blockifier" }
 starknet-rs-signers = { version = "0.5.0", package="starknet-signers" }
 starknet-rs-ff = { version = "0.3.5", package = "starknet-ff" }
 starknet-rs-core = {  version = "0.7.1", package = "starknet-core" }
@@ -62,7 +61,7 @@ starknet-rs-accounts = { version = "0.6.0", package = "starknet-accounts" }
 starknet-rs-contract = { version = "0.6.0", package = "starknet-contract" }
 starknet-rs-crypto = { version = "0.6.1", package = "starknet-crypto" }
 cairo-felt = { version = "0.8.5", package = "cairo-felt" }
-cairo-lang-starknet = { version = "2.2.0", package = "cairo-lang-starknet" }
+cairo-lang-starknet = { version = "2.3.1", package = "cairo-lang-starknet" }
 url = "2.4"
 
 # Inner dependencies

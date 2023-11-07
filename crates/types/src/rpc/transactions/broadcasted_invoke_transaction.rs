@@ -89,6 +89,7 @@ impl BroadcastedInvokeTransaction {
         Ok(InvokeTransaction {
             tx: starknet_api::transaction::InvokeTransaction::V1(sn_api_transaction),
             tx_hash: starknet_api::transaction::TransactionHash(txn_hash.into()),
+            only_query: false,
         })
     }
 

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use blockifier::block_context::BlockContext;
+use blockifier::execution::common_hints::ExecutionMode;
 use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::objects::TransactionExecutionInfo;
@@ -436,9 +437,10 @@ impl Starknet {
             &mut state.clone().state,
             &mut blockifier::execution::entry_point::ExecutionResources::default(),
             &mut blockifier::execution::entry_point::EntryPointExecutionContext::new(
-                self.block_context.clone(),
-                blockifier::transaction::objects::AccountTransactionContext::default(),
-                self.block_context.invoke_tx_max_n_steps as usize,
+                &self.block_context,
+                &blockifier::transaction::objects::AccountTransactionContext::Deprecated(blockifier::transaction::objects::DeprecatedAccountTransactionContext::default()), // TODO
+                ExecutionMode::Execute,
+                self.block_context.invoke_tx_max_n_steps > 0, // TODO
             ),
         ).map_err(|err| Error::BlockifierTransactionError(blockifier::transaction::errors::TransactionExecutionError::EntryPointExecutionError(err)))?;
 

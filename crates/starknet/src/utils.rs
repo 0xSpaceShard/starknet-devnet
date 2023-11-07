@@ -213,7 +213,7 @@ mod tests {
     #[test]
     fn correct_simple_storage_var_address_generated() {
         let expected_storage_var_address =
-            blockifier::abi::abi_utils::get_storage_var_address("simple", &[]).unwrap();
+            blockifier::abi::abi_utils::get_storage_var_address("simple", &[]);
         let generated_storage_var_address = get_storage_var_address("simple", &[]).unwrap();
 
         assert_eq!(
@@ -229,8 +229,7 @@ mod tests {
         let expected_storage_var_address = blockifier::abi::abi_utils::get_storage_var_address(
             "complex",
             &[prefixed_hex_felt_string.as_str().try_into().unwrap()],
-        )
-        .unwrap();
+        );
 
         let generated_storage_var_address =
             get_storage_var_address("complex", &[test_utils::dummy_felt()]).unwrap();
