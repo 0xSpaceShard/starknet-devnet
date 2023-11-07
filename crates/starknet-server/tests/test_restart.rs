@@ -186,4 +186,9 @@ mod test_restart {
         let balance_after = devnet.get_balance(&predeployed_account_addresss).await.unwrap();
         assert_eq!(balance_before, balance_after);
     }
+
+    #[tokio::test]
+    async fn assert_reloaded_from_dump_on_restart() {
+        todo!();
+    }
 }
