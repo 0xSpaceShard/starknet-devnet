@@ -1,7 +1,7 @@
 use clap::Parser;
 use starknet_core::constants::{
-    DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TIMEOUT,
-    DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+    DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_START_TIME,
+    DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
 use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
 use starknet_types::chain_id::ChainId;
@@ -64,6 +64,13 @@ pub(crate) struct Args {
     #[arg(help = "Specify the port to listen at;")]
     port: u16,
 
+    // Set start time in seconds
+    #[arg(long = "start-time")]
+    #[arg(value_name = "START_TIME_IN_SECONDS")]
+    #[arg(default_value_t = DEVNET_DEFAULT_START_TIME)]
+    #[arg(help = "Specify start time in seconds;")]
+    start_time: u64,
+
     // Server timeout in seconds
     #[arg(long = "timeout")]
     #[arg(value_name = "TIMEOUT")]
@@ -116,6 +123,7 @@ impl Args {
             predeployed_accounts_initial_balance: self.initial_balance.0,
             host: self.host.inner,
             port: self.port,
+            start_time: self.start_time,
             timeout: self.timeout,
             gas_price: self.gas_price,
             chain_id: self.chain_id,

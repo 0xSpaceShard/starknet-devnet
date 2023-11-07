@@ -254,6 +254,20 @@ POST /increase_time
 }
 ```
 
+### Start time arg
+
+Devnet can be started with the `--start-time argument.
+```
+cargo run -- --start-time START_TIME_IN_SECONDS
+```
+
+### Timeout
+
+Timeout can be passed to Devnet's HTTP server. This makes it easier to deploy and manage large contracts that take longer to execute, `DEVNET_DEFAULT_TIMEOUT` is set to 120s.
+```
+cargo run -- --timeout TIMEOUT
+```
+
 ## Development - Visual Studio Code
 
 It is highly recommended to get familiar with [Visual Studio Code Dev Containers](https://code.visualstudio.com/docs/devcontainers/create-dev-container#_dockerfile) and install [rust-analyzer](https://code.visualstudio.com/docs/languages/rust) extension.

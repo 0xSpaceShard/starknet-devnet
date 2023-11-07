@@ -78,6 +78,9 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let api = api::Api::new(Starknet::new(&starknet_config)?);
 
+    // set startup time
+    api.starknet.write().await.set_startup_timestamp(Starknet::get_unix_timestamp_as_seconds());
+
     print_predeployed_contracts();
 
     let predeployed_accounts = api.starknet.read().await.get_predeployed_accounts();
