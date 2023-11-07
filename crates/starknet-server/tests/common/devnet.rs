@@ -85,12 +85,13 @@ impl BackgroundDevnet {
     /// Takes user specified args and adds default values for args that are missing
     fn add_default_args<'a>(user_args: &[&'a str]) -> Vec<&'a str> {
         let mut substituted_args: Vec<&'a str> = vec![];
-        for (arg, default_value) in CLI_MAP.iter() {
-            substituted_args.push(arg);
+        for (arg_name, default_value) in CLI_MAP.iter() {
+            substituted_args.push(arg_name);
 
             let value = user_args
                 .iter()
-                .position(|arg_candidate| arg_candidate == arg)
+                .position(|arg_candidate| arg_candidate == arg_name)
+                // arg value comes after name
                 .map(|pos| user_args[pos + 1])
                 .unwrap_or(default_value);
             substituted_args.push(value);
