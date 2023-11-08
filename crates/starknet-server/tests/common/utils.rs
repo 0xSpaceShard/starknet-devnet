@@ -5,6 +5,7 @@ use std::process::{Child, Command};
 
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use hyper::{Body, Response};
+use random_number_generator::generate_u32_random_number;
 use starknet_rs_core::types::contract::SierraClass;
 use starknet_rs_core::types::{ExecutionResult, FieldElement, FlattenedSierraClass};
 use starknet_rs_providers::Provider;
@@ -137,5 +138,44 @@ pub async fn send_ctrl_c_signal(process: &Child) {
             .spawn()
             .unwrap();
         kill.wait().unwrap();
+    }
+}
+
+/// Wrapper of file name which attempts to delete the file when the variable is dropped
+/// Appends a random sequence to the file name base to make it unique
+pub struct UniqueAutoDeletableFile {
+    pub path: String,
+}
+
+impl UniqueAutoDeletableFile {
+    /// Appends a random sequence to the name_base to make it unique
+    pub fn new(name_base: &str) -> Self {
+        Self { path: format!("{name_base}-{}", generate_u32_random_number()) }
+    }
+}
+
+impl Drop for UniqueAutoDeletableFile {
+    fn drop(&mut self) {
+        remove_file(&self.path)
+    }
+}
+
+#[cfg(test)]
+mod test_unique_auto_deletable_file {
+    use std::path::Path;
+
+    use super::UniqueAutoDeletableFile;
+
+    #[test]
+    fn foo() {
+        let file = UniqueAutoDeletableFile::new("foo");
+        let saved_file_path = file.path.clone();
+        assert!(!Path::new(&file.path).exists());
+
+        std::fs::File::create(&file.path).unwrap();
+        assert!(Path::new(&file.path).exists());
+
+        drop(file);
+        assert!(!Path::new(&saved_file_path).exists());
     }
 }
