@@ -187,10 +187,6 @@ impl Starknet {
                 new_block.set_timestamp(BlockTimestamp(timestamp));
             }
             None => {
-                println!(
-                    "self.pending_block_timestamp_shift: {:?}",
-                    self.pending_block_timestamp_shift
-                ); // TODO: remove later
                 new_block.set_timestamp(BlockTimestamp(
                     (Starknet::get_unix_timestamp_as_seconds() as i64
                         + self.pending_block_timestamp_shift) as u64,
@@ -198,7 +194,6 @@ impl Starknet {
             }
         }
         let new_block_number = new_block.block_number();
-        println!("new_block timestamp: {:?}", new_block.timestamp()); // TODO: remove later
 
         // update txs block hash block number for each transaction in the pending block
         new_block.get_transactions().iter().for_each(|tx_hash| {
