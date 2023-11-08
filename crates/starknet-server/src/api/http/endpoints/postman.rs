@@ -19,8 +19,7 @@ pub(crate) async fn postman_load(
         .configure_messaging(
             &data.network_url,
             data.address.as_deref(),
-            // TODO: THIS IS FOR TESTING ONLY. The private key MUST be OOB.
-            &data.private_key,
+            data.private_key.as_deref(),
         )
         .await
         .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;

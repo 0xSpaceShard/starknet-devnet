@@ -21,7 +21,7 @@ pub(crate) struct PostmanLoadL1MessagingContract {
     pub network_url: String,
     pub address: Option<String>,
     #[serde(rename = "privateKey")]
-    pub private_key: String,
+    pub private_key: Option<String>,
 }
 
 #[derive(Deserialize)]

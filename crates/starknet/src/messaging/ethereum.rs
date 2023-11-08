@@ -15,6 +15,19 @@ use tracing::{trace, warn};
 
 use crate::error::{DevnetResult, Error, MessagingError};
 
+pub struct EthDevnetAccount {
+    pub address: &'static str,
+    pub private_key: &'static str,
+}
+
+/// Default account 0 for most used ethereum devnets (at least hardhat and anvil).
+/// Mnemonic: test test test test test test test test test test test junk
+/// Derivation path: m/44'/60'/0'/0/
+const ETH_ACCOUNT_DEFAULT: EthDevnetAccount = EthDevnetAccount {
+    address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    private_key: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+};
+
 // The provided artifact must contain "abi" and "bytecode" objects.
 //
 // TODO: for now, the path is duplicated. Need to find the best way to
@@ -75,7 +88,7 @@ impl EthereumMessaging {
     pub async fn new(
         rpc_url: &str,
         contract_address: Option<&str>,
-        private_key: &str,
+        private_key: Option<&str>,
     ) -> DevnetResult<EthereumMessaging> {
         let provider = Provider::<Http>::try_from(rpc_url).map_err(|e| {
             Error::MessagingError(MessagingError::EthersError(format!(
@@ -85,6 +98,12 @@ impl EthereumMessaging {
         })?;
 
         let chain_id = provider.get_chainid().await?;
+
+        let private_key = if let Some(pk) = private_key {
+            pk
+        } else {
+            ETH_ACCOUNT_DEFAULT.private_key
+        };
 
         let wallet: LocalWallet =
             private_key.parse::<LocalWallet>()?.with_chain_id(chain_id.as_u32());

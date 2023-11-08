@@ -54,7 +54,7 @@ impl Starknet {
         &mut self,
         rpc_url: &str,
         contract_address: Option<&str>,
-        private_key: &str,
+        private_key: Option<&str>,
     ) -> DevnetResult<()> {
         self.messaging =
             Some(EthereumMessaging::new(rpc_url, contract_address, private_key).await?);
