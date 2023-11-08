@@ -6,7 +6,9 @@ use starknet_types::felt::Felt;
 use starknet_types::traits::HashProducer;
 
 use crate::constants::{
-    CAIRO_0_ACCOUNT_CONTRACT_PATH, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_HOST,
+    CAIRO_0_ACCOUNT_CONTRACT_PATH, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE,
+    DEVNET_DEFAULT_HOST, DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT,
+    DEVNET_DEFAULT_TEST_SEED, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum)]
@@ -38,19 +40,18 @@ impl Default for StarknetConfig {
     fn default() -> Self {
         let account_contract_class =
             Cairo0Json::raw_json_from_path(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
-        Self {
-            seed: u32::default(),
-            total_accounts: u8::default(),
+        StarknetConfig {
+            seed: DEVNET_DEFAULT_TEST_SEED,
+            total_accounts: DEVNET_DEFAULT_TOTAL_ACCOUNTS,
             account_contract_class_hash: account_contract_class.generate_hash().unwrap(),
             account_contract_class: ContractClass::Cairo0(Cairo0ContractClass::RawJson(
                 account_contract_class,
             )),
-            predeployed_accounts_initial_balance: Felt::default(),
+            predeployed_accounts_initial_balance: DEVNET_DEFAULT_INITIAL_BALANCE.into(),
             host: DEVNET_DEFAULT_HOST,
-            port: u16::default(),
-            start_time: None,
-            timeout: u16::default(),
-            gas_price: Default::default(),
+            port: DEVNET_DEFAULT_PORT,
+            timeout: DEVNET_DEFAULT_TIMEOUT,
+            gas_price: DEVNET_DEFAULT_GAS_PRICE,
             chain_id: DEVNET_DEFAULT_CHAIN_ID,
             dump_on: None,
             dump_path: None,
