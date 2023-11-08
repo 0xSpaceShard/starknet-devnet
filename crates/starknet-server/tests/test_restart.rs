@@ -34,20 +34,19 @@ mod test_restart {
     async fn assert_tx_not_present_after_restart() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
 
-        // generate tx
-        let dummy_address = FieldElement::ONE;
-        let mint_hash = devnet.mint(dummy_address, 100).await;
+        // generate dummy tx
+        let mint_hash = devnet.mint(FieldElement::ONE, 100).await;
         assert!(devnet.json_rpc_client.get_transaction_by_hash(mint_hash).await.is_ok());
 
         let restart_resp = devnet.restart().await.unwrap();
         assert_eq!(restart_resp.status(), StatusCode::OK);
 
-        match devnet.json_rpc_client.get_transaction_by_hash(mint_hash).await.unwrap_err() {
-            ProviderError::StarknetError(StarknetErrorWithMessage {
+        match devnet.json_rpc_client.get_transaction_by_hash(mint_hash).await {
+            Err(ProviderError::StarknetError(StarknetErrorWithMessage {
                 code: MaybeUnknownErrorCode::Known(StarknetError::TransactionHashNotFound),
                 ..
-            }) => (),
-            other => panic!("Invalid error: {other:?}"),
+            })) => (),
+            other => panic!("Unexpected result: {other:?}"),
         }
     }
 
@@ -99,7 +98,7 @@ mod test_restart {
         devnet.mint(deployment_address, 1e18 as u128).await;
         deployment.send().await.unwrap();
 
-        // assert deployment address has the deployed class
+        // assert there is a class associated with the deployment address
         devnet
             .json_rpc_client
             .get_class_at(BlockId::Tag(BlockTag::Latest), deployment_address)
@@ -190,7 +189,7 @@ mod test_restart {
 
     #[tokio::test]
     async fn assert_dumping_not_affected_by_restart() {
-        let dump_file_name = "dump_on_transaction";
+        let dump_file_name = "dump_after_restart";
         let devnet = BackgroundDevnet::spawn_with_additional_args(&[
             "--dump-path",
             dump_file_name,
@@ -218,7 +217,7 @@ mod test_restart {
 
     #[tokio::test]
     async fn assert_load_not_affecting_restart() {
-        let dump_file_name = "dump_on_transaction";
+        let dump_file_name = "dump_before_restart";
         let devnet = BackgroundDevnet::spawn_with_additional_args(&[
             "--dump-path",
             dump_file_name,
