@@ -194,4 +194,49 @@ mod advancing_time_tests {
         let result = devnet.post_json("/increase_time".into(), increase_time_body).await.unwrap();
         assert_eq!(result.status(), 422);
     }
+
+    #[tokio::test]
+    async fn wrong_start_time() {
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--start-time", "wrong"]).await;
+        assert!(devnet.is_err());
+    }
+
+    #[tokio::test]
+    async fn set_start_time_in_past() {
+        let now = get_unix_timestamp_as_seconds();
+        let past_time = 1;
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--start-time",
+            past_time.to_string().as_str(),
+        ])
+        .await
+        .expect("Could not start Devnet");
+
+        // create block and check if block timestamp is greater/equal 1 and less than now
+        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        let empty_block = &devnet
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
+        assert!(empty_block["timestamp"].as_u64() >= Some(past_time));
+        assert!(empty_block["timestamp"].as_u64() < Some(now));
+    }
+
+    #[tokio::test]
+    async fn set_start_time_in_future() {
+        let now = get_unix_timestamp_as_seconds();
+        let future_time = now + 100;
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--start-time",
+            future_time.to_string().as_str(),
+        ])
+        .await
+        .expect("Could not start Devnet");
+
+        // create block and check if block timestamp is greater than now
+        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        let empty_block = &devnet
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
+        assert!(empty_block["timestamp"].as_u64() > Some(now));
+    }
 }
