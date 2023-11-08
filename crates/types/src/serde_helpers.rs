@@ -9,15 +9,23 @@ pub mod rpc_sierra_contract_class_to_sierra_contract_class {
     {
         let mut json_obj = serde_json::Value::deserialize(deserializer)?;
         // Take the inner part of the string value which is expected to be a JSON array and replace
-        // it
+        // it with the deserialized value.
+        // If for some reason the abi field is empty string, remove it from collection
         if let Some(serde_json::Value::String(abi_string)) = json_obj.get("abi") {
-            let arr: serde_json::Value =
-                serde_json::from_str(abi_string).map_err(serde::de::Error::custom)?;
+            if !abi_string.is_empty() {
+                let arr: serde_json::Value =
+                    serde_json::from_str(abi_string).map_err(serde::de::Error::custom)?;
 
-            json_obj
-                .as_object_mut()
-                .ok_or(serde::de::Error::custom("Expected to be an object"))?
-                .insert("abi".to_string(), arr);
+                json_obj
+                    .as_object_mut()
+                    .ok_or(serde::de::Error::custom("Expected to be an object"))?
+                    .insert("abi".to_string(), arr);
+            } else {
+                json_obj
+                    .as_object_mut()
+                    .ok_or(serde::de::Error::custom("Expected to be an object"))?
+                    .remove("abi");
+            }
         };
 
         serde_json::from_value(json_obj).map_err(serde::de::Error::custom)
