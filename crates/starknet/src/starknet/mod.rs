@@ -158,7 +158,7 @@ impl Starknet {
     }
 
     pub fn restart(&mut self) -> DevnetResult<()> {
-        self.config.re_execute_on_init = false; // TODO try with true
+        self.config.re_execute_on_init = false;
         *self = Starknet::new(&self.config)?;
         Ok(())
     }
