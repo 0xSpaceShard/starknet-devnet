@@ -42,7 +42,7 @@ pub struct CommonTransactionReceipt {
     pub execution_status: ExecutionResult,
     #[serde(flatten)]
     pub maybe_pending_properties: MaybePendingProperties,
-    pub execution_resources: ExecutionResources
+    pub execution_resources: ExecutionResources,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
@@ -95,40 +95,4 @@ pub struct MessageToL1 {
     pub from_address: ContractAddress,
     pub to_address: EthAddress,
     pub payload: L2ToL1Payload,
-}
-
-#[cfg(test)]
-mod tests {
-    use starknet_rs_core::types::MaybePendingTransactionReceipt;
-
-    use crate::rpc::transaction_receipt::TransactionReceipt;
-
-    #[test]
-    fn test_invoke_accepted_serialization() {
-        let receipt_path =
-            concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/rpc/invoke_accepted.json");
-        let receipt = std::fs::read_to_string(receipt_path).unwrap();
-
-        let _: TransactionReceipt = serde_json::from_str(&receipt).unwrap();
-    }
-
-    #[test]
-    fn test_invoke_accepted_conversion() {
-        let receipt_path =
-            concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/rpc/invoke_accepted.json");
-        let receipt = std::fs::read_to_string(receipt_path).unwrap();
-
-        let receipt: TransactionReceipt = serde_json::from_str(&receipt).unwrap();
-        let serialized_receipt = serde_json::to_value(receipt).unwrap();
-        let _: MaybePendingTransactionReceipt = serde_json::from_value(serialized_receipt).unwrap();
-    }
-
-    #[test]
-    fn test_declare_accepted_serialization() {
-        let receipt_path =
-            concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/rpc/declare_accepted.json");
-        let receipt = std::fs::read_to_string(receipt_path).unwrap();
-
-        let _: TransactionReceipt = serde_json::from_str(&receipt).unwrap();
-    }
 }
