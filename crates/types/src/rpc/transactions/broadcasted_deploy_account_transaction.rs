@@ -24,6 +24,7 @@ const PREFIX_DEPLOY_ACCOUNT: FieldElement = FieldElement::from_mont([
 ]);
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct BroadcastedDeployAccountTransaction {
     #[serde(flatten)]
     pub common: BroadcastedTransactionCommon,

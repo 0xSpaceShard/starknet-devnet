@@ -14,16 +14,19 @@ use starknet_types::starknet_api::block::BlockNumber;
 use crate::api::models::PatriciaKeyHex;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct BlockIdInput {
     pub(crate) block_id: BlockId,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct TransactionHashInput {
     pub(crate) transaction_hash: TransactionHash,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct GetStorageInput {
     pub(crate) contract_address: ContractAddress,
     pub(crate) key: PatriciaKeyHex,
@@ -31,30 +34,35 @@ pub struct GetStorageInput {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct BlockAndIndexInput {
     pub(crate) block_id: BlockId,
     pub(crate) index: u64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct BlockAndClassHashInput {
     pub(crate) block_id: BlockId,
     pub(crate) class_hash: ClassHash,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct BlockAndContractAddressInput {
     pub(crate) block_id: BlockId,
     pub(crate) contract_address: ContractAddress,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct CallInput {
     pub request: FunctionCall,
     pub block_id: BlockId,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct EstimateFeeInput {
     pub request: Vec<BroadcastedTransaction>,
     pub block_id: BlockId,
@@ -78,9 +86,17 @@ pub struct EventsInput {
     pub filter: EventFilter,
 }
 
+#[derive(Deserialize, Serialize, Debug, PartialEq, Eq, Clone)]
+#[serde(tag = "type")]
+pub enum BroadcastedDeclareTransactionEnumWrapper {
+    #[serde(rename = "DECLARE")]
+    Declare(BroadcastedDeclareTransaction),
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct BroadcastedDeclareTransactionInput {
-    pub declare_transaction: BroadcastedDeclareTransaction,
+    pub declare_transaction: BroadcastedDeclareTransactionEnumWrapper,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
@@ -89,9 +105,17 @@ pub struct DeclareTransactionOutput {
     pub class_hash: ClassHash,
 }
 
+#[derive(Deserialize, Serialize, Debug, PartialEq, Eq, Clone)]
+#[serde(tag = "type")]
+pub enum BroadcastedDeployAccountTransactionEnumWrapper {
+    #[serde(rename = "DEPLOY_ACCOUNT")]
+    DeployAccount(BroadcastedDeployAccountTransaction),
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct BroadcastedDeployAccountTransactionInput {
-    pub deploy_account_transaction: BroadcastedDeployAccountTransaction,
+    pub deploy_account_transaction: BroadcastedDeployAccountTransactionEnumWrapper,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
@@ -100,9 +124,17 @@ pub struct DeployAccountTransactionOutput {
     pub contract_address: ContractAddress,
 }
 
+#[derive(Deserialize, Serialize, Debug, PartialEq, Eq, Clone)]
+#[serde(tag = "type")]
+pub enum BroadcastedInvokeTransactionEnumWrapper {
+    #[serde(rename = "INVOKE")]
+    Invoke(BroadcastedInvokeTransaction),
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct BroadcastedInvokeTransactionInput {
-    pub invoke_transaction: BroadcastedInvokeTransaction,
+    pub invoke_transaction: BroadcastedInvokeTransactionEnumWrapper,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
@@ -111,13 +143,14 @@ pub struct InvokeTransactionOutput {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SimulateTransactionsInput {
     pub block_id: BlockId,
     pub transactions: Vec<BroadcastedTransaction>,
     pub simulation_flags: Vec<SimulationFlag>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TransactionStatusOutput {
     pub finality_status: TransactionFinalityStatus,
     pub execution_status: TransactionExecutionStatus,

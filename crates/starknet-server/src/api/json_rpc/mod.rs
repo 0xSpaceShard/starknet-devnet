@@ -134,17 +134,26 @@ impl JsonRpcHandler {
                 contract_address,
             }) => self.get_nonce(block_id, contract_address).await.to_rpc_result(),
             StarknetRequest::AddDeclareTransaction(BroadcastedDeclareTransactionInput {
-                declare_transaction,
-            }) => self.add_declare_transaction(declare_transaction).await.to_rpc_result(),
+                declare_transaction
+            }) => {
+                let BroadcastedDeclareTransactionEnumWrapper::Declare(broadcasted_transaction) = declare_transaction;
+                self.add_declare_transaction(broadcasted_transaction).await.to_rpc_result()
+            }
             StarknetRequest::AddDeployAccountTransaction(
                 BroadcastedDeployAccountTransactionInput { deploy_account_transaction },
-            ) => self
-                .add_deploy_account_transaction(deploy_account_transaction)
+            ) => {
+                let BroadcastedDeployAccountTransactionEnumWrapper::DeployAccount(broadcasted_transaction) = deploy_account_transaction;
+                self
+                .add_deploy_account_transaction(broadcasted_transaction)
                 .await
-                .to_rpc_result(),
+                .to_rpc_result()
+            }
             StarknetRequest::AddInvokeTransaction(BroadcastedInvokeTransactionInput {
                 invoke_transaction,
-            }) => self.add_invoke_transaction(invoke_transaction).await.to_rpc_result(),
+            }) => {
+                let BroadcastedInvokeTransactionEnumWrapper::Invoke(broadcasted_transaction) = invoke_transaction;
+                self.add_invoke_transaction(broadcasted_transaction).await.to_rpc_result()
+            }
             StarknetRequest::EstimateMessageFee(request) => self
                 .estimate_message_fee(request.get_block_id(), request.get_raw_message().clone())
                 .await

@@ -23,6 +23,7 @@ use crate::rpc::transactions::BroadcastedTransactionCommon;
 use crate::traits::HashProducer;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct BroadcastedDeclareTransactionV1 {
     #[serde(flatten)]
     pub common: BroadcastedTransactionCommon,
