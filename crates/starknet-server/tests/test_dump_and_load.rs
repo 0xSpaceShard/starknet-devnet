@@ -3,14 +3,13 @@ pub mod common;
 // Important! Use unique file names for dump files, tests can be run in parallel.
 mod dump_and_load_tests {
     use std::path::Path;
-    use std::process::Command;
 
     use hyper::Body;
     use serde_json::json;
     use starknet_rs_providers::Provider;
 
     use crate::common::devnet::BackgroundDevnet;
-    use crate::common::utils::remove_file;
+    use crate::common::utils::{remove_file, send_ctrl_c_signal};
 
     static DUMMY_ADDRESS: u128 = 1;
     static DUMMY_AMOUNT: u128 = 1;
@@ -23,27 +22,6 @@ mod dump_and_load_tests {
     use starknet_rs_core::types::FieldElement;
 
     use crate::common::utils::get_events_contract_in_sierra_and_compiled_class_hash;
-
-    async fn send_ctrl_c_signal(devnet_dump: &BackgroundDevnet) {
-        #[cfg(windows)]
-        {
-            // To send SIGINT signal on windows, windows-kill is needed
-            let mut kill = Command::new("windows-kill")
-                .args(["-SIGINT", devnet_dump.process.id().to_string().as_str()])
-                .spawn()
-                .unwrap();
-            kill.wait().unwrap();
-        }
-
-        #[cfg(unix)]
-        {
-            let mut kill = Command::new("kill")
-                .args(["-s", "SIGINT", devnet_dump.process.id().to_string().as_str()])
-                .spawn()
-                .unwrap();
-            kill.wait().unwrap();
-        }
-    }
 
     #[tokio::test]
     async fn dump_wrong_cli_parameters_no_path() {
@@ -138,7 +116,7 @@ mod dump_and_load_tests {
         let devnet_dump_pid = devnet_dump.process.id();
         let mint_tx_hash = devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
-        send_ctrl_c_signal(&devnet_dump).await;
+        send_ctrl_c_signal(&devnet_dump.process).await;
 
         // load transaction from file and check transaction hash
         let devnet_load =
@@ -257,7 +235,7 @@ mod dump_and_load_tests {
         .await
         .expect("Could not start Devnet");
 
-        send_ctrl_c_signal(&devnet_dump).await;
+        send_ctrl_c_signal(&devnet_dump.process).await;
 
         // file should not be created if there are no transactions
         if Path::new(dump_file_name).exists() {

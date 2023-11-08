@@ -2,6 +2,7 @@
 pub mod common;
 
 mod test_restart {
+    use std::path::Path;
     use std::sync::Arc;
 
     use hyper::StatusCode;
@@ -20,7 +21,7 @@ mod test_restart {
 
     use crate::common::constants::CHAIN_ID;
     use crate::common::devnet::BackgroundDevnet;
-    use crate::common::utils::get_deployable_account_signer;
+    use crate::common::utils::{get_deployable_account_signer, remove_file, send_ctrl_c_signal};
 
     #[tokio::test]
     async fn assert_restartable() {
@@ -188,7 +189,68 @@ mod test_restart {
     }
 
     #[tokio::test]
-    async fn assert_reloaded_from_dump_on_restart() {
-        todo!();
+    async fn assert_dumping_not_affected_by_restart() {
+        let dump_file_name = "dump_on_transaction";
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-path",
+            dump_file_name,
+            "--dump-on",
+            "exit",
+        ])
+        .await
+        .unwrap();
+
+        devnet.restart().await.unwrap();
+
+        // send a dummy tx; otherwise there's no dump
+        devnet.mint(FieldElement::ONE, 1).await;
+
+        // assert dump file not already here
+        assert!(!Path::new(dump_file_name).exists());
+
+        // assert killing the process can still dump devnet
+        send_ctrl_c_signal(&devnet.process).await;
+        std::thread::sleep(std::time::Duration::from_secs(1)); // sleep to allow dump
+        assert!(Path::new(dump_file_name).exists());
+
+        remove_file(dump_file_name);
+    }
+
+    #[tokio::test]
+    async fn assert_load_not_affecting_restart() {
+        let dump_file_name = "dump_on_transaction";
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-path",
+            dump_file_name,
+            "--dump-on",
+            "exit",
+        ])
+        .await
+        .unwrap();
+
+        // send a dummy tx; otherwise there's no dump
+        let tx_hash = devnet.mint(FieldElement::ONE, 1).await;
+
+        send_ctrl_c_signal(&devnet.process).await;
+        std::thread::sleep(std::time::Duration::from_secs(1)); // sleep to allow dump
+        assert!(Path::new(dump_file_name).exists());
+
+        let loaded_devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--dump-path", dump_file_name])
+                .await
+                .unwrap();
+
+        loaded_devnet.restart().await.unwrap();
+
+        // asserting that restarting really clears the state, without re-executing txs from dump
+        match loaded_devnet.json_rpc_client.get_transaction_by_hash(tx_hash).await {
+            Err(ProviderError::StarknetError(StarknetErrorWithMessage {
+                code: MaybeUnknownErrorCode::Known(StarknetError::TransactionHashNotFound),
+                ..
+            })) => (),
+            other => panic!("Unexpected result: {other:?}"),
+        }
+
+        remove_file(dump_file_name);
     }
 }

@@ -76,6 +76,7 @@ pub(crate) mod test_utils {
             chain_id: DEVNET_DEFAULT_CHAIN_ID,
             dump_on: None,
             dump_path: None,
+            re_execute_on_init: true,
         }
     }
 

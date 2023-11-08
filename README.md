@@ -212,9 +212,9 @@ This means that timestamps of `StarknetBlock` will be different.
 
 ### Restarting
 
-Devnet can be restarted by making a `POST /restart` request. All of the deployed contracts (including predeployed), blocks and storage updates will be restarted to the startup state. If you loaded from a dump file, it will be reloaded; otherwise you will get a fresh Devnet.
+Devnet can be restarted by making a `POST /restart` request. All of the deployed contracts (including predeployed), blocks and storage updates will be restarted to the original state, without the transactions and requests from a dump file you may have provided on startup.
 
-If you're using [**the Hardhat plugin**](https://github.com/0xSpaceShard/starknet-hardhat-plugin#restart), restart with `await starknet.devnet.restart()`.
+If you're using [**the Hardhat plugin**](https://github.com/0xSpaceShard/starknet-hardhat-plugin#restart), restart with `starknet.devnet.restart()`.
 
 ### Cross-version disclaimer
 
