@@ -4,6 +4,7 @@ pub mod common;
 mod dump_and_load_tests {
     use std::path::Path;
     use std::process::Command;
+    use std::{thread, time};
 
     use hyper::Body;
     use serde_json::json;
@@ -140,6 +141,7 @@ mod dump_and_load_tests {
         let mint_tx_hash = devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
         send_ctrl_c_signal(&devnet_dump).await;
+        thread::sleep(time::Duration::from_secs(1));
 
         // load transaction from file and check transaction hash
         let devnet_load =
@@ -259,6 +261,7 @@ mod dump_and_load_tests {
         .expect("Could not start Devnet");
 
         send_ctrl_c_signal(&devnet_dump).await;
+        thread::sleep(time::Duration::from_secs(1));
 
         // file should not be created if there are no transactions
         if Path::new(dump_file_name).exists() {
