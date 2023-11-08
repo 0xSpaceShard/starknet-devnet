@@ -202,7 +202,7 @@ mod advancing_time_tests {
     }
 
     #[tokio::test]
-    async fn set_start_time_in_past() {
+    async fn start_time_in_past() {
         let now = get_unix_timestamp_as_seconds();
         let past_time = 1;
         let devnet = BackgroundDevnet::spawn_with_additional_args(&[
@@ -222,7 +222,7 @@ mod advancing_time_tests {
     }
 
     #[tokio::test]
-    async fn set_start_time_in_future() {
+    async fn start_time_in_future() {
         let now = get_unix_timestamp_as_seconds();
         let future_time = now + 100;
         let devnet = BackgroundDevnet::spawn_with_additional_args(&[
@@ -238,5 +238,107 @@ mod advancing_time_tests {
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
         assert!(empty_block["timestamp"].as_u64() > Some(now));
+    }
+
+    #[tokio::test]
+    async fn advance_time_combination_test() {
+        let now = get_unix_timestamp_as_seconds();
+        let past_time = 1;
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--start-time",
+            past_time.to_string().as_str(),
+        ])
+        .await
+        .expect("Could not start Devnet");
+
+        // increase time and assert if it's greater/equal than start-time argument +
+        // first_increase_time
+        let first_increase_time: u64 = 1000;
+        let first_increase_time_body = Body::from(
+            json!({
+                "time": first_increase_time
+            })
+            .to_string(),
+        );
+        devnet.post_json("/increase_time".into(), first_increase_time_body).await.unwrap();
+        let first_increase_time_block = &devnet
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
+        assert!(
+            first_increase_time_block["timestamp"].as_u64()
+                >= Some(past_time + first_increase_time)
+        );
+
+        // increase the time a second time and assert if it's greater/equal than past_time +
+        // first_increase_time + second_increase_time
+        let second_increase_time: u64 = 100;
+        let second_increase_time_body = Body::from(
+            json!({
+                "time": second_increase_time
+            })
+            .to_string(),
+        );
+        devnet.post_json("/increase_time".into(), second_increase_time_body).await.unwrap();
+        let second_increase_time_block = &devnet
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
+        assert!(
+            second_increase_time_block["timestamp"].as_u64()
+                >= Some(past_time + first_increase_time + second_increase_time)
+        );
+
+        // set time to be now and check if the latest block timestamp is greater/equal now
+        let set_time_body = Body::from(
+            json!({
+                "time": now
+            })
+            .to_string(),
+        );
+        let resp_set_time = devnet.post_json("/set_time".into(), set_time_body).await.unwrap();
+        let resp_body_set_time = get_json_body(resp_set_time).await;
+        assert_eq!(resp_body_set_time["block_timestamp"], now);
+        let set_time_block = &devnet
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
+        assert!(set_time_block["timestamp"].as_u64() >= Some(now));
+
+        // wait 1 second
+        thread::sleep(time::Duration::from_secs(1));
+
+        // create a new empty block and check again if block timestamp is greater than
+        // set_time_block
+        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        let empty_block = &devnet
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
+        assert!(empty_block["timestamp"].as_u64() > set_time_block["timestamp"].as_u64());
+
+        // increase the time a third time and assert if it's greater/equal than last empty block
+        // timestamp + third_increase_time
+        let third_increase_time: u64 = 10000;
+        let third_increase_time_body = Body::from(
+            json!({
+                "time": third_increase_time
+            })
+            .to_string(),
+        );
+        devnet.post_json("/increase_time".into(), third_increase_time_body).await.unwrap();
+        let third_increase_time_block = &devnet
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
+        assert!(
+            third_increase_time_block["timestamp"].as_u64().unwrap()
+                >= empty_block["timestamp"].as_u64().unwrap() + third_increase_time
+        );
+
+        // wait 1 second
+        thread::sleep(time::Duration::from_secs(1));
+
+        // check if the last block timestamp is greater previous block
+        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        let last_block = &devnet
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
+        assert!(last_block["timestamp"].as_u64() > third_increase_time_block["timestamp"].as_u64());
     }
 }

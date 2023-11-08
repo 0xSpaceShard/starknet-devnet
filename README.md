@@ -256,7 +256,7 @@ POST /increase_time
 
 ### Start time arg
 
-Devnet can be started with the `--start-time argument.
+Devnet can be started with the `--start-time` argument, where `START_TIME_IN_SECONDS` should be greater than 0.
 ```
 cargo run -- --start-time START_TIME_IN_SECONDS
 ```
