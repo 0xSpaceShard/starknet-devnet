@@ -8,7 +8,7 @@ mod get_transaction_by_block_id_and_index_integration_tests {
         MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
     };
 
-    use crate::common::devnet::BackgroundDevnet;
+    use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::get_json_body;
 
     #[tokio::test]

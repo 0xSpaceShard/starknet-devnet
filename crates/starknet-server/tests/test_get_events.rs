@@ -10,7 +10,7 @@ mod get_events_integration_tests {
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::Provider;
 
-    use crate::common::devnet::BackgroundDevnet;
+    use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::get_events_contract_in_sierra_and_compiled_class_hash;
 
     #[tokio::test]

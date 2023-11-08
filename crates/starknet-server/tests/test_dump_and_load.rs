@@ -8,7 +8,7 @@ mod dump_and_load_tests {
     use serde_json::json;
     use starknet_rs_providers::Provider;
 
-    use crate::common::devnet::BackgroundDevnet;
+    use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::{remove_file, send_ctrl_c_signal};
 
     static DUMMY_ADDRESS: u128 = 1;
