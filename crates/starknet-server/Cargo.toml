@@ -44,7 +44,6 @@ flate2 = { workspace = true }
 clap = { workspace = true }
 serde_json = { workspace = true }
 serde = { workspace = true }
-serde_with = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
 tokio-graceful-shutdown = { workspace = true }

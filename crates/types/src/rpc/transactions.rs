@@ -102,21 +102,13 @@ impl Transaction {
 
     pub fn create_common_receipt(
         &self,
-        transaction_events: &[Event],
-        transaction_messages: &[MessageToL1],
+        output: TransactionOutput,
         block_hash: Option<&BlockHash>,
         block_number: Option<BlockNumber>,
         execution_result: &ExecutionResult,
         finality_status: TransactionFinalityStatus,
-        actual_fee: Fee,
     ) -> CommonTransactionReceipt {
         let r#type = self.get_type();
-
-        let output = TransactionOutput {
-            actual_fee,
-            messages_sent: transaction_messages.to_vec(),
-            events: transaction_events.to_vec(),
-        };
 
         let maybe_pending_properties =
             MaybePendingProperties { block_number, block_hash: block_hash.cloned() };

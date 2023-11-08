@@ -1,11 +1,9 @@
 use serde::{Deserialize, Serialize};
-use serde_with::serde_as;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash};
 use starknet_types::rpc::transactions::L1HandlerTransaction;
 
 use crate::api::http::error::HttpApiError;
-use crate::api::serde_helpers::U128HexOrDec;
 
 #[derive(Deserialize, Debug)]
 pub(crate) struct DumpPath {
@@ -22,13 +20,10 @@ pub(crate) struct PostmanLoadL1MessagingContract {
     #[serde(rename = "networkUrl")]
     pub network_url: String,
     pub address: Option<String>,
-
-    // TODO: THIS IS FOR TESTING PURPOSE ONLY.
     #[serde(rename = "privateKey")]
     pub private_key: String,
 }
 
-#[serde_as]
 #[derive(Deserialize)]
 pub(crate) struct MessageToL2 {
     #[serde(rename = "l2ContractAddress")]
@@ -39,26 +34,32 @@ pub(crate) struct MessageToL2 {
     pub l1_contract_address: ContractAddress,
     pub payload: Calldata,
     #[serde(rename = "paidFeeOnL1")]
-    #[serde_as(as = "U128HexOrDec")]
-    pub paid_fee_on_l1: u128,
+    pub paid_fee_on_l1: Felt,
     pub nonce: Nonce,
 }
 
-impl From<MessageToL2> for L1HandlerTransaction {
-    fn from(msg: MessageToL2) -> Self {
+impl TryFrom<MessageToL2> for L1HandlerTransaction {
+    type Error = HttpApiError;
+
+    fn try_from(msg: MessageToL2) -> Result<Self, Self::Error> {
         // The first argument of a `#l1_handler` Cairo function must be the address
         // of the L1 contract which have sent the message.
         let mut calldata = msg.payload.clone();
         calldata.insert(0, msg.l1_contract_address.into());
 
-        L1HandlerTransaction {
+        let paid_fee_on_l1: u128 =
+            msg.paid_fee_on_l1.try_into().map_err(|_| HttpApiError::InvalidValueError {
+                msg: "paid_fee_on_l1 is out of range, expecting u128 value".to_string(),
+            })?;
+
+        Ok(L1HandlerTransaction {
             contract_address: msg.l2_contract_address,
             entry_point_selector: msg.entry_point_selector,
             calldata,
             nonce: msg.nonce,
-            paid_fee_on_l1: msg.paid_fee_on_l1,
+            paid_fee_on_l1,
             ..Default::default()
-        }
+        })
     }
 }
 

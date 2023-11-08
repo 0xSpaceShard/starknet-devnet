@@ -26,6 +26,8 @@ pub enum HttpApiError {
     BlockIncreaseTimeError { msg: String },
     #[error("Messaging error: {msg}")]
     MessagingError { msg: String },
+    #[error("Invalid value: {msg}")]
+    InvalidValueError { msg: String },
 }
 
 impl IntoResponse for HttpApiError {
@@ -49,6 +51,9 @@ impl IntoResponse for HttpApiError {
                 (StatusCode::BAD_REQUEST, err.to_string())
             }
             err @ HttpApiError::MessagingError { msg: _ } => {
+                (StatusCode::BAD_REQUEST, err.to_string())
+            }
+            err @ HttpApiError::InvalidValueError { msg: _ } => {
                 (StatusCode::BAD_REQUEST, err.to_string())
             }
         };

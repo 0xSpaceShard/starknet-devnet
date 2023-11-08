@@ -9,7 +9,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::Event;
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
 use starknet_types::rpc::transaction_receipt::{
-    DeployTransactionReceipt, MessageToL1, TransactionReceipt,
+    DeployTransactionReceipt, MessageToL1, TransactionOutput, TransactionReceipt,
 };
 use starknet_types::rpc::transactions::{Transaction, TransactionType};
 
@@ -158,21 +158,26 @@ impl StarknetTransaction {
     }
 
     pub fn get_receipt(&self) -> DevnetResult<TransactionReceipt> {
-        let transaction_events = self.get_events();
+        let events = self.get_events();
 
-        let mut transaction_messages: Vec<MessageToL1> = vec![];
+        let mut messages_sent: Vec<MessageToL1> = vec![];
         for message in self.get_l2_to_l1_messages().into_iter() {
-            transaction_messages.push(message.try_into()?);
+            messages_sent.push(message.try_into()?);
         }
 
+        let output = TransactionOutput {
+            actual_fee: self.execution_info.actual_fee,
+            messages_sent,
+            // TODO: we may have performances issues here? Can have a lot's of events..
+            events: events.clone(),
+        };
+
         let mut common_receipt = self.inner.create_common_receipt(
-            &transaction_events,
-            &transaction_messages,
+            output,
             self.block_hash.as_ref(),
             self.block_number,
             &self.execution_result,
             self.finality_status,
-            self.execution_info.actual_fee,
         );
 
         match &self.inner {
@@ -184,7 +189,7 @@ impl StarknetTransaction {
             }
             Transaction::Invoke(_) => {
                 let deployed_address =
-                    StarknetTransaction::get_deployed_address_from_events(&transaction_events)?;
+                    StarknetTransaction::get_deployed_address_from_events(&events)?;
 
                 let receipt = if let Some(contract_address) = deployed_address {
                     common_receipt.r#type = TransactionType::Deploy;

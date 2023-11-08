@@ -62,7 +62,7 @@ pub(crate) async fn postman_send_message_to_l2(
 
     let chain_id = starknet.chain_id().to_felt();
 
-    let transaction = L1HandlerTransaction::from(data).with_hash(chain_id);
+    let transaction = L1HandlerTransaction::try_from(data)?.with_hash(chain_id);
     let transaction_hash = transaction.transaction_hash.clone();
 
     starknet

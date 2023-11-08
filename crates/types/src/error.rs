@@ -35,6 +35,8 @@ pub enum ConversionError {
     InvalidFormat,
     #[error("Invalid internal structure: {0}")]
     InvalidInternalStructure(String),
+    #[error("Value is out of range")]
+    OutOfRangeError,
 }
 
 #[derive(Error, Debug)]
