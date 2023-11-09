@@ -263,7 +263,7 @@ cargo run -- --start-time START_TIME_IN_SECONDS
 
 ### Timeout
 
-Timeout can be passed to Devnet's HTTP server. This makes it easier to deploy and manage large contracts that take longer to execute, `DEVNET_DEFAULT_TIMEOUT` is set to 120s.
+Timeout can be passed to Devnet's HTTP server. This makes it easier to deploy and manage large contracts that take longer to execute.
 ```
 cargo run -- --timeout TIMEOUT
 ```
