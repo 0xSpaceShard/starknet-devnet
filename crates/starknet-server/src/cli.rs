@@ -1,7 +1,7 @@
 use clap::Parser;
 use starknet_core::constants::{
-    DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_START_TIME,
-    DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+    DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TIMEOUT,
+    DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
 use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
 use starknet_types::chain_id::ChainId;
@@ -67,9 +67,8 @@ pub(crate) struct Args {
     // Set start time in seconds
     #[arg(long = "start-time")]
     #[arg(value_name = "START_TIME_IN_SECONDS")]
-    #[arg(default_value_t = DEVNET_DEFAULT_START_TIME)]
     #[arg(help = "Specify start time in seconds;")]
-    start_time: u64,
+    start_time: Option<u64>,
 
     // Server timeout in seconds
     #[arg(long = "timeout")]
