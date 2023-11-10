@@ -31,7 +31,7 @@ mod test_restart {
     }
 
     #[tokio::test]
-    async fn assert_tx_not_present_after_restart() {
+    async fn assert_tx_and_block_not_present_after_restart() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
 
         // generate dummy tx
@@ -44,6 +44,14 @@ mod test_restart {
         match devnet.json_rpc_client.get_transaction_by_hash(mint_hash).await {
             Err(ProviderError::StarknetError(StarknetErrorWithMessage {
                 code: MaybeUnknownErrorCode::Known(StarknetError::TransactionHashNotFound),
+                ..
+            })) => (),
+            other => panic!("Unexpected result: {other:?}"),
+        }
+
+        match devnet.json_rpc_client.get_block_with_txs(BlockId::Tag(BlockTag::Latest)).await {
+            Err(ProviderError::StarknetError(StarknetErrorWithMessage {
+                code: MaybeUnknownErrorCode::Known(StarknetError::BlockNotFound),
                 ..
             })) => (),
             other => panic!("Unexpected result: {other:?}"),
