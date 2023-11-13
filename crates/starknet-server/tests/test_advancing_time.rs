@@ -14,6 +14,16 @@ mod advancing_time_tests {
     const DUMMY_AMOUNT: u128 = 1;
     const BUFFER_TIME_SECONDS: u64 = 5;
 
+    pub fn assert_ge_eq_with_buffer(val1: Option<u64>, val2: Option<u64>, buffer: u64) {
+        assert!(val1 >= val2);
+        assert!(val1 < Some(val2.unwrap() + buffer));
+    }
+
+    pub fn assert_ge_with_buffer(val1: Option<u64>, val2: Option<u64>, buffer: u64) {
+        assert!(val1 > val2);
+        assert!(val1 < Some(val2.unwrap() + buffer));
+    }
+
     #[tokio::test]
     async fn set_time_in_past() {
         // set time and assert if it's greater/equal than past_time, check if it's inside buffer
@@ -32,8 +42,11 @@ mod advancing_time_tests {
         let set_time_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
-        assert!(set_time_block["timestamp"].as_u64() >= Some(past_time));
-        assert!(set_time_block["timestamp"].as_u64() < Some(past_time + BUFFER_TIME_SECONDS));
+        assert_ge_eq_with_buffer(
+            set_time_block["timestamp"].as_u64(),
+            Some(past_time),
+            BUFFER_TIME_SECONDS,
+        );
 
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
@@ -44,8 +57,11 @@ mod advancing_time_tests {
         let empty_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
-        assert!(empty_block["timestamp"].as_u64() > Some(past_time));
-        assert!(empty_block["timestamp"].as_u64() < Some(past_time + BUFFER_TIME_SECONDS));
+        assert_ge_with_buffer(
+            empty_block["timestamp"].as_u64(),
+            Some(past_time),
+            BUFFER_TIME_SECONDS,
+        );
 
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
@@ -56,8 +72,11 @@ mod advancing_time_tests {
         let mint_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
-        assert!(mint_block["timestamp"].as_u64() > empty_block["block_timestamp"].as_u64());
-        assert!(mint_block["timestamp"].as_u64() < Some(past_time + BUFFER_TIME_SECONDS));
+        assert_ge_with_buffer(
+            mint_block["timestamp"].as_u64(),
+            empty_block["timestamp"].as_u64(),
+            BUFFER_TIME_SECONDS,
+        );
     }
 
     #[tokio::test]
@@ -79,8 +98,11 @@ mod advancing_time_tests {
         let set_time_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
-        assert!(set_time_block["timestamp"].as_u64() >= Some(future_time));
-        assert!(set_time_block["timestamp"].as_u64() < Some(future_time + BUFFER_TIME_SECONDS));
+        assert_ge_eq_with_buffer(
+            set_time_block["timestamp"].as_u64(),
+            Some(future_time),
+            BUFFER_TIME_SECONDS,
+        );
 
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
@@ -91,8 +113,11 @@ mod advancing_time_tests {
         let empty_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
-        assert!(empty_block["timestamp"].as_u64() > Some(future_time));
-        assert!(empty_block["timestamp"].as_u64() < Some(future_time + BUFFER_TIME_SECONDS));
+        assert_ge_with_buffer(
+            empty_block["timestamp"].as_u64(),
+            Some(future_time),
+            BUFFER_TIME_SECONDS,
+        );
 
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
@@ -103,8 +128,11 @@ mod advancing_time_tests {
         let mint_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
-        assert!(mint_block["timestamp"].as_u64() > empty_block["timestamp"].as_u64());
-        assert!(mint_block["timestamp"].as_u64() < Some(future_time + BUFFER_TIME_SECONDS));
+        assert_ge_with_buffer(
+            mint_block["timestamp"].as_u64(),
+            Some(future_time),
+            BUFFER_TIME_SECONDS,
+        );
     }
 
     #[tokio::test]
@@ -145,10 +173,10 @@ mod advancing_time_tests {
         let first_increase_time_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
-        assert!(first_increase_time_block["timestamp"].as_u64() >= Some(now + first_increase_time));
-        assert!(
-            first_increase_time_block["timestamp"].as_u64()
-                < Some(now + first_increase_time + BUFFER_TIME_SECONDS)
+        assert_ge_eq_with_buffer(
+            first_increase_time_block["timestamp"].as_u64(),
+            Some(now + first_increase_time),
+            BUFFER_TIME_SECONDS,
         );
 
         // second increase time, check if it's inside buffer limit
@@ -163,13 +191,10 @@ mod advancing_time_tests {
         let second_increase_time_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
-        assert!(
-            second_increase_time_block["timestamp"].as_u64()
-                >= Some(now + first_increase_time + second_increase_time)
-        );
-        assert!(
-            second_increase_time_block["timestamp"].as_u64()
-                < Some(now + first_increase_time + second_increase_time + BUFFER_TIME_SECONDS)
+        assert_ge_eq_with_buffer(
+            second_increase_time_block["timestamp"].as_u64(),
+            Some(now + first_increase_time + second_increase_time),
+            BUFFER_TIME_SECONDS,
         );
 
         // wait 1 second
@@ -181,12 +206,10 @@ mod advancing_time_tests {
         let empty_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
-        assert!(
-            empty_block["timestamp"].as_u64() > second_increase_time_block["timestamp"].as_u64()
-        );
-        assert!(
-            empty_block["timestamp"].as_u64()
-                < Some(now + first_increase_time + second_increase_time + BUFFER_TIME_SECONDS)
+        assert_ge_with_buffer(
+            empty_block["timestamp"].as_u64(),
+            second_increase_time_block["timestamp"].as_u64(),
+            BUFFER_TIME_SECONDS,
         );
 
         // wait 1 second
@@ -198,10 +221,10 @@ mod advancing_time_tests {
         let last_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
-        assert!(last_block["timestamp"].as_u64() > empty_block["timestamp"].as_u64());
-        assert!(
-            last_block["timestamp"].as_u64()
-                < Some(now + first_increase_time + second_increase_time + BUFFER_TIME_SECONDS)
+        assert_ge_with_buffer(
+            last_block["timestamp"].as_u64(),
+            empty_block["timestamp"].as_u64(),
+            BUFFER_TIME_SECONDS,
         );
     }
 
@@ -248,8 +271,11 @@ mod advancing_time_tests {
         let empty_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
-        assert!(empty_block["timestamp"].as_u64() >= Some(past_time));
-        assert!(empty_block["timestamp"].as_u64() < Some(past_time + BUFFER_TIME_SECONDS));
+        assert_ge_eq_with_buffer(
+            empty_block["timestamp"].as_u64(),
+            Some(past_time),
+            BUFFER_TIME_SECONDS,
+        );
     }
 
     #[tokio::test]
@@ -269,8 +295,11 @@ mod advancing_time_tests {
         let empty_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
-        assert!(empty_block["timestamp"].as_u64() >= Some(future_time));
-        assert!(empty_block["timestamp"].as_u64() < Some(future_time + BUFFER_TIME_SECONDS));
+        assert_ge_eq_with_buffer(
+            empty_block["timestamp"].as_u64(),
+            Some(future_time),
+            BUFFER_TIME_SECONDS,
+        );
     }
 
     #[tokio::test]
@@ -297,13 +326,10 @@ mod advancing_time_tests {
         let first_increase_time_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
-        assert!(
-            first_increase_time_block["timestamp"].as_u64()
-                >= Some(past_time + first_increase_time)
-        );
-        assert!(
-            first_increase_time_block["timestamp"].as_u64()
-                < Some(past_time + first_increase_time + BUFFER_TIME_SECONDS)
+        assert_ge_eq_with_buffer(
+            first_increase_time_block["timestamp"].as_u64(),
+            Some(past_time + first_increase_time),
+            BUFFER_TIME_SECONDS,
         );
 
         // increase the time a second time and assert if it's greater/equal than past_time +
@@ -319,15 +345,10 @@ mod advancing_time_tests {
         let second_increase_time_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
-        assert!(
-            second_increase_time_block["timestamp"].as_u64()
-                >= Some(past_time + first_increase_time + second_increase_time)
-        );
-        assert!(
-            second_increase_time_block["timestamp"].as_u64()
-                < Some(
-                    past_time + first_increase_time + second_increase_time + BUFFER_TIME_SECONDS
-                )
+        assert_ge_eq_with_buffer(
+            second_increase_time_block["timestamp"].as_u64(),
+            Some(past_time + first_increase_time + second_increase_time),
+            BUFFER_TIME_SECONDS,
         );
 
         // set time to be now and check if the latest block timestamp is greater/equal now, check if
@@ -344,8 +365,11 @@ mod advancing_time_tests {
         let set_time_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
-        assert!(set_time_block["timestamp"].as_u64() >= Some(now));
-        assert!(set_time_block["timestamp"].as_u64() < Some(now + BUFFER_TIME_SECONDS));
+        assert_ge_eq_with_buffer(
+            set_time_block["timestamp"].as_u64(),
+            Some(now),
+            BUFFER_TIME_SECONDS,
+        );
 
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
@@ -356,8 +380,11 @@ mod advancing_time_tests {
         let empty_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
-        assert!(empty_block["timestamp"].as_u64() > set_time_block["timestamp"].as_u64());
-        assert!(empty_block["timestamp"].as_u64() < Some(now + BUFFER_TIME_SECONDS));
+        assert_ge_with_buffer(
+            empty_block["timestamp"].as_u64(),
+            set_time_block["timestamp"].as_u64(),
+            BUFFER_TIME_SECONDS,
+        );
 
         // increase the time a third time and assert if it's greater/equal than last empty block
         // timestamp + third_increase_time, check if it's inside buffer limit
@@ -372,13 +399,10 @@ mod advancing_time_tests {
         let third_increase_time_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
-        assert!(
-            third_increase_time_block["timestamp"].as_u64().unwrap()
-                >= empty_block["timestamp"].as_u64().unwrap() + third_increase_time
-        );
-        assert!(
-            third_increase_time_block["timestamp"].as_u64()
-                < Some(now + third_increase_time + BUFFER_TIME_SECONDS)
+        assert_ge_eq_with_buffer(
+            third_increase_time_block["timestamp"].as_u64(),
+            Some(empty_block["timestamp"].as_u64().unwrap() + third_increase_time),
+            BUFFER_TIME_SECONDS,
         );
 
         // wait 1 second
@@ -390,10 +414,10 @@ mod advancing_time_tests {
         let last_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
-        assert!(last_block["timestamp"].as_u64() > third_increase_time_block["timestamp"].as_u64());
-        assert!(
-            last_block["timestamp"].as_u64()
-                < Some(now + third_increase_time + BUFFER_TIME_SECONDS)
+        assert_ge_eq_with_buffer(
+            last_block["timestamp"].as_u64(),
+            third_increase_time_block["timestamp"].as_u64(),
+            BUFFER_TIME_SECONDS,
         );
     }
 }
