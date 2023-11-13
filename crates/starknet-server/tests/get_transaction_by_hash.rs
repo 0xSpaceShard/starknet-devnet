@@ -24,12 +24,6 @@ mod get_transaction_by_hash_integration_tests {
     use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::{get_deployable_account_signer, resolve_path};
 
-    pub const DECLARE_V1_TRANSACTION_HASH: &str =
-        "0x03260006dbb34ad0c3b70a39c9eaf84aade3d289a5a5517fc37b303f5f01ac1a";
-
-    pub const INVOKE_V1_TRANSACTION_HASH: &str =
-        "0x008aa91514421bb9826d6821789580ff8fe2f9eb225f7b3bc79ec0c81d9eb58c";
-
     #[tokio::test]
     async fn get_declare_v1_transaction_by_hash_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
@@ -69,10 +63,8 @@ mod get_transaction_by_hash_integration_tests {
             starknet_rs_core::types::DeclareTransaction::V1(declare_v1),
         ) = result
         {
-            assert_eq!(
-                declare_v1.transaction_hash,
-                FieldElement::from_hex_be(DECLARE_V1_TRANSACTION_HASH).unwrap()
-            );
+            let expected = "0x03260006dbb34ad0c3b70a39c9eaf84aade3d289a5a5517fc37b303f5f01ac1a";
+            assert_eq!(declare_v1.transaction_hash, FieldElement::from_hex_be(expected).unwrap());
         } else {
             panic!("Could not unpack the transaction from {result:?}");
         }
@@ -211,10 +203,8 @@ mod get_transaction_by_hash_integration_tests {
             starknet_rs_core::types::InvokeTransaction::V1(invoke_v1),
         ) = result
         {
-            assert_eq!(
-                invoke_v1.transaction_hash,
-                FieldElement::from_hex_be(INVOKE_V1_TRANSACTION_HASH).unwrap()
-            );
+            let expected = "0x008aa91514421bb9826d6821789580ff8fe2f9eb225f7b3bc79ec0c81d9eb58c";
+            assert_eq!(invoke_v1.transaction_hash, FieldElement::from_hex_be(expected).unwrap());
         } else {
             panic!("Could not unpack the transaction from {result:?}");
         }
