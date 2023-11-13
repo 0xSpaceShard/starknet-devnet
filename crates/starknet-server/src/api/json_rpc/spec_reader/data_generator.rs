@@ -13,7 +13,7 @@ use super::spec_schemas::ref_schema::Reference;
 use super::spec_schemas::string_primitive::StringPrimitive;
 use super::spec_schemas::{Primitive, Schema};
 
-const MAX_DEPTH: u8 = 20;
+const MAX_DEPTH: u8 = 5;
 
 pub(crate) trait Visitor {
     fn do_for_boolean_primitive(&self) -> Result<serde_json::Value, String>;
@@ -109,15 +109,19 @@ impl<'a> Visitor for RandDataGenerator<'a> {
         &self,
         element: &ArrayPrimitive,
     ) -> Result<serde_json::Value, String> {
-        let number_of_elements = rand::thread_rng().gen_range(1..3);
         let mut array = vec![];
-
         if self.depth >= MAX_DEPTH {
             return Ok(serde_json::Value::Array(array));
         }
 
+        let number_of_elements = rand::thread_rng().gen_range(1..3);
+
         for _ in 0..number_of_elements {
-            array.push(generate_schema_value(element.items.as_ref(), self.schemas, self.depth + 1)?);
+            let generated_value = generate_schema_value(element.items.as_ref(), self.schemas, self.depth + 1)?;
+            
+            if !generated_value.is_null() {
+                array.push(generated_value);
+            }
         }
 
         Ok(serde_json::Value::Array(array))
@@ -149,36 +153,53 @@ impl<'a> Visitor for RandDataGenerator<'a> {
     }
 
     fn do_for_all_of(&self, element: &AllOf) -> Result<serde_json::Value, String> {
-        let mut accumulated_json_value = serde_json::Value::Object(Map::new());
-        for one in element.all_of.iter() {
-            let single_value = generate_schema_value(one, self.schemas, self.depth)?
-                .as_object()
-                .ok_or("Expected to be an object".to_string())?
-                .clone();
+        let mut accumulated_json_value = Map::new();
 
-            accumulated_json_value
-                .as_object_mut()
-                .ok_or("Expected to be an object".to_string())?
-                .extend(single_value);
+        for one in element.all_of.iter() {
+            let generated_value = generate_schema_value(one, self.schemas, self.depth)?;
+
+            if !generated_value.is_null() {
+                let single_value = generated_value
+                    .as_object()
+                    .ok_or("Expected to be an object".to_string())?
+                    .clone();
+
+                accumulated_json_value
+                    .extend(single_value);
+            }
         }
 
-        Ok(accumulated_json_value)
+        if accumulated_json_value.is_empty() {
+            Ok(Value::Null)
+        }else {
+            Ok(serde_json::Value::Object(accumulated_json_value))
+        }
     }
 
     fn do_for_object_primitive(
         &self,
         element: &ObjectPrimitive,
     ) -> Result<serde_json::Value, String> {
-        let mut accumulated_json_value = Map::new();
         if self.depth >= MAX_DEPTH {
-            return Ok(Value::Object(accumulated_json_value));
+            return Ok(Value::Null);
         }
+        let mut accumulated_json_value = Map::new();
+        
         for (key, inner_schema) in element.properties.iter() {
-            accumulated_json_value
-                .insert(key.to_string(), generate_schema_value(inner_schema, self.schemas, self.depth + 1)?);
+            let generated_value = generate_schema_value(inner_schema, self.schemas, self.depth + 1)?;
+
+            if !generated_value.is_null() {
+                accumulated_json_value
+                    .insert(key.to_string(), generated_value);
+            }
         }
 
-        Ok(Value::Object(accumulated_json_value))
+        if accumulated_json_value.is_empty() {
+            println!("empty object");
+            Ok(Value::Null)
+        }else {
+            Ok(Value::Object(accumulated_json_value))
+        }   
     }
 }
 
