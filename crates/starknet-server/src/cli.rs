@@ -64,6 +64,12 @@ pub(crate) struct Args {
     #[arg(help = "Specify the port to listen at;")]
     port: u16,
 
+    // Set start time in seconds
+    #[arg(long = "start-time")]
+    #[arg(value_name = "START_TIME_IN_SECONDS")]
+    #[arg(help = "Specify start time in seconds;")]
+    start_time: Option<u64>,
+
     // Server timeout in seconds
     #[arg(long = "timeout")]
     #[arg(value_name = "TIMEOUT")]
@@ -116,6 +122,7 @@ impl Args {
             predeployed_accounts_initial_balance: self.initial_balance.0,
             host: self.host.inner,
             port: self.port,
+            start_time: self.start_time,
             timeout: self.timeout,
             gas_price: self.gas_price,
             chain_id: self.chain_id,
