@@ -269,7 +269,7 @@ mod advancing_time_tests {
         let empty_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
-        assert!(empty_block["timestamp"].as_u64() > Some(now));
+        assert!(empty_block["timestamp"].as_u64() >= Some(future_time));
         assert!(empty_block["timestamp"].as_u64() < Some(future_time + BUFFER_TIME_SECONDS));
     }
 
