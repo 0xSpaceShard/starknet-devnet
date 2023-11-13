@@ -8,3 +8,4 @@ pub mod felt;
 mod macro_utils;
 pub mod transaction_receipt;
 pub mod transactions;
+pub mod state;

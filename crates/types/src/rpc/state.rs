@@ -1,9 +1,8 @@
 use serde::{Deserialize, Serialize};
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{BlockHash, ClassHash, Felt, Nonce};
-use starknet_types::rpc::block::GlobalRootHex;
 
-use super::PatriciaKeyHex;
+use crate::{felt::{Felt, ClassHash, BlockHash, Nonce}, contract_address::ContractAddress, patricia_key::PatriciaKey};
+
+use super::block::GlobalRootHex;
 
 pub type CompiledClassHashHex = Felt;
 
@@ -43,7 +42,7 @@ pub struct StorageDiff {
 /// A storage entry in a contract.
 #[derive(Debug, Default, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct StorageEntry {
-    pub key: PatriciaKeyHex,
+    pub key: PatriciaKey,
     pub value: Felt,
 }
 
