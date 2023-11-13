@@ -24,6 +24,7 @@ mod advancing_time_tests {
     const DUMMY_AMOUNT: u128 = 1;
     const BUFFER_TIME_SECONDS: u64 = 10;
 
+    // TODO make generic instead of forcing Option<u64>
     pub fn assert_ge_with_buffer(val1: Option<u64>, val2: Option<u64>) {
         assert!(val1 >= val2);
         assert!(val1 < Some(val2.unwrap() + BUFFER_TIME_SECONDS));
