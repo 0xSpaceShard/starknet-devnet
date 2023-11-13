@@ -29,6 +29,8 @@ pub struct StarknetConfig {
     pub chain_id: ChainId,
     pub dump_on: Option<DumpOn>,
     pub dump_path: Option<String>,
+    /// on initialization, re-execute loaded txs (if any)
+    pub re_execute_on_init: bool,
 }
 
 impl Default for StarknetConfig {
@@ -50,6 +52,7 @@ impl Default for StarknetConfig {
             chain_id: DEVNET_DEFAULT_CHAIN_ID,
             dump_on: None,
             dump_path: None,
+            re_execute_on_init: true,
         }
     }
 }

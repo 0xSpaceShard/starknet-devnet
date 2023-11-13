@@ -1,8 +1,8 @@
-use axum::Json;
+use axum::{Extension, Json};
 
 use super::error::HttpApiError;
 use super::models::ForkStatus;
-use super::HttpApiResult;
+use super::{HttpApiHandler, HttpApiResult};
 
 /// Dumping and loading
 pub(crate) mod dump_load;
@@ -28,8 +28,15 @@ pub(crate) async fn is_alive() -> HttpApiResult<String> {
 }
 
 /// Restart
-pub(crate) async fn restart() -> HttpApiResult<()> {
-    Err(HttpApiError::GeneralError)
+pub(crate) async fn restart(Extension(state): Extension<HttpApiHandler>) -> HttpApiResult<()> {
+    state
+        .api
+        .starknet
+        .write()
+        .await
+        .restart()
+        .map_err(|err| HttpApiError::RestartError { msg: err.to_string() })?;
+    Ok(())
 }
 
 /// Fork
