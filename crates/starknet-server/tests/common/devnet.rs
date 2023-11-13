@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt::LowerHex;
 use std::net::TcpListener;
 use std::process::{Child, Command, Stdio};
@@ -8,10 +9,14 @@ use hyper::http::request;
 use hyper::{Body, Client, Response, StatusCode, Uri};
 use lazy_static::lazy_static;
 use serde_json::json;
-use starknet_rs_core::types::FieldElement;
+use starknet_core::constants::ERC20_CONTRACT_ADDRESS;
+use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, FunctionCall};
+use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_providers::jsonrpc::HttpTransport;
-use starknet_rs_providers::JsonRpcClient;
+use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::{LocalWallet, SigningKey};
+use starknet_types::felt::Felt;
+use starknet_types::num_bigint::BigUint;
 use thiserror::Error;
 use tokio::sync::Mutex;
 use url::Url;
@@ -64,12 +69,48 @@ fn get_free_port() -> Result<u16, TestError> {
     Err(TestError::NoFreePorts)
 }
 
+lazy_static! {
+    static ref DEFAULT_CLI_MAP: HashMap<&'static str, String> = HashMap::from([
+        ("--seed", SEED.to_string()),
+        ("--accounts", ACCOUNTS.to_string()),
+        ("--initial-balance", PREDEPLOYED_ACCOUNT_INITIAL_BALANCE.to_string()),
+        ("--chain-id", CHAIN_ID_CLI_PARAM.to_string())
+    ]);
+}
+
 impl BackgroundDevnet {
     /// Ensures the background instance spawns at a free port, checks at most `MAX_RETRIES`
     /// times
     #[allow(dead_code)] // dead_code needed to pass clippy
     pub(crate) async fn spawn() -> Result<Self, TestError> {
         BackgroundDevnet::spawn_with_additional_args(&[]).await
+    }
+
+    /// Takes specified args and adds default values for args that are missing
+    fn add_default_args<'a>(specified_args: &[&'a str]) -> Vec<&'a str> {
+        let mut specified_args_vec: Vec<&str> = specified_args.to_vec();
+        let mut final_args: Vec<&str> = vec![];
+
+        // Iterate through default args, and remove from specified args when found
+        // That way in the end we can just append the non-removed args
+        for (arg_name, default_value) in DEFAULT_CLI_MAP.iter() {
+            let value =
+                match specified_args_vec.iter().position(|arg_candidate| arg_candidate == arg_name)
+                {
+                    Some(pos) => {
+                        // arg value comes after name
+                        specified_args_vec.remove(pos);
+                        specified_args_vec.remove(pos)
+                    }
+                    None => default_value,
+                };
+            final_args.push(arg_name);
+            final_args.push(value);
+        }
+
+        // simply append those args that don't have an entry in DEFAULT_CLI_MAP
+        final_args.append(&mut specified_args_vec);
+        final_args
     }
 
     pub(crate) async fn spawn_with_additional_args(args: &[&str]) -> Result<Self, TestError> {
@@ -86,17 +127,9 @@ impl BackgroundDevnet {
                 .arg("run")
                 .arg("--release")
                 .arg("--")
-                .arg("--seed")
-                .arg(SEED.to_string())
-                .arg("--accounts")
-                .arg(ACCOUNTS.to_string())
                 .arg("--port")
                 .arg(free_port.to_string())
-                .arg("--initial-balance")
-                .arg(PREDEPLOYED_ACCOUNT_INITIAL_BALANCE.to_string())
-                .arg("--chain-id")
-                .arg(CHAIN_ID_CLI_PARAM)
-                .args(args)
+                .args(Self::add_default_args(args))
                 .stdout(Stdio::piped()) // comment this out for complete devnet stdout
                 .spawn()
                 .expect("Could not start background devnet");
@@ -180,6 +213,21 @@ impl BackgroundDevnet {
         FieldElement::from_hex_be(resp_body["tx_hash"].as_str().unwrap()).unwrap()
     }
 
+    /// Get balance at contract_address, as written in ERC20
+    pub async fn get_balance(&self, address: &FieldElement) -> Result<FieldElement, anyhow::Error> {
+        let call = FunctionCall {
+            contract_address: FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap(),
+            entry_point_selector: get_selector_from_name("balanceOf").unwrap(),
+            calldata: vec![*address],
+        };
+        let balance_raw = self.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await?;
+        assert_eq!(balance_raw.len(), 2);
+        let balance_low: BigUint = (Felt::from(*balance_raw.get(0).unwrap())).into();
+        let balance_high: BigUint = (Felt::from(*balance_raw.get(1).unwrap())).into();
+        let balance: BigUint = (balance_high << 128) + balance_low;
+        Ok(FieldElement::from_byte_slice_be(&balance.to_bytes_be())?)
+    }
+
     pub async fn get(
         &self,
         path: &str,
@@ -210,6 +258,10 @@ impl BackgroundDevnet {
         let signer = LocalWallet::from(SigningKey::from_secret_scalar(private_key));
 
         (signer, account_address)
+    }
+
+    pub async fn restart(&self) -> Result<Response<Body>, hyper::Error> {
+        self.post_json("/restart".into(), Body::empty()).await
     }
 }
 

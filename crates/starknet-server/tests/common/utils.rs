@@ -1,6 +1,7 @@
 use std::fmt::LowerHex;
 use std::fs;
 use std::path::Path;
+use std::process::{Child, Command};
 
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use hyper::{Body, Response};
@@ -103,4 +104,25 @@ pub fn get_unix_timestamp_as_seconds() -> u64 {
         .duration_since(std::time::UNIX_EPOCH)
         .expect("should get current UNIX timestamp")
         .as_secs()
+}
+
+pub async fn send_ctrl_c_signal(process: &Child) {
+    #[cfg(windows)]
+    {
+        // To send SIGINT signal on windows, windows-kill is needed
+        let mut kill = Command::new("windows-kill")
+            .args(["-SIGINT", process.id().to_string().as_str()])
+            .spawn()
+            .unwrap();
+        kill.wait().unwrap();
+    }
+
+    #[cfg(unix)]
+    {
+        let mut kill = Command::new("kill")
+            .args(["-s", "SIGINT", process.id().to_string().as_str()])
+            .spawn()
+            .unwrap();
+        kill.wait().unwrap();
+    }
 }

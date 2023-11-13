@@ -128,6 +128,7 @@ impl Args {
             chain_id: self.chain_id,
             dump_on: self.dump_on,
             dump_path: self.dump_path.clone(),
+            re_execute_on_init: true,
         })
     }
 }

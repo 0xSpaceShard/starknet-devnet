@@ -145,7 +145,7 @@ impl Starknet {
         this.restart_pending_block()?;
 
         // Load starknet transactions
-        if this.config.dump_path.is_some() {
+        if this.config.dump_path.is_some() && this.config.re_execute_on_init {
             // Try to load transactions from dump_path, if there is no file skip this step
             match this.load_transactions() {
                 Ok(txs) => this.re_execute(txs)?,
@@ -155,6 +155,12 @@ impl Starknet {
         }
 
         Ok(this)
+    }
+
+    pub fn restart(&mut self) -> DevnetResult<()> {
+        self.config.re_execute_on_init = false;
+        *self = Starknet::new(&self.config)?;
+        Ok(())
     }
 
     pub fn get_predeployed_accounts(&self) -> Vec<Account> {
