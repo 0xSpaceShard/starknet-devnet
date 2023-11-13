@@ -78,6 +78,13 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let api = api::Api::new(Starknet::new(&starknet_config)?);
 
+    // set block timestamp shift during startup if start time is set
+    if let Some(start_time) = starknet_config.start_time {
+        api.starknet.write().await.set_block_timestamp_shift(
+            start_time as i64 - Starknet::get_unix_timestamp_as_seconds() as i64,
+        );
+    };
+
     print_predeployed_contracts();
 
     let predeployed_accounts = api.starknet.read().await.get_predeployed_accounts();

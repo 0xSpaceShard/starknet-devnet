@@ -13,6 +13,7 @@ mod call {
     use crate::common::devnet::BackgroundDevnet;
 
     #[tokio::test]
+    /// This test doesn't rely on devnet.get_balance because it's not supposed to call ERC20
     async fn calling_method_of_undeployed_contract() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let contract_address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
@@ -75,25 +76,11 @@ mod call {
     async fn getting_balance_of_predeployed_contract() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let contract_address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
-        let entry_point_selector =
-            starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();
 
-        let retrieved_result = devnet
-            .json_rpc_client
-            .call(
-                FunctionCall {
-                    contract_address: FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap(),
-                    entry_point_selector,
-                    calldata: vec![contract_address],
-                },
-                BlockId::Tag(BlockTag::Latest),
-            )
-            .await
-            .expect("Failed to call contract");
+        let retrieved_result = devnet.get_balance(&contract_address).await.unwrap();
 
         let expected_hex_balance = format!("0x{PREDEPLOYED_ACCOUNT_INITIAL_BALANCE:x}");
         let expected_balance = FieldElement::from_hex_be(expected_hex_balance.as_str()).unwrap();
-        let expected_result = vec![expected_balance, FieldElement::ZERO]; // uint256
-        assert_eq!(retrieved_result, expected_result);
+        assert_eq!(retrieved_result, expected_balance);
     }
 }

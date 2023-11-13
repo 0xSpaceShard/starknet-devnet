@@ -24,6 +24,8 @@ pub enum HttpApiError {
     BlockSetTimeError { msg: String },
     #[error("The increase time operation failed: {msg}")]
     BlockIncreaseTimeError { msg: String },
+    #[error("Could not restart: {msg}")]
+    RestartError { msg: String },
 }
 
 impl IntoResponse for HttpApiError {
@@ -43,8 +45,9 @@ impl IntoResponse for HttpApiError {
             err @ HttpApiError::BlockIncreaseTimeError { msg: _ } => {
                 (StatusCode::BAD_REQUEST, err.to_string())
             }
-            err @ HttpApiError::MintingError { msg: _ } => {
-                (StatusCode::BAD_REQUEST, err.to_string())
+            err @ HttpApiError::MintingError { .. } => (StatusCode::BAD_REQUEST, err.to_string()),
+            err @ HttpApiError::RestartError { .. } => {
+                (StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
             }
         };
 
