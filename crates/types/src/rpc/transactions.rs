@@ -19,8 +19,12 @@ use starknet_api::transaction::Fee;
 use starknet_rs_core::types::{BlockId, ExecutionResult, TransactionFinalityStatus};
 
 use super::estimate_message_fee::FeeEstimateWrapper;
+use super::state::ThinStateDiff;
 use super::transaction_receipt::{ExecutionResources, MessageToL1};
-use crate::constants::{N_STEPS, RANGE_CHECK_BUILTIN_NAME, HASH_BUILTIN_NAME, POSEIDON_BUILTIN_NAME, EC_OP_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME, BITWISE_BUILTIN_NAME, KECCAK_BUILTIN_NAME};
+use crate::constants::{
+    BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME, N_STEPS,
+    POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
+};
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
 use crate::error::{ConversionError, DevnetResult};
@@ -126,8 +130,12 @@ impl Transaction {
             if let Some(call) = call_info { call.vm_resources.n_memory_holes } else { 0 }
         }
 
-        fn get_resource_from_execution_info(execution_info: &TransactionExecutionInfo, resource_name: &str) -> Felt {
-            let resource = execution_info.actual_resources.0.get(resource_name).cloned().unwrap_or_default();
+        fn get_resource_from_execution_info(
+            execution_info: &TransactionExecutionInfo,
+            resource_name: &str,
+        ) -> Felt {
+            let resource =
+                execution_info.actual_resources.0.get(resource_name).cloned().unwrap_or_default();
             Felt::from(resource as u128)
         }
 
@@ -138,13 +146,34 @@ impl Transaction {
         let execution_resources = ExecutionResources {
             steps: get_resource_from_execution_info(execution_info, N_STEPS),
             memory_holes: Felt::from(total_memory_holes as u128),
-            range_check_builtin_applications: get_resource_from_execution_info(execution_info, RANGE_CHECK_BUILTIN_NAME),
-            pedersen_builtin_applications: get_resource_from_execution_info(execution_info, HASH_BUILTIN_NAME),
-            poseidon_builtin_applications: get_resource_from_execution_info(execution_info, POSEIDON_BUILTIN_NAME),
-            ec_op_builtin_applications: get_resource_from_execution_info(execution_info, EC_OP_BUILTIN_NAME),
-            ecdsa_builtin_applications: get_resource_from_execution_info(execution_info, SIGNATURE_BUILTIN_NAME),
-            bitwise_builtin_applications: get_resource_from_execution_info(execution_info, BITWISE_BUILTIN_NAME),
-            keccak_builtin_applications: get_resource_from_execution_info(execution_info, KECCAK_BUILTIN_NAME),
+            range_check_builtin_applications: get_resource_from_execution_info(
+                execution_info,
+                RANGE_CHECK_BUILTIN_NAME,
+            ),
+            pedersen_builtin_applications: get_resource_from_execution_info(
+                execution_info,
+                HASH_BUILTIN_NAME,
+            ),
+            poseidon_builtin_applications: get_resource_from_execution_info(
+                execution_info,
+                POSEIDON_BUILTIN_NAME,
+            ),
+            ec_op_builtin_applications: get_resource_from_execution_info(
+                execution_info,
+                EC_OP_BUILTIN_NAME,
+            ),
+            ecdsa_builtin_applications: get_resource_from_execution_info(
+                execution_info,
+                SIGNATURE_BUILTIN_NAME,
+            ),
+            bitwise_builtin_applications: get_resource_from_execution_info(
+                execution_info,
+                BITWISE_BUILTIN_NAME,
+            ),
+            keccak_builtin_applications: get_resource_from_execution_info(
+                execution_info,
+                KECCAK_BUILTIN_NAME,
+            ),
         };
 
         let output = TransactionOutput {
@@ -165,7 +194,7 @@ impl Transaction {
             output,
             execution_status: execution_result.clone(),
             maybe_pending_properties,
-            execution_resources
+            execution_resources,
         }
     }
 }
@@ -270,7 +299,7 @@ pub struct EventFilter {
     pub chunk_size: usize,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventsChunk {
     pub events: Vec<crate::emitted_event::EmittedEvent>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -278,6 +307,7 @@ pub struct EventsChunk {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct FunctionCall {
     pub contract_address: ContractAddress,
     pub entry_point_selector: EntryPointSelector,
@@ -289,7 +319,7 @@ pub struct BroadcastedTransactionCommon {
     pub max_fee: Fee,
     pub version: TransactionVersion,
     pub signature: TransactionSignature,
-    pub nonce: Nonce,
+    pub nonce: Nonce
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
@@ -355,7 +385,7 @@ pub enum SimulationFlag {
     SkipFeeCharge,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CallType {
     #[serde(rename = "LIBRARY_CALL")]
     LibraryCall,
@@ -363,7 +393,7 @@ pub enum CallType {
     Call,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FunctionInvocation {
     #[serde(flatten)]
     function_call: FunctionCall,
@@ -377,11 +407,14 @@ pub struct FunctionInvocation {
     messages: Vec<MessageToL1>,
 }
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(untagged)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
 pub enum TransactionTrace {
+    #[serde(rename = "INVOKE")]
     Invoke(InvokeTransactionTrace),
+    #[serde(rename = "DECLARE")]
     Declare(DeclareTransactionTrace),
+    #[serde(rename = "DEPLOY_ACCOUNT")]
     DeployAccount(DeployAccountTransactionTrace),
 }
 
@@ -390,33 +423,41 @@ pub struct Reversion {
     pub revert_reason: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum ExecutionInvocation {
     Succeeded(FunctionInvocation),
     Reverted(Reversion),
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct InvokeTransactionTrace {
     pub validate_invocation: Option<FunctionInvocation>,
-    pub execution_invocation: ExecutionInvocation,
+    pub execute_invocation: ExecutionInvocation,
+    pub fee_transfer_invocation: Option<FunctionInvocation>,
+    pub state_diff: ThinStateDiff,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct DeclareTransactionTrace {
     pub validate_invocation: Option<FunctionInvocation>,
     pub fee_transfer_invocation: Option<FunctionInvocation>,
+    pub state_diff: ThinStateDiff,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct DeployAccountTransactionTrace {
     pub validate_invocation: Option<FunctionInvocation>,
     pub constructor_invocation: Option<FunctionInvocation>,
     pub fee_transfer_invocation: Option<FunctionInvocation>,
+    pub state_diff: ThinStateDiff,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SimulatedTransaction {
     pub transaction_trace: TransactionTrace,
     pub fee_estimation: FeeEstimateWrapper,

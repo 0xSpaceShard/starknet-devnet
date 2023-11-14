@@ -17,6 +17,7 @@ pub enum TransactionReceipt {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct DeployTransactionReceipt {
     #[serde(flatten)]
     pub common: CommonTransactionReceipt,
@@ -33,6 +34,7 @@ pub struct MaybePendingProperties {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+//#[serde(deny_unknown_fields)]
 pub struct CommonTransactionReceipt {
     pub r#type: TransactionType,
     pub transaction_hash: TransactionHash,
@@ -46,6 +48,7 @@ pub struct CommonTransactionReceipt {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct ExecutionResources {
     pub steps: Felt,
     pub memory_holes: Felt,
@@ -81,6 +84,7 @@ impl PartialEq for CommonTransactionReceipt {
 impl Eq for CommonTransactionReceipt {}
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TransactionOutput {
     pub actual_fee: Fee,
     pub messages_sent: Vec<MessageToL1>,

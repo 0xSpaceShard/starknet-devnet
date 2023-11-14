@@ -77,6 +77,7 @@ impl From<ImportedBlockId> for BlockId {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Block {
     pub status: BlockStatus,
     #[serde(flatten)]

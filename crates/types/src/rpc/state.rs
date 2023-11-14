@@ -7,6 +7,7 @@ use super::block::GlobalRootHex;
 pub type CompiledClassHashHex = Felt;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct StateUpdate {
     pub block_hash: BlockHash,
     pub new_root: GlobalRootHex,
