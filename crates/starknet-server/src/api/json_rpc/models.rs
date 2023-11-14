@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, ClassHash, TransactionHash};
+use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{BlockId, SyncStatus};
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
@@ -10,8 +11,6 @@ use starknet_types::rpc::transactions::{
     SimulationFlag,
 };
 use starknet_types::starknet_api::block::BlockNumber;
-
-use crate::api::models::PatriciaKeyHex;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -29,7 +28,7 @@ pub struct TransactionHashInput {
 #[serde(deny_unknown_fields)]
 pub struct GetStorageInput {
     pub(crate) contract_address: ContractAddress,
-    pub(crate) key: PatriciaKeyHex,
+    pub(crate) key: PatriciaKey,
     pub(crate) block_id: BlockId,
 }
 
@@ -168,7 +167,6 @@ mod tests {
     use starknet_types::starknet_api::block::BlockNumber;
 
     use super::{BlockIdInput, EstimateFeeInput, GetStorageInput};
-    use crate::api::models::PatriciaKeyHex;
 
     #[test]
     fn errored_deserialization_of_estimate_fee_with_broadcasted_declare_transaction() {
@@ -407,9 +405,7 @@ mod tests {
             )),
             contract_address: ContractAddress::new(Felt::from_prefixed_hex_str("0x02").unwrap())
                 .unwrap(),
-            key: PatriciaKeyHex(
-                PatriciaKey::new(Felt::from_prefixed_hex_str("0x03").unwrap()).unwrap(),
-            ),
+            key: PatriciaKey::new(Felt::from_prefixed_hex_str("0x03").unwrap()).unwrap(),
         };
 
         assert_get_storage_input_correctness(
