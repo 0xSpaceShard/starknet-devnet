@@ -203,7 +203,8 @@
                         }
                     },
                     "required": [
-                        "finality_status"
+                        "finality_status",
+                        "execution_status"
                     ]
                 }
             },
@@ -336,10 +337,6 @@
                         {
                             "title": "Transaction receipt",
                             "$ref": "#/components/schemas/TXN_RECEIPT"
-                        },
-                        {
-                            "title": "Pending transaction receipt",
-                            "$ref": "#/components/schemas/PENDING_TXN_RECEIPT"
                         }
                     ]
                 }
@@ -2270,7 +2267,7 @@
                     },
                     "actual_fee": {
                         "title": "Actual fee",
-                        "$ref": "#/components/schemas/FELT",
+                        "$ref": "#/components/schemas/FELT_U128",
                         "description": "The fee that was charged by the sequencer"
                     },
                     "execution_status": {
@@ -2900,7 +2897,8 @@
                 "required": [
                     "sierra_program",
                     "contract_class_version",
-                    "entry_points_by_type"
+                    "entry_points_by_type",
+                    "abi"
                 ]
             },
             "DEPRECATED_CONTRACT_CLASS": {
@@ -3318,6 +3316,7 @@
                 },
                 "required": [
                     "steps",
+                    "memory_holes",
                     "range_check_builtin_applications",
                     "pedersen_builtin_applications",
                     "poseidon_builtin_applications",
