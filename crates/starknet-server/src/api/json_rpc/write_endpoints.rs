@@ -68,7 +68,9 @@ impl JsonRpcHandler {
 #[cfg(test)]
 mod tests {
 
-    use crate::api::json_rpc::models::{BroadcastedDeployAccountTransactionEnumWrapper, BroadcastedDeclareTransactionEnumWrapper};
+    use crate::api::json_rpc::models::{
+        BroadcastedDeclareTransactionEnumWrapper, BroadcastedDeployAccountTransactionEnumWrapper,
+    };
 
     #[test]
     fn check_correct_deserialization_of_deploy_account_transaction_request() {

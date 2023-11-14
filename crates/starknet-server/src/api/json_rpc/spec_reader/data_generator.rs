@@ -117,8 +117,9 @@ impl<'a> Visitor for RandDataGenerator<'a> {
         let number_of_elements = rand::thread_rng().gen_range(1..3);
 
         for _ in 0..number_of_elements {
-            let generated_value = generate_schema_value(element.items.as_ref(), self.schemas, self.depth + 1)?;
-            
+            let generated_value =
+                generate_schema_value(element.items.as_ref(), self.schemas, self.depth + 1)?;
+
             if !generated_value.is_null() {
                 array.push(generated_value);
             }
@@ -146,8 +147,7 @@ impl<'a> Visitor for RandDataGenerator<'a> {
 
     fn do_for_one_of(&self, element: &OneOf) -> Result<serde_json::Value, String> {
         let idx = rand::thread_rng().gen_range(0..element.one_of.len());
-        let schema =
-            element.one_of.get(idx).ok_or("OneOf schema doesnt have entry".to_string())?;
+        let schema = element.one_of.get(idx).ok_or("OneOf schema doesnt have entry".to_string())?;
 
         generate_schema_value(schema, self.schemas, self.depth)
     }
@@ -164,14 +164,13 @@ impl<'a> Visitor for RandDataGenerator<'a> {
                     .ok_or("Expected to be an object".to_string())?
                     .clone();
 
-                accumulated_json_value
-                    .extend(single_value);
+                accumulated_json_value.extend(single_value);
             }
         }
 
         if accumulated_json_value.is_empty() {
             Ok(Value::Null)
-        }else {
+        } else {
             Ok(serde_json::Value::Object(accumulated_json_value))
         }
     }
@@ -184,33 +183,33 @@ impl<'a> Visitor for RandDataGenerator<'a> {
             return Ok(Value::Null);
         }
         let mut accumulated_json_value = Map::new();
-        
-        for (key, inner_schema) in element.properties.iter().filter(|(k, _)| {
-            match element.required.as_ref() {
+
+        for (key, inner_schema) in
+            element.properties.iter().filter(|(k, _)| match element.required.as_ref() {
                 Some(required_fields) => required_fields.contains(k),
                 None => true,
-            }
-        }) {
-            let generated_value = generate_schema_value(inner_schema, self.schemas, self.depth + 1)?;
+            })
+        {
+            let generated_value =
+                generate_schema_value(inner_schema, self.schemas, self.depth + 1)?;
 
             if !generated_value.is_null() {
-                accumulated_json_value
-                    .insert(key.to_string(), generated_value);
+                accumulated_json_value.insert(key.to_string(), generated_value);
             }
         }
 
         if accumulated_json_value.is_empty() {
             Ok(Value::Null)
-        }else {
+        } else {
             Ok(Value::Object(accumulated_json_value))
-        }   
+        }
     }
 }
 
 pub(crate) fn generate_schema_value(
     schema: &Schema,
     schemas: &HashMap<String, Schema>,
-    depth: u8
+    depth: u8,
 ) -> core::result::Result<Value, String> {
     let generator = RandDataGenerator::new(schemas, depth);
 

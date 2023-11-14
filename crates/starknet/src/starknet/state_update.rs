@@ -31,7 +31,6 @@ mod tests {
     use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID};
     use crate::starknet::{predeployed, Starknet};
     use crate::state::state_diff::StateDiff;
-    use crate::state::state_update::StateUpdate;
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut};
     use crate::utils::test_utils::{dummy_cairo_1_contract_class, dummy_felt};
 
@@ -77,7 +76,8 @@ mod tests {
                 .into_iter()
                 .collect(),
             ..Default::default()
-        }.into();
+        }
+        .into();
 
         // check only 3 of the 4 fields, because the inner property has changes to the storage of
         // the ERC20 contract which are hard to be tested correctly, it depends on the fee

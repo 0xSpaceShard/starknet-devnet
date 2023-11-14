@@ -700,7 +700,7 @@ impl Starknet {
                 !skip_validate,
             )?;
 
-            let state_diff:ThinStateDiff = state.extract_state_diff_from_pending_state()?.into();
+            let state_diff: ThinStateDiff = state.extract_state_diff_from_pending_state()?.into();
 
             let address_to_class_hash_map = &state.state.state.address_to_class_hash;
 
@@ -729,7 +729,7 @@ impl Starknet {
                     TransactionTrace::Declare(DeclareTransactionTrace {
                         validate_invocation,
                         fee_transfer_invocation,
-                        state_diff
+                        state_diff,
                     })
                 }
                 BroadcastedTransaction::DeployAccount(_) => {
@@ -746,7 +746,7 @@ impl Starknet {
                             None
                         },
                         fee_transfer_invocation,
-                        state_diff
+                        state_diff,
                     })
                 }
                 BroadcastedTransaction::Invoke(_) => {
@@ -831,7 +831,7 @@ mod tests {
     use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
-    
+
     use super::Starknet;
     use crate::blocks::StarknetBlock;
     use crate::constants::{

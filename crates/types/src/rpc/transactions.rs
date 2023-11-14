@@ -319,7 +319,7 @@ pub struct BroadcastedTransactionCommon {
     pub max_fee: Fee,
     pub version: TransactionVersion,
     pub signature: TransactionSignature,
-    pub nonce: Nonce
+    pub nonce: Nonce,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]

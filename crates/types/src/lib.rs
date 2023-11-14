@@ -1,11 +1,11 @@
 pub mod chain_id;
+pub mod constants;
 pub mod contract_storage_key;
 pub mod error;
 pub mod patricia_key;
 pub mod rpc;
 pub mod serde_helpers;
 pub mod traits;
-pub mod constants;
 mod utils;
 
 // Re export libraries

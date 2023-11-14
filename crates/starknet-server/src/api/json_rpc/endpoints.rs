@@ -1,13 +1,12 @@
 use starknet_core::error::{Error, StateError};
-use starknet_rs_core::types::{ContractClass as CodegenContractClass, MsgFromL1};
+use starknet_rs_core::types::MsgFromL1;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{ClassHash, Felt, TransactionHash};
+use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{Block, BlockHeader, BlockId};
-use starknet_types::rpc::state::{ThinStateDiff, DeployedContract, ClassHashes, ContractNonce, StorageDiff, StorageEntry, StateUpdate};
+use starknet_types::rpc::state::StateUpdate;
 use starknet_types::rpc::transactions::{
-    BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall,
-    SimulationFlag,
+    BroadcastedTransaction, EventFilter, EventsChunk, FunctionCall, SimulationFlag,
 };
 use starknet_types::traits::ToHexString;
 
@@ -164,7 +163,9 @@ impl JsonRpcHandler {
         transaction_hash: TransactionHash,
     ) -> StrictRpcResult {
         match self.api.starknet.read().await.get_transaction_receipt_by_hash(transaction_hash) {
-            Ok(receipt) => Ok(StarknetResponse::TransactionReceiptByTransactionHash(receipt)),
+            Ok(receipt) => {
+                Ok(StarknetResponse::TransactionReceiptByTransactionHash(Box::new(receipt)))
+            }
             Err(Error::NoTransaction) => Err(ApiError::TransactionNotFound),
             Err(err) => Err(err.into()),
         }

@@ -61,7 +61,7 @@ mod estimate_fee_tests {
         if should_skip_fee_invocation {
             assert!(skip_validation_trace["fee_transfer_invocation"].as_object().is_none());
             assert!(no_flags_trace["fee_transfer_invocation"].as_object().is_none());
-        }else {
+        } else {
             assert!(skip_validation_trace["fee_transfer_invocation"].as_object().is_some());
             assert!(no_flags_trace["fee_transfer_invocation"].as_object().is_some());
         }
@@ -132,7 +132,12 @@ mod estimate_fee_tests {
             .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
             .await["result"][0];
 
-        assert_difference_if_validation(resp_no_flags, resp_skip_validation, &sender_address_hex, max_fee == FieldElement::ZERO);
+        assert_difference_if_validation(
+            resp_no_flags,
+            resp_skip_validation,
+            &sender_address_hex,
+            max_fee == FieldElement::ZERO,
+        );
     }
 
     #[tokio::test]
@@ -200,7 +205,12 @@ mod estimate_fee_tests {
             .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
             .await["result"][0];
 
-        assert_difference_if_validation(resp_no_flags, resp_skip_validation, &sender_address_hex, max_fee == FieldElement::ZERO);
+        assert_difference_if_validation(
+            resp_no_flags,
+            resp_skip_validation,
+            &sender_address_hex,
+            max_fee == FieldElement::ZERO,
+        );
     }
 
     #[tokio::test]
@@ -328,7 +338,7 @@ mod estimate_fee_tests {
             Arc::new(serde_json::from_value(contract_json.inner).unwrap());
         let class_hash = contract_artifact.class_hash().unwrap();
 
-                // declare class
+        // declare class
         let declaration_result =
             account.declare_legacy(contract_artifact.clone()).send().await.unwrap();
         assert_eq!(declaration_result.class_hash, class_hash);
@@ -343,7 +353,7 @@ mod estimate_fee_tests {
             &UdcUniqueness::NotUnique,
             &constructor_calldata,
         );
-                contract_factory.deploy(constructor_calldata, salt, false).send().await.unwrap();
+        contract_factory.deploy(constructor_calldata, salt, false).send().await.unwrap();
 
         // prepare the call used in simulation
         let increase_amount = FieldElement::from(100u128);
@@ -408,6 +418,11 @@ mod estimate_fee_tests {
             sender_address_hex
         );
 
-        assert_difference_if_validation(resp_no_flags, resp_skip_validation, &sender_address_hex, max_fee == FieldElement::ZERO);
+        assert_difference_if_validation(
+            resp_no_flags,
+            resp_skip_validation,
+            &sender_address_hex,
+            max_fee == FieldElement::ZERO,
+        );
     }
 }

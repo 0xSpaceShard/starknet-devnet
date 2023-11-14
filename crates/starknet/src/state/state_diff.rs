@@ -5,7 +5,9 @@ use blockifier::state::state_api::State;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt};
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
-use starknet_types::rpc::state::{ThinStateDiff, DeployedContract, ClassHashes, ContractNonce, StorageEntry, StorageDiff};
+use starknet_types::rpc::state::{
+    ClassHashes, ContractNonce, DeployedContract, StorageDiff, StorageEntry, ThinStateDiff,
+};
 
 use super::DevnetState;
 use crate::error::DevnetResult;
@@ -121,7 +123,8 @@ impl StateDiff {
 
 impl From<StateDiff> for ThinStateDiff {
     fn from(value: StateDiff) -> Self {
-        let declared_classes: Vec<(Felt, Felt)> = value.class_hash_to_compiled_class_hash.into_iter().collect();
+        let declared_classes: Vec<(Felt, Felt)> =
+            value.class_hash_to_compiled_class_hash.into_iter().collect();
 
         // cairo 0 declarations
         let cairo_0_declared_classes: Vec<Felt> = value.cairo_0_declared_contracts;
@@ -137,7 +140,8 @@ impl From<StateDiff> for ThinStateDiff {
         let nonces: Vec<(ContractAddress, Felt)> = value.address_to_nonce.into_iter().collect();
 
         // deployed contracts (address -> class hash)
-        let deployed_contracts: Vec<(ContractAddress, Felt)> = value.address_to_class_hash.into_iter().collect();
+        let deployed_contracts: Vec<(ContractAddress, Felt)> =
+            value.address_to_class_hash.into_iter().collect();
 
         ThinStateDiff {
             deployed_contracts: deployed_contracts

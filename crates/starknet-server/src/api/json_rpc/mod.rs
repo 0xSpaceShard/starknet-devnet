@@ -33,7 +33,10 @@ use self::models::{
     SyncingOutput, TransactionStatusOutput,
 };
 use super::Api;
-use crate::api::json_rpc::models::{SimulateTransactionsInput, BroadcastedDeclareTransactionEnumWrapper, BroadcastedDeployAccountTransactionEnumWrapper, BroadcastedInvokeTransactionEnumWrapper};
+use crate::api::json_rpc::models::{
+    BroadcastedDeclareTransactionEnumWrapper, BroadcastedDeployAccountTransactionEnumWrapper,
+    BroadcastedInvokeTransactionEnumWrapper, SimulateTransactionsInput,
+};
 use crate::api::serde_helpers::empty_params;
 
 /// Helper trait to easily convert results to rpc results
@@ -147,24 +150,25 @@ impl JsonRpcHandler {
                 contract_address,
             }) => self.get_nonce(block_id, contract_address).await.to_rpc_result(),
             StarknetRequest::AddDeclareTransaction(BroadcastedDeclareTransactionInput {
-                declare_transaction
+                declare_transaction,
             }) => {
-                let BroadcastedDeclareTransactionEnumWrapper::Declare(broadcasted_transaction) = declare_transaction;
+                let BroadcastedDeclareTransactionEnumWrapper::Declare(broadcasted_transaction) =
+                    declare_transaction;
                 self.add_declare_transaction(broadcasted_transaction).await.to_rpc_result()
             }
             StarknetRequest::AddDeployAccountTransaction(
                 BroadcastedDeployAccountTransactionInput { deploy_account_transaction },
             ) => {
-                let BroadcastedDeployAccountTransactionEnumWrapper::DeployAccount(broadcasted_transaction) = deploy_account_transaction;
-                self
-                .add_deploy_account_transaction(broadcasted_transaction)
-                .await
-                .to_rpc_result()
+                let BroadcastedDeployAccountTransactionEnumWrapper::DeployAccount(
+                    broadcasted_transaction,
+                ) = deploy_account_transaction;
+                self.add_deploy_account_transaction(broadcasted_transaction).await.to_rpc_result()
             }
             StarknetRequest::AddInvokeTransaction(BroadcastedInvokeTransactionInput {
                 invoke_transaction,
             }) => {
-                let BroadcastedInvokeTransactionEnumWrapper::Invoke(broadcasted_transaction) = invoke_transaction;
+                let BroadcastedInvokeTransactionEnumWrapper::Invoke(broadcasted_transaction) =
+                    invoke_transaction;
                 self.add_invoke_transaction(broadcasted_transaction).await.to_rpc_result()
             }
             StarknetRequest::EstimateMessageFee(request) => self
@@ -296,7 +300,7 @@ pub(crate) enum StarknetResponse {
     StorageAt(Felt),
     TransactionByHash(Transaction),
     TransactionByBlockAndIndex(Transaction),
-    TransactionReceiptByTransactionHash(TransactionReceipt),
+    TransactionReceiptByTransactionHash(Box<TransactionReceipt>),
     TransactionStatusByHash(TransactionStatusOutput),
     ClassByHash(CodegenContractClass),
     ClassHashAtContractAddress(ClassHash),
@@ -320,11 +324,10 @@ pub(crate) enum StarknetResponse {
 
 #[cfg(test)]
 mod requests_tests {
-    use serde::Serialize;
+
     use starknet_types::felt::Felt;
 
     use super::StarknetRequest;
-    use crate::api::json_rpc::ToRpcResponseResult;
 
     #[test]
     fn deserialize_get_block_with_transaction_hashes_request() {

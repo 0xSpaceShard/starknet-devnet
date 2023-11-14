@@ -1,9 +1,11 @@
-use serde::{Serialize, Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize};
 use starknet_api::core::{CONTRACT_ADDRESS_DOMAIN_SIZE, PATRICIA_KEY_UPPER_BOUND};
 
 use crate::error::{DevnetResult, Error};
 use crate::felt::Felt;
-use crate::serde_helpers::hex_string::{serialize_patricia_key_to_prefixed_hex, deserialize_to_prefixed_patricia_key};
+use crate::serde_helpers::hex_string::{
+    deserialize_to_prefixed_patricia_key, serialize_patricia_key_to_prefixed_hex,
+};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PatriciaKey(pub(crate) Felt);
@@ -27,7 +29,8 @@ impl PatriciaKey {
 impl Serialize for PatriciaKey {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: serde::Serializer {
+        S: serde::Serializer,
+    {
         serialize_patricia_key_to_prefixed_hex(self, serializer)
     }
 }

@@ -38,10 +38,8 @@ fn rename_property(json_obj: &mut Value, path_parts: &[&str], new_name: &str) {
                 obj.insert(new_name.to_string(), value);
             }
         }
-    } else {
-        if let Some(next_obj) = json_obj.get_mut(path_parts[0]) {
-            rename_property(next_obj, &path_parts[1..], new_name);
-        }
+    } else if let Some(next_obj) = json_obj.get_mut(path_parts[0]) {
+        rename_property(next_obj, &path_parts[1..], new_name);
     }
 }
 
@@ -51,40 +49,34 @@ fn delete_property(json_obj: &mut Value, path_parts: &[&str]) {
         if let Some(obj) = json_obj.as_object_mut() {
             obj.remove(path_parts[0]);
         }
-    } else {
-        if let Some(next_obj) = json_obj.get_mut(path_parts[0]) {
-            delete_property(next_obj, &path_parts[1..]);
-        }
+    } else if let Some(next_obj) = json_obj.get_mut(path_parts[0]) {
+        delete_property(next_obj, &path_parts[1..]);
     }
 }
 
 /// add property to a JSON object
 /// the new property comes in the form "key/value"
 fn add_property(json_obj: &mut Value, path_parts: &[&str], new_entry: &str) {
-    if path_parts.len() == 0 {
+    if path_parts.is_empty() {
         if let Some(obj) = json_obj.as_object_mut() {
             let new_entry_parts = new_entry.split('/').collect::<Vec<&str>>();
             obj.insert(
                 new_entry_parts[0].to_string(),
-                serde_json::Value::String(new_entry_parts[1..].join("/").to_string()),
+                serde_json::Value::String(new_entry_parts[1..].join("/")),
             );
         }
-    } else {
-        if let Some(next_obj) = json_obj.get_mut(path_parts[0]) {
-            add_property(next_obj, &path_parts[1..], new_entry);
-        }
+    } else if let Some(next_obj) = json_obj.get_mut(path_parts[0]) {
+        add_property(next_obj, &path_parts[1..], new_entry);
     }
 }
 
 fn remove_array_element(json_obj: &mut Value, path_parts: &[&str], index: usize) {
-    if path_parts.len() == 0 {
+    if path_parts.is_empty() {
         if let Some(arr) = json_obj.as_array_mut() {
             arr.remove(index);
         }
-    } else {
-        if let Some(next_obj) = json_obj.get_mut(path_parts[0]) {
-            remove_array_element(next_obj, &path_parts[1..], index);
-        }
+    } else if let Some(next_obj) = json_obj.get_mut(path_parts[0]) {
+        remove_array_element(next_obj, &path_parts[1..], index);
     }
 }
 

@@ -144,14 +144,14 @@ fn generate_json_rpc_request(
         let param_value = generate_schema_value(&param.schema, schemas, 0)?;
         params.insert(param.name.clone(), param_value);
     }
-    if params.len() > 0 {
+    if !params.is_empty() {
         request.insert("params", Value::Object(params));
     } else {
         request.insert("params", Value::Array(vec![]));
     }
 
     serde_json::to_value(&request)
-        .map_err(|err| format!("Could not serialize the JSON-RPC request: {}", err.to_string()))
+        .map_err(|err| format!("Could not serialize the JSON-RPC request: {}", err))
 }
 
 fn generate_json_rpc_response(
@@ -162,28 +162,8 @@ fn generate_json_rpc_response(
 }
 
 mod tests {
-    use serde::Deserialize;
-    use serde::de::DeserializeOwned;
-    use starknet_rs_core::types::{ContractClass, FlattenedSierraClass};
-    use starknet_types::contract_class::DeprecatedContractClass;
-    use starknet_types::contract_class::deprecated::rpc_contract_class::ContractClassAbiEntryWithType;
-    use starknet_types::felt::Felt;
-    use starknet_types::num_bigint::BigUint;
-    use starknet_types::rpc::block::Block;
-    use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
-    use starknet_types::rpc::transaction_receipt::{TransactionReceipt, ExecutionResources, CommonTransactionReceipt, TransactionOutput, DeployTransactionReceipt};
-    use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
-    use starknet_types::rpc::transactions::{
-        BroadcastedDeclareTransaction, FunctionInvocation, SimulatedTransaction, TransactionTrace, BroadcastedTransaction, InvokeTransactionTrace,
-    };
-    use starknet_types::starknet_api::block::BlockNumber;
-    use starknet_types::starknet_api::deprecated_contract_class::StructAbiEntry;
-    use starknet_types::starknet_api::serde_utils::PrefixedBytesAsHex;
-    use starknet_types::starknet_api::transaction::Fee;
 
-    use super::data_generator::generate_schema_value;
     use super::{generate_combined_schema, generate_json_rpc_response, Spec};
-    use crate::api::json_rpc::models::{TransactionStatusOutput, BroadcastedDeclareTransactionEnumWrapper};
     use crate::api::json_rpc::spec_reader::generate_json_rpc_request;
     use crate::api::json_rpc::{StarknetRequest, StarknetResponse};
 
@@ -201,18 +181,16 @@ mod tests {
                         continue;
                     }
                     // Create a JSON-RPC request for each method
-                    let request = generate_json_rpc_request(&method, &combined_schema)
+                    let request = generate_json_rpc_request(method, &combined_schema)
                         .expect("Could not generate the JSON-RPC request");
 
                     let sn_request = serde_json::from_value::<StarknetRequest>(request.clone());
 
                     if sn_request.is_err() {
-                        println!("Failed method request: {}", method.name);
-                        sn_request.unwrap();
-                        continue;
+                        panic!("Failed method request: {}", method.name);
                     }
 
-                    let response = generate_json_rpc_response(&method, &combined_schema)
+                    let response = generate_json_rpc_response(method, &combined_schema)
                         .expect("Could not generate the JSON-RPC response");
 
                     let sn_response = serde_json::from_value::<StarknetResponse>(response.clone());
@@ -227,64 +205,94 @@ mod tests {
 
                     match sn_request {
                         StarknetRequest::BlockWithTransactionHashes(_) => {
-                            assert!(matches!(sn_response, StarknetResponse::BlockWithTransactionHashes(_)));
-                        },
+                            assert!(matches!(
+                                sn_response,
+                                StarknetResponse::BlockWithTransactionHashes(_)
+                            ));
+                        }
                         StarknetRequest::BlockHashAndNumber => {
                             assert!(matches!(sn_response, StarknetResponse::BlockHashAndNumber(_)));
-                        },
-                        StarknetRequest::BlockNumber | StarknetRequest::BlockTransactionCount(_) => {
-                            assert!(matches!(sn_response, StarknetResponse::BlockNumber(_) | StarknetResponse::BlockTransactionCount(_)));
-                        },
+                        }
+                        StarknetRequest::BlockNumber
+                        | StarknetRequest::BlockTransactionCount(_) => {
+                            assert!(matches!(
+                                sn_response,
+                                StarknetResponse::BlockNumber(_)
+                                    | StarknetResponse::BlockTransactionCount(_)
+                            ));
+                        }
                         StarknetRequest::Call(_) => {
                             assert!(matches!(sn_response, StarknetResponse::Call(_)));
-                        },
-                        StarknetRequest::ClassAtContractAddress(_) | StarknetRequest::ClassByHash(_) => {
-                            assert!(matches!(sn_response, StarknetResponse::ClassAtContractAddress(_) | StarknetResponse::ClassByHash(_)));
-                        },
+                        }
+                        StarknetRequest::ClassAtContractAddress(_)
+                        | StarknetRequest::ClassByHash(_) => {
+                            assert!(matches!(
+                                sn_response,
+                                StarknetResponse::ClassAtContractAddress(_)
+                                    | StarknetResponse::ClassByHash(_)
+                            ));
+                        }
                         StarknetRequest::EsimateFee(_) => {
                             assert!(matches!(sn_response, StarknetResponse::EsimateFee(_)));
-                        },
+                        }
                         StarknetRequest::EstimateMessageFee(_) => {
                             assert!(matches!(sn_response, StarknetResponse::EstimateMessageFee(_)));
-                        },
+                        }
                         StarknetRequest::Events(_) => {
                             assert!(matches!(sn_response, StarknetResponse::Events(_)));
-                        },
+                        }
                         StarknetRequest::SimulateTransactions(_) => {
-                            assert!(matches!(sn_response, StarknetResponse::SimulateTransactions(_)));
-                        },
+                            assert!(matches!(
+                                sn_response,
+                                StarknetResponse::SimulateTransactions(_)
+                            ));
+                        }
                         StarknetRequest::StateUpdate(_) => {
                             assert!(matches!(sn_response, StarknetResponse::StateUpdate(_)));
-                        },
+                        }
                         StarknetRequest::Syncing => {
                             assert!(matches!(sn_response, StarknetResponse::Syncing(_)));
-                        },
+                        }
                         StarknetRequest::TransactionStatusByHash(_) => {
-                            assert!(matches!(sn_response, StarknetResponse::TransactionStatusByHash(_)));
-                        },
+                            assert!(matches!(
+                                sn_response,
+                                StarknetResponse::TransactionStatusByHash(_)
+                            ));
+                        }
                         StarknetRequest::AddDeclareTransaction(_) => {
-                            assert!(matches!(sn_response, StarknetResponse::AddDeclareTransaction(_)));
-                        },
+                            assert!(matches!(
+                                sn_response,
+                                StarknetResponse::AddDeclareTransaction(_)
+                            ));
+                        }
                         StarknetRequest::AddDeployAccountTransaction(_) => {
-                            assert!(matches!(sn_response, StarknetResponse::AddDeployAccountTransaction(_)));
-                        },
+                            assert!(matches!(
+                                sn_response,
+                                StarknetResponse::AddDeployAccountTransaction(_)
+                            ));
+                        }
                         StarknetRequest::AddInvokeTransaction(_) => {
-                            assert!(matches!(sn_response, StarknetResponse::AddInvokeTransaction(_)));
-                        },
+                            assert!(matches!(
+                                sn_response,
+                                StarknetResponse::AddInvokeTransaction(_)
+                            ));
+                        }
                         _ => {
                             // Remaining responses are not implemented, because
-                            // multiple requests return the same response format either u64, Felt, etc.
-                            // so its impossible to know which response variant is generated based on
-                            // serde untagged deserialization. This is due to the fact that the first variant which complies with the response format is returned                    
+                            // multiple requests return the same response format either u64, Felt,
+                            // etc. so its impossible to know which
+                            // response variant is generated based on
+                            // serde untagged deserialization. This is due to the fact that the
+                            // first variant which complies with the response format is returned
                         }
                     }
                 }
             }
         }
-        
+
         // TODO: there are some failed methods responses deserializations, because
-        // The implemented response variants have more fields than the json created from the generator
-        // Thus they diverge in some way from the spec, issue: https://github.com/0xSpaceShard/starknet-devnet-rs/issues/248
+        // The implemented response variants have more fields than the json created from the
+        // generator Thus they diverge in some way from the spec, issue: https://github.com/0xSpaceShard/starknet-devnet-rs/issues/248
         println!("Methods diverging from the spec in some way {:?}", failed_method_responses);
     }
 }

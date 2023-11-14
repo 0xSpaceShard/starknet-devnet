@@ -1,6 +1,4 @@
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{ClassHash, Felt};
-use starknet_types::patricia_key::PatriciaKey;
+use starknet_types::felt::Felt;
 
 use super::state_diff::StateDiff;
 
@@ -14,11 +12,6 @@ pub struct StateUpdate {
 impl StateUpdate {
     pub fn new(block_hash: Felt, state_diff: StateDiff) -> Self {
         // TODO new and old root are not computed, they are not part of the MVP
-        Self {
-            block_hash,
-            new_root: Felt::default(),
-            old_root: Felt::default(),
-            state_diff
-        }
+        Self { block_hash, new_root: Felt::default(), old_root: Felt::default(), state_diff }
     }
 }

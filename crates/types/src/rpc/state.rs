@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{felt::{Felt, ClassHash, BlockHash, Nonce}, contract_address::ContractAddress, patricia_key::PatriciaKey};
-
 use super::block::GlobalRootHex;
+use crate::contract_address::ContractAddress;
+use crate::felt::{BlockHash, ClassHash, Felt, Nonce};
+use crate::patricia_key::PatriciaKey;
 
 pub type CompiledClassHashHex = Felt;
 
