@@ -1,9 +1,10 @@
 mod endpoints;
 pub mod error;
 mod models;
+#[cfg(test)]
+mod spec_reader;
 mod write_endpoints;
 
-use error::RpcResult;
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
     EstimateFeeInput, EventsInput, GetStorageInput, TransactionHashInput,
@@ -12,15 +13,27 @@ use serde::{Deserialize, Serialize};
 use server::rpc_core::error::RpcError;
 use server::rpc_core::response::ResponseResult;
 use server::rpc_handler::RpcHandler;
-use starknet_types::rpc::estimate_message_fee::EstimateMessageFeeRequestWrapper;
+use starknet_rs_core::types::ContractClass as CodegenContractClass;
+use starknet_types::felt::{ClassHash, Felt};
+use starknet_types::rpc::block::Block;
+use starknet_types::rpc::estimate_message_fee::{
+    EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
+};
+use starknet_types::rpc::state::StateUpdate;
+use starknet_types::rpc::transaction_receipt::TransactionReceipt;
+use starknet_types::rpc::transactions::{EventsChunk, SimulatedTransaction, Transaction};
+use starknet_types::starknet_api::block::BlockNumber;
 use tracing::{error, info, trace};
 
+use self::error::StrictRpcResult;
 use self::models::{
-    BlockIdInput, BroadcastedDeclareTransactionInput, BroadcastedDeployAccountTransactionInput,
-    BroadcastedInvokeTransactionInput,
+    BlockHashAndNumberOutput, BlockIdInput, BroadcastedDeclareTransactionInput,
+    BroadcastedDeployAccountTransactionInput, BroadcastedInvokeTransactionInput,
+    DeclareTransactionOutput, DeployAccountTransactionOutput, InvokeTransactionOutput,
+    SyncingOutput, TransactionStatusOutput,
 };
 use super::Api;
-use crate::api::json_rpc::models::SimulateTransactionsInput;
+use crate::api::json_rpc::models::{SimulateTransactionsInput, BroadcastedDeclareTransactionEnumWrapper, BroadcastedDeployAccountTransactionEnumWrapper, BroadcastedInvokeTransactionEnumWrapper};
 use crate::api::serde_helpers::empty_params;
 
 /// Helper trait to easily convert results to rpc results
@@ -42,7 +55,7 @@ pub fn to_rpc_result<T: Serialize>(val: T) -> ResponseResult {
     }
 }
 
-impl<T: Serialize> ToRpcResponseResult for RpcResult<T> {
+impl ToRpcResponseResult for StrictRpcResult {
     fn to_rpc_result(self) -> ResponseResult {
         match self {
             Ok(data) => to_rpc_result(data),
@@ -274,11 +287,44 @@ impl std::fmt::Display for StarknetRequest {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(untagged)]
+pub(crate) enum StarknetResponse {
+    BlockWithTransactionHashes(Block),
+    BlockWithFullTransactions(Block),
+    StateUpdate(StateUpdate),
+    StorageAt(Felt),
+    TransactionByHash(Transaction),
+    TransactionByBlockAndIndex(Transaction),
+    TransactionReceiptByTransactionHash(TransactionReceipt),
+    TransactionStatusByHash(TransactionStatusOutput),
+    ClassByHash(CodegenContractClass),
+    ClassHashAtContractAddress(ClassHash),
+    ClassAtContractAddress(CodegenContractClass),
+    BlockTransactionCount(u64),
+    Call(Vec<Felt>),
+    EsimateFee(Vec<FeeEstimateWrapper>),
+    BlockNumber(BlockNumber),
+    BlockHashAndNumber(BlockHashAndNumberOutput),
+    ChainId(String),
+    Syncing(SyncingOutput),
+    Events(EventsChunk),
+    ContractNonce(Felt),
+    AddDeclareTransaction(DeclareTransactionOutput),
+    AddDeployAccountTransaction(DeployAccountTransactionOutput),
+    AddInvokeTransaction(InvokeTransactionOutput),
+    EstimateMessageFee(FeeEstimateWrapper),
+    SimulateTransactions(Vec<SimulatedTransaction>),
+    SpecVersion(String),
+}
+
 #[cfg(test)]
 mod requests_tests {
+    use serde::Serialize;
     use starknet_types::felt::Felt;
 
     use super::StarknetRequest;
+    use crate::api::json_rpc::ToRpcResponseResult;
 
     #[test]
     fn deserialize_get_block_with_transaction_hashes_request() {
