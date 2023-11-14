@@ -185,7 +185,12 @@ impl<'a> Visitor for RandDataGenerator<'a> {
         }
         let mut accumulated_json_value = Map::new();
         
-        for (key, inner_schema) in element.properties.iter() {
+        for (key, inner_schema) in element.properties.iter().filter(|(k, _)| {
+            match element.required.as_ref() {
+                Some(required_fields) => required_fields.contains(k),
+                None => true,
+            }
+        }) {
             let generated_value = generate_schema_value(inner_schema, self.schemas, self.depth + 1)?;
 
             if !generated_value.is_null() {
