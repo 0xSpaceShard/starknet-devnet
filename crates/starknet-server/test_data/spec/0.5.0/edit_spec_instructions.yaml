@@ -31,6 +31,8 @@ remove_from_array:
     index: 1
   - path: components/schemas/TXN_STATUS/enum
     index: 0
+  - path: components/schemas/TRANSACTION_TRACE/oneOf
+    index: 3
 
 remove_manually:
   - path: components/schemas/TXN_STATUS
