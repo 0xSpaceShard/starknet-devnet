@@ -12,8 +12,8 @@ mod get_transaction_receipt_by_hash_integration_tests {
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::{
-        BroadcastedDeclareTransactionV1, FieldElement, MaybePendingTransactionReceipt,
-        StarknetError, TransactionReceipt,
+        BroadcastedDeclareTransactionV1, ExecutionResult, FieldElement,
+        MaybePendingTransactionReceipt, StarknetError, TransactionReceipt,
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::{
@@ -68,13 +68,13 @@ mod get_transaction_receipt_by_hash_integration_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         let (signer, address) = devnet.get_first_predeployed_account().await;
-        let predeployed_account = SingleOwnerAccount::new(
+        let predeployed_account = Arc::new(SingleOwnerAccount::new(
             devnet.clone_provider(),
             signer,
             address,
             chain_id::TESTNET,
             ExecutionEncoding::Legacy,
-        );
+        ));
 
         let (cairo_1_contract, casm_class_hash) =
             get_events_contract_in_sierra_and_compiled_class_hash();
@@ -87,26 +87,19 @@ mod get_transaction_receipt_by_hash_integration_tests {
             .await
             .unwrap();
 
-        let predeployed_account = Arc::new(predeployed_account);
-
         // deploy the contract
         let contract_factory =
             ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
 
+        let salt = FieldElement::ZERO;
+        let constructor_args = Vec::<FieldElement>::new();
+        let max_fee = FieldElement::from(1e18 as u128);
         let deployment_result = contract_factory
-            .deploy(vec![], FieldElement::ZERO, false)
-            .max_fee(FieldElement::from(1e18 as u128))
+            .deploy(constructor_args.clone(), salt, false)
+            .max_fee(max_fee)
             .send()
             .await
             .unwrap();
-
-        // generate the address of the newly deployed contract
-        let new_contract_address = get_udc_deployed_address(
-            FieldElement::ZERO,
-            declaration_result.class_hash,
-            &starknet_rs_core::utils::UdcUniqueness::NotUnique,
-            &[],
-        );
 
         let deployment_receipt = devnet
             .json_rpc_client
@@ -116,9 +109,73 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
         match deployment_receipt {
             MaybePendingTransactionReceipt::Receipt(TransactionReceipt::Deploy(receipt)) => {
-                assert_eq!(receipt.contract_address, new_contract_address);
+                let expected_contract_address = get_udc_deployed_address(
+                    salt,
+                    declaration_result.class_hash,
+                    &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+                    &constructor_args,
+                );
+                assert_eq!(receipt.contract_address, expected_contract_address);
+                assert!(receipt.actual_fee < max_fee);
             }
             _ => panic!("Invalid receipt {:?}", deployment_receipt),
+        };
+    }
+
+    #[tokio::test]
+    async fn invalid_deploy_transaction_receipt() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        let (signer, address) = devnet.get_first_predeployed_account().await;
+        let predeployed_account = Arc::new(SingleOwnerAccount::new(
+            devnet.clone_provider(),
+            signer,
+            address,
+            chain_id::TESTNET,
+            ExecutionEncoding::Legacy,
+        ));
+
+        let (cairo_1_contract, casm_class_hash) =
+            get_events_contract_in_sierra_and_compiled_class_hash();
+
+        // declare the contract
+        let declaration_result = predeployed_account
+            .declare(Arc::new(cairo_1_contract), casm_class_hash)
+            .max_fee(FieldElement::from(1e18 as u128))
+            .send()
+            .await
+            .unwrap();
+
+        // try deploying with invalid constructor args - none are expected, we are providing [1]
+        let contract_factory =
+            ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
+
+        let salt = FieldElement::ZERO;
+        let invalid_constructor_args = vec![FieldElement::ONE];
+        let max_fee = FieldElement::from(1e18 as u128);
+        let invalid_deployment_result = contract_factory
+            .deploy(invalid_constructor_args, salt, false)
+            .max_fee(max_fee)
+            .send()
+            .await
+            .unwrap();
+
+        let invalid_deployment_receipt = devnet
+            .json_rpc_client
+            .get_transaction_receipt(invalid_deployment_result.transaction_hash)
+            .await
+            .unwrap();
+        match invalid_deployment_receipt {
+            MaybePendingTransactionReceipt::Receipt(TransactionReceipt::Invoke(receipt)) => {
+                match receipt.execution_result {
+                    ExecutionResult::Reverted { reason } => {
+                        assert!(reason.contains("Input too long for arguments"));
+                    }
+                    other => panic!("Invalid execution result {other:?}"),
+                }
+                assert!(receipt.actual_fee < max_fee);
+            }
+            _ => panic!("Invalid receipt {:?}", invalid_deployment_receipt),
         };
     }
 
@@ -127,7 +184,6 @@ mod get_transaction_receipt_by_hash_integration_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
-
         let predeployed_account = SingleOwnerAccount::new(
             devnet.clone_provider(),
             signer,
@@ -150,11 +206,8 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
         // send transaction with lower than estimated fee
         // should revert
-        let transfer_result = transfer_execution
-            .max_fee(FieldElement::from(fee.overall_fee - 1))
-            .send()
-            .await
-            .unwrap();
+        let max_fee = FieldElement::from(fee.overall_fee - 1);
+        let transfer_result = transfer_execution.max_fee(max_fee).send().await.unwrap();
 
         let transfer_receipt = devnet
             .json_rpc_client
@@ -168,6 +221,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
                     starknet_rs_core::types::ExecutionResult::Reverted { .. } => (),
                     _ => panic!("Invalid receipt {:?}", receipt),
                 }
+                assert_eq!(receipt.actual_fee, max_fee);
             }
             _ => panic!("Invalid receipt {:?}", transfer_receipt),
         };
@@ -201,6 +255,45 @@ mod get_transaction_receipt_by_hash_integration_tests {
             _ => {
                 panic!("Invalid result: {:?}", declare_transaction_result);
             }
+        }
+    }
+
+    #[tokio::test]
+    async fn declare_v1_accepted_with_numeric_entrypoint_offset() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+        let declare_file_content = std::fs::File::open(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test_data/rpc/declare_v1.json"
+        ))
+        .unwrap();
+        let mut declare_rpc_body: serde_json::Value =
+            serde_json::from_reader(declare_file_content).unwrap();
+
+        let entry_points = declare_rpc_body["contract_class"]["entry_points_by_type"]["EXTERNAL"]
+            .as_array_mut()
+            .unwrap();
+        for entry_point in entry_points {
+            // We are assuming hex string format in the loaded artifact;
+            // Converting it to numeric value to test that case
+            let offset_hex_string = entry_point["offset"].as_str().unwrap();
+            entry_point["offset"] =
+                u32::from_str_radix(&offset_hex_string[2..], 16).unwrap().into();
+        }
+
+        let resp = &devnet
+            .send_custom_rpc(
+                "starknet_addDeclareTransaction",
+                serde_json::json!({ "declare_transaction": declare_rpc_body }),
+            )
+            .await;
+
+        match resp["error"]["code"].as_u64() {
+            Some(53) => {
+                // We got error code corresponding to insufficient balance, which is ok;
+                // it's important we didn't get failed JSON schema matching with error -32602
+            }
+            _ => panic!("Unexpected response: {resp}"),
         }
     }
 

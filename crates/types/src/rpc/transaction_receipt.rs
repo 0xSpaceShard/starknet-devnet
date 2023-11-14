@@ -26,7 +26,6 @@ pub struct DeployTransactionReceipt {
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct MaybePendingProperties {
-    pub finality_status: TransactionFinalityStatus,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub block_hash: Option<BlockHash>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -42,6 +41,7 @@ pub struct CommonTransactionReceipt {
     pub output: TransactionOutput,
     #[serde(flatten)]
     pub execution_status: ExecutionResult,
+    pub finality_status: TransactionFinalityStatus,
     #[serde(flatten)]
     pub maybe_pending_properties: MaybePendingProperties,
     pub execution_resources: ExecutionResources,

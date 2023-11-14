@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use starknet_api::transaction::Fee;
 
 use crate::felt::{Calldata, ClassHash, ContractAddressSalt, TransactionHash, TransactionVersion};
 
@@ -13,10 +12,6 @@ pub struct DeployTransaction {
 }
 
 impl DeployTransaction {
-    pub fn get_max_fee(&self) -> Fee {
-        Fee(0)
-    }
-
     pub fn get_transaction_hash(&self) -> &TransactionHash {
         &self.transaction_hash
     }

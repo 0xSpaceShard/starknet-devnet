@@ -12,32 +12,42 @@ pub enum HttpApiError {
     MintingError { msg: String },
     #[error("The file does not exist")]
     FileNotFound,
-    #[error("The dump operation failed")]
+    #[error("The dump operation failed: {msg}")]
     DumpError { msg: String },
     #[error("The load operation failed")]
     LoadError,
     #[error("The re-execution operation failed")]
     ReExecutionError,
+    #[error("The creation of empty block failed: {msg}")]
+    CreateEmptyBlockError { msg: String },
+    #[error("The set time operation failed: {msg}")]
+    BlockSetTimeError { msg: String },
+    #[error("The increase time operation failed: {msg}")]
+    BlockIncreaseTimeError { msg: String },
+    #[error("Could not restart: {msg}")]
+    RestartError { msg: String },
 }
 
 impl IntoResponse for HttpApiError {
     fn into_response(self) -> axum::response::Response {
         let (status, error_message) = match self {
-            HttpApiError::GeneralError => {
-                (StatusCode::INTERNAL_SERVER_ERROR, String::from("general error"))
-            }
-            HttpApiError::FileNotFound => {
-                (StatusCode::BAD_REQUEST, String::from("file does not exist"))
-            }
+            err @ HttpApiError::GeneralError => (StatusCode::BAD_REQUEST, err.to_string()),
+            err @ HttpApiError::FileNotFound => (StatusCode::BAD_REQUEST, err.to_string()),
             err @ HttpApiError::DumpError { msg: _ } => (StatusCode::BAD_REQUEST, err.to_string()),
-            HttpApiError::LoadError => {
-                (StatusCode::BAD_REQUEST, String::from("load operation failed"))
-            }
-            HttpApiError::ReExecutionError => {
-                (StatusCode::BAD_REQUEST, String::from("re-execution operation failed"))
-            }
-            err @ HttpApiError::MintingError { msg: _ } => {
+            err @ HttpApiError::LoadError => (StatusCode::BAD_REQUEST, err.to_string()),
+            err @ HttpApiError::ReExecutionError => (StatusCode::BAD_REQUEST, err.to_string()),
+            err @ HttpApiError::CreateEmptyBlockError { msg: _ } => {
                 (StatusCode::BAD_REQUEST, err.to_string())
+            }
+            err @ HttpApiError::BlockSetTimeError { msg: _ } => {
+                (StatusCode::BAD_REQUEST, err.to_string())
+            }
+            err @ HttpApiError::BlockIncreaseTimeError { msg: _ } => {
+                (StatusCode::BAD_REQUEST, err.to_string())
+            }
+            err @ HttpApiError::MintingError { .. } => (StatusCode::BAD_REQUEST, err.to_string()),
+            err @ HttpApiError::RestartError { .. } => {
+                (StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
             }
         };
 

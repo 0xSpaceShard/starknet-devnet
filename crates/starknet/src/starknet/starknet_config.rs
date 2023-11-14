@@ -24,11 +24,14 @@ pub struct StarknetConfig {
     pub predeployed_accounts_initial_balance: Felt,
     pub host: IpAddr,
     pub port: u16,
+    pub start_time: Option<u64>,
     pub timeout: u16,
     pub gas_price: u64,
     pub chain_id: ChainId,
     pub dump_on: Option<DumpOn>,
     pub dump_path: Option<String>,
+    /// on initialization, re-execute loaded txs (if any)
+    pub re_execute_on_init: bool,
 }
 
 impl Default for StarknetConfig {
@@ -45,11 +48,13 @@ impl Default for StarknetConfig {
             predeployed_accounts_initial_balance: Felt::default(),
             host: DEVNET_DEFAULT_HOST,
             port: u16::default(),
+            start_time: None,
             timeout: u16::default(),
             gas_price: Default::default(),
             chain_id: DEVNET_DEFAULT_CHAIN_ID,
             dump_on: None,
             dump_path: None,
+            re_execute_on_init: true,
         }
     }
 }

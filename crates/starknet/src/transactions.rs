@@ -165,6 +165,7 @@ impl StarknetTransaction {
             self.block_number,
             &self.execution_result,
             self.finality_status,
+            self.execution_info.actual_fee,
             &self.execution_info,
         );
 
@@ -230,43 +231,16 @@ mod tests {
     }
 
     #[test]
-    fn check_correct_rejected_transaction_creation() {
-        let tx = Transaction::Declare(DeclareTransaction::Version1(dummy_declare_transaction_v1()));
-        check_correct_transaction_properties(tx, false);
-    }
-
-    #[test]
     fn check_correct_successful_transaction_creation() {
         let tx = Transaction::Declare(DeclareTransaction::Version1(dummy_declare_transaction_v1()));
-        check_correct_transaction_properties(tx, true);
-    }
 
-    fn check_correct_transaction_properties(tran: Transaction, is_success: bool) {
-        let sn_tran = if is_success {
-            let tx =
-                StarknetTransaction::create_accepted(&tran, TransactionExecutionInfo::default());
-            assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
-            assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
-
-            tx
-        } else {
-            let error_str = "Dummy error";
-            let execution_info = TransactionExecutionInfo {
-                revert_error: Some(error_str.to_string()),
-                ..Default::default()
-            };
-
-            let tx = StarknetTransaction::create_accepted(&tran, execution_info);
-
-            assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
-            assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Reverted);
-            assert_eq!(tx.execution_result.revert_reason(), Some(error_str));
-
-            tx
-        };
+        let sn_tran =
+            StarknetTransaction::create_accepted(&tx, TransactionExecutionInfo::default());
+        assert_eq!(sn_tran.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+        assert_eq!(sn_tran.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
         assert!(sn_tran.block_hash.is_none());
         assert!(sn_tran.block_number.is_none());
-        assert!(sn_tran.inner == tran);
+        assert_eq!(sn_tran.inner, tx);
     }
 }

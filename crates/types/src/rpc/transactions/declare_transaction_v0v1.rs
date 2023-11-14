@@ -24,10 +24,6 @@ pub struct DeclareTransactionV0V1 {
 }
 
 impl DeclareTransactionV0V1 {
-    pub fn get_max_fee(&self) -> Fee {
-        self.max_fee
-    }
-
     pub fn get_transaction_hash(&self) -> &TransactionHash {
         &self.transaction_hash
     }
