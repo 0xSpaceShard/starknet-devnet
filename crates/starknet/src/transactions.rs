@@ -64,7 +64,7 @@ impl StarknetTransaction {
         transaction: &Transaction,
         execution_info: TransactionExecutionInfo,
     ) -> Self {
-                Self {
+        Self {
             finality_status: TransactionFinalityStatus::AcceptedOnL2,
             execution_result: match execution_info.is_reverted() {
                 true => ExecutionResult::Reverted {
@@ -165,7 +165,7 @@ impl StarknetTransaction {
             self.block_number,
             &self.execution_result,
             self.finality_status,
-            &self.execution_info
+            &self.execution_info,
         );
 
         match &self.inner {
