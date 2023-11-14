@@ -15,7 +15,11 @@ use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::Signer;
 use starknet_types::chain_id::ChainId;
-use starknet_types::constants::{OUTPUT_BUILTIN_NAME, HASH_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, POSEIDON_BUILTIN_NAME, SEGMENT_ARENA_BUILTIN_NAME, KECCAK_BUILTIN_NAME, N_STEPS};
+use starknet_types::constants::{
+    BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME, N_STEPS,
+    OUTPUT_BUILTIN_NAME, POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME,
+    SEGMENT_ARENA_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
+};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::contract_storage_key::ContractStorageKey;
@@ -24,6 +28,7 @@ use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{Block, BlockHeader};
 use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
+use starknet_types::rpc::state::ThinStateDiff;
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
@@ -694,6 +699,9 @@ impl Starknet {
                 !skip_fee_charge,
                 !skip_validate,
             )?;
+
+            let state_diff:ThinStateDiff = state.extract_state_diff_from_pending_state()?.into();
+
             let address_to_class_hash_map = &state.state.state.address_to_class_hash;
 
             let validate_invocation =
@@ -721,6 +729,7 @@ impl Starknet {
                     TransactionTrace::Declare(DeclareTransactionTrace {
                         validate_invocation,
                         fee_transfer_invocation,
+                        state_diff
                     })
                 }
                 BroadcastedTransaction::DeployAccount(_) => {
@@ -737,12 +746,15 @@ impl Starknet {
                             None
                         },
                         fee_transfer_invocation,
+                        state_diff
                     })
                 }
                 BroadcastedTransaction::Invoke(_) => {
                     TransactionTrace::Invoke(InvokeTransactionTrace {
+                        fee_transfer_invocation,
                         validate_invocation,
-                        execution_invocation: match tx_execution_info.execute_call_info {
+                        state_diff,
+                        execute_invocation: match tx_execution_info.execute_call_info {
                             Some(call_info) => match call_info.execution.failed {
                                 false => ExecutionInvocation::Succeeded(
                                     FunctionInvocation::try_from_call_info(
@@ -819,7 +831,7 @@ mod tests {
     use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
-
+    
     use super::Starknet;
     use crate::blocks::StarknetBlock;
     use crate::constants::{
