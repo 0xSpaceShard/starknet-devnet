@@ -11,19 +11,22 @@ mod estimate_fee_tests {
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::contract::SierraClass;
+    use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
     use starknet_rs_core::types::{
         BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedInvokeTransaction,
         BroadcastedTransaction, FeeEstimate, FieldElement, FunctionCall, StarknetError,
     };
     use starknet_rs_core::utils::{
-        get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
+        cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
     };
     use starknet_rs_providers::{
         MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
     };
 
-    use crate::common::constants::{CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH, CHAIN_ID};
+    use crate::common::constants::{
+        CAIRO_1_BALANCE_CONTRACT_CASM_PATH, CAIRO_1_BALANCE_CONTRACT_SIERRA_PATH,
+        CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH, CHAIN_ID,
+    };
     use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::{
         assert_tx_reverted, assert_tx_successful, get_deployable_account_signer, load_json,
@@ -294,10 +297,9 @@ mod estimate_fee_tests {
         );
         contract_factory
             .deploy(constructor_calldata, salt, false)
-            .nonce(FieldElement::ONE)
-            // max fee implicitly estimated
             .send()
-            .await.expect("Cannot deploy");
+            .await
+            .expect("Cannot deploy");
 
         // prepare the call used in estimation and actual invoke
         let increase_amount = FieldElement::from(100u128);
@@ -352,6 +354,70 @@ mod estimate_fee_tests {
         let balance_after_sufficient =
             devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap();
         assert_eq!(balance_after_sufficient, vec![increase_amount]);
+    }
+
+    #[tokio::test]
+    async fn message_available_if_estimation_panics() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        // get account
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+        let account = Arc::new(SingleOwnerAccount::new(
+            devnet.clone_provider(),
+            signer,
+            account_address,
+            CHAIN_ID,
+            ExecutionEncoding::Legacy,
+        ));
+
+        // get class
+        let contract_artifact: SierraClass = load_json(CAIRO_1_BALANCE_CONTRACT_SIERRA_PATH);
+        let compiled_contract_artifact: CompiledClass =
+            load_json(CAIRO_1_BALANCE_CONTRACT_CASM_PATH);
+        let flattened_contract_artifact = Arc::new(contract_artifact.clone().flatten().unwrap());
+        let compiled_class_hash = compiled_contract_artifact.class_hash().unwrap();
+        let class_hash = contract_artifact.class_hash().unwrap();
+
+        // declare class
+        let declaration_result = account
+            .declare(flattened_contract_artifact.clone(), compiled_class_hash)
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(declaration_result.class_hash, class_hash);
+
+        // deploy instance of class
+        let contract_factory = ContractFactory::new(class_hash, account.clone());
+        let salt = FieldElement::from_hex_be("0x123").unwrap();
+        let constructor_calldata = vec![FieldElement::ZERO]; // initial storage
+        let contract_address = get_udc_deployed_address(
+            salt,
+            class_hash,
+            &UdcUniqueness::NotUnique,
+            &constructor_calldata,
+        );
+        contract_factory
+            .deploy(constructor_calldata, salt, false)
+            .send()
+            .await
+            .expect("Cannot deploy");
+
+        let panic_reason = "custom little reason";
+        let calls = vec![Call {
+            to: contract_address,
+            selector: get_selector_from_name("create_panic").unwrap(),
+            calldata: vec![cairo_short_string_to_felt(panic_reason).unwrap()],
+        }];
+
+        match account.execute(calls).estimate_fee().await {
+            Err(AccountError::Provider(ProviderError::StarknetError(
+                StarknetErrorWithMessage {
+                    code: MaybeUnknownErrorCode::Known(StarknetError::ContractError),
+                    message,
+                },
+            ))) => assert!(message.contains(panic_reason)),
+            other => panic!("Unexpected result: {other:?}"),
+        }
     }
 
     #[tokio::test]
