@@ -81,7 +81,6 @@ pub struct Starknet {
     pub config: StarknetConfig,
     pub pending_block_timestamp_shift: i64,
     pub messaging: Option<EthereumMessaging>,
-
 }
 
 impl Default for Starknet {

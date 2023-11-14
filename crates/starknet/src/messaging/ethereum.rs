@@ -99,11 +99,7 @@ impl EthereumMessaging {
 
         let chain_id = provider.get_chainid().await?;
 
-        let private_key = if let Some(pk) = private_key {
-            pk
-        } else {
-            ETH_ACCOUNT_DEFAULT.private_key
-        };
+        let private_key = private_key.unwrap_or(ETH_ACCOUNT_DEFAULT.private_key);
 
         let wallet: LocalWallet =
             private_key.parse::<LocalWallet>()?.with_chain_id(chain_id.as_u32());
