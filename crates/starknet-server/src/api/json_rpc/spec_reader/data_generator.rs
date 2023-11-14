@@ -195,7 +195,6 @@ impl<'a> Visitor for RandDataGenerator<'a> {
         }
 
         if accumulated_json_value.is_empty() {
-            println!("empty object");
             Ok(Value::Null)
         }else {
             Ok(Value::Object(accumulated_json_value))
