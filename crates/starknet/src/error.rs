@@ -90,6 +90,8 @@ pub enum TransactionValidationError {
 pub enum MessagingError {
     #[error("Message is not configured, ensure you've used `postman_load` first.")]
     NotConfigured,
+    #[error("An error has occurred during messages conversion: {0}.")]
+    ConversionError(String),
     #[error("Ethers error: {0}.")]
     EthersError(String),
 }

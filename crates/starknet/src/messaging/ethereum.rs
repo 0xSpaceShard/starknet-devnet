@@ -6,8 +6,7 @@ use ethers::prelude::*;
 use ethers::providers::{Http, Provider, ProviderError};
 use ethers::types::{Address, BlockNumber, Log};
 use k256::ecdsa::SigningKey;
-use sha3::{Digest, Keccak256};
-use starknet_rs_core::types::{FieldElement, MsgToL1};
+use starknet_rs_core::types::{FieldElement, Hash256, MsgToL1};
 use starknet_types::felt::Felt;
 use starknet_types::rpc::contract_address::ContractAddress;
 use starknet_types::rpc::transactions::L1HandlerTransaction;
@@ -130,6 +129,11 @@ impl EthereumMessaging {
         Ok(ethereum)
     }
 
+    /// Returns the url of the ethereum node currently in used.
+    pub fn node_url(&self) -> String {
+        self.provider.url().to_string()
+    }
+
     /// Fetches all the messages that were not already fetched from the L1 node.
     ///
     /// # Arguments
@@ -190,7 +194,7 @@ impl EthereumMessaging {
         );
 
         for message in messages {
-            let message_hash = compute_message_hash(message);
+            let message_hash = U256::from_big_endian(message.hash().as_bytes());
             trace!("Sending message to L1: [{:064x}]", message_hash);
 
             let from_address = felt_rs_to_u256(&message.from_address)?;
@@ -224,6 +228,56 @@ impl EthereumMessaging {
         }
 
         Ok(())
+    }
+
+    /// Mocks the consumption of a message on L1 by providing the message content.
+    /// To compute the hash in the mocked function on L1, the whole message payload,
+    /// emitter and receiver must be provided.
+    /// Returns the message hash of the message that is expected to be consumed.
+    ///
+    /// # Arguments
+    ///
+    /// * `l1_contract_address` - The L1 contract address that should consume the message.
+    /// * `l2_contract_address` - The L2 contract address that sent the message.
+    /// * `payload` - The message payload.
+    pub async fn consume_mock_message(&self, message: &MsgToL1) -> DevnetResult<Hash256> {
+        let starknet_messaging = MockStarknetMessaging::new(
+            self.messaging_contract_address,
+            self.provider_signer.clone(),
+        );
+
+        let from_address = felt_rs_to_u256(&message.from_address)?;
+        let to_address = felt_rs_to_u256(&message.to_address)?;
+        let payload = felts_rs_to_u256s(&message.payload)?;
+        let message_hash = message.hash();
+
+        match starknet_messaging
+            .mock_consume_message_from_l2(from_address, to_address, payload)
+            .send()
+            .await
+            .map_err(|e| Error::MessagingError(MessagingError::EthersError(
+                format!("Error sending transaction on ethereum: {}", e)
+            )))?
+        // wait for the tx to be mined
+            .await?
+        {
+            Some(receipt) => {
+                trace!(
+                    "Message {} consumed on L1 with transaction hash {:#x}",
+                    message_hash,
+                    receipt.transaction_hash,
+                );
+            }
+            None => {
+                warn!("No receipt for L1 transaction.");
+                return Err(Error::MessagingError(MessagingError::EthersError(format!(
+                    "No receipt for transaction to consume message on L1 with hash {}",
+                    message_hash
+                ))));
+            }
+        };
+
+        Ok(message_hash)
     }
 
     /// Fetches logs in the given block range and returns a `HashMap` with the list of logs for each
@@ -299,7 +353,7 @@ impl EthereumMessaging {
                 .map_err(|e| {
                     Error::MessagingError(MessagingError::EthersError(format!(
                         "Error formatting messaging contract deploy request: {}",
-                        e.to_string()
+                        e
                     )))
                 })?
                 .send()
@@ -307,7 +361,7 @@ impl EthereumMessaging {
                 .map_err(|e| {
                     Error::MessagingError(MessagingError::EthersError(format!(
                         "Error deploying messaging contract: {}",
-                        e.to_string()
+                        e
                     )))
                 })?;
 
@@ -351,27 +405,6 @@ fn l1_handler_tx_from_log(log: Log, chain_id: Felt) -> DevnetResult<L1HandlerTra
         ..Default::default()
     }
     .with_hash(chain_id))
-}
-
-/// Computes the hash of a `MsgToL1`.
-/// TODO: this must be removed once https://github.com/xJonathanLEI/starknet-rs/pull/476
-/// is merged.
-///
-/// # Arguments
-///
-/// * `message` - The message on which the hash must be computed.
-fn compute_message_hash(message: &MsgToL1) -> U256 {
-    let mut buf: Vec<u8> = vec![];
-    buf.extend(message.from_address.to_bytes_be());
-    buf.extend(message.to_address.to_bytes_be());
-    buf.extend(FieldElement::from(message.payload.len()).to_bytes_be());
-    message.payload.iter().for_each(|p| buf.extend(p.to_bytes_be()));
-
-    let mut hasher = Keccak256::new();
-    hasher.update(buf);
-    let hash = hasher.finalize();
-    let hash_bytes = hash.as_slice();
-    U256::from_big_endian(hash_bytes)
 }
 
 /// Converts a vector of `FieldElement` to a vector of `U256`.

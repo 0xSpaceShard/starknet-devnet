@@ -15,7 +15,6 @@ clap = { workspace = true }
 # TODO: perhaps not the best solution to have ethers inside Starknet crate.
 # Here for the MVP, to be checked with spaceshard team.
 ethers = { version = "2.0.8" }
-sha3 = { version = "0.10.7", default-features = false }
 
 starknet_api = { workspace = true, features = ["testing"] }
 thiserror = { workspace = true }

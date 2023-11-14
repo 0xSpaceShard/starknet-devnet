@@ -31,6 +31,7 @@
 //! This is done my sending a transaction to the Ethereum node, to the MockStarknetMessaging
 //! contract (`mockSendMessageFromL2` entrypoint).
 use starknet_rs_core::types::{BlockId, MsgToL1};
+use starknet_types::rpc::transactions::L1HandlerTransaction;
 
 use crate::error::{DevnetResult, Error, MessagingError};
 use crate::starknet::Starknet;
@@ -41,6 +42,11 @@ mod ethereum;
 pub use ethereum::EthereumMessaging;
 
 impl Starknet {
+    /// Returns the url of the messaging node currently in used, or `None` otherwise.
+    pub fn messaging_url(&self) -> Option<String> {
+        self.messaging.as_ref().map(|m| m.node_url())
+    }
+
     /// Configures the messaging from the given L1 node parameters.
     /// Calling this function multiple time will overwrite the previous
     /// configuration, if any.
@@ -67,7 +73,10 @@ impl Starknet {
     ///
     /// # Arguments
     /// * `from` - The block id from which (and including which) the messages are collected.
-    pub async fn collect_and_send_messages_to_l1(&self, from: BlockId) -> DevnetResult<()> {
+    pub async fn collect_and_send_messages_to_l1(
+        &self,
+        from: BlockId,
+    ) -> DevnetResult<Vec<MsgToL1>> {
         if self.messaging.is_none() {
             return Err(Error::MessagingError(MessagingError::NotConfigured));
         }
@@ -80,12 +89,16 @@ impl Starknet {
             messages.extend(self.get_block_messages(block)?);
         }
 
-        messaging.send_mock_messages(&messages).await
+        messaging.send_mock_messages(&messages).await?;
+
+        Ok(messages)
     }
 
     /// Fetches all messages from L1 and executes them by executing a `L1HandlerTransaction`
     /// for each one of them.
-    pub async fn fetch_and_execute_messages_to_l2(&mut self) -> DevnetResult<()> {
+    pub async fn fetch_and_execute_messages_to_l2(
+        &mut self,
+    ) -> DevnetResult<Vec<L1HandlerTransaction>> {
         if self.messaging.is_none() {
             return Err(Error::MessagingError(MessagingError::NotConfigured));
         }
@@ -95,11 +108,11 @@ impl Starknet {
 
         let transactions = messaging.fetch_messages(chain_id).await?;
 
-        for transaction in transactions {
-            self.add_l1_handler_transaction(transaction)?;
+        for transaction in &transactions {
+            self.add_l1_handler_transaction(transaction.clone())?;
         }
 
-        Ok(())
+        Ok(transactions)
     }
 
     /// Collects all messages for all the transactions of the the given block.
