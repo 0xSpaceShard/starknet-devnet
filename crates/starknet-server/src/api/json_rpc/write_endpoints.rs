@@ -2,18 +2,18 @@ use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::B
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
 use starknet_types::rpc::transactions::BroadcastedDeclareTransaction;
 
-use super::error::ApiError;
+use super::error::{ApiError, StrictRpcResult};
 use super::models::{
     DeclareTransactionOutput, DeployAccountTransactionOutput, InvokeTransactionOutput,
 };
-use crate::api::json_rpc::error::RpcResult;
+use super::StarknetResponse;
 use crate::api::json_rpc::JsonRpcHandler;
 
 impl JsonRpcHandler {
     pub(crate) async fn add_declare_transaction(
         &self,
         request: BroadcastedDeclareTransaction,
-    ) -> RpcResult<DeclareTransactionOutput> {
+    ) -> StrictRpcResult {
         let (transaction_hash, class_hash) = match request {
             BroadcastedDeclareTransaction::V1(broadcasted_declare_txn) => self
                 .api
@@ -29,13 +29,16 @@ impl JsonRpcHandler {
                 .add_declare_transaction_v2(*broadcasted_declare_txn)?,
         };
 
-        Ok(DeclareTransactionOutput { transaction_hash, class_hash })
+        Ok(StarknetResponse::AddDeclareTransaction(DeclareTransactionOutput {
+            transaction_hash,
+            class_hash,
+        }))
     }
 
     pub(crate) async fn add_deploy_account_transaction(
         &self,
         request: BroadcastedDeployAccountTransaction,
-    ) -> RpcResult<DeployAccountTransactionOutput> {
+    ) -> StrictRpcResult {
         let (transaction_hash, contract_address) =
             self.api.starknet.write().await.add_deploy_account_transaction(request).map_err(
                 |err| match err {
@@ -46,23 +49,26 @@ impl JsonRpcHandler {
                 },
             )?;
 
-        Ok(DeployAccountTransactionOutput { transaction_hash, contract_address })
+        Ok(StarknetResponse::AddDeployAccountTransaction(DeployAccountTransactionOutput {
+            transaction_hash,
+            contract_address,
+        }))
     }
 
     pub(crate) async fn add_invoke_transaction(
         &self,
         request: BroadcastedInvokeTransaction,
-    ) -> RpcResult<InvokeTransactionOutput> {
+    ) -> StrictRpcResult {
         let transaction_hash = self.api.starknet.write().await.add_invoke_transaction(request)?;
 
-        Ok(InvokeTransactionOutput { transaction_hash })
+        Ok(StarknetResponse::AddInvokeTransaction(InvokeTransactionOutput { transaction_hash }))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
-    use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
+
+    use crate::api::json_rpc::models::{BroadcastedDeployAccountTransactionEnumWrapper, BroadcastedDeclareTransactionEnumWrapper};
 
     #[test]
     fn check_correct_deserialization_of_deploy_account_transaction_request() {
@@ -80,18 +86,18 @@ mod tests {
         ))
         .unwrap();
 
-        let _broadcasted_declare_transaction_v1: BroadcastedDeclareTransactionV1 =
+        let _broadcasted_declare_transaction_v1: BroadcastedDeclareTransactionEnumWrapper =
             serde_json::from_str(&json_string).unwrap();
     }
 
-    fn test_deploy_account_transaction() -> BroadcastedDeployAccountTransaction {
+    fn test_deploy_account_transaction() -> BroadcastedDeployAccountTransactionEnumWrapper {
         let json_string = std::fs::read_to_string(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/test_data/rpc/deploy_account.json"
         ))
         .unwrap();
 
-        let broadcasted_deploy_account_transaction: BroadcastedDeployAccountTransaction =
+        let broadcasted_deploy_account_transaction: BroadcastedDeployAccountTransactionEnumWrapper =
             serde_json::from_str(&json_string).unwrap();
 
         broadcasted_deploy_account_transaction

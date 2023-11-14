@@ -68,6 +68,7 @@ pub struct EstimateFeeInput {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct BlockHashAndNumberOutput {
     pub block_hash: BlockHash,
     pub block_number: BlockNumber,
@@ -99,6 +100,7 @@ pub struct BroadcastedDeclareTransactionInput {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct DeclareTransactionOutput {
     pub transaction_hash: TransactionHash,
     pub class_hash: ClassHash,
@@ -118,6 +120,7 @@ pub struct BroadcastedDeployAccountTransactionInput {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct DeployAccountTransactionOutput {
     pub transaction_hash: TransactionHash,
     pub contract_address: ContractAddress,
@@ -137,6 +140,7 @@ pub struct BroadcastedInvokeTransactionInput {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct InvokeTransactionOutput {
     pub transaction_hash: TransactionHash,
 }
@@ -150,6 +154,7 @@ pub struct SimulateTransactionsInput {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TransactionStatusOutput {
     pub finality_status: TransactionFinalityStatus,
     pub execution_status: TransactionExecutionStatus,

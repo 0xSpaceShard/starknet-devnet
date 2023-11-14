@@ -4,7 +4,7 @@ use starknet_types;
 use thiserror::Error;
 use tracing::error;
 
-use super::WILDCARD_RPC_ERROR_CODE;
+use super::{StarknetResponse, WILDCARD_RPC_ERROR_CODE};
 
 #[allow(unused)]
 #[derive(Error, Debug)]
@@ -178,11 +178,12 @@ impl ApiError {
     }
 }
 
-pub(crate) type RpcResult<T> = Result<T, ApiError>;
+pub(crate) type StrictRpcResult = Result<StarknetResponse, ApiError>;
 
 #[cfg(test)]
 mod tests {
-    use crate::api::json_rpc::error::{ApiError, RpcResult};
+    use super::StrictRpcResult;
+    use crate::api::json_rpc::error::ApiError;
     use crate::api::json_rpc::ToRpcResponseResult;
 
     #[test]
@@ -347,7 +348,7 @@ mod tests {
     }
 
     fn error_expected_code_and_message(err: ApiError, expected_code: i64, expected_message: &str) {
-        let error_result = RpcResult::<()>::Err(err).to_rpc_result();
+        let error_result = StrictRpcResult::Err(err).to_rpc_result();
         match error_result {
             server::rpc_core::response::ResponseResult::Success(_) => panic!("Expected error"),
             server::rpc_core::response::ResponseResult::Error(err) => {
