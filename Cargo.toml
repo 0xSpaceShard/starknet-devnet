@@ -45,10 +45,14 @@ clap = { version = "4.3.2", features = ["derive"] }
 flate2 = { version = "1.0.26" }
 serde = { version = "1.0.171", features = ["derive"] }
 serde_json = { version = "1.0.81" }
+serde_yaml = { version = "0.9.27" }
 thiserror = { version = "1.0.32" }
 anyhow = "1"
 tokio-graceful-shutdown = "0.13.0"
 indexmap = "2.0.0"
+rand = "0.8.5"
+rand_chacha = "0.3.1"
+regex_generate = "0.2.3"
 
 # Starknet dependencies
 starknet_api = { version = "0.5.0-rc1", features = ["testing"] }
