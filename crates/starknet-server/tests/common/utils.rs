@@ -44,13 +44,9 @@ pub fn load_json<T: serde::de::DeserializeOwned>(path: &str) -> T {
     loaded
 }
 
-pub fn get_events_contract_in_sierra_and_compiled_class_hash()
--> (FlattenedSierraClass, FieldElement) {
-    let sierra_artifact = std::fs::read_to_string(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/test_data/cairo1/events/events_2.0.1_compiler.sierra"
-    ))
-    .unwrap();
+pub fn get_contract_in_sierra_and_compiled_class_hash(
+    sierra_artifact: String,
+) -> (FlattenedSierraClass, FieldElement) {
     let sierra_class: SierraClass = serde_json::from_str(&sierra_artifact).unwrap();
 
     let contract_class: cairo_lang_starknet::contract_class::ContractClass =
@@ -61,6 +57,16 @@ pub fn get_events_contract_in_sierra_and_compiled_class_hash()
     let compiled_class_hash = compute_casm_class_hash(&casm_contract_class).unwrap();
 
     (sierra_class.flatten().unwrap(), compiled_class_hash.into())
+}
+
+pub fn get_events_contract_in_sierra_and_compiled_class_hash()
+-> (FlattenedSierraClass, FieldElement) {
+    let sierra_artifact = std::fs::read_to_string(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/test_data/cairo1/events/events_2.0.1_compiler.sierra"
+    ))
+    .unwrap();
+    self::get_contract_in_sierra_and_compiled_class_hash(sierra_artifact)
 }
 
 pub async fn assert_tx_successful<T: Provider>(tx_hash: &FieldElement, client: &T) {
