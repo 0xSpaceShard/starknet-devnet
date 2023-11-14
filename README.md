@@ -210,6 +210,12 @@ Currently, dumping produces a list of received transactions that is stored on di
 Conversely, loading is implemented as the re-execution of transactions from a dump.
 This means that timestamps of `StarknetBlock` will be different.
 
+### Restarting
+
+Devnet can be restarted by making a `POST /restart` request (no body required). All of the deployed contracts (including predeployed), blocks and storage updates will be restarted to the original state, without the transactions and requests from a dump file you may have provided on startup.
+
+If you're using [**the Hardhat plugin**](https://github.com/0xSpaceShard/starknet-hardhat-plugin#restart), restart with `starknet.devnet.restart()`.
+
 ### Cross-version disclaimer
 
 Dumping and loading is not guaranteed to work cross-version. I.e. if you dumped one version of Devnet, do not expect it to be loadable with a different version.
@@ -235,6 +241,7 @@ Block timestamp can be manipulated by setting the exact time or setting the time
 ### Set time
 
 Sets the exact time and generates a new block.
+
 ```
 POST /set_time
 {
@@ -247,11 +254,26 @@ Warning: block time can be set in the past which might lead to unexpected behavi
 ### Increase time
 
 Increases the block timestamp by the provided amount and generates a new block. All subsequent blocks will keep this increment.
+
 ```
 POST /increase_time
 {
     "time": TIME_IN_SECONDS
 }
+```
+
+### Start time arg
+
+Devnet can be started with the `--start-time` argument, where `START_TIME_IN_SECONDS` should be greater than 0.
+```
+cargo run -- --start-time START_TIME_IN_SECONDS
+```
+
+### Timeout
+
+Timeout can be passed to Devnet's HTTP server. This makes it easier to deploy and manage large contracts that take longer to execute.
+```
+cargo run -- --timeout TIMEOUT
 ```
 
 ## Development - Visual Studio Code

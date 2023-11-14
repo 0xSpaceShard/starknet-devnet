@@ -79,8 +79,9 @@ pub struct Starknet {
     pub(crate) blocks: StarknetBlocks,
     pub transactions: StarknetTransactions,
     pub config: StarknetConfig,
-    pub pending_block_timestamp_shift: u64,
+    pub pending_block_timestamp_shift: i64,
     pub messaging: Option<EthereumMessaging>,
+
 }
 
 impl Default for Starknet {
@@ -155,7 +156,7 @@ impl Starknet {
         this.restart_pending_block()?;
 
         // Load starknet transactions
-        if this.config.dump_path.is_some() {
+        if this.config.dump_path.is_some() && this.config.re_execute_on_init {
             // Try to load transactions from dump_path, if there is no file skip this step
             match this.load_transactions() {
                 Ok(txs) => this.re_execute(txs)?,
@@ -165,6 +166,12 @@ impl Starknet {
         }
 
         Ok(this)
+    }
+
+    pub fn restart(&mut self) -> DevnetResult<()> {
+        self.config.re_execute_on_init = false;
+        *self = Starknet::new(&self.config)?;
+        Ok(())
     }
 
     pub fn get_predeployed_accounts(&self) -> Vec<Account> {
@@ -198,7 +205,8 @@ impl Starknet {
             }
             None => {
                 new_block.set_timestamp(BlockTimestamp(
-                    Starknet::get_unix_timestamp_as_seconds() + self.pending_block_timestamp_shift,
+                    (Starknet::get_unix_timestamp_as_seconds() as i64
+                        + self.pending_block_timestamp_shift) as u64,
                 ));
             }
         }
@@ -833,23 +841,24 @@ impl Starknet {
 
     // Create empty block
     pub fn set_time(&mut self, timestamp: u64) -> DevnetResult<(), Error> {
-        let diff = timestamp - Starknet::get_unix_timestamp_as_seconds();
-        self.set_block_timestamp_shift(diff);
+        self.set_block_timestamp_shift(
+            timestamp as i64 - Starknet::get_unix_timestamp_as_seconds() as i64,
+        );
         self.create_block(Some(timestamp))
     }
 
     // Set timestamp shift and create empty block
     pub fn increase_time(&mut self, time_shift: u64) -> DevnetResult<(), Error> {
-        self.set_block_timestamp_shift(self.pending_block_timestamp_shift + time_shift);
+        self.set_block_timestamp_shift(self.pending_block_timestamp_shift + time_shift as i64);
         self.create_block(None)
     }
 
     // Set timestamp shift for next blocks
-    pub fn set_block_timestamp_shift(&mut self, timestamp: u64) {
+    pub fn set_block_timestamp_shift(&mut self, timestamp: i64) {
         self.pending_block_timestamp_shift = timestamp;
     }
 
-    fn get_unix_timestamp_as_seconds() -> u64 {
+    pub fn get_unix_timestamp_as_seconds() -> u64 {
         std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .expect("should get current UNIX timestamp")

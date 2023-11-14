@@ -71,11 +71,13 @@ pub(crate) mod test_utils {
             predeployed_accounts_initial_balance: DEVNET_DEFAULT_INITIAL_BALANCE.into(),
             host: DEVNET_DEFAULT_HOST,
             port: DEVNET_DEFAULT_PORT,
+            start_time: None,
             timeout: DEVNET_DEFAULT_TIMEOUT,
             gas_price: DEVNET_DEFAULT_GAS_PRICE,
             chain_id: DEVNET_DEFAULT_CHAIN_ID,
             dump_on: None,
             dump_path: None,
+            re_execute_on_init: true,
         }
     }
 

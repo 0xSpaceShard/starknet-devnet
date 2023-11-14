@@ -88,7 +88,7 @@ mod test_account_selection {
         let account_factory = OpenZeppelinAccountFactory::new(
             FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap(),
             CHAIN_ID,
-            signer.clone(),
+            signer,
             devnet.clone_provider(),
         )
         .await
