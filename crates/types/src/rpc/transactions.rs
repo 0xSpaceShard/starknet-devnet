@@ -105,6 +105,7 @@ impl Transaction {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn create_common_receipt(
         &self,
         transaction_events: &[Event],
