@@ -45,17 +45,26 @@ mod estimate_fee_tests {
         resp_no_flags: &serde_json::Value,
         resp_skip_validation: &serde_json::Value,
         expected_contract_adddress: &str,
+        should_skip_fee_invocation: bool,
     ) {
         let no_flags_trace = &resp_no_flags["transaction_trace"];
         assert_eq!(
             no_flags_trace["validate_invocation"]["contract_address"].as_str().unwrap(),
             expected_contract_adddress
         );
-        assert!(no_flags_trace["fee_transfer_invocation"].as_object().is_none());
+        assert!(no_flags_trace["state_diff"].as_object().is_some());
 
         let skip_validation_trace = &resp_skip_validation["transaction_trace"];
         assert!(skip_validation_trace["validate_invocation"].as_object().is_none());
-        assert!(skip_validation_trace["fee_transfer_invocation"].as_object().is_none());
+        assert!(skip_validation_trace["state_diff"].as_object().is_some());
+
+        if should_skip_fee_invocation {
+            assert!(skip_validation_trace["fee_transfer_invocation"].as_object().is_none());
+            assert!(no_flags_trace["fee_transfer_invocation"].as_object().is_none());
+        }else {
+            assert!(skip_validation_trace["fee_transfer_invocation"].as_object().is_some());
+            assert!(no_flags_trace["fee_transfer_invocation"].as_object().is_some());
+        }
 
         assert_fee_in_resp_greater(resp_no_flags, resp_skip_validation);
     }
@@ -123,7 +132,7 @@ mod estimate_fee_tests {
             .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
             .await["result"][0];
 
-        assert_difference_if_validation(resp_no_flags, resp_skip_validation, &sender_address_hex);
+        assert_difference_if_validation(resp_no_flags, resp_skip_validation, &sender_address_hex, max_fee == FieldElement::ZERO);
     }
 
     #[tokio::test]
@@ -191,7 +200,7 @@ mod estimate_fee_tests {
             .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
             .await["result"][0];
 
-        assert_difference_if_validation(resp_no_flags, resp_skip_validation, &sender_address_hex);
+        assert_difference_if_validation(resp_no_flags, resp_skip_validation, &sender_address_hex, max_fee == FieldElement::ZERO);
     }
 
     #[tokio::test]
@@ -319,7 +328,7 @@ mod estimate_fee_tests {
             Arc::new(serde_json::from_value(contract_json.inner).unwrap());
         let class_hash = contract_artifact.class_hash().unwrap();
 
-        // declare class
+                // declare class
         let declaration_result =
             account.declare_legacy(contract_artifact.clone()).send().await.unwrap();
         assert_eq!(declaration_result.class_hash, class_hash);
@@ -334,7 +343,7 @@ mod estimate_fee_tests {
             &UdcUniqueness::NotUnique,
             &constructor_calldata,
         );
-        contract_factory.deploy(constructor_calldata, salt, false).send().await.unwrap();
+                contract_factory.deploy(constructor_calldata, salt, false).send().await.unwrap();
 
         // prepare the call used in simulation
         let increase_amount = FieldElement::from(100u128);
@@ -381,11 +390,12 @@ mod estimate_fee_tests {
         };
 
         let params_no_flags = get_params(&[]);
+
         let resp_no_flags = &devnet
             .send_custom_rpc("starknet_simulateTransactions", params_no_flags)
             .await["result"][0];
         assert_eq!(
-            resp_no_flags["transaction_trace"]["execution_invocation"]["contract_address"],
+            resp_no_flags["transaction_trace"]["execute_invocation"]["contract_address"],
             sender_address_hex
         );
 
@@ -394,10 +404,10 @@ mod estimate_fee_tests {
             .send_custom_rpc("starknet_simulateTransactions", params_skip_validation)
             .await["result"][0];
         assert_eq!(
-            resp_skip_validation["transaction_trace"]["execution_invocation"]["contract_address"],
+            resp_skip_validation["transaction_trace"]["execute_invocation"]["contract_address"],
             sender_address_hex
         );
 
-        assert_difference_if_validation(resp_no_flags, resp_skip_validation, &sender_address_hex);
+        assert_difference_if_validation(resp_no_flags, resp_skip_validation, &sender_address_hex, max_fee == FieldElement::ZERO);
     }
 }
