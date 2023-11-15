@@ -4,7 +4,9 @@ use blockifier::block_context::BlockContext;
 use blockifier::execution::common_hints::ExecutionMode;
 use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::state_api::StateReader;
-use blockifier::transaction::objects::TransactionExecutionInfo;
+use blockifier::transaction::objects::{
+    AccountTransactionContext, DeprecatedAccountTransactionContext, TransactionExecutionInfo,
+};
 use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
 use starknet_api::transaction::Fee;
@@ -445,9 +447,9 @@ impl Starknet {
             &mut blockifier::execution::entry_point::ExecutionResources::default(),
             &mut blockifier::execution::entry_point::EntryPointExecutionContext::new(
                 &self.block_context,
-                &blockifier::transaction::objects::AccountTransactionContext::Deprecated(blockifier::transaction::objects::DeprecatedAccountTransactionContext::default()), // TODO
+                &AccountTransactionContext::Deprecated(DeprecatedAccountTransactionContext::default()), // for tx < v3
                 ExecutionMode::Execute,
-                self.block_context.invoke_tx_max_n_steps > 0, // TODO
+                true, // bound the execution by what the sender committed to pay for (max fee or max resources in v3)
             ),
         ).map_err(|err| Error::BlockifierTransactionError(blockifier::transaction::errors::TransactionExecutionError::EntryPointExecutionError(err)))?;
 
