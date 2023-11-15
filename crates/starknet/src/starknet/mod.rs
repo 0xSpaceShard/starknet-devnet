@@ -1,12 +1,9 @@
 use std::collections::HashMap;
 
 use blockifier::block_context::BlockContext;
-use blockifier::execution::common_hints::ExecutionMode;
 use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::state_api::StateReader;
-use blockifier::transaction::objects::{
-    AccountTransactionContext, DeprecatedAccountTransactionContext, TransactionExecutionInfo,
-};
+use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
 use starknet_api::transaction::Fee;
@@ -442,16 +439,11 @@ impl Starknet {
             ..Default::default()
         };
 
-        let res = call.execute(
-            &mut state.clone().state,
-            &mut blockifier::execution::entry_point::ExecutionResources::default(),
-            &mut blockifier::execution::entry_point::EntryPointExecutionContext::new(
-                &self.block_context,
-                &AccountTransactionContext::Deprecated(DeprecatedAccountTransactionContext::default()), // for tx < v3
-                ExecutionMode::Execute,
-                true, // bound the execution by what the sender committed to pay for (max fee or max resources in v3)
-            ),
-        ).map_err(|err| Error::BlockifierTransactionError(blockifier::transaction::errors::TransactionExecutionError::EntryPointExecutionError(err)))?;
+        let res = call
+            .execute_directly(&mut state.clone().state)
+            .map_err(|err| {
+                Error::BlockifierTransactionError(blockifier::transaction::errors::TransactionExecutionError::EntryPointExecutionError(err))
+            })?;
 
         Ok(res.execution.retdata.0.into_iter().map(Felt::from).collect())
     }
