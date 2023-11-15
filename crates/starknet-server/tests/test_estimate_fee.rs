@@ -11,7 +11,6 @@ mod estimate_fee_tests {
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
     use starknet_rs_core::types::{
         BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedInvokeTransaction,
         BroadcastedTransaction, FeeEstimate, FieldElement, FunctionCall, StarknetError,
@@ -24,13 +23,12 @@ mod estimate_fee_tests {
     };
 
     use crate::common::constants::{
-        CAIRO_1_CONTRACT_PATH, CAIRO_1_PANICKING_CONTRACT_CASM_PATH,
-        CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH, CASM_COMPILED_CLASS_HASH, CHAIN_ID,
+        CAIRO_1_CONTRACT_PATH, CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH, CHAIN_ID,
     };
     use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::{
-        assert_tx_reverted, assert_tx_successful, get_deployable_account_signer, load_json,
-        resolve_path,
+        assert_tx_reverted, assert_tx_successful, get_deployable_account_signer,
+        get_flattened_sierra_contract_and_casm_hash,
     };
 
     fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
@@ -203,10 +201,9 @@ mod estimate_fee_tests {
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
 
         // get class
-        let contract_artifact_path = resolve_path(CAIRO_1_CONTRACT_PATH);
-        let contract_artifact: SierraClass = load_json(&contract_artifact_path);
-        let flattened_contract_artifact = Arc::new(contract_artifact.flatten().unwrap());
-        let compiled_class_hash = FieldElement::from_hex_be(CASM_COMPILED_CLASS_HASH).unwrap();
+        let (flattened_contract_artifact, casm_hash) =
+            get_flattened_sierra_contract_and_casm_hash(CAIRO_1_CONTRACT_PATH);
+        let flattened_contract_artifact = Arc::new(flattened_contract_artifact);
 
         // declare class
         let account = SingleOwnerAccount::new(
@@ -218,7 +215,7 @@ mod estimate_fee_tests {
         );
 
         let fee_estimation = account
-            .declare(Arc::clone(&flattened_contract_artifact), compiled_class_hash)
+            .declare(Arc::clone(&flattened_contract_artifact), casm_hash)
             .nonce(FieldElement::ZERO)
             .fee_estimate_multiplier(1.0)
             .estimate_fee()
@@ -228,7 +225,7 @@ mod estimate_fee_tests {
 
         // try sending with insufficient max fee
         let unsuccessful_declare_tx = account
-            .declare(Arc::clone(&flattened_contract_artifact), compiled_class_hash)
+            .declare(Arc::clone(&flattened_contract_artifact), casm_hash)
             .nonce(FieldElement::ZERO)
             .max_fee(FieldElement::from((fee_estimation.overall_fee - 1) as u128))
             .send()
@@ -245,7 +242,7 @@ mod estimate_fee_tests {
 
         // try sending with sufficient max fee
         let successful_declare_tx = account
-            .declare(Arc::clone(&flattened_contract_artifact), compiled_class_hash)
+            .declare(Arc::clone(&flattened_contract_artifact), casm_hash)
             .nonce(FieldElement::ZERO)
             .max_fee(FieldElement::from((fee_estimation.overall_fee as f64 * 1.1) as u128))
             .send()
@@ -371,19 +368,13 @@ mod estimate_fee_tests {
         ));
 
         // get class
-        let contract_artifact: SierraClass = load_json(CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH);
-        let compiled_contract_artifact: CompiledClass =
-            load_json(CAIRO_1_PANICKING_CONTRACT_CASM_PATH);
-        let flattened_contract_artifact = Arc::new(contract_artifact.clone().flatten().unwrap());
-        let compiled_class_hash = compiled_contract_artifact.class_hash().unwrap();
-        let class_hash = contract_artifact.class_hash().unwrap();
+        let (flattened_contract_artifact, casm_hash) =
+            get_flattened_sierra_contract_and_casm_hash(CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH);
+        let class_hash = flattened_contract_artifact.class_hash();
 
         // declare class
-        let declaration_result = account
-            .declare(flattened_contract_artifact.clone(), compiled_class_hash)
-            .send()
-            .await
-            .unwrap();
+        let declaration_result =
+            account.declare(Arc::new(flattened_contract_artifact), casm_hash).send().await.unwrap();
         assert_eq!(declaration_result.class_hash, class_hash);
 
         // deploy instance of class
