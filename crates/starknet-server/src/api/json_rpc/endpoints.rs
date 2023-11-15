@@ -19,7 +19,6 @@ const DEFAULT_CONTINUATION_TOKEN: &str = "0";
 /// here are the definitions and stub implementations of all JSON-RPC read endpoints
 impl JsonRpcHandler {
     /// starknet_specVersion
-    /// TODO improve this to use data from Cargo.toml
     pub(crate) fn spec_version(&self) -> StrictRpcResult {
         Ok(StarknetResponse::SpecVersion(env!("RPC_SPEC_VERSION").to_string()))
     }
