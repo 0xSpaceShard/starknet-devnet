@@ -30,5 +30,3 @@ pub const CASM_COMPILED_CLASS_HASH: &str =
 // Balance contract with a failable (panicking) function
 pub const CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH: &str =
     "test_data/cairo1/panicking_contract/panicking_contract.sierra";
-pub const CAIRO_1_PANICKING_CONTRACT_CASM_PATH: &str =
-    "test_data/cairo1/panicking_contract/panicking_contract.casm";
