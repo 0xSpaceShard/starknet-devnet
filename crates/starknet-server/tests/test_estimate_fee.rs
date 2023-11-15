@@ -24,8 +24,8 @@ mod estimate_fee_tests {
     };
 
     use crate::common::constants::{
-        CAIRO_1_BALANCE_CONTRACT_CASM_PATH, CAIRO_1_BALANCE_CONTRACT_SIERRA_PATH,
-        CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH, CHAIN_ID,
+        CAIRO_1_CONTRACT_PATH, CAIRO_1_PANICKING_CONTRACT_CASM_PATH,
+        CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH, CASM_COMPILED_CLASS_HASH, CHAIN_ID,
     };
     use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::{
@@ -371,9 +371,9 @@ mod estimate_fee_tests {
         ));
 
         // get class
-        let contract_artifact: SierraClass = load_json(CAIRO_1_BALANCE_CONTRACT_SIERRA_PATH);
+        let contract_artifact: SierraClass = load_json(CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH);
         let compiled_contract_artifact: CompiledClass =
-            load_json(CAIRO_1_BALANCE_CONTRACT_CASM_PATH);
+            load_json(CAIRO_1_PANICKING_CONTRACT_CASM_PATH);
         let flattened_contract_artifact = Arc::new(contract_artifact.clone().flatten().unwrap());
         let compiled_class_hash = compiled_contract_artifact.class_hash().unwrap();
         let class_hash = contract_artifact.class_hash().unwrap();
@@ -389,7 +389,7 @@ mod estimate_fee_tests {
         // deploy instance of class
         let contract_factory = ContractFactory::new(class_hash, account.clone());
         let salt = FieldElement::from_hex_be("0x123").unwrap();
-        let constructor_calldata = vec![FieldElement::ZERO]; // initial storage
+        let constructor_calldata = vec![];
         let contract_address = get_udc_deployed_address(
             salt,
             class_hash,
