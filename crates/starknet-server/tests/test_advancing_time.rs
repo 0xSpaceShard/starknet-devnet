@@ -2,13 +2,23 @@ pub mod common;
 
 mod advancing_time_tests {
 
+    use std::sync::Arc;
     use std::{thread, time};
 
     use hyper::Body;
     use serde_json::json;
+    use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
+    use starknet_rs_contract::ContractFactory;
+    use starknet_rs_core::chain_id;
+    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, FunctionCall};
+    use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
+    use starknet_rs_providers::Provider;
 
     use crate::common::devnet::BackgroundDevnet;
-    use crate::common::utils::{get_json_body, get_unix_timestamp_as_seconds};
+    use crate::common::utils::{
+        get_json_body, get_timestamp_contract_in_sierra_and_compiled_class_hash,
+        get_unix_timestamp_as_seconds,
+    };
 
     const DUMMY_ADDRESS: u128 = 1;
     const DUMMY_AMOUNT: u128 = 1;
@@ -22,6 +32,62 @@ mod advancing_time_tests {
     pub fn assert_gt_with_buffer(val1: Option<u64>, val2: Option<u64>) {
         assert!(val1 > val2);
         assert!(val1 < Some(val2.unwrap() + BUFFER_TIME_SECONDS));
+    }
+
+    #[tokio::test]
+    async fn get_timestamp_syscall() {
+        let now = get_unix_timestamp_as_seconds();
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--start-time",
+            now.to_string().as_str(),
+        ])
+        .await
+        .expect("Could not start Devnet");
+
+        let (signer, address) = devnet.get_first_predeployed_account().await;
+        let predeployed_account = SingleOwnerAccount::new(
+            devnet.clone_provider(),
+            signer,
+            address,
+            chain_id::TESTNET,
+            ExecutionEncoding::Legacy,
+        );
+
+        let (cairo_1_contract, casm_class_hash) =
+            get_timestamp_contract_in_sierra_and_compiled_class_hash();
+
+        let declaration_result = predeployed_account
+            .declare(Arc::new(cairo_1_contract), casm_class_hash)
+            .max_fee(FieldElement::from(100000000000000000000u128))
+            .send()
+            .await
+            .unwrap();
+
+        let predeployed_account = Arc::new(predeployed_account);
+
+        let contract_factory =
+            ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
+        contract_factory
+            .deploy(vec![], FieldElement::ZERO, false)
+            .max_fee(FieldElement::from(100000000000000000000u128))
+            .send()
+            .await
+            .unwrap();
+
+        let new_contract_address = get_udc_deployed_address(
+            FieldElement::ZERO,
+            declaration_result.class_hash,
+            &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+            &[],
+        );
+
+        let call = FunctionCall {
+            contract_address: new_contract_address,
+            entry_point_selector: get_selector_from_name("get_timestamp").unwrap(),
+            calldata: vec![],
+        };
+        let timestamp = devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap()[0];
+        assert_ge_with_buffer(Some(now), Some(timestamp.to_string().parse::<u64>().unwrap()));
     }
 
     #[tokio::test]
