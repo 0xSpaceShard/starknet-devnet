@@ -31,6 +31,6 @@ pub const CASM_COMPILED_CLASS_HASH: &str =
 pub const CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH: &str =
     "test_data/cairo1/panicking_contract/panicking_contract.sierra";
 
-// Contract which assert
+// Contract which asserts the tx version
 pub const CAIRO_1_VERSION_ASSERTER_SIERRA_PATH: &str =
     "test_data/cairo1/version_asserter/version_asserter.sierra";
