@@ -53,14 +53,7 @@ impl<'a> RandDataGenerator<'a> {
 
 impl<'a> Visitor for RandDataGenerator<'a> {
     fn do_for_boolean_primitive(&self) -> Result<serde_json::Value, String> {
-        let random_number = rand::thread_rng().gen_range(0..1);
-        let result = if random_number == 0 {
-            serde_json::Value::Bool(false)
-        } else {
-            serde_json::Value::Bool(true)
-        };
-
-        Ok(result)
+        Ok(serde_json::Value::Bool(rand::thread_rng().gen_bool(0.5))) 
     }
 
     fn do_for_string_primitive(
