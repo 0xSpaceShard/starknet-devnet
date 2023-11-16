@@ -3,7 +3,9 @@ pub mod common;
 mod estimate_fee_tests {
     use std::sync::Arc;
 
-    use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, UDC_CONTRACT_ADDRESS};
+    use starknet_core::constants::{
+        CAIRO_0_ACCOUNT_CONTRACT_HASH, QUERY_VERSION_BASE, UDC_CONTRACT_ADDRESS,
+    };
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{
         Account, AccountError, AccountFactory, AccountFactoryError, Call, ExecutionEncoding,
@@ -452,8 +454,7 @@ mod estimate_fee_tests {
             .await
             .expect("Cannot deploy");
 
-        let expected_version =
-            FieldElement::from_hex_be("0x100000000000000000000000000000001").unwrap(); // 2 ** 128 + 1
+        let expected_version = QUERY_VERSION_BASE + FieldElement::ONE;
         let calls = vec![Call {
             to: contract_address,
             selector: get_selector_from_name("assert_version").unwrap(),
