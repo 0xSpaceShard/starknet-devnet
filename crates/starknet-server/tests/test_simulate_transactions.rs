@@ -58,8 +58,14 @@ mod estimate_fee_tests {
         assert!(skip_validation_trace["validate_invocation"].as_object().is_none());
         assert!(skip_validation_trace["state_diff"].as_object().is_some());
 
-        assert_eq!(skip_validation_trace["fee_transfer_invocation"].as_object().is_none(), should_skip_fee_invocation);
-        assert_eq!(no_flags_trace["fee_transfer_invocation"].as_object().is_none(), should_skip_fee_invocation);
+        assert_eq!(
+            skip_validation_trace["fee_transfer_invocation"].as_object().is_none(),
+            should_skip_fee_invocation
+        );
+        assert_eq!(
+            no_flags_trace["fee_transfer_invocation"].as_object().is_none(),
+            should_skip_fee_invocation
+        );
 
         assert_fee_in_resp_greater(resp_no_flags, resp_skip_validation);
     }
