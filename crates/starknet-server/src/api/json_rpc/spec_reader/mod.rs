@@ -101,8 +101,8 @@ fn generate_combined_schema(specs: &Vec<Spec>) -> HashMap<String, Schema> {
     let mut combined_schema = HashMap::<String, Schema>::new();
 
     for spec in specs {
-        for schema in &spec.components.schemas {
-            match schema.1.clone() {
+        for (schema_name, schema) in &spec.components.schemas {
+            match schema.clone() {
                 Schema::Ref(reference) => {
                     // if reference to external file, then dont add it
                     let schema_parts = reference
@@ -115,11 +115,11 @@ fn generate_combined_schema(specs: &Vec<Spec>) -> HashMap<String, Schema> {
                     if schema_parts.len() == 1 {
                         // then it is not reference to external file
                         // only references to external files are not added
-                        combined_schema.insert(schema.0.clone(), schema.1.clone());
+                        combined_schema.insert(schema_name.clone(), schema.clone());
                     }
                 }
                 _ => {
-                    combined_schema.insert(schema.0.clone(), schema.1.clone());
+                    combined_schema.insert(schema_name.clone(), schema.clone());
                 }
             }
         }
