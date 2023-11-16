@@ -60,22 +60,20 @@ pub fn get_flattened_sierra_contract_and_casm_hash(
 
 pub fn get_events_contract_in_sierra_and_compiled_class_hash()
 -> (FlattenedSierraClass, FieldElement) {
-    let sierra_artifact = std::fs::read_to_string(concat!(
+    let events_sierra_path = concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/test_data/cairo1/events/events_2.0.1_compiler.sierra"
-    ))
-    .unwrap();
-    self::get_flattened_sierra_contract_and_casm_hash(sierra_artifact)
+    );
+    get_flattened_sierra_contract_and_casm_hash(events_sierra_path)
 }
 
 pub fn get_timestamp_contract_in_sierra_and_compiled_class_hash()
 -> (FlattenedSierraClass, FieldElement) {
-    let sierra_artifact = std::fs::read_to_string(concat!(
+    let timestamp_sierra_path = concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/test_data/cairo1/timestamp/timestamp_v2.3.1_compiler.sierra"
-    ))
-    .unwrap();
-    self::get_flattened_sierra_contract_and_casm_hash(sierra_artifact)
+    );
+    get_flattened_sierra_contract_and_casm_hash(sierra_artifact)
 }
 
 pub async fn assert_tx_successful<T: Provider>(tx_hash: &FieldElement, client: &T) {
