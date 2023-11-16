@@ -3,7 +3,9 @@ pub mod common;
 mod estimate_fee_tests {
     use std::sync::Arc;
 
-    use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, UDC_CONTRACT_ADDRESS};
+    use starknet_core::constants::{
+        CAIRO_0_ACCOUNT_CONTRACT_HASH, QUERY_VERSION_BASE, UDC_CONTRACT_ADDRESS,
+    };
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{
         Account, AccountError, AccountFactory, AccountFactoryError, Call, ExecutionEncoding,
@@ -11,23 +13,25 @@ mod estimate_fee_tests {
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::contract::SierraClass;
     use starknet_rs_core::types::{
         BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedInvokeTransaction,
         BroadcastedTransaction, FeeEstimate, FieldElement, FunctionCall, StarknetError,
     };
     use starknet_rs_core::utils::{
-        get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
+        cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
     };
     use starknet_rs_providers::{
         MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
     };
 
-    use crate::common::constants::{CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH, CHAIN_ID};
+    use crate::common::constants::{
+        CAIRO_1_CONTRACT_PATH, CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH,
+        CAIRO_1_VERSION_ASSERTER_SIERRA_PATH, CHAIN_ID,
+    };
     use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::{
-        assert_tx_reverted, assert_tx_successful, get_deployable_account_signer, load_json,
-        resolve_path,
+        assert_tx_reverted, assert_tx_successful, get_deployable_account_signer,
+        get_flattened_sierra_contract_and_casm_hash,
     };
 
     fn assert_fee_estimation(fee_estimation: &FeeEstimate) {
@@ -200,10 +204,9 @@ mod estimate_fee_tests {
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
 
         // get class
-        let contract_artifact_path = resolve_path(CAIRO_1_CONTRACT_PATH);
-        let contract_artifact: SierraClass = load_json(&contract_artifact_path);
-        let flattened_contract_artifact = Arc::new(contract_artifact.flatten().unwrap());
-        let compiled_class_hash = FieldElement::from_hex_be(CASM_COMPILED_CLASS_HASH).unwrap();
+        let (flattened_contract_artifact, casm_hash) =
+            get_flattened_sierra_contract_and_casm_hash(CAIRO_1_CONTRACT_PATH);
+        let flattened_contract_artifact = Arc::new(flattened_contract_artifact);
 
         // declare class
         let account = SingleOwnerAccount::new(
@@ -215,7 +218,7 @@ mod estimate_fee_tests {
         );
 
         let fee_estimation = account
-            .declare(Arc::clone(&flattened_contract_artifact), compiled_class_hash)
+            .declare(Arc::clone(&flattened_contract_artifact), casm_hash)
             .nonce(FieldElement::ZERO)
             .fee_estimate_multiplier(1.0)
             .estimate_fee()
@@ -225,7 +228,7 @@ mod estimate_fee_tests {
 
         // try sending with insufficient max fee
         let unsuccessful_declare_tx = account
-            .declare(Arc::clone(&flattened_contract_artifact), compiled_class_hash)
+            .declare(Arc::clone(&flattened_contract_artifact), casm_hash)
             .nonce(FieldElement::ZERO)
             .max_fee(FieldElement::from((fee_estimation.overall_fee - 1) as u128))
             .send()
@@ -242,7 +245,7 @@ mod estimate_fee_tests {
 
         // try sending with sufficient max fee
         let successful_declare_tx = account
-            .declare(Arc::clone(&flattened_contract_artifact), compiled_class_hash)
+            .declare(Arc::clone(&flattened_contract_artifact), casm_hash)
             .nonce(FieldElement::ZERO)
             .max_fee(FieldElement::from((fee_estimation.overall_fee as f64 * 1.1) as u128))
             .send()
@@ -294,10 +297,9 @@ mod estimate_fee_tests {
         );
         contract_factory
             .deploy(constructor_calldata, salt, false)
-            .nonce(FieldElement::ONE)
-            // max fee implicitly estimated
             .send()
-            .await.expect("Cannot deploy");
+            .await
+            .expect("Cannot deploy");
 
         // prepare the call used in estimation and actual invoke
         let increase_amount = FieldElement::from(100u128);
@@ -352,6 +354,117 @@ mod estimate_fee_tests {
         let balance_after_sufficient =
             devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap();
         assert_eq!(balance_after_sufficient, vec![increase_amount]);
+    }
+
+    #[tokio::test]
+    async fn message_available_if_estimation_panics() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        // get account
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+        let account = Arc::new(SingleOwnerAccount::new(
+            devnet.clone_provider(),
+            signer,
+            account_address,
+            CHAIN_ID,
+            ExecutionEncoding::Legacy,
+        ));
+
+        // get class
+        let (flattened_contract_artifact, casm_hash) =
+            get_flattened_sierra_contract_and_casm_hash(CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH);
+        let class_hash = flattened_contract_artifact.class_hash();
+
+        // declare class
+        let declaration_result =
+            account.declare(Arc::new(flattened_contract_artifact), casm_hash).send().await.unwrap();
+        assert_eq!(declaration_result.class_hash, class_hash);
+
+        // deploy instance of class
+        let contract_factory = ContractFactory::new(class_hash, account.clone());
+        let salt = FieldElement::from_hex_be("0x123").unwrap();
+        let constructor_calldata = vec![];
+        let contract_address = get_udc_deployed_address(
+            salt,
+            class_hash,
+            &UdcUniqueness::NotUnique,
+            &constructor_calldata,
+        );
+        contract_factory
+            .deploy(constructor_calldata, salt, false)
+            .send()
+            .await
+            .expect("Cannot deploy");
+
+        let panic_reason = "custom little reason";
+        let calls = vec![Call {
+            to: contract_address,
+            selector: get_selector_from_name("create_panic").unwrap(),
+            calldata: vec![cairo_short_string_to_felt(panic_reason).unwrap()],
+        }];
+
+        match account.execute(calls).estimate_fee().await {
+            Err(AccountError::Provider(ProviderError::StarknetError(
+                StarknetErrorWithMessage {
+                    code: MaybeUnknownErrorCode::Known(StarknetError::ContractError),
+                    message,
+                },
+            ))) => assert!(message.contains(panic_reason)),
+            other => panic!("Unexpected result: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn using_query_version_if_estimating() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        // get account
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+        let account = Arc::new(SingleOwnerAccount::new(
+            devnet.clone_provider(),
+            signer,
+            account_address,
+            CHAIN_ID,
+            ExecutionEncoding::Legacy,
+        ));
+
+        // get class
+        let (flattened_contract_artifact, casm_hash) =
+            get_flattened_sierra_contract_and_casm_hash(CAIRO_1_VERSION_ASSERTER_SIERRA_PATH);
+        let class_hash = flattened_contract_artifact.class_hash();
+
+        // declare class
+        let declaration_result =
+            account.declare(Arc::new(flattened_contract_artifact), casm_hash).send().await.unwrap();
+        assert_eq!(declaration_result.class_hash, class_hash);
+
+        // deploy instance of class
+        let contract_factory = ContractFactory::new(class_hash, account.clone());
+        let salt = FieldElement::from_hex_be("0x123").unwrap();
+        let constructor_calldata = vec![];
+        let contract_address = get_udc_deployed_address(
+            salt,
+            class_hash,
+            &UdcUniqueness::NotUnique,
+            &constructor_calldata,
+        );
+        contract_factory
+            .deploy(constructor_calldata, salt, false)
+            .send()
+            .await
+            .expect("Cannot deploy");
+
+        let expected_version = QUERY_VERSION_BASE + FieldElement::ONE;
+        let calls = vec![Call {
+            to: contract_address,
+            selector: get_selector_from_name("assert_version").unwrap(),
+            calldata: vec![expected_version],
+        }];
+
+        match account.execute(calls).estimate_fee().await {
+            Ok(_) => (),
+            other => panic!("Unexpected result: {other:?}"),
+        }
     }
 
     #[tokio::test]

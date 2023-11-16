@@ -440,15 +440,11 @@ impl Starknet {
             ..Default::default()
         };
 
-        let res = call.execute(
-            &mut state.clone().state,
-            &mut blockifier::execution::entry_point::ExecutionResources::default(),
-            &mut blockifier::execution::entry_point::EntryPointExecutionContext::new(
-                self.block_context.clone(),
-                blockifier::transaction::objects::AccountTransactionContext::default(),
-                self.block_context.invoke_tx_max_n_steps as usize,
-            ),
-        ).map_err(|err| Error::BlockifierTransactionError(blockifier::transaction::errors::TransactionExecutionError::EntryPointExecutionError(err)))?;
+        let res = call
+            .execute_directly(&mut state.clone().state)
+            .map_err(|err| {
+                Error::BlockifierTransactionError(blockifier::transaction::errors::TransactionExecutionError::EntryPointExecutionError(err))
+            })?;
 
         Ok(res.execution.retdata.0.into_iter().map(Felt::from).collect())
     }
@@ -690,7 +686,7 @@ impl Starknet {
 
         for broadcasted_transaction in transactions.iter() {
             let blockifier_transaction =
-                broadcasted_transaction.to_blockifier_account_transaction(chain_id)?;
+                broadcasted_transaction.to_blockifier_account_transaction(chain_id, true)?;
             let tx_execution_info = blockifier_transaction.execute(
                 &mut state.state,
                 &self.block_context,

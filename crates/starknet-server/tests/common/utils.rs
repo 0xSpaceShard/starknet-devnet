@@ -44,18 +44,17 @@ pub fn load_json<T: serde::de::DeserializeOwned>(path: &str) -> T {
     loaded
 }
 
-pub fn get_contract_in_sierra_and_compiled_class_hash(
-    sierra_artifact: String,
+pub fn get_flattened_sierra_contract_and_casm_hash(
+    sierra_path: &str,
 ) -> (FlattenedSierraClass, FieldElement) {
-    let sierra_class: SierraClass = serde_json::from_str(&sierra_artifact).unwrap();
-
+    let sierra_string = std::fs::read_to_string(sierra_path).unwrap();
+    let sierra_class: SierraClass = serde_json::from_str(&sierra_string).unwrap();
     let contract_class: cairo_lang_starknet::contract_class::ContractClass =
-        serde_json::from_str(&sierra_artifact).unwrap();
+        serde_json::from_str(&sierra_string).unwrap();
 
     let casm_contract_class =
         CasmContractClass::from_contract_class(contract_class, false).unwrap();
     let compiled_class_hash = compute_casm_class_hash(&casm_contract_class).unwrap();
-
     (sierra_class.flatten().unwrap(), compiled_class_hash.into())
 }
 
@@ -66,7 +65,7 @@ pub fn get_events_contract_in_sierra_and_compiled_class_hash()
         "/test_data/cairo1/events/events_2.0.1_compiler.sierra"
     ))
     .unwrap();
-    self::get_contract_in_sierra_and_compiled_class_hash(sierra_artifact)
+    self::get_flattened_sierra_contract_and_casm_hash(sierra_artifact)
 }
 
 pub fn get_timestamp_contract_in_sierra_and_compiled_class_hash()
@@ -76,7 +75,7 @@ pub fn get_timestamp_contract_in_sierra_and_compiled_class_hash()
         "/test_data/cairo1/timestamp/timestamp_v2.3.1_compiler.sierra"
     ))
     .unwrap();
-    self::get_contract_in_sierra_and_compiled_class_hash(sierra_artifact)
+    self::get_flattened_sierra_contract_and_casm_hash(sierra_artifact)
 }
 
 pub async fn assert_tx_successful<T: Provider>(tx_hash: &FieldElement, client: &T) {
