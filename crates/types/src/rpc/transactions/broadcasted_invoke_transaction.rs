@@ -55,6 +55,7 @@ impl BroadcastedInvokeTransaction {
     pub fn create_blockifier_invoke_transaction(
         &self,
         chain_id: Felt,
+        only_query: bool,
     ) -> DevnetResult<InvokeTransaction> {
         let txn_hash: Felt = compute_hash_on_elements(&[
             PREFIX_INVOKE,
@@ -89,7 +90,7 @@ impl BroadcastedInvokeTransaction {
         Ok(InvokeTransaction {
             tx: starknet_api::transaction::InvokeTransaction::V1(sn_api_transaction),
             tx_hash: starknet_api::transaction::TransactionHash(txn_hash.into()),
-            only_query: false,
+            only_query,
         })
     }
 
@@ -161,7 +162,7 @@ mod tests {
 
         let chain_id = ChainId::Testnet.to_felt();
         let blockifier_transaction =
-            transaction.create_blockifier_invoke_transaction(chain_id).unwrap();
+            transaction.create_blockifier_invoke_transaction(chain_id, false).unwrap();
 
         assert_eq!(
             feeder_gateway_transaction.transaction_hash,

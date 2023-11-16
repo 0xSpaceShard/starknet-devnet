@@ -24,7 +24,7 @@ pub fn estimate_fee(
 
     let transactions = transactions
         .iter()
-        .map(|txn| Ok(txn.to_blockifier_account_transaction(chain_id)?))
+        .map(|txn| Ok(txn.to_blockifier_account_transaction(chain_id, true)?))
         .collect::<DevnetResult<Vec<AccountTransaction>>>()?;
 
     transactions

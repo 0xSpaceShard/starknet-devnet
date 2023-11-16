@@ -17,7 +17,7 @@ pub fn add_invoke_transaction(
     }
 
     let blockifier_invoke_transaction = broadcasted_invoke_transaction
-        .create_blockifier_invoke_transaction(starknet.chain_id().to_felt())?;
+        .create_blockifier_invoke_transaction(starknet.chain_id().to_felt(), false)?;
     let transaction_hash = blockifier_invoke_transaction.tx_hash.0.into();
 
     let invoke_transaction =
