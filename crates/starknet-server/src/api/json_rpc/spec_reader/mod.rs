@@ -172,6 +172,12 @@ mod tests {
         let specs =
             Spec::load_from_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/spec/0.5.0"));
         let combined_schema = generate_combined_schema(&specs);
+        let expected_failed_method_responses = vec![
+            "starknet_getTransactionByBlockIdAndIndex",
+            "starknet_getTransactionByHash",
+            "starknet_getBlockWithTxs",
+        ];
+
         let mut failed_method_responses = vec![];
         for _ in 0..100 {
             for spec in specs.iter() {
@@ -294,5 +300,12 @@ mod tests {
         // The implemented response variants have more fields than the json created from the
         // generator Thus they diverge in some way from the spec, issue: https://github.com/0xSpaceShard/starknet-devnet-rs/issues/248
         println!("Methods diverging from the spec in some way {:?}", failed_method_responses);
+        assert_eq!(
+            failed_method_responses
+                .iter()
+                .filter(|&el| !expected_failed_method_responses.contains(&el.as_str()))
+                .count(),
+            0
+        );
     }
 }

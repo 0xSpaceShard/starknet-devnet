@@ -20,13 +20,13 @@ use starknet_rs_core::types::{BlockId, ExecutionResult, TransactionFinalityStatu
 
 use super::estimate_message_fee::FeeEstimateWrapper;
 use super::state::ThinStateDiff;
-use super::transaction_receipt::{ExecutionResources, MessageToL1};
+use super::transaction_receipt::{ExecutionResources, OrderedMessageToL1};
 use crate::constants::{
     BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME, N_STEPS,
     POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
 };
 use crate::contract_address::ContractAddress;
-use crate::emitted_event::Event;
+use crate::emitted_event::{Event, OrderedEvent};
 use crate::error::{ConversionError, DevnetResult};
 use crate::felt::{
     BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash, TransactionSignature,
@@ -370,8 +370,8 @@ pub struct FunctionInvocation {
     call_type: CallType,
     result: Vec<Felt>,
     calls: Vec<FunctionInvocation>,
-    events: Vec<Event>,
-    messages: Vec<MessageToL1>,
+    events: Vec<OrderedEvent>,
+    messages: Vec<OrderedMessageToL1>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -449,28 +449,20 @@ impl FunctionInvocation {
 
         call_info.execution.l2_to_l1_messages.sort_by_key(|msg| msg.order);
 
-        let messages: Vec<MessageToL1> = call_info
+        let messages: Vec<OrderedMessageToL1> = call_info
             .execution
             .l2_to_l1_messages
             .into_iter()
-            .map(|msg| MessageToL1 {
-                from_address: call_info.call.caller_address.into(),
-                to_address: msg.message.to_address,
-                payload: msg.message.payload.0.into_iter().map(Felt::from).collect(),
-            })
+            .map(|msg| OrderedMessageToL1::new(msg, call_info.call.caller_address.into()))
             .collect();
 
         call_info.execution.events.sort_by_key(|event| event.order);
 
-        let events: Vec<Event> = call_info
+        let events: Vec<OrderedEvent> = call_info
             .execution
             .events
             .into_iter()
-            .map(|event| Event {
-                from_address: call_info.call.storage_address.into(),
-                keys: event.event.keys.into_iter().map(|key| Felt::from(key.0)).collect(),
-                data: event.event.data.0.into_iter().map(Felt::from).collect(),
-            })
+            .map(|event| OrderedEvent::new(&event, call_info.call.storage_address.into()))
             .collect();
 
         let function_call = FunctionCall {
