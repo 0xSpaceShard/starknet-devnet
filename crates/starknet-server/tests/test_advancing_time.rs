@@ -37,7 +37,8 @@ mod advancing_time_tests {
     #[tokio::test]
     async fn get_timestamp_syscall() {
         let now = get_unix_timestamp_as_seconds();
-        let devnet: BackgroundDevnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet: BackgroundDevnet =
+            BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
