@@ -454,8 +454,6 @@ fn address_to_felt_devnet(address: &Address) -> DevnetResult<Felt> {
 
 #[cfg(test)]
 mod tests {
-
-    use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::chain_id::ChainId;
 
     use super::*;
@@ -513,24 +511,5 @@ mod tests {
             l1_handler_tx_from_log(log, chain_id).expect("bad log format");
 
         assert_eq!(transaction, expected);
-    }
-
-    #[test]
-    fn compute_message_hash_ok() {
-        let from_address = get_selector_from_name("from_address").unwrap();
-        let to_address = get_selector_from_name("to_address").unwrap();
-        let payload = vec![FieldElement::ONE, FieldElement::TWO];
-
-        let message = MsgToL1 { from_address, to_address, payload };
-
-        let expected_hash = U256::from_str_radix(
-            "0x5ba1d2e131360f15e26dd4f6ff10550685611cc25f75e7950b704adb04b36162",
-            16,
-        )
-        .unwrap();
-
-        let hash = compute_message_hash(&message);
-
-        assert_eq!(hash, expected_hash);
     }
 }

@@ -68,6 +68,21 @@ impl Starknet {
         Ok(())
     }
 
+    /// Collects all messages found between
+    /// `from` to the Latest Starknet block, including both blocks.
+    ///
+    /// # Arguments
+    /// * `from` - The block id from which (and including which) the messages are collected.
+    pub async fn collect_messages_to_l1(&self, from: BlockId) -> DevnetResult<Vec<MsgToL1>> {
+        let mut messages = vec![];
+
+        for block in self.blocks.get_blocks(Some(from), None)? {
+            messages.extend(self.get_block_messages(block)?);
+        }
+
+        Ok(messages)
+    }
+
     /// Collects and sends to L1 all messages found between
     /// `from` to the Latest Starknet block, including both blocks.
     ///

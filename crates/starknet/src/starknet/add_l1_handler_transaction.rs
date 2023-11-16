@@ -37,19 +37,15 @@ pub fn add_l1_handler_transaction(
 mod tests {
     // Constants taken from test_estimate_message_fee.rs.
     const WHITELISTED_L1_ADDRESS: &str = "0x8359E4B0152ed5A731162D3c7B0D8D56edB165A0";
-    const L1_HANDLER_SELECTOR: &str =
-        "0xc73f681176fc7b3f9693986fd7b14581e8d540519e27400e88b8713932be01";
 
     use blockifier::execution::errors::{EntryPointExecutionError, PreExecutionError};
     use blockifier::transaction::errors::TransactionExecutionError::ExecutionError;
     use starknet_api::hash::StarkFelt;
-    use starknet_api::transaction::Fee;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::chain_id::ChainId;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
-    use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
     use starknet_types::rpc::transactions::L1HandlerTransaction;
     use starknet_types::traits::HashProducer;
@@ -57,11 +53,10 @@ mod tests {
     use crate::account::Account;
     use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID};
     use crate::starknet::{predeployed, Starknet};
-    use crate::traits::{Accounted, Deployed, HashIdentifiedMut, StateChanger, StateExtractor};
+    use crate::traits::{Accounted, Deployed, HashIdentifiedMut, StateChanger};
     use crate::utils::exported_test_utils::dummy_cairo_l1l2_contract;
-    use crate::utils::get_storage_var_address;
     use crate::utils::test_utils::{
-        cairo_0_account_without_validations, dummy_contract_address, dummy_felt, get_bytes_from_u32,
+        cairo_0_account_without_validations, dummy_felt, get_bytes_from_u32,
     };
 
     #[test]
@@ -98,7 +93,7 @@ mod tests {
 
     #[test]
     fn l1_handler_transaction_successful_execution() {
-        let (mut starknet, account_address, contract_address, deposit_selector, _) = setup();
+        let (mut starknet, _account_address, contract_address, deposit_selector, _) = setup();
 
         let transaction = get_l1_handler_tx(
             Felt::from_prefixed_hex_str(WHITELISTED_L1_ADDRESS).unwrap(),
@@ -120,7 +115,7 @@ mod tests {
 
     #[test]
     fn l1_handler_transaction_not_l1_handler_entrypoint() {
-        let (mut starknet, account_address, contract_address, _, withdraw_selector) = setup();
+        let (mut starknet, _account_address, contract_address, _, withdraw_selector) = setup();
 
         let transaction = get_l1_handler_tx(
             Felt::from_prefixed_hex_str(WHITELISTED_L1_ADDRESS).unwrap(),
@@ -159,7 +154,7 @@ mod tests {
         let nonce = 783082_u128;
         let fee = 30000_u128;
 
-        let mut calldata = payload.clone();
+        let mut calldata = payload;
         calldata.insert(0, from_address);
 
         L1HandlerTransaction {

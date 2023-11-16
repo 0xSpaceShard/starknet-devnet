@@ -127,6 +127,12 @@ pub(crate) struct MessageHash {
 }
 
 #[derive(Serialize)]
+pub(crate) struct TxHash {
+    #[serde(rename = "transactionHash")]
+    pub transaction_hash: TransactionHash,
+}
+
+#[derive(Serialize)]
 pub(crate) struct CreatedBlock {
     pub block_hash: BlockHash,
 }
@@ -207,4 +213,10 @@ pub(crate) struct FlushedMessages {
     pub messages_to_l2: Vec<MessageToL2>,
     #[serde(rename = "l1Provider")]
     pub l1_provider: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub(crate) struct FlushParameters {
+    #[serde(rename = "dryRun")]
+    pub dry_run: bool,
 }
