@@ -188,17 +188,18 @@ impl Starknet {
         // set new block header
         new_block.set_block_hash(new_block.generate_hash()?);
         new_block.status = BlockStatus::AcceptedOnL2;
-        match timestamp {
-            Some(timestamp) => {
-                new_block.set_timestamp(BlockTimestamp(timestamp));
-            }
-            None => {
-                new_block.set_timestamp(BlockTimestamp(
-                    (Starknet::get_unix_timestamp_as_seconds() as i64
-                        + self.pending_block_timestamp_shift) as u64,
-                ));
-            }
-        }
+
+        // set block timestamp and context block timestamp for contract execution
+        let block_timestamp = match timestamp {
+            Some(timestamp) => BlockTimestamp(timestamp),
+            None => BlockTimestamp(
+                (Starknet::get_unix_timestamp_as_seconds() as i64
+                    + self.pending_block_timestamp_shift) as u64,
+            ),
+        };
+        new_block.set_timestamp(block_timestamp);
+        self.block_context.block_timestamp = block_timestamp;
+
         let new_block_number = new_block.block_number();
 
         // update txs block hash block number for each transaction in the pending block

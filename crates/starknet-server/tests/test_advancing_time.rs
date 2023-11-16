@@ -86,7 +86,9 @@ mod advancing_time_tests {
             entry_point_selector: get_selector_from_name("get_timestamp").unwrap(),
             calldata: vec![],
         };
-        let timestamp = devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap()[0];
+        let timestamp =
+            devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap()[0];
+
         assert_ge_with_buffer(Some(now), Some(timestamp.to_string().parse::<u64>().unwrap()));
     }
 
