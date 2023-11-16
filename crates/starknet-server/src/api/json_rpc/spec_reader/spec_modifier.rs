@@ -5,6 +5,9 @@ use serde_json::Value;
 
 use super::Spec;
 
+/// Note: this structs is not all round solution for modifying the specification.
+/// It has some limitations, if you need to modify the specification in a way that is not supported
+/// Please use the remove_manually entry of the .yaml file
 #[derive(Deserialize)]
 pub(crate) struct SpecModifier {
     clean: Vec<String>,
