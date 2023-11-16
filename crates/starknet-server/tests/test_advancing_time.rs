@@ -37,12 +37,10 @@ mod advancing_time_tests {
     #[tokio::test]
     async fn get_timestamp_syscall() {
         let now = get_unix_timestamp_as_seconds();
-        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
-            "--start-time",
-            now.to_string().as_str(),
-        ])
-        .await
-        .expect("Could not start Devnet");
+        let devnet: BackgroundDevnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        // wait 1 second
+        thread::sleep(time::Duration::from_secs(1));
 
         let (signer, address) = devnet.get_first_predeployed_account().await;
         let predeployed_account = SingleOwnerAccount::new(
@@ -89,7 +87,7 @@ mod advancing_time_tests {
         let timestamp =
             devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap()[0];
 
-        assert_ge_with_buffer(Some(now), Some(timestamp.to_string().parse::<u64>().unwrap()));
+        assert_gt_with_buffer(Some(timestamp.to_string().parse::<u64>().unwrap()), Some(now));
     }
 
     #[tokio::test]
