@@ -27,6 +27,10 @@ pub const CAIRO_1_CONTRACT_PATH: &str = "test_data/rpc/contract_cairo_v1/output.
 pub const CASM_COMPILED_CLASS_HASH: &str =
     "0x63b33a5f2f46b1445d04c06d7832c48c48ad087ce0803b71f2b8d96353716ca";
 
-// Balance contract with a failable (panicking) function
+// Simple contract with a failable (panicking) function
 pub const CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH: &str =
     "test_data/cairo1/panicking_contract/panicking_contract.sierra";
+
+// Contract which assert
+pub const CAIRO_1_VERSION_ASSERTER_SIERRA_PATH: &str =
+    "test_data/cairo1/version_asserter/version_asserter.sierra";

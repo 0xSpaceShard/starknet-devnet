@@ -23,7 +23,8 @@ mod estimate_fee_tests {
     };
 
     use crate::common::constants::{
-        CAIRO_1_CONTRACT_PATH, CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH, CHAIN_ID,
+        CAIRO_1_CONTRACT_PATH, CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH,
+        CAIRO_1_VERSION_ASSERTER_SIERRA_PATH, CHAIN_ID,
     };
     use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::{
@@ -407,6 +408,60 @@ mod estimate_fee_tests {
                     message,
                 },
             ))) => assert!(message.contains(panic_reason)),
+            other => panic!("Unexpected result: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn using_query_version_if_estimating() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        // get account
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+        let account = Arc::new(SingleOwnerAccount::new(
+            devnet.clone_provider(),
+            signer,
+            account_address,
+            CHAIN_ID,
+            ExecutionEncoding::Legacy,
+        ));
+
+        // get class
+        let (flattened_contract_artifact, casm_hash) =
+            get_flattened_sierra_contract_and_casm_hash(CAIRO_1_VERSION_ASSERTER_SIERRA_PATH);
+        let class_hash = flattened_contract_artifact.class_hash();
+
+        // declare class
+        let declaration_result =
+            account.declare(Arc::new(flattened_contract_artifact), casm_hash).send().await.unwrap();
+        assert_eq!(declaration_result.class_hash, class_hash);
+
+        // deploy instance of class
+        let contract_factory = ContractFactory::new(class_hash, account.clone());
+        let salt = FieldElement::from_hex_be("0x123").unwrap();
+        let constructor_calldata = vec![];
+        let contract_address = get_udc_deployed_address(
+            salt,
+            class_hash,
+            &UdcUniqueness::NotUnique,
+            &constructor_calldata,
+        );
+        contract_factory
+            .deploy(constructor_calldata, salt, false)
+            .send()
+            .await
+            .expect("Cannot deploy");
+
+        let expected_version =
+            FieldElement::from_hex_be("0x100000000000000000000000000000001").unwrap(); // 2 ** 128 + 1
+        let calls = vec![Call {
+            to: contract_address,
+            selector: get_selector_from_name("assert_version").unwrap(),
+            calldata: vec![expected_version],
+        }];
+
+        match account.execute(calls).estimate_fee().await {
+            Ok(_) => (),
             other => panic!("Unexpected result: {other:?}"),
         }
     }
