@@ -9,7 +9,8 @@ mod estimate_fee_tests {
     };
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{
-        Account, AccountError, AccountFactory, AccountFactoryError, Call, ConnectedAccount, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
+        Account, AccountError, AccountFactory, AccountFactoryError, Call, ConnectedAccount,
+        ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
