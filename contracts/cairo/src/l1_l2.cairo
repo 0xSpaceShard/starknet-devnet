@@ -49,10 +49,15 @@ mod l1_l2 {
         assert(amount.is_non_zero(), 'Amount must be positive');
 
         let balance = self.balances.read(user);
+        assert(balance.is_non_zero(), 'Balance is already 0');
+
+        // We need u256 to make comparisons.
+        let balance_u: u256 = balance.into();
+        let amount_u: u256 = amount.into();
+        assert(balance_u >= amount_u, 'Balance will be negative');
+        
         let new_balance = balance - amount;
 
-        assert(new_balance.is_non_zero(), 'New balance is negative');
-        
         self.balances.write(user, new_balance);
 
         let payload = array![

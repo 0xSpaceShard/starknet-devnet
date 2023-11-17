@@ -26,6 +26,14 @@ contract L1L2Example {
         starknetCore = starknetCore_;
     }
 
+    function get_balance(uint256 user)
+        external
+        view
+        returns (uint256)
+    {
+        return userBalances[user];
+    }
+
     function withdraw(
         uint256 l2ContractAddress,
         uint256 user,

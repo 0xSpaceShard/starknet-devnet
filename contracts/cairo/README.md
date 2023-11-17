@@ -42,14 +42,14 @@ export STARKNET_PRIVATE_KEY=0xb137668388dbe9acdfa3bc734cc2c469
 starkli declare target/dev/cairo_l1_l2.contract_class.json
 
 # Deploy (adjust the class hash if needed).
-starkli deploy 0x00741a6cec05cee3894151cb04421560ebac6f7f8312f50fb9441fc250ae9c12 --salt 123
+starkli deploy 0x0211fd0483be230ba40d43f51bd18ae239b913f529f95ce10253e514175efb3e --salt 123
 
 # Interact with the contract
-starkli invoke 0x0315f3c38678ad3b4f8852bf6a8e9d24f3eea2421a76510f3d2aa740bacb0eef increase_balance 0x1 0xff
-starkli call 0x0315f3c38678ad3b4f8852bf6a8e9d24f3eea2421a76510f3d2aa740bacb0eef get_balance 0x1
+starkli invoke 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 increase_balance 0x1 0xff
+starkli call 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 get_balance 0x1
 
 # To send messages to L1, you can use:
-starkli invoke 0x0315f3c38678ad3b4f8852bf6a8e9d24f3eea2421a76510f3d2aa740bacb0eef withdraw 0x1 1 0x112233
+starkli invoke 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 withdraw 0x1 1 0x112233
 
 # Then you can check the message ready to be sent with the `postman/flush` endpoint, with a dry run without actually
 # running a L1 node:
@@ -70,7 +70,7 @@ curl -H 'Content-Type: application/json' -d '{"dryRun": true}' http://127.0.0.1:
 # If you want to simulate a message arriving from the L1 without actually running a L1 node, you can trigger
 # the l1_handler `deposit` function by using the postman `send_message_to_l2` endpoint:
 curl -H 'Content-Type: application/json' \
-     -d '{"paidFeeOnL1": "0x123", "l2ContractAddress": "0x0315f3c38678ad3b4f8852bf6a8e9d24f3eea2421a76510f3d2aa740bacb0eef", "l1ContractAddress": "0x112233", "entryPointSelector": "0x00c73f681176fc7b3f9693986fd7b14581e8d540519e27400e88b8713932be01", "payload": ["0x1", "0x2"], "nonce": "0x1"}' \
+     -d '{"paidFeeOnL1": "0x123", "l2ContractAddress": "0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4", "l1ContractAddress": "0x112233", "entryPointSelector": "0x00c73f681176fc7b3f9693986fd7b14581e8d540519e27400e88b8713932be01", "payload": ["0x1", "0x2"], "nonce": "0x1"}' \
      http://127.0.0.1:5050/postman/send_message_to_l2
 
 {

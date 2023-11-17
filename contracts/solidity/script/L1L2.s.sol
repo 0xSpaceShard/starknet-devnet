@@ -14,7 +14,6 @@ contract Deploy is Script {
 
     function run() public {
         // .env file is automatically sourced by forge.
-        address deployerAddress = vm.envAddress("ACCOUNT_ADDRESS");
         uint256 deployerPrivateKey = vm.envUint("ACCOUNT_PRIVATE_KEY");
         MockStarknetMessaging snMessaging = MockStarknetMessaging(vm.envAddress("STARKNET_MESSAGING_ADDRESS"));
 
@@ -27,4 +26,3 @@ contract Deploy is Script {
         vm.stopBroadcast();
     }
 }
-
