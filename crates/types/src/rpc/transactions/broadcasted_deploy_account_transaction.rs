@@ -58,6 +58,7 @@ impl BroadcastedDeployAccountTransaction {
     pub fn create_blockifier_deploy_account(
         &self,
         chain_id: Felt,
+        only_query: bool,
     ) -> DevnetResult<blockifier::transaction::transactions::DeployAccountTransaction> {
         let contract_address = calculate_contract_address(
             starknet_api::transaction::ContractAddressSalt(self.contract_address_salt.into()),
@@ -105,6 +106,7 @@ impl BroadcastedDeployAccountTransaction {
             tx: starknet_api::transaction::DeployAccountTransaction::V1(sn_api_transaction),
             tx_hash: starknet_api::transaction::TransactionHash(transaction_hash.into()),
             contract_address,
+            only_query,
         })
     }
 
@@ -181,7 +183,7 @@ mod tests {
         let chain_id = ChainId::Testnet.to_felt();
 
         let blockifier_deploy_account_transaction =
-            broadcasted_tx.create_blockifier_deploy_account(chain_id).unwrap();
+            broadcasted_tx.create_blockifier_deploy_account(chain_id, false).unwrap();
 
         assert_eq!(
             ContractAddress::new(feeder_gateway_transaction.contract_address).unwrap(),

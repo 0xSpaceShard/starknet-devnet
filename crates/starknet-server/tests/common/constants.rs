@@ -27,5 +27,13 @@ pub const CAIRO_1_CONTRACT_PATH: &str = "test_data/rpc/contract_cairo_v1/output.
 pub const CASM_COMPILED_CLASS_HASH: &str =
     "0x63b33a5f2f46b1445d04c06d7832c48c48ad087ce0803b71f2b8d96353716ca";
 
+// Simple contract with a failable (panicking) function
+pub const CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH: &str =
+    "test_data/cairo1/panicking_contract/panicking_contract.sierra";
+
+// Contract which asserts the tx version
+pub const CAIRO_1_VERSION_ASSERTER_SIERRA_PATH: &str =
+    "test_data/cairo1/version_asserter/version_asserter.sierra";
+
 // L1 L2 pre-registered addresses.
 pub const MESSAGING_L1_ALLOWED_CONTRACT: &str = "0x8359e4b0152ed5a731162d3c7b0d8d56edb165a0";

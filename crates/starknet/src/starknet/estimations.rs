@@ -24,7 +24,7 @@ pub fn estimate_fee(
 
     let transactions = transactions
         .iter()
-        .map(|txn| Ok(txn.to_blockifier_account_transaction(chain_id)?))
+        .map(|txn| Ok(txn.to_blockifier_account_transaction(chain_id, true)?))
         .collect::<DevnetResult<Vec<AccountTransaction>>>()?;
 
     transactions
@@ -85,14 +85,8 @@ fn estimate_transaction_fee(
         validate.unwrap_or(true),
     )?;
 
-    if transaction_execution_info.revert_error.is_some() {
-        return Err(Error::BlockifierTransactionError(
-            blockifier::transaction::errors::TransactionExecutionError::ExecutionError(
-                blockifier::execution::errors::EntryPointExecutionError::ExecutionFailed {
-                    error_data: vec![],
-                },
-            ),
-        ));
+    if let Some(revert_error) = transaction_execution_info.revert_error {
+        return Err(Error::EstimationExecutionError { msg: revert_error });
     }
 
     let (l1_gas_usage, vm_resources) =
