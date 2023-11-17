@@ -26,20 +26,19 @@ contract MockStarknetMessaging is StarknetMessaging {
     }
 
     /**
-      Mocks consumption of a message from L1 to L2.
+      Mocks consumption of a message from L2 to L1.
     */
-    function mockConsumeMessageToL2(
+    function mockConsumeMessageFromL2(
         uint256 fromAddress,
         uint256 toAddress,
-        uint256 selector,
-        uint256[] calldata payload,
-        uint256 nonce
+        uint256[] calldata payload
     ) external {
         bytes32 msgHash = keccak256(
-            abi.encodePacked(fromAddress, toAddress, nonce, selector, payload.length, payload)
+            abi.encodePacked(fromAddress, toAddress, payload.length, payload)
         );
 
-        require(l1ToL2Messages()[msgHash] > 0, "INVALID_MESSAGE_TO_CONSUME");
-        l1ToL2Messages()[msgHash] = 0;
+        require(l2ToL1Messages()[msgHash] > 0, "INVALID_MESSAGE_TO_CONSUME");
+        emit ConsumedMessageToL1(fromAddress, msg.sender, payload);
+        l2ToL1Messages()[msgHash] -= 1;
     }
 }
