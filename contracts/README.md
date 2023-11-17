@@ -151,14 +151,16 @@ cast send 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 "deposit(uint256, uint256, 
      
 # The balance is now 0.
 cast call 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 "get_balance(uint256)(uint256)" 0x1
-
+```
+```bash
 0
 ```
 
 3. Flush the messages.
 ```bash
 curl -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:5050/postman/flush
-
+```
+```json
 {
     "messagesToL1": [],
     "messagesToL2": [
