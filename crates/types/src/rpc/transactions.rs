@@ -304,11 +304,12 @@ impl BroadcastedTransaction {
     pub fn to_blockifier_account_transaction(
         &self,
         chain_id: Felt,
+        only_query: bool,
     ) -> DevnetResult<blockifier::transaction::account_transaction::AccountTransaction> {
         let blockifier_transaction = match self {
             BroadcastedTransaction::Invoke(invoke_txn) => {
                 let blockifier_invoke_txn =
-                    invoke_txn.create_blockifier_invoke_transaction(chain_id)?;
+                    invoke_txn.create_blockifier_invoke_transaction(chain_id, only_query)?;
                 AccountTransaction::Invoke(blockifier_invoke_txn)
             }
             BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(declare_v1)) => {
@@ -324,7 +325,7 @@ impl BroadcastedTransaction {
             }
             BroadcastedTransaction::DeployAccount(deploy_account) => {
                 AccountTransaction::DeployAccount(
-                    deploy_account.create_blockifier_deploy_account(chain_id)?,
+                    deploy_account.create_blockifier_deploy_account(chain_id, only_query)?,
                 )
             }
         };

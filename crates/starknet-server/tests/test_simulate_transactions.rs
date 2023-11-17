@@ -12,18 +12,17 @@ mod estimate_fee_tests {
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::contract::SierraClass;
     use starknet_rs_core::types::FieldElement;
     use starknet_rs_core::utils::{
         get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
     };
     use starknet_rs_signers::Signer;
 
-    use crate::common::constants::{CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH, CHAIN_ID};
+    use crate::common::constants::{CAIRO_1_CONTRACT_PATH, CHAIN_ID};
     use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::{
-        get_deployable_account_signer, iter_to_hex_felt, load_json, resolve_path, to_hex_felt,
-        to_num_as_hex,
+        get_deployable_account_signer, get_flattened_sierra_contract_and_casm_hash,
+        iter_to_hex_felt, to_hex_felt, to_num_as_hex,
     };
 
     fn extract_overall_fee(simulation_result: &serde_json::Value) -> u128 {
@@ -155,16 +154,15 @@ mod estimate_fee_tests {
             ExecutionEncoding::Legacy,
         );
 
-        let contract_artifact_path = resolve_path(CAIRO_1_CONTRACT_PATH);
-        let contract_artifact: SierraClass = load_json(&contract_artifact_path);
-        let flattened_contract_artifact = contract_artifact.clone().flatten().unwrap();
-        let compiled_class_hash = FieldElement::from_hex_be(CASM_COMPILED_CLASS_HASH).unwrap();
+        // get class
+        let (flattened_contract_artifact, casm_hash) =
+            get_flattened_sierra_contract_and_casm_hash(CAIRO_1_CONTRACT_PATH);
 
         let max_fee = FieldElement::ZERO;
         let nonce = FieldElement::ZERO;
 
         let signature = account
-            .declare(Arc::new(flattened_contract_artifact), compiled_class_hash)
+            .declare(Arc::new(flattened_contract_artifact.clone()), casm_hash)
             .max_fee(max_fee)
             .nonce(nonce)
             .prepared()
@@ -185,12 +183,12 @@ mod estimate_fee_tests {
                     {
                         "type": "DECLARE",
                         "sender_address": sender_address_hex,
-                        "compiled_class_hash": to_hex_felt(&compiled_class_hash),
+                        "compiled_class_hash": to_hex_felt(&casm_hash),
                         "max_fee": to_hex_felt(&max_fee),
                         "version": "0x2",
                         "signature": signature_hex,
                         "nonce": to_num_as_hex(&nonce),
-                        "contract_class": contract_artifact,
+                        "contract_class": flattened_contract_artifact,
                     }
                 ]
             })

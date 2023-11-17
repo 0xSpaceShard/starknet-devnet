@@ -1,5 +1,6 @@
 use std::net::{IpAddr, Ipv4Addr};
 
+use starknet_rs_ff::FieldElement;
 use starknet_types::chain_id::ChainId;
 
 pub const CAIRO_0_ACCOUNT_CONTRACT_PATH: &str = concat!(
@@ -45,6 +46,12 @@ pub const DEVNET_DEFAULT_TIMEOUT: u16 = 120;
 pub const DEVNET_DEFAULT_CHAIN_ID: ChainId = ChainId::Testnet;
 
 pub const SUPPORTED_TX_VERSION: u32 = 1;
+pub const QUERY_VERSION_BASE: FieldElement = FieldElement::from_mont([
+    18446744073700081665,
+    17407,
+    18446744073709551584,
+    576460752142434320,
+]); // 2 ** 128
 
 // chargeable account
 pub const CHARGEABLE_ACCOUNT_PUBLIC_KEY: &str =
