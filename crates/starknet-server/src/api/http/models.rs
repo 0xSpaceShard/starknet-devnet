@@ -218,5 +218,11 @@ pub(crate) struct FlushedMessages {
 #[derive(Serialize, Deserialize)]
 pub(crate) struct FlushParameters {
     #[serde(rename = "dryRun")]
-    pub dry_run: bool,
+    pub dry_run: Option<bool>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub(crate) struct MessagingLoadAddress {
+    #[serde(rename = "messageContractAddress")]
+    pub messaging_contract_address: String,
 }

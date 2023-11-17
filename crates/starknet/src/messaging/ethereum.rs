@@ -85,6 +85,7 @@ pub struct EthereumMessaging {
     // avoid fetching already fetched messages. Or use the nonce instead
     // to not re-send already sent messages.
     last_fetched_block: u64,
+    pub last_local_block: u64,
     // TODO: add a message nonce verification too.
 }
 
@@ -122,6 +123,7 @@ impl EthereumMessaging {
             provider_signer: Arc::new(provider_signer),
             messaging_contract_address: Address::zero(),
             last_fetched_block: 0,
+            last_local_block: 0,
         };
 
         if let Some(address) = contract_address {
@@ -144,6 +146,11 @@ impl EthereumMessaging {
     /// Returns the url of the ethereum node currently in used.
     pub fn node_url(&self) -> String {
         self.provider.url().to_string()
+    }
+
+    /// Returns address of the messaging contract on L1 node.
+    pub fn messaging_contract_address(&self) -> Address {
+        self.messaging_contract_address.clone()
     }
 
     /// Fetches all the messages that were not already fetched from the L1 node.

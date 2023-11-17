@@ -30,7 +30,7 @@
 //! to make it available for consumption on L1.
 //! This is done my sending a transaction to the Ethereum node, to the MockStarknetMessaging
 //! contract (`mockSendMessageFromL2` entrypoint).
-use starknet_rs_core::types::{BlockId, MsgToL1};
+use starknet_rs_core::types::{BlockId, MsgToL1, ExecutionResult};
 use starknet_types::rpc::transactions::L1HandlerTransaction;
 
 use crate::error::{DevnetResult, Error, MessagingError};
@@ -61,11 +61,11 @@ impl Starknet {
         rpc_url: &str,
         contract_address: Option<&str>,
         private_key: Option<&str>,
-    ) -> DevnetResult<()> {
+    ) -> DevnetResult<String> {
         self.messaging =
             Some(EthereumMessaging::new(rpc_url, contract_address, private_key).await?);
 
-        Ok(())
+        Ok(format!("0x{:x}", self.messaging.as_ref().expect("Messaging is configured here").messaging_contract_address()))
     }
 
     /// Collects all messages found between
@@ -85,13 +85,14 @@ impl Starknet {
 
     /// Collects and sends to L1 all messages found between
     /// `from` to the Latest Starknet block, including both blocks.
+    /// Returns the list of messages that were collected and the last processed block.
     ///
     /// # Arguments
     /// * `from` - The block id from which (and including which) the messages are collected.
     pub async fn collect_and_send_messages_to_l1(
         &self,
         from: BlockId,
-    ) -> DevnetResult<Vec<MsgToL1>> {
+    ) -> DevnetResult<(Vec<MsgToL1>, u64)> {
         if self.messaging.is_none() {
             return Err(Error::MessagingError(MessagingError::NotConfigured));
         }
@@ -100,13 +101,16 @@ impl Starknet {
 
         let mut messages = vec![];
 
+        let mut last_processed_block: u64 = 0;
         for block in self.blocks.get_blocks(Some(from), None)? {
             messages.extend(self.get_block_messages(block)?);
+
+            last_processed_block = block.header.block_number.0;
         }
 
         messaging.send_mock_messages(&messages).await?;
 
-        Ok(messages)
+        Ok((messages, last_processed_block))
     }
 
     /// Fetches all messages from L1 and executes them by executing a `L1HandlerTransaction`
@@ -142,7 +146,12 @@ impl Starknet {
             if let Ok(transaction) =
                 self.transactions.get_by_hash(*transaction_hash).ok_or(Error::NoTransaction)
             {
-                messages.extend(transaction.get_l2_to_l1_messages())
+                // As we will send the messages to L1 node, we don't want to include
+                // the messages of reverted transactions.
+                match transaction.execution_result {
+                    ExecutionResult::Succeeded => messages.extend(transaction.get_l2_to_l1_messages()),
+                    _ => (),
+                }
             }
         });
 

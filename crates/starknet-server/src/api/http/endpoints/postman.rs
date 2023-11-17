@@ -5,17 +5,17 @@ use starknet_types::rpc::transactions::L1HandlerTransaction;
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{
     FlushParameters, FlushedMessages, MessageHash, MessageToL1, MessageToL2,
-    PostmanLoadL1MessagingContract, TxHash,
+    MessagingLoadAddress, PostmanLoadL1MessagingContract, TxHash,
 };
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 
 pub(crate) async fn postman_load(
     Extension(state): Extension<HttpApiHandler>,
     Json(data): Json<PostmanLoadL1MessagingContract>,
-) -> HttpApiResult<()> {
+) -> HttpApiResult<Json<MessagingLoadAddress>> {
     let mut starknet = state.api.starknet.write().await;
 
-    starknet
+    let messaging_contract_address = starknet
         .configure_messaging(
             &data.network_url,
             data.address.as_deref(),
@@ -24,7 +24,9 @@ pub(crate) async fn postman_load(
         .await
         .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
 
-    Ok(())
+    Ok(Json(MessagingLoadAddress {
+        messaging_contract_address,
+    }))
 }
 
 pub(crate) async fn postman_flush(
@@ -35,7 +37,9 @@ pub(crate) async fn postman_flush(
     // will create L2 to L1 messages.
     let mut starknet = state.api.starknet.write().await;
 
-    let messages_to_l2 = if data.dry_run {
+    let dry_run = data.dry_run.unwrap_or(false);
+
+    let messages_to_l2 = if dry_run {
         Ok(vec![])
     } else {
         starknet
@@ -47,39 +51,46 @@ pub(crate) async fn postman_flush(
             .collect::<Result<Vec<MessageToL2>, HttpApiError>>()
     };
 
-    // TODO: we need to keep track of the last block id processed
-    // locally. To include in the rework of the messaging location
-    // in devnet.
-    let messages_to_l1 = if data.dry_run {
-        starknet
-            .collect_messages_to_l1(BlockId::Number(0))
-            .await
-            .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?
-            .into_iter()
-            .map(|m| m.try_into())
-            .collect::<Result<Vec<MessageToL1>, HttpApiError>>()
+    let (messages_to_l1, last_local_block) = if dry_run {
+        (starknet
+         .collect_messages_to_l1(BlockId::Number(0))
+         .await
+         .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?
+         .into_iter()
+         .map(|m| m.try_into())
+         .collect::<Result<Vec<MessageToL1>, HttpApiError>>(),
+         0)
     } else {
-        starknet
-            .collect_and_send_messages_to_l1(BlockId::Number(0))
+        let from = starknet.messaging.as_ref().expect("Messaging expected configured").last_local_block;
+
+        let (msgs, b) = starknet
+            .collect_and_send_messages_to_l1(BlockId::Number(from))
             .await
-            .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?
-            .into_iter()
-            .map(|m| m.try_into())
-            .collect::<Result<Vec<MessageToL1>, HttpApiError>>()
+            .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
+
+        (msgs
+         .into_iter()
+         .map(|m| m.try_into())
+         .collect::<Result<Vec<MessageToL1>, HttpApiError>>(),
+         b)
     };
 
-    let l1_provider = if data.dry_run {
+    let l1_provider = if dry_run {
         "dry run".to_string()
     } else {
         starknet.messaging_url().unwrap_or("Not set".to_string())
     };
+
+    if !dry_run {
+        starknet.messaging.as_mut().expect("Messaging expected configured").last_local_block = last_local_block;
+    }
 
     match (messages_to_l1, messages_to_l2) {
         (Ok(l1s), Ok(l2s)) => {
             Ok(Json(FlushedMessages { messages_to_l1: l1s, messages_to_l2: l2s, l1_provider }))
         }
         (Ok(l1s), Err(e)) => {
-            if data.dry_run {
+            if dry_run {
                 Ok(Json(FlushedMessages {
                     messages_to_l1: l1s,
                     messages_to_l2: vec![],
@@ -90,7 +101,7 @@ pub(crate) async fn postman_flush(
             }
         }
         (Err(e), Ok(l2s)) => {
-            if data.dry_run {
+            if dry_run {
                 Ok(Json(FlushedMessages {
                     messages_to_l1: vec![],
                     messages_to_l2: l2s,
