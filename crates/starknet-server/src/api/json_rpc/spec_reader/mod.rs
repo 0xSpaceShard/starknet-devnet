@@ -176,6 +176,7 @@ mod tests {
             "starknet_getTransactionByBlockIdAndIndex",
             "starknet_getTransactionByHash",
             "starknet_getBlockWithTxs",
+            "starknet_getTransactionReceipt",
         ];
 
         let mut failed_method_responses = vec![];
