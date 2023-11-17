@@ -1,5 +1,5 @@
 use axum::{Extension, Json};
-use starknet_rs_core::types::{BlockId, MsgToL1};
+use starknet_rs_core::types::MsgToL1;
 use starknet_types::rpc::transactions::L1HandlerTransaction;
 
 use crate::api::http::error::HttpApiError;
@@ -49,10 +49,12 @@ pub(crate) async fn postman_flush(
             .collect::<Result<Vec<MessageToL2>, HttpApiError>>()
     };
 
+    let from_block = if let Some(m) = &starknet.messaging { m.last_local_block } else { 0 };
+
     let (messages_to_l1, last_local_block) = if dry_run {
         (
             starknet
-                .collect_messages_to_l1(BlockId::Number(0))
+                .collect_messages_to_l1(from_block)
                 .await
                 .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?
                 .into_iter()
@@ -61,11 +63,8 @@ pub(crate) async fn postman_flush(
             0,
         )
     } else {
-        let from =
-            starknet.messaging.as_ref().expect("Messaging expected configured").last_local_block;
-
         let (msgs, b) = starknet
-            .collect_and_send_messages_to_l1(BlockId::Number(from))
+            .collect_and_send_messages_to_l1(from_block)
             .await
             .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
 
@@ -84,8 +83,9 @@ pub(crate) async fn postman_flush(
     };
 
     if !dry_run {
+        // +1 to ensure this last block is not collected anymore.
         starknet.messaging.as_mut().expect("Messaging expected configured").last_local_block =
-            last_local_block;
+            last_local_block + 1;
     }
 
     match (messages_to_l1, messages_to_l2) {

@@ -79,14 +79,26 @@ impl Starknet {
     ///
     /// # Arguments
     /// * `from` - The block id from which (and including which) the messages are collected.
-    pub async fn collect_messages_to_l1(&self, from: BlockId) -> DevnetResult<Vec<MsgToL1>> {
-        let mut messages = vec![];
+    pub async fn collect_messages_to_l1(&self, from: u64) -> DevnetResult<Vec<MsgToL1>> {
+        match self.blocks.get_blocks(Some(BlockId::Number(from)), None) {
+            Ok(blocks) => {
+                let mut messages = vec![];
 
-        for block in self.blocks.get_blocks(Some(from), None)? {
-            messages.extend(self.get_block_messages(block)?);
+                for block in blocks {
+                    messages.extend(self.get_block_messages(block)?);
+                }
+
+                Ok(messages)
+            }
+            Err(e) => {
+                if let Error::NoBlock = e {
+                    // We're 1 block ahead of latest block, no messages can be collected.
+                    Ok(vec![])
+                } else {
+                    Err(e)
+                }
+            }
         }
-
-        Ok(messages)
     }
 
     /// Collects and sends to L1 all messages found between
@@ -97,26 +109,38 @@ impl Starknet {
     /// * `from` - The block id from which (and including which) the messages are collected.
     pub async fn collect_and_send_messages_to_l1(
         &self,
-        from: BlockId,
+        from: u64,
     ) -> DevnetResult<(Vec<MsgToL1>, u64)> {
-        if self.messaging.is_none() {
+        let messaging = if let Some(m) = &self.messaging {
+            m
+        } else {
             return Err(Error::MessagingError(MessagingError::NotConfigured));
+        };
+
+        match self.blocks.get_blocks(Some(BlockId::Number(from)), None) {
+            Ok(blocks) => {
+                let mut messages = vec![];
+
+                let mut last_processed_block: u64 = 0;
+                for block in blocks {
+                    messages.extend(self.get_block_messages(block)?);
+
+                    last_processed_block = block.header.block_number.0;
+                }
+
+                messaging.send_mock_messages(&messages).await?;
+
+                Ok((messages, last_processed_block))
+            }
+            Err(e) => {
+                if let Error::NoBlock = e {
+                    // We're 1 block ahead of latest block, no messages can be collected.
+                    Ok((vec![], from))
+                } else {
+                    Err(e)
+                }
+            }
         }
-
-        let messaging = self.messaging.as_ref().unwrap();
-
-        let mut messages = vec![];
-
-        let mut last_processed_block: u64 = 0;
-        for block in self.blocks.get_blocks(Some(from), None)? {
-            messages.extend(self.get_block_messages(block)?);
-
-            last_processed_block = block.header.block_number.0;
-        }
-
-        messaging.send_mock_messages(&messages).await?;
-
-        Ok((messages, last_processed_block))
     }
 
     /// Fetches all messages from L1 and executes them by executing a `L1HandlerTransaction`

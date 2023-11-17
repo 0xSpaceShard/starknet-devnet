@@ -22,8 +22,17 @@ cargo run -- --seed 42
 Now both nodes are running, Devnet for Starkne and Anvil for Ethereum.
 
 Then, **open two terminals**:
-* one for Starknet then `cd contracts/cairo`.
-* one for Ethereum then `cd contracts/solidity`.
+* one for Starknet then:
+  ```bash
+  cd contracts/cairo
+  scarb build
+  ```
+
+* one for Ethereum then:
+  ```bash
+  cd contracts/solidity
+  forge build
+  ```
 
 ### Etherum setup
 1. Use Devnet postman endpoint to load the `MockStarknetMessaging` contract:
@@ -31,7 +40,8 @@ Then, **open two terminals**:
 curl -H 'Content-Type: application/json' \
      -d '{"networkUrl": "http://127.0.0.1:8545"}' \
      http://127.0.0.1:5050/postman/load_l1_messaging_contract
-
+```
+```json
 {
     "messageContractAddress":"0x5fbdb2315678afecb367f032d93f642f64180aa3"
 }
@@ -42,7 +52,8 @@ curl -H 'Content-Type: application/json' \
 # Ethereum terminal (contracts/solidity)
 source .env
 forge script script/L1L2.s.sol:Deploy --broadcast --rpc-url $ETH_RPC_URL --silent
-
+```
+```bash
 ✅  [Success]Hash: 0x942cfaadc557f360b91e2bfe98e8246d87b8efb4bfe6c1803162cd4aa7a71e1d
 Contract Address: 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
 Block: 2
@@ -52,7 +63,8 @@ Paid: 0.0013459867197597 ETH (346581 gas * 3.8836137 gwei)
 3. Check balance is 0 for user `1`:
 ```bash
 cast call 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 "get_balance(uint256)(uint256)" 0x1
-
+```
+```bash
 0
 ```
 
@@ -78,7 +90,8 @@ starkli invoke 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a
 # Here, you can still check on ethereum, the balance is still 0.
 # You can use the `dry run` version if you just want to check the messages before actually sending them.
 curl -H 'Content-Type: application/json' -d '{"dryRun": true}' http://127.0.0.1:5050/postman/flush
-
+```
+```json
 {
     "messagesToL1": [
         {
@@ -90,10 +103,12 @@ curl -H 'Content-Type: application/json' -d '{"dryRun": true}' http://127.0.0.1:
     "messagesToL2":[],
     "l1Provider":"dry run"
 }
-
+```
+```bash
 # Flushing the message to actually send them to the L1.
 curl -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:5050/postman/flush
-
+```
+```json
 {
     "messagesToL1": [
         {
@@ -109,7 +124,8 @@ curl -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:5050/postman/f
 ```
 
 ### Etherum receive message and send message to L2
-1. Now the message is received, we can consume it.
+1. Now the message is received, we can consume it. You can try to run this command several time,
+   you'll see the transaction reverting with `INVALID_MESSAGE_TO_CONSUME` once the message is consumed once.
 ```bash
 # Ethereum terminal (contracts/solidity)
 cast send 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 "withdraw(uint256, uint256, uint256)" \
@@ -119,7 +135,8 @@ cast send 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 "withdraw(uint256, uint256,
      
 # We can now check the balance, it's 1.
 cast call 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 "get_balance(uint256)(uint256)" 0x1
-
+```
+```bash
 1
 ```
 
