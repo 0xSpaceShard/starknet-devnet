@@ -30,7 +30,7 @@
 //! to make it available for consumption on L1.
 //! This is done my sending a transaction to the Ethereum node, to the MockStarknetMessaging
 //! contract (`mockSendMessageFromL2` entrypoint).
-use starknet_rs_core::types::{BlockId, MsgToL1, ExecutionResult};
+use starknet_rs_core::types::{BlockId, ExecutionResult, MsgToL1};
 use starknet_types::rpc::transactions::L1HandlerTransaction;
 
 use crate::error::{DevnetResult, Error, MessagingError};
@@ -65,7 +65,13 @@ impl Starknet {
         self.messaging =
             Some(EthereumMessaging::new(rpc_url, contract_address, private_key).await?);
 
-        Ok(format!("0x{:x}", self.messaging.as_ref().expect("Messaging is configured here").messaging_contract_address()))
+        Ok(format!(
+            "0x{:x}",
+            self.messaging
+                .as_ref()
+                .expect("Messaging is configured here")
+                .messaging_contract_address()
+        ))
     }
 
     /// Collects all messages found between
@@ -148,9 +154,8 @@ impl Starknet {
             {
                 // As we will send the messages to L1 node, we don't want to include
                 // the messages of reverted transactions.
-                match transaction.execution_result {
-                    ExecutionResult::Succeeded => messages.extend(transaction.get_l2_to_l1_messages()),
-                    _ => (),
+                if let ExecutionResult::Succeeded = transaction.execution_result {
+                    messages.extend(transaction.get_l2_to_l1_messages())
                 }
             }
         });

@@ -150,7 +150,7 @@ impl EthereumMessaging {
 
     /// Returns address of the messaging contract on L1 node.
     pub fn messaging_contract_address(&self) -> Address {
-        self.messaging_contract_address.clone()
+        self.messaging_contract_address
     }
 
     /// Fetches all the messages that were not already fetched from the L1 node.
@@ -367,22 +367,24 @@ impl EthereumMessaging {
         &self,
         cancellation_delay_seconds: U256,
     ) -> DevnetResult<Address> {
-        let contract =
-            abigen::MockStarknetMessaging::deploy(self.provider_signer.clone(), cancellation_delay_seconds)
-                .map_err(|e| {
-                    Error::MessagingError(MessagingError::EthersError(format!(
-                        "Error formatting messaging contract deploy request: {}",
-                        e
-                    )))
-                })?
-                .send()
-                .await
-                .map_err(|e| {
-                    Error::MessagingError(MessagingError::EthersError(format!(
-                        "Error deploying messaging contract: {}",
-                        e
-                    )))
-                })?;
+        let contract = abigen::MockStarknetMessaging::deploy(
+            self.provider_signer.clone(),
+            cancellation_delay_seconds,
+        )
+        .map_err(|e| {
+            Error::MessagingError(MessagingError::EthersError(format!(
+                "Error formatting messaging contract deploy request: {}",
+                e
+            )))
+        })?
+        .send()
+        .await
+        .map_err(|e| {
+            Error::MessagingError(MessagingError::EthersError(format!(
+                "Error deploying messaging contract: {}",
+                e
+            )))
+        })?;
 
         Ok(contract.address())
     }

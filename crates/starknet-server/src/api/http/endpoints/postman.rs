@@ -4,8 +4,8 @@ use starknet_types::rpc::transactions::L1HandlerTransaction;
 
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{
-    FlushParameters, FlushedMessages, MessageHash, MessageToL1, MessageToL2,
-    MessagingLoadAddress, PostmanLoadL1MessagingContract, TxHash,
+    FlushParameters, FlushedMessages, MessageHash, MessageToL1, MessageToL2, MessagingLoadAddress,
+    PostmanLoadL1MessagingContract, TxHash,
 };
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 
@@ -24,9 +24,7 @@ pub(crate) async fn postman_load(
         .await
         .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
 
-    Ok(Json(MessagingLoadAddress {
-        messaging_contract_address,
-    }))
+    Ok(Json(MessagingLoadAddress { messaging_contract_address }))
 }
 
 pub(crate) async fn postman_flush(
@@ -52,27 +50,31 @@ pub(crate) async fn postman_flush(
     };
 
     let (messages_to_l1, last_local_block) = if dry_run {
-        (starknet
-         .collect_messages_to_l1(BlockId::Number(0))
-         .await
-         .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?
-         .into_iter()
-         .map(|m| m.try_into())
-         .collect::<Result<Vec<MessageToL1>, HttpApiError>>(),
-         0)
+        (
+            starknet
+                .collect_messages_to_l1(BlockId::Number(0))
+                .await
+                .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?
+                .into_iter()
+                .map(|m| m.try_into())
+                .collect::<Result<Vec<MessageToL1>, HttpApiError>>(),
+            0,
+        )
     } else {
-        let from = starknet.messaging.as_ref().expect("Messaging expected configured").last_local_block;
+        let from =
+            starknet.messaging.as_ref().expect("Messaging expected configured").last_local_block;
 
         let (msgs, b) = starknet
             .collect_and_send_messages_to_l1(BlockId::Number(from))
             .await
             .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
 
-        (msgs
-         .into_iter()
-         .map(|m| m.try_into())
-         .collect::<Result<Vec<MessageToL1>, HttpApiError>>(),
-         b)
+        (
+            msgs.into_iter()
+                .map(|m| m.try_into())
+                .collect::<Result<Vec<MessageToL1>, HttpApiError>>(),
+            b,
+        )
     };
 
     let l1_provider = if dry_run {
@@ -82,7 +84,8 @@ pub(crate) async fn postman_flush(
     };
 
     if !dry_run {
-        starknet.messaging.as_mut().expect("Messaging expected configured").last_local_block = last_local_block;
+        starknet.messaging.as_mut().expect("Messaging expected configured").last_local_block =
+            last_local_block;
     }
 
     match (messages_to_l1, messages_to_l2) {
