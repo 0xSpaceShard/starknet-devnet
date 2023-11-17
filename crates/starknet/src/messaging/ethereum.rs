@@ -28,15 +28,27 @@ const ETH_ACCOUNT_DEFAULT: EthDevnetAccount = EthDevnetAccount {
 };
 
 // The provided artifact must contain "abi" and "bytecode" objects.
-//
-// TODO: for now, the path is duplicated. Need to find the best way to
-// include MockStarknetMessaging.json, even when tests are run like `cargo test -p starknet -j 6`,
-// as the path is relative to the Cargo manifest.
-abigen!(
-    MockStarknetMessaging,
-    "contracts/artifacts/MockStarknetMessaging.json",
-    event_derives(serde::Serialize, serde::Deserialize)
-);
+// The config check is required as the macro expects a literal string,
+// and the path of the file is relative to the $CARGO_MANIFEST_DIR
+// which differs depending the configuration (workspace or crate level).
+#[cfg(feature = "test_utils")]
+mod abigen {
+    use ethers::prelude::abigen;
+    abigen!(
+        MockStarknetMessaging,
+        "contracts/artifacts/MockStarknetMessaging.json",
+        event_derives(serde::Serialize, serde::Deserialize)
+    );
+}
+#[cfg(not(feature = "test_utils"))]
+mod abigen {
+    use ethers::prelude::abigen;
+    abigen!(
+        MockStarknetMessaging,
+        "../../contracts/artifacts/MockStarknetMessaging.json",
+        event_derives(serde::Serialize, serde::Deserialize)
+    );
+}
 
 #[derive(Debug, PartialEq, Eq, EthEvent)]
 pub struct LogMessageToL2 {
@@ -188,7 +200,7 @@ impl EthereumMessaging {
             return Ok(());
         }
 
-        let starknet_messaging = MockStarknetMessaging::new(
+        let starknet_messaging = abigen::MockStarknetMessaging::new(
             self.messaging_contract_address,
             self.provider_signer.clone(),
         );
@@ -241,7 +253,7 @@ impl EthereumMessaging {
     /// * `l2_contract_address` - The L2 contract address that sent the message.
     /// * `payload` - The message payload.
     pub async fn consume_mock_message(&self, message: &MsgToL1) -> DevnetResult<Hash256> {
-        let starknet_messaging = MockStarknetMessaging::new(
+        let starknet_messaging = abigen::MockStarknetMessaging::new(
             self.messaging_contract_address,
             self.provider_signer.clone(),
         );
@@ -349,7 +361,7 @@ impl EthereumMessaging {
         cancellation_delay_seconds: U256,
     ) -> DevnetResult<Address> {
         let contract =
-            MockStarknetMessaging::deploy(self.provider_signer.clone(), cancellation_delay_seconds)
+            abigen::MockStarknetMessaging::deploy(self.provider_signer.clone(), cancellation_delay_seconds)
                 .map_err(|e| {
                     Error::MessagingError(MessagingError::EthersError(format!(
                         "Error formatting messaging contract deploy request: {}",
