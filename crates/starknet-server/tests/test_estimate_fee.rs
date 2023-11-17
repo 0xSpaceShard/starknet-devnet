@@ -3,13 +3,14 @@ pub mod common;
 mod estimate_fee_tests {
     use std::sync::Arc;
 
+    use serde_json::json;
     use starknet_core::constants::{
         CAIRO_0_ACCOUNT_CONTRACT_HASH, QUERY_VERSION_BASE, UDC_CONTRACT_ADDRESS,
     };
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{
-        Account, AccountError, AccountFactory, AccountFactoryError, Call, ExecutionEncoding,
-        OpenZeppelinAccountFactory, SingleOwnerAccount,
+        Account, AccountError, AccountFactory, AccountFactoryError, Call, ConnectedAccount,
+        Execution, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
@@ -403,15 +404,27 @@ mod estimate_fee_tests {
             calldata: vec![cairo_short_string_to_felt(panic_reason).unwrap()],
         }];
 
-        match account.execute(calls).estimate_fee().await {
-            Err(AccountError::Provider(ProviderError::StarknetError(
-                StarknetErrorWithMessage {
-                    code: MaybeUnknownErrorCode::Known(StarknetError::ContractError),
-                    message,
-                },
-            ))) => assert!(message.contains(panic_reason)),
-            other => panic!("Unexpected result: {other:?}"),
-        }
+        let prepared = account
+            .execute(calls.clone())
+            .nonce(account.get_nonce().await.unwrap())
+            .max_fee(FieldElement::ZERO)
+            .prepared()
+            .unwrap()
+            .get_invoke_request(true)
+            .await
+            .unwrap();
+
+        let params = json!({
+            "block_id": "latest",
+            "request": [
+                serde_json::to_value(prepared).unwrap()
+            ]
+        });
+
+        let result = devnet.send_custom_rpc("starknet_estimateFee", params).await;
+        let revert_error = result["error"]["data"]["revert_error"].as_str().unwrap();
+
+        assert!(revert_error.contains(panic_reason));
     }
 
     #[tokio::test]

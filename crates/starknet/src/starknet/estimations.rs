@@ -86,7 +86,7 @@ fn estimate_transaction_fee(
     )?;
 
     if let Some(revert_error) = transaction_execution_info.revert_error {
-        return Err(Error::EstimationExecutionError { msg: revert_error });
+        return Err(Error::ExecutionError { revert_error });
     }
 
     let (l1_gas_usage, vm_resources) =
