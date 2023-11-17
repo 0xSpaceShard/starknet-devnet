@@ -31,6 +31,8 @@ Then, **open two terminals**:
 * one for Ethereum then:
   ```bash
   cd contracts/solidity
+  # on first run you may need this
+  forge install
   forge build
   ```
 
