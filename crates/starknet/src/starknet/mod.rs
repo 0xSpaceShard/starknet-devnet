@@ -323,6 +323,25 @@ impl Starknet {
         use starknet_api::hash::StarkHash;
         use starknet_api::{contract_address, patricia_key};
 
+        // let mut block_context = BlockContext {
+        //     chain_id: chain_id.into(),
+        //     block_number: BlockNumber(0),
+        //     block_timestamp: BlockTimestamp(0),
+        //     sequencer_address: contract_address!("0x0"),
+        //     fee_token_addresses: blockifier::block_context::FeeTokenAddresses {
+        //         eth_fee_token_address: contract_address!(fee_token_address),
+        //         strk_fee_token_address: contract_address!("0x0"),
+        //     },
+        //     vm_resource_fee_cost: Default::default(),
+        //     gas_prices: blockifier::block_context::GasPrices {
+        //         eth_l1_gas_price: gas_price as u128,
+        //         strk_l1_gas_price: gas_price as u128,
+        //     },
+        //     invoke_tx_max_n_steps: 4_000_000_u32,
+        //     validate_max_n_steps: 1_000_000_u32,
+        //     max_recursion_depth: 50,
+        // };
+
         let mut block_context = blockifier::block_context::BlockContext::create_for_testing();
 
         // copied from starknet_in_rust
