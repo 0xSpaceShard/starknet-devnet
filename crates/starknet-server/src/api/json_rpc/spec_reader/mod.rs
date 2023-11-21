@@ -170,7 +170,7 @@ mod tests {
     #[test]
     fn test_spec_methods() {
         let specs =
-            Spec::load_from_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/spec/0.5.0"));
+            Spec::load_from_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/spec/0.5.1"));
         let combined_schema = generate_combined_schema(&specs);
         let expected_failed_method_responses = vec![
             "starknet_getTransactionByBlockIdAndIndex",
@@ -180,7 +180,7 @@ mod tests {
         ];
 
         let mut failed_method_responses = vec![];
-        for _ in 0..100 {
+        for _ in 0..1000 {
             for spec in specs.iter() {
                 // Iterate over the methods in the spec
                 for method in spec.methods.iter() {
