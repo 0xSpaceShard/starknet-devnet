@@ -114,11 +114,10 @@ impl SpecModifier {
             remove_array_element(&mut json_obj_spec, &path_parts, array_element_to_remove.index);
         }
 
-        let json_spec_str = serde_json::to_string_pretty(&json_obj_spec).expect("could not serialize the spec to string");
+        let json_spec_str = serde_json::to_string_pretty(&json_obj_spec)
+            .expect("could not serialize the spec to string");
 
         // Parse the spec into a Spec struct
-        let spec = serde_json::from_str(&json_spec_str).expect("Could not parse the JSON-RPC spec");
-
-        spec
+        serde_json::from_str(&json_spec_str).expect("Could not parse the JSON-RPC spec")
     }
 }
