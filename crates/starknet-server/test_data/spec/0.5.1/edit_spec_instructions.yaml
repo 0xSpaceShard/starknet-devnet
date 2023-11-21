@@ -44,15 +44,13 @@ edit_manually:
   - action: ADD
     what: FELT_U128
   - action: CHANGE
-    what: max_fee type to FELT_U128
+    what: every max_fee field type to FELT_U128
   - action: REMOVE
     what: starknet_traceTransaction method from trace_api spec
   - action: REMOVE
     what: starknet_traceBlockTransactions method from trace_api spec
   - action: REMOVE
-    what: removed the outer schema object -  instead of being items -> schema -> {type, properties}, now its items -> {type, properties}
-  - action: CHANGE
-    what: max_fee occurences type with FELT_U128
+    what: removed the outer "schema" object -  instead of being items -> schema -> {type, properties}, now its items -> {type, properties}
   - action: REMOVE
     what: starknet_getStateUpdate -> result removed PENDING_STATE_UPDATE
   - action: REMOVE
