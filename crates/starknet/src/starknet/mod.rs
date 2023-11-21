@@ -188,17 +188,18 @@ impl Starknet {
         // set new block header
         new_block.set_block_hash(new_block.generate_hash()?);
         new_block.status = BlockStatus::AcceptedOnL2;
-        match timestamp {
-            Some(timestamp) => {
-                new_block.set_timestamp(BlockTimestamp(timestamp));
-            }
-            None => {
-                new_block.set_timestamp(BlockTimestamp(
-                    (Starknet::get_unix_timestamp_as_seconds() as i64
-                        + self.pending_block_timestamp_shift) as u64,
-                ));
-            }
-        }
+
+        // set block timestamp and context block timestamp for contract execution
+        let block_timestamp = match timestamp {
+            Some(timestamp) => BlockTimestamp(timestamp),
+            None => BlockTimestamp(
+                (Starknet::get_unix_timestamp_as_seconds() as i64
+                    + self.pending_block_timestamp_shift) as u64,
+            ),
+        };
+        new_block.set_timestamp(block_timestamp);
+        self.block_context.block_timestamp = block_timestamp;
+
         let new_block_number = new_block.block_number();
 
         // update txs block hash block number for each transaction in the pending block
@@ -322,33 +323,37 @@ impl Starknet {
         use starknet_api::hash::StarkHash;
         use starknet_api::{contract_address, patricia_key};
 
-        let mut block_context = blockifier::block_context::BlockContext::create_for_testing();
-
-        // copied from starknet_in_rust
-        /// The (empirical) L1 gas cost of each Cairo step.
+        // Create a BlockContext based on BlockContext::create_for_testing()
         const N_STEPS_FEE_WEIGHT: f64 = 0.01;
-
-        block_context.block_number = BlockNumber(0);
-        block_context.block_timestamp = BlockTimestamp(0);
-        block_context.gas_prices.eth_l1_gas_price = gas_price as u128;
-        block_context.chain_id = chain_id.into();
-        block_context.fee_token_addresses.eth_fee_token_address =
-            contract_address!(fee_token_address);
-        // copied cairo resource fee weights from starknet_in_rust
-        block_context.vm_resource_fee_cost = std::sync::Arc::new(HashMap::from([
-            ("n_steps".to_string(), N_STEPS_FEE_WEIGHT),
-            ("output_builtin".to_string(), 0.0),
-            ("pedersen_builtin".to_string(), N_STEPS_FEE_WEIGHT * 32.0),
-            ("range_check_builtin".to_string(), N_STEPS_FEE_WEIGHT * 16.0),
-            ("ecdsa_builtin".to_string(), N_STEPS_FEE_WEIGHT * 2048.0),
-            ("bitwise_builtin".to_string(), N_STEPS_FEE_WEIGHT * 64.0),
-            ("ec_op_builtin".to_string(), N_STEPS_FEE_WEIGHT * 1024.0),
-            ("poseidon_builtin".to_string(), N_STEPS_FEE_WEIGHT * 32.0),
-            ("segment_arena_builtin".to_string(), N_STEPS_FEE_WEIGHT * 10.0),
-            ("keccak_builtin".to_string(), N_STEPS_FEE_WEIGHT * 2048.0), // 2**11
-        ]));
-
-        block_context
+        BlockContext {
+            chain_id: chain_id.into(),
+            block_number: BlockNumber(0),
+            block_timestamp: BlockTimestamp(0),
+            sequencer_address: contract_address!("0x1000"),
+            fee_token_addresses: blockifier::block_context::FeeTokenAddresses {
+                eth_fee_token_address: contract_address!(fee_token_address),
+                strk_fee_token_address: contract_address!("0x1002"),
+            },
+            vm_resource_fee_cost: std::sync::Arc::new(HashMap::from([
+                ("n_steps".to_string(), N_STEPS_FEE_WEIGHT),
+                ("output_builtin".to_string(), 0.0),
+                ("pedersen_builtin".to_string(), N_STEPS_FEE_WEIGHT * 32.0),
+                ("range_check_builtin".to_string(), N_STEPS_FEE_WEIGHT * 16.0),
+                ("ecdsa_builtin".to_string(), N_STEPS_FEE_WEIGHT * 2048.0),
+                ("bitwise_builtin".to_string(), N_STEPS_FEE_WEIGHT * 64.0),
+                ("ec_op_builtin".to_string(), N_STEPS_FEE_WEIGHT * 1024.0),
+                ("poseidon_builtin".to_string(), N_STEPS_FEE_WEIGHT * 32.0),
+                ("segment_arena_builtin".to_string(), N_STEPS_FEE_WEIGHT * 10.0),
+                ("keccak_builtin".to_string(), N_STEPS_FEE_WEIGHT * 2048.0), // 2**11
+            ])),
+            gas_prices: blockifier::block_context::GasPrices {
+                eth_l1_gas_price: gas_price as u128,
+                strk_l1_gas_price: gas_price as u128,
+            },
+            invoke_tx_max_n_steps: 4_000_000_u32,
+            validate_max_n_steps: 1_000_000_u32,
+            max_recursion_depth: 50,
+        }
     }
 
     /// Update block context block_number with the next one
@@ -439,8 +444,20 @@ impl Starknet {
             ..Default::default()
         };
 
+        let mut execution_resources =
+            blockifier::execution::entry_point::ExecutionResources::default();
+        let mut execution_context =
+            blockifier::execution::entry_point::EntryPointExecutionContext::new(
+                &self.block_context,
+                &blockifier::transaction::objects::AccountTransactionContext::Deprecated(
+                    blockifier::transaction::objects::DeprecatedAccountTransactionContext::default(
+                    ),
+                ),
+                blockifier::execution::common_hints::ExecutionMode::Execute,
+                true,
+            );
         let res = call
-            .execute_directly(&mut state.clone().state)
+            .execute(&mut state.clone().state, &mut execution_resources, &mut execution_context)
             .map_err(|err| {
                 Error::BlockifierTransactionError(blockifier::transaction::errors::TransactionExecutionError::EntryPointExecutionError(err))
             })?;
