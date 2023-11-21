@@ -54,10 +54,12 @@ pub enum Error {
     SerializationError { obj_name: String },
     #[error("Serialization not supported")]
     SerializationNotSupported,
-    #[error("{reason}")]
-    FeeError { reason: String },
+    #[error("{tx_type}: max_fee cannot be zero")]
+    MaxFeeZeroError { tx_type: String },
     #[error(transparent)]
     TransactionValidationError(#[from] TransactionValidationError),
+    #[error(transparent)]
+    TransactionFeeError(#[from] blockifier::transaction::errors::TransactionFeeError),
 }
 
 #[derive(Debug, Error)]
@@ -85,5 +87,8 @@ pub enum TransactionValidationError {
     #[error("Account validation failed.")]
     ValidationFailure,
 }
+
+#[derive(Debug, Error)]
+pub enum TransactionFeeError {}
 
 pub type DevnetResult<T, E = Error> = Result<T, E>;

@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use blockifier::block_context::BlockContext;
 use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::state_api::StateReader;
+use blockifier::transaction::errors::TransactionPreValidationError;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
@@ -274,12 +275,14 @@ impl Starknet {
                 // based on this https://community.starknet.io/t/efficient-utilization-of-sequencer-capacity-in-starknet-v0-12-1/95607#the-validation-phase-in-the-gateway-5
                 // we should not save transactions that failed with one of the following errors
                 match tx_err {
-                    blockifier::transaction::errors::TransactionExecutionError::InvalidNonce { .. } =>
+                    blockifier::transaction::errors::TransactionExecutionError::TransactionPreValidationError(TransactionPreValidationError::InvalidNonce { .. }) =>
                         Err(TransactionValidationError::InvalidTransactionNonce.into()),
-                    blockifier::transaction::errors::TransactionExecutionError::MaxFeeExceedsBalance { .. } =>
+                    blockifier::transaction::errors::TransactionExecutionError::TransactionFeeError { .. } =>
                         Err(TransactionValidationError::InsufficientAccountBalance.into()),
-                    blockifier::transaction::errors::TransactionExecutionError::FeeTransferError { .. }
-                    | blockifier::transaction::errors::TransactionExecutionError::MaxFeeTooLow { .. } =>
+                    blockifier::transaction::errors::TransactionExecutionError::TransactionPreValidationError(
+                        TransactionPreValidationError::TransactionFeeError { .. } // TODO
+                    )
+                    | blockifier::transaction::errors::TransactionExecutionError::FeeCheckError { .. } =>
                         Err(TransactionValidationError::InsufficientMaxFee.into()),
                     blockifier::transaction::errors::TransactionExecutionError::ValidateTransactionError(..) =>
                         Err(TransactionValidationError::ValidationFailure.into()),
@@ -463,7 +466,7 @@ impl Starknet {
                 ),
                 blockifier::execution::common_hints::ExecutionMode::Execute,
                 true,
-            );
+            )?;
         let res = call
             .execute(&mut state.clone().state, &mut execution_resources, &mut execution_context)
             .map_err(|err| {

@@ -4,16 +4,14 @@ use starknet_types::rpc::transactions::broadcasted_invoke_transaction::Broadcast
 use starknet_types::rpc::transactions::{InvokeTransaction, Transaction};
 
 use super::Starknet;
-use crate::error::{self, DevnetResult};
+use crate::error::{DevnetResult, Error};
 
 pub fn add_invoke_transaction(
     starknet: &mut Starknet,
     broadcasted_invoke_transaction: BroadcastedInvokeTransaction,
 ) -> DevnetResult<TransactionHash> {
     if broadcasted_invoke_transaction.common.max_fee.0 == 0 {
-        return Err(error::Error::FeeError {
-            reason: "For invoke transaction, max fee cannot be 0".to_string(),
-        });
+        return Err(Error::MaxFeeZeroError { tx_type: "invoke transaction".into() });
     }
 
     let blockifier_invoke_transaction = broadcasted_invoke_transaction
@@ -168,8 +166,8 @@ mod tests {
 
         assert!(result.is_err());
         match result.err().unwrap() {
-            crate::error::Error::FeeError { reason: msg } => {
-                assert_eq!(msg, "For invoke transaction, max fee cannot be 0")
+            err @ crate::error::Error::MaxFeeZeroError { .. } => {
+                assert_eq!(err.to_string(), "invoke transaction: max_fee cannot be zero")
             }
             _ => panic!("Wrong error type"),
         }
