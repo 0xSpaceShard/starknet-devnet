@@ -444,9 +444,9 @@ impl Starknet {
             ..Default::default()
         };
 
-        let mut default_execution_resources =
+        let mut execution_resources =
             blockifier::execution::entry_point::ExecutionResources::default();
-        let mut deprecated_execution_context =
+        let mut execution_context =
             blockifier::execution::entry_point::EntryPointExecutionContext::new(
                 &self.block_context,
                 &blockifier::transaction::objects::AccountTransactionContext::Deprecated(
@@ -457,7 +457,7 @@ impl Starknet {
                 true,
             );
         let res = call
-            .execute(&mut state.clone().state, &mut default_execution_resources, &mut deprecated_execution_context)
+            .execute(&mut state.clone().state, &mut execution_resources, &mut execution_context)
             .map_err(|err| {
                 Error::BlockifierTransactionError(blockifier::transaction::errors::TransactionExecutionError::EntryPointExecutionError(err))
             })?;
