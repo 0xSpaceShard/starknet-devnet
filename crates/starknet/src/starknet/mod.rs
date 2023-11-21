@@ -7,11 +7,18 @@ use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
 use starknet_api::transaction::Fee;
-use starknet_rs_core::types::{BlockId, MsgFromL1, TransactionFinalityStatus};
+use starknet_rs_core::types::{
+    BlockId, MsgFromL1, TransactionExecutionStatus, TransactionFinalityStatus,
+};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::Signer;
 use starknet_types::chain_id::ChainId;
+use starknet_types::constants::{
+    BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME, N_STEPS,
+    OUTPUT_BUILTIN_NAME, POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME,
+    SEGMENT_ARENA_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
+};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::contract_storage_key::ContractStorageKey;
@@ -20,6 +27,7 @@ use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{Block, BlockHeader};
 use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
+use starknet_types::rpc::state::ThinStateDiff;
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
@@ -335,16 +343,16 @@ impl Starknet {
                 strk_fee_token_address: contract_address!("0x1002"),
             },
             vm_resource_fee_cost: std::sync::Arc::new(HashMap::from([
-                ("n_steps".to_string(), N_STEPS_FEE_WEIGHT),
-                ("output_builtin".to_string(), 0.0),
-                ("pedersen_builtin".to_string(), N_STEPS_FEE_WEIGHT * 32.0),
-                ("range_check_builtin".to_string(), N_STEPS_FEE_WEIGHT * 16.0),
-                ("ecdsa_builtin".to_string(), N_STEPS_FEE_WEIGHT * 2048.0),
-                ("bitwise_builtin".to_string(), N_STEPS_FEE_WEIGHT * 64.0),
-                ("ec_op_builtin".to_string(), N_STEPS_FEE_WEIGHT * 1024.0),
-                ("poseidon_builtin".to_string(), N_STEPS_FEE_WEIGHT * 32.0),
-                ("segment_arena_builtin".to_string(), N_STEPS_FEE_WEIGHT * 10.0),
-                ("keccak_builtin".to_string(), N_STEPS_FEE_WEIGHT * 2048.0), // 2**11
+                (N_STEPS.to_string(), N_STEPS_FEE_WEIGHT),
+                (OUTPUT_BUILTIN_NAME.to_string(), 0.0),
+                (HASH_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 32.0),
+                (RANGE_CHECK_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 16.0),
+                (SIGNATURE_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 2048.0),
+                (BITWISE_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 64.0),
+                (EC_OP_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 1024.0),
+                (POSEIDON_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 32.0),
+                (SEGMENT_ARENA_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 10.0),
+                (KECCAK_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 2048.0), // 2**11
             ])),
             gas_prices: blockifier::block_context::GasPrices {
                 eth_l1_gas_price: gas_price as u128,
@@ -677,6 +685,15 @@ impl Starknet {
         transaction_to_map.get_receipt()
     }
 
+    pub fn get_transaction_execution_and_finality_status(
+        &self,
+        transaction_hash: TransactionHash,
+    ) -> DevnetResult<(TransactionExecutionStatus, TransactionFinalityStatus)> {
+        let transaction = self.transactions.get(&transaction_hash).ok_or(Error::NoTransaction)?;
+
+        Ok((transaction.execution_result.status(), transaction.finality_status))
+    }
+
     pub fn simulate_transactions(
         &self,
         block_id: BlockId,
@@ -709,6 +726,9 @@ impl Starknet {
                 !skip_fee_charge,
                 !skip_validate,
             )?;
+
+            let state_diff: ThinStateDiff = state.extract_state_diff_from_pending_state()?.into();
+
             let address_to_class_hash_map = &state.state.state.address_to_class_hash;
 
             let validate_invocation =
@@ -736,6 +756,7 @@ impl Starknet {
                     TransactionTrace::Declare(DeclareTransactionTrace {
                         validate_invocation,
                         fee_transfer_invocation,
+                        state_diff,
                     })
                 }
                 BroadcastedTransaction::DeployAccount(_) => {
@@ -752,12 +773,15 @@ impl Starknet {
                             None
                         },
                         fee_transfer_invocation,
+                        state_diff,
                     })
                 }
                 BroadcastedTransaction::Invoke(_) => {
                     TransactionTrace::Invoke(InvokeTransactionTrace {
+                        fee_transfer_invocation,
                         validate_invocation,
-                        execution_invocation: match tx_execution_info.execute_call_info {
+                        state_diff,
+                        execute_invocation: match tx_execution_info.execute_call_info {
                             Some(call_info) => match call_info.execution.failed {
                                 false => ExecutionInvocation::Succeeded(
                                     FunctionInvocation::try_from_call_info(

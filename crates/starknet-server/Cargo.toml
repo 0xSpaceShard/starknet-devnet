@@ -54,3 +54,7 @@ starknet-rs-accounts = { workspace = true }
 starknet-rs-contract = { workspace = true }
 starknet-rs-signers = { workspace = true }
 starknet-core = { workspace = true, features = ["test_utils"] }
+rand = { workspace = true }
+rand_chacha = { workspace = true }
+regex_generate = { workspace = true }
+serde_yaml = { workspace = true }

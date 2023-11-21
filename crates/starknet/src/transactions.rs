@@ -5,7 +5,7 @@ use starknet_api::block::BlockNumber;
 use starknet_rs_core::types::{ExecutionResult, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::emitted_event::Event;
+use starknet_types::emitted_event::{Event, OrderedEvent};
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
 use starknet_types::rpc::transaction_receipt::{DeployTransactionReceipt, TransactionReceipt};
 use starknet_types::rpc::transactions::{Transaction, TransactionType};
@@ -87,19 +87,16 @@ impl StarknetTransaction {
 
         fn get_blockifier_events_recursively(
             call_info: &blockifier::execution::call_info::CallInfo,
-        ) -> Vec<(usize, Event)> {
-            let mut events: Vec<(usize, Event)> = vec![];
+        ) -> Vec<OrderedEvent> {
+            let mut events: Vec<OrderedEvent> = vec![];
 
-            events.extend(call_info.execution.events.iter().map(|e| {
-                (
-                    e.order,
-                    Event {
-                        from_address: call_info.call.storage_address.into(),
-                        data: e.event.data.0.iter().map(|d| (*d).into()).collect(),
-                        keys: e.event.keys.iter().map(|k| k.0.into()).collect(),
-                    },
-                )
-            }));
+            events.extend(
+                call_info
+                    .execution
+                    .events
+                    .iter()
+                    .map(|e| OrderedEvent::new(e, call_info.call.storage_address.into())),
+            );
 
             call_info.inner_calls.iter().for_each(|call| {
                 events.extend(get_blockifier_events_recursively(call));
@@ -108,22 +105,16 @@ impl StarknetTransaction {
             events
         }
 
-        if let Some(validate_call_info) = self.execution_info.validate_call_info.as_ref() {
-            let mut not_sorted_events = get_blockifier_events_recursively(validate_call_info);
-            not_sorted_events.sort_by_key(|(order, _)| *order);
-            events.extend(not_sorted_events.into_iter().map(|(_, e)| e));
-        }
+        let call_infos = vec![
+            self.execution_info.validate_call_info.as_ref(),
+            self.execution_info.execute_call_info.as_ref(),
+            self.execution_info.fee_transfer_call_info.as_ref(),
+        ];
 
-        if let Some(execution_call_info) = self.execution_info.execute_call_info.as_ref() {
-            let mut not_sorted_events = get_blockifier_events_recursively(execution_call_info);
-            not_sorted_events.sort_by_key(|(order, _)| *order);
-            events.extend(not_sorted_events.into_iter().map(|(_, e)| e));
-        }
-
-        if let Some(fee_transfer_call_info) = self.execution_info.fee_transfer_call_info.as_ref() {
-            let mut not_sorted_events = get_blockifier_events_recursively(fee_transfer_call_info);
-            not_sorted_events.sort_by_key(|(order, _)| *order);
-            events.extend(not_sorted_events.into_iter().map(|(_, e)| e));
+        for inner_call_info in call_infos.into_iter().flatten() {
+            let mut not_sorted_events = get_blockifier_events_recursively(inner_call_info);
+            not_sorted_events.sort_by_key(|event| event.order);
+            events.extend(not_sorted_events.into_iter().map(|e| e.event));
         }
 
         events
@@ -166,6 +157,7 @@ impl StarknetTransaction {
             &self.execution_result,
             self.finality_status,
             self.execution_info.actual_fee,
+            &self.execution_info,
         );
 
         match &self.inner {

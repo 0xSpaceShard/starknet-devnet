@@ -1,0 +1,41 @@
+# Remove entries before processing the spec file
+clean:
+  - components/schemas/COMMON_RECEIPT_PROPERTIES/properties/revert_reason/name
+  - components/schemas/PENDING_COMMON_RECEIPT_PROPERTIES/properties/revert_reason/name
+
+# Replace entries at "path" with the specified value in the spec file before processing it
+replace:
+  - path: components/schemas/BLOCK_HEADER/properties/l1_gas_price/descritpion
+    new_name: description
+  - path: components/schemas/PENDING_BLOCK_HEADER/properties/l1_gas_price/descritpion
+    new_name: description
+  
+add:
+  - path: components/schemas/INVOKE_TXN_V0
+    new_entry: type/object
+  - path: components/schemas/DEPLOY_ACCOUNT_TXN_V1
+    new_entry: type/object
+  - path: components/schemas/NUM_AS_HEX
+    new_entry: pattern/^0x[a-fA-F0-9]{1,10}$
+  - path: components/schemas/CHAIN_ID
+    new_entry: pattern/^0x[a-fA-F0-9]{1,10}$
+  - path: components/schemas/DEPRECATED_CONTRACT_CLASS/properties/program
+    new_entry: pattern/^$
+  - path: components/schemas/MSG_TO_L1/properties/to_address
+    new_entry: $ref/#/components/schemas/ETH_ADDRESS
+
+remove_from_array:
+  - path: components/schemas/BROADCASTED_INVOKE_TXN/oneOf
+    index: 0
+  - path: components/schemas/TXN_STATUS/enum
+    index: 1
+  - path: components/schemas/TXN_STATUS/enum
+    index: 0
+  - path: components/schemas/TRANSACTION_TRACE/oneOf
+    index: 3
+
+remove_manually:
+  - path: components/schemas/TXN_STATUS
+    index: 0,1
+  - path: components/schemas/BROADCASTED_DECLARE_TXN/oneOf
+    index: 0

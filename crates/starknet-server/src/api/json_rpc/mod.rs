@@ -1,9 +1,10 @@
 mod endpoints;
 pub mod error;
 mod models;
+#[cfg(test)]
+mod spec_reader;
 mod write_endpoints;
 
-use error::RpcResult;
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
     EstimateFeeInput, EventsInput, GetStorageInput, TransactionHashInput,
@@ -12,15 +13,30 @@ use serde::{Deserialize, Serialize};
 use server::rpc_core::error::RpcError;
 use server::rpc_core::response::ResponseResult;
 use server::rpc_handler::RpcHandler;
-use starknet_types::rpc::estimate_message_fee::EstimateMessageFeeRequestWrapper;
+use starknet_rs_core::types::ContractClass as CodegenContractClass;
+use starknet_types::felt::{ClassHash, Felt};
+use starknet_types::rpc::block::Block;
+use starknet_types::rpc::estimate_message_fee::{
+    EstimateMessageFeeRequestWrapper, FeeEstimateWrapper,
+};
+use starknet_types::rpc::state::StateUpdate;
+use starknet_types::rpc::transaction_receipt::TransactionReceipt;
+use starknet_types::rpc::transactions::{EventsChunk, SimulatedTransaction, Transaction};
+use starknet_types::starknet_api::block::BlockNumber;
 use tracing::{error, info, trace};
 
+use self::error::StrictRpcResult;
 use self::models::{
-    BlockIdInput, BroadcastedDeclareTransactionInput, BroadcastedDeployAccountTransactionInput,
-    BroadcastedInvokeTransactionInput,
+    BlockHashAndNumberOutput, BlockIdInput, BroadcastedDeclareTransactionInput,
+    BroadcastedDeployAccountTransactionInput, BroadcastedInvokeTransactionInput,
+    DeclareTransactionOutput, DeployAccountTransactionOutput, InvokeTransactionOutput,
+    SyncingOutput, TransactionStatusOutput,
 };
 use super::Api;
-use crate::api::json_rpc::models::SimulateTransactionsInput;
+use crate::api::json_rpc::models::{
+    BroadcastedDeclareTransactionEnumWrapper, BroadcastedDeployAccountTransactionEnumWrapper,
+    BroadcastedInvokeTransactionEnumWrapper, SimulateTransactionsInput,
+};
 use crate::api::serde_helpers::empty_params;
 
 /// Helper trait to easily convert results to rpc results
@@ -42,7 +58,7 @@ pub fn to_rpc_result<T: Serialize>(val: T) -> ResponseResult {
     }
 }
 
-impl<T: Serialize> ToRpcResponseResult for RpcResult<T> {
+impl ToRpcResponseResult for StrictRpcResult {
     fn to_rpc_result(self) -> ResponseResult {
         match self {
             Ok(data) => to_rpc_result(data),
@@ -75,6 +91,7 @@ impl JsonRpcHandler {
         trace!(target: "JsonRpcHandler::execute", "executing starknet request");
 
         match request {
+            StarknetRequest::SpecVersion => self.spec_version().to_rpc_result(),
             StarknetRequest::BlockWithTransactionHashes(block) => {
                 self.get_block_with_tx_hashes(block.block_id).await.to_rpc_result()
             }
@@ -86,6 +103,9 @@ impl JsonRpcHandler {
             }
             StarknetRequest::StorageAt(GetStorageInput { contract_address, key, block_id }) => {
                 self.get_storage_at(contract_address, key, block_id).await.to_rpc_result()
+            }
+            StarknetRequest::TransactionStatusByHash(TransactionHashInput { transaction_hash }) => {
+                self.get_transaction_status_by_hash(transaction_hash).await.to_rpc_result()
             }
             StarknetRequest::TransactionByHash(TransactionHashInput { transaction_hash }) => {
                 self.get_transaction_by_hash(transaction_hash).await.to_rpc_result()
@@ -121,9 +141,6 @@ impl JsonRpcHandler {
                 self.block_hash_and_number().await.to_rpc_result()
             }
             StarknetRequest::ChainId => self.chain_id().await.to_rpc_result(),
-            StarknetRequest::PendingTransactions => {
-                self.pending_transactions().await.to_rpc_result()
-            }
             StarknetRequest::Syncing => self.syncing().await.to_rpc_result(),
             StarknetRequest::Events(EventsInput { filter }) => {
                 self.get_events(filter).await.to_rpc_result()
@@ -134,16 +151,26 @@ impl JsonRpcHandler {
             }) => self.get_nonce(block_id, contract_address).await.to_rpc_result(),
             StarknetRequest::AddDeclareTransaction(BroadcastedDeclareTransactionInput {
                 declare_transaction,
-            }) => self.add_declare_transaction(declare_transaction).await.to_rpc_result(),
+            }) => {
+                let BroadcastedDeclareTransactionEnumWrapper::Declare(broadcasted_transaction) =
+                    declare_transaction;
+                self.add_declare_transaction(broadcasted_transaction).await.to_rpc_result()
+            }
             StarknetRequest::AddDeployAccountTransaction(
                 BroadcastedDeployAccountTransactionInput { deploy_account_transaction },
-            ) => self
-                .add_deploy_account_transaction(deploy_account_transaction)
-                .await
-                .to_rpc_result(),
+            ) => {
+                let BroadcastedDeployAccountTransactionEnumWrapper::DeployAccount(
+                    broadcasted_transaction,
+                ) = deploy_account_transaction;
+                self.add_deploy_account_transaction(broadcasted_transaction).await.to_rpc_result()
+            }
             StarknetRequest::AddInvokeTransaction(BroadcastedInvokeTransactionInput {
                 invoke_transaction,
-            }) => self.add_invoke_transaction(invoke_transaction).await.to_rpc_result(),
+            }) => {
+                let BroadcastedInvokeTransactionEnumWrapper::Invoke(broadcasted_transaction) =
+                    invoke_transaction;
+                self.add_invoke_transaction(broadcasted_transaction).await.to_rpc_result()
+            }
             StarknetRequest::EstimateMessageFee(request) => self
                 .estimate_message_fee(request.get_block_id(), request.get_raw_message().clone())
                 .await
@@ -163,6 +190,8 @@ impl JsonRpcHandler {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "method", content = "params")]
 pub enum StarknetRequest {
+    #[serde(rename = "starknet_specVersion", with = "empty_params")]
+    SpecVersion,
     #[serde(rename = "starknet_getBlockWithTxHashes")]
     BlockWithTransactionHashes(BlockIdInput),
     #[serde(rename = "starknet_getBlockWithTxs")]
@@ -177,6 +206,8 @@ pub enum StarknetRequest {
     TransactionByBlockAndIndex(BlockAndIndexInput),
     #[serde(rename = "starknet_getTransactionReceipt")]
     TransactionReceiptByTransactionHash(TransactionHashInput),
+    #[serde(rename = "starknet_getTransactionStatus")]
+    TransactionStatusByHash(TransactionHashInput),
     #[serde(rename = "starknet_getClass")]
     ClassByHash(BlockAndClassHashInput),
     #[serde(rename = "starknet_getClassHashAt")]
@@ -195,8 +226,6 @@ pub enum StarknetRequest {
     BlockHashAndNumber,
     #[serde(rename = "starknet_chainId", with = "empty_params")]
     ChainId,
-    #[serde(rename = "starknet_pendingTransactions", with = "empty_params")]
-    PendingTransactions,
     #[serde(rename = "starknet_syncing", with = "empty_params")]
     Syncing,
     #[serde(rename = "starknet_getEvents")]
@@ -218,6 +247,7 @@ pub enum StarknetRequest {
 impl std::fmt::Display for StarknetRequest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            StarknetRequest::SpecVersion => write!(f, "starknet_specVersion"),
             StarknetRequest::BlockWithTransactionHashes(_) => {
                 write!(f, "starknet_getBlockWithTxHashes")
             }
@@ -225,6 +255,9 @@ impl std::fmt::Display for StarknetRequest {
             StarknetRequest::StateUpdate(_) => write!(f, "starknet_getStateUpdate"),
             StarknetRequest::StorageAt(_) => write!(f, "starknet_getStorageAt"),
             StarknetRequest::TransactionByHash(_) => write!(f, "starknet_getTransactionByHash"),
+            StarknetRequest::TransactionStatusByHash(_) => {
+                write!(f, "starknet_getTransactionStatus")
+            }
             StarknetRequest::TransactionByBlockAndIndex(_) => {
                 write!(f, "starknet_getTransactionByBlockIdAndIndex")
             }
@@ -242,7 +275,6 @@ impl std::fmt::Display for StarknetRequest {
             StarknetRequest::BlockNumber => write!(f, "starknet_blockNumber"),
             StarknetRequest::BlockHashAndNumber => write!(f, "starknet_blockHashAndNumber"),
             StarknetRequest::ChainId => write!(f, "starknet_chainId"),
-            StarknetRequest::PendingTransactions => write!(f, "starknet_pendingTransactions"),
             StarknetRequest::Syncing => write!(f, "starknet_syncing"),
             StarknetRequest::Events(_) => write!(f, "starknet_getEvents"),
             StarknetRequest::ContractNonce(_) => write!(f, "starknet_getNonce"),
@@ -259,8 +291,40 @@ impl std::fmt::Display for StarknetRequest {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(untagged)]
+pub(crate) enum StarknetResponse {
+    BlockWithTransactionHashes(Block),
+    BlockWithFullTransactions(Block),
+    StateUpdate(StateUpdate),
+    StorageAt(Felt),
+    TransactionByHash(Transaction),
+    TransactionByBlockAndIndex(Transaction),
+    TransactionReceiptByTransactionHash(Box<TransactionReceipt>),
+    TransactionStatusByHash(TransactionStatusOutput),
+    ClassByHash(CodegenContractClass),
+    ClassHashAtContractAddress(ClassHash),
+    ClassAtContractAddress(CodegenContractClass),
+    BlockTransactionCount(u64),
+    Call(Vec<Felt>),
+    EsimateFee(Vec<FeeEstimateWrapper>),
+    BlockNumber(BlockNumber),
+    BlockHashAndNumber(BlockHashAndNumberOutput),
+    ChainId(String),
+    Syncing(SyncingOutput),
+    Events(EventsChunk),
+    ContractNonce(Felt),
+    AddDeclareTransaction(DeclareTransactionOutput),
+    AddDeployAccountTransaction(DeployAccountTransactionOutput),
+    AddInvokeTransaction(InvokeTransactionOutput),
+    EstimateMessageFee(FeeEstimateWrapper),
+    SimulateTransactions(Vec<SimulatedTransaction>),
+    SpecVersion(String),
+}
+
 #[cfg(test)]
 mod requests_tests {
+
     use starknet_types::felt::Felt;
 
     use super::StarknetRequest;

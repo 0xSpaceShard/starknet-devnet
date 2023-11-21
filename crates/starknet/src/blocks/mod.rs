@@ -6,7 +6,7 @@ use starknet_api::stark_felt;
 use starknet_rs_core::types::BlockId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
-use starknet_types::rpc::block::BlockHeader as TypesBlockHeader;
+use starknet_types::rpc::block::{BlockHeader as TypesBlockHeader, ResourcePrice};
 use starknet_types::traits::HashProducer;
 
 use crate::error::{DevnetResult, Error};
@@ -157,6 +157,11 @@ impl From<&StarknetBlock> for TypesBlockHeader {
             sequencer_address: value.sequencer_address(),
             new_root: value.new_root(),
             timestamp: value.timestamp(),
+            starknet_version: env!("STARKNET_VERSION").to_string(),
+            l1_gas_price: ResourcePrice {
+                price_in_strk: None,
+                price_in_wei: value.header.gas_price.0.into(),
+            },
         }
     }
 }

@@ -29,7 +29,7 @@ This repository is work in progress, please be patient. Please check below the s
 
 ### TODO
 
-- [ ] RPC v0.5.0
+- [x] RPC v0.5.0
 
 ### TODO to reach feature parity with the Pythonic Devnet
 

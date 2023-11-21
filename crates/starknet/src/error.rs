@@ -14,8 +14,8 @@ pub enum Error {
     BlockifierStateError(#[from] blockifier::state::errors::StateError),
     #[error(transparent)]
     BlockifierTransactionError(#[from] blockifier::transaction::errors::TransactionExecutionError),
-    #[error("Failed execution during fee estimation: {msg}")]
-    EstimationExecutionError { msg: String },
+    #[error("{revert_error}")]
+    ExecutionError { revert_error: String },
     #[error("Types error")]
     TypesError(#[from] starknet_types::error::Error),
     #[error("I/O error")]

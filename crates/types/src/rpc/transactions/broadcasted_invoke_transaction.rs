@@ -24,6 +24,7 @@ const PREFIX_INVOKE: FieldElement = FieldElement::from_mont([
 ]);
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct BroadcastedInvokeTransaction {
     #[serde(flatten)]
     pub common: BroadcastedTransactionCommon,
