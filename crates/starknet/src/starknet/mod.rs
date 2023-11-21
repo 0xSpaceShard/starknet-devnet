@@ -277,13 +277,22 @@ impl Starknet {
                 match tx_err {
                     blockifier::transaction::errors::TransactionExecutionError::TransactionPreValidationError(TransactionPreValidationError::InvalidNonce { .. }) =>
                         Err(TransactionValidationError::InvalidTransactionNonce.into()),
-                    blockifier::transaction::errors::TransactionExecutionError::TransactionFeeError { .. } =>
-                        Err(TransactionValidationError::InsufficientAccountBalance.into()),
-                    blockifier::transaction::errors::TransactionExecutionError::TransactionPreValidationError(
-                        TransactionPreValidationError::TransactionFeeError { .. } // TODO
-                    )
-                    | blockifier::transaction::errors::TransactionExecutionError::FeeCheckError { .. } =>
+                    blockifier::transaction::errors::TransactionExecutionError::FeeCheckError { .. } =>
                         Err(TransactionValidationError::InsufficientMaxFee.into()),
+                    blockifier::transaction::errors::TransactionExecutionError::TransactionPreValidationError(
+                        TransactionPreValidationError::TransactionFeeError(tx_fee_err)
+                    ) => match tx_fee_err {
+                        blockifier::transaction::errors::TransactionFeeError::FeeTransferError { .. }
+                        | blockifier::transaction::errors::TransactionFeeError::MaxFeeTooLow { .. } => Err(
+                            TransactionValidationError::InsufficientMaxFee.into()
+                        ),
+                        blockifier::transaction::errors::TransactionFeeError::MaxFeeExceedsBalance { .. } => Err(
+                            TransactionValidationError::InsufficientAccountBalance.into()
+                        ),
+                        _ => Err(tx_fee_err.into())
+                    },
+                    // blockifier::transaction::errors::TransactionExecutionError::TransactionFeeError { .. } =>
+                    //     Err(TransactionValidationError::InsufficientAccountBalance.into()), // TODO same matching as above?
                     blockifier::transaction::errors::TransactionExecutionError::ValidateTransactionError(..) =>
                         Err(TransactionValidationError::ValidationFailure.into()),
                     _ => Err(tx_err.into())
