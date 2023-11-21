@@ -214,6 +214,7 @@ impl StarknetBlock {
             transaction_hashes: Vec::new(),
         }
     }
+
     pub(crate) fn set_timestamp(&mut self, timestamp: BlockTimestamp) {
         self.header.timestamp = timestamp;
     }
