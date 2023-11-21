@@ -711,7 +711,12 @@ impl Starknet {
             )?;
 
             let state_diff: ThinStateDiff = state.extract_state_diff_from_pending_state()?.into();
-
+            let state_diff = if state_diff == ThinStateDiff::default() {
+                None
+            } else {
+                Some(state_diff)
+            };
+            
             let address_to_class_hash_map = &state.state.state.address_to_class_hash;
 
             let validate_invocation =
