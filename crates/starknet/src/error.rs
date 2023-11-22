@@ -88,7 +88,4 @@ pub enum TransactionValidationError {
     ValidationFailure,
 }
 
-#[derive(Debug, Error)]
-pub enum TransactionFeeError {}
-
 pub type DevnetResult<T, E = Error> = Result<T, E>;
