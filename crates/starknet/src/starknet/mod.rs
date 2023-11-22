@@ -272,16 +272,11 @@ impl Starknet {
                 self.handle_accepted_transaction(&transaction_hash, &transaction, tx_info)
             }
             Err(tx_err) => {
-                // based on this https://community.starknet.io/t/efficient-utilization-of-sequencer-capacity-in-starknet-v0-12-1/95607#the-validation-phase-in-the-gateway-5
-                // we should not save transactions that failed with one of the following errors
-                match tx_err {
-                    blockifier::transaction::errors::TransactionExecutionError::TransactionPreValidationError(TransactionPreValidationError::InvalidNonce { .. }) =>
-                        Err(TransactionValidationError::InvalidTransactionNonce.into()),
-                    blockifier::transaction::errors::TransactionExecutionError::FeeCheckError { .. } =>
-                        Err(TransactionValidationError::InsufficientMaxFee.into()),
-                    blockifier::transaction::errors::TransactionExecutionError::TransactionPreValidationError(
-                        TransactionPreValidationError::TransactionFeeError(tx_fee_err)
-                    ) => match tx_fee_err {
+                /// utility to avoid duplication
+                fn match_tx_fee_error(
+                    err: blockifier::transaction::errors::TransactionFeeError,
+                ) -> DevnetResult<()> {
+                    match err {
                         blockifier::transaction::errors::TransactionFeeError::FeeTransferError { .. }
                         | blockifier::transaction::errors::TransactionFeeError::MaxFeeTooLow { .. } => Err(
                             TransactionValidationError::InsufficientMaxFee.into()
@@ -289,10 +284,23 @@ impl Starknet {
                         blockifier::transaction::errors::TransactionFeeError::MaxFeeExceedsBalance { .. } => Err(
                             TransactionValidationError::InsufficientAccountBalance.into()
                         ),
-                        _ => Err(tx_fee_err.into())
-                    },
-                    // blockifier::transaction::errors::TransactionExecutionError::TransactionFeeError { .. } =>
-                    //     Err(TransactionValidationError::InsufficientAccountBalance.into()), // TODO same matching as above?
+                        _ => Err(err.into())
+                    }
+                }
+
+                // based on this https://community.starknet.io/t/efficient-utilization-of-sequencer-capacity-in-starknet-v0-12-1/95607#the-validation-phase-in-the-gateway-5
+                // we should not save transactions that failed with one of the following errors
+                match tx_err {
+                    blockifier::transaction::errors::TransactionExecutionError::TransactionPreValidationError(
+                        TransactionPreValidationError::InvalidNonce { .. }
+                    ) => Err(TransactionValidationError::InvalidTransactionNonce.into()),
+                    blockifier::transaction::errors::TransactionExecutionError::FeeCheckError { .. } =>
+                        Err(TransactionValidationError::InsufficientMaxFee.into()),
+                    blockifier::transaction::errors::TransactionExecutionError::TransactionPreValidationError(
+                        TransactionPreValidationError::TransactionFeeError(err)
+                    ) => match_tx_fee_error(err),
+                    blockifier::transaction::errors::TransactionExecutionError::TransactionFeeError(err)
+                      => match_tx_fee_error(err),
                     blockifier::transaction::errors::TransactionExecutionError::ValidateTransactionError(..) =>
                         Err(TransactionValidationError::ValidationFailure.into()),
                     _ => Err(tx_err.into())
