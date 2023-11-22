@@ -20,7 +20,7 @@ This repository is work in progress, please be patient. Please check below the s
 
 ### Supported Features
 
-- [x] RPC v0.4.0
+- [x] RPC v0.5.1
 - [x] [Dump & Load](https://github.com/0xSpaceShard/starknet-devnet-rs#dumping--loading)
 - [x] [Mint token - Local faucet](https://0xspaceshard.github.io/starknet-devnet/docs/guide/mint-token)
 - [x] [Customizable predeployed accounts](#predeployed-contracts)
@@ -29,7 +29,7 @@ This repository is work in progress, please be patient. Please check below the s
 
 ### TODO
 
-- [x] RPC v0.5.0
+- [ ] RPC v0.6.0
 
 ### TODO to reach feature parity with the Pythonic Devnet
 
