@@ -114,6 +114,9 @@ impl SpecModifier {
             remove_array_element(&mut json_obj_spec, &path_parts, array_element_to_remove.index);
         }
 
+        // Serialize serde_json::Value to string first and then deserialize to object Spec,
+        // because if there is an error during deserialization, the error message will contain at
+        // which line number and column, the deserialization failed.
         let json_spec_str = serde_json::to_string_pretty(&json_obj_spec)
             .expect("could not serialize the spec to string");
 
