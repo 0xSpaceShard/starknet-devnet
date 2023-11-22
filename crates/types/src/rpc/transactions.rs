@@ -359,6 +359,8 @@ pub enum CallType {
     LibraryCall,
     #[serde(rename = "CALL")]
     Call,
+    #[serde(rename = "DELEGATE")]
+    Delegate,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -404,7 +406,7 @@ pub struct InvokeTransactionTrace {
     pub validate_invocation: Option<FunctionInvocation>,
     pub execute_invocation: ExecutionInvocation,
     pub fee_transfer_invocation: Option<FunctionInvocation>,
-    pub state_diff: ThinStateDiff,
+    pub state_diff: Option<ThinStateDiff>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -412,7 +414,7 @@ pub struct InvokeTransactionTrace {
 pub struct DeclareTransactionTrace {
     pub validate_invocation: Option<FunctionInvocation>,
     pub fee_transfer_invocation: Option<FunctionInvocation>,
-    pub state_diff: ThinStateDiff,
+    pub state_diff: Option<ThinStateDiff>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -421,7 +423,7 @@ pub struct DeployAccountTransactionTrace {
     pub validate_invocation: Option<FunctionInvocation>,
     pub constructor_invocation: Option<FunctionInvocation>,
     pub fee_transfer_invocation: Option<FunctionInvocation>,
-    pub state_diff: ThinStateDiff,
+    pub state_diff: Option<ThinStateDiff>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -492,7 +494,7 @@ impl FunctionInvocation {
             entry_point_type: call_info.call.entry_point_type,
             call_type: match call_info.call.call_type {
                 blockifier::execution::entry_point::CallType::Call => CallType::Call,
-                blockifier::execution::entry_point::CallType::Delegate => CallType::LibraryCall,
+                blockifier::execution::entry_point::CallType::Delegate => CallType::Delegate,
             },
             result: call_info.execution.retdata.0.into_iter().map(Felt::from).collect(),
             calls: internal_calls,

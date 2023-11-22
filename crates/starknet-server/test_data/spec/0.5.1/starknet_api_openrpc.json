@@ -1,7 +1,7 @@
 {
     "openrpc": "1.0.0-rc1",
     "info": {
-        "version": "0.5.0",
+        "version": "0.5.1",
         "title": "StarkNet Node API",
         "license": {}
     },
@@ -2946,8 +2946,7 @@
                 },
                 "required": [
                     "program",
-                    "entry_points_by_type",
-                    "abi"
+                    "entry_points_by_type"
                 ]
             },
             "DEPRECATED_CAIRO_ENTRY_POINT": {
@@ -3316,7 +3315,6 @@
                 },
                 "required": [
                     "steps",
-                    "memory_holes",
                     "range_check_builtin_applications",
                     "pedersen_builtin_applications",
                     "poseidon_builtin_applications",
