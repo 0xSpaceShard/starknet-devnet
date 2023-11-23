@@ -24,7 +24,6 @@ mod advancing_time_tests {
     const DUMMY_AMOUNT: u128 = 1;
     const BUFFER_TIME_SECONDS: u64 = 10;
 
-    // TODO make generic instead of forcing Option<u64>
     pub fn assert_ge_with_buffer(val1: Option<u64>, val2: Option<u64>) {
         assert!(val1 >= val2);
         assert!(val1 < Some(val2.unwrap() + BUFFER_TIME_SECONDS));
@@ -86,7 +85,7 @@ mod advancing_time_tests {
         let timestamp =
             devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap()[0];
 
-        assert_ge_with_buffer(Some(timestamp.to_string().parse::<u64>().unwrap()), Some(now));
+        assert_ge_with_buffer(timestamp.to_string().parse::<u64>().ok(), Some(now));
     }
 
     #[tokio::test]
