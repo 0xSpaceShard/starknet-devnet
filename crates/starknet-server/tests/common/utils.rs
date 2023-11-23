@@ -141,14 +141,19 @@ pub async fn send_ctrl_c_signal(process: &Child) {
     }
 }
 
-/// Wrapper of file name which attempts to delete the file when the variable is dropped
-/// Appends a random sequence to the file name base to make it unique
+/// Wrapper of file name which attempts to delete the file when the variable is dropped.
+/// Appends a random sequence to the file name base to make it unique.
+/// Prevents name collisions - no need to come up with unique names for files (e.g. when dumping).
+/// Automatically deletes the underlying file when the variable is dropped - no need to remember
+/// deleting.
 pub struct UniqueAutoDeletableFile {
     pub path: String,
 }
 
 impl UniqueAutoDeletableFile {
     /// Appends a random sequence to the name_base to make it unique
+    /// Unlike [NamedTempFile](https://docs.rs/tempfile/latest/tempfile/struct.NamedTempFile.html),
+    /// it doesn't create the file.
     pub fn new(name_base: &str) -> Self {
         Self { path: format!("{name_base}-{}", generate_u32_random_number()) }
     }
