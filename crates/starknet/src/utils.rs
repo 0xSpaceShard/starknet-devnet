@@ -20,7 +20,7 @@ pub(crate) fn get_storage_var_address(
 ) -> DevnetResult<StorageKey> {
     let storage_var_name_hash =
         starknet_rs_core::utils::starknet_keccak(storage_var_name.as_bytes());
-    let storage_var_name_hash = StarkFelt::from(storage_var_name_hash);
+    let storage_var_name_hash = StarkFelt::new(storage_var_name_hash.to_bytes_be())?;
 
     let storage_key_hash = args
         .iter()
