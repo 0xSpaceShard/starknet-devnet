@@ -26,7 +26,6 @@ async-trait = { workspace = true }
 # misc
 serde_json = { workspace = true }
 serde = { workspace = true }
-thiserror = { workspace = true }
 
 # devnet
 starknet-core = { workspace = true }
