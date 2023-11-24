@@ -55,7 +55,6 @@ edit_manually:
     what: removed the outer "schema" object -  instead of being items -> schema -> {type, properties}, now its items -> {type, properties} in starknet_simulateTransactions
   - action: REMOVE
     what: PENDING_BLOCK_HEADER schema from the spec
-
   - action: REMOVE
     what: starknet_getStateUpdate -> result removed PENDING_STATE_UPDATE
   - action: REMOVE

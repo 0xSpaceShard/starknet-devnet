@@ -44,10 +44,6 @@
                         {
                             "title": "Block with transaction hashes",
                             "$ref": "#/components/schemas/BLOCK_WITH_TX_HASHES"
-                        },
-                        {
-                            "title": "Pending block with transaction hashes",
-                            "$ref": "#/components/schemas/PENDING_BLOCK_WITH_TX_HASHES"
                         }
                     ]
                 }
@@ -81,10 +77,6 @@
                         {
                             "title": "Block with transactions",
                             "$ref": "#/components/schemas/BLOCK_WITH_TXS"
-                        },
-                        {
-                            "title": "Pending block with transactions",
-                            "$ref": "#/components/schemas/PENDING_BLOCK_WITH_TXS"
                         }
                     ]
                 }
@@ -118,10 +110,6 @@
                         {
                             "title": "State update",
                             "$ref": "#/components/schemas/STATE_UPDATE"
-                        },
-                        {
-                            "title": "Pending state update",
-                            "$ref": "#/components/schemas/PENDING_STATE_UPDATE"
                         }
                     ]
                 }
@@ -215,7 +203,8 @@
                         }
                     },
                     "required": [
-                        "finality_status"
+                        "finality_status",
+                        "execution_status",
                     ]
                 }
             },
@@ -348,10 +337,6 @@
                         {
                             "title": "Transaction receipt",
                             "$ref": "#/components/schemas/TXN_RECEIPT"
-                        },
-                        {
-                            "title": "Pending transaction receipt",
-                            "$ref": "#/components/schemas/PENDING_TXN_RECEIPT"
                         }
                     ]
                 }
@@ -1301,7 +1286,7 @@
                 "type": "string",
                 "title": "Field element",
                 "description": "A field element. represented by at most 63 hex digits",
-                "pattern": "^0x(0|[a-fA-F1-9]{1}[a-fA-F0-9]{0,62})$"
+                "pattern": "^0x(0|[a-fA-F1-9]{1}[a-fA-F0-9]{0,61})$"
             },
             "FELT_U128": {
                 "type": "string",
@@ -3294,7 +3279,8 @@
                 "required": [
                     "sierra_program",
                     "contract_class_version",
-                    "entry_points_by_type"
+                    "entry_points_by_type",
+                    "abi"
                 ]
             },
             "DEPRECATED_CONTRACT_CLASS": {
