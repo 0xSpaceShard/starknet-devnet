@@ -21,6 +21,9 @@ aliases:
 # See: https://circleci.com/docs/configuration-reference/#jobs
 jobs:
   build-and-test:
+    parameters:
+      cargo_cache_key:
+        type: string
     docker:
       - image: cimg/rust:1.69.0
     resource_class: xlarge
@@ -28,7 +31,7 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - cargo-cache-v1-{{ checksum "Cargo.lock" }}
+            - << parameters.cargo_cache_key >>
       - run:
           # this step doesn't need to be cached, it's relatively fast (15s on Docker/X-Large)
           name: Install nightly
@@ -42,15 +45,11 @@ jobs:
       - run:
           name: Format check
           command: cargo +nightly fmt --all --check
-      - run:
-          name: Test
-          # if jobs not limited - fails
-          # problem: https://app.circleci.com/pipelines/github/0xSpaceShard/starknet-devnet-rs/339/workflows/97e98c29-1563-4aa0-b716-4bfd023c563e/jobs/335/steps
-          # solution: https://stackoverflow.com/questions/71962406/how-to-use-less-memory-when-compiling-to-avoid-killing-the-build
-          command: cargo test --jobs 7
       - save_cache:
           # Caching dependencies for future use
-          # Last step because Build, Clippy and Test all generate some target artifacts
+          # Build and Clippy steps generate their own target artifacts
+          # Test also generates, but significantly more
+          # Compromise: saving before Test
           paths:
             - /home/circleci/.cargo/registry
             - target/debug/.fingerprint
@@ -59,7 +58,13 @@ jobs:
             - target/release/.fingerprint
             - target/release/build
             - target/release/deps
-          key: cargo-cache-v1-{{ checksum "Cargo.lock" }}
+          key: << parameters.cargo_cache_key >>
+      - run:
+          name: Test
+          # if jobs not limited - fails
+          # problem: https://app.circleci.com/pipelines/github/0xSpaceShard/starknet-devnet-rs/339/workflows/97e98c29-1563-4aa0-b716-4bfd023c563e/jobs/335/steps
+          # solution: https://stackoverflow.com/questions/71962406/how-to-use-less-memory-when-compiling-to-avoid-killing-the-build
+          command: cargo test --jobs 7
 
   image-build-amd:
     docker:
@@ -106,7 +111,8 @@ jobs:
 workflows:
   main:
     jobs:
-      - build-and-test
+      - build-and-test:
+          cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-v1
       - image-build-amd:
           <<: *on_main
       - image-build-arm:
