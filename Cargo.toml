@@ -31,7 +31,7 @@ tower = { version = "0.4", features = ["full"] }
 rpc-core = { git = "https://github.com/foundry-rs/foundry", rev = "5f2262736feaeabadeef2ae989a78e9b43da8eee", package = "anvil-rpc" }
 
 # async
-tokio = { version = "1", features = ["time", "macros", "rt-multi-thread"] }
+tokio = { version = "1", features = ["time", "macros", "rt-multi-thread", "signal"] }
 futures = "0.3"
 async-trait = "0.1"
 
@@ -48,7 +48,6 @@ serde_json = { version = "1.0.81" }
 serde_yaml = { version = "0.9.27" }
 thiserror = { version = "1.0.32" }
 anyhow = "1"
-tokio-graceful-shutdown = "0.13.0"
 indexmap = "2.0.0"
 rand = "0.8.5"
 rand_chacha = "0.3.1"
