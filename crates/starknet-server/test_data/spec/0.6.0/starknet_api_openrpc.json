@@ -204,7 +204,7 @@
                     },
                     "required": [
                         "finality_status",
-                        "execution_status",
+                        "execution_status"
                     ]
                 }
             },
