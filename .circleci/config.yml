@@ -28,7 +28,7 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - cargo-cache-{{ checksum "Cargo.lock" }}-v1
+            - cargo-cache-v1-{{ checksum "Cargo.lock" }}
       - run:
           # this step doesn't need to be cached, it's relatively fast (15s on Docker/X-Large)
           name: Install nightly
