@@ -172,7 +172,7 @@ mod test_unique_auto_deletable_file {
     use super::UniqueAutoDeletableFile;
 
     #[test]
-    fn foo() {
+    fn test_deleted() {
         let file = UniqueAutoDeletableFile::new("foo");
         let saved_file_path = file.path.clone();
         assert!(!Path::new(&file.path).exists());
@@ -182,5 +182,23 @@ mod test_unique_auto_deletable_file {
 
         drop(file);
         assert!(!Path::new(&saved_file_path).exists());
+    }
+
+    #[test]
+    fn test_dropping_successful_if_file_not_created() {
+        let file = UniqueAutoDeletableFile::new("foo");
+        drop(file);
+        // if everything ok, the test should just exit successfully
+    }
+
+    #[test]
+    fn test_file_names_unique() {
+        let common_prefix = "foo";
+        // run it many times to increase the probability of being secure
+        for _ in 0..1_000_000 {
+            let file1 = UniqueAutoDeletableFile::new(common_prefix);
+            let file2 = UniqueAutoDeletableFile::new(common_prefix);
+            assert_ne!(file1.path, file2.path);
+        }
     }
 }
