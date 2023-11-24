@@ -312,13 +312,13 @@ rustup default nightly
 
 ## Development - Unused dependencies
 
-Run the unused dependency checker with:
+To check for unused dependencies, run:
 
 ```
 ./scripts/check_unused_deps.sh
 ```
 
-If you think something is a false-positive (i.e. isn't unused), check [here](https://github.com/bnjbvr/cargo-machete#false-positives).
+If you think this reports a dependency as a false-positive (i.e. isn't unused), check [here](https://github.com/bnjbvr/cargo-machete#false-positives).
 
 ## Development - Testing
 
