@@ -4,10 +4,10 @@ mod minting_tests {
     use hyper::{Body, StatusCode};
     use serde_json::json;
 
+    use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{
         PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
     };
-    use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::get_json_body;
 
     static DUMMY_ADDRESS: &str = "0x42";

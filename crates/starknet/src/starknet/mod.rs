@@ -905,15 +905,16 @@ mod tests {
         DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_INITIAL_BALANCE, ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::{DevnetResult, Error};
+    use crate::starknet::starknet_config::StarknetConfig;
     use crate::state::state_diff::StateDiff;
     use crate::traits::{Accounted, StateChanger, StateExtractor};
     use crate::utils::test_utils::{
-        dummy_contract_address, dummy_declare_transaction_v1, dummy_felt, starknet_config_for_test,
+        dummy_contract_address, dummy_declare_transaction_v1, dummy_felt,
     };
 
     #[test]
     fn correct_initial_state_with_test_config() {
-        let config = starknet_config_for_test();
+        let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
         let predeployed_accounts = starknet.predeployed_accounts.get_accounts();
         let expected_balance = config.predeployed_accounts_initial_balance;
@@ -940,7 +941,7 @@ mod tests {
 
     #[test]
     fn pending_block_is_correct() {
-        let config = starknet_config_for_test();
+        let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
         let initial_block_number = starknet.block_context.block_number;
         starknet.generate_pending_block().unwrap();
@@ -950,7 +951,7 @@ mod tests {
 
     #[test]
     fn correct_new_block_creation() {
-        let config = starknet_config_for_test();
+        let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
 
         let tx = dummy_declare_transaction_v1();
@@ -976,7 +977,7 @@ mod tests {
 
     #[test]
     fn successful_emptying_of_pending_block() {
-        let config = starknet_config_for_test();
+        let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
 
         let initial_block_number = starknet.block_context.block_number;
@@ -1017,21 +1018,21 @@ mod tests {
 
     #[test]
     fn getting_state_of_latest_block() {
-        let config = starknet_config_for_test();
+        let config = StarknetConfig::default();
         let starknet = Starknet::new(&config).unwrap();
         starknet.get_state_at(&BlockId::Tag(BlockTag::Latest)).expect("Should be OK");
     }
 
     #[test]
     fn getting_state_of_pending_block() {
-        let config = starknet_config_for_test();
+        let config = StarknetConfig::default();
         let starknet = Starknet::new(&config).unwrap();
         starknet.get_state_at(&BlockId::Tag(BlockTag::Pending)).expect("Should be OK");
     }
 
     #[test]
     fn getting_state_at_block_by_nonexistent_hash() {
-        let config = starknet_config_for_test();
+        let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
         starknet.generate_new_block(StateDiff::default(), None).unwrap();
 
@@ -1043,7 +1044,7 @@ mod tests {
 
     #[test]
     fn getting_nonexistent_state_at_block_by_number() {
-        let config = starknet_config_for_test();
+        let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
         starknet.generate_new_block(StateDiff::default(), None).unwrap();
         starknet.blocks.num_to_state.remove(&BlockNumber(0));
@@ -1056,7 +1057,7 @@ mod tests {
 
     #[test]
     fn calling_method_of_undeployed_contract() {
-        let config = starknet_config_for_test();
+        let config = StarknetConfig::default();
         let starknet = Starknet::new(&config).unwrap();
 
         let undeployed_address_hex = "0x1234";
@@ -1077,7 +1078,7 @@ mod tests {
 
     #[test]
     fn calling_nonexistent_contract_method() {
-        let config = starknet_config_for_test();
+        let config = StarknetConfig::default();
         let starknet = Starknet::new(&config).unwrap();
 
         let predeployed_account = &starknet.predeployed_accounts.get_accounts()[0];
@@ -1118,7 +1119,7 @@ mod tests {
 
     #[test]
     fn getting_balance_of_predeployed_contract() {
-        let config = starknet_config_for_test();
+        let config = StarknetConfig::default();
         let starknet = Starknet::new(&config).unwrap();
 
         let predeployed_account = &starknet.predeployed_accounts.get_accounts()[0];
@@ -1132,7 +1133,7 @@ mod tests {
 
     #[test]
     fn getting_balance_of_undeployed_contract() {
-        let config = starknet_config_for_test();
+        let config = StarknetConfig::default();
         let starknet = Starknet::new(&config).unwrap();
 
         let undeployed_address =
@@ -1146,7 +1147,7 @@ mod tests {
 
     #[test]
     fn correct_latest_block() {
-        let config = starknet_config_for_test();
+        let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
 
         starknet.get_latest_block().err().unwrap();
@@ -1172,7 +1173,7 @@ mod tests {
 
     #[test]
     fn gets_block_txs_count() {
-        let config = starknet_config_for_test();
+        let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
 
         starknet.generate_new_block(StateDiff::default(), None).unwrap();
@@ -1196,7 +1197,7 @@ mod tests {
 
     #[test]
     fn returns_chain_id() {
-        let config = starknet_config_for_test();
+        let config = StarknetConfig::default();
         let starknet = Starknet::new(&config).unwrap();
         let chain_id = starknet.chain_id();
 
@@ -1262,7 +1263,7 @@ mod tests {
 
     #[test]
     fn gets_latest_block() {
-        let config = starknet_config_for_test();
+        let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
 
         starknet.generate_new_block(StateDiff::default(), None).unwrap();
@@ -1277,7 +1278,7 @@ mod tests {
     }
     #[test]
     fn check_timestamp_of_newly_generated_block() {
-        let config = starknet_config_for_test();
+        let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
 
         Starknet::update_block_context(&mut starknet.block_context);

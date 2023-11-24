@@ -23,8 +23,8 @@ mod test_account_selection {
     };
     use starknet_rs_providers::Provider;
 
+    use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::CHAIN_ID;
-    use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::get_deployable_account_signer;
 
     #[tokio::test]

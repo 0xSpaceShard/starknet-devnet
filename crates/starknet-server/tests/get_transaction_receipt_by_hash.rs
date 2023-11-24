@@ -20,8 +20,8 @@ mod get_transaction_receipt_by_hash_integration_tests {
         MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
     };
 
+    use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::CHAIN_ID;
-    use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::{
         get_deployable_account_signer, get_events_contract_in_sierra_and_compiled_class_hash,
     };

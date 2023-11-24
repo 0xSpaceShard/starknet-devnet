@@ -5,6 +5,7 @@ use std::process::{Child, Command};
 
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use hyper::{Body, Response};
+use random_number_generator::generate_u32_random_number;
 use starknet_rs_core::types::contract::SierraClass;
 use starknet_rs_core::types::{ExecutionResult, FieldElement, FlattenedSierraClass};
 use starknet_rs_providers::Provider;
@@ -137,5 +138,67 @@ pub async fn send_ctrl_c_signal(process: &Child) {
             .spawn()
             .unwrap();
         kill.wait().unwrap();
+    }
+}
+
+/// Wrapper of file name which attempts to delete the file when the variable is dropped.
+/// Appends a random sequence to the file name base to make it unique.
+/// Prevents name collisions - no need to come up with unique names for files (e.g. when dumping).
+/// Automatically deletes the underlying file when the variable is dropped - no need to remember
+/// deleting.
+pub struct UniqueAutoDeletableFile {
+    pub path: String,
+}
+
+impl UniqueAutoDeletableFile {
+    /// Appends a random sequence to the name_base to make it unique
+    /// Unlike [NamedTempFile](https://docs.rs/tempfile/latest/tempfile/struct.NamedTempFile.html),
+    /// it doesn't create the file.
+    pub fn new(name_base: &str) -> Self {
+        Self { path: format!("{name_base}-{}", generate_u32_random_number()) }
+    }
+}
+
+impl Drop for UniqueAutoDeletableFile {
+    fn drop(&mut self) {
+        remove_file(&self.path)
+    }
+}
+
+#[cfg(test)]
+mod test_unique_auto_deletable_file {
+    use std::path::Path;
+
+    use super::UniqueAutoDeletableFile;
+
+    #[test]
+    fn test_deleted() {
+        let file = UniqueAutoDeletableFile::new("foo");
+        let saved_file_path = file.path.clone();
+        assert!(!Path::new(&file.path).exists());
+
+        std::fs::File::create(&file.path).unwrap();
+        assert!(Path::new(&file.path).exists());
+
+        drop(file);
+        assert!(!Path::new(&saved_file_path).exists());
+    }
+
+    #[test]
+    fn test_dropping_successful_if_file_not_created() {
+        let file = UniqueAutoDeletableFile::new("foo");
+        drop(file);
+        // if everything ok, the test should just exit successfully
+    }
+
+    #[test]
+    fn test_file_names_unique() {
+        let common_prefix = "foo";
+        // run it many times to increase the probability of being secure
+        for _ in 0..1_000_000 {
+            let file1 = UniqueAutoDeletableFile::new(common_prefix);
+            let file2 = UniqueAutoDeletableFile::new(common_prefix);
+            assert_ne!(file1.path, file2.path);
+        }
     }
 }

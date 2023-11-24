@@ -18,8 +18,8 @@ mod estimate_fee_tests {
     };
     use starknet_rs_signers::Signer;
 
+    use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{CAIRO_1_CONTRACT_PATH, CHAIN_ID};
-    use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::{
         get_deployable_account_signer, get_flattened_sierra_contract_and_casm_hash,
         iter_to_hex_felt, to_hex_felt, to_num_as_hex,

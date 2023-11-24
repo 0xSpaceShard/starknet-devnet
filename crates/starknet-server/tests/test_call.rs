@@ -7,10 +7,10 @@ mod call {
         MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
     };
 
+    use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{
         PREDEPLOYED_ACCOUNT_ADDRESS, PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
     };
-    use crate::common::devnet::BackgroundDevnet;
 
     #[tokio::test]
     /// This test doesn't rely on devnet.get_balance because it's not supposed to call ERC20
