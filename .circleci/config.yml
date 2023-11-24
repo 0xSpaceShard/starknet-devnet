@@ -26,8 +26,11 @@ jobs:
     resource_class: xlarge
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - cargo-cache-{{ checksum "Cargo.lock" }}-v1
       - run:
-          name: Install nightly
+          name: Install nightly # TODO cache this?
           command: rustup install nightly
       - run:
           name: Build
@@ -38,6 +41,16 @@ jobs:
       - run:
           name: Format check
           command: cargo +nightly fmt --all --check
+      - save_cache:
+          paths:
+            - /home/circleci/.cargo/registry
+            - target/debug/.fingerprint
+            - target/debug/build
+            - target/debug/deps
+            - target/release/.fingerprint
+            - target/release/build
+            - target/release/deps
+          key: cargo-cache-{{ checksum "Cargo.lock" }}-v1
       - run:
           name: Test
           # if jobs not limited - fails
