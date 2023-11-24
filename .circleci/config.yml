@@ -42,7 +42,15 @@ jobs:
       - run:
           name: Format check
           command: cargo +nightly fmt --all --check
+      - run:
+          name: Test
+          # if jobs not limited - fails
+          # problem: https://app.circleci.com/pipelines/github/0xSpaceShard/starknet-devnet-rs/339/workflows/97e98c29-1563-4aa0-b716-4bfd023c563e/jobs/335/steps
+          # solution: https://stackoverflow.com/questions/71962406/how-to-use-less-memory-when-compiling-to-avoid-killing-the-build
+          command: cargo test --jobs 7
       - save_cache:
+          # Caching dependencies for future use
+          # Last step because Build, Clippy and Test all generate some target artifacts
           paths:
             - /home/circleci/.cargo/registry
             - target/debug/.fingerprint
@@ -51,13 +59,7 @@ jobs:
             - target/release/.fingerprint
             - target/release/build
             - target/release/deps
-          key: cargo-cache-{{ checksum "Cargo.lock" }}-v1
-      - run:
-          name: Test
-          # if jobs not limited - fails
-          # problem: https://app.circleci.com/pipelines/github/0xSpaceShard/starknet-devnet-rs/339/workflows/97e98c29-1563-4aa0-b716-4bfd023c563e/jobs/335/steps
-          # solution: https://stackoverflow.com/questions/71962406/how-to-use-less-memory-when-compiling-to-avoid-killing-the-build
-          command: cargo test --jobs 7
+          key: cargo-cache-v1-{{ checksum "Cargo.lock" }}
 
   image-build-amd:
     docker:
