@@ -269,8 +269,9 @@ mod tests {
             dummy_contract.clone(),
         )
         .unwrap();
-        let increase_balance_selector: StarkFelt =
-            get_selector_from_name("increase_balance").unwrap().into();
+        let increase_balance_selector =
+            StarkFelt::new(get_selector_from_name("increase_balance").unwrap().to_bytes_be())
+                .unwrap();
 
         // check if increase_balance function is present in the contract class
         blockifier
