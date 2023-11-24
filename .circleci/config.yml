@@ -30,7 +30,8 @@ jobs:
           keys:
             - cargo-cache-{{ checksum "Cargo.lock" }}-v1
       - run:
-          name: Install nightly # TODO cache this?
+          # this step doesn't need to be cached, it's relatively fast (15s on Docker/X-Large)
+          name: Install nightly
           command: rustup install nightly
       - run:
           name: Build
