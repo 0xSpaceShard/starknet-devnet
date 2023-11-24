@@ -84,7 +84,8 @@ impl Cairo0Json {
         let mut serializer = JsonSerializer::with_formatter(&mut buffer, StarknetFormatter);
         modified_abi_program_json.serialize(&mut serializer).map_err(JsonError::SerdeJsonError)?;
 
-        Ok(StarkFelt::from(starknet_rs_core::utils::starknet_keccak(&buffer)))
+        let keccak = starknet_rs_core::utils::starknet_keccak(&buffer);
+        Ok(StarkFelt::new(keccak.to_bytes_be())?)
     }
 
     fn compute_cairo_0_contract_class_hash(json_class: &Value) -> crate::error::DevnetResult<Felt> {
