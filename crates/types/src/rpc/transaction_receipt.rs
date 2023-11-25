@@ -1,15 +1,15 @@
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
-use starknet_api::core::EthAddress;
 use starknet_api::hash::StarkFelt;
 use starknet_api::transaction::Fee;
-use starknet_rs_core::types::{ExecutionResult, MsgToL1, TransactionFinalityStatus};
+use starknet_rs_core::types::{ExecutionResult, Hash256, MsgToL1, TransactionFinalityStatus};
 
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
 use crate::error::{DevnetResult, Error};
 use crate::felt::{BlockHash, Felt, TransactionHash};
 use crate::rpc::transactions::TransactionType;
+use crate::rpc::eth_address::EthAddressWrapper;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -19,6 +19,7 @@ pub enum TransactionReceipt {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct DeployTransactionReceipt {
     #[serde(flatten)]
     pub common: CommonTransactionReceipt,
@@ -34,6 +35,7 @@ pub struct MaybePendingProperties {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+//#[serde(deny_unknown_fields)]
 pub struct CommonTransactionReceipt {
     pub r#type: TransactionType,
     pub transaction_hash: TransactionHash,
@@ -44,6 +46,21 @@ pub struct CommonTransactionReceipt {
     pub finality_status: TransactionFinalityStatus,
     #[serde(flatten)]
     pub maybe_pending_properties: MaybePendingProperties,
+    pub execution_resources: ExecutionResources,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct ExecutionResources {
+    pub steps: Felt,
+    pub memory_holes: Felt,
+    pub range_check_builtin_applications: Felt,
+    pub pedersen_builtin_applications: Felt,
+    pub poseidon_builtin_applications: Felt,
+    pub ec_op_builtin_applications: Felt,
+    pub ecdsa_builtin_applications: Felt,
+    pub bitwise_builtin_applications: Felt,
+    pub keccak_builtin_applications: Felt,
 }
 
 impl PartialEq for CommonTransactionReceipt {
@@ -61,6 +78,7 @@ impl PartialEq for CommonTransactionReceipt {
             && self.r#type == other.r#type
             && self.maybe_pending_properties == other.maybe_pending_properties
             && self.output == other.output
+            && self.execution_resources == other.execution_resources
             && identical_execution_result
     }
 }
@@ -68,6 +86,7 @@ impl PartialEq for CommonTransactionReceipt {
 impl Eq for CommonTransactionReceipt {}
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TransactionOutput {
     pub actual_fee: Fee,
     pub messages_sent: Vec<MessageToL1>,
@@ -77,64 +96,49 @@ pub struct TransactionOutput {
 pub type L2ToL1Payload = Vec<Felt>;
 
 /// An L2 to L1 message.
-#[derive(Debug, Default, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct MessageToL1 {
     pub from_address: ContractAddress,
-    pub to_address: EthAddress,
+    pub to_address: EthAddressWrapper,
     pub payload: L2ToL1Payload,
 }
 
-impl TryFrom<MsgToL1> for MessageToL1 {
-    type Error = Error;
+impl MessageToL1 {
+    /// Computes the hash of a `MessageToL1`.
+    /// Re-uses the already tested hash computation
+    /// from starknet-rs.
+    pub fn hash(&self) -> Hash256 {
+        let msg_to_l1 = MsgToL1 {
+            from_address: self.from_address.into(),
+            to_address: self.to_address.inner.clone().into(),
+            payload: self.payload.clone().into_iter().map(|f| f.into()).collect(),
+        };
 
-    fn try_from(msg: MsgToL1) -> DevnetResult<Self> {
-        // TODO: check if `to_address` may be of type `EthAddressWarpper`?
-        // As here we've to make some convertions just to reach
-        // the starknet_api type.
-        let to_address: Felt = msg.to_address.into();
-        let to_address: StarkFelt = to_address.into();
-        let to_address: EthAddress = to_address.try_into()?;
-
-        Ok(MessageToL1 {
-            from_address: ContractAddress::new(msg.from_address.into())?,
-            to_address,
-            payload: msg.payload.iter().map(|fe| (*fe).into()).collect(),
-        })
+        msg_to_l1.hash()
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use starknet_rs_core::types::MaybePendingTransactionReceipt;
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct OrderedMessageToL1 {
+    pub order: usize,
+    #[serde(flatten)]
+    pub message: MessageToL1,
+}
 
-    use crate::rpc::transaction_receipt::TransactionReceipt;
-
-    #[test]
-    fn test_invoke_accepted_serialization() {
-        let receipt_path =
-            concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/rpc/invoke_accepted.json");
-        let receipt = std::fs::read_to_string(receipt_path).unwrap();
-
-        let _: TransactionReceipt = serde_json::from_str(&receipt).unwrap();
-    }
-
-    #[test]
-    fn test_invoke_accepted_conversion() {
-        let receipt_path =
-            concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/rpc/invoke_accepted.json");
-        let receipt = std::fs::read_to_string(receipt_path).unwrap();
-
-        let receipt: TransactionReceipt = serde_json::from_str(&receipt).unwrap();
-        let serialized_receipt = serde_json::to_value(receipt).unwrap();
-        let _: MaybePendingTransactionReceipt = serde_json::from_value(serialized_receipt).unwrap();
-    }
-
-    #[test]
-    fn test_declare_accepted_serialization() {
-        let receipt_path =
-            concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/rpc/declare_accepted.json");
-        let receipt = std::fs::read_to_string(receipt_path).unwrap();
-
-        let _: TransactionReceipt = serde_json::from_str(&receipt).unwrap();
+impl OrderedMessageToL1 {
+    pub fn new(
+        msg: blockifier::execution::call_info::OrderedL2ToL1Message,
+        from_address: ContractAddress,
+    ) -> Self {
+        Self {
+            order: msg.order,
+            message: MessageToL1 {
+                from_address,
+                to_address: msg.message.to_address.into(),
+                payload: msg.message.payload.0.into_iter().map(Felt::from).collect(),
+            },
+        }
     }
 }

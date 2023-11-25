@@ -30,8 +30,9 @@
 //! to make it available for consumption on L1.
 //! This is done my sending a transaction to the Ethereum node, to the MockStarknetMessaging
 //! contract (`mockSendMessageFromL2` entrypoint).
-use starknet_rs_core::types::{BlockId, ExecutionResult, MsgToL1};
+use starknet_rs_core::types::{BlockId, ExecutionResult};
 use starknet_types::rpc::transactions::L1HandlerTransaction;
+use starknet_types::rpc::transaction_receipt::MessageToL1;
 
 use crate::error::{DevnetResult, Error, MessagingError};
 use crate::starknet::Starknet;
@@ -79,7 +80,7 @@ impl Starknet {
     ///
     /// # Arguments
     /// * `from` - The block id from which (and including which) the messages are collected.
-    pub async fn collect_messages_to_l1(&self, from: u64) -> DevnetResult<Vec<MsgToL1>> {
+    pub async fn collect_messages_to_l1(&self, from: u64) -> DevnetResult<Vec<MessageToL1>> {
         match self.blocks.get_blocks(Some(BlockId::Number(from)), None) {
             Ok(blocks) => {
                 let mut messages = vec![];
@@ -110,7 +111,7 @@ impl Starknet {
     pub async fn collect_and_send_messages_to_l1(
         &self,
         from: u64,
-    ) -> DevnetResult<(Vec<MsgToL1>, u64)> {
+    ) -> DevnetResult<(Vec<MessageToL1>, u64)> {
         let messaging = if let Some(m) = &self.messaging {
             m
         } else {
@@ -169,7 +170,7 @@ impl Starknet {
     /// # Arguments
     ///
     /// * `block` - The block from which messages are collected.
-    fn get_block_messages(&self, block: &StarknetBlock) -> DevnetResult<Vec<MsgToL1>> {
+    fn get_block_messages(&self, block: &StarknetBlock) -> DevnetResult<Vec<MessageToL1>> {
         let mut messages = vec![];
 
         block.get_transactions().iter().for_each(|transaction_hash| {

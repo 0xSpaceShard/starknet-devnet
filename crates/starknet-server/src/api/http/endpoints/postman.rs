@@ -1,10 +1,11 @@
 use axum::{Extension, Json};
 use starknet_rs_core::types::MsgToL1;
 use starknet_types::rpc::transactions::L1HandlerTransaction;
+use starknet_types::rpc::transaction_receipt::MessageToL1;
 
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{
-    FlushParameters, FlushedMessages, MessageHash, MessageToL1, MessageToL2, MessagingLoadAddress,
+    FlushParameters, FlushedMessages, MessageHash, PostmanMessageToL1, PostmanMessageToL2, MessagingLoadAddress,
     PostmanLoadL1MessagingContract, TxHash,
 };
 use crate::api::http::{HttpApiHandler, HttpApiResult};
@@ -46,7 +47,7 @@ pub(crate) async fn postman_flush(
             .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?
             .into_iter()
             .map(|m| m.try_into())
-            .collect::<Result<Vec<MessageToL2>, HttpApiError>>()
+            .collect::<Result<Vec<PostmanMessageToL2>, HttpApiError>>()
     };
 
     let from_block = if let Some(m) = &starknet.messaging { m.last_local_block } else { 0 };
@@ -58,8 +59,8 @@ pub(crate) async fn postman_flush(
                 .await
                 .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?
                 .into_iter()
-                .map(|m| m.try_into())
-                .collect::<Result<Vec<MessageToL1>, HttpApiError>>(),
+                .map(|m| m.into())
+                .collect::<Vec<PostmanMessageToL1>>(),
             0,
         )
     } else {
@@ -70,8 +71,8 @@ pub(crate) async fn postman_flush(
 
         (
             msgs.into_iter()
-                .map(|m| m.try_into())
-                .collect::<Result<Vec<MessageToL1>, HttpApiError>>(),
+                .map(|m| m.into())
+                .collect::<Vec<PostmanMessageToL1>>(),
             b,
         )
     };
@@ -88,41 +89,12 @@ pub(crate) async fn postman_flush(
             last_local_block + 1;
     }
 
-    match (messages_to_l1, messages_to_l2) {
-        (Ok(l1s), Ok(l2s)) => {
-            Ok(Json(FlushedMessages { messages_to_l1: l1s, messages_to_l2: l2s, l1_provider }))
-        }
-        (Ok(l1s), Err(e)) => {
-            if dry_run {
-                Ok(Json(FlushedMessages {
-                    messages_to_l1: l1s,
-                    messages_to_l2: vec![],
-                    l1_provider,
-                }))
-            } else {
-                Err(HttpApiError::MessagingError { msg: format!("MessagesToL2: {}", e) })
-            }
-        }
-        (Err(e), Ok(l2s)) => {
-            if dry_run {
-                Ok(Json(FlushedMessages {
-                    messages_to_l1: vec![],
-                    messages_to_l2: l2s,
-                    l1_provider,
-                }))
-            } else {
-                Err(HttpApiError::MessagingError { msg: format!("MessagesToL1: {}", e) })
-            }
-        }
-        (Err(e1), Err(e2)) => Err(HttpApiError::MessagingError {
-            msg: format!("MessagesToL1: {} || MessagesToL2: {}", e1, e2),
-        }),
-    }
+    Ok(Json(FlushedMessages { messages_to_l1, messages_to_l2, l1_provider }))
 }
 
 pub(crate) async fn postman_send_message_to_l2(
     Extension(state): Extension<HttpApiHandler>,
-    Json(data): Json<MessageToL2>,
+    Json(data): Json<PostmanMessageToL2>,
 ) -> HttpApiResult<Json<TxHash>> {
     let mut starknet = state.api.starknet.write().await;
 
@@ -140,11 +112,11 @@ pub(crate) async fn postman_send_message_to_l2(
 
 pub(crate) async fn postman_consume_message_from_l2(
     Extension(state): Extension<HttpApiHandler>,
-    Json(data): Json<MessageToL1>,
+    Json(data): Json<PostmanMessageToL1>,
 ) -> HttpApiResult<Json<MessageHash>> {
     let starknet = state.api.starknet.read().await;
 
-    let message: MsgToL1 = data.into();
+    let message: MessageToL1 = data.into();
 
     let message_hash = starknet
         .messaging

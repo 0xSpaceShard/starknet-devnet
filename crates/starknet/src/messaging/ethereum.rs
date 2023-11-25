@@ -10,6 +10,8 @@ use starknet_rs_core::types::{FieldElement, Hash256, MsgToL1};
 use starknet_types::felt::Felt;
 use starknet_types::rpc::contract_address::ContractAddress;
 use starknet_types::rpc::transactions::L1HandlerTransaction;
+use starknet_types::rpc::transaction_receipt::MessageToL1;
+use starknet_types::traits::ToHexString;
 use tracing::{trace, warn};
 
 use crate::error::{DevnetResult, Error, MessagingError};
@@ -202,7 +204,7 @@ impl EthereumMessaging {
     /// # Arguments
     ///
     /// * `messages` - The list of messages to be sent.
-    pub async fn send_mock_messages(&self, messages: &[MsgToL1]) -> DevnetResult<()> {
+    pub async fn send_mock_messages(&self, messages: &[MessageToL1]) -> DevnetResult<()> {
         if messages.is_empty() {
             return Ok(());
         }
@@ -216,9 +218,9 @@ impl EthereumMessaging {
             let message_hash = U256::from_big_endian(message.hash().as_bytes());
             trace!("Sending message to L1: [{:064x}]", message_hash);
 
-            let from_address = felt_rs_to_u256(&message.from_address)?;
-            let to_address = felt_rs_to_u256(&message.to_address)?;
-            let payload = felts_rs_to_u256s(&message.payload)?;
+            let from_address = felt_devnet_to_u256(&(message.from_address.into()))?;
+            let to_address = felt_devnet_to_u256(&(message.to_address.clone().into()))?;
+            let payload = felts_devnet_to_u256s(&message.payload)?;
 
             match starknet_messaging
                 .mock_send_message_from_l2(from_address, to_address, payload)
@@ -259,15 +261,15 @@ impl EthereumMessaging {
     /// * `l1_contract_address` - The L1 contract address that should consume the message.
     /// * `l2_contract_address` - The L2 contract address that sent the message.
     /// * `payload` - The message payload.
-    pub async fn consume_mock_message(&self, message: &MsgToL1) -> DevnetResult<Hash256> {
+    pub async fn consume_mock_message(&self, message: &MessageToL1) -> DevnetResult<Hash256> {
         let starknet_messaging = abigen::MockStarknetMessaging::new(
             self.messaging_contract_address,
             self.provider_signer.clone(),
         );
 
-        let from_address = felt_rs_to_u256(&message.from_address)?;
-        let to_address = felt_rs_to_u256(&message.to_address)?;
-        let payload = felts_rs_to_u256s(&message.payload)?;
+        let from_address = felt_devnet_to_u256(&(message.from_address.into()))?;
+        let to_address = felt_devnet_to_u256(&(message.to_address.clone().into()))?;
+        let payload = felts_devnet_to_u256s(&message.payload)?;
         let message_hash = message.hash();
 
         match starknet_messaging
@@ -428,33 +430,6 @@ fn l1_handler_tx_from_log(log: Log, chain_id: Felt) -> DevnetResult<L1HandlerTra
     .with_hash(chain_id))
 }
 
-/// Converts a vector of `FieldElement` to a vector of `U256`.
-///
-/// # Arguments
-///
-/// * `felts` - The `FieldElement`s to be converted.
-fn felts_rs_to_u256s(felts: &[FieldElement]) -> DevnetResult<Vec<U256>> {
-    let mut buf: Vec<U256> = vec![];
-
-    felts.iter().for_each(|p| buf.extend(felt_rs_to_u256(p)));
-
-    Ok(buf)
-}
-
-/// Converts a `FieldElement` to a `U256`.
-///
-/// # Arguments
-///
-/// * `felt` - The `FieldElement` to be converted.
-fn felt_rs_to_u256(felt: &FieldElement) -> DevnetResult<U256> {
-    U256::from_str_radix(format!("{:#064x}", felt).as_str(), 16).map_err(|_| {
-        Error::MessagingError(MessagingError::EthersError(format!(
-            "Error converting {} into U256",
-            felt
-        )))
-    })
-}
-
 /// Converts an `U256` into a `Felt`.
 ///
 /// # Arguments
@@ -462,6 +437,29 @@ fn felt_rs_to_u256(felt: &FieldElement) -> DevnetResult<U256> {
 /// * `v` - The `U256` to be converted.
 fn u256_to_felt_devnet(v: &U256) -> DevnetResult<Felt> {
     Ok(Felt::from_prefixed_hex_str(format!("0x{:064x}", v).as_str())?)
+}
+
+/// Converts an `Felt` into a `U256`.
+///
+/// # Arguments
+///
+/// * `v` - The `Felt` to be converted.
+fn felt_devnet_to_u256(v: &Felt) -> DevnetResult<U256> {
+    Ok(U256::from_str_radix(v.to_nonprefixed_hex_str().as_str(), 16)
+       .map_err(|e| MessagingError::EthersError(format!("Cant't convert Felt into U256: {}", e)))?)
+}
+
+/// Converts a vector of `Felt` to a vector of `U256`.
+///
+/// # Arguments
+///
+/// * `felts` - The `Felt`s to be converted.
+fn felts_devnet_to_u256s(felts: &[Felt]) -> DevnetResult<Vec<U256>> {
+    let mut buf: Vec<U256> = vec![];
+
+    felts.iter().for_each(|p| buf.extend(felt_devnet_to_u256(p)));
+
+    Ok(buf)
 }
 
 /// Converts an `Address` into a `Felt`.

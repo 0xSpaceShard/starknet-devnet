@@ -12,7 +12,7 @@ pub fn state_update_by_block_id(
     let state_diff =
         starknet.blocks.num_to_state_diff.get(&block.block_number()).cloned().unwrap_or_default();
 
-    StateUpdate::new(block.block_hash(), state_diff)
+    Ok(StateUpdate::new(block.block_hash(), state_diff))
 }
 
 #[cfg(test)]
@@ -23,6 +23,7 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{compute_casm_class_hash, Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
+    use starknet_types::rpc::state::ThinStateDiff;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::traits::HashProducer;
 
@@ -30,7 +31,6 @@ mod tests {
     use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID};
     use crate::starknet::{predeployed, Starknet};
     use crate::state::state_diff::StateDiff;
-    use crate::state::state_update::StateUpdate;
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut};
     use crate::utils::test_utils::{dummy_cairo_1_contract_class, dummy_felt};
 
@@ -68,24 +68,25 @@ mod tests {
             ))
             .unwrap();
 
-        let expected_state_diff = StateDiff {
+        let state_diff: ThinStateDiff = state_update.state_diff.into();
+
+        let expected_state_diff: ThinStateDiff = StateDiff {
             declared_contracts: vec![compiled_class_hash],
             class_hash_to_compiled_class_hash: vec![(sierra_class_hash, compiled_class_hash)]
                 .into_iter()
                 .collect(),
             ..Default::default()
-        };
-
-        let expected_state_update = StateUpdate::new(Felt::default(), expected_state_diff).unwrap();
+        }
+        .into();
 
         // check only 3 of the 4 fields, because the inner property has changes to the storage of
         // the ERC20 contract which are hard to be tested correctly, it depends on the fee
         // calculation of starknet_in_rust_library
         assert_eq!(
-            state_update.cairo_0_declared_classes,
-            expected_state_update.cairo_0_declared_classes
+            state_diff.deprecated_declared_classes,
+            expected_state_diff.deprecated_declared_classes
         );
-        assert_eq!(state_update.declared_classes, expected_state_update.declared_classes);
+        assert_eq!(state_diff.declared_classes, expected_state_diff.declared_classes);
     }
 
     /// Initializes starknet with account_without_validations

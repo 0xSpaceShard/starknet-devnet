@@ -10,6 +10,7 @@
 
 - [ ] Applied formatting - `./scripts/format.sh`
 - [ ] No linter errors - `./scripts/clippy_check.sh`
+- [ ] No unused dependencies - `./scripts/check_unused_deps.sh`
 - [ ] Performed code self-review
 - [ ] Rebased to the last commit of the target branch (or merged it into my branch)
 - [ ] Documented the changes

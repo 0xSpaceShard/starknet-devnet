@@ -26,12 +26,9 @@ url = { workspace = true }
 # axum
 axum = { workspace = true }
 hyper = { workspace = true }
-tower-http = { workspace = true }
-tower = { workspace = true }
 
 # async
-tokio = { workspace = true }
-futures = { workspace = true }
+tokio = { workspace = true, features = ["signal"] }
 async-trait = { workspace = true }
 
 # tracing
@@ -39,14 +36,11 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 
 # misc
-base64 = { workspace = true }
-flate2 = { workspace = true }
 clap = { workspace = true }
 serde_json = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
-tokio-graceful-shutdown = { workspace = true }
 
 [dev-dependencies]
 lazy_static = { workspace = true }
@@ -54,3 +48,7 @@ starknet-rs-accounts = { workspace = true }
 starknet-rs-contract = { workspace = true }
 starknet-rs-signers = { workspace = true }
 starknet-core = { workspace = true, features = ["test_utils"] }
+rand = { workspace = true }
+rand_chacha = { workspace = true }
+regex_generate = { workspace = true }
+serde_yaml = { workspace = true }

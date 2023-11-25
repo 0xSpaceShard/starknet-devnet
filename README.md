@@ -20,7 +20,7 @@ This repository is work in progress, please be patient. Please check below the s
 
 ### Supported Features
 
-- [x] RPC v0.4.0
+- [x] RPC v0.5.1
 - [x] [Dump & Load](https://github.com/0xSpaceShard/starknet-devnet-rs#dumping--loading)
 - [x] [Mint token - Local faucet](https://0xspaceshard.github.io/starknet-devnet/docs/guide/mint-token)
 - [x] [Customizable predeployed accounts](#predeployed-contracts)
@@ -29,7 +29,7 @@ This repository is work in progress, please be patient. Please check below the s
 
 ### TODO
 
-- [ ] RPC v0.5.0
+- [ ] RPC v0.6.0
 
 ### TODO to reach feature parity with the Pythonic Devnet
 
@@ -265,6 +265,7 @@ POST /increase_time
 ### Start time arg
 
 Devnet can be started with the `--start-time` argument, where `START_TIME_IN_SECONDS` should be greater than 0.
+
 ```
 cargo run -- --start-time START_TIME_IN_SECONDS
 ```
@@ -272,6 +273,7 @@ cargo run -- --start-time START_TIME_IN_SECONDS
 ### Timeout
 
 Timeout can be passed to Devnet's HTTP server. This makes it easier to deploy and manage large contracts that take longer to execute.
+
 ```
 cargo run -- --timeout TIMEOUT
 ```
@@ -307,6 +309,16 @@ Resolve it with:
 ```
 rustup default nightly
 ```
+
+## Development - Unused dependencies
+
+To check for unused dependencies, run:
+
+```
+./scripts/check_unused_deps.sh
+```
+
+If you think this reports a dependency as a false-positive (i.e. isn't unused), check [here](https://github.com/bnjbvr/cargo-machete#false-positives).
 
 ## Development - Testing
 

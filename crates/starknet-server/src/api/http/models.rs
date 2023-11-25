@@ -1,8 +1,10 @@
 use serde::{Deserialize, Serialize};
 use starknet_rs_core::types::{Hash256, MsgToL1};
 use starknet_types::contract_address::ContractAddress;
+use starknet_types::rpc::eth_address::EthAddressWrapper;
 use starknet_types::felt::{BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash};
 use starknet_types::rpc::transactions::L1HandlerTransaction;
+use starknet_types::rpc::transaction_receipt::MessageToL1;
 
 use crate::api::http::error::HttpApiError;
 
@@ -26,7 +28,7 @@ pub(crate) struct PostmanLoadL1MessagingContract {
 }
 
 #[derive(Deserialize, Serialize)]
-pub(crate) struct MessageToL2 {
+pub(crate) struct PostmanMessageToL2 {
     #[serde(rename = "l2ContractAddress")]
     pub l2_contract_address: ContractAddress,
     #[serde(rename = "entryPointSelector")]
@@ -39,10 +41,10 @@ pub(crate) struct MessageToL2 {
     pub nonce: Nonce,
 }
 
-impl TryFrom<MessageToL2> for L1HandlerTransaction {
+impl TryFrom<PostmanMessageToL2> for L1HandlerTransaction {
     type Error = HttpApiError;
 
-    fn try_from(msg: MessageToL2) -> Result<Self, Self::Error> {
+    fn try_from(msg: PostmanMessageToL2) -> Result<Self, Self::Error> {
         // The first argument of a `#l1_handler` Cairo function must be the address
         // of the L1 contract which have sent the message.
         let mut calldata = msg.payload.clone();
@@ -64,7 +66,7 @@ impl TryFrom<MessageToL2> for L1HandlerTransaction {
     }
 }
 
-impl TryFrom<L1HandlerTransaction> for MessageToL2 {
+impl TryFrom<L1HandlerTransaction> for PostmanMessageToL2 {
     type Error = HttpApiError;
 
     fn try_from(value: L1HandlerTransaction) -> Result<Self, Self::Error> {
@@ -84,39 +86,29 @@ impl TryFrom<L1HandlerTransaction> for MessageToL2 {
 }
 
 #[derive(Deserialize, Serialize)]
-pub(crate) struct MessageToL1 {
+pub(crate) struct PostmanMessageToL1 {
     l2_contract_address: ContractAddress,
-    l1_contract_address: ContractAddress,
+    l1_contract_address: EthAddressWrapper,
     payload: Calldata,
 }
 
-impl From<MessageToL1> for MsgToL1 {
-    fn from(value: MessageToL1) -> Self {
+impl From<PostmanMessageToL1> for MessageToL1 {
+    fn from(value: PostmanMessageToL1) -> Self {
         Self {
-            from_address: value.l2_contract_address.into(),
-            to_address: value.l1_contract_address.into(),
-            payload: value.payload.into_iter().map(|f| f.into()).collect(),
+            from_address: value.l2_contract_address,
+            to_address: value.l1_contract_address,
+            payload: value.payload,
         }
     }
 }
 
-impl TryFrom<MsgToL1> for MessageToL1 {
-    type Error = HttpApiError;
-
-    fn try_from(value: MsgToL1) -> Result<Self, Self::Error> {
-        Ok(Self {
-            l2_contract_address: ContractAddress::new(Felt::from(value.from_address)).map_err(
-                |_| HttpApiError::InvalidValueError {
-                    msg: "l2_contract_address does not fit into ContractAddress".to_string(),
-                },
-            )?,
-            l1_contract_address: ContractAddress::new(Felt::from(value.to_address)).map_err(
-                |_| HttpApiError::InvalidValueError {
-                    msg: "l1_contract_address does not fit into ContractAddress".to_string(),
-                },
-            )?,
-            payload: value.payload.into_iter().map(|f| f.into()).collect(),
-        })
+impl From<MessageToL1> for PostmanMessageToL1 {
+    fn from(value: MessageToL1) -> Self {
+        Self {
+            l2_contract_address: value.from_address,
+            l1_contract_address: value.to_address.into(),
+            payload: value.payload,
+        }
     }
 }
 
@@ -208,9 +200,9 @@ pub(crate) struct ForkStatus {
 #[derive(Serialize)]
 pub(crate) struct FlushedMessages {
     #[serde(rename = "messagesToL1")]
-    pub messages_to_l1: Vec<MessageToL1>,
+    pub messages_to_l1: Vec<PostmanMessageToL1>,
     #[serde(rename = "messagesToL2")]
-    pub messages_to_l2: Vec<MessageToL2>,
+    pub messages_to_l2: Vec<PostmanMessageToL2>,
     #[serde(rename = "l1Provider")]
     pub l1_provider: String,
 }

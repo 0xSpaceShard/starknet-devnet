@@ -1,13 +1,14 @@
 use serde::{Deserialize, Serialize};
-use starknet_types::contract_address::ContractAddress;
-use starknet_types::felt::{BlockHash, ClassHash, Felt, Nonce};
-use starknet_types::rpc::block::GlobalRootHex;
 
-use super::PatriciaKeyHex;
+use super::block::GlobalRootHex;
+use crate::contract_address::ContractAddress;
+use crate::felt::{BlockHash, ClassHash, Felt, Nonce};
+use crate::patricia_key::PatriciaKey;
 
 pub type CompiledClassHashHex = Felt;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct StateUpdate {
     pub block_hash: BlockHash,
     pub new_root: GlobalRootHex,
@@ -15,7 +16,7 @@ pub struct StateUpdate {
     pub state_diff: ThinStateDiff,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Default, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct ThinStateDiff {
     pub deployed_contracts: Vec<DeployedContract>,
     pub storage_diffs: Vec<StorageDiff>,
@@ -43,7 +44,7 @@ pub struct StorageDiff {
 /// A storage entry in a contract.
 #[derive(Debug, Default, Clone, Eq, PartialEq, Deserialize, Serialize)]
 pub struct StorageEntry {
-    pub key: PatriciaKeyHex,
+    pub key: PatriciaKey,
     pub value: Felt,
 }
 

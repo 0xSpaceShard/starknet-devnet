@@ -6,10 +6,10 @@ use starknet_api::block::BlockNumber;
 use starknet_rs_core::types::{ExecutionResult, FieldElement, MsgToL1, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::emitted_event::Event;
+use starknet_types::emitted_event::{Event, OrderedEvent};
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
 use starknet_types::rpc::transaction_receipt::{
-    DeployTransactionReceipt, MessageToL1, TransactionOutput, TransactionReceipt,
+    DeployTransactionReceipt, MessageToL1, OrderedMessageToL1, TransactionOutput, TransactionReceipt,
 };
 use starknet_types::rpc::transactions::{Transaction, TransactionType};
 
@@ -88,19 +88,18 @@ impl StarknetTransaction {
     pub fn get_events(&self) -> Vec<Event> {
         let mut events: Vec<Event> = vec![];
 
-        fn get_blockifier_events_recursively(call_info: &CallInfo) -> Vec<(usize, Event)> {
-            let mut events: Vec<(usize, Event)> = vec![];
+        fn get_blockifier_events_recursively(
+            call_info: &blockifier::execution::call_info::CallInfo,
+        ) -> Vec<OrderedEvent> {
+            let mut events: Vec<OrderedEvent> = vec![];
 
-            events.extend(call_info.execution.events.iter().map(|e| {
-                (
-                    e.order,
-                    Event {
-                        from_address: call_info.call.storage_address.into(),
-                        data: e.event.data.0.iter().map(|d| (*d).into()).collect(),
-                        keys: e.event.keys.iter().map(|k| k.0.into()).collect(),
-                    },
-                )
-            }));
+            events.extend(
+                call_info
+                    .execution
+                    .events
+                    .iter()
+                    .map(|e| OrderedEvent::new(e, call_info.call.storage_address.into())),
+            );
 
             call_info.inner_calls.iter().for_each(|call| {
                 events.extend(get_blockifier_events_recursively(call));
@@ -109,22 +108,16 @@ impl StarknetTransaction {
             events
         }
 
-        if let Some(validate_call_info) = self.execution_info.validate_call_info.as_ref() {
-            let mut not_sorted_events = get_blockifier_events_recursively(validate_call_info);
-            not_sorted_events.sort_by_key(|(order, _)| *order);
-            events.extend(not_sorted_events.into_iter().map(|(_, e)| e));
-        }
+        let call_infos = vec![
+            self.execution_info.validate_call_info.as_ref(),
+            self.execution_info.execute_call_info.as_ref(),
+            self.execution_info.fee_transfer_call_info.as_ref(),
+        ];
 
-        if let Some(execution_call_info) = self.execution_info.execute_call_info.as_ref() {
-            let mut not_sorted_events = get_blockifier_events_recursively(execution_call_info);
-            not_sorted_events.sort_by_key(|(order, _)| *order);
-            events.extend(not_sorted_events.into_iter().map(|(_, e)| e));
-        }
-
-        if let Some(fee_transfer_call_info) = self.execution_info.fee_transfer_call_info.as_ref() {
-            let mut not_sorted_events = get_blockifier_events_recursively(fee_transfer_call_info);
-            not_sorted_events.sort_by_key(|(order, _)| *order);
-            events.extend(not_sorted_events.into_iter().map(|(_, e)| e));
+        for inner_call_info in call_infos.into_iter().flatten() {
+            let mut not_sorted_events = get_blockifier_events_recursively(inner_call_info);
+            not_sorted_events.sort_by_key(|event| event.order);
+            events.extend(not_sorted_events.into_iter().map(|e| e.event));
         }
 
         events
@@ -158,26 +151,22 @@ impl StarknetTransaction {
     }
 
     pub fn get_receipt(&self) -> DevnetResult<TransactionReceipt> {
-        let events = self.get_events();
+        let transaction_events = self.get_events();
 
         let mut messages_sent: Vec<MessageToL1> = vec![];
         for message in self.get_l2_to_l1_messages().into_iter() {
-            messages_sent.push(message.try_into()?);
+            messages_sent.push(message.into());
         }
 
-        let output = TransactionOutput {
-            actual_fee: self.execution_info.actual_fee,
-            messages_sent,
-            // TODO: we may have performances issues here? Can have a lot's of events..
-            events: events.clone(),
-        };
-
         let mut common_receipt = self.inner.create_common_receipt(
-            output,
+            &transaction_events,
+            &messages_sent,
             self.block_hash.as_ref(),
             self.block_number,
             &self.execution_result,
             self.finality_status,
+            self.execution_info.actual_fee,
+            &self.execution_info,
         );
 
         match &self.inner {
@@ -189,7 +178,7 @@ impl StarknetTransaction {
             }
             Transaction::Invoke(_) => {
                 let deployed_address =
-                    StarknetTransaction::get_deployed_address_from_events(&events)?;
+                    StarknetTransaction::get_deployed_address_from_events(&transaction_events)?;
 
                 let receipt = if let Some(contract_address) = deployed_address {
                     common_receipt.r#type = TransactionType::Deploy;
@@ -207,17 +196,23 @@ impl StarknetTransaction {
         }
     }
 
-    pub fn get_l2_to_l1_messages(&self) -> Vec<MsgToL1> {
+    pub fn get_l2_to_l1_messages(&self) -> Vec<MessageToL1> {
         let mut messages = vec![];
 
-        fn get_blockifier_messages_recursively(call_info: &CallInfo) -> Vec<MsgToL1> {
+        fn get_blockifier_messages_recursively(call_info: &CallInfo) -> Vec<OrderedMessageToL1> {
             let mut messages = vec![];
 
-            messages.extend(call_info.execution.l2_to_l1_messages.iter().map(|m| MsgToL1 {
-                to_address:
-                    FieldElement::from_byte_slice_be(m.message.to_address.0.as_bytes()).unwrap(),
-                from_address: (*call_info.call.caller_address.0.key()).into(),
-                payload: m.message.payload.0.iter().map(|p| (*p).into()).collect(),
+            let from_address = call_info.call.caller_address.into();
+
+            messages.extend(call_info.execution.l2_to_l1_messages.iter().map(|m| {
+                OrderedMessageToL1 {
+                    order: m.order,
+                    message: MessageToL1 {
+                        to_address: m.message.to_address.into(),
+                        from_address,
+                        payload: m.message.payload.0.iter().map(|p| (*p).into()).collect(),
+                    }
+                }
             }));
 
             call_info.inner_calls.iter().for_each(|call| {
@@ -227,16 +222,16 @@ impl StarknetTransaction {
             messages
         }
 
-        if let Some(info) = self.execution_info.validate_call_info.as_ref() {
-            messages.extend(get_blockifier_messages_recursively(info));
-        }
+        let call_infos = vec![
+            self.execution_info.validate_call_info.as_ref(),
+            self.execution_info.execute_call_info.as_ref(),
+            self.execution_info.fee_transfer_call_info.as_ref(),
+        ];
 
-        if let Some(info) = self.execution_info.execute_call_info.as_ref() {
-            messages.extend(get_blockifier_messages_recursively(info));
-        }
-
-        if let Some(info) = self.execution_info.fee_transfer_call_info.as_ref() {
-            messages.extend(get_blockifier_messages_recursively(info));
+        for inner_call_info in call_infos.into_iter().flatten() {
+            let mut not_sorted_messages = get_blockifier_messages_recursively(inner_call_info);
+            not_sorted_messages.sort_by_key(|message| message.order);
+            messages.extend(not_sorted_messages.into_iter().map(|m| m.message));
         }
 
         messages

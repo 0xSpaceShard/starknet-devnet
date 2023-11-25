@@ -20,7 +20,7 @@ pub(crate) fn get_storage_var_address(
 ) -> DevnetResult<StorageKey> {
     let storage_var_name_hash =
         starknet_rs_core::utils::starknet_keccak(storage_var_name.as_bytes());
-    let storage_var_name_hash = StarkFelt::from(storage_var_name_hash);
+    let storage_var_name_hash = StarkFelt::new(storage_var_name_hash.to_bytes_be())?;
 
     let storage_key_hash = args
         .iter()
@@ -50,36 +50,8 @@ pub(crate) mod test_utils {
     use starknet_types::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1;
     use starknet_types::traits::HashProducer;
 
-    use crate::constants::{
-        CAIRO_0_ACCOUNT_CONTRACT_PATH, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE,
-        DEVNET_DEFAULT_HOST, DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT,
-        DEVNET_DEFAULT_TEST_SEED, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
-    };
-    use crate::starknet::starknet_config::StarknetConfig;
+    use crate::constants::DEVNET_DEFAULT_CHAIN_ID;
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
-
-    pub fn starknet_config_for_test() -> StarknetConfig {
-        let account_contract_class =
-            Cairo0Json::raw_json_from_path(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
-        StarknetConfig {
-            seed: DEVNET_DEFAULT_TEST_SEED,
-            total_accounts: DEVNET_DEFAULT_TOTAL_ACCOUNTS,
-            account_contract_class_hash: account_contract_class.generate_hash().unwrap(),
-            account_contract_class: ContractClass::Cairo0(Cairo0ContractClass::RawJson(
-                account_contract_class,
-            )),
-            predeployed_accounts_initial_balance: DEVNET_DEFAULT_INITIAL_BALANCE.into(),
-            host: DEVNET_DEFAULT_HOST,
-            port: DEVNET_DEFAULT_PORT,
-            start_time: None,
-            timeout: DEVNET_DEFAULT_TIMEOUT,
-            gas_price: DEVNET_DEFAULT_GAS_PRICE,
-            chain_id: DEVNET_DEFAULT_CHAIN_ID,
-            dump_on: None,
-            dump_path: None,
-            re_execute_on_init: true,
-        }
-    }
 
     pub(crate) fn dummy_felt() -> Felt {
         Felt::from_prefixed_hex_str("0xDD10").unwrap()
