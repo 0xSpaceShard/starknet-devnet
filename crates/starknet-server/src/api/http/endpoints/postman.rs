@@ -1,11 +1,11 @@
 use axum::{Extension, Json};
 use starknet_rs_core::types::MsgToL1;
 use starknet_types::rpc::transactions::L1HandlerTransaction;
-use starknet_types::rpc::transaction_receipt::MessageToL1;
+use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{
-    FlushParameters, FlushedMessages, MessageHash, PostmanMessageToL1, PostmanMessageToL2, MessagingLoadAddress,
+    FlushParameters, FlushedMessages, MessageHash, MessagingLoadAddress,
     PostmanLoadL1MessagingContract, TxHash,
 };
 use crate::api::http::{HttpApiHandler, HttpApiResult};
@@ -39,15 +39,15 @@ pub(crate) async fn postman_flush(
     let dry_run = data.dry_run.unwrap_or(false);
 
     let messages_to_l2 = if dry_run {
-        Ok(vec![])
+        vec![]
     } else {
         starknet
             .fetch_and_execute_messages_to_l2()
             .await
             .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?
             .into_iter()
-            .map(|m| m.try_into())
-            .collect::<Result<Vec<PostmanMessageToL2>, HttpApiError>>()
+            .map(|m| m.into())
+            .collect::<Vec<MessageToL2>>()
     };
 
     let from_block = if let Some(m) = &starknet.messaging { m.last_local_block } else { 0 };
@@ -60,7 +60,7 @@ pub(crate) async fn postman_flush(
                 .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?
                 .into_iter()
                 .map(|m| m.into())
-                .collect::<Vec<PostmanMessageToL1>>(),
+                .collect::<Vec<MessageToL1>>(),
             0,
         )
     } else {
@@ -72,7 +72,7 @@ pub(crate) async fn postman_flush(
         (
             msgs.into_iter()
                 .map(|m| m.into())
-                .collect::<Vec<PostmanMessageToL1>>(),
+                .collect::<Vec<MessageToL1>>(),
             b,
         )
     };
@@ -94,13 +94,18 @@ pub(crate) async fn postman_flush(
 
 pub(crate) async fn postman_send_message_to_l2(
     Extension(state): Extension<HttpApiHandler>,
-    Json(data): Json<PostmanMessageToL2>,
+    Json(data): Json<MessageToL2>,
 ) -> HttpApiResult<Json<TxHash>> {
     let mut starknet = state.api.starknet.write().await;
 
     let chain_id = starknet.chain_id().to_felt();
 
-    let transaction = L1HandlerTransaction::try_from(data)?.with_hash(chain_id);
+    let message = data.into();
+    let transaction = L1HandlerTransaction::try_from_message_to_l2(message)
+        .map_err(|_| HttpApiError::InvalidValueError {
+            msg: "The `paid_fee_on_l1` is out of range, expecting u128 value".to_string(),
+        })?.with_hash(chain_id);
+
     let transaction_hash = transaction.transaction_hash;
 
     starknet
@@ -112,7 +117,7 @@ pub(crate) async fn postman_send_message_to_l2(
 
 pub(crate) async fn postman_consume_message_from_l2(
     Extension(state): Extension<HttpApiHandler>,
-    Json(data): Json<PostmanMessageToL1>,
+    Json(data): Json<MessageToL1>,
 ) -> HttpApiResult<Json<MessageHash>> {
     let starknet = state.api.starknet.read().await;
 

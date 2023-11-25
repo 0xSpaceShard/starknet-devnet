@@ -6,11 +6,12 @@ use ethers::prelude::*;
 use ethers::providers::{Http, Provider, ProviderError};
 use ethers::types::{Address, BlockNumber, Log};
 use k256::ecdsa::SigningKey;
+use starknet_api::transaction::Fee;
 use starknet_rs_core::types::{FieldElement, Hash256, MsgToL1};
 use starknet_types::felt::Felt;
 use starknet_types::rpc::contract_address::ContractAddress;
 use starknet_types::rpc::transactions::L1HandlerTransaction;
-use starknet_types::rpc::transaction_receipt::MessageToL1;
+use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 use starknet_types::traits::ToHexString;
 use tracing::{trace, warn};
 
@@ -156,14 +157,9 @@ impl EthereumMessaging {
     }
 
     /// Fetches all the messages that were not already fetched from the L1 node.
-    ///
-    /// # Arguments
-    ///
-    /// * `chain_id` - The chain ID to include in the transaction hash computation.
     pub async fn fetch_messages(
         &mut self,
-        chain_id: Felt,
-    ) -> DevnetResult<Vec<L1HandlerTransaction>> {
+    ) -> DevnetResult<Vec<MessageToL2>> {
         let chain_latest_block: u64 = self
             .provider
             .get_block_number()
@@ -177,25 +173,25 @@ impl EthereumMessaging {
         // +1 exclude the latest fetched block the last time this function was called.
         let from_block = self.last_fetched_block + 1;
 
-        let mut l1_handler_txs = vec![];
+        let mut messages = vec![];
 
         self.fetch_logs(from_block, to_block).await?.into_iter().for_each(
             |(block_number, block_logs)| {
                 trace!(
-                    "Converting logs of block {block_number} into L1HandlerTransaction ({} logs)",
+                    "Converting logs of block {block_number} into MessageToL2 ({} logs)",
                     block_logs.len(),
                 );
 
                 block_logs.into_iter().for_each(|log| {
-                    if let Ok(tx) = l1_handler_tx_from_log(log, chain_id) {
-                        l1_handler_txs.push(tx)
+                    if let Ok(m) = message_to_l2_from_log(log) {
+                        messages.push(m)
                     }
                 })
             },
         );
 
         self.last_fetched_block = to_block;
-        Ok(l1_handler_txs)
+        Ok(messages)
     }
 
     /// Sends the list of given messages to L1. The messages are sent to
@@ -392,13 +388,12 @@ impl EthereumMessaging {
     }
 }
 
-/// Converts an ethereum log into a `L1HandlerTransaction`.
+/// Converts an ethereum log into a `MessageToL2`.
 ///
 /// # Arguments
 ///
 /// * `log` - The log to be converted.
-/// * `chain_id` - The L1 node chain id.
-fn l1_handler_tx_from_log(log: Log, chain_id: Felt) -> DevnetResult<L1HandlerTransaction> {
+fn message_to_l2_from_log(log: Log) -> DevnetResult<MessageToL2> {
     let parsed_log = <LogMessageToL2 as EthLogDecode>::decode_log(&log.into()).map_err(|e| {
         Error::MessagingError(MessagingError::EthersError(format!("Log parsing failed {}", e)))
     })?;
@@ -407,27 +402,27 @@ fn l1_handler_tx_from_log(log: Log, chain_id: Felt) -> DevnetResult<L1HandlerTra
     let contract_address = ContractAddress::new(u256_to_felt_devnet(&parsed_log.to_address)?)?;
     let entry_point_selector = u256_to_felt_devnet(&parsed_log.selector)?;
     let nonce = u256_to_felt_devnet(&parsed_log.nonce)?;
-    let paid_fee_on_l1: u128 = parsed_log.fee.try_into().map_err(|_| {
-        Error::MessagingError(MessagingError::EthersError(format!(
-            "Fee does not fit into u128 {}",
-            parsed_log.fee
-        )))
-    })?;
+    let paid_fee_on_l1 = u256_to_felt_devnet(&parsed_log.selector)?;
+// parsed_log.fee.try_into().map_err(|_| {
+//         Error::MessagingError(MessagingError::EthersError(format!(
+//             "Fee does not fit into u128 {}",
+//             parsed_log.fee
+//         )))
+//     })?;
 
-    let mut calldata = vec![from_address];
+    let mut payload = vec![];
     for u in parsed_log.payload {
-        calldata.push(u256_to_felt_devnet(&u)?);
+        payload.push(u256_to_felt_devnet(&u)?);
     }
 
-    Ok(L1HandlerTransaction {
-        contract_address,
-        entry_point_selector,
-        calldata,
-        nonce,
+    Ok(MessageToL2 {
+        l2_contract_address: contract_address,
+        entry_point_selector: entry_point_selector.into(),
+        l1_contract_address: ContractAddress::new(from_address)?,
+        payload,
         paid_fee_on_l1,
-        ..Default::default()
-    }
-    .with_hash(chain_id))
+        nonce,
+    })
 }
 
 /// Converts an `U256` into a `Felt`.

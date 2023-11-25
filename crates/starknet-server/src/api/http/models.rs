@@ -4,7 +4,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::rpc::eth_address::EthAddressWrapper;
 use starknet_types::felt::{BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash};
 use starknet_types::rpc::transactions::L1HandlerTransaction;
-use starknet_types::rpc::transaction_receipt::MessageToL1;
+use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 
 use crate::api::http::error::HttpApiError;
 
@@ -20,96 +20,9 @@ pub(crate) struct LoadPath {
 
 #[derive(Deserialize, Debug)]
 pub(crate) struct PostmanLoadL1MessagingContract {
-    #[serde(rename = "networkUrl")]
     pub network_url: String,
     pub address: Option<String>,
-    #[serde(rename = "privateKey")]
     pub private_key: Option<String>,
-}
-
-#[derive(Deserialize, Serialize)]
-pub(crate) struct PostmanMessageToL2 {
-    #[serde(rename = "l2ContractAddress")]
-    pub l2_contract_address: ContractAddress,
-    #[serde(rename = "entryPointSelector")]
-    pub entry_point_selector: EntryPointSelector,
-    #[serde(rename = "l1ContractAddress")]
-    pub l1_contract_address: ContractAddress,
-    pub payload: Calldata,
-    #[serde(rename = "paidFeeOnL1")]
-    pub paid_fee_on_l1: Felt,
-    pub nonce: Nonce,
-}
-
-impl TryFrom<PostmanMessageToL2> for L1HandlerTransaction {
-    type Error = HttpApiError;
-
-    fn try_from(msg: PostmanMessageToL2) -> Result<Self, Self::Error> {
-        // The first argument of a `#l1_handler` Cairo function must be the address
-        // of the L1 contract which have sent the message.
-        let mut calldata = msg.payload.clone();
-        calldata.insert(0, msg.l1_contract_address.into());
-
-        let paid_fee_on_l1: u128 =
-            msg.paid_fee_on_l1.try_into().map_err(|_| HttpApiError::InvalidValueError {
-                msg: "paid_fee_on_l1 is out of range, expecting u128 value".to_string(),
-            })?;
-
-        Ok(L1HandlerTransaction {
-            contract_address: msg.l2_contract_address,
-            entry_point_selector: msg.entry_point_selector,
-            calldata,
-            nonce: msg.nonce,
-            paid_fee_on_l1,
-            ..Default::default()
-        })
-    }
-}
-
-impl TryFrom<L1HandlerTransaction> for PostmanMessageToL2 {
-    type Error = HttpApiError;
-
-    fn try_from(value: L1HandlerTransaction) -> Result<Self, Self::Error> {
-        Ok(Self {
-            l2_contract_address: value.contract_address,
-            entry_point_selector: value.entry_point_selector,
-            l1_contract_address: ContractAddress::new(value.calldata[0]).map_err(|_| {
-                HttpApiError::InvalidValueError {
-                    msg: "l1_contract_address does not fit into ContractAddress".to_string(),
-                }
-            })?,
-            payload: value.calldata[1..].to_vec(),
-            paid_fee_on_l1: value.paid_fee_on_l1.into(),
-            nonce: value.nonce,
-        })
-    }
-}
-
-#[derive(Deserialize, Serialize)]
-pub(crate) struct PostmanMessageToL1 {
-    l2_contract_address: ContractAddress,
-    l1_contract_address: EthAddressWrapper,
-    payload: Calldata,
-}
-
-impl From<PostmanMessageToL1> for MessageToL1 {
-    fn from(value: PostmanMessageToL1) -> Self {
-        Self {
-            from_address: value.l2_contract_address,
-            to_address: value.l1_contract_address,
-            payload: value.payload,
-        }
-    }
-}
-
-impl From<MessageToL1> for PostmanMessageToL1 {
-    fn from(value: MessageToL1) -> Self {
-        Self {
-            l2_contract_address: value.from_address,
-            l1_contract_address: value.to_address.into(),
-            payload: value.payload,
-        }
-    }
 }
 
 #[derive(Serialize)]
@@ -199,22 +112,17 @@ pub(crate) struct ForkStatus {
 
 #[derive(Serialize)]
 pub(crate) struct FlushedMessages {
-    #[serde(rename = "messagesToL1")]
-    pub messages_to_l1: Vec<PostmanMessageToL1>,
-    #[serde(rename = "messagesToL2")]
-    pub messages_to_l2: Vec<PostmanMessageToL2>,
-    #[serde(rename = "l1Provider")]
+    pub messages_to_l1: Vec<MessageToL1>,
+    pub messages_to_l2: Vec<MessageToL2>,
     pub l1_provider: String,
 }
 
 #[derive(Serialize, Deserialize)]
 pub(crate) struct FlushParameters {
-    #[serde(rename = "dryRun")]
     pub dry_run: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub(crate) struct MessagingLoadAddress {
-    #[serde(rename = "messageContractAddress")]
     pub messaging_contract_address: String,
 }

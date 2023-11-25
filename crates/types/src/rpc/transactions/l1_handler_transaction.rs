@@ -12,9 +12,10 @@ use starknet_api::transaction::{
 use starknet_rs_core::crypto::compute_hash_on_elements;
 use starknet_rs_core::types::FieldElement;
 
-use crate::error::{DevnetResult, Error};
+use crate::error::{ConversionError, DevnetResult, Error};
 use crate::felt::Felt;
 use crate::rpc::transactions::L1HandlerTransaction;
+use crate::rpc::messaging::MessageToL2;
 use crate::traits::HashProducer;
 
 /// Cairo string for "l1_handler"
@@ -85,6 +86,34 @@ impl L1HandlerTransaction {
 
         Ok(transaction)
     }
+
+    /// Converts a `MessageToL2` into a `L1HandlerTransaction`.
+    ///
+    /// # Arguments
+    ///
+    /// * `message` - The message to be converted.
+    /// * `chain_id` - The L1 node chain id.
+    pub fn try_from_message_to_l2(message: MessageToL2) -> DevnetResult<Self> {
+        // `impl TryFrom` is not used due to the fact that chain_id is required.
+        let paid_fee_on_l1: u128 =
+            message.paid_fee_on_l1.try_into().map_err(|_| ConversionError::OutOfRangeError)?;
+
+        let mut calldata = vec![message.l1_contract_address.into()];
+        for u in message.payload {
+            calldata.push(u.clone());
+        }
+
+        Ok(Self {
+            contract_address: message.l2_contract_address,
+            entry_point_selector: message.entry_point_selector,
+            calldata,
+            nonce: message.nonce,
+            paid_fee_on_l1,
+            ..Default::default()
+        })
+
+    }
+
 }
 
 // TODO: for this version I didn't impl `HashProducer`

@@ -9,9 +9,10 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{Event, OrderedEvent};
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
 use starknet_types::rpc::transaction_receipt::{
-    DeployTransactionReceipt, MessageToL1, OrderedMessageToL1, TransactionOutput, TransactionReceipt,
+    DeployTransactionReceipt, TransactionOutput, TransactionReceipt,
 };
 use starknet_types::rpc::transactions::{Transaction, TransactionType};
+use starknet_types::rpc::messaging::{MessageToL1, OrderedMessageToL1};
 
 use crate::constants::UDC_CONTRACT_ADDRESS;
 use crate::error::{DevnetResult, Error};

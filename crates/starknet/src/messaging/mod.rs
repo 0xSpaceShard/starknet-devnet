@@ -32,7 +32,7 @@
 //! contract (`mockSendMessageFromL2` entrypoint).
 use starknet_rs_core::types::{BlockId, ExecutionResult};
 use starknet_types::rpc::transactions::L1HandlerTransaction;
-use starknet_types::rpc::transaction_receipt::MessageToL1;
+use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 
 use crate::error::{DevnetResult, Error, MessagingError};
 use crate::starknet::Starknet;
@@ -148,7 +148,7 @@ impl Starknet {
     /// for each one of them.
     pub async fn fetch_and_execute_messages_to_l2(
         &mut self,
-    ) -> DevnetResult<Vec<L1HandlerTransaction>> {
+    ) -> DevnetResult<Vec<MessageToL2>> {
         if self.messaging.is_none() {
             return Err(Error::MessagingError(MessagingError::NotConfigured));
         }
@@ -156,13 +156,14 @@ impl Starknet {
         let chain_id = self.chain_id().to_felt();
         let messaging = self.messaging.as_mut().unwrap();
 
-        let transactions = messaging.fetch_messages(chain_id).await?;
+        let messages = messaging.fetch_messages().await?;
 
-        for transaction in &transactions {
-            self.add_l1_handler_transaction(transaction.clone())?;
+        for message in &messages {
+            let transaction = L1HandlerTransaction::try_from_message_to_l2(message.clone())?.with_hash(chain_id);
+            self.add_l1_handler_transaction(transaction)?;
         }
 
-        Ok(transactions)
+        Ok(messages)
     }
 
     /// Collects all messages for all the transactions of the the given block.

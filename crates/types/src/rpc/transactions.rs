@@ -20,7 +20,8 @@ use starknet_rs_core::types::{BlockId, ExecutionResult, TransactionFinalityStatu
 
 use super::estimate_message_fee::FeeEstimateWrapper;
 use super::state::ThinStateDiff;
-use super::transaction_receipt::{ExecutionResources, OrderedMessageToL1};
+use super::transaction_receipt::ExecutionResources;
+use super::messaging::{MessageToL1, OrderedMessageToL1};
 use crate::constants::{
     BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME, N_STEPS,
     POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
@@ -33,7 +34,7 @@ use crate::felt::{
     TransactionVersion,
 };
 use crate::rpc::transaction_receipt::{
-    CommonTransactionReceipt, MaybePendingProperties, MessageToL1, TransactionOutput,
+    CommonTransactionReceipt, MaybePendingProperties, TransactionOutput,
 };
 
 pub mod broadcasted_declare_transaction_v1;
