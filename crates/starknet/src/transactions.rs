@@ -3,14 +3,14 @@ use blockifier::transaction::objects::TransactionExecutionInfo;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
-use starknet_rs_core::types::{ExecutionResult, FieldElement, MsgToL1, TransactionFinalityStatus};
+use starknet_rs_core::types::{ExecutionResult, TransactionFinalityStatus};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{Event, OrderedEvent};
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
 use starknet_types::rpc::messaging::{MessageToL1, OrderedMessageToL1};
 use starknet_types::rpc::transaction_receipt::{
-    DeployTransactionReceipt, TransactionOutput, TransactionReceipt,
+    DeployTransactionReceipt, TransactionReceipt,
 };
 use starknet_types::rpc::transactions::{Transaction, TransactionType};
 

@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use cairo_felt::Felt252;
 use starknet_api::core::EthAddress as ApiEthAddress;
-use starknet_api::hash::StarkFelt;
+
 use starknet_rs_core::types::EthAddress;
 use starknet_rs_ff::FieldElement;
 

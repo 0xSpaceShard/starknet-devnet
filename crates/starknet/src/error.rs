@@ -16,9 +16,9 @@ pub enum Error {
     BlockifierTransactionError(#[from] blockifier::transaction::errors::TransactionExecutionError),
     #[error("{revert_error}")]
     ExecutionError { revert_error: String },
-    #[error("Types error")]
+    #[error("Types error: {0}")]
     TypesError(#[from] starknet_types::error::Error),
-    #[error("I/O error")]
+    #[error("I/O error: {0}")]
     IoError(#[from] std::io::Error),
     #[error("Error when reading file {path}")]
     ReadFileError { source: std::io::Error, path: String },

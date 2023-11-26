@@ -81,6 +81,8 @@ impl Starknet {
         contract_address: Option<&str>,
         private_key: Option<&str>,
     ) -> DevnetResult<String> {
+        tracing::trace!("Configuring messaging: {}", rpc_url);
+
         self.messaging =
             Some(EthereumMessaging::new(rpc_url, contract_address, private_key).await?);
 

@@ -1,5 +1,4 @@
 use axum::{Extension, Json};
-use starknet_rs_core::types::MsgToL1;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::transactions::L1HandlerTransaction;
 

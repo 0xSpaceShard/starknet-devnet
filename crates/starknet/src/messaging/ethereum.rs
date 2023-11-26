@@ -6,12 +6,12 @@ use ethers::prelude::*;
 use ethers::providers::{Http, Provider, ProviderError};
 use ethers::types::{Address, BlockNumber, Log};
 use k256::ecdsa::SigningKey;
-use starknet_api::transaction::Fee;
-use starknet_rs_core::types::{FieldElement, Hash256, MsgToL1};
+
+use starknet_rs_core::types::{Hash256};
 use starknet_types::felt::Felt;
 use starknet_types::rpc::contract_address::ContractAddress;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
-use starknet_types::rpc::transactions::L1HandlerTransaction;
+
 use starknet_types::traits::ToHexString;
 use tracing::{trace, warn};
 
@@ -401,13 +401,7 @@ fn message_to_l2_from_log(log: Log) -> DevnetResult<MessageToL2> {
     let contract_address = ContractAddress::new(u256_to_felt_devnet(&parsed_log.to_address)?)?;
     let entry_point_selector = u256_to_felt_devnet(&parsed_log.selector)?;
     let nonce = u256_to_felt_devnet(&parsed_log.nonce)?;
-    let paid_fee_on_l1 = u256_to_felt_devnet(&parsed_log.selector)?;
-    // parsed_log.fee.try_into().map_err(|_| {
-    //         Error::MessagingError(MessagingError::EthersError(format!(
-    //             "Fee does not fit into u128 {}",
-    //             parsed_log.fee
-    //         )))
-    //     })?;
+    let paid_fee_on_l1 = u256_to_felt_devnet(&parsed_log.fee)?;
 
     let mut payload = vec![];
     for u in parsed_log.payload {

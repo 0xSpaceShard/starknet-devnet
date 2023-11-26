@@ -1,14 +1,14 @@
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
-use starknet_api::hash::StarkFelt;
+
 use starknet_api::transaction::Fee;
-use starknet_rs_core::types::{ExecutionResult, Hash256, MsgToL1, TransactionFinalityStatus};
+use starknet_rs_core::types::{ExecutionResult, TransactionFinalityStatus};
 
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
-use crate::error::{DevnetResult, Error};
+
 use crate::felt::{BlockHash, Felt, TransactionHash};
-use crate::rpc::eth_address::EthAddressWrapper;
+
 use crate::rpc::messaging::MessageToL1;
 use crate::rpc::transactions::TransactionType;
 

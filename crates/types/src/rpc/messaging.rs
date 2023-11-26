@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
-use starknet_api::transaction::Fee;
+
 use starknet_rs_core::types::{Hash256, MsgToL1};
 
 use crate::contract_address::ContractAddress;
-use crate::error::{DevnetResult, Error};
+
 use crate::felt::{Calldata, EntryPointSelector, Felt, Nonce};
 use crate::rpc::eth_address::EthAddressWrapper;
 
