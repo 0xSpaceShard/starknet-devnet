@@ -9,5 +9,5 @@ pub mod traits;
 mod utils;
 
 // Re export libraries
-pub use rpc::{contract_address, contract_class, emitted_event, messaging, felt};
+pub use rpc::{contract_address, contract_class, emitted_event, felt, messaging};
 pub use {num_bigint, num_integer, starknet_api};

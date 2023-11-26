@@ -8,9 +8,9 @@ use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
 use crate::error::{DevnetResult, Error};
 use crate::felt::{BlockHash, Felt, TransactionHash};
-use crate::rpc::transactions::TransactionType;
 use crate::rpc::eth_address::EthAddressWrapper;
 use crate::rpc::messaging::MessageToL1;
+use crate::rpc::transactions::TransactionType;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]

@@ -31,8 +31,8 @@
 //! This is done my sending a transaction to the Ethereum node, to the MockStarknetMessaging
 //! contract (`mockSendMessageFromL2` entrypoint).
 use starknet_rs_core::types::{BlockId, ExecutionResult};
-use starknet_types::rpc::transactions::L1HandlerTransaction;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
+use starknet_types::rpc::transactions::L1HandlerTransaction;
 
 use crate::error::{DevnetResult, Error, MessagingError};
 use crate::starknet::Starknet;
@@ -84,11 +84,7 @@ impl Starknet {
         self.messaging =
             Some(EthereumMessaging::new(rpc_url, contract_address, private_key).await?);
 
-        Ok(format!(
-            "0x{:x}",
-            self.messaging_ref()?
-                .messaging_contract_address()
-        ))
+        Ok(format!("0x{:x}", self.messaging_ref()?.messaging_contract_address()))
     }
 
     /// Collects all messages found between
@@ -162,9 +158,7 @@ impl Starknet {
 
     /// Fetches all messages from L1 and executes them by executing a `L1HandlerTransaction`
     /// for each one of them.
-    pub async fn fetch_and_execute_messages_to_l2(
-        &mut self,
-    ) -> DevnetResult<Vec<MessageToL2>> {
+    pub async fn fetch_and_execute_messages_to_l2(&mut self) -> DevnetResult<Vec<MessageToL2>> {
         let chain_id = self.chain_id().to_felt();
 
         let messaging = self.messaging_mut()?;
@@ -172,7 +166,8 @@ impl Starknet {
         let messages = messaging.fetch_messages().await?;
 
         for message in &messages {
-            let transaction = L1HandlerTransaction::try_from_message_to_l2(message.clone())?.with_hash(chain_id);
+            let transaction =
+                L1HandlerTransaction::try_from_message_to_l2(message.clone())?.with_hash(chain_id);
             self.add_l1_handler_transaction(transaction)?;
         }
 

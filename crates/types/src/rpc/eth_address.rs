@@ -1,10 +1,10 @@
 use std::str::FromStr;
 
 use cairo_felt::Felt252;
-use starknet_rs_core::types::EthAddress;
-use starknet_rs_ff::FieldElement;
 use starknet_api::core::EthAddress as ApiEthAddress;
 use starknet_api::hash::StarkFelt;
+use starknet_rs_core::types::EthAddress;
+use starknet_rs_ff::FieldElement;
 
 use crate::error::{DevnetResult, Error};
 use crate::felt::Felt;
@@ -39,7 +39,8 @@ impl From<ApiEthAddress> for EthAddressWrapper {
         // Can be simplified if https://github.com/xJonathanLEI/starknet-rs/pull/506 is merged.
         let eth_address = format!("{:?}", value.0);
         let eth_address = eth_address.strip_prefix("0x").unwrap_or(&eth_address);
-        let eth_address: EthAddress = EthAddress::from_hex(&eth_address).expect("EthAddress from starknet_api is out of range");
+        let eth_address: EthAddress = EthAddress::from_hex(&eth_address)
+            .expect("EthAddress from starknet_api is out of range");
         EthAddressWrapper { inner: eth_address }
     }
 }
@@ -51,4 +52,3 @@ impl From<EthAddressWrapper> for Felt252 {
         Felt252::from_bytes_be(&raw_felt)
     }
 }
-

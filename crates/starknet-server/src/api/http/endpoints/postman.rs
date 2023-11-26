@@ -1,7 +1,7 @@
 use axum::{Extension, Json};
 use starknet_rs_core::types::MsgToL1;
-use starknet_types::rpc::transactions::L1HandlerTransaction;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
+use starknet_types::rpc::transactions::L1HandlerTransaction;
 
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{
@@ -44,7 +44,9 @@ pub(crate) async fn postman_flush(
         starknet
             .fetch_and_execute_messages_to_l2()
             .await
-            .map_err(|e| HttpApiError::MessagingError { msg: format!("messages to l2 error: {}", e) })?
+            .map_err(|e| HttpApiError::MessagingError {
+                msg: format!("messages to l2 error: {}", e),
+            })?
             .into_iter()
             .map(|m| m.into())
             .collect::<Vec<MessageToL2>>()
@@ -57,24 +59,21 @@ pub(crate) async fn postman_flush(
             starknet
                 .collect_messages_to_l1(from_block)
                 .await
-                .map_err(|e| HttpApiError::MessagingError { msg: format!("messages to l1 error: {}", e) })?
+                .map_err(|e| HttpApiError::MessagingError {
+                    msg: format!("messages to l1 error: {}", e),
+                })?
                 .into_iter()
                 .map(|m| m.into())
                 .collect::<Vec<MessageToL1>>(),
             0,
         )
     } else {
-        let (msgs, b) = starknet
-            .collect_and_send_messages_to_l1(from_block)
-            .await
-            .map_err(|e| HttpApiError::MessagingError { msg: format!("messages to l1 error: {}", e) })?;
+        let (msgs, b) =
+            starknet.collect_and_send_messages_to_l1(from_block).await.map_err(|e| {
+                HttpApiError::MessagingError { msg: format!("messages to l1 error: {}", e) }
+            })?;
 
-        (
-            msgs.into_iter()
-                .map(|m| m.into())
-                .collect::<Vec<MessageToL1>>(),
-            b,
-        )
+        (msgs.into_iter().map(|m| m.into()).collect::<Vec<MessageToL1>>(), b)
     };
 
     let l1_provider = if dry_run {
@@ -85,7 +84,8 @@ pub(crate) async fn postman_flush(
 
     if !dry_run {
         // +1 to ensure this last block is not collected anymore.
-        starknet.messaging_mut()
+        starknet
+            .messaging_mut()
             .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?
             .last_local_block = last_local_block + 1;
     }
@@ -105,7 +105,8 @@ pub(crate) async fn postman_send_message_to_l2(
     let transaction = L1HandlerTransaction::try_from_message_to_l2(message)
         .map_err(|_| HttpApiError::InvalidValueError {
             msg: "The `paid_fee_on_l1` is out of range, expecting u128 value".to_string(),
-        })?.with_hash(chain_id);
+        })?
+        .with_hash(chain_id);
 
     let transaction_hash = transaction.transaction_hash;
 

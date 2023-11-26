@@ -10,8 +10,8 @@ use starknet_api::transaction::Fee;
 use starknet_rs_core::types::{FieldElement, Hash256, MsgToL1};
 use starknet_types::felt::Felt;
 use starknet_types::rpc::contract_address::ContractAddress;
-use starknet_types::rpc::transactions::L1HandlerTransaction;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
+use starknet_types::rpc::transactions::L1HandlerTransaction;
 use starknet_types::traits::ToHexString;
 use tracing::{trace, warn};
 
@@ -157,9 +157,7 @@ impl EthereumMessaging {
     }
 
     /// Fetches all the messages that were not already fetched from the L1 node.
-    pub async fn fetch_messages(
-        &mut self,
-    ) -> DevnetResult<Vec<MessageToL2>> {
+    pub async fn fetch_messages(&mut self) -> DevnetResult<Vec<MessageToL2>> {
         let chain_latest_block: u64 = self
             .provider
             .get_block_number()
@@ -182,13 +180,10 @@ impl EthereumMessaging {
                     block_logs.len(),
                 );
 
-                block_logs.into_iter().for_each(|log| {
-                    match message_to_l2_from_log(log) {
-                        Ok(m) => messages.push(m),
-                        Err(e) => warn!(
-                            "Log from L1 node couldn't be converted to `MessageToL2`: {}",
-                            e
-                        );
+                block_logs.into_iter().for_each(|log| match message_to_l2_from_log(log) {
+                    Ok(m) => messages.push(m),
+                    Err(e) => {
+                        warn!("Log from L1 node couldn't be converted to `MessageToL2`: {}", e)
                     }
                 })
             },
@@ -407,12 +402,12 @@ fn message_to_l2_from_log(log: Log) -> DevnetResult<MessageToL2> {
     let entry_point_selector = u256_to_felt_devnet(&parsed_log.selector)?;
     let nonce = u256_to_felt_devnet(&parsed_log.nonce)?;
     let paid_fee_on_l1 = u256_to_felt_devnet(&parsed_log.selector)?;
-// parsed_log.fee.try_into().map_err(|_| {
-//         Error::MessagingError(MessagingError::EthersError(format!(
-//             "Fee does not fit into u128 {}",
-//             parsed_log.fee
-//         )))
-//     })?;
+    // parsed_log.fee.try_into().map_err(|_| {
+    //         Error::MessagingError(MessagingError::EthersError(format!(
+    //             "Fee does not fit into u128 {}",
+    //             parsed_log.fee
+    //         )))
+    //     })?;
 
     let mut payload = vec![];
     for u in parsed_log.payload {
@@ -444,8 +439,9 @@ fn u256_to_felt_devnet(v: &U256) -> DevnetResult<Felt> {
 ///
 /// * `v` - The `Felt` to be converted.
 fn felt_devnet_to_u256(v: &Felt) -> DevnetResult<U256> {
-    Ok(U256::from_str_radix(v.to_nonprefixed_hex_str().as_str(), 16)
-       .map_err(|e| MessagingError::EthersError(format!("Cant't convert Felt into U256: {}", e)))?)
+    Ok(U256::from_str_radix(v.to_nonprefixed_hex_str().as_str(), 16).map_err(|e| {
+        MessagingError::EthersError(format!("Cant't convert Felt into U256: {}", e))
+    })?)
 }
 
 /// Converts a vector of `Felt` to a vector of `U256`.

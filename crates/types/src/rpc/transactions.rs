@@ -19,9 +19,9 @@ use starknet_api::transaction::Fee;
 use starknet_rs_core::types::{BlockId, ExecutionResult, TransactionFinalityStatus};
 
 use super::estimate_message_fee::FeeEstimateWrapper;
+use super::messaging::{MessageToL1, OrderedMessageToL1};
 use super::state::ThinStateDiff;
 use super::transaction_receipt::ExecutionResources;
-use super::messaging::{MessageToL1, OrderedMessageToL1};
 use crate::constants::{
     BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME, N_STEPS,
     POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,

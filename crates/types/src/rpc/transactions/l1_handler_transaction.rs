@@ -14,8 +14,8 @@ use starknet_rs_core::types::FieldElement;
 
 use crate::error::{ConversionError, DevnetResult, Error};
 use crate::felt::Felt;
-use crate::rpc::transactions::L1HandlerTransaction;
 use crate::rpc::messaging::MessageToL2;
+use crate::rpc::transactions::L1HandlerTransaction;
 use crate::traits::HashProducer;
 
 /// Cairo string for "l1_handler"
@@ -111,9 +111,7 @@ impl L1HandlerTransaction {
             paid_fee_on_l1,
             ..Default::default()
         })
-
     }
-
 }
 
 // TODO: for this version I didn't impl `HashProducer`
