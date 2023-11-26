@@ -203,8 +203,10 @@ mod tests {
             dummy_contract.clone(),
         )
         .unwrap();
-        let withdraw_selector: StarkFelt = get_selector_from_name("withdraw").unwrap().into();
-        let deposit_selector: StarkFelt = get_selector_from_name("deposit").unwrap().into();
+        let withdraw_selector: StarkFelt =
+            Felt::from(get_selector_from_name("withdraw").unwrap()).into();
+        let deposit_selector: StarkFelt =
+            Felt::from(get_selector_from_name("deposit").unwrap()).into();
 
         // check if withdraw function is present in the contract class
         blockifier

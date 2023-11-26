@@ -29,8 +29,8 @@ mod test_messaging {
     use starknet_rs_providers::{JsonRpcClient, Provider};
     use starknet_rs_signers::LocalWallet;
 
+    use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{CHAIN_ID, MESSAGING_L1_ALLOWED_CONTRACT};
-    use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::get_json_body;
 
     /// Withdraws the given amount from a user and send this amount in a l2->l1 message.

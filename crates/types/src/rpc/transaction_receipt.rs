@@ -1,14 +1,11 @@
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
-
 use starknet_api::transaction::Fee;
 use starknet_rs_core::types::{ExecutionResult, TransactionFinalityStatus};
 
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
-
 use crate::felt::{BlockHash, Felt, TransactionHash};
-
 use crate::rpc::messaging::MessageToL1;
 use crate::rpc::transactions::TransactionType;
 

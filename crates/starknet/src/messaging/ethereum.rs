@@ -6,12 +6,10 @@ use ethers::prelude::*;
 use ethers::providers::{Http, Provider, ProviderError};
 use ethers::types::{Address, BlockNumber, Log};
 use k256::ecdsa::SigningKey;
-
-use starknet_rs_core::types::{Hash256};
+use starknet_rs_core::types::Hash256;
 use starknet_types::felt::Felt;
 use starknet_types::rpc::contract_address::ContractAddress;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
-
 use starknet_types::traits::ToHexString;
 use tracing::{trace, warn};
 
@@ -392,7 +390,7 @@ impl EthereumMessaging {
 /// # Arguments
 ///
 /// * `log` - The log to be converted.
-fn message_to_l2_from_log(log: Log) -> DevnetResult<MessageToL2> {
+pub fn message_to_l2_from_log(log: Log) -> DevnetResult<MessageToL2> {
     let parsed_log = <LogMessageToL2 as EthLogDecode>::decode_log(&log.into()).map_err(|e| {
         Error::MessagingError(MessagingError::EthersError(format!("Log parsing failed {}", e)))
     })?;
@@ -410,7 +408,7 @@ fn message_to_l2_from_log(log: Log) -> DevnetResult<MessageToL2> {
 
     Ok(MessageToL2 {
         l2_contract_address: contract_address,
-        entry_point_selector: entry_point_selector.into(),
+        entry_point_selector,
         l1_contract_address: ContractAddress::new(from_address)?,
         payload,
         paid_fee_on_l1,
@@ -463,6 +461,7 @@ fn address_to_felt_devnet(address: &Address) -> DevnetResult<Felt> {
 #[cfg(test)]
 mod tests {
     use starknet_types::chain_id::ChainId;
+    use starknet_types::rpc::transactions::L1HandlerTransaction;
 
     use super::*;
 
@@ -476,6 +475,8 @@ mod tests {
 
         // Payload two values: [1, 2].
         let payload_buf = hex::decode("000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000bf2ea0000000000000000000000000000000000000000000000000000000000007530000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000002").unwrap();
+
+        let payload: Vec<Felt> = vec![1.into(), 2.into()];
 
         let calldata: Vec<Felt> =
             vec![Felt::from_prefixed_hex_str(from_address).unwrap(), 1.into(), 2.into()];
@@ -500,9 +501,28 @@ mod tests {
             ..Default::default()
         };
 
+        let expected_message = MessageToL2 {
+            l1_contract_address: ContractAddress::new(
+                Felt::from_prefixed_hex_str(from_address).unwrap(),
+            )
+            .unwrap(),
+            l2_contract_address: ContractAddress::new(
+                Felt::from_prefixed_hex_str(to_address).unwrap(),
+            )
+            .unwrap(),
+            entry_point_selector: Felt::from_prefixed_hex_str(selector).unwrap(),
+            payload,
+            nonce: nonce.into(),
+            paid_fee_on_l1: fee.into(),
+        };
+
+        let message = message_to_l2_from_log(log).unwrap();
+
+        assert_eq!(message, expected_message);
+
         let chain_id = ChainId::Testnet.to_felt();
 
-        let expected = L1HandlerTransaction {
+        let expected_tx = L1HandlerTransaction {
             contract_address: ContractAddress::new(
                 Felt::from_prefixed_hex_str(to_address).unwrap(),
             )
@@ -515,9 +535,9 @@ mod tests {
             ..Default::default()
         };
 
-        let transaction: L1HandlerTransaction =
-            l1_handler_tx_from_log(log, chain_id).expect("bad log format");
+        let transaction =
+            L1HandlerTransaction::try_from_message_to_l2(message).unwrap().with_hash(chain_id);
 
-        assert_eq!(transaction, expected);
+        assert_eq!(transaction, expected_tx);
     }
 }

@@ -100,7 +100,7 @@ impl L1HandlerTransaction {
 
         let mut calldata = vec![message.l1_contract_address.into()];
         for u in message.payload {
-            calldata.push(u.clone());
+            calldata.push(u);
         }
 
         Ok(Self {
