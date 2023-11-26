@@ -44,7 +44,7 @@ pub(crate) async fn postman_flush(
         starknet
             .fetch_and_execute_messages_to_l2()
             .await
-            .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?
+            .map_err(|e| HttpApiError::MessagingError { msg: format!("messages to l2 error: {}", e) })?
             .into_iter()
             .map(|m| m.into())
             .collect::<Vec<MessageToL2>>()
@@ -57,7 +57,7 @@ pub(crate) async fn postman_flush(
             starknet
                 .collect_messages_to_l1(from_block)
                 .await
-                .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?
+                .map_err(|e| HttpApiError::MessagingError { msg: format!("messages to l1 error: {}", e) })?
                 .into_iter()
                 .map(|m| m.into())
                 .collect::<Vec<MessageToL1>>(),
@@ -67,7 +67,7 @@ pub(crate) async fn postman_flush(
         let (msgs, b) = starknet
             .collect_and_send_messages_to_l1(from_block)
             .await
-            .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
+            .map_err(|e| HttpApiError::MessagingError { msg: format!("messages to l1 error: {}", e) })?;
 
         (
             msgs.into_iter()
@@ -85,8 +85,9 @@ pub(crate) async fn postman_flush(
 
     if !dry_run {
         // +1 to ensure this last block is not collected anymore.
-        starknet.messaging.as_mut().expect("Messaging expected configured").last_local_block =
-            last_local_block + 1;
+        starknet.messaging_mut()
+            .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?
+            .last_local_block = last_local_block + 1;
     }
 
     Ok(Json(FlushedMessages { messages_to_l1, messages_to_l2, l1_provider }))
@@ -124,9 +125,8 @@ pub(crate) async fn postman_consume_message_from_l2(
     let message: MessageToL1 = data.into();
 
     let message_hash = starknet
-        .messaging
-        .as_ref()
-        .expect("Messaging is not configured.")
+        .messaging_ref()
+        .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?
         .consume_mock_message(&message)
         .await
         .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;

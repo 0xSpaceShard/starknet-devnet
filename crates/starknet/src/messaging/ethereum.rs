@@ -183,8 +183,12 @@ impl EthereumMessaging {
                 );
 
                 block_logs.into_iter().for_each(|log| {
-                    if let Ok(m) = message_to_l2_from_log(log) {
-                        messages.push(m)
+                    match message_to_l2_from_log(log) {
+                        Ok(m) => messages.push(m),
+                        Err(e) => warn!(
+                            "Log from L1 node couldn't be converted to `MessageToL2`: {}",
+                            e
+                        );
                     }
                 })
             },

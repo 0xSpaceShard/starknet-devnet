@@ -48,6 +48,24 @@ impl Starknet {
         self.messaging.as_ref().map(|m| m.node_url())
     }
 
+    /// Returns a reference to the messaging instance if configured, an error otherwise.
+    pub fn messaging_ref(&self) -> DevnetResult<&EthereumMessaging> {
+        if self.messaging.is_none() {
+            return Err(Error::MessagingError(MessagingError::NotConfigured));
+        }
+
+        Ok(self.messaging.as_ref().unwrap())
+    }
+
+    /// Returns a mutable reference to the messaging instance if configured, an error otherwise.
+    pub fn messaging_mut(&mut self) -> DevnetResult<&mut EthereumMessaging> {
+        if self.messaging.is_none() {
+            return Err(Error::MessagingError(MessagingError::NotConfigured));
+        }
+
+        Ok(self.messaging.as_mut().unwrap())
+    }
+
     /// Configures the messaging from the given L1 node parameters.
     /// Calling this function multiple time will overwrite the previous
     /// configuration, if any.
@@ -68,9 +86,7 @@ impl Starknet {
 
         Ok(format!(
             "0x{:x}",
-            self.messaging
-                .as_ref()
-                .expect("Messaging is configured here")
+            self.messaging_ref()?
                 .messaging_contract_address()
         ))
     }
@@ -149,12 +165,9 @@ impl Starknet {
     pub async fn fetch_and_execute_messages_to_l2(
         &mut self,
     ) -> DevnetResult<Vec<MessageToL2>> {
-        if self.messaging.is_none() {
-            return Err(Error::MessagingError(MessagingError::NotConfigured));
-        }
-
         let chain_id = self.chain_id().to_felt();
-        let messaging = self.messaging.as_mut().unwrap();
+
+        let messaging = self.messaging_mut()?;
 
         let messages = messaging.fetch_messages().await?;
 
