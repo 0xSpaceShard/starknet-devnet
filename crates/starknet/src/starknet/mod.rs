@@ -79,11 +79,8 @@ pub struct Starknet {
     pub(in crate::starknet) state: StarknetState,
     predeployed_accounts: PredeployedAccounts,
     pub(in crate::starknet) block_context: BlockContext,
-    // TODO: to avoid repeating some logic from blocks,
-    // and keeping messaging isolated, having `blocks` public
-    // allows to re-use functions like `get_blocks()`.
-    // This may be removed if the messaging code is externalised.
-    // It will then use `get_block_with_transactions`.
+    // To avoid repeating some logic related to blocks,
+    // having `blocks` public allows to re-use functions like `get_blocks()`.
     pub(crate) blocks: StarknetBlocks,
     pub transactions: StarknetTransactions,
     pub config: StarknetConfig,

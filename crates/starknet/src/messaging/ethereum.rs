@@ -156,12 +156,13 @@ impl EthereumMessaging {
 
     /// Fetches all the messages that were not already fetched from the L1 node.
     pub async fn fetch_messages(&mut self) -> DevnetResult<Vec<MessageToL2>> {
-        let chain_latest_block: u64 = self
-            .provider
-            .get_block_number()
-            .await?
-            .try_into()
-            .expect("Can't convert latest block number into u64.");
+        let chain_latest_block: u64 =
+            self.provider.get_block_number().await?.try_into().map_err(|e| {
+                Error::MessagingError(MessagingError::EthersError(format!(
+                    "Can't convert ethereum latest block number into u64: {}",
+                    e
+                )))
+            })?;
 
         // For now we fetch all the blocks, without attempting to limit
         // the number of block as the RPC of dev nodes are more permissive.
@@ -317,7 +318,7 @@ impl EthereumMessaging {
         // `sendMessageToL2` topic.
         let log_msg_to_l2_topic =
             H256::from_str("0xdb80dd488acf86d17c747445b0eabb5d57c541d3bd7b6b87af987858e5066b2b")
-                .unwrap();
+                .expect("Invalid MessageToL2 topic");
 
         let filters = Filter {
             block_option: FilterBlockOption::Range {
@@ -328,26 +329,26 @@ impl EthereumMessaging {
             topics: [Some(ValueOrArray::Value(Some(log_msg_to_l2_topic))), None, None, None],
         };
 
-        self.provider
+        for log in self
+            .provider
             .get_logs(&filters)
             .await?
             .into_iter()
             .filter(|log| log.block_number.is_some())
-            .map(|log| {
-                (
-                    log.block_number
-                        .unwrap()
-                        .try_into()
-                        .expect("Block number couldn't be converted to u64."),
-                    log,
-                )
-            })
-            .for_each(|(block_num, log)| {
-                block_to_logs
-                    .entry(block_num)
-                    .and_modify(|v| v.push(log.clone()))
-                    .or_insert(vec![log]);
-            });
+        {
+            // Safe to unwrap, we filtered with `is_some()` only.
+            let block_number = log.block_number.unwrap().try_into().map_err(|e| {
+                Error::MessagingError(MessagingError::EthersError(format!(
+                    "Ethereum block number into u64: {}",
+                    e
+                )))
+            })?;
+
+            block_to_logs
+                .entry(block_number)
+                .and_modify(|v| v.push(log.clone()))
+                .or_insert(vec![log]);
+        }
 
         Ok(block_to_logs)
     }

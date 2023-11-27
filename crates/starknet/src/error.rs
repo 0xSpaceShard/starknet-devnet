@@ -90,7 +90,10 @@ pub enum TransactionValidationError {
 
 #[derive(Debug, Error)]
 pub enum MessagingError {
-    #[error("Message is not configured, ensure you've used `postman_load` first.")]
+    #[error(
+        "Message is not configured, ensure you've used `postman/load_l1_messaging_contract` \
+         endpoint first."
+    )]
     NotConfigured,
     #[error("An error has occurred during messages conversion: {0}.")]
     ConversionError(String),

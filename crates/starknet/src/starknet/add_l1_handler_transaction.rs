@@ -15,6 +15,9 @@ pub fn add_l1_handler_transaction(
 
     let blockifier_transaction = transaction.create_blockifier_transaction()?;
 
+    // Fees are charges on L1 as `L1HandlerTransaction` is not executed by an
+    // account, but directly by the sequencer.
+    // https://docs.starknet.io/documentation/architecture_and_concepts/Network_Architecture/messaging-mechanism/#l1-l2-message-fees
     let charge_fee = false;
     let validate = true;
 
@@ -127,19 +130,18 @@ mod tests {
         let result = starknet.add_l1_handler_transaction(transaction);
 
         assert!(result.is_err());
-        match result.err().unwrap() {
-            crate::error::Error::BlockifierTransactionError(ExecutionError(
+
+        match result {
+            Err(crate::error::Error::BlockifierTransactionError(ExecutionError(
                 EntryPointExecutionError::PreExecutionError(PreExecutionError::EntryPointNotFound(
                     selector,
                 )),
-            )) => {
+            ))) => {
                 assert_eq!(selector.0, withdraw_selector.into())
             }
-            _ => panic!("Wrong error type"),
+            other => panic!("Wrong result: {other:?}"),
         }
     }
-
-    // TODO: call withdraw and verify that a message is present in the state.
 
     /// Builds a `L1HandlerTransaction` from the given parameters. The nonce, fee and chain_id are
     /// fixed: nonce: 783082
@@ -241,9 +243,6 @@ mod tests {
 
         // deploy dummy contract
         starknet.state.deploy_contract(dummy_contract_address, dummy_contract_class_hash).unwrap();
-        // change storage of dummy contract
-        // starknet.state.change_storage(contract_storage_key, Felt::from(0)).unwrap();
-
         starknet.state.clear_dirty_state();
         starknet.block_context = Starknet::init_block_context(
             1,
