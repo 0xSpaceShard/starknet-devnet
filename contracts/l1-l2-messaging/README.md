@@ -26,7 +26,7 @@ cargo run -- --seed 42
 
 Now both nodes are running, Devnet for Starknet and Anvil for Ethereum.
 
-Then, open a third terminal in the same directory of this README, from which we will operate on the running nodes:
+Then, open a third terminal **in the same directory of this README**, from which we will operate on the running nodes:
 ```bash
 # This .env file combines variables for both chain.
 source ./.env
