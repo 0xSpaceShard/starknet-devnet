@@ -10,14 +10,14 @@ If you wish to check specifically one of the two chains README, please refer to 
 ### Setup of the nodes
 You will need two terminals to run each node:
 
-First, please ensure that you've [anvil](https://book.getfoundry.sh/getting-started/installation) installed (or you can do the same with HardHat, but the commands here are done with anvil).
+First, please ensure that you have [anvil](https://book.getfoundry.sh/getting-started/installation) installed (or you can do the same with HardHat, but the commands here are done with anvil).
 ```bash
 anvil
 ```
 
 For Starknet, ensure you have Devnet compiled and running with the following params:
 ```bash
-# First, ensure you've compiled the artifacts required for abigen:
+# First, ensure you have compiled the artifacts required for abigen:
 cd contracts && bash generate_artifacts.sh
 
 # Then run Devnet with known seed.
