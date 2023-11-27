@@ -9,7 +9,7 @@ pub enum Error {
     StarknetFfConversionError(#[from] starknet_rs_ff::FromByteSliceError),
     #[error("Error when calling python module")]
     PyModuleError,
-    #[error(transparent)]
+    #[error("Conversion error: {0}")]
     ConversionError(#[from] ConversionError),
     #[error(transparent)]
     JsonError(#[from] JsonError),
@@ -35,8 +35,8 @@ pub enum ConversionError {
     InvalidFormat,
     #[error("Invalid internal structure: {0}")]
     InvalidInternalStructure(String),
-    #[error("Value is out of range")]
-    OutOfRangeError,
+    #[error("Value is out of range: {0}")]
+    OutOfRangeError(String),
 }
 
 #[derive(Error, Debug)]

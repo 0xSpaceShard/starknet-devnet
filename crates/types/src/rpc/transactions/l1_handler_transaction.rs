@@ -95,8 +95,12 @@ impl L1HandlerTransaction {
     /// * `chain_id` - The L1 node chain id.
     pub fn try_from_message_to_l2(message: MessageToL2) -> DevnetResult<Self> {
         // `impl TryFrom` is not used due to the fact that chain_id is required.
-        let paid_fee_on_l1: u128 =
-            message.paid_fee_on_l1.try_into().map_err(|_| ConversionError::OutOfRangeError)?;
+        let paid_fee_on_l1: u128 = message.paid_fee_on_l1.try_into().map_err(|_| {
+            ConversionError::OutOfRangeError(format!(
+                "paid_fee_on_l1 is expected to be a u128 value, found: {:?}",
+                message.paid_fee_on_l1,
+            ))
+        })?;
 
         let mut calldata = vec![message.l1_contract_address.into()];
         for u in message.payload {

@@ -110,7 +110,11 @@ impl TryFrom<Felt> for u128 {
 
     fn try_from(value: Felt) -> Result<Self, Self::Error> {
         let ff = starknet_rs_ff::FieldElement::from(value);
-        ff.try_into().map_err(|_| Error::ConversionError(ConversionError::OutOfRangeError))
+        ff.try_into().map_err(|_| {
+            Error::ConversionError(ConversionError::OutOfRangeError(
+                "Felt is too large to be converted into u128 value".to_string(),
+            ))
+        })
     }
 }
 
