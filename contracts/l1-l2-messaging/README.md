@@ -17,6 +17,10 @@ anvil
 
 For Starknet, ensure you have Devnet compiled and running with the following params:
 ```bash
+# First, ensure you've compiled the artifacts required for abigen:
+cd contracts && bash generate_artifacts.sh
+
+# Then run Devnet with known seed.
 cargo run -- --seed 42
 ```
 
