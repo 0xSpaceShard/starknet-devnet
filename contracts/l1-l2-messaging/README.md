@@ -44,7 +44,7 @@ curl -H 'Content-Type: application/json' \
 ```
 ```json
 {
-    "messageContractAddress":"0x5fbdb2315678afecb367f032d93f642f64180aa3"
+    "messaging_contract_address":"0x5fbdb2315678afecb367f032d93f642f64180aa3"
 }
 ```
 
@@ -89,15 +89,15 @@ curl -H 'Content-Type: application/json' -d '{"dry_run": true}' http://127.0.0.1
 ```
 ```json
 {
-    "messagesToL1": [
+    "messages_to_l1": [
         {
             "l2_contract_address":"0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba",
             "l1_contract_address":"0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
             "payload":["0x0","0x1","0x1"]
         }
     ],
-    "messagesToL2":[],
-    "l1Provider":"dry run"
+    "messages_to_l2":[],
+    "l1_provider":"dry run"
 }
 ```
 2. Actually flush the message to be sent on the L1 node.
@@ -114,8 +114,8 @@ curl -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:5050/postman/f
             "payload":["0x0","0x1","0x1"]
         }
     ],
-    "messagesToL2":[],
-    "l1Provider":"http://127.0.0.1:8545/"
+    "messages_to_l2":[],
+    "l1_provider":"http://127.0.0.1:8545/"
 }
 ```
 
@@ -132,6 +132,8 @@ cast send 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 "withdraw(uint256, uint256,
 cast call 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 "get_balance(uint256)(uint256)" 0x1
 ```
 ```bash
+# output of send...
+
 1
 ```
 
@@ -147,6 +149,8 @@ cast send 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 "deposit(uint256, uint256, 
 cast call 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 "get_balance(uint256)(uint256)" 0x1
 ```
 ```bash
+# output of send...
+
 0
 ```
 
@@ -159,14 +163,14 @@ curl -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:5050/postman/f
     "messagesToL1": [],
     "messagesToL2": [
         {
-            "l2ContractAddress":"0x3c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4",
-            "entryPointSelector":"0xc73f681176fc7b3f9693986fd7b14581e8d540519e27400e88b8713932be01",
-            "l1ContractAddress":"0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
+            "l2_contract_address":"0x3c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4",
+            "entry_point_selector":"0xc73f681176fc7b3f9693986fd7b14581e8d540519e27400e88b8713932be01",
+            "l1_contract_address":"0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
             "payload":["0x1","0x1"],
-            "paidFeeOnL1":"0x3b9aca00",
+            "paid_fee_on_l1":"0x3b9aca00",
             "nonce":"0x1"
         }
     ],
-    "l1Provider":"http://127.0.0.1:8545/"
+    "l1_provider":"http://127.0.0.1:8545/"
 }
 ```

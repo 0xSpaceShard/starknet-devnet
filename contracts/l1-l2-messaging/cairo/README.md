@@ -22,7 +22,7 @@ Two files can be found there:
 
 ### Interact with Devnet
 
-To interact with the Devnet, [Starkli](https://book.starkli.rs/) is the easied CLI tool to use.
+To interact with Devnet, [Starkli](https://book.starkli.rs/) is the easiest CLI tool to use.
 To work with Starkli, you need two files:
 * The keystore file with the private key being encrypted there. This file can also be replaced by the private
   key in plain text, which is totally fine for testing.
@@ -34,9 +34,7 @@ To ease the development, start the Devnet with a known seed (`--seed 42`) to use
 # On a first terminal, run the Devnet with the option `--seed 42`.
 
 # Export variables to have starkli pre-configured.
-export STARKNET_RPC=http://127.0.0.1:5050
-export STARKNET_ACCOUNT=/path/account-0-42.json
-export STARKNET_PRIVATE_KEY=0xb137668388dbe9acdfa3bc734cc2c469
+source ./env
 
 # Declare
 starkli declare target/dev/cairo_l1_l2.contract_class.json
