@@ -1,7 +1,7 @@
 # Devnet contracts for development
 
 This folder contains Cairo and Solidity contracts for Devnet developement.
-If you wish you to check specifically one of the two chains README, please check:
+If you wish to check specifically one of the two chains README, please refer to the corresponding README:
 1. `solidity` folder for Ethereum related contracts with the [README](./solidity/README.md).
 2. `cairo` folder for Starknet related contracts, and example of how to work with starknet without running a L1 node in the [README](./cairo/README.md).
 
@@ -22,14 +22,17 @@ cargo run -- --seed 42
 
 Now both nodes are running, Devnet for Starknet and Anvil for Ethereum.
 
-Then, open a third terminal from which we will operate on the running nodes:
+Then, open a third terminal in the same directory of this README, from which we will operate on the running nodes:
 ```bash
+# This .env file combines variables for both chain.
+source ./env
+
 # Compile cairo contracts.
-scarb --manifest-path cairo/Scarb.toml build
+scarb --manifest-path ./cairo/Scarb.toml build
 
 # Compile solidity contracts.
-forge install
-forge build
+forge install --root ./solidity
+forge build --root ./solidity
 ```
 
 ### Ethereum setup
@@ -47,9 +50,7 @@ curl -H 'Content-Type: application/json' \
 
 2. Deploy the `L1L2.sol` contract in order to receive/send messages from/to L2.
 ```bash
-# Ethereum terminal (contracts/solidity)
-source .env
-forge script script/L1L2.s.sol:Deploy --broadcast --rpc-url $ETH_RPC_URL
+forge script --root ./solidity ./solidity/script/L1L2.s.sol:Deploy --broadcast --rpc-url $ETH_RPC_URL
 ```
 ```
 ✅  [Success]Hash: 0x942cfaadc557f360b91e2bfe98e8246d87b8efb4bfe6c1803162cd4aa7a71e1d
@@ -67,15 +68,12 @@ cast call 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 "get_balance(uint256)(uint2
 ```
 
 ### Starknet contracts and send message to L1
-1. On the Starknet terminal, set [starkli](https://book.starkli.rs/installation) variables:
+1. On Devnet, we will declare and deploy the `cairo_l1_l2` contract to send-receive messages on the Starknet side:
 ```bash
-# Starknet terminal (contracts/cairo)
-source .env
+# Declare.
+starkli declare ./cairo/target/dev/cairo_l1_l2.contract_class.json
 
-# Declare
-starkli declare target/dev/cairo_l1_l2.contract_class.json
-
-# Deploy (adjust the class hash if needed)
+# Deploy (adjust the class hash if needed).
 starkli deploy 0x0211fd0483be230ba40d43f51bd18ae239b913f529f95ce10253e514175efb3e --salt 123
 
 # Add some balance and check it.
@@ -87,7 +85,7 @@ starkli invoke 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a
 
 # Here, you can still check on ethereum, the balance is still 0.
 # You can use the `dry run` version if you just want to check the messages before actually sending them.
-curl -H 'Content-Type: application/json' -d '{"dryRun": true}' http://127.0.0.1:5050/postman/flush
+curl -H 'Content-Type: application/json' -d '{"dry_run": true}' http://127.0.0.1:5050/postman/flush
 ```
 ```json
 {
@@ -102,6 +100,7 @@ curl -H 'Content-Type: application/json' -d '{"dryRun": true}' http://127.0.0.1:
     "l1Provider":"dry run"
 }
 ```
+2. Actually flush the message to be sent on the L1 node.
 ```bash
 # Flushing the message to actually send them to the L1.
 curl -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:5050/postman/flush
@@ -118,14 +117,12 @@ curl -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:5050/postman/f
     "messagesToL2":[],
     "l1Provider":"http://127.0.0.1:8545/"
 }
-
 ```
 
 ### Etherum receive message and send message to L2
 1. Now the message is received, we can consume it. You can try to run this command several time,
    you'll see the transaction reverting with `INVALID_MESSAGE_TO_CONSUME` once the message is consumed once.
 ```bash
-# Ethereum terminal (contracts/solidity)
 cast send 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 "withdraw(uint256, uint256, uint256)" \
      0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba 0x1 0x1 \
      --rpc-url $ETH_RPC_URL --private-key $ACCOUNT_PRIVATE_KEY \
@@ -141,7 +138,6 @@ cast call 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 "get_balance(uint256)(uint2
 2. Let's now send back the amount 1 we just received. As we will send a message, we need
 to provide at least 30k WEI.
 ```bash
-# Ethereum terminal (contracts/solidity)
 cast send 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 "deposit(uint256, uint256, uint256)" \
      0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 0x1 0x1 \
      --rpc-url $ETH_RPC_URL --private-key $ACCOUNT_PRIVATE_KEY \
