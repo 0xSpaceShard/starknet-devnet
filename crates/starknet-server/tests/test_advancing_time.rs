@@ -77,15 +77,34 @@ mod advancing_time_tests {
             &[],
         );
 
-        let call = FunctionCall {
+        let call_storage_timestamp = FunctionCall {
+            contract_address: new_contract_address,
+            entry_point_selector: get_selector_from_name("get_storage_timestamp").unwrap(),
+            calldata: vec![],
+        };
+        let storage_timestamp = devnet
+            .json_rpc_client
+            .call(call_storage_timestamp, BlockId::Tag(BlockTag::Latest))
+            .await
+            .unwrap()[0];
+        assert_ge_with_buffer(storage_timestamp.to_string().parse::<u64>().ok(), Some(now));
+
+        let call_current_timestamp = FunctionCall {
             contract_address: new_contract_address,
             entry_point_selector: get_selector_from_name("get_timestamp").unwrap(),
             calldata: vec![],
         };
-        let timestamp =
-            devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap()[0];
+        let current_timestamp = devnet
+            .json_rpc_client
+            .call(call_current_timestamp, BlockId::Tag(BlockTag::Latest))
+            .await
+            .unwrap()[0];
+        assert_ge_with_buffer(current_timestamp.to_string().parse::<u64>().ok(), Some(now));
 
-        assert_ge_with_buffer(timestamp.to_string().parse::<u64>().ok(), Some(now));
+        assert_ge_with_buffer(
+            storage_timestamp.to_string().parse::<u64>().ok(),
+            current_timestamp.to_string().parse::<u64>().ok(),
+        );
     }
 
     #[tokio::test]
