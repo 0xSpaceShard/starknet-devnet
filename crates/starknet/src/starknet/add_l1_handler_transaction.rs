@@ -129,8 +129,6 @@ mod tests {
 
         let result = starknet.add_l1_handler_transaction(transaction);
 
-        assert!(result.is_err());
-
         match result {
             Err(crate::error::Error::BlockifierTransactionError(ExecutionError(
                 EntryPointExecutionError::PreExecutionError(PreExecutionError::EntryPointNotFound(
