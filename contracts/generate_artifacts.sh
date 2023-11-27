@@ -1,4 +1,5 @@
 #!/bin/bash
+set -eu
 
 # Bash script to generate the artifacts required by Devnet to compile.
 mkdir -p artifacts
