@@ -1,46 +1,42 @@
 # Devnet contracts for development
 
-This folder contains Cairo and Solidity contracts for developement of Devnet.
-If you wish you to check specifically one of the two chains contracts, please check:
-1. `solidity` folder for Ethereum related contracts.
-2. `cairo` folder for Starknet related contracts, and example of how to work with starknet without
-   running a L1 node.
+This folder contains Cairo and Solidity contracts for Devnet developement.
+If you wish you to check specifically one of the two chains README, please check:
+1. `solidity` folder for Ethereum related contracts with the [README](./solidity/README.md).
+2. `cairo` folder for Starknet related contracts, and example of how to work with starknet without running a L1 node in the [README](./cairo/README.md).
 
-## Full example of e2e testing with Anvil and Devnet
+## E2E testing with Anvil and Devnet
 
 ### Setup of the nodes
-Please ensure that you've [anvil](https://book.getfoundry.sh/getting-started/installation) installed (or you can do the same with HardHat, but the commands here are done with anvil).
+You will need two terminals to run each node:
+
+First, please ensure that you've [anvil](https://book.getfoundry.sh/getting-started/installation) installed (or you can do the same with HardHat, but the commands here are done with anvil).
 ```bash
 anvil
 ```
 
-For Starknet, ensure you've Devnet compiled and running with the following params:
+For Starknet, ensure you have Devnet compiled and running with the following params:
 ```bash
 cargo run -- --seed 42
 ```
 
-Now both nodes are running, Devnet for Starkne and Anvil for Ethereum.
+Now both nodes are running, Devnet for Starknet and Anvil for Ethereum.
 
-Then, **open two terminals**:
-* one for Starknet then:
-  ```bash
-  cd contracts/cairo
-  scarb build
-  ```
+Then, open a third terminal from which we will operate on the running nodes:
+```bash
+# Compile cairo contracts.
+scarb --manifest-path cairo/Scarb.toml build
 
-* one for Ethereum then:
-  ```bash
-  cd contracts/solidity
-  # on first run you may need this
-  forge install
-  forge build
-  ```
+# Compile solidity contracts.
+forge install
+forge build
+```
 
-### Etherum setup
+### Ethereum setup
 1. Use Devnet postman endpoint to load the `MockStarknetMessaging` contract:
 ```bash
 curl -H 'Content-Type: application/json' \
-     -d '{"networkUrl": "http://127.0.0.1:8545"}' \
+     -d '{"network_url": "http://127.0.0.1:8545"}' \
      http://127.0.0.1:5050/postman/load_l1_messaging_contract
 ```
 ```json
@@ -53,9 +49,9 @@ curl -H 'Content-Type: application/json' \
 ```bash
 # Ethereum terminal (contracts/solidity)
 source .env
-forge script script/L1L2.s.sol:Deploy --broadcast --rpc-url $ETH_RPC_URL --silent
+forge script script/L1L2.s.sol:Deploy --broadcast --rpc-url $ETH_RPC_URL
 ```
-```bash
+```
 ✅  [Success]Hash: 0x942cfaadc557f360b91e2bfe98e8246d87b8efb4bfe6c1803162cd4aa7a71e1d
 Contract Address: 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
 Block: 2
