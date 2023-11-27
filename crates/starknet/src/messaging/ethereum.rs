@@ -130,7 +130,7 @@ impl EthereumMessaging {
         if let Some(address) = contract_address {
             ethereum.messaging_contract_address = Address::from_str(address).map_err(|e| {
                 Error::MessagingError(MessagingError::EthersError(format!(
-                    "Address can't be parse from string: {} ({})",
+                    "Address can't be parsed from string: {} ({})",
                     address, e
                 )))
             })?;

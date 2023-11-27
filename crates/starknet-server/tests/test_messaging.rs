@@ -1,6 +1,6 @@
 //! This module tests the messaging feature from the starknet-server perspective.
 //!
-//! The message contract `cairo_0_l1l2_contract` associated a balance to a user (ContractAddress)
+//! The message contract `cairo_0_l1l2_contract` associates a balance to a user (ContractAddress)
 //! and contains the following entrypoints:
 //! * increase_balance -> increases the balance of a user (contract address) for the given amount.
 //! * get_balance -> gets the balance of a user.
@@ -30,7 +30,7 @@ mod test_messaging {
     use starknet_rs_signers::LocalWallet;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::constants::{CHAIN_ID, MESSAGING_L1_ALLOWED_CONTRACT};
+    use crate::common::constants::{CHAIN_ID, MESSAGING_WHITELISTED_L1_CONTRACT};
     use crate::common::utils::get_json_body;
 
     /// Withdraws the given amount from a user and send this amount in a l2->l1 message.
@@ -157,7 +157,7 @@ mod test_messaging {
         // which is 0.
         let req_body = Body::from(
             json!({
-                "dryRun": true,
+                "dry_run": true,
             })
             .to_string(),
         );
@@ -166,19 +166,17 @@ mod test_messaging {
         assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
         let body = get_json_body(resp).await;
 
-        let messages_to_l1 = body.get("messagesToL1").unwrap().as_array().unwrap();
+        let messages_to_l1 = body.get("messages_to_l1").unwrap().as_array().unwrap();
         assert_eq!(messages_to_l1.len(), 1);
 
-        let l1_contract_address =
-            messages_to_l1[0].get("l1_contract_address").unwrap().as_str().unwrap();
-        let l2_contract_address =
-            messages_to_l1[0].get("l2_contract_address").unwrap().as_str().unwrap();
+        let l1_contract_address = messages_to_l1[0].get("to_address").unwrap().as_str().unwrap();
+        let l2_contract_address = messages_to_l1[0].get("from_address").unwrap().as_str().unwrap();
         let payload = serde_json::from_value::<Vec<String>>(
             messages_to_l1[0].get("payload").unwrap().clone(),
         )
         .unwrap();
         assert_eq!(l2_contract_address, format!("0x{:64x}", account.address()));
-        assert_eq!(l1_contract_address, MESSAGING_L1_ALLOWED_CONTRACT);
+        assert_eq!(l1_contract_address, MESSAGING_WHITELISTED_L1_CONTRACT);
         assert_eq!(payload.len(), 3);
         // MESSAGE_WITHDRAW opcode, equal to 0, first element of the payload.
         assert_eq!(payload[0], "0x0");
@@ -187,8 +185,9 @@ mod test_messaging {
         // Amount.
         assert_eq!(payload[2], "0x1");
 
-        assert_eq!(body.get("messagesToL2").unwrap().as_array().unwrap().len(), 0);
-        assert_eq!(body.get("l1Provider").unwrap().as_str().unwrap(), "dry run");
+        assert_eq!(body.get("messages_to_l2").unwrap().as_array().unwrap().len(), 0);
+        assert_eq!(body.get("generated_l2_transactions").unwrap().as_array().unwrap().len(), 0);
+        assert_eq!(body.get("l1_provider").unwrap().as_str().unwrap(), "dry run");
     }
 
     #[tokio::test]
@@ -205,11 +204,11 @@ mod test_messaging {
         // Use postman to send a message to l2 without l1.
         let req_body = Body::from(
             json!({
-                "l1ContractAddress": MESSAGING_L1_ALLOWED_CONTRACT,
-                "l2ContractAddress": format!("0x{:64x}", l1l2_contract_address),
-                "entryPointSelector": format!("0x{:64x}", get_selector_from_name("deposit").unwrap()),
+                "l1_contract_address": MESSAGING_WHITELISTED_L1_CONTRACT,
+                "l2_contract_address": format!("0x{:64x}", l1l2_contract_address),
+                "entry_point_selector": format!("0x{:64x}", get_selector_from_name("deposit").unwrap()),
                 "payload": ["0x1", "0xff"],
-                "paidFeeOnL1": "0x1234",
+                "paid_fee_on_l1": "0x1234",
                 "nonce": "0x1"
             })
                 .to_string(),
@@ -222,7 +221,7 @@ mod test_messaging {
         assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
         let body = get_json_body(resp).await;
         assert_eq!(
-            body.get("transactionHash").unwrap().as_str().unwrap(),
+            body.get("transaction_hash").unwrap().as_str().unwrap(),
             "0x1468183dc780231ea033f2aef5a7fa172daba80f53e2360e787ed1988ed670c"
         );
     }

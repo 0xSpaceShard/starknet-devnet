@@ -196,6 +196,11 @@ curl -H 'Content-Type: application/json' \
     -d '{"paid_fee_on_l1": "0x123", "l2_contract_address": "0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4", "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512", "entry_point_selector": "0x00c73f681176fc7b3f9693986fd7b14581e8d540519e27400e88b8713932be01", "payload": ["0x1", "0x2"], "nonce": "0x1"}' \
     http://127.0.0.1:5050/postman/send_message_to_l2
 ```
+```json
+{
+    "transaction_hash": "0x7f5c523f47bc88fa21f86ec4aaac8bbad69dafb43ae7072319dcec4d5d40af9"
+}
+```
 The balance is now increased by 1, exactly has a message from l1 would have done.
 ```bash
 starkli call 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 get_balance 0x1

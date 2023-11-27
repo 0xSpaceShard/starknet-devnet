@@ -27,13 +27,11 @@ pub(crate) struct PostmanLoadL1MessagingContract {
 
 #[derive(Serialize)]
 pub(crate) struct MessageHash {
-    #[serde(rename = "messageHash")]
     pub message_hash: Hash256,
 }
 
 #[derive(Serialize)]
 pub(crate) struct TxHash {
-    #[serde(rename = "transactionHash")]
     pub transaction_hash: TransactionHash,
 }
 
