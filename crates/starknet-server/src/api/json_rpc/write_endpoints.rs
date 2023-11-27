@@ -1,6 +1,8 @@
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
-use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
-use starknet_types::rpc::transactions::BroadcastedDeclareTransaction;
+use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
+use starknet_types::rpc::transactions::{
+    BroadcastedDeclareTransaction, BroadcastedInvokeTransaction,
+};
 
 use super::error::{ApiError, StrictRpcResult};
 use super::models::{
@@ -59,7 +61,11 @@ impl JsonRpcHandler {
         &self,
         request: BroadcastedInvokeTransaction,
     ) -> StrictRpcResult {
-        let transaction_hash = self.api.starknet.write().await.add_invoke_transaction(request)?;
+        let transaction_hash = match request {
+            BroadcastedInvokeTransaction::V1(invoke_txn) => {
+                self.api.starknet.write().await.add_invoke_transaction_v1(invoke_txn)?
+            }
+        };
 
         Ok(StarknetResponse::AddInvokeTransaction(InvokeTransactionOutput { transaction_hash }))
     }

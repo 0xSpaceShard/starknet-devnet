@@ -6,7 +6,6 @@ use blockifier::transaction::objects::TransactionExecutionInfo;
 use broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
-use broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
 use declare_transaction_v0v1::DeclareTransactionV0V1;
 use declare_transaction_v2::DeclareTransactionV2;
 use deploy_account_transaction::DeployAccountTransaction;
@@ -18,6 +17,7 @@ use starknet_api::deprecated_contract_class::EntryPointType;
 use starknet_api::transaction::Fee;
 use starknet_rs_core::types::{BlockId, ExecutionResult, TransactionFinalityStatus};
 
+use self::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use super::estimate_message_fee::FeeEstimateWrapper;
 use super::state::ThinStateDiff;
 use super::transaction_receipt::{ExecutionResources, OrderedMessageToL1};
@@ -39,7 +39,7 @@ use crate::rpc::transaction_receipt::{
 pub mod broadcasted_declare_transaction_v1;
 pub mod broadcasted_declare_transaction_v2;
 pub mod broadcasted_deploy_account_transaction;
-pub mod broadcasted_invoke_transaction;
+pub mod broadcasted_invoke_transaction_v1;
 
 pub mod declare_transaction_v0v1;
 pub mod declare_transaction_v2;
@@ -307,7 +307,7 @@ impl BroadcastedTransaction {
         only_query: bool,
     ) -> DevnetResult<blockifier::transaction::account_transaction::AccountTransaction> {
         let blockifier_transaction = match self {
-            BroadcastedTransaction::Invoke(invoke_txn) => {
+            BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(invoke_txn)) => {
                 let blockifier_invoke_txn =
                     invoke_txn.create_blockifier_invoke_transaction(chain_id, only_query)?;
                 AccountTransaction::Invoke(blockifier_invoke_txn)
@@ -339,6 +339,12 @@ impl BroadcastedTransaction {
 pub enum BroadcastedDeclareTransaction {
     V1(Box<BroadcastedDeclareTransactionV1>),
     V2(Box<BroadcastedDeclareTransactionV2>),
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum BroadcastedInvokeTransaction {
+    V1(BroadcastedInvokeTransactionV1),
 }
 
 /// Flags that indicate how to simulate a given transaction.

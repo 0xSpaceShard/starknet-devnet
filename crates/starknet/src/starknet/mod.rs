@@ -32,12 +32,12 @@ use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
-use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
+use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use starknet_types::rpc::transactions::{
-    BroadcastedTransaction, BroadcastedTransactionCommon, DeclareTransaction,
-    DeclareTransactionTrace, DeployAccountTransactionTrace, ExecutionInvocation,
-    FunctionInvocation, InvokeTransactionTrace, SimulatedTransaction, SimulationFlag, Transaction,
-    TransactionTrace, Transactions,
+    BroadcastedInvokeTransaction, BroadcastedTransaction, BroadcastedTransactionCommon,
+    DeclareTransaction, DeclareTransactionTrace, DeployAccountTransactionTrace,
+    ExecutionInvocation, FunctionInvocation, InvokeTransactionTrace, SimulatedTransaction,
+    SimulationFlag, Transaction, TransactionTrace, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, warn};
@@ -518,11 +518,11 @@ impl Starknet {
         )
     }
 
-    pub fn add_invoke_transaction(
+    pub fn add_invoke_transaction_v1(
         &mut self,
-        invoke_transaction: BroadcastedInvokeTransaction,
+        invoke_transaction: BroadcastedInvokeTransactionV1,
     ) -> DevnetResult<TransactionHash> {
-        add_invoke_transaction::add_invoke_transaction(self, invoke_transaction)
+        add_invoke_transaction::add_invoke_transaction_v1(self, invoke_transaction)
     }
 
     /// Creates an invoke tx for minting, using the chargeable account.
@@ -564,7 +564,7 @@ impl Starknet {
         );
         let signature = signer.sign_hash(&msg_hash_felt).await?;
 
-        let invoke_tx = BroadcastedInvokeTransaction {
+        let invoke_tx = BroadcastedInvokeTransactionV1 {
             sender_address: ContractAddress::new(chargeable_address_felt)?,
             calldata: raw_execution.raw_calldata().into_iter().map(|c| c.into()).collect(),
             common: BroadcastedTransactionCommon {
@@ -576,7 +576,7 @@ impl Starknet {
         };
 
         // apply the invoke tx
-        self.add_invoke_transaction(invoke_tx)
+        add_invoke_transaction::add_invoke_transaction_v1(self, invoke_tx)
     }
 
     pub fn block_state_update(&self, block_id: BlockId) -> DevnetResult<StateUpdate> {

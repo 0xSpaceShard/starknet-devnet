@@ -1,14 +1,14 @@
 use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_types::felt::TransactionHash;
-use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
+use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use starknet_types::rpc::transactions::{InvokeTransaction, Transaction};
 
 use super::Starknet;
 use crate::error::{self, DevnetResult};
 
-pub fn add_invoke_transaction(
+pub fn add_invoke_transaction_v1(
     starknet: &mut Starknet,
-    broadcasted_invoke_transaction: BroadcastedInvokeTransaction,
+    broadcasted_invoke_transaction: BroadcastedInvokeTransactionV1,
 ) -> DevnetResult<TransactionHash> {
     if broadcasted_invoke_transaction.common.max_fee.0 == 0 {
         return Err(error::Error::FeeError {
@@ -45,7 +45,7 @@ mod tests {
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
-    use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
+    use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;
@@ -64,7 +64,7 @@ mod tests {
         function_selector: Felt,
         param: Felt,
         nonce: u128,
-    ) -> BroadcastedInvokeTransaction {
+    ) -> BroadcastedInvokeTransactionV1 {
         let calldata = vec![
             Felt::from(contract_address), // contract address
             function_selector,            // function selector
@@ -72,7 +72,7 @@ mod tests {
             param,                        // calldata
         ];
 
-        BroadcastedInvokeTransaction::new(
+        BroadcastedInvokeTransactionV1::new(
             account_address,
             Fee(5000),
             &vec![],
@@ -95,7 +95,7 @@ mod tests {
             0,
         );
 
-        let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
+        let transaction_hash = starknet.add_invoke_transaction_v1(invoke_transaction).unwrap();
 
         let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
 
@@ -122,7 +122,7 @@ mod tests {
         );
 
         // invoke transaction
-        let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
+        let transaction_hash = starknet.add_invoke_transaction_v1(invoke_transaction).unwrap();
         let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
         assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
@@ -142,7 +142,7 @@ mod tests {
         );
 
         // invoke transaction again
-        let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
+        let transaction_hash = starknet.add_invoke_transaction_v1(invoke_transaction).unwrap();
         let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
 
         assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
@@ -155,7 +155,7 @@ mod tests {
 
     #[test]
     fn invoke_transaction_with_max_fee_zero_should_return_error() {
-        let invoke_transaction = BroadcastedInvokeTransaction::new(
+        let invoke_transaction = BroadcastedInvokeTransactionV1::new(
             dummy_contract_address(),
             Fee(0),
             &vec![],
@@ -164,7 +164,7 @@ mod tests {
             Felt::from(1),
         );
 
-        let result = Starknet::default().add_invoke_transaction(invoke_transaction);
+        let result = Starknet::default().add_invoke_transaction_v1(invoke_transaction);
 
         assert!(result.is_err());
         match result.err().unwrap() {
@@ -189,12 +189,13 @@ mod tests {
             nonce,
         );
 
-        let transaction_hash = starknet.add_invoke_transaction(invoke_transaction.clone()).unwrap();
+        let transaction_hash =
+            starknet.add_invoke_transaction_v1(invoke_transaction.clone()).unwrap();
         let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
         assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
-        match starknet.add_invoke_transaction(invoke_transaction).unwrap_err() {
+        match starknet.add_invoke_transaction_v1(invoke_transaction).unwrap_err() {
             crate::error::Error::TransactionValidationError(
                 crate::error::TransactionValidationError::InvalidTransactionNonce,
             ) => {}
@@ -220,7 +221,7 @@ mod tests {
         ];
 
         let insufficient_max_fee = 2482; // this is minimum fee (enough for passing validation), anything lower than that is bounced back
-        let invoke_transaction = BroadcastedInvokeTransaction::new(
+        let invoke_transaction = BroadcastedInvokeTransactionV1::new(
             account_address,
             Fee(insufficient_max_fee),
             &vec![],
@@ -229,7 +230,7 @@ mod tests {
             Felt::from(1),
         );
 
-        let transaction_hash = starknet.add_invoke_transaction(invoke_transaction).unwrap();
+        let transaction_hash = starknet.add_invoke_transaction_v1(invoke_transaction).unwrap();
         let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
         assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Reverted);

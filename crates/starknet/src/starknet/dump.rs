@@ -5,7 +5,7 @@ use std::path::Path;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
-use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
+use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use starknet_types::rpc::transactions::{DeclareTransaction, InvokeTransaction, Transaction};
 
 use super::{DumpOn, Starknet};
@@ -58,7 +58,7 @@ impl Starknet {
                     return Err(Error::SerializationNotSupported);
                 }
                 Transaction::Invoke(InvokeTransaction::Version1(tx)) => {
-                    let invoke_tx = BroadcastedInvokeTransaction::new(
+                    let invoke_tx = BroadcastedInvokeTransactionV1::new(
                         tx.sender_address,
                         tx.max_fee,
                         &tx.signature,
@@ -66,7 +66,7 @@ impl Starknet {
                         &tx.calldata,
                         tx.version,
                     );
-                    self.add_invoke_transaction(invoke_tx)?;
+                    self.add_invoke_transaction_v1(invoke_tx)?;
                 }
                 Transaction::L1Handler(_) => return Err(Error::SerializationNotSupported),
             };
