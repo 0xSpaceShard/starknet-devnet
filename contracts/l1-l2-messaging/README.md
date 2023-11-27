@@ -201,7 +201,7 @@ curl -H 'Content-Type: application/json' \
     "transaction_hash": "0x7f5c523f47bc88fa21f86ec4aaac8bbad69dafb43ae7072319dcec4d5d40af9"
 }
 ```
-The balance is now increased by 1, exactly has a message from l1 would have done.
+The balance is now increased by 1, exactly as a message from L1 would have done.
 ```bash
 starkli call 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 get_balance 0x1
 
