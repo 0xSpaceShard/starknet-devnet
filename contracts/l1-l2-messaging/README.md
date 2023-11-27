@@ -181,3 +181,32 @@ curl -H 'Content-Type: application/json' -X POST http://127.0.0.1:5050/postman/f
     "l1_provider":"http://127.0.0.1:8545/"
 }
 ```
+We can now check the balance of use 1 on L2, it's back to `0xff`.
+```bash
+starkli call 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 get_balance 0x1
+
+[
+    "0x00000000000000000000000000000000000000000000000000000000000000ff"
+]
+```
+
+4. Now, let's say we want to increase the balance of the user on L2 as if a message was sent from L1. Devnet has an endpoint `postman/send_message_to_l2` to mock a message coming from L1, without actually running a L1 node.
+```bash
+curl -H 'Content-Type: application/json' \
+    -d '{"paid_fee_on_l1": "0x123", "l2_contract_address": "0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4", "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512", "entry_point_selector": "0x00c73f681176fc7b3f9693986fd7b14581e8d540519e27400e88b8713932be01", "payload": ["0x1", "0x2"], "nonce": "0x1"}' \
+    http://127.0.0.1:5050/postman/send_message_to_l2
+```
+The balance is now increased by 1, exactly has a message from l1 would have done.
+```bash
+starkli call 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 get_balance 0x1
+
+[
+    "0x0000000000000000000000000000000000000000000000000000000000000101"
+]
+```
+
+To quickly setup the nodes for testing and re-run this exact sequence after restarting your nodes, you can use the following bash script:
+```bash
+bash run_e2e.sh
+```
+It's important to note that those operations must be done in this exact order to ensure that hard-coded addresses used in this guide are stil valid.

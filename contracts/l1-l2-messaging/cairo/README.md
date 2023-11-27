@@ -31,7 +31,7 @@ To work with Starkli, you need two files:
 To ease the development, start the Devnet with a known seed (`--seed 42`) to use the pre-built account file.
 
 ```bash
-# On a first terminal, run the Devnet with the option `--seed 42`.
+# On a first terminal, run the Devnet with a known seed `cargo run -- --seed 42`.
 
 # Export variables to have starkli pre-configured.
 source ./env
