@@ -153,3 +153,67 @@ impl HashProducer for L1HandlerTransaction {
         .into())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::chain_id::ChainId;
+    use crate::rpc::transactions::ContractAddress;
+
+    #[test]
+    fn l1_handler_tx_from_message_to_l2() {
+        // Test based on Goerli tx hash:
+        // 0x6182c63599a9638272f1ce5b5cadabece9c81c2d2b8f88ab7a294472b8fce8b
+
+        let from_address = "0x000000000000000000000000be3C44c09bc1a3566F3e1CA12e5AbA0fA4Ca72Be";
+        let to_address = "0x039dc79e64f4bb3289240f88e0bae7d21735bef0d1a51b2bf3c4730cb16983e1";
+        let selector = "0x02f15cff7b0eed8b9beb162696cf4e3e0e35fa7032af69cd1b7d2ac67a13f40f";
+        let nonce = 783082_u128;
+        let fee = 30000_u128;
+
+        let payload: Vec<Felt> = vec![1.into(), 2.into()];
+
+        let calldata: Vec<Felt> =
+            vec![Felt::from_prefixed_hex_str(from_address).unwrap(), 1.into(), 2.into()];
+
+        let message = MessageToL2 {
+            l1_contract_address: ContractAddress::new(
+                Felt::from_prefixed_hex_str(from_address).unwrap(),
+            )
+            .unwrap(),
+            l2_contract_address: ContractAddress::new(
+                Felt::from_prefixed_hex_str(to_address).unwrap(),
+            )
+            .unwrap(),
+            entry_point_selector: Felt::from_prefixed_hex_str(selector).unwrap(),
+            payload,
+            nonce: nonce.into(),
+            paid_fee_on_l1: fee.into(),
+        };
+
+        let chain_id = ChainId::Testnet.to_felt();
+
+        let transaction_hash = Felt::from_prefixed_hex_str(
+            "0x6182c63599a9638272f1ce5b5cadabece9c81c2d2b8f88ab7a294472b8fce8b",
+        )
+        .unwrap();
+
+        let expected_tx = L1HandlerTransaction {
+            contract_address: ContractAddress::new(
+                Felt::from_prefixed_hex_str(to_address).unwrap(),
+            )
+            .unwrap(),
+            entry_point_selector: Felt::from_prefixed_hex_str(selector).unwrap(),
+            calldata,
+            nonce: nonce.into(),
+            paid_fee_on_l1: fee,
+            transaction_hash,
+            ..Default::default()
+        };
+
+        let transaction =
+            L1HandlerTransaction::try_from_message_to_l2(message).unwrap().with_hash(chain_id);
+
+        assert_eq!(transaction, expected_tx);
+    }
+}
