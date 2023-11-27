@@ -127,11 +127,7 @@ impl Starknet {
         &self,
         from: u64,
     ) -> DevnetResult<(Vec<MessageToL1>, u64)> {
-        let messaging = if let Some(m) = &self.messaging {
-            m
-        } else {
-            return Err(Error::MessagingError(MessagingError::NotConfigured));
-        };
+        let messaging = self.messaging_ref()?;
 
         match self.blocks.get_blocks(Some(BlockId::Number(from)), None) {
             Ok(blocks) => {
