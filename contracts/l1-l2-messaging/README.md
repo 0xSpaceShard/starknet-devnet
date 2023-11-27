@@ -25,7 +25,7 @@ Now both nodes are running, Devnet for Starknet and Anvil for Ethereum.
 Then, open a third terminal in the same directory of this README, from which we will operate on the running nodes:
 ```bash
 # This .env file combines variables for both chain.
-source ./env
+source ./.env
 
 # Compile cairo contracts.
 scarb --manifest-path ./cairo/Scarb.toml build
