@@ -114,12 +114,13 @@ pub(crate) struct ForkStatus {
 pub(crate) struct FlushedMessages {
     pub messages_to_l1: Vec<MessageToL1>,
     pub messages_to_l2: Vec<MessageToL2>,
+    pub generated_l2_transactions: Vec<TransactionHash>,
     pub l1_provider: String,
 }
 
 #[derive(Serialize, Deserialize)]
 pub(crate) struct FlushParameters {
-    pub dry_run: Option<bool>,
+    pub dry_run: bool,
 }
 
 #[derive(Serialize, Deserialize)]

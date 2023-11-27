@@ -97,13 +97,14 @@ curl -H 'Content-Type: application/json' -d '{"dry_run": true}' http://127.0.0.1
         }
     ],
     "messages_to_l2":[],
+    "generated_l2_transactions": [],
     "l1_provider":"dry run"
 }
 ```
 2. Actually flush the message to be sent on the L1 node.
 ```bash
 # Flushing the message to actually send them to the L1.
-curl -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:5050/postman/flush
+curl -H 'Content-Type: application/json' -X POST http://127.0.0.1:5050/postman/flush
 ```
 ```json
 {
@@ -115,6 +116,7 @@ curl -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:5050/postman/f
         }
     ],
     "messages_to_l2":[],
+    "generated_l2_transactions": [],
     "l1_provider":"http://127.0.0.1:8545/"
 }
 ```
@@ -156,7 +158,7 @@ cast call 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 "get_balance(uint256)(uint2
 
 3. Flush the messages.
 ```bash
-curl -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:5050/postman/flush
+curl -H 'Content-Type: application/json' -X POST http://127.0.0.1:5050/postman/flush
 ```
 ```json
 {
@@ -171,6 +173,7 @@ curl -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:5050/postman/f
             "nonce":"0x1"
         }
     ],
+    "generated_l2_transactions": ["0x75337b9eb7f731226ba4ddea7a9c5b2f984ee9546c0cbb5d1c04e69f5d62aac"],
     "l1_provider":"http://127.0.0.1:8545/"
 }
 ```

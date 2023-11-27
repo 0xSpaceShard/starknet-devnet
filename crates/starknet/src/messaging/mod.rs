@@ -31,6 +31,7 @@
 //! This is done my sending a transaction to the Ethereum node, to the MockStarknetMessaging
 //! contract (`mockSendMessageFromL2` entrypoint).
 use starknet_rs_core::types::{BlockId, ExecutionResult};
+use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::transactions::L1HandlerTransaction;
 
@@ -158,22 +159,34 @@ impl Starknet {
         }
     }
 
-    /// Fetches all messages from L1 and executes them by executing a `L1HandlerTransaction`
-    /// for each one of them.
-    pub async fn fetch_and_execute_messages_to_l2(&mut self) -> DevnetResult<Vec<MessageToL2>> {
-        let chain_id = self.chain_id().to_felt();
-
+    /// Fetches all messages from L1 and converts the ethereum log into `MessageToL2`.
+    pub async fn fetch_messages_to_l2(&mut self) -> DevnetResult<Vec<MessageToL2>> {
         let messaging = self.messaging_mut()?;
-
         let messages = messaging.fetch_messages().await?;
+        Ok(messages)
+    }
 
-        for message in &messages {
+    /// Executes all given `MessageToL2` in a `L1HandlerTransaction`.
+    ///
+    /// # Arguments
+    ///
+    /// * `messages` - Messages to execute.
+    pub async fn execute_messages_to_l2(
+        &mut self,
+        messages: &[MessageToL2],
+    ) -> DevnetResult<Vec<TransactionHash>> {
+        let chain_id = self.chain_id().to_felt();
+        let mut transactions_hashes = vec![];
+
+        for message in messages {
             let transaction =
                 L1HandlerTransaction::try_from_message_to_l2(message.clone())?.with_hash(chain_id);
+            transactions_hashes.push(transaction.transaction_hash);
+
             self.add_l1_handler_transaction(transaction)?;
         }
 
-        Ok(messages)
+        Ok(transactions_hashes)
     }
 
     /// Collects all messages for all the transactions of the the given block.

@@ -29,24 +29,37 @@ pub(crate) async fn postman_load(
 
 pub(crate) async fn postman_flush(
     Extension(state): Extension<HttpApiHandler>,
-    Json(data): Json<FlushParameters>,
+    data: Option<Json<FlushParameters>>,
 ) -> HttpApiResult<Json<FlushedMessages>> {
     // Need to handle L1 to L2 first in case that those messages
     // will create L2 to L1 messages.
     let mut starknet = state.api.starknet.write().await;
 
-    let dry_run = data.dry_run.unwrap_or(false);
-
-    let messages_to_l2 = if dry_run {
-        vec![]
+    let dry_run = if let Some(data) = data {
+        let data = Json(data);
+        data.dry_run
     } else {
-        starknet.fetch_and_execute_messages_to_l2().await.map_err(|e| {
-            HttpApiError::MessagingError { msg: format!("messages to l2 error: {}", e) }
-        })?
+        false
+    };
+
+    // Fetch and execute messages to l2.
+    let (messages_to_l2, generated_l2_transactions) = if dry_run {
+        (vec![], vec![])
+    } else {
+        let messages = starknet.fetch_messages_to_l2().await.map_err(|e| {
+            HttpApiError::MessagingError { msg: format!("fetch messages to l2: {}", e) }
+        })?;
+
+        let tx_hashes = starknet.execute_messages_to_l2(&messages).await.map_err(|e| {
+            HttpApiError::MessagingError { msg: format!("execute messages to l2: {}", e) }
+        })?;
+
+        (messages, tx_hashes)
     };
 
     let from_block = if let Some(m) = &starknet.messaging { m.last_local_block } else { 0 };
 
+    // Collect and send messages to L1.
     let (messages_to_l1, last_local_block) = if dry_run {
         (
             starknet.collect_messages_to_l1(from_block).await.map_err(|e| {
@@ -60,21 +73,28 @@ pub(crate) async fn postman_flush(
         })?
     };
 
+    // L1 provider.
     let l1_provider = if dry_run {
         "dry run".to_string()
     } else {
         starknet.messaging_url().unwrap_or("Not set".to_string())
     };
 
+    // If not dry run, increment the `last_local_block` to ensure that the
+    // current last block is not fetched twice.
     if !dry_run {
-        // +1 to ensure this last block is not collected anymore.
         starknet
             .messaging_mut()
             .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?
             .last_local_block = last_local_block + 1;
     }
 
-    Ok(Json(FlushedMessages { messages_to_l1, messages_to_l2, l1_provider }))
+    Ok(Json(FlushedMessages {
+        messages_to_l1,
+        messages_to_l2,
+        generated_l2_transactions,
+        l1_provider,
+    }))
 }
 
 pub(crate) async fn postman_send_message_to_l2(
