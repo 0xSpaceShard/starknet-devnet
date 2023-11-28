@@ -20,8 +20,8 @@ mod get_transaction_by_hash_integration_tests {
     use starknet_types::felt::Felt;
     use starknet_types::traits::ToHexString;
 
+    use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::CASM_COMPILED_CLASS_HASH;
-    use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::{get_deployable_account_signer, resolve_path};
 
     #[tokio::test]

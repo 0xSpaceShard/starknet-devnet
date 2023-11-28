@@ -25,11 +25,11 @@ mod estimate_fee_tests {
         MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
     };
 
+    use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{
         CAIRO_1_CONTRACT_PATH, CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH,
         CAIRO_1_VERSION_ASSERTER_SIERRA_PATH, CHAIN_ID,
     };
-    use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::{
         assert_tx_reverted, assert_tx_successful, get_deployable_account_signer,
         get_flattened_sierra_contract_and_casm_hash,

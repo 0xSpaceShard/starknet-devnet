@@ -7,8 +7,8 @@ mod get_class_hash_at_integration_tests {
         MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
     };
 
+    use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::PREDEPLOYED_ACCOUNT_ADDRESS;
-    use crate::common::devnet::BackgroundDevnet;
 
     #[tokio::test]
     async fn get_class_hash_at_happy_path() {

@@ -8,8 +8,8 @@ mod dump_and_load_tests {
     use serde_json::json;
     use starknet_rs_providers::Provider;
 
-    use crate::common::devnet::BackgroundDevnet;
-    use crate::common::utils::{remove_file, send_ctrl_c_signal};
+    use crate::common::background_devnet::BackgroundDevnet;
+    use crate::common::utils::{send_ctrl_c_signal, UniqueAutoDeletableFile};
 
     static DUMMY_ADDRESS: u128 = 1;
     static DUMMY_AMOUNT: u128 = 1;
@@ -59,10 +59,10 @@ mod dump_and_load_tests {
     #[tokio::test]
     async fn mint_dump_on_transaction_and_load() {
         // dump after transaction
-        let dump_file_name = "dump_on_transaction";
+        let dump_file = UniqueAutoDeletableFile::new("dump_on_transaction");
         let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
             "--dump-path",
-            dump_file_name,
+            &dump_file.path,
             "--dump-on",
             "transaction",
         ])
@@ -73,7 +73,7 @@ mod dump_and_load_tests {
 
         // load transaction from file and check transaction hash
         let devnet_load =
-            BackgroundDevnet::spawn_with_additional_args(&["--dump-path", dump_file_name])
+            BackgroundDevnet::spawn_with_additional_args(&["--dump-path", &dump_file.path])
                 .await
                 .expect("Could not start Devnet");
         let loaded_transaction_1 =
@@ -97,17 +97,15 @@ mod dump_and_load_tests {
         } else {
             panic!("Could not unpack the transaction from {loaded_transaction_2:?}");
         }
-
-        remove_file(dump_file_name);
     }
 
     #[tokio::test]
     async fn mint_dump_on_exit_and_load() {
         // dump on exit
-        let dump_file_name = "dump_on_exit";
+        let dump_file = UniqueAutoDeletableFile::new("dump_on_exit");
         let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
             "--dump-path",
-            dump_file_name,
+            dump_file.path.as_str(),
             "--dump-on",
             "exit",
         ])
@@ -121,7 +119,7 @@ mod dump_and_load_tests {
 
         // load transaction from file and check transaction hash
         let devnet_load =
-            BackgroundDevnet::spawn_with_additional_args(&["--dump-path", dump_file_name])
+            BackgroundDevnet::spawn_with_additional_args(&["--dump-path", &dump_file.path])
                 .await
                 .expect("Could not start Devnet");
         let devnet_load_pid = devnet_load.process.id();
@@ -136,16 +134,14 @@ mod dump_and_load_tests {
         } else {
             panic!("Could not unpack the transaction from {loaded_transaction:?}");
         }
-
-        remove_file(dump_file_name);
     }
 
     #[tokio::test]
     async fn declare_deploy() {
-        let dump_file_name = "dump_declare_deploy";
+        let dump_file = UniqueAutoDeletableFile::new("dump_declare_deploy");
         let devnet = BackgroundDevnet::spawn_with_additional_args(&[
             "--dump-path",
-            dump_file_name,
+            &dump_file.path,
             "--dump-on",
             "transaction",
         ])
@@ -186,7 +182,7 @@ mod dump_and_load_tests {
 
         // load transaction from file and check transactions hashes
         let devnet_load =
-            BackgroundDevnet::spawn_with_additional_args(&["--dump-path", dump_file_name])
+            BackgroundDevnet::spawn_with_additional_args(&["--dump-path", &dump_file.path])
                 .await
                 .expect("Could not start Devnet");
 
@@ -219,8 +215,6 @@ mod dump_and_load_tests {
         } else {
             panic!("Could not unpack the transaction from {loaded_deploy_v2:?}");
         }
-
-        remove_file(dump_file_name);
     }
 
     #[tokio::test]
@@ -302,25 +296,26 @@ mod dump_and_load_tests {
         // check if the dump with the default path "dump_endpoint" works as expected when json body
         // is empty, later check if the dump with the custom path "dump_endpoint_custom_path"
         // works
-        let dump_file_name = "dump_endpoint";
-        let dump_file_name_custom_path = "dump_endpoint_custom_path";
+        let dump_file = UniqueAutoDeletableFile::new("dump_endpoint");
         let devnet_dump =
-            BackgroundDevnet::spawn_with_additional_args(&["--dump-path", dump_file_name])
+            BackgroundDevnet::spawn_with_additional_args(&["--dump-path", &dump_file.path])
                 .await
                 .expect("Could not start Devnet");
         let mint_tx_hash = devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
         let dump_body = Body::from(json!({}).to_string());
         devnet_dump.post_json("/dump".into(), dump_body).await.unwrap();
-        assert!(Path::new(dump_file_name).exists());
+        assert!(Path::new(&dump_file.path).exists());
+
+        let dump_file_custom = UniqueAutoDeletableFile::new("dump_endpoint_custom_path");
         let dump_body_custom_path =
-            Body::from(json!({ "path": dump_file_name_custom_path }).to_string());
+            Body::from(json!({ "path": dump_file_custom.path }).to_string());
         devnet_dump.post_json("/dump".into(), dump_body_custom_path).await.unwrap();
-        assert!(Path::new(dump_file_name_custom_path).exists());
+        assert!(Path::new(&dump_file_custom.path).exists());
 
         // load and re-execute from "dump_endpoint" file and check if transaction and state of the
         // blockchain is valid
         let devnet_load = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let load_body = Body::from(json!({ "path": dump_file_name }).to_string());
+        let load_body = Body::from(json!({ "path": dump_file.path }).to_string());
         devnet_load.post_json("/load".into(), load_body).await.unwrap();
 
         let balance_result =
@@ -337,8 +332,5 @@ mod dump_and_load_tests {
         } else {
             panic!("Could not unpack the transaction from {loaded_transaction:?}");
         }
-
-        remove_file(dump_file_name);
-        remove_file(dump_file_name_custom_path);
     }
 }

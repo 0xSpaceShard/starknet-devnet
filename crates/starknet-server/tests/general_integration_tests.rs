@@ -5,8 +5,8 @@ mod general_integration_tests {
     use hyper::Body;
     use serde_json::json;
 
+    use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::RPC_PATH;
-    use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::get_json_body;
 
     #[tokio::test]

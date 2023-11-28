@@ -19,8 +19,8 @@ mod test_restart {
         MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
     };
 
+    use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::CHAIN_ID;
-    use crate::common::devnet::BackgroundDevnet;
     use crate::common::utils::{get_deployable_account_signer, remove_file, send_ctrl_c_signal};
 
     #[tokio::test]

@@ -14,7 +14,7 @@ mod advancing_time_tests {
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::Provider;
 
-    use crate::common::devnet::BackgroundDevnet;
+    use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::{
         get_json_body, get_timestamp_contract_in_sierra_and_compiled_class_hash,
         get_unix_timestamp_as_seconds,
@@ -85,7 +85,7 @@ mod advancing_time_tests {
         let timestamp =
             devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap()[0];
 
-        assert_ge_with_buffer(Some(timestamp.to_string().parse::<u64>().unwrap()), Some(now));
+        assert_ge_with_buffer(timestamp.to_string().parse::<u64>().ok(), Some(now));
     }
 
     #[tokio::test]
@@ -94,12 +94,7 @@ mod advancing_time_tests {
         // limit
         let past_time = 1;
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let set_time_body = Body::from(
-            json!({
-                "time": past_time
-            })
-            .to_string(),
-        );
+        let set_time_body = Body::from(json!({ "time": past_time }).to_string());
         let resp_set_time = devnet.post_json("/set_time".into(), set_time_body).await.unwrap();
         let resp_body_set_time = get_json_body(resp_set_time).await;
         assert_eq!(resp_body_set_time["block_timestamp"], past_time);
@@ -138,12 +133,7 @@ mod advancing_time_tests {
         let now = get_unix_timestamp_as_seconds();
         let future_time = now + 100;
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let set_time_body = Body::from(
-            json!({
-                "time": future_time
-            })
-            .to_string(),
-        );
+        let set_time_body = Body::from(json!({ "time": future_time }).to_string());
         let resp = devnet.post_json("/set_time".into(), set_time_body).await.unwrap();
         let resp_body = get_json_body(resp).await;
         assert_eq!(resp_body["block_timestamp"], future_time);
@@ -203,12 +193,8 @@ mod advancing_time_tests {
 
         // increase time and assert if it's greater than now, check if it's inside buffer limit
         let first_increase_time: u64 = 1000;
-        let first_increase_time_body = Body::from(
-            json!({
-                "time": first_increase_time
-            })
-            .to_string(),
-        );
+        let first_increase_time_body =
+            Body::from(json!({ "time": first_increase_time }).to_string());
         devnet.post_json("/increase_time".into(), first_increase_time_body).await.unwrap();
         let first_increase_time_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
@@ -220,12 +206,8 @@ mod advancing_time_tests {
 
         // second increase time, check if it's inside buffer limit
         let second_increase_time: u64 = 100;
-        let second_increase_time_body = Body::from(
-            json!({
-                "time": second_increase_time
-            })
-            .to_string(),
-        );
+        let second_increase_time_body =
+            Body::from(json!({ "time": second_increase_time }).to_string());
         devnet.post_json("/increase_time".into(), second_increase_time_body).await.unwrap();
         let second_increase_time_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))

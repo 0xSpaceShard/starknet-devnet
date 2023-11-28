@@ -19,8 +19,8 @@ mod test_estimate_message_fee {
         MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
     };
 
+    use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::CHAIN_ID;
-    use crate::common::devnet::BackgroundDevnet;
 
     #[tokio::test]
     async fn estimate_message_fee() {
