@@ -12,9 +12,7 @@ pub fn add_declare_transaction_v2(
     broadcasted_declare_transaction: BroadcastedDeclareTransactionV2,
 ) -> DevnetResult<(TransactionHash, ClassHash)> {
     if broadcasted_declare_transaction.common.max_fee.0 == 0 {
-        return Err(Error::FeeError {
-            reason: "For declare transaction version 2, max fee cannot be 0".to_string(),
-        });
+        return Err(Error::MaxFeeZeroError { tx_type: "declare transaction v2".into() });
     }
 
     let blockifier_declare_transaction =
@@ -43,9 +41,7 @@ pub fn add_declare_transaction_v1(
     broadcasted_declare_transaction: BroadcastedDeclareTransactionV1,
 ) -> DevnetResult<(TransactionHash, ClassHash)> {
     if broadcasted_declare_transaction.common.max_fee.0 == 0 {
-        return Err(Error::FeeError {
-            reason: "For declare transaction version 1, max fee cannot be 0".to_string(),
-        });
+        return Err(Error::MaxFeeZeroError { tx_type: "declare transaction v1".into() });
     }
 
     let class_hash = broadcasted_declare_transaction.generate_class_hash()?;
@@ -123,8 +119,8 @@ mod tests {
 
         assert!(result.is_err());
         match result.err().unwrap() {
-            crate::error::Error::FeeError { reason: msg } => {
-                assert_eq!(msg, "For declare transaction version 2, max fee cannot be 0")
+            err @ crate::error::Error::MaxFeeZeroError { .. } => {
+                assert_eq!(err.to_string(), "declare transaction v2: max_fee cannot be zero")
             }
             _ => panic!("Wrong error type"),
         }
@@ -213,8 +209,8 @@ mod tests {
 
         assert!(result.is_err());
         match result.err().unwrap() {
-            crate::error::Error::FeeError { reason: msg } => {
-                assert_eq!(msg, "For declare transaction version 1, max fee cannot be 0")
+            err @ crate::error::Error::MaxFeeZeroError { .. } => {
+                assert_eq!(err.to_string(), "declare transaction v1: max_fee cannot be zero")
             }
             _ => panic!("Wrong error type"),
         }
