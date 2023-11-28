@@ -685,122 +685,116 @@ impl Starknet {
         transaction_to_map.get_receipt()
     }
 
-    pub fn get_transaction_trace_by_hash(
-        &self,
-        transaction_hash: TransactionHash,
-    ) -> DevnetResult<TransactionTrace> {
-        let transaction_to_map =
-            self.transactions.get(&transaction_hash).ok_or(Error::NoTransaction)?;
+    // pub fn get_transaction_trace_by_hash(
+    //     &self,
+    //     transaction_hash: TransactionHash,
+    // ) -> DevnetResult<Option<TransactionTrace>> {
+    //     // TODO: remove option from here later
+    //     let transaction_to_map =
+    //         self.transactions.get(&transaction_hash).ok_or(Error::NoTransaction)?;
 
-        // already eisting objects are ok?
-        
-        let tx_execution_info = transaction_to_map.execution_info; // Copy problems
+    //     let mut state =
+    //         self.get_state_at(&BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))?.clone();
+    //     let state_diff: ThinStateDiff = state.extract_state_diff_from_pending_state()?.into();
+    //     let state_diff =
+    //         if state_diff == ThinStateDiff::default() { None } else { Some(state_diff) };
 
-        let mut state = self.get_state_at(&BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))?.clone();
-        let state_diff: ThinStateDiff = state.extract_state_diff_from_pending_state()?.into();
-        let state_diff =
-            if state_diff == ThinStateDiff::default() { None } else { Some(state_diff) };
+    //     let address_to_class_hash_map = &state.state.state.address_to_class_hash;
 
-        let address_to_class_hash_map = &state.state.state.address_to_class_hash;
+    //     let validate_invocation = if let Some(validate_info) =
+    //         &transaction_to_map.execution_info.validate_call_info
+    //     {
+    //         Some(FunctionInvocation::try_from_call_info(validate_info,
+    // address_to_class_hash_map)?)     } else {
+    //         None
+    //     };
 
-        let validate_invocation =
-            if let Some(validate_info) = tx_execution_info.validate_call_info {
-                Some(FunctionInvocation::try_from_call_info(
-                    validate_info,
-                    address_to_class_hash_map,
-                )?)
-            } else {
-                None
-            };
+    //     let fee_transfer_invocation =
+    //         if let Some(fee_transfer_info) =
+    // &transaction_to_map.execution_info.fee_transfer_call_info {
+    // Some(FunctionInvocation::try_from_call_info(                 fee_transfer_info,
+    //                 address_to_class_hash_map,
+    //             )?)
+    //         } else {
+    //             None
+    //         };
 
-        let fee_transfer_invocation =
-            if let Some(fee_transfer_info) = tx_execution_info.fee_transfer_call_info {
-                Some(FunctionInvocation::try_from_call_info(
-                    fee_transfer_info,
-                    address_to_class_hash_map,
-                )?)
-            } else {
-                None
-            };
+    //     let execute_info = match &transaction_to_map.execution_info.execute_call_info {
+    //         Some(call_info) => match call_info.execution.failed {
+    //             false => ExecutionInvocation::Succeeded(FunctionInvocation::try_from_call_info(
+    //                 call_info,
+    //                 address_to_class_hash_map,
+    //             )?),
+    //             true => {
+    //                 ExecutionInvocation::Reverted(starknet_types::rpc::transactions::Reversion {
+    //                     revert_reason: transaction_to_map
+    //                         .execution_info
+    //                         .revert_error
+    //                         .unwrap_or("Revert reason not found".into()),
+    //                 })
+    //             }
+    //         },
+    //         None => {
+    //             match transaction_to_map.execution_info.revert_error {
+    //                 Some(revert_reason) => ExecutionInvocation::Reverted(
+    //                     starknet_types::rpc::transactions::Reversion { revert_reason },
+    //                 ),
+    //                 None => {
+    //                     return Err(Error::UnexpectedInternalError {
+    //                         msg: "Simulation contains neither call_info nor revert_error".into(),
+    //                     });
+    //                 }
+    //             }
+    //         }
+    //     };
 
-        let execute_info = match tx_execution_info.execute_call_info {
-            Some(call_info) => match call_info.execution.failed {
-                false => ExecutionInvocation::Succeeded(
-                    FunctionInvocation::try_from_call_info(
-                        call_info,
-                        address_to_class_hash_map,
-                    )?,
-                ),
-                true => ExecutionInvocation::Reverted(
-                    starknet_types::rpc::transactions::Reversion {
-                        revert_reason: tx_execution_info
-                            .revert_error
-                            .unwrap_or("Revert reason not found".into()),
-                    },
-                ),
-            },
-            None => match tx_execution_info.revert_error {
-                Some(revert_reason) => ExecutionInvocation::Reverted(
-                    starknet_types::rpc::transactions::Reversion { revert_reason },
-                ),
-                None => {
-                    return Err(Error::UnexpectedInternalError {
-                        msg: "Simulation contains neither call_info nor \
-                              revert_error"
-                            .into(),
-                    });
-                }
-            },
-        };
+    //     // TODO: refactor common code that it's in simulate function
+    //     let trace = match transaction_to_map.inner {
+    //         Transaction::Declare(_) => None,
+    //         Transaction::DeployAccount(_) => None,
+    //         Transaction::Invoke(_) => {
+    //             let tx = TransactionTrace::Invoke(InvokeTransactionTrace {
+    //                 fee_transfer_invocation,
+    //                 validate_invocation,
+    //                 state_diff,
+    //                 execute_invocation: match
+    // &transaction_to_map.execution_info.execute_call_info {
+    // Some(call_info) => match call_info.execution.failed {                         false =>
+    // ExecutionInvocation::Succeeded(
+    // FunctionInvocation::try_from_call_info(                                 call_info,
+    //                                 address_to_class_hash_map,
+    //                             )?,
+    //                         ),
+    //                         true => ExecutionInvocation::Reverted(
+    //                             starknet_types::rpc::transactions::Reversion {
+    //                                 revert_reason: transaction_to_map
+    //                                     .execution_info
+    //                                     .revert_error
+    //                                     .unwrap_or("Revert reason not found".into()),
+    //                             },
+    //                         ),
+    //                     },
+    //                     None => match transaction_to_map.execution_info.revert_error {
+    //                         Some(revert_reason) => ExecutionInvocation::Reverted(
+    //                             starknet_types::rpc::transactions::Reversion { revert_reason },
+    //                         ),
+    //                         None => {
+    //                             return Err(Error::UnexpectedInternalError {
+    //                                 msg: "Simulation contains neither call_info nor revert_error"
+    //                                     .into(),
+    //                             });
+    //                         }
+    //                     },
+    //                 },
+    //             });
 
-        let trace = match transaction_to_map.inner {
-            Transaction::Invoke(_) => {
-                TransactionTrace::Invoke(InvokeTransactionTrace {
-                    fee_transfer_invocation,
-                    validate_invocation,
-                    state_diff,
-                    execute_invocation: match tx_execution_info.execute_call_info {
-                        Some(call_info) => match call_info.execution.failed {
-                            false => ExecutionInvocation::Succeeded(
-                                FunctionInvocation::try_from_call_info(
-                                    call_info,
-                                    address_to_class_hash_map,
-                                )?,
-                            ),
-                            true => ExecutionInvocation::Reverted(
-                                starknet_types::rpc::transactions::Reversion {
-                                    revert_reason: tx_execution_info
-                                        .revert_error
-                                        .unwrap_or("Revert reason not found".into()),
-                                },
-                            ),
-                        },
-                        None => match tx_execution_info.revert_error {
-                            Some(revert_reason) => ExecutionInvocation::Reverted(
-                                starknet_types::rpc::transactions::Reversion { revert_reason },
-                            ),
-                            None => {
-                                return Err(Error::UnexpectedInternalError {
-                                    msg: "Simulation contains neither call_info nor \
-                                          revert_error"
-                                        .into(),
-                                });
-                            }
-                        },
-                    },
-                })
+    //             Some(tx)
+    //         }
+    //         _ => None,
+    //     };
 
-                // TransactionTrace::Invoke(InvokeTransactionTrace {
-                //     validate_invocation: validate_invocation,
-                //     execute_invocation: execute_info,
-                //     fee_transfer_invocation: fee_transfer_invocation,
-                //     state_diff: state_diff,
-                // })
-            },
-        };
-
-        Ok(trace)
-    }
+    //     Ok(trace)
+    // }
 
     pub fn get_transaction_execution_and_finality_status(
         &self,
@@ -851,7 +845,7 @@ impl Starknet {
             let address_to_class_hash_map = &state.state.state.address_to_class_hash;
 
             let validate_invocation =
-                if let Some(validate_info) = tx_execution_info.validate_call_info {
+                if let Some(validate_info) = &tx_execution_info.validate_call_info {
                     Some(FunctionInvocation::try_from_call_info(
                         validate_info,
                         address_to_class_hash_map,
@@ -861,7 +855,7 @@ impl Starknet {
                 };
 
             let fee_transfer_invocation =
-                if let Some(fee_transfer_info) = tx_execution_info.fee_transfer_call_info {
+                if let Some(fee_transfer_info) = &tx_execution_info.fee_transfer_call_info {
                     Some(FunctionInvocation::try_from_call_info(
                         fee_transfer_info,
                         address_to_class_hash_map,
@@ -882,7 +876,7 @@ impl Starknet {
                     TransactionTrace::DeployAccount(DeployAccountTransactionTrace {
                         validate_invocation,
                         constructor_invocation: if let Some(call_info) =
-                            tx_execution_info.execute_call_info
+                            &tx_execution_info.execute_call_info
                         {
                             Some(FunctionInvocation::try_from_call_info(
                                 call_info,
@@ -900,7 +894,7 @@ impl Starknet {
                         fee_transfer_invocation,
                         validate_invocation,
                         state_diff,
-                        execute_invocation: match tx_execution_info.execute_call_info {
+                        execute_invocation: match &tx_execution_info.execute_call_info {
                             Some(call_info) => match call_info.execution.failed {
                                 false => ExecutionInvocation::Succeeded(
                                     FunctionInvocation::try_from_call_info(
