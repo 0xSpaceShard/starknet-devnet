@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use starknet_rs_core::chain_id::{MAINNET, TESTNET};
+use starknet_rs_core::chain_id::{MAINNET, TESTNET, TESTNET2};
 use starknet_rs_ff::FieldElement;
 
 use crate::felt::Felt;
@@ -11,6 +11,8 @@ pub enum ChainId {
     Mainnet,
     #[clap(name = "TESTNET")]
     Testnet,
+    #[clap(name = "TESTNET2")]
+    Testnet2,
 }
 
 impl ChainId {
@@ -24,6 +26,7 @@ impl Display for ChainId {
         match self {
             ChainId::Mainnet => write!(f, "SN_MAIN"),
             ChainId::Testnet => write!(f, "SN_GOERLI"),
+            ChainId::Testnet2 => write!(f, "SN_GOERLI2"),
         }
     }
 }
@@ -33,6 +36,7 @@ impl From<ChainId> for FieldElement {
         match value {
             ChainId::Mainnet => MAINNET,
             ChainId::Testnet => TESTNET,
+            ChainId::Testnet2 => TESTNET2,
         }
     }
 }
@@ -42,6 +46,7 @@ impl From<&ChainId> for FieldElement {
         match value {
             ChainId::Mainnet => MAINNET,
             ChainId::Testnet => TESTNET,
+            ChainId::Testnet2 => TESTNET2,
         }
     }
 }
