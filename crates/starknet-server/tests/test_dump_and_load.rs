@@ -1,6 +1,5 @@
 pub mod common;
 
-// Important! Use unique file names for dump files, tests can be run in parallel.
 mod dump_and_load_tests {
     use std::path::Path;
 

@@ -21,7 +21,7 @@ use starknet_types::rpc::estimate_message_fee::{
 };
 use starknet_types::rpc::state::StateUpdate;
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
-use starknet_types::rpc::transactions::{EventsChunk, SimulatedTransaction, Transaction};
+use starknet_types::rpc::transactions::{EventsChunk, SimulatedTransaction, Transaction, TransactionTrace};
 use starknet_types::starknet_api::block::BlockNumber;
 use tracing::{error, info, trace};
 
@@ -30,7 +30,7 @@ use self::models::{
     BlockHashAndNumberOutput, BlockIdInput, BroadcastedDeclareTransactionInput,
     BroadcastedDeployAccountTransactionInput, BroadcastedInvokeTransactionInput,
     DeclareTransactionOutput, DeployAccountTransactionOutput, InvokeTransactionOutput,
-    SyncingOutput, TransactionStatusOutput,
+    SyncingOutput, TransactionStatusOutput, TraceTransactionInput,
 };
 use super::Api;
 use crate::api::json_rpc::models::{
@@ -183,6 +183,12 @@ impl JsonRpcHandler {
                 .simulate_transactions(block_id, transactions, simulation_flags)
                 .await
                 .to_rpc_result(),
+            StarknetRequest::TraceTransaction(TraceTransactionInput {
+                transaction_hash
+                }) => self
+                    .get_trace_transaction(transaction_hash)
+                    .await
+                    .to_rpc_result(),
         }
     }
 }
@@ -242,6 +248,8 @@ pub enum StarknetRequest {
     EstimateMessageFee(EstimateMessageFeeRequestWrapper),
     #[serde(rename = "starknet_simulateTransactions")]
     SimulateTransactions(SimulateTransactionsInput),
+    #[serde(rename = "starknet_traceTransaction")]
+    TraceTransaction(TraceTransactionInput),
 }
 
 impl std::fmt::Display for StarknetRequest {
@@ -287,6 +295,7 @@ impl std::fmt::Display for StarknetRequest {
             StarknetRequest::AddInvokeTransaction(_) => write!(f, "starknet_addInvokeTransaction"),
             StarknetRequest::EstimateMessageFee(_) => write!(f, "starknet_estimateMessageFee"),
             StarknetRequest::SimulateTransactions(_) => write!(f, "starknet_simulateTransactions"),
+            StarknetRequest::TraceTransaction(_) => write!(f, "starknet_traceTransaction"),
         }
     }
 }
@@ -320,6 +329,7 @@ pub(crate) enum StarknetResponse {
     EstimateMessageFee(FeeEstimateWrapper),
     SimulateTransactions(Vec<SimulatedTransaction>),
     SpecVersion(String),
+    TraceTransaction(TransactionTrace),
 }
 
 #[cfg(test)]

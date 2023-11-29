@@ -160,6 +160,12 @@ pub struct TransactionStatusOutput {
     pub execution_status: TransactionExecutionStatus,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct TraceTransactionInput {
+    pub(crate) transaction_hash: TransactionHash,
+}
+
 #[cfg(test)]
 mod tests {
     use starknet_types::contract_address::ContractAddress;
