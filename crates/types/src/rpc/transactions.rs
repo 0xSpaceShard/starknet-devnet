@@ -12,7 +12,7 @@ use declare_transaction_v2::DeclareTransactionV2;
 use deploy_account_transaction::DeployAccountTransaction;
 use deploy_transaction::DeployTransaction;
 use invoke_transaction_v1::InvokeTransactionV1;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use starknet_api::block::BlockNumber;
 use starknet_api::deprecated_contract_class::EntryPointType;
 use starknet_api::transaction::Fee;
@@ -334,11 +334,41 @@ impl BroadcastedTransaction {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum BroadcastedDeclareTransaction {
     V1(Box<BroadcastedDeclareTransactionV1>),
     V2(Box<BroadcastedDeclareTransactionV2>),
+}
+
+impl<'de> Deserialize<'de> for BroadcastedDeclareTransaction {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let raw_value = serde_json::Value::deserialize(deserializer)?;
+        match raw_value.get("version") {
+            Some(version_raw) => match version_raw.as_str() {
+                Some(version) => match version {
+                    "0x1" => {
+                        let unpacked: BroadcastedDeclareTransactionV1 =
+                            serde_json::from_value(raw_value).map_err(serde::de::Error::custom)?;
+                        Ok(BroadcastedDeclareTransaction::V1(Box::new(unpacked)))
+                    }
+                    "0x2" => {
+                        let unpacked: BroadcastedDeclareTransactionV2 =
+                            serde_json::from_value(raw_value).map_err(serde::de::Error::custom)?;
+                        Ok(BroadcastedDeclareTransaction::V2(Box::new(unpacked)))
+                    }
+                    other => Err(serde::de::Error::custom(format!("Invalid version: {other}"))),
+                },
+                None => Err(serde::de::Error::custom(format!(
+                    "Invalid version format! Expected hex string, got: {version_raw}"
+                ))),
+            },
+            None => Err(serde::de::Error::missing_field("version")),
+        }
+    }
 }
 
 /// Flags that indicate how to simulate a given transaction.
