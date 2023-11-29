@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp};
 use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag as ImportedBlockTag};
 
@@ -36,6 +36,7 @@ impl From<ImportedBlockTag> for Tag {
 }
 
 #[derive(Copy, Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+// TODO test if both block_hash and block_number present
 pub enum BlockHashOrNumber {
     #[serde(rename = "block_hash")]
     Hash(Felt),
@@ -43,7 +44,7 @@ pub enum BlockHashOrNumber {
     Number(BlockNumber),
 }
 
-#[derive(Copy, Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum BlockId {
     HashOrNumber(BlockHashOrNumber),
@@ -72,6 +73,27 @@ impl From<ImportedBlockId> for BlockId {
             ImportedBlockId::Hash(hash) => {
                 BlockId::HashOrNumber(BlockHashOrNumber::Hash(hash.into()))
             }
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for BlockId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        println!("DEBUG inside deserialize of BlockId");
+        let value = serde_json::Value::deserialize(deserializer)?;
+        if value.as_str().is_some() {
+            let block_id: Tag = serde_json::from_value(value)
+                .map_err(|e| serde::de::Error::custom(format!("Invalid block ID: {e}")))?;
+            Ok(BlockId::Tag(block_id))
+        } else if value.as_object().is_some() {
+            let block_id: BlockHashOrNumber = serde_json::from_value(value)
+                .map_err(|e| serde::de::Error::custom(format!("Invalid block ID: {e}")))?;
+            Ok(BlockId::HashOrNumber(block_id))
+        } else {
+            Err(serde::de::Error::custom(format!("Invalid block ID: {value}")))
         }
     }
 }
