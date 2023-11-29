@@ -5,10 +5,8 @@ use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
-use broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
 use declare_transaction_v0v1::DeclareTransactionV0V1;
 use declare_transaction_v2::DeclareTransactionV2;
-use deploy_account_transaction::DeployAccountTransaction;
 use deploy_transaction::DeployTransaction;
 use invoke_transaction_v1::InvokeTransactionV1;
 use serde::{Deserialize, Serialize};
@@ -20,7 +18,9 @@ use starknet_rs_core::types::{BlockId, ExecutionResult, TransactionFinalityStatu
 use starknet_rs_crypto::poseidon_hash_many;
 use starknet_rs_ff::FieldElement;
 
+use self::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
 use self::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
+use self::deploy_account_transaction::DeployAccountTransactionV1;
 use super::estimate_message_fee::FeeEstimateWrapper;
 use super::state::ThinStateDiff;
 use super::transaction_receipt::{ExecutionResources, OrderedMessageToL1};
@@ -42,7 +42,7 @@ use crate::rpc::transaction_receipt::{
 pub mod broadcasted_declare_transaction_v1;
 pub mod broadcasted_declare_transaction_v2;
 pub mod broadcasted_declare_transaction_v3;
-pub mod broadcasted_deploy_account_transaction;
+pub mod broadcasted_deploy_account_transaction_v1;
 pub mod broadcasted_invoke_transaction_v1;
 pub mod broadcasted_invoke_transaction_v3;
 
@@ -248,6 +248,21 @@ impl InvokeTransaction {
     }
 }
 
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum DeployAccountTransaction {
+    Version1(DeployAccountTransactionV1),
+    // Version3()
+}
+
+impl DeployAccountTransaction {
+    pub fn get_transaction_hash(&self) -> &TransactionHash {
+        match self {
+            DeployAccountTransaction::Version1(tx) => tx.get_transaction_hash(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub struct L1HandlerTransaction {
     pub transaction_hash: TransactionHash,
@@ -434,11 +449,11 @@ impl BroadcastedTransaction {
             BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(declare_v2)) => {
                 AccountTransaction::Declare(declare_v2.create_blockifier_declare(chain_id)?)
             }
-            BroadcastedTransaction::DeployAccount(deploy_account) => {
-                AccountTransaction::DeployAccount(
-                    deploy_account.create_blockifier_deploy_account(chain_id, only_query)?,
-                )
-            }
+            BroadcastedTransaction::DeployAccount(BroadcastedDeployAccountTransaction::V1(
+                deploy_account_v1,
+            )) => AccountTransaction::DeployAccount(
+                deploy_account_v1.create_blockifier_deploy_account(chain_id, only_query)?,
+            ),
         };
 
         Ok(blockifier_transaction)
@@ -452,6 +467,11 @@ pub enum BroadcastedDeclareTransaction {
     V2(Box<BroadcastedDeclareTransactionV2>),
 }
 
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum BroadcastedDeployAccountTransaction {
+    V1(BroadcastedDeployAccountTransactionV1),
+}
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum BroadcastedInvokeTransaction {
@@ -623,7 +643,6 @@ impl FunctionInvocation {
 
 #[cfg(test)]
 mod tests {
-    use starknet_api::data_availability::DataAvailabilityMode;
     use starknet_rs_crypto::poseidon_hash_many;
     use starknet_rs_ff::FieldElement;
 

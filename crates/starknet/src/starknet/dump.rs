@@ -4,9 +4,11 @@ use std::path::Path;
 
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
-use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
+use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
-use starknet_types::rpc::transactions::{DeclareTransaction, InvokeTransaction, Transaction};
+use starknet_types::rpc::transactions::{
+    DeclareTransaction, DeployAccountTransaction, InvokeTransaction, Transaction,
+};
 
 use super::{DumpOn, Starknet};
 use crate::error::{DevnetResult, Error};
@@ -41,8 +43,8 @@ impl Starknet {
                     );
                     self.add_declare_transaction_v2(declare_tx)?;
                 }
-                Transaction::DeployAccount(tx) => {
-                    let deploy_account_tx = BroadcastedDeployAccountTransaction::new(
+                Transaction::DeployAccount(DeployAccountTransaction::Version1(tx)) => {
+                    let deploy_account_tx = BroadcastedDeployAccountTransactionV1::new(
                         &tx.constructor_calldata,
                         tx.max_fee,
                         &tx.signature,
@@ -51,7 +53,7 @@ impl Starknet {
                         tx.contract_address_salt,
                         tx.version,
                     );
-                    self.add_deploy_account_transaction(deploy_account_tx)?;
+                    self.add_deploy_account_transaction_v1(deploy_account_tx)?;
                 }
                 Transaction::Deploy(_) => return Err(Error::SerializationNotSupported),
                 Transaction::Invoke(InvokeTransaction::Version0(_)) => {

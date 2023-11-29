@@ -10,7 +10,7 @@ use crate::felt::{
 use crate::traits::HashProducer;
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
-pub struct DeployAccountTransaction {
+pub struct DeployAccountTransactionV1 {
     pub transaction_hash: TransactionHash,
     pub max_fee: Fee,
     pub version: TransactionVersion,
@@ -22,13 +22,13 @@ pub struct DeployAccountTransaction {
     pub contract_address: ContractAddress,
 }
 
-impl DeployAccountTransaction {
+impl DeployAccountTransactionV1 {
     pub fn get_transaction_hash(&self) -> &TransactionHash {
         &self.transaction_hash
     }
 }
 
-impl HashProducer for DeployAccountTransaction {
+impl HashProducer for DeployAccountTransactionV1 {
     type Error = Error;
     fn generate_hash(&self) -> DevnetResult<Felt> {
         Ok(self.transaction_hash)

@@ -31,13 +31,13 @@ use starknet_types::rpc::state::ThinStateDiff;
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
-use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
+use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use starknet_types::rpc::transactions::{
-    BroadcastedInvokeTransaction, BroadcastedTransaction, BroadcastedTransactionCommon,
-    DeclareTransaction, DeclareTransactionTrace, DeployAccountTransactionTrace,
-    ExecutionInvocation, FunctionInvocation, InvokeTransactionTrace, SimulatedTransaction,
-    SimulationFlag, Transaction, TransactionTrace, Transactions,
+    BroadcastedTransaction, BroadcastedTransactionCommon, DeclareTransaction,
+    DeclareTransactionTrace, DeployAccountTransactionTrace, ExecutionInvocation,
+    FunctionInvocation, InvokeTransactionTrace, SimulatedTransaction, SimulationFlag, Transaction,
+    TransactionTrace, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, warn};
@@ -508,11 +508,11 @@ impl Starknet {
         self.config.chain_id
     }
 
-    pub fn add_deploy_account_transaction(
+    pub fn add_deploy_account_transaction_v1(
         &mut self,
-        deploy_account_transaction: BroadcastedDeployAccountTransaction,
+        deploy_account_transaction: BroadcastedDeployAccountTransactionV1,
     ) -> DevnetResult<(TransactionHash, ContractAddress)> {
-        add_deploy_account_transaction::add_deploy_account_transaction(
+        add_deploy_account_transaction::add_deploy_account_transaction_v1(
             self,
             deploy_account_transaction,
         )

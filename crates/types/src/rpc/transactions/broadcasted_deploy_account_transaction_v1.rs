@@ -6,13 +6,13 @@ use starknet_api::transaction::Fee;
 use starknet_rs_core::crypto::compute_hash_on_elements;
 use starknet_rs_ff::FieldElement;
 
+use super::deploy_account_transaction::DeployAccountTransactionV1;
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
 use crate::felt::{
     Calldata, ClassHash, ContractAddressSalt, Felt, Nonce, TransactionHash, TransactionSignature,
     TransactionVersion,
 };
-use crate::rpc::transactions::deploy_account_transaction::DeployAccountTransaction;
 use crate::rpc::transactions::BroadcastedTransactionCommon;
 
 /// Cairo string for "deploy_account" from starknet-rs
@@ -25,7 +25,7 @@ const PREFIX_DEPLOY_ACCOUNT: FieldElement = FieldElement::from_mont([
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct BroadcastedDeployAccountTransaction {
+pub struct BroadcastedDeployAccountTransactionV1 {
     #[serde(flatten)]
     pub common: BroadcastedTransactionCommon,
     pub contract_address_salt: ContractAddressSalt,
@@ -33,7 +33,7 @@ pub struct BroadcastedDeployAccountTransaction {
     pub class_hash: ClassHash,
 }
 
-impl BroadcastedDeployAccountTransaction {
+impl BroadcastedDeployAccountTransactionV1 {
     pub fn new(
         constructor_calldata: &Calldata,
         max_fee: Fee,
@@ -111,12 +111,12 @@ impl BroadcastedDeployAccountTransaction {
         })
     }
 
-    pub fn compile_deploy_account_transaction(
+    pub fn compile_deploy_account_transaction_v1(
         &self,
         transaction_hash: &TransactionHash,
         contract_address: ContractAddress,
-    ) -> DeployAccountTransaction {
-        DeployAccountTransaction {
+    ) -> DeployAccountTransactionV1 {
+        DeployAccountTransactionV1 {
             transaction_hash: *transaction_hash,
             max_fee: self.common.max_fee,
             version: self.common.version,
@@ -138,7 +138,7 @@ mod tests {
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
     use crate::felt::Felt;
-    use crate::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
+    use crate::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
     use crate::traits::ToHexString;
 
     #[derive(Deserialize)]
@@ -167,7 +167,7 @@ mod tests {
         let feeder_gateway_transaction: FeederGatewayDeployAccountTransaction =
             serde_json::from_value(json_obj.get("transaction").unwrap().clone()).unwrap();
 
-        let broadcasted_tx = BroadcastedDeployAccountTransaction::new(
+        let broadcasted_tx = BroadcastedDeployAccountTransactionV1::new(
             &feeder_gateway_transaction.constructor_calldata,
             Fee(u128::from_str_radix(
                 &feeder_gateway_transaction.max_fee.to_nonprefixed_hex_str(),

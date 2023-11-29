@@ -8,7 +8,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{Event, OrderedEvent};
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
 use starknet_types::rpc::transaction_receipt::{DeployTransactionReceipt, TransactionReceipt};
-use starknet_types::rpc::transactions::{Transaction, TransactionType};
+use starknet_types::rpc::transactions::{DeployAccountTransaction, Transaction, TransactionType};
 
 use crate::constants::UDC_CONTRACT_ADDRESS;
 use crate::error::{DevnetResult, Error};
@@ -161,12 +161,12 @@ impl StarknetTransaction {
         );
 
         match &self.inner {
-            Transaction::DeployAccount(deploy_account_transaction) => {
-                Ok(TransactionReceipt::Deploy(DeployTransactionReceipt {
-                    common: common_receipt,
-                    contract_address: deploy_account_transaction.contract_address,
-                }))
-            }
+            Transaction::DeployAccount(DeployAccountTransaction::Version1(
+                deploy_account_transaction_v1,
+            )) => Ok(TransactionReceipt::Deploy(DeployTransactionReceipt {
+                common: common_receipt,
+                contract_address: deploy_account_transaction_v1.contract_address,
+            })),
             Transaction::Invoke(_) => {
                 let deployed_address =
                     StarknetTransaction::get_deployed_address_from_events(&transaction_events)?;
