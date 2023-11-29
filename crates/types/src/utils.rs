@@ -84,6 +84,13 @@ impl Formatter for StarknetFormatter {
     }
 }
 
+pub(crate) fn into_vec<'a, Source, Target>(source: &'a [Source]) -> Vec<Target>
+where
+    Target: From<&'a Source>,
+{
+    source.iter().map(|x| Target::from(x)).collect()
+}
+
 #[cfg(test)]
 pub(crate) mod test_utils {
 
