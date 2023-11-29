@@ -347,6 +347,7 @@ impl<'de> Deserialize<'de> for BroadcastedDeclareTransaction {
         D: Deserializer<'de>,
     {
         let raw_value = serde_json::Value::deserialize(deserializer)?;
+        // TODO refactor
         match raw_value.get("version") {
             Some(version_raw) => match version_raw.as_str() {
                 Some(version) => match version {
