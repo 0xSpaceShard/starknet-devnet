@@ -16,7 +16,7 @@ use crate::rpc::transactions::invoke_transaction_v1::InvokeTransactionV1;
 use crate::rpc::transactions::BroadcastedTransactionCommon;
 
 /// Cairo string for "invoke" from starknet-rs
-const PREFIX_INVOKE: FieldElement = FieldElement::from_mont([
+pub(crate) const PREFIX_INVOKE: FieldElement = FieldElement::from_mont([
     18443034532770911073,
     18446744073709551615,
     18446744073709551615,
