@@ -93,6 +93,7 @@ where
 
 #[cfg(test)]
 pub(crate) mod test_utils {
+    use starknet_api::data_availability::DataAvailabilityMode;
 
     pub(crate) const CAIRO_0_ACCOUNT_CONTRACT_PATH: &str =
         concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/Cairo0_contract.json");
@@ -112,8 +113,15 @@ pub(crate) mod test_utils {
 
     pub(crate) const CAIRO_1_CONTRACT_SIERRA_HASH: &str =
         "0x113bf26d112a164297e04381212c9bd7409f07591f0a04f539bdf56693eaaf3";
-}
 
+    pub(crate) fn from_u8_to_da_mode(da_mode: u8) -> DataAvailabilityMode {
+        match da_mode {
+            0 => DataAvailabilityMode::L1,
+            1 => DataAvailabilityMode::L2,
+            _ => panic!("Invalid data availability mode"),
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
     use serde_json::Value;
