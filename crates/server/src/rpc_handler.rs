@@ -43,8 +43,12 @@ pub trait RpcHandler: Clone + Send + Sync + 'static {
                 RpcResponse::new(id, result)
             }
             Err(err) => {
+                // TODO add test for method not found
                 let err = err.to_string();
-                if err.contains("unknown variant") {
+                // since JSON-RPC specification requires returning a Method Not Found error,
+                // we apply a hacky way to induce this - checking the stringified error message
+                let distinctive_error = format!("unknown variant `{method}`");
+                if err.contains(&distinctive_error) {
                     error!(target: "rpc", ?method, "failed to deserialize method due to unknown variant");
                     RpcResponse::new(id, RpcError::method_not_found())
                 } else {
