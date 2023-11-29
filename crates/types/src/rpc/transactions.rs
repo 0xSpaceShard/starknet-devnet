@@ -13,9 +13,12 @@ use deploy_transaction::DeployTransaction;
 use invoke_transaction_v1::InvokeTransactionV1;
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
+use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::deprecated_contract_class::EntryPointType;
-use starknet_api::transaction::Fee;
+use starknet_api::transaction::{Fee, Resource, ResourceBoundsMapping, Tip};
 use starknet_rs_core::types::{BlockId, ExecutionResult, TransactionFinalityStatus};
+use starknet_rs_crypto::poseidon_hash_many;
+use starknet_rs_ff::FieldElement;
 
 use self::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use super::estimate_message_fee::FeeEstimateWrapper;
@@ -27,7 +30,7 @@ use crate::constants::{
 };
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::{Event, OrderedEvent};
-use crate::error::{ConversionError, DevnetResult};
+use crate::error::{ConversionError, DevnetResult, Error, JsonError};
 use crate::felt::{
     BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash, TransactionSignature,
     TransactionVersion,
@@ -38,14 +41,19 @@ use crate::rpc::transaction_receipt::{
 
 pub mod broadcasted_declare_transaction_v1;
 pub mod broadcasted_declare_transaction_v2;
+pub mod broadcasted_declare_transaction_v3;
 pub mod broadcasted_deploy_account_transaction;
 pub mod broadcasted_invoke_transaction_v1;
+pub mod broadcasted_invoke_transaction_v3;
 
 pub mod declare_transaction_v0v1;
 pub mod declare_transaction_v2;
 pub mod deploy_account_transaction;
 pub mod deploy_transaction;
 pub mod invoke_transaction_v1;
+
+/// number of bits to be shifted when encoding the data availability mode into `FieldElement` type
+const DATA_AVAILABILITY_MODE_BITS: u8 = 32;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
@@ -289,6 +297,109 @@ pub struct BroadcastedTransactionCommon {
     pub nonce: Nonce,
 }
 
+/// Common fields for all transaction type of version 3
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+pub struct BroadcastedTransactionCommonV3 {
+    pub version: TransactionVersion,
+    pub signature: TransactionSignature,
+    pub nonce: Nonce,
+    pub resource_bounds: ResourceBoundsMapping,
+    pub tip: Tip,
+    pub paymaster_data: Vec<Felt>,
+    pub nonce_data_availability_mode: DataAvailabilityMode,
+    pub fee_data_availability_mode: DataAvailabilityMode,
+}
+
+impl BroadcastedTransactionCommonV3 {
+    /// Returns an array of FieldElements that reflects the `common_tx_fields` according to SNIP-8(https://github.com/starknet-io/SNIPs/blob/main/SNIPS/snip-8.md/#protocol-changes).
+    ///
+    /// # Arguments
+    /// tx_prefix - the prefix of the transaction hash
+    /// chain_id - the chain id of the network the transaction is broadcasted to
+    /// address - the address of the sender
+    pub(crate) fn common_fields_for_hash(
+        &self,
+        tx_prefix: FieldElement,
+        chain_id: FieldElement,
+        address: FieldElement,
+    ) -> Result<Vec<FieldElement>, Error> {
+        let array: Vec<FieldElement> = vec![
+            tx_prefix,                                                        // TX_PREFIX
+            self.version.into(),                                              // version
+            address,                                                          // address
+            poseidon_hash_many(self.get_resource_bounds_array()?.as_slice()), /* h(tip, resource_bounds_for_fee) */
+            poseidon_hash_many(
+                self.paymaster_data
+                    .iter()
+                    .map(|f| FieldElement::from(*f))
+                    .collect::<Vec<FieldElement>>()
+                    .as_slice(),
+            ), // h(paymaster_data)
+            chain_id,                                                         // chain_id
+            self.nonce.into(),                                                // nonce
+            self.get_data_availability_modes_field_element(), /* nonce_data_availabilty ||
+                                                               * fee_data_availability_mode */
+        ];
+
+        Ok(array)
+    }
+
+    /// Returns the array of FieldElements that reflects (tip, resource_bounds_for_fee) from SNIP-8
+    pub(crate) fn get_resource_bounds_array(&self) -> Result<Vec<FieldElement>, Error> {
+        let mut array = Vec::<FieldElement>::new();
+        array.push(FieldElement::from(self.tip.0));
+
+        let ordered_resources = vec![Resource::L1Gas, Resource::L2Gas];
+
+        for resource in ordered_resources {
+            if let Some(resource_bound) = self.resource_bounds.0.get(&resource) {
+                let resource_name_as_json_string =
+                    serde_json::to_value(resource).map_err(JsonError::SerdeJsonError)?;
+                let resource_name_bytes = resource_name_as_json_string
+                    .as_str()
+                    .ok_or(Error::JsonError(JsonError::Custom {
+                        msg: "resource name is not a string".into(),
+                    }))?
+                    .as_bytes();
+
+                // (resource||max_amount||max_price_per_unit) from SNIP-8 https://github.com/starknet-io/SNIPs/blob/main/SNIPS/snip-8.md#protocol-changes
+                let bytes: Vec<u8> = [
+                    resource_name_bytes,
+                    resource_bound.max_amount.to_be_bytes().as_slice(),
+                    resource_bound.max_price_per_unit.to_be_bytes().as_slice(),
+                ]
+                .into_iter()
+                .flatten()
+                .copied()
+                .collect();
+
+                array.push(FieldElement::from_byte_slice_be(bytes.as_slice())?);
+            }
+        }
+
+        Ok(array)
+    }
+
+    /// Returns FieldElement that encodes the data availability modes of the transaction
+    pub(crate) fn get_data_availability_modes_field_element(&self) -> FieldElement {
+        fn get_data_availability_mode_value_as_u64(
+            data_availability_mode: DataAvailabilityMode,
+        ) -> u64 {
+            match data_availability_mode {
+                DataAvailabilityMode::L1 => 0,
+                DataAvailabilityMode::L2 => 1,
+            }
+        }
+
+        let da_mode = get_data_availability_mode_value_as_u64(self.nonce_data_availability_mode)
+            << DATA_AVAILABILITY_MODE_BITS;
+        let da_mode =
+            da_mode + get_data_availability_mode_value_as_u64(self.fee_data_availability_mode);
+
+        FieldElement::from(da_mode)
+    }
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(tag = "type")]
 pub enum BroadcastedTransaction {
@@ -507,5 +618,57 @@ impl FunctionInvocation {
             events,
             messages,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use starknet_api::data_availability::DataAvailabilityMode;
+    use starknet_rs_crypto::poseidon_hash_many;
+    use starknet_rs_ff::FieldElement;
+
+    use super::BroadcastedTransactionCommonV3;
+
+    #[test]
+    fn test_dummy_transaction_hash_taken_from_papyrus() {
+        let txn_json_str = r#"{
+            "signature": ["0x3", "0x4"],
+            "version": "0x3",
+            "nonce": "0x9",
+            "sender_address": "0x12fd538",
+            "constructor_calldata": ["0x21b", "0x151"],
+            "nonce_data_availability_mode": "L1",
+            "fee_data_availability_mode": "L1",
+            "resource_bounds": {
+              "L2_GAS": {
+                "max_amount": "0x0",
+                "max_price_per_unit": "0x0"
+              },
+              "L1_GAS": {
+                "max_amount": "0x7c9",
+                "max_price_per_unit": "0x1"
+              }
+            },
+            "tip": "0x0",
+            "paymaster_data": [],
+            "account_deployment_data": [],
+            "calldata": [
+              "0x11",
+              "0x26"
+            ]
+          }"#;
+
+        let common_fields =
+            serde_json::from_str::<BroadcastedTransactionCommonV3>(txn_json_str).unwrap();
+        let common_fields_hash =
+            poseidon_hash_many(&common_fields.get_resource_bounds_array().unwrap());
+        println!("{:x}", common_fields_hash);
+
+        let expected_hash: FieldElement = FieldElement::from_hex_be(
+            "0x07be65f04548dfe645c70f07d1f8ead572c09e0e6e125c47d4cc22b4de3597cc",
+        )
+        .unwrap();
+
+        assert_eq!(common_fields_hash, expected_hash);
     }
 }
