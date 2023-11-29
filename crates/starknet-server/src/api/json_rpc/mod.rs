@@ -21,7 +21,9 @@ use starknet_types::rpc::estimate_message_fee::{
 };
 use starknet_types::rpc::state::StateUpdate;
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
-use starknet_types::rpc::transactions::{EventsChunk, SimulatedTransaction, Transaction, TransactionTrace};
+use starknet_types::rpc::transactions::{
+    EventsChunk, SimulatedTransaction, Transaction, TransactionTrace,
+};
 use starknet_types::starknet_api::block::BlockNumber;
 use tracing::{error, info, trace};
 
@@ -30,7 +32,7 @@ use self::models::{
     BlockHashAndNumberOutput, BlockIdInput, BroadcastedDeclareTransactionInput,
     BroadcastedDeployAccountTransactionInput, BroadcastedInvokeTransactionInput,
     DeclareTransactionOutput, DeployAccountTransactionOutput, InvokeTransactionOutput,
-    SyncingOutput, TransactionStatusOutput, TraceTransactionInput,
+    SyncingOutput, TraceTransactionInput, TransactionStatusOutput,
 };
 use super::Api;
 use crate::api::json_rpc::models::{
@@ -183,12 +185,9 @@ impl JsonRpcHandler {
                 .simulate_transactions(block_id, transactions, simulation_flags)
                 .await
                 .to_rpc_result(),
-            StarknetRequest::TraceTransaction(TraceTransactionInput {
-                transaction_hash
-                }) => self
-                    .get_trace_transaction(transaction_hash)
-                    .await
-                    .to_rpc_result(),
+            StarknetRequest::TraceTransaction(TraceTransactionInput { transaction_hash }) => {
+                self.get_trace_transaction(transaction_hash).await.to_rpc_result()
+            }
         }
     }
 }

@@ -387,7 +387,6 @@ pub enum TransactionTrace {
     #[serde(rename = "DEPLOY_ACCOUNT")]
     DeployAccount(DeployAccountTransactionTrace),
     // TODO: L1 handler is missing, is it needed?
-    // TODO: Type is converted to json?
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
