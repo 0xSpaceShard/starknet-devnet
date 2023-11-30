@@ -2,16 +2,14 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use starknet_api::core::calculate_contract_address;
+use starknet_api::transaction::DeployAccountTransactionV3;
 use starknet_rs_crypto::poseidon_hash_many;
 
 use super::broadcasted_deploy_account_transaction_v1::PREFIX_DEPLOY_ACCOUNT;
-
 use super::BroadcastedTransactionCommonV3;
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
-use crate::felt::{
-    Calldata, ClassHash, ContractAddressSalt, Felt,
-};
+use crate::felt::{Calldata, ClassHash, ContractAddressSalt, Felt};
 use crate::utils::into_vec;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
@@ -25,20 +23,15 @@ pub struct BroadcastedDeployAccountTransactionV3 {
 }
 
 impl BroadcastedDeployAccountTransactionV3 {
-    fn calculate_transaction_hash(&self, chain_id: Felt) -> DevnetResult<Felt> {
-        let contract_address = calculate_contract_address(
-            starknet_api::transaction::ContractAddressSalt(self.contract_address_salt.into()),
-            starknet_api::core::ClassHash(self.class_hash.into()),
-            &starknet_api::transaction::Calldata(Arc::new(
-                self.constructor_calldata.iter().map(|felt| felt.into()).collect(),
-            )),
-            starknet_api::core::ContractAddress::from(0u8),
-        )?;
-
+    fn calculate_transaction_hash(
+        &self,
+        chain_id: Felt,
+        contract_address: ContractAddress,
+    ) -> DevnetResult<Felt> {
         let common_fields = self.common.common_fields_for_hash(
             PREFIX_DEPLOY_ACCOUNT,
             chain_id.into(),
-            ContractAddress::from(contract_address).into(),
+            contract_address.into(),
         )?;
 
         let constructor_calldata_hash = poseidon_hash_many(&into_vec(&self.constructor_calldata));
@@ -55,6 +48,66 @@ impl BroadcastedDeployAccountTransactionV3 {
 
         Ok(txn_hash.into())
     }
+
+    fn calculate_contract_address(
+        contract_address_salt: &Felt,
+        class_hash: &ClassHash,
+        constructor_calldata: &Calldata,
+    ) -> DevnetResult<ContractAddress> {
+        let contract_address = calculate_contract_address(
+            starknet_api::transaction::ContractAddressSalt(contract_address_salt.into()),
+            starknet_api::core::ClassHash(class_hash.into()),
+            &starknet_api::transaction::Calldata(Arc::new(
+                constructor_calldata.iter().map(|felt| felt.into()).collect(),
+            )),
+            starknet_api::core::ContractAddress::from(0u8),
+        )?;
+
+        Ok(ContractAddress::from(contract_address))
+    }
+
+    pub fn create_blockifier_deploy_account(
+        &self,
+        chain_id: Felt,
+        only_query: bool,
+    ) -> DevnetResult<blockifier::transaction::transactions::DeployAccountTransaction> {
+        let contract_address = Self::calculate_contract_address(
+            &self.contract_address_salt,
+            &self.class_hash,
+            &self.constructor_calldata,
+        )?;
+
+        let transaction_hash = self.calculate_transaction_hash(chain_id, contract_address)?;
+
+        let sn_api_deploy_account =
+            starknet_api::transaction::DeployAccountTransaction::V3(DeployAccountTransactionV3 {
+                resource_bounds: self.common.resource_bounds.clone(),
+                tip: self.common.tip,
+                signature: starknet_api::transaction::TransactionSignature(into_vec(
+                    &self.common.signature,
+                )),
+                nonce: starknet_api::core::Nonce(self.common.nonce.into()),
+                class_hash: starknet_api::core::ClassHash(self.class_hash.into()),
+                nonce_data_availability_mode: self.common.nonce_data_availability_mode,
+                fee_data_availability_mode: self.common.fee_data_availability_mode,
+                paymaster_data: starknet_api::transaction::PaymasterData(into_vec(
+                    &self.common.paymaster_data,
+                )),
+                contract_address_salt: starknet_api::transaction::ContractAddressSalt(
+                    self.contract_address_salt.into(),
+                ),
+                constructor_calldata: starknet_api::transaction::Calldata(Arc::new(into_vec(
+                    &self.constructor_calldata,
+                ))),
+            });
+
+        Ok(blockifier::transaction::transactions::DeployAccountTransaction {
+            tx: sn_api_deploy_account,
+            tx_hash: starknet_api::transaction::TransactionHash(transaction_hash.into()),
+            contract_address: contract_address.try_into()?,
+            only_query,
+        })
+    }
 }
 
 #[cfg(test)]
@@ -63,12 +116,9 @@ mod tests {
     use starknet_api::transaction::{ResourceBoundsMapping, Tip};
 
     use crate::chain_id::ChainId;
-    
     use crate::felt::Felt;
     use crate::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
-    
     use crate::rpc::transactions::BroadcastedTransactionCommonV3;
-    
     use crate::utils::test_utils::from_u8_to_da_mode;
 
     #[derive(Deserialize)]
@@ -130,7 +180,17 @@ mod tests {
 
         assert_eq!(
             feeder_gateway_transaction.transaction_hash,
-            broadcasted_txn.calculate_transaction_hash(ChainId::Testnet.to_felt()).unwrap()
+            broadcasted_txn
+                .calculate_transaction_hash(
+                    ChainId::Testnet.to_felt(),
+                    BroadcastedDeployAccountTransactionV3::calculate_contract_address(
+                        &broadcasted_txn.contract_address_salt,
+                        &broadcasted_txn.class_hash,
+                        &broadcasted_txn.constructor_calldata
+                    )
+                    .unwrap()
+                )
+                .unwrap()
         );
     }
 }
