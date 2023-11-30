@@ -21,12 +21,19 @@ aliases:
 # See: https://circleci.com/docs/configuration-reference/#jobs
 jobs:
   build-and-test:
+    parameters:
+      cargo_cache_key:
+        type: string
     docker:
       - image: cimg/rust:1.69.0
     resource_class: xlarge
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - << parameters.cargo_cache_key >>
       - run:
+          # this step doesn't need to be cached, it's relatively fast (15s on Docker/X-Large)
           name: Install nightly
           command: rustup install nightly
       - run:
@@ -38,6 +45,20 @@ jobs:
       - run:
           name: Format check
           command: cargo +nightly fmt --all --check
+      - save_cache:
+          # Caching dependencies for future use
+          # Build and Clippy steps generate their own target artifacts
+          # Test also generates, but significantly more
+          # Compromise: saving before Test
+          paths:
+            - /home/circleci/.cargo/registry
+            - target/debug/.fingerprint
+            - target/debug/build
+            - target/debug/deps
+            - target/release/.fingerprint
+            - target/release/build
+            - target/release/deps
+          key: << parameters.cargo_cache_key >>
       - run:
           name: Test
           # if jobs not limited - fails
@@ -90,7 +111,8 @@ jobs:
 workflows:
   main:
     jobs:
-      - build-and-test
+      - build-and-test:
+          cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-v1
       - image-build-amd:
           <<: *on_main
       - image-build-arm:

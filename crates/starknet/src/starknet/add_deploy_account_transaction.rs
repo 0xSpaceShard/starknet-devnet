@@ -13,9 +13,7 @@ pub fn add_deploy_account_transaction_v1(
     broadcasted_deploy_account_transaction: BroadcastedDeployAccountTransactionV1,
 ) -> DevnetResult<(TransactionHash, ContractAddress)> {
     if broadcasted_deploy_account_transaction.common.max_fee.0 == 0 {
-        return Err(Error::FeeError {
-            reason: "For deploy account transaction, max fee cannot be 0".to_string(),
-        });
+        return Err(Error::MaxFeeZeroError { tx_type: "deploy account transaction".into() });
     }
 
     if !starknet.state.is_contract_declared(&broadcasted_deploy_account_transaction.class_hash) {
@@ -81,8 +79,8 @@ mod tests {
 
         assert!(result.is_err());
         match result.err().unwrap() {
-            crate::error::Error::FeeError { reason: msg } => {
-                assert_eq!(msg, "For deploy account transaction, max fee cannot be 0")
+            err @ crate::error::Error::MaxFeeZeroError { .. } => {
+                assert_eq!(err.to_string(), "deploy account transaction: max_fee cannot be zero")
             }
             _ => panic!("Wrong error type"),
         }
