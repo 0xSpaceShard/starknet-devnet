@@ -16,7 +16,7 @@ use crate::felt::{
 use crate::rpc::transactions::BroadcastedTransactionCommon;
 
 /// Cairo string for "deploy_account" from starknet-rs
-const PREFIX_DEPLOY_ACCOUNT: FieldElement = FieldElement::from_mont([
+pub(crate) const PREFIX_DEPLOY_ACCOUNT: FieldElement = FieldElement::from_mont([
     3350261884043292318,
     18443211694809419988,
     18446744073709551615,
