@@ -162,7 +162,6 @@ fn generate_json_rpc_response(
 }
 
 mod tests {
-
     use super::{generate_combined_schema, generate_json_rpc_response, Spec};
     use crate::api::json_rpc::spec_reader::generate_json_rpc_request;
     use crate::api::json_rpc::{StarknetRequest, StarknetResponse};
