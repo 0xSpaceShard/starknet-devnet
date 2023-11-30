@@ -267,7 +267,7 @@ mod tests {
                 {
                     "type": "DECLARE",
                     "max_fee": "0xA",
-                    "version": "0x1",
+                    "version": "0x2",
                     "signature": ["0xFF", "0xAA"],
                     "nonce": "0x0",
                     "sender_address": "0x0001",
