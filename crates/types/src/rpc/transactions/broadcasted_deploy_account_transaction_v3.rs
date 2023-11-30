@@ -5,13 +5,12 @@ use starknet_api::core::calculate_contract_address;
 use starknet_rs_crypto::poseidon_hash_many;
 
 use super::broadcasted_deploy_account_transaction_v1::PREFIX_DEPLOY_ACCOUNT;
-use super::deploy_account_transaction::DeployAccountTransactionV1;
+
 use super::BroadcastedTransactionCommonV3;
 use crate::contract_address::ContractAddress;
 use crate::error::DevnetResult;
 use crate::felt::{
-    Calldata, ClassHash, ContractAddressSalt, Felt, TransactionHash, TransactionSignature,
-    TransactionVersion,
+    Calldata, ClassHash, ContractAddressSalt, Felt,
 };
 use crate::utils::into_vec;
 
@@ -64,12 +63,12 @@ mod tests {
     use starknet_api::transaction::{ResourceBoundsMapping, Tip};
 
     use crate::chain_id::ChainId;
-    use crate::contract_address::ContractAddress;
+    
     use crate::felt::Felt;
     use crate::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
-    use crate::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
+    
     use crate::rpc::transactions::BroadcastedTransactionCommonV3;
-    use crate::traits::ToHexString;
+    
     use crate::utils::test_utils::from_u8_to_da_mode;
 
     #[derive(Deserialize)]
