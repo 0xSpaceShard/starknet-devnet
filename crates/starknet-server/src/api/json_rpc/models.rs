@@ -528,6 +528,48 @@ mod tests {
         );
     }
 
+    /// Panics if `text` does not contain `pattern`
+    fn assert_contains(text: &str, pattern: &str) {
+        if !text.contains(pattern) {
+            panic!(
+                "Failed content assertion!
+    Pattern: '{pattern}'
+    not present in
+    Text: '{text}'"
+            );
+        }
+    }
+
+    #[test]
+    fn assert_error_message_for_failed_block_id_deserialization() {
+        for (json_str, expected_msg) in [
+            (
+                r#"{"block_id": {"block_number": 10, "block_hash": "0x1"}}"#,
+                "expected map with a single key",
+            ),
+            (
+                r#"{"block_id": {"block_number": "123"}}"#,
+                "Invalid block ID: invalid type: string \"123\", expected u64",
+            ),
+            (r#"{"block_id": {"block_number": -123}}"#, "Invalid block ID: invalid number"),
+            (
+                r#"{"block_id": {"invalid_key": ""}}"#,
+                "Invalid block ID: unknown variant `invalid_key`, expected `block_hash` or \
+                 `block_number`",
+            ),
+            (
+                r#"{"block_id": {"block_hash": 123}}"#,
+                "Invalid block ID: invalid type: number, expected a string",
+            ),
+            (r#"{"block_id": {"block_hash": ""}}"#, "Invalid block ID: Missing prefix 0x"),
+        ] {
+            match serde_json::from_str::<BlockIdInput>(json_str) {
+                Err(err) => assert_contains(&err.to_string(), expected_msg),
+                other => panic!("Invalid result: {other:?}"),
+            }
+        }
+    }
+
     fn assert_block_id_tag_correctness(
         should_be_correct: bool,
         expected_tag: Tag,

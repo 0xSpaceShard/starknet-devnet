@@ -36,7 +36,6 @@ impl From<ImportedBlockTag> for Tag {
 }
 
 #[derive(Copy, Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-// TODO test if both block_hash and block_number present
 pub enum BlockHashOrNumber {
     #[serde(rename = "block_hash")]
     Hash(Felt),
