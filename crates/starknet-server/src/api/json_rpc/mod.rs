@@ -329,29 +329,53 @@ mod requests_tests {
 
     use super::StarknetRequest;
 
+    /// Panics if `text` does not contain `pattern`
+    pub fn assert_contains(text: &str, pattern: &str) {
+        if !text.contains(pattern) {
+            panic!(
+                "Failed content assertion!
+    Pattern: '{pattern}'
+    not present in
+    Text: '{text}'"
+            );
+        }
+    }
+
     #[test]
     fn deserialize_get_block_with_transaction_hashes_request() {
         let json_str =
             r#"{"method":"starknet_getBlockWithTxHashes","params":{"block_id":"latest"}}"#;
         assert_deserialization_succeeds(json_str);
+        assert_deserialization_succeeds(&json_str.replace("latest", "pending"));
 
-        assert_deserialization_fails(&json_str.replace("latest", "0x134134"));
+        assert_deserialization_fails(
+            &json_str.replace("latest", "0x134134"),
+            "Invalid block ID: unknown variant `0x134134`, expected `latest` or `pending`",
+        );
     }
 
     #[test]
     fn deserialize_get_block_with_transactions_request() {
-        let json_str = r#"{"method":"starknet_getBlockWithTxs","params":{"block_id":"pending"}}"#;
+        let json_str = r#"{"method":"starknet_getBlockWithTxs","params":{"block_id":"latest"}}"#;
         assert_deserialization_succeeds(json_str);
+        assert_deserialization_succeeds(&json_str.replace("latest", "pending"));
 
-        assert_deserialization_fails(json_str.replace("pending", "0x134134").as_str());
+        assert_deserialization_fails(
+            json_str.replace("latest", "0x134134").as_str(),
+            "Invalid block ID: unknown variant `0x134134`, expected `latest` or `pending`",
+        );
     }
 
     #[test]
     fn deserialize_get_state_update_request() {
         let json_str = r#"{"method":"starknet_getStateUpdate","params":{"block_id":"latest"}}"#;
         assert_deserialization_succeeds(json_str);
+        assert_deserialization_succeeds(&json_str.replace("latest", "pending"));
 
-        assert_deserialization_fails(&json_str.replace("latest", "0x134134"));
+        assert_deserialization_fails(
+            &json_str.replace("latest", "0x134134"),
+            "Invalid block ID: unknown variant `0x134134`, expected `latest` or `pending`",
+        );
     }
 
     #[test]
@@ -359,7 +383,15 @@ mod requests_tests {
         let json_str = r#"{"method":"starknet_getStorageAt","params":{"contract_address":"0x134134","key":"0x134134","block_id":"latest"}}"#;
         assert_deserialization_succeeds(json_str);
 
-        assert_deserialization_fails(&json_str.replace("0x134134", "134134"));
+        assert_deserialization_fails(
+            &json_str.replace(r#""contract_address":"0x134134""#, r#""contract_address":"123""#),
+            "Missing prefix 0x in 123",
+        );
+
+        assert_deserialization_fails(
+            &json_str.replace(r#""contract_address":"0x134134""#, r#""contract_address": 123"#),
+            "invalid type: integer `123`, expected a string",
+        );
     }
 
     #[test]
@@ -378,14 +410,17 @@ mod requests_tests {
         // Errored json, there is no object just string is passed
         assert_deserialization_fails(
             r#"{"method":"starknet_getTransactionByHash","params":"0x134134"}"#,
+            "invalid type: string \"0x134134\", expected struct",
         );
         // Errored json, hash is not prefixed with 0x
         assert_deserialization_fails(
             r#"{"method":"starknet_getTransactionByHash","params":{"transaction_hash":"134134"}}"#,
+            "Missing prefix 0x in 134134",
         );
         // Errored json, hex is longer than 64 chars
         assert_deserialization_fails(
             r#"{"method":"starknet_getTransactionByHash","params":{"transaction_hash":"0x004134134134134134134134134134134134134134134134134134134134134134"}}"#,
+            "Bad input - expected #bytes: 32",
         );
     }
 
@@ -394,7 +429,10 @@ mod requests_tests {
         let json_str = r#"{"method":"starknet_getTransactionByBlockIdAndIndex","params":{"block_id":"latest","index":0}}"#;
         assert_deserialization_succeeds(json_str);
 
-        assert_deserialization_fails(json_str.replace('0', "0x134134").as_str());
+        assert_deserialization_fails(
+            json_str.replace('0', "\"0x1\"").as_str(),
+            "invalid type: string \"0x1\", expected u64",
+        );
     }
 
     #[test]
@@ -402,7 +440,7 @@ mod requests_tests {
         let json_str = r#"{"method":"starknet_getTransactionReceipt","params":{"transaction_hash":"0xAAABB"}}"#;
         assert_deserialization_succeeds(json_str);
 
-        assert_deserialization_fails(json_str.replace("0xAAABB", "134134").as_str());
+        assert_deserialization_fails(json_str.replace("0x", "").as_str(), "Missing prefix 0x in");
     }
 
     #[test]
@@ -410,7 +448,7 @@ mod requests_tests {
         let json_str = r#"{"method":"starknet_getClass","params":{"block_id":"latest","class_hash":"0xAAABB"}}"#;
         assert_deserialization_succeeds(json_str);
 
-        assert_deserialization_fails(json_str.replace("0xAAABB", "134134").as_str());
+        assert_deserialization_fails(json_str.replace("0x", "").as_str(), "Missing prefix 0x");
     }
 
     #[test]
@@ -418,7 +456,7 @@ mod requests_tests {
         let json_str = r#"{"method":"starknet_getClassHashAt","params":{"block_id":"latest","contract_address":"0xAAABB"}}"#;
         assert_deserialization_succeeds(json_str);
 
-        assert_deserialization_fails(json_str.replace("0xAAABB", "134134").as_str());
+        assert_deserialization_fails(json_str.replace("0x", "").as_str(), "Missing prefix 0x");
     }
 
     #[test]
@@ -426,7 +464,7 @@ mod requests_tests {
         let json_str = r#"{"method":"starknet_getClassAt","params":{"block_id":"latest","contract_address":"0xAAABB"}}"#;
         assert_deserialization_succeeds(json_str);
 
-        assert_deserialization_fails(json_str.replace("0xAAABB", "134134").as_str());
+        assert_deserialization_fails(json_str.replace("0x", "").as_str(), "Missing prefix 0x");
     }
 
     #[test]
@@ -435,7 +473,10 @@ mod requests_tests {
             r#"{"method":"starknet_getBlockTransactionCount","params":{"block_id":"latest"}}"#;
         assert_deserialization_succeeds(json_str);
 
-        assert_deserialization_fails(json_str.replace("latest", "0x134134").as_str());
+        assert_deserialization_fails(
+            json_str.replace("latest", "0x134134").as_str(),
+            "Invalid block ID: unknown variant `0x134134`, expected `latest` or `pending`",
+        );
     }
 
     #[test]
@@ -454,13 +495,38 @@ mod requests_tests {
 
         assert_deserialization_succeeds(json_str);
 
-        assert_deserialization_fails(json_str.replace("starknet_call", "starknet_Call").as_str());
+        assert_deserialization_fails(
+            json_str.replace("starknet_call", "starknet_Call").as_str(),
+            "unknown variant `starknet_Call`",
+        );
 
-        assert_deserialization_fails(json_str.replace("0xAAABB", "134134").as_str());
+        assert_deserialization_fails(
+            json_str
+                .replace(r#""contract_address":"0xAAABB""#, r#""contract_address":"123""#)
+                .as_str(),
+            "Missing prefix 0x",
+        );
+        assert_deserialization_fails(
+            json_str
+                .replace(
+                    r#""entry_point_selector":"0x134134""#,
+                    r#""entry_point_selector":"134134""#,
+                )
+                .as_str(),
+            "Missing prefix 0x",
+        );
+        assert_deserialization_fails(
+            json_str.replace(r#""calldata":["0x134134"]"#, r#""calldata":["123"]"#).as_str(),
+            "Missing prefix 0x",
+        );
+        assert_deserialization_fails(
+            json_str.replace(r#""calldata":["0x134134"]"#, r#""calldata":[123]"#).as_str(),
+            "invalid type: integer `123`",
+        );
     }
 
     #[test]
-    fn deserialize_estimate_fee_request() {
+    fn deserialize_deploy_account_fee_estimation_request() {
         let json_str = r#"{
             "method":"starknet_estimateFee",
             "params":{
@@ -482,7 +548,25 @@ mod requests_tests {
 
         assert_deserialization_succeeds(json_str);
 
-        assert_deserialization_fails(json_str.replace("estimateFee", "estimate_fee").as_str());
+        assert_deserialization_fails(
+            json_str.replace("estimateFee", "estimate_fee").as_str(),
+            "unknown variant `starknet_estimate_fee`",
+        );
+    }
+
+    #[test]
+    fn deserialize_declare_v1_fee_estimation_request() {
+        todo!()
+    }
+
+    #[test]
+    fn deserialize_declare_v2_fee_estimation_request() {
+        todo!()
+    }
+
+    #[test]
+    fn deserialize_invoke_fee_estimation_request() {
+        todo!("add both 0x1 and 0x1000000...1")
     }
 
     #[test]
@@ -504,7 +588,7 @@ mod requests_tests {
         assert_deserialization_succeeds(json_str);
         assert_deserialization_succeeds(json_str.replace(r#""to_block": "pending","#, "").as_str());
 
-        assert_deserialization_fails(json_str.replace(r#""chunk_size": 1,"#, "").as_str());
+        assert_deserialization_fails(json_str.replace(r#""chunk_size": 1,"#, "").as_str(), "lmao");
     }
 
     #[test]
@@ -518,7 +602,10 @@ mod requests_tests {
         }"#;
 
         assert_deserialization_succeeds(json_str);
-        assert_deserialization_fails(json_str.replace(r#""block_id":"latest","#, "").as_str());
+        assert_deserialization_fails(
+            json_str.replace(r#""block_id":"latest","#, "").as_str(),
+            "lmao",
+        );
     }
 
     #[test]
@@ -540,11 +627,16 @@ mod requests_tests {
         }"#;
 
         assert_deserialization_succeeds(json_str);
-        assert_deserialization_fails(json_str.replace(r#""class_hash":"#, "").as_str());
+        assert_deserialization_fails(json_str.replace(r#""class_hash":"#, "").as_str(), "lmao");
     }
 
     #[test]
-    fn deserialize_add_declare_transaction_request() {
+    fn deserialize_add_declare_transaction_v1_request() {
+        todo!("Add success case and failure case")
+    }
+
+    #[test]
+    fn deserialize_add_declare_transaction_v2_request() {
         let json_str = r#"{
             "method":"starknet_addDeclareTransaction",
             "params":{
@@ -574,13 +666,18 @@ mod requests_tests {
         }"#;
 
         assert_deserialization_succeeds(json_str);
+
+        todo!("Add failure + try failure from ABI, perhaps simplify ABI");
     }
 
     fn assert_deserialization_succeeds(json_str: &str) {
         serde_json::from_str::<StarknetRequest>(json_str).unwrap();
     }
 
-    fn assert_deserialization_fails(json_str: &str) {
-        assert!(serde_json::from_str::<StarknetRequest>(json_str).is_err());
+    fn assert_deserialization_fails(json_str: &str, expected_msg: &str) {
+        match serde_json::from_str::<StarknetRequest>(json_str) {
+            Err(err) => assert_contains(&err.to_string(), expected_msg),
+            other => panic!("Invalid result: {other:?}"),
+        }
     }
 }

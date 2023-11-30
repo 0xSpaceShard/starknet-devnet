@@ -172,6 +172,7 @@ mod tests {
     use starknet_types::starknet_api::block::BlockNumber;
 
     use super::{BlockIdInput, EstimateFeeInput, GetStorageInput};
+    use crate::api::json_rpc::requests_tests::assert_contains;
 
     #[test]
     fn errored_deserialization_of_estimate_fee_with_broadcasted_declare_transaction() {
@@ -529,18 +530,6 @@ mod tests {
             10,
             r#"{"block_id": {"block_number": "0x01"}}"#,
         );
-    }
-
-    /// Panics if `text` does not contain `pattern`
-    fn assert_contains(text: &str, pattern: &str) {
-        if !text.contains(pattern) {
-            panic!(
-                "Failed content assertion!
-    Pattern: '{pattern}'
-    not present in
-    Text: '{text}'"
-            );
-        }
     }
 
     #[test]
