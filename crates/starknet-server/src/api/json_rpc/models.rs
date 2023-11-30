@@ -177,10 +177,10 @@ mod tests {
     fn errored_deserialization_of_estimate_fee_with_broadcasted_declare_transaction() {
         // Errored json struct that passed DECLARE V2, but contract class is of type V1
         let json_str = r#"{
-            "request": [
+            "request": [{
                 "type": "DECLARE",
                 "max_fee": "0xA",
-                "version": "0x1",
+                "version": "0x2",
                 "signature": ["0xFF", "0xAA"],
                 "nonce": "0x0",
                 "sender_address": "0x0001",
@@ -212,13 +212,16 @@ mod tests {
                     "program": "",
                     "entry_points_by_type": {}
                 }
-            ],
+            }],
             "block_id": {
                 "block_number": 1
             }
         }"#;
 
-        assert!(serde_json::from_str::<EstimateFeeInput>(json_str).is_err());
+        match serde_json::from_str::<EstimateFeeInput>(json_str) {
+            Err(err) => assert_contains(&err.to_string(), "Invalid declare transaction v2"),
+            other => panic!("Invalid result: {other:?}"),
+        }
     }
 
     #[test]

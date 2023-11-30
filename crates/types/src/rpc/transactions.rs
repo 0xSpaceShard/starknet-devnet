@@ -351,18 +351,18 @@ impl<'de> Deserialize<'de> for BroadcastedDeclareTransaction {
         match version_raw.as_str() {
             Some(v) if ["0x1", "0x100000000000000000000000000000001"].contains(&v) => {
                 let unpacked = serde_json::from_value(value).map_err(|e| {
-                    serde::de::Error::custom(format!("Invalid declare transaction V1: {e}"))
+                    serde::de::Error::custom(format!("Invalid declare transaction v1: {e}"))
                 })?;
                 Ok(BroadcastedDeclareTransaction::V1(Box::new(unpacked)))
             }
             Some(v) if ["0x2", "0x100000000000000000000000000000002"].contains(&v) => {
                 let unpacked = serde_json::from_value(value).map_err(|e| {
-                    serde::de::Error::custom(format!("Invalid declare transaction V2: {e}"))
+                    serde::de::Error::custom(format!("Invalid declare transaction v2: {e}"))
                 })?;
                 Ok(BroadcastedDeclareTransaction::V2(Box::new(unpacked)))
             }
             _ => Err(serde::de::Error::custom(format!(
-                "Invalid declare transaction version: {version_raw}"
+                "Invalid version of declare transaction: {version_raw}"
             ))),
         }
     }
