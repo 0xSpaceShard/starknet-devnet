@@ -30,6 +30,7 @@ mod test_messaging {
     use starknet_rs_signers::LocalWallet;
 
     use crate::common::background_devnet::BackgroundDevnet;
+    use crate::common::background_anvil::BackgroundAnvil;
     use crate::common::constants::{CHAIN_ID, MESSAGING_WHITELISTED_L1_CONTRACT};
     use crate::common::utils::get_json_body;
 
@@ -139,6 +140,8 @@ mod test_messaging {
 
     #[tokio::test]
     async fn can_send_message_to_l1() {
+        let anvil = BackgroundAnvil::spawn().await.unwrap();
+
         let (devnet, account, l1l2_contract_address) =
             setup_devnet(&["--account-class", "cairo1"]).await;
         let user = FieldElement::ONE;
