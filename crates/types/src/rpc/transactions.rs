@@ -465,7 +465,7 @@ impl FunctionInvocation {
             .execution
             .events
             .into_iter()
-            .map(|event| OrderedEvent::new(&event, call_info.call.storage_address.into()))
+            .map(|event| OrderedEvent::from(&event))
             .collect();
 
         let function_call = FunctionCall {
