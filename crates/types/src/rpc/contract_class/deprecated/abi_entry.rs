@@ -66,14 +66,17 @@ impl<'de> Deserialize<'de> for AbiEntry {
     {
         let raw_value = serde_json::Value::deserialize(deserializer)?;
         if raw_value.get("data").is_some() {
-            let entry: EventAbiEntry =
-                serde_json::from_value(raw_value).map_err(serde::de::Error::custom)?;
+            let entry = serde_json::from_value(raw_value)
+                .map_err(|e| serde::de::Error::custom(format!("Invalid event ABI entry: {e}")))?;
             Ok(AbiEntry::Event(entry))
         } else if raw_value.get("members").is_some() {
-            let entry = serde_json::from_value(raw_value).map_err(serde::de::Error::custom)?;
+            let entry = serde_json::from_value(raw_value)
+                .map_err(|e| serde::de::Error::custom(format!("Invalid struct ABI entry: {e}")))?;
             Ok(AbiEntry::Struct(entry))
         } else if raw_value.get("inputs").is_some() {
-            let entry = serde_json::from_value(raw_value).map_err(serde::de::Error::custom)?;
+            let entry = serde_json::from_value(raw_value).map_err(|e| {
+                serde::de::Error::custom(format!("Invalid function ABI entry: {e}"))
+            })?;
             Ok(AbiEntry::Function(entry))
         } else {
             Err(serde::de::Error::custom(format!("Invalid ABI entry: {raw_value}")))

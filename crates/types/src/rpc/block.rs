@@ -82,7 +82,6 @@ impl<'de> Deserialize<'de> for BlockId {
     where
         D: Deserializer<'de>,
     {
-        println!("DEBUG inside deserialize of BlockId");
         let value = serde_json::Value::deserialize(deserializer)?;
         if value.as_str().is_some() {
             let block_id: Tag = serde_json::from_value(value)

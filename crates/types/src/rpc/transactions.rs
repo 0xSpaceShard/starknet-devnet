@@ -346,28 +346,24 @@ impl<'de> Deserialize<'de> for BroadcastedDeclareTransaction {
     where
         D: Deserializer<'de>,
     {
-        let raw_value = serde_json::Value::deserialize(deserializer)?;
-        // TODO refactor
-        match raw_value.get("version") {
-            Some(version_raw) => match version_raw.as_str() {
-                Some(version) => match version {
-                    "0x1" => {
-                        let unpacked: BroadcastedDeclareTransactionV1 =
-                            serde_json::from_value(raw_value).map_err(serde::de::Error::custom)?;
-                        Ok(BroadcastedDeclareTransaction::V1(Box::new(unpacked)))
-                    }
-                    "0x2" => {
-                        let unpacked: BroadcastedDeclareTransactionV2 =
-                            serde_json::from_value(raw_value).map_err(serde::de::Error::custom)?;
-                        Ok(BroadcastedDeclareTransaction::V2(Box::new(unpacked)))
-                    }
-                    other => Err(serde::de::Error::custom(format!("Invalid version: {other}"))),
-                },
-                None => Err(serde::de::Error::custom(format!(
-                    "Invalid version format! Expected hex string, got: {version_raw}"
-                ))),
-            },
-            None => Err(serde::de::Error::missing_field("version")),
+        let value = serde_json::Value::deserialize(deserializer)?;
+        let version_raw = value.get("version").ok_or(serde::de::Error::missing_field("version"))?;
+        match version_raw.as_str() {
+            Some("0x1") => {
+                let unpacked = serde_json::from_value(value).map_err(|e| {
+                    serde::de::Error::custom(format!("Invalid declare transaction V1: {e}"))
+                })?;
+                Ok(BroadcastedDeclareTransaction::V1(Box::new(unpacked)))
+            }
+            Some("0x2") => {
+                let unpacked = serde_json::from_value(value).map_err(|e| {
+                    serde::de::Error::custom(format!("Invalid declare transaction V2: {e}"))
+                })?;
+                Ok(BroadcastedDeclareTransaction::V2(Box::new(unpacked)))
+            }
+            _ => Err(serde::de::Error::custom(format!(
+                "Invalid declare transaction version: {version_raw}"
+            ))),
         }
     }
 }
