@@ -265,6 +265,7 @@ POST /increase_time
 ### Start time arg
 
 Devnet can be started with the `--start-time` argument, where `START_TIME_IN_SECONDS` should be greater than 0.
+
 ```
 cargo run -- --start-time START_TIME_IN_SECONDS
 ```
@@ -272,6 +273,7 @@ cargo run -- --start-time START_TIME_IN_SECONDS
 ### Timeout
 
 Timeout can be passed to Devnet's HTTP server. This makes it easier to deploy and manage large contracts that take longer to execute.
+
 ```
 cargo run -- --timeout TIMEOUT
 ```
@@ -307,6 +309,16 @@ Resolve it with:
 ```
 rustup default nightly
 ```
+
+## Development - Unused dependencies
+
+To check for unused dependencies, run:
+
+```
+./scripts/check_unused_deps.sh
+```
+
+If you think this reports a dependency as a false-positive (i.e. isn't unused), check [here](https://github.com/bnjbvr/cargo-machete#false-positives).
 
 ## Development - Testing
 
