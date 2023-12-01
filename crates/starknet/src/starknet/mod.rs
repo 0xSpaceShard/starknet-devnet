@@ -49,7 +49,7 @@ use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
     CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, DEVNET_DEFAULT_CHAIN_ID,
-    ERC20_CONTRACT_ADDRESS,
+    ERC20_CONTRACT_ADDRESS, STRK_FEE_CONTRACT_ADDRESS,
 };
 use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::predeployed_accounts::PredeployedAccounts;
@@ -91,6 +91,7 @@ impl Default for Starknet {
                 0,
                 ERC20_CONTRACT_ADDRESS,
                 DEVNET_DEFAULT_CHAIN_ID,
+                STRK_FEE_CONTRACT_ADDRESS,
             ),
             state: Default::default(),
             predeployed_accounts: Default::default(),
@@ -144,6 +145,7 @@ impl Starknet {
                 config.gas_price,
                 ERC20_CONTRACT_ADDRESS,
                 config.chain_id,
+                STRK_FEE_CONTRACT_ADDRESS,
             ),
             blocks: StarknetBlocks::default(),
             transactions: StarknetTransactions::default(),
@@ -344,8 +346,9 @@ impl Starknet {
 
     fn init_block_context(
         gas_price: u64,
-        fee_token_address: &str,
+        eth_fee_token_address: &str,
         chain_id: ChainId,
+        strk_fee_token_address: &str,
     ) -> BlockContext {
         use starknet_api::core::{ContractAddress, PatriciaKey};
         use starknet_api::hash::StarkHash;
@@ -359,8 +362,8 @@ impl Starknet {
             block_timestamp: BlockTimestamp(0),
             sequencer_address: contract_address!("0x1000"),
             fee_token_addresses: blockifier::block_context::FeeTokenAddresses {
-                eth_fee_token_address: contract_address!(fee_token_address),
-                strk_fee_token_address: contract_address!("0x1002"),
+                eth_fee_token_address: contract_address!(eth_fee_token_address),
+                strk_fee_token_address: contract_address!(strk_fee_token_address),
             },
             vm_resource_fee_cost: std::sync::Arc::new(HashMap::from([
                 (N_STEPS.to_string(), N_STEPS_FEE_WEIGHT),
@@ -949,7 +952,12 @@ mod tests {
     fn correct_block_context_creation() {
         let fee_token_address =
             ContractAddress::new(Felt::from_prefixed_hex_str("0xAA").unwrap()).unwrap();
-        let block_ctx = Starknet::init_block_context(10, "0xAA", DEVNET_DEFAULT_CHAIN_ID);
+        let block_ctx = Starknet::init_block_context(
+            10,
+            "0xAA",
+            DEVNET_DEFAULT_CHAIN_ID,
+            constants::STRK_FEE_CONTRACT_ADDRESS,
+        );
         assert_eq!(block_ctx.block_number, BlockNumber(0));
         assert_eq!(block_ctx.block_timestamp, BlockTimestamp(0));
         assert_eq!(block_ctx.gas_prices.eth_l1_gas_price, 10);
@@ -1029,7 +1037,12 @@ mod tests {
 
     #[test]
     fn correct_block_context_update() {
-        let mut block_ctx = Starknet::init_block_context(0, "0x0", DEVNET_DEFAULT_CHAIN_ID);
+        let mut block_ctx = Starknet::init_block_context(
+            0,
+            "0x0",
+            DEVNET_DEFAULT_CHAIN_ID,
+            constants::STRK_FEE_CONTRACT_ADDRESS,
+        );
         let initial_block_number = block_ctx.block_number;
         Starknet::update_block_context(&mut block_ctx);
 
