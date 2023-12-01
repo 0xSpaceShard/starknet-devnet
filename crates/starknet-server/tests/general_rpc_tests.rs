@@ -27,6 +27,7 @@ mod general_rpc_tests {
     const EXPECTED_VERSION: &str = "0.5.1";
 
     #[test]
+    /// This test asserts that the spec files used in testing indeed match the expected version
     fn rpc_spec_using_correct_version() {
         let manifest_dir = env!("CARGO_MANIFEST_DIR");
         let path_to_spec_dir = format!("{manifest_dir}/test_data/spec/{EXPECTED_VERSION}");
