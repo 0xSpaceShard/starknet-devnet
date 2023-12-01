@@ -43,7 +43,6 @@ pub trait RpcHandler: Clone + Send + Sync + 'static {
                 RpcResponse::new(id, result)
             }
             Err(err) => {
-                // TODO add test for method not found
                 let err = err.to_string();
                 // since JSON-RPC specification requires returning a Method Not Found error,
                 // we apply a hacky way to induce this - checking the stringified error message
