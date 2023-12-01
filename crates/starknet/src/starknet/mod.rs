@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use blockifier::block_context::BlockContext;
 use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::state_api::StateReader;
+use blockifier::transaction::errors::TransactionPreValidationError;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
@@ -278,16 +279,35 @@ impl Starknet {
                 self.handle_accepted_transaction(&transaction_hash, &transaction, tx_info)
             }
             Err(tx_err) => {
+                /// utility to avoid duplication
+                fn match_tx_fee_error(
+                    err: blockifier::transaction::errors::TransactionFeeError,
+                ) -> DevnetResult<()> {
+                    match err {
+                        blockifier::transaction::errors::TransactionFeeError::FeeTransferError { .. }
+                        | blockifier::transaction::errors::TransactionFeeError::MaxFeeTooLow { .. } => Err(
+                            TransactionValidationError::InsufficientMaxFee.into()
+                        ),
+                        blockifier::transaction::errors::TransactionFeeError::MaxFeeExceedsBalance { .. } => Err(
+                            TransactionValidationError::InsufficientAccountBalance.into()
+                        ),
+                        _ => Err(err.into())
+                    }
+                }
+
                 // based on this https://community.starknet.io/t/efficient-utilization-of-sequencer-capacity-in-starknet-v0-12-1/95607#the-validation-phase-in-the-gateway-5
                 // we should not save transactions that failed with one of the following errors
                 match tx_err {
-                    blockifier::transaction::errors::TransactionExecutionError::InvalidNonce { .. } =>
-                        Err(TransactionValidationError::InvalidTransactionNonce.into()),
-                    blockifier::transaction::errors::TransactionExecutionError::MaxFeeExceedsBalance { .. } =>
-                        Err(TransactionValidationError::InsufficientAccountBalance.into()),
-                    blockifier::transaction::errors::TransactionExecutionError::FeeTransferError { .. }
-                    | blockifier::transaction::errors::TransactionExecutionError::MaxFeeTooLow { .. } =>
+                    blockifier::transaction::errors::TransactionExecutionError::TransactionPreValidationError(
+                        TransactionPreValidationError::InvalidNonce { .. }
+                    ) => Err(TransactionValidationError::InvalidTransactionNonce.into()),
+                    blockifier::transaction::errors::TransactionExecutionError::FeeCheckError { .. } =>
                         Err(TransactionValidationError::InsufficientMaxFee.into()),
+                    blockifier::transaction::errors::TransactionExecutionError::TransactionPreValidationError(
+                        TransactionPreValidationError::TransactionFeeError(err)
+                    ) => match_tx_fee_error(err),
+                    blockifier::transaction::errors::TransactionExecutionError::TransactionFeeError(err)
+                      => match_tx_fee_error(err),
                     blockifier::transaction::errors::TransactionExecutionError::ValidateTransactionError(..) =>
                         Err(TransactionValidationError::ValidationFailure.into()),
                     _ => Err(tx_err.into())
@@ -387,7 +407,7 @@ impl Starknet {
         let mut block = StarknetBlock::create_pending_block();
 
         block.header.block_number = self.block_context.block_number;
-        block.header.gas_price = GasPrice(self.block_context.gas_prices.eth_l1_gas_price);
+        block.header.eth_l1_gas_price = GasPrice(self.block_context.gas_prices.eth_l1_gas_price);
         block.header.sequencer = self.block_context.sequencer_address;
 
         self.blocks.pending_block = block;
@@ -470,7 +490,7 @@ impl Starknet {
                 ),
                 blockifier::execution::common_hints::ExecutionMode::Execute,
                 true,
-            );
+            )?;
         let res = call
             .execute(&mut state.clone().state, &mut execution_resources, &mut execution_context)
             .map_err(|err| {
@@ -1017,7 +1037,7 @@ mod tests {
         assert_eq!(starknet.pending_block().header.timestamp, initial_block_timestamp);
         assert_eq!(starknet.pending_block().header.block_number, initial_block_number);
         assert_eq!(starknet.pending_block().header.parent_hash, BlockHash::default());
-        assert_eq!(starknet.pending_block().header.gas_price, GasPrice(initial_gas_price));
+        assert_eq!(starknet.pending_block().header.eth_l1_gas_price, GasPrice(initial_gas_price));
         assert_eq!(starknet.pending_block().header.sequencer, initial_sequencer);
     }
 
