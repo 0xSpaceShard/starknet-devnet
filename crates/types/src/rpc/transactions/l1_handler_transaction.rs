@@ -38,15 +38,6 @@ impl L1HandlerTransaction {
     ///
     /// * `chain_id` - The chain ID.
     pub fn compute_hash(&self, chain_id: Felt) -> Felt {
-        // Before this issue https://github.com/starknet-io/starknet-docs/issues/969
-        // is solved by a PR, it can be important to ensure that only the version 0
-        // is supported by Devnet. This is the reason for the assert.
-        assert_eq!(
-            self.version,
-            FieldElement::ZERO.into(),
-            "L1 handler transaction only supports version 0"
-        );
-
         // No fee on L2 for L1 handler transaction.
         let fee = FieldElement::ZERO;
 
@@ -71,15 +62,13 @@ impl L1HandlerTransaction {
 
     /// Creates a blockifier version of `L1HandlerTransaction`.
     pub fn create_blockifier_transaction(&self) -> DevnetResult<BlockifierL1HandlerTransaction> {
-        let version: Felt = 0_u128.into();
-
         let transaction = BlockifierL1HandlerTransaction {
             tx: ApiL1HandlerTransaction {
                 contract_address: ApiContractAddress::try_from(self.contract_address)?,
                 entry_point_selector: ApiEntryPointSelector(self.entry_point_selector.into()),
                 calldata: ApiCalldata(Arc::new(self.calldata.iter().map(|f| f.into()).collect())),
                 nonce: ApiNonce(self.nonce.into()),
-                version: ApiTransactionVersion(version.into()),
+                version: ApiTransactionVersion(self.version.into()),
             },
             paid_fee_on_l1: ApiFee(self.paid_fee_on_l1),
             tx_hash: ApiTransactionHash(self.transaction_hash.into()),
@@ -114,6 +103,8 @@ impl L1HandlerTransaction {
             calldata,
             nonce: message.nonce,
             paid_fee_on_l1,
+            // Currently, only version 0 is supported, which
+            // is ensured by default initialization.
             ..Default::default()
         })
     }
