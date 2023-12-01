@@ -29,8 +29,8 @@ mod test_messaging {
     use starknet_rs_providers::{JsonRpcClient, Provider};
     use starknet_rs_signers::LocalWallet;
 
-    use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::background_anvil::BackgroundAnvil;
+    use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{CHAIN_ID, MESSAGING_WHITELISTED_L1_CONTRACT};
     use crate::common::utils::get_json_body;
 
@@ -140,8 +140,6 @@ mod test_messaging {
 
     #[tokio::test]
     async fn can_send_message_to_l1() {
-        let anvil = BackgroundAnvil::spawn().await.unwrap();
-
         let (devnet, account, l1l2_contract_address) =
             setup_devnet(&["--account-class", "cairo1"]).await;
         let user = FieldElement::ONE;
@@ -226,6 +224,97 @@ mod test_messaging {
         assert_eq!(
             body.get("transaction_hash").unwrap().as_str().unwrap(),
             "0x1468183dc780231ea033f2aef5a7fa172daba80f53e2360e787ed1988ed670c"
+        );
+    }
+
+    #[tokio::test]
+    async fn can_deploy_l1_messaging_contract() {
+        let anvil = BackgroundAnvil::spawn().await.unwrap();
+
+        let (devnet, _, _) = setup_devnet(&["--account-class", "cairo1"]).await;
+
+        let req_body = Body::from(
+            json!({
+                "network_url": anvil.url,
+            })
+            .to_string(),
+        );
+
+        let resp = devnet
+            .post_json("/postman/load_l1_messaging_contract".into(), req_body)
+            .await
+            .expect("deploy l1 messaging contract failed");
+
+        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
+
+        let body = get_json_body(resp).await;
+        assert_eq!(
+            body.get("messaging_contract_address").unwrap().as_str().unwrap(),
+            "0x5fbdb2315678afecb367f032d93f642f64180aa3"
+        );
+    }
+
+    #[tokio::test]
+    async fn can_flush_messages_l1_and_consume_from_l2() {
+        let anvil = BackgroundAnvil::spawn().await.unwrap();
+
+        let (devnet, account, l1l2_contract_address) =
+            setup_devnet(&["--account-class", "cairo1"]).await;
+        let user = FieldElement::ONE;
+
+        // Deploy messaging contract.
+        let req_body = Body::from(
+            json!({
+                "network_url": anvil.url,
+            })
+            .to_string(),
+        );
+
+        let resp = devnet
+            .post_json("/postman/load_l1_messaging_contract".into(), req_body)
+            .await
+            .expect("deploy l1 messaging contract failed");
+        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
+
+        // Set balance to 1 for user.
+        increase_balance(Arc::clone(&account), l1l2_contract_address, user, FieldElement::ONE)
+            .await;
+        assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [FieldElement::ONE]);
+
+        // Withdraw the 1 amount in a l2->l1 message.
+        withdraw(Arc::clone(&account), l1l2_contract_address, user, FieldElement::ONE).await;
+        assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [FieldElement::ZERO]);
+
+        // Flush to actually send the message on L1, which can then be consumed.
+        let req_body = Body::from(
+            json!({
+                "dry_run": false,
+            })
+            .to_string(),
+        );
+
+        let resp = devnet.post_json("/postman/flush".into(), req_body).await.expect("flush failed");
+        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
+
+        let req_body = Body::from(
+            json!({
+                "from_address": "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba",
+                "to_address": "0x8359e4b0152ed5a731162d3c7b0d8d56edb165a0",
+                "payload": ["0x0","0x1","0x1"],
+            })
+            .to_string(),
+        );
+
+        let resp = devnet
+            .post_json("/postman/consume_message_from_l2".into(), req_body)
+            .await
+            .expect("consume message from l2 failed");
+        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
+
+        let body = get_json_body(resp).await;
+        assert_eq!(
+            body.get("message_hash").unwrap().as_str().unwrap(),
+            "0xc918bd19487589d1acf7558c0e3ffbc994939b5779af354f92e36a5674532137"
         );
     }
 }
