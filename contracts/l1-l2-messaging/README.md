@@ -184,7 +184,8 @@ curl -H 'Content-Type: application/json' -X POST http://127.0.0.1:5050/postman/f
 We can now check the balance of use 1 on L2, it's back to `0xff`.
 ```bash
 starkli call 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 get_balance 0x1
-
+```
+```json
 [
     "0x00000000000000000000000000000000000000000000000000000000000000ff"
 ]
@@ -204,11 +205,35 @@ curl -H 'Content-Type: application/json' \
 The balance is now increased by 1, exactly as a message from L1 would have done.
 ```bash
 starkli call 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 get_balance 0x1
-
+```
+```json
 [
     "0x0000000000000000000000000000000000000000000000000000000000000101"
 ]
 ```
+
+5. Finally, to give an example of how a message can be consumed on L1 using the postman endpoint, let's send back a message to L1 to increase the balance:
+```bash
+# Withdraw to send a message from Cairo contract.
+starkli invoke 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 withdraw 0x1 1 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+
+# Then flush to actually register the message as consumable on L1.
+curl -H 'Content-Type: application/json' -X POST http://127.0.0.1:5050/postman/flush
+```
+Now, once the message is ready to be consumed on L1, instead of calling the contract, we can consume it manually with the `MockStarknetMessaging` contract.
+```bash
+curl -H 'Content-Type: application/json' \
+    -d '{"from_address": "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba", "to_address": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512", "payload": ["0x0","0x1","0x1"]}' \
+    http://127.0.0.1:5050/postman/consume_message_from_l2
+```
+```json
+{
+    "message_hash": "0xe4939c1db95330c06b368b6c964fb5ba0213c1f355cdae76109b3f9d0493747d"
+}
+```
+You can try to run the command again, and you'll see the `MockStarknetMessaging` contract reverting, exactly as the `Starknet Core Contract` would do on testnet/mainnet.
+
+### Re-run with a script
 
 To quickly setup the nodes for testing and re-run this exact sequence after restarting your nodes, you can use the following bash script:
 ```bash
