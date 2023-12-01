@@ -218,13 +218,9 @@ impl StarknetTransaction {
             messages
         }
 
-        let call_infos = vec![
-            self.execution_info.validate_call_info.as_ref(),
-            self.execution_info.execute_call_info.as_ref(),
-            self.execution_info.fee_transfer_call_info.as_ref(),
-        ];
+        let call_infos = self.execution_info.non_optional_call_infos();
 
-        for inner_call_info in call_infos.into_iter().flatten() {
+        for inner_call_info in call_infos {
             let mut not_sorted_messages = get_blockifier_messages_recursively(inner_call_info);
             not_sorted_messages.sort_by_key(|message| message.order);
             messages.extend(not_sorted_messages.into_iter().map(|m| m.message));
