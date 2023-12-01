@@ -16,11 +16,7 @@ pub(crate) async fn postman_load(
     let mut starknet = state.api.starknet.write().await;
 
     let messaging_contract_address = starknet
-        .configure_messaging(
-            &data.network_url,
-            data.address.as_deref(),
-            data.private_key.as_deref(),
-        )
+        .configure_messaging(&data.network_url, data.address.as_deref())
         .await
         .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
 

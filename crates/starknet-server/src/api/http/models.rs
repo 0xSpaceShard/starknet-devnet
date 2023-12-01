@@ -22,7 +22,6 @@ pub(crate) struct LoadPath {
 pub(crate) struct PostmanLoadL1MessagingContract {
     pub network_url: String,
     pub address: Option<String>,
-    pub private_key: Option<String>,
 }
 
 #[derive(Serialize)]

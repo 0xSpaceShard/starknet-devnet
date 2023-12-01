@@ -97,11 +97,9 @@ impl EthereumMessaging {
     ///
     /// * `rpc_url` - The L1 node RPC URL.
     /// * `contract_address` - The messaging contract address deployed on L1 node.
-    /// * `private_key` - Private key associated with an EOA account to send transactions.
     pub async fn new(
         rpc_url: &str,
         contract_address: Option<&str>,
-        private_key: Option<&str>,
     ) -> DevnetResult<EthereumMessaging> {
         let provider = Provider::<Http>::try_from(rpc_url).map_err(|e| {
             Error::MessagingError(MessagingError::EthersError(format!(
@@ -112,7 +110,7 @@ impl EthereumMessaging {
 
         let chain_id = provider.get_chainid().await?;
 
-        let private_key = private_key.unwrap_or(ETH_ACCOUNT_DEFAULT.private_key);
+        let private_key = ETH_ACCOUNT_DEFAULT.private_key;
 
         let wallet: LocalWallet =
             private_key.parse::<LocalWallet>()?.with_chain_id(chain_id.as_u32());
