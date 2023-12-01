@@ -357,7 +357,7 @@ You can find a full guide to test the messaging feature in the [contracts/l1-l2-
 Devnet exposes the following endpoints:
 
 - `postman/load_l1_messaging_contract`: deploys the `MockStarknetMessaging` contract on L1 (requires L1 node to be running).
-- `postman/flush`: fetches and executes L1 -> L2 messages, and send L2 -> L1 messages (requires L1 node to be running if `dry_run` option is not used).
+- `postman/flush`: fetches and executes L1 -> L2 messages, and sends L2 -> L1 messages (requires L1 node to be running if `dry_run` option is not used).
 - `/postman/send_message_to_l2`: sends and executes a message on L2 (L1 node required **not** required).
 - `/postman/consume_message_from_l2`: consumes a message on L1 node from the L2 (requires L1 node to be running).
 
