@@ -54,7 +54,7 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
 
     /// Adds an HTTP endpoint to a specific route
     pub fn http_api_route<THttpMethodService>(
-        self,
+        mut self,
         path: &str,
         http_service: THttpMethodService,
     ) -> Self
@@ -65,26 +65,27 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
             + 'static,
         THttpMethodService::Future: Send + 'static,
     {
-        Self { routes: self.routes.route(path, http_service), ..self }
+        self.routes = self.routes.route(path, http_service);
+        self
     }
 
     /// Adds the object that will be available on every HTTP request
-    pub fn set_http_api_handler(self, handler: THttpApiHandler) -> Self {
-        Self { http_api_handler: handler, ..self }
+    pub fn set_http_api_handler(mut self, handler: THttpApiHandler) -> Self {
+        self.http_api_handler = handler;
+        self
     }
 
     /// Sets the path to the JSON-RPC endpoint and adds the object that will be available on every
     /// request
-    pub fn json_rpc_route(self, path: &str) -> Self {
-        Self {
-            routes: self.routes.route(path, post(rpc_handler::handle::<TJsonRpcHandler>)),
-            ..self
-        }
+    pub fn json_rpc_route(mut self, path: &str) -> Self {
+        self.routes = self.routes.route(path, post(rpc_handler::handle::<TJsonRpcHandler>));
+        self
     }
 
     /// Sets additional configuration for the [`StarknetDevnetServer`]
-    pub fn set_config(self, config: ServerConfig) -> Self {
-        Self { config: Some(config), ..self }
+    pub fn set_config(mut self, config: ServerConfig) -> Self {
+        self.config = Some(config);
+        self
     }
 
     /// Creates the http server - [`StarknetDevnetServer`] from all the configured routes, provided
