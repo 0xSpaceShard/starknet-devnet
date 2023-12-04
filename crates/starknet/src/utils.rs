@@ -35,9 +35,11 @@ pub(crate) fn get_storage_var_address(
 
 #[cfg(test)]
 pub(crate) mod test_utils {
+    use std::collections::BTreeMap;
+
     use cairo_lang_starknet::casm_contract_class::CasmContractClass;
     use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
-    use starknet_api::transaction::Fee;
+    use starknet_api::transaction::{Fee, Resource, ResourceBounds, ResourceBoundsMapping};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{
         compute_casm_class_hash, Cairo0ContractClass, Cairo0Json, ContractClass,
@@ -47,7 +49,9 @@ pub(crate) mod test_utils {
     use starknet_types::patricia_key::StorageKey;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
+    use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
     use starknet_types::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1;
+    use starknet_types::rpc::transactions::BroadcastedTransactionCommonV3;
     use starknet_types::traits::HashProducer;
 
     use crate::constants::DEVNET_DEFAULT_CHAIN_ID;
@@ -135,6 +139,35 @@ pub(crate) mod test_utils {
         result[starting_idx..ending_idx].copy_from_slice(&num_bytes[..(ending_idx - starting_idx)]);
 
         result
+    }
+
+    pub(crate) fn convert_broadcasted_declare_v2_to_v3(
+        declare_v2: BroadcastedDeclareTransactionV2,
+    ) -> BroadcastedDeclareTransactionV3 {
+        BroadcastedDeclareTransactionV3 {
+            common: BroadcastedTransactionCommonV3 {
+                version: Felt::from(3),
+                signature: declare_v2.common.signature,
+                nonce: declare_v2.common.nonce,
+                resource_bounds: ResourceBoundsMapping(BTreeMap::from([(
+                    Resource::L1Gas,
+                    ResourceBounds {
+                        max_amount: declare_v2.common.max_fee.0 as u64,
+                        max_price_per_unit: 1,
+                    },
+                )])),
+                tip: Default::default(),
+                paymaster_data: vec![],
+                nonce_data_availability_mode:
+                    starknet_api::data_availability::DataAvailabilityMode::L1,
+                fee_data_availability_mode:
+                    starknet_api::data_availability::DataAvailabilityMode::L1,
+            },
+            contract_class: declare_v2.contract_class,
+            sender_address: declare_v2.sender_address,
+            compiled_class_hash: declare_v2.compiled_class_hash,
+            account_deployment_data: vec![],
+        }
     }
 }
 

@@ -2,10 +2,41 @@ use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
+use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
+use starknet_types::rpc::transactions::declare_transaction_v3::DeclareTransactionV3;
 use starknet_types::rpc::transactions::{DeclareTransaction, Transaction};
 
 use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;
+
+pub fn add_declare_transaction_v3(
+    starknet: &mut Starknet,
+    broadcasted_declare_transaction: BroadcastedDeclareTransactionV3,
+) -> DevnetResult<(TransactionHash, ClassHash)> {
+    if broadcasted_declare_transaction.common.is_max_fee_zero_value() {
+        return Err(Error::MaxFeeZeroError { tx_type: "declare transaction v3".to_string() });
+    }
+
+    let blockifier_declare_transaction = broadcasted_declare_transaction
+        .create_blockifier_declare(starknet.chain_id().to_felt(), false)?;
+
+    let transaction_hash = blockifier_declare_transaction.tx_hash().0.into();
+    let class_hash = blockifier_declare_transaction.class_hash().0.into();
+
+    let transaction = Transaction::Declare(DeclareTransaction::Version3(
+        DeclareTransactionV3::new(broadcasted_declare_transaction, class_hash, transaction_hash),
+    ));
+
+    let blockifier_execution_result =
+        blockifier::transaction::account_transaction::AccountTransaction::Declare(
+            blockifier_declare_transaction,
+        )
+        .execute(&mut starknet.state.state, &starknet.block_context, true, true);
+
+    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
+
+    Ok((transaction_hash, class_hash))
+}
 
 pub fn add_declare_transaction_v2(
     starknet: &mut Starknet,
@@ -76,6 +107,7 @@ mod tests {
     use starknet_types::felt::Felt;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
+    use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;
@@ -87,8 +119,8 @@ mod tests {
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut, StateExtractor};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{
-        dummy_broadcasted_declare_transaction_v2, dummy_cairo_1_contract_class,
-        dummy_contract_address, dummy_felt,
+        convert_broadcasted_declare_v2_to_v3, dummy_broadcasted_declare_transaction_v2,
+        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
     };
 
     fn broadcasted_declare_transaction_v1(
@@ -104,6 +136,31 @@ mod tests {
             &contract_class.into(),
             Felt::from(1),
         )
+    }
+
+    #[test]
+    fn declare_transaction_v3_with_max_fee_zero_should_return_an_error() {
+        let declare_transaction = BroadcastedDeclareTransactionV2::new(
+            &dummy_cairo_1_contract_class(),
+            dummy_felt(),
+            dummy_contract_address(),
+            Fee(0),
+            &vec![],
+            dummy_felt(),
+            dummy_felt(),
+        );
+
+        let declare_transaction = convert_broadcasted_declare_v2_to_v3(declare_transaction);
+
+        let result = Starknet::default().add_declare_transaction_v3(declare_transaction);
+
+        assert!(result.is_err());
+        match result.err().unwrap() {
+            err @ crate::error::Error::MaxFeeZeroError { .. } => {
+                assert_eq!(err.to_string(), "declare transaction v3: max_fee cannot be zero")
+            }
+            _ => panic!("Wrong error type"),
+        }
     }
 
     #[test]
@@ -142,6 +199,28 @@ mod tests {
                 panic!("Wrong error type received {:?}", err);
             }
         }
+    }
+
+    #[test]
+    fn add_declare_v3_transaction_successful_execution() {
+        let (mut starknet, sender) = setup(Some(100000000));
+
+        let declare_txn =
+            convert_broadcasted_declare_v2_to_v3(dummy_broadcasted_declare_transaction_v2(&sender));
+        let (tx_hash, class_hash) =
+            starknet.add_declare_transaction_v3(declare_txn.clone()).unwrap();
+
+        let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
+
+        // check if generated class hash is expected one
+        assert_eq!(
+            class_hash,
+            ContractClass::Cairo1(declare_txn.contract_class).generate_hash().unwrap()
+        );
+        // check if txn is with status accepted
+        assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+        assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
+        assert!(starknet.state.contract_classes.get(&class_hash).is_some());
     }
 
     #[test]

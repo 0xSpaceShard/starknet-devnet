@@ -2,16 +2,17 @@ use serde::{Deserialize, Serialize};
 use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::transaction::{ResourceBoundsMapping, Tip};
 
-use super::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
+use super::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
 use super::BroadcastedTransactionCommonV3;
 use crate::contract_address::ContractAddress;
 use crate::felt::{
-    Calldata, Felt, Nonce, TransactionHash, TransactionSignature, TransactionVersion,
+    Calldata, ClassHash, ContractAddressSalt, Felt, Nonce, TransactionHash, TransactionSignature,
+    TransactionVersion,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct InvokeTransactionV3 {
+pub struct DeployAccountTransactionV3 {
     version: TransactionVersion,
     signature: TransactionSignature,
     nonce: Nonce,
@@ -20,15 +21,17 @@ pub struct InvokeTransactionV3 {
     paymaster_data: Vec<Felt>,
     nonce_data_availability_mode: DataAvailabilityMode,
     fee_data_availability_mode: DataAvailabilityMode,
-    account_deployment_data: Vec<Felt>,
-    sender_address: ContractAddress,
-    calldata: Calldata,
+    contract_address_salt: ContractAddressSalt,
+    constructor_calldata: Calldata,
+    class_hash: ClassHash,
+    contract_address: ContractAddress,
     transaction_hash: TransactionHash,
 }
 
-impl InvokeTransactionV3 {
+impl DeployAccountTransactionV3 {
     pub fn new(
-        broadcasted_txn: BroadcastedInvokeTransactionV3,
+        broadcasted_txn: BroadcastedDeployAccountTransactionV3,
+        contract_address: ContractAddress,
         transaction_hash: TransactionHash,
     ) -> Self {
         Self {
@@ -40,19 +43,24 @@ impl InvokeTransactionV3 {
             paymaster_data: broadcasted_txn.common.paymaster_data,
             nonce_data_availability_mode: broadcasted_txn.common.nonce_data_availability_mode,
             fee_data_availability_mode: broadcasted_txn.common.fee_data_availability_mode,
-            sender_address: broadcasted_txn.sender_address,
-            calldata: broadcasted_txn.calldata,
-            account_deployment_data: broadcasted_txn.account_deployment_data,
+            contract_address_salt: broadcasted_txn.contract_address_salt,
+            constructor_calldata: broadcasted_txn.constructor_calldata,
+            class_hash: broadcasted_txn.class_hash,
+            contract_address,
             transaction_hash,
         }
     }
     pub fn get_transaction_hash(&self) -> &TransactionHash {
         &self.transaction_hash
     }
+
+    pub fn get_contract_address(&self) -> &ContractAddress {
+        &self.contract_address
+    }
 }
 
-impl From<InvokeTransactionV3> for BroadcastedInvokeTransactionV3 {
-    fn from(value: InvokeTransactionV3) -> Self {
+impl From<DeployAccountTransactionV3> for BroadcastedDeployAccountTransactionV3 {
+    fn from(value: DeployAccountTransactionV3) -> Self {
         Self {
             common: BroadcastedTransactionCommonV3 {
                 version: value.version,
@@ -64,9 +72,9 @@ impl From<InvokeTransactionV3> for BroadcastedInvokeTransactionV3 {
                 nonce_data_availability_mode: value.nonce_data_availability_mode,
                 fee_data_availability_mode: value.fee_data_availability_mode,
             },
-            sender_address: value.sender_address,
-            calldata: value.calldata,
-            account_deployment_data: value.account_deployment_data,
+            contract_address_salt: value.contract_address_salt,
+            constructor_calldata: value.constructor_calldata,
+            class_hash: value.class_hash,
         }
     }
 }

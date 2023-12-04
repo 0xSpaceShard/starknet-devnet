@@ -4,7 +4,9 @@ use std::path::Path;
 
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
+use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
+use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use starknet_types::rpc::transactions::{
@@ -44,6 +46,10 @@ impl Starknet {
                     );
                     self.add_declare_transaction_v2(declare_tx)?;
                 }
+                Transaction::Declare(DeclareTransaction::Version3(tx)) => {
+                    let declare_tx: BroadcastedDeclareTransactionV3 = tx.into();
+                    self.add_declare_transaction_v3(declare_tx)?;
+                }
                 Transaction::DeployAccount(DeployAccountTransaction::Version1(tx)) => {
                     let deploy_account_tx = BroadcastedDeployAccountTransactionV1::new(
                         &tx.constructor_calldata,
@@ -55,6 +61,10 @@ impl Starknet {
                         tx.version,
                     );
                     self.add_deploy_account_transaction_v1(deploy_account_tx)?;
+                }
+                Transaction::DeployAccount(DeployAccountTransaction::Version3(tx)) => {
+                    let deploy_account_tx: BroadcastedDeployAccountTransactionV3 = tx.into();
+                    self.add_deploy_account_transaction_v3(deploy_account_tx)?;
                 }
                 Transaction::Deploy(_) => return Err(Error::SerializationNotSupported),
                 Transaction::Invoke(InvokeTransaction::Version0(_)) => {

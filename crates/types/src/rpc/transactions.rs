@@ -22,7 +22,9 @@ use self::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
 use self::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
 use self::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use self::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
-use self::deploy_account_transaction::DeployAccountTransactionV1;
+use self::declare_transaction_v3::DeclareTransactionV3;
+use self::deploy_account_transaction_v1::DeployAccountTransactionV1;
+use self::deploy_account_transaction_v3::DeployAccountTransactionV3;
 use self::invoke_transaction_v3::InvokeTransactionV3;
 use super::estimate_message_fee::FeeEstimateWrapper;
 use super::state::ThinStateDiff;
@@ -52,7 +54,9 @@ pub mod broadcasted_invoke_transaction_v3;
 
 pub mod declare_transaction_v0v1;
 pub mod declare_transaction_v2;
-pub mod deploy_account_transaction;
+pub mod declare_transaction_v3;
+pub mod deploy_account_transaction_v1;
+pub mod deploy_account_transaction_v3;
 pub mod deploy_transaction;
 pub mod invoke_transaction_v1;
 pub mod invoke_transaction_v3;
@@ -208,6 +212,7 @@ pub enum DeclareTransaction {
     Version0(DeclareTransactionV0V1),
     Version1(DeclareTransactionV0V1),
     Version2(DeclareTransactionV2),
+    Version3(DeclareTransactionV3),
 }
 
 impl DeclareTransaction {
@@ -216,6 +221,7 @@ impl DeclareTransaction {
             DeclareTransaction::Version0(tx) => tx.get_transaction_hash(),
             DeclareTransaction::Version1(tx) => tx.get_transaction_hash(),
             DeclareTransaction::Version2(tx) => tx.get_transaction_hash(),
+            DeclareTransaction::Version3(tx) => tx.get_transaction_hash(),
         }
     }
 }
@@ -259,13 +265,21 @@ impl InvokeTransaction {
 #[serde(untagged)]
 pub enum DeployAccountTransaction {
     Version1(DeployAccountTransactionV1),
-    // Version3()
+    Version3(DeployAccountTransactionV3),
 }
 
 impl DeployAccountTransaction {
+    pub fn get_contract_address(&self) -> &ContractAddress {
+        match self {
+            DeployAccountTransaction::Version1(tx) => &tx.contract_address,
+            DeployAccountTransaction::Version3(tx) => tx.get_contract_address(),
+        }
+    }
+
     pub fn get_transaction_hash(&self) -> &TransactionHash {
         match self {
             DeployAccountTransaction::Version1(tx) => tx.get_transaction_hash(),
+            DeployAccountTransaction::Version3(tx) => tx.get_transaction_hash(),
         }
     }
 }
@@ -471,6 +485,11 @@ impl BroadcastedTransaction {
             BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V2(declare_v2)) => {
                 AccountTransaction::Declare(declare_v2.create_blockifier_declare(chain_id)?)
             }
+            BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V3(declare_v3)) => {
+                AccountTransaction::Declare(
+                    declare_v3.create_blockifier_declare(chain_id, only_query)?,
+                )
+            }
             BroadcastedTransaction::DeployAccount(BroadcastedDeployAccountTransaction::V1(
                 deploy_account_v1,
             )) => AccountTransaction::DeployAccount(
@@ -487,7 +506,7 @@ impl BroadcastedTransaction {
 pub enum BroadcastedDeclareTransaction {
     V1(Box<BroadcastedDeclareTransactionV1>),
     V2(Box<BroadcastedDeclareTransactionV2>),
-    // V3(Box<BroadcastedDeclareTransactionV3>),
+    V3(Box<BroadcastedDeclareTransactionV3>),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]

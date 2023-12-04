@@ -32,7 +32,9 @@ use starknet_types::rpc::state::ThinStateDiff;
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
+use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
+use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use starknet_types::rpc::transactions::{
@@ -290,6 +292,12 @@ impl Starknet {
                                 declare_v2.contract_class.clone().into(),
                             );
                         }
+                        Transaction::Declare(DeclareTransaction::Version3(declare_v3)) => {
+                            self.state.contract_classes.insert(
+                                *declare_v3.get_class_hash(),
+                                declare_v3.get_contract_class().clone().into(),
+                            );
+                        }
                         _ => {}
                     };
                 }
@@ -305,7 +313,7 @@ impl Starknet {
                         | blockifier::transaction::errors::TransactionFeeError::MaxFeeTooLow { .. } => Err(
                             TransactionValidationError::InsufficientMaxFee.into()
                         ),
-                        blockifier::transaction::errors::TransactionFeeError::MaxFeeExceedsBalance { .. } => Err(
+                        blockifier::transaction::errors::TransactionFeeError::MaxFeeExceedsBalance { .. } | blockifier::transaction::errors::TransactionFeeError::L1GasBoundsExceedBalance { .. } => Err(
                             TransactionValidationError::InsufficientAccountBalance.into()
                         ),
                         _ => Err(err.into())
@@ -548,6 +556,13 @@ impl Starknet {
         add_declare_transaction::add_declare_transaction_v2(self, declare_transaction)
     }
 
+    pub fn add_declare_transaction_v3(
+        &mut self,
+        declare_transaction: BroadcastedDeclareTransactionV3,
+    ) -> DevnetResult<(TransactionHash, ClassHash)> {
+        add_declare_transaction::add_declare_transaction_v3(self, declare_transaction)
+    }
+
     /// returning the chain id as object
     pub fn chain_id(&self) -> ChainId {
         self.config.chain_id
@@ -558,6 +573,16 @@ impl Starknet {
         deploy_account_transaction: BroadcastedDeployAccountTransactionV1,
     ) -> DevnetResult<(TransactionHash, ContractAddress)> {
         add_deploy_account_transaction::add_deploy_account_transaction_v1(
+            self,
+            deploy_account_transaction,
+        )
+    }
+
+    pub fn add_deploy_account_transaction_v3(
+        &mut self,
+        deploy_account_transaction: BroadcastedDeployAccountTransactionV3,
+    ) -> DevnetResult<(TransactionHash, ContractAddress)> {
+        add_deploy_account_transaction::add_deploy_account_transaction_v3(
             self,
             deploy_account_transaction,
         )

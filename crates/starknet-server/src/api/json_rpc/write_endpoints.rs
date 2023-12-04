@@ -28,6 +28,13 @@ impl JsonRpcHandler {
                 .write()
                 .await
                 .add_declare_transaction_v2(*broadcasted_declare_txn)?,
+
+            BroadcastedDeclareTransaction::V3(broadcasted_declare_txn) => self
+                .api
+                .starknet
+                .write()
+                .await
+                .add_declare_transaction_v3(*broadcasted_declare_txn)?,
         };
 
         Ok(StarknetResponse::AddDeclareTransaction(DeclareTransactionOutput {

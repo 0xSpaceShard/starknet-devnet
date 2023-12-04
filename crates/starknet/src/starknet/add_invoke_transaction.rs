@@ -172,8 +172,11 @@ mod tests {
             .expect_err("Expected MaxFeeZeroError");
 
         match invoke_v3_txn_error {
-            crate::error::Error::MaxFeeZeroError { tx_type } => {
-                assert_eq!(tx_type, "invoke transaction v3".to_string());
+            err @ crate::error::Error::MaxFeeZeroError { .. } => {
+                assert_eq!(
+                    err.to_string(),
+                    "invoke transaction v3: max_fee cannot be zero".to_string()
+                );
             }
             _ => panic!("Wrong error type"),
         }
@@ -208,7 +211,7 @@ mod tests {
         assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
         assert!(
-            account.get_balance(&mut starknet.state, FeeToken::STRK).unwrap() > initial_balance
+            account.get_balance(&mut starknet.state, FeeToken::STRK).unwrap() < initial_balance
         );
     }
 
