@@ -86,8 +86,8 @@ pub async fn handle_request<THandler: RpcHandler>(
 ) -> Option<Response> {
     /// processes batch calls
     fn responses_as_batch(outs: Vec<Option<RpcResponse>>) -> Option<Response> {
-        let batch: Vec<_> = outs.into_iter().filter_map(|x| x).collect();
-        if batch.is_empty() { None } else { Some(Response::Batch(batch)) }        
+        let batch: Vec<_> = outs.into_iter().flatten().collect();
+        if batch.is_empty() { None } else { Some(Response::Batch(batch)) }
     }
 
     match req {
@@ -97,8 +97,8 @@ pub async fn handle_request<THandler: RpcHandler>(
                 let handler_clone = handler.clone();
                 handle_call(call, handler_clone)
             }))
-                .map(responses_as_batch)
-                .await
+            .map(responses_as_batch)
+            .await
         }
     }
 }
