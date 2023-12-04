@@ -32,7 +32,7 @@ mod test_messaging {
     use crate::common::background_anvil::BackgroundAnvil;
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{CHAIN_ID, MESSAGING_WHITELISTED_L1_CONTRACT};
-    use crate::common::utils::get_json_body;
+    use crate::common::utils::{get_json_body, to_hex_felt};
 
     /// Withdraws the given amount from a user and send this amount in a l2->l1 message.
     async fn withdraw<A: ConnectedAccount + Send + Sync + 'static>(
@@ -81,8 +81,8 @@ mod test_messaging {
         devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap()
     }
 
-    /// Setups a `BackgroundDevnet` with the message l1 l2 contract deployed.
-    /// Returns the devnet instance and the account used for deployment.
+    /// Sets up a `BackgroundDevnet` with the message l1-l2 contract deployed.
+    /// Returns (devnet instance, account used for deployment, l1-l2 contract address).
     async fn setup_devnet(
         devnet_args: &[&str],
     ) -> (
@@ -145,24 +145,18 @@ mod test_messaging {
         let user = FieldElement::ONE;
 
         // Set balance to 1 for user.
-        increase_balance(Arc::clone(&account), l1l2_contract_address, user, FieldElement::ONE)
-            .await;
-        assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [FieldElement::ONE]);
+        let user_balance = FieldElement::ONE;
+        increase_balance(Arc::clone(&account), l1l2_contract_address, user, user_balance).await;
+        assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [user_balance]);
 
         // Withdraw the 1 amount in a l2->l1 message.
-        withdraw(Arc::clone(&account), l1l2_contract_address, user, FieldElement::ONE).await;
+        withdraw(Arc::clone(&account), l1l2_contract_address, user, user_balance).await;
         assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [FieldElement::ZERO]);
 
         // Flush messages to check the presence of the withdraw where use expected to be 1 and
         // amount to be 1. The message always starts with a magic value MESSAGE_WITHDRAW
         // which is 0.
-        let req_body = Body::from(
-            json!({
-                "dry_run": true,
-            })
-            .to_string(),
-        );
-
+        let req_body = Body::from(json!({ "dry_run": true }).to_string());
         let resp = devnet.post_json("/postman/flush".into(), req_body).await.expect("flush failed");
         assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
         let body = get_json_body(resp).await;
@@ -172,22 +166,15 @@ mod test_messaging {
 
         let l1_contract_address = messages_to_l1[0].get("to_address").unwrap().as_str().unwrap();
         let l2_contract_address = messages_to_l1[0].get("from_address").unwrap().as_str().unwrap();
-        let payload = serde_json::from_value::<Vec<String>>(
-            messages_to_l1[0].get("payload").unwrap().clone(),
-        )
-        .unwrap();
         assert_eq!(l2_contract_address, format!("0x{:64x}", account.address()));
         assert_eq!(l1_contract_address, MESSAGING_WHITELISTED_L1_CONTRACT);
-        assert_eq!(payload.len(), 3);
-        // MESSAGE_WITHDRAW opcode, equal to 0, first element of the payload.
-        assert_eq!(payload[0], "0x0");
-        // User.
-        assert_eq!(payload[1], "0x1");
-        // Amount.
-        assert_eq!(payload[2], "0x1");
 
-        assert_eq!(body.get("messages_to_l2").unwrap().as_array().unwrap().len(), 0);
-        assert_eq!(body.get("generated_l2_transactions").unwrap().as_array().unwrap().len(), 0);
+        let payload = messages_to_l1[0].get("payload").unwrap().as_array().unwrap();
+        // MESSAGE_WITHDRAW opcode, equal to 0, first element of the payload.
+        assert_eq!(payload, &["0x0", &to_hex_felt(&user), &to_hex_felt(&user_balance)]);
+
+        assert!(body.get("messages_to_l2").unwrap().as_array().unwrap().is_empty());
+        assert!(body.get("generated_l2_transactions").unwrap().as_array().unwrap().is_empty());
         assert_eq!(body.get("l1_provider").unwrap().as_str().unwrap(), "dry run");
     }
 
@@ -198,21 +185,21 @@ mod test_messaging {
         let user = FieldElement::ONE;
 
         // Set balance to 1 for user.
-        increase_balance(Arc::clone(&account), l1l2_contract_address, user, FieldElement::ONE)
-            .await;
-        assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [FieldElement::ONE]);
+        let user_balance = FieldElement::ONE;
+        increase_balance(Arc::clone(&account), l1l2_contract_address, user, user_balance).await;
+        assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [user_balance]);
 
-        // Use postman to send a message to l2 without l1.
+        // Use postman to send a message to l2 without l1 - the message increments user balance
+        let increment_amount = FieldElement::from_hex_be("0xff").unwrap();
         let req_body = Body::from(
             json!({
                 "l1_contract_address": MESSAGING_WHITELISTED_L1_CONTRACT,
                 "l2_contract_address": format!("0x{:64x}", l1l2_contract_address),
                 "entry_point_selector": format!("0x{:64x}", get_selector_from_name("deposit").unwrap()),
-                "payload": ["0x1", "0xff"],
+                "payload": [to_hex_felt(&user), to_hex_felt(&increment_amount)],
                 "paid_fee_on_l1": "0x1234",
                 "nonce": "0x1"
-            })
-                .to_string(),
+            }).to_string(),
         );
 
         let resp = devnet
@@ -225,6 +212,11 @@ mod test_messaging {
             body.get("transaction_hash").unwrap().as_str().unwrap(),
             "0x1468183dc780231ea033f2aef5a7fa172daba80f53e2360e787ed1988ed670c"
         );
+
+        assert_eq!(
+            get_balance(&devnet, l1l2_contract_address, user).await,
+            [user_balance + increment_amount]
+        );
     }
 
     #[tokio::test]
@@ -233,13 +225,7 @@ mod test_messaging {
 
         let (devnet, _, _) = setup_devnet(&["--account-class", "cairo1"]).await;
 
-        let req_body = Body::from(
-            json!({
-                "network_url": anvil.url,
-            })
-            .to_string(),
-        );
-
+        let req_body = Body::from(json!({ "network_url": anvil.url }).to_string());
         let resp = devnet
             .post_json("/postman/load_l1_messaging_contract".into(), req_body)
             .await
@@ -263,12 +249,7 @@ mod test_messaging {
         let user = FieldElement::ONE;
 
         // Deploy messaging contract.
-        let req_body = Body::from(
-            json!({
-                "network_url": anvil.url,
-            })
-            .to_string(),
-        );
+        let req_body = Body::from(json!({ "network_url": anvil.url }).to_string());
 
         let resp = devnet
             .post_json("/postman/load_l1_messaging_contract".into(), req_body)
@@ -277,21 +258,16 @@ mod test_messaging {
         assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
 
         // Set balance to 1 for user.
-        increase_balance(Arc::clone(&account), l1l2_contract_address, user, FieldElement::ONE)
-            .await;
-        assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [FieldElement::ONE]);
+        let user_balance = FieldElement::ONE;
+        increase_balance(Arc::clone(&account), l1l2_contract_address, user, user_balance).await;
+        assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [user_balance]);
 
-        // Withdraw the 1 amount in a l2->l1 message.
-        withdraw(Arc::clone(&account), l1l2_contract_address, user, FieldElement::ONE).await;
+        // Withdraw the amount in an l2->l1 message.
+        withdraw(Arc::clone(&account), l1l2_contract_address, user, user_balance).await;
         assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [FieldElement::ZERO]);
 
         // Flush to actually send the message on L1, which can then be consumed.
-        let req_body = Body::from(
-            json!({
-                "dry_run": false,
-            })
-            .to_string(),
-        );
+        let req_body = Body::from(json!({ "dry_run": false }).to_string());
 
         let resp = devnet.post_json("/postman/flush".into(), req_body).await.expect("flush failed");
         assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
