@@ -130,16 +130,43 @@ mod trace_tests {
         .unwrap();
 
         // deploy account
-        let _deployment = account_factory
+        let deployment = account_factory
             .deploy(FieldElement::from_hex_be("0x123").unwrap())
             .max_fee(FieldElement::from(1e18 as u128))
             .nonce(FieldElement::ZERO)
             .prepared()
             .unwrap();
+        let new_account_address = deployment.address();
+        devnet.mint(new_account_address, 1e18 as u128).await;
+        deployment.send().await.unwrap();
 
-        // TODO: also check constructor_invocation
-        // let deploy_account_tx_trace =
-        // devnet.json_rpc_client.trace_transaction(deployment.transaction_hash()).await.unwrap();
-        // println!("deploy_account_tx_trace: {:?}", deploy_account_tx_trace);
+        let deploy_account_tx_trace =
+            devnet.json_rpc_client.trace_transaction(deployment.transaction_hash()).await.unwrap();
+
+        if let starknet_rs_core::types::TransactionTrace::DeployAccount(deployment_trace) =
+            deploy_account_tx_trace
+        {
+            let validate_invocation = deployment_trace.validate_invocation.unwrap();
+            assert_eq!(
+                validate_invocation.class_hash,
+                FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap()
+            );
+            assert_eq!(
+                validate_invocation.calldata[0],
+                FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap()
+            );
+
+            assert_eq!(
+                deployment_trace.constructor_invocation.class_hash,
+                FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap()
+            );
+
+            assert_eq!(
+                deployment_trace.fee_transfer_invocation.unwrap().contract_address,
+                FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap()
+            );
+        } else {
+            panic!("Could not unpack the transaction trace from {deploy_account_tx_trace:?}");
+        }
     }
 }
