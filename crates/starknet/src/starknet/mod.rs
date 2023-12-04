@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use blockifier::block_context::BlockContext;
+use blockifier::execution::call_info::CallInfo;
 use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::errors::TransactionPreValidationError;
@@ -705,6 +706,17 @@ impl Starknet {
         transaction_to_map.get_receipt()
     }
 
+    fn get_call_info_invocation(
+        call_info_invocation: &Option<CallInfo>,
+        address_to_class_hash_map: &HashMap<ContractAddress, ClassHash>,
+    ) -> DevnetResult<Option<FunctionInvocation>> {
+        Ok(if let Some(call_info) = call_info_invocation {
+            Some(FunctionInvocation::try_from_call_info(call_info, address_to_class_hash_map)?)
+        } else {
+            None
+        })
+    }
+
     // TODO: refactor common code that it's also in simulate function
     pub fn get_transaction_trace_by_hash(
         &self,
@@ -722,24 +734,15 @@ impl Starknet {
 
         let address_to_class_hash_map = &state.state.state.address_to_class_hash;
 
-        let validate_invocation = if let Some(validate_info) =
-            &transaction_to_map.execution_info.validate_call_info
-        {
-            Some(FunctionInvocation::try_from_call_info(validate_info, address_to_class_hash_map)?)
-        } else {
-            None
-        };
+        let validate_invocation = Self::get_call_info_invocation(
+            &transaction_to_map.execution_info.validate_call_info,
+            address_to_class_hash_map,
+        )?;
 
-        let fee_transfer_invocation = if let Some(fee_transfer_info) =
-            &transaction_to_map.execution_info.fee_transfer_call_info
-        {
-            Some(FunctionInvocation::try_from_call_info(
-                fee_transfer_info,
-                address_to_class_hash_map,
-            )?)
-        } else {
-            None
-        };
+        let fee_transfer_invocation = Self::get_call_info_invocation(
+            &transaction_to_map.execution_info.fee_transfer_call_info,
+            address_to_class_hash_map,
+        )?;
 
         let execution_info = match &transaction_to_map.execution_info.execute_call_info {
             Some(call_info) => match call_info.execution.failed {
@@ -772,15 +775,31 @@ impl Starknet {
         };
 
         match transaction_to_map.inner {
-            Transaction::Declare(_) => panic!("panic on Declare"),
-            Transaction::DeployAccount(_) => panic!("panic on DeployAccount"),
-            Transaction::Invoke(_) => Ok(TransactionTrace::Invoke(InvokeTransactionTrace {
-                fee_transfer_invocation,
+            // TODO: Add test
+            Transaction::Declare(_) => Ok(TransactionTrace::Declare(DeclareTransactionTrace {
                 validate_invocation,
+                fee_transfer_invocation,
                 state_diff,
-                execute_invocation: execution_info,
             })),
-            _ => panic!("panic on _"),
+            // TODO: Add test and check constructor_invocation
+            Transaction::DeployAccount(_) => {
+                Ok(TransactionTrace::DeployAccount(DeployAccountTransactionTrace {
+                    validate_invocation,
+                    constructor_invocation: Self::get_call_info_invocation(
+                        &transaction_to_map.execution_info.execute_call_info,
+                        address_to_class_hash_map,
+                    )?,
+                    fee_transfer_invocation,
+                    state_diff,
+                }))
+            }
+            Transaction::Invoke(_) => Ok(TransactionTrace::Invoke(InvokeTransactionTrace {
+                validate_invocation,
+                execute_invocation: execution_info,
+                fee_transfer_invocation,
+                state_diff,
+            })),
+            _ => Err(Error::UnsupportedTransactionType),
         }
     }
 
@@ -832,25 +851,15 @@ impl Starknet {
 
             let address_to_class_hash_map = &state.state.state.address_to_class_hash;
 
-            let validate_invocation =
-                if let Some(validate_info) = &tx_execution_info.validate_call_info {
-                    Some(FunctionInvocation::try_from_call_info(
-                        validate_info,
-                        address_to_class_hash_map,
-                    )?)
-                } else {
-                    None
-                };
+            let validate_invocation = Self::get_call_info_invocation(
+                &tx_execution_info.validate_call_info,
+                address_to_class_hash_map,
+            )?;
 
-            let fee_transfer_invocation =
-                if let Some(fee_transfer_info) = &tx_execution_info.fee_transfer_call_info {
-                    Some(FunctionInvocation::try_from_call_info(
-                        fee_transfer_info,
-                        address_to_class_hash_map,
-                    )?)
-                } else {
-                    None
-                };
+            let fee_transfer_invocation = Self::get_call_info_invocation(
+                &tx_execution_info.fee_transfer_call_info,
+                address_to_class_hash_map,
+            )?;
 
             let trace = match broadcasted_transaction {
                 BroadcastedTransaction::Declare(_) => {

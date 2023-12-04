@@ -386,7 +386,6 @@ pub enum TransactionTrace {
     Declare(DeclareTransactionTrace),
     #[serde(rename = "DEPLOY_ACCOUNT")]
     DeployAccount(DeployAccountTransactionTrace),
-    // TODO: L1 handler is missing, is it needed?
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
