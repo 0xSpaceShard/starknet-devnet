@@ -1,6 +1,8 @@
 use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
+use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
+use starknet_types::rpc::transactions::invoke_transaction_v3::InvokeTransactionV3;
 use starknet_types::rpc::transactions::{InvokeTransaction, Transaction};
 
 use super::Starknet;
@@ -33,10 +35,42 @@ pub fn add_invoke_transaction_v1(
     Ok(transaction_hash)
 }
 
+pub fn add_invoke_transaction_v3(
+    starknet: &mut Starknet,
+    broadcasted_invoke_transaction: BroadcastedInvokeTransactionV3,
+) -> DevnetResult<TransactionHash> {
+    // TODO: check if bounds sum is equal to 0
+    if broadcasted_invoke_transaction.common.is_max_fee_zero_value() {
+        return Err(Error::MaxFeeZeroError { tx_type: "invoke transaction v3".into() });
+    }
+
+    let blockifier_invoke_transaction = broadcasted_invoke_transaction
+        .create_blockifier_invoke_transaction(starknet.chain_id().to_felt(), false)?;
+
+    let transaction_hash = blockifier_invoke_transaction.tx_hash.0.into();
+
+    let blockifier_execution_result =
+        blockifier::transaction::account_transaction::AccountTransaction::Invoke(
+            blockifier_invoke_transaction,
+        )
+        .execute(&mut starknet.state.state, &starknet.block_context, true, true);
+
+    let transaction = Transaction::Invoke(InvokeTransaction::Version3(InvokeTransactionV3::new(
+        broadcasted_invoke_transaction,
+        transaction_hash,
+    )));
+
+    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
+
+    Ok(transaction_hash)
+}
+
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
     use starknet_api::hash::StarkFelt;
-    use starknet_api::transaction::Fee;
+    use starknet_api::transaction::{Fee, Resource, ResourceBounds, ResourceBoundsMapping, Tip};
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_types::contract_address::ContractAddress;
@@ -44,10 +78,12 @@ mod tests {
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
     use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
-    use starknet_types::traits::HashProducer;
+    use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
+    use starknet_types::rpc::transactions::BroadcastedTransactionCommonV3;
+    use starknet_types::traits::{HashProducer, ToDecimalString, ToHexString};
 
-    use crate::account::Account;
-    use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID};
+    use crate::account::{Account, FeeToken};
+    use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS};
     use crate::starknet::{predeployed, Starknet};
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut, StateChanger, StateExtractor};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
@@ -80,10 +116,107 @@ mod tests {
         )
     }
 
+    fn test_invoke_transaction_v3(
+        account_address: ContractAddress,
+        contract_address: ContractAddress,
+        function_selector: Felt,
+        param: Felt,
+        nonce: u128,
+        l1_gas_amount: u64,
+    ) -> BroadcastedInvokeTransactionV3 {
+        let calldata = vec![
+            Felt::from(contract_address), // contract address
+            function_selector,            // function selector
+            Felt::from(1),                // calldata len
+            param,                        // calldata
+        ];
+
+        BroadcastedInvokeTransactionV3 {
+            common: BroadcastedTransactionCommonV3 {
+                version: Felt::from(3),
+                signature: vec![],
+                nonce: Felt::from(nonce),
+                resource_bounds: ResourceBoundsMapping(BTreeMap::from([(
+                    Resource::L1Gas,
+                    ResourceBounds { max_amount: l1_gas_amount, max_price_per_unit: 1 },
+                )])),
+                tip: Tip(0),
+                paymaster_data: vec![],
+                nonce_data_availability_mode:
+                    starknet_api::data_availability::DataAvailabilityMode::L1,
+                fee_data_availability_mode:
+                    starknet_api::data_availability::DataAvailabilityMode::L1,
+            },
+            sender_address: account_address,
+            calldata,
+            account_deployment_data: vec![],
+        }
+    }
+
+    #[test]
+    fn invoke_transaction_v3_should_fail_due_to_no_fee_provided() {
+        let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
+        let account_address = account.get_address();
+
+        let invoke_transaction = test_invoke_transaction_v3(
+            account_address,
+            contract_address,
+            increase_balance_selector,
+            Felt::from(10),
+            0,
+            0,
+        );
+
+        let invoke_v3_txn_error = starknet
+            .add_invoke_transaction_v3(invoke_transaction)
+            .expect_err("Expected MaxFeeZeroError");
+
+        match invoke_v3_txn_error {
+            crate::error::Error::MaxFeeZeroError { tx_type } => {
+                assert_eq!(tx_type, "invoke transaction v3".to_string());
+            }
+            _ => panic!("Wrong error type"),
+        }
+    }
+
+    #[test]
+    fn invoke_transaction_v3_successful_execution() {
+        let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
+        let account_address = account.get_address();
+        let initial_balance = account.get_balance(&mut starknet.state, FeeToken::STRK).unwrap();
+
+        let invoke_transaction = test_invoke_transaction_v3(
+            account_address,
+            contract_address,
+            increase_balance_selector,
+            Felt::from(10),
+            0,
+            u64::from_str_radix(
+                &account
+                    .get_balance(&mut starknet.state, crate::account::FeeToken::STRK)
+                    .unwrap()
+                    .to_decimal_string(),
+                10,
+            )
+            .unwrap(),
+        );
+
+        let transaction_hash = starknet.add_invoke_transaction_v3(invoke_transaction).unwrap();
+
+        let transaction = starknet.transactions.get_by_hash_mut(&transaction_hash).unwrap();
+
+        assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+        assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
+        assert!(
+            account.get_balance(&mut starknet.state, FeeToken::STRK).unwrap() > initial_balance
+        );
+    }
+
     #[test]
     fn invoke_transaction_successful_execution() {
-        let (mut starknet, account_address, contract_address, increase_balance_selector, _) =
-            setup();
+        let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
+
+        let account_address = account.get_address();
 
         let invoke_transaction = test_invoke_transaction_v1(
             account_address,
@@ -105,11 +238,13 @@ mod tests {
     fn invoke_transaction_successfully_changes_storage() {
         let (
             mut starknet,
-            account_address,
+            account,
             contract_address,
             increase_balance_selector,
             balance_var_storage_address,
         ) = setup();
+
+        let account_address = account.get_address();
 
         let invoke_transaction = test_invoke_transaction_v1(
             account_address,
@@ -175,8 +310,9 @@ mod tests {
 
     #[test]
     fn invoke_transaction_should_return_an_error_if_same_nonce_supplied() {
-        let (mut starknet, account_address, contract_address, increase_balance_selector, _) =
-            setup();
+        let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
+
+        let account_address = account.get_address();
 
         let nonce = 0;
         let invoke_transaction = test_invoke_transaction_v1(
@@ -205,9 +341,9 @@ mod tests {
 
     #[test]
     fn nonce_should_be_incremented_if_invoke_reverted() {
-        let (mut starknet, account_address, contract_address, increase_balance_selector, _) =
-            setup();
+        let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
 
+        let account_address = account.get_address();
         let initial_nonce = starknet.state.get_nonce(&account_address).unwrap();
         assert_eq!(initial_nonce, Felt::from(0));
 
@@ -239,12 +375,17 @@ mod tests {
 
     /// Initialize starknet object with: erc20 contract, account contract and  simple contract that
     /// has a function increase_balance
-    fn setup() -> (Starknet, ContractAddress, ContractAddress, Felt, ContractStorageKey) {
+    fn setup() -> (Starknet, Account, ContractAddress, Felt, ContractStorageKey) {
         let mut starknet = Starknet::default();
 
-        // deploy erc20 contract
-        let erc_20_contract = predeployed::create_erc20().unwrap();
-        erc_20_contract.deploy(&mut starknet.state).unwrap();
+        // deploy erc20 contracts
+        let eth_erc_20_contract =
+            predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS).unwrap();
+        eth_erc_20_contract.deploy(&mut starknet.state).unwrap();
+
+        let strk_erc_20_contract =
+            predeployed::create_erc20_at_address(constants::STRK_ERC20_CONTRACT_ADDRESS).unwrap();
+        strk_erc_20_contract.deploy(&mut starknet.state).unwrap();
 
         // deploy account contract
         let account_without_validations_contract_class = cairo_0_account_without_validations();
@@ -257,7 +398,8 @@ mod tests {
             dummy_felt(),
             account_without_validations_class_hash,
             ContractClass::Cairo0(account_without_validations_contract_class),
-            erc_20_contract.get_address(),
+            eth_erc_20_contract.get_address(),
+            strk_erc_20_contract.get_address(),
         )
         .unwrap();
 
@@ -306,15 +448,16 @@ mod tests {
         starknet.state.clear_dirty_state();
         starknet.block_context = Starknet::init_block_context(
             1,
-            constants::ERC20_CONTRACT_ADDRESS,
+            constants::ETH_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
+            constants::STRK_ERC20_CONTRACT_ADDRESS,
         );
 
         starknet.restart_pending_block().unwrap();
 
         (
             starknet,
-            account.get_address(),
+            account,
             dummy_contract_address,
             Felt::from(increase_balance_selector),
             contract_storage_key,

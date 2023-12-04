@@ -69,6 +69,9 @@ impl JsonRpcHandler {
             BroadcastedInvokeTransaction::V1(invoke_txn) => {
                 self.api.starknet.write().await.add_invoke_transaction_v1(invoke_txn)?
             }
+            BroadcastedInvokeTransaction::V3(invoke_txn) => {
+                self.api.starknet.write().await.add_invoke_transaction_v3(invoke_txn)?
+            }
         };
 
         Ok(StarknetResponse::AddInvokeTransaction(InvokeTransactionOutput { transaction_hash }))

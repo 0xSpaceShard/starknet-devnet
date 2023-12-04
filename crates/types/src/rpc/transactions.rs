@@ -18,9 +18,12 @@ use starknet_rs_core::types::{BlockId, ExecutionResult, TransactionFinalityStatu
 use starknet_rs_crypto::poseidon_hash_many;
 use starknet_rs_ff::FieldElement;
 
+use self::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
 use self::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
 use self::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
+use self::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use self::deploy_account_transaction::DeployAccountTransactionV1;
+use self::invoke_transaction_v3::InvokeTransactionV3;
 use super::estimate_message_fee::FeeEstimateWrapper;
 use super::state::ThinStateDiff;
 use super::transaction_receipt::{ExecutionResources, OrderedMessageToL1};
@@ -52,6 +55,7 @@ pub mod declare_transaction_v2;
 pub mod deploy_account_transaction;
 pub mod deploy_transaction;
 pub mod invoke_transaction_v1;
+pub mod invoke_transaction_v3;
 
 /// number of bits to be shifted when encoding the data availability mode into `FieldElement` type
 const DATA_AVAILABILITY_MODE_BITS: u8 = 32;
@@ -238,6 +242,7 @@ impl InvokeTransactionV0 {
 pub enum InvokeTransaction {
     Version0(InvokeTransactionV0),
     Version1(InvokeTransactionV1),
+    Version3(InvokeTransactionV3),
 }
 
 impl InvokeTransaction {
@@ -245,6 +250,7 @@ impl InvokeTransaction {
         match self {
             InvokeTransaction::Version0(tx) => tx.get_transaction_hash(),
             InvokeTransaction::Version1(tx) => tx.get_transaction_hash(),
+            InvokeTransaction::Version3(tx) => tx.get_transaction_hash(),
         }
     }
 }
@@ -327,6 +333,16 @@ pub struct BroadcastedTransactionCommonV3 {
 }
 
 impl BroadcastedTransactionCommonV3 {
+    /// Checks if total accumulated fee of resource_bounds is equal to 0
+    pub fn is_max_fee_zero_value(&self) -> bool {
+        let fee_total_value: u128 = self
+            .resource_bounds
+            .0
+            .values()
+            .fold(0u128, |acc, el| acc + (el.max_price_per_unit * (el.max_amount as u128)));
+
+        fee_total_value == 0
+    }
     /// Returns an array of FieldElements that reflects the `common_tx_fields` according to SNIP-8(https://github.com/starknet-io/SNIPs/blob/main/SNIPS/snip-8.md/#protocol-changes).
     ///
     /// # Arguments
@@ -439,6 +455,11 @@ impl BroadcastedTransaction {
                     invoke_txn.create_blockifier_invoke_transaction(chain_id, only_query)?;
                 AccountTransaction::Invoke(blockifier_invoke_txn)
             }
+            BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V3(invoke_txn)) => {
+                let blockifier_invoke_txn =
+                    invoke_txn.create_blockifier_invoke_transaction(chain_id, only_query)?;
+                AccountTransaction::Invoke(blockifier_invoke_txn)
+            }
             BroadcastedTransaction::Declare(BroadcastedDeclareTransaction::V1(declare_v1)) => {
                 let class_hash = declare_v1.generate_class_hash()?;
                 let transaction_hash =
@@ -466,6 +487,7 @@ impl BroadcastedTransaction {
 pub enum BroadcastedDeclareTransaction {
     V1(Box<BroadcastedDeclareTransactionV1>),
     V2(Box<BroadcastedDeclareTransactionV2>),
+    // V3(Box<BroadcastedDeclareTransactionV3>),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
@@ -477,6 +499,7 @@ pub enum BroadcastedDeployAccountTransaction {
 #[serde(untagged)]
 pub enum BroadcastedInvokeTransaction {
     V1(BroadcastedInvokeTransactionV1),
+    V3(BroadcastedInvokeTransactionV3),
 }
 
 /// Flags that indicate how to simulate a given transaction.

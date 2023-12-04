@@ -6,6 +6,7 @@ use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::Broad
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
+use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use starknet_types::rpc::transactions::{
     DeclareTransaction, DeployAccountTransaction, InvokeTransaction, Transaction,
 };
@@ -15,7 +16,7 @@ use crate::error::{DevnetResult, Error};
 
 impl Starknet {
     pub fn re_execute(&mut self, transactions: Vec<Transaction>) -> DevnetResult<()> {
-        for transaction in transactions.iter() {
+        for transaction in transactions.into_iter() {
             match transaction {
                 Transaction::Declare(DeclareTransaction::Version0(_)) => {
                     return Err(Error::SerializationNotSupported);
@@ -69,6 +70,10 @@ impl Starknet {
                         tx.version,
                     );
                     self.add_invoke_transaction_v1(invoke_tx)?;
+                }
+                Transaction::Invoke(InvokeTransaction::Version3(tx)) => {
+                    let invoke_tx: BroadcastedInvokeTransactionV3 = tx.into();
+                    self.add_invoke_transaction_v3(invoke_tx)?;
                 }
                 Transaction::L1Handler(_) => return Err(Error::SerializationNotSupported),
             };

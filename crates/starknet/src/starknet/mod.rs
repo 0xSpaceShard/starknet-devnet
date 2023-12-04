@@ -34,6 +34,7 @@ use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::Broad
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
+use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use starknet_types::rpc::transactions::{
     BroadcastedTransaction, BroadcastedTransactionCommon, DeclareTransaction,
     DeclareTransactionTrace, DeployAccountTransactionTrace, ExecutionInvocation,
@@ -567,6 +568,13 @@ impl Starknet {
         invoke_transaction: BroadcastedInvokeTransactionV1,
     ) -> DevnetResult<TransactionHash> {
         add_invoke_transaction::add_invoke_transaction_v1(self, invoke_transaction)
+    }
+
+    pub fn add_invoke_transaction_v3(
+        &mut self,
+        invoke_transaction: BroadcastedInvokeTransactionV3,
+    ) -> DevnetResult<TransactionHash> {
+        add_invoke_transaction::add_invoke_transaction_v3(self, invoke_transaction)
     }
 
     /// Creates an invoke tx for minting, using the chargeable account.
