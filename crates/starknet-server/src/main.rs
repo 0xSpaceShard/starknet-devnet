@@ -1,7 +1,6 @@
 use std::net::SocketAddr;
 
 use ::server::ServerConfig;
-use anyhow::Ok;
 use api::Api;
 use clap::Parser;
 use cli::Args;
@@ -59,12 +58,12 @@ fn log_predeployed_accounts(predeployed_accounts: &Vec<Account>, seed: u32, init
 
 fn print_predeployed_contracts() {
     println!("Predeployed FeeToken");
-    println!("Address: {ERC20_CONTRACT_ADDRESS}");
-    println!("Class Hash: {ERC20_CONTRACT_CLASS_HASH}");
+    println!("Address: {}", ERC20_CONTRACT_ADDRESS);
+    println!("Class Hash: {}", ERC20_CONTRACT_CLASS_HASH);
     println!();
     println!("Predeployed UDC");
-    println!("Address: {UDC_CONTRACT_ADDRESS}");
-    println!("Class Hash: {UDC_CONTRACT_CLASS_HASH}");
+    println!("Address: {}", UDC_CONTRACT_ADDRESS);
+    println!("Class Hash: {}", UDC_CONTRACT_CLASS_HASH);
 }
 
 #[tokio::main]
@@ -74,7 +73,7 @@ async fn main() -> Result<(), anyhow::Error> {
     // parse arguments
     let args = Args::parse();
     let starknet_config = args.to_starknet_config()?;
-    let mut addr: SocketAddr = SocketAddr::new(starknet_config.host, starknet_config.port);
+    let mut addr: SocketAddr = (starknet_config.host, starknet_config.port).into();
 
     let api = api::Api::new(Starknet::new(&starknet_config)?);
 
