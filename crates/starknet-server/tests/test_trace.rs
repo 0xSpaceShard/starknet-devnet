@@ -46,4 +46,7 @@ mod trace_tests {
             panic!("Could not unpack the transaction trace from {mint_tx_trace:?}");
         }
     }
+
+    // TODO: Add DeclareTransactionTrace test
+    // TODO: Add DeployAccountTransactionTrace test and check constructor_invocation
 }

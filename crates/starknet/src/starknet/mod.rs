@@ -706,6 +706,40 @@ impl Starknet {
         transaction_to_map.get_receipt()
     }
 
+    fn get_execute_call_info(
+        execution_info: &TransactionExecutionInfo,
+        address_to_class_hash_map: &HashMap<ContractAddress, ClassHash>,
+    ) -> DevnetResult<ExecutionInvocation> {
+        Ok(match &execution_info.execute_call_info {
+            Some(call_info) => match call_info.execution.failed {
+                false => ExecutionInvocation::Succeeded(FunctionInvocation::try_from_call_info(
+                    call_info,
+                    address_to_class_hash_map,
+                )?),
+                true => {
+                    ExecutionInvocation::Reverted(starknet_types::rpc::transactions::Reversion {
+                        revert_reason: execution_info
+                            .revert_error
+                            .clone()
+                            .unwrap_or("Revert reason not found".into()),
+                    })
+                }
+            },
+            None => {
+                match execution_info.revert_error.clone() {
+                    Some(revert_reason) => ExecutionInvocation::Reverted(
+                        starknet_types::rpc::transactions::Reversion { revert_reason },
+                    ),
+                    None => {
+                        return Err(Error::UnexpectedInternalError {
+                            msg: "Simulation contains neither call_info nor revert_error".into(),
+                        });
+                    }
+                }
+            }
+        })
+    }
+
     fn get_call_info_invocation(
         call_info_invocation: &Option<CallInfo>,
         address_to_class_hash_map: &HashMap<ContractAddress, ClassHash>,
@@ -717,7 +751,6 @@ impl Starknet {
         })
     }
 
-    // TODO: refactor common code that it's also in simulate function
     pub fn get_transaction_trace_by_hash(
         &self,
         transaction_hash: TransactionHash,
@@ -744,44 +777,12 @@ impl Starknet {
             address_to_class_hash_map,
         )?;
 
-        let execution_info = match &transaction_to_map.execution_info.execute_call_info {
-            Some(call_info) => match call_info.execution.failed {
-                false => ExecutionInvocation::Succeeded(FunctionInvocation::try_from_call_info(
-                    call_info,
-                    address_to_class_hash_map,
-                )?),
-                true => {
-                    ExecutionInvocation::Reverted(starknet_types::rpc::transactions::Reversion {
-                        revert_reason: transaction_to_map
-                            .execution_info
-                            .revert_error
-                            .clone()
-                            .unwrap_or("Revert reason not found".into()),
-                    })
-                }
-            },
-            None => {
-                match transaction_to_map.execution_info.revert_error.clone() {
-                    Some(revert_reason) => ExecutionInvocation::Reverted(
-                        starknet_types::rpc::transactions::Reversion { revert_reason },
-                    ),
-                    None => {
-                        return Err(Error::UnexpectedInternalError {
-                            msg: "Simulation contains neither call_info nor revert_error".into(),
-                        });
-                    }
-                }
-            }
-        };
-
         match transaction_to_map.inner {
-            // TODO: Add test
             Transaction::Declare(_) => Ok(TransactionTrace::Declare(DeclareTransactionTrace {
                 validate_invocation,
                 fee_transfer_invocation,
                 state_diff,
             })),
-            // TODO: Add test and check constructor_invocation
             Transaction::DeployAccount(_) => {
                 Ok(TransactionTrace::DeployAccount(DeployAccountTransactionTrace {
                     validate_invocation,
@@ -795,7 +796,10 @@ impl Starknet {
             }
             Transaction::Invoke(_) => Ok(TransactionTrace::Invoke(InvokeTransactionTrace {
                 validate_invocation,
-                execute_invocation: execution_info,
+                execute_invocation: Self::get_execute_call_info(
+                    &transaction_to_map.execution_info,
+                    address_to_class_hash_map,
+                )?,
                 fee_transfer_invocation,
                 state_diff,
             })),
@@ -872,16 +876,10 @@ impl Starknet {
                 BroadcastedTransaction::DeployAccount(_) => {
                     TransactionTrace::DeployAccount(DeployAccountTransactionTrace {
                         validate_invocation,
-                        constructor_invocation: if let Some(call_info) =
-                            &tx_execution_info.execute_call_info
-                        {
-                            Some(FunctionInvocation::try_from_call_info(
-                                call_info,
-                                address_to_class_hash_map,
-                            )?)
-                        } else {
-                            None
-                        },
+                        constructor_invocation: Self::get_call_info_invocation(
+                            &tx_execution_info.execute_call_info,
+                            address_to_class_hash_map,
+                        )?,
                         fee_transfer_invocation,
                         state_diff,
                     })
@@ -891,35 +889,10 @@ impl Starknet {
                         fee_transfer_invocation,
                         validate_invocation,
                         state_diff,
-                        execute_invocation: match &tx_execution_info.execute_call_info {
-                            Some(call_info) => match call_info.execution.failed {
-                                false => ExecutionInvocation::Succeeded(
-                                    FunctionInvocation::try_from_call_info(
-                                        call_info,
-                                        address_to_class_hash_map,
-                                    )?,
-                                ),
-                                true => ExecutionInvocation::Reverted(
-                                    starknet_types::rpc::transactions::Reversion {
-                                        revert_reason: tx_execution_info
-                                            .revert_error
-                                            .unwrap_or("Revert reason not found".into()),
-                                    },
-                                ),
-                            },
-                            None => match tx_execution_info.revert_error {
-                                Some(revert_reason) => ExecutionInvocation::Reverted(
-                                    starknet_types::rpc::transactions::Reversion { revert_reason },
-                                ),
-                                None => {
-                                    return Err(Error::UnexpectedInternalError {
-                                        msg: "Simulation contains neither call_info nor \
-                                              revert_error"
-                                            .into(),
-                                    });
-                                }
-                            },
-                        },
+                        execute_invocation: Self::get_execute_call_info(
+                            &tx_execution_info,
+                            address_to_class_hash_map,
+                        )?,
                     })
                 }
             };
