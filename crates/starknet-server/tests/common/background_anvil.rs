@@ -4,19 +4,8 @@ use std::{thread, time};
 use hyper::http::request;
 use hyper::{Client, Response, StatusCode};
 use rand::Rng;
-use thiserror::Error;
 
-#[derive(Error, Debug)]
-pub enum TestError {
-    #[error("No free ports")]
-    NoFreePorts,
-    #[error("Could not parse URL")]
-    UrlParseError(#[from] url::ParseError),
-    #[error("Invalid URI")]
-    InvalidUri(#[from] hyper::http::uri::InvalidUri),
-    #[error("Could not start Anvil")]
-    AnvilNotStartable,
-}
+use super::errors::TestError;
 
 pub struct BackgroundAnvil {
     pub process: Child,
