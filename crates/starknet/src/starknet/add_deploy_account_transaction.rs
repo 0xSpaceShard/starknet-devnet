@@ -56,7 +56,7 @@ mod tests {
     use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
     use starknet_types::traits::HashProducer;
 
-    use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID};
+    use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS};
     use crate::error::Error;
     use crate::starknet::{predeployed, Starknet};
     use crate::traits::{Deployed, HashIdentifiedMut, StateChanger, StateExtractor};
@@ -208,7 +208,8 @@ mod tests {
             env!("CARGO_MANIFEST_DIR"),
             "/test_artifacts/account_without_validations/account.json"
         );
-        let erc_20_contract = predeployed::create_erc20().unwrap();
+        let erc_20_contract =
+            predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS).unwrap();
         erc_20_contract.deploy(&mut starknet.state).unwrap();
 
         let contract_class = Cairo0Json::raw_json_from_path(account_json_path).unwrap();
@@ -218,9 +219,9 @@ mod tests {
         starknet.state.clear_dirty_state();
         starknet.block_context = Starknet::init_block_context(
             1,
-            constants::ERC20_CONTRACT_ADDRESS,
+            constants::ETH_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
-            constants::STRK_FEE_CONTRACT_ADDRESS,
+            constants::STRK_ERC20_CONTRACT_ADDRESS,
         );
 
         starknet.restart_pending_block().unwrap();

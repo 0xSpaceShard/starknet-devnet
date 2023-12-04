@@ -3,7 +3,7 @@ pub mod common;
 mod get_transaction_by_hash_integration_tests {
     use std::sync::Arc;
 
-    use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ERC20_CONTRACT_ADDRESS};
+    use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ETH_ERC20_CONTRACT_ADDRESS};
     use starknet_rs_accounts::{
         Account, AccountFactory, Call, ExecutionEncoding, OpenZeppelinAccountFactory,
         SingleOwnerAccount,
@@ -181,7 +181,7 @@ mod get_transaction_by_hash_integration_tests {
 
         let invoke_transaction = account
             .execute(vec![Call {
-                to: FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap(),
+                to: FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
                 selector: get_selector_from_name("transfer").unwrap(),
                 calldata: vec![
                     FieldElement::ONE,                                 // recipient

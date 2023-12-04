@@ -4,7 +4,7 @@ mod estimate_fee_tests {
     use std::sync::Arc;
 
     use serde_json::json;
-    use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ERC20_CONTRACT_ADDRESS};
+    use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ETH_ERC20_CONTRACT_ADDRESS};
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{
         Account, AccountFactory, Call, ExecutionEncoding, OpenZeppelinAccountFactory,
@@ -278,7 +278,7 @@ mod estimate_fee_tests {
         );
         assert_eq!(
             no_flags_trace["fee_transfer_invocation"]["contract_address"].as_str().unwrap(),
-            ERC20_CONTRACT_ADDRESS.to_lowercase()
+            ETH_ERC20_CONTRACT_ADDRESS.to_lowercase()
         );
         assert_eq!(
             no_flags_trace["constructor_invocation"]["contract_address"].as_str().unwrap(),
@@ -294,7 +294,7 @@ mod estimate_fee_tests {
         assert!(skip_validation_trace["validate_invocation"].as_object().is_none());
         assert_eq!(
             skip_validation_trace["fee_transfer_invocation"]["contract_address"].as_str().unwrap(),
-            ERC20_CONTRACT_ADDRESS.to_lowercase()
+            ETH_ERC20_CONTRACT_ADDRESS.to_lowercase()
         );
         assert_eq!(
             skip_validation_trace["constructor_invocation"]["contract_address"].as_str().unwrap(),

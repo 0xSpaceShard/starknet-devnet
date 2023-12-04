@@ -9,7 +9,7 @@ use hyper::http::request;
 use hyper::{Body, Client, Response, StatusCode, Uri};
 use lazy_static::lazy_static;
 use serde_json::json;
-use starknet_core::constants::ERC20_CONTRACT_ADDRESS;
+use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
 use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, FunctionCall};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_providers::jsonrpc::HttpTransport;
@@ -216,7 +216,7 @@ impl BackgroundDevnet {
     /// Get balance at contract_address, as written in ERC20
     pub async fn get_balance(&self, address: &FieldElement) -> Result<FieldElement, anyhow::Error> {
         let call = FunctionCall {
-            contract_address: FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap(),
+            contract_address: FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
             entry_point_selector: get_selector_from_name("balanceOf").unwrap(),
             calldata: vec![*address],
         };

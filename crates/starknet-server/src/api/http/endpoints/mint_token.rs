@@ -1,5 +1,5 @@
 use axum::{Extension, Json};
-use starknet_core::constants::ERC20_CONTRACT_ADDRESS;
+use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
 use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::contract_address::ContractAddress;
@@ -17,7 +17,7 @@ pub(crate) async fn get_fee_token() -> HttpApiResult<Json<FeeToken>> {
 
 /// get the balance of the `address`
 fn get_balance(starknet: &Starknet, address: ContractAddress) -> Result<BigUint, ApiError> {
-    let erc20_address = Felt::from_prefixed_hex_str(ERC20_CONTRACT_ADDRESS).unwrap();
+    let erc20_address = Felt::from_prefixed_hex_str(ETH_ERC20_CONTRACT_ADDRESS).unwrap();
     let balance_selector =
         starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap().into();
     let new_balance_raw = starknet.call(
