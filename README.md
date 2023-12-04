@@ -322,7 +322,13 @@ If you think this reports a dependency as a false-positive (i.e. isn't unused), 
 
 ## Development - Testing
 
-To ensure that integration tests pass, be sure to have run `cargo build --release` or `cargo run --release` prior to testing. This builds the production target used in integration tests, so spawning Background Devnet won't time out.
+### Prerequisites
+
+Some tests require the `anvil` command, so you need to [install Foundry](https://book.getfoundry.sh/getting-started/installation). The `anvil` command might not be usable by tests if you run them using VS Code's `Run Test` button available just above the test case. Either run tests using a shell which has foundry/anvil in `PATH`, or modify the BackgroundAnvil Command to specify `anvil` by its path on your system.
+
+To ensure that integration tests pass, be sure to have run `cargo build --release` or `cargo run --release` prior to testing. This builds the production target used in integration tests, so spawning BackgroundDevnet won't time out.
+
+### Execution
 
 Run all tests using all available CPUs with:
 
