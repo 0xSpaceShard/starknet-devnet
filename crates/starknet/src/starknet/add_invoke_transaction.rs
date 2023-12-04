@@ -80,7 +80,7 @@ mod tests {
     use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
     use starknet_types::rpc::transactions::BroadcastedTransactionCommonV3;
-    use starknet_types::traits::{HashProducer, ToDecimalString, ToHexString};
+    use starknet_types::traits::{HashProducer, ToDecimalString};
 
     use crate::account::{Account, FeeToken};
     use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS};
@@ -194,14 +194,12 @@ mod tests {
             increase_balance_selector,
             Felt::from(10),
             0,
-            u64::from_str_radix(
-                &account
-                    .get_balance(&mut starknet.state, crate::account::FeeToken::STRK)
-                    .unwrap()
-                    .to_decimal_string(),
-                10,
-            )
-            .unwrap(),
+            account
+                .get_balance(&mut starknet.state, crate::account::FeeToken::STRK)
+                .unwrap()
+                .to_decimal_string()
+                .parse::<u64>()
+                .unwrap(),
         );
 
         let transaction_hash = starknet.add_invoke_transaction_v3(invoke_transaction).unwrap();

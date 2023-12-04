@@ -35,9 +35,9 @@ pub fn add_deploy_account_transaction_v3(
         transaction_hash,
     );
 
-    let transaction = Transaction::DeployAccount(DeployAccountTransaction::Version3(
+    let transaction = Transaction::DeployAccount(DeployAccountTransaction::Version3(Box::new(
         deploy_account_transaction_v3,
-    ));
+    )));
 
     let blockifier_execution_result =
         blockifier::transaction::account_transaction::AccountTransaction::DeployAccount(
@@ -72,9 +72,9 @@ pub fn add_deploy_account_transaction_v1(
     let deploy_account_transaction_v1 = broadcasted_deploy_account_transaction
         .compile_deploy_account_transaction_v1(&transaction_hash, address);
 
-    let transaction = Transaction::DeployAccount(DeployAccountTransaction::Version1(
+    let transaction = Transaction::DeployAccount(DeployAccountTransaction::Version1(Box::new(
         deploy_account_transaction_v1,
-    ));
+    )));
 
     let blockifier_execution_result =
         blockifier::transaction::account_transaction::AccountTransaction::DeployAccount(

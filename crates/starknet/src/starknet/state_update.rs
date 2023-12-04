@@ -34,9 +34,7 @@ mod tests {
     use crate::starknet::{predeployed, Starknet};
     use crate::state::state_diff::StateDiff;
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut};
-    use crate::utils::test_utils::{
-        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
-    };
+    use crate::utils::test_utils::{dummy_cairo_1_contract_class, dummy_felt};
 
     #[test]
     /// This test checks that the state update is correct after a declare transaction v2.

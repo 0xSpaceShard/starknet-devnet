@@ -63,7 +63,7 @@ impl Starknet {
                     self.add_deploy_account_transaction_v1(deploy_account_tx)?;
                 }
                 Transaction::DeployAccount(DeployAccountTransaction::Version3(tx)) => {
-                    let deploy_account_tx: BroadcastedDeployAccountTransactionV3 = tx.into();
+                    let deploy_account_tx: BroadcastedDeployAccountTransactionV3 = (*tx).into();
                     self.add_deploy_account_transaction_v3(deploy_account_tx)?;
                 }
                 Transaction::Deploy(_) => return Err(Error::SerializationNotSupported),

@@ -264,8 +264,8 @@ impl InvokeTransaction {
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum DeployAccountTransaction {
-    Version1(DeployAccountTransactionV1),
-    Version3(DeployAccountTransactionV3),
+    Version1(Box<DeployAccountTransactionV1>),
+    Version3(Box<DeployAccountTransactionV3>),
 }
 
 impl DeployAccountTransaction {
