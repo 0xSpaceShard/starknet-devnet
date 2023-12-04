@@ -28,11 +28,15 @@ mod tests {
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;
-    use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS};
+    use crate::constants::{
+        self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
+    };
     use crate::starknet::{predeployed, Starknet};
     use crate::state::state_diff::StateDiff;
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut};
-    use crate::utils::test_utils::{dummy_cairo_1_contract_class, dummy_felt};
+    use crate::utils::test_utils::{
+        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
+    };
 
     #[test]
     /// This test checks that the state update is correct after a declare transaction v2.
@@ -99,9 +103,9 @@ mod tests {
         );
         let contract_class = Cairo0Json::raw_json_from_path(account_json_path).unwrap();
 
-        let erc_20_contract =
+        let eth_erc_20_contract =
             predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS).unwrap();
-        erc_20_contract.deploy(&mut starknet.state).unwrap();
+        eth_erc_20_contract.deploy(&mut starknet.state).unwrap();
 
         let acc = Account::new(
             Felt::from(100000),
@@ -109,7 +113,9 @@ mod tests {
             dummy_felt(),
             contract_class.generate_hash().unwrap(),
             contract_class.into(),
-            erc_20_contract.get_address(),
+            eth_erc_20_contract.get_address(),
+            ContractAddress::new(Felt::from_prefixed_hex_str(STRK_ERC20_CONTRACT_ADDRESS).unwrap())
+                .unwrap(),
         )
         .unwrap();
 

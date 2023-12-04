@@ -50,6 +50,7 @@ use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
     CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, DEVNET_DEFAULT_CHAIN_ID,
     ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME, ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS,
+    STRK_ERC20_NAME, STRK_ERC20_SYMBOL,
 };
 use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::predeployed_accounts::PredeployedAccounts;
@@ -109,7 +110,11 @@ impl Starknet {
         // deploy udc, eth erc20 and strk erc20 contracts
         let eth_erc20_fee_contract =
             predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS)?;
+        let strk_erc20_fee_contract =
+            predeployed::create_erc20_at_address(STRK_ERC20_CONTRACT_ADDRESS)?;
+
         let udc_contract = predeployed::create_udc()?;
+        udc_contract.deploy(&mut state)?;
 
         eth_erc20_fee_contract.deploy(&mut state)?;
         initialize_erc20_at_address(
@@ -119,12 +124,19 @@ impl Starknet {
             ETH_ERC20_SYMBOL,
         )?;
 
-        udc_contract.deploy(&mut state)?;
+        strk_erc20_fee_contract.deploy(&mut state)?;
+        initialize_erc20_at_address(
+            &mut state,
+            STRK_ERC20_CONTRACT_ADDRESS,
+            STRK_ERC20_NAME,
+            STRK_ERC20_SYMBOL,
+        )?;
 
         let mut predeployed_accounts = PredeployedAccounts::new(
             config.seed,
             config.predeployed_accounts_initial_balance,
             eth_erc20_fee_contract.get_address(),
+            strk_erc20_fee_contract.get_address(),
         );
 
         let accounts = predeployed_accounts.generate_accounts(
@@ -137,7 +149,10 @@ impl Starknet {
             account.set_initial_balance(&mut state)?;
         }
 
-        let chargeable_account = Account::new_chargeable(eth_erc20_fee_contract.get_address())?;
+        let chargeable_account = Account::new_chargeable(
+            eth_erc20_fee_contract.get_address(),
+            strk_erc20_fee_contract.get_address(),
+        )?;
         chargeable_account.deploy(&mut state)?;
         chargeable_account.set_initial_balance(&mut state)?;
 
@@ -569,7 +584,7 @@ impl Starknet {
             FieldElement::from(0u32),   // `high` part
         ];
 
-        let erc20_address_felt = Felt::from_prefixed_hex_str(ERC20_CONTRACT_ADDRESS)?;
+        let erc20_address_felt = Felt::from_prefixed_hex_str(ETH_ERC20_CONTRACT_ADDRESS)?;
         let raw_execution = RawExecution {
             calls: vec![Call {
                 to: erc20_address_felt.into(),
@@ -929,6 +944,7 @@ mod tests {
     use starknet_types::felt::Felt;
 
     use super::Starknet;
+    use crate::account::FeeToken;
     use crate::blocks::StarknetBlock;
     use crate::constants::{
         DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_INITIAL_BALANCE, ETH_ERC20_CONTRACT_ADDRESS,
@@ -950,7 +966,10 @@ mod tests {
         let expected_balance = config.predeployed_accounts_initial_balance;
 
         for account in predeployed_accounts {
-            let account_balance = account.get_balance(&mut starknet.state).unwrap();
+            let account_balance = account.get_balance(&mut starknet.state, FeeToken::ETH).unwrap();
+            assert_eq!(expected_balance, account_balance);
+
+            let account_balance = account.get_balance(&mut starknet.state, FeeToken::STRK).unwrap();
             assert_eq!(expected_balance, account_balance);
         }
     }

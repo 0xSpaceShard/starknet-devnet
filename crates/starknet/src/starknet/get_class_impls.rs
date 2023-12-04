@@ -44,12 +44,15 @@ pub fn get_class_at_impl(
 mod tests {
 
     use starknet_rs_core::types::BlockId;
+    use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;
-    use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS};
+    use crate::constants::{
+        self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
+    };
     use crate::starknet::{predeployed, Starknet};
     use crate::state::state_diff::StateDiff;
     use crate::traits::{Accounted, Deployed};
@@ -74,6 +77,8 @@ mod tests {
             contract_class.generate_hash().unwrap(),
             contract_class.into(),
             erc_20_contract.get_address(),
+            ContractAddress::new(Felt::from_prefixed_hex_str(STRK_ERC20_CONTRACT_ADDRESS).unwrap())
+                .unwrap(),
         )
         .unwrap();
 
