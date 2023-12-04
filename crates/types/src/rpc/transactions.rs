@@ -470,7 +470,7 @@ impl FunctionInvocation {
         messages.sort_by_key(|msg| msg.order);
 
         let mut events: Vec<OrderedEvent> =
-            call_info.execution.events.iter().map(|event| OrderedEvent::from(event)).collect();
+            call_info.execution.events.iter().map(OrderedEvent::from).collect();
         events.sort_by_key(|event| event.order);
 
         let function_call = FunctionCall {
