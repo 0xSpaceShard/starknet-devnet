@@ -52,6 +52,7 @@ impl Accounted for SystemContract {
     fn get_balance(
         &self,
         _state: &mut impl crate::traits::StateExtractor,
+        _token: crate::account::FeeToken,
     ) -> DevnetResult<Balance> {
         Ok(Felt::default())
     }
