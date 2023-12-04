@@ -473,7 +473,7 @@ impl FunctionInvocation {
             .execution
             .events
             .iter()
-            .map(|event| OrderedEvent::new(event, call_info.call.storage_address.into()))
+            .map(|event| OrderedEvent::from(event))
             .collect();
         events.sort_by_key(|event| event.order);
 

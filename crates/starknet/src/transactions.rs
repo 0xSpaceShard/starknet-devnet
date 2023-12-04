@@ -87,15 +87,15 @@ impl StarknetTransaction {
 
         fn get_blockifier_events_recursively(
             call_info: &blockifier::execution::call_info::CallInfo,
-        ) -> Vec<OrderedEvent> {
-            let mut events: Vec<OrderedEvent> = vec![];
+        ) -> Vec<(OrderedEvent, ContractAddress)> {
+            let mut events: Vec<(OrderedEvent, ContractAddress)> = vec![];
 
             events.extend(
                 call_info
                     .execution
                     .events
                     .iter()
-                    .map(|e| OrderedEvent::new(e, call_info.call.storage_address.into())),
+                    .map(|e| (OrderedEvent::from(e), call_info.call.storage_address.into())),
             );
 
             call_info.inner_calls.iter().for_each(|call| {
@@ -113,8 +113,12 @@ impl StarknetTransaction {
 
         for inner_call_info in call_infos.into_iter().flatten() {
             let mut not_sorted_events = get_blockifier_events_recursively(inner_call_info);
-            not_sorted_events.sort_by_key(|event| event.order);
-            events.extend(not_sorted_events.into_iter().map(|e| e.event));
+            not_sorted_events.sort_by_key(|(ordered_event, _)| ordered_event.order);
+            events.extend(not_sorted_events.into_iter().map(|(ordered_event, address)| Event {
+                from_address: address,
+                keys: ordered_event.keys,
+                data: ordered_event.data,
+            }));
         }
 
         events
