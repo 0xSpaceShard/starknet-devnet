@@ -74,7 +74,9 @@ mod general_rpc_tests {
                 .and_then(|err| err.get("code"))
                 .and_then(|val| val.as_i64())
             {
-                Some(received) => assert_eq!(received, -32601),
+                Some(received) => {
+                    assert_eq!(received, server::rpc_core::error::ErrorCode::MethodNotFound.code())
+                }
                 _ => panic!("Invalid resp: {resp_body}"),
             }
         }
@@ -93,7 +95,9 @@ mod general_rpc_tests {
             .await;
 
         match resp_body.get("error").and_then(|err| err.get("code")).and_then(|val| val.as_i64()) {
-            Some(received) => assert_eq!(received, -32602),
+            Some(received) => {
+                assert_eq!(received, server::rpc_core::error::ErrorCode::InvalidParams.code())
+            }
             _ => panic!("Invalid resp: {resp_body}"),
         }
     }
