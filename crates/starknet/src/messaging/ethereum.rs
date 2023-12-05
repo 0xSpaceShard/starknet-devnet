@@ -318,11 +318,13 @@ impl EthereumMessaging {
                 e
             )))
         })?
-        .send()
-        .await
-        .map_err(|e| {
-            Error::MessagingError(MessagingError::EthersError(format!(
-                "Error deploying messaging contract: {}",
+            // Required by the new version of anvil, as default is no longer accepted.
+            .gas_price(1000000000)
+            .send()
+            .await
+            .map_err(|e| {
+                Error::MessagingError(MessagingError::EthersError(format!(
+                    "Error deploying messaging contract: {}",
                 e
             )))
         })?;
