@@ -193,7 +193,8 @@ starkli call 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 
 ]
 ```
 
-4. Now, let's say we want to increase the balance of the user on L2 as if a message was sent from L1. Devnet has an endpoint `postman/send_message_to_l2` to mock a message coming from L1, without actually running a L1 node.
+###  Mocking messages without running L1 node
+1. Now, let's say we want to increase the balance of the user on L2 as if a message was sent from L1. Devnet has an endpoint `postman/send_message_to_l2` to mock a message coming from L1, without actually running a L1 node.
 ```bash
 curl -H 'Content-Type: application/json' \
     -d '{"paid_fee_on_l1": "0x123", "l2_contract_address": "0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4", "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512", "entry_point_selector": "0x00c73f681176fc7b3f9693986fd7b14581e8d540519e27400e88b8713932be01", "payload": ["0x1", "0x2"], "nonce": "0x1"}' \
@@ -214,7 +215,7 @@ starkli call 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 
 ]
 ```
 
-5. Finally, to give an example of how to test a message that is sent by a Cairo contract without running the L1 node.
+2. Finally, to give an example of how to test a message that is sent by a Cairo contract without running the L1 node.
 ```bash
 # Withdraw to send a message from Cairo contract.
 starkli invoke 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 withdraw 0x1 1 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
