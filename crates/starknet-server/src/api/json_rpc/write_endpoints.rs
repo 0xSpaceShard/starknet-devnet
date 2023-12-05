@@ -60,6 +60,19 @@ impl JsonRpcHandler {
                     ) => ApiError::ClassHashNotFound,
                     unknown_error => ApiError::StarknetDevnetError(unknown_error),
                 })?,
+
+            BroadcastedDeployAccountTransaction::V3(deploy_account_txn_v3) => self
+                .api
+                .starknet
+                .write()
+                .await
+                .add_deploy_account_transaction_v3(deploy_account_txn_v3)
+                .map_err(|err| match err {
+                    starknet_core::error::Error::StateError(
+                        starknet_core::error::StateError::NoneClassHash(_),
+                    ) => ApiError::ClassHashNotFound,
+                    unknown_error => ApiError::StarknetDevnetError(unknown_error),
+                })?,
         };
 
         Ok(StarknetResponse::AddDeployAccountTransaction(DeployAccountTransactionOutput {

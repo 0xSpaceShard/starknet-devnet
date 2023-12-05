@@ -20,6 +20,7 @@ use starknet_rs_ff::FieldElement;
 
 use self::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
 use self::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
+use self::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
 use self::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use self::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use self::declare_transaction_v3::DeclareTransactionV3;
@@ -495,6 +496,11 @@ impl BroadcastedTransaction {
             )) => AccountTransaction::DeployAccount(
                 deploy_account_v1.create_blockifier_deploy_account(chain_id, only_query)?,
             ),
+            BroadcastedTransaction::DeployAccount(BroadcastedDeployAccountTransaction::V3(
+                deploy_account_v3,
+            )) => AccountTransaction::DeployAccount(
+                deploy_account_v3.create_blockifier_deploy_account(chain_id, only_query)?,
+            ),
         };
 
         Ok(blockifier_transaction)
@@ -513,6 +519,7 @@ pub enum BroadcastedDeclareTransaction {
 #[serde(untagged)]
 pub enum BroadcastedDeployAccountTransaction {
     V1(BroadcastedDeployAccountTransactionV1),
+    V3(BroadcastedDeployAccountTransactionV3),
 }
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
