@@ -14,7 +14,9 @@ curl -H 'Content-Type: application/json' \
      http://127.0.0.1:5050/postman/load_l1_messaging_contract
 
 # Deploy L1L2 contract on L1.
-forge script --root ./solidity ./solidity/script/L1L2.s.sol:Deploy --broadcast --rpc-url $ETH_RPC_URL
+pushd ./solidity
+forge script ./script/L1L2.s.sol:Deploy --broadcast --rpc-url $ETH_RPC_URL
+popd
 
 # Declare and deploy l1-l2 contract on L2.
 starkli declare ./cairo/target/dev/cairo_l1_l2.contract_class.json
@@ -51,8 +53,6 @@ curl -H 'Content-Type: application/json' \
 
 # Send back some balance to consume manually.
 starkli invoke 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 withdraw 0x1 1 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
-
-curl -H 'Content-Type: application/json' -X POST http://127.0.0.1:5050/postman/flush
 
 curl -H 'Content-Type: application/json' \
     -d '{"from_address": "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba", "to_address": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512", "payload": ["0x0","0x1","0x1"]}' \
