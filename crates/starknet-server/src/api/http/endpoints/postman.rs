@@ -53,18 +53,13 @@ pub(crate) async fn postman_flush(
         (messages, tx_hashes)
     };
 
-    let from_block = if let Some(m) = &starknet.messaging { m.last_local_block } else { 0 };
-
     // Collect and send messages to L1.
-    let (messages_to_l1, last_local_block) = if dry_run {
-        (
-            starknet.collect_messages_to_l1(from_block).await.map_err(|e| {
-                HttpApiError::MessagingError { msg: format!("messages to l1 error: {}", e) }
-            })?,
-            0,
-        )
+    let messages_to_l1 = if dry_run {
+        starknet.collect_messages_to_l1().await.map_err(|e| HttpApiError::MessagingError {
+            msg: format!("messages to l1 error: {}", e),
+        })?
     } else {
-        starknet.collect_and_send_messages_to_l1(from_block).await.map_err(|e| {
+        starknet.collect_and_send_messages_to_l1().await.map_err(|e| {
             HttpApiError::MessagingError { msg: format!("messages to l1 error: {}", e) }
         })?
     };
@@ -73,17 +68,8 @@ pub(crate) async fn postman_flush(
     let l1_provider = if dry_run {
         "dry run".to_string()
     } else {
-        starknet.messaging_url().unwrap_or("Not set".to_string())
+        starknet.get_ethereum_url().unwrap_or("Not set".to_string())
     };
-
-    // If not dry run, increment the `last_local_block` to ensure that the
-    // current last block is not fetched twice.
-    if !dry_run {
-        starknet
-            .messaging_mut()
-            .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?
-            .last_local_block = last_local_block + 1;
-    }
 
     Ok(Json(FlushedMessages {
         messages_to_l1,
@@ -120,13 +106,10 @@ pub(crate) async fn postman_consume_message_from_l2(
     Extension(state): Extension<HttpApiHandler>,
     Json(message): Json<MessageToL1>,
 ) -> HttpApiResult<Json<MessageHash>> {
-    let starknet = state.api.starknet.read().await;
+    let mut starknet = state.api.starknet.write().await;
 
     let message_hash = starknet
-        .messaging_ref()
-        .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?
-        .consume_mock_message(&message)
-        .await
+        .consume_l2_to_l1_message(&message)
         .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
 
     Ok(Json(MessageHash { message_hash }))

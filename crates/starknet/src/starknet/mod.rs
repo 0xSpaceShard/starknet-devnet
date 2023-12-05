@@ -52,7 +52,7 @@ use crate::constants::{
     ERC20_CONTRACT_ADDRESS,
 };
 use crate::error::{DevnetResult, Error, TransactionValidationError};
-use crate::messaging::EthereumMessaging;
+use crate::messaging::MessagingBroker;
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::raw_execution::{Call, RawExecution};
 use crate::state::state_diff::StateDiff;
@@ -86,7 +86,7 @@ pub struct Starknet {
     pub transactions: StarknetTransactions,
     pub config: StarknetConfig,
     pub pending_block_timestamp_shift: i64,
-    pub messaging: Option<EthereumMessaging>,
+    pub(crate) messaging: MessagingBroker,
 }
 
 impl Default for Starknet {

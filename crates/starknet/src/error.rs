@@ -101,6 +101,8 @@ pub enum MessagingError {
     ConversionError(String),
     #[error("Ethers error: {0}.")]
     EthersError(String),
+    #[error("Message to L1 with hash {0} is already fully consumed.")]
+    MessageToL1FullyConsumed(String),
 }
 
 pub type DevnetResult<T, E = Error> = Result<T, E>;

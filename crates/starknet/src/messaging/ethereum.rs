@@ -6,7 +6,6 @@ use ethers::prelude::*;
 use ethers::providers::{Http, Provider, ProviderError};
 use ethers::types::{Address, BlockNumber, Log};
 use k256::ecdsa::SigningKey;
-use starknet_rs_core::types::Hash256;
 use starknet_types::felt::Felt;
 use starknet_types::rpc::contract_address::ContractAddress;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
@@ -86,7 +85,6 @@ pub struct EthereumMessaging {
     // avoid fetching already fetched messages. Or use the nonce instead
     // to not re-send already sent messages.
     last_fetched_block: u64,
-    pub last_local_block: u64,
     // TODO: add a message nonce verification too.
 }
 
@@ -122,7 +120,6 @@ impl EthereumMessaging {
             provider_signer: Arc::new(provider_signer),
             messaging_contract_address: Address::zero(),
             last_fetched_block: 0,
-            last_local_block: 0,
         };
 
         if let Some(address) = contract_address {
@@ -241,56 +238,6 @@ impl EthereumMessaging {
         }
 
         Ok(())
-    }
-
-    /// Mocks the consumption of a message on L1 by providing the message content.
-    /// To compute the hash in the mocked function on L1, the whole message payload,
-    /// emitter and receiver must be provided.
-    /// Returns the message hash of the message that is expected to be consumed.
-    ///
-    /// # Arguments
-    ///
-    /// * `l1_contract_address` - The L1 contract address that should consume the message.
-    /// * `l2_contract_address` - The L2 contract address that sent the message.
-    /// * `payload` - The message payload.
-    pub async fn consume_mock_message(&self, message: &MessageToL1) -> DevnetResult<Hash256> {
-        let starknet_messaging = abigen::MockStarknetMessaging::new(
-            self.messaging_contract_address,
-            self.provider_signer.clone(),
-        );
-
-        let from_address = felt_devnet_to_u256(&(message.from_address.into()))?;
-        let to_address = felt_devnet_to_u256(&(message.to_address.clone().into()))?;
-        let payload = felts_devnet_to_u256s(&message.payload)?;
-        let message_hash = message.hash();
-
-        match starknet_messaging
-            .mock_consume_message_from_l2(from_address, to_address, payload)
-            .send()
-            .await
-            .map_err(|e| Error::MessagingError(MessagingError::EthersError(
-                format!("Error sending transaction on ethereum: {}", e)
-            )))?
-        // wait for the tx to be mined
-            .await?
-        {
-            Some(receipt) => {
-                trace!(
-                    "Message {} consumed on L1 with transaction hash {:#x}",
-                    message_hash,
-                    receipt.transaction_hash,
-                );
-            }
-            None => {
-                warn!("No receipt for L1 transaction.");
-                return Err(Error::MessagingError(MessagingError::EthersError(format!(
-                    "No receipt for transaction to consume message on L1 with hash {}",
-                    message_hash
-                ))));
-            }
-        };
-
-        Ok(message_hash)
     }
 
     /// Fetches logs in the given block range and returns a `HashMap` with the list of logs for each
