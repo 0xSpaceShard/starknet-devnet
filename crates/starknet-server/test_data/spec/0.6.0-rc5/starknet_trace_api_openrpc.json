@@ -8,8 +8,38 @@
     "servers": [],
     "methods": [
         {
+            "name": "starknet_traceTransaction",
+            "summary": "For a given executed transaction, return the trace of its execution, including internal calls",
+            "description": "Returns the execution trace of the transaction designated by the input hash",
+            "params": [
+                {
+                    "name": "transaction_hash",
+                    "summary": "The hash of the transaction to trace",
+                    "required": true,
+                    "schema": {
+                        "$ref": "./starknet_api_openrpc.json#/components/schemas/TXN_HASH"
+                    }
+                }
+            ],
+            "result": {
+                "name": "trace",
+                "description": "The function call trace of the transaction designated by the given hash",
+                "schema": {
+                    "$ref": "#/components/schemas/TRANSACTION_TRACE"
+                }
+            },
+            "errors": [
+                {
+                    "$ref": "#/components/errors/TXN_HASH_NOT_FOUND"
+                },
+                {
+                    "$ref": "#/components/errors/NO_TRACE_AVAILABLE"
+                }
+            ]
+        },
+        {
             "name": "starknet_simulateTransactions",
-            "summary": "simulate a given sequence of transactions on the requested state, and generate the execution traces. If one of the transactions is reverted, raises CONTRACT_ERROR.",
+            "summary": "Simulate a given sequence of transactions on the requested state, and generate the execution traces. Note that some of the transactions may revert, in which case no error is thrown, but revert details can be seen on the returned trace object. . Note that some of the transactions may revert, this will be reflected by the revert_error property in the trace. Other types of failures (e.g. unexpected error or failure in the validation phase) will result in TRANSACTION_EXECUTION_ERROR.",
             "params": [
                 {
                     "name": "block_id",
@@ -49,6 +79,7 @@
                 "schema": {
                     "type": "array",
                     "items": {
+                        "schema": {
                             "type": "object",
                             "properties": {
                                 "transaction_trace": {
@@ -60,16 +91,53 @@
                                     "$ref": "#/components/schemas/FEE_ESTIMATE"
                                 }
                             }
+                        }
                     }
                 }
             },
             "errors": [
                 {
-                    "$ref": "#/components/errors/CONTRACT_NOT_FOUND"
+                    "$ref": "#/components/errors/BLOCK_NOT_FOUND"
                 },
                 {
-                    "$ref": "#/components/errors/CONTRACT_ERROR"
-                },
+                    "$ref": "#/components/errors/TRANSACTION_EXECUTION_ERROR"
+                }
+            ]
+        },
+        {
+            "name": "starknet_traceBlockTransactions",
+            "summary": "Retrieve traces for all transactions in the given block",
+            "description": "Returns the execution traces of all transactions included in the given block",
+            "params": [
+                {
+                    "name": "block_id",
+                    "description": "The hash of the requested block, or number (height) of the requested block, or a block tag",
+                    "required": true,
+                    "schema": {
+                        "$ref": "#/components/schemas/BLOCK_ID"
+                    }
+                }
+            ],
+            "result": {
+                "name": "traces",
+                "description": "The traces of all transactions in the block",
+                "schema": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "description": "A single pair of transaction hash and corresponding trace",
+                        "properties": {
+                            "transaction_hash": {
+                                "$ref": "#/components/schemas/FELT"
+                            },
+                            "trace_root": {
+                                "$ref": "#/components/schemas/TRANSACTION_TRACE"
+                            }
+                        }
+                    }
+                }
+            },
+            "errors": [
                 {
                     "$ref": "#/components/errors/BLOCK_NOT_FOUND"
                 }
@@ -337,7 +405,7 @@
                         }
                     },
                     {
-                        "$ref": "#/components/schemas/EVENT_CONTENT"
+                        "$ref": "#/components/schemas/EVENT"
                     }
                 ]
             },
@@ -367,7 +435,7 @@
             "FUNCTION_CALL": {
                 "$ref": "./starknet_api_openrpc.json#/components/schemas/FUNCTION_CALL"
             },
-            "EVENT_CONTENT": {
+            "EVENT": {
                 "$ref": "./starknet_api_openrpc.json#/components/schemas/EVENT_CONTENT"
             },
             "MSG_TO_L1": {
@@ -407,21 +475,14 @@
                     }
                 }
             },
-            "CONTRACT_NOT_FOUND": {
-                "code": 20,
-                "message": "Contract not found"
-            },
-            "INVALID_TXN_HASH": {
-                "code": 25,
-                "message": "Invalid transaction hash"
+            "TXN_HASH_NOT_FOUND": {
+                "$ref": "./api/starknet_api_openrpc.json#/components/errors/TXN_HASH_NOT_FOUND"
             },
             "BLOCK_NOT_FOUND": {
-                "code": 24,
-                "message": "Block not found"
+                "$ref": "./api/starknet_api_openrpc.json#/components/errors/BLOCK_NOT_FOUND"
             },
-            "CONTRACT_ERROR": {
-                "code": 40,
-                "message": "Contract error"
+            "TRANSACTION_EXECUTION_ERROR": {
+                "$ref": "./api/starknet_api_openrpc.json#/components/errors/TRANSACTION_EXECUTION_ERROR"
             }
         }
     }

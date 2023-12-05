@@ -5,10 +5,9 @@ clean:
 
 # Replace entries at "path" with the specified value in the spec file before processing it
 replace:
-  - path: components/schemas/BLOCK_HEADER/properties/l1_gas_price/descritpion
-    new_name: description
-  - path: components/schemas/PENDING_BLOCK_HEADER/properties/l1_gas_price/descritpion
-    new_name: description
+# The following comment is for example purpose
+  # - path: components/schemas/BLOCK_HEADER/properties/l1_gas_price/descritpion
+  #   new_name: description
   
 add:
   - path: components/schemas/INVOKE_TXN_V0
