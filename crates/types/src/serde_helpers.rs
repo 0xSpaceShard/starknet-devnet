@@ -58,6 +58,53 @@ pub mod rpc_sierra_contract_class_to_sierra_contract_class {
     }
 }
 
+pub mod resource_bounds_mapping {
+
+    use serde::{Deserialize, Deserializer};
+
+    pub fn deserialize_by_converting_keys_to_uppercase<'de, D>(
+        deserializer: D,
+    ) -> Result<starknet_api::transaction::ResourceBoundsMapping, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let entries = serde_json::Map::<String, serde_json::Value>::deserialize(deserializer)?
+            .into_iter()
+            .map(|(k, v)| (k.to_ascii_uppercase(), v))
+            .collect();
+
+        serde_json::from_value(serde_json::Value::Object(entries)).map_err(serde::de::Error::custom)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use serde::Deserialize;
+
+        #[test]
+        fn test_resource_bounds_with_lowercase_keys() {
+            let json_str = r#"{"resource_bounds": {
+                "l1_gas": {
+                    "max_amount": "0x1Cec3B5fBE8dAb2",
+                    "max_price_per_unit": "0x7Fa7f0b8CC08aCe4"
+                },
+                "l2_gas": {
+                    "max_amount": "0x0",
+                    "max_price_per_unit": "0x0"
+                }
+            }}"#;
+
+            #[derive(Deserialize)]
+            struct TestDeserialization {
+                #[serde(deserialize_with = "super::deserialize_by_converting_keys_to_uppercase")]
+                resource_bounds: starknet_api::transaction::ResourceBoundsMapping,
+            }
+
+            let bounds = serde_json::from_str::<TestDeserialization>(json_str).unwrap();
+            assert_eq!(bounds.resource_bounds.0.len(), 2);
+        }
+    }
+}
+
 pub mod hex_string {
     use serde::{Deserialize, Deserializer, Serializer};
 
