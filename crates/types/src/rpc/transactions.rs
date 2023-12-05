@@ -44,6 +44,7 @@ use crate::felt::{
 use crate::rpc::transaction_receipt::{
     CommonTransactionReceipt, MaybePendingProperties, TransactionOutput,
 };
+use crate::serde_helpers::resource_bounds_mapping::deserialize_by_converting_keys_to_uppercase;
 
 pub mod broadcasted_declare_transaction_v1;
 pub mod broadcasted_declare_transaction_v2;
@@ -340,6 +341,7 @@ pub struct BroadcastedTransactionCommonV3 {
     pub version: TransactionVersion,
     pub signature: TransactionSignature,
     pub nonce: Nonce,
+    #[serde(deserialize_with = "deserialize_by_converting_keys_to_uppercase")]
     pub resource_bounds: ResourceBoundsMapping,
     pub tip: Tip,
     pub paymaster_data: Vec<Felt>,
