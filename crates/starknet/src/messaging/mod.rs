@@ -164,14 +164,11 @@ impl Starknet {
 
                 Ok(self.messaging.l2_to_l1_messages_to_flush.clone())
             }
-            Err(e) => {
-                if let Error::NoBlock = e {
-                    // We're 1 block ahead of latest block, no messages can be collected.
-                    Ok(self.messaging.l2_to_l1_messages_to_flush.clone())
-                } else {
-                    Err(e)
-                }
+            Err(Error::NoBlock) => {
+                // We're 1 block ahead of latest block, no messages can be collected.
+                Ok(self.messaging.l2_to_l1_messages_to_flush.clone())
             }
+            Err(e) => Err(e),
         }
     }
 
