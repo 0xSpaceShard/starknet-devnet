@@ -517,13 +517,13 @@ pub enum BroadcastedDeclareTransaction {
     V3(Box<BroadcastedDeclareTransactionV3>),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum BroadcastedDeployAccountTransaction {
     V1(BroadcastedDeployAccountTransactionV1),
     V3(BroadcastedDeployAccountTransactionV3),
 }
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum BroadcastedInvokeTransaction {
     V1(BroadcastedInvokeTransactionV1),
@@ -550,8 +550,68 @@ impl<'de> Deserialize<'de> for BroadcastedDeclareTransaction {
                 })?;
                 Ok(BroadcastedDeclareTransaction::V2(Box::new(unpacked)))
             }
+            Some(v) if ["0x3", "0x100000000000000000000000000000003"].contains(&v) => {
+                let unpacked = serde_json::from_value(value).map_err(|e| {
+                    serde::de::Error::custom(format!("Invalid declare transaction v3: {e}"))
+                })?;
+                Ok(BroadcastedDeclareTransaction::V3(Box::new(unpacked)))
+            }
             _ => Err(serde::de::Error::custom(format!(
                 "Invalid version of declare transaction: {version_raw}"
+            ))),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for BroadcastedDeployAccountTransaction {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = serde_json::Value::deserialize(deserializer)?;
+        let version_raw = value.get("version").ok_or(serde::de::Error::missing_field("version"))?;
+        match version_raw.as_str() {
+            Some(v) if ["0x1", "0x100000000000000000000000000000001"].contains(&v) => {
+                let unpacked = serde_json::from_value(value).map_err(|e| {
+                    serde::de::Error::custom(format!("Invalid deploy account transaction v1: {e}"))
+                })?;
+                Ok(BroadcastedDeployAccountTransaction::V1(unpacked))
+            }
+            Some(v) if ["0x3", "0x100000000000000000000000000000003"].contains(&v) => {
+                let unpacked = serde_json::from_value(value).map_err(|e| {
+                    serde::de::Error::custom(format!("Invalid deploy account transaction v3: {e}"))
+                })?;
+                Ok(BroadcastedDeployAccountTransaction::V3(unpacked))
+            }
+            _ => Err(serde::de::Error::custom(format!(
+                "Invalid version of deploy account transaction: {version_raw}"
+            ))),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for BroadcastedInvokeTransaction {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = serde_json::Value::deserialize(deserializer)?;
+        let version_raw = value.get("version").ok_or(serde::de::Error::missing_field("version"))?;
+        match version_raw.as_str() {
+            Some(v) if ["0x1", "0x100000000000000000000000000000001"].contains(&v) => {
+                let unpacked = serde_json::from_value(value).map_err(|e| {
+                    serde::de::Error::custom(format!("Invalid invoke transaction v1: {e}"))
+                })?;
+                Ok(BroadcastedInvokeTransaction::V1(unpacked))
+            }
+            Some(v) if ["0x3", "0x100000000000000000000000000000003"].contains(&v) => {
+                let unpacked = serde_json::from_value(value).map_err(|e| {
+                    serde::de::Error::custom(format!("Invalid invoke transaction v3: {e}"))
+                })?;
+                Ok(BroadcastedInvokeTransaction::V3(unpacked))
+            }
+            _ => Err(serde::de::Error::custom(format!(
+                "Invalid version of invoke transaction: {version_raw}"
             ))),
         }
     }
