@@ -639,6 +639,7 @@ mod requests_tests {
             "method": "starknet_estimateFee",
             "params": {
                 "block_id": "latest",
+                "simulation_flags": [],
                 "request": requests
             }
         })

@@ -171,7 +171,7 @@ mod tests {
     #[test]
     fn test_spec_methods() {
         let specs =
-            Spec::load_from_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/spec/0.6.0-rc5"));
+            Spec::load_from_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/spec/0.6.0"));
         let combined_schema = generate_combined_schema(&specs);
         let expected_failed_method_responses = vec![
             "starknet_getTransactionByBlockIdAndIndex",

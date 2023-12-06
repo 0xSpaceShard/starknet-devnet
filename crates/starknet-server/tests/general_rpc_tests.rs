@@ -24,7 +24,7 @@ mod general_rpc_tests {
         assert_eq!(resp_root_body, resp_rpc_body);
     }
 
-    const EXPECTED_VERSION: &str = "0.5.1";
+    const EXPECTED_VERSION: &str = "0.6.0";
 
     #[test]
     /// This test asserts that the spec files used in testing indeed match the expected version
