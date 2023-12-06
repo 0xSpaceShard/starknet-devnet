@@ -59,10 +59,11 @@ pub struct CallInput {
     pub block_id: BlockId,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct EstimateFeeInput {
     pub request: Vec<BroadcastedTransaction>,
+    pub simulation_flags: Vec<SimulationFlag>,
     pub block_id: BlockId,
 }
 
@@ -344,7 +345,8 @@ mod tests {
                 ], 
             "block_id": {
                 "block_number": 1
-            }
+            },
+            "simulation_flags": []
         }"#;
 
         let estimate_fee_input = serde_json::from_str::<super::EstimateFeeInput>(json_str).unwrap();
