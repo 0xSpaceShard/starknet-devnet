@@ -80,12 +80,11 @@ pub struct EthereumMessaging {
     provider: Arc<Provider<Http>>,
     provider_signer: Arc<SignerMiddleware<Provider<Http>, Wallet<SigningKey>>>,
     messaging_contract_address: Address,
-    // Keep track of the sync.
-    // TODO: Must be also dumped in the future to
-    // avoid fetching already fetched messages. Or use the nonce instead
-    // to not re-send already sent messages.
+    // This value must be dumped to avoid re-fetching already processed
+    // messages.
     last_fetched_block: u64,
-    // TODO: add a message nonce verification too.
+    // A nonce verification may be added, with a nonce counter here.
+    // If so, it must be dumped too.
 }
 
 impl EthereumMessaging {
@@ -130,7 +129,6 @@ impl EthereumMessaging {
                 )))
             })?;
         } else {
-            // TODO: this may come from the configuration.
             let cancellation_delay_seconds: U256 = (60 * 60 * 24).into();
             ethereum.messaging_contract_address =
                 ethereum.deploy_messaging_contract(cancellation_delay_seconds).await?;
@@ -229,10 +227,10 @@ impl EthereumMessaging {
                     );
                 }
                 None => {
-                    warn!("No receipt for L1 transaction.");
-                    // TODO: do we want to stop here? Or continue to the next message?
-                    // We may return the list of messages not processed to let the caller
-                    // retry?
+                    return Err(Error::MessagingError(MessagingError::EthersError(format!(
+                        "No receipt found for the tx of message hash: {:064x}",
+                        message_hash
+                    ))));
                 }
             };
         }
