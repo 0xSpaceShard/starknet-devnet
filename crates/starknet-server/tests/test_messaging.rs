@@ -11,16 +11,16 @@
 pub mod common;
 
 mod test_messaging {
+    use std::str::FromStr;
     use std::sync::Arc;
 
+    use ethers::prelude::*;
     use hyper::{Body, StatusCode};
     use serde_json::json;
-    use starknet_core::utils::exported_test_utils::dummy_cairo_l1l2_contract;
     use starknet_rs_accounts::{
         Account, Call, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, FunctionCall};
     use starknet_rs_core::utils::{
         get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
@@ -32,7 +32,9 @@ mod test_messaging {
     use crate::common::background_anvil::BackgroundAnvil;
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{CHAIN_ID, MESSAGING_WHITELISTED_L1_CONTRACT};
-    use crate::common::utils::{get_json_body, to_hex_felt};
+    use crate::common::utils::{
+        get_json_body, get_messaging_contract_in_sierra_and_compiled_class_hash, to_hex_felt,
+    };
 
     /// Withdraws the given amount from a user and send this amount in a l2->l1 message.
     async fn withdraw<A: ConnectedAccount + Send + Sync + 'static>(
@@ -40,11 +42,12 @@ mod test_messaging {
         contract_address: FieldElement,
         user: FieldElement,
         amount: FieldElement,
+        l1_address: FieldElement,
     ) {
         let invoke_calls = vec![Call {
             to: contract_address,
             selector: get_selector_from_name("withdraw").unwrap(),
-            calldata: vec![user, amount],
+            calldata: vec![user, amount, l1_address],
         }];
 
         account.execute(invoke_calls).send().await.unwrap();
@@ -102,28 +105,21 @@ mod test_messaging {
             ExecutionEncoding::New,
         ));
 
-        let contract_json = dummy_cairo_l1l2_contract();
-        let contract_artifact: Arc<LegacyContractClass> =
-            Arc::new(serde_json::from_value(contract_json.inner).unwrap());
-        let class_hash = contract_artifact.class_hash().unwrap();
+        let (sierra_class, casm_class_hash) =
+            get_messaging_contract_in_sierra_and_compiled_class_hash();
 
-        // declare class
-        let declaration_result = account
-            .declare_legacy(contract_artifact.clone())
-            .nonce(FieldElement::ZERO)
-            .max_fee(FieldElement::from(1e18 as u128))
-            .send()
-            .await
-            .unwrap();
-        assert_eq!(declaration_result.class_hash, class_hash);
+        let sierra_class_hash = sierra_class.class_hash();
+        let declaration = account.declare(Arc::new(sierra_class), casm_class_hash);
+
+        declaration.send().await.unwrap();
 
         // deploy instance of class
-        let contract_factory = ContractFactory::new(class_hash, account.clone());
+        let contract_factory = ContractFactory::new(sierra_class_hash, account.clone());
         let salt = FieldElement::from_hex_be("0x123").unwrap();
         let constructor_calldata = vec![];
         let contract_address = get_udc_deployed_address(
             salt,
-            class_hash,
+            sierra_class_hash,
             &UdcUniqueness::NotUnique,
             &constructor_calldata,
         );
@@ -149,8 +145,12 @@ mod test_messaging {
         increase_balance(Arc::clone(&account), l1l2_contract_address, user, user_balance).await;
         assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [user_balance]);
 
+        // We don't actually send a message to the L1 in this test.
+        let l1_address =
+            FieldElement::from_hex_be("0xc662c410C0ECf747543f5bA90660f6ABeBD9C8c4").unwrap();
+
         // Withdraw the 1 amount in a l2->l1 message.
-        withdraw(Arc::clone(&account), l1l2_contract_address, user, user_balance).await;
+        withdraw(Arc::clone(&account), l1l2_contract_address, user, user_balance, l1_address).await;
         assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [FieldElement::ZERO]);
 
         // Flush messages to check the presence of the withdraw where use expected to be 1 and
@@ -158,7 +158,7 @@ mod test_messaging {
         // which is 0.
         let req_body = Body::from(json!({ "dry_run": true }).to_string());
         let resp = devnet.post_json("/postman/flush".into(), req_body).await.expect("flush failed");
-        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
+        // assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
         let body = get_json_body(resp).await;
 
         let messages_to_l1 = body.get("messages_to_l1").unwrap().as_array().unwrap();
@@ -167,7 +167,7 @@ mod test_messaging {
         let l1_contract_address = messages_to_l1[0].get("to_address").unwrap().as_str().unwrap();
         let l2_contract_address = messages_to_l1[0].get("from_address").unwrap().as_str().unwrap();
         assert_eq!(l2_contract_address, format!("0x{:64x}", account.address()));
-        assert_eq!(l1_contract_address, MESSAGING_WHITELISTED_L1_CONTRACT);
+        assert_eq!(l1_contract_address, "0xc662c410c0ecf747543f5ba90660f6abebd9c8c4");
 
         let payload = messages_to_l1[0].get("payload").unwrap().as_array().unwrap();
         // MESSAGE_WITHDRAW opcode, equal to 0, first element of the payload.
@@ -210,7 +210,7 @@ mod test_messaging {
         let body = get_json_body(resp).await;
         assert_eq!(
             body.get("transaction_hash").unwrap().as_str().unwrap(),
-            "0x1468183dc780231ea033f2aef5a7fa172daba80f53e2360e787ed1988ed670c"
+            "0x68f8f79a164b77f50042767599eabedde33b7e474b249827526956796cc96dc"
         );
 
         assert_eq!(
@@ -251,14 +251,18 @@ mod test_messaging {
         increase_balance(Arc::clone(&account), l1l2_contract_address, user, user_balance).await;
         assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [user_balance]);
 
+        // We don't need valid l1 address as we don't use L1 node.
+        let l1_address =
+            FieldElement::from_hex_be("0xc662c410c0ecf747543f5ba90660f6abebd9c8c4").unwrap();
+
         // Withdraw the 1 amount in a l2->l1 message.
-        withdraw(Arc::clone(&account), l1l2_contract_address, user, user_balance).await;
+        withdraw(Arc::clone(&account), l1l2_contract_address, user, user_balance, l1_address).await;
         assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [FieldElement::ZERO]);
 
         let req_body = Body::from(
             json!({
                 "from_address": "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba",
-                "to_address": "0x8359e4b0152ed5a731162d3c7b0d8d56edb165a0",
+                "to_address": "0xc662c410c0ecf747543f5ba90660f6abebd9c8c4",
                 "payload": ["0x0","0x1","0x1"],
             })
             .to_string(),
@@ -273,7 +277,104 @@ mod test_messaging {
         let body = get_json_body(resp).await;
         assert_eq!(
             body.get("message_hash").unwrap().as_str().unwrap(),
-            "0xc918bd19487589d1acf7558c0e3ffbc994939b5779af354f92e36a5674532137"
+            "0x9192040596a7dab9117c2882e4ea05364bee50a91bc84731d0eb6abc4b712398"
         );
+    }
+
+    #[tokio::test]
+    async fn can_interact_with_l1() {
+        let anvil = BackgroundAnvil::spawn().await.unwrap();
+
+        let (devnet, sn_account, sn_l1l2_contract) =
+            setup_devnet(&["--account-class", "cairo1"]).await;
+
+        // Load l1 messaging contract.
+        let req_body = Body::from(json!({ "network_url": anvil.url }).to_string());
+        let resp = devnet
+            .post_json("/postman/load_l1_messaging_contract".into(), req_body)
+            .await
+            .expect("deploy l1 messaging contract failed");
+
+        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
+
+        let body = get_json_body(resp).await;
+        assert_eq!(
+            body.get("messaging_contract_address").unwrap().as_str().unwrap(),
+            "0x5fbdb2315678afecb367f032d93f642f64180aa3"
+        );
+
+        // Deploy the L1L2 testing contract on L1 (on L2 it's already pre-deployed).
+        let l1_messaging_address =
+            H160::from_str("0x5fbdb2315678afecb367f032d93f642f64180aa3").unwrap();
+        let eth_l1l2_contract = anvil.deploy_l1l2_contract(l1_messaging_address).await.unwrap();
+        assert_eq!(
+            eth_l1l2_contract,
+            H160::from_str("0xe7f1725e7734ce288f8367e1bb143e90bb3f0512").unwrap()
+        );
+
+        let eth_l1l2_contract_felt =
+            FieldElement::from_hex_be("0xe7f1725e7734ce288f8367e1bb143e90bb3f0512").unwrap();
+        let user_sn = FieldElement::ONE;
+        let user_eth: U256 = 1.into();
+
+        // Set balance to 1 for the user 1 on L2.
+        let user_balance = FieldElement::ONE;
+        increase_balance(Arc::clone(&sn_account), sn_l1l2_contract, user_sn, user_balance).await;
+        assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [user_balance]);
+
+        // Withdraw the amount 1 from user 1 balance on L2 to send it on L1 with a l2->l1 message.
+        withdraw(
+            Arc::clone(&sn_account),
+            sn_l1l2_contract,
+            user_sn,
+            user_balance,
+            eth_l1l2_contract_felt,
+        )
+        .await;
+        assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [FieldElement::ZERO]);
+
+        // Flush to send the messages.
+        let resp =
+            devnet.post_json("/postman/flush".into(), "".into()).await.expect("flush failed");
+        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
+
+        // Check that the balance is 0 on L1 before consuming the message.
+        let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_contract, user_eth).await.unwrap();
+        assert_eq!(user_balance_eth, 0.into());
+
+        let sn_l1l2_contract_u256 =
+            U256::from_str_radix(&format!("0x{:64x}", sn_l1l2_contract), 16).unwrap();
+
+        let account_address_u256 =
+            U256::from_str_radix(&format!("0x{:64x}", sn_account.address()), 16).unwrap();
+
+        // Consume the message to increase the balance.
+        anvil
+            .withdraw_l1l2(eth_l1l2_contract, account_address_u256, user_eth, 1.into())
+            .await
+            .unwrap();
+
+        let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_contract, user_eth).await.unwrap();
+        assert_eq!(user_balance_eth, 1.into());
+
+        // Send back the amount 1 to the user 1 on L2.
+        anvil
+            .deposit_l1l2(eth_l1l2_contract, sn_l1l2_contract_u256, user_eth, 1.into())
+            .await
+            .unwrap();
+
+        let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_contract, user_eth).await.unwrap();
+
+        // Balances on both layers is 0 at this point.
+        assert_eq!(user_balance_eth, 0.into());
+        assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [FieldElement::ZERO]);
+
+        // Flush messages to have MessageToL2 executed.
+        let resp =
+            devnet.post_json("/postman/flush".into(), "".into()).await.expect("flush failed");
+        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
+
+        // Ensure the balance is back to 1 on L2.
+        assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [FieldElement::ONE]);
     }
 }

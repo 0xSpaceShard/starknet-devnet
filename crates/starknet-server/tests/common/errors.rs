@@ -16,4 +16,7 @@ pub enum TestError {
 
     #[error("Could not start Anvil")]
     AnvilNotStartable,
+
+    #[error("Ethers error: {0}")]
+    EthersError(String),
 }

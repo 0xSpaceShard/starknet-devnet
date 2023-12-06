@@ -42,7 +42,7 @@ use crate::starknet::Starknet;
 use crate::traits::HashIdentified;
 use crate::StarknetBlock;
 
-mod ethereum;
+pub mod ethereum;
 pub use ethereum::EthereumMessaging;
 
 #[derive(Default)]

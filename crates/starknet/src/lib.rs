@@ -2,7 +2,7 @@ pub mod account;
 mod blocks;
 pub mod constants;
 pub mod error;
-mod messaging;
+pub mod messaging;
 mod predeployed_accounts;
 pub mod raw_execution;
 pub mod starknet;

@@ -22,7 +22,7 @@ pub struct EthDevnetAccount {
 /// Default account 0 for most used ethereum devnets (at least hardhat and anvil).
 /// Mnemonic: test test test test test test test test test test test junk
 /// Derivation path: m/44'/60'/0'/0/
-const ETH_ACCOUNT_DEFAULT: EthDevnetAccount = EthDevnetAccount {
+pub const ETH_ACCOUNT_DEFAULT: EthDevnetAccount = EthDevnetAccount {
     address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     private_key: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
 };
@@ -308,6 +308,9 @@ impl EthereumMessaging {
         &self,
         cancellation_delay_seconds: U256,
     ) -> DevnetResult<Address> {
+        // Default value from anvil and hardat multiplied by 20.
+        let gas_price: U256 = 20000000000_u128.into();
+
         let contract = abigen::MockStarknetMessaging::deploy(
             self.provider_signer.clone(),
             cancellation_delay_seconds,
@@ -318,13 +321,12 @@ impl EthereumMessaging {
                 e
             )))
         })?
-            // Required by the new version of anvil, as default is no longer accepted.
-            .gas_price(1000000000)
-            .send()
-            .await
-            .map_err(|e| {
-                Error::MessagingError(MessagingError::EthersError(format!(
-                    "Error deploying messaging contract: {}",
+        .gas_price(gas_price)
+        .send()
+        .await
+        .map_err(|e| {
+            Error::MessagingError(MessagingError::EthersError(format!(
+                "Error deploying messaging contract: {}",
                 e
             )))
         })?;

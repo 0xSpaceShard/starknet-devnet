@@ -4850,6 +4850,7 @@ dependencies = [
  "axum",
  "cairo-lang-starknet",
  "clap",
+ "ethers",
  "hyper",
  "lazy_static",
  "rand",

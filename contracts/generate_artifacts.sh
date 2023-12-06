@@ -8,6 +8,7 @@ mkdir -p artifacts
 ## SOLIDITY
 forge build --root ./l1-l2-messaging/solidity
 cp ./l1-l2-messaging/solidity/out/MockStarknetMessaging.sol/MockStarknetMessaging.json ./artifacts/
+cp ./l1-l2-messaging/solidity/out/L1L2.sol/L1L2Example.json ./artifacts/
 
 ## CAIRO
 scarb --manifest-path ./l1-l2-messaging/cairo/Scarb.toml build

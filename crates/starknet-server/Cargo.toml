@@ -43,6 +43,7 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 
 [dev-dependencies]
+ethers = { version = "2.0.11" }
 lazy_static = { workspace = true }
 starknet-rs-accounts = { workspace = true }
 starknet-rs-contract = { workspace = true }
