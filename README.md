@@ -27,9 +27,6 @@ This repository is work in progress, please be patient. Please check below the s
 - [x] Starknet.js test suite passes 100%
 - [x] [Advancing time](https://0xspaceshard.github.io/starknet-devnet/docs/guide/advancing-time)
 
-### TODO
-
-
 ### TODO to reach feature parity with the Pythonic Devnet
 
 - [ ] Availability as a package (crate)
