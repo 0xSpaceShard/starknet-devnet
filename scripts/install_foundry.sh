@@ -13,5 +13,7 @@ if [ -n "$CIRCLE_BRANCH" ]; then
 fi
 
 echo "Installing foundry"
-foundryup
+foundryup --version  nightly-fdad9fb0dde45d3476fc5d1fe6f40e8dc7c17caa
+
+# assert it works
 anvil --version

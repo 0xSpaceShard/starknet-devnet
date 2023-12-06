@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -eu
+
 # Bash script to run E2E example all at once.
 source ./.env
 
@@ -48,14 +50,23 @@ curl -H 'Content-Type: application/json' -X POST http://127.0.0.1:5050/postman/f
 
 # Simulate message from L1 to increase the balance.
 curl -H 'Content-Type: application/json' \
-    -d '{"paid_fee_on_l1": "0x123", "l2_contract_address": "0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4", "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512", "entry_point_selector": "0x00c73f681176fc7b3f9693986fd7b14581e8d540519e27400e88b8713932be01", "payload": ["0x1", "0x2"], "nonce": "0x1"}' \
-    http://127.0.0.1:5050/postman/send_message_to_l2
+     -d '{
+          "paid_fee_on_l1": "0x123",
+          "l2_contract_address": "0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4",
+          "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+          "entry_point_selector": "0x00c73f681176fc7b3f9693986fd7b14581e8d540519e27400e88b8713932be01",
+          "payload": ["0x1", "0x2"], "nonce": "0x1"
+     }' \
+     http://127.0.0.1:5050/postman/send_message_to_l2
 
 # Send back some balance to consume manually.
 starkli invoke 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 withdraw 0x1 0x2 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
 
 curl -H 'Content-Type: application/json' \
-    -d '{"from_address": "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba", "to_address": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512", "payload": ["0x0","0x1","0x2"]}' \
-    http://127.0.0.1:5050/postman/consume_message_from_l2
+     -d '{
+          "from_address": "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba",
+          "to_address": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512", "payload": ["0x0","0x1","0x2"]
+     }' \
+     http://127.0.0.1:5050/postman/consume_message_from_l2
 
 starkli call 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 get_balance 0x1
