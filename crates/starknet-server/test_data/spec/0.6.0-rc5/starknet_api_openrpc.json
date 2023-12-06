@@ -44,10 +44,6 @@
                         {
                             "title": "Block with transaction hashes",
                             "$ref": "#/components/schemas/BLOCK_WITH_TX_HASHES"
-                        },
-                        {
-                            "title": "Pending block with transaction hashes",
-                            "$ref": "#/components/schemas/PENDING_BLOCK_WITH_TX_HASHES"
                         }
                     ]
                 }
@@ -81,10 +77,6 @@
                         {
                             "title": "Block with transactions",
                             "$ref": "#/components/schemas/BLOCK_WITH_TXS"
-                        },
-                        {
-                            "title": "Pending block with transactions",
-                            "$ref": "#/components/schemas/PENDING_BLOCK_WITH_TXS"
                         }
                     ]
                 }
@@ -118,10 +110,6 @@
                         {
                             "title": "State update",
                             "$ref": "#/components/schemas/STATE_UPDATE"
-                        },
-                        {
-                            "title": "Pending state update",
-                            "$ref": "#/components/schemas/PENDING_STATE_UPDATE"
                         }
                     ]
                 }
@@ -215,7 +203,8 @@
                         }
                     },
                     "required": [
-                        "finality_status"
+                        "finality_status",
+                        "execution_status"
                     ]
                 }
             },
@@ -348,10 +337,6 @@
                         {
                             "title": "Transaction receipt",
                             "$ref": "#/components/schemas/TXN_RECEIPT"
-                        },
-                        {
-                            "title": "Pending transaction receipt",
-                            "$ref": "#/components/schemas/PENDING_TXN_RECEIPT"
                         }
                     ]
                 }
@@ -927,7 +912,9 @@
                             }
                         },
                         "required": [
-                            "transaction_hash"
+                            "transaction_hash",
+                            "block_hash",
+                            "block_number"
                         ]
                     }
                 ]
@@ -1118,7 +1105,7 @@
             "u128": {
                 "type": "string",
                 "title": "u128",
-                "description": "64 bit integers, represented by hex string of length at most 32",
+                "description": "128 bit integers, represented by hex string of length at most 32",
                 "pattern": "^0x(0|[a-fA-F1-9]{1}[a-fA-F0-9]{0,31})$"
             },
             "CHAIN_ID": {
@@ -1306,7 +1293,7 @@
                 "type": "string",
                 "title": "Field element",
                 "description": "A field element. represented by at most 63 hex digits",
-                "pattern": "^0x(0|[a-fA-F1-9]{1}[a-fA-F0-9]{0,62})$"
+                "pattern": "^0x(0|[a-fA-F1-9]{1}[a-fA-F0-9]{0,61})$"
             },
             "BLOCK_NUMBER": {
                 "title": "Block number",
@@ -1427,52 +1414,6 @@
                     "l1_gas_price",
                     "starknet_version"
                 ]
-            },
-            "PENDING_BLOCK_HEADER": {
-                "title": "Pending block header",
-                "type": "object",
-                "properties": {
-                    "parent_hash": {
-                        "title": "Parent hash",
-                        "description": "The hash of this block's parent",
-                        "$ref": "#/components/schemas/BLOCK_HASH"
-                    },
-                    "timestamp": {
-                        "title": "Timestamp",
-                        "description": "The time in which the block was created, encoded in Unix time",
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "sequencer_address": {
-                        "title": "Sequencer address",
-                        "description": "The StarkNet identity of the sequencer submitting this block",
-                        "$ref": "#/components/schemas/FELT"
-                    },
-                    "l1_gas_price": {
-                        "title": "L1 gas price",
-                        "description": "The price of l1 gas in the block",
-                        "$ref": "#/components/schemas/RESOURCE_PRICE"
-                    },
-                    "starknet_version": {
-                        "title": "Starknet version",
-                        "description": "Semver of the current Starknet protocol",
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "parent_hash",
-                    "timestamp",
-                    "sequencer_address",
-                    "l1_gas_price",
-                    "starknet_version"
-                ],
-                "not": {
-                    "required": [
-                        "block_hash",
-                        "block_number",
-                        "new_root"
-                    ]
-                }
             },
             "BLOCK_WITH_TX_HASHES": {
                 "title": "Block with transaction hashes",
@@ -1689,7 +1630,7 @@
                             },
                             "max_fee": {
                                 "title": "Max fee",
-                                "$ref": "#/components/schemas/FELT",
+                                "$ref": "#/components/schemas/u128",
                                 "description": "The maximal fee that can be charged for including the transaction"
                             },
                             "version": {
@@ -1744,7 +1685,7 @@
                             },
                             "max_fee": {
                                 "title": "Max fee",
-                                "$ref": "#/components/schemas/FELT",
+                                "$ref": "#/components/schemas/u128",
                                 "description": "The maximal fee that can be charged for including the transaction"
                             },
                             "version": {
@@ -1809,7 +1750,7 @@
                             },
                             "max_fee": {
                                 "title": "Max fee",
-                                "$ref": "#/components/schemas/FELT",
+                                "$ref": "#/components/schemas/u128",
                                 "description": "The maximal fee that can be charged for including the transaction"
                             },
                             "version": {
@@ -2009,7 +1950,7 @@
                             },
                             "max_fee": {
                                 "title": "Max fee",
-                                "$ref": "#/components/schemas/FELT",
+                                "$ref": "#/components/schemas/u128",
                                 "description": "The maximal fee that can be charged for including the transaction"
                             },
                             "version": {
@@ -2074,7 +2015,7 @@
                             },
                             "max_fee": {
                                 "title": "Max fee",
-                                "$ref": "#/components/schemas/FELT",
+                                "$ref": "#/components/schemas/u128",
                                 "description": "The maximal fee that can be charged for including the transaction"
                             },
                             "version": {
@@ -2243,7 +2184,7 @@
                     },
                     "max_fee": {
                         "title": "Max fee",
-                        "$ref": "#/components/schemas/FELT",
+                        "$ref": "#/components/schemas/u128",
                         "description": "The maximal fee that can be charged for including the transaction"
                     },
                     "version": {
@@ -2447,7 +2388,7 @@
                     },
                     "max_fee": {
                         "title": "Max fee",
-                        "$ref": "#/components/schemas/FELT",
+                        "$ref": "#/components/schemas/u128",
                         "description": "The maximal fee that can be charged for including the transaction"
                     },
                     "version": {
@@ -2518,7 +2459,7 @@
                             },
                             "max_fee": {
                                 "title": "Max fee",
-                                "$ref": "#/components/schemas/FELT",
+                                "$ref": "#/components/schemas/u128",
                                 "description": "The maximal fee that can be charged for including the transaction"
                             },
                             "version": {
@@ -3342,7 +3283,8 @@
                 "required": [
                     "sierra_program",
                     "contract_class_version",
-                    "entry_points_by_type"
+                    "entry_points_by_type",
+                    "abi"
                 ]
             },
             "DEPRECATED_CONTRACT_CLASS": {
@@ -3656,17 +3598,17 @@
                     "gas_consumed": {
                         "title": "Gas consumed",
                         "description": "The Ethereum gas cost of the transaction (see https://docs.starknet.io/docs/Fees/fee-mechanism for more info)",
-                        "$ref": "#/components/schemas/FELT"
+                        "$ref": "#/components/schemas/u64"
                     },
                     "gas_price": {
                         "title": "Gas price",
                         "description": "The gas price (in gwei or fri, depending on the tx version) that was used in the cost estimation",
-                        "$ref": "#/components/schemas/FELT"
+                        "$ref": "#/components/schemas/u64"
                     },
                     "overall_fee": {
                         "title": "Overall fee",
                         "description": "The estimated fee for the transaction (in gwei or fri, depending on the tx version), product of gas_consumed and gas_price",
-                        "$ref": "#/components/schemas/FELT"
+                        "$ref": "#/components/schemas/u64"
                     },
                     "unit": {
                         "title": "Fee unit",

@@ -10,12 +10,6 @@ replace:
   #   new_name: description
   
 add:
-  - path: components/schemas/INVOKE_TXN_V0
-    new_entry: type/object
-  - path: components/schemas/DEPLOY_ACCOUNT_TXN_V1
-    new_entry: type/object
-  - path: components/schemas/DEPLOY_ACCOUNT_TXN_V3
-    new_entry: type/object
   - path: components/schemas/NUM_AS_HEX
     new_entry: pattern/^0x[a-fA-F0-9]{1,10}$
   - path: components/schemas/CHAIN_ID
@@ -42,10 +36,8 @@ remove_from_array:
     index: 1
 
 edit_manually:
-  - action: ADD
-    what: FELT_U128
   - action: CHANGE
-    what: every max_fee field type to FELT_U128
+    what: every max_fee field type to u128
   - action: REMOVE
     what: starknet_traceTransaction method from trace_api spec
   - action: REMOVE
@@ -72,3 +64,7 @@ edit_manually:
     what: components/EVENT to components/EVENT_CONTENT in trace_api spec
   - action: CHANGE
     what: ORDERED_EVENT $ref from components/EVENT to components/EVENT_CONTENT in trace_api spec
+  - action: CHANGE
+    what: components/FEE_ESTIMATE field types from FELT to u64
+  - action: ADD
+    what: block_hash, block_number to required fields of EMITTED_EVENT
