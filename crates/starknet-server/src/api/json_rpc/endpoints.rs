@@ -387,4 +387,14 @@ impl JsonRpcHandler {
             Err(err) => Err(err.into()),
         }
     }
+
+    /// starknet_traceBlockTransactions
+    pub(crate) async fn get_trace_block_transactions(&self, block_id: BlockId) -> StrictRpcResult {
+        let starknet = self.api.starknet.read().await;
+        match starknet.get_transaction_traces_from_block(block_id.into()) {
+            Ok(result) => Ok(StarknetResponse::BlockTransactionTraces(result)),
+            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
+            Err(err) => Err(err.into()),
+        }
+    }
 }

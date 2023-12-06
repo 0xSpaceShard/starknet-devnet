@@ -36,10 +36,10 @@ use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::Broad
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
 use starknet_types::rpc::transactions::{
-    BroadcastedTransaction, BroadcastedTransactionCommon, DeclareTransaction,
-    DeclareTransactionTrace, DeployAccountTransactionTrace, ExecutionInvocation,
-    FunctionInvocation, InvokeTransactionTrace, SimulatedTransaction, SimulationFlag, Transaction,
-    TransactionTrace, Transactions,
+    BlockTransactionTrace, BlockTransactionTraces, BroadcastedTransaction,
+    BroadcastedTransactionCommon, DeclareTransaction, DeclareTransactionTrace,
+    DeployAccountTransactionTrace, ExecutionInvocation, FunctionInvocation, InvokeTransactionTrace,
+    SimulatedTransaction, SimulationFlag, Transaction, TransactionTrace, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, warn};
@@ -805,6 +805,33 @@ impl Starknet {
             })),
             _ => Err(Error::UnsupportedTransactionType),
         }
+    }
+
+    pub fn get_transaction_traces_from_block(
+        &self,
+        block_id: BlockId,
+    ) -> DevnetResult<BlockTransactionTraces> {
+        let transactions: Transactions = self.get_block_with_transactions(block_id)?.transactions;
+        panic!("transactions {transactions:?}");
+
+        let mut traces: Vec<BlockTransactionTrace> = Vec::new();
+        if let Transactions::Full(txs) = transactions {
+            for tx in txs {
+                let tx_hash = tx.get_transaction_hash().clone();
+                println!("tx_hash {:?}", tx_hash);
+                let trace = self.get_transaction_trace_by_hash(tx_hash)?;
+                println!("trace {:?}", trace);
+                let block_trace =
+                    BlockTransactionTrace { transaction_hash: tx_hash, trace_root: trace };
+                println!("block_trace {:?}", block_trace);
+                traces.push(block_trace);
+            }
+        } else {
+            panic!("Error");
+        }
+
+        println!("traces {:?}", traces);
+        Ok(BlockTransactionTraces { block_traces: traces })
     }
 
     pub fn get_transaction_execution_and_finality_status(
