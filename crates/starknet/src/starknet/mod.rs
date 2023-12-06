@@ -323,7 +323,13 @@ impl Starknet {
         println!("self: {:?}", std::mem::size_of_val(&*self));
         println!("state: {:?}", std::mem::size_of_val(&self.state));
         println!("blocks: {:?}", std::mem::size_of_val(&self.blocks));
-        println!("transactions: {:?}", std::mem::size_of_val(&self.transactions));
+        println!("transactions: {:?}", std::mem::size_of_val(&self.transactions.capacity()));
+        let x = std::mem::size_of_val(&self.transactions.get_by_hash(transaction_hash.clone()));
+        println!("obj size in byes: {:?}", x);
+        println!("capacity: {:?}", &self.transactions.capacity());
+        println!("capacity * size of obj in byes: {:?}", &self.transactions.capacity() * x);
+        // println!("transactions: {:?}", std::mem::size_of_val(&self.transactions));
+        // println!("transactions: {:?}", std::mem::size_of_val(&self.transactions[0]));
         // println!("transactions2: {:?}", &self.transactions.deep_size_of());
 
         // add accepted transaction to pending block
