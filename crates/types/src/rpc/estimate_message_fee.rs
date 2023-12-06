@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use blockifier::transaction::transactions::L1HandlerTransaction;
+use serde::{Deserialize, Serialize};
 use starknet_api::core::EntryPointSelector;
 use starknet_api::transaction::Calldata;
 use starknet_rs_core::types::requests::EstimateMessageFeeRequest;
@@ -14,17 +15,22 @@ use crate::rpc::block::BlockId;
 use crate::rpc::eth_address::EthAddressWrapper;
 use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 
-#[derive(Debug, Clone)]
-pub struct FeeEstimateWrapper {
-    inner: FeeEstimate,
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(tag = "unit")]
+pub enum FeeEstimateWrapper {
+    #[serde(rename = "WEI")]
+    WEI(FeeEstimate),
+    #[serde(rename = "FRI")]
+    STRK(FeeEstimate),
 }
 
-impl_wrapper_serialize!(FeeEstimateWrapper);
-impl_wrapper_deserialize!(FeeEstimateWrapper, FeeEstimate);
-
 impl FeeEstimateWrapper {
-    pub fn new(gas_consumed: u64, gas_price: u64, overall_fee: u64) -> Self {
-        FeeEstimateWrapper { inner: FeeEstimate { gas_consumed, gas_price, overall_fee } }
+    pub fn new_in_wei_units(gas_consumed: u64, gas_price: u64, overall_fee: u64) -> Self {
+        FeeEstimateWrapper::WEI(FeeEstimate { gas_consumed, gas_price, overall_fee })
+    }
+
+    pub fn new_in_strk_units(gas_consumed: u64, gas_price: u64, overall_fee: u64) -> Self {
+        FeeEstimateWrapper::STRK(FeeEstimate { gas_consumed, gas_price, overall_fee })
     }
 }
 
