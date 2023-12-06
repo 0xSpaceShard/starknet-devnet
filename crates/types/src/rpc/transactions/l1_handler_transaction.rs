@@ -26,7 +26,7 @@ const PREFIX_L1_HANDLER: FieldElement = FieldElement::from_mont([
 ]);
 
 impl L1HandlerTransaction {
-    /// Instanciates a new `L1HandlerTransaction`.
+    /// Instantiates a new `L1HandlerTransaction`.
     pub fn with_hash(mut self, chain_id: Felt) -> Self {
         self.transaction_hash = self.compute_hash(chain_id);
         self

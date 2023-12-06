@@ -5,7 +5,7 @@ use crate::contract_address::ContractAddress;
 use crate::felt::{Calldata, EntryPointSelector, Felt, Nonce};
 use crate::rpc::eth_address::EthAddressWrapper;
 
-/// A L1 to L2 message.
+/// An L1 to L2 message.
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct MessageToL2 {
@@ -19,7 +19,7 @@ pub struct MessageToL2 {
 
 pub type L2ToL1Payload = Vec<Felt>;
 
-/// A L2 to L1 message.
+/// An L2 to L1 message.
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct MessageToL1 {

@@ -3,7 +3,7 @@
 This folder contains Cairo and Solidity contracts for Devnet developement.
 If you wish to check specifically one of the two chains README, please refer to the corresponding README:
 1. `solidity` folder for Ethereum related contracts with the [README](./solidity/README.md).
-2. `cairo` folder for Starknet related contracts, and example of how to work with starknet without running a L1 node in the [README](./cairo/README.md).
+2. `cairo` folder for Starknet related contracts, and example of how to work with starknet without running an L1 node in the [README](./cairo/README.md).
 
 ## E2E testing with Anvil and Devnet
 
@@ -194,7 +194,7 @@ starkli call 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 
 ```
 
 ###  Mocking messages without running L1 node
-1. Now, let's say we want to increase the balance of the user on L2 as if a message was sent from L1. Devnet has an endpoint `postman/send_message_to_l2` to mock a message coming from L1, without actually running a L1 node. Let's mock a message that sends the amount 2 to the user 1.
+1. Now, let's say we want to increase the balance of the user on L2 as if a message was sent from L1. Devnet has an endpoint `postman/send_message_to_l2` to mock a message coming from L1, without actually running an L1 node. Let's mock a message that sends the amount 2 to the user 1.
 ```bash
 curl -H 'Content-Type: application/json' \
     -d '{"paid_fee_on_l1": "0x123", "l2_contract_address": "0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4", "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512", "entry_point_selector": "0x00c73f681176fc7b3f9693986fd7b14581e8d540519e27400e88b8713932be01", "payload": ["0x1", "0x2"], "nonce": "0x1"}' \

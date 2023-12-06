@@ -89,7 +89,7 @@ pub struct EthereumMessaging {
 }
 
 impl EthereumMessaging {
-    /// Instanciates a new `EthereumMessaging`.
+    /// Instantiates a new `EthereumMessaging`.
     ///
     /// # Arguments
     ///

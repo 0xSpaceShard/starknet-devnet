@@ -131,13 +131,13 @@ impl Starknet {
     }
 
     /// Collects all messages found between
-    /// the current messaging latest block to the Latest Starknet block,
+    /// the current messaging latest block and the Latest Starknet block,
     /// including both blocks.
     /// This function register the messages in two fashions:
     /// 1. Add each message to the `l2_to_l1_messages_to_flush`.
     /// 2. Increment the counter for the hash of each message into `l2_to_l1_messages_hashes`.
     ///
-    /// Returns all the message currently collected and not flushed.
+    /// Returns all the messages currently collected and not flushed.
     pub async fn collect_messages_to_l1(&mut self) -> DevnetResult<Vec<MessageToL1>> {
         let from_block = self.messaging.last_local_block;
 
