@@ -162,14 +162,27 @@ fn generate_json_rpc_response(
 }
 
 mod tests {
+    use std::fs::File;
+
+    use ::serde::{Deserialize, Serialize};
+    use starknet_rs_core::serde;
+    use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
+    use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
+    use starknet_types::rpc::transactions::{
+        DeclareTransactionTrace, EventsChunk, FunctionInvocation, SimulatedTransaction,
+        TransactionTrace,
+    };
+
+    use super::data_generator::generate_schema_value;
     use super::{generate_combined_schema, generate_json_rpc_response, Spec};
+    use crate::api::json_rpc::models::BroadcastedDeployAccountTransactionEnumWrapper;
     use crate::api::json_rpc::spec_reader::generate_json_rpc_request;
     use crate::api::json_rpc::{StarknetRequest, StarknetResponse};
 
     #[test]
     fn test_spec_methods() {
         let specs =
-            Spec::load_from_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/spec/0.5.1"));
+            Spec::load_from_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/spec/0.6.0-rc5"));
         let combined_schema = generate_combined_schema(&specs);
         let expected_failed_method_responses = vec![
             "starknet_getTransactionByBlockIdAndIndex",
@@ -178,14 +191,10 @@ mod tests {
             "starknet_getTransactionReceipt",
         ];
 
-        let mut failed_method_responses = vec![];
         for _ in 0..1000 {
             for spec in specs.iter() {
                 // Iterate over the methods in the spec
                 for method in spec.methods.iter() {
-                    if failed_method_responses.contains(&method.name) {
-                        continue;
-                    }
                     // Create a JSON-RPC request for each method
                     let request = generate_json_rpc_request(method, &combined_schema)
                         .expect("Could not generate the JSON-RPC request");
@@ -193,6 +202,11 @@ mod tests {
                     let sn_request = serde_json::from_value::<StarknetRequest>(request.clone());
 
                     if sn_request.is_err() {
+                        serde_json::to_writer_pretty(
+                            File::create("failed_request.json").unwrap(),
+                            &request,
+                        )
+                        .unwrap();
                         panic!("Failed method request: {}", method.name);
                     }
 
@@ -202,8 +216,16 @@ mod tests {
                     let sn_response = serde_json::from_value::<StarknetResponse>(response.clone());
 
                     if sn_response.is_err() {
-                        failed_method_responses.push(method.name.clone());
-                        continue;
+                        if expected_failed_method_responses.contains(&method.name.as_str()) {
+                            continue;
+                        } else {
+                            serde_json::to_writer_pretty(
+                                File::create("failed_response.json").unwrap(),
+                                &response,
+                            )
+                            .unwrap();
+                            panic!("Failed method response: {}", method.name);
+                        }
                     }
 
                     let sn_response = sn_response.unwrap();
@@ -299,13 +321,9 @@ mod tests {
         // TODO: there are some failed methods responses deserializations, because
         // The implemented response variants have more fields than the json created from the
         // generator Thus they diverge in some way from the spec, issue: https://github.com/0xSpaceShard/starknet-devnet-rs/issues/248
-        println!("Methods diverging from the spec in some way {:?}", failed_method_responses);
-        assert_eq!(
-            failed_method_responses
-                .iter()
-                .filter(|&el| !expected_failed_method_responses.contains(&el.as_str()))
-                .count(),
-            0
+        println!(
+            "Methods diverging from the spec in some way {:?}",
+            expected_failed_method_responses
         );
     }
 }
