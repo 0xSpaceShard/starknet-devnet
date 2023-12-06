@@ -534,12 +534,9 @@ impl Starknet {
     ) -> DevnetResult<Vec<FeeEstimateWrapper>> {
         let mut skip_validate = false;
         for flag in simulation_flags.iter() {
-            match flag {
-                SimulationFlag::SkipValidate => {
-                    skip_validate = true;
-                    warn!("SKIP_VALIDATE chosen in simulation, but does not affect fee estimation");
-                }
-                _ => {}
+            if *flag == SimulationFlag::SkipValidate {
+                skip_validate = true;
+                warn!("SKIP_VALIDATE chosen in simulation, but does not affect fee estimation");
             }
         }
         estimations::estimate_fee(self, block_id, transactions, None, Some(!skip_validate))

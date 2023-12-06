@@ -164,18 +164,7 @@ fn generate_json_rpc_response(
 mod tests {
     use std::fs::File;
 
-    use ::serde::{Deserialize, Serialize};
-    use starknet_rs_core::serde;
-    use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
-    use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
-    use starknet_types::rpc::transactions::{
-        DeclareTransactionTrace, EventsChunk, FunctionInvocation, SimulatedTransaction,
-        TransactionTrace,
-    };
-
-    use super::data_generator::generate_schema_value;
     use super::{generate_combined_schema, generate_json_rpc_response, Spec};
-    use crate::api::json_rpc::models::BroadcastedDeployAccountTransactionEnumWrapper;
     use crate::api::json_rpc::spec_reader::generate_json_rpc_request;
     use crate::api::json_rpc::{StarknetRequest, StarknetResponse};
 
