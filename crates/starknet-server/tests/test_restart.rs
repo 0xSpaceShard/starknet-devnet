@@ -101,7 +101,7 @@ mod test_restart {
         .await
         .unwrap();
         let salt = FieldElement::ONE;
-        let deployment = account_factory.deploy(salt);
+        let deployment = account_factory.deploy(salt).max_fee(FieldElement::from(1e18 as u128));
         let deployment_address = deployment.address();
         devnet.mint(deployment_address, 1e18 as u128).await;
         deployment.send().await.unwrap();
@@ -132,6 +132,7 @@ mod test_restart {
     }
 
     #[tokio::test]
+    #[ignore = "Starknet-rs does not support estimate_fee with simulation_flags"]
     async fn assert_gas_price_unaffected_by_restart() {
         let expected_gas_price = 1_000_000_u64;
         let devnet = BackgroundDevnet::spawn_with_additional_args(&[

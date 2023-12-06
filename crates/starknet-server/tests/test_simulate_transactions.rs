@@ -318,6 +318,7 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Starknet-rs does not support estimate_fee with simulation_flags"]
     async fn simulate_invoke() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 

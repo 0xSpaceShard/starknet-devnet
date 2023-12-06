@@ -23,6 +23,7 @@ mod test_estimate_message_fee {
     use crate::common::constants::CHAIN_ID;
 
     #[tokio::test]
+    #[ignore = "Starknet-rs does not support estimate_fee with simulation_flags"]
     async fn estimate_message_fee() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 

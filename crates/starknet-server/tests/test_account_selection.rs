@@ -96,7 +96,10 @@ mod test_account_selection {
 
         let new_account_nonce = FieldElement::ZERO;
         let salt = FieldElement::THREE;
-        let deployment = account_factory.deploy(salt).nonce(new_account_nonce);
+        let deployment = account_factory
+            .deploy(salt)
+            .max_fee(FieldElement::from(1e18 as u128))
+            .nonce(new_account_nonce);
         let new_account_address = deployment.address();
         devnet.mint(new_account_address, 1e18 as u128).await;
 
@@ -187,7 +190,12 @@ mod test_account_selection {
             selector: get_selector_from_name("increase_balance").unwrap(),
             calldata: vec![increase_amount],
         }];
-        account.execute(invoke_calls).send().await.unwrap();
+        account
+            .execute(invoke_calls)
+            .max_fee(FieldElement::from(1e18 as u128))
+            .send()
+            .await
+            .unwrap();
 
         // prepare the call used in checking the balance
         let call = FunctionCall {

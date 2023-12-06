@@ -45,7 +45,8 @@ mod get_transaction_receipt_by_hash_integration_tests {
         let new_account_address = deployment.address();
         devnet.mint(new_account_address, 1e18 as u128).await;
 
-        let deploy_account_result = deployment.send().await.unwrap();
+        let deploy_account_result =
+            deployment.max_fee(FieldElement::from(1e18 as u128)).send().await.unwrap();
 
         let deploy_account_receipt = devnet
             .json_rpc_client
@@ -180,6 +181,8 @@ mod get_transaction_receipt_by_hash_integration_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Starknet-rs does not support estimate_fee with simulation_flags but in this method \
+                estimate_fee is used explicitly"]
     async fn reverted_invoke_transaction_receipt() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
