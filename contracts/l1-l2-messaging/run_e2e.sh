@@ -52,10 +52,10 @@ curl -H 'Content-Type: application/json' \
     http://127.0.0.1:5050/postman/send_message_to_l2
 
 # Send back some balance to consume manually.
-starkli invoke 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 withdraw 0x1 1 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+starkli invoke 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 withdraw 0x1 0x2 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
 
 curl -H 'Content-Type: application/json' \
-    -d '{"from_address": "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba", "to_address": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512", "payload": ["0x0","0x1","0x1"]}' \
+    -d '{"from_address": "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba", "to_address": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512", "payload": ["0x0","0x1","0x2"]}' \
     http://127.0.0.1:5050/postman/consume_message_from_l2
 
-
+starkli call 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 get_balance 0x1

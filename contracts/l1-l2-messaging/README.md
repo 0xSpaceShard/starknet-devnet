@@ -65,7 +65,7 @@ Block: 2
 Paid: 0.0013459867197597 ETH (346581 gas * 3.8836137 gwei)
 ```
 
-3. Check balance is 0 for user `1`:
+3. Check balance is 0 for user `0x1`:
 ```bash
 cast call 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 "get_balance(uint256)(uint256)" 0x1
 ```
@@ -82,14 +82,15 @@ starkli declare ./cairo/target/dev/cairo_l1_l2.contract_class.json
 # Deploy (adjust the class hash if needed).
 starkli deploy 0x0211fd0483be230ba40d43f51bd18ae239b913f529f95ce10253e514175efb3e --salt 123
 
-# Add some balance and check it.
+# Add some balance (255) to the user 1 on L2 and check it.
 starkli invoke 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 increase_balance 0x1 0xff
 starkli call 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 get_balance 0x1
 
 # Issue a withdraw to send message to L1 with amount 1 for user 1.
-starkli invoke 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 withdraw 0x1 1 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+starkli invoke 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 withdraw 0x1 0x1 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
 
-# Here, you can still check on ethereum, the balance is still 0.
+# Here, you can still check on L1, the balance of the user 1 is still 0.
+
 # You can use the `dry run` version if you just want to check the messages before actually sending them.
 curl -H 'Content-Type: application/json' -d '{"dry_run": true}' http://127.0.0.1:5050/postman/flush
 ```
@@ -129,14 +130,14 @@ curl -H 'Content-Type: application/json' -X POST http://127.0.0.1:5050/postman/f
 
 ### Etherum receive message and send message to L2
 1. Now the message is received, we can consume it. You can try to run this command several time,
-   you'll see the transaction reverting with `INVALID_MESSAGE_TO_CONSUME` once the message is consumed once.
+   you'll see the transaction reverting with `INVALID_MESSAGE_TO_CONSUME` once the message is consumed once. To consume the message, we have to provide it's content (balance of 1 to user 1).
 ```bash
 cast send 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 "withdraw(uint256, uint256, uint256)" \
      0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba 0x1 0x1 \
      --rpc-url $ETH_RPC_URL --private-key $ACCOUNT_PRIVATE_KEY \
      --gas-limit 999999
      
-# We can now check the balance, it's 1.
+# We can now check the balance of user 1 on L1, it's 1.
 cast call 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 "get_balance(uint256)(uint256)" 0x1
 ```
 ```bash
@@ -145,15 +146,14 @@ cast call 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 "get_balance(uint256)(uint2
 1
 ```
 
-2. Let's now send back the amount 1 we just received. As we will send a message, we need
-to provide at least 30k WEI.
+2. Let's now send back the amount 1 we just received to the user 1 on L2. As we will send a message, we need to provide at least 30k WEI.
 ```bash
 cast send 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 "deposit(uint256, uint256, uint256)" \
      0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 0x1 0x1 \
      --rpc-url $ETH_RPC_URL --private-key $ACCOUNT_PRIVATE_KEY \
      --gas-limit 999999 --value 1gwei
      
-# The balance is now 0.
+# The balance is now 0 for the user 1 on ethereum.
 cast call 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 "get_balance(uint256)(uint256)" 0x1
 ```
 ```bash
@@ -183,7 +183,7 @@ curl -H 'Content-Type: application/json' -X POST http://127.0.0.1:5050/postman/f
     "l1_provider":"http://127.0.0.1:8545/"
 }
 ```
-We can now check the balance of use 1 on L2, it's back to `0xff`.
+We can now check the balance of user 1 on L2, it's back to `0xff`.
 ```bash
 starkli call 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 get_balance 0x1
 ```
@@ -194,7 +194,7 @@ starkli call 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 
 ```
 
 ###  Mocking messages without running L1 node
-1. Now, let's say we want to increase the balance of the user on L2 as if a message was sent from L1. Devnet has an endpoint `postman/send_message_to_l2` to mock a message coming from L1, without actually running a L1 node.
+1. Now, let's say we want to increase the balance of the user on L2 as if a message was sent from L1. Devnet has an endpoint `postman/send_message_to_l2` to mock a message coming from L1, without actually running a L1 node. Let's mock a message that sends the amount 2 to the user 1.
 ```bash
 curl -H 'Content-Type: application/json' \
     -d '{"paid_fee_on_l1": "0x123", "l2_contract_address": "0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4", "l1_contract_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512", "entry_point_selector": "0x00c73f681176fc7b3f9693986fd7b14581e8d540519e27400e88b8713932be01", "payload": ["0x1", "0x2"], "nonce": "0x1"}' \
@@ -205,7 +205,7 @@ curl -H 'Content-Type: application/json' \
     "transaction_hash": "0x7f5c523f47bc88fa21f86ec4aaac8bbad69dafb43ae7072319dcec4d5d40af9"
 }
 ```
-The balance is now increased by 1, exactly as a message from L1 would have done.
+The balance is now increased by 2, exactly as a message from L1 would have done.
 ```bash
 starkli call 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 get_balance 0x1
 ```
@@ -215,23 +215,33 @@ starkli call 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 
 ]
 ```
 
-2. Finally, to give an example of how to test a message that is sent by a Cairo contract without running the L1 node.
+2. Finally, to give an example of how to test a message sent by a Cairo contract without running the L1 node. Let's withdraw the amount 2 from the user 1.
 ```bash
-# Withdraw to send a message from Cairo contract.
-starkli invoke 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 withdraw 0x1 1 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+# Withdraw to have the Cairo contract creating the message.
+starkli invoke 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 withdraw 0x1 0x2 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
 ```
 Now that the message has been created by the Cairo contract, instead of using `flush` to send the message to L1 node, we can consume it manually and verify that the message has been correctly created by the Cairo contract:
 ```bash
 curl -H 'Content-Type: application/json' \
-    -d '{"from_address": "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba", "to_address": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512", "payload": ["0x0","0x1","0x1"]}' \
+    -d '{"from_address": "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba", "to_address": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512", "payload": ["0x0","0x1","0x2"]}' \
     http://127.0.0.1:5050/postman/consume_message_from_l2
 ```
 ```json
 {
-    "message_hash": "0xe4939c1db95330c06b368b6c964fb5ba0213c1f355cdae76109b3f9d0493747d"
+    "message_hash": "0x987b98434563ce4683f38c443d0c060492592960b525200ff7345d39c2f94fa2"
 }
 ```
-You can try to run the command again, and you'll see an error saying that the message has been totally consumed, exactly as the `Starknet Core Contract` would do on testnet/mainnet.
+You can try to run the command again, and you'll see an error saying that the message has been totally consumed.
+
+If we now check the balance of the user 1, it should be back to `0xff`.
+```bash
+starkli call 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 get_balance 0x1
+```
+```json
+[
+    "0x00000000000000000000000000000000000000000000000000000000000000ff"
+]
+```
 
 ### Re-run with a script
 
