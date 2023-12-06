@@ -31,7 +31,7 @@ pub(crate) async fn postman_flush(
     // will create L2 to L1 messages.
     let mut starknet = state.api.starknet.write().await;
 
-    let dry_run = if let Some(data) = data {
+    let is_dry_run = if let Some(data) = data {
         let data = Json(data);
         data.dry_run
     } else {
@@ -39,7 +39,7 @@ pub(crate) async fn postman_flush(
     };
 
     // Fetch and execute messages to l2.
-    let (messages_to_l2, generated_l2_transactions) = if dry_run {
+    let (messages_to_l2, generated_l2_transactions) = if is_dry_run {
         (vec![], vec![])
     } else {
         let messages = starknet.fetch_messages_to_l2().await.map_err(|e| {
@@ -54,22 +54,24 @@ pub(crate) async fn postman_flush(
     };
 
     // Collect and send messages to L1.
-    let messages_to_l1 = if dry_run {
-        starknet.collect_messages_to_l1().await.map_err(|e| HttpApiError::MessagingError {
-            msg: format!("messages to l1 error: {}", e),
-        })?
-    } else {
-        starknet.collect_and_send_messages_to_l1().await.map_err(|e| {
-            HttpApiError::MessagingError { msg: format!("messages to l1 error: {}", e) }
-        })?
-    };
+    let messages_to_l1 = starknet.collect_messages_to_l1().await.map_err(|e| {
+        HttpApiError::MessagingError { msg: format!("collect messages to l1 error: {}", e) }
+    })?;
 
-    // L1 provider.
-    let l1_provider = if dry_run {
-        "dry run".to_string()
-    } else {
-        starknet.get_ethereum_url().unwrap_or("Not set".to_string())
-    };
+    if is_dry_run {
+        return Ok(Json(FlushedMessages {
+            messages_to_l1,
+            messages_to_l2,
+            generated_l2_transactions,
+            l1_provider: "dry run".to_string(),
+        }));
+    }
+
+    starknet.send_messages_to_l1().await.map_err(|e| HttpApiError::MessagingError {
+        msg: format!("send messages to l1 error: {}", e),
+    })?;
+
+    let l1_provider = starknet.get_ethereum_url().unwrap_or("Not set".to_string());
 
     Ok(Json(FlushedMessages {
         messages_to_l1,
@@ -110,6 +112,7 @@ pub(crate) async fn postman_consume_message_from_l2(
 
     let message_hash = starknet
         .consume_l2_to_l1_message(&message)
+        .await
         .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
 
     Ok(Json(MessageHash { message_hash }))

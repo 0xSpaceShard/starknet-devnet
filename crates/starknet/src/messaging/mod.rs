@@ -60,7 +60,9 @@ pub struct MessagingBroker {
     /// Note:
     /// `Hash256` is not directly supported as a HashMap key due to missing trait.
     /// Using `String` instead.
-    pub l2_to_l1_messages: HashMap<String, u64>,
+    pub l2_to_l1_messages_hashes: HashMap<String, u64>,
+    /// This list of messages that will be sent to L1 node at the next `postman/flush`.
+    pub l2_to_l1_messages_to_flush: Vec<MessageToL1>,
 }
 
 impl MessagingBroker {
@@ -131,40 +133,12 @@ impl Starknet {
     /// Collects all messages found between
     /// the current messaging latest block to the Latest Starknet block,
     /// including both blocks.
-    /// Calling this function will not advance the `last_local_block` of messaging.
-    /// Use `collect_and_send_messages_to_l1` to update `last_local_block`.
-    pub async fn collect_messages_to_l1(&self) -> DevnetResult<Vec<MessageToL1>> {
-        let from_block = self.messaging.last_local_block;
-
-        match self.blocks.get_blocks(Some(BlockId::Number(from_block)), None) {
-            Ok(blocks) => {
-                let mut messages = vec![];
-
-                for block in blocks {
-                    messages.extend(self.get_block_messages(block)?);
-                }
-
-                // Collect messages does not advance the last_local_block,
-                // as it is meant to be use for dry run only.
-
-                Ok(messages)
-            }
-            Err(e) => {
-                if let Error::NoBlock = e {
-                    // We're 1 block ahead of latest block, no messages can be collected.
-                    Ok(vec![])
-                } else {
-                    Err(e)
-                }
-            }
-        }
-    }
-
-    /// Collects and sends to L1 all messages found between
-    /// `from` to the Latest Starknet block, including both blocks.
-    /// Returns the list of messages that were collected.
-    pub async fn collect_and_send_messages_to_l1(&mut self) -> DevnetResult<Vec<MessageToL1>> {
-        let ethereum = self.messaging.ethereum_ref()?;
+    /// This function register the messages in two fashions:
+    /// 1. Add each message to the `l2_to_l1_messages_to_flush`.
+    /// 2. Increment the counter for the hash of each message into `l2_to_l1_messages_hashes`.
+    ///
+    /// Returns all the message currently collected and not flushed.
+    pub async fn collect_messages_to_l1(&mut self) -> DevnetResult<Vec<MessageToL1>> {
         let from_block = self.messaging.last_local_block;
 
         match self.blocks.get_blocks(Some(BlockId::Number(from_block)), None) {
@@ -174,34 +148,43 @@ impl Starknet {
                 let mut last_processed_block: u64 = 0;
                 for block in blocks {
                     messages.extend(self.get_block_messages(block)?);
-
                     last_processed_block = block.header.block_number.0;
                 }
 
-                ethereum.send_mock_messages(&messages).await?;
-
                 for message in &messages {
                     let hash = format!("{}", message.hash());
-
-                    let count = self.messaging.l2_to_l1_messages.entry(hash).or_insert(0);
-
+                    let count = self.messaging.l2_to_l1_messages_hashes.entry(hash).or_insert(0);
                     *count += 1;
                 }
 
                 // +1 to avoid latest block to be processed twice.
                 self.messaging.last_local_block = last_processed_block + 1;
 
-                Ok(messages)
+                self.messaging.l2_to_l1_messages_to_flush.extend(messages);
+
+                Ok(self.messaging.l2_to_l1_messages_to_flush.clone())
             }
             Err(e) => {
                 if let Error::NoBlock = e {
                     // We're 1 block ahead of latest block, no messages can be collected.
-                    Ok(vec![])
+                    Ok(self.messaging.l2_to_l1_messages_to_flush.clone())
                 } else {
                     Err(e)
                 }
             }
         }
+    }
+
+    /// Sends (flush) all the messages in `l2_to_l1_messages_to_flush` to L1 node.
+    /// Returns the list of sent messages.
+    pub async fn send_messages_to_l1(&mut self) -> DevnetResult<Vec<MessageToL1>> {
+        let ethereum = self.messaging.ethereum_ref()?;
+        ethereum.send_mock_messages(&self.messaging.l2_to_l1_messages_to_flush).await?;
+
+        let messages = self.messaging.l2_to_l1_messages_to_flush.clone();
+        self.messaging.l2_to_l1_messages_to_flush.clear();
+
+        Ok(messages)
     }
 
     /// Consumes a `MessageToL1` that is registered in `l2_to_l1_messages`.
@@ -211,9 +194,15 @@ impl Starknet {
     /// # Arguments
     ///
     /// * `message` - The message to consume.
-    pub fn consume_l2_to_l1_message(&mut self, message: &MessageToL1) -> DevnetResult<Hash256> {
+    pub async fn consume_l2_to_l1_message(
+        &mut self,
+        message: &MessageToL1,
+    ) -> DevnetResult<Hash256> {
+        // Ensure latest messages are collected before consuming the message.
+        self.collect_messages_to_l1().await?;
+
         let hash = format!("{}", message.hash());
-        let count = self.messaging.l2_to_l1_messages.entry(hash.clone()).or_insert(0);
+        let count = self.messaging.l2_to_l1_messages_hashes.entry(hash.clone()).or_insert(0);
 
         if *count > 0 {
             *count -= 1;

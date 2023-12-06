@@ -241,36 +241,19 @@ mod test_messaging {
     }
 
     #[tokio::test]
-    async fn can_flush_messages_l1_and_consume_from_l2() {
-        let anvil = BackgroundAnvil::spawn().await.unwrap();
-
+    async fn can_consume_from_l2() {
         let (devnet, account, l1l2_contract_address) =
             setup_devnet(&["--account-class", "cairo1"]).await;
         let user = FieldElement::ONE;
-
-        // Deploy messaging contract.
-        let req_body = Body::from(json!({ "network_url": anvil.url }).to_string());
-
-        let resp = devnet
-            .post_json("/postman/load_l1_messaging_contract".into(), req_body)
-            .await
-            .expect("deploy l1 messaging contract failed");
-        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
 
         // Set balance to 1 for user.
         let user_balance = FieldElement::ONE;
         increase_balance(Arc::clone(&account), l1l2_contract_address, user, user_balance).await;
         assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [user_balance]);
 
-        // Withdraw the amount in an l2->l1 message.
+        // Withdraw the 1 amount in a l2->l1 message.
         withdraw(Arc::clone(&account), l1l2_contract_address, user, user_balance).await;
         assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [FieldElement::ZERO]);
-
-        // Flush to actually send the message on L1, which can then be consumed.
-        let req_body = Body::from(json!({ "dry_run": false }).to_string());
-
-        let resp = devnet.post_json("/postman/flush".into(), req_body).await.expect("flush failed");
-        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
 
         let req_body = Body::from(
             json!({
