@@ -9,7 +9,7 @@ use declare_transaction_v0v1::DeclareTransactionV0V1;
 use declare_transaction_v2::DeclareTransactionV2;
 use deploy_transaction::DeployTransaction;
 use invoke_transaction_v1::InvokeTransactionV1;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use starknet_api::block::BlockNumber;
 use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::deprecated_contract_class::EntryPointType;
@@ -509,7 +509,7 @@ impl BroadcastedTransaction {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum BroadcastedDeclareTransaction {
     V1(Box<BroadcastedDeclareTransactionV1>),
@@ -528,6 +528,33 @@ pub enum BroadcastedDeployAccountTransaction {
 pub enum BroadcastedInvokeTransaction {
     V1(BroadcastedInvokeTransactionV1),
     V3(BroadcastedInvokeTransactionV3),
+}
+
+impl<'de> Deserialize<'de> for BroadcastedDeclareTransaction {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = serde_json::Value::deserialize(deserializer)?;
+        let version_raw = value.get("version").ok_or(serde::de::Error::missing_field("version"))?;
+        match version_raw.as_str() {
+            Some(v) if ["0x1", "0x100000000000000000000000000000001"].contains(&v) => {
+                let unpacked = serde_json::from_value(value).map_err(|e| {
+                    serde::de::Error::custom(format!("Invalid declare transaction v1: {e}"))
+                })?;
+                Ok(BroadcastedDeclareTransaction::V1(Box::new(unpacked)))
+            }
+            Some(v) if ["0x2", "0x100000000000000000000000000000002"].contains(&v) => {
+                let unpacked = serde_json::from_value(value).map_err(|e| {
+                    serde::de::Error::custom(format!("Invalid declare transaction v2: {e}"))
+                })?;
+                Ok(BroadcastedDeclareTransaction::V2(Box::new(unpacked)))
+            }
+            _ => Err(serde::de::Error::custom(format!(
+                "Invalid version of declare transaction: {version_raw}"
+            ))),
+        }
+    }
 }
 
 /// Flags that indicate how to simulate a given transaction.

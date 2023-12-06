@@ -9,7 +9,7 @@ replace:
     new_name: description
   - path: components/schemas/PENDING_BLOCK_HEADER/properties/l1_gas_price/descritpion
     new_name: description
-  
+
 add:
   - path: components/schemas/INVOKE_TXN_V0
     new_entry: type/object
@@ -69,3 +69,5 @@ edit_manually:
     what: components/EVENT to components/EVENT_CONTENT in trace_api spec
   - action: CHANGE
     what: ORDERED_EVENT $ref from components/EVENT to components/EVENT_CONTENT in trace_api spec
+  - action: CHANGE
+    what: components/schemas/BROADCASTED_DECLARE_TXN_{V1,V2}/allOf[0]/properties/version from NUM_AS_HEX to enums from spec 0.6.0

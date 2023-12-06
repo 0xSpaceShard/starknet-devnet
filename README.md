@@ -41,13 +41,27 @@ Make sure to have installed [Rust](https://www.rust-lang.org/tools/install).
 
 The required Rust version is specified in [rust-toolchain.toml](rust-toolchain.toml) and handled automatically by `cargo`.
 
-## Run
+## Run from source
 
 After git-cloning this repository, install and run the project with:
 
 ```
 $ cargo run
 ```
+
+## Run as a binary
+
+Installing and running as a binary is achievable via `cargo install`, but until Devnet is released as a crate, it comes with some caveats. You need to:
+
+- Populate your environment with the variables defined in [the config file](/.cargo/config.toml)
+- Use the `--locked` flag to ensure using the dependencies listed in [the lock file](/Cargo.lock)
+- Preferrably familiarize yourself with the `cargo install` command ([docs](https://doc.rust-lang.org/cargo/commands/cargo-install.html#dealing-with-the-lockfile))
+
+```
+$ cargo install --git https://github.com/0xSpaceShard/starknet-devnet-rs.git --locked
+```
+
+When the installation finishes, follow the output in your terminal.
 
 ## Run with Docker
 
