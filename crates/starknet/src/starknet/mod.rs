@@ -320,6 +320,12 @@ impl Starknet {
     ) -> DevnetResult<()> {
         let transaction_to_add = StarknetTransaction::create_accepted(transaction, tx_info);
 
+        println!("self: {:?}", std::mem::size_of_val(&*self));
+        println!("state: {:?}", std::mem::size_of_val(&self.state));
+        println!("blocks: {:?}", std::mem::size_of_val(&self.blocks));
+        println!("transactions: {:?}", std::mem::size_of_val(&self.transactions));
+        // println!("transactions2: {:?}", &self.transactions.deep_size_of());
+
         // add accepted transaction to pending block
         self.blocks.pending_block.add_transaction(*transaction_hash);
 
