@@ -34,3 +34,7 @@ pub const CAIRO_1_PANICKING_CONTRACT_SIERRA_PATH: &str =
 // Contract which asserts the tx version
 pub const CAIRO_1_VERSION_ASSERTER_SIERRA_PATH: &str =
     "test_data/cairo1/version_asserter/version_asserter.sierra";
+
+// L1 L2 pre-registered addresses.
+/// Hardcoded in the cairo0 l1l2 contract
+pub const MESSAGING_WHITELISTED_L1_CONTRACT: &str = "0x8359e4b0152ed5a731162d3c7b0d8d56edb165a1";

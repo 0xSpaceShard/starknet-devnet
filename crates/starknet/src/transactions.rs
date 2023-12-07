@@ -1,3 +1,4 @@
+use blockifier::execution::call_info::CallInfo;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -7,6 +8,7 @@ use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{Event, OrderedEvent};
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
+use starknet_types::rpc::messaging::{MessageToL1, OrderedMessageToL1};
 use starknet_types::rpc::transaction_receipt::{DeployTransactionReceipt, TransactionReceipt};
 use starknet_types::rpc::transactions::{Transaction, TransactionType};
 
@@ -154,8 +156,11 @@ impl StarknetTransaction {
     pub fn get_receipt(&self) -> DevnetResult<TransactionReceipt> {
         let transaction_events = self.get_events();
 
+        let transaction_messages = self.get_l2_to_l1_messages();
+
         let mut common_receipt = self.inner.create_common_receipt(
             &transaction_events,
+            &transaction_messages,
             self.block_hash.as_ref(),
             self.block_number,
             &self.execution_result,
@@ -189,6 +194,43 @@ impl StarknetTransaction {
             }
             _ => Ok(TransactionReceipt::Common(common_receipt)),
         }
+    }
+
+    pub fn get_l2_to_l1_messages(&self) -> Vec<MessageToL1> {
+        let mut messages = vec![];
+
+        fn get_blockifier_messages_recursively(call_info: &CallInfo) -> Vec<OrderedMessageToL1> {
+            let mut messages = vec![];
+
+            let from_address = call_info.call.caller_address.into();
+
+            messages.extend(call_info.execution.l2_to_l1_messages.iter().map(|m| {
+                OrderedMessageToL1 {
+                    order: m.order,
+                    message: MessageToL1 {
+                        to_address: m.message.to_address.into(),
+                        from_address,
+                        payload: m.message.payload.0.iter().map(|p| (*p).into()).collect(),
+                    },
+                }
+            }));
+
+            call_info.inner_calls.iter().for_each(|call| {
+                messages.extend(get_blockifier_messages_recursively(call));
+            });
+
+            messages
+        }
+
+        let call_infos = self.execution_info.non_optional_call_infos();
+
+        for inner_call_info in call_infos {
+            let mut not_sorted_messages = get_blockifier_messages_recursively(inner_call_info);
+            not_sorted_messages.sort_by_key(|message| message.order);
+            messages.extend(not_sorted_messages.into_iter().map(|m| m.message));
+        }
+
+        messages
     }
 }
 

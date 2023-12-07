@@ -35,7 +35,7 @@ This repository is work in progress, please be patient. Please check below the s
 
 - [ ] Availability as a package (crate)
 - [ ] [Forking](https://0xspaceshard.github.io/starknet-devnet/docs/guide/fork)
-- [ ] [L1-L2 Postman integration](https://0xspaceshard.github.io/starknet-devnet/docs/guide/postman)
+- [x] [L1-L2 Postman integration](https://0xspaceshard.github.io/starknet-devnet/docs/guide/postman)
 - [ ] [Block manipulation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/blocks)
   - [x] Create an empty block
 
@@ -336,7 +336,13 @@ If you think this reports a dependency as a false-positive (i.e. isn't unused), 
 
 ## Development - Testing
 
-To ensure that integration tests pass, be sure to have run `cargo build --release` or `cargo run --release` prior to testing. This builds the production target used in integration tests, so spawning Background Devnet won't time out.
+### Prerequisites
+
+Some tests require the `anvil` command, so you need to [install Foundry](https://book.getfoundry.sh/getting-started/installation). The `anvil` command might not be usable by tests if you run them using VS Code's `Run Test` button available just above the test case. Either run tests using a shell which has foundry/anvil in `PATH`, or modify the BackgroundAnvil Command to specify `anvil` by its path on your system.
+
+To ensure that integration tests pass, be sure to have run `cargo build --release` or `cargo run --release` prior to testing. This builds the production target used in integration tests, so spawning BackgroundDevnet won't time out.
+
+### Execution
 
 Run all tests using all available CPUs with:
 
@@ -362,6 +368,18 @@ This is what happens under the hood on `main`:
   - same for `latest`
 
 In the image, `tini` is used to properly handle killing of dockerized Devnet with Ctrl+C
+
+## Development - L1 / L2 (postman)
+
+To test Starknet messaging, Devnet exposes endpoints prefixed with `postman/` which are dedicated to the messaging feature.
+You can find a full guide to test the messaging feature in the [contracts/l1-l2-messaging README](./contracts/l1-l2-messaging/README.md).
+
+Devnet exposes the following endpoints:
+
+- `/postman/load_l1_messaging_contract`: deploys the `MockStarknetMessaging` contract on L1 (requires L1 node to be running).
+- `/postman/flush`: fetches and executes L1 -> L2 messages, and sends L2 -> L1 messages (requires L1 node to be running if `dry_run` option is not used).
+- `/postman/send_message_to_l2`: sends and executes a message on L2 (L1 node **not** required).
+- `/postman/consume_message_from_l2`: consumes a message on L1 node from the L2 (requires L1 node to be running).
 
 ## ✏️ Contributing
 
