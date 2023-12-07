@@ -174,10 +174,9 @@ mod tests {
             Spec::load_from_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/spec/0.6.0"));
         let combined_schema = generate_combined_schema(&specs);
         let expected_failed_method_responses = vec![
-            "starknet_getTransactionByBlockIdAndIndex",
             "starknet_getTransactionByHash",
             "starknet_getBlockWithTxs",
-            "starknet_getTransactionReceipt",
+            "starknet_getTransactionByBlockIdAndIndex",
         ];
 
         for _ in 0..1000 {
@@ -221,6 +220,12 @@ mod tests {
                     let sn_request = sn_request.unwrap();
 
                     match sn_request {
+                        StarknetRequest::TransactionReceiptByTransactionHash(_) => {
+                            assert!(matches!(
+                                sn_response,
+                                StarknetResponse::TransactionReceiptByTransactionHash(_)
+                            ));
+                        }
                         StarknetRequest::BlockWithTransactionHashes(_) => {
                             assert!(matches!(
                                 sn_response,
