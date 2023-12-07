@@ -29,7 +29,7 @@ use self::deploy_account_transaction_v3::DeployAccountTransactionV3;
 use self::invoke_transaction_v3::InvokeTransactionV3;
 use super::estimate_message_fee::FeeEstimateWrapper;
 use super::state::ThinStateDiff;
-use super::transaction_receipt::{ExecutionResources, OrderedMessageToL1};
+use super::transaction_receipt::{ExecutionResources, FeeInUnits, OrderedMessageToL1};
 use crate::constants::{
     BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME, N_STEPS,
     POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
@@ -41,9 +41,7 @@ use crate::felt::{
     BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash, TransactionSignature,
     TransactionVersion,
 };
-use crate::rpc::transaction_receipt::{
-    CommonTransactionReceipt, MaybePendingProperties, TransactionOutput,
-};
+use crate::rpc::transaction_receipt::{CommonTransactionReceipt, MaybePendingProperties};
 use crate::serde_helpers::resource_bounds_mapping::deserialize_by_converting_keys_to_uppercase;
 
 pub mod broadcasted_declare_transaction_v1;
@@ -132,7 +130,7 @@ impl Transaction {
         block_number: Option<BlockNumber>,
         execution_result: &ExecutionResult,
         finality_status: TransactionFinalityStatus,
-        actual_fee: Fee,
+        actual_fee: FeeInUnits,
         execution_info: &TransactionExecutionInfo,
     ) -> CommonTransactionReceipt {
         let r#type = self.get_type();
@@ -144,10 +142,8 @@ impl Transaction {
         fn get_resource_from_execution_info(
             execution_info: &TransactionExecutionInfo,
             resource_name: &str,
-        ) -> Felt {
-            let resource =
-                execution_info.actual_resources.0.get(resource_name).cloned().unwrap_or_default();
-            Felt::from(resource as u128)
+        ) -> Option<usize> {
+            execution_info.actual_resources.0.get(resource_name).cloned()
         }
 
         let total_memory_holes = get_memory_holes_from_call_info(&execution_info.execute_call_info)
@@ -155,8 +151,8 @@ impl Transaction {
             + get_memory_holes_from_call_info(&execution_info.fee_transfer_call_info);
 
         let execution_resources = ExecutionResources {
-            steps: get_resource_from_execution_info(execution_info, N_STEPS),
-            memory_holes: Felt::from(total_memory_holes as u128),
+            steps: get_resource_from_execution_info(execution_info, N_STEPS).unwrap_or_default(),
+            memory_holes: if total_memory_holes == 0 { None } else { Some(total_memory_holes) },
             range_check_builtin_applications: get_resource_from_execution_info(
                 execution_info,
                 RANGE_CHECK_BUILTIN_NAME,
@@ -187,19 +183,15 @@ impl Transaction {
             ),
         };
 
-        let output = TransactionOutput {
-            actual_fee,
-            messages_sent: Vec::new(), // TODO wrong
-            events: transaction_events.to_vec(),
-        };
-
         let maybe_pending_properties =
             MaybePendingProperties { block_number, block_hash: block_hash.cloned() };
 
         CommonTransactionReceipt {
             r#type,
             transaction_hash: *self.get_transaction_hash(),
-            output,
+            actual_fee,
+            messages_sent: Vec::new(), // TODO wrong
+            events: transaction_events.to_vec(),
             execution_status: execution_result.clone(),
             finality_status,
             maybe_pending_properties,
