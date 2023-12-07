@@ -31,10 +31,17 @@ mod test_messaging {
 
     use crate::common::background_anvil::BackgroundAnvil;
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::constants::{CHAIN_ID, MESSAGING_WHITELISTED_L1_CONTRACT};
+    use crate::common::constants::CHAIN_ID;
     use crate::common::utils::{
         get_json_body, get_messaging_contract_in_sierra_and_compiled_class_hash, to_hex_felt,
     };
+
+    const DUMMY_L1_ADDRESS: &str = "0xc662c410c0ecf747543f5ba90660f6abebd9c8c4";
+
+    /// Differs from MESSAGING_WHITELISTED_L1_CONTRACT: that address is hardcoded in the cairo0 l1l2
+    /// contract relying on it This address is provided as an argument to the cairo1 l1l2
+    /// contract
+    const MESSAGING_L1_ADDRESS: &str = "0x5fbdb2315678afecb367f032d93f642f64180aa3";
 
     /// Withdraws the given amount from a user and send this amount in a l2->l1 message.
     async fn withdraw<A: ConnectedAccount + Send + Sync + 'static>(
@@ -146,8 +153,7 @@ mod test_messaging {
         assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [user_balance]);
 
         // We don't actually send a message to the L1 in this test.
-        let l1_address =
-            FieldElement::from_hex_be("0xc662c410C0ECf747543f5bA90660f6ABeBD9C8c4").unwrap();
+        let l1_address = FieldElement::from_hex_be(DUMMY_L1_ADDRESS).unwrap();
 
         // Withdraw the 1 amount in a l2->l1 message.
         withdraw(Arc::clone(&account), l1l2_contract_address, user, user_balance, l1_address).await;
@@ -167,7 +173,7 @@ mod test_messaging {
         let l1_contract_address = messages_to_l1[0].get("to_address").unwrap().as_str().unwrap();
         let l2_contract_address = messages_to_l1[0].get("from_address").unwrap().as_str().unwrap();
         assert_eq!(l2_contract_address, format!("0x{:64x}", account.address()));
-        assert_eq!(l1_contract_address, "0xc662c410c0ecf747543f5ba90660f6abebd9c8c4");
+        assert_eq!(l1_contract_address, DUMMY_L1_ADDRESS);
 
         let payload = messages_to_l1[0].get("payload").unwrap().as_array().unwrap();
         // MESSAGE_WITHDRAW opcode, equal to 0, first element of the payload.
@@ -193,7 +199,7 @@ mod test_messaging {
         let increment_amount = FieldElement::from_hex_be("0xff").unwrap();
         let req_body = Body::from(
             json!({
-                "l1_contract_address": MESSAGING_WHITELISTED_L1_CONTRACT,
+                "l1_contract_address": MESSAGING_L1_ADDRESS,
                 "l2_contract_address": format!("0x{:64x}", l1l2_contract_address),
                 "entry_point_selector": format!("0x{:64x}", get_selector_from_name("deposit").unwrap()),
                 "payload": [to_hex_felt(&user), to_hex_felt(&increment_amount)],
@@ -210,7 +216,7 @@ mod test_messaging {
         let body = get_json_body(resp).await;
         assert_eq!(
             body.get("transaction_hash").unwrap().as_str().unwrap(),
-            "0x68f8f79a164b77f50042767599eabedde33b7e474b249827526956796cc96dc"
+            "0x7723a4247725834f72abe4d52768db6a2c5a39dac747a7d207250e0a583a31a"
         );
 
         assert_eq!(
@@ -236,7 +242,7 @@ mod test_messaging {
         let body = get_json_body(resp).await;
         assert_eq!(
             body.get("messaging_contract_address").unwrap().as_str().unwrap(),
-            "0x5fbdb2315678afecb367f032d93f642f64180aa3"
+            MESSAGING_L1_ADDRESS
         );
     }
 
@@ -252,8 +258,7 @@ mod test_messaging {
         assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [user_balance]);
 
         // We don't need valid l1 address as we don't use L1 node.
-        let l1_address =
-            FieldElement::from_hex_be("0xc662c410c0ecf747543f5ba90660f6abebd9c8c4").unwrap();
+        let l1_address = FieldElement::from_hex_be(DUMMY_L1_ADDRESS).unwrap();
 
         // Withdraw the 1 amount in a l2->l1 message.
         withdraw(Arc::clone(&account), l1l2_contract_address, user, user_balance, l1_address).await;
@@ -262,7 +267,7 @@ mod test_messaging {
         let req_body = Body::from(
             json!({
                 "from_address": "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba",
-                "to_address": "0xc662c410c0ecf747543f5ba90660f6abebd9c8c4",
+                "to_address": DUMMY_L1_ADDRESS,
                 "payload": ["0x0","0x1","0x1"],
             })
             .to_string(),
@@ -300,20 +305,15 @@ mod test_messaging {
         let body = get_json_body(resp).await;
         assert_eq!(
             body.get("messaging_contract_address").unwrap().as_str().unwrap(),
-            "0x5fbdb2315678afecb367f032d93f642f64180aa3"
+            MESSAGING_L1_ADDRESS
         );
 
         // Deploy the L1L2 testing contract on L1 (on L2 it's already pre-deployed).
-        let l1_messaging_address =
-            H160::from_str("0x5fbdb2315678afecb367f032d93f642f64180aa3").unwrap();
-        let eth_l1l2_contract = anvil.deploy_l1l2_contract(l1_messaging_address).await.unwrap();
-        assert_eq!(
-            eth_l1l2_contract,
-            H160::from_str("0xe7f1725e7734ce288f8367e1bb143e90bb3f0512").unwrap()
-        );
+        let l1_messaging_address = H160::from_str(MESSAGING_L1_ADDRESS).unwrap();
+        let eth_l1l2_address = anvil.deploy_l1l2_contract(l1_messaging_address).await.unwrap();
+        let eth_l1l2_address_hex = format!("{eth_l1l2_address:#x}");
 
-        let eth_l1l2_contract_felt =
-            FieldElement::from_hex_be("0xe7f1725e7734ce288f8367e1bb143e90bb3f0512").unwrap();
+        let eth_l1l2_address_felt = FieldElement::from_hex_be(&eth_l1l2_address_hex).unwrap();
         let user_sn = FieldElement::ONE;
         let user_eth: U256 = 1.into();
 
@@ -328,7 +328,7 @@ mod test_messaging {
             sn_l1l2_contract,
             user_sn,
             user_balance,
-            eth_l1l2_contract_felt,
+            eth_l1l2_address_felt,
         )
         .await;
         assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [FieldElement::ZERO]);
@@ -339,7 +339,7 @@ mod test_messaging {
         assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
 
         // Check that the balance is 0 on L1 before consuming the message.
-        let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_contract, user_eth).await.unwrap();
+        let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
         assert_eq!(user_balance_eth, 0.into());
 
         let sn_l1l2_contract_u256 =
@@ -350,20 +350,20 @@ mod test_messaging {
 
         // Consume the message to increase the balance.
         anvil
-            .withdraw_l1l2(eth_l1l2_contract, account_address_u256, user_eth, 1.into())
+            .withdraw_l1l2(eth_l1l2_address, account_address_u256, user_eth, 1.into())
             .await
             .unwrap();
 
-        let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_contract, user_eth).await.unwrap();
+        let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
         assert_eq!(user_balance_eth, 1.into());
 
         // Send back the amount 1 to the user 1 on L2.
         anvil
-            .deposit_l1l2(eth_l1l2_contract, sn_l1l2_contract_u256, user_eth, 1.into())
+            .deposit_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, 1.into())
             .await
             .unwrap();
 
-        let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_contract, user_eth).await.unwrap();
+        let user_balance_eth = anvil.get_balance_l1l2(eth_l1l2_address, user_eth).await.unwrap();
 
         // Balances on both layers is 0 at this point.
         assert_eq!(user_balance_eth, 0.into());
