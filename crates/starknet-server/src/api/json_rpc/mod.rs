@@ -248,7 +248,7 @@ pub enum StarknetRequest {
     #[serde(rename = "starknet_simulateTransactions")]
     SimulateTransactions(SimulateTransactionsInput),
     #[serde(rename = "starknet_traceTransaction")]
-    TraceTransaction(TraceTransactionInput),
+    TraceTransaction(TransactionHashInput),
 }
 
 impl std::fmt::Display for StarknetRequest {
