@@ -383,7 +383,8 @@ impl JsonRpcHandler {
         let starknet = self.api.starknet.read().await;
         match starknet.get_transaction_trace_by_hash(transaction_hash) {
             Ok(result) => Ok(StarknetResponse::TraceTransaction(result)),
-            Err(Error::NoTransaction) => Err(ApiError::NoTraceAvailable),
+            Err(Error::NoTransaction) => Err(ApiError::TransactionNotFound),
+            Err(Error::UnsupportedTransactionType) => Err(ApiError::NoTraceAvailable),
             Err(err) => Err(err.into()),
         }
     }

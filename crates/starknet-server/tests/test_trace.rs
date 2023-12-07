@@ -10,8 +10,10 @@ mod trace_tests {
         Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
     use starknet_rs_core::chain_id;
-    use starknet_rs_core::types::FieldElement;
-    use starknet_rs_providers::Provider;
+    use starknet_rs_core::types::{FieldElement, StarknetError};
+    use starknet_rs_providers::{
+        MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
+    };
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::{
@@ -20,6 +22,24 @@ mod trace_tests {
 
     static DUMMY_ADDRESS: u128 = 1;
     static DUMMY_AMOUNT: u128 = 1;
+
+    #[tokio::test]
+    async fn get_trace_non_existing_transaction() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let err = devnet
+            .json_rpc_client
+            .trace_transaction(FieldElement::ZERO)
+            .await
+            .expect_err("Should fail");
+
+        match err {
+            ProviderError::StarknetError(StarknetErrorWithMessage {
+                code: MaybeUnknownErrorCode::Known(StarknetError::TransactionHashNotFound),
+                ..
+            }) => (),
+            _ => panic!("Should fail with error"),
+        }
+    }
 
     #[tokio::test]
     async fn get_invoke_trace() {
