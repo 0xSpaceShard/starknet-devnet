@@ -106,6 +106,7 @@ pub struct Block {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct BlockHeader {
     pub block_hash: BlockHash,
     pub parent_hash: BlockHash,
@@ -118,11 +119,11 @@ pub struct BlockHeader {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct ResourcePrice {
-    // for now this will be always None, this field is introduced in 0.5.0
-    // but current version of blockifier doesnt return this value
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub price_in_strk: Option<Felt>,
+    // for now this will be always 0, this field is introduced in 0.5.0
+    // but current version of blockifier/starknet_api doesnt return this value
+    pub price_in_fri: Felt,
     pub price_in_wei: Felt,
 }
 
