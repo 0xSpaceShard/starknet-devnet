@@ -18,6 +18,8 @@ add:
     new_entry: pattern/^$
   - path: components/schemas/MSG_TO_L1/properties/to_address
     new_entry: $ref/#/components/schemas/ETH_ADDRESS
+  - path: components/schemas/FEE_PAYMENT/properties/amount
+    new_entry: $ref/#/components/schemas/u64
 
 remove_from_array:
   - path: components/schemas/INVOKE_TXN/oneOf
@@ -33,6 +35,8 @@ remove_from_array:
   - path: components/schemas/TXN/oneOf
     index: 3
   - path: components/schemas/TXN/oneOf
+    index: 1
+  - path: components/schemas/TXN_RECEIPT/oneOf
     index: 1
 
 edit_manually:
