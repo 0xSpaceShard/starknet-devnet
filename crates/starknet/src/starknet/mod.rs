@@ -751,11 +751,6 @@ impl Starknet {
         })
     }
 
-    fn get_pending_state_diff(mut state: &StarknetState) -> DevnetResult<Option<ThinStateDiff>> {
-        let state_diff: ThinStateDiff = state.extract_state_diff_from_pending_state()?.into();
-        if state_diff == ThinStateDiff::default() { Ok(None) } else { Ok(Some(state_diff)) }
-    }
-
     pub fn get_transaction_trace_by_hash(
         &self,
         transaction_hash: TransactionHash,
@@ -766,7 +761,9 @@ impl Starknet {
         let mut state =
             self.get_state_at(&BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))?.clone();
 
-        let state_diff = Self::get_pending_state_diff(&state)?;
+        let state_diff: ThinStateDiff = state.extract_state_diff_from_pending_state()?.into();
+        let state_diff =
+            if state_diff == ThinStateDiff::default() { None } else { Some(state_diff) };
 
         let address_to_class_hash_map = &state.state.state.address_to_class_hash;
 
@@ -852,7 +849,9 @@ impl Starknet {
                 !skip_validate,
             )?;
 
-            let state_diff = Self::get_pending_state_diff(&state)?;
+            let state_diff: ThinStateDiff = state.extract_state_diff_from_pending_state()?.into();
+            let state_diff =
+                if state_diff == ThinStateDiff::default() { None } else { Some(state_diff) };
 
             let address_to_class_hash_map = &state.state.state.address_to_class_hash;
 
