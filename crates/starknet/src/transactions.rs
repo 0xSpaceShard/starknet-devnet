@@ -7,8 +7,12 @@ use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{Event, OrderedEvent};
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
-use starknet_types::rpc::transaction_receipt::{DeployTransactionReceipt, TransactionReceipt};
-use starknet_types::rpc::transactions::{Transaction, TransactionType};
+use starknet_types::rpc::transaction_receipt::{
+    DeployTransactionReceipt, FeeAmount, FeeInUnits, TransactionReceipt,
+};
+use starknet_types::rpc::transactions::{
+    DeclareTransaction, DeployAccountTransaction, InvokeTransaction, Transaction, TransactionType,
+};
 
 use crate::constants::UDC_CONTRACT_ADDRESS;
 use crate::error::{DevnetResult, Error};
@@ -154,13 +158,22 @@ impl StarknetTransaction {
     pub fn get_receipt(&self) -> DevnetResult<TransactionReceipt> {
         let transaction_events = self.get_events();
 
+        // decide what units to set for actual fee. V3 transactions are in STRK(FRI)
+        let fee_amount = FeeAmount { amount: self.execution_info.actual_fee };
+        let actual_fee_in_units = match self.inner {
+            Transaction::Declare(DeclareTransaction::Version3(_))
+            | Transaction::DeployAccount(DeployAccountTransaction::Version3(_))
+            | Transaction::Invoke(InvokeTransaction::Version3(_)) => FeeInUnits::STRK(fee_amount),
+            _ => FeeInUnits::WEI(fee_amount),
+        };
+
         let mut common_receipt = self.inner.create_common_receipt(
             &transaction_events,
             self.block_hash.as_ref(),
             self.block_number,
             &self.execution_result,
             self.finality_status,
-            self.execution_info.actual_fee,
+            actual_fee_in_units,
             &self.execution_info,
         );
 
