@@ -68,7 +68,7 @@ pub fn get_flattened_sierra_contract_and_casm_hash(
 pub fn get_messaging_contract_in_sierra_and_compiled_class_hash()
 -> (FlattenedSierraClass, FieldElement) {
     let sierra_path =
-        concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo1/messaging/cairo_1_l1l2.sierra.json");
+        concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo1/messaging/cairo_1_l1l2.sierra");
     get_flattened_sierra_contract_and_casm_hash(sierra_path)
 }
 
