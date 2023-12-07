@@ -17,7 +17,6 @@ pub enum TransactionReceipt {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
 pub struct DeployTransactionReceipt {
     #[serde(flatten)]
     pub common: CommonTransactionReceipt,
@@ -33,12 +32,13 @@ pub struct MaybePendingProperties {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-//#[serde(deny_unknown_fields)]
+#[serde(deny_unknown_fields)]
 pub struct CommonTransactionReceipt {
     pub r#type: TransactionType,
     pub transaction_hash: TransactionHash,
-    #[serde(flatten)]
-    pub output: TransactionOutput,
+    pub actual_fee: FeeInUnits,
+    pub messages_sent: Vec<MessageToL1>,
+    pub events: Vec<Event>,
     #[serde(flatten)]
     pub execution_status: ExecutionResult,
     pub finality_status: TransactionFinalityStatus,
@@ -50,15 +50,15 @@ pub struct CommonTransactionReceipt {
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct ExecutionResources {
-    pub steps: Felt,
-    pub memory_holes: Felt,
-    pub range_check_builtin_applications: Felt,
-    pub pedersen_builtin_applications: Felt,
-    pub poseidon_builtin_applications: Felt,
-    pub ec_op_builtin_applications: Felt,
-    pub ecdsa_builtin_applications: Felt,
-    pub bitwise_builtin_applications: Felt,
-    pub keccak_builtin_applications: Felt,
+    pub steps: usize,
+    pub memory_holes: Option<usize>,
+    pub range_check_builtin_applications: Option<usize>,
+    pub pedersen_builtin_applications: Option<usize>,
+    pub poseidon_builtin_applications: Option<usize>,
+    pub ec_op_builtin_applications: Option<usize>,
+    pub ecdsa_builtin_applications: Option<usize>,
+    pub bitwise_builtin_applications: Option<usize>,
+    pub keccak_builtin_applications: Option<usize>,
 }
 
 impl PartialEq for CommonTransactionReceipt {
@@ -75,7 +75,9 @@ impl PartialEq for CommonTransactionReceipt {
         self.transaction_hash == other.transaction_hash
             && self.r#type == other.r#type
             && self.maybe_pending_properties == other.maybe_pending_properties
-            && self.output == other.output
+            && self.events == other.events
+            && self.messages_sent == other.messages_sent
+            && self.actual_fee == other.actual_fee
             && self.execution_resources == other.execution_resources
             && identical_execution_result
     }
@@ -84,11 +86,17 @@ impl PartialEq for CommonTransactionReceipt {
 impl Eq for CommonTransactionReceipt {}
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct TransactionOutput {
-    pub actual_fee: Fee,
-    pub messages_sent: Vec<MessageToL1>,
-    pub events: Vec<Event>,
+pub struct FeeAmount {
+    pub amount: Fee,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "unit")]
+pub enum FeeInUnits {
+    #[serde(rename = "WEI")]
+    WEI(FeeAmount),
+    #[serde(rename = "FRI")]
+    STRK(FeeAmount),
 }
 
 pub type L2ToL1Payload = Vec<Felt>;
