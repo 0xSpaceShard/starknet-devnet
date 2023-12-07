@@ -172,15 +172,16 @@ mod tests {
     use starknet_types::starknet_api::block::BlockNumber;
 
     use super::{BlockIdInput, EstimateFeeInput, GetStorageInput};
+    use crate::api::json_rpc::requests_tests::assert_contains;
 
     #[test]
     fn errored_deserialization_of_estimate_fee_with_broadcasted_declare_transaction() {
         // Errored json struct that passed DECLARE V2, but contract class is of type V1
         let json_str = r#"{
-            "request": [
+            "request": [{
                 "type": "DECLARE",
                 "max_fee": "0xA",
-                "version": "0x1",
+                "version": "0x2",
                 "signature": ["0xFF", "0xAA"],
                 "nonce": "0x0",
                 "sender_address": "0x0001",
@@ -212,13 +213,16 @@ mod tests {
                     "program": "",
                     "entry_points_by_type": {}
                 }
-            ],
+            }],
             "block_id": {
                 "block_number": 1
             }
         }"#;
 
-        assert!(serde_json::from_str::<EstimateFeeInput>(json_str).is_err());
+        match serde_json::from_str::<EstimateFeeInput>(json_str) {
+            Err(err) => assert_contains(&err.to_string(), "Invalid declare transaction v2"),
+            other => panic!("Invalid result: {other:?}"),
+        }
     }
 
     #[test]
@@ -267,7 +271,7 @@ mod tests {
                 {
                     "type": "DECLARE",
                     "max_fee": "0xA",
-                    "version": "0x1",
+                    "version": "0x2",
                     "signature": ["0xFF", "0xAA"],
                     "nonce": "0x0",
                     "sender_address": "0x0001",
@@ -526,6 +530,36 @@ mod tests {
             10,
             r#"{"block_id": {"block_number": "0x01"}}"#,
         );
+    }
+
+    #[test]
+    fn assert_error_message_for_failed_block_id_deserialization() {
+        for (json_str, expected_msg) in [
+            (
+                r#"{"block_id": {"block_number": 10, "block_hash": "0x1"}}"#,
+                "expected map with a single key",
+            ),
+            (
+                r#"{"block_id": {"block_number": "123"}}"#,
+                "Invalid block ID: invalid type: string \"123\", expected u64",
+            ),
+            (r#"{"block_id": {"block_number": -123}}"#, "Invalid block ID: invalid number"),
+            (
+                r#"{"block_id": {"invalid_key": ""}}"#,
+                "Invalid block ID: unknown variant `invalid_key`, expected `block_hash` or \
+                 `block_number`",
+            ),
+            (
+                r#"{"block_id": {"block_hash": 123}}"#,
+                "Invalid block ID: invalid type: number, expected a string",
+            ),
+            (r#"{"block_id": {"block_hash": ""}}"#, "Invalid block ID: Missing prefix 0x"),
+        ] {
+            match serde_json::from_str::<BlockIdInput>(json_str) {
+                Err(err) => assert_contains(&err.to_string(), expected_msg),
+                other => panic!("Invalid result: {other:?}"),
+            }
+        }
     }
 
     fn assert_block_id_tag_correctness(
