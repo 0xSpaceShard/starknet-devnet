@@ -32,7 +32,7 @@ use self::models::{
     BlockHashAndNumberOutput, BlockIdInput, BroadcastedDeclareTransactionInput,
     BroadcastedDeployAccountTransactionInput, BroadcastedInvokeTransactionInput,
     DeclareTransactionOutput, DeployAccountTransactionOutput, InvokeTransactionOutput,
-    SyncingOutput, TraceTransactionInput, TransactionStatusOutput,
+    SyncingOutput, TransactionStatusOutput,
 };
 use super::Api;
 use crate::api::json_rpc::models::{
@@ -185,7 +185,7 @@ impl JsonRpcHandler {
                 .simulate_transactions(block_id, transactions, simulation_flags)
                 .await
                 .to_rpc_result(),
-            StarknetRequest::TraceTransaction(TraceTransactionInput { transaction_hash }) => {
+            StarknetRequest::TraceTransaction(TransactionHashInput { transaction_hash }) => {
                 self.get_trace_transaction(transaction_hash).await.to_rpc_result()
             }
         }
