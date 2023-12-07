@@ -11,7 +11,7 @@ blockifier = { workspace = true, features = ["testing"]}
 cairo-felt = { workspace = true }
 cairo-lang-starknet = { workspace = true }
 clap = { workspace = true }
-ethers = { version = "2.0.11" }
+ethers = { workspace = true }
 starknet_api = { workspace = true, features = ["testing"] }
 thiserror = { workspace = true }
 serde = { workspace = true }
