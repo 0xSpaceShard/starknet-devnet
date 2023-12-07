@@ -112,7 +112,7 @@ pub struct OrderedMessageToL1 {
 
 impl OrderedMessageToL1 {
     pub fn new(
-        msg: blockifier::execution::call_info::OrderedL2ToL1Message,
+        msg: &blockifier::execution::call_info::OrderedL2ToL1Message,
         from_address: ContractAddress,
     ) -> Self {
         Self {
@@ -120,7 +120,7 @@ impl OrderedMessageToL1 {
             message: MessageToL1 {
                 from_address,
                 to_address: msg.message.to_address,
-                payload: msg.message.payload.0.into_iter().map(Felt::from).collect(),
+                payload: msg.message.payload.0.clone().into_iter().map(Felt::from).collect(),
             },
         }
     }

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use blockifier::execution::call_info::{CallInfo, MessageToL1, OrderedL2ToL1Message};
+use blockifier::execution::call_info::CallInfo;
 use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
@@ -481,18 +481,7 @@ impl FunctionInvocation {
             .execution
             .l2_to_l1_messages
             .iter()
-            .map(|msg| {
-                OrderedMessageToL1::new(
-                    OrderedL2ToL1Message {
-                        message: MessageToL1 {
-                            to_address: msg.message.to_address,
-                            payload: msg.message.payload.clone(),
-                        },
-                        order: msg.order,
-                    },
-                    call_info.call.caller_address.into(),
-                )
-            })
+            .map(|msg| OrderedMessageToL1::new(msg, call_info.call.caller_address.into()))
             .collect();
         messages.sort_by_key(|msg| msg.order);
 
