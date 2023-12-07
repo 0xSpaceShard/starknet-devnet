@@ -25,7 +25,7 @@ jobs:
       cargo_cache_key:
         type: string
     docker:
-      - image: cimg/rust:1.69.0
+      - image: cimg/rust:1.70.0
     resource_class: xlarge
     steps:
       - checkout
