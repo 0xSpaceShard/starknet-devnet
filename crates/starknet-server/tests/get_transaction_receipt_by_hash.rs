@@ -27,6 +27,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
     };
 
     #[tokio::test]
+    #[ignore = "Starknet-rs doesnt support receipt with actual_fee as object"]
     async fn deploy_account_transaction_receipt() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -65,6 +66,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Starknet-rs doesnt support receipt with actual_fee as object"]
     async fn deploy_transaction_receipt() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -124,6 +126,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Starknet-rs doesnt support receipt with actual_fee as object"]
     async fn invalid_deploy_transaction_receipt() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
