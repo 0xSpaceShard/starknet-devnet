@@ -51,6 +51,8 @@ pub enum ApiError {
     InsufficientAccountBalance,
     #[error("Account validation failed")]
     ValidationFailure,
+    #[error("No trace available for transaction")]
+    NoTraceAvailable,
 }
 
 impl ApiError {
@@ -172,6 +174,11 @@ impl ApiError {
             ApiError::StarknetDevnetError(error) => RpcError {
                 code: server::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
                 message: anyhow::format_err!(error).root_cause().to_string().into(),
+                data: None,
+            },
+            ApiError::NoTraceAvailable => RpcError {
+                code: server::rpc_core::error::ErrorCode::ServerError(10),
+                message: error_message.into(),
                 data: None,
             },
         }
