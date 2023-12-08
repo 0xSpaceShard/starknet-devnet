@@ -12,7 +12,7 @@ use declare_transaction_v2::DeclareTransactionV2;
 use deploy_account_transaction::DeployAccountTransaction;
 use deploy_transaction::DeployTransaction;
 use invoke_transaction_v1::InvokeTransactionV1;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_api::block::BlockNumber;
 use starknet_api::deprecated_contract_class::EntryPointType;
 use starknet_api::transaction::Fee;
@@ -244,6 +244,25 @@ impl InvokeTransaction {
     }
 }
 
+pub fn deserialize_paid_fee_on_l1<'de, D>(deserializer: D) -> Result<u128, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let buf = String::deserialize(deserializer)?;
+    let err_msg = format!("paid_fee_on_l1: expected 0x-prefixed hex string, got: {buf}");
+    if !buf.starts_with("0x") {
+        return Err(serde::de::Error::custom(err_msg));
+    }
+    u128::from_str_radix(&buf[2..], 16).map_err(|_| serde::de::Error::custom(err_msg))
+}
+
+fn serialize_paid_fee_on_l1<S>(paid_fee_on_l1: &u128, s: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    s.serialize_str(&format!("{paid_fee_on_l1:#x}"))
+}
+
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub struct L1HandlerTransaction {
     pub transaction_hash: TransactionHash,
@@ -252,6 +271,10 @@ pub struct L1HandlerTransaction {
     pub contract_address: ContractAddress,
     pub entry_point_selector: EntryPointSelector,
     pub calldata: Calldata,
+    #[serde(
+        serialize_with = "serialize_paid_fee_on_l1",
+        deserialize_with = "deserialize_paid_fee_on_l1"
+    )]
     pub paid_fee_on_l1: u128,
 }
 

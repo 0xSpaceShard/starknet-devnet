@@ -48,12 +48,12 @@ pub enum Error {
     UnexpectedInternalError { msg: String },
     #[error("Failed to load ContractClass")]
     ContractClassLoadError,
-    #[error("Deserialization error of {obj_name}")]
-    DeserializationError { obj_name: String },
-    #[error("Serialization error of {obj_name}")]
-    SerializationError { obj_name: String },
-    #[error("Serialization not supported")]
-    SerializationNotSupported,
+    #[error("Deserialization error: {origin}")]
+    DeserializationError { origin: String },
+    #[error("Serialization error: {origin}")]
+    SerializationError { origin: String },
+    #[error("Serialization not supported: {obj_name}")]
+    SerializationNotSupported { obj_name: String },
     #[error("{tx_type}: max_fee cannot be zero")]
     MaxFeeZeroError { tx_type: String },
     #[error(transparent)]

@@ -31,9 +31,10 @@ mod test_messaging {
 
     use crate::common::background_anvil::BackgroundAnvil;
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::constants::CHAIN_ID;
+    use crate::common::constants::{CHAIN_ID, MESSAGING_WHITELISTED_L1_CONTRACT};
     use crate::common::utils::{
-        get_json_body, get_messaging_contract_in_sierra_and_compiled_class_hash, to_hex_felt,
+        get_json_body, get_messaging_contract_in_sierra_and_compiled_class_hash,
+        send_ctrl_c_signal, to_hex_felt, UniqueAutoDeletableFile,
     };
 
     const DUMMY_L1_ADDRESS: &str = "0xc662c410c0ecf747543f5ba90660f6abebd9c8c4";
@@ -376,5 +377,60 @@ mod test_messaging {
 
         // Ensure the balance is back to 1 on L2.
         assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [FieldElement::ONE]);
+    }
+
+    #[tokio::test]
+    async fn assert_l1_handler_tx_can_be_dumped_and_loaded() {
+        let dump_file = UniqueAutoDeletableFile::new("dump-with-l1-handler");
+        let (dumping_devnet, account, l1l2_contract_address) = setup_devnet(&[
+            "--account-class",
+            "cairo1",
+            "--dump-on",
+            "exit",
+            "--dump-path",
+            &dump_file.path,
+        ])
+        .await;
+
+        // Set balance for user
+        let user = FieldElement::ONE;
+        let user_balance = FieldElement::ONE;
+        increase_balance(Arc::clone(&account), l1l2_contract_address, user, user_balance).await;
+        assert_eq!(get_balance(&dumping_devnet, l1l2_contract_address, user).await, [user_balance]);
+
+        // Use postman to send a message to l2 without l1 - the message increments user balance
+        let increment_amount = FieldElement::from_hex_be("0xff").unwrap();
+        let req_body = Body::from(json!({
+            "l1_contract_address": MESSAGING_WHITELISTED_L1_CONTRACT,
+            "l2_contract_address": format!("0x{:64x}", l1l2_contract_address),
+            "entry_point_selector": format!("0x{:64x}", get_selector_from_name("deposit").unwrap()),
+            "payload": [to_hex_felt(&user), to_hex_felt(&increment_amount)],
+            "paid_fee_on_l1": "0x1234",
+            "nonce": "0x1"
+        }).to_string());
+
+        dumping_devnet.post_json("/postman/send_message_to_l2".into(), req_body).await.unwrap();
+
+        assert_eq!(
+            get_balance(&dumping_devnet, l1l2_contract_address, user).await,
+            [user_balance + increment_amount]
+        );
+
+        send_ctrl_c_signal(&dumping_devnet.process).await;
+        std::thread::sleep(std::time::Duration::from_secs(1));
+
+        let loading_devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-path",
+            &dump_file.path,
+            "--account-class",
+            "cairo1",
+        ])
+        .await
+        .unwrap();
+
+        assert_eq!(
+            get_balance(&loading_devnet, l1l2_contract_address, user).await,
+            [user_balance + increment_amount]
+        );
     }
 }

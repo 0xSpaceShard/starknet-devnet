@@ -220,10 +220,10 @@ mod dump_and_load_tests {
     #[tokio::test]
     async fn dump_without_transaction() {
         // dump on exit
-        let dump_file_name = "dump_without_transaction";
+        let dump_file = UniqueAutoDeletableFile::new("dump_without_transaction");
         let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
             "--dump-path",
-            dump_file_name,
+            &dump_file.path,
             "--dump-on",
             "exit",
         ])
@@ -234,10 +234,10 @@ mod dump_and_load_tests {
         std::thread::sleep(std::time::Duration::from_secs(1));
 
         // file should not be created if there are no transactions
-        if Path::new(dump_file_name).exists() {
+        if Path::new(&dump_file.path).exists() {
             panic!(
                 "Could find the dump file but there were no transactions to dump {}",
-                dump_file_name
+                &dump_file.path
             );
         }
     }

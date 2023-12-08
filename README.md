@@ -224,15 +224,16 @@ Currently, dumping produces a list of received transactions that is stored on di
 Conversely, loading is implemented as the re-execution of transactions from a dump.
 This means that timestamps of `StarknetBlock` will be different.
 
+### Loading disclaimer
+
+Dumping and loading is not guaranteed to work cross-version. I.e. if you dumped one version of Devnet, do not expect it to be loadable with a different version.
+If you dumped a Devnet utilizing one class for account predeployment (e.g. the default `--account-class cairo0`), you should use the same option when loading.
+
 ### Restarting
 
 Devnet can be restarted by making a `POST /restart` request (no body required). All of the deployed contracts (including predeployed), blocks and storage updates will be restarted to the original state, without the transactions and requests from a dump file you may have provided on startup.
 
 If you're using [**the Hardhat plugin**](https://github.com/0xSpaceShard/starknet-hardhat-plugin#restart), restart with `starknet.devnet.restart()`.
-
-### Cross-version disclaimer
-
-Dumping and loading is not guaranteed to work cross-version. I.e. if you dumped one version of Devnet, do not expect it to be loadable with a different version.
 
 ## Blocks
 
