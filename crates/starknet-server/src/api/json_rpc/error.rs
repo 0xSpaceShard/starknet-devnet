@@ -25,7 +25,7 @@ pub enum ApiError {
     InvalidTransactionIndexInBlock,
     #[error("Class hash not found")]
     ClassHashNotFound,
-    #[error("Contract error")]
+    #[error("Contract error: {error}")]
     ContractError { error: starknet_core::error::Error },
     #[error("There are no blocks")]
     NoBlocks,
@@ -270,7 +270,7 @@ mod tests {
         error_expected_code_and_message(
             ApiError::ContractError { error: test_error() },
             40,
-            "Contract error",
+            "Contract error: Account validation failed.",
         );
 
         // check contract error data property

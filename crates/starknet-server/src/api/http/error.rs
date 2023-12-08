@@ -26,6 +26,10 @@ pub enum HttpApiError {
     BlockIncreaseTimeError { msg: String },
     #[error("Could not restart: {msg}")]
     RestartError { msg: String },
+    #[error("Messaging error: {msg}")]
+    MessagingError { msg: String },
+    #[error("Invalid value: {msg}")]
+    InvalidValueError { msg: String },
 }
 
 impl IntoResponse for HttpApiError {
@@ -48,6 +52,12 @@ impl IntoResponse for HttpApiError {
             err @ HttpApiError::MintingError { .. } => (StatusCode::BAD_REQUEST, err.to_string()),
             err @ HttpApiError::RestartError { .. } => {
                 (StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
+            }
+            err @ HttpApiError::MessagingError { msg: _ } => {
+                (StatusCode::BAD_REQUEST, err.to_string())
+            }
+            err @ HttpApiError::InvalidValueError { msg: _ } => {
+                (StatusCode::BAD_REQUEST, err.to_string())
             }
         };
 

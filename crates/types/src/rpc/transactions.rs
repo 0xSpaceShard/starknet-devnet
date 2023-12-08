@@ -19,8 +19,9 @@ use starknet_api::transaction::Fee;
 use starknet_rs_core::types::{BlockId, ExecutionResult, TransactionFinalityStatus};
 
 use super::estimate_message_fee::FeeEstimateWrapper;
+use super::messaging::{MessageToL1, OrderedMessageToL1};
 use super::state::ThinStateDiff;
-use super::transaction_receipt::{ExecutionResources, OrderedMessageToL1};
+use super::transaction_receipt::ExecutionResources;
 use crate::constants::{
     BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME, N_STEPS,
     POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
@@ -46,6 +47,8 @@ pub mod declare_transaction_v2;
 pub mod deploy_account_transaction;
 pub mod deploy_transaction;
 pub mod invoke_transaction_v1;
+
+pub mod l1_handler_transaction;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
@@ -109,6 +112,7 @@ impl Transaction {
     pub fn create_common_receipt(
         &self,
         transaction_events: &[Event],
+        transaction_messages_sent: &[MessageToL1],
         block_hash: Option<&BlockHash>,
         block_number: Option<BlockNumber>,
         execution_result: &ExecutionResult,
@@ -170,7 +174,7 @@ impl Transaction {
 
         let output = TransactionOutput {
             actual_fee,
-            messages_sent: Vec::new(), // TODO wrong
+            messages_sent: transaction_messages_sent.to_vec(),
             events: transaction_events.to_vec(),
         };
 
@@ -248,6 +252,7 @@ pub struct L1HandlerTransaction {
     pub contract_address: ContractAddress,
     pub entry_point_selector: EntryPointSelector,
     pub calldata: Calldata,
+    pub paid_fee_on_l1: u128,
 }
 
 impl L1HandlerTransaction {

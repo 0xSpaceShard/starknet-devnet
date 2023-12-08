@@ -160,7 +160,7 @@ impl From<&StarknetBlock> for TypesBlockHeader {
             starknet_version: env!("STARKNET_VERSION").to_string(),
             l1_gas_price: ResourcePrice {
                 price_in_strk: None,
-                price_in_wei: value.header.gas_price.0.into(),
+                price_in_wei: value.header.eth_l1_gas_price.0.into(),
             },
         }
     }
