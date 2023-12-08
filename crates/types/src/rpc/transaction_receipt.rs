@@ -4,6 +4,10 @@ use starknet_api::core::EthAddress;
 use starknet_api::transaction::Fee;
 use starknet_rs_core::types::{ExecutionResult, TransactionFinalityStatus};
 
+use crate::constants::{
+    BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME, N_STEPS,
+    POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
+};
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
 use crate::felt::{BlockHash, Felt, TransactionHash};
@@ -59,6 +63,112 @@ pub struct ExecutionResources {
     pub ecdsa_builtin_applications: Option<usize>,
     pub bitwise_builtin_applications: Option<usize>,
     pub keccak_builtin_applications: Option<usize>,
+}
+
+impl From<&blockifier::execution::call_info::CallInfo> for ExecutionResources {
+    fn from(call_info: &blockifier::execution::call_info::CallInfo) -> Self {
+        ExecutionResources {
+            steps: call_info.vm_resources.n_steps,
+            memory_holes: if call_info.vm_resources.n_memory_holes == 0 {
+                None
+            } else {
+                Some(call_info.vm_resources.n_memory_holes)
+            },
+            range_check_builtin_applications: Self::get_resource_from_call_info(
+                call_info,
+                RANGE_CHECK_BUILTIN_NAME,
+            ),
+            pedersen_builtin_applications: Self::get_resource_from_call_info(
+                call_info,
+                HASH_BUILTIN_NAME,
+            ),
+            poseidon_builtin_applications: Self::get_resource_from_call_info(
+                call_info,
+                POSEIDON_BUILTIN_NAME,
+            ),
+            ec_op_builtin_applications: Self::get_resource_from_call_info(
+                call_info,
+                EC_OP_BUILTIN_NAME,
+            ),
+            ecdsa_builtin_applications: Self::get_resource_from_call_info(
+                call_info,
+                SIGNATURE_BUILTIN_NAME,
+            ),
+            bitwise_builtin_applications: Self::get_resource_from_call_info(
+                call_info,
+                BITWISE_BUILTIN_NAME,
+            ),
+            keccak_builtin_applications: Self::get_resource_from_call_info(
+                call_info,
+                KECCAK_BUILTIN_NAME,
+            ),
+        }
+    }
+}
+
+impl From<&blockifier::transaction::objects::TransactionExecutionInfo> for ExecutionResources {
+    fn from(execution_info: &blockifier::transaction::objects::TransactionExecutionInfo) -> Self {
+        let total_memory_holes =
+            Self::get_memory_holes_from_call_info(&execution_info.execute_call_info)
+                + Self::get_memory_holes_from_call_info(&execution_info.validate_call_info)
+                + Self::get_memory_holes_from_call_info(&execution_info.fee_transfer_call_info);
+
+        Self {
+            steps: Self::get_resource_from_execution_info(execution_info, N_STEPS)
+                .unwrap_or_default(),
+            memory_holes: if total_memory_holes == 0 { None } else { Some(total_memory_holes) },
+            range_check_builtin_applications: Self::get_resource_from_execution_info(
+                execution_info,
+                RANGE_CHECK_BUILTIN_NAME,
+            ),
+            pedersen_builtin_applications: Self::get_resource_from_execution_info(
+                execution_info,
+                HASH_BUILTIN_NAME,
+            ),
+            poseidon_builtin_applications: Self::get_resource_from_execution_info(
+                execution_info,
+                POSEIDON_BUILTIN_NAME,
+            ),
+            ec_op_builtin_applications: Self::get_resource_from_execution_info(
+                execution_info,
+                EC_OP_BUILTIN_NAME,
+            ),
+            ecdsa_builtin_applications: Self::get_resource_from_execution_info(
+                execution_info,
+                SIGNATURE_BUILTIN_NAME,
+            ),
+            bitwise_builtin_applications: Self::get_resource_from_execution_info(
+                execution_info,
+                BITWISE_BUILTIN_NAME,
+            ),
+            keccak_builtin_applications: Self::get_resource_from_execution_info(
+                execution_info,
+                KECCAK_BUILTIN_NAME,
+            ),
+        }
+    }
+}
+
+impl ExecutionResources {
+    fn get_memory_holes_from_call_info(
+        call_info: &Option<blockifier::execution::call_info::CallInfo>,
+    ) -> usize {
+        if let Some(call) = call_info { call.vm_resources.n_memory_holes } else { 0 }
+    }
+
+    fn get_resource_from_execution_info(
+        execution_info: &blockifier::transaction::objects::TransactionExecutionInfo,
+        resource_name: &str,
+    ) -> Option<usize> {
+        execution_info.actual_resources.0.get(resource_name).cloned()
+    }
+
+    fn get_resource_from_call_info(
+        call_info: &blockifier::execution::call_info::CallInfo,
+        resource_name: &str,
+    ) -> Option<usize> {
+        call_info.vm_resources.builtin_instance_counter.get(resource_name).cloned()
+    }
 }
 
 impl PartialEq for CommonTransactionReceipt {

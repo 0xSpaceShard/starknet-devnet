@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use blockifier::execution::call_info::CallInfo;
 use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
@@ -30,10 +29,6 @@ use self::invoke_transaction_v3::InvokeTransactionV3;
 use super::estimate_message_fee::FeeEstimateWrapper;
 use super::state::ThinStateDiff;
 use super::transaction_receipt::{ExecutionResources, FeeInUnits, OrderedMessageToL1};
-use crate::constants::{
-    BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME, N_STEPS,
-    POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
-};
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::{Event, OrderedEvent};
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
@@ -134,55 +129,7 @@ impl Transaction {
         execution_info: &TransactionExecutionInfo,
     ) -> CommonTransactionReceipt {
         let r#type = self.get_type();
-
-        fn get_memory_holes_from_call_info(call_info: &Option<CallInfo>) -> usize {
-            if let Some(call) = call_info { call.vm_resources.n_memory_holes } else { 0 }
-        }
-
-        fn get_resource_from_execution_info(
-            execution_info: &TransactionExecutionInfo,
-            resource_name: &str,
-        ) -> Option<usize> {
-            execution_info.actual_resources.0.get(resource_name).cloned()
-        }
-
-        let total_memory_holes = get_memory_holes_from_call_info(&execution_info.execute_call_info)
-            + get_memory_holes_from_call_info(&execution_info.validate_call_info)
-            + get_memory_holes_from_call_info(&execution_info.fee_transfer_call_info);
-
-        let execution_resources = ExecutionResources {
-            steps: get_resource_from_execution_info(execution_info, N_STEPS).unwrap_or_default(),
-            memory_holes: if total_memory_holes == 0 { None } else { Some(total_memory_holes) },
-            range_check_builtin_applications: get_resource_from_execution_info(
-                execution_info,
-                RANGE_CHECK_BUILTIN_NAME,
-            ),
-            pedersen_builtin_applications: get_resource_from_execution_info(
-                execution_info,
-                HASH_BUILTIN_NAME,
-            ),
-            poseidon_builtin_applications: get_resource_from_execution_info(
-                execution_info,
-                POSEIDON_BUILTIN_NAME,
-            ),
-            ec_op_builtin_applications: get_resource_from_execution_info(
-                execution_info,
-                EC_OP_BUILTIN_NAME,
-            ),
-            ecdsa_builtin_applications: get_resource_from_execution_info(
-                execution_info,
-                SIGNATURE_BUILTIN_NAME,
-            ),
-            bitwise_builtin_applications: get_resource_from_execution_info(
-                execution_info,
-                BITWISE_BUILTIN_NAME,
-            ),
-            keccak_builtin_applications: get_resource_from_execution_info(
-                execution_info,
-                KECCAK_BUILTIN_NAME,
-            ),
-        };
-
+        let execution_resources = ExecutionResources::from(execution_info);
         let maybe_pending_properties =
             MaybePendingProperties { block_number, block_hash: block_hash.cloned() };
 
@@ -632,9 +579,11 @@ pub enum CallType {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct FunctionInvocation {
-    #[serde(flatten)]
-    function_call: FunctionCall,
+    contract_address: ContractAddress,
+    entry_point_selector: EntryPointSelector,
+    calldata: Calldata,
     caller_address: ContractAddress,
     class_hash: Felt,
     entry_point_type: EntryPointType,
@@ -643,6 +592,7 @@ pub struct FunctionInvocation {
     calls: Vec<FunctionInvocation>,
     events: Vec<OrderedEvent>,
     messages: Vec<OrderedMessageToL1>,
+    execution_resources: ExecutionResources,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -707,16 +657,13 @@ impl FunctionInvocation {
         address_to_class_hash: &HashMap<ContractAddress, Felt>,
     ) -> DevnetResult<Self> {
         let mut internal_calls: Vec<FunctionInvocation> = vec![];
+        let execution_resources = ExecutionResources::from(&call_info);
         for internal_call in call_info.inner_calls {
             internal_calls.push(FunctionInvocation::try_from_call_info(
                 internal_call,
                 address_to_class_hash,
             )?);
         }
-
-        // the logic for getting the sorted l2-l1 messages
-        // is creating an array with enough room for all objects + 1
-        // then based on the order we use this index
 
         call_info.execution.l2_to_l1_messages.sort_by_key(|msg| msg.order);
 
@@ -735,12 +682,7 @@ impl FunctionInvocation {
             .into_iter()
             .map(|event| OrderedEvent::from(&event))
             .collect();
-
-        let function_call = FunctionCall {
-            contract_address: call_info.call.storage_address.into(),
-            entry_point_selector: call_info.call.entry_point_selector.0.into(),
-            calldata: call_info.call.calldata.0.iter().map(|f| Felt::from(*f)).collect(),
-        };
+        let contract_address = call_info.call.storage_address.into();
 
         // call_info.call.class_hash could be None, so we deduce it from
         // call_info.call.storage_address which is function_call.contract_address
@@ -748,7 +690,7 @@ impl FunctionInvocation {
             class_hash.into()
         } else {
             address_to_class_hash
-                .get(&function_call.contract_address)
+                .get(&contract_address)
                 .ok_or(ConversionError::InvalidInternalStructure(
                     "class_hash is unexpectedly undefined".into(),
                 ))
@@ -756,7 +698,9 @@ impl FunctionInvocation {
         };
 
         Ok(FunctionInvocation {
-            function_call,
+            contract_address,
+            entry_point_selector: call_info.call.entry_point_selector.0.into(),
+            calldata: call_info.call.calldata.0.iter().map(|f| Felt::from(*f)).collect(),
             caller_address: call_info.call.caller_address.into(),
             class_hash,
             entry_point_type: call_info.call.entry_point_type,
@@ -768,6 +712,7 @@ impl FunctionInvocation {
             calls: internal_calls,
             events,
             messages,
+            execution_resources,
         })
     }
 }
