@@ -21,7 +21,10 @@ mod test_messaging {
         Account, Call, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, FunctionCall};
+    use starknet_rs_core::types::{
+        BlockId, BlockTag, FieldElement, FunctionCall, MaybePendingTransactionReceipt,
+        TransactionExecutionStatus, TransactionReceipt,
+    };
     use starknet_rs_core::utils::{
         get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
     };
@@ -186,7 +189,7 @@ mod test_messaging {
     }
 
     #[tokio::test]
-    async fn can_receive_mock_message_to_l2() {
+    async fn mock_message_to_l2_creates_a_tx_with_desired_effect() {
         let (devnet, account, l1l2_contract_address) =
             setup_devnet(&["--account-class", "cairo1"]).await;
         let user = FieldElement::ONE;
@@ -215,15 +218,36 @@ mod test_messaging {
             .expect("send message to l2 failed");
         assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
         let body = get_json_body(resp).await;
-        assert_eq!(
-            body.get("transaction_hash").unwrap().as_str().unwrap(),
-            "0x7723a4247725834f72abe4d52768db6a2c5a39dac747a7d207250e0a583a31a"
-        );
+        let tx_hash = body.get("transaction_hash").unwrap().as_str().unwrap();
+        assert_eq!(tx_hash, "0x7723a4247725834f72abe4d52768db6a2c5a39dac747a7d207250e0a583a31a");
 
+        // assert state changed
         assert_eq!(
             get_balance(&devnet, l1l2_contract_address, user).await,
             [user_balance + increment_amount]
         );
+
+        // assert tx and receipt retrievable and correct
+        let tx_hash_felt = FieldElement::from_hex_be(tx_hash).unwrap();
+        let expected_calldata =
+            vec![FieldElement::from_hex_be(MESSAGING_L1_ADDRESS).unwrap(), user, increment_amount];
+        match devnet.json_rpc_client.get_transaction_by_hash(tx_hash_felt).await {
+            Ok(starknet_rs_core::types::Transaction::L1Handler(tx)) => {
+                assert_eq!(tx.transaction_hash, tx_hash_felt);
+                assert_eq!(tx.calldata, expected_calldata);
+            }
+            other => panic!("Error in fetching tx: {other:?}"),
+        }
+        match devnet.json_rpc_client.get_transaction_receipt(tx_hash_felt).await {
+            Ok(MaybePendingTransactionReceipt::Receipt(TransactionReceipt::L1Handler(receipt))) => {
+                assert_eq!(receipt.transaction_hash, tx_hash_felt);
+                assert_eq!(
+                    receipt.execution_result.status(),
+                    TransactionExecutionStatus::Succeeded
+                );
+            }
+            other => panic!("Error in fetching receipt: {other:?}"),
+        }
     }
 
     #[tokio::test]
