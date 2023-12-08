@@ -31,7 +31,7 @@ mod advancing_time_tests {
     }
 
     pub fn assert_gt_with_buffer(val1: Option<u64>, val2: Option<u64>) {
-        assert!(val1 > val2, "Failed inequation: {val1:?} >= {val2:?}");
+        assert!(val1 > val2, "Failed inequation: {val1:?} > {val2:?}");
         let upper_limit = Some(val2.unwrap() + BUFFER_TIME_SECONDS);
         assert!(val1 <= upper_limit, "Failed inequation: {val1:?} < {upper_limit:?}");
     }
