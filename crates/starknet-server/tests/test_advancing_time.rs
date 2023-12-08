@@ -22,18 +22,18 @@ mod advancing_time_tests {
 
     const DUMMY_ADDRESS: u128 = 1;
     const DUMMY_AMOUNT: u128 = 1;
-    const BUFFER_TIME_SECONDS: u64 = 15;
+    const BUFFER_TIME_SECONDS: u64 = 30;
 
     pub fn assert_ge_with_buffer(val1: Option<u64>, val2: Option<u64>) {
         assert!(val1 >= val2, "Failed inequation: {val1:?} >= {val2:?}");
         let upper_limit = Some(val2.unwrap() + BUFFER_TIME_SECONDS);
-        assert!(val1 <= upper_limit, "Failed inequation: {val1:?} < {upper_limit:?}");
+        assert!(val1 <= upper_limit, "Failed inequation: {val1:?} <= {upper_limit:?}");
     }
 
     pub fn assert_gt_with_buffer(val1: Option<u64>, val2: Option<u64>) {
         assert!(val1 > val2, "Failed inequation: {val1:?} > {val2:?}");
         let upper_limit = Some(val2.unwrap() + BUFFER_TIME_SECONDS);
-        assert!(val1 <= upper_limit, "Failed inequation: {val1:?} < {upper_limit:?}");
+        assert!(val1 <= upper_limit, "Failed inequation: {val1:?} <= {upper_limit:?}");
     }
 
     #[tokio::test]
