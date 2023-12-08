@@ -467,11 +467,11 @@ pub struct SimulatedTransaction {
 
 impl FunctionInvocation {
     pub fn try_from_call_info(
-        mut call_info: blockifier::execution::call_info::CallInfo,
+        call_info: &blockifier::execution::call_info::CallInfo,
         address_to_class_hash: &HashMap<ContractAddress, Felt>,
     ) -> DevnetResult<Self> {
         let mut internal_calls: Vec<FunctionInvocation> = vec![];
-        for internal_call in call_info.inner_calls {
+        for internal_call in &call_info.inner_calls {
             internal_calls.push(FunctionInvocation::try_from_call_info(
                 internal_call,
                 address_to_class_hash,
@@ -482,23 +482,17 @@ impl FunctionInvocation {
         // is creating an array with enough room for all objects + 1
         // then based on the order we use this index
 
-        call_info.execution.l2_to_l1_messages.sort_by_key(|msg| msg.order);
-
-        let messages: Vec<OrderedMessageToL1> = call_info
+        let mut messages: Vec<OrderedMessageToL1> = call_info
             .execution
             .l2_to_l1_messages
-            .into_iter()
+            .iter()
             .map(|msg| OrderedMessageToL1::new(msg, call_info.call.caller_address.into()))
             .collect();
+        messages.sort_by_key(|msg| msg.order);
 
-        call_info.execution.events.sort_by_key(|event| event.order);
-
-        let events: Vec<OrderedEvent> = call_info
-            .execution
-            .events
-            .into_iter()
-            .map(|event| OrderedEvent::from(&event))
-            .collect();
+        let mut events: Vec<OrderedEvent> =
+            call_info.execution.events.iter().map(OrderedEvent::from).collect();
+        events.sort_by_key(|event| event.order);
 
         let function_call = FunctionCall {
             contract_address: call_info.call.storage_address.into(),
@@ -528,7 +522,7 @@ impl FunctionInvocation {
                 blockifier::execution::entry_point::CallType::Call => CallType::Call,
                 blockifier::execution::entry_point::CallType::Delegate => CallType::Delegate,
             },
-            result: call_info.execution.retdata.0.into_iter().map(Felt::from).collect(),
+            result: call_info.execution.retdata.0.clone().into_iter().map(Felt::from).collect(),
             calls: internal_calls,
             events,
             messages,

@@ -42,6 +42,8 @@ pub enum Error {
     NoTransaction,
     #[error("Invalid transaction index in a block")]
     InvalidTransactionIndexInBlock,
+    #[error("Unsupported transaction type")]
+    UnsupportedTransactionType,
     #[error("{msg}")]
     UnsupportedAction { msg: String },
     #[error("Unexpected internal error: {msg}")]
