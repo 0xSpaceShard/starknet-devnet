@@ -779,7 +779,6 @@ mod tests {
             serde_json::from_str::<BroadcastedTransactionCommonV3>(txn_json_str).unwrap();
         let common_fields_hash =
             poseidon_hash_many(&common_fields.get_resource_bounds_array().unwrap());
-        println!("{:x}", common_fields_hash);
 
         let expected_hash: FieldElement = FieldElement::from_hex_be(
             "0x07be65f04548dfe645c70f07d1f8ead572c09e0e6e125c47d4cc22b4de3597cc",
