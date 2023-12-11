@@ -10,7 +10,7 @@ mod trace_tests {
         Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
     use starknet_rs_core::chain_id;
-    use starknet_rs_core::types::FieldElement;
+    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, MaybePendingBlockWithTxHashes};
     use starknet_rs_providers::Provider;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -167,6 +167,22 @@ mod trace_tests {
             );
         } else {
             panic!("Could not unpack the transaction trace from {deploy_account_tx_trace:?}");
+        }
+    }
+
+    #[tokio::test]
+    async fn get_traces_from_block() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        let mint_tx_hash = devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+
+        let latest_block = devnet.json_rpc_client.get_block_with_tx_hashes(BlockId::Tag(BlockTag::Latest)).await.unwrap();
+
+        if let MaybePendingBlockWithTxHashes::Block(block) = latest_block
+        {
+            println!("block.block_hash: {:?}", block.block_hash);
+            let block_traces = devnet.json_rpc_client.trace_block_transactions(block.block_hash).await;
+            println!("block_traces: {:?}", block_traces);
         }
     }
 }

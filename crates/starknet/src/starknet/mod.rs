@@ -811,10 +811,12 @@ impl Starknet {
         &self,
         block_id: BlockId,
     ) -> DevnetResult<BlockTransactionTraces> {
+        println!("get_transaction_traces_from_block!!!!");
+        
         let transactions: Transactions = self.get_block_with_transactions(block_id)?.transactions;
         panic!("transactions {transactions:?}");
 
-        let mut traces: Vec<BlockTransactionTrace> = Vec::new();
+        let mut traces = Vec::new();
         if let Transactions::Full(txs) = transactions {
             for tx in txs {
                 let tx_hash = tx.get_transaction_hash().clone();
