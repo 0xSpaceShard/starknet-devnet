@@ -40,6 +40,10 @@ use starknet_types::rpc::transactions::{
     BroadcastedTransactionCommon, DeclareTransaction, DeclareTransactionTrace,
     DeployAccountTransactionTrace, ExecutionInvocation, FunctionInvocation, InvokeTransactionTrace,
     SimulatedTransaction, SimulationFlag, Transaction, TransactionTrace, Transactions,
+    BroadcastedTransaction, BroadcastedTransactionCommon, DeclareTransaction,
+    DeclareTransactionTrace, DeployAccountTransactionTrace, ExecutionInvocation,
+    FunctionInvocation, InvokeTransactionTrace, L1HandlerTransaction, SimulatedTransaction,
+    SimulationFlag, Transaction, TransactionTrace, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, warn};
@@ -53,6 +57,7 @@ use crate::constants::{
     ERC20_CONTRACT_ADDRESS,
 };
 use crate::error::{DevnetResult, Error, TransactionValidationError};
+use crate::messaging::MessagingBroker;
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::raw_execution::{Call, RawExecution};
 use crate::state::state_diff::StateDiff;
@@ -67,6 +72,7 @@ use crate::transactions::{StarknetTransaction, StarknetTransactions};
 mod add_declare_transaction;
 mod add_deploy_account_transaction;
 mod add_invoke_transaction;
+mod add_l1_handler_transaction;
 mod dump;
 mod estimations;
 mod events;
@@ -79,10 +85,13 @@ pub struct Starknet {
     pub(in crate::starknet) state: StarknetState,
     predeployed_accounts: PredeployedAccounts,
     pub(in crate::starknet) block_context: BlockContext,
-    blocks: StarknetBlocks,
+    // To avoid repeating some logic related to blocks,
+    // having `blocks` public allows to re-use functions like `get_blocks()`.
+    pub(crate) blocks: StarknetBlocks,
     pub transactions: StarknetTransactions,
     pub config: StarknetConfig,
     pub pending_block_timestamp_shift: i64,
+    pub(crate) messaging: MessagingBroker,
 }
 
 impl Default for Starknet {
@@ -99,6 +108,7 @@ impl Default for Starknet {
             transactions: Default::default(),
             config: Default::default(),
             pending_block_timestamp_shift: 0,
+            messaging: Default::default(),
         }
     }
 }
@@ -150,6 +160,7 @@ impl Starknet {
             transactions: StarknetTransactions::default(),
             config: config.clone(),
             pending_block_timestamp_shift: 0,
+            messaging: Default::default(),
         };
 
         this.restart_pending_block()?;
@@ -401,7 +412,7 @@ impl Starknet {
         let mut block = StarknetBlock::create_pending_block();
 
         block.header.block_number = self.block_context.block_number;
-        block.header.gas_price = GasPrice(self.block_context.gas_prices.eth_l1_gas_price);
+        block.header.eth_l1_gas_price = GasPrice(self.block_context.gas_prices.eth_l1_gas_price);
         block.header.sequencer = self.block_context.sequencer_address;
 
         self.blocks.pending_block = block;
@@ -544,6 +555,13 @@ impl Starknet {
         invoke_transaction: BroadcastedInvokeTransaction,
     ) -> DevnetResult<TransactionHash> {
         add_invoke_transaction::add_invoke_transaction(self, invoke_transaction)
+    }
+
+    pub fn add_l1_handler_transaction(
+        &mut self,
+        l1_handler_transaction: L1HandlerTransaction,
+    ) -> DevnetResult<TransactionHash> {
+        add_l1_handler_transaction::add_l1_handler_transaction(self, l1_handler_transaction)
     }
 
     /// Creates an invoke tx for minting, using the chargeable account.
@@ -1113,7 +1131,7 @@ mod tests {
         assert_eq!(starknet.pending_block().header.timestamp, initial_block_timestamp);
         assert_eq!(starknet.pending_block().header.block_number, initial_block_number);
         assert_eq!(starknet.pending_block().header.parent_hash, BlockHash::default());
-        assert_eq!(starknet.pending_block().header.gas_price, GasPrice(initial_gas_price));
+        assert_eq!(starknet.pending_block().header.eth_l1_gas_price, GasPrice(initial_gas_price));
         assert_eq!(starknet.pending_block().header.sequencer, initial_sequencer);
     }
 

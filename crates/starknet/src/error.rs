@@ -16,9 +16,9 @@ pub enum Error {
     BlockifierTransactionError(#[from] blockifier::transaction::errors::TransactionExecutionError),
     #[error("{revert_error}")]
     ExecutionError { revert_error: String },
-    #[error("Types error")]
+    #[error("Types error: {0}")]
     TypesError(#[from] starknet_types::error::Error),
-    #[error("I/O error")]
+    #[error("I/O error: {0}")]
     IoError(#[from] std::io::Error),
     #[error("Error when reading file {path}")]
     ReadFileError { source: std::io::Error, path: String },
@@ -50,18 +50,20 @@ pub enum Error {
     UnexpectedInternalError { msg: String },
     #[error("Failed to load ContractClass")]
     ContractClassLoadError,
-    #[error("Deserialization error of {obj_name}")]
-    DeserializationError { obj_name: String },
-    #[error("Serialization error of {obj_name}")]
-    SerializationError { obj_name: String },
-    #[error("Serialization not supported")]
-    SerializationNotSupported,
+    #[error("Deserialization error: {origin}")]
+    DeserializationError { origin: String },
+    #[error("Serialization error: {origin}")]
+    SerializationError { origin: String },
+    #[error("Serialization not supported: {obj_name}")]
+    SerializationNotSupported { obj_name: String },
     #[error("{tx_type}: max_fee cannot be zero")]
     MaxFeeZeroError { tx_type: String },
     #[error(transparent)]
     TransactionValidationError(#[from] TransactionValidationError),
     #[error(transparent)]
     TransactionFeeError(#[from] blockifier::transaction::errors::TransactionFeeError),
+    #[error(transparent)]
+    MessagingError(#[from] MessagingError),
 }
 
 #[derive(Debug, Error)]
@@ -88,6 +90,21 @@ pub enum TransactionValidationError {
     InsufficientAccountBalance,
     #[error("Account validation failed.")]
     ValidationFailure,
+}
+
+#[derive(Debug, Error)]
+pub enum MessagingError {
+    #[error(
+        "Message is not configured, ensure you've used `postman/load_l1_messaging_contract` \
+         endpoint first."
+    )]
+    NotConfigured,
+    #[error("An error has occurred during messages conversion: {0}.")]
+    ConversionError(String),
+    #[error("Ethers error: {0}.")]
+    EthersError(String),
+    #[error("Message to L1 with hash {0} is already fully consumed.")]
+    MessageToL1FullyConsumed(String),
 }
 
 pub type DevnetResult<T, E = Error> = Result<T, E>;

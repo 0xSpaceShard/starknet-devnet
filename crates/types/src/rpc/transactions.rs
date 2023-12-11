@@ -12,15 +12,16 @@ use declare_transaction_v2::DeclareTransactionV2;
 use deploy_account_transaction::DeployAccountTransaction;
 use deploy_transaction::DeployTransaction;
 use invoke_transaction_v1::InvokeTransactionV1;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_api::block::BlockNumber;
 use starknet_api::deprecated_contract_class::EntryPointType;
 use starknet_api::transaction::Fee;
 use starknet_rs_core::types::{BlockId, ExecutionResult, TransactionFinalityStatus};
 
 use super::estimate_message_fee::FeeEstimateWrapper;
+use super::messaging::{MessageToL1, OrderedMessageToL1};
 use super::state::ThinStateDiff;
-use super::transaction_receipt::{ExecutionResources, OrderedMessageToL1};
+use super::transaction_receipt::ExecutionResources;
 use crate::constants::{
     BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME, N_STEPS,
     POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
@@ -46,6 +47,8 @@ pub mod declare_transaction_v2;
 pub mod deploy_account_transaction;
 pub mod deploy_transaction;
 pub mod invoke_transaction_v1;
+
+pub mod l1_handler_transaction;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
@@ -109,6 +112,7 @@ impl Transaction {
     pub fn create_common_receipt(
         &self,
         transaction_events: &[Event],
+        transaction_messages_sent: &[MessageToL1],
         block_hash: Option<&BlockHash>,
         block_number: Option<BlockNumber>,
         execution_result: &ExecutionResult,
@@ -170,7 +174,7 @@ impl Transaction {
 
         let output = TransactionOutput {
             actual_fee,
-            messages_sent: Vec::new(), // TODO wrong
+            messages_sent: transaction_messages_sent.to_vec(),
             events: transaction_events.to_vec(),
         };
 
@@ -240,6 +244,25 @@ impl InvokeTransaction {
     }
 }
 
+pub fn deserialize_paid_fee_on_l1<'de, D>(deserializer: D) -> Result<u128, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let buf = String::deserialize(deserializer)?;
+    let err_msg = format!("paid_fee_on_l1: expected 0x-prefixed hex string, got: {buf}");
+    if !buf.starts_with("0x") {
+        return Err(serde::de::Error::custom(err_msg));
+    }
+    u128::from_str_radix(&buf[2..], 16).map_err(|_| serde::de::Error::custom(err_msg))
+}
+
+fn serialize_paid_fee_on_l1<S>(paid_fee_on_l1: &u128, s: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    s.serialize_str(&format!("{paid_fee_on_l1:#x}"))
+}
+
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub struct L1HandlerTransaction {
     pub transaction_hash: TransactionHash,
@@ -248,6 +271,11 @@ pub struct L1HandlerTransaction {
     pub contract_address: ContractAddress,
     pub entry_point_selector: EntryPointSelector,
     pub calldata: Calldata,
+    #[serde(
+        serialize_with = "serialize_paid_fee_on_l1",
+        deserialize_with = "deserialize_paid_fee_on_l1"
+    )]
+    pub paid_fee_on_l1: u128,
 }
 
 impl L1HandlerTransaction {
@@ -334,11 +362,38 @@ impl BroadcastedTransaction {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum BroadcastedDeclareTransaction {
     V1(Box<BroadcastedDeclareTransactionV1>),
     V2(Box<BroadcastedDeclareTransactionV2>),
+}
+
+impl<'de> Deserialize<'de> for BroadcastedDeclareTransaction {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = serde_json::Value::deserialize(deserializer)?;
+        let version_raw = value.get("version").ok_or(serde::de::Error::missing_field("version"))?;
+        match version_raw.as_str() {
+            Some(v) if ["0x1", "0x100000000000000000000000000000001"].contains(&v) => {
+                let unpacked = serde_json::from_value(value).map_err(|e| {
+                    serde::de::Error::custom(format!("Invalid declare transaction v1: {e}"))
+                })?;
+                Ok(BroadcastedDeclareTransaction::V1(Box::new(unpacked)))
+            }
+            Some(v) if ["0x2", "0x100000000000000000000000000000002"].contains(&v) => {
+                let unpacked = serde_json::from_value(value).map_err(|e| {
+                    serde::de::Error::custom(format!("Invalid declare transaction v2: {e}"))
+                })?;
+                Ok(BroadcastedDeclareTransaction::V2(Box::new(unpacked)))
+            }
+            _ => Err(serde::de::Error::custom(format!(
+                "Invalid version of declare transaction: {version_raw}"
+            ))),
+        }
+    }
 }
 
 /// Flags that indicate how to simulate a given transaction.
@@ -466,18 +521,7 @@ impl FunctionInvocation {
             .execution
             .l2_to_l1_messages
             .iter()
-            .map(|msg| {
-                OrderedMessageToL1::new(
-                    OrderedL2ToL1Message {
-                        message: MessageToL1 {
-                            to_address: msg.message.to_address,
-                            payload: msg.message.payload.clone(),
-                        },
-                        order: msg.order,
-                    },
-                    call_info.call.caller_address.into(),
-                )
-            })
+            .map(|msg| OrderedMessageToL1::new(msg, call_info.call.caller_address.into()))
             .collect();
         messages.sort_by_key(|msg| msg.order);
 

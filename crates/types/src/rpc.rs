@@ -6,6 +6,7 @@ pub mod estimate_message_fee;
 pub mod eth_address;
 pub mod felt;
 mod macro_utils;
+pub mod messaging;
 pub mod state;
 pub mod transaction_receipt;
 pub mod transactions;

@@ -1,0 +1,3 @@
+[submodule "contracts/l1-l2-messaging/solidity/lib/forge-std"]
+	path = contracts/l1-l2-messaging/solidity/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
