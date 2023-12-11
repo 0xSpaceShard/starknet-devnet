@@ -840,7 +840,7 @@ impl Starknet {
             }
         }
 
-        Ok(BlockTransactionTraces { traces: traces })
+        Ok(BlockTransactionTraces { traces })
     }
 
     pub fn get_transaction_execution_and_finality_status(
