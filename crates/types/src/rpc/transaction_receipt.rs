@@ -214,5 +214,5 @@ pub enum FeeInUnits {
     #[serde(rename = "WEI")]
     WEI(FeeAmount),
     #[serde(rename = "FRI")]
-    STRK(FeeAmount),
+    FRI(FeeAmount),
 }

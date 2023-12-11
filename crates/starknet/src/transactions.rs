@@ -163,11 +163,12 @@ impl StarknetTransaction {
         let transaction_messages = self.get_l2_to_l1_messages();
 
         // decide what units to set for actual fee. V3 transactions are in STRK(FRI)
+        // Other transactions versions are in ETH(WEI)
         let fee_amount = FeeAmount { amount: self.execution_info.actual_fee };
         let actual_fee_in_units = match self.inner {
             Transaction::Declare(DeclareTransaction::Version3(_))
             | Transaction::DeployAccount(DeployAccountTransaction::Version3(_))
-            | Transaction::Invoke(InvokeTransaction::Version3(_)) => FeeInUnits::STRK(fee_amount),
+            | Transaction::Invoke(InvokeTransaction::Version3(_)) => FeeInUnits::FRI(fee_amount),
             _ => FeeInUnits::WEI(fee_amount),
         };
 
