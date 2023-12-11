@@ -128,50 +128,6 @@ mod tests {
         calldata: Vec<Felt>,
     }
 
-    #[test]
-    fn test_dummy_transaction_hash_taken_from_papyrus() {
-        let txn_json_str = r#"{
-            "signature": ["0x3", "0x4"],
-            "version": "0x3",
-            "nonce": "0x9",
-            "sender_address": "0x12fd538",
-            "nonce_data_availability_mode": "L1",
-            "fee_data_availability_mode": "L1",
-            "resource_bounds": {
-              "L2_GAS": {
-                "max_amount": "0x0",
-                "max_price_per_unit": "0x0"
-              },
-              "L1_GAS": {
-                "max_amount": "0x7c9",
-                "max_price_per_unit": "0x1"
-              }
-            },
-            "tip": "0x0",
-            "paymaster_data": [],
-            "account_deployment_data": [],
-            "calldata": [
-              "0x11",
-              "0x26"
-            ]
-          }"#;
-
-        let transaction =
-            serde_json::from_str::<BroadcastedInvokeTransactionV3>(txn_json_str).unwrap();
-        let chain_id = b"1";
-
-        let mut padded_chain_id = [0u8; 32];
-        padded_chain_id[(32 - chain_id.len())..].copy_from_slice(chain_id);
-
-        println!(
-            "{}",
-            transaction
-                .calculate_transaction_hash(Felt::new(padded_chain_id).unwrap())
-                .unwrap()
-                .to_prefixed_hex_str()
-        );
-    }
-
     /// Data for test case is taken from https://spaceshard.slack.com/archives/C05FAMWQ8JE/p1700501793152349?thread_ts=1700058492.284919&cid=C05FAMWQ8JE
     /// The transaction was taken from https://external.integration.starknet.io/feeder_gateway/get_transaction?transactionHash=0x41906f1c314cca5f43170ea75d3b1904196a10101190d2b12a41cc61cfd17c
     #[test]
