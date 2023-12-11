@@ -4,7 +4,7 @@ mod trace_tests {
     use std::sync::Arc;
 
     use starknet_core::constants::{
-        CAIRO_0_ACCOUNT_CONTRACT_HASH, CHARGEABLE_ACCOUNT_ADDRESS, ERC20_CONTRACT_ADDRESS,
+        CAIRO_0_ACCOUNT_CONTRACT_HASH, CHARGEABLE_ACCOUNT_ADDRESS, ETH_ERC20_CONTRACT_ADDRESS,
     };
     use starknet_rs_accounts::{
         Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
@@ -71,7 +71,7 @@ mod trace_tests {
 
             assert_eq!(
                 invoke_trace.fee_transfer_invocation.unwrap().contract_address,
-                FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap()
+                FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
             );
         } else {
             panic!("Could not unpack the transaction trace from {mint_tx_trace:?}");
@@ -127,7 +127,7 @@ mod trace_tests {
 
             assert_eq!(
                 declare_trace.fee_transfer_invocation.unwrap().contract_address,
-                FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap()
+                FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
             );
         } else {
             panic!("Could not unpack the transaction trace from {declare_tx_trace:?}");
@@ -183,7 +183,7 @@ mod trace_tests {
 
             assert_eq!(
                 deployment_trace.fee_transfer_invocation.unwrap().contract_address,
-                FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap()
+                FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
             );
         } else {
             panic!("Could not unpack the transaction trace from {deploy_account_tx_trace:?}");

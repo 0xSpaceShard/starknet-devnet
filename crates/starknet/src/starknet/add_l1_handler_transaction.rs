@@ -54,7 +54,9 @@ mod tests {
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;
-    use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID};
+    use crate::constants::{
+        self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
+    };
     use crate::starknet::{predeployed, Starknet};
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut, StateChanger};
     use crate::utils::exported_test_utils::dummy_cairo_l1l2_contract;
@@ -176,8 +178,13 @@ mod tests {
         let mut starknet = Starknet::default();
 
         // deploy erc20 contract
-        let erc_20_contract = predeployed::create_erc20().unwrap();
-        erc_20_contract.deploy(&mut starknet.state).unwrap();
+        let eth_erc_20_contract =
+            predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS).unwrap();
+        eth_erc_20_contract.deploy(&mut starknet.state).unwrap();
+
+        let strk_erc_20_contract =
+            predeployed::create_erc20_at_address(STRK_ERC20_CONTRACT_ADDRESS).unwrap();
+        strk_erc_20_contract.deploy(&mut starknet.state).unwrap();
 
         // deploy account contract
         let account_without_validations_contract_class = cairo_0_account_without_validations();
@@ -190,7 +197,8 @@ mod tests {
             dummy_felt(),
             account_without_validations_class_hash,
             ContractClass::Cairo0(account_without_validations_contract_class),
-            erc_20_contract.get_address(),
+            eth_erc_20_contract.get_address(),
+            strk_erc_20_contract.get_address(),
         )
         .unwrap();
 
@@ -244,8 +252,9 @@ mod tests {
         starknet.state.clear_dirty_state();
         starknet.block_context = Starknet::init_block_context(
             1,
-            constants::ERC20_CONTRACT_ADDRESS,
+            constants::ETH_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
+            constants::STRK_ERC20_CONTRACT_ADDRESS,
         );
 
         starknet.restart_pending_block().unwrap();

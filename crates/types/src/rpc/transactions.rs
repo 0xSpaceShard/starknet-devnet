@@ -29,7 +29,7 @@ use self::invoke_transaction_v3::InvokeTransactionV3;
 use super::estimate_message_fee::FeeEstimateWrapper;
 use super::messaging::{MessageToL1, OrderedMessageToL1};
 use super::state::ThinStateDiff;
-use super::transaction_receipt::{ExecutionResources, FeeInUnits, OrderedMessageToL1};
+use super::transaction_receipt::{ExecutionResources, FeeInUnits};
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::{Event, OrderedEvent};
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
@@ -685,7 +685,7 @@ impl FunctionInvocation {
         address_to_class_hash: &HashMap<ContractAddress, Felt>,
     ) -> DevnetResult<Self> {
         let mut internal_calls: Vec<FunctionInvocation> = vec![];
-        let execution_resources = ExecutionResources::from(&call_info);
+        let execution_resources = ExecutionResources::from(call_info);
         for internal_call in &call_info.inner_calls {
             internal_calls.push(FunctionInvocation::try_from_call_info(
                 internal_call,
@@ -701,22 +701,10 @@ impl FunctionInvocation {
             .collect();
         messages.sort_by_key(|msg| msg.order);
 
-
-        let mut events: Vec<OrderedEvent> = call_info
-            .execution
-            .events
-            .into_iter()
-            .map(|event| OrderedEvent::from(&event))
-            .collect();
+        let mut events: Vec<OrderedEvent> =
+            call_info.execution.events.iter().map(|event| OrderedEvent::from(event)).collect();
         let contract_address = call_info.call.storage_address.into();
         events.sort_by_key(|event| event.order);
-    
-
-        let function_call = FunctionCall {
-            contract_address: call_info.call.storage_address.into(),
-            entry_point_selector: call_info.call.entry_point_selector.0.into(),
-            calldata: call_info.call.calldata.0.iter().map(|f| Felt::from(*f)).collect(),
-        };
 
         // call_info.call.class_hash could be None, so we deduce it from
         // call_info.call.storage_address which is function_call.contract_address
