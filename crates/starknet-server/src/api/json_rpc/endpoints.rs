@@ -395,7 +395,6 @@ impl JsonRpcHandler {
         match starknet.get_transaction_traces_from_block(block_id.into()) {
             Ok(result) => Ok(StarknetResponse::BlockTransactionTraces(result)),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
-            Err(Error::UnsupportedTransactionType) => Err(ApiError::NoTraceAvailable),
             Err(err) => Err(err.into()),
         }
     }

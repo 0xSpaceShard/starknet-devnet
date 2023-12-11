@@ -451,8 +451,7 @@ pub struct BlockTransactionTrace {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BlockTransactionTraces {
-    #[serde(flatten)]
-    pub block_traces: Vec<BlockTransactionTrace>,
+    pub traces: Vec<BlockTransactionTrace>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

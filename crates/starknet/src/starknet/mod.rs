@@ -838,11 +838,9 @@ impl Starknet {
 
                 traces.push(block_trace);
             }
-        } else {
-            return Err(Error::UnsupportedTransactionType);
         }
 
-        Ok(BlockTransactionTraces { block_traces: traces })
+        Ok(BlockTransactionTraces { traces: traces })
     }
 
     pub fn get_transaction_execution_and_finality_status(
