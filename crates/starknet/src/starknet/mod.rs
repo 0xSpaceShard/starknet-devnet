@@ -544,7 +544,6 @@ impl Starknet {
         for flag in simulation_flags.iter() {
             if *flag == SimulationFlag::SkipValidate {
                 skip_validate = true;
-                warn!("SKIP_VALIDATE chosen in simulation, but does not affect fee estimation");
             }
         }
         estimations::estimate_fee(self, block_id, transactions, None, Some(!skip_validate))
@@ -910,7 +909,6 @@ impl Starknet {
             match flag {
                 SimulationFlag::SkipValidate => {
                     skip_validate = true;
-                    warn!("SKIP_VALIDATE chosen in simulation, but does not affect fee estimation");
                 }
                 SimulationFlag::SkipFeeCharge => skip_fee_charge = true,
             }
