@@ -23,7 +23,7 @@ pub(crate) const PREFIX_INVOKE: FieldElement = FieldElement::from_mont([
     513398556346534256,
 ]);
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct BroadcastedInvokeTransactionV1 {
     #[serde(flatten)]

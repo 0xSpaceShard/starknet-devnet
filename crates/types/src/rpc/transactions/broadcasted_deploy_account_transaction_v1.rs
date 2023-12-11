@@ -23,7 +23,7 @@ pub(crate) const PREFIX_DEPLOY_ACCOUNT: FieldElement = FieldElement::from_mont([
     461298303000467581,
 ]);
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct BroadcastedDeployAccountTransactionV1 {
     #[serde(flatten)]

@@ -284,7 +284,6 @@ mod tests {
     #[test]
     fn check_correct_successful_transaction_creation() {
         let tx = Transaction::Declare(DeclareTransaction::Version1(dummy_declare_transaction_v1()));
-
         let sn_tran =
             StarknetTransaction::create_accepted(&tx, TransactionExecutionInfo::default());
         assert_eq!(sn_tran.finality_status, TransactionFinalityStatus::AcceptedOnL2);

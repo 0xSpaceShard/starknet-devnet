@@ -11,55 +11,57 @@ use starknet_types::rpc::transactions::{
 };
 use starknet_types::starknet_api::block::BlockNumber;
 
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct BlockIdInput {
     pub(crate) block_id: BlockId,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct TransactionHashInput {
     pub(crate) transaction_hash: TransactionHash,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct GetStorageInput {
     pub(crate) contract_address: ContractAddress,
     pub(crate) key: PatriciaKey,
     pub(crate) block_id: BlockId,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct BlockAndIndexInput {
     pub(crate) block_id: BlockId,
     pub(crate) index: u64,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct BlockAndClassHashInput {
     pub(crate) block_id: BlockId,
     pub(crate) class_hash: ClassHash,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct BlockAndContractAddressInput {
     pub(crate) block_id: BlockId,
     pub(crate) contract_address: ContractAddress,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(deny_unknown_fields)]
 pub struct CallInput {
     pub request: FunctionCall,
     pub block_id: BlockId,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct EstimateFeeInput {
     pub request: Vec<BroadcastedTransaction>,
@@ -67,85 +69,85 @@ pub struct EstimateFeeInput {
     pub block_id: BlockId,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct BlockHashAndNumberOutput {
     pub block_hash: BlockHash,
     pub block_number: BlockNumber,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum SyncingOutput {
     True(SyncStatus),
     False(bool),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct EventsInput {
     pub filter: EventFilter,
 }
 
-#[derive(Deserialize, Serialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(tag = "type")]
 pub enum BroadcastedDeclareTransactionEnumWrapper {
     #[serde(rename = "DECLARE")]
     Declare(BroadcastedDeclareTransaction),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct BroadcastedDeclareTransactionInput {
     pub declare_transaction: BroadcastedDeclareTransactionEnumWrapper,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct DeclareTransactionOutput {
     pub transaction_hash: TransactionHash,
     pub class_hash: ClassHash,
 }
 
-#[derive(Deserialize, Serialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(tag = "type")]
 pub enum BroadcastedDeployAccountTransactionEnumWrapper {
     #[serde(rename = "DEPLOY_ACCOUNT")]
     DeployAccount(BroadcastedDeployAccountTransaction),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct BroadcastedDeployAccountTransactionInput {
     pub deploy_account_transaction: BroadcastedDeployAccountTransactionEnumWrapper,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct DeployAccountTransactionOutput {
     pub transaction_hash: TransactionHash,
     pub contract_address: ContractAddress,
 }
 
-#[derive(Deserialize, Serialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(tag = "type")]
 pub enum BroadcastedInvokeTransactionEnumWrapper {
     #[serde(rename = "INVOKE")]
     Invoke(BroadcastedInvokeTransaction),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct BroadcastedInvokeTransactionInput {
     pub invoke_transaction: BroadcastedInvokeTransactionEnumWrapper,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct InvokeTransactionOutput {
     pub transaction_hash: TransactionHash,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SimulateTransactionsInput {
     pub block_id: BlockId,

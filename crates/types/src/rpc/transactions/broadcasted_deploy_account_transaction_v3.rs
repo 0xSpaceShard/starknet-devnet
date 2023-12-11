@@ -12,7 +12,7 @@ use crate::error::DevnetResult;
 use crate::felt::{Calldata, ClassHash, ContractAddressSalt, Felt};
 use crate::utils::into_vec;
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct BroadcastedDeployAccountTransactionV3 {
     #[serde(flatten)]

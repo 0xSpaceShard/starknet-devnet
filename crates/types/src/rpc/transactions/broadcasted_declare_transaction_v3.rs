@@ -14,7 +14,7 @@ use crate::felt::{ClassHash, CompiledClassHash, Felt};
 use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 use crate::utils::into_vec;
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct BroadcastedDeclareTransactionV3 {
     #[serde(flatten)]

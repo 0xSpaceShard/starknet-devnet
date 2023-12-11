@@ -62,7 +62,7 @@ const DATA_AVAILABILITY_MODE_BITS: u8 = 32;
 
 pub mod l1_handler_transaction;
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum Transactions {
     Hashes(Vec<TransactionHash>),
@@ -269,7 +269,7 @@ impl L1HandlerTransaction {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct EventFilter {
     pub from_block: Option<BlockId>,
     pub to_block: Option<BlockId>,
@@ -294,7 +294,7 @@ pub struct FunctionCall {
     pub calldata: Calldata,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct BroadcastedTransactionCommon {
     pub max_fee: Fee,
     pub version: TransactionVersion,
@@ -303,7 +303,7 @@ pub struct BroadcastedTransactionCommon {
 }
 
 /// Common fields for all transaction type of version 3
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct BroadcastedTransactionCommonV3 {
     pub version: TransactionVersion,
     pub signature: TransactionSignature,
@@ -416,7 +416,7 @@ impl BroadcastedTransactionCommonV3 {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "type")]
 pub enum BroadcastedTransaction {
     #[serde(rename = "INVOKE")]
@@ -476,7 +476,7 @@ impl BroadcastedTransaction {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum BroadcastedDeclareTransaction {
     V1(Box<BroadcastedDeclareTransactionV1>),
@@ -484,13 +484,13 @@ pub enum BroadcastedDeclareTransaction {
     V3(Box<BroadcastedDeclareTransactionV3>),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum BroadcastedDeployAccountTransaction {
     V1(BroadcastedDeployAccountTransactionV1),
     V3(BroadcastedDeployAccountTransactionV3),
 }
-#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum BroadcastedInvokeTransaction {
     V1(BroadcastedInvokeTransactionV1),

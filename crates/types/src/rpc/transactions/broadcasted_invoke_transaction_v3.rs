@@ -13,7 +13,7 @@ use crate::error::DevnetResult;
 use crate::felt::{Calldata, Felt};
 use crate::utils::into_vec;
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct BroadcastedInvokeTransactionV3 {
     #[serde(flatten)]
@@ -108,7 +108,6 @@ mod tests {
     use crate::felt::Felt;
     use crate::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
     use crate::rpc::transactions::BroadcastedTransactionCommonV3;
-    use crate::traits::ToHexString;
     use crate::utils::test_utils::from_u8_to_da_mode;
 
     #[derive(Deserialize)]

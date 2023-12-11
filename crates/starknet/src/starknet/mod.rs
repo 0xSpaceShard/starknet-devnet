@@ -45,7 +45,7 @@ use starknet_types::rpc::transactions::{
     SimulationFlag, Transaction, TransactionTrace, Transactions,
 };
 use starknet_types::traits::HashProducer;
-use tracing::{error, warn};
+use tracing::error;
 
 use self::predeployed::initialize_erc20_at_address;
 use self::starknet_config::{DumpOn, StarknetConfig};

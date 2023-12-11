@@ -96,7 +96,7 @@ impl<'de> Deserialize<'de> for BlockId {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Block {
     pub status: BlockStatus,
@@ -105,7 +105,7 @@ pub struct Block {
     pub transactions: Transactions,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct BlockHeader {
     pub block_hash: BlockHash,
