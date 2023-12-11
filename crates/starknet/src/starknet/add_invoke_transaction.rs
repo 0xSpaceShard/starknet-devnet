@@ -39,7 +39,6 @@ pub fn add_invoke_transaction_v3(
     starknet: &mut Starknet,
     broadcasted_invoke_transaction: BroadcastedInvokeTransactionV3,
 ) -> DevnetResult<TransactionHash> {
-    // TODO: check if bounds sum is equal to 0
     if broadcasted_invoke_transaction.common.is_max_fee_zero_value() {
         return Err(Error::MaxFeeZeroError { tx_type: "invoke transaction v3".into() });
     }
