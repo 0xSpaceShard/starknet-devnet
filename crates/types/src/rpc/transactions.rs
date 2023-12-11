@@ -141,7 +141,7 @@ impl Transaction {
             r#type,
             transaction_hash: *self.get_transaction_hash(),
             actual_fee,
-            messages_sent: Vec::new(), // TODO wrong
+            messages_sent: transaction_messages_sent.to_vec(),
             events: transaction_events.to_vec(),
             execution_status: execution_result.clone(),
             finality_status,
@@ -702,7 +702,7 @@ impl FunctionInvocation {
         messages.sort_by_key(|msg| msg.order);
 
         let mut events: Vec<OrderedEvent> =
-            call_info.execution.events.iter().map(|event| OrderedEvent::from(event)).collect();
+            call_info.execution.events.iter().map(OrderedEvent::from).collect();
         let contract_address = call_info.call.storage_address.into();
         events.sort_by_key(|event| event.order);
 

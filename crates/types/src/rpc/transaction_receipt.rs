@@ -9,7 +9,7 @@ use crate::constants::{
 };
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
-use crate::felt::{BlockHash, Felt, TransactionHash};
+use crate::felt::{BlockHash, TransactionHash};
 use crate::rpc::messaging::MessageToL1;
 use crate::rpc::transactions::TransactionType;
 
