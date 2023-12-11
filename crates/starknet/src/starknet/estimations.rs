@@ -108,15 +108,11 @@ fn estimate_transaction_fee(
     let gas_price = block_context.gas_prices.eth_l1_gas_price as u64;
 
     Ok(match fee_type {
-        blockifier::transaction::objects::FeeType::Strk => FeeEstimateWrapper::new_in_strk_units(
-            total_l1_gas_usage,
-            gas_price,
-            total_l1_gas_usage * gas_price,
-        ),
-        blockifier::transaction::objects::FeeType::Eth => FeeEstimateWrapper::new_in_wei_units(
-            total_l1_gas_usage,
-            gas_price,
-            total_l1_gas_usage * gas_price,
-        ),
+        blockifier::transaction::objects::FeeType::Strk => {
+            FeeEstimateWrapper::new_in_strk_units(total_l1_gas_usage, gas_price)
+        }
+        blockifier::transaction::objects::FeeType::Eth => {
+            FeeEstimateWrapper::new_in_wei_units(total_l1_gas_usage, gas_price)
+        }
     })
 }

@@ -25,12 +25,16 @@ pub enum FeeEstimateWrapper {
 }
 
 impl FeeEstimateWrapper {
-    pub fn new_in_wei_units(gas_consumed: u64, gas_price: u64, overall_fee: u64) -> Self {
-        FeeEstimateWrapper::WEI(FeeEstimate { gas_consumed, gas_price, overall_fee })
+    pub fn new_in_wei_units(gas_consumed: u64, gas_price: u64) -> Self {
+        FeeEstimateWrapper::WEI(Self::new_fee_estimate(gas_consumed, gas_price))
     }
 
-    pub fn new_in_strk_units(gas_consumed: u64, gas_price: u64, overall_fee: u64) -> Self {
-        FeeEstimateWrapper::STRK(FeeEstimate { gas_consumed, gas_price, overall_fee })
+    pub fn new_in_strk_units(gas_consumed: u64, gas_price: u64) -> Self {
+        FeeEstimateWrapper::STRK(Self::new_fee_estimate(gas_consumed, gas_price))
+    }
+
+    fn new_fee_estimate(gas_consumed: u64, gas_price: u64) -> FeeEstimate {
+        FeeEstimate { gas_consumed, gas_price, overall_fee: gas_consumed * gas_price }
     }
 }
 
