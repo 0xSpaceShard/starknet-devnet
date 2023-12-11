@@ -375,4 +375,18 @@ impl JsonRpcHandler {
             Err(err) => Err(ApiError::ContractError { error: err }),
         }
     }
+
+    /// starknet_traceTransaction
+    pub(crate) async fn get_trace_transaction(
+        &self,
+        transaction_hash: TransactionHash,
+    ) -> StrictRpcResult {
+        let starknet = self.api.starknet.read().await;
+        match starknet.get_transaction_trace_by_hash(transaction_hash) {
+            Ok(result) => Ok(StarknetResponse::TraceTransaction(result)),
+            Err(Error::NoTransaction) => Err(ApiError::TransactionNotFound),
+            Err(Error::UnsupportedTransactionType) => Err(ApiError::NoTraceAvailable),
+            Err(err) => Err(err.into()),
+        }
+    }
 }

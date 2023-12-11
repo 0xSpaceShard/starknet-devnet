@@ -8,7 +8,7 @@ use declare_transaction_v0v1::DeclareTransactionV0V1;
 use declare_transaction_v2::DeclareTransactionV2;
 use deploy_transaction::DeployTransaction;
 use invoke_transaction_v1::InvokeTransactionV1;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_api::block::BlockNumber;
 use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::deprecated_contract_class::EntryPointType;
@@ -27,6 +27,7 @@ use self::deploy_account_transaction_v1::DeployAccountTransactionV1;
 use self::deploy_account_transaction_v3::DeployAccountTransactionV3;
 use self::invoke_transaction_v3::InvokeTransactionV3;
 use super::estimate_message_fee::FeeEstimateWrapper;
+use super::messaging::{MessageToL1, OrderedMessageToL1};
 use super::state::ThinStateDiff;
 use super::transaction_receipt::{ExecutionResources, FeeInUnits, OrderedMessageToL1};
 use crate::contract_address::ContractAddress;
@@ -58,6 +59,8 @@ pub mod invoke_transaction_v3;
 
 /// number of bits to be shifted when encoding the data availability mode into `FieldElement` type
 const DATA_AVAILABILITY_MODE_BITS: u8 = 32;
+
+pub mod l1_handler_transaction;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
@@ -121,6 +124,7 @@ impl Transaction {
     pub fn create_common_receipt(
         &self,
         transaction_events: &[Event],
+        transaction_messages_sent: &[MessageToL1],
         block_hash: Option<&BlockHash>,
         block_number: Option<BlockNumber>,
         execution_result: &ExecutionResult,
@@ -225,6 +229,25 @@ impl DeployAccountTransaction {
     }
 }
 
+pub fn deserialize_paid_fee_on_l1<'de, D>(deserializer: D) -> Result<u128, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let buf = String::deserialize(deserializer)?;
+    let err_msg = format!("paid_fee_on_l1: expected 0x-prefixed hex string, got: {buf}");
+    if !buf.starts_with("0x") {
+        return Err(serde::de::Error::custom(err_msg));
+    }
+    u128::from_str_radix(&buf[2..], 16).map_err(|_| serde::de::Error::custom(err_msg))
+}
+
+fn serialize_paid_fee_on_l1<S>(paid_fee_on_l1: &u128, s: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    s.serialize_str(&format!("{paid_fee_on_l1:#x}"))
+}
+
 #[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
 pub struct L1HandlerTransaction {
     pub transaction_hash: TransactionHash,
@@ -233,6 +256,11 @@ pub struct L1HandlerTransaction {
     pub contract_address: ContractAddress,
     pub entry_point_selector: EntryPointSelector,
     pub calldata: Calldata,
+    #[serde(
+        serialize_with = "serialize_paid_fee_on_l1",
+        deserialize_with = "deserialize_paid_fee_on_l1"
+    )]
+    pub paid_fee_on_l1: u128,
 }
 
 impl L1HandlerTransaction {
@@ -653,36 +681,42 @@ pub struct SimulatedTransaction {
 
 impl FunctionInvocation {
     pub fn try_from_call_info(
-        mut call_info: blockifier::execution::call_info::CallInfo,
+        call_info: &blockifier::execution::call_info::CallInfo,
         address_to_class_hash: &HashMap<ContractAddress, Felt>,
     ) -> DevnetResult<Self> {
         let mut internal_calls: Vec<FunctionInvocation> = vec![];
         let execution_resources = ExecutionResources::from(&call_info);
-        for internal_call in call_info.inner_calls {
+        for internal_call in &call_info.inner_calls {
             internal_calls.push(FunctionInvocation::try_from_call_info(
                 internal_call,
                 address_to_class_hash,
             )?);
         }
 
-        call_info.execution.l2_to_l1_messages.sort_by_key(|msg| msg.order);
-
-        let messages: Vec<OrderedMessageToL1> = call_info
+        let mut messages: Vec<OrderedMessageToL1> = call_info
             .execution
             .l2_to_l1_messages
-            .into_iter()
+            .iter()
             .map(|msg| OrderedMessageToL1::new(msg, call_info.call.caller_address.into()))
             .collect();
+        messages.sort_by_key(|msg| msg.order);
 
-        call_info.execution.events.sort_by_key(|event| event.order);
 
-        let events: Vec<OrderedEvent> = call_info
+        let mut events: Vec<OrderedEvent> = call_info
             .execution
             .events
             .into_iter()
             .map(|event| OrderedEvent::from(&event))
             .collect();
         let contract_address = call_info.call.storage_address.into();
+        events.sort_by_key(|event| event.order);
+    
+
+        let function_call = FunctionCall {
+            contract_address: call_info.call.storage_address.into(),
+            entry_point_selector: call_info.call.entry_point_selector.0.into(),
+            calldata: call_info.call.calldata.0.iter().map(|f| Felt::from(*f)).collect(),
+        };
 
         // call_info.call.class_hash could be None, so we deduce it from
         // call_info.call.storage_address which is function_call.contract_address
@@ -708,7 +742,7 @@ impl FunctionInvocation {
                 blockifier::execution::entry_point::CallType::Call => CallType::Call,
                 blockifier::execution::entry_point::CallType::Delegate => CallType::Delegate,
             },
-            result: call_info.execution.retdata.0.into_iter().map(Felt::from).collect(),
+            result: call_info.execution.retdata.0.clone().into_iter().map(Felt::from).collect(),
             calls: internal_calls,
             events,
             messages,

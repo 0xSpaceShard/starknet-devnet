@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
-use starknet_api::core::EthAddress;
 use starknet_api::transaction::Fee;
 use starknet_rs_core::types::{ExecutionResult, TransactionFinalityStatus};
 
@@ -11,6 +10,7 @@ use crate::constants::{
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::Event;
 use crate::felt::{BlockHash, Felt, TransactionHash};
+use crate::rpc::messaging::MessageToL1;
 use crate::rpc::transactions::TransactionType;
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -207,39 +207,4 @@ pub enum FeeInUnits {
     WEI(FeeAmount),
     #[serde(rename = "FRI")]
     STRK(FeeAmount),
-}
-
-pub type L2ToL1Payload = Vec<Felt>;
-
-/// An L2 to L1 message.
-#[derive(Debug, Default, Clone, Eq, PartialEq, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct MessageToL1 {
-    pub from_address: ContractAddress,
-    pub to_address: EthAddress,
-    pub payload: L2ToL1Payload,
-}
-
-#[derive(Debug, Default, Clone, Eq, PartialEq, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct OrderedMessageToL1 {
-    pub order: usize,
-    #[serde(flatten)]
-    pub message: MessageToL1,
-}
-
-impl OrderedMessageToL1 {
-    pub fn new(
-        msg: blockifier::execution::call_info::OrderedL2ToL1Message,
-        from_address: ContractAddress,
-    ) -> Self {
-        Self {
-            order: msg.order,
-            message: MessageToL1 {
-                from_address,
-                to_address: msg.message.to_address,
-                payload: msg.message.payload.0.into_iter().map(Felt::from).collect(),
-            },
-        }
-    }
 }

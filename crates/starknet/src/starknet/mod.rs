@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use blockifier::block_context::BlockContext;
+use blockifier::execution::call_info::CallInfo;
 use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::errors::TransactionPreValidationError;
@@ -40,8 +41,8 @@ use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::Broadc
 use starknet_types::rpc::transactions::{
     BroadcastedTransaction, BroadcastedTransactionCommon, DeclareTransaction,
     DeclareTransactionTrace, DeployAccountTransactionTrace, ExecutionInvocation,
-    FunctionInvocation, InvokeTransactionTrace, SimulatedTransaction, SimulationFlag, Transaction,
-    TransactionTrace, Transactions,
+    FunctionInvocation, InvokeTransactionTrace, L1HandlerTransaction, SimulatedTransaction,
+    SimulationFlag, Transaction, TransactionTrace, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, warn};
@@ -56,6 +57,7 @@ use crate::constants::{
     STRK_ERC20_NAME, STRK_ERC20_SYMBOL,
 };
 use crate::error::{DevnetResult, Error, TransactionValidationError};
+use crate::messaging::MessagingBroker;
 use crate::predeployed_accounts::PredeployedAccounts;
 use crate::raw_execution::{Call, RawExecution};
 use crate::state::state_diff::StateDiff;
@@ -70,6 +72,7 @@ use crate::transactions::{StarknetTransaction, StarknetTransactions};
 mod add_declare_transaction;
 mod add_deploy_account_transaction;
 mod add_invoke_transaction;
+mod add_l1_handler_transaction;
 mod dump;
 mod estimations;
 mod events;
@@ -82,10 +85,13 @@ pub struct Starknet {
     pub(in crate::starknet) state: StarknetState,
     predeployed_accounts: PredeployedAccounts,
     pub(in crate::starknet) block_context: BlockContext,
-    blocks: StarknetBlocks,
+    // To avoid repeating some logic related to blocks,
+    // having `blocks` public allows to re-use functions like `get_blocks()`.
+    pub(crate) blocks: StarknetBlocks,
     pub transactions: StarknetTransactions,
     pub config: StarknetConfig,
     pub pending_block_timestamp_shift: i64,
+    pub(crate) messaging: MessagingBroker,
 }
 
 impl Default for Starknet {
@@ -103,6 +109,7 @@ impl Default for Starknet {
             transactions: Default::default(),
             config: Default::default(),
             pending_block_timestamp_shift: 0,
+            messaging: Default::default(),
         }
     }
 }
@@ -175,6 +182,7 @@ impl Starknet {
             transactions: StarknetTransactions::default(),
             config: config.clone(),
             pending_block_timestamp_shift: 0,
+            messaging: Default::default(),
         };
 
         this.restart_pending_block()?;
@@ -433,7 +441,7 @@ impl Starknet {
         let mut block = StarknetBlock::create_pending_block();
 
         block.header.block_number = self.block_context.block_number;
-        block.header.gas_price = GasPrice(self.block_context.gas_prices.eth_l1_gas_price);
+        block.header.eth_l1_gas_price = GasPrice(self.block_context.gas_prices.eth_l1_gas_price);
         block.header.sequencer = self.block_context.sequencer_address;
 
         self.blocks.pending_block = block;
@@ -610,6 +618,13 @@ impl Starknet {
         add_invoke_transaction::add_invoke_transaction_v3(self, invoke_transaction)
     }
 
+    pub fn add_l1_handler_transaction(
+        &mut self,
+        l1_handler_transaction: L1HandlerTransaction,
+    ) -> DevnetResult<TransactionHash> {
+        add_l1_handler_transaction::add_l1_handler_transaction(self, l1_handler_transaction)
+    }
+
     /// Creates an invoke tx for minting, using the chargeable account.
     pub async fn mint(&mut self, address: ContractAddress, amount: u128) -> DevnetResult<Felt> {
         let sufficiently_big_max_fee: u128 = self.config.gas_price as u128 * 1_000_000;
@@ -770,6 +785,107 @@ impl Starknet {
         transaction_to_map.get_receipt()
     }
 
+    fn get_execute_call_info(
+        execution_info: &TransactionExecutionInfo,
+        address_to_class_hash_map: &HashMap<ContractAddress, ClassHash>,
+    ) -> DevnetResult<ExecutionInvocation> {
+        Ok(match &execution_info.execute_call_info {
+            Some(call_info) => match call_info.execution.failed {
+                false => ExecutionInvocation::Succeeded(FunctionInvocation::try_from_call_info(
+                    call_info,
+                    address_to_class_hash_map,
+                )?),
+                true => {
+                    ExecutionInvocation::Reverted(starknet_types::rpc::transactions::Reversion {
+                        revert_reason: execution_info
+                            .revert_error
+                            .clone()
+                            .unwrap_or("Revert reason not found".into()),
+                    })
+                }
+            },
+            None => {
+                match execution_info.revert_error.clone() {
+                    Some(revert_reason) => ExecutionInvocation::Reverted(
+                        starknet_types::rpc::transactions::Reversion { revert_reason },
+                    ),
+                    None => {
+                        return Err(Error::UnexpectedInternalError {
+                            msg: "Simulation contains neither call_info nor revert_error".into(),
+                        });
+                    }
+                }
+            }
+        })
+    }
+
+    fn get_call_info_invocation(
+        call_info_invocation: &Option<CallInfo>,
+        address_to_class_hash_map: &HashMap<ContractAddress, ClassHash>,
+    ) -> DevnetResult<Option<FunctionInvocation>> {
+        Ok(if let Some(call_info) = call_info_invocation {
+            Some(FunctionInvocation::try_from_call_info(call_info, address_to_class_hash_map)?)
+        } else {
+            None
+        })
+    }
+
+    pub fn get_transaction_trace_by_hash(
+        &self,
+        transaction_hash: TransactionHash,
+    ) -> DevnetResult<TransactionTrace> {
+        let transaction_to_map =
+            self.transactions.get(&transaction_hash).ok_or(Error::NoTransaction)?;
+
+        let mut state =
+            self.get_state_at(&BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))?.clone();
+
+        let state_diff: ThinStateDiff = state.extract_state_diff_from_pending_state()?.into();
+        let state_diff =
+            if state_diff == ThinStateDiff::default() { None } else { Some(state_diff) };
+
+        let address_to_class_hash_map = &state.state.state.address_to_class_hash;
+
+        let validate_invocation = Self::get_call_info_invocation(
+            &transaction_to_map.execution_info.validate_call_info,
+            address_to_class_hash_map,
+        )?;
+
+        let fee_transfer_invocation = Self::get_call_info_invocation(
+            &transaction_to_map.execution_info.fee_transfer_call_info,
+            address_to_class_hash_map,
+        )?;
+
+        match transaction_to_map.inner {
+            Transaction::Declare(_) => Ok(TransactionTrace::Declare(DeclareTransactionTrace {
+                validate_invocation,
+                fee_transfer_invocation,
+                state_diff,
+            })),
+            Transaction::DeployAccount(_) => {
+                Ok(TransactionTrace::DeployAccount(DeployAccountTransactionTrace {
+                    validate_invocation,
+                    constructor_invocation: Self::get_call_info_invocation(
+                        &transaction_to_map.execution_info.execute_call_info,
+                        address_to_class_hash_map,
+                    )?,
+                    fee_transfer_invocation,
+                    state_diff,
+                }))
+            }
+            Transaction::Invoke(_) => Ok(TransactionTrace::Invoke(InvokeTransactionTrace {
+                validate_invocation,
+                execute_invocation: Self::get_execute_call_info(
+                    &transaction_to_map.execution_info,
+                    address_to_class_hash_map,
+                )?,
+                fee_transfer_invocation,
+                state_diff,
+            })),
+            _ => Err(Error::UnsupportedTransactionType),
+        }
+    }
+
     pub fn get_transaction_execution_and_finality_status(
         &self,
         transaction_hash: TransactionHash,
@@ -818,25 +934,15 @@ impl Starknet {
 
             let address_to_class_hash_map = &state.state.state.address_to_class_hash;
 
-            let validate_invocation =
-                if let Some(validate_info) = tx_execution_info.validate_call_info {
-                    Some(FunctionInvocation::try_from_call_info(
-                        validate_info,
-                        address_to_class_hash_map,
-                    )?)
-                } else {
-                    None
-                };
+            let validate_invocation = Self::get_call_info_invocation(
+                &tx_execution_info.validate_call_info,
+                address_to_class_hash_map,
+            )?;
 
-            let fee_transfer_invocation =
-                if let Some(fee_transfer_info) = tx_execution_info.fee_transfer_call_info {
-                    Some(FunctionInvocation::try_from_call_info(
-                        fee_transfer_info,
-                        address_to_class_hash_map,
-                    )?)
-                } else {
-                    None
-                };
+            let fee_transfer_invocation = Self::get_call_info_invocation(
+                &tx_execution_info.fee_transfer_call_info,
+                address_to_class_hash_map,
+            )?;
 
             let trace = match broadcasted_transaction {
                 BroadcastedTransaction::Declare(_) => {
@@ -849,16 +955,10 @@ impl Starknet {
                 BroadcastedTransaction::DeployAccount(_) => {
                     TransactionTrace::DeployAccount(DeployAccountTransactionTrace {
                         validate_invocation,
-                        constructor_invocation: if let Some(call_info) =
-                            tx_execution_info.execute_call_info
-                        {
-                            Some(FunctionInvocation::try_from_call_info(
-                                call_info,
-                                address_to_class_hash_map,
-                            )?)
-                        } else {
-                            None
-                        },
+                        constructor_invocation: Self::get_call_info_invocation(
+                            &tx_execution_info.execute_call_info,
+                            address_to_class_hash_map,
+                        )?,
                         fee_transfer_invocation,
                         state_diff,
                     })
@@ -868,35 +968,10 @@ impl Starknet {
                         fee_transfer_invocation,
                         validate_invocation,
                         state_diff,
-                        execute_invocation: match tx_execution_info.execute_call_info {
-                            Some(call_info) => match call_info.execution.failed {
-                                false => ExecutionInvocation::Succeeded(
-                                    FunctionInvocation::try_from_call_info(
-                                        call_info,
-                                        address_to_class_hash_map,
-                                    )?,
-                                ),
-                                true => ExecutionInvocation::Reverted(
-                                    starknet_types::rpc::transactions::Reversion {
-                                        revert_reason: tx_execution_info
-                                            .revert_error
-                                            .unwrap_or("Revert reason not found".into()),
-                                    },
-                                ),
-                            },
-                            None => match tx_execution_info.revert_error {
-                                Some(revert_reason) => ExecutionInvocation::Reverted(
-                                    starknet_types::rpc::transactions::Reversion { revert_reason },
-                                ),
-                                None => {
-                                    return Err(Error::UnexpectedInternalError {
-                                        msg: "Simulation contains neither call_info nor \
-                                              revert_error"
-                                            .into(),
-                                    });
-                                }
-                            },
-                        },
+                        execute_invocation: Self::get_execute_call_info(
+                            &tx_execution_info,
+                            address_to_class_hash_map,
+                        )?,
                     })
                 }
             };
@@ -1098,7 +1173,7 @@ mod tests {
         assert_eq!(starknet.pending_block().header.timestamp, initial_block_timestamp);
         assert_eq!(starknet.pending_block().header.block_number, initial_block_number);
         assert_eq!(starknet.pending_block().header.parent_hash, BlockHash::default());
-        assert_eq!(starknet.pending_block().header.gas_price, GasPrice(initial_gas_price));
+        assert_eq!(starknet.pending_block().header.eth_l1_gas_price, GasPrice(initial_gas_price));
         assert_eq!(starknet.pending_block().header.sequencer, initial_sequencer);
     }
 

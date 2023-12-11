@@ -17,7 +17,6 @@ use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::{LocalWallet, SigningKey};
 use starknet_types::felt::Felt;
 use starknet_types::num_bigint::BigUint;
-use thiserror::Error;
 use tokio::sync::Mutex;
 use url::Url;
 
@@ -25,22 +24,8 @@ use super::constants::{
     ACCOUNTS, CHAIN_ID_CLI_PARAM, HEALTHCHECK_PATH, HOST, MAX_PORT, MIN_PORT,
     PREDEPLOYED_ACCOUNT_INITIAL_BALANCE, RPC_PATH, SEED,
 };
+use super::errors::TestError;
 use crate::common::utils::get_json_body;
-
-#[derive(Error, Debug)]
-pub enum TestError {
-    #[error("No free ports")]
-    NoFreePorts,
-
-    #[error("Could not parse URL")]
-    UrlParseError(#[from] url::ParseError),
-
-    #[error("Invalid URI")]
-    InvalidUri(#[from] hyper::http::uri::InvalidUri),
-
-    #[error("Could not start Devnet. Make sure you've built it with: `cargo build --release`")]
-    DevnetNotStartable,
-}
 
 lazy_static! {
     /// This is to prevent TOCTOU errors; i.e. one background devnet might find one

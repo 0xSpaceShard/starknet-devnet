@@ -21,7 +21,9 @@ impl Starknet {
         for transaction in transactions.into_iter() {
             match transaction {
                 Transaction::Declare(DeclareTransaction::Version0(_)) => {
-                    return Err(Error::SerializationNotSupported);
+                    return Err(Error::SerializationNotSupported {
+                        obj_name: "Declare tx v0".into(),
+                    });
                 }
                 Transaction::Declare(DeclareTransaction::Version1(tx)) => {
                     let declare_tx = BroadcastedDeclareTransactionV1::new(
@@ -66,9 +68,13 @@ impl Starknet {
                     let deploy_account_tx: BroadcastedDeployAccountTransactionV3 = (*tx).into();
                     self.add_deploy_account_transaction_v3(deploy_account_tx)?;
                 }
-                Transaction::Deploy(_) => return Err(Error::SerializationNotSupported),
+                Transaction::Deploy(_) => {
+                    return Err(Error::SerializationNotSupported { obj_name: "Deploy tx".into() });
+                }
                 Transaction::Invoke(InvokeTransaction::Version0(_)) => {
-                    return Err(Error::SerializationNotSupported);
+                    return Err(Error::SerializationNotSupported {
+                        obj_name: "Invoke tx v0".into(),
+                    });
                 }
                 Transaction::Invoke(InvokeTransaction::Version1(tx)) => {
                     let invoke_tx = BroadcastedInvokeTransactionV1::new(
@@ -85,7 +91,17 @@ impl Starknet {
                     let invoke_tx: BroadcastedInvokeTransactionV3 = tx.into();
                     self.add_invoke_transaction_v3(invoke_tx)?;
                 }
-                Transaction::L1Handler(_) => return Err(Error::SerializationNotSupported),
+                Transaction::L1Handler(tx) => {
+                    self.add_l1_handler_transaction(L1HandlerTransaction {
+                        transaction_hash: tx.transaction_hash,
+                        version: tx.version,
+                        nonce: tx.nonce,
+                        contract_address: tx.contract_address,
+                        entry_point_selector: tx.entry_point_selector,
+                        calldata: tx.calldata.clone(),
+                        paid_fee_on_l1: tx.paid_fee_on_l1,
+                    })?;
+                }
             };
         }
 
@@ -99,9 +115,8 @@ impl Starknet {
                 let file_path = Path::new(path);
                 if file_path.exists() {
                     // attach to file
-                    let transaction_dump = serde_json::to_string(transaction).map_err(|_| {
-                        Error::SerializationError { obj_name: "Vec<Transaction>".to_string() }
-                    })?;
+                    let transaction_dump = serde_json::to_string(transaction)
+                        .map_err(|e| Error::SerializationError { origin: e.to_string() })?;
                     let mut file = OpenOptions::new()
                         .append(true)
                         .read(true)
@@ -124,9 +139,8 @@ impl Starknet {
                 } else {
                     // create file
                     let transactions = vec![transaction];
-                    let transactions_dump = serde_json::to_string(&transactions).map_err(|_| {
-                        Error::SerializationError { obj_name: "Vec<Transaction>".to_string() }
-                    })?;
+                    let transactions_dump = serde_json::to_string(&transactions)
+                        .map_err(|e| Error::SerializationError { origin: e.to_string() })?;
                     fs::write(Path::new(&path), transactions_dump)?;
                 }
 
@@ -153,9 +167,8 @@ impl Starknet {
 
                 // dump only if there are transactions to dump
                 if !transactions.is_empty() {
-                    let transactions_dump = serde_json::to_string(transactions).map_err(|_| {
-                        Error::SerializationError { obj_name: "Vec<Transaction>".to_string() }
-                    })?;
+                    let transactions_dump = serde_json::to_string(transactions)
+                        .map_err(|e| Error::SerializationError { origin: e.to_string() })?;
                     fs::write(Path::new(&path), transactions_dump)?;
                 }
 
@@ -184,10 +197,8 @@ impl Starknet {
                 // in case of load from HTTP endpoint return FileNotFound error
                 if file_path.exists() {
                     let file = File::open(file_path).map_err(Error::IoError)?;
-                    let transactions: Vec<Transaction> =
-                        serde_json::from_reader(file).map_err(|_| Error::DeserializationError {
-                            obj_name: "Vec<Transaction>".to_string(),
-                        })?;
+                    let transactions: Vec<Transaction> = serde_json::from_reader(file)
+                        .map_err(|e| Error::DeserializationError { origin: e.to_string() })?;
 
                     // to avoid doublets in transaction mode during load, we need to remove the file
                     // because they will be re-executed and saved again

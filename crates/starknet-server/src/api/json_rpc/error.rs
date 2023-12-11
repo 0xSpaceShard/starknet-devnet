@@ -25,7 +25,7 @@ pub enum ApiError {
     InvalidTransactionIndexInBlock,
     #[error("Class hash not found")]
     ClassHashNotFound,
-    #[error("Contract error")]
+    #[error("Contract error: {error}")]
     ContractError { error: starknet_core::error::Error },
     #[error("There are no blocks")]
     NoBlocks,
@@ -51,6 +51,8 @@ pub enum ApiError {
     InsufficientAccountBalance,
     #[error("Account validation failed")]
     ValidationFailure,
+    #[error("No trace available for transaction")]
+    NoTraceAvailable,
 }
 
 impl ApiError {
@@ -174,6 +176,11 @@ impl ApiError {
                 message: anyhow::format_err!(error).root_cause().to_string().into(),
                 data: None,
             },
+            ApiError::NoTraceAvailable => RpcError {
+                code: server::rpc_core::error::ErrorCode::ServerError(10),
+                message: error_message.into(),
+                data: None,
+            },
         }
     }
 }
@@ -263,7 +270,7 @@ mod tests {
         error_expected_code_and_message(
             ApiError::ContractError { error: test_error() },
             40,
-            "Contract error",
+            "Contract error: Account validation failed.",
         );
 
         // check contract error data property
