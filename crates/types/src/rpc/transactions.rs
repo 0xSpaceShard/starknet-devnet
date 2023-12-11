@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use blockifier::execution::call_info::{CallInfo, MessageToL1, OrderedL2ToL1Message};
+use blockifier::execution::call_info::{CallInfo, MessageToL1, };
 use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
@@ -19,7 +19,7 @@ use starknet_api::transaction::Fee;
 use starknet_rs_core::types::{BlockId, ExecutionResult, TransactionFinalityStatus};
 
 use super::estimate_message_fee::FeeEstimateWrapper;
-use super::messaging::{MessageToL1, OrderedMessageToL1};
+use super::messaging::OrderedMessageToL1;
 use super::state::ThinStateDiff;
 use super::transaction_receipt::ExecutionResources;
 use crate::constants::{

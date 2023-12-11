@@ -196,14 +196,19 @@ mod trace_tests {
     async fn get_traces_from_block() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-
         let latest_block = devnet.json_rpc_client.get_block_with_tx_hashes(BlockId::Tag(BlockTag::Latest)).await.unwrap();
 
         if let MaybePendingBlockWithTxHashes::Block(block) = latest_block
         {
             println!("block.block_hash: {:?}", block.block_hash);
-            let block_traces = devnet.json_rpc_client.trace_block_transactions(block.block_hash).await;
+   
+            let block_traces = devnet
+                .send_custom_rpc("starknet_traceBlockTransactions", json!({ "block_id": "latest" }))
+                .await["result"];
             println!("block_traces: {:?}", block_traces);
+
+            // let block_traces = devnet.json_rpc_client.trace_block_transactions(block.block_hash).await;
+            // println!("block_traces: {:?}", block_traces);
         }
     }
 }
