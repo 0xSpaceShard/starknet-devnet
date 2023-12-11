@@ -124,8 +124,8 @@ mod tests {
         starknet.block_context = Starknet::init_block_context(
             1,
             constants::ETH_ERC20_CONTRACT_ADDRESS,
-            DEVNET_DEFAULT_CHAIN_ID,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
+            DEVNET_DEFAULT_CHAIN_ID,
         );
 
         starknet.restart_pending_block().unwrap();

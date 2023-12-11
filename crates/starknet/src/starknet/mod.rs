@@ -100,8 +100,8 @@ impl Default for Starknet {
             block_context: Self::init_block_context(
                 0,
                 ETH_ERC20_CONTRACT_ADDRESS,
-                DEVNET_DEFAULT_CHAIN_ID,
                 STRK_ERC20_CONTRACT_ADDRESS,
+                DEVNET_DEFAULT_CHAIN_ID,
             ),
             state: Default::default(),
             predeployed_accounts: Default::default(),
@@ -175,8 +175,8 @@ impl Starknet {
             block_context: Self::init_block_context(
                 config.gas_price,
                 ETH_ERC20_CONTRACT_ADDRESS,
-                config.chain_id,
                 STRK_ERC20_CONTRACT_ADDRESS,
+                config.chain_id,
             ),
             blocks: StarknetBlocks::default(),
             transactions: StarknetTransactions::default(),
@@ -385,8 +385,8 @@ impl Starknet {
     fn init_block_context(
         gas_price: u64,
         eth_fee_token_address: &str,
-        chain_id: ChainId,
         strk_fee_token_address: &str,
+        chain_id: ChainId,
     ) -> BlockContext {
         use starknet_api::core::{ContractAddress, PatriciaKey};
         use starknet_api::hash::StarkHash;
@@ -1097,8 +1097,8 @@ mod tests {
         let block_ctx = Starknet::init_block_context(
             10,
             "0xAA",
-            DEVNET_DEFAULT_CHAIN_ID,
             STRK_ERC20_CONTRACT_ADDRESS,
+            DEVNET_DEFAULT_CHAIN_ID,
         );
         assert_eq!(block_ctx.block_number, BlockNumber(0));
         assert_eq!(block_ctx.block_timestamp, BlockTimestamp(0));
@@ -1182,8 +1182,8 @@ mod tests {
         let mut block_ctx = Starknet::init_block_context(
             0,
             ETH_ERC20_CONTRACT_ADDRESS,
-            DEVNET_DEFAULT_CHAIN_ID,
             STRK_ERC20_CONTRACT_ADDRESS,
+            DEVNET_DEFAULT_CHAIN_ID,
         );
         let initial_block_number = block_ctx.block_number;
         Starknet::update_block_context(&mut block_ctx);
