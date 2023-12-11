@@ -301,7 +301,8 @@ impl std::fmt::Display for StarknetRequest {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Debug)]
+#[cfg_attr(test, derive(Deserialize))]
 #[serde(untagged)]
 pub(crate) enum StarknetResponse {
     BlockWithTransactionHashes(Block),

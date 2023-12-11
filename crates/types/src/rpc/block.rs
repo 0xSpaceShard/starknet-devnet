@@ -96,7 +96,7 @@ impl<'de> Deserialize<'de> for BlockId {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Block {
     pub status: BlockStatus,
