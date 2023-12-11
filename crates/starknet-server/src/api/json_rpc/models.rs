@@ -79,6 +79,7 @@ pub struct BlockHashAndNumberOutput {
 
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(test, derive(Deserialize))]
+#[serde(untagged)]
 pub enum SyncingOutput {
     False(bool),
 }
