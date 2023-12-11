@@ -72,3 +72,5 @@ edit_manually:
     what: components/FEE_ESTIMATE field types from FELT to u64
   - action: ADD
     what: block_hash, block_number to required fields of EMITTED_EVENT
+  - action: REMOVE
+    what: starknet_syncing -> result -> oneOf SYNC_STATUS variant

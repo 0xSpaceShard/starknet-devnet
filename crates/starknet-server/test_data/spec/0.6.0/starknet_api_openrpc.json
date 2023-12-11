@@ -741,10 +741,6 @@
                             "type": "boolean",
                             "title": "False",
                             "description": "only legal value is FALSE here"
-                        },
-                        {
-                            "title": "Sync status",
-                            "$ref": "#/components/schemas/SYNC_STATUS"
                         }
                     ]
                 }

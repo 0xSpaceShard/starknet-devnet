@@ -126,13 +126,3 @@ pub struct ResourcePrice {
     pub price_in_fri: Felt,
     pub price_in_wei: Felt,
 }
-
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
-pub struct SyncStatus {
-    pub starting_block_hash: BlockHash,
-    pub starting_block_num: BlockNumber,
-    pub current_block_hash: BlockHash,
-    pub current_block_num: BlockNumber,
-    pub highest_block_hash: BlockHash,
-    pub highest_block_num: BlockNumber,
-}

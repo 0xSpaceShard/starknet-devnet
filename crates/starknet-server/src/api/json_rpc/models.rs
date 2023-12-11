@@ -3,7 +3,7 @@ use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalitySta
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, ClassHash, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
-use starknet_types::rpc::block::{BlockId, SyncStatus};
+use starknet_types::rpc::block::BlockId;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, BroadcastedTransaction, EventFilter, FunctionCall,
@@ -79,9 +79,7 @@ pub struct BlockHashAndNumberOutput {
 
 #[derive(Debug, Clone, Serialize)]
 #[cfg_attr(test, derive(Deserialize))]
-#[serde(untagged)]
 pub enum SyncingOutput {
-    True(SyncStatus),
     False(bool),
 }
 
