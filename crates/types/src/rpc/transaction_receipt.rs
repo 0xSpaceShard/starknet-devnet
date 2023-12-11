@@ -55,13 +55,21 @@ pub struct CommonTransactionReceipt {
 #[serde(deny_unknown_fields)]
 pub struct ExecutionResources {
     pub steps: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub memory_holes: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub range_check_builtin_applications: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub pedersen_builtin_applications: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub poseidon_builtin_applications: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub ec_op_builtin_applications: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub ecdsa_builtin_applications: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub bitwise_builtin_applications: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub keccak_builtin_applications: Option<usize>,
 }
 
