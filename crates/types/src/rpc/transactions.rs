@@ -444,6 +444,18 @@ pub enum TransactionTrace {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BlockTransactionTrace {
+    pub transaction_hash: Felt,
+    pub trace_root: TransactionTrace,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BlockTransactionTraces {
+    #[serde(flatten)]
+    pub block_traces: Vec<BlockTransactionTrace>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Reversion {
     pub revert_reason: String,
 }

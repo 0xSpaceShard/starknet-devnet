@@ -22,7 +22,7 @@ use starknet_types::rpc::estimate_message_fee::{
 use starknet_types::rpc::state::StateUpdate;
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
-    EventsChunk, SimulatedTransaction, Transaction, TransactionTrace,
+    BlockTransactionTraces, EventsChunk, SimulatedTransaction, Transaction, TransactionTrace,
 };
 use starknet_types::starknet_api::block::BlockNumber;
 use tracing::{error, info, trace};
@@ -188,6 +188,9 @@ impl JsonRpcHandler {
             StarknetRequest::TraceTransaction(TransactionHashInput { transaction_hash }) => {
                 self.get_trace_transaction(transaction_hash).await.to_rpc_result()
             }
+            StarknetRequest::BlockTransactionTraces(BlockIdInput { block_id }) => {
+                self.get_trace_block_transactions(block_id).await.to_rpc_result()
+            }
         }
     }
 }
@@ -249,6 +252,8 @@ pub enum StarknetRequest {
     SimulateTransactions(SimulateTransactionsInput),
     #[serde(rename = "starknet_traceTransaction")]
     TraceTransaction(TransactionHashInput),
+    #[serde(rename = "starknet_traceBlockTransactions")]
+    BlockTransactionTraces(BlockIdInput),
 }
 
 impl std::fmt::Display for StarknetRequest {
@@ -295,6 +300,9 @@ impl std::fmt::Display for StarknetRequest {
             StarknetRequest::EstimateMessageFee(_) => write!(f, "starknet_estimateMessageFee"),
             StarknetRequest::SimulateTransactions(_) => write!(f, "starknet_simulateTransactions"),
             StarknetRequest::TraceTransaction(_) => write!(f, "starknet_traceTransaction"),
+            StarknetRequest::BlockTransactionTraces(_) => {
+                write!(f, "starknet_traceBlockTransactions")
+            }
         }
     }
 }
@@ -329,6 +337,7 @@ pub(crate) enum StarknetResponse {
     SimulateTransactions(Vec<SimulatedTransaction>),
     SpecVersion(String),
     TraceTransaction(TransactionTrace),
+    BlockTransactionTraces(BlockTransactionTraces),
 }
 
 #[cfg(test)]
