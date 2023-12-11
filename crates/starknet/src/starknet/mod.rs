@@ -33,8 +33,11 @@ use starknet_types::rpc::state::ThinStateDiff;
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
-use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
-use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
+use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
+use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
+use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
+use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
+use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use starknet_types::rpc::transactions::{
     BroadcastedTransaction, BroadcastedTransactionCommon, DeclareTransaction,
     DeclareTransactionTrace, DeployAccountTransactionTrace, ExecutionInvocation,
@@ -42,15 +45,16 @@ use starknet_types::rpc::transactions::{
     SimulationFlag, Transaction, TransactionTrace, Transactions,
 };
 use starknet_types::traits::HashProducer;
-use tracing::{error, warn};
+use tracing::error;
 
-use self::predeployed::initialize_erc20;
+use self::predeployed::initialize_erc20_at_address;
 use self::starknet_config::{DumpOn, StarknetConfig};
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
     CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, DEVNET_DEFAULT_CHAIN_ID,
-    ERC20_CONTRACT_ADDRESS,
+    ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME, ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS,
+    STRK_ERC20_NAME, STRK_ERC20_SYMBOL,
 };
 use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::messaging::MessagingBroker;
@@ -95,7 +99,8 @@ impl Default for Starknet {
         Self {
             block_context: Self::init_block_context(
                 0,
-                ERC20_CONTRACT_ADDRESS,
+                ETH_ERC20_CONTRACT_ADDRESS,
+                STRK_ERC20_CONTRACT_ADDRESS,
                 DEVNET_DEFAULT_CHAIN_ID,
             ),
             state: Default::default(),
@@ -112,19 +117,36 @@ impl Default for Starknet {
 impl Starknet {
     pub fn new(config: &StarknetConfig) -> DevnetResult<Self> {
         let mut state = StarknetState::default();
-        // deploy udc and erc20 contracts
-        let erc20_fee_contract = predeployed::create_erc20()?;
+        // deploy udc, eth erc20 and strk erc20 contracts
+        let eth_erc20_fee_contract =
+            predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS)?;
+        let strk_erc20_fee_contract =
+            predeployed::create_erc20_at_address(STRK_ERC20_CONTRACT_ADDRESS)?;
+
         let udc_contract = predeployed::create_udc()?;
-
-        erc20_fee_contract.deploy(&mut state)?;
-        initialize_erc20(&mut state)?;
-
         udc_contract.deploy(&mut state)?;
+
+        eth_erc20_fee_contract.deploy(&mut state)?;
+        initialize_erc20_at_address(
+            &mut state,
+            ETH_ERC20_CONTRACT_ADDRESS,
+            ETH_ERC20_NAME,
+            ETH_ERC20_SYMBOL,
+        )?;
+
+        strk_erc20_fee_contract.deploy(&mut state)?;
+        initialize_erc20_at_address(
+            &mut state,
+            STRK_ERC20_CONTRACT_ADDRESS,
+            STRK_ERC20_NAME,
+            STRK_ERC20_SYMBOL,
+        )?;
 
         let mut predeployed_accounts = PredeployedAccounts::new(
             config.seed,
             config.predeployed_accounts_initial_balance,
-            erc20_fee_contract.get_address(),
+            eth_erc20_fee_contract.get_address(),
+            strk_erc20_fee_contract.get_address(),
         );
 
         let accounts = predeployed_accounts.generate_accounts(
@@ -137,7 +159,10 @@ impl Starknet {
             account.set_initial_balance(&mut state)?;
         }
 
-        let chargeable_account = Account::new_chargeable(erc20_fee_contract.get_address())?;
+        let chargeable_account = Account::new_chargeable(
+            eth_erc20_fee_contract.get_address(),
+            strk_erc20_fee_contract.get_address(),
+        )?;
         chargeable_account.deploy(&mut state)?;
         chargeable_account.set_initial_balance(&mut state)?;
 
@@ -149,7 +174,8 @@ impl Starknet {
             predeployed_accounts,
             block_context: Self::init_block_context(
                 config.gas_price,
-                ERC20_CONTRACT_ADDRESS,
+                ETH_ERC20_CONTRACT_ADDRESS,
+                STRK_ERC20_CONTRACT_ADDRESS,
                 config.chain_id,
             ),
             blocks: StarknetBlocks::default(),
@@ -274,6 +300,12 @@ impl Starknet {
                                 declare_v2.contract_class.clone().into(),
                             );
                         }
+                        Transaction::Declare(DeclareTransaction::Version3(declare_v3)) => {
+                            self.state.contract_classes.insert(
+                                *declare_v3.get_class_hash(),
+                                declare_v3.get_contract_class().clone().into(),
+                            );
+                        }
                         _ => {}
                     };
                 }
@@ -289,7 +321,7 @@ impl Starknet {
                         | blockifier::transaction::errors::TransactionFeeError::MaxFeeTooLow { .. } => Err(
                             TransactionValidationError::InsufficientMaxFee.into()
                         ),
-                        blockifier::transaction::errors::TransactionFeeError::MaxFeeExceedsBalance { .. } => Err(
+                        blockifier::transaction::errors::TransactionFeeError::MaxFeeExceedsBalance { .. } | blockifier::transaction::errors::TransactionFeeError::L1GasBoundsExceedBalance { .. } => Err(
                             TransactionValidationError::InsufficientAccountBalance.into()
                         ),
                         _ => Err(err.into())
@@ -352,7 +384,8 @@ impl Starknet {
 
     fn init_block_context(
         gas_price: u64,
-        fee_token_address: &str,
+        eth_fee_token_address: &str,
+        strk_fee_token_address: &str,
         chain_id: ChainId,
     ) -> BlockContext {
         use starknet_api::core::{ContractAddress, PatriciaKey};
@@ -367,8 +400,8 @@ impl Starknet {
             block_timestamp: BlockTimestamp(0),
             sequencer_address: contract_address!("0x1000"),
             fee_token_addresses: blockifier::block_context::FeeTokenAddresses {
-                eth_fee_token_address: contract_address!(fee_token_address),
-                strk_fee_token_address: contract_address!("0x1002"),
+                eth_fee_token_address: contract_address!(eth_fee_token_address),
+                strk_fee_token_address: contract_address!(strk_fee_token_address),
             },
             vm_resource_fee_cost: std::sync::Arc::new(HashMap::from([
                 (N_STEPS.to_string(), N_STEPS_FEE_WEIGHT),
@@ -505,8 +538,15 @@ impl Starknet {
         &self,
         block_id: BlockId,
         transactions: &[BroadcastedTransaction],
+        simulation_flags: &[SimulationFlag],
     ) -> DevnetResult<Vec<FeeEstimateWrapper>> {
-        estimations::estimate_fee(self, block_id, transactions, None, None)
+        let mut skip_validate = false;
+        for flag in simulation_flags.iter() {
+            if *flag == SimulationFlag::SkipValidate {
+                skip_validate = true;
+            }
+        }
+        estimations::estimate_fee(self, block_id, transactions, None, Some(!skip_validate))
     }
 
     pub fn estimate_message_fee(
@@ -531,26 +571,50 @@ impl Starknet {
         add_declare_transaction::add_declare_transaction_v2(self, declare_transaction)
     }
 
+    pub fn add_declare_transaction_v3(
+        &mut self,
+        declare_transaction: BroadcastedDeclareTransactionV3,
+    ) -> DevnetResult<(TransactionHash, ClassHash)> {
+        add_declare_transaction::add_declare_transaction_v3(self, declare_transaction)
+    }
+
     /// returning the chain id as object
     pub fn chain_id(&self) -> ChainId {
         self.config.chain_id
     }
 
-    pub fn add_deploy_account_transaction(
+    pub fn add_deploy_account_transaction_v1(
         &mut self,
-        deploy_account_transaction: BroadcastedDeployAccountTransaction,
+        deploy_account_transaction: BroadcastedDeployAccountTransactionV1,
     ) -> DevnetResult<(TransactionHash, ContractAddress)> {
-        add_deploy_account_transaction::add_deploy_account_transaction(
+        add_deploy_account_transaction::add_deploy_account_transaction_v1(
             self,
             deploy_account_transaction,
         )
     }
 
-    pub fn add_invoke_transaction(
+    pub fn add_deploy_account_transaction_v3(
         &mut self,
-        invoke_transaction: BroadcastedInvokeTransaction,
+        deploy_account_transaction: BroadcastedDeployAccountTransactionV3,
+    ) -> DevnetResult<(TransactionHash, ContractAddress)> {
+        add_deploy_account_transaction::add_deploy_account_transaction_v3(
+            self,
+            deploy_account_transaction,
+        )
+    }
+
+    pub fn add_invoke_transaction_v1(
+        &mut self,
+        invoke_transaction: BroadcastedInvokeTransactionV1,
     ) -> DevnetResult<TransactionHash> {
-        add_invoke_transaction::add_invoke_transaction(self, invoke_transaction)
+        add_invoke_transaction::add_invoke_transaction_v1(self, invoke_transaction)
+    }
+
+    pub fn add_invoke_transaction_v3(
+        &mut self,
+        invoke_transaction: BroadcastedInvokeTransactionV3,
+    ) -> DevnetResult<TransactionHash> {
+        add_invoke_transaction::add_invoke_transaction_v3(self, invoke_transaction)
     }
 
     pub fn add_l1_handler_transaction(
@@ -575,7 +639,7 @@ impl Starknet {
             FieldElement::from(0u32),   // `high` part
         ];
 
-        let erc20_address_felt = Felt::from_prefixed_hex_str(ERC20_CONTRACT_ADDRESS)?;
+        let erc20_address_felt = Felt::from_prefixed_hex_str(ETH_ERC20_CONTRACT_ADDRESS)?;
         let raw_execution = RawExecution {
             calls: vec![Call {
                 to: erc20_address_felt.into(),
@@ -599,7 +663,7 @@ impl Starknet {
         );
         let signature = signer.sign_hash(&msg_hash_felt).await?;
 
-        let invoke_tx = BroadcastedInvokeTransaction {
+        let invoke_tx = BroadcastedInvokeTransactionV1 {
             sender_address: ContractAddress::new(chargeable_address_felt)?,
             calldata: raw_execution.raw_calldata().into_iter().map(|c| c.into()).collect(),
             common: BroadcastedTransactionCommon {
@@ -611,7 +675,7 @@ impl Starknet {
         };
 
         // apply the invoke tx
-        self.add_invoke_transaction(invoke_tx)
+        add_invoke_transaction::add_invoke_transaction_v1(self, invoke_tx)
     }
 
     pub fn block_state_update(&self, block_id: BlockId) -> DevnetResult<StateUpdate> {
@@ -845,7 +909,6 @@ impl Starknet {
             match flag {
                 SimulationFlag::SkipValidate => {
                     skip_validate = true;
-                    warn!("SKIP_VALIDATE chosen in simulation, but does not affect fee estimation");
                 }
                 SimulationFlag::SkipFeeCharge => skip_fee_charge = true,
             }
@@ -995,9 +1058,11 @@ mod tests {
     use starknet_types::felt::Felt;
 
     use super::Starknet;
+    use crate::account::FeeToken;
     use crate::blocks::StarknetBlock;
     use crate::constants::{
-        DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_INITIAL_BALANCE, ERC20_CONTRACT_ADDRESS,
+        DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_INITIAL_BALANCE, ETH_ERC20_CONTRACT_ADDRESS,
+        STRK_ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::{DevnetResult, Error};
     use crate::starknet::starknet_config::StarknetConfig;
@@ -1015,7 +1080,10 @@ mod tests {
         let expected_balance = config.predeployed_accounts_initial_balance;
 
         for account in predeployed_accounts {
-            let account_balance = account.get_balance(&mut starknet.state).unwrap();
+            let account_balance = account.get_balance(&mut starknet.state, FeeToken::ETH).unwrap();
+            assert_eq!(expected_balance, account_balance);
+
+            let account_balance = account.get_balance(&mut starknet.state, FeeToken::STRK).unwrap();
             assert_eq!(expected_balance, account_balance);
         }
     }
@@ -1024,7 +1092,12 @@ mod tests {
     fn correct_block_context_creation() {
         let fee_token_address =
             ContractAddress::new(Felt::from_prefixed_hex_str("0xAA").unwrap()).unwrap();
-        let block_ctx = Starknet::init_block_context(10, "0xAA", DEVNET_DEFAULT_CHAIN_ID);
+        let block_ctx = Starknet::init_block_context(
+            10,
+            "0xAA",
+            STRK_ERC20_CONTRACT_ADDRESS,
+            DEVNET_DEFAULT_CHAIN_ID,
+        );
         assert_eq!(block_ctx.block_number, BlockNumber(0));
         assert_eq!(block_ctx.block_timestamp, BlockTimestamp(0));
         assert_eq!(block_ctx.gas_prices.eth_l1_gas_price, 10);
@@ -1104,7 +1177,12 @@ mod tests {
 
     #[test]
     fn correct_block_context_update() {
-        let mut block_ctx = Starknet::init_block_context(0, "0x0", DEVNET_DEFAULT_CHAIN_ID);
+        let mut block_ctx = Starknet::init_block_context(
+            0,
+            ETH_ERC20_CONTRACT_ADDRESS,
+            STRK_ERC20_CONTRACT_ADDRESS,
+            DEVNET_DEFAULT_CHAIN_ID,
+        );
         let initial_block_number = block_ctx.block_number;
         Starknet::update_block_context(&mut block_ctx);
 
@@ -1182,7 +1260,7 @@ mod tests {
 
         match starknet.call(
             BlockId::Tag(BlockTag::Latest),
-            Felt::from_prefixed_hex_str(ERC20_CONTRACT_ADDRESS).unwrap(),
+            Felt::from_prefixed_hex_str(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
             entry_point_selector.into(),
             vec![Felt::from(predeployed_account.account_address)],
         ) {
@@ -1206,7 +1284,7 @@ mod tests {
             starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();
         starknet.call(
             BlockId::Tag(BlockTag::Latest),
-            Felt::from_prefixed_hex_str(ERC20_CONTRACT_ADDRESS)?,
+            Felt::from_prefixed_hex_str(ETH_ERC20_CONTRACT_ADDRESS)?,
             entry_point_selector.into(),
             vec![Felt::from(contract_address)],
         )

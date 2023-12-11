@@ -1,7 +1,7 @@
 {
     "openrpc": "1.0.0-rc1",
     "info": {
-        "version": "0.5.1",
+        "version": "0.6.0",
         "title": "StarkNet Trace API",
         "license": {}
     },
@@ -39,7 +39,7 @@
         },
         {
             "name": "starknet_simulateTransactions",
-            "summary": "simulate a given sequence of transactions on the requested state, and generate the execution traces. If one of the transactions is reverted, raises CONTRACT_ERROR.",
+            "summary": "Simulate a given sequence of transactions on the requested state, and generate the execution traces. Note that some of the transactions may revert, in which case no error is thrown, but revert details can be seen on the returned trace object. . Note that some of the transactions may revert, this will be reflected by the revert_error property in the trace. Other types of failures (e.g. unexpected error or failure in the validation phase) will result in TRANSACTION_EXECUTION_ERROR.",
             "params": [
                 {
                     "name": "block_id",
@@ -95,13 +95,10 @@
             },
             "errors": [
                 {
-                    "$ref": "#/components/errors/CONTRACT_NOT_FOUND"
-                },
-                {
-                    "$ref": "#/components/errors/CONTRACT_ERROR"
-                },
-                {
                     "$ref": "#/components/errors/BLOCK_NOT_FOUND"
+                },
+                {
+                    "$ref": "#/components/errors/TRANSACTION_EXECUTION_ERROR"
                 }
             ]
         }
@@ -314,6 +311,11 @@
                                 "items": {
                                     "$ref": "#/components/schemas/ORDERED_MESSAGE"
                                 }
+                            },
+                            "execution_resources": {
+                                "title": "Execution resources",
+                                "description": "Resources consumed by the internal call",
+                                "$ref": "#/components/schemas/EXECUTION_RESOURCES"
                             }
                         },
                         "required": [
@@ -324,7 +326,8 @@
                             "result",
                             "calls",
                             "events",
-                            "messages"
+                            "messages",
+                            "execution_resources"
                         ]
                     }
                 ]
@@ -340,9 +343,9 @@
             "CALL_TYPE": {
                 "type": "string",
                 "enum": [
-                    "DELEGATE",
                     "LIBRARY_CALL",
-                    "CALL"
+                    "CALL",
+                    "DELEGATE"
                 ]
             },
             "ORDERED_EVENT": {
@@ -356,7 +359,7 @@
                             "order": {
                                 "title": "order",
                                 "description": "the order of the event within the transaction",
-                                "type": "number"
+                                "type": "integer"
                             }
                         }
                     },
@@ -376,7 +379,7 @@
                             "order": {
                                 "title": "order",
                                 "description": "the order of the message within the transaction",
-                                "type": "number"
+                                "type": "integer"
                             }
                         }
                     },
@@ -408,6 +411,9 @@
             },
             "STATE_DIFF": {
                 "$ref": "./api/starknet_api_openrpc.json#/components/schemas/STATE_DIFF"
+            },
+            "EXECUTION_RESOURCES": {
+                "$ref": "./api/starknet_api_openrpc.json#/components/schemas/EXECUTION_RESOURCES"
             }
         },
         "errors": {
@@ -428,21 +434,14 @@
                     }
                 }
             },
-            "CONTRACT_NOT_FOUND": {
-                "code": 20,
-                "message": "Contract not found"
-            },
-            "INVALID_TXN_HASH": {
-                "code": 25,
-                "message": "Invalid transaction hash"
+            "TXN_HASH_NOT_FOUND": {
+                "$ref": "./api/starknet_api_openrpc.json#/components/errors/TXN_HASH_NOT_FOUND"
             },
             "BLOCK_NOT_FOUND": {
-                "code": 24,
-                "message": "Invalid block hash"
+                "$ref": "./api/starknet_api_openrpc.json#/components/errors/BLOCK_NOT_FOUND"
             },
-            "CONTRACT_ERROR": {
-                "code": 40,
-                "message": "Contract error"
+            "TRANSACTION_EXECUTION_ERROR": {
+                "$ref": "./api/starknet_api_openrpc.json#/components/errors/TRANSACTION_EXECUTION_ERROR"
             }
         }
     }

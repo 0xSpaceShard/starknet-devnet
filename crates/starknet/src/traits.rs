@@ -3,6 +3,7 @@ use starknet_types::contract_class::ContractClass;
 use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::felt::{Balance, ClassHash, Felt};
 
+use crate::account::FeeToken;
 use crate::error::DevnetResult;
 use crate::state::state_diff::StateDiff;
 
@@ -29,8 +30,22 @@ pub trait Deployed {
 
 /// This trait sets the interface for the account
 pub trait Accounted {
+    /// Set initial balance for the account in ETH and STRK token
+    ///
+    /// # Arguments
+    /// `state` - state of the devnet
     fn set_initial_balance(&self, state: &mut impl StateChanger) -> DevnetResult<()>;
-    fn get_balance(&self, state: &mut impl StateExtractor) -> DevnetResult<Balance>;
+
+    /// Get balance of the account. In `FeeToken` token
+    ///
+    /// # Arguments
+    /// `state` - state of the devnet
+    /// `token` - enum `FeeToken` to get balance in
+    fn get_balance(
+        &self,
+        state: &mut impl StateExtractor,
+        token: FeeToken,
+    ) -> DevnetResult<Balance>;
 }
 
 /// Interface for modifying the state

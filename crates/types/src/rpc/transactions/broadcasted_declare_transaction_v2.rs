@@ -17,7 +17,7 @@ use crate::rpc::transactions::declare_transaction_v2::DeclareTransactionV2;
 use crate::rpc::transactions::BroadcastedTransactionCommon;
 use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct BroadcastedDeclareTransactionV2 {
     #[serde(flatten)]

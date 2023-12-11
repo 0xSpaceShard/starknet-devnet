@@ -9,8 +9,12 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{Event, OrderedEvent};
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
 use starknet_types::rpc::messaging::{MessageToL1, OrderedMessageToL1};
-use starknet_types::rpc::transaction_receipt::{DeployTransactionReceipt, TransactionReceipt};
-use starknet_types::rpc::transactions::{Transaction, TransactionType};
+use starknet_types::rpc::transaction_receipt::{
+    DeployTransactionReceipt, FeeAmount, FeeInUnits, TransactionReceipt,
+};
+use starknet_types::rpc::transactions::{
+    DeclareTransaction, DeployAccountTransaction, InvokeTransaction, Transaction, TransactionType,
+};
 
 use crate::constants::UDC_CONTRACT_ADDRESS;
 use crate::error::{DevnetResult, Error};
@@ -158,6 +162,19 @@ impl StarknetTransaction {
 
         let transaction_messages = self.get_l2_to_l1_messages();
 
+        // decide what units to set for actual fee.
+        // L1 Handler transactions are in WEI
+        // V3 transactions are in STRK(FRI)
+        // Other transactions versions are in ETH(WEI)
+        let fee_amount = FeeAmount { amount: self.execution_info.actual_fee };
+        let actual_fee_in_units = match self.inner {
+            Transaction::L1Handler(_) => FeeInUnits::WEI(fee_amount),
+            Transaction::Declare(DeclareTransaction::Version3(_))
+            | Transaction::DeployAccount(DeployAccountTransaction::Version3(_))
+            | Transaction::Invoke(InvokeTransaction::Version3(_)) => FeeInUnits::FRI(fee_amount),
+            _ => FeeInUnits::WEI(fee_amount),
+        };
+
         let mut common_receipt = self.inner.create_common_receipt(
             &transaction_events,
             &transaction_messages,
@@ -165,15 +182,15 @@ impl StarknetTransaction {
             self.block_number,
             &self.execution_result,
             self.finality_status,
-            self.execution_info.actual_fee,
+            actual_fee_in_units,
             &self.execution_info,
         );
 
         match &self.inner {
-            Transaction::DeployAccount(deploy_account_transaction) => {
+            Transaction::DeployAccount(deploy_account_txn) => {
                 Ok(TransactionReceipt::Deploy(DeployTransactionReceipt {
                     common: common_receipt,
-                    contract_address: deploy_account_transaction.contract_address,
+                    contract_address: *deploy_account_txn.get_contract_address(),
                 }))
             }
             Transaction::Invoke(_) => {
@@ -270,7 +287,6 @@ mod tests {
     #[test]
     fn check_correct_successful_transaction_creation() {
         let tx = Transaction::Declare(DeclareTransaction::Version1(dummy_declare_transaction_v1()));
-
         let sn_tran =
             StarknetTransaction::create_accepted(&tx, TransactionExecutionInfo::default());
         assert_eq!(sn_tran.finality_status, TransactionFinalityStatus::AcceptedOnL2);
