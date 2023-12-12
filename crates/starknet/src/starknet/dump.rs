@@ -4,10 +4,14 @@ use std::path::Path;
 
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
-use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
-use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
+use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
+use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
+use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
+use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
+use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use starknet_types::rpc::transactions::{
-    DeclareTransaction, InvokeTransaction, L1HandlerTransaction, Transaction,
+    DeclareTransaction, DeployAccountTransaction, InvokeTransaction, L1HandlerTransaction,
+    Transaction,
 };
 
 use super::{DumpOn, Starknet};
@@ -15,7 +19,7 @@ use crate::error::{DevnetResult, Error};
 
 impl Starknet {
     pub fn re_execute(&mut self, transactions: Vec<Transaction>) -> DevnetResult<()> {
-        for transaction in transactions.iter() {
+        for transaction in transactions.into_iter() {
             match transaction {
                 Transaction::Declare(DeclareTransaction::Version0(_)) => {
                     return Err(Error::SerializationNotSupported {
@@ -45,8 +49,12 @@ impl Starknet {
                     );
                     self.add_declare_transaction_v2(declare_tx)?;
                 }
-                Transaction::DeployAccount(tx) => {
-                    let deploy_account_tx = BroadcastedDeployAccountTransaction::new(
+                Transaction::Declare(DeclareTransaction::Version3(tx)) => {
+                    let declare_tx: BroadcastedDeclareTransactionV3 = tx.into();
+                    self.add_declare_transaction_v3(declare_tx)?;
+                }
+                Transaction::DeployAccount(DeployAccountTransaction::Version1(tx)) => {
+                    let deploy_account_tx = BroadcastedDeployAccountTransactionV1::new(
                         &tx.constructor_calldata,
                         tx.max_fee,
                         &tx.signature,
@@ -55,7 +63,11 @@ impl Starknet {
                         tx.contract_address_salt,
                         tx.version,
                     );
-                    self.add_deploy_account_transaction(deploy_account_tx)?;
+                    self.add_deploy_account_transaction_v1(deploy_account_tx)?;
+                }
+                Transaction::DeployAccount(DeployAccountTransaction::Version3(tx)) => {
+                    let deploy_account_tx: BroadcastedDeployAccountTransactionV3 = (*tx).into();
+                    self.add_deploy_account_transaction_v3(deploy_account_tx)?;
                 }
                 Transaction::Deploy(_) => {
                     return Err(Error::SerializationNotSupported { obj_name: "Deploy tx".into() });
@@ -66,7 +78,7 @@ impl Starknet {
                     });
                 }
                 Transaction::Invoke(InvokeTransaction::Version1(tx)) => {
-                    let invoke_tx = BroadcastedInvokeTransaction::new(
+                    let invoke_tx = BroadcastedInvokeTransactionV1::new(
                         tx.sender_address,
                         tx.max_fee,
                         &tx.signature,
@@ -74,7 +86,11 @@ impl Starknet {
                         &tx.calldata,
                         tx.version,
                     );
-                    self.add_invoke_transaction(invoke_tx)?;
+                    self.add_invoke_transaction_v1(invoke_tx)?;
+                }
+                Transaction::Invoke(InvokeTransaction::Version3(tx)) => {
+                    let invoke_tx: BroadcastedInvokeTransactionV3 = tx.into();
+                    self.add_invoke_transaction_v3(invoke_tx)?;
                 }
                 Transaction::L1Handler(tx) => {
                     self.add_l1_handler_transaction(L1HandlerTransaction {

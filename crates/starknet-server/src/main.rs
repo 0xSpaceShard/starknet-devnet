@@ -7,8 +7,8 @@ use clap::Parser;
 use cli::Args;
 use starknet_core::account::Account;
 use starknet_core::constants::{
-    ERC20_CONTRACT_ADDRESS, ERC20_CONTRACT_CLASS_HASH, UDC_CONTRACT_ADDRESS,
-    UDC_CONTRACT_CLASS_HASH,
+    ERC20_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
+    UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
 };
 use starknet_core::starknet::starknet_config::DumpOn;
 use starknet_core::starknet::Starknet;
@@ -52,14 +52,18 @@ fn log_predeployed_accounts(predeployed_accounts: &Vec<Account>, seed: u32, init
         println!();
         let class_hash = predeployed_accounts.get(0).unwrap().class_hash.to_prefixed_hex_str();
         println!("Predeployed accounts using class with hash: {class_hash}");
-        println!("Initial balance of each account: {} WEI", initial_balance.to_decimal_string());
+        println!(
+            "Initial balance of each account: {} WEI and FRI",
+            initial_balance.to_decimal_string()
+        );
         println!("Seed to replicate this account sequence: {seed}");
     }
 }
 
 fn print_predeployed_contracts() {
     println!("Predeployed FeeToken");
-    println!("Address: {ERC20_CONTRACT_ADDRESS}");
+    println!("ETH Address: {ETH_ERC20_CONTRACT_ADDRESS}");
+    println!("STRK Address: {STRK_ERC20_CONTRACT_ADDRESS}");
     println!("Class Hash: {ERC20_CONTRACT_CLASS_HASH}");
     println!();
     println!("Predeployed UDC");

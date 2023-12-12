@@ -20,16 +20,12 @@ This repository is work in progress, please be patient. Please check below the s
 
 ### Supported Features
 
-- [x] RPC v0.5.1
+- [x] RPC v0.6.0-rc5
 - [x] [Dump & Load](https://github.com/0xSpaceShard/starknet-devnet-rs#dumping--loading)
 - [x] [Mint token - Local faucet](https://0xspaceshard.github.io/starknet-devnet/docs/guide/mint-token)
 - [x] [Customizable predeployed accounts](#predeployed-contracts)
 - [x] Starknet.js test suite passes 100%
 - [x] [Advancing time](https://0xspaceshard.github.io/starknet-devnet/docs/guide/advancing-time)
-
-### TODO
-
-- [ ] RPC v0.6.0
 
 ### TODO to reach feature parity with the Pythonic Devnet
 

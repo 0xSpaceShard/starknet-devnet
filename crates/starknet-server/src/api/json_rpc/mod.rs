@@ -135,9 +135,11 @@ impl JsonRpcHandler {
             StarknetRequest::Call(CallInput { request, block_id }) => {
                 self.call(block_id, request).await.to_rpc_result()
             }
-            StarknetRequest::EsimateFee(EstimateFeeInput { request, block_id }) => {
-                self.estimate_fee(block_id, request).await.to_rpc_result()
-            }
+            StarknetRequest::EsimateFee(EstimateFeeInput {
+                request,
+                block_id,
+                simulation_flags,
+            }) => self.estimate_fee(block_id, request, simulation_flags).await.to_rpc_result(),
             StarknetRequest::BlockNumber => self.block_number().await.to_rpc_result(),
             StarknetRequest::BlockHashAndNumber => {
                 self.block_hash_and_number().await.to_rpc_result()
@@ -307,7 +309,8 @@ impl std::fmt::Display for StarknetRequest {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Debug)]
+#[cfg_attr(test, derive(Deserialize))]
 #[serde(untagged)]
 pub(crate) enum StarknetResponse {
     BlockWithTransactionHashes(Block),
@@ -550,6 +553,7 @@ mod requests_tests {
             "method":"starknet_estimateFee",
             "params":{
                 "block_id":"latest",
+                "simulation_flags": [],
                 "request":[
                     {
                         "type":"DEPLOY_ACCOUNT",
@@ -654,6 +658,7 @@ mod requests_tests {
             "method": "starknet_estimateFee",
             "params": {
                 "block_id": "latest",
+                "simulation_flags": [],
                 "request": requests
             }
         })

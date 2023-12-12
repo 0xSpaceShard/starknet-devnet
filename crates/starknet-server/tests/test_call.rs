@@ -1,7 +1,7 @@
 pub mod common;
 
 mod call {
-    use starknet_core::constants::ERC20_CONTRACT_ADDRESS;
+    use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, FunctionCall, StarknetError};
     use starknet_rs_providers::{
         MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
@@ -54,7 +54,8 @@ mod call {
             .json_rpc_client
             .call(
                 FunctionCall {
-                    contract_address: FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap(),
+                    contract_address: FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS)
+                        .unwrap(),
                     entry_point_selector,
                     calldata: vec![contract_address],
                 },

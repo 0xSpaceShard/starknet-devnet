@@ -1,5 +1,6 @@
 use blockifier::fee::fee_utils::{calculate_l1_gas_by_vm_usage, extract_l1_gas_and_vm_usage};
 use blockifier::transaction::account_transaction::AccountTransaction;
+use blockifier::transaction::objects::HasRelatedFeeType;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_rs_core::types::{BlockId, MsgFromL1};
 use starknet_types::contract_address::ContractAddress;
@@ -78,6 +79,15 @@ fn estimate_transaction_fee(
     charge_fee: Option<bool>,
     validate: Option<bool>,
 ) -> DevnetResult<FeeEstimateWrapper> {
+    let fee_type = match transaction {
+        blockifier::transaction::transaction_execution::Transaction::AccountTransaction(ref tx) => {
+            tx.fee_type()
+        }
+        blockifier::transaction::transaction_execution::Transaction::L1HandlerTransaction(
+            ref tx,
+        ) => tx.fee_type(),
+    };
+
     let transaction_execution_info = transaction.execute(
         &mut state.state,
         block_context,
@@ -97,5 +107,12 @@ fn estimate_transaction_fee(
 
     let gas_price = block_context.gas_prices.eth_l1_gas_price as u64;
 
-    Ok(FeeEstimateWrapper::new(total_l1_gas_usage, gas_price, total_l1_gas_usage * gas_price))
+    Ok(match fee_type {
+        blockifier::transaction::objects::FeeType::Strk => {
+            FeeEstimateWrapper::new_in_strk_units(total_l1_gas_usage, gas_price)
+        }
+        blockifier::transaction::objects::FeeType::Eth => {
+            FeeEstimateWrapper::new_in_wei_units(total_l1_gas_usage, gas_price)
+        }
+    })
 }

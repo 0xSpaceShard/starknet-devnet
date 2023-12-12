@@ -91,6 +91,13 @@ impl From<Felt> for starknet_rs_ff::FieldElement {
     }
 }
 
+impl From<&Felt> for starknet_rs_ff::FieldElement {
+    fn from(value: &Felt) -> Self {
+        starknet_rs_ff::FieldElement::from_bytes_be(&value.0)
+            .expect("Convert Felt to FieldElement, should be the same")
+    }
+}
+
 impl From<starknet_rs_ff::FieldElement> for Felt {
     fn from(value: starknet_rs_ff::FieldElement) -> Self {
         Self(value.to_bytes_be())

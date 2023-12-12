@@ -186,7 +186,14 @@ impl<'a> Visitor for RandDataGenerator<'a> {
             let generated_value =
                 generate_schema_value(inner_schema, self.schemas, self.depth + 1)?;
 
-            if !generated_value.is_null() {
+            // this means that it reached max depth, but one last value must be generated,
+            // because it the object will be generated without this property and further
+            // deserialization will fail with missing field
+            if generated_value.is_null() {
+                let generated_value =
+                    generate_schema_value(inner_schema, self.schemas, self.depth)?;
+                accumulated_json_value.insert(key.to_string(), generated_value);
+            } else {
                 accumulated_json_value.insert(key.to_string(), generated_value);
             }
         }

@@ -44,6 +44,7 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Starknet-rs does not support estimate_fee with simulation_flags"]
     async fn estimate_fee_of_deploy_account() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -106,6 +107,7 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Starknet-rs does not support estimate_fee with simulation_flags"]
     async fn estimate_fee_of_invalid_deploy_account() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -140,6 +142,7 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Starknet-rs does not support estimate_fee with simulation_flags"]
     async fn estimate_fee_of_declare_v1() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -198,6 +201,7 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Starknet-rs does not support estimate_fee with simulation_flags"]
     async fn estimate_fee_of_declare_v2() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -257,6 +261,7 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Starknet-rs does not support estimate_fee with simulation_flags"]
     async fn estimate_fee_of_invoke() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -358,6 +363,7 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Starknet-rs does not support estimate_fee with simulation_flags"]
     async fn message_available_if_estimation_panics() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -428,6 +434,7 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Starknet-rs does not support estimate_fee with simulation_flags"]
     async fn using_query_version_if_estimating() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -481,6 +488,7 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Starknet-rs does not support estimate_fee with simulation_flags"]
     /// estimate fee of declare + deploy (invoke udc)
     async fn estimate_fee_of_multiple_txs() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
