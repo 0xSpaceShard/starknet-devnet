@@ -235,7 +235,7 @@ mod trace_tests {
                     .unwrap()
             )
             .unwrap(),
-            FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap()
+            FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
         );
     }
 }
