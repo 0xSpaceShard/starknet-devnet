@@ -342,8 +342,9 @@ impl Starknet {
                     ) => match_tx_fee_error(err),
                     blockifier::transaction::errors::TransactionExecutionError::TransactionFeeError(err)
                       => match_tx_fee_error(err),
-                    blockifier::transaction::errors::TransactionExecutionError::ValidateTransactionError(..) =>
-                        Err(TransactionValidationError::ValidationFailure.into()),
+                    blockifier::transaction::errors::TransactionExecutionError::ValidateTransactionError(err) => {
+                        Err(TransactionValidationError::ValidationFailure { reason: err.to_string() }.into())
+                    }
                     _ => Err(tx_err.into())
                 }
             }

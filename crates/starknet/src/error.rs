@@ -88,8 +88,8 @@ pub enum TransactionValidationError {
     InvalidTransactionNonce,
     #[error("Account balance is not enough to cover the transaction cost.")]
     InsufficientAccountBalance,
-    #[error("Account validation failed.")]
-    ValidationFailure,
+    #[error("Account validation failed: {reason}")]
+    ValidationFailure { reason: String },
 }
 
 #[derive(Debug, Error)]
