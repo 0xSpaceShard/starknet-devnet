@@ -355,7 +355,7 @@ mod tests {
         error_expected_code_and_message(
             ApiError::ValidationFailure { reason },
             55,
-            "Account validation failed",
+            "Account validation failed: some reason",
         );
     }
 
