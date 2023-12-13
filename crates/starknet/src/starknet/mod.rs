@@ -261,8 +261,8 @@ impl Starknet {
         self.blocks.insert(new_block, state_diff);
         // save into blocks state archive
 
-        let deep_cloned_state = self.state.clone();
-        self.blocks.save_state_at(new_block_number, deep_cloned_state);
+        // let deep_cloned_state = self.state.clone();
+        // self.blocks.save_state_at(new_block_number, deep_cloned_state);
 
         Ok(new_block_number)
     }
