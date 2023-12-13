@@ -15,6 +15,7 @@ mod trace_tests {
     use starknet_rs_providers::{
         MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
     };
+    use starknet_types::rpc::transactions::BlockTransactionTrace;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::{
@@ -199,21 +200,27 @@ mod trace_tests {
         // this test also needs to be updated
         let block_traces = &devnet
             .send_custom_rpc("starknet_traceBlockTransactions", json!({ "block_id": "latest" }))
-            .await["result"];
+            .await["result"]["traces"];
+        let traces = &block_traces[0];
+
+        // assert if there is only one transaction trace
+        assert_eq!(
+            serde_json::from_value::<Vec<BlockTransactionTrace>>(block_traces.clone(),)
+                .unwrap()
+                .len(),
+            1
+        );
 
         // assert transaction hash
         assert_eq!(
             mint_tx_hash,
-            FieldElement::from_hex_be(
-                block_traces["traces"][0]["transaction_hash"].as_str().unwrap()
-            )
-            .unwrap()
+            FieldElement::from_hex_be(traces["transaction_hash"].as_str().unwrap()).unwrap()
         );
 
         // assert validate invocation
         assert_mint_invocation(
             serde_json::from_value::<FunctionInvocation>(
-                block_traces["traces"][0]["trace_root"]["validate_invocation"].clone(),
+                traces["trace_root"]["validate_invocation"].clone(),
             )
             .unwrap(),
         );
@@ -221,7 +228,7 @@ mod trace_tests {
         // assert execute invocation
         assert_mint_invocation(
             serde_json::from_value::<FunctionInvocation>(
-                block_traces["traces"][0]["trace_root"]["execute_invocation"].clone(),
+                traces["trace_root"]["execute_invocation"].clone(),
             )
             .unwrap(),
         );
@@ -229,8 +236,7 @@ mod trace_tests {
         // assert fee transfer invocation
         assert_eq!(
             FieldElement::from_hex_be(
-                block_traces["traces"][0]["trace_root"]["fee_transfer_invocation"]
-                    ["contract_address"]
+                traces["trace_root"]["fee_transfer_invocation"]["contract_address"]
                     .as_str()
                     .unwrap()
             )
