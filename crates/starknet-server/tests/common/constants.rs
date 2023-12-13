@@ -38,3 +38,7 @@ pub const CAIRO_1_VERSION_ASSERTER_SIERRA_PATH: &str =
 // L1 L2 pre-registered addresses.
 /// Hardcoded in the cairo0 l1l2 contract
 pub const MESSAGING_WHITELISTED_L1_CONTRACT: &str = "0x8359e4b0152ed5a731162d3c7b0d8d56edb165a0";
+
+/// Cairo 1 account which panics on validation
+pub const INVALID_ACCOUNT_SIERRA_PATH: &str =
+    "test_data/cairo1/invalid_account/invalid_account.sierra";
