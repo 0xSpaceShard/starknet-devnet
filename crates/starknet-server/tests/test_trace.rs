@@ -3,6 +3,7 @@ pub mod common;
 mod trace_tests {
     use std::sync::Arc;
 
+    use serde_json::json;
     use starknet_core::constants::{
         CAIRO_0_ACCOUNT_CONTRACT_HASH, CHARGEABLE_ACCOUNT_ADDRESS, ETH_ERC20_CONTRACT_ADDRESS,
     };
@@ -10,10 +11,11 @@ mod trace_tests {
         Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
     use starknet_rs_core::chain_id;
-    use starknet_rs_core::types::{FieldElement, StarknetError};
+    use starknet_rs_core::types::{FieldElement, FunctionInvocation, StarknetError};
     use starknet_rs_providers::{
         MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
     };
+    use starknet_types::rpc::transactions::BlockTransactionTrace;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::{
@@ -22,6 +24,15 @@ mod trace_tests {
 
     static DUMMY_ADDRESS: u128 = 1;
     static DUMMY_AMOUNT: u128 = 1;
+
+    fn assert_mint_invocation(invocation: FunctionInvocation) {
+        assert_eq!(
+            invocation.contract_address,
+            FieldElement::from_hex_be(CHARGEABLE_ACCOUNT_ADDRESS).unwrap()
+        );
+        assert_eq!(invocation.calldata[6], FieldElement::from(DUMMY_ADDRESS));
+        assert_eq!(invocation.calldata[7], FieldElement::from(DUMMY_AMOUNT));
+    }
 
     #[tokio::test]
     async fn get_trace_non_existing_transaction() {
@@ -50,23 +61,12 @@ mod trace_tests {
         let mint_tx_trace = devnet.json_rpc_client.trace_transaction(mint_tx_hash).await.unwrap();
 
         if let starknet_rs_core::types::TransactionTrace::Invoke(invoke_trace) = mint_tx_trace {
-            let validate_invocation = invoke_trace.validate_invocation.unwrap();
-            assert_eq!(
-                validate_invocation.contract_address,
-                FieldElement::from_hex_be(CHARGEABLE_ACCOUNT_ADDRESS).unwrap()
-            );
-            assert_eq!(validate_invocation.calldata[6], FieldElement::from(DUMMY_ADDRESS));
-            assert_eq!(validate_invocation.calldata[7], FieldElement::from(DUMMY_AMOUNT));
+            assert_mint_invocation(invoke_trace.validate_invocation.unwrap());
 
             if let starknet_rs_core::types::ExecuteInvocation::Success(execute_invocation) =
                 invoke_trace.execute_invocation
             {
-                assert_eq!(
-                    execute_invocation.contract_address,
-                    FieldElement::from_hex_be(CHARGEABLE_ACCOUNT_ADDRESS).unwrap()
-                );
-                assert_eq!(execute_invocation.calldata[6], FieldElement::from(DUMMY_ADDRESS));
-                assert_eq!(execute_invocation.calldata[7], FieldElement::from(DUMMY_AMOUNT));
+                assert_mint_invocation(execute_invocation);
             }
 
             assert_eq!(
@@ -188,5 +188,60 @@ mod trace_tests {
         } else {
             panic!("Could not unpack the transaction trace from {deploy_account_tx_trace:?}");
         }
+    }
+
+    #[tokio::test]
+    async fn get_traces_from_block() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        let mint_tx_hash: FieldElement = devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+
+        // Currently, we support only one transaction per block, so if this changes in the future
+        // this test also needs to be updated
+        let block_traces = &devnet
+            .send_custom_rpc("starknet_traceBlockTransactions", json!({ "block_id": "latest" }))
+            .await["result"]["traces"];
+        let traces = &block_traces[0];
+
+        // assert if there is only one transaction trace
+        assert_eq!(
+            serde_json::from_value::<Vec<BlockTransactionTrace>>(block_traces.clone(),)
+                .unwrap()
+                .len(),
+            1
+        );
+
+        // assert transaction hash
+        assert_eq!(
+            mint_tx_hash,
+            FieldElement::from_hex_be(traces["transaction_hash"].as_str().unwrap()).unwrap()
+        );
+
+        // assert validate invocation
+        assert_mint_invocation(
+            serde_json::from_value::<FunctionInvocation>(
+                traces["trace_root"]["validate_invocation"].clone(),
+            )
+            .unwrap(),
+        );
+
+        // assert execute invocation
+        assert_mint_invocation(
+            serde_json::from_value::<FunctionInvocation>(
+                traces["trace_root"]["execute_invocation"].clone(),
+            )
+            .unwrap(),
+        );
+
+        // assert fee transfer invocation
+        assert_eq!(
+            FieldElement::from_hex_be(
+                traces["trace_root"]["fee_transfer_invocation"]["contract_address"]
+                    .as_str()
+                    .unwrap()
+            )
+            .unwrap(),
+            FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap()
+        );
     }
 }
