@@ -49,8 +49,8 @@ pub enum ApiError {
     InsufficientMaxFee,
     #[error("Account balance is smaller than the transaction's max_fee")]
     InsufficientAccountBalance,
-    #[error("Account validation failed")]
-    ValidationFailure,
+    #[error("Account validation failed: {reason}")]
+    ValidationFailure { reason: String },
     #[error("No trace available for transaction")]
     NoTraceAvailable,
 }
@@ -154,7 +154,7 @@ impl ApiError {
                 message: error_message.into(),
                 data: None,
             },
-            ApiError::ValidationFailure => RpcError {
+            ApiError::ValidationFailure { .. } => RpcError {
                 code: server::rpc_core::error::ErrorCode::ServerError(55),
                 message: error_message.into(),
                 data: None,
@@ -166,7 +166,7 @@ impl ApiError {
                     starknet_core::error::TransactionValidationError::InsufficientMaxFee => ApiError::InsufficientMaxFee,
                     starknet_core::error::TransactionValidationError::InvalidTransactionNonce => ApiError::InvalidTransactionNonce,
                     starknet_core::error::TransactionValidationError::InsufficientAccountBalance => ApiError::InsufficientAccountBalance,
-                    starknet_core::error::TransactionValidationError::ValidationFailure => ApiError::ValidationFailure,
+                    starknet_core::error::TransactionValidationError::ValidationFailure { reason } => ApiError::ValidationFailure { reason },
                 };
 
                 api_err.api_error_to_rpc_error()
@@ -262,7 +262,9 @@ mod tests {
     fn contract_error() {
         fn test_error() -> starknet_core::error::Error {
             starknet_core::error::Error::TransactionValidationError(
-                starknet_core::error::TransactionValidationError::ValidationFailure,
+                starknet_core::error::TransactionValidationError::ValidationFailure {
+                    reason: "some reason".into(),
+                },
             )
         }
         let error_expected_message = anyhow::format_err!(test_error()).root_cause().to_string();
@@ -270,7 +272,7 @@ mod tests {
         error_expected_code_and_message(
             ApiError::ContractError { error: test_error() },
             40,
-            "Contract error: Account validation failed.",
+            "Contract error: Account validation failed: some reason",
         );
 
         // check contract error data property
@@ -338,19 +340,22 @@ mod tests {
 
     #[test]
     fn account_validation_error() {
+        let reason = String::from("some reason");
         let devnet_error =
             ApiError::StarknetDevnetError(starknet_core::error::Error::TransactionValidationError(
-                starknet_core::error::TransactionValidationError::ValidationFailure,
+                starknet_core::error::TransactionValidationError::ValidationFailure {
+                    reason: reason.clone(),
+                },
             ));
 
         assert_eq!(
             devnet_error.api_error_to_rpc_error(),
-            ApiError::ValidationFailure.api_error_to_rpc_error()
+            ApiError::ValidationFailure { reason: reason.clone() }.api_error_to_rpc_error()
         );
         error_expected_code_and_message(
-            ApiError::ValidationFailure,
+            ApiError::ValidationFailure { reason },
             55,
-            "Account validation failed",
+            "Account validation failed: some reason",
         );
     }
 
