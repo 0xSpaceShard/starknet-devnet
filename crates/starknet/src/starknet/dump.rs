@@ -21,11 +21,6 @@ impl Starknet {
     pub fn re_execute(&mut self, transactions: Vec<Transaction>) -> DevnetResult<()> {
         for transaction in transactions.into_iter() {
             match transaction {
-                Transaction::Declare(DeclareTransaction::Version0(_)) => {
-                    return Err(Error::SerializationNotSupported {
-                        obj_name: "Declare tx v0".into(),
-                    });
-                }
                 Transaction::Declare(DeclareTransaction::Version1(tx)) => {
                     let declare_tx = BroadcastedDeclareTransactionV1::new(
                         tx.sender_address,
@@ -71,11 +66,6 @@ impl Starknet {
                 }
                 Transaction::Deploy(_) => {
                     return Err(Error::SerializationNotSupported { obj_name: "Deploy tx".into() });
-                }
-                Transaction::Invoke(InvokeTransaction::Version0(_)) => {
-                    return Err(Error::SerializationNotSupported {
-                        obj_name: "Invoke tx v0".into(),
-                    });
                 }
                 Transaction::Invoke(InvokeTransaction::Version1(tx)) => {
                     let invoke_tx = BroadcastedInvokeTransactionV1::new(

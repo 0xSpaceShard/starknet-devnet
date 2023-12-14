@@ -154,7 +154,6 @@ impl Transaction {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum DeclareTransaction {
-    Version0(DeclareTransactionV0V1),
     Version1(DeclareTransactionV0V1),
     Version2(DeclareTransactionV2),
     Version3(DeclareTransactionV3),
@@ -163,7 +162,6 @@ pub enum DeclareTransaction {
 impl DeclareTransaction {
     pub fn get_transaction_hash(&self) -> &TransactionHash {
         match self {
-            DeclareTransaction::Version0(tx) => tx.get_transaction_hash(),
             DeclareTransaction::Version1(tx) => tx.get_transaction_hash(),
             DeclareTransaction::Version2(tx) => tx.get_transaction_hash(),
             DeclareTransaction::Version3(tx) => tx.get_transaction_hash(),
@@ -171,27 +169,9 @@ impl DeclareTransaction {
     }
 }
 
-#[derive(Debug, Clone, Default, Eq, PartialEq, Deserialize, Serialize)]
-pub struct InvokeTransactionV0 {
-    pub transaction_hash: TransactionHash,
-    pub max_fee: Fee,
-    pub version: TransactionVersion,
-    pub signature: TransactionSignature,
-    pub contract_address: ContractAddress,
-    pub entry_point_selector: EntryPointSelector,
-    pub calldata: Calldata,
-}
-
-impl InvokeTransactionV0 {
-    pub fn get_transaction_hash(&self) -> &TransactionHash {
-        &self.transaction_hash
-    }
-}
-
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum InvokeTransaction {
-    Version0(InvokeTransactionV0),
     Version1(InvokeTransactionV1),
     Version3(InvokeTransactionV3),
 }
@@ -199,7 +179,6 @@ pub enum InvokeTransaction {
 impl InvokeTransaction {
     pub fn get_transaction_hash(&self) -> &TransactionHash {
         match self {
-            InvokeTransaction::Version0(tx) => tx.get_transaction_hash(),
             InvokeTransaction::Version1(tx) => tx.get_transaction_hash(),
             InvokeTransaction::Version3(tx) => tx.get_transaction_hash(),
         }
