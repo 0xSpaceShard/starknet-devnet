@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
 use blockifier::transaction::transactions::L1HandlerTransaction;
-use serde::{Deserialize, Serialize};
 use starknet_api::core::EntryPointSelector;
 use starknet_api::transaction::Calldata;
 use starknet_rs_core::types::requests::EstimateMessageFeeRequest;
 use starknet_rs_core::types::{
-    BlockId as SrBlockId, FeeEstimate, MsgFromL1 as SrMsgFromL1, MsgFromL1,
+    BlockId as SrBlockId, FeeEstimate, MsgFromL1 as SrMsgFromL1, MsgFromL1, PriceUnit,
 };
+use starknet_rs_ff::FieldElement;
 
 use crate::error::DevnetResult;
 use crate::felt::Felt;
@@ -15,26 +15,32 @@ use crate::rpc::block::BlockId;
 use crate::rpc::eth_address::EthAddressWrapper;
 use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(tag = "unit")]
-pub enum FeeEstimateWrapper {
-    #[serde(rename = "WEI")]
-    WEI(FeeEstimate),
-    #[serde(rename = "FRI")]
-    STRK(FeeEstimate),
+#[derive(Clone, Debug)]
+pub struct FeeEstimateWrapper {
+    inner: FeeEstimate,
 }
+
+impl_wrapper_deserialize!(FeeEstimateWrapper, FeeEstimate);
+impl_wrapper_serialize!(FeeEstimateWrapper);
 
 impl FeeEstimateWrapper {
     pub fn new_in_wei_units(gas_consumed: u64, gas_price: u64) -> Self {
-        FeeEstimateWrapper::WEI(Self::new_fee_estimate(gas_consumed, gas_price))
+        Self::new(gas_consumed, gas_price, PriceUnit::Wei)
     }
 
     pub fn new_in_strk_units(gas_consumed: u64, gas_price: u64) -> Self {
-        FeeEstimateWrapper::STRK(Self::new_fee_estimate(gas_consumed, gas_price))
+        Self::new(gas_consumed, gas_price, PriceUnit::Fri)
     }
 
-    fn new_fee_estimate(gas_consumed: u64, gas_price: u64) -> FeeEstimate {
-        FeeEstimate { gas_consumed, gas_price, overall_fee: gas_consumed * gas_price }
+    fn new(gas_consumed: u64, gas_price: u64, unit: PriceUnit) -> FeeEstimateWrapper {
+        FeeEstimateWrapper {
+            inner: FeeEstimate {
+                gas_consumed: FieldElement::from(gas_consumed),
+                gas_price: FieldElement::from(gas_price),
+                overall_fee: FieldElement::from(gas_consumed * gas_price),
+                unit,
+            },
+        }
     }
 }
 
