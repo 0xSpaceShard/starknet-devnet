@@ -101,6 +101,11 @@ pub(crate) struct Args {
     #[arg(value_name = "DUMP_PATH")]
     #[arg(help = "Specify the path to dump to;")]
     dump_path: Option<String>,
+
+    #[arg(long = "state-archive")]
+    #[arg(value_name = "STATE_ARCHIVE")]
+    #[arg(help = "Specify the state archive feature;")]
+    state_archive: Option<bool>,
 }
 
 impl Args {
@@ -129,6 +134,7 @@ impl Args {
             dump_on: self.dump_on,
             dump_path: self.dump_path.clone(),
             re_execute_on_init: true,
+            state_archive: self.state_archive.unwrap_or(false),
         })
     }
 }

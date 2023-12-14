@@ -34,6 +34,7 @@ pub struct StarknetConfig {
     pub dump_path: Option<String>,
     /// on initialization, re-execute loaded txs (if any)
     pub re_execute_on_init: bool,
+    pub state_archive: bool,
 }
 
 impl Default for StarknetConfig {
@@ -57,6 +58,7 @@ impl Default for StarknetConfig {
             dump_on: None,
             dump_path: None,
             re_execute_on_init: true,
+            state_archive: false,
         }
     }
 }

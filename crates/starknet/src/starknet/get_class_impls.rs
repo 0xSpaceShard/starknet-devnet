@@ -53,13 +53,17 @@ mod tests {
     use crate::constants::{
         self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     };
+    use crate::starknet::starknet_config::StarknetConfig;
     use crate::starknet::{predeployed, Starknet};
     use crate::state::state_diff::StateDiff;
     use crate::traits::{Accounted, Deployed};
     use crate::utils::test_utils::{dummy_broadcasted_declare_transaction_v2, dummy_felt};
 
     fn setup(acc_balance: Option<u128>) -> (Starknet, Account) {
-        let mut starknet = Starknet::default();
+        let mut starknet =
+            Starknet::new(&StarknetConfig { state_archive: true, ..Default::default() })
+                .expect("Could not start Devnet");
+
         let account_json_path = concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/test_artifacts/account_without_validations/account.json"
@@ -142,4 +146,6 @@ mod tests {
         let contract_class = starknet.get_class_at(block_id, account.account_address).unwrap();
         assert_eq!(contract_class, account.contract_class);
     }
+
+    // Add failing test with starknet_config.state_archive = false here?
 }
