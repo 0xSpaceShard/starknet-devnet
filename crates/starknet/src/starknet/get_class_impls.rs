@@ -59,12 +59,12 @@ mod tests {
     use crate::traits::{Accounted, Deployed};
     use crate::utils::test_utils::{dummy_broadcasted_declare_transaction_v2, dummy_felt};
 
-    fn setup(acc_balance: Option<u128>, state_archive: StateArchiveCapacity) -> (Starknet, Account) {
-        let mut starknet = Starknet::new(&StarknetConfig {
-            state_archive,
-            ..Default::default()
-        })
-        .expect("Could not start Devnet");
+    fn setup(
+        acc_balance: Option<u128>,
+        state_archive: StateArchiveCapacity,
+    ) -> (Starknet, Account) {
+        let mut starknet = Starknet::new(&StarknetConfig { state_archive, ..Default::default() })
+            .expect("Could not start Devnet");
 
         let account_json_path = concat!(
             env!("CARGO_MANIFEST_DIR"),
