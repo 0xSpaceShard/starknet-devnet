@@ -289,6 +289,15 @@ Timeout can be passed to Devnet's HTTP server. This makes it easier to deploy an
 cargo run -- --timeout TIMEOUT
 ```
 
+### State archive mode
+
+With state archive capacity set to `full` devnet will store full state history. The default mode is `none`, where no old states are stored.
+
+```
+cargo run -- --state-archive-capacity CAPACITY
+
+```
+
 ## Development - Visual Studio Code
 
 It is highly recommended to get familiar with [Visual Studio Code Dev Containers](https://code.visualstudio.com/docs/devcontainers/create-dev-container#_dockerfile) and install [rust-analyzer](https://code.visualstudio.com/docs/languages/rust) extension.

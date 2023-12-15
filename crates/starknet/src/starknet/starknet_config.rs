@@ -18,10 +18,10 @@ pub enum DumpOn {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum)]
-pub enum StateArchiveMode {
-    #[clap(name = "None")]
+pub enum StateArchiveCapacity {
+    #[clap(name = "none")]
     None,
-    #[clap(name = "Full")]
+    #[clap(name = "full")]
     Full,
 }
 
@@ -42,7 +42,7 @@ pub struct StarknetConfig {
     pub dump_path: Option<String>,
     /// on initialization, re-execute loaded txs (if any)
     pub re_execute_on_init: bool,
-    pub state_archive_mode: StateArchiveMode,
+    pub state_archive: StateArchiveCapacity,
 }
 
 impl Default for StarknetConfig {
@@ -66,7 +66,7 @@ impl Default for StarknetConfig {
             dump_on: None,
             dump_path: None,
             re_execute_on_init: true,
-            state_archive_mode: StateArchiveMode::None,
+            state_archive: StateArchiveCapacity::None,
         }
     }
 }

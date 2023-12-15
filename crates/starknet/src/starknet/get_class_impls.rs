@@ -53,15 +53,15 @@ mod tests {
     use crate::constants::{
         self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     };
-    use crate::starknet::starknet_config::{StarknetConfig, StateArchiveMode};
+    use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
     use crate::starknet::{predeployed, Starknet};
     use crate::state::state_diff::StateDiff;
     use crate::traits::{Accounted, Deployed};
     use crate::utils::test_utils::{dummy_broadcasted_declare_transaction_v2, dummy_felt};
 
-    fn setup(acc_balance: Option<u128>, state_archive: StateArchiveMode) -> (Starknet, Account) {
+    fn setup(acc_balance: Option<u128>, state_archive: StateArchiveCapacity) -> (Starknet, Account) {
         let mut starknet = Starknet::new(&StarknetConfig {
-            state_archive_mode: state_archive,
+            state_archive,
             ..Default::default()
         })
         .expect("Could not start Devnet");
@@ -106,7 +106,7 @@ mod tests {
 
     #[test]
     fn get_sierra_class() {
-        let (mut starknet, account) = setup(Some(100000000), StateArchiveMode::Full);
+        let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::Full);
 
         let declare_txn = dummy_broadcasted_declare_transaction_v2(&account.account_address);
 
@@ -122,7 +122,7 @@ mod tests {
 
     #[test]
     fn get_class_hash_at_generated_accounts() {
-        let (mut starknet, account) = setup(Some(100000000), StateArchiveMode::Full);
+        let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::Full);
 
         starknet.generate_new_block(StateDiff::default(), None).unwrap();
         starknet.generate_pending_block().unwrap();
@@ -137,7 +137,7 @@ mod tests {
 
     #[test]
     fn get_class_hash_at_generated_accounts_without_state_archive() {
-        let (mut starknet, account) = setup(Some(100000000), StateArchiveMode::None);
+        let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::None);
 
         starknet.generate_new_block(StateDiff::default(), None).unwrap();
         starknet.generate_pending_block().unwrap();
@@ -151,7 +151,7 @@ mod tests {
 
     #[test]
     fn get_class_at_generated_accounts() {
-        let (mut starknet, account) = setup(Some(100000000), StateArchiveMode::Full);
+        let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::Full);
 
         starknet.generate_new_block(StateDiff::default(), None).unwrap();
         starknet.generate_pending_block().unwrap();

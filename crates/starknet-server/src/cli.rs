@@ -3,7 +3,7 @@ use starknet_core::constants::{
     DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TIMEOUT,
     DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
-use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig, StateArchiveMode};
+use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig, StateArchiveCapacity};
 use starknet_types::chain_id::ChainId;
 
 use crate::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
@@ -102,11 +102,11 @@ pub(crate) struct Args {
     #[arg(help = "Specify the path to dump to;")]
     dump_path: Option<String>,
 
-    #[arg(long = "state-archive-mode")]
-    #[arg(value_name = "STATE_ARCHIVE")]
-    #[arg(default_value = "None")]
-    #[arg(help = "Specify the state archive feature;")]
-    state_archive: StateArchiveMode,
+    #[arg(long = "state-archive-capacity")]
+    #[arg(value_name = "STATE_ARCHIVE_CAPACITY")]
+    #[arg(default_value = "none")]
+    #[arg(help = "Specify the state archive capacity;")]
+    state_archive: StateArchiveCapacity,
 }
 
 impl Args {
@@ -135,7 +135,7 @@ impl Args {
             dump_on: self.dump_on,
             dump_path: self.dump_path.clone(),
             re_execute_on_init: true,
-            state_archive_mode: self.state_archive,
+            state_archive: self.state_archive,
         })
     }
 }
@@ -144,7 +144,7 @@ impl Args {
 mod tests {
     use clap::Parser;
     use starknet_core::constants::{CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH, ERC20_CONTRACT_PATH};
-    use starknet_core::starknet::starknet_config::StateArchiveMode;
+    use starknet_core::starknet::starknet_config::StateArchiveCapacity;
 
     use super::Args;
     use crate::ip_addr_wrapper::IpAddrWrapper;
@@ -180,19 +180,19 @@ mod tests {
     #[test]
     fn state_archive_default_none() {
         let args = Args::parse_from(["--"]);
-        assert_eq!(args.to_starknet_config().unwrap().state_archive_mode, StateArchiveMode::None);
+        assert_eq!(args.to_starknet_config().unwrap().state_archive, StateArchiveCapacity::None);
     }
 
     #[test]
     fn state_archive_none() {
-        let args = Args::parse_from(["--", "--state-archive-mode", "none"]);
-        assert_eq!(args.to_starknet_config().unwrap().state_archive_mode, StateArchiveMode::None);
+        let args = Args::parse_from(["--", "--state-archive-capacity", "none"]);
+        assert_eq!(args.to_starknet_config().unwrap().state_archive, StateArchiveCapacity::None);
     }
 
     #[test]
     fn state_archive_full() {
-        let args = Args::parse_from(["--", "--state-archive-mode", "full"]);
-        assert_eq!(args.to_starknet_config().unwrap().state_archive_mode, StateArchiveMode::Full);
+        let args = Args::parse_from(["--", "--state-archive-capacity", "full"]);
+        assert_eq!(args.to_starknet_config().unwrap().state_archive, StateArchiveCapacity::Full);
     }
 
     fn get_first_line(text: &str) -> &str {
