@@ -17,8 +17,9 @@ pub enum DumpOn {
     Transaction,
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum)]
+#[derive(Default, Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum)]
 pub enum StateArchiveCapacity {
+    #[default]
     #[clap(name = "none")]
     None,
     #[clap(name = "full")]
@@ -66,7 +67,7 @@ impl Default for StarknetConfig {
             dump_on: None,
             dump_path: None,
             re_execute_on_init: true,
-            state_archive: StateArchiveCapacity::None,
+            state_archive: StateArchiveCapacity::default(),
         }
     }
 }

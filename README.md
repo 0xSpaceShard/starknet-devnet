@@ -291,7 +291,7 @@ cargo run -- --timeout TIMEOUT
 
 ### State archive mode
 
-With state archive capacity set to `full` devnet will store full state history. The default mode is `none`, where no old states are stored.
+With state archive capacity set to `full`, Devnet will store full state history. The default mode is `none`, where no old states are stored.
 
 ```
 cargo run -- --state-archive-capacity CAPACITY

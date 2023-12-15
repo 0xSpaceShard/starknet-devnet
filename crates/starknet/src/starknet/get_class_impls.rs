@@ -53,6 +53,7 @@ mod tests {
     use crate::constants::{
         self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     };
+    use crate::error::Error;
     use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
     use crate::starknet::{predeployed, Starknet};
     use crate::state::state_diff::StateDiff;
@@ -146,7 +147,10 @@ mod tests {
         let block_id = BlockId::Number(block_number.0);
 
         let class_hash = starknet.get_class_hash_at(block_id, account.account_address);
-        assert!(class_hash.is_err());
+        match class_hash.err().unwrap() {
+            Error::NoStateAtBlock { .. } => (),
+            _ => panic!("Should fail with NoStateAtBlock.")
+        }
     }
 
     #[test]
