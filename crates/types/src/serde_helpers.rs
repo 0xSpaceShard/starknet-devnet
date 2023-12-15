@@ -60,7 +60,8 @@ pub mod rpc_sierra_contract_class_to_sierra_contract_class {
 
 pub mod resource_bounds_mapping {
 
-    use serde::{Deserialize, Deserializer};
+    use serde::ser::SerializeMap;
+    use serde::{Deserialize, Deserializer, Serializer};
 
     pub fn deserialize_by_converting_keys_to_uppercase<'de, D>(
         deserializer: D,
@@ -76,9 +77,32 @@ pub mod resource_bounds_mapping {
         serde_json::from_value(serde_json::Value::Object(entries)).map_err(serde::de::Error::custom)
     }
 
+    pub fn serialize_by_converting_keys_to_lowercase<S>(
+        resource_bounds_mapping: &starknet_api::transaction::ResourceBoundsMapping,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut map = serializer.serialize_map(Some(resource_bounds_mapping.0.len()))?;
+        for (key, value) in resource_bounds_mapping.0.iter() {
+            let key = serde_json::to_value(*key)
+                .map_err(serde::ser::Error::custom)?
+                .as_str()
+                .ok_or(serde::ser::Error::custom("Expected to be a string"))?
+                .to_ascii_lowercase();
+            map.serialize_entry(&key, value)?;
+        }
+
+        map.end()
+    }
+
     #[cfg(test)]
     mod tests {
-        use serde::Deserialize;
+        use std::collections::BTreeMap;
+
+        use serde::{Deserialize, Serialize};
+        use starknet_api::transaction::{Resource, ResourceBounds, ResourceBoundsMapping};
 
         #[test]
         fn test_resource_bounds_with_lowercase_keys() {
@@ -101,6 +125,27 @@ pub mod resource_bounds_mapping {
 
             let bounds = serde_json::from_str::<TestDeserialization>(json_str).unwrap();
             assert_eq!(bounds.resource_bounds.0.len(), 2);
+        }
+
+        #[test]
+        fn test_resource_bounds_serializes_with_lowercase_keys() {
+            #[derive(Serialize)]
+            struct TestSerialization {
+                //#[serde(serialize_with = "super::serialize_by_converting_keys_to_lowercase")]
+                resource_bounds: starknet_api::transaction::ResourceBoundsMapping,
+            }
+
+            let object_to_serialize = TestSerialization {
+                resource_bounds: ResourceBoundsMapping(BTreeMap::from([(
+                    Resource::L1Gas,
+                    ResourceBounds { max_amount: 10, max_price_per_unit: 1 },
+                )])),
+            };
+
+            let json_obj = serde_json::to_value(&object_to_serialize).unwrap();
+            json_obj.as_object().unwrap().keys().for_each(|key| {
+                assert!(key.chars().filter(|c| c.is_alphabetic()).all(|c| c.is_lowercase()))
+            });
         }
     }
 }
