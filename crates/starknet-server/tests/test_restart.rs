@@ -114,7 +114,7 @@ mod test_restart {
             .await
         {
             Err(ProviderError::StarknetError(StarknetError::ContractNotFound)) => (),
-            other @ _ => panic!("Invalid response: {other:?}"),
+            other => panic!("Invalid response: {other:?}"),
         }
     }
 
@@ -240,7 +240,7 @@ mod test_restart {
         // asserting that restarting really clears the state, without re-executing txs from dump
         match loaded_devnet.json_rpc_client.get_transaction_by_hash(tx_hash).await {
             Err(ProviderError::StarknetError(StarknetError::TransactionHashNotFound)) => (),
-            other @ _ => panic!("Unexpected result: {other:?}"),
+            other => panic!("Unexpected result: {other:?}"),
         }
 
         remove_file(dump_file_name);

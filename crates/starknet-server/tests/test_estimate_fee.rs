@@ -557,7 +557,7 @@ mod estimate_fee_tests {
                         },
                     )),
                 ],
-                &[], // simulation_flags
+                [], // simulation_flags
                 BlockId::Tag(BlockTag::Latest),
             )
             .await
