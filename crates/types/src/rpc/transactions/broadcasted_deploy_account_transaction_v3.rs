@@ -81,7 +81,7 @@ impl BroadcastedDeployAccountTransactionV3 {
 
         let sn_api_deploy_account =
             starknet_api::transaction::DeployAccountTransaction::V3(DeployAccountTransactionV3 {
-                resource_bounds: self.common.resource_bounds.clone(),
+                resource_bounds: (&self.common.resource_bounds).into(),
                 tip: self.common.tip,
                 signature: starknet_api::transaction::TransactionSignature(into_vec(
                     &self.common.signature,
@@ -113,12 +113,12 @@ impl BroadcastedDeployAccountTransactionV3 {
 #[cfg(test)]
 mod tests {
     use serde::Deserialize;
-    use starknet_api::transaction::{ResourceBoundsMapping, Tip};
+    use starknet_api::transaction::Tip;
 
     use crate::chain_id::ChainId;
     use crate::felt::Felt;
     use crate::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
-    use crate::rpc::transactions::BroadcastedTransactionCommonV3;
+    use crate::rpc::transactions::{BroadcastedTransactionCommonV3, ResourceBoundsWrapper};
     use crate::utils::test_utils::from_u8_to_da_mode;
 
     #[derive(Deserialize)]
@@ -129,7 +129,7 @@ mod tests {
         version: Felt,
         nonce_data_availability_mode: u8,
         fee_data_availability_mode: u8,
-        resource_bounds: ResourceBoundsMapping,
+        resource_bounds: ResourceBoundsWrapper,
         tip: Tip,
         paymaster_data: Vec<Felt>,
         // specific

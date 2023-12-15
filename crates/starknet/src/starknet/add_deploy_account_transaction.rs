@@ -89,9 +89,8 @@ pub fn add_deploy_account_transaction_v1(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
 
-    use starknet_api::transaction::{Fee, Resource, ResourceBounds, ResourceBoundsMapping, Tip};
+    use starknet_api::transaction::Fee;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::Cairo0Json;
@@ -99,7 +98,9 @@ mod tests {
     use starknet_types::felt::{ClassHash, Felt};
     use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
-    use starknet_types::rpc::transactions::BroadcastedTransactionCommonV3;
+    use starknet_types::rpc::transactions::{
+        BroadcastedTransactionCommonV3, ResourceBoundsWrapper,
+    };
     use starknet_types::traits::HashProducer;
 
     use crate::constants::{
@@ -120,10 +121,7 @@ mod tests {
                 version: Felt::from(3),
                 signature: vec![],
                 nonce: Felt::from(nonce),
-                resource_bounds: ResourceBoundsMapping(BTreeMap::from([(
-                    Resource::L1Gas,
-                    ResourceBounds { max_amount: l1_gas_amount, max_price_per_unit: 1 },
-                )])),
+                resource_bounds: ResourceBoundsWrapper::new(l1_gas_amount, 1, 0, 0),
                 tip: Tip(0),
                 paymaster_data: vec![],
                 nonce_data_availability_mode:

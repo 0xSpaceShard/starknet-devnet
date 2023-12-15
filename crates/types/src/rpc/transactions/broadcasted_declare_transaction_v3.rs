@@ -83,7 +83,7 @@ impl BroadcastedDeclareTransactionV3 {
 
         let sn_api_declare =
             starknet_api::transaction::DeclareTransaction::V3(DeclareTransactionV3 {
-                resource_bounds: self.common.resource_bounds.clone(),
+                resource_bounds: (&self.common.resource_bounds).into(),
                 tip: self.common.tip,
                 signature: starknet_api::transaction::TransactionSignature(into_vec(
                     &self.common.signature,
@@ -118,14 +118,14 @@ impl BroadcastedDeclareTransactionV3 {
 #[cfg(test)]
 mod tests {
     use serde::Deserialize;
-    use starknet_api::transaction::{ResourceBoundsMapping, Tip};
+    use starknet_api::transaction::Tip;
 
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
     use crate::contract_class::ContractClass;
     use crate::felt::{ClassHash, CompiledClassHash, Felt};
     use crate::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
-    use crate::rpc::transactions::BroadcastedTransactionCommonV3;
+    use crate::rpc::transactions::{BroadcastedTransactionCommonV3, ResourceBoundsWrapper};
     use crate::utils::test_utils::from_u8_to_da_mode;
 
     #[derive(Deserialize)]
@@ -136,7 +136,7 @@ mod tests {
         version: Felt,
         nonce_data_availability_mode: u8,
         fee_data_availability_mode: u8,
-        resource_bounds: ResourceBoundsMapping,
+        resource_bounds: ResourceBoundsWrapper,
         tip: Tip,
         paymaster_data: Vec<Felt>,
         account_deployment_data: Vec<Felt>,
