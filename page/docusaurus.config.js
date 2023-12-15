@@ -47,8 +47,8 @@ const config = {
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
       announcementBar: {
-      id: "support_us",
-      content: `⭐️  &nbsp; If you like Starknet Devnet, give it a star on <a target="_blank" rel="noopener noreferrer" href="https://github.com/0xSpaceShard/starknet-devnet">GitHub</a>! &nbsp; ⭐️`,
+      id: "deprecation",
+      content: `❗ &nbsp; This project is deprecated in favor of <a target="_blank" rel="noopener noreferrer" href="https://github.com/0xSpaceShard/starknet-devnet-rs">starknet-devnet-rs</a>! &nbsp; ❗`,
     },
       navbar: {
         title: 'Starknet Devnet',

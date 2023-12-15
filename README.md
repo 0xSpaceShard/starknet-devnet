@@ -8,7 +8,7 @@ A Flask wrapper of Starknet state. Similar in purpose to Ganache.
 
 Aims to mimic Starknet's Alpha testnet, but with simplified functionality.
 
-## Migrating to Rust
+## ❗ Migrating to Rust
 
 This repository (Devnet in Python) is not maintained anymore, so you are advised to switch to [Devnet in Rust](https://github.com/0xSpaceShard/starknet-devnet-rs), which aims to continue where Devnet in Python left off, but without the sequencer/gateway API.
 
