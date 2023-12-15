@@ -15,9 +15,7 @@ mod test_restart {
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
     use starknet_rs_core::utils::get_storage_var_address;
-    use starknet_rs_providers::{
-        MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
-    };
+    use starknet_rs_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::CHAIN_ID;
@@ -42,18 +40,12 @@ mod test_restart {
         assert_eq!(restart_resp.status(), StatusCode::OK);
 
         match devnet.json_rpc_client.get_transaction_by_hash(mint_hash).await {
-            Err(ProviderError::StarknetError(StarknetErrorWithMessage {
-                code: MaybeUnknownErrorCode::Known(StarknetError::TransactionHashNotFound),
-                ..
-            })) => (),
+            Err(ProviderError::StarknetError(StarknetError::TransactionHashNotFound)) => (),
             other => panic!("Unexpected result: {other:?}"),
         }
 
         match devnet.json_rpc_client.get_block_with_txs(BlockId::Tag(BlockTag::Latest)).await {
-            Err(ProviderError::StarknetError(StarknetErrorWithMessage {
-                code: MaybeUnknownErrorCode::Known(StarknetError::BlockNotFound),
-                ..
-            })) => (),
+            Err(ProviderError::StarknetError(StarknetError::BlockNotFound)) => (),
             other => panic!("Unexpected result: {other:?}"),
         }
     }
@@ -121,13 +113,8 @@ mod test_restart {
             .get_class_at(BlockId::Tag(BlockTag::Latest), deployment_address)
             .await
         {
-            Err(ProviderError::StarknetError(StarknetErrorWithMessage { code, .. })) => {
-                match code {
-                    MaybeUnknownErrorCode::Known(StarknetError::ContractNotFound) => (),
-                    _ => panic!("Invalid error: {:?}", code),
-                }
-            }
-            other => panic!("Invalid response: {other:?}"),
+            Err(ProviderError::StarknetError(StarknetError::ContractNotFound)) => (),
+            other @ _ => panic!("Invalid response: {other:?}"),
         }
     }
 
@@ -163,7 +150,7 @@ mod test_restart {
             .estimate_fee()
             .await
             .unwrap();
-        assert_eq!(estimate_before.gas_price, expected_gas_price);
+        assert_eq!(estimate_before.gas_price, FieldElement::from(expected_gas_price));
 
         devnet.restart().await.unwrap();
 
@@ -252,11 +239,8 @@ mod test_restart {
 
         // asserting that restarting really clears the state, without re-executing txs from dump
         match loaded_devnet.json_rpc_client.get_transaction_by_hash(tx_hash).await {
-            Err(ProviderError::StarknetError(StarknetErrorWithMessage {
-                code: MaybeUnknownErrorCode::Known(StarknetError::TransactionHashNotFound),
-                ..
-            })) => (),
-            other => panic!("Unexpected result: {other:?}"),
+            Err(ProviderError::StarknetError(StarknetError::TransactionHashNotFound)) => (),
+            other @ _ => panic!("Unexpected result: {other:?}"),
         }
 
         remove_file(dump_file_name);

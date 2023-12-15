@@ -13,9 +13,7 @@ mod get_transaction_by_hash_integration_tests {
     use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
     use starknet_rs_core::utils::get_selector_from_name;
-    use starknet_rs_providers::{
-        MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
-    };
+    use starknet_rs_providers::{Provider, ProviderError};
     use starknet_types::contract_class::Cairo0Json;
     use starknet_types::felt::Felt;
     use starknet_types::traits::ToHexString;
@@ -153,8 +151,8 @@ mod get_transaction_by_hash_integration_tests {
             factory.deploy(salt).fee_estimate_multiplier(1.0).estimate_fee().await.unwrap();
 
         // fund the account before deployment
-        let mint_amount = fee_estimation.overall_fee as u128 * 2;
-        devnet.mint(deployment_address, mint_amount).await;
+        let mint_amount = fee_estimation.overall_fee * FieldElement::TWO;
+        devnet.mint(deployment_address, mint_amount.try_into().unwrap()).await;
 
         let deploy_account_result = deployment.send().await.unwrap();
 
@@ -166,7 +164,7 @@ mod get_transaction_by_hash_integration_tests {
 
         if let starknet_rs_core::types::Transaction::DeployAccount(deploy) = result {
             let expected = "0x02b4b37075273f836aa055c7a53e4e2635abcbd776ebef2ab1b74abd7235ac06";
-            assert_eq!(deploy.transaction_hash, FieldElement::from_hex_be(expected).unwrap());
+            assert_eq!(*deploy.transaction_hash(), FieldElement::from_hex_be(expected).unwrap());
         } else {
             panic!("Could not unpack the transaction from {result:?}");
         }
@@ -228,10 +226,7 @@ mod get_transaction_by_hash_integration_tests {
             .unwrap_err();
 
         match result {
-            ProviderError::StarknetError(StarknetErrorWithMessage {
-                code: MaybeUnknownErrorCode::Known(StarknetError::TransactionHashNotFound),
-                ..
-            }) => (),
+            ProviderError::StarknetError(StarknetError::TransactionHashNotFound) => (),
             _ => panic!("Invalid error: {result:?}"),
         }
     }

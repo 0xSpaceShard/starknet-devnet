@@ -4,9 +4,7 @@ mod get_transaction_by_block_id_and_index_integration_tests {
     use hyper::Body;
     use serde_json::json;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
-    use starknet_rs_providers::{
-        MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
-    };
+    use starknet_rs_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::get_json_body;
@@ -63,10 +61,7 @@ mod get_transaction_by_block_id_and_index_integration_tests {
             .unwrap_err();
 
         match result {
-            ProviderError::StarknetError(StarknetErrorWithMessage {
-                code: MaybeUnknownErrorCode::Known(StarknetError::InvalidTransactionIndex),
-                ..
-            }) => (),
+            ProviderError::StarknetError(StarknetError::InvalidTransactionIndex) => (),
             _ => panic!("Invalid error: {result:?}"),
         }
     }
@@ -81,10 +76,7 @@ mod get_transaction_by_block_id_and_index_integration_tests {
             .unwrap_err();
 
         match result {
-            ProviderError::StarknetError(StarknetErrorWithMessage {
-                code: MaybeUnknownErrorCode::Known(StarknetError::BlockNotFound),
-                ..
-            }) => (),
+            ProviderError::StarknetError(StarknetError::BlockNotFound) => (),
             _ => panic!("Invalid error: {result:?}"),
         }
     }

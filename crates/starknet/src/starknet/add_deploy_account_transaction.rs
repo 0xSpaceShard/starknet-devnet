@@ -90,7 +90,7 @@ pub fn add_deploy_account_transaction_v1(
 #[cfg(test)]
 mod tests {
 
-    use starknet_api::transaction::Fee;
+    use starknet_api::transaction::{Fee, Tip};
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::Cairo0Json;

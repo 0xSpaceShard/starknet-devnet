@@ -35,11 +35,10 @@ pub(crate) fn get_storage_var_address(
 
 #[cfg(test)]
 pub(crate) mod test_utils {
-    use std::collections::BTreeMap;
 
     use cairo_lang_starknet::casm_contract_class::CasmContractClass;
     use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
-    use starknet_api::transaction::{Fee, Resource, ResourceBounds, ResourceBoundsMapping};
+    use starknet_api::transaction::Fee;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{
         compute_casm_class_hash, Cairo0ContractClass, Cairo0Json, ContractClass,

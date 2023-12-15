@@ -2,9 +2,7 @@ pub mod common;
 
 mod get_class_tests {
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
-    use starknet_rs_providers::{
-        MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
-    };
+    use starknet_rs_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::PREDEPLOYED_ACCOUNT_ADDRESS;
@@ -51,10 +49,7 @@ mod get_class_tests {
             .expect_err("Should have failed");
 
         match err {
-            ProviderError::StarknetError(StarknetErrorWithMessage {
-                code: MaybeUnknownErrorCode::Known(StarknetError::ContractNotFound),
-                ..
-            }) => (),
+            ProviderError::StarknetError(StarknetError::ContractNotFound) => (),
             _ => panic!("Invalid error: {err:?}"),
         }
     }
