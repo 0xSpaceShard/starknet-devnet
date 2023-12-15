@@ -49,7 +49,7 @@ use starknet_types::traits::HashProducer;
 use tracing::error;
 
 use self::predeployed::initialize_erc20_at_address;
-use self::starknet_config::{DumpOn, StarknetConfig};
+use self::starknet_config::{DumpOn, StarknetConfig, StateArchiveCapacity};
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
@@ -261,8 +261,10 @@ impl Starknet {
         self.blocks.insert(new_block, state_diff);
         // save into blocks state archive
 
-        let deep_cloned_state = self.state.clone();
-        self.blocks.save_state_at(new_block_number, deep_cloned_state);
+        if self.config.state_archive == StateArchiveCapacity::Full {
+            let deep_cloned_state = self.state.clone();
+            self.blocks.save_state_at(new_block_number, deep_cloned_state);
+        }
 
         Ok(new_block_number)
     }
@@ -1088,7 +1090,7 @@ mod tests {
         STRK_ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::{DevnetResult, Error};
-    use crate::starknet::starknet_config::StarknetConfig;
+    use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
     use crate::state::state_diff::StateDiff;
     use crate::traits::{Accounted, StateChanger, StateExtractor};
     use crate::utils::test_utils::{
@@ -1402,7 +1404,12 @@ mod tests {
 
     #[test]
     fn correct_state_at_specific_block() {
-        let mut starknet = Starknet::default();
+        let mut starknet = Starknet::new(&StarknetConfig {
+            state_archive: StateArchiveCapacity::Full,
+            ..Default::default()
+        })
+        .expect("Could not start Devnet");
+
         // generate initial block with empty state
         starknet.generate_new_block(StateDiff::default(), None).unwrap();
         starknet.generate_pending_block().unwrap();
