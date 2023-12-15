@@ -118,15 +118,17 @@ impl BroadcastedDeclareTransactionV3 {
 #[cfg(test)]
 mod tests {
     use serde::Deserialize;
-    use starknet_api::transaction::Tip;
+    use starknet_api::transaction::{ResourceBoundsMapping, Tip};
 
     use crate::chain_id::ChainId;
     use crate::contract_address::ContractAddress;
     use crate::contract_class::ContractClass;
     use crate::felt::{ClassHash, CompiledClassHash, Felt};
     use crate::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
-    use crate::rpc::transactions::{BroadcastedTransactionCommonV3, ResourceBoundsWrapper};
-    use crate::utils::test_utils::from_u8_to_da_mode;
+    use crate::rpc::transactions::BroadcastedTransactionCommonV3;
+    use crate::utils::test_utils::{
+        convert_from_sn_api_resource_bounds_mapping, from_u8_to_da_mode,
+    };
 
     #[derive(Deserialize)]
     struct FeederGatewayDeclareTransactionV3 {
@@ -136,7 +138,7 @@ mod tests {
         version: Felt,
         nonce_data_availability_mode: u8,
         fee_data_availability_mode: u8,
-        resource_bounds: ResourceBoundsWrapper,
+        resource_bounds: ResourceBoundsMapping,
         tip: Tip,
         paymaster_data: Vec<Felt>,
         account_deployment_data: Vec<Felt>,
@@ -178,7 +180,9 @@ mod tests {
                 version: feeder_gateway_transaction.version,
                 signature: vec![],
                 nonce: feeder_gateway_transaction.nonce,
-                resource_bounds: feeder_gateway_transaction.resource_bounds,
+                resource_bounds: convert_from_sn_api_resource_bounds_mapping(
+                    feeder_gateway_transaction.resource_bounds,
+                ),
                 tip: feeder_gateway_transaction.tip,
                 paymaster_data: feeder_gateway_transaction.paymaster_data,
                 nonce_data_availability_mode: from_u8_to_da_mode(

@@ -817,11 +817,11 @@ mod tests {
             "nonce_data_availability_mode": "L1",
             "fee_data_availability_mode": "L1",
             "resource_bounds": {
-              "L2_GAS": {
+              "l2_gas": {
                 "max_amount": "0x0",
                 "max_price_per_unit": "0x0"
               },
-              "L1_GAS": {
+              "l1_gas": {
                 "max_amount": "0x7c9",
                 "max_price_per_unit": "0x1"
               }
