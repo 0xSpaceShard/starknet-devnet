@@ -416,34 +416,41 @@ impl BroadcastedTransactionCommonV3 {
         let mut array = Vec::<FieldElement>::new();
         array.push(FieldElement::from(self.tip.0));
 
-        let ordered_resources = vec![Resource::L1Gas, Resource::L2Gas];
-        let sn_api_resource_bounds =
-            starknet_api::transaction::ResourceBoundsMapping::from(&self.resource_bounds);
-        for resource in ordered_resources {
-            if let Some(resource_bound) = sn_api_resource_bounds.0.get(&resource) {
-                let resource_name_as_json_string =
-                    serde_json::to_value(resource).map_err(JsonError::SerdeJsonError)?;
-                let resource_name_bytes = resource_name_as_json_string
-                    .as_str()
-                    .ok_or(Error::JsonError(JsonError::Custom {
-                        msg: "resource name is not a string".into(),
-                    }))?
-                    .as_bytes();
+        fn field_element_from_resource_bounds(
+            resource: Resource,
+            resource_bounds: &ResourceBounds,
+        ) -> Result<FieldElement, Error> {
+            let resource_name_as_json_string =
+                serde_json::to_value(resource).map_err(JsonError::SerdeJsonError)?;
 
-                // (resource||max_amount||max_price_per_unit) from SNIP-8 https://github.com/starknet-io/SNIPs/blob/main/SNIPS/snip-8.md#protocol-changes
-                let bytes: Vec<u8> = [
-                    resource_name_bytes,
-                    resource_bound.max_amount.to_be_bytes().as_slice(),
-                    resource_bound.max_price_per_unit.to_be_bytes().as_slice(),
-                ]
-                .into_iter()
-                .flatten()
-                .copied()
-                .collect();
+            let resource_name_bytes = resource_name_as_json_string
+                .as_str()
+                .ok_or(Error::JsonError(JsonError::Custom {
+                    msg: "resource name is not a string".into(),
+                }))?
+                .as_bytes();
 
-                array.push(FieldElement::from_byte_slice_be(bytes.as_slice())?);
-            }
+            // (resource||max_amount||max_price_per_unit) from SNIP-8 https://github.com/starknet-io/SNIPs/blob/main/SNIPS/snip-8.md#protocol-changes
+            let bytes: Vec<u8> = [
+                resource_name_bytes,
+                resource_bounds.max_amount.to_be_bytes().as_slice(),
+                resource_bounds.max_price_per_unit.to_be_bytes().as_slice(),
+            ]
+            .into_iter()
+            .flatten()
+            .copied()
+            .collect();
+
+            Ok(FieldElement::from_byte_slice_be(bytes.as_slice())?)
         }
+        array.push(field_element_from_resource_bounds(
+            Resource::L1Gas,
+            &self.resource_bounds.inner.l1_gas,
+        )?);
+        array.push(field_element_from_resource_bounds(
+            Resource::L2Gas,
+            &self.resource_bounds.inner.l2_gas,
+        )?);
 
         Ok(array)
     }
