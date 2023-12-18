@@ -178,7 +178,7 @@ mod test_messaging {
 
         let l1_contract_address = messages_to_l1[0].get("to_address").unwrap().as_str().unwrap();
         let l2_contract_address = messages_to_l1[0].get("from_address").unwrap().as_str().unwrap();
-        assert_eq!(l2_contract_address, format!("0x{:64x}", account.address()));
+        assert_eq!(l2_contract_address, format!("0x{:64x}", l1l2_contract_address));
         assert_eq!(l1_contract_address, DUMMY_L1_ADDRESS);
 
         let payload = messages_to_l1[0].get("payload").unwrap().as_array().unwrap();
@@ -294,7 +294,7 @@ mod test_messaging {
 
         let req_body = Body::from(
             json!({
-                "from_address": "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba",
+                "from_address": format!("0x{:64x}", l1l2_contract_address),
                 "to_address": DUMMY_L1_ADDRESS,
                 "payload": ["0x0","0x1","0x1"],
             })
@@ -310,7 +310,7 @@ mod test_messaging {
         let body = get_json_body(resp).await;
         assert_eq!(
             body.get("message_hash").unwrap().as_str().unwrap(),
-            "0x9192040596a7dab9117c2882e4ea05364bee50a91bc84731d0eb6abc4b712398"
+            "0x7a957d7d7834b9e8a02a0e1e5000d4d2ea27489d3eb0e086ee20215c4037d5cb"
         );
     }
 
@@ -373,12 +373,9 @@ mod test_messaging {
         let sn_l1l2_contract_u256 =
             U256::from_str_radix(&format!("0x{:64x}", sn_l1l2_contract), 16).unwrap();
 
-        let account_address_u256 =
-            U256::from_str_radix(&format!("0x{:64x}", sn_account.address()), 16).unwrap();
-
         // Consume the message to increase the balance.
         anvil
-            .withdraw_l1l2(eth_l1l2_address, account_address_u256, user_eth, 1.into())
+            .withdraw_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, 1.into())
             .await
             .unwrap();
 
