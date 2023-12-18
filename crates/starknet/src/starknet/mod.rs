@@ -629,7 +629,12 @@ impl Starknet {
     }
 
     /// Creates an invoke tx for minting, using the chargeable account.
-    pub async fn mint(&mut self, address: ContractAddress, amount: u128, erc20_contract: &str) -> DevnetResult<Felt> {
+    pub async fn mint(
+        &mut self,
+        address: ContractAddress,
+        amount: u128,
+        erc20_contract: &str,
+    ) -> DevnetResult<Felt> {
         let sufficiently_big_max_fee: u128 = self.config.gas_price as u128 * 1_000_000;
         let chargeable_address_felt = Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?;
         let nonce =

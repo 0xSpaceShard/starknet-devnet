@@ -16,7 +16,11 @@ pub(crate) async fn get_fee_token() -> HttpApiResult<Json<FeeToken>> {
 }
 
 /// get the balance of the `address`
-fn get_balance(starknet: &Starknet, address: ContractAddress, erc20_contract: &str) -> Result<BigUint, ApiError> {
+fn get_balance(
+    starknet: &Starknet,
+    address: ContractAddress,
+    erc20_contract: &str,
+) -> Result<BigUint, ApiError> {
     let erc20_address = Felt::from_prefixed_hex_str(erc20_contract).unwrap();
     let balance_selector =
         starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap().into();
@@ -51,15 +55,11 @@ pub(crate) async fn mint(
     let mut erc20_contract = ETH_ERC20_CONTRACT_ADDRESS;
 
     // if unit is FRI, change contract address and unit
-    match request.unit {
-        Some(u) => {
-            if u == "FRI"
-            {
-                erc20_contract = STRK_ERC20_CONTRACT_ADDRESS;
-                unit = u
-            }
-        },
-        None => {},
+    if let Some(u) = request.unit {
+        if u == "FRI" {
+            erc20_contract = STRK_ERC20_CONTRACT_ADDRESS;
+            unit = u
+        }
     }
 
     // increase balance
@@ -71,9 +71,5 @@ pub(crate) async fn mint(
     let new_balance = get_balance(&starknet, request.address, erc20_contract)
         .map_err(|err| HttpApiError::MintingError { msg: err.to_string() })?;
 
-    Ok(Json(MintTokensResponse {
-        new_balance: new_balance.to_str_radix(10),
-        unit: unit,
-        tx_hash: tx_hash,
-    }))
+    Ok(Json(MintTokensResponse { new_balance: new_balance.to_str_radix(10), unit, tx_hash }))
 }
