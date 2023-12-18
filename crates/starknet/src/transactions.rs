@@ -219,14 +219,22 @@ impl StarknetTransaction {
         fn get_blockifier_messages_recursively(call_info: &CallInfo) -> Vec<OrderedMessageToL1> {
             let mut messages = vec![];
 
-            let from_address = call_info.call.caller_address.into();
+            // By default, `from_address` must correspond to the contract address that
+            // is sending the message. In the case of library calls, `code_address` is `None`,
+            // we then use the `caller_address` instead (which may be an account).
+            let from_address = if let Some(code_address) = call_info.call.code_address {
+                *code_address.0.key()
+            } else {
+                *call_info.call.caller_address.0.key()
+            };
 
             messages.extend(call_info.execution.l2_to_l1_messages.iter().map(|m| {
                 OrderedMessageToL1 {
                     order: m.order,
                     message: MessageToL1 {
                         to_address: m.message.to_address.into(),
-                        from_address,
+                        from_address: ContractAddress::new(from_address.into())
+                            .expect("Invalid contract address from blockifier's messsage"),
                         payload: m.message.payload.0.iter().map(|p| (*p).into()).collect(),
                     },
                 }
