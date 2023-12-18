@@ -91,6 +91,7 @@ pub(crate) struct FeeToken {
 pub(crate) struct MintTokensRequest {
     pub(crate) address: ContractAddress,
     pub(crate) amount: u128,
+    pub(crate) unit: Option<String>,
 }
 
 #[derive(Serialize)]

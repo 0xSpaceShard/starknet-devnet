@@ -628,8 +628,8 @@ impl Starknet {
         add_l1_handler_transaction::add_l1_handler_transaction(self, l1_handler_transaction)
     }
 
-    /// Creates an invoke tx for minting in wei, using the chargeable account.
-    pub async fn mint_wei(&mut self, address: ContractAddress, amount: u128) -> DevnetResult<Felt> {
+    /// Creates an invoke tx for minting, using the chargeable account.
+    pub async fn mint(&mut self, address: ContractAddress, amount: u128, erc20_contract: &str) -> DevnetResult<Felt> {
         let sufficiently_big_max_fee: u128 = self.config.gas_price as u128 * 1_000_000;
         let chargeable_address_felt = Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?;
         let nonce =
@@ -643,7 +643,7 @@ impl Starknet {
             FieldElement::from(0u32),   // `high` part
         ];
 
-        let erc20_address_felt = Felt::from_prefixed_hex_str(ETH_ERC20_CONTRACT_ADDRESS)?;
+        let erc20_address_felt = Felt::from_prefixed_hex_str(erc20_contract)?;
         let raw_execution = RawExecution {
             calls: vec![Call {
                 to: erc20_address_felt.into(),
