@@ -58,7 +58,11 @@ pub(crate) async fn mint(
     if let Some(u) = request.unit {
         if u == "FRI" {
             erc20_contract = STRK_ERC20_CONTRACT_ADDRESS;
-            unit = u
+            unit = u;
+        } else if u != "WEI" {
+            return Err(HttpApiError::MintingError {
+                msg: "Minting is supported only for WEI/FRI unit".to_string(),
+            });
         }
     }
 

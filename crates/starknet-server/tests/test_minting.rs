@@ -110,6 +110,21 @@ mod minting_tests {
     }
 
     #[tokio::test]
+    async fn reject_unknown_unit() {
+        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        reject_bad_request(
+            &devnet,
+            json!({
+                "address": DUMMY_ADDRESS,
+                "amount": DUMMY_AMOUNT,
+                "unit": "Satoshi"
+            }),
+            StatusCode::BAD_REQUEST,
+        )
+        .await;
+    }
+
+    #[tokio::test]
     async fn reject_negative_amount() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         reject_bad_request(
