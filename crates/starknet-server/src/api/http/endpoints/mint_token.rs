@@ -50,7 +50,7 @@ pub(crate) async fn mint(
     let mut starknet = state.api.starknet.write().await;
 
     let tx_hash = starknet
-        .mint_eth(request.address, request.amount)
+        .mint_wei(request.address, request.amount)
         .await
         .map_err(|err| HttpApiError::MintingError { msg: err.to_string() })?;
 
