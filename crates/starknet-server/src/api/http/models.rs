@@ -4,6 +4,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash};
 use starknet_types::rpc::eth_address::EthAddressWrapper;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
+use starknet_types::rpc::transaction_receipt::FeeUnits;
 use starknet_types::rpc::transactions::L1HandlerTransaction;
 
 use crate::api::http::error::HttpApiError;
@@ -91,14 +92,15 @@ pub(crate) struct FeeToken {
 pub(crate) struct MintTokensRequest {
     pub(crate) address: ContractAddress,
     pub(crate) amount: u128,
-    pub(crate) unit: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) unit: Option<FeeUnits>,
 }
 
 #[derive(Serialize)]
 pub(crate) struct MintTokensResponse {
     /// decimal repr
     pub(crate) new_balance: String,
-    pub(crate) unit: String,
+    pub(crate) unit: FeeUnits,
     pub(crate) tx_hash: TransactionHash,
 }
 

@@ -633,7 +633,7 @@ impl Starknet {
         &mut self,
         address: ContractAddress,
         amount: u128,
-        erc20_contract: &str,
+        erc20_address: ContractAddress,
     ) -> DevnetResult<Felt> {
         let sufficiently_big_max_fee: u128 = self.config.gas_price as u128 * 1_000_000;
         let chargeable_address_felt = Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?;
@@ -648,10 +648,9 @@ impl Starknet {
             FieldElement::from(0u32),   // `high` part
         ];
 
-        let erc20_address_felt = Felt::from_prefixed_hex_str(erc20_contract)?;
         let raw_execution = RawExecution {
             calls: vec![Call {
-                to: erc20_address_felt.into(),
+                to: erc20_address.into(),
                 selector: get_selector_from_name("mint").unwrap(),
                 calldata: calldata.clone(),
             }],

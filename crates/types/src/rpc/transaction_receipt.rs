@@ -216,3 +216,9 @@ pub enum FeeInUnits {
     #[serde(rename = "FRI")]
     FRI(FeeAmount),
 }
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub enum FeeUnits {
+    WEI,
+    FRI,
+}

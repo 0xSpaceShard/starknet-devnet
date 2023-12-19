@@ -5,6 +5,7 @@ use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::Felt;
 use starknet_types::num_bigint::BigUint;
+use starknet_types::rpc::transaction_receipt::FeeUnits;
 
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{FeeToken, MintTokensRequest, MintTokensResponse};
@@ -19,14 +20,13 @@ pub(crate) async fn get_fee_token() -> HttpApiResult<Json<FeeToken>> {
 fn get_balance(
     starknet: &Starknet,
     address: ContractAddress,
-    erc20_contract: &str,
+    erc20_address: ContractAddress,
 ) -> Result<BigUint, ApiError> {
-    let erc20_address = Felt::from_prefixed_hex_str(erc20_contract).unwrap();
     let balance_selector =
         starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap().into();
     let new_balance_raw = starknet.call(
         BlockId::Tag(BlockTag::Pending),
-        erc20_address,
+        erc20_address.into(),
         balance_selector,
         vec![Felt::from(address)], // calldata = the address being queried
     )?;
@@ -51,28 +51,23 @@ pub(crate) async fn mint(
     Extension(state): Extension<HttpApiHandler>,
 ) -> HttpApiResult<Json<MintTokensResponse>> {
     let mut starknet = state.api.starknet.write().await;
-    let mut unit = "WEI".to_string();
-    let mut erc20_contract = ETH_ERC20_CONTRACT_ADDRESS;
-
-    // if unit is FRI, change contract address and unit
-    if let Some(u) = request.unit {
-        if u == "FRI" {
-            erc20_contract = STRK_ERC20_CONTRACT_ADDRESS;
-            unit = u;
-        } else if u != "WEI" {
-            return Err(HttpApiError::MintingError {
-                msg: "Minting is supported only for WEI/FRI unit".to_string(),
-            });
-        }
-    }
+    let erc20_address = match request.unit {
+        Some(FeeUnits::WEI) | None => ContractAddress::new(Felt::from_prefixed_hex_str(ETH_ERC20_CONTRACT_ADDRESS).unwrap()).unwrap(),
+        Some(FeeUnits::FRI) => ContractAddress::new(Felt::from_prefixed_hex_str(STRK_ERC20_CONTRACT_ADDRESS).unwrap()).unwrap()
+    };
+    let unit = if let Some(unit) = request.unit {
+        unit
+    } else {
+        FeeUnits::WEI
+    };
 
     // increase balance
     let tx_hash = starknet
-        .mint(request.address, request.amount, erc20_contract)
+        .mint(request.address, request.amount, erc20_address)
         .await
         .map_err(|err| HttpApiError::MintingError { msg: err.to_string() })?;
 
-    let new_balance = get_balance(&starknet, request.address, erc20_contract)
+    let new_balance = get_balance(&starknet, request.address, erc20_address)
         .map_err(|err| HttpApiError::MintingError { msg: err.to_string() })?;
 
     Ok(Json(MintTokensResponse { new_balance: new_balance.to_str_radix(10), unit, tx_hash }))
