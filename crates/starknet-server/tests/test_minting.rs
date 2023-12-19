@@ -99,6 +99,16 @@ mod minting_tests {
         .await
     }
 
+    #[tokio::test]
+    #[ignore = "Currently, starknet_rs_core::types::BroadcastedDeclareTransaction::V3 is not \
+                implemented so once it is available we could add test like this"]
+    async fn execute_v3_transaction_with_strk_token() {
+        // 1. run BackgroundDevnet
+        // 2. try sending declare v3 tx - expect failure
+        // 3. mint some STRK to the account (keeping WEI at 0)
+        // 4. now tx succeeds
+    }
+
     async fn reject_bad_request(
         devnet: &BackgroundDevnet,
         json_body: serde_json::Value,
