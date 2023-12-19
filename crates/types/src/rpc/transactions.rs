@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::objects::TransactionExecutionInfo;
@@ -12,8 +12,10 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_api::block::BlockNumber;
 use starknet_api::data_availability::DataAvailabilityMode;
 use starknet_api::deprecated_contract_class::EntryPointType;
-use starknet_api::transaction::{Fee, Resource, ResourceBoundsMapping, Tip};
-use starknet_rs_core::types::{BlockId, ExecutionResult, TransactionFinalityStatus};
+use starknet_api::transaction::{Fee, Resource, Tip};
+use starknet_rs_core::types::{
+    BlockId, ExecutionResult, ResourceBounds, ResourceBoundsMapping, TransactionFinalityStatus,
+};
 use starknet_rs_crypto::poseidon_hash_many;
 use starknet_rs_ff::FieldElement;
 
@@ -38,7 +40,7 @@ use crate::felt::{
     TransactionVersion,
 };
 use crate::rpc::transaction_receipt::{CommonTransactionReceipt, MaybePendingProperties};
-use crate::serde_helpers::resource_bounds_mapping::deserialize_by_converting_keys_to_uppercase;
+use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 
 pub mod broadcasted_declare_transaction_v1;
 pub mod broadcasted_declare_transaction_v2;
@@ -287,24 +289,73 @@ pub struct BroadcastedTransactionCommonV3 {
     pub version: TransactionVersion,
     pub signature: TransactionSignature,
     pub nonce: Nonce,
-    #[serde(deserialize_with = "deserialize_by_converting_keys_to_uppercase")]
-    pub resource_bounds: ResourceBoundsMapping,
+    pub resource_bounds: ResourceBoundsWrapper,
     pub tip: Tip,
     pub paymaster_data: Vec<Felt>,
     pub nonce_data_availability_mode: DataAvailabilityMode,
     pub fee_data_availability_mode: DataAvailabilityMode,
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct ResourceBoundsWrapper {
+    inner: ResourceBoundsMapping,
+}
+
+impl_wrapper_serialize!(ResourceBoundsWrapper);
+impl_wrapper_deserialize!(ResourceBoundsWrapper, ResourceBoundsMapping);
+
+impl ResourceBoundsWrapper {
+    pub fn new(
+        l1_gas_max_amount: u64,
+        l1_gas_max_price_per_unit: u128,
+        l2_gas_max_amount: u64,
+        l2_gas_max_price_per_unit: u128,
+    ) -> Self {
+        ResourceBoundsWrapper {
+            inner: ResourceBoundsMapping {
+                l1_gas: ResourceBounds {
+                    max_amount: l1_gas_max_amount,
+                    max_price_per_unit: l1_gas_max_price_per_unit,
+                },
+                l2_gas: ResourceBounds {
+                    max_amount: l2_gas_max_amount,
+                    max_price_per_unit: l2_gas_max_price_per_unit,
+                },
+            },
+        }
+    }
+}
+
+impl From<&ResourceBoundsWrapper> for starknet_api::transaction::ResourceBoundsMapping {
+    fn from(value: &ResourceBoundsWrapper) -> Self {
+        starknet_api::transaction::ResourceBoundsMapping(BTreeMap::from([
+            (
+                Resource::L1Gas,
+                starknet_api::transaction::ResourceBounds {
+                    max_amount: value.inner.l1_gas.max_amount,
+                    max_price_per_unit: value.inner.l1_gas.max_price_per_unit,
+                },
+            ),
+            (
+                Resource::L2Gas,
+                starknet_api::transaction::ResourceBounds {
+                    max_amount: value.inner.l2_gas.max_amount,
+                    max_price_per_unit: value.inner.l2_gas.max_price_per_unit,
+                },
+            ),
+        ]))
+    }
+}
+
 impl BroadcastedTransactionCommonV3 {
     /// Checks if total accumulated fee of resource_bounds is equal to 0
     pub fn is_max_fee_zero_value(&self) -> bool {
-        let fee_total_value: u128 = self
-            .resource_bounds
-            .0
-            .values()
-            .fold(0u128, |acc, el| acc + (el.max_price_per_unit * (el.max_amount as u128)));
-
-        fee_total_value == 0
+        (self.resource_bounds.inner.l1_gas.max_amount as u128)
+            * self.resource_bounds.inner.l1_gas.max_price_per_unit
+            == 0
+            && (self.resource_bounds.inner.l2_gas.max_amount as u128)
+                * self.resource_bounds.inner.l2_gas.max_price_per_unit
+                == 0
     }
     /// Returns an array of FieldElements that reflects the `common_tx_fields` according to SNIP-8(https://github.com/starknet-io/SNIPs/blob/main/SNIPS/snip-8.md/#protocol-changes).
     ///
@@ -344,33 +395,41 @@ impl BroadcastedTransactionCommonV3 {
         let mut array = Vec::<FieldElement>::new();
         array.push(FieldElement::from(self.tip.0));
 
-        let ordered_resources = vec![Resource::L1Gas, Resource::L2Gas];
+        fn field_element_from_resource_bounds(
+            resource: Resource,
+            resource_bounds: &ResourceBounds,
+        ) -> Result<FieldElement, Error> {
+            let resource_name_as_json_string =
+                serde_json::to_value(resource).map_err(JsonError::SerdeJsonError)?;
 
-        for resource in ordered_resources {
-            if let Some(resource_bound) = self.resource_bounds.0.get(&resource) {
-                let resource_name_as_json_string =
-                    serde_json::to_value(resource).map_err(JsonError::SerdeJsonError)?;
-                let resource_name_bytes = resource_name_as_json_string
-                    .as_str()
-                    .ok_or(Error::JsonError(JsonError::Custom {
-                        msg: "resource name is not a string".into(),
-                    }))?
-                    .as_bytes();
+            let resource_name_bytes = resource_name_as_json_string
+                .as_str()
+                .ok_or(Error::JsonError(JsonError::Custom {
+                    msg: "resource name is not a string".into(),
+                }))?
+                .as_bytes();
 
-                // (resource||max_amount||max_price_per_unit) from SNIP-8 https://github.com/starknet-io/SNIPs/blob/main/SNIPS/snip-8.md#protocol-changes
-                let bytes: Vec<u8> = [
-                    resource_name_bytes,
-                    resource_bound.max_amount.to_be_bytes().as_slice(),
-                    resource_bound.max_price_per_unit.to_be_bytes().as_slice(),
-                ]
-                .into_iter()
-                .flatten()
-                .copied()
-                .collect();
+            // (resource||max_amount||max_price_per_unit) from SNIP-8 https://github.com/starknet-io/SNIPs/blob/main/SNIPS/snip-8.md#protocol-changes
+            let bytes: Vec<u8> = [
+                resource_name_bytes,
+                resource_bounds.max_amount.to_be_bytes().as_slice(),
+                resource_bounds.max_price_per_unit.to_be_bytes().as_slice(),
+            ]
+            .into_iter()
+            .flatten()
+            .copied()
+            .collect();
 
-                array.push(FieldElement::from_byte_slice_be(bytes.as_slice())?);
-            }
+            Ok(FieldElement::from_byte_slice_be(bytes.as_slice())?)
         }
+        array.push(field_element_from_resource_bounds(
+            Resource::L1Gas,
+            &self.resource_bounds.inner.l1_gas,
+        )?);
+        array.push(field_element_from_resource_bounds(
+            Resource::L2Gas,
+            &self.resource_bounds.inner.l2_gas,
+        )?);
 
         Ok(array)
     }
@@ -744,11 +803,11 @@ mod tests {
             "nonce_data_availability_mode": "L1",
             "fee_data_availability_mode": "L1",
             "resource_bounds": {
-              "L2_GAS": {
+              "l2_gas": {
                 "max_amount": "0x0",
                 "max_price_per_unit": "0x0"
               },
-              "L1_GAS": {
+              "l1_gas": {
                 "max_amount": "0x7c9",
                 "max_price_per_unit": "0x1"
               }

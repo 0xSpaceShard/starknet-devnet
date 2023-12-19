@@ -1,10 +1,10 @@
 use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
 use serde::{Deserialize, Serialize};
 use starknet_api::data_availability::DataAvailabilityMode;
-use starknet_api::transaction::{ResourceBoundsMapping, Tip};
+use starknet_api::transaction::Tip;
 
 use super::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
-use super::BroadcastedTransactionCommonV3;
+use super::{BroadcastedTransactionCommonV3, ResourceBoundsWrapper};
 use crate::contract_address::ContractAddress;
 use crate::felt::{
     ClassHash, CompiledClassHash, Felt, Nonce, TransactionHash, TransactionSignature,
@@ -17,7 +17,7 @@ pub struct DeclareTransactionV3 {
     version: TransactionVersion,
     signature: TransactionSignature,
     nonce: Nonce,
-    resource_bounds: ResourceBoundsMapping,
+    resource_bounds: ResourceBoundsWrapper,
     tip: Tip,
     paymaster_data: Vec<Felt>,
     nonce_data_availability_mode: DataAvailabilityMode,

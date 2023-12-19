@@ -81,7 +81,7 @@ impl BroadcastedDeployAccountTransactionV3 {
 
         let sn_api_deploy_account =
             starknet_api::transaction::DeployAccountTransaction::V3(DeployAccountTransactionV3 {
-                resource_bounds: self.common.resource_bounds.clone(),
+                resource_bounds: (&self.common.resource_bounds).into(),
                 tip: self.common.tip,
                 signature: starknet_api::transaction::TransactionSignature(into_vec(
                     &self.common.signature,
@@ -119,7 +119,9 @@ mod tests {
     use crate::felt::Felt;
     use crate::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
     use crate::rpc::transactions::BroadcastedTransactionCommonV3;
-    use crate::utils::test_utils::from_u8_to_da_mode;
+    use crate::utils::test_utils::{
+        convert_from_sn_api_resource_bounds_mapping, from_u8_to_da_mode,
+    };
 
     #[derive(Deserialize)]
     struct FeederGatewayDeployAccountTransactionV3 {
@@ -163,7 +165,9 @@ mod tests {
                 version: feeder_gateway_transaction.version,
                 signature: vec![],
                 nonce: feeder_gateway_transaction.nonce,
-                resource_bounds: feeder_gateway_transaction.resource_bounds,
+                resource_bounds: convert_from_sn_api_resource_bounds_mapping(
+                    feeder_gateway_transaction.resource_bounds,
+                ),
                 tip: feeder_gateway_transaction.tip,
                 paymaster_data: feeder_gateway_transaction.paymaster_data,
                 nonce_data_availability_mode: from_u8_to_da_mode(

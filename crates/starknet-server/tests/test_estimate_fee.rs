@@ -16,14 +16,13 @@ mod estimate_fee_tests {
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{
         BlockId, BlockTag, BroadcastedDeclareTransactionV1, BroadcastedInvokeTransaction,
-        BroadcastedTransaction, FeeEstimate, FieldElement, FunctionCall, StarknetError,
+        BroadcastedInvokeTransactionV1, BroadcastedTransaction, FeeEstimate, FieldElement,
+        FunctionCall, StarknetError,
     };
     use starknet_rs_core::utils::{
         cairo_short_string_to_felt, get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
     };
-    use starknet_rs_providers::{
-        MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
-    };
+    use starknet_rs_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{
@@ -40,7 +39,14 @@ mod estimate_fee_tests {
             fee_estimation.gas_price * fee_estimation.gas_consumed,
             fee_estimation.overall_fee
         );
-        assert!(fee_estimation.overall_fee > 0u64, "Checking fee_estimation: {fee_estimation:?}");
+        assert!(
+            fee_estimation.overall_fee > FieldElement::ZERO,
+            "Checking fee_estimation: {fee_estimation:?}"
+        );
+    }
+
+    fn multiply_field_element(field_element: FieldElement, multiplier: f64) -> FieldElement {
+        ((u64::try_from(field_element).unwrap() as f64 * multiplier) as u128).into()
     }
 
     #[tokio::test]
@@ -74,22 +80,19 @@ mod estimate_fee_tests {
         assert_fee_estimation(&fee_estimation);
 
         // fund the account before deployment
-        let mint_amount = fee_estimation.overall_fee as u128 * 2;
-        devnet.mint(deployment_address, mint_amount).await;
+        let mint_amount = fee_estimation.overall_fee * FieldElement::TWO;
+        devnet.mint(deployment_address, u128::try_from(mint_amount).unwrap()).await;
 
         // try sending with insufficient max fee
         let unsuccessful_deployment_tx = account_factory
             .deploy(salt)
-            .max_fee(FieldElement::from((fee_estimation.overall_fee - 1) as u128))
+            .max_fee(fee_estimation.overall_fee - FieldElement::ONE)
             .nonce(new_account_nonce)
             .send()
             .await;
         match unsuccessful_deployment_tx {
             Err(AccountFactoryError::Provider(ProviderError::StarknetError(
-                StarknetErrorWithMessage {
-                    code: MaybeUnknownErrorCode::Known(StarknetError::InsufficientMaxFee),
-                    ..
-                },
+                StarknetError::InsufficientMaxFee,
             ))) => (),
             other => panic!("Unexpected result: {other:?}"),
         };
@@ -97,7 +100,7 @@ mod estimate_fee_tests {
         // try sending with sufficient max fee
         let successful_deployment = account_factory
             .deploy(salt)
-            .max_fee(FieldElement::from((fee_estimation.overall_fee as f64 * 1.1) as u128))
+            .max_fee(multiply_field_element(fee_estimation.overall_fee, 1.1))
             .nonce(new_account_nonce)
             .send()
             .await
@@ -132,10 +135,7 @@ mod estimate_fee_tests {
             .expect_err("Should have failed");
         match err {
             AccountFactoryError::Provider(ProviderError::StarknetError(
-                StarknetErrorWithMessage {
-                    code: MaybeUnknownErrorCode::Known(StarknetError::ContractError),
-                    ..
-                },
+                StarknetError::ContractError(_),
             )) => (),
             _ => panic!("Invalid error: {err:?}"),
         }
@@ -175,15 +175,12 @@ mod estimate_fee_tests {
         let unsuccessful_declare_tx = account
             .declare_legacy(Arc::clone(&contract_artifact))
             .nonce(FieldElement::ZERO)
-            .max_fee(FieldElement::from((fee_estimation.overall_fee - 1) as u128))
+            .max_fee(fee_estimation.overall_fee - FieldElement::ONE)
             .send()
             .await;
         match unsuccessful_declare_tx {
             Err(AccountError::Provider(ProviderError::StarknetError(
-                StarknetErrorWithMessage {
-                    code: MaybeUnknownErrorCode::Known(StarknetError::InsufficientMaxFee),
-                    ..
-                },
+                StarknetError::InsufficientMaxFee,
             ))) => (),
             other => panic!("Unexpected result: {other:?}"),
         };
@@ -192,7 +189,7 @@ mod estimate_fee_tests {
         let successful_declare_tx = account
             .declare_legacy(contract_artifact)
             .nonce(FieldElement::ZERO)
-            .max_fee(FieldElement::from((fee_estimation.overall_fee as f64 * 1.1) as u128))
+            .max_fee(multiply_field_element(fee_estimation.overall_fee, 1.1))
             .send()
             .await
             .unwrap();
@@ -235,15 +232,12 @@ mod estimate_fee_tests {
         let unsuccessful_declare_tx = account
             .declare(Arc::clone(&flattened_contract_artifact), casm_hash)
             .nonce(FieldElement::ZERO)
-            .max_fee(FieldElement::from((fee_estimation.overall_fee - 1) as u128))
+            .max_fee(fee_estimation.overall_fee - FieldElement::ONE)
             .send()
             .await;
         match unsuccessful_declare_tx {
             Err(AccountError::Provider(ProviderError::StarknetError(
-                StarknetErrorWithMessage {
-                    code: MaybeUnknownErrorCode::Known(StarknetError::InsufficientMaxFee),
-                    ..
-                },
+                StarknetError::InsufficientMaxFee,
             ))) => (),
             other => panic!("Unexpected result: {other:?}"),
         };
@@ -252,7 +246,7 @@ mod estimate_fee_tests {
         let successful_declare_tx = account
             .declare(Arc::clone(&flattened_contract_artifact), casm_hash)
             .nonce(FieldElement::ZERO)
-            .max_fee(FieldElement::from((fee_estimation.overall_fee as f64 * 1.1) as u128))
+            .max_fee(multiply_field_element(fee_estimation.overall_fee, 1.1))
             .send()
             .await
             .unwrap();
@@ -332,7 +326,7 @@ mod estimate_fee_tests {
         };
 
         // invoke with insufficient max_fee
-        let insufficient_max_fee = FieldElement::from((fee_estimation.overall_fee - 1) as u128);
+        let insufficient_max_fee = fee_estimation.overall_fee - FieldElement::ONE;
         let unsuccessful_invoke_tx = account
             .execute(invoke_calls.clone())
             .max_fee(insufficient_max_fee)
@@ -354,8 +348,8 @@ mod estimate_fee_tests {
         .await;
 
         // invoke with sufficient max_fee
-        let sufficient_max_fee =
-            FieldElement::from((fee_estimation.overall_fee as f64 * 1.1) as u128);
+        let sufficient_max_fee = multiply_field_element(fee_estimation.overall_fee, 1.1);
+
         account.execute(invoke_calls).max_fee(sufficient_max_fee).send().await.unwrap();
         let balance_after_sufficient =
             devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap();
@@ -534,33 +528,36 @@ mod estimate_fee_tests {
                             },
                         ),
                     ),
-                    BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction {
-                        max_fee: FieldElement::ZERO,
-                        // precalculated signature
-                        signature: deployment_signature
+                    BroadcastedTransaction::Invoke(BroadcastedInvokeTransaction::V1(
+                        BroadcastedInvokeTransactionV1 {
+                            max_fee: FieldElement::ZERO,
+                            // precalculated signature
+                            signature: deployment_signature
+                                .into_iter()
+                                .map(|s| FieldElement::from_hex_be(s).unwrap())
+                                .collect(),
+                            nonce: FieldElement::ONE,
+                            sender_address: account_address,
+                            calldata: [
+                                "0x1",
+                                UDC_CONTRACT_ADDRESS,
+                                deployment_selector.as_str(),
+                                "0x0",
+                                "0x4",
+                                "0x4",
+                                format!("{:x}", class_hash).as_str(),
+                                "0x123", // salt
+                                "0x0",
+                                "0x0",
+                            ]
                             .into_iter()
                             .map(|s| FieldElement::from_hex_be(s).unwrap())
                             .collect(),
-                        nonce: FieldElement::ONE,
-                        sender_address: account_address,
-                        calldata: [
-                            "0x1",
-                            UDC_CONTRACT_ADDRESS,
-                            deployment_selector.as_str(),
-                            "0x0",
-                            "0x4",
-                            "0x4",
-                            format!("{:x}", class_hash).as_str(),
-                            "0x123", // salt
-                            "0x0",
-                            "0x0",
-                        ]
-                        .into_iter()
-                        .map(|s| FieldElement::from_hex_be(s).unwrap())
-                        .collect(),
-                        is_query: false,
-                    }),
+                            is_query: false,
+                        },
+                    )),
                 ],
+                [], // simulation_flags
                 BlockId::Tag(BlockTag::Latest),
             )
             .await

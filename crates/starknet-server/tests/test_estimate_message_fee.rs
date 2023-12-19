@@ -14,9 +14,7 @@ mod test_estimate_message_fee {
         BlockId, BlockTag, EthAddress, FieldElement, MsgFromL1, StarknetError,
     };
     use starknet_rs_core::utils::{get_udc_deployed_address, UdcUniqueness};
-    use starknet_rs_providers::{
-        MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
-    };
+    use starknet_rs_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{CHAIN_ID, MESSAGING_WHITELISTED_L1_CONTRACT};
@@ -82,7 +80,7 @@ mod test_estimate_message_fee {
             .await
             .unwrap();
 
-        assert_eq!(res.gas_consumed, 18485);
+        assert_eq!(res.gas_consumed, FieldElement::from(18485u32));
     }
 
     #[tokio::test]
@@ -104,10 +102,7 @@ mod test_estimate_message_fee {
             .expect_err("Error expected");
 
         match err {
-            ProviderError::StarknetError(StarknetErrorWithMessage {
-                code: MaybeUnknownErrorCode::Known(StarknetError::ContractNotFound),
-                ..
-            }) => (),
+            ProviderError::StarknetError(StarknetError::ContractNotFound) => (),
             _ => panic!("Invalid error: {err:?}"),
         }
     }
@@ -131,10 +126,7 @@ mod test_estimate_message_fee {
             .expect_err("Error expected");
 
         match err {
-            ProviderError::StarknetError(StarknetErrorWithMessage {
-                code: MaybeUnknownErrorCode::Known(StarknetError::BlockNotFound),
-                ..
-            }) => (),
+            ProviderError::StarknetError(StarknetError::BlockNotFound) => (),
             _ => panic!("Invalid error: {err:?}"),
         }
     }

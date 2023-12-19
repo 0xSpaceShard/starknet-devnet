@@ -100,6 +100,9 @@ where
 #[cfg(test)]
 pub(crate) mod test_utils {
     use starknet_api::data_availability::DataAvailabilityMode;
+    use starknet_api::transaction::{ResourceBounds, ResourceBoundsMapping};
+
+    use crate::rpc::transactions::ResourceBoundsWrapper;
 
     pub(crate) const CAIRO_0_ACCOUNT_CONTRACT_PATH: &str =
         concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/Cairo0_contract.json");
@@ -130,6 +133,29 @@ pub(crate) mod test_utils {
             1 => DataAvailabilityMode::L2,
             _ => panic!("Invalid data availability mode"),
         }
+    }
+
+    pub(crate) fn convert_from_sn_api_resource_bounds_mapping(
+        resourse_bounds: ResourceBoundsMapping,
+    ) -> ResourceBoundsWrapper {
+        let l1_resource_bounds = resourse_bounds
+            .0
+            .get(&starknet_api::transaction::Resource::L1Gas)
+            .cloned()
+            .unwrap_or(ResourceBounds { max_amount: 0, max_price_per_unit: 0 });
+
+        let l2_resource_bounds = resourse_bounds
+            .0
+            .get(&starknet_api::transaction::Resource::L2Gas)
+            .cloned()
+            .unwrap_or(ResourceBounds { max_amount: 0, max_price_per_unit: 0 });
+
+        ResourceBoundsWrapper::new(
+            l1_resource_bounds.max_amount,
+            l1_resource_bounds.max_price_per_unit,
+            l2_resource_bounds.max_amount,
+            l2_resource_bounds.max_price_per_unit,
+        )
     }
 }
 #[cfg(test)]
