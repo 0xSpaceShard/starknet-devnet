@@ -50,7 +50,7 @@ pub enum ApiError {
     #[error("Account balance is smaller than the transaction's max_fee")]
     InsufficientAccountBalance,
     #[error("Account validation failed: {reason}")]
-    ValidationFailure { reason: String },
+    ValidationFailure { reason: String, data: String },
     #[error("No trace available for transaction")]
     NoTraceAvailable,
 }
@@ -154,10 +154,10 @@ impl ApiError {
                 message: error_message.into(),
                 data: None,
             },
-            ApiError::ValidationFailure { .. } => RpcError {
+            ApiError::ValidationFailure { data, .. } => RpcError {
                 code: server::rpc_core::error::ErrorCode::ServerError(55),
                 message: error_message.into(),
-                data: None,
+                data: Some(serde_json::Value::String(data)),
             },
             ApiError::StarknetDevnetError(
                 starknet_core::error::Error::TransactionValidationError(validation_error),
@@ -166,7 +166,7 @@ impl ApiError {
                     starknet_core::error::TransactionValidationError::InsufficientMaxFee => ApiError::InsufficientMaxFee,
                     starknet_core::error::TransactionValidationError::InvalidTransactionNonce => ApiError::InvalidTransactionNonce,
                     starknet_core::error::TransactionValidationError::InsufficientAccountBalance => ApiError::InsufficientAccountBalance,
-                    starknet_core::error::TransactionValidationError::ValidationFailure { reason } => ApiError::ValidationFailure { reason },
+                    starknet_core::error::TransactionValidationError::ValidationFailure { reason, data } => ApiError::ValidationFailure { reason, data },
                 };
 
                 api_err.api_error_to_rpc_error()
@@ -264,6 +264,7 @@ mod tests {
             starknet_core::error::Error::TransactionValidationError(
                 starknet_core::error::TransactionValidationError::ValidationFailure {
                     reason: "some reason".into(),
+                    data: "".to_string(),
                 },
             )
         }
@@ -341,22 +342,31 @@ mod tests {
     #[test]
     fn account_validation_error() {
         let reason = String::from("some reason");
+        let data = "dummy_data".to_string();
         let devnet_error =
             ApiError::StarknetDevnetError(starknet_core::error::Error::TransactionValidationError(
                 starknet_core::error::TransactionValidationError::ValidationFailure {
                     reason: reason.clone(),
+                    data: data.clone(),
                 },
             ));
 
         assert_eq!(
             devnet_error.api_error_to_rpc_error(),
-            ApiError::ValidationFailure { reason: reason.clone() }.api_error_to_rpc_error()
+            ApiError::ValidationFailure { reason: reason.clone(), data: data.clone() }
+                .api_error_to_rpc_error()
         );
         error_expected_code_and_message(
-            ApiError::ValidationFailure { reason },
+            ApiError::ValidationFailure { reason: reason.clone(), data: data.clone() },
             55,
             "Account validation failed: some reason",
         );
+
+        error_expected_code_and_data(
+            ApiError::ValidationFailure { reason, data: data.clone() },
+            55,
+            &data,
+        )
     }
 
     fn error_expected_code_and_message(err: ApiError, expected_code: i64, expected_message: &str) {
@@ -365,6 +375,17 @@ mod tests {
             server::rpc_core::response::ResponseResult::Success(_) => panic!("Expected error"),
             server::rpc_core::response::ResponseResult::Error(err) => {
                 assert_eq!(err.message, expected_message);
+                assert_eq!(err.code, server::rpc_core::error::ErrorCode::ServerError(expected_code))
+            }
+        }
+    }
+
+    fn error_expected_code_and_data(err: ApiError, expected_code: i64, expected_data: &str) {
+        let error_result = StrictRpcResult::Err(err).to_rpc_result();
+        match error_result {
+            server::rpc_core::response::ResponseResult::Success(_) => panic!("Expected error"),
+            server::rpc_core::response::ResponseResult::Error(err) => {
+                assert_eq!(err.data.unwrap().as_str().unwrap(), expected_data);
                 assert_eq!(err.code, server::rpc_core::error::ErrorCode::ServerError(expected_code))
             }
         }

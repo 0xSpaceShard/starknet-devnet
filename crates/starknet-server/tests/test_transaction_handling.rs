@@ -45,7 +45,7 @@ mod trace_tests {
             ))) => {
                 assert_eq!(
                     message,
-                    "Account validation failed: Execution failed. Failure reason: \
+                    "Execution failed. Failure reason: \
                      0x4641494c45442056414c4944415445204445434c415245 ('FAILED VALIDATE DECLARE')."
                 );
             }
