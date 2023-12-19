@@ -345,16 +345,7 @@ impl Starknet {
                     blockifier::transaction::errors::TransactionExecutionError::TransactionFeeError(err)
                       => match_tx_fee_error(err),
                     blockifier::transaction::errors::TransactionExecutionError::ValidateTransactionError(err) => {
-                        let reason = err.to_string();
-                        let data = match err {
-                            blockifier::execution::errors::EntryPointExecutionError::VirtualMachineExecutionError(vm_error)
-                            | blockifier::execution::errors::EntryPointExecutionError::VirtualMachineExecutionErrorWithTrace {source: vm_error, .. } => {
-                                vm_error.try_to_vm_trace()
-                            },
-                            _ => reason.clone()
-                        };
-
-                        Err(TransactionValidationError::ValidationFailure { reason, data }.into())
+                        Err(TransactionValidationError::ValidationFailure { reason: err.to_string() }.into())
                     }
                     _ => Err(tx_err.into())
                 }

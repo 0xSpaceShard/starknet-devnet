@@ -89,7 +89,7 @@ pub enum TransactionValidationError {
     #[error("Account balance is not enough to cover the transaction cost.")]
     InsufficientAccountBalance,
     #[error("Account validation failed: {reason}")]
-    ValidationFailure { reason: String, data: String },
+    ValidationFailure { reason: String },
 }
 
 #[derive(Debug, Error)]
