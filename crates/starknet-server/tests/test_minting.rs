@@ -57,7 +57,7 @@ mod minting_tests {
     async fn increase_balance_of_undeployed_address_fri() {
         increase_balance_happy_path(DUMMY_ADDRESS, 0, DUMMY_AMOUNT, "FRI").await;
     }
-    
+
     #[tokio::test]
     async fn increase_balance_of_undeployed_address_unit_not_specified() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");

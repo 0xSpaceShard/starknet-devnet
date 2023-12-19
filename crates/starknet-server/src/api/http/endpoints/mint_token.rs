@@ -52,14 +52,16 @@ pub(crate) async fn mint(
 ) -> HttpApiResult<Json<MintTokensResponse>> {
     let mut starknet = state.api.starknet.write().await;
     let erc20_address = match request.unit {
-        Some(FeeUnits::WEI) | None => ContractAddress::new(Felt::from_prefixed_hex_str(ETH_ERC20_CONTRACT_ADDRESS).unwrap()).unwrap(),
-        Some(FeeUnits::FRI) => ContractAddress::new(Felt::from_prefixed_hex_str(STRK_ERC20_CONTRACT_ADDRESS).unwrap()).unwrap()
+        Some(FeeUnits::WEI) | None => {
+            ContractAddress::new(Felt::from_prefixed_hex_str(ETH_ERC20_CONTRACT_ADDRESS).unwrap())
+                .unwrap()
+        }
+        Some(FeeUnits::FRI) => {
+            ContractAddress::new(Felt::from_prefixed_hex_str(STRK_ERC20_CONTRACT_ADDRESS).unwrap())
+                .unwrap()
+        }
     };
-    let unit = if let Some(unit) = request.unit {
-        unit
-    } else {
-        FeeUnits::WEI
-    };
+    let unit = if let Some(unit) = request.unit { unit } else { FeeUnits::WEI };
 
     // increase balance
     let tx_hash = starknet
