@@ -185,7 +185,7 @@ POST /mint
     "amount": 500000,
     "unit": "FRI"
 }
-``````
+```
 
 ## Dumping & Loading
 
