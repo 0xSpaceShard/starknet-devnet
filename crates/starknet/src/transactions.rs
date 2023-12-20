@@ -216,24 +216,28 @@ impl StarknetTransaction {
     pub fn get_l2_to_l1_messages(&self) -> Vec<MessageToL1> {
         let mut messages = vec![];
 
-        fn get_blockifier_messages_recursively(call_info: &CallInfo) -> Vec<OrderedMessageToL1> {
+        fn get_blockifier_messages_recursively(
+            call_info: &CallInfo,
+            caller_address: ContractAddress,
+        ) -> Vec<OrderedMessageToL1> {
             let mut messages = vec![];
-
-            let from_address = call_info.call.caller_address.into();
 
             messages.extend(call_info.execution.l2_to_l1_messages.iter().map(|m| {
                 OrderedMessageToL1 {
                     order: m.order,
                     message: MessageToL1 {
                         to_address: m.message.to_address.into(),
-                        from_address,
+                        from_address: caller_address,
                         payload: m.message.payload.0.iter().map(|p| (*p).into()).collect(),
                     },
                 }
             }));
 
             call_info.inner_calls.iter().for_each(|call| {
-                messages.extend(get_blockifier_messages_recursively(call));
+                messages.extend(get_blockifier_messages_recursively(
+                    call,
+                    call.call.storage_address.into(),
+                ));
             });
 
             messages
@@ -242,7 +246,10 @@ impl StarknetTransaction {
         let call_infos = self.execution_info.non_optional_call_infos();
 
         for inner_call_info in call_infos {
-            let mut not_sorted_messages = get_blockifier_messages_recursively(inner_call_info);
+            let mut not_sorted_messages = get_blockifier_messages_recursively(
+                inner_call_info,
+                inner_call_info.call.storage_address.into(),
+            );
             not_sorted_messages.sort_by_key(|message| message.order);
             messages.extend(not_sorted_messages.into_iter().map(|m| m.message));
         }
