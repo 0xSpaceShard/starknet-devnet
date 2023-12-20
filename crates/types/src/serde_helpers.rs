@@ -57,7 +57,6 @@ pub mod rpc_sierra_contract_class_to_sierra_contract_class {
         }
     }
 }
-
 pub mod hex_string {
     use serde::{Deserialize, Deserializer, Serializer};
 

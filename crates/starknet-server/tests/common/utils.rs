@@ -18,6 +18,12 @@ pub async fn get_json_body(resp: Response<Body>) -> serde_json::Value {
     serde_json::from_slice(&resp_body_bytes).unwrap()
 }
 
+pub async fn get_string_body(resp: Response<Body>) -> String {
+    let resp_body = resp.into_body();
+    let body_bytes = hyper::body::to_bytes(resp_body).await.unwrap();
+    String::from_utf8(body_bytes.to_vec()).unwrap()
+}
+
 /// dummy testing value
 pub fn get_deployable_account_signer() -> LocalWallet {
     let new_account_private_key = "0xc248668388dbe9acdfa3bc734cc2d57a";
@@ -57,6 +63,13 @@ pub fn get_flattened_sierra_contract_and_casm_hash(
         CasmContractClass::from_contract_class(contract_class, false).unwrap();
     let compiled_class_hash = compute_casm_class_hash(&casm_contract_class).unwrap();
     (sierra_class.flatten().unwrap(), compiled_class_hash.into())
+}
+
+pub fn get_messaging_contract_in_sierra_and_compiled_class_hash()
+-> (FlattenedSierraClass, FieldElement) {
+    let sierra_path =
+        concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo1/messaging/cairo_1_l1l2.sierra");
+    get_flattened_sierra_contract_and_casm_hash(sierra_path)
 }
 
 pub fn get_events_contract_in_sierra_and_compiled_class_hash()

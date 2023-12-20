@@ -11,6 +11,7 @@ blockifier = { workspace = true, features = ["testing"]}
 cairo-felt = { workspace = true }
 cairo-lang-starknet = { workspace = true }
 clap = { workspace = true }
+ethers = { workspace = true }
 starknet_api = { workspace = true, features = ["testing"] }
 thiserror = { workspace = true }
 serde = { workspace = true }
@@ -25,6 +26,7 @@ indexmap = { workspace = true }
 
 [dev-dependencies]
 jsonschema = "0.16.0"
+hex = "0.4.3"
 
 [features]
 test_utils = []

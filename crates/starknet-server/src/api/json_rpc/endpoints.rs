@@ -253,9 +253,10 @@ impl JsonRpcHandler {
         &self,
         block_id: BlockId,
         request: Vec<BroadcastedTransaction>,
+        simulation_flags: Vec<SimulationFlag>,
     ) -> StrictRpcResult {
         let starknet = self.api.starknet.read().await;
-        match starknet.estimate_fee(block_id.into(), &request) {
+        match starknet.estimate_fee(block_id.into(), &request, &simulation_flags) {
             Ok(result) => Ok(StarknetResponse::EsimateFee(result)),
             Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
@@ -372,6 +373,30 @@ impl JsonRpcHandler {
             Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(err) => Err(ApiError::ContractError { error: err }),
+        }
+    }
+
+    /// starknet_traceTransaction
+    pub(crate) async fn get_trace_transaction(
+        &self,
+        transaction_hash: TransactionHash,
+    ) -> StrictRpcResult {
+        let starknet = self.api.starknet.read().await;
+        match starknet.get_transaction_trace_by_hash(transaction_hash) {
+            Ok(result) => Ok(StarknetResponse::TraceTransaction(result)),
+            Err(Error::NoTransaction) => Err(ApiError::TransactionNotFound),
+            Err(Error::UnsupportedTransactionType) => Err(ApiError::NoTraceAvailable),
+            Err(err) => Err(err.into()),
+        }
+    }
+
+    /// starknet_traceBlockTransactions
+    pub(crate) async fn get_trace_block_transactions(&self, block_id: BlockId) -> StrictRpcResult {
+        let starknet = self.api.starknet.read().await;
+        match starknet.get_transaction_traces_from_block(block_id.into()) {
+            Ok(result) => Ok(StarknetResponse::BlockTransactionTraces(result)),
+            Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
+            Err(err) => Err(err.into()),
         }
     }
 }

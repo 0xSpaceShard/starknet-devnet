@@ -2,19 +2,48 @@ use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_types::felt::{ClassHash, TransactionHash};
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
+use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
+use starknet_types::rpc::transactions::declare_transaction_v3::DeclareTransactionV3;
 use starknet_types::rpc::transactions::{DeclareTransaction, Transaction};
 
 use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;
+
+pub fn add_declare_transaction_v3(
+    starknet: &mut Starknet,
+    broadcasted_declare_transaction: BroadcastedDeclareTransactionV3,
+) -> DevnetResult<(TransactionHash, ClassHash)> {
+    if broadcasted_declare_transaction.common.is_max_fee_zero_value() {
+        return Err(Error::MaxFeeZeroError { tx_type: "declare transaction v3".to_string() });
+    }
+
+    let blockifier_declare_transaction = broadcasted_declare_transaction
+        .create_blockifier_declare(starknet.chain_id().to_felt(), false)?;
+
+    let transaction_hash = blockifier_declare_transaction.tx_hash().0.into();
+    let class_hash = blockifier_declare_transaction.class_hash().0.into();
+
+    let transaction = Transaction::Declare(DeclareTransaction::Version3(
+        DeclareTransactionV3::new(broadcasted_declare_transaction, class_hash, transaction_hash),
+    ));
+
+    let blockifier_execution_result =
+        blockifier::transaction::account_transaction::AccountTransaction::Declare(
+            blockifier_declare_transaction,
+        )
+        .execute(&mut starknet.state.state, &starknet.block_context, true, true);
+
+    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
+
+    Ok((transaction_hash, class_hash))
+}
 
 pub fn add_declare_transaction_v2(
     starknet: &mut Starknet,
     broadcasted_declare_transaction: BroadcastedDeclareTransactionV2,
 ) -> DevnetResult<(TransactionHash, ClassHash)> {
     if broadcasted_declare_transaction.common.max_fee.0 == 0 {
-        return Err(Error::FeeError {
-            reason: "For declare transaction version 2, max fee cannot be 0".to_string(),
-        });
+        return Err(Error::MaxFeeZeroError { tx_type: "declare transaction v2".into() });
     }
 
     let blockifier_declare_transaction =
@@ -43,9 +72,7 @@ pub fn add_declare_transaction_v1(
     broadcasted_declare_transaction: BroadcastedDeclareTransactionV1,
 ) -> DevnetResult<(TransactionHash, ClassHash)> {
     if broadcasted_declare_transaction.common.max_fee.0 == 0 {
-        return Err(Error::FeeError {
-            reason: "For declare transaction version 1, max fee cannot be 0".to_string(),
-        });
+        return Err(Error::MaxFeeZeroError { tx_type: "declare transaction v1".into() });
     }
 
     let class_hash = broadcasted_declare_transaction.generate_class_hash()?;
@@ -83,13 +110,16 @@ mod tests {
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;
-    use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID};
+    use crate::constants::{
+        self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
+    };
+    use crate::starknet::predeployed::create_erc20_at_address;
     use crate::starknet::{predeployed, Starknet};
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut, StateExtractor};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{
-        dummy_broadcasted_declare_transaction_v2, dummy_cairo_1_contract_class,
-        dummy_contract_address, dummy_felt,
+        convert_broadcasted_declare_v2_to_v3, dummy_broadcasted_declare_transaction_v2,
+        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
     };
 
     fn broadcasted_declare_transaction_v1(
@@ -108,6 +138,31 @@ mod tests {
     }
 
     #[test]
+    fn declare_transaction_v3_with_max_fee_zero_should_return_an_error() {
+        let declare_transaction = BroadcastedDeclareTransactionV2::new(
+            &dummy_cairo_1_contract_class(),
+            dummy_felt(),
+            dummy_contract_address(),
+            Fee(0),
+            &vec![],
+            dummy_felt(),
+            dummy_felt(),
+        );
+
+        let declare_transaction = convert_broadcasted_declare_v2_to_v3(declare_transaction);
+
+        let result = Starknet::default().add_declare_transaction_v3(declare_transaction);
+
+        assert!(result.is_err());
+        match result.err().unwrap() {
+            err @ crate::error::Error::MaxFeeZeroError { .. } => {
+                assert_eq!(err.to_string(), "declare transaction v3: max_fee cannot be zero")
+            }
+            _ => panic!("Wrong error type"),
+        }
+    }
+
+    #[test]
     fn declare_transaction_v2_with_max_fee_zero_should_return_an_error() {
         let declare_transaction_v2 = BroadcastedDeclareTransactionV2::new(
             &dummy_cairo_1_contract_class(),
@@ -123,8 +178,8 @@ mod tests {
 
         assert!(result.is_err());
         match result.err().unwrap() {
-            crate::error::Error::FeeError { reason: msg } => {
-                assert_eq!(msg, "For declare transaction version 2, max fee cannot be 0")
+            err @ crate::error::Error::MaxFeeZeroError { .. } => {
+                assert_eq!(err.to_string(), "declare transaction v2: max_fee cannot be zero")
             }
             _ => panic!("Wrong error type"),
         }
@@ -143,6 +198,28 @@ mod tests {
                 panic!("Wrong error type received {:?}", err);
             }
         }
+    }
+
+    #[test]
+    fn add_declare_v3_transaction_successful_execution() {
+        let (mut starknet, sender) = setup(Some(100000000));
+
+        let declare_txn =
+            convert_broadcasted_declare_v2_to_v3(dummy_broadcasted_declare_transaction_v2(&sender));
+        let (tx_hash, class_hash) =
+            starknet.add_declare_transaction_v3(declare_txn.clone()).unwrap();
+
+        let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
+
+        // check if generated class hash is expected one
+        assert_eq!(
+            class_hash,
+            ContractClass::Cairo1(declare_txn.contract_class).generate_hash().unwrap()
+        );
+        // check if txn is with status accepted
+        assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
+        assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
+        assert!(starknet.state.contract_classes.get(&class_hash).is_some());
     }
 
     #[test]
@@ -213,8 +290,8 @@ mod tests {
 
         assert!(result.is_err());
         match result.err().unwrap() {
-            crate::error::Error::FeeError { reason: msg } => {
-                assert_eq!(msg, "For declare transaction version 1, max fee cannot be 0")
+            err @ crate::error::Error::MaxFeeZeroError { .. } => {
+                assert_eq!(err.to_string(), "declare transaction v1: max_fee cannot be zero")
             }
             _ => panic!("Wrong error type"),
         }
@@ -317,8 +394,12 @@ mod tests {
         );
         let contract_class = Cairo0Json::raw_json_from_path(account_json_path).unwrap();
 
-        let erc_20_contract = predeployed::create_erc20().unwrap();
-        erc_20_contract.deploy(&mut starknet.state).unwrap();
+        let eth_erc_20_contract =
+            predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS).unwrap();
+        eth_erc_20_contract.deploy(&mut starknet.state).unwrap();
+
+        let strk_erc20_contract = create_erc20_at_address(STRK_ERC20_CONTRACT_ADDRESS).unwrap();
+        strk_erc20_contract.deploy(&mut starknet.state).unwrap();
 
         let acc = Account::new(
             Felt::from(acc_balance.unwrap_or(10000)),
@@ -326,7 +407,8 @@ mod tests {
             dummy_felt(),
             contract_class.generate_hash().unwrap(),
             contract_class.into(),
-            erc_20_contract.get_address(),
+            eth_erc_20_contract.get_address(),
+            strk_erc20_contract.get_address(),
         )
         .unwrap();
 
@@ -336,7 +418,8 @@ mod tests {
         starknet.state.clear_dirty_state();
         starknet.block_context = Starknet::init_block_context(
             1,
-            constants::ERC20_CONTRACT_ADDRESS,
+            constants::ETH_ERC20_CONTRACT_ADDRESS,
+            constants::STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
         );
 

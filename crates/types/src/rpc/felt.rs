@@ -8,7 +8,7 @@ use starknet_api::serde_utils::{bytes_from_hex_str, hex_str_from_bytes};
 use starknet_api::StarknetApiError;
 
 use crate::contract_address::ContractAddress;
-use crate::error::{DevnetResult, Error};
+use crate::error::{ConversionError, DevnetResult, Error};
 use crate::serde_helpers::hex_string::{
     deserialize_prefixed_hex_string_to_felt, serialize_to_prefixed_hex,
 };
@@ -91,6 +91,13 @@ impl From<Felt> for starknet_rs_ff::FieldElement {
     }
 }
 
+impl From<&Felt> for starknet_rs_ff::FieldElement {
+    fn from(value: &Felt) -> Self {
+        starknet_rs_ff::FieldElement::from_bytes_be(&value.0)
+            .expect("Convert Felt to FieldElement, should be the same")
+    }
+}
+
 impl From<starknet_rs_ff::FieldElement> for Felt {
     fn from(value: starknet_rs_ff::FieldElement) -> Self {
         Self(value.to_bytes_be())
@@ -102,6 +109,19 @@ impl From<u128> for Felt {
         let le_part: [u8; 16] = value.to_be_bytes();
         let byte_arr: [u8; 32] = [[0u8; 16], le_part].concat().try_into().unwrap();
         Self(byte_arr)
+    }
+}
+
+impl TryFrom<Felt> for u128 {
+    type Error = Error;
+
+    fn try_from(value: Felt) -> Result<Self, Self::Error> {
+        let ff = starknet_rs_ff::FieldElement::from(value);
+        ff.try_into().map_err(|_| {
+            Error::ConversionError(ConversionError::OutOfRangeError(
+                "Felt is too large to be converted into u128 value".to_string(),
+            ))
+        })
     }
 }
 

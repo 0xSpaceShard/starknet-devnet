@@ -1,7 +1,13 @@
 use serde::{Deserialize, Serialize};
+use starknet_rs_core::types::{Hash256, MsgToL1};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash};
-use starknet_types::starknet_api::transaction::Fee;
+use starknet_types::rpc::eth_address::EthAddressWrapper;
+use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
+use starknet_types::rpc::transaction_receipt::FeeUnits;
+use starknet_types::rpc::transactions::L1HandlerTransaction;
+
+use crate::api::http::error::HttpApiError;
 
 #[derive(Deserialize, Debug)]
 pub(crate) struct DumpPath {
@@ -15,31 +21,18 @@ pub(crate) struct LoadPath {
 
 #[derive(Deserialize, Debug)]
 pub(crate) struct PostmanLoadL1MessagingContract {
-    #[serde(rename = "networkUrl")]
-    network_url: String,
-    address: ContractAddress,
-}
-
-#[derive(Deserialize)]
-pub(crate) struct MessageToL2 {
-    l2_contract_address: ContractAddress,
-    entry_point_selector: EntryPointSelector,
-    l1_contract_addresss: ContractAddress,
-    payload: Calldata,
-    paid_fee_on_l1: Fee,
-    nonce: Nonce,
-}
-
-#[derive(Deserialize)]
-pub(crate) struct MessageFromL2 {
-    l2_contract_address: ContractAddress,
-    l1_contract_addresss: ContractAddress,
-    payload: Calldata,
+    pub network_url: String,
+    pub address: Option<String>,
 }
 
 #[derive(Serialize)]
 pub(crate) struct MessageHash {
-    message_hash: Felt,
+    pub message_hash: Hash256,
+}
+
+#[derive(Serialize)]
+pub(crate) struct TxHash {
+    pub transaction_hash: TransactionHash,
 }
 
 #[derive(Serialize)]
@@ -99,13 +92,15 @@ pub(crate) struct FeeToken {
 pub(crate) struct MintTokensRequest {
     pub(crate) address: ContractAddress,
     pub(crate) amount: u128,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) unit: Option<FeeUnits>,
 }
 
 #[derive(Serialize)]
 pub(crate) struct MintTokensResponse {
     /// decimal repr
     pub(crate) new_balance: String,
-    pub(crate) unit: String,
+    pub(crate) unit: FeeUnits,
     pub(crate) tx_hash: TransactionHash,
 }
 
@@ -113,4 +108,22 @@ pub(crate) struct MintTokensResponse {
 pub(crate) struct ForkStatus {
     url: String,
     block: u128,
+}
+
+#[derive(Serialize)]
+pub(crate) struct FlushedMessages {
+    pub messages_to_l1: Vec<MessageToL1>,
+    pub messages_to_l2: Vec<MessageToL2>,
+    pub generated_l2_transactions: Vec<TransactionHash>,
+    pub l1_provider: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub(crate) struct FlushParameters {
+    pub dry_run: bool,
+}
+
+#[derive(Serialize, Deserialize)]
+pub(crate) struct MessagingLoadAddress {
+    pub messaging_contract_address: String,
 }

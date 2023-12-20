@@ -54,17 +54,17 @@ rand_chacha = "0.3.1"
 regex_generate = "0.2.3"
 
 # Starknet dependencies
-starknet_api = { version = "0.6.0-rc0", features = ["testing"] }
-blockifier = { git = "https://github.com/starkware-libs/blockifier", rev = "v0.4.0-rc3", package = "blockifier" }
-starknet-rs-signers = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "cfa3c43e4c12ca3a45c471b233fe3eb5a2f31e0c", package="starknet-signers" }
-starknet-rs-ff = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "cfa3c43e4c12ca3a45c471b233fe3eb5a2f31e0c", package = "starknet-ff" }
-starknet-rs-core = {  git = "https://github.com/xJonathanLEI/starknet-rs", rev = "cfa3c43e4c12ca3a45c471b233fe3eb5a2f31e0c", package = "starknet-core" }
-starknet-rs-providers = {  git = "https://github.com/xJonathanLEI/starknet-rs", rev = "cfa3c43e4c12ca3a45c471b233fe3eb5a2f31e0c", package = "starknet-providers" }
-starknet-rs-accounts = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "cfa3c43e4c12ca3a45c471b233fe3eb5a2f31e0c", package = "starknet-accounts" }
-starknet-rs-contract = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "cfa3c43e4c12ca3a45c471b233fe3eb5a2f31e0c", package = "starknet-contract" }
-starknet-rs-crypto = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "cfa3c43e4c12ca3a45c471b233fe3eb5a2f31e0c", package = "starknet-crypto" }
+starknet_api = { version = "0.6.0-rc2", features = ["testing"] }
+blockifier = { git = "https://github.com/starkware-libs/blockifier", rev = "v0.4.0-rc8", package = "blockifier" }
+starknet-rs-signers = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "63538a3", package="starknet-signers" }
+starknet-rs-ff = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "63538a3", package = "starknet-ff" }
+starknet-rs-core = {  git = "https://github.com/xJonathanLEI/starknet-rs", rev = "63538a3", package = "starknet-core" }
+starknet-rs-providers = {  git = "https://github.com/xJonathanLEI/starknet-rs", rev = "63538a3", package = "starknet-providers" }
+starknet-rs-accounts = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "63538a3", package = "starknet-accounts" }
+starknet-rs-contract = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "63538a3", package = "starknet-contract" }
+starknet-rs-crypto = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "63538a3", package = "starknet-crypto" }
 cairo-felt = { version = "0.8.5", package = "cairo-felt" }
-cairo-lang-starknet = { version = "2.3.1", package = "cairo-lang-starknet" }
+cairo-lang-starknet = { version = "2.4.0-rc2", package = "cairo-lang-starknet" }
 url = "2.4"
 
 # Inner dependencies
@@ -74,3 +74,4 @@ random-number-generator = { path = "crates/random-number-generator", package = "
 num-bigint = { version = "0.4" }
 
 lazy_static = { version = "1.4.0" }
+ethers = { version = "2.0.11" }

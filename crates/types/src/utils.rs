@@ -84,8 +84,25 @@ impl Formatter for StarknetFormatter {
     }
 }
 
+/// Returns vec of elements of type Target from a slice of elements of type Source
+/// Target type must implement From<&Source>
+///
+/// # Arguments
+///
+/// * `source` - Slice of array of `Source` elements.
+pub(crate) fn into_vec<'a, Source, Target>(source: &'a [Source]) -> Vec<Target>
+where
+    Target: From<&'a Source>,
+{
+    source.iter().map(|x| Target::from(x)).collect()
+}
+
 #[cfg(test)]
 pub(crate) mod test_utils {
+    use starknet_api::data_availability::DataAvailabilityMode;
+    use starknet_api::transaction::{ResourceBounds, ResourceBoundsMapping};
+
+    use crate::rpc::transactions::ResourceBoundsWrapper;
 
     pub(crate) const CAIRO_0_ACCOUNT_CONTRACT_PATH: &str =
         concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/Cairo0_contract.json");
@@ -105,8 +122,42 @@ pub(crate) mod test_utils {
 
     pub(crate) const CAIRO_1_CONTRACT_SIERRA_HASH: &str =
         "0x113bf26d112a164297e04381212c9bd7409f07591f0a04f539bdf56693eaaf3";
-}
 
+    /// Converts integer to DataAvailabilityMode
+    /// # Arguments
+    ///
+    /// * `da_mode` - integer representing the data availability mode
+    pub(crate) fn from_u8_to_da_mode(da_mode: u8) -> DataAvailabilityMode {
+        match da_mode {
+            0 => DataAvailabilityMode::L1,
+            1 => DataAvailabilityMode::L2,
+            _ => panic!("Invalid data availability mode"),
+        }
+    }
+
+    pub(crate) fn convert_from_sn_api_resource_bounds_mapping(
+        resourse_bounds: ResourceBoundsMapping,
+    ) -> ResourceBoundsWrapper {
+        let l1_resource_bounds = resourse_bounds
+            .0
+            .get(&starknet_api::transaction::Resource::L1Gas)
+            .cloned()
+            .unwrap_or(ResourceBounds { max_amount: 0, max_price_per_unit: 0 });
+
+        let l2_resource_bounds = resourse_bounds
+            .0
+            .get(&starknet_api::transaction::Resource::L2Gas)
+            .cloned()
+            .unwrap_or(ResourceBounds { max_amount: 0, max_price_per_unit: 0 });
+
+        ResourceBoundsWrapper::new(
+            l1_resource_bounds.max_amount,
+            l1_resource_bounds.max_price_per_unit,
+            l2_resource_bounds.max_amount,
+            l2_resource_bounds.max_price_per_unit,
+        )
+    }
+}
 #[cfg(test)]
 mod tests {
     use serde_json::Value;

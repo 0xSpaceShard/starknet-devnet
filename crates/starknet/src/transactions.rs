@@ -1,3 +1,4 @@
+use blockifier::execution::call_info::CallInfo;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -7,8 +8,13 @@ use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{Event, OrderedEvent};
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
-use starknet_types::rpc::transaction_receipt::{DeployTransactionReceipt, TransactionReceipt};
-use starknet_types::rpc::transactions::{Transaction, TransactionType};
+use starknet_types::rpc::messaging::{MessageToL1, OrderedMessageToL1};
+use starknet_types::rpc::transaction_receipt::{
+    DeployTransactionReceipt, FeeAmount, FeeInUnits, TransactionReceipt,
+};
+use starknet_types::rpc::transactions::{
+    DeclareTransaction, DeployAccountTransaction, InvokeTransaction, Transaction, TransactionType,
+};
 
 use crate::constants::UDC_CONTRACT_ADDRESS;
 use crate::error::{DevnetResult, Error};
@@ -87,15 +93,15 @@ impl StarknetTransaction {
 
         fn get_blockifier_events_recursively(
             call_info: &blockifier::execution::call_info::CallInfo,
-        ) -> Vec<OrderedEvent> {
-            let mut events: Vec<OrderedEvent> = vec![];
+        ) -> Vec<(OrderedEvent, ContractAddress)> {
+            let mut events: Vec<(OrderedEvent, ContractAddress)> = vec![];
 
             events.extend(
                 call_info
                     .execution
                     .events
                     .iter()
-                    .map(|e| OrderedEvent::new(e, call_info.call.storage_address.into())),
+                    .map(|e| (OrderedEvent::from(e), call_info.call.storage_address.into())),
             );
 
             call_info.inner_calls.iter().for_each(|call| {
@@ -113,8 +119,12 @@ impl StarknetTransaction {
 
         for inner_call_info in call_infos.into_iter().flatten() {
             let mut not_sorted_events = get_blockifier_events_recursively(inner_call_info);
-            not_sorted_events.sort_by_key(|event| event.order);
-            events.extend(not_sorted_events.into_iter().map(|e| e.event));
+            not_sorted_events.sort_by_key(|(ordered_event, _)| ordered_event.order);
+            events.extend(not_sorted_events.into_iter().map(|(ordered_event, address)| Event {
+                from_address: address,
+                keys: ordered_event.keys,
+                data: ordered_event.data,
+            }));
         }
 
         events
@@ -150,21 +160,37 @@ impl StarknetTransaction {
     pub fn get_receipt(&self) -> DevnetResult<TransactionReceipt> {
         let transaction_events = self.get_events();
 
+        let transaction_messages = self.get_l2_to_l1_messages();
+
+        // decide what units to set for actual fee.
+        // L1 Handler transactions are in WEI
+        // V3 transactions are in STRK(FRI)
+        // Other transactions versions are in ETH(WEI)
+        let fee_amount = FeeAmount { amount: self.execution_info.actual_fee };
+        let actual_fee_in_units = match self.inner {
+            Transaction::L1Handler(_) => FeeInUnits::WEI(fee_amount),
+            Transaction::Declare(DeclareTransaction::Version3(_))
+            | Transaction::DeployAccount(DeployAccountTransaction::Version3(_))
+            | Transaction::Invoke(InvokeTransaction::Version3(_)) => FeeInUnits::FRI(fee_amount),
+            _ => FeeInUnits::WEI(fee_amount),
+        };
+
         let mut common_receipt = self.inner.create_common_receipt(
             &transaction_events,
+            &transaction_messages,
             self.block_hash.as_ref(),
             self.block_number,
             &self.execution_result,
             self.finality_status,
-            self.execution_info.actual_fee,
+            actual_fee_in_units,
             &self.execution_info,
         );
 
         match &self.inner {
-            Transaction::DeployAccount(deploy_account_transaction) => {
+            Transaction::DeployAccount(deploy_account_txn) => {
                 Ok(TransactionReceipt::Deploy(DeployTransactionReceipt {
                     common: common_receipt,
-                    contract_address: deploy_account_transaction.contract_address,
+                    contract_address: *deploy_account_txn.get_contract_address(),
                 }))
             }
             Transaction::Invoke(_) => {
@@ -185,6 +211,43 @@ impl StarknetTransaction {
             }
             _ => Ok(TransactionReceipt::Common(common_receipt)),
         }
+    }
+
+    pub fn get_l2_to_l1_messages(&self) -> Vec<MessageToL1> {
+        let mut messages = vec![];
+
+        fn get_blockifier_messages_recursively(call_info: &CallInfo) -> Vec<OrderedMessageToL1> {
+            let mut messages = vec![];
+
+            let from_address = call_info.call.caller_address.into();
+
+            messages.extend(call_info.execution.l2_to_l1_messages.iter().map(|m| {
+                OrderedMessageToL1 {
+                    order: m.order,
+                    message: MessageToL1 {
+                        to_address: m.message.to_address.into(),
+                        from_address,
+                        payload: m.message.payload.0.iter().map(|p| (*p).into()).collect(),
+                    },
+                }
+            }));
+
+            call_info.inner_calls.iter().for_each(|call| {
+                messages.extend(get_blockifier_messages_recursively(call));
+            });
+
+            messages
+        }
+
+        let call_infos = self.execution_info.non_optional_call_infos();
+
+        for inner_call_info in call_infos {
+            let mut not_sorted_messages = get_blockifier_messages_recursively(inner_call_info);
+            not_sorted_messages.sort_by_key(|message| message.order);
+            messages.extend(not_sorted_messages.into_iter().map(|m| m.message));
+        }
+
+        messages
     }
 }
 
@@ -224,7 +287,6 @@ mod tests {
     #[test]
     fn check_correct_successful_transaction_creation() {
         let tx = Transaction::Declare(DeclareTransaction::Version1(dummy_declare_transaction_v1()));
-
         let sn_tran =
             StarknetTransaction::create_accepted(&tx, TransactionExecutionInfo::default());
         assert_eq!(sn_tran.finality_status, TransactionFinalityStatus::AcceptedOnL2);

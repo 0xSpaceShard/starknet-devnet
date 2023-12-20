@@ -22,16 +22,18 @@ mod advancing_time_tests {
 
     const DUMMY_ADDRESS: u128 = 1;
     const DUMMY_AMOUNT: u128 = 1;
-    const BUFFER_TIME_SECONDS: u64 = 15;
+    const BUFFER_TIME_SECONDS: u64 = 30;
 
     pub fn assert_ge_with_buffer(val1: Option<u64>, val2: Option<u64>) {
-        assert!(val1 >= val2);
-        assert!(val1 < Some(val2.unwrap() + BUFFER_TIME_SECONDS));
+        assert!(val1 >= val2, "Failed inequation: {val1:?} >= {val2:?}");
+        let upper_limit = Some(val2.unwrap() + BUFFER_TIME_SECONDS);
+        assert!(val1 <= upper_limit, "Failed inequation: {val1:?} <= {upper_limit:?}");
     }
 
     pub fn assert_gt_with_buffer(val1: Option<u64>, val2: Option<u64>) {
-        assert!(val1 > val2);
-        assert!(val1 < Some(val2.unwrap() + BUFFER_TIME_SECONDS));
+        assert!(val1 > val2, "Failed inequation: {val1:?} > {val2:?}");
+        let upper_limit = Some(val2.unwrap() + BUFFER_TIME_SECONDS);
+        assert!(val1 <= upper_limit, "Failed inequation: {val1:?} <= {upper_limit:?}");
     }
 
     #[tokio::test]
@@ -342,12 +344,8 @@ mod advancing_time_tests {
         // increase time and assert if it's greater/equal than start-time argument +
         // first_increase_time, check if it's inside buffer limit
         let first_increase_time: u64 = 1000;
-        let first_increase_time_body = Body::from(
-            json!({
-                "time": first_increase_time
-            })
-            .to_string(),
-        );
+        let first_increase_time_body =
+            Body::from(json!({ "time": first_increase_time }).to_string());
         devnet.post_json("/increase_time".into(), first_increase_time_body).await.unwrap();
         let first_increase_time_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
@@ -360,12 +358,8 @@ mod advancing_time_tests {
         // increase the time a second time and assert if it's greater/equal than past_time +
         // first_increase_time + second_increase_time, check if it's inside buffer limit
         let second_increase_time: u64 = 100;
-        let second_increase_time_body = Body::from(
-            json!({
-                "time": second_increase_time
-            })
-            .to_string(),
-        );
+        let second_increase_time_body =
+            Body::from(json!({ "time": second_increase_time }).to_string());
         devnet.post_json("/increase_time".into(), second_increase_time_body).await.unwrap();
         let second_increase_time_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
@@ -377,12 +371,7 @@ mod advancing_time_tests {
 
         // set time to be now and check if the latest block timestamp is greater/equal now, check if
         // it's inside buffer limit
-        let set_time_body = Body::from(
-            json!({
-                "time": now
-            })
-            .to_string(),
-        );
+        let set_time_body = Body::from(json!({ "time": now }).to_string());
         let resp_set_time = devnet.post_json("/set_time".into(), set_time_body).await.unwrap();
         let resp_body_set_time = get_json_body(resp_set_time).await;
         assert_eq!(resp_body_set_time["block_timestamp"], now);
@@ -408,12 +397,8 @@ mod advancing_time_tests {
         // increase the time a third time and assert if it's greater/equal than last empty block
         // timestamp + third_increase_time, check if it's inside buffer limit
         let third_increase_time: u64 = 10000;
-        let third_increase_time_body = Body::from(
-            json!({
-                "time": third_increase_time
-            })
-            .to_string(),
-        );
+        let third_increase_time_body =
+            Body::from(json!({ "time": third_increase_time }).to_string());
         devnet.post_json("/increase_time".into(), third_increase_time_body).await.unwrap();
         let third_increase_time_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))

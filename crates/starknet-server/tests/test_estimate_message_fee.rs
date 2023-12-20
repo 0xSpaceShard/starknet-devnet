@@ -1,7 +1,6 @@
 pub mod common;
 
 mod test_estimate_message_fee {
-    const WHITELISTED_L1_ADDRESS: &str = "0x8359E4B0152ed5A731162D3c7B0D8D56edB165A0";
     const L1_HANDLER_SELECTOR: &str =
         "0xc73f681176fc7b3f9693986fd7b14581e8d540519e27400e88b8713932be01";
 
@@ -15,14 +14,13 @@ mod test_estimate_message_fee {
         BlockId, BlockTag, EthAddress, FieldElement, MsgFromL1, StarknetError,
     };
     use starknet_rs_core::utils::{get_udc_deployed_address, UdcUniqueness};
-    use starknet_rs_providers::{
-        MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
-    };
+    use starknet_rs_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::constants::CHAIN_ID;
+    use crate::common::constants::{CHAIN_ID, MESSAGING_WHITELISTED_L1_CONTRACT};
 
     #[tokio::test]
+    #[ignore = "Starknet-rs does not support estimate_fee with simulation_flags"]
     async fn estimate_message_fee() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -72,7 +70,7 @@ mod test_estimate_message_fee {
             .json_rpc_client
             .estimate_message_fee(
                 MsgFromL1 {
-                    from_address: EthAddress::from_hex(WHITELISTED_L1_ADDRESS).unwrap(),
+                    from_address: EthAddress::from_hex(MESSAGING_WHITELISTED_L1_CONTRACT).unwrap(),
                     to_address: contract_address,
                     entry_point_selector: FieldElement::from_hex_be(L1_HANDLER_SELECTOR).unwrap(),
                     payload: [(1_u32).into(), (10_u32).into()].to_vec(),
@@ -82,7 +80,7 @@ mod test_estimate_message_fee {
             .await
             .unwrap();
 
-        assert_eq!(res.gas_consumed, 18485);
+        assert_eq!(res.gas_consumed, FieldElement::from(18485u32));
     }
 
     #[tokio::test]
@@ -93,7 +91,7 @@ mod test_estimate_message_fee {
             .json_rpc_client
             .estimate_message_fee(
                 MsgFromL1 {
-                    from_address: EthAddress::from_hex(WHITELISTED_L1_ADDRESS).unwrap(),
+                    from_address: EthAddress::from_hex(MESSAGING_WHITELISTED_L1_CONTRACT).unwrap(),
                     to_address: FieldElement::from_hex_be("0x1").unwrap(),
                     entry_point_selector: FieldElement::from_hex_be(L1_HANDLER_SELECTOR).unwrap(),
                     payload: [(1_u32).into(), (10_u32).into()].to_vec(),
@@ -104,10 +102,7 @@ mod test_estimate_message_fee {
             .expect_err("Error expected");
 
         match err {
-            ProviderError::StarknetError(StarknetErrorWithMessage {
-                code: MaybeUnknownErrorCode::Known(StarknetError::ContractNotFound),
-                ..
-            }) => (),
+            ProviderError::StarknetError(StarknetError::ContractNotFound) => (),
             _ => panic!("Invalid error: {err:?}"),
         }
     }
@@ -120,7 +115,7 @@ mod test_estimate_message_fee {
             .json_rpc_client
             .estimate_message_fee(
                 MsgFromL1 {
-                    from_address: EthAddress::from_hex(WHITELISTED_L1_ADDRESS).unwrap(),
+                    from_address: EthAddress::from_hex(MESSAGING_WHITELISTED_L1_CONTRACT).unwrap(),
                     to_address: FieldElement::from_hex_be("0x1").unwrap(),
                     entry_point_selector: FieldElement::from_hex_be(L1_HANDLER_SELECTOR).unwrap(),
                     payload: [(1_u32).into(), (10_u32).into()].to_vec(),
@@ -131,10 +126,7 @@ mod test_estimate_message_fee {
             .expect_err("Error expected");
 
         match err {
-            ProviderError::StarknetError(StarknetErrorWithMessage {
-                code: MaybeUnknownErrorCode::Known(StarknetError::BlockNotFound),
-                ..
-            }) => (),
+            ProviderError::StarknetError(StarknetError::BlockNotFound) => (),
             _ => panic!("Invalid error: {err:?}"),
         }
     }

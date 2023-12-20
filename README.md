@@ -20,22 +20,18 @@ This repository is work in progress, please be patient. Please check below the s
 
 ### Supported Features
 
-- [x] RPC v0.5.1
+- [x] RPC v0.6.0-rc5
 - [x] [Dump & Load](https://github.com/0xSpaceShard/starknet-devnet-rs#dumping--loading)
 - [x] [Mint token - Local faucet](https://0xspaceshard.github.io/starknet-devnet/docs/guide/mint-token)
 - [x] [Customizable predeployed accounts](#predeployed-contracts)
 - [x] Starknet.js test suite passes 100%
 - [x] [Advancing time](https://0xspaceshard.github.io/starknet-devnet/docs/guide/advancing-time)
 
-### TODO
-
-- [ ] RPC v0.6.0
-
 ### TODO to reach feature parity with the Pythonic Devnet
 
 - [ ] Availability as a package (crate)
 - [ ] [Forking](https://0xspaceshard.github.io/starknet-devnet/docs/guide/fork)
-- [ ] [L1-L2 Postman integration](https://0xspaceshard.github.io/starknet-devnet/docs/guide/postman)
+- [x] [L1-L2 Postman integration](https://0xspaceshard.github.io/starknet-devnet/docs/guide/postman)
 - [ ] [Block manipulation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/blocks)
   - [x] Create an empty block
 
@@ -45,13 +41,27 @@ Make sure to have installed [Rust](https://www.rust-lang.org/tools/install).
 
 The required Rust version is specified in [rust-toolchain.toml](rust-toolchain.toml) and handled automatically by `cargo`.
 
-## Run
+## Run from source
 
 After git-cloning this repository, install and run the project with:
 
 ```
 $ cargo run
 ```
+
+## Run as a binary
+
+Installing and running as a binary is achievable via `cargo install`, but until Devnet is released as a crate, it comes with some caveats. You need to:
+
+- Populate your environment with the variables defined in [the config file](/.cargo/config.toml)
+- Use the `--locked` flag to ensure using the dependencies listed in [the lock file](/Cargo.lock)
+- Preferrably familiarize yourself with the `cargo install` command ([docs](https://doc.rust-lang.org/cargo/commands/cargo-install.html#dealing-with-the-lockfile))
+
+```
+$ cargo install --git https://github.com/0xSpaceShard/starknet-devnet-rs.git --locked
+```
+
+When the installation finishes, follow the output in your terminal.
 
 ## Run with Docker
 
@@ -166,7 +176,16 @@ The predeployment information is logged on Devnet startup. Predeployed accounts 
 
 ## Mint token
 
-For now, you can consult the [Pythonic Devnet docs on minting](https://0xspaceshard.github.io/starknet-devnet/docs/guide/mint-token/), with the difference of lite minting not being supported anymore.
+For now, you can consult the [Pythonic Devnet docs on minting](https://0xspaceshard.github.io/starknet-devnet/docs/guide/mint-token/), with the differences between lite minting not being supported anymore and additional support of Stark token minting declared in FRI unit. Unit is an optional parameter and when it's not specified is set to WEI by default, this behaviour can change in the next versions.
+
+```
+POST /mint
+{
+    "address": "0x6e3205f...",
+    "amount": 500000,
+    "unit": "FRI"
+}
+``````
 
 ## Dumping & Loading
 
@@ -210,15 +229,16 @@ Currently, dumping produces a list of received transactions that is stored on di
 Conversely, loading is implemented as the re-execution of transactions from a dump.
 This means that timestamps of `StarknetBlock` will be different.
 
+### Loading disclaimer
+
+Dumping and loading is not guaranteed to work cross-version. I.e. if you dumped one version of Devnet, do not expect it to be loadable with a different version.
+If you dumped a Devnet utilizing one class for account predeployment (e.g. the default `--account-class cairo0`), you should use the same option when loading.
+
 ### Restarting
 
 Devnet can be restarted by making a `POST /restart` request (no body required). All of the deployed contracts (including predeployed), blocks and storage updates will be restarted to the original state, without the transactions and requests from a dump file you may have provided on startup.
 
 If you're using [**the Hardhat plugin**](https://github.com/0xSpaceShard/starknet-hardhat-plugin#restart), restart with `starknet.devnet.restart()`.
-
-### Cross-version disclaimer
-
-Dumping and loading is not guaranteed to work cross-version. I.e. if you dumped one version of Devnet, do not expect it to be loadable with a different version.
 
 ## Blocks
 
@@ -278,6 +298,15 @@ Timeout can be passed to Devnet's HTTP server. This makes it easier to deploy an
 cargo run -- --timeout TIMEOUT
 ```
 
+### State archive mode
+
+With state archive capacity set to `full`, Devnet will store full state history. The default mode is `none`, where no old states are stored.
+
+```
+cargo run -- --state-archive-capacity CAPACITY
+
+```
+
 ## Development - Visual Studio Code
 
 It is highly recommended to get familiar with [Visual Studio Code Dev Containers](https://code.visualstudio.com/docs/devcontainers/create-dev-container#_dockerfile) and install [rust-analyzer](https://code.visualstudio.com/docs/languages/rust) extension.
@@ -322,7 +351,13 @@ If you think this reports a dependency as a false-positive (i.e. isn't unused), 
 
 ## Development - Testing
 
-To ensure that integration tests pass, be sure to have run `cargo build --release` or `cargo run --release` prior to testing. This builds the production target used in integration tests, so spawning Background Devnet won't time out.
+### Prerequisites
+
+Some tests require the `anvil` command, so you need to [install Foundry](https://book.getfoundry.sh/getting-started/installation). The `anvil` command might not be usable by tests if you run them using VS Code's `Run Test` button available just above the test case. Either run tests using a shell which has foundry/anvil in `PATH`, or modify the BackgroundAnvil Command to specify `anvil` by its path on your system.
+
+To ensure that integration tests pass, be sure to have run `cargo build --release` or `cargo run --release` prior to testing. This builds the production target used in integration tests, so spawning BackgroundDevnet won't time out.
+
+### Execution
 
 Run all tests using all available CPUs with:
 
@@ -348,6 +383,18 @@ This is what happens under the hood on `main`:
   - same for `latest`
 
 In the image, `tini` is used to properly handle killing of dockerized Devnet with Ctrl+C
+
+## Development - L1 / L2 (postman)
+
+To test Starknet messaging, Devnet exposes endpoints prefixed with `postman/` which are dedicated to the messaging feature.
+You can find a full guide to test the messaging feature in the [contracts/l1-l2-messaging README](./contracts/l1-l2-messaging/README.md).
+
+Devnet exposes the following endpoints:
+
+- `/postman/load_l1_messaging_contract`: deploys the `MockStarknetMessaging` contract on L1 (requires L1 node to be running).
+- `/postman/flush`: fetches and executes L1 -> L2 messages, and sends L2 -> L1 messages (requires L1 node to be running if `dry_run` option is not used).
+- `/postman/send_message_to_l2`: sends and executes a message on L2 (L1 node **not** required).
+- `/postman/consume_message_from_l2`: consumes a message on L1 node from the L2 (requires L1 node to be running).
 
 ## ✏️ Contributing
 

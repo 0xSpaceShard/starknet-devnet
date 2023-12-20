@@ -1,7 +1,7 @@
 {
     "openrpc": "1.0.0-rc1",
     "info": {
-        "version": "0.5.1",
+        "version": "0.6.0",
         "title": "StarkNet Node API",
         "license": {}
     },
@@ -567,7 +567,7 @@
         {
             "name": "starknet_estimateFee",
             "summary": "estimate the fee for of StarkNet transactions",
-            "description": "estimates the resources required by transactions when applyed on a given state",
+            "description": "Estimates the resources required by a given sequence of transactions when applied on a given state. If one of the transactions reverts or fails due to any reason (e.g. validation failure or an internal error), a TRANSACTION_EXECUTION_ERROR is returned. For v0-2 transactions the estimate is given in wei, and for v3 transactions it is given in fri.",
             "params": [
                 {
                     "name": "request",
@@ -581,6 +581,17 @@
                         }
                     },
                     "required": true
+                },
+                {
+                    "name": "simulation_flags",
+                    "description": "describes what parts of the transaction should be executed",
+                    "required": true,
+                    "schema": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SIMULATION_FLAG_FOR_ESTIMATE_FEE"
+                        }
+                    }
                 },
                 {
                     "name": "block_id",
@@ -606,10 +617,7 @@
             },
             "errors": [
                 {
-                    "$ref": "#/components/errors/CONTRACT_NOT_FOUND"
-                },
-                {
-                    "$ref": "#/components/errors/CONTRACT_ERROR"
+                    "$ref": "#/components/errors/TRANSACTION_EXECUTION_ERROR"
                 },
                 {
                     "$ref": "#/components/errors/BLOCK_NOT_FOUND"
@@ -647,9 +655,6 @@
                 }
             },
             "errors": [
-                {
-                    "$ref": "#/components/errors/CONTRACT_NOT_FOUND"
-                },
                 {
                     "$ref": "#/components/errors/CONTRACT_ERROR"
                 },
@@ -736,10 +741,6 @@
                             "type": "boolean",
                             "title": "False",
                             "description": "only legal value is FALSE here"
-                        },
-                        {
-                            "title": "Sync status",
-                            "$ref": "#/components/schemas/SYNC_STATUS"
                         }
                     ]
                 }
@@ -907,9 +908,9 @@
                             }
                         },
                         "required": [
+                            "transaction_hash",
                             "block_hash",
-                            "block_number",
-                            "transaction_hash"
+                            "block_number"
                         ]
                     }
                 ]
@@ -1090,6 +1091,18 @@
                 "description": "An integer number in hex format (0x...)",
                 "type": "string",
                 "pattern": "^0x[a-fA-F0-9]+$"
+            },
+            "u64": {
+                "type": "string",
+                "title": "u64",
+                "description": "64 bit integers, represented by hex string of length at most 16",
+                "pattern": "^0x(0|[a-fA-F1-9]{1}[a-fA-F0-9]{0,15})$"
+            },
+            "u128": {
+                "type": "string",
+                "title": "u128",
+                "description": "128 bit integers, represented by hex string of length at most 32",
+                "pattern": "^0x(0|[a-fA-F1-9]{1}[a-fA-F0-9]{0,31})$"
             },
             "CHAIN_ID": {
                 "title": "Chain id",
@@ -1278,12 +1291,6 @@
                 "description": "A field element. represented by at most 63 hex digits",
                 "pattern": "^0x(0|[a-fA-F1-9]{1}[a-fA-F0-9]{0,61})$"
             },
-            "FELT_U128": {
-                "type": "string",
-                "title": "Field element",
-                "description": "A field element. represented by at most 63 hex digits",
-                "pattern": "^0x(0|[a-fA-F1-9]{1}[a-fA-F0-9]{0,16})$"
-            },
             "BLOCK_NUMBER": {
                 "title": "Block number",
                 "description": "The block's number (its height)",
@@ -1384,7 +1391,7 @@
                     },
                     "l1_gas_price": {
                         "title": "L1 gas price",
-                        "descritpion": "The price of l1 gas in the block",
+                        "description": "The price of l1 gas in the block",
                         "$ref": "#/components/schemas/RESOURCE_PRICE"
                     },
                     "starknet_version": {
@@ -1403,46 +1410,6 @@
                     "l1_gas_price",
                     "starknet_version"
                 ]
-            },
-            "PENDING_BLOCK_HEADER": {
-                "title": "Pending block header",
-                "type": "object",
-                "properties": {
-                    "parent_hash": {
-                        "title": "Parent hash",
-                        "description": "The hash of this block's parent",
-                        "$ref": "#/components/schemas/BLOCK_HASH"
-                    },
-                    "timestamp": {
-                        "title": "Timestamp",
-                        "description": "The time in which the block was created, encoded in Unix time",
-                        "type": "integer",
-                        "minimum": 0
-                    },
-                    "sequencer_address": {
-                        "title": "Sequencer address",
-                        "description": "The StarkNet identity of the sequencer submitting this block",
-                        "$ref": "#/components/schemas/FELT"
-                    },
-                    "l1_gas_price": {
-                        "title": "L1 gas price",
-                        "descritpion": "The price of l1 gas in the block",
-                        "$ref": "#/components/schemas/RESOURCE_PRICE"
-                    },
-                    "starknet_version": {
-                        "title": "Starknet version",
-                        "description": "Semver of the current Starknet protocol",
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "parent_hash",
-                    "timestamp",
-                    "sequencer_address",
-                    "l1_gas_price",
-                    "starknet_version"
-                ],
-                "additionalProperties": false
             },
             "BLOCK_WITH_TX_HASHES": {
                 "title": "Block with transaction hashes",
@@ -1510,8 +1477,7 @@
                         "title": "Pending block header",
                         "$ref": "#/components/schemas/PENDING_BLOCK_HEADER"
                     }
-                ],
-                "additionalProperties": false
+                ]
             },
             "PENDING_BLOCK_WITH_TXS": {
                 "title": "Pending block with transactions",
@@ -1525,8 +1491,7 @@
                         "title": "Pending block header",
                         "$ref": "#/components/schemas/PENDING_BLOCK_HEADER"
                     }
-                ],
-                "additionalProperties": false
+                ]
             },
             "DEPLOYED_CONTRACT_ITEM": {
                 "title": "Deployed contract item",
@@ -1632,6 +1597,10 @@
                     {
                         "title": "Declare transaction V2",
                         "$ref": "#/components/schemas/DECLARE_TXN_V2"
+                    },
+                    {
+                        "title": "Declare transaction V3",
+                        "$ref": "#/components/schemas/DECLARE_TXN_V3"
                     }
                 ]
             },
@@ -1657,7 +1626,7 @@
                             },
                             "max_fee": {
                                 "title": "Max fee",
-                                "$ref": "#/components/schemas/FELT_U128",
+                                "$ref": "#/components/schemas/u128",
                                 "description": "The maximal fee that can be charged for including the transaction"
                             },
                             "version": {
@@ -1665,7 +1634,8 @@
                                 "description": "Version of the transaction scheme",
                                 "type": "string",
                                 "enum": [
-                                    "0x0"
+                                    "0x0",
+                                    "0x100000000000000000000000000000000"
                                 ]
                             },
                             "signature": {
@@ -1711,7 +1681,7 @@
                             },
                             "max_fee": {
                                 "title": "Max fee",
-                                "$ref": "#/components/schemas/FELT_U128",
+                                "$ref": "#/components/schemas/u128",
                                 "description": "The maximal fee that can be charged for including the transaction"
                             },
                             "version": {
@@ -1719,7 +1689,8 @@
                                 "description": "Version of the transaction scheme",
                                 "type": "string",
                                 "enum": [
-                                    "0x1"
+                                    "0x1",
+                                    "0x100000000000000000000000000000001"
                                 ]
                             },
                             "signature": {
@@ -1775,7 +1746,7 @@
                             },
                             "max_fee": {
                                 "title": "Max fee",
-                                "$ref": "#/components/schemas/FELT_U128",
+                                "$ref": "#/components/schemas/u128",
                                 "description": "The maximal fee that can be charged for including the transaction"
                             },
                             "version": {
@@ -1783,7 +1754,8 @@
                                 "description": "Version of the transaction scheme",
                                 "type": "string",
                                 "enum": [
-                                    "0x2"
+                                    "0x2",
+                                    "0x100000000000000000000000000000002"
                                 ]
                             },
                             "signature": {
@@ -1813,6 +1785,108 @@
                     }
                 ]
             },
+            "DECLARE_TXN_V3": {
+                "title": "Declare Transaction V3",
+                "description": "Declare Contract Transaction V3",
+                "allOf": [
+                    {
+                        "type": "object",
+                        "title": "Declare txn v3",
+                        "properties": {
+                            "type": {
+                                "title": "Declare",
+                                "type": "string",
+                                "enum": [
+                                    "DECLARE"
+                                ]
+                            },
+                            "sender_address": {
+                                "title": "Sender address",
+                                "description": "The address of the account contract sending the declaration transaction",
+                                "$ref": "#/components/schemas/ADDRESS"
+                            },
+                            "compiled_class_hash": {
+                                "title": "Compiled class hash",
+                                "description": "The hash of the Cairo assembly resulting from the Sierra compilation",
+                                "$ref": "#/components/schemas/FELT"
+                            },
+                            "version": {
+                                "title": "Version",
+                                "description": "Version of the transaction scheme",
+                                "type": "string",
+                                "enum": [
+                                    "0x3",
+                                    "0x100000000000000000000000000000003"
+                                ]
+                            },
+                            "signature": {
+                                "title": "Signature",
+                                "$ref": "#/components/schemas/SIGNATURE"
+                            },
+                            "nonce": {
+                                "title": "Nonce",
+                                "$ref": "#/components/schemas/FELT"
+                            },
+                            "class_hash": {
+                                "title": "Class hash",
+                                "description": "The hash of the declared class",
+                                "$ref": "#/components/schemas/FELT"
+                            },
+                            "resource_bounds": {
+                                "title": "Resource bounds",
+                                "description": "resource bounds for the transaction execution",
+                                "$ref": "#/components/schemas/RESOURCE_BOUNDS_MAPPING"
+                            },
+                            "tip": {
+                                "title": "Tip",
+                                "$ref": "#/components/schemas/u64",
+                                "description": "the tip for the transaction"
+                            },
+                            "paymaster_data": {
+                                "title": "Paymaster data",
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/FELT"
+                                },
+                                "description": "data needed to allow the paymaster to pay for the transaction in native tokens"
+                            },
+                            "account_deployment_data": {
+                                "title": "Account deployment data",
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/FELT"
+                                },
+                                "description": "data needed to deploy the account contract from which this tx will be initiated"
+                            },
+                            "nonce_data_availability_mode": {
+                                "title": "Nonce DA mode",
+                                "description": "The storage domain of the account's nonce (an account has a nonce per DA mode)",
+                                "$ref": "#/components/schemas/DA_MODE"
+                            },
+                            "fee_data_availability_mode": {
+                                "title": "Fee DA mode",
+                                "description": "The storage domain of the account's balance from which fee will be charged",
+                                "$ref": "#/components/schemas/DA_MODE"
+                            }
+                        },
+                        "required": [
+                            "type",
+                            "sender_address",
+                            "compiled_class_hash",
+                            "version",
+                            "signature",
+                            "nonce",
+                            "class_hash",
+                            "resource_bounds",
+                            "tip",
+                            "paymaster_data",
+                            "account_deployment_data",
+                            "nonce_data_availability_mode",
+                            "fee_data_availability_mode"
+                        ]
+                    }
+                ]
+            },
             "BROADCASTED_TXN": {
                 "oneOf": [
                     {
@@ -1828,16 +1902,7 @@
             },
             "BROADCASTED_INVOKE_TXN": {
                 "title": "Broadcasted invoke transaction",
-                "oneOf": [
-                    {
-                        "title": "Broadcasted invoke transaction V0",
-                        "$ref": "#/components/schemas/INVOKE_TXN_V0"
-                    },
-                    {
-                        "title": "Broadcasted invoke transaction V1",
-                        "$ref": "#/components/schemas/INVOKE_TXN_V1"
-                    }
-                ]
+                "$ref": "#/components/schemas/INVOKE_TXN"
             },
             "BROADCASTED_DEPLOY_ACCOUNT_TXN": {
                 "title": "Broadcasted deploy account transaction",
@@ -1853,6 +1918,10 @@
                     {
                         "title": "Broadcasted declare transaction V2",
                         "$ref": "#/components/schemas/BROADCASTED_DECLARE_TXN_V2"
+                    },
+                    {
+                        "title": "Broadcasted declare transaction V3",
+                        "$ref": "#/components/schemas/BROADCASTED_DECLARE_TXN_V3"
                     }
                 ]
             },
@@ -1877,13 +1946,17 @@
                             },
                             "max_fee": {
                                 "title": "Max fee",
-                                "$ref": "#/components/schemas/FELT_U128",
+                                "$ref": "#/components/schemas/u128",
                                 "description": "The maximal fee that can be charged for including the transaction"
                             },
                             "version": {
                                 "title": "Version",
                                 "description": "Version of the transaction scheme",
-                                "$ref": "#/components/schemas/NUM_AS_HEX"
+                                "type": "string",
+                                "enum": [
+                                    "0x1",
+                                    "0x100000000000000000000000000000001"
+                                ]
                             },
                             "signature": {
                                 "title": "Signature",
@@ -1938,13 +2011,17 @@
                             },
                             "max_fee": {
                                 "title": "Max fee",
-                                "$ref": "#/components/schemas/FELT_U128",
+                                "$ref": "#/components/schemas/u128",
                                 "description": "The maximal fee that can be charged for including the transaction"
                             },
                             "version": {
                                 "title": "Version",
                                 "description": "Version of the transaction scheme",
-                                "$ref": "#/components/schemas/NUM_AS_HEX"
+                                "type": "string",
+                                "enum": [
+                                    "0x2",
+                                    "0x100000000000000000000000000000002"
+                                ]
                             },
                             "signature": {
                                 "title": "Signature",
@@ -1973,6 +2050,108 @@
                     }
                 ]
             },
+            "BROADCASTED_DECLARE_TXN_V3": {
+                "title": "Broadcasted declare Transaction V3",
+                "description": "Broadcasted declare Contract Transaction V3",
+                "allOf": [
+                    {
+                        "type": "object",
+                        "title": "Declare txn v3",
+                        "properties": {
+                            "type": {
+                                "title": "Declare",
+                                "type": "string",
+                                "enum": [
+                                    "DECLARE"
+                                ]
+                            },
+                            "sender_address": {
+                                "title": "Sender address",
+                                "description": "The address of the account contract sending the declaration transaction",
+                                "$ref": "#/components/schemas/ADDRESS"
+                            },
+                            "compiled_class_hash": {
+                                "title": "Compiled class hash",
+                                "description": "The hash of the Cairo assembly resulting from the Sierra compilation",
+                                "$ref": "#/components/schemas/FELT"
+                            },
+                            "version": {
+                                "title": "Version",
+                                "description": "Version of the transaction scheme",
+                                "type": "string",
+                                "enum": [
+                                    "0x3",
+                                    "0x100000000000000000000000000000003"
+                                ]
+                            },
+                            "signature": {
+                                "title": "Signature",
+                                "$ref": "#/components/schemas/SIGNATURE"
+                            },
+                            "nonce": {
+                                "title": "Nonce",
+                                "$ref": "#/components/schemas/FELT"
+                            },
+                            "contract_class": {
+                                "title": "Contract class",
+                                "description": "The class to be declared",
+                                "$ref": "#/components/schemas/CONTRACT_CLASS"
+                            },
+                            "resource_bounds": {
+                                "title": "Resource bounds",
+                                "description": "resource bounds for the transaction execution",
+                                "$ref": "#/components/schemas/RESOURCE_BOUNDS_MAPPING"
+                            },
+                            "tip": {
+                                "title": "Tip",
+                                "$ref": "#/components/schemas/u64",
+                                "description": "the tip for the transaction"
+                            },
+                            "paymaster_data": {
+                                "title": "Paymaster data",
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/FELT"
+                                },
+                                "description": "data needed to allow the paymaster to pay for the transaction in native tokens"
+                            },
+                            "account_deployment_data": {
+                                "title": "Account deployment data",
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/FELT"
+                                },
+                                "description": "data needed to deploy the account contract from which this tx will be initiated"
+                            },
+                            "nonce_data_availability_mode": {
+                                "title": "Nonce DA mode",
+                                "description": "The storage domain of the account's nonce (an account has a nonce per DA mode)",
+                                "$ref": "#/components/schemas/DA_MODE"
+                            },
+                            "fee_data_availability_mode": {
+                                "title": "Fee DA mode",
+                                "description": "The storage domain of the account's balance from which fee will be charged",
+                                "$ref": "#/components/schemas/DA_MODE"
+                            }
+                        },
+                        "required": [
+                            "type",
+                            "sender_address",
+                            "compiled_class_hash",
+                            "version",
+                            "signature",
+                            "nonce",
+                            "contract_class",
+                            "resource_bounds",
+                            "tip",
+                            "paymaster_data",
+                            "account_deployment_data",
+                            "nonce_data_availability_mode",
+                            "fee_data_availability_mode"
+                        ]
+                    }
+                ]
+            },
             "DEPLOY_ACCOUNT_TXN": {
                 "title": "Deploy account transaction",
                 "description": "deploys a new account contract",
@@ -1980,12 +2159,17 @@
                     {
                         "title": "Deploy account V1",
                         "$ref": "#/components/schemas/DEPLOY_ACCOUNT_TXN_V1"
+                    },
+                    {
+                        "title": "Deploy account V3",
+                        "$ref": "#/components/schemas/DEPLOY_ACCOUNT_TXN_V3"
                     }
                 ]
             },
             "DEPLOY_ACCOUNT_TXN_V1": {
                 "title": "Deploy account transaction",
                 "description": "Deploys an account contract, charges fee from the pre-funded account addresses",
+                "type": "object",
                 "properties": {
                     "type": {
                         "title": "Deploy account",
@@ -1996,13 +2180,17 @@
                     },
                     "max_fee": {
                         "title": "Max fee",
-                        "$ref": "#/components/schemas/FELT_U128",
+                        "$ref": "#/components/schemas/u128",
                         "description": "The maximal fee that can be charged for including the transaction"
                     },
                     "version": {
                         "title": "Version",
                         "description": "Version of the transaction scheme",
-                        "$ref": "#/components/schemas/NUM_AS_HEX"
+                        "type": "string",
+                        "enum": [
+                            "0x1",
+                            "0x100000000000000000000000000000001"
+                        ]
                     },
                     "signature": {
                         "title": "Signature",
@@ -2042,6 +2230,97 @@
                     "class_hash"
                 ]
             },
+            "DEPLOY_ACCOUNT_TXN_V3": {
+                "title": "Deploy account transaction",
+                "description": "Deploys an account contract, charges fee from the pre-funded account addresses",
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "title": "Deploy account",
+                        "type": "string",
+                        "enum": [
+                            "DEPLOY_ACCOUNT"
+                        ]
+                    },
+                    "version": {
+                        "title": "Version",
+                        "description": "Version of the transaction scheme",
+                        "type": "string",
+                        "enum": [
+                            "0x3",
+                            "0x100000000000000000000000000000003"
+                        ]
+                    },
+                    "signature": {
+                        "title": "Signature",
+                        "$ref": "#/components/schemas/SIGNATURE"
+                    },
+                    "nonce": {
+                        "title": "Nonce",
+                        "$ref": "#/components/schemas/FELT"
+                    },
+                    "contract_address_salt": {
+                        "title": "Contract address salt",
+                        "description": "The salt for the address of the deployed contract",
+                        "$ref": "#/components/schemas/FELT"
+                    },
+                    "constructor_calldata": {
+                        "type": "array",
+                        "description": "The parameters passed to the constructor",
+                        "title": "Constructor calldata",
+                        "items": {
+                            "$ref": "#/components/schemas/FELT"
+                        }
+                    },
+                    "class_hash": {
+                        "title": "Class hash",
+                        "description": "The hash of the deployed contract's class",
+                        "$ref": "#/components/schemas/FELT"
+                    },
+                    "resource_bounds": {
+                        "title": "Resource bounds",
+                        "description": "resource bounds for the transaction execution",
+                        "$ref": "#/components/schemas/RESOURCE_BOUNDS_MAPPING"
+                    },
+                    "tip": {
+                        "title": "Tip",
+                        "$ref": "#/components/schemas/u64",
+                        "description": "the tip for the transaction"
+                    },
+                    "paymaster_data": {
+                        "title": "Paymaster data",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/FELT"
+                        },
+                        "description": "data needed to allow the paymaster to pay for the transaction in native tokens"
+                    },
+                    "nonce_data_availability_mode": {
+                        "title": "Nonce DA mode",
+                        "description": "The storage domain of the account's nonce (an account has a nonce per DA mode)",
+                        "$ref": "#/components/schemas/DA_MODE"
+                    },
+                    "fee_data_availability_mode": {
+                        "title": "Fee DA mode",
+                        "description": "The storage domain of the account's balance from which fee will be charged",
+                        "$ref": "#/components/schemas/DA_MODE"
+                    }
+                },
+                "required": [
+                    "version",
+                    "signature",
+                    "nonce",
+                    "type",
+                    "contract_address_salt",
+                    "constructor_calldata",
+                    "class_hash",
+                    "resource_bounds",
+                    "tip",
+                    "paymaster_data",
+                    "nonce_data_availability_mode",
+                    "fee_data_availability_mode"
+                ]
+            },
             "DEPLOY_TXN": {
                 "title": "Deploy Contract Transaction",
                 "description": "The structure of a deploy transaction. Note that this transaction type is deprecated and will no longer be supported in future versions",
@@ -2053,7 +2332,7 @@
                             "version": {
                                 "title": "Version",
                                 "description": "Version of the transaction scheme",
-                                "$ref": "#/components/schemas/NUM_AS_HEX"
+                                "$ref": "#/components/schemas/FELT"
                             },
                             "type": {
                                 "title": "Deploy",
@@ -2094,6 +2373,7 @@
             "INVOKE_TXN_V0": {
                 "title": "Invoke transaction V0",
                 "description": "invokes a specific function in the desired contract (not necessarily an account)",
+                "type": "object",
                 "properties": {
                     "type": {
                         "title": "Type",
@@ -2104,7 +2384,7 @@
                     },
                     "max_fee": {
                         "title": "Max fee",
-                        "$ref": "#/components/schemas/FELT_U128",
+                        "$ref": "#/components/schemas/u128",
                         "description": "The maximal fee that can be charged for including the transaction"
                     },
                     "version": {
@@ -2112,7 +2392,8 @@
                         "description": "Version of the transaction scheme",
                         "type": "string",
                         "enum": [
-                            "0x0"
+                            "0x0",
+                            "0x100000000000000000000000000000000"
                         ]
                     },
                     "signature": {
@@ -2174,13 +2455,17 @@
                             },
                             "max_fee": {
                                 "title": "Max fee",
-                                "$ref": "#/components/schemas/FELT_U128",
+                                "$ref": "#/components/schemas/u128",
                                 "description": "The maximal fee that can be charged for including the transaction"
                             },
                             "version": {
                                 "title": "Version",
                                 "description": "Version of the transaction scheme",
-                                "$ref": "#/components/schemas/NUM_AS_HEX"
+                                "type": "string",
+                                "enum": [
+                                    "0x1",
+                                    "0x100000000000000000000000000000001"
+                                ]
                             },
                             "signature": {
                                 "title": "Signature",
@@ -2203,6 +2488,103 @@
                     }
                 ]
             },
+            "INVOKE_TXN_V3": {
+                "title": "Invoke transaction V3",
+                "description": "initiates a transaction from a given account",
+                "allOf": [
+                    {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "title": "Type",
+                                "type": "string",
+                                "enum": [
+                                    "INVOKE"
+                                ]
+                            },
+                            "sender_address": {
+                                "title": "sender address",
+                                "$ref": "#/components/schemas/ADDRESS"
+                            },
+                            "calldata": {
+                                "type": "array",
+                                "title": "calldata",
+                                "description": "The data expected by the account's `execute` function (in most usecases, this includes the called contract address and a function selector)",
+                                "items": {
+                                    "$ref": "#/components/schemas/FELT"
+                                }
+                            },
+                            "version": {
+                                "title": "Version",
+                                "description": "Version of the transaction scheme",
+                                "type": "string",
+                                "enum": [
+                                    "0x3",
+                                    "0x100000000000000000000000000000003"
+                                ]
+                            },
+                            "signature": {
+                                "title": "Signature",
+                                "$ref": "#/components/schemas/SIGNATURE"
+                            },
+                            "nonce": {
+                                "title": "Nonce",
+                                "$ref": "#/components/schemas/FELT"
+                            },
+                            "resource_bounds": {
+                                "title": "Resource bounds",
+                                "description": "resource bounds for the transaction execution",
+                                "$ref": "#/components/schemas/RESOURCE_BOUNDS_MAPPING"
+                            },
+                            "tip": {
+                                "title": "Tip",
+                                "$ref": "#/components/schemas/u64",
+                                "description": "the tip for the transaction"
+                            },
+                            "paymaster_data": {
+                                "title": "Paymaster data",
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/FELT"
+                                },
+                                "description": "data needed to allow the paymaster to pay for the transaction in native tokens"
+                            },
+                            "account_deployment_data": {
+                                "title": "Account deployment data",
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/FELT"
+                                },
+                                "description": "data needed to deploy the account contract from which this tx will be initiated"
+                            },
+                            "nonce_data_availability_mode": {
+                                "title": "Nonce DA mode",
+                                "description": "The storage domain of the account's nonce (an account has a nonce per DA mode)",
+                                "$ref": "#/components/schemas/DA_MODE"
+                            },
+                            "fee_data_availability_mode": {
+                                "title": "Fee DA mode",
+                                "description": "The storage domain of the account's balance from which fee will be charged",
+                                "$ref": "#/components/schemas/DA_MODE"
+                            }
+                        },
+                        "required": [
+                            "type",
+                            "sender_address",
+                            "calldata",
+                            "version",
+                            "signature",
+                            "nonce",
+                            "resource_bounds",
+                            "tip",
+                            "paymaster_data",
+                            "account_deployment_data",
+                            "nonce_data_availability_mode",
+                            "fee_data_availability_mode"
+                        ]
+                    }
+                ]
+            },
             "INVOKE_TXN": {
                 "title": "Invoke transaction",
                 "description": "Initiate a transaction from an account",
@@ -2214,6 +2596,10 @@
                     {
                         "title": "Invoke transaction V1",
                         "$ref": "#/components/schemas/INVOKE_TXN_V1"
+                    },
+                    {
+                        "title": "Invoke transaction V3",
+                        "$ref": "#/components/schemas/INVOKE_TXN_V3"
                     }
                 ]
             },
@@ -2228,7 +2614,7 @@
                             "version": {
                                 "title": "Version",
                                 "description": "Version of the transaction scheme",
-                                "$ref": "#/components/schemas/NUM_AS_HEX"
+                                "$ref": "#/components/schemas/FELT"
                             },
                             "type": {
                                 "title": "type",
@@ -2267,7 +2653,7 @@
                     },
                     "actual_fee": {
                         "title": "Actual fee",
-                        "$ref": "#/components/schemas/FELT_U128",
+                        "$ref": "#/components/schemas/FEE_PAYMENT",
                         "description": "The fee that was charged by the sequencer"
                     },
                     "execution_status": {
@@ -2640,12 +3026,8 @@
                     },
                     "actual_fee": {
                         "title": "Actual fee",
-                        "$ref": "#/components/schemas/FELT",
+                        "$ref": "#/components/schemas/FEE_PAYMENT",
                         "description": "The fee that was charged by the sequencer"
-                    },
-                    "type": {
-                        "title": "Transaction type",
-                        "$ref": "#/components/schemas/TXN_TYPE"
                     },
                     "messages_sent": {
                         "type": "array",
@@ -2689,13 +3071,13 @@
                 "required": [
                     "transaction_hash",
                     "actual_fee",
-                    "type",
                     "messages_sent",
                     "events",
                     "finality_status",
                     "execution_status",
                     "execution_resources"
-                ]
+                ],
+                "additionalProperties": false
             },
             "MSG_TO_L1": {
                 "title": "Message to L1",
@@ -3190,6 +3572,21 @@
                     "type"
                 ]
             },
+            "SIMULATION_FLAG_FOR_ESTIMATE_FEE": {
+                "type": "string",
+                "enum": [
+                    "SKIP_VALIDATE"
+                ],
+                "description": "Flags that indicate how to simulate a given transaction. By default, the sequencer behavior is replicated locally"
+            },
+            "PRICE_UNIT": {
+                "title": "price unit",
+                "type": "string",
+                "enum": [
+                    "WEI",
+                    "FRI"
+                ]
+            },
             "FEE_ESTIMATE": {
                 "title": "Fee estimation",
                 "type": "object",
@@ -3197,23 +3594,50 @@
                     "gas_consumed": {
                         "title": "Gas consumed",
                         "description": "The Ethereum gas cost of the transaction (see https://docs.starknet.io/docs/Fees/fee-mechanism for more info)",
-                        "$ref": "#/components/schemas/NUM_AS_HEX"
+                        "$ref": "#/components/schemas/u64"
                     },
                     "gas_price": {
                         "title": "Gas price",
-                        "description": "The gas price (in gwei) that was used in the cost estimation",
-                        "$ref": "#/components/schemas/NUM_AS_HEX"
+                        "description": "The gas price (in gwei or fri, depending on the tx version) that was used in the cost estimation",
+                        "$ref": "#/components/schemas/u64"
                     },
                     "overall_fee": {
                         "title": "Overall fee",
-                        "description": "The estimated fee for the transaction (in gwei), product of gas_consumed and gas_price",
-                        "$ref": "#/components/schemas/NUM_AS_HEX"
+                        "description": "The estimated fee for the transaction (in gwei or fri, depending on the tx version), product of gas_consumed and gas_price",
+                        "$ref": "#/components/schemas/u64"
+                    },
+                    "unit": {
+                        "title": "Fee unit",
+                        "description": "units in which the fee is given",
+                        "$ref": "#/components/schemas/PRICE_UNIT"
                     }
                 },
                 "required": [
                     "gas_consumed",
                     "gas_price",
-                    "overall_fee"
+                    "overall_fee",
+                    "unit"
+                ]
+            },
+            "FEE_PAYMENT": {
+                "title": "Fee Payment",
+                "description": "fee payment info as it appears in receipts",
+                "type": "object",
+                "properties": {
+                    "amount": {
+                        "title": "Amount",
+                        "description": "amount paid",
+                        "$ref": "#/components/schemas/FELT"
+                    },
+                    "unit": {
+                        "title": "Fee unit",
+                        "description": "units in which the fee is given",
+                        "$ref": "#/components/schemas/PRICE_UNIT"
+                    }
+                },
+                "required": [
+                    "amount",
+                    "unit"
                 ]
             },
             "DA_MODE": {
@@ -3225,18 +3649,37 @@
                     "L2"
                 ]
             },
-            "RESOURCE_LIMITS": {
+            "RESOURCE_BOUNDS_MAPPING": {
+                "type": "object",
+                "properties": {
+                    "l1_gas": {
+                        "title": "L1 Gas",
+                        "description": "The max amount and max price per unit of L1 gas used in this tx",
+                        "$ref": "#/components/schemas/RESOURCE_BOUNDS"
+                    },
+                    "l2_gas": {
+                        "title": "L2 Gas",
+                        "description": "The max amount and max price per unit of L2 gas used in this tx",
+                        "$ref": "#/components/schemas/RESOURCE_BOUNDS"
+                    }
+                },
+                "required": [
+                    "l1_gas",
+                    "l2_gas"
+                ]
+            },
+            "RESOURCE_BOUNDS": {
                 "type": "object",
                 "properties": {
                     "max_amount": {
                         "title": "max amount",
                         "description": "the max amount of the resource that can be used in the tx",
-                        "$ref": "#/components/schemas/NUM_AS_HEX"
+                        "$ref": "#/components/schemas/u64"
                     },
                     "max_price_per_unit": {
                         "title": "max price",
                         "description": "the max price per unit of this resource for this tx",
-                        "$ref": "#/components/schemas/NUM_AS_HEX"
+                        "$ref": "#/components/schemas/u128"
                     }
                 },
                 "required": [
@@ -3247,81 +3690,110 @@
             "RESOURCE_PRICE": {
                 "type": "object",
                 "properties": {
-                    "price_in_strk": {
-                        "title": "price in strk",
-                        "description": "the price of one unit of the given resource, denominated in strk",
-                        "$ref": "#/components/schemas/NUM_AS_HEX"
+                    "price_in_fri": {
+                        "title": "price in fri",
+                        "description": "the price of one unit of the given resource, denominated in fri (10^-18 strk)",
+                        "$ref": "#/components/schemas/FELT"
                     },
                     "price_in_wei": {
                         "title": "price in wei",
                         "description": "the price of one unit of the given resource, denominated in wei",
-                        "$ref": "#/components/schemas/NUM_AS_HEX"
+                        "$ref": "#/components/schemas/FELT"
                     }
                 },
                 "required": [
-                    "price_in_wei"
+                    "price_in_wei",
+                    "price_in_fri"
                 ]
             },
             "EXECUTION_RESOURCES": {
                 "title": "Execution resources",
-                "description": "The resources consumed by the transaction",
+                "description": "The resources consumed by the VM",
                 "type": "object",
                 "properties": {
                     "steps": {
                         "title": "Steps",
                         "description": "The number of Cairo steps used",
-                        "$ref": "#/components/schemas/NUM_AS_HEX"
+                        "type": "integer",
+                        "not": {
+                            "const": 0
+                        }
                     },
                     "memory_holes": {
                         "title": "Memory holes",
                         "description": "The number of unused memory cells (each cell is roughly equivalent to a step)",
-                        "$ref": "#/components/schemas/NUM_AS_HEX"
+                        "type": "integer",
+                        "not": {
+                            "const": 0
+                        }
                     },
                     "range_check_builtin_applications": {
                         "title": "Range check applications",
                         "description": "The number of RANGE_CHECK builtin instances",
-                        "$ref": "#/components/schemas/NUM_AS_HEX"
+                        "type": "integer",
+                        "not": {
+                            "const": 0
+                        }
                     },
                     "pedersen_builtin_applications": {
                         "title": "Pedersen applications",
                         "description": "The number of Pedersen builtin instances",
-                        "$ref": "#/components/schemas/NUM_AS_HEX"
+                        "type": "integer",
+                        "not": {
+                            "const": 0
+                        }
                     },
                     "poseidon_builtin_applications": {
                         "title": "Poseidon applications",
                         "description": "The number of Poseidon builtin instances",
-                        "$ref": "#/components/schemas/NUM_AS_HEX"
+                        "type": "integer",
+                        "not": {
+                            "const": 0
+                        }
                     },
                     "ec_op_builtin_applications": {
                         "title": "EC_OP applications",
                         "description": "the number of EC_OP builtin instances",
-                        "$ref": "#/components/schemas/NUM_AS_HEX"
+                        "type": "integer",
+                        "not": {
+                            "const": 0
+                        }
                     },
                     "ecdsa_builtin_applications": {
                         "title": "ECDSA applications",
                         "description": "the number of ECDSA builtin instances",
-                        "$ref": "#/components/schemas/NUM_AS_HEX"
+                        "type": "integer",
+                        "not": {
+                            "const": 0
+                        }
                     },
                     "bitwise_builtin_applications": {
                         "title": "BITWISE applications",
                         "description": "the number of BITWISE builtin instances",
-                        "$ref": "#/components/schemas/NUM_AS_HEX"
+                        "type": "integer",
+                        "not": {
+                            "const": 0
+                        }
                     },
                     "keccak_builtin_applications": {
                         "title": "Keccak applications",
                         "description": "The number of KECCAK builtin instances",
-                        "$ref": "#/components/schemas/NUM_AS_HEX"
+                        "type": "integer",
+                        "not": {
+                            "const": 0
+                        }
+                    },
+                    "segment_arena_builtin": {
+                        "title": "Segment arena",
+                        "description": "The number of accesses to the segment arena",
+                        "type": "integer",
+                        "not": {
+                            "const": 0
+                        }
                     }
                 },
                 "required": [
-                    "steps",
-                    "range_check_builtin_applications",
-                    "pedersen_builtin_applications",
-                    "poseidon_builtin_applications",
-                    "ec_op_builtin_applications",
-                    "ecdsa_builtin_applications",
-                    "bitwise_builtin_applications",
-                    "keccak_builtin_applications"
+                    "steps"
                 ]
             }
         },
@@ -3380,6 +3852,30 @@
                         }
                     },
                     "required": "revert_error"
+                }
+            },
+            "TRANSACTION_EXECUTION_ERROR": {
+                "code": 41,
+                "message": "Transaction execution error",
+                "data": {
+                    "type": "object",
+                    "description": "More data about the execution failure",
+                    "properties": {
+                        "transaction_index": {
+                            "title": "Transaction index",
+                            "description": "The index of the first transaction failing in a sequence of given transactions",
+                            "type": "integer"
+                        },
+                        "execution_error": {
+                            "title": "revert error",
+                            "description": "a string encoding the execution trace up to the point of failure",
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "transaction_index",
+                        "execution_error"
+                    ]
                 }
             }
         }

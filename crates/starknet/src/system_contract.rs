@@ -52,6 +52,7 @@ impl Accounted for SystemContract {
     fn get_balance(
         &self,
         _state: &mut impl crate::traits::StateExtractor,
+        _token: crate::account::FeeToken,
     ) -> DevnetResult<Balance> {
         Ok(Felt::default())
     }
@@ -63,7 +64,7 @@ mod tests {
 
     use super::SystemContract;
     use crate::constants::{
-        ERC20_CONTRACT_ADDRESS, ERC20_CONTRACT_CLASS_HASH, ERC20_CONTRACT_PATH,
+        ERC20_CONTRACT_CLASS_HASH, ERC20_CONTRACT_PATH, ETH_ERC20_CONTRACT_ADDRESS,
     };
     use crate::state::StarknetState;
     use crate::traits::Deployed;
@@ -78,7 +79,7 @@ mod tests {
         let mut state = StarknetState::default();
         let sys_contract = SystemContract::new(
             ERC20_CONTRACT_CLASS_HASH,
-            ERC20_CONTRACT_ADDRESS,
+            ETH_ERC20_CONTRACT_ADDRESS,
             std::fs::read_to_string(ERC20_CONTRACT_PATH).unwrap().as_str(),
         )
         .unwrap();

@@ -23,8 +23,11 @@ pub const ERC20_CONTRACT_PATH: &str =
 pub const ERC20_CONTRACT_CLASS_HASH: &str =
     "0x6A22BF63C7BC07EFFA39A25DFBD21523D211DB0100A0AFD054D172B81840EAF";
 
-pub const ERC20_CONTRACT_ADDRESS: &str =
+pub const ETH_ERC20_CONTRACT_ADDRESS: &str =
     "0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7";
+
+pub const STRK_ERC20_CONTRACT_ADDRESS: &str =
+    "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
 
 pub(crate) const UDC_CONTRACT_PATH: &str =
     concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/UDC_OZ_0.5.0.json");
@@ -34,6 +37,15 @@ pub const UDC_CONTRACT_CLASS_HASH: &str =
 
 pub const UDC_CONTRACT_ADDRESS: &str =
     "0x41A78E741E5AF2FEC34B695679BC6891742439F7AFB8484ECD7766661AD02BF";
+
+/// ERC20 contracts storage variables
+/// taken from starkcan urls:
+/// https://testnet.starkscan.co/token/0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7#read-write-contract
+/// https://testnet.starkscan.co/contract/0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d#read-write-contract
+pub const ETH_ERC20_NAME: &str = "Ether";
+pub const ETH_ERC20_SYMBOL: &str = "ETH";
+pub const STRK_ERC20_NAME: &str = "StarkNet Token";
+pub const STRK_ERC20_SYMBOL: &str = "STRK";
 
 pub const DEVNET_DEFAULT_SEED: u32 = 123;
 pub const DEVNET_DEFAULT_TEST_SEED: u32 = 123;

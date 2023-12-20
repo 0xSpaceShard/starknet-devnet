@@ -6,7 +6,7 @@ mod test_restart {
     use std::sync::Arc;
 
     use hyper::StatusCode;
-    use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ERC20_CONTRACT_ADDRESS};
+    use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ETH_ERC20_CONTRACT_ADDRESS};
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{
         Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
@@ -15,9 +15,7 @@ mod test_restart {
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
     use starknet_rs_core::utils::get_storage_var_address;
-    use starknet_rs_providers::{
-        MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
-    };
+    use starknet_rs_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::CHAIN_ID;
@@ -42,18 +40,12 @@ mod test_restart {
         assert_eq!(restart_resp.status(), StatusCode::OK);
 
         match devnet.json_rpc_client.get_transaction_by_hash(mint_hash).await {
-            Err(ProviderError::StarknetError(StarknetErrorWithMessage {
-                code: MaybeUnknownErrorCode::Known(StarknetError::TransactionHashNotFound),
-                ..
-            })) => (),
+            Err(ProviderError::StarknetError(StarknetError::TransactionHashNotFound)) => (),
             other => panic!("Unexpected result: {other:?}"),
         }
 
         match devnet.json_rpc_client.get_block_with_txs(BlockId::Tag(BlockTag::Latest)).await {
-            Err(ProviderError::StarknetError(StarknetErrorWithMessage {
-                code: MaybeUnknownErrorCode::Known(StarknetError::BlockNotFound),
-                ..
-            })) => (),
+            Err(ProviderError::StarknetError(StarknetError::BlockNotFound)) => (),
             other => panic!("Unexpected result: {other:?}"),
         }
     }
@@ -71,7 +63,7 @@ mod test_restart {
         let storage_key = get_storage_var_address("ERC20_balances", &[dummy_address]).unwrap();
         let get_storage = || {
             devnet.json_rpc_client.get_storage_at(
-                FieldElement::from_hex_be(ERC20_CONTRACT_ADDRESS).unwrap(),
+                FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
                 storage_key,
                 BlockId::Tag(BlockTag::Latest),
             )
@@ -101,7 +93,7 @@ mod test_restart {
         .await
         .unwrap();
         let salt = FieldElement::ONE;
-        let deployment = account_factory.deploy(salt);
+        let deployment = account_factory.deploy(salt).max_fee(FieldElement::from(1e18 as u128));
         let deployment_address = deployment.address();
         devnet.mint(deployment_address, 1e18 as u128).await;
         deployment.send().await.unwrap();
@@ -121,17 +113,13 @@ mod test_restart {
             .get_class_at(BlockId::Tag(BlockTag::Latest), deployment_address)
             .await
         {
-            Err(ProviderError::StarknetError(StarknetErrorWithMessage { code, .. })) => {
-                match code {
-                    MaybeUnknownErrorCode::Known(StarknetError::ContractNotFound) => (),
-                    _ => panic!("Invalid error: {:?}", code),
-                }
-            }
+            Err(ProviderError::StarknetError(StarknetError::ContractNotFound)) => (),
             other => panic!("Invalid response: {other:?}"),
         }
     }
 
     #[tokio::test]
+    #[ignore = "Starknet-rs does not support estimate_fee with simulation_flags"]
     async fn assert_gas_price_unaffected_by_restart() {
         let expected_gas_price = 1_000_000_u64;
         let devnet = BackgroundDevnet::spawn_with_additional_args(&[
@@ -162,7 +150,7 @@ mod test_restart {
             .estimate_fee()
             .await
             .unwrap();
-        assert_eq!(estimate_before.gas_price, expected_gas_price);
+        assert_eq!(estimate_before.gas_price, FieldElement::from(expected_gas_price));
 
         devnet.restart().await.unwrap();
 
@@ -251,10 +239,7 @@ mod test_restart {
 
         // asserting that restarting really clears the state, without re-executing txs from dump
         match loaded_devnet.json_rpc_client.get_transaction_by_hash(tx_hash).await {
-            Err(ProviderError::StarknetError(StarknetErrorWithMessage {
-                code: MaybeUnknownErrorCode::Known(StarknetError::TransactionHashNotFound),
-                ..
-            })) => (),
+            Err(ProviderError::StarknetError(StarknetError::TransactionHashNotFound)) => (),
             other => panic!("Unexpected result: {other:?}"),
         }
 

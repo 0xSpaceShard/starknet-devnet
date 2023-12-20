@@ -3,149 +3,155 @@ use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalitySta
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, ClassHash, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
-use starknet_types::rpc::block::{BlockId, SyncStatus};
-use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction::BroadcastedDeployAccountTransaction;
-use starknet_types::rpc::transactions::broadcasted_invoke_transaction::BroadcastedInvokeTransaction;
+use starknet_types::rpc::block::BlockId;
 use starknet_types::rpc::transactions::{
-    BroadcastedDeclareTransaction, BroadcastedTransaction, EventFilter, FunctionCall,
+    BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
+    BroadcastedInvokeTransaction, BroadcastedTransaction, EventFilter, FunctionCall,
     SimulationFlag,
 };
 use starknet_types::starknet_api::block::BlockNumber;
 
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct BlockIdInput {
     pub(crate) block_id: BlockId,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct TransactionHashInput {
     pub(crate) transaction_hash: TransactionHash,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct GetStorageInput {
     pub(crate) contract_address: ContractAddress,
     pub(crate) key: PatriciaKey,
     pub(crate) block_id: BlockId,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct BlockAndIndexInput {
     pub(crate) block_id: BlockId,
     pub(crate) index: u64,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct BlockAndClassHashInput {
     pub(crate) block_id: BlockId,
     pub(crate) class_hash: ClassHash,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct BlockAndContractAddressInput {
     pub(crate) block_id: BlockId,
     pub(crate) contract_address: ContractAddress,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(deny_unknown_fields)]
 pub struct CallInput {
     pub request: FunctionCall,
     pub block_id: BlockId,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct EstimateFeeInput {
     pub request: Vec<BroadcastedTransaction>,
+    pub simulation_flags: Vec<SimulationFlag>,
     pub block_id: BlockId,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(test, derive(Deserialize))]
 #[serde(deny_unknown_fields)]
 pub struct BlockHashAndNumberOutput {
     pub block_hash: BlockHash,
     pub block_number: BlockNumber,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(test, derive(Deserialize))]
 #[serde(untagged)]
 pub enum SyncingOutput {
-    True(SyncStatus),
     False(bool),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct EventsInput {
     pub filter: EventFilter,
 }
 
-#[derive(Deserialize, Serialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(tag = "type")]
 pub enum BroadcastedDeclareTransactionEnumWrapper {
     #[serde(rename = "DECLARE")]
     Declare(BroadcastedDeclareTransaction),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BroadcastedDeclareTransactionInput {
     pub declare_transaction: BroadcastedDeclareTransactionEnumWrapper,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(test, derive(Deserialize))]
 #[serde(deny_unknown_fields)]
 pub struct DeclareTransactionOutput {
     pub transaction_hash: TransactionHash,
     pub class_hash: ClassHash,
 }
 
-#[derive(Deserialize, Serialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(tag = "type")]
 pub enum BroadcastedDeployAccountTransactionEnumWrapper {
     #[serde(rename = "DEPLOY_ACCOUNT")]
     DeployAccount(BroadcastedDeployAccountTransaction),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BroadcastedDeployAccountTransactionInput {
     pub deploy_account_transaction: BroadcastedDeployAccountTransactionEnumWrapper,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(test, derive(Deserialize))]
 #[serde(deny_unknown_fields)]
 pub struct DeployAccountTransactionOutput {
     pub transaction_hash: TransactionHash,
     pub contract_address: ContractAddress,
 }
 
-#[derive(Deserialize, Serialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(tag = "type")]
 pub enum BroadcastedInvokeTransactionEnumWrapper {
     #[serde(rename = "INVOKE")]
     Invoke(BroadcastedInvokeTransaction),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BroadcastedInvokeTransactionInput {
     pub invoke_transaction: BroadcastedInvokeTransactionEnumWrapper,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(test, derive(Deserialize))]
 #[serde(deny_unknown_fields)]
 pub struct InvokeTransactionOutput {
     pub transaction_hash: TransactionHash,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SimulateTransactionsInput {
     pub block_id: BlockId,
@@ -153,7 +159,8 @@ pub struct SimulateTransactionsInput {
     pub simulation_flags: Vec<SimulationFlag>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(Deserialize))]
 #[serde(deny_unknown_fields)]
 pub struct TransactionStatusOutput {
     pub finality_status: TransactionFinalityStatus,
@@ -172,15 +179,16 @@ mod tests {
     use starknet_types::starknet_api::block::BlockNumber;
 
     use super::{BlockIdInput, EstimateFeeInput, GetStorageInput};
+    use crate::api::json_rpc::requests_tests::assert_contains;
 
     #[test]
     fn errored_deserialization_of_estimate_fee_with_broadcasted_declare_transaction() {
         // Errored json struct that passed DECLARE V2, but contract class is of type V1
         let json_str = r#"{
-            "request": [
+            "request": [{
                 "type": "DECLARE",
                 "max_fee": "0xA",
-                "version": "0x1",
+                "version": "0x2",
                 "signature": ["0xFF", "0xAA"],
                 "nonce": "0x0",
                 "sender_address": "0x0001",
@@ -212,13 +220,16 @@ mod tests {
                     "program": "",
                     "entry_points_by_type": {}
                 }
-            ],
+            }],
             "block_id": {
                 "block_number": 1
             }
         }"#;
 
-        assert!(serde_json::from_str::<EstimateFeeInput>(json_str).is_err());
+        match serde_json::from_str::<EstimateFeeInput>(json_str) {
+            Err(err) => assert_contains(&err.to_string(), "Invalid declare transaction v2"),
+            other => panic!("Invalid result: {other:?}"),
+        }
     }
 
     #[test]
@@ -267,7 +278,7 @@ mod tests {
                 {
                     "type": "DECLARE",
                     "max_fee": "0xA",
-                    "version": "0x1",
+                    "version": "0x2",
                     "signature": ["0xFF", "0xAA"],
                     "nonce": "0x0",
                     "sender_address": "0x0001",
@@ -345,7 +356,8 @@ mod tests {
                 ], 
             "block_id": {
                 "block_number": 1
-            }
+            },
+            "simulation_flags": []
         }"#;
 
         let estimate_fee_input = serde_json::from_str::<super::EstimateFeeInput>(json_str).unwrap();
@@ -526,6 +538,36 @@ mod tests {
             10,
             r#"{"block_id": {"block_number": "0x01"}}"#,
         );
+    }
+
+    #[test]
+    fn assert_error_message_for_failed_block_id_deserialization() {
+        for (json_str, expected_msg) in [
+            (
+                r#"{"block_id": {"block_number": 10, "block_hash": "0x1"}}"#,
+                "expected map with a single key",
+            ),
+            (
+                r#"{"block_id": {"block_number": "123"}}"#,
+                "Invalid block ID: invalid type: string \"123\", expected u64",
+            ),
+            (r#"{"block_id": {"block_number": -123}}"#, "Invalid block ID: invalid number"),
+            (
+                r#"{"block_id": {"invalid_key": ""}}"#,
+                "Invalid block ID: unknown variant `invalid_key`, expected `block_hash` or \
+                 `block_number`",
+            ),
+            (
+                r#"{"block_id": {"block_hash": 123}}"#,
+                "Invalid block ID: invalid type: number, expected a string",
+            ),
+            (r#"{"block_id": {"block_hash": ""}}"#, "Invalid block ID: Missing prefix 0x"),
+        ] {
+            match serde_json::from_str::<BlockIdInput>(json_str) {
+                Err(err) => assert_contains(&err.to_string(), expected_msg),
+                other => panic!("Invalid result: {other:?}"),
+            }
+        }
     }
 
     fn assert_block_id_tag_correctness(
