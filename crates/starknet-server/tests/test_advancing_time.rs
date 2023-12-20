@@ -35,16 +35,16 @@ mod advancing_time_tests {
         let upper_limit = Some(val2.unwrap() + BUFFER_TIME_SECONDS);
         assert!(val1 <= upper_limit, "Failed inequation: {val1:?} <= {upper_limit:?}");
     }
-    
+
     // #[tokio::test]
     // async fn timestamp_syscall_set_current_timestamp_past() {
-    //     set time in past, mine block, invoke set_current_timestamp and get time from get_storage_timestamp and get_timestamp, asserts
-    // }
+    //     set time in past, mine block, invoke set_current_timestamp and get time from
+    // get_storage_timestamp and get_timestamp, asserts }
 
     // #[tokio::test]
     // async fn timestamp_syscall_set_current_timestamp_future() {
-    //     set time in future, mine block, invoke set_current_timestamp and get time from get_storage_timestamp and get_timestamp, asserts
-    // }
+    //     set time in future, mine block, invoke set_current_timestamp and get time from
+    // get_storage_timestamp and get_timestamp, asserts }
 
     // #[tokio::test]
     // async fn timestamp_syscall_set_current_timestamp_past() {
@@ -76,7 +76,7 @@ mod advancing_time_tests {
             .await
             .unwrap();
         let predeployed_account = Arc::new(predeployed_account);
-        
+
         // deploy
         let contract_factory =
             ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
@@ -108,10 +108,10 @@ mod advancing_time_tests {
             .await
             .unwrap()[0];
         assert_gt_with_buffer(storage_timestamp.to_string().parse::<u64>().ok(), Some(now));
-        
-        // wait 1 second and mine block
+
+        // wait 1 second and mine block with mint
         thread::sleep(time::Duration::from_secs(1));
-        devnet.mint(0, 0).await;
+        devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
         // check if current timestamp is greater than storage timestamp
         let call_current_timestamp = FunctionCall {
