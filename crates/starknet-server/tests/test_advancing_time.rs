@@ -35,9 +35,24 @@ mod advancing_time_tests {
         let upper_limit = Some(val2.unwrap() + BUFFER_TIME_SECONDS);
         assert!(val1 <= upper_limit, "Failed inequation: {val1:?} <= {upper_limit:?}");
     }
+    
+    // #[tokio::test]
+    // async fn timestamp_syscall_set_current_timestamp_past() {
+    //     set time in past, mine block, invoke set_current_timestamp and get time from get_storage_timestamp and get_timestamp, asserts
+    // }
+
+    // #[tokio::test]
+    // async fn timestamp_syscall_set_current_timestamp_future() {
+    //     set time in future, mine block, invoke set_current_timestamp and get time from get_storage_timestamp and get_timestamp, asserts
+    // }
+
+    // #[tokio::test]
+    // async fn timestamp_syscall_set_current_timestamp_past() {
+    //     increase_time, get time from get_storage_timestamp and get_timestamp
+    // }
 
     #[tokio::test]
-    async fn get_timestamp_syscall() {
+    async fn timestamp_syscall_contract_constructor() {
         let now = get_unix_timestamp_as_seconds();
         let devnet: BackgroundDevnet =
             BackgroundDevnet::spawn().await.expect("Could not start Devnet");
@@ -51,18 +66,18 @@ mod advancing_time_tests {
             ExecutionEncoding::Legacy,
         );
 
+        // declare
         let (cairo_1_contract, casm_class_hash) =
             get_timestamp_contract_in_sierra_and_compiled_class_hash();
-
         let declaration_result = predeployed_account
             .declare(Arc::new(cairo_1_contract), casm_class_hash)
             .max_fee(FieldElement::from(100000000000000000000u128))
             .send()
             .await
             .unwrap();
-
         let predeployed_account = Arc::new(predeployed_account);
-
+        
+        // deploy
         let contract_factory =
             ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
         contract_factory
@@ -71,7 +86,6 @@ mod advancing_time_tests {
             .send()
             .await
             .unwrap();
-
         let new_contract_address = get_udc_deployed_address(
             FieldElement::ZERO,
             declaration_result.class_hash,
@@ -79,6 +93,10 @@ mod advancing_time_tests {
             &[],
         );
 
+        // wait 1 second
+        thread::sleep(time::Duration::from_secs(1));
+
+        // check constructor set of timestamp
         let call_storage_timestamp = FunctionCall {
             contract_address: new_contract_address,
             entry_point_selector: get_selector_from_name("get_storage_timestamp").unwrap(),
@@ -89,8 +107,13 @@ mod advancing_time_tests {
             .call(call_storage_timestamp, BlockId::Tag(BlockTag::Latest))
             .await
             .unwrap()[0];
-        assert_ge_with_buffer(storage_timestamp.to_string().parse::<u64>().ok(), Some(now));
+        assert_gt_with_buffer(storage_timestamp.to_string().parse::<u64>().ok(), Some(now));
+        
+        // wait 1 second and mine block
+        thread::sleep(time::Duration::from_secs(1));
+        devnet.mint(0, 0).await;
 
+        // check if current timestamp is greater than storage timestamp
         let call_current_timestamp = FunctionCall {
             contract_address: new_contract_address,
             entry_point_selector: get_selector_from_name("get_timestamp").unwrap(),
@@ -101,11 +124,10 @@ mod advancing_time_tests {
             .call(call_current_timestamp, BlockId::Tag(BlockTag::Latest))
             .await
             .unwrap()[0];
-        assert_ge_with_buffer(current_timestamp.to_string().parse::<u64>().ok(), Some(now));
-
-        assert_ge_with_buffer(
-            storage_timestamp.to_string().parse::<u64>().ok(),
+        assert_gt_with_buffer(current_timestamp.to_string().parse::<u64>().ok(), Some(now));
+        assert_gt_with_buffer(
             current_timestamp.to_string().parse::<u64>().ok(),
+            storage_timestamp.to_string().parse::<u64>().ok(),
         );
     }
 
