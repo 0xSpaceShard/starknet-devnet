@@ -205,7 +205,7 @@ impl Starknet {
             *count -= 1;
             Ok(message.hash())
         } else {
-            Err(Error::MessagingError(MessagingError::MessageToL1FullyConsumed(hash)))
+            Err(Error::MessagingError(MessagingError::MessageToL1NotPresent(hash)))
         }
     }
 
