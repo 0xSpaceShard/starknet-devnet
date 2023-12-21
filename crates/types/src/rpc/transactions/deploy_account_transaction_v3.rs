@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 use starknet_api::data_availability::DataAvailabilityMode;
-use starknet_api::transaction::{ResourceBoundsMapping, Tip};
+use starknet_api::transaction::Tip;
 
 use super::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
-use super::BroadcastedTransactionCommonV3;
+use super::{BroadcastedTransactionCommonV3, ResourceBoundsWrapper};
 use crate::contract_address::ContractAddress;
 use crate::felt::{
     Calldata, ClassHash, ContractAddressSalt, Felt, Nonce, TransactionHash, TransactionSignature,
@@ -16,7 +16,7 @@ pub struct DeployAccountTransactionV3 {
     version: TransactionVersion,
     signature: TransactionSignature,
     nonce: Nonce,
-    resource_bounds: ResourceBoundsMapping,
+    resource_bounds: ResourceBoundsWrapper,
     tip: Tip,
     paymaster_data: Vec<Felt>,
     nonce_data_availability_mode: DataAvailabilityMode,

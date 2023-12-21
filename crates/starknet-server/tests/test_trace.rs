@@ -12,9 +12,7 @@ mod trace_tests {
     };
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::{FieldElement, FunctionInvocation, StarknetError};
-    use starknet_rs_providers::{
-        MaybeUnknownErrorCode, Provider, ProviderError, StarknetErrorWithMessage,
-    };
+    use starknet_rs_providers::{Provider, ProviderError};
     use starknet_types::rpc::transactions::BlockTransactionTrace;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -44,10 +42,7 @@ mod trace_tests {
             .expect_err("Should fail");
 
         match err {
-            ProviderError::StarknetError(StarknetErrorWithMessage {
-                code: MaybeUnknownErrorCode::Known(StarknetError::TransactionHashNotFound),
-                ..
-            }) => (),
+            ProviderError::StarknetError(StarknetError::TransactionHashNotFound) => (),
             _ => panic!("Should fail with error"),
         }
     }

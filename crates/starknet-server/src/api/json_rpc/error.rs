@@ -25,7 +25,7 @@ pub enum ApiError {
     InvalidTransactionIndexInBlock,
     #[error("Class hash not found")]
     ClassHashNotFound,
-    #[error("Contract error: {error}")]
+    #[error("Contract error")]
     ContractError { error: starknet_core::error::Error },
     #[error("There are no blocks")]
     NoBlocks,
@@ -49,7 +49,7 @@ pub enum ApiError {
     InsufficientMaxFee,
     #[error("Account balance is smaller than the transaction's max_fee")]
     InsufficientAccountBalance,
-    #[error("Account validation failed: {reason}")]
+    #[error("Account validation failed")]
     ValidationFailure { reason: String },
     #[error("No trace available for transaction")]
     NoTraceAvailable,
@@ -154,10 +154,10 @@ impl ApiError {
                 message: error_message.into(),
                 data: None,
             },
-            ApiError::ValidationFailure { .. } => RpcError {
+            ApiError::ValidationFailure { reason } => RpcError {
                 code: server::rpc_core::error::ErrorCode::ServerError(55),
                 message: error_message.into(),
-                data: None,
+                data: Some(serde_json::Value::String(reason)),
             },
             ApiError::StarknetDevnetError(
                 starknet_core::error::Error::TransactionValidationError(validation_error),
@@ -272,7 +272,7 @@ mod tests {
         error_expected_code_and_message(
             ApiError::ContractError { error: test_error() },
             40,
-            "Contract error: Account validation failed: some reason",
+            "Contract error",
         );
 
         // check contract error data property
@@ -353,9 +353,15 @@ mod tests {
             ApiError::ValidationFailure { reason: reason.clone() }.api_error_to_rpc_error()
         );
         error_expected_code_and_message(
-            ApiError::ValidationFailure { reason },
+            ApiError::ValidationFailure { reason: reason.clone() },
             55,
-            "Account validation failed: some reason",
+            "Account validation failed",
+        );
+
+        error_expected_code_and_data(
+            ApiError::ValidationFailure { reason: reason.clone() },
+            55,
+            &reason,
         );
     }
 
@@ -365,6 +371,17 @@ mod tests {
             server::rpc_core::response::ResponseResult::Success(_) => panic!("Expected error"),
             server::rpc_core::response::ResponseResult::Error(err) => {
                 assert_eq!(err.message, expected_message);
+                assert_eq!(err.code, server::rpc_core::error::ErrorCode::ServerError(expected_code))
+            }
+        }
+    }
+
+    fn error_expected_code_and_data(err: ApiError, expected_code: i64, expected_data: &str) {
+        let error_result = StrictRpcResult::Err(err).to_rpc_result();
+        match error_result {
+            server::rpc_core::response::ResponseResult::Success(_) => panic!("Expected error"),
+            server::rpc_core::response::ResponseResult::Error(err) => {
+                assert_eq!(err.data.unwrap().as_str().unwrap(), expected_data);
                 assert_eq!(err.code, server::rpc_core::error::ErrorCode::ServerError(expected_code))
             }
         }

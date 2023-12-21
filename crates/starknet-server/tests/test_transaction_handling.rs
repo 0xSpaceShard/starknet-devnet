@@ -7,7 +7,7 @@ mod trace_tests {
     use starknet_rs_accounts::{Account, AccountError, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{FieldElement, StarknetError};
-    use starknet_rs_providers::{MaybeUnknownErrorCode, ProviderError, StarknetErrorWithMessage};
+    use starknet_rs_providers::ProviderError;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{CHAIN_ID, INVALID_ACCOUNT_SIERRA_PATH};
@@ -41,15 +41,11 @@ mod trace_tests {
 
         match declaration_result {
             Err(AccountError::Provider(ProviderError::StarknetError(
-                StarknetErrorWithMessage {
-                    code: MaybeUnknownErrorCode::Known(error_code),
-                    message,
-                },
+                StarknetError::ValidationFailure(message),
             ))) => {
-                assert_eq!(error_code, StarknetError::ValidationFailure);
                 assert_eq!(
                     message,
-                    "Account validation failed: Execution failed. Failure reason: \
+                    "Execution failed. Failure reason: \
                      0x4641494c45442056414c4944415445204445434c415245 ('FAILED VALIDATE DECLARE')."
                 );
             }

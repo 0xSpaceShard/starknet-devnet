@@ -176,7 +176,16 @@ The predeployment information is logged on Devnet startup. Predeployed accounts 
 
 ## Mint token
 
-For now, you can consult the [Pythonic Devnet docs on minting](https://0xspaceshard.github.io/starknet-devnet/docs/guide/mint-token/), with the difference of lite minting not being supported anymore.
+For now, you can consult the [Pythonic Devnet docs on minting](https://0xspaceshard.github.io/starknet-devnet/docs/guide/mint-token/), with the differences between lite minting not being supported anymore and additional support of Stark token minting declared in FRI unit. Unit is an optional parameter and when it's not specified is set to WEI by default, this behaviour can change in the next versions.
+
+```
+POST /mint
+{
+    "address": "0x6e3205f...",
+    "amount": 500000,
+    "unit": "FRI"
+}
+```
 
 ## Dumping & Loading
 

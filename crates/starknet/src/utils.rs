@@ -35,11 +35,10 @@ pub(crate) fn get_storage_var_address(
 
 #[cfg(test)]
 pub(crate) mod test_utils {
-    use std::collections::BTreeMap;
 
     use cairo_lang_starknet::casm_contract_class::CasmContractClass;
     use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
-    use starknet_api::transaction::{Fee, Resource, ResourceBounds, ResourceBoundsMapping};
+    use starknet_api::transaction::Fee;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{
         compute_casm_class_hash, Cairo0ContractClass, Cairo0Json, ContractClass,
@@ -51,7 +50,9 @@ pub(crate) mod test_utils {
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
     use starknet_types::rpc::transactions::declare_transaction_v0v1::DeclareTransactionV0V1;
-    use starknet_types::rpc::transactions::BroadcastedTransactionCommonV3;
+    use starknet_types::rpc::transactions::{
+        BroadcastedTransactionCommonV3, ResourceBoundsWrapper,
+    };
     use starknet_types::traits::HashProducer;
 
     use crate::constants::DEVNET_DEFAULT_CHAIN_ID;
@@ -149,13 +150,12 @@ pub(crate) mod test_utils {
                 version: Felt::from(3),
                 signature: declare_v2.common.signature,
                 nonce: declare_v2.common.nonce,
-                resource_bounds: ResourceBoundsMapping(BTreeMap::from([(
-                    Resource::L1Gas,
-                    ResourceBounds {
-                        max_amount: declare_v2.common.max_fee.0 as u64,
-                        max_price_per_unit: 1,
-                    },
-                )])),
+                resource_bounds: ResourceBoundsWrapper::new(
+                    declare_v2.common.max_fee.0 as u64,
+                    1,
+                    0,
+                    0,
+                ),
                 tip: Default::default(),
                 paymaster_data: vec![],
                 nonce_data_availability_mode:

@@ -12,7 +12,7 @@ mod estimate_fee_tests {
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::FieldElement;
+    use starknet_rs_core::types::{BroadcastedInvokeTransaction, FieldElement};
     use starknet_rs_core::utils::{
         get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
     };
@@ -319,7 +319,7 @@ mod estimate_fee_tests {
 
     #[tokio::test]
     #[ignore = "Starknet-rs does not support estimate_fee with simulation_flags"]
-    async fn simulate_invoke() {
+    async fn simulate_invoke_v1() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         // get account
@@ -366,7 +366,7 @@ mod estimate_fee_tests {
         // TODO fails if max_fee too low, can be used to test reverted case
         let max_fee = FieldElement::from(1e18 as u128);
         let nonce = FieldElement::from(2_u32); // after declare+deploy
-        let invoke_request = account
+        let invoke_request = match account
             .execute(invoke_calls.clone())
             .max_fee(max_fee)
             .nonce(nonce)
@@ -374,7 +374,11 @@ mod estimate_fee_tests {
             .unwrap()
             .get_invoke_request(false)
             .await
-            .unwrap();
+            .unwrap()
+        {
+            BroadcastedInvokeTransaction::V1(invoke_v1) => invoke_v1,
+            _ => panic!("wrong txn type"),
+        };
         let signature_hex: Vec<String> = iter_to_hex_felt(&invoke_request.signature);
 
         let calldata_hex: Vec<String> = iter_to_hex_felt(&invoke_request.calldata);
