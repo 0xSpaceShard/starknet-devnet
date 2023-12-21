@@ -107,7 +107,7 @@ mod advancing_time_tests {
         // mine block
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
-        // check if timestamp is greater/equal time in past
+        // check if timestamp is greater/equal
         let current_timestamp = get_current_timestamp(&devnet, new_contract_address).await;
         assert_ge_with_buffer(current_timestamp.to_string().parse::<u64>().ok(), Some(past_time));
     }
@@ -129,7 +129,7 @@ mod advancing_time_tests {
         // mine block
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
-        // check if timestamp is greater/equal time in future
+        // check if timestamp is greater/equal
         let current_timestamp = get_current_timestamp(&devnet, new_contract_address).await;
         assert_ge_with_buffer(current_timestamp.to_string().parse::<u64>().ok(), Some(future_time));
     }
@@ -192,13 +192,52 @@ mod advancing_time_tests {
         thread::sleep(time::Duration::from_secs(1));
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
-        // check if current timestamp is greater than storage timestamp
+        // check if current timestamp is greater than storage timestamp and now
         let current_timestamp = get_current_timestamp(&devnet, new_contract_address).await;
         assert_gt_with_buffer(current_timestamp.to_string().parse::<u64>().ok(), Some(now));
         assert_gt_with_buffer(
             current_timestamp.to_string().parse::<u64>().ok(),
             storage_timestamp.to_string().parse::<u64>().ok(),
         );
+    }
+
+    #[tokio::test]
+    async fn start_time_in_past_syscall() {
+        let past_time = 1;
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--start-time",
+            past_time.to_string().as_str(),
+        ])
+        .await
+        .expect("Could not start Devnet");
+        let new_contract_address = setup_timestamp_contract(&devnet).await;
+
+        // mine block
+        devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+
+        // check if timestamp is greater/equal
+        let current_timestamp = get_current_timestamp(&devnet, new_contract_address).await;
+        assert_ge_with_buffer(current_timestamp.to_string().parse::<u64>().ok(), Some(past_time));
+    }
+
+    #[tokio::test]
+    async fn start_time_in_future_syscall() {
+        let now: u64 = get_unix_timestamp_as_seconds();
+        let future_time = now + 1000;
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--start-time",
+            future_time.to_string().as_str(),
+        ])
+        .await
+        .expect("Could not start Devnet");
+        let new_contract_address = setup_timestamp_contract(&devnet).await;
+
+        // mine block
+        devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+
+        // check if timestamp is greater/equal
+        let current_timestamp = get_current_timestamp(&devnet, new_contract_address).await;
+        assert_ge_with_buffer(current_timestamp.to_string().parse::<u64>().ok(), Some(future_time));
     }
 
     #[tokio::test]
