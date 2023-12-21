@@ -230,7 +230,6 @@ impl StarknetTransaction {
                     message: MessageToL1 {
                         to_address: m.message.to_address.into(),
                         from_address: from_address.into(),
->>>>>>> starknet/fix-l2-message-from
                         payload: m.message.payload.0.iter().map(|p| (*p).into()).collect(),
                     },
                 }

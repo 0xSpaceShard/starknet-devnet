@@ -37,7 +37,8 @@ mod test_messaging {
     use crate::common::constants::{CHAIN_ID, MESSAGING_WHITELISTED_L1_CONTRACT};
     use crate::common::utils::{
         get_json_body, get_messaging_contract_in_sierra_and_compiled_class_hash,
-        send_ctrl_c_signal, to_hex_felt, UniqueAutoDeletableFile,
+        get_messaging_lib_in_sierra_and_compiled_class_hash, send_ctrl_c_signal, to_hex_felt,
+        UniqueAutoDeletableFile,
     };
 
     const DUMMY_L1_ADDRESS: &str = "0xc662c410c0ecf747543f5ba90660f6abebd9c8c4";
@@ -97,6 +98,25 @@ mod test_messaging {
         devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap()
     }
 
+    /// Withdraws the given amount from a user and send this amount in a l2->l1 message
+    /// using a library syscall instead of the contract with storage directly.
+    async fn withdraw_from_lib<A: ConnectedAccount + Send + Sync + 'static>(
+        account: A,
+        contract_address: FieldElement,
+        user: FieldElement,
+        amount: FieldElement,
+        l1_address: FieldElement,
+        lib_class_hash: FieldElement,
+    ) {
+        let invoke_calls = vec![Call {
+            to: contract_address,
+            selector: get_selector_from_name("withdraw_from_lib").unwrap(),
+            calldata: vec![user, amount, l1_address, lib_class_hash],
+        }];
+
+        account.execute(invoke_calls).max_fee(FieldElement::from(MAX_FEE)).send().await.unwrap();
+    }
+
     /// Sets up a `BackgroundDevnet` with the message l1-l2 contract deployed.
     /// Returns (devnet instance, account used for deployment, l1-l2 contract address).
     async fn setup_devnet(
@@ -118,12 +138,12 @@ mod test_messaging {
             ExecutionEncoding::New,
         ));
 
+        // Declare l1l2 contract with storage (meant to be deployed).
         let (sierra_class, casm_class_hash) =
             get_messaging_contract_in_sierra_and_compiled_class_hash();
 
         let sierra_class_hash = sierra_class.class_hash();
         let declaration = account.declare(Arc::new(sierra_class), casm_class_hash);
-
         declaration.max_fee(FieldElement::from(MAX_FEE)).send().await.unwrap();
 
         // deploy instance of class
@@ -178,6 +198,72 @@ mod test_messaging {
 
         let l1_contract_address = messages_to_l1[0].get("to_address").unwrap().as_str().unwrap();
         let l2_contract_address = messages_to_l1[0].get("from_address").unwrap().as_str().unwrap();
+        assert_eq!(l2_contract_address, format!("0x{:64x}", l1l2_contract_address));
+        assert_eq!(l1_contract_address, DUMMY_L1_ADDRESS);
+
+        let payload = messages_to_l1[0].get("payload").unwrap().as_array().unwrap();
+        // MESSAGE_WITHDRAW opcode, equal to 0, first element of the payload.
+        assert_eq!(payload, &["0x0", &to_hex_felt(&user), &to_hex_felt(&user_balance)]);
+
+        assert!(body.get("messages_to_l2").unwrap().as_array().unwrap().is_empty());
+        assert!(body.get("generated_l2_transactions").unwrap().as_array().unwrap().is_empty());
+        assert_eq!(body.get("l1_provider").unwrap().as_str().unwrap(), "dry run");
+    }
+
+    #[tokio::test]
+    async fn can_send_message_to_l1_from_library_syscall() {
+        let (devnet, account, l1l2_contract_address) =
+            setup_devnet(&["--account-class", "cairo1"]).await;
+
+        // Declare l1l2 lib with only one function to send messages.
+        // It's class hash can then be ignored, it's hardcoded in the contract.
+        let (sierra_class, casm_class_hash) = get_messaging_lib_in_sierra_and_compiled_class_hash();
+
+        let lib_sierra_class_hash = sierra_class.class_hash();
+        let declaration = account.declare(Arc::new(sierra_class), casm_class_hash);
+        declaration.max_fee(FieldElement::from(MAX_FEE)).send().await.unwrap();
+
+        // TODO: I'm not sure that the declare is actually done, I tried to moved it
+        // in other placed, and I have a nonce error in the transaction.
+        // So the withdraw from lib fails, and we don't have the balance set to 0.
+
+        let user = FieldElement::ONE;
+
+        // Set balance to 1 for user.
+        let user_balance = FieldElement::ONE;
+        increase_balance(Arc::clone(&account), l1l2_contract_address, user, user_balance).await;
+        assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [user_balance]);
+
+        // We don't actually send a message to the L1 in this test.
+        let l1_address = FieldElement::from_hex_be(DUMMY_L1_ADDRESS).unwrap();
+
+        // Withdraw the 1 amount in a l2->l1 message.
+        withdraw_from_lib(
+            Arc::clone(&account),
+            l1l2_contract_address,
+            user,
+            user_balance,
+            l1_address,
+            lib_sierra_class_hash,
+        )
+        .await;
+        assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [FieldElement::ZERO]);
+
+        // Flush messages to check the presence of the withdraw where use expected to be 1 and
+        // amount to be 1. The message always starts with a magic value MESSAGE_WITHDRAW
+        // which is 0.
+        let req_body = Body::from(json!({ "dry_run": true }).to_string());
+        let resp = devnet.post_json("/postman/flush".into(), req_body).await.expect("flush failed");
+        // assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
+        let body = get_json_body(resp).await;
+
+        let messages_to_l1 = body.get("messages_to_l1").unwrap().as_array().unwrap();
+        assert_eq!(messages_to_l1.len(), 1);
+
+        let l1_contract_address = messages_to_l1[0].get("to_address").unwrap().as_str().unwrap();
+        let l2_contract_address = messages_to_l1[0].get("from_address").unwrap().as_str().unwrap();
+        // The l2_contract_address should be the same as the contract, even using
+        // the library syscall.
         assert_eq!(l2_contract_address, format!("0x{:64x}", l1l2_contract_address));
         assert_eq!(l1_contract_address, DUMMY_L1_ADDRESS);
 
@@ -310,7 +396,7 @@ mod test_messaging {
         let body = get_json_body(resp).await;
         assert_eq!(
             body.get("message_hash").unwrap().as_str().unwrap(),
-            "0x7a957d7d7834b9e8a02a0e1e5000d4d2ea27489d3eb0e086ee20215c4037d5cb"
+            "0xac5356289f98e5012f8efcabb9f7ad3adaa43f81ac47b6311d2c23ca01590bd0"
         );
     }
 

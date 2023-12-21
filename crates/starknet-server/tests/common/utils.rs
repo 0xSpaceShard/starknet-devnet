@@ -72,6 +72,13 @@ pub fn get_messaging_contract_in_sierra_and_compiled_class_hash()
     get_flattened_sierra_contract_and_casm_hash(sierra_path)
 }
 
+pub fn get_messaging_lib_in_sierra_and_compiled_class_hash() -> (FlattenedSierraClass, FieldElement)
+{
+    let sierra_path =
+        concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo1/messaging/cairo_1_l1l2_lib.sierra");
+    get_flattened_sierra_contract_and_casm_hash(sierra_path)
+}
+
 pub fn get_events_contract_in_sierra_and_compiled_class_hash()
 -> (FlattenedSierraClass, FieldElement) {
     let events_sierra_path = concat!(
