@@ -2,6 +2,9 @@
 
 set -eu
 
+CONTRACT_L1=0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+CONTRACT_L2=0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4
+
 # Bash script to run E2E example all at once.
 source ./.env
 
@@ -20,28 +23,30 @@ pushd ./solidity
 forge script ./script/L1L2.s.sol:Deploy --broadcast --rpc-url $ETH_RPC_URL
 popd
 
+MAX_FEE=99999999999999999999
+
 # Declare and deploy l1-l2 contract on L2.
-starkli declare ./cairo/target/dev/cairo_l1_l2.contract_class.json
-starkli deploy 0x0211fd0483be230ba40d43f51bd18ae239b913f529f95ce10253e514175efb3e --salt 123
+starkli declare ./cairo/target/dev/cairo_l1_l2.contract_class.json --max-fee-raw $MAX_FEE
+starkli deploy 0x0211fd0483be230ba40d43f51bd18ae239b913f529f95ce10253e514175efb3e --salt 123 --max-fee-raw $MAX_FEE
 
 # Add some balance and check it.
-starkli invoke 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 increase_balance 0x1 0xff
+starkli invoke $CONTRACT_L2 increase_balance 0x1 0xff --max-fee-raw $MAX_FEE
 
 # Issue a withdraw to send message to L1 with amount 1 for user 1.
-starkli invoke 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 withdraw 0x1 1 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+starkli invoke $CONTRACT_L2 withdraw 0x1 1 $CONTRACT_L1 --max-fee-raw $MAX_FEE
 
 # Flush messages to actually send the message to L1.
 curl -H 'Content-Type: application/json' -X POST http://127.0.0.1:5050/postman/flush
 
 # Consume the message on L1.
-cast send 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 "withdraw(uint256, uint256, uint256)" \
-     0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba 0x1 0x1 \
+cast send $CONTRACT_L1 "withdraw(uint256, uint256, uint256)" \
+     $CONTRACT_L2 0x1 0x1 \
      --rpc-url $ETH_RPC_URL --private-key $ACCOUNT_PRIVATE_KEY \
      --gas-limit 999999
 
 # Send back the balance of 1 to L2 user.
-cast send 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 "deposit(uint256, uint256, uint256)" \
-     0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 0x1 0x1 \
+cast send $CONTRACT_L1 "deposit(uint256, uint256, uint256)" \
+     $CONTRACT_L2 0x1 0x1 \
      --rpc-url $ETH_RPC_URL --private-key $ACCOUNT_PRIVATE_KEY \
      --gas-limit 999999 --value 1gwei
 
@@ -60,13 +65,14 @@ curl -H 'Content-Type: application/json' \
      http://127.0.0.1:5050/postman/send_message_to_l2
 
 # Send back some balance to consume manually.
-starkli invoke 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 withdraw 0x1 0x2 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+echo "INVOKE"
+starkli invoke $CONTRACT_L2 withdraw 0x1 0x2 $CONTRACT_L1 --max-fee-raw $MAX_FEE
 
 curl -H 'Content-Type: application/json' \
      -d '{
-          "from_address": "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba",
-          "to_address": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512", "payload": ["0x0","0x1","0x2"]
+          "from_address": "0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4",
+          "to_address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512", "payload": ["0x0","0x1","0x2"]
      }' \
      http://127.0.0.1:5050/postman/consume_message_from_l2
 
-starkli call 0x03c80468c8fe2fd36fadf1b484136b4cd8a372f789e8aebcc6671e00101290a4 get_balance 0x1
+starkli call $CONTRACT_L2 get_balance 0x1
