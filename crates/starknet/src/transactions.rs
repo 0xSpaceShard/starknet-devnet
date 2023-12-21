@@ -219,21 +219,24 @@ impl StarknetTransaction {
         fn get_blockifier_messages_recursively(call_info: &CallInfo) -> Vec<OrderedMessageToL1> {
             let mut messages = vec![];
 
-            let from_address = call_info.call.caller_address.into();
+            // Ensure we always take the address of the contract that is sending the message.
+            // In the case of a library syscall, storage address will automatically refer to the
+            // caller address.
+            let from_address = call_info.call.storage_address;
 
             messages.extend(call_info.execution.l2_to_l1_messages.iter().map(|m| {
                 OrderedMessageToL1 {
                     order: m.order,
                     message: MessageToL1 {
                         to_address: m.message.to_address.into(),
-                        from_address,
+                        from_address: from_address.into(),
                         payload: m.message.payload.0.iter().map(|p| (*p).into()).collect(),
                     },
                 }
             }));
 
-            call_info.inner_calls.iter().for_each(|call| {
-                messages.extend(get_blockifier_messages_recursively(call));
+            call_info.inner_calls.iter().for_each(|inner_call| {
+                messages.extend(get_blockifier_messages_recursively(inner_call));
             });
 
             messages

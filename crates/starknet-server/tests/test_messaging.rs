@@ -18,12 +18,12 @@ mod test_messaging {
     use hyper::{Body, StatusCode};
     use serde_json::json;
     use starknet_rs_accounts::{
-        Account, Call, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount,
+        Account, AccountError, Call, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::{
-        BlockId, BlockTag, FieldElement, FunctionCall, MaybePendingTransactionReceipt,
-        TransactionExecutionStatus, TransactionReceipt,
+        BlockId, BlockTag, FieldElement, FunctionCall, InvokeTransactionResult,
+        MaybePendingTransactionReceipt, TransactionExecutionStatus, TransactionReceipt,
     };
     use starknet_rs_core::utils::{
         get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
@@ -37,10 +37,12 @@ mod test_messaging {
     use crate::common::constants::{CHAIN_ID, MESSAGING_WHITELISTED_L1_CONTRACT};
     use crate::common::utils::{
         get_json_body, get_messaging_contract_in_sierra_and_compiled_class_hash,
-        send_ctrl_c_signal, to_hex_felt, UniqueAutoDeletableFile,
+        get_messaging_lib_in_sierra_and_compiled_class_hash, send_ctrl_c_signal, to_hex_felt,
+        UniqueAutoDeletableFile,
     };
 
     const DUMMY_L1_ADDRESS: &str = "0xc662c410c0ecf747543f5ba90660f6abebd9c8c4";
+    const MESSAGE_WITHDRAW_OPCODE: &str = "0x0";
 
     const MAX_FEE: u128 = 1e18 as u128;
 
@@ -97,6 +99,25 @@ mod test_messaging {
         devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap()
     }
 
+    /// Withdraws the given amount from a user and send this amount in a l2->l1 message
+    /// using a library syscall instead of the contract with storage directly.
+    async fn withdraw_from_lib<A: ConnectedAccount + Send + Sync + 'static>(
+        account: A,
+        contract_address: FieldElement,
+        user: FieldElement,
+        amount: FieldElement,
+        l1_address: FieldElement,
+        lib_class_hash: FieldElement,
+    ) -> Result<InvokeTransactionResult, AccountError<<A as Account>::SignError>> {
+        let invoke_calls = vec![Call {
+            to: contract_address,
+            selector: get_selector_from_name("withdraw_from_lib").unwrap(),
+            calldata: vec![user, amount, l1_address, lib_class_hash],
+        }];
+
+        account.execute(invoke_calls).max_fee(FieldElement::from(MAX_FEE)).send().await
+    }
+
     /// Sets up a `BackgroundDevnet` with the message l1-l2 contract deployed.
     /// Returns (devnet instance, account used for deployment, l1-l2 contract address).
     async fn setup_devnet(
@@ -118,12 +139,12 @@ mod test_messaging {
             ExecutionEncoding::New,
         ));
 
+        // Declare l1l2 contract with storage (meant to be deployed).
         let (sierra_class, casm_class_hash) =
             get_messaging_contract_in_sierra_and_compiled_class_hash();
 
         let sierra_class_hash = sierra_class.class_hash();
         let declaration = account.declare(Arc::new(sierra_class), casm_class_hash);
-
         declaration.max_fee(FieldElement::from(MAX_FEE)).send().await.unwrap();
 
         // deploy instance of class
@@ -165,29 +186,90 @@ mod test_messaging {
         withdraw(Arc::clone(&account), l1l2_contract_address, user, user_balance, l1_address).await;
         assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [FieldElement::ZERO]);
 
-        // Flush messages to check the presence of the withdraw where use expected to be 1 and
-        // amount to be 1. The message always starts with a magic value MESSAGE_WITHDRAW
-        // which is 0.
+        // Flush messages to check the presence of the withdraw
         let req_body = Body::from(json!({ "dry_run": true }).to_string());
         let resp = devnet.post_json("/postman/flush".into(), req_body).await.expect("flush failed");
-        // assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
-        let body = get_json_body(resp).await;
+        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
+        let resp_body = get_json_body(resp).await;
 
-        let messages_to_l1 = body.get("messages_to_l1").unwrap().as_array().unwrap();
-        assert_eq!(messages_to_l1.len(), 1);
+        assert_eq!(
+            resp_body,
+            json!({
+                "messages_to_l1": [
+                    {
+                        "from_address": to_hex_felt(&l1l2_contract_address),
+                        "to_address": DUMMY_L1_ADDRESS,
+                        "payload": [MESSAGE_WITHDRAW_OPCODE, &to_hex_felt(&user), &to_hex_felt(&user_balance)]
+                    }
+                ],
+                "messages_to_l2": [],
+                "generated_l2_transactions": [],
+                "l1_provider": "dry run"
+            })
+        );
+    }
 
-        let l1_contract_address = messages_to_l1[0].get("to_address").unwrap().as_str().unwrap();
-        let l2_contract_address = messages_to_l1[0].get("from_address").unwrap().as_str().unwrap();
-        assert_eq!(l2_contract_address, format!("0x{:64x}", account.address()));
-        assert_eq!(l1_contract_address, DUMMY_L1_ADDRESS);
+    #[tokio::test]
+    async fn can_send_message_to_l1_from_library_syscall() {
+        let (devnet, account, l1l2_contract_address) =
+            setup_devnet(&["--account-class", "cairo1"]).await;
 
-        let payload = messages_to_l1[0].get("payload").unwrap().as_array().unwrap();
-        // MESSAGE_WITHDRAW opcode, equal to 0, first element of the payload.
-        assert_eq!(payload, &["0x0", &to_hex_felt(&user), &to_hex_felt(&user_balance)]);
+        // Declare l1l2 lib with only one function to send messages.
+        // It's class hash can then be ignored, it's hardcoded in the contract.
+        let (sierra_class, casm_class_hash) = get_messaging_lib_in_sierra_and_compiled_class_hash();
+        let lib_sierra_class_hash = sierra_class.class_hash();
 
-        assert!(body.get("messages_to_l2").unwrap().as_array().unwrap().is_empty());
-        assert!(body.get("generated_l2_transactions").unwrap().as_array().unwrap().is_empty());
-        assert_eq!(body.get("l1_provider").unwrap().as_str().unwrap(), "dry run");
+        account
+            .declare(Arc::new(sierra_class), casm_class_hash)
+            .max_fee(FieldElement::from(MAX_FEE))
+            .send()
+            .await
+            .unwrap();
+
+        let user = FieldElement::ONE;
+
+        // Set balance to 1 for user.
+        let user_balance = FieldElement::ONE;
+        increase_balance(Arc::clone(&account), l1l2_contract_address, user, user_balance).await;
+        assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [user_balance]);
+
+        // We don't actually send a message to the L1 in this test.
+        let l1_address = FieldElement::from_hex_be(DUMMY_L1_ADDRESS).unwrap();
+
+        // Withdraw the 1 amount in an l2->l1 message.
+        withdraw_from_lib(
+            Arc::clone(&account),
+            l1l2_contract_address,
+            user,
+            user_balance,
+            l1_address,
+            lib_sierra_class_hash,
+        )
+        .await
+        .unwrap();
+        assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [FieldElement::ZERO]);
+
+        // Flush messages to check the presence of the withdraw
+        let req_body = Body::from(json!({ "dry_run": true }).to_string());
+        let resp = devnet.post_json("/postman/flush".into(), req_body).await.expect("flush failed");
+        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
+        let resp_body = get_json_body(resp).await;
+
+        assert_eq!(
+            resp_body,
+            json!({
+                "messages_to_l1": [
+                    {
+                        "from_address": to_hex_felt(&l1l2_contract_address),
+                        "to_address": DUMMY_L1_ADDRESS,
+                        "payload": [MESSAGE_WITHDRAW_OPCODE, &to_hex_felt(&user), &to_hex_felt(&user_balance)]
+                    }
+                ],
+                "messages_to_l2": [],
+                "generated_l2_transactions": [],
+                "l1_provider": "dry run"
+            })
+        );
     }
 
     #[tokio::test]
@@ -294,7 +376,7 @@ mod test_messaging {
 
         let req_body = Body::from(
             json!({
-                "from_address": "0x34ba56f92265f0868c57d3fe72ecab144fc96f97954bbbc4252cef8e8a979ba",
+                "from_address": format!("0x{:64x}", l1l2_contract_address),
                 "to_address": DUMMY_L1_ADDRESS,
                 "payload": ["0x0","0x1","0x1"],
             })
@@ -310,7 +392,7 @@ mod test_messaging {
         let body = get_json_body(resp).await;
         assert_eq!(
             body.get("message_hash").unwrap().as_str().unwrap(),
-            "0x9192040596a7dab9117c2882e4ea05364bee50a91bc84731d0eb6abc4b712398"
+            "0xac5356289f98e5012f8efcabb9f7ad3adaa43f81ac47b6311d2c23ca01590bd0"
         );
     }
 
@@ -373,12 +455,9 @@ mod test_messaging {
         let sn_l1l2_contract_u256 =
             U256::from_str_radix(&format!("0x{:64x}", sn_l1l2_contract), 16).unwrap();
 
-        let account_address_u256 =
-            U256::from_str_radix(&format!("0x{:64x}", sn_account.address()), 16).unwrap();
-
         // Consume the message to increase the balance.
         anvil
-            .withdraw_l1l2(eth_l1l2_address, account_address_u256, user_eth, 1.into())
+            .withdraw_l1l2(eth_l1l2_address, sn_l1l2_contract_u256, user_eth, 1.into())
             .await
             .unwrap();
 

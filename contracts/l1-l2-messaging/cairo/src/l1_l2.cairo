@@ -55,18 +55,45 @@ mod l1_l2 {
         let balance_u: u256 = balance.into();
         let amount_u: u256 = amount.into();
         assert(balance_u >= amount_u, 'Balance will be negative');
-        
+
         let new_balance = balance - amount;
 
         self.balances.write(user, new_balance);
 
-        let payload = array![
-            MESSAGE_WITHDRAW,
-            user,
-            amount,
-        ];
+        let payload = array![MESSAGE_WITHDRAW, user, amount,];
 
         starknet::send_message_to_l1_syscall(l1_address, payload.span()).unwrap();
+    }
+
+    /// Withdraws the `amount` for the `user` and sends a message to `l1_address` to
+    /// send the funds.
+    #[external(v0)]
+    fn withdraw_from_lib(
+        ref self: ContractState, user: felt252, amount: felt252, l1_address: felt252, message_sender_class_hash: starknet::ClassHash,
+    ) {
+        assert(amount.is_non_zero(), 'Amount must be positive');
+
+        let balance = self.balances.read(user);
+        assert(balance.is_non_zero(), 'Balance is already 0');
+
+        // We need u256 to make comparisons.
+        let balance_u: u256 = balance.into();
+        let amount_u: u256 = amount.into();
+        assert(balance_u >= amount_u, 'Balance will be negative');
+
+        let new_balance = balance - amount;
+
+        self.balances.write(user, new_balance);
+
+        let calldata = array![user, amount, l1_address];
+
+        starknet::SyscallResultTrait::unwrap_syscall(
+            starknet::library_call_syscall(
+                message_sender_class_hash,
+                selector!("send_withdraw_message"),
+                calldata.span(),
+            )
+        );
     }
 
     /// Deposits the `amount` for the `user`. Can only be called by the sequencer itself,
