@@ -156,13 +156,17 @@ $ docker run -e RUST_LOG=<LEVEL> shardlabs/starknet-devnet-rs
 
 ## API
 
-Unlike Pythonic Devnet, which supported the gateway and feeder gateway API, Devnet in Rust only supports JSON-RPC, which at the time of writing this is synchronized with [specification v0.4.0](https://github.com/starkware-libs/starknet-specs/tree/v0.4.0/api).
+Unlike Pythonic Devnet, which supported the gateway and feeder gateway API, Devnet in Rust only supports JSON-RPC, which at the time of writing this is synchronized with [specification v0.6.0](https://github.com/starkware-libs/starknet-specs/tree/v0.6.0/api).
+
+Below is the list of old RPC versions supported by Devnet, usable as git tags or branches. A `branch` indicates the revision is maintained with bugfix support.
+
+- `json-rpc-v0.4.0` - tag
+- `json-rpc-v0.5.0` - tag
+- `json-rpc-v0.5.1` - branch
+
+These revisions should be used with `git checkout <REVISION>`.
 
 The JSON-RPC API is reachable via `/rpc` and `/` (e.g. if spawning Devnet with default settings, these URLs have the equivalent functionality: `http://127.0.0.1:5050/rpc` and `http://127.0.0.1:5050/`)
-
-> **Note:**
->
-> Out of Starknet **trace** API RPC methods, only `starknet_simulateTransactions` is supported.
 
 ## Predeployed contracts
 
