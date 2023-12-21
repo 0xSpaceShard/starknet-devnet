@@ -28,6 +28,7 @@ MAX_FEE=99999999999999999999
 CLASS_PATH="./cairo/target/dev/cairo_l1_l2.contract_class.json"
 starkli declare "$CLASS_PATH" --max-fee-raw $MAX_FEE
 CLASS_HASH=$(starkli class-hash "$CLASS_PATH")
+# extract the deployment address - last line of starkli output
 CONTRACT_L2=$(starkli deploy "$CLASS_HASH" --salt 123 --max-fee-raw $MAX_FEE | tail -n 1)
 
 # Add some balance and check it.
