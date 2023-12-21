@@ -18,12 +18,12 @@ mod test_messaging {
     use hyper::{Body, StatusCode};
     use serde_json::json;
     use starknet_rs_accounts::{
-        Account, Call, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount,
+        Account, AccountError, Call, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::{
-        BlockId, BlockTag, FieldElement, FunctionCall, MaybePendingTransactionReceipt,
-        TransactionExecutionStatus, TransactionReceipt,
+        BlockId, BlockTag, FieldElement, FunctionCall, InvokeTransactionResult,
+        MaybePendingTransactionReceipt, TransactionExecutionStatus, TransactionReceipt,
     };
     use starknet_rs_core::utils::{
         get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
@@ -42,6 +42,7 @@ mod test_messaging {
     };
 
     const DUMMY_L1_ADDRESS: &str = "0xc662c410c0ecf747543f5ba90660f6abebd9c8c4";
+    const MESSAGE_WITHDRAW_OPCODE: &str = "0x0";
 
     const MAX_FEE: u128 = 1e18 as u128;
 
@@ -107,14 +108,14 @@ mod test_messaging {
         amount: FieldElement,
         l1_address: FieldElement,
         lib_class_hash: FieldElement,
-    ) {
+    ) -> Result<InvokeTransactionResult, AccountError<<A as Account>::SignError>> {
         let invoke_calls = vec![Call {
             to: contract_address,
             selector: get_selector_from_name("withdraw_from_lib").unwrap(),
             calldata: vec![user, amount, l1_address, lib_class_hash],
         }];
 
-        account.execute(invoke_calls).max_fee(FieldElement::from(MAX_FEE)).send().await.unwrap();
+        account.execute(invoke_calls).max_fee(FieldElement::from(MAX_FEE)).send().await
     }
 
     /// Sets up a `BackgroundDevnet` with the message l1-l2 contract deployed.
@@ -185,29 +186,27 @@ mod test_messaging {
         withdraw(Arc::clone(&account), l1l2_contract_address, user, user_balance, l1_address).await;
         assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [FieldElement::ZERO]);
 
-        // Flush messages to check the presence of the withdraw where use expected to be 1 and
-        // amount to be 1. The message always starts with a magic value MESSAGE_WITHDRAW
-        // which is 0.
+        // Flush messages to check the presence of the withdraw
         let req_body = Body::from(json!({ "dry_run": true }).to_string());
         let resp = devnet.post_json("/postman/flush".into(), req_body).await.expect("flush failed");
-        // assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
-        let body = get_json_body(resp).await;
+        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
+        let resp_body = get_json_body(resp).await;
 
-        let messages_to_l1 = body.get("messages_to_l1").unwrap().as_array().unwrap();
-        assert_eq!(messages_to_l1.len(), 1);
-
-        let l1_contract_address = messages_to_l1[0].get("to_address").unwrap().as_str().unwrap();
-        let l2_contract_address = messages_to_l1[0].get("from_address").unwrap().as_str().unwrap();
-        assert_eq!(l2_contract_address, format!("0x{:64x}", l1l2_contract_address));
-        assert_eq!(l1_contract_address, DUMMY_L1_ADDRESS);
-
-        let payload = messages_to_l1[0].get("payload").unwrap().as_array().unwrap();
-        // MESSAGE_WITHDRAW opcode, equal to 0, first element of the payload.
-        assert_eq!(payload, &["0x0", &to_hex_felt(&user), &to_hex_felt(&user_balance)]);
-
-        assert!(body.get("messages_to_l2").unwrap().as_array().unwrap().is_empty());
-        assert!(body.get("generated_l2_transactions").unwrap().as_array().unwrap().is_empty());
-        assert_eq!(body.get("l1_provider").unwrap().as_str().unwrap(), "dry run");
+        assert_eq!(
+            resp_body,
+            json!({
+                "messages_to_l1": [
+                    {
+                        "from_address": to_hex_felt(&l1l2_contract_address),
+                        "to_address": DUMMY_L1_ADDRESS,
+                        "payload": [MESSAGE_WITHDRAW_OPCODE, &to_hex_felt(&user), &to_hex_felt(&user_balance)]
+                    }
+                ],
+                "messages_to_l2": [],
+                "generated_l2_transactions": [],
+                "l1_provider": "dry run"
+            })
+        );
     }
 
     #[tokio::test]
@@ -218,14 +217,14 @@ mod test_messaging {
         // Declare l1l2 lib with only one function to send messages.
         // It's class hash can then be ignored, it's hardcoded in the contract.
         let (sierra_class, casm_class_hash) = get_messaging_lib_in_sierra_and_compiled_class_hash();
-
         let lib_sierra_class_hash = sierra_class.class_hash();
-        let declaration = account.declare(Arc::new(sierra_class), casm_class_hash);
-        declaration.max_fee(FieldElement::from(MAX_FEE)).send().await.unwrap();
 
-        // TODO: I'm not sure that the declare is actually done, I tried to moved it
-        // in other placed, and I have a nonce error in the transaction.
-        // So the withdraw from lib fails, and we don't have the balance set to 0.
+        account
+            .declare(Arc::new(sierra_class), casm_class_hash)
+            .max_fee(FieldElement::from(MAX_FEE))
+            .send()
+            .await
+            .unwrap();
 
         let user = FieldElement::ONE;
 
@@ -237,7 +236,7 @@ mod test_messaging {
         // We don't actually send a message to the L1 in this test.
         let l1_address = FieldElement::from_hex_be(DUMMY_L1_ADDRESS).unwrap();
 
-        // Withdraw the 1 amount in a l2->l1 message.
+        // Withdraw the 1 amount in an l2->l1 message.
         withdraw_from_lib(
             Arc::clone(&account),
             l1l2_contract_address,
@@ -246,34 +245,31 @@ mod test_messaging {
             l1_address,
             lib_sierra_class_hash,
         )
-        .await;
+        .await
+        .unwrap();
         assert_eq!(get_balance(&devnet, l1l2_contract_address, user).await, [FieldElement::ZERO]);
 
-        // Flush messages to check the presence of the withdraw where use expected to be 1 and
-        // amount to be 1. The message always starts with a magic value MESSAGE_WITHDRAW
-        // which is 0.
+        // Flush messages to check the presence of the withdraw
         let req_body = Body::from(json!({ "dry_run": true }).to_string());
         let resp = devnet.post_json("/postman/flush".into(), req_body).await.expect("flush failed");
-        // assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
-        let body = get_json_body(resp).await;
+        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
+        let resp_body = get_json_body(resp).await;
 
-        let messages_to_l1 = body.get("messages_to_l1").unwrap().as_array().unwrap();
-        assert_eq!(messages_to_l1.len(), 1);
-
-        let l1_contract_address = messages_to_l1[0].get("to_address").unwrap().as_str().unwrap();
-        let l2_contract_address = messages_to_l1[0].get("from_address").unwrap().as_str().unwrap();
-        // The l2_contract_address should be the same as the contract, even using
-        // the library syscall.
-        assert_eq!(l2_contract_address, format!("0x{:64x}", l1l2_contract_address));
-        assert_eq!(l1_contract_address, DUMMY_L1_ADDRESS);
-
-        let payload = messages_to_l1[0].get("payload").unwrap().as_array().unwrap();
-        // MESSAGE_WITHDRAW opcode, equal to 0, first element of the payload.
-        assert_eq!(payload, &["0x0", &to_hex_felt(&user), &to_hex_felt(&user_balance)]);
-
-        assert!(body.get("messages_to_l2").unwrap().as_array().unwrap().is_empty());
-        assert!(body.get("generated_l2_transactions").unwrap().as_array().unwrap().is_empty());
-        assert_eq!(body.get("l1_provider").unwrap().as_str().unwrap(), "dry run");
+        assert_eq!(
+            resp_body,
+            json!({
+                "messages_to_l1": [
+                    {
+                        "from_address": to_hex_felt(&l1l2_contract_address),
+                        "to_address": DUMMY_L1_ADDRESS,
+                        "payload": [MESSAGE_WITHDRAW_OPCODE, &to_hex_felt(&user), &to_hex_felt(&user_balance)]
+                    }
+                ],
+                "messages_to_l2": [],
+                "generated_l2_transactions": [],
+                "l1_provider": "dry run"
+            })
+        );
     }
 
     #[tokio::test]

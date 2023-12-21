@@ -7,6 +7,7 @@ mod l1_l2_lib {
     #[storage]
     struct Storage {}
 
+    #[external(v0)]
     fn send_withdraw_message(
         ref self: ContractState, user: felt252, amount: felt252, l1_address: felt252
     ) {
