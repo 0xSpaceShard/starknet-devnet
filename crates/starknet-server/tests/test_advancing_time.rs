@@ -95,6 +95,10 @@ mod advancing_time_tests {
             .ok()
     }
 
+    pub async fn mine_new_block(devnet: &BackgroundDevnet) {
+        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+    }
+
     #[tokio::test]
     async fn timestamp_syscall_set_in_past() {
         let devnet: BackgroundDevnet =
@@ -108,8 +112,7 @@ mod advancing_time_tests {
         let resp_body_set_time = get_json_body(resp_set_time).await;
         assert_eq!(resp_body_set_time["block_timestamp"], past_time);
 
-        // mine block
-        devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+        mine_new_block(&devnet).await;
 
         // check if timestamp is greater/equal
         let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
@@ -130,8 +133,7 @@ mod advancing_time_tests {
         let resp_body_set_time = get_json_body(resp_set_time).await;
         assert_eq!(resp_body_set_time["block_timestamp"], future_time);
 
-        // mine block
-        devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+        mine_new_block(&devnet).await;
 
         // check if timestamp is greater/equal
         let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
@@ -154,14 +156,15 @@ mod advancing_time_tests {
         let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
         assert_ge_with_buffer(current_timestamp, Some(now + increase_time));
 
-        // wait 1 second, mine block with mint
+        // wait 1 second, mine block
         thread::sleep(time::Duration::from_secs(1));
-        devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+        mine_new_block(&devnet).await;
 
         // check if timestamp is greater
-        let timestamp_after_mint = get_current_timestamp(&devnet, timestamp_contract_address).await;
-        assert_gt_with_buffer(timestamp_after_mint, Some(now + increase_time));
-        assert_gt_with_buffer(timestamp_after_mint, current_timestamp);
+        let timestamp_after_new_block =
+            get_current_timestamp(&devnet, timestamp_contract_address).await;
+        assert_gt_with_buffer(timestamp_after_new_block, Some(now + increase_time));
+        assert_gt_with_buffer(timestamp_after_new_block, current_timestamp);
     }
 
     #[tokio::test]
@@ -190,9 +193,9 @@ mod advancing_time_tests {
             .ok();
         assert_gt_with_buffer(storage_timestamp, Some(now));
 
-        // wait 1 second and mine block with mint
+        // wait 1 second and mine block
         thread::sleep(time::Duration::from_secs(1));
-        devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+        mine_new_block(&devnet).await;
 
         // check if current timestamp is greater than storage timestamp and now
         let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
@@ -211,8 +214,7 @@ mod advancing_time_tests {
         .expect("Could not start Devnet");
         let timestamp_contract_address = setup_timestamp_contract(&devnet).await;
 
-        // mine block
-        devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+        mine_new_block(&devnet).await;
 
         // check if timestamp is greater/equal
         let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
@@ -231,8 +233,7 @@ mod advancing_time_tests {
         .expect("Could not start Devnet");
         let timestamp_contract_address = setup_timestamp_contract(&devnet).await;
 
-        // mine block
-        devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+        mine_new_block(&devnet).await;
 
         // check if timestamp is greater/equal
         let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
