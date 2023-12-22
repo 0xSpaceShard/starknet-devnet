@@ -89,7 +89,10 @@ mod advancing_time_tests {
             .json_rpc_client
             .call(call_current_timestamp.clone(), BlockId::Tag(BlockTag::Latest))
             .await
-            .unwrap()[0].to_string().parse::<u64>().ok()
+            .unwrap()[0]
+            .to_string()
+            .parse::<u64>()
+            .ok()
     }
 
     #[tokio::test]
@@ -149,10 +152,7 @@ mod advancing_time_tests {
 
         // check if timestamp is greater/equal
         let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
-        assert_ge_with_buffer(
-            current_timestamp,
-            Some(now + increase_time),
-        );
+        assert_ge_with_buffer(current_timestamp, Some(now + increase_time));
 
         // wait 1 second, mine block with mint
         thread::sleep(time::Duration::from_secs(1));
@@ -160,14 +160,8 @@ mod advancing_time_tests {
 
         // check if timestamp is greater
         let timestamp_after_mint = get_current_timestamp(&devnet, timestamp_contract_address).await;
-        assert_gt_with_buffer(
-            timestamp_after_mint,
-            Some(now + increase_time)
-        );
-        assert_gt_with_buffer(
-            timestamp_after_mint,
-            current_timestamp
-        );
+        assert_gt_with_buffer(timestamp_after_mint, Some(now + increase_time));
+        assert_gt_with_buffer(timestamp_after_mint, current_timestamp);
     }
 
     #[tokio::test]
@@ -190,7 +184,10 @@ mod advancing_time_tests {
             .json_rpc_client
             .call(call_storage_timestamp, BlockId::Tag(BlockTag::Latest))
             .await
-            .unwrap()[0].to_string().parse::<u64>().ok();
+            .unwrap()[0]
+            .to_string()
+            .parse::<u64>()
+            .ok();
         assert_gt_with_buffer(storage_timestamp, Some(now));
 
         // wait 1 second and mine block with mint
@@ -200,10 +197,7 @@ mod advancing_time_tests {
         // check if current timestamp is greater than storage timestamp and now
         let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
         assert_gt_with_buffer(current_timestamp, Some(now));
-        assert_gt_with_buffer(
-            current_timestamp,
-            storage_timestamp,
-        );
+        assert_gt_with_buffer(current_timestamp, storage_timestamp);
     }
 
     #[tokio::test]
