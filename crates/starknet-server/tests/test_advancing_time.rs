@@ -22,6 +22,7 @@ mod advancing_time_tests {
 
     const DUMMY_ADDRESS: u128 = 1;
     const DUMMY_AMOUNT: u128 = 1;
+    // buffer should be always lower than the time change that we are testing
     const BUFFER_TIME_SECONDS: u64 = 30;
 
     pub fn assert_ge_with_buffer(val1: Option<u64>, val2: Option<u64>) {
@@ -36,12 +37,7 @@ mod advancing_time_tests {
         assert!(val1 <= upper_limit, "Failed inequation: {val1:?} <= {upper_limit:?}");
     }
 
-    #[tokio::test]
-    async fn get_timestamp_syscall() {
-        let now = get_unix_timestamp_as_seconds();
-        let devnet: BackgroundDevnet =
-            BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-
+    pub async fn setup_timestamp_contract(devnet: &BackgroundDevnet) -> FieldElement {
         let (signer, address) = devnet.get_first_predeployed_account().await;
         let predeployed_account = SingleOwnerAccount::new(
             devnet.clone_provider(),
@@ -51,18 +47,18 @@ mod advancing_time_tests {
             ExecutionEncoding::Legacy,
         );
 
+        // declare
         let (cairo_1_contract, casm_class_hash) =
             get_timestamp_contract_in_sierra_and_compiled_class_hash();
-
         let declaration_result = predeployed_account
             .declare(Arc::new(cairo_1_contract), casm_class_hash)
             .max_fee(FieldElement::from(100000000000000000000u128))
             .send()
             .await
             .unwrap();
-
         let predeployed_account = Arc::new(predeployed_account);
 
+        // deploy
         let contract_factory =
             ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
         contract_factory
@@ -72,22 +68,176 @@ mod advancing_time_tests {
             .await
             .unwrap();
 
-        let new_contract_address = get_udc_deployed_address(
+        get_udc_deployed_address(
             FieldElement::ZERO,
             declaration_result.class_hash,
             &starknet_rs_core::utils::UdcUniqueness::NotUnique,
             &[],
-        );
+        )
+    }
 
-        let call = FunctionCall {
-            contract_address: new_contract_address,
+    pub async fn get_current_timestamp(
+        devnet: &BackgroundDevnet,
+        timestamp_contract_address: FieldElement,
+    ) -> Option<u64> {
+        let call_current_timestamp = FunctionCall {
+            contract_address: timestamp_contract_address,
             entry_point_selector: get_selector_from_name("get_timestamp").unwrap(),
             calldata: vec![],
         };
-        let timestamp =
-            devnet.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await.unwrap()[0];
+        let call_result = devnet
+            .json_rpc_client
+            .call(call_current_timestamp, BlockId::Tag(BlockTag::Latest))
+            .await
+            .unwrap();
+        assert_eq!(call_result.len(), 1);
 
-        assert_ge_with_buffer(timestamp.to_string().parse::<u64>().ok(), Some(now));
+        call_result[0].to_string().parse::<u64>().ok()
+    }
+
+    pub async fn mine_new_block(devnet: &BackgroundDevnet) {
+        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn timestamp_syscall_set_in_past() {
+        let devnet: BackgroundDevnet =
+            BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let timestamp_contract_address = setup_timestamp_contract(&devnet).await;
+
+        // set time in past
+        let past_time = 1;
+        let set_time_body = Body::from(json!({ "time": past_time }).to_string());
+        let resp_set_time = devnet.post_json("/set_time".into(), set_time_body).await.unwrap();
+        let resp_body_set_time = get_json_body(resp_set_time).await;
+        assert_eq!(resp_body_set_time["block_timestamp"], past_time);
+
+        mine_new_block(&devnet).await;
+
+        // check if timestamp is greater/equal
+        let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
+        assert_ge_with_buffer(current_timestamp, Some(past_time));
+    }
+
+    #[tokio::test]
+    async fn timestamp_syscall_set_in_future() {
+        let now = get_unix_timestamp_as_seconds();
+        let devnet: BackgroundDevnet =
+            BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let timestamp_contract_address = setup_timestamp_contract(&devnet).await;
+
+        // set time in future
+        let future_time = now + 1000;
+        let set_time_body = Body::from(json!({ "time": future_time }).to_string());
+        let resp_set_time = devnet.post_json("/set_time".into(), set_time_body).await.unwrap();
+        let resp_body_set_time = get_json_body(resp_set_time).await;
+        assert_eq!(resp_body_set_time["block_timestamp"], future_time);
+
+        mine_new_block(&devnet).await;
+
+        // check if timestamp is greater/equal
+        let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
+        assert_ge_with_buffer(current_timestamp, Some(future_time));
+    }
+
+    #[tokio::test]
+    async fn timestamp_syscall_increase_time() {
+        let now = get_unix_timestamp_as_seconds();
+        let devnet: BackgroundDevnet =
+            BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let timestamp_contract_address = setup_timestamp_contract(&devnet).await;
+
+        // increase time
+        let increase_time: u64 = 1000;
+        let increase_time_body = Body::from(json!({ "time": increase_time }).to_string());
+        devnet.post_json("/increase_time".into(), increase_time_body).await.unwrap();
+
+        // check if timestamp is greater/equal
+        let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
+        assert_ge_with_buffer(current_timestamp, Some(now + increase_time));
+
+        // wait 1 second, mine block
+        thread::sleep(time::Duration::from_secs(1));
+        mine_new_block(&devnet).await;
+
+        // check if timestamp is greater
+        let timestamp_after_new_block =
+            get_current_timestamp(&devnet, timestamp_contract_address).await;
+        assert_gt_with_buffer(timestamp_after_new_block, Some(now + increase_time));
+        assert_gt_with_buffer(timestamp_after_new_block, current_timestamp);
+    }
+
+    #[tokio::test]
+    async fn timestamp_syscall_contract_constructor() {
+        let now = get_unix_timestamp_as_seconds();
+        let devnet: BackgroundDevnet =
+            BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let timestamp_contract_address = setup_timestamp_contract(&devnet).await;
+
+        // wait 1 second
+        thread::sleep(time::Duration::from_secs(1));
+
+        // check constructor set of timestamp
+        let call_storage_timestamp = FunctionCall {
+            contract_address: timestamp_contract_address,
+            entry_point_selector: get_selector_from_name("get_storage_timestamp").unwrap(),
+            calldata: vec![],
+        };
+        let storage_timestamp = devnet
+            .json_rpc_client
+            .call(call_storage_timestamp, BlockId::Tag(BlockTag::Latest))
+            .await
+            .unwrap()[0]
+            .to_string()
+            .parse::<u64>()
+            .ok();
+        assert_gt_with_buffer(storage_timestamp, Some(now));
+
+        // wait 1 second and mine block
+        thread::sleep(time::Duration::from_secs(1));
+        mine_new_block(&devnet).await;
+
+        // check if current timestamp is greater than storage timestamp and now
+        let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
+        assert_gt_with_buffer(current_timestamp, Some(now));
+        assert_gt_with_buffer(current_timestamp, storage_timestamp);
+    }
+
+    #[tokio::test]
+    async fn start_time_in_past_syscall() {
+        let past_time = 1;
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--start-time",
+            past_time.to_string().as_str(),
+        ])
+        .await
+        .expect("Could not start Devnet");
+        let timestamp_contract_address = setup_timestamp_contract(&devnet).await;
+
+        mine_new_block(&devnet).await;
+
+        // check if timestamp is greater/equal
+        let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
+        assert_ge_with_buffer(current_timestamp, Some(past_time));
+    }
+
+    #[tokio::test]
+    async fn start_time_in_future_syscall() {
+        let now: u64 = get_unix_timestamp_as_seconds();
+        let future_time = now + 1000;
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--start-time",
+            future_time.to_string().as_str(),
+        ])
+        .await
+        .expect("Could not start Devnet");
+        let timestamp_contract_address = setup_timestamp_contract(&devnet).await;
+
+        mine_new_block(&devnet).await;
+
+        // check if timestamp is greater/equal
+        let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
+        assert_ge_with_buffer(current_timestamp, Some(future_time));
     }
 
     #[tokio::test]
@@ -133,7 +283,7 @@ mod advancing_time_tests {
         // set time and assert if it's greater/equal than future_time, check if it's inside buffer
         // limit
         let now = get_unix_timestamp_as_seconds();
-        let future_time = now + 100;
+        let future_time = now + 1000;
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let set_time_body = Body::from(json!({ "time": future_time }).to_string());
         let resp = devnet.post_json("/set_time".into(), set_time_body).await.unwrap();
@@ -194,7 +344,7 @@ mod advancing_time_tests {
         let now = get_unix_timestamp_as_seconds();
 
         // increase time and assert if it's greater than now, check if it's inside buffer limit
-        let first_increase_time: u64 = 1000;
+        let first_increase_time: u64 = 10000;
         let first_increase_time_body =
             Body::from(json!({ "time": first_increase_time }).to_string());
         devnet.post_json("/increase_time".into(), first_increase_time_body).await.unwrap();
@@ -207,7 +357,7 @@ mod advancing_time_tests {
         );
 
         // second increase time, check if it's inside buffer limit
-        let second_increase_time: u64 = 100;
+        let second_increase_time: u64 = 1000;
         let second_increase_time_body =
             Body::from(json!({ "time": second_increase_time }).to_string());
         devnet.post_json("/increase_time".into(), second_increase_time_body).await.unwrap();
