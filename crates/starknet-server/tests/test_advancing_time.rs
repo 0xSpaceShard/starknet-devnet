@@ -22,6 +22,7 @@ mod advancing_time_tests {
 
     const DUMMY_ADDRESS: u128 = 1;
     const DUMMY_AMOUNT: u128 = 1;
+    // buffer should be always lower than the time change that we are testing
     const BUFFER_TIME_SECONDS: u64 = 30;
 
     pub fn assert_ge_with_buffer(val1: Option<u64>, val2: Option<u64>) {
@@ -77,10 +78,10 @@ mod advancing_time_tests {
 
     pub async fn get_current_timestamp(
         devnet: &BackgroundDevnet,
-        contract_address: FieldElement,
-    ) -> FieldElement {
+        timestamp_contract_address: FieldElement,
+    ) -> Option<u64> {
         let call_current_timestamp = FunctionCall {
-            contract_address,
+            contract_address: timestamp_contract_address,
             entry_point_selector: get_selector_from_name("get_timestamp").unwrap(),
             calldata: vec![],
         };
@@ -88,14 +89,14 @@ mod advancing_time_tests {
             .json_rpc_client
             .call(call_current_timestamp.clone(), BlockId::Tag(BlockTag::Latest))
             .await
-            .unwrap()[0]
+            .unwrap()[0].to_string().parse::<u64>().ok()
     }
 
     #[tokio::test]
     async fn timestamp_syscall_set_in_past() {
         let devnet: BackgroundDevnet =
             BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let new_contract_address = setup_timestamp_contract(&devnet).await;
+        let timestamp_contract_address = setup_timestamp_contract(&devnet).await;
 
         // set time in past
         let past_time = 1;
@@ -108,8 +109,8 @@ mod advancing_time_tests {
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
         // check if timestamp is greater/equal
-        let current_timestamp = get_current_timestamp(&devnet, new_contract_address).await;
-        assert_ge_with_buffer(current_timestamp.to_string().parse::<u64>().ok(), Some(past_time));
+        let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
+        assert_ge_with_buffer(current_timestamp, Some(past_time));
     }
 
     #[tokio::test]
@@ -117,7 +118,7 @@ mod advancing_time_tests {
         let now = get_unix_timestamp_as_seconds();
         let devnet: BackgroundDevnet =
             BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let new_contract_address = setup_timestamp_contract(&devnet).await;
+        let timestamp_contract_address = setup_timestamp_contract(&devnet).await;
 
         // set time in future
         let future_time = now + 1000;
@@ -130,8 +131,8 @@ mod advancing_time_tests {
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
         // check if timestamp is greater/equal
-        let current_timestamp = get_current_timestamp(&devnet, new_contract_address).await;
-        assert_ge_with_buffer(current_timestamp.to_string().parse::<u64>().ok(), Some(future_time));
+        let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
+        assert_ge_with_buffer(current_timestamp, Some(future_time));
     }
 
     #[tokio::test]
@@ -139,7 +140,7 @@ mod advancing_time_tests {
         let now = get_unix_timestamp_as_seconds();
         let devnet: BackgroundDevnet =
             BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let new_contract_address = setup_timestamp_contract(&devnet).await;
+        let timestamp_contract_address = setup_timestamp_contract(&devnet).await;
 
         // increase time
         let increase_time: u64 = 1000;
@@ -147,9 +148,9 @@ mod advancing_time_tests {
         devnet.post_json("/increase_time".into(), increase_time_body).await.unwrap();
 
         // check if timestamp is greater/equal
-        let mut current_timestamp = get_current_timestamp(&devnet, new_contract_address).await;
+        let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
         assert_ge_with_buffer(
-            current_timestamp.to_string().parse::<u64>().ok(),
+            current_timestamp,
             Some(now + increase_time),
         );
 
@@ -158,10 +159,14 @@ mod advancing_time_tests {
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
         // check if timestamp is greater
-        current_timestamp = get_current_timestamp(&devnet, new_contract_address).await;
+        let timestamp_after_mint = get_current_timestamp(&devnet, timestamp_contract_address).await;
         assert_gt_with_buffer(
-            current_timestamp.to_string().parse::<u64>().ok(),
-            Some(now + increase_time),
+            timestamp_after_mint,
+            Some(now + increase_time)
+        );
+        assert_gt_with_buffer(
+            timestamp_after_mint,
+            current_timestamp
         );
     }
 
@@ -170,14 +175,14 @@ mod advancing_time_tests {
         let now = get_unix_timestamp_as_seconds();
         let devnet: BackgroundDevnet =
             BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let new_contract_address = setup_timestamp_contract(&devnet).await;
+        let timestamp_contract_address = setup_timestamp_contract(&devnet).await;
 
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
 
         // check constructor set of timestamp
         let call_storage_timestamp = FunctionCall {
-            contract_address: new_contract_address,
+            contract_address: timestamp_contract_address,
             entry_point_selector: get_selector_from_name("get_storage_timestamp").unwrap(),
             calldata: vec![],
         };
@@ -185,19 +190,19 @@ mod advancing_time_tests {
             .json_rpc_client
             .call(call_storage_timestamp, BlockId::Tag(BlockTag::Latest))
             .await
-            .unwrap()[0];
-        assert_gt_with_buffer(storage_timestamp.to_string().parse::<u64>().ok(), Some(now));
+            .unwrap()[0].to_string().parse::<u64>().ok();
+        assert_gt_with_buffer(storage_timestamp, Some(now));
 
         // wait 1 second and mine block with mint
         thread::sleep(time::Duration::from_secs(1));
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
         // check if current timestamp is greater than storage timestamp and now
-        let current_timestamp = get_current_timestamp(&devnet, new_contract_address).await;
-        assert_gt_with_buffer(current_timestamp.to_string().parse::<u64>().ok(), Some(now));
+        let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
+        assert_gt_with_buffer(current_timestamp, Some(now));
         assert_gt_with_buffer(
-            current_timestamp.to_string().parse::<u64>().ok(),
-            storage_timestamp.to_string().parse::<u64>().ok(),
+            current_timestamp,
+            storage_timestamp,
         );
     }
 
@@ -210,14 +215,14 @@ mod advancing_time_tests {
         ])
         .await
         .expect("Could not start Devnet");
-        let new_contract_address = setup_timestamp_contract(&devnet).await;
+        let timestamp_contract_address = setup_timestamp_contract(&devnet).await;
 
         // mine block
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
         // check if timestamp is greater/equal
-        let current_timestamp = get_current_timestamp(&devnet, new_contract_address).await;
-        assert_ge_with_buffer(current_timestamp.to_string().parse::<u64>().ok(), Some(past_time));
+        let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
+        assert_ge_with_buffer(current_timestamp, Some(past_time));
     }
 
     #[tokio::test]
@@ -230,14 +235,14 @@ mod advancing_time_tests {
         ])
         .await
         .expect("Could not start Devnet");
-        let new_contract_address = setup_timestamp_contract(&devnet).await;
+        let timestamp_contract_address = setup_timestamp_contract(&devnet).await;
 
         // mine block
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
         // check if timestamp is greater/equal
-        let current_timestamp = get_current_timestamp(&devnet, new_contract_address).await;
-        assert_ge_with_buffer(current_timestamp.to_string().parse::<u64>().ok(), Some(future_time));
+        let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
+        assert_ge_with_buffer(current_timestamp, Some(future_time));
     }
 
     #[tokio::test]
