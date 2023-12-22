@@ -87,7 +87,7 @@ mod advancing_time_tests {
         };
         let call_result = devnet
             .json_rpc_client
-            .call(call_current_timestamp.clone(), BlockId::Tag(BlockTag::Latest))
+            .call(call_current_timestamp, BlockId::Tag(BlockTag::Latest))
             .await
             .unwrap();
         assert_eq!(call_result.len(), 1);
