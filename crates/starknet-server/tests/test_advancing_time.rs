@@ -85,14 +85,14 @@ mod advancing_time_tests {
             entry_point_selector: get_selector_from_name("get_timestamp").unwrap(),
             calldata: vec![],
         };
-        devnet
+        let call_result = devnet
             .json_rpc_client
             .call(call_current_timestamp.clone(), BlockId::Tag(BlockTag::Latest))
             .await
-            .unwrap()[0]
-            .to_string()
-            .parse::<u64>()
-            .ok()
+            .unwrap();
+        assert_eq!(call_result.len(), 1);
+
+        call_result[0].to_string().parse::<u64>().ok()
     }
 
     pub async fn mine_new_block(devnet: &BackgroundDevnet) {
