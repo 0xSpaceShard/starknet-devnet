@@ -457,6 +457,10 @@ impl Starknet {
         match block_id {
             BlockId::Tag(_) => Ok(&self.state),
             _ => {
+                if self.config.state_archive == StateArchiveCapacity::None {
+                    return Err(Error::StateHistoryDisabled);
+                }
+
                 let block = self.blocks.get_by_block_id(*block_id).ok_or(Error::NoBlock)?;
                 let state = self
                     .blocks
@@ -1253,6 +1257,18 @@ mod tests {
 
         match starknet.get_state_at(&BlockId::Number(0)) {
             Err(Error::NoStateAtBlock { block_number: _ }) => (),
+            _ => panic!("Should have failed"),
+        }
+    }
+
+    #[test]
+    fn getting_state_at_without_state_archive() {
+        let config = StarknetConfig::default();
+        let mut starknet = Starknet::new(&config).unwrap();
+        starknet.generate_new_block(StateDiff::default(), None).unwrap();
+
+        match starknet.get_state_at(&BlockId::Number(0)) {
+            Err(Error::StateHistoryDisabled) => (),
             _ => panic!("Should have failed"),
         }
     }

@@ -304,11 +304,22 @@ cargo run -- --timeout TIMEOUT
 
 ### State archive mode
 
-With state archive capacity set to `full`, Devnet will store full state history. The default mode is `none`, where no old states are stored.
+With state archive capacity set to `full`, Devnet will store full state history. The default mode is `none`, where no old states are stored. 
 
 ```
 cargo run -- --state-archive-capacity CAPACITY
+```
 
+This functionality affects below JSON-RPC endpoints, if they are executed with a specified `block_id`:
+```
+starknet_call
+starknet_estimateMessageFee
+starknet_getClass
+starknet_getClassAt
+starknet_getClassHashAt
+starknet_getNonce
+starknet_getStorageAt
+starknet_simulateTransactions
 ```
 
 ## Development - Visual Studio Code
