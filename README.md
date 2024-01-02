@@ -310,7 +310,7 @@ With state archive capacity set to `full`, Devnet will store full state history.
 cargo run -- --state-archive-capacity CAPACITY
 ```
 
-This functionality affects below JSON-RPC endpoints, if they are executed with a specified `block_id`:
+This functionality affects below JSON-RPC endpoints, if they are executed with a specified `block_id` as hash or number:
 ```
 starknet_call
 starknet_estimateMessageFee
