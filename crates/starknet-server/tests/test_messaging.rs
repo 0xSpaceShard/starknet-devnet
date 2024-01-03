@@ -74,14 +74,17 @@ mod test_messaging {
         contract_address: FieldElement,
         user: FieldElement,
         amount: FieldElement,
-    ) {
+    ) -> FieldElement {
         let invoke_calls = vec![Call {
             to: contract_address,
             selector: get_selector_from_name("increase_balance").unwrap(),
             calldata: vec![user, amount],
         }];
 
-        account.execute(invoke_calls).max_fee(FieldElement::from(MAX_FEE)).send().await.unwrap();
+        let result = account.execute(invoke_calls).max_fee(FieldElement::from(MAX_FEE)).send().await.unwrap();
+        println!("increase_balance tx hash: {:?}: ", result.transaction_hash);
+
+        result.transaction_hash
     }
 
     /// Gets the balance for the given user.
@@ -429,8 +432,12 @@ mod test_messaging {
 
         // Set balance to 1 for the user 1 on L2.
         let user_balance = FieldElement::ONE;
-        increase_balance(Arc::clone(&sn_account), sn_l1l2_contract, user_sn, user_balance).await;
+        let transaction_hash = increase_balance(Arc::clone(&sn_account), sn_l1l2_contract, user_sn, user_balance).await;
         assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [user_balance]);
+
+        // TODO: get traces of tx
+        let tx = devnet.json_rpc_client.get_transaction_by_hash(transaction_hash).await.unwrap();
+        println!("tx: {:?} ", tx);
 
         // Withdraw the amount 1 from user 1 balance on L2 to send it on L1 with a l2->l1 message.
         withdraw(
