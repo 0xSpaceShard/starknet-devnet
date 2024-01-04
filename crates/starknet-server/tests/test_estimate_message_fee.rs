@@ -109,7 +109,10 @@ mod test_estimate_message_fee {
 
     #[tokio::test]
     async fn estimate_message_fee_block_not_found() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
+                .await
+                .expect("Could not start Devnet");
 
         let err = devnet
             .json_rpc_client
