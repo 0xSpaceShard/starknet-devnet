@@ -1238,8 +1238,8 @@ mod tests {
 
     #[test]
     fn getting_state_at_block_by_nonexistent_hash_with_full_state_archive() {
-        let mut config = StarknetConfig::default();
-        config.state_archive = StateArchiveCapacity::Full;
+        let config =
+            StarknetConfig { state_archive: StateArchiveCapacity::Full, ..Default::default() };
         let mut starknet = Starknet::new(&config).unwrap();
         starknet.generate_new_block(StateDiff::default(), None).unwrap();
 
@@ -1251,8 +1251,8 @@ mod tests {
 
     #[test]
     fn getting_nonexistent_state_at_block_by_number_with_full_state_archive() {
-        let mut config = StarknetConfig::default();
-        config.state_archive = StateArchiveCapacity::Full;
+        let config =
+            StarknetConfig { state_archive: StateArchiveCapacity::Full, ..Default::default() };
         let mut starknet = Starknet::new(&config).unwrap();
         starknet.generate_new_block(StateDiff::default(), None).unwrap();
         starknet.blocks.num_to_state.remove(&BlockNumber(0));
