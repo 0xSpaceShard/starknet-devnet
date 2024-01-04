@@ -481,8 +481,8 @@ mod test_messaging {
             devnet.post_json("/postman/flush".into(), "".into()).await.expect("flush failed");
         assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
 
-        // Assert traces of L1Handler with custom rpc call, json_rpc_client.trace_transaction() is
-        // not supported
+        // Assert traces of L1Handler transaction with custom rpc call,
+        // json_rpc_client.trace_transaction() is not supported
         let flush_body = get_json_body(resp).await;
         let l1_handler_tx_trace = &devnet
             .send_custom_rpc(
