@@ -1237,27 +1237,29 @@ mod tests {
     }
 
     #[test]
-    fn getting_state_at_block_by_nonexistent_hash() {
-        let config = StarknetConfig::default();
+    fn getting_state_at_block_by_nonexistent_hash_with_full_state_archive() {
+        let mut config = StarknetConfig::default();
+        config.state_archive = StateArchiveCapacity::Full;
         let mut starknet = Starknet::new(&config).unwrap();
         starknet.generate_new_block(StateDiff::default(), None).unwrap();
 
         match starknet.get_state_at(&BlockId::Hash(Felt::from(0).into())) {
             Err(Error::NoBlock) => (),
-            _ => panic!("Should have failed"),
+            _ => panic!("Should fail with NoBlock"),
         }
     }
 
     #[test]
-    fn getting_nonexistent_state_at_block_by_number() {
-        let config = StarknetConfig::default();
+    fn getting_nonexistent_state_at_block_by_number_with_full_state_archive() {
+        let mut config = StarknetConfig::default();
+        config.state_archive = StateArchiveCapacity::Full;
         let mut starknet = Starknet::new(&config).unwrap();
         starknet.generate_new_block(StateDiff::default(), None).unwrap();
         starknet.blocks.num_to_state.remove(&BlockNumber(0));
 
         match starknet.get_state_at(&BlockId::Number(0)) {
             Err(Error::NoStateAtBlock { block_number: _ }) => (),
-            _ => panic!("Should have failed"),
+            _ => panic!("Should fail with NoStateAtBlock"),
         }
     }
 
@@ -1269,7 +1271,7 @@ mod tests {
 
         match starknet.get_state_at(&BlockId::Number(0)) {
             Err(Error::StateHistoryDisabled) => (),
-            _ => panic!("Should have failed"),
+            _ => panic!("Should fail with StateHistoryDisabled."),
         }
     }
 
