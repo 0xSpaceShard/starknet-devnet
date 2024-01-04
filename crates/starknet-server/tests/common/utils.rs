@@ -90,10 +90,8 @@ pub fn get_events_contract_in_sierra_and_compiled_class_hash()
 
 pub fn get_timestamp_contract_in_sierra_and_compiled_class_hash()
 -> (FlattenedSierraClass, FieldElement) {
-    let timestamp_sierra_path = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/test_data/cairo1/timestamp/timestamp_v2.3.1_compiler.sierra"
-    );
+    let timestamp_sierra_path =
+        concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo1/timestamp/timestamp.json");
     get_flattened_sierra_contract_and_casm_hash(timestamp_sierra_path)
 }
 
