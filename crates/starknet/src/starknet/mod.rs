@@ -42,8 +42,8 @@ use starknet_types::rpc::transactions::{
     BlockTransactionTrace, BlockTransactionTraces, BroadcastedTransaction,
     BroadcastedTransactionCommon, DeclareTransaction, DeclareTransactionTrace,
     DeployAccountTransactionTrace, ExecutionInvocation, FunctionInvocation, InvokeTransactionTrace,
-    L1HandlerTransaction, SimulatedTransaction, SimulationFlag, Transaction, TransactionTrace, L1HandlerTransactionTrace,
-    Transactions,
+    L1HandlerTransaction, L1HandlerTransactionTrace, SimulatedTransaction, SimulationFlag,
+    Transaction, TransactionTrace, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::error;
@@ -889,10 +889,12 @@ impl Starknet {
                 fee_transfer_invocation,
                 state_diff,
             })),
-            Transaction::L1Handler(_) => Ok(TransactionTrace::L1Handler(L1HandlerTransactionTrace {
-                function_invocation: validate_invocation,
-                state_diff,
-            })),
+            Transaction::L1Handler(_) => {
+                Ok(TransactionTrace::L1Handler(L1HandlerTransactionTrace {
+                    function_invocation: validate_invocation,
+                    state_diff,
+                }))
+            }
             _ => Err(Error::UnsupportedTransactionType),
         }
     }

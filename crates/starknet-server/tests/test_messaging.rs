@@ -74,17 +74,14 @@ mod test_messaging {
         contract_address: FieldElement,
         user: FieldElement,
         amount: FieldElement,
-    ) -> FieldElement {
+    ) {
         let invoke_calls = vec![Call {
             to: contract_address,
             selector: get_selector_from_name("increase_balance").unwrap(),
             calldata: vec![user, amount],
         }];
 
-        let result = account.execute(invoke_calls).max_fee(FieldElement::from(MAX_FEE)).send().await.unwrap();
-        println!("increase_balance tx hash: {:?}: ", result.transaction_hash);
-
-        result.transaction_hash
+        account.execute(invoke_calls).max_fee(FieldElement::from(MAX_FEE)).send().await.unwrap();
     }
 
     /// Gets the balance for the given user.
@@ -432,12 +429,8 @@ mod test_messaging {
 
         // Set balance to 1 for the user 1 on L2.
         let user_balance = FieldElement::ONE;
-        let transaction_hash = increase_balance(Arc::clone(&sn_account), sn_l1l2_contract, user_sn, user_balance).await;
+        increase_balance(Arc::clone(&sn_account), sn_l1l2_contract, user_sn, user_balance).await;
         assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [user_balance]);
-
-        // TODO: get traces of tx
-        let tx = devnet.json_rpc_client.get_transaction_by_hash(transaction_hash).await.unwrap();
-        println!("tx: {:?} ", tx);
 
         // Withdraw the amount 1 from user 1 balance on L2 to send it on L1 with a l2->l1 message.
         withdraw(
@@ -487,6 +480,19 @@ mod test_messaging {
         let resp =
             devnet.post_json("/postman/flush".into(), "".into()).await.expect("flush failed");
         assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
+
+        // Assert traces of L1Handler with custom rpc call, json_rpc_client.trace_transaction() is
+        // not supported
+        let flush_body = get_json_body(resp).await;
+        let l1_handler_tx_trace = &devnet
+            .send_custom_rpc(
+                "starknet_traceTransaction",
+                json!({ "transaction_hash": flush_body.get("generated_l2_transactions").unwrap()[0] }),
+            )
+            .await["result"];
+        assert_eq!(l1_handler_tx_trace["type"], "L1_HANDLER");
+        assert!(l1_handler_tx_trace["function_invocation"].is_null());
+        assert!(l1_handler_tx_trace["state_diff"].is_null());
 
         // Ensure the balance is back to 1 on L2.
         assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [FieldElement::ONE]);
