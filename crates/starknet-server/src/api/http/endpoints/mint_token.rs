@@ -50,6 +50,8 @@ pub(crate) async fn mint(
     Json(request): Json<MintTokensRequest>,
     Extension(state): Extension<HttpApiHandler>,
 ) -> HttpApiResult<Json<MintTokensResponse>> {
+    // TODO: If dump/load is enabled log mint action
+
     let mut starknet = state.api.starknet.write().await;
     let unit = request.unit.unwrap_or(FeeUnits::WEI);
     let erc20_address = match unit {

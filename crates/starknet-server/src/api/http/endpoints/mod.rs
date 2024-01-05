@@ -29,6 +29,8 @@ pub(crate) async fn is_alive() -> HttpApiResult<String> {
 
 /// Restart
 pub(crate) async fn restart(Extension(state): Extension<HttpApiHandler>) -> HttpApiResult<()> {
+    // TODO: Do we need to log this action in dump/load?
+    
     state
         .api
         .starknet

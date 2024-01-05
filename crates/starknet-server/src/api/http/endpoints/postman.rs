@@ -13,6 +13,8 @@ pub(crate) async fn postman_load(
     Extension(state): Extension<HttpApiHandler>,
     Json(data): Json<PostmanLoadL1MessagingContract>,
 ) -> HttpApiResult<Json<MessagingLoadAddress>> {
+    // TODO: do we need to log this action in dump/load?
+
     let mut starknet = state.api.starknet.write().await;
 
     let messaging_contract_address = starknet
@@ -27,6 +29,8 @@ pub(crate) async fn postman_flush(
     Extension(state): Extension<HttpApiHandler>,
     data: Option<Json<FlushParameters>>,
 ) -> HttpApiResult<Json<FlushedMessages>> {
+    // TODO: If dump/load is enabled log postman_flush action
+
     // Need to handle L1 to L2 first in case that those messages
     // will create L2 to L1 messages.
     let mut starknet = state.api.starknet.write().await;
@@ -85,6 +89,8 @@ pub(crate) async fn postman_send_message_to_l2(
     Extension(state): Extension<HttpApiHandler>,
     Json(message): Json<MessageToL2>,
 ) -> HttpApiResult<Json<TxHash>> {
+    // TODO: If dump/load is enabled log postman_send_message_to_l2 action
+
     let mut starknet = state.api.starknet.write().await;
 
     let chain_id = starknet.chain_id().to_felt();
@@ -108,6 +114,8 @@ pub(crate) async fn postman_consume_message_from_l2(
     Extension(state): Extension<HttpApiHandler>,
     Json(message): Json<MessageToL1>,
 ) -> HttpApiResult<Json<MessageHash>> {
+    // TODO: If dump/load is enabled log postman_consume_message_from_l2 action
+
     let mut starknet = state.api.starknet.write().await;
 
     let message_hash = starknet

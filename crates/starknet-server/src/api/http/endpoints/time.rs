@@ -8,6 +8,8 @@ pub(crate) async fn set_time(
     Json(data): Json<Time>,
     Extension(state): Extension<HttpApiHandler>,
 ) -> HttpApiResult<Json<SetTimeResponse>> {
+    // TODO: If dump/load is enabled log set_time action
+
     let mut starknet = state.api.starknet.write().await;
     starknet
         .set_time(data.time)
@@ -27,6 +29,8 @@ pub(crate) async fn increase_time(
     Json(data): Json<Time>,
     Extension(state): Extension<HttpApiHandler>,
 ) -> HttpApiResult<Json<IncreaseTimeResponse>> {
+    // TODO: If dump/load is enabled log increase_time action
+
     let mut starknet = state.api.starknet.write().await;
     starknet
         .increase_time(data.time)

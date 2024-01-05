@@ -7,6 +7,8 @@ use crate::api::http::{HttpApiHandler, HttpApiResult};
 pub(crate) async fn create_block(
     Extension(state): Extension<HttpApiHandler>,
 ) -> HttpApiResult<Json<CreatedBlock>> {
+    // TODO: If dump/load is enabled log create_block action
+
     let mut starknet = state.api.starknet.write().await;
     starknet
         .create_block(None)

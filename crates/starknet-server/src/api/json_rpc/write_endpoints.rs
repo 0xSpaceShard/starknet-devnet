@@ -15,6 +15,13 @@ impl JsonRpcHandler {
         &self,
         request: BroadcastedDeclareTransaction,
     ) -> StrictRpcResult {
+        // TODO: to log dump/load actions use aspect programming? Is AOP possible in Rust?
+        // https://doc.rust-lang.org/reference/procedural-macros.html?
+        
+        // TODO: If dump/load is enabled log add_declare_transaction action (BroadcastedDeclareTransaction)
+        // let x = self.api.starknet.write().await;
+        // x.dump_transaction_declare(request);
+
         let (transaction_hash, class_hash) = match request {
             BroadcastedDeclareTransaction::V1(broadcasted_declare_txn) => self
                 .api
@@ -47,6 +54,8 @@ impl JsonRpcHandler {
         &self,
         request: BroadcastedDeployAccountTransaction,
     ) -> StrictRpcResult {
+        // TODO: If dump/load is enabled log add_deploy_account_transaction action (BroadcastedDeployAccountTransaction)
+
         let (transaction_hash, contract_address) = match request {
             BroadcastedDeployAccountTransaction::V1(deploy_account_txn_v1) => self
                 .api
@@ -85,6 +94,8 @@ impl JsonRpcHandler {
         &self,
         request: BroadcastedInvokeTransaction,
     ) -> StrictRpcResult {
+        // TODO: If dump/load is enabled log add_invoke_transaction action (BroadcastedInvokeTransaction)
+
         let transaction_hash = match request {
             BroadcastedInvokeTransaction::V1(invoke_txn) => {
                 self.api.starknet.write().await.add_invoke_transaction_v1(invoke_txn)?
