@@ -11,8 +11,9 @@ use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use starknet_types::rpc::transactions::{
-    DeclareTransaction, DeployAccountTransaction, InvokeTransaction, L1HandlerTransaction,
-    Transaction, BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction, BroadcastedInvokeTransaction,
+    BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
+    BroadcastedInvokeTransaction, DeclareTransaction, DeployAccountTransaction, InvokeTransaction,
+    L1HandlerTransaction, Transaction,
 };
 
 use super::{DumpOn, Starknet};
@@ -24,6 +25,15 @@ pub enum DumpEvent {
     AddDeclareTransaction(BroadcastedDeclareTransaction),
     AddDeployAccountTransaction(BroadcastedDeployAccountTransaction),
     AddInvokeTransaction(BroadcastedInvokeTransaction),
+    CreatedBlock,
+    Mint(MintEvent),
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct MintEvent {
+    // address: ContractAddress,
+    // amount: u128,
+    // erc20_address: ContractAddress
 }
 
 impl Starknet {
@@ -111,9 +121,14 @@ impl Starknet {
 
     // add starknet dump event
     pub fn handle_dump_event(&mut self, event: DumpEvent) -> DevnetResult<()> {
-        self.dump_events.push(event);
+        match self.config.dump_on {
+            Some(dump) => {
+                self.dump_events.push(event);
 
-        Ok(())
+                Ok(())
+            }
+            _ => Ok(()),
+        }
     }
 
     /// attach starknet transaction to end of existing file

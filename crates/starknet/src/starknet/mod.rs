@@ -75,7 +75,7 @@ mod add_declare_transaction;
 mod add_deploy_account_transaction;
 mod add_invoke_transaction;
 mod add_l1_handler_transaction;
-mod dump;
+pub mod dump;
 mod estimations;
 mod events;
 mod get_class_impls;

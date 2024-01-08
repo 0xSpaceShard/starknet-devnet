@@ -1,4 +1,5 @@
 use axum::{Extension, Json};
+use starknet_core::starknet::dump::DumpEvent;
 
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{AbortedBlocks, AbortingBlocks, CreatedBlock};
@@ -7,11 +8,12 @@ use crate::api::http::{HttpApiHandler, HttpApiResult};
 pub(crate) async fn create_block(
     Extension(state): Extension<HttpApiHandler>,
 ) -> HttpApiResult<Json<CreatedBlock>> {
-    // TODO: If dump/load is enabled log create_block action
-
     let mut starknet = state.api.starknet.write().await;
     starknet
         .create_block(None)
+        .map_err(|err| HttpApiError::CreateEmptyBlockError { msg: err.to_string() })?;
+    starknet
+        .handle_dump_event(DumpEvent::CreatedBlock)
         .map_err(|err| HttpApiError::CreateEmptyBlockError { msg: err.to_string() })?;
 
     let last_block = starknet.get_latest_block();
