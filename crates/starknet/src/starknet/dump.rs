@@ -2,6 +2,7 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 
+use serde::{Deserialize, Serialize};
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
@@ -11,13 +12,22 @@ use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::Broadc
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use starknet_types::rpc::transactions::{
     DeclareTransaction, DeployAccountTransaction, InvokeTransaction, L1HandlerTransaction,
-    Transaction,
+    Transaction, BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction, BroadcastedInvokeTransaction,
 };
 
 use super::{DumpOn, Starknet};
 use crate::error::{DevnetResult, Error};
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum DumpEvent {
+    AddDeclareTransaction(BroadcastedDeclareTransaction),
+    AddDeployAccountTransaction(BroadcastedDeployAccountTransaction),
+    AddInvokeTransaction(BroadcastedInvokeTransaction),
+}
+
 impl Starknet {
+    // TODO: change from Vec<Transaction> to Vec<DumpEvent>
     pub fn re_execute(&mut self, transactions: Vec<Transaction>) -> DevnetResult<()> {
         for transaction in transactions.into_iter() {
             match transaction {
@@ -95,6 +105,13 @@ impl Starknet {
                 }
             };
         }
+
+        Ok(())
+    }
+
+    // add starknet dump event
+    pub fn handle_dump_event(&mut self, event: DumpEvent) -> DevnetResult<()> {
+        self.dump_events.push(event);
 
         Ok(())
     }
