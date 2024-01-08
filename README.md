@@ -302,7 +302,7 @@ Timeout can be passed to Devnet's HTTP server. This makes it easier to deploy an
 cargo run -- --timeout TIMEOUT
 ```
 
-### State archive mode
+### Querying old state by specifying block hash or number
 
 With state archive capacity set to `full`, Devnet will store full state history. The default mode is `none`, where no old states are stored.
 
@@ -310,17 +310,7 @@ With state archive capacity set to `full`, Devnet will store full state history.
 cargo run -- --state-archive-capacity CAPACITY
 ```
 
-This functionality affects below JSON-RPC endpoints, if they are executed with a specified `block_id` as hash or number:
-```
-starknet_call
-starknet_estimateMessageFee
-starknet_getClass
-starknet_getClassAt
-starknet_getClassHashAt
-starknet_getNonce
-starknet_getStorageAt
-starknet_simulateTransactions
-```
+All RPC endpoints that support querying the state at an old (non-latest) block only work with state archive capacity set to `full`.
 
 ## Development - Visual Studio Code
 
