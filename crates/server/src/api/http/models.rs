@@ -10,108 +10,108 @@ use starknet_types::rpc::transactions::L1HandlerTransaction;
 use crate::api::http::error::HttpApiError;
 
 #[derive(Deserialize, Debug)]
-pub(crate) struct DumpPath {
+pub struct DumpPath {
     pub path: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
-pub(crate) struct LoadPath {
+pub struct LoadPath {
     pub path: String,
 }
 
 #[derive(Deserialize, Debug)]
-pub(crate) struct PostmanLoadL1MessagingContract {
+pub struct PostmanLoadL1MessagingContract {
     pub network_url: String,
     pub address: Option<String>,
 }
 
 #[derive(Serialize)]
-pub(crate) struct MessageHash {
+pub struct MessageHash {
     pub message_hash: Hash256,
 }
 
 #[derive(Serialize)]
-pub(crate) struct TxHash {
+pub struct TxHash {
     pub transaction_hash: TransactionHash,
 }
 
 #[derive(Serialize)]
-pub(crate) struct CreatedBlock {
+pub struct CreatedBlock {
     pub block_hash: BlockHash,
 }
 
 #[derive(Deserialize)]
-pub(crate) struct AbortingBlocks {
+pub struct AbortingBlocks {
     #[serde(rename = "startingBlockHash")]
     starting_block_hash: BlockHash,
 }
 
 #[derive(Serialize)]
-pub(crate) struct AbortedBlocks {
+pub struct AbortedBlocks {
     aborted: Vec<BlockHash>,
 }
 
 #[derive(Deserialize)]
-pub(crate) struct Time {
+pub struct Time {
     pub time: u64,
 }
 
 #[derive(Serialize)]
-pub(crate) struct SetTimeResponse {
+pub struct SetTimeResponse {
     pub block_timestamp: u64,
     pub block_hash: BlockHash,
 }
 
 #[derive(Serialize)]
-pub(crate) struct IncreaseTimeResponse {
+pub struct IncreaseTimeResponse {
     pub timestamp_increased_by: u64,
     pub block_hash: BlockHash,
 }
 
 #[derive(Serialize)]
-pub(crate) struct SerializableAccount {
-    pub(crate) initial_balance: String,
-    pub(crate) address: ContractAddress,
-    pub(crate) public_key: Felt,
-    pub(crate) private_key: Felt,
+pub struct SerializableAccount {
+    pub initial_balance: String,
+    pub address: ContractAddress,
+    pub public_key: Felt,
+    pub private_key: Felt,
 }
 
 #[derive(Serialize)]
-pub(crate) struct Balance {
+pub struct Balance {
     amount: u128,
     unit: String,
 }
 
 #[derive(Serialize)]
-pub(crate) struct FeeToken {
+pub struct FeeToken {
     symbol: String,
     address: ContractAddress,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct MintTokensRequest {
-    pub(crate) address: ContractAddress,
-    pub(crate) amount: u128,
+pub struct MintTokensRequest {
+    pub address: ContractAddress,
+    pub amount: u128,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) unit: Option<FeeUnits>,
+    pub unit: Option<FeeUnits>,
 }
 
 #[derive(Serialize)]
-pub(crate) struct MintTokensResponse {
+pub struct MintTokensResponse {
     /// decimal repr
-    pub(crate) new_balance: String,
-    pub(crate) unit: FeeUnits,
-    pub(crate) tx_hash: TransactionHash,
+    pub new_balance: String,
+    pub unit: FeeUnits,
+    pub tx_hash: TransactionHash,
 }
 
 #[derive(Serialize)]
-pub(crate) struct ForkStatus {
+pub struct ForkStatus {
     url: String,
     block: u128,
 }
 
 #[derive(Serialize)]
-pub(crate) struct FlushedMessages {
+pub struct FlushedMessages {
     pub messages_to_l1: Vec<MessageToL1>,
     pub messages_to_l2: Vec<MessageToL2>,
     pub generated_l2_transactions: Vec<TransactionHash>,
@@ -119,11 +119,11 @@ pub(crate) struct FlushedMessages {
 }
 
 #[derive(Serialize, Deserialize)]
-pub(crate) struct FlushParameters {
+pub struct FlushParameters {
     pub dry_run: bool,
 }
 
 #[derive(Serialize, Deserialize)]
-pub(crate) struct MessagingLoadAddress {
+pub struct MessagingLoadAddress {
     pub messaging_contract_address: String,
 }

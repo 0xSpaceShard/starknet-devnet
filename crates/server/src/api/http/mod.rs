@@ -1,5 +1,5 @@
-pub(crate) mod endpoints;
-pub(crate) mod error;
+pub mod endpoints;
+pub mod error;
 #[allow(unused)]
 mod models;
 

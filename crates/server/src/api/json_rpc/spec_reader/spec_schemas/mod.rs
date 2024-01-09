@@ -9,14 +9,14 @@ use self::one_of_schema::OneOf;
 use self::ref_schema::Reference;
 use self::string_primitive::StringPrimitive;
 
-pub(crate) mod all_of_schema;
-pub(crate) mod array_primitive;
-pub(crate) mod boolean_primitive;
-pub(crate) mod integer_primitive;
-pub(crate) mod object_primitive;
-pub(crate) mod one_of_schema;
-pub(crate) mod ref_schema;
-pub(crate) mod string_primitive;
+pub mod all_of_schema;
+pub mod array_primitive;
+pub mod boolean_primitive;
+pub mod integer_primitive;
+pub mod object_primitive;
+pub mod one_of_schema;
+pub mod ref_schema;
+pub mod string_primitive;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]

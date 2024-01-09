@@ -7,7 +7,7 @@ use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{Balance, SerializableAccount};
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 
-pub(crate) async fn get_predeployed_accounts(
+pub async fn get_predeployed_accounts(
     Extension(state): Extension<HttpApiHandler>,
 ) -> HttpApiResult<Json<Vec<SerializableAccount>>> {
     let predeployed_accounts = state
@@ -28,7 +28,7 @@ pub(crate) async fn get_predeployed_accounts(
     Ok(Json(predeployed_accounts))
 }
 
-pub(crate) async fn get_account_balance(
+pub async fn get_account_balance(
     Query(_contract_address): Query<ContractAddress>,
 ) -> HttpApiResult<Json<Balance>> {
     Err(HttpApiError::GeneralError)

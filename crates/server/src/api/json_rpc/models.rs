@@ -14,43 +14,43 @@ use starknet_types::starknet_api::block::BlockNumber;
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct BlockIdInput {
-    pub(crate) block_id: BlockId,
+    pub block_id: BlockId,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct TransactionHashInput {
-    pub(crate) transaction_hash: TransactionHash,
+    pub transaction_hash: TransactionHash,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 #[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct GetStorageInput {
-    pub(crate) contract_address: ContractAddress,
-    pub(crate) key: PatriciaKey,
-    pub(crate) block_id: BlockId,
+    pub contract_address: ContractAddress,
+    pub key: PatriciaKey,
+    pub block_id: BlockId,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct BlockAndIndexInput {
-    pub(crate) block_id: BlockId,
-    pub(crate) index: u64,
+    pub block_id: BlockId,
+    pub index: u64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct BlockAndClassHashInput {
-    pub(crate) block_id: BlockId,
-    pub(crate) class_hash: ClassHash,
+    pub block_id: BlockId,
+    pub class_hash: ClassHash,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct BlockAndContractAddressInput {
-    pub(crate) block_id: BlockId,
-    pub(crate) contract_address: ContractAddress,
+    pub block_id: BlockId,
+    pub contract_address: ContractAddress,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

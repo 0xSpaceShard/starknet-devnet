@@ -1,5 +1,4 @@
 [workspace]
-
 resolver = "2"
 members = [
 	"crates/server",
@@ -20,7 +19,6 @@ repository = ""
 
 
 [workspace.dependencies]
-
 # axum
 axum = { version = "0.5" }
 hyper = "0.14"
@@ -70,6 +68,8 @@ url = "2.4"
 # Inner dependencies
 starknet-types = { path = "crates/types", package = "types" }
 starknet-core = { path = "crates/starknet", package = "starknet" }
+server = { path = "crates/server", package = "server"}
+
 random-number-generator = { path = "crates/random-number-generator", package = "random-number-generator" }
 num-bigint = { version = "0.4" }
 

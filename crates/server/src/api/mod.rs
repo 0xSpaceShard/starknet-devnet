@@ -1,6 +1,6 @@
-pub(crate) mod http;
-pub(crate) mod json_rpc;
-pub(crate) mod serde_helpers;
+pub mod http;
+pub mod json_rpc;
+pub mod serde_helpers;
 
 use std::sync::Arc;
 

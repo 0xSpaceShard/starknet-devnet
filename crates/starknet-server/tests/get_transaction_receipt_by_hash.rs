@@ -17,6 +17,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::{Provider, ProviderError};
+    use server::test_utils::exported_test_utils::declare_v1_str;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::CHAIN_ID;
@@ -234,11 +235,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
     #[tokio::test]
     async fn declare_v1_transaction_fails_with_insufficient_max_fee() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let json_string = std::fs::read_to_string(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_data/rpc/declare_v1.json"
-        ))
-        .unwrap();
+        let json_string = declare_v1_str();
         let declare_txn_v1: BroadcastedDeclareTransactionV1 =
             serde_json::from_str(&json_string).unwrap();
 
@@ -261,13 +258,9 @@ mod get_transaction_receipt_by_hash_integration_tests {
     async fn declare_v1_accepted_with_numeric_entrypoint_offset() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
 
-        let declare_file_content = std::fs::File::open(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_data/rpc/declare_v1.json"
-        ))
-        .unwrap();
+        let declare_v1 = declare_v1_str();
         let mut declare_rpc_body: serde_json::Value =
-            serde_json::from_reader(declare_file_content).unwrap();
+            serde_json::from_str(&declare_v1).unwrap();
 
         let entry_points = declare_rpc_body["contract_class"]["entry_points_by_type"]["EXTERNAL"]
             .as_array_mut()
