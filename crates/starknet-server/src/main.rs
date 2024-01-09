@@ -1,10 +1,11 @@
 use std::net::SocketAddr;
 
-use ::server::ServerConfig;
 use anyhow::Ok;
-use api::Api;
 use clap::Parser;
 use cli::Args;
+use server::api::Api;
+use server::server::serve_http_api_json_rpc;
+use server::ServerConfig;
 use starknet_core::account::Account;
 use starknet_core::constants::{
     ERC20_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
@@ -17,12 +18,10 @@ use starknet_types::traits::{ToDecimalString, ToHexString};
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
-mod api;
 mod cli;
 mod contract_class_choice;
 mod initial_balance_wrapper;
 mod ip_addr_wrapper;
-mod server;
 
 /// Configures tracing with default level INFO,
 /// If the environment variable `RUST_LOG` is set, it will be used instead.
@@ -80,7 +79,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let starknet_config = args.to_starknet_config()?;
     let mut addr: SocketAddr = SocketAddr::new(starknet_config.host, starknet_config.port);
 
-    let api = api::Api::new(Starknet::new(&starknet_config)?);
+    let api = Api::new(Starknet::new(&starknet_config)?);
 
     // set block timestamp shift during startup if start time is set
     if let Some(start_time) = starknet_config.start_time {
@@ -98,12 +97,8 @@ async fn main() -> Result<(), anyhow::Error> {
         starknet_config.predeployed_accounts_initial_balance,
     );
 
-    let server = server::serve_http_api_json_rpc(
-        addr,
-        ServerConfig::default(),
-        api.clone(),
-        &starknet_config,
-    );
+    let server =
+        serve_http_api_json_rpc(addr, ServerConfig::default(), api.clone(), &starknet_config);
     addr = server.local_addr();
 
     info!("Starknet Devnet listening on {}", addr);

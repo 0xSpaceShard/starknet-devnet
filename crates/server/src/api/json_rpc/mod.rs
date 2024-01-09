@@ -10,9 +10,6 @@ use models::{
     EstimateFeeInput, EventsInput, GetStorageInput, TransactionHashInput,
 };
 use serde::{Deserialize, Serialize};
-use server::rpc_core::error::RpcError;
-use server::rpc_core::response::ResponseResult;
-use server::rpc_handler::RpcHandler;
 use starknet_rs_core::types::ContractClass as CodegenContractClass;
 use starknet_types::felt::{ClassHash, Felt};
 use starknet_types::rpc::block::Block;
@@ -40,9 +37,12 @@ use crate::api::json_rpc::models::{
     BroadcastedInvokeTransactionEnumWrapper, SimulateTransactionsInput,
 };
 use crate::api::serde_helpers::empty_params;
+use crate::rpc_core::error::RpcError;
+use crate::rpc_core::response::ResponseResult;
+use crate::rpc_handler::RpcHandler;
 
 /// Helper trait to easily convert results to rpc results
-pub(crate) trait ToRpcResponseResult {
+pub trait ToRpcResponseResult {
     fn to_rpc_result(self) -> ResponseResult;
 }
 
@@ -312,7 +312,7 @@ impl std::fmt::Display for StarknetRequest {
 #[derive(Serialize, Debug)]
 #[cfg_attr(test, derive(Deserialize))]
 #[serde(untagged)]
-pub(crate) enum StarknetResponse {
+pub enum StarknetResponse {
     BlockWithTransactionHashes(Block),
     BlockWithFullTransactions(Block),
     StateUpdate(StateUpdate),

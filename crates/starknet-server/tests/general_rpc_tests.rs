@@ -4,6 +4,7 @@ pub mod common;
 mod general_rpc_tests {
     use hyper::Body;
     use serde_json::json;
+    use server::test_utils::exported_test_utils::EXPECTED_SPEC_VERSION;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::RPC_PATH;
@@ -24,41 +25,13 @@ mod general_rpc_tests {
         assert_eq!(resp_root_body, resp_rpc_body);
     }
 
-    const EXPECTED_VERSION: &str = "0.6.0";
-
-    #[test]
-    /// This test asserts that the spec files used in testing indeed match the expected version
-    fn rpc_spec_using_correct_version() {
-        let manifest_dir = env!("CARGO_MANIFEST_DIR");
-        let path_to_spec_dir = format!("{manifest_dir}/test_data/spec/{EXPECTED_VERSION}");
-        let spec_files = std::fs::read_dir(path_to_spec_dir).unwrap();
-
-        // traverse all json files in the rpc spec dir and assert they all have the expected version
-        for spec_file in
-            spec_files.filter(|f| f.as_ref().unwrap().path().extension().unwrap() == "json")
-        {
-            let spec_file_path = spec_file.unwrap().path();
-            let spec_file_path = spec_file_path.to_str().unwrap();
-            let spec_reader = std::fs::File::open(spec_file_path).unwrap();
-            let spec_content: serde_json::Value = serde_json::from_reader(spec_reader).unwrap();
-            match spec_content
-                .get("info")
-                .and_then(|info| info.get("version"))
-                .and_then(|ver| ver.as_str())
-            {
-                Some(EXPECTED_VERSION) => (),
-                other => panic!("Invalid version in {spec_file_path}: {other:?}"),
-            }
-        }
-    }
-
     #[tokio::test]
     async fn rpc_returns_correct_spec_version() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
 
         let resp_body = devnet.send_custom_rpc("starknet_specVersion", json!([])).await;
         match resp_body.get("result").and_then(|val| val.as_str()) {
-            Some(received_ver) => assert_eq!(received_ver, EXPECTED_VERSION),
+            Some(received_ver) => assert_eq!(received_ver, EXPECTED_SPEC_VERSION),
             _ => panic!("Invalid resp: {resp_body}"),
         }
     }

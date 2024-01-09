@@ -1,10 +1,10 @@
 use serde_json::json;
-use server::rpc_core::error::RpcError;
 use starknet_types;
 use thiserror::Error;
 use tracing::error;
 
 use super::{StarknetResponse, WILDCARD_RPC_ERROR_CODE};
+use crate::rpc_core::error::RpcError;
 
 #[allow(unused)]
 #[derive(Error, Debug)]
@@ -56,37 +56,37 @@ pub enum ApiError {
 }
 
 impl ApiError {
-    pub(crate) fn api_error_to_rpc_error(self) -> RpcError {
+    pub fn api_error_to_rpc_error(self) -> RpcError {
         let error_message = self.to_string();
         match self {
             ApiError::RpcError(rpc_error) => rpc_error,
             ApiError::BlockNotFound => RpcError {
-                code: server::rpc_core::error::ErrorCode::ServerError(24),
+                code: crate::rpc_core::error::ErrorCode::ServerError(24),
                 message: error_message.into(),
                 data: None,
             },
             ApiError::ContractNotFound => RpcError {
-                code: server::rpc_core::error::ErrorCode::ServerError(20),
+                code: crate::rpc_core::error::ErrorCode::ServerError(20),
                 message: error_message.into(),
                 data: None,
             },
             ApiError::TransactionNotFound => RpcError {
-                code: server::rpc_core::error::ErrorCode::ServerError(29),
+                code: crate::rpc_core::error::ErrorCode::ServerError(29),
                 message: error_message.into(),
                 data: None,
             },
             ApiError::InvalidTransactionIndexInBlock => RpcError {
-                code: server::rpc_core::error::ErrorCode::ServerError(27),
+                code: crate::rpc_core::error::ErrorCode::ServerError(27),
                 message: error_message.into(),
                 data: None,
             },
             ApiError::ClassHashNotFound => RpcError {
-                code: server::rpc_core::error::ErrorCode::ServerError(28),
+                code: crate::rpc_core::error::ErrorCode::ServerError(28),
                 message: error_message.into(),
                 data: None,
             },
             ApiError::ContractError { error: inner_error } => RpcError {
-                code: server::rpc_core::error::ErrorCode::ServerError(40),
+                code: crate::rpc_core::error::ErrorCode::ServerError(40),
                 message: error_message.into(),
                 data: Some(json!(
                     {
@@ -95,67 +95,67 @@ impl ApiError {
                 )),
             },
             ApiError::NoBlocks => RpcError {
-                code: server::rpc_core::error::ErrorCode::ServerError(32),
+                code: crate::rpc_core::error::ErrorCode::ServerError(32),
                 message: error_message.into(),
                 data: None,
             },
             ApiError::RequestPageSizeTooBig => RpcError {
-                code: server::rpc_core::error::ErrorCode::ServerError(31),
+                code: crate::rpc_core::error::ErrorCode::ServerError(31),
                 message: error_message.into(),
                 data: None,
             },
             ApiError::InvalidContinuationToken => RpcError {
-                code: server::rpc_core::error::ErrorCode::ServerError(33),
+                code: crate::rpc_core::error::ErrorCode::ServerError(33),
                 message: error_message.into(),
                 data: None,
             },
             ApiError::TooManyKeysInFilter => RpcError {
-                code: server::rpc_core::error::ErrorCode::ServerError(34),
+                code: crate::rpc_core::error::ErrorCode::ServerError(34),
                 message: error_message.into(),
                 data: None,
             },
             ApiError::ClassAlreadyDeclared => RpcError {
-                code: server::rpc_core::error::ErrorCode::ServerError(51),
+                code: crate::rpc_core::error::ErrorCode::ServerError(51),
                 message: error_message.into(),
                 data: None,
             },
             ApiError::InvalidContractClass => RpcError {
-                code: server::rpc_core::error::ErrorCode::ServerError(50),
+                code: crate::rpc_core::error::ErrorCode::ServerError(50),
                 message: error_message.into(),
                 data: None,
             },
             ApiError::TypesError(_) => RpcError {
-                code: server::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
+                code: crate::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
                 message: error_message.into(),
                 data: None,
             },
             ApiError::OnlyLatestBlock => RpcError {
-                code: server::rpc_core::error::ErrorCode::ServerError(24),
+                code: crate::rpc_core::error::ErrorCode::ServerError(24),
                 message: error_message.into(),
                 data: None,
             },
             ApiError::UnsupportedAction { msg } => RpcError {
-                code: server::rpc_core::error::ErrorCode::InvalidRequest,
+                code: crate::rpc_core::error::ErrorCode::InvalidRequest,
                 message: msg.into(),
                 data: None,
             },
             ApiError::InsufficientMaxFee => RpcError {
-                code: server::rpc_core::error::ErrorCode::ServerError(53),
+                code: crate::rpc_core::error::ErrorCode::ServerError(53),
                 message: error_message.into(),
                 data: None,
             },
             ApiError::InvalidTransactionNonce => RpcError {
-                code: server::rpc_core::error::ErrorCode::ServerError(52),
+                code: crate::rpc_core::error::ErrorCode::ServerError(52),
                 message: error_message.into(),
                 data: None,
             },
             ApiError::InsufficientAccountBalance => RpcError {
-                code: server::rpc_core::error::ErrorCode::ServerError(54),
+                code: crate::rpc_core::error::ErrorCode::ServerError(54),
                 message: error_message.into(),
                 data: None,
             },
             ApiError::ValidationFailure { reason } => RpcError {
-                code: server::rpc_core::error::ErrorCode::ServerError(55),
+                code: crate::rpc_core::error::ErrorCode::ServerError(55),
                 message: error_message.into(),
                 data: Some(serde_json::Value::String(reason)),
             },
@@ -172,12 +172,12 @@ impl ApiError {
                 api_err.api_error_to_rpc_error()
             }
             ApiError::StarknetDevnetError(error) => RpcError {
-                code: server::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
+                code: crate::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
                 message: anyhow::format_err!(error).root_cause().to_string().into(),
                 data: None,
             },
             ApiError::NoTraceAvailable => RpcError {
-                code: server::rpc_core::error::ErrorCode::ServerError(10),
+                code: crate::rpc_core::error::ErrorCode::ServerError(10),
                 message: error_message.into(),
                 data: None,
             },
@@ -185,7 +185,7 @@ impl ApiError {
     }
 }
 
-pub(crate) type StrictRpcResult = Result<StarknetResponse, ApiError>;
+pub type StrictRpcResult = Result<StarknetResponse, ApiError>;
 
 #[cfg(test)]
 mod tests {
@@ -368,10 +368,10 @@ mod tests {
     fn error_expected_code_and_message(err: ApiError, expected_code: i64, expected_message: &str) {
         let error_result = StrictRpcResult::Err(err).to_rpc_result();
         match error_result {
-            server::rpc_core::response::ResponseResult::Success(_) => panic!("Expected error"),
-            server::rpc_core::response::ResponseResult::Error(err) => {
+            crate::rpc_core::response::ResponseResult::Success(_) => panic!("Expected error"),
+            crate::rpc_core::response::ResponseResult::Error(err) => {
                 assert_eq!(err.message, expected_message);
-                assert_eq!(err.code, server::rpc_core::error::ErrorCode::ServerError(expected_code))
+                assert_eq!(err.code, crate::rpc_core::error::ErrorCode::ServerError(expected_code))
             }
         }
     }
@@ -379,10 +379,10 @@ mod tests {
     fn error_expected_code_and_data(err: ApiError, expected_code: i64, expected_data: &str) {
         let error_result = StrictRpcResult::Err(err).to_rpc_result();
         match error_result {
-            server::rpc_core::response::ResponseResult::Success(_) => panic!("Expected error"),
-            server::rpc_core::response::ResponseResult::Error(err) => {
+            crate::rpc_core::response::ResponseResult::Success(_) => panic!("Expected error"),
+            crate::rpc_core::response::ResponseResult::Error(err) => {
                 assert_eq!(err.data.unwrap().as_str().unwrap(), expected_data);
-                assert_eq!(err.code, server::rpc_core::error::ErrorCode::ServerError(expected_code))
+                assert_eq!(err.code, crate::rpc_core::error::ErrorCode::ServerError(expected_code))
             }
         }
     }

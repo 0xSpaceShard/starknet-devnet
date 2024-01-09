@@ -11,7 +11,7 @@ use super::StarknetResponse;
 use crate::api::json_rpc::JsonRpcHandler;
 
 impl JsonRpcHandler {
-    pub(crate) async fn add_declare_transaction(
+    pub async fn add_declare_transaction(
         &self,
         request: BroadcastedDeclareTransaction,
     ) -> StrictRpcResult {
@@ -43,7 +43,7 @@ impl JsonRpcHandler {
         }))
     }
 
-    pub(crate) async fn add_deploy_account_transaction(
+    pub async fn add_deploy_account_transaction(
         &self,
         request: BroadcastedDeployAccountTransaction,
     ) -> StrictRpcResult {
@@ -81,7 +81,7 @@ impl JsonRpcHandler {
         }))
     }
 
-    pub(crate) async fn add_invoke_transaction(
+    pub async fn add_invoke_transaction(
         &self,
         request: BroadcastedInvokeTransaction,
     ) -> StrictRpcResult {
@@ -100,10 +100,10 @@ impl JsonRpcHandler {
 
 #[cfg(test)]
 mod tests {
-
     use crate::api::json_rpc::models::{
         BroadcastedDeclareTransactionEnumWrapper, BroadcastedDeployAccountTransactionEnumWrapper,
     };
+    use crate::test_utils::exported_test_utils::{declare_v1_str, deploy_account_str};
 
     #[test]
     fn check_correct_deserialization_of_deploy_account_transaction_request() {
@@ -115,22 +115,14 @@ mod tests {
     /// The example was compiled locally and send via Postman to https://alpha4.starknet.io/gateway/add_transaction
     #[test]
     fn parsed_base64_gzipped_json_contract_class_correctly() {
-        let json_string = std::fs::read_to_string(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_data/rpc/declare_v1.json"
-        ))
-        .unwrap();
+        let json_string = declare_v1_str();
 
         let _broadcasted_declare_transaction_v1: BroadcastedDeclareTransactionEnumWrapper =
             serde_json::from_str(&json_string).unwrap();
     }
 
     fn test_deploy_account_transaction() -> BroadcastedDeployAccountTransactionEnumWrapper {
-        let json_string = std::fs::read_to_string(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_data/rpc/deploy_account.json"
-        ))
-        .unwrap();
+        let json_string = deploy_account_str();
 
         let broadcasted_deploy_account_transaction: BroadcastedDeployAccountTransactionEnumWrapper =
             serde_json::from_str(&json_string).unwrap();
