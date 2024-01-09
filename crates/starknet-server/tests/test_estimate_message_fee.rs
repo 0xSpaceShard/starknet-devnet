@@ -1,8 +1,6 @@
 pub mod common;
 
 mod test_estimate_message_fee {
-    const L1_HANDLER_SELECTOR: &str =
-        "0xc73f681176fc7b3f9693986fd7b14581e8d540519e27400e88b8713932be01";
 
     use std::sync::Arc;
 
@@ -17,7 +15,9 @@ mod test_estimate_message_fee {
     use starknet_rs_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::constants::{CHAIN_ID, MESSAGING_WHITELISTED_L1_CONTRACT};
+    use crate::common::constants::{
+        CHAIN_ID, L1_HANDLER_SELECTOR, MESSAGING_WHITELISTED_L1_CONTRACT,
+    };
 
     #[tokio::test]
     #[ignore = "Starknet-rs does not support estimate_fee with simulation_flags"]
