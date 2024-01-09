@@ -34,7 +34,10 @@ mod test_messaging {
 
     use crate::common::background_anvil::BackgroundAnvil;
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::constants::{CHAIN_ID, MESSAGING_WHITELISTED_L1_CONTRACT};
+    use crate::common::constants::{
+        CHAIN_ID, L1_HANDLER_SELECTOR, MESSAGING_L1_CONTRACT_ADDRESS,
+        MESSAGING_L2_CONTRACT_ADDRESS, MESSAGING_WHITELISTED_L1_CONTRACT,
+    };
     use crate::common::utils::{
         get_json_body, get_messaging_contract_in_sierra_and_compiled_class_hash,
         get_messaging_lib_in_sierra_and_compiled_class_hash, send_ctrl_c_signal, to_hex_felt,
@@ -491,7 +494,18 @@ mod test_messaging {
             )
             .await["result"];
         assert_eq!(l1_handler_tx_trace["type"], "L1_HANDLER");
-        assert!(l1_handler_tx_trace["function_invocation"].is_null());
+        assert_eq!(
+            l1_handler_tx_trace["function_invocation"]["contract_address"],
+            MESSAGING_L2_CONTRACT_ADDRESS
+        );
+        assert_eq!(
+            l1_handler_tx_trace["function_invocation"]["entry_point_selector"],
+            L1_HANDLER_SELECTOR
+        );
+        assert_eq!(
+            l1_handler_tx_trace["function_invocation"]["calldata"][0],
+            MESSAGING_L1_CONTRACT_ADDRESS
+        );
         assert!(l1_handler_tx_trace["state_diff"].is_null());
 
         // Ensure the balance is back to 1 on L2.

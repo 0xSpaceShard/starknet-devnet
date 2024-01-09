@@ -39,6 +39,14 @@ pub const CAIRO_1_VERSION_ASSERTER_SIERRA_PATH: &str =
 /// Hardcoded in the cairo0 l1l2 contract
 pub const MESSAGING_WHITELISTED_L1_CONTRACT: &str = "0x8359e4b0152ed5a731162d3c7b0d8d56edb165a0";
 
+pub const L1_HANDLER_SELECTOR: &str =
+    "0xc73f681176fc7b3f9693986fd7b14581e8d540519e27400e88b8713932be01";
+
+pub const MESSAGING_L2_CONTRACT_ADDRESS: &str =
+    "0x4db0679c568e6a9df6f21da9e243772853d6714b12b6b79c0551d9ea12ef91a";
+
+pub const MESSAGING_L1_CONTRACT_ADDRESS: &str = "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512";
+
 /// Cairo 1 account which panics on validation
 pub const INVALID_ACCOUNT_SIERRA_PATH: &str =
     "test_data/cairo1/invalid_account/invalid_account.sierra";
