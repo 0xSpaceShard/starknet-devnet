@@ -4,6 +4,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
     use std::sync::Arc;
 
+    use server::test_utils::exported_test_utils::declare_v1_str;
     use starknet_core::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, ETH_ERC20_CONTRACT_ADDRESS};
     use starknet_rs_accounts::{
         Account, AccountFactory, Call, ExecutionEncoding, OpenZeppelinAccountFactory,
@@ -17,7 +18,6 @@ mod get_transaction_receipt_by_hash_integration_tests {
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::{Provider, ProviderError};
-    use server::test_utils::exported_test_utils::declare_v1_str;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::CHAIN_ID;
@@ -259,8 +259,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
 
         let declare_v1 = declare_v1_str();
-        let mut declare_rpc_body: serde_json::Value =
-            serde_json::from_str(&declare_v1).unwrap();
+        let mut declare_rpc_body: serde_json::Value = serde_json::from_str(&declare_v1).unwrap();
 
         let entry_points = declare_rpc_body["contract_class"]["entry_points_by_type"]["EXTERNAL"]
             .as_array_mut()

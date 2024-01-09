@@ -189,7 +189,7 @@ mod tests {
                 .and_then(|info| info.get("version"))
                 .and_then(|ver| ver.as_str())
             {
-                Some(EXPECTED_VERSION) => (),
+                Some(EXPECTED_SPEC_VERSION) => (),
                 other => panic!("Invalid version in {spec_file_path}: {other:?}"),
             }
         }
