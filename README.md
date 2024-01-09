@@ -291,7 +291,7 @@ POST /increase_time
 Devnet can be started with the `--start-time` argument, where `START_TIME_IN_SECONDS` should be greater than 0.
 
 ```
-cargo run -- --start-time START_TIME_IN_SECONDS
+cargo run -- --start-time <START_TIME_IN_SECONDS>
 ```
 
 ### Timeout
@@ -299,7 +299,7 @@ cargo run -- --start-time START_TIME_IN_SECONDS
 Timeout can be passed to Devnet's HTTP server. This makes it easier to deploy and manage large contracts that take longer to execute.
 
 ```
-cargo run -- --timeout TIMEOUT
+cargo run -- --timeout <TIMEOUT>
 ```
 
 ### State archive mode
@@ -307,7 +307,7 @@ cargo run -- --timeout TIMEOUT
 With state archive capacity set to `full`, Devnet will store full state history. The default mode is `none`, where no old states are stored.
 
 ```
-cargo run -- --state-archive-capacity CAPACITY
+cargo run -- --state-archive-capacity <CAPACITY>
 
 ```
 
