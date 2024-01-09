@@ -457,6 +457,10 @@ impl Starknet {
         match block_id {
             BlockId::Tag(_) => Ok(&self.state),
             _ => {
+                if self.config.state_archive == StateArchiveCapacity::None {
+                    return Err(Error::StateHistoryDisabled);
+                }
+
                 let block = self.blocks.get_by_block_id(*block_id).ok_or(Error::NoBlock)?;
                 let state = self
                     .blocks
@@ -1233,27 +1237,41 @@ mod tests {
     }
 
     #[test]
-    fn getting_state_at_block_by_nonexistent_hash() {
-        let config = StarknetConfig::default();
+    fn getting_state_at_block_by_nonexistent_hash_with_full_state_archive() {
+        let config =
+            StarknetConfig { state_archive: StateArchiveCapacity::Full, ..Default::default() };
         let mut starknet = Starknet::new(&config).unwrap();
         starknet.generate_new_block(StateDiff::default(), None).unwrap();
 
         match starknet.get_state_at(&BlockId::Hash(Felt::from(0).into())) {
             Err(Error::NoBlock) => (),
-            _ => panic!("Should have failed"),
+            _ => panic!("Should fail with NoBlock"),
         }
     }
 
     #[test]
-    fn getting_nonexistent_state_at_block_by_number() {
-        let config = StarknetConfig::default();
+    fn getting_nonexistent_state_at_block_by_number_with_full_state_archive() {
+        let config =
+            StarknetConfig { state_archive: StateArchiveCapacity::Full, ..Default::default() };
         let mut starknet = Starknet::new(&config).unwrap();
         starknet.generate_new_block(StateDiff::default(), None).unwrap();
         starknet.blocks.num_to_state.remove(&BlockNumber(0));
 
         match starknet.get_state_at(&BlockId::Number(0)) {
             Err(Error::NoStateAtBlock { block_number: _ }) => (),
-            _ => panic!("Should have failed"),
+            _ => panic!("Should fail with NoStateAtBlock"),
+        }
+    }
+
+    #[test]
+    fn getting_state_at_without_state_archive() {
+        let config = StarknetConfig::default();
+        let mut starknet = Starknet::new(&config).unwrap();
+        starknet.generate_new_block(StateDiff::default(), None).unwrap();
+
+        match starknet.get_state_at(&BlockId::Number(0)) {
+            Err(Error::StateHistoryDisabled) => (),
+            _ => panic!("Should fail with StateHistoryDisabled."),
         }
     }
 

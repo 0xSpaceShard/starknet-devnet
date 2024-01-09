@@ -34,6 +34,8 @@ pub enum Error {
     NoBlock,
     #[error("No state at block {block_number}")]
     NoStateAtBlock { block_number: u64 },
+    #[error("State history is disabled; ensure running with --state-archive-capacity full")]
+    StateHistoryDisabled,
     #[error("Format error")]
     FormatError,
     #[error("Sierra compilation error")]
