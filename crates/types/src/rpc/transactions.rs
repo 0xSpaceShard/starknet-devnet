@@ -723,7 +723,7 @@ pub struct DeployAccountTransactionTrace {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct L1HandlerTransactionTrace {
-    pub function_invocation: Option<FunctionInvocation>,
+    pub function_invocation: FunctionInvocation,
     pub state_diff: Option<ThinStateDiff>,
 }
 

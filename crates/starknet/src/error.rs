@@ -64,6 +64,8 @@ pub enum Error {
     TransactionFeeError(#[from] blockifier::transaction::errors::TransactionFeeError),
     #[error(transparent)]
     MessagingError(#[from] MessagingError),
+    #[error("Missing L1 handler transaction trace.")]
+    MissingL1HandlerTransactionTrace,
 }
 
 #[derive(Debug, Error)]

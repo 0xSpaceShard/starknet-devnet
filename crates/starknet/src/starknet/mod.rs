@@ -890,13 +890,18 @@ impl Starknet {
                 state_diff,
             })),
             Transaction::L1Handler(_) => {
-                Ok(TransactionTrace::L1Handler(L1HandlerTransactionTrace {
-                    function_invocation: Self::get_call_info_invocation(
-                        &transaction_to_map.execution_info.execute_call_info,
-                        address_to_class_hash_map,
-                    )?,
-                    state_diff,
-                }))
+                match Self::get_call_info_invocation(
+                    &transaction_to_map.execution_info.execute_call_info,
+                    address_to_class_hash_map,
+                )? {
+                    Some(function_invocation) => {
+                        Ok(TransactionTrace::L1Handler(L1HandlerTransactionTrace {
+                            function_invocation,
+                            state_diff,
+                        }))
+                    }
+                    _ => Err(Error::MissingL1HandlerTransactionTrace),
+                }
             }
             _ => Err(Error::UnsupportedTransactionType),
         }
