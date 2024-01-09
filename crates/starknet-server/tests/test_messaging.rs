@@ -16,7 +16,7 @@ mod test_messaging {
 
     use ethers::prelude::*;
     use hyper::{Body, StatusCode};
-    use serde_json::json;
+    use serde_json::{json, Value};
     use starknet_rs_accounts::{
         Account, AccountError, Call, ConnectedAccount, ExecutionEncoding, SingleOwnerAccount,
     };
@@ -169,6 +169,17 @@ mod test_messaging {
             .expect("Cannot deploy");
 
         (devnet, account, contract_address)
+    }
+
+    fn assert_traces(traces: &Value) {
+        assert_eq!(traces["type"], "L1_HANDLER");
+        assert_eq!(
+            traces["function_invocation"]["contract_address"],
+            MESSAGING_L2_CONTRACT_ADDRESS
+        );
+        assert_eq!(traces["function_invocation"]["entry_point_selector"], L1_HANDLER_SELECTOR);
+        assert_eq!(traces["function_invocation"]["calldata"][0], MESSAGING_L1_CONTRACT_ADDRESS);
+        assert!(traces["state_diff"].is_null());
     }
 
     #[tokio::test]
@@ -496,20 +507,7 @@ mod test_messaging {
                 json!({ "transaction_hash": flush_body.get("generated_l2_transactions").unwrap()[0] }),
             )
             .await["result"];
-        assert_eq!(l1_handler_tx_trace["type"], "L1_HANDLER");
-        assert_eq!(
-            l1_handler_tx_trace["function_invocation"]["contract_address"],
-            MESSAGING_L2_CONTRACT_ADDRESS
-        );
-        assert_eq!(
-            l1_handler_tx_trace["function_invocation"]["entry_point_selector"],
-            L1_HANDLER_SELECTOR
-        );
-        assert_eq!(
-            l1_handler_tx_trace["function_invocation"]["calldata"][0],
-            MESSAGING_L1_CONTRACT_ADDRESS
-        );
-        assert!(l1_handler_tx_trace["state_diff"].is_null());
+        assert_traces(l1_handler_tx_trace);
     }
 
     #[tokio::test]
