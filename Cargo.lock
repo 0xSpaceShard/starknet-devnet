@@ -4855,8 +4855,6 @@ name = "starknet-server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-trait",
- "axum",
  "cairo-lang-starknet",
  "clap",
  "ethers",

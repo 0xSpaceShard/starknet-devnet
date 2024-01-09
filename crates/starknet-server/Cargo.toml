@@ -19,13 +19,8 @@ starknet-types = { workspace = true }
 starknet-rs-core = { workspace = true }
 url = { workspace = true }
 
-# axum
-axum = { workspace = true }
-hyper = { workspace = true }
-
 # async
 tokio = { workspace = true, features = ["signal"] }
-async-trait = { workspace = true }
 
 # tracing
 tracing = { workspace = true }
@@ -47,3 +42,4 @@ starknet-core = { workspace = true, features = ["test_utils"] }
 starknet-rs-providers = { workspace = true }
 starknet-rs-signers = { workspace = true }
 starknet-rs-accounts = { workspace = true }
+hyper = { workspace = true }
