@@ -12,7 +12,7 @@ use crate::api::http::models::{FeeToken, MintTokensRequest, MintTokensResponse};
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 use crate::api::json_rpc::error::ApiError;
 
-pub(crate) async fn get_fee_token() -> HttpApiResult<Json<FeeToken>> {
+pub async fn get_fee_token() -> HttpApiResult<Json<FeeToken>> {
     Err(HttpApiError::GeneralError)
 }
 
@@ -46,7 +46,7 @@ fn get_balance(
     Ok(new_balance)
 }
 
-pub(crate) async fn mint(
+pub async fn mint(
     Json(request): Json<MintTokensRequest>,
     Extension(state): Extension<HttpApiHandler>,
 ) -> HttpApiResult<Json<MintTokensResponse>> {

@@ -13,7 +13,7 @@ mod spec_modifier;
 mod spec_schemas;
 
 #[derive(Serialize, Deserialize)]
-pub(crate) struct Spec {
+pub struct Spec {
     openrpc: String,
     methods: Vec<Method>,
     components: Components,
@@ -167,6 +167,33 @@ mod tests {
     use super::{generate_combined_schema, generate_json_rpc_response, Spec};
     use crate::api::json_rpc::spec_reader::generate_json_rpc_request;
     use crate::api::json_rpc::{StarknetRequest, StarknetResponse};
+    use crate::test_utils::exported_test_utils::EXPECTED_SPEC_VERSION;
+
+    #[test]
+    /// This test asserts that the spec files used in testing indeed match the expected version
+    fn rpc_spec_using_correct_version() {
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        let path_to_spec_dir = format!("{manifest_dir}/test_data/spec/{EXPECTED_SPEC_VERSION}");
+        let spec_files = std::fs::read_dir(path_to_spec_dir).unwrap();
+
+        // traverse all json files in the rpc spec dir and assert they all have the expected version
+        for spec_file in
+            spec_files.filter(|f| f.as_ref().unwrap().path().extension().unwrap() == "json")
+        {
+            let spec_file_path = spec_file.unwrap().path();
+            let spec_file_path = spec_file_path.to_str().unwrap();
+            let spec_reader = std::fs::File::open(spec_file_path).unwrap();
+            let spec_content: serde_json::Value = serde_json::from_reader(spec_reader).unwrap();
+            match spec_content
+                .get("info")
+                .and_then(|info| info.get("version"))
+                .and_then(|ver| ver.as_str())
+            {
+                Some(EXPECTED_SPEC_VERSION) => (),
+                other => panic!("Invalid version in {spec_file_path}: {other:?}"),
+            }
+        }
+    }
 
     #[test]
     fn test_spec_methods() {

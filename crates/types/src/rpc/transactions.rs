@@ -667,6 +667,8 @@ pub enum TransactionTrace {
     Declare(DeclareTransactionTrace),
     #[serde(rename = "DEPLOY_ACCOUNT")]
     DeployAccount(DeployAccountTransactionTrace),
+    #[serde(rename = "L1_HANDLER")]
+    L1Handler(L1HandlerTransactionTrace),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -715,6 +717,13 @@ pub struct DeployAccountTransactionTrace {
     pub validate_invocation: Option<FunctionInvocation>,
     pub constructor_invocation: Option<FunctionInvocation>,
     pub fee_transfer_invocation: Option<FunctionInvocation>,
+    pub state_diff: Option<ThinStateDiff>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct L1HandlerTransactionTrace {
+    pub function_invocation: FunctionInvocation,
     pub state_diff: Option<ThinStateDiff>,
 }
 

@@ -9,7 +9,7 @@ use super::Spec;
 /// It has some limitations, if you need to modify the specification in a way that is not supported
 /// Please use the remove_manually entry of the .yaml file
 #[derive(Deserialize)]
-pub(crate) struct SpecModifier {
+pub struct SpecModifier {
     clean: Vec<String>,
     replace: Vec<ReplacePropertyData>,
     add: Vec<AddPropertyData>,
@@ -84,7 +84,7 @@ fn remove_array_element(json_obj: &mut Value, path_parts: &[&str], index: usize)
 }
 
 impl SpecModifier {
-    pub(crate) fn load_from_path(path: &str) -> Self {
+    pub fn load_from_path(path: &str) -> Self {
         let yaml_str = fs::read_to_string(path).expect("Could not read YAML file");
 
         let instructions: SpecModifier =
@@ -93,7 +93,7 @@ impl SpecModifier {
         instructions
     }
 
-    pub(crate) fn generate_spec(&self, mut json_obj_spec: Value) -> Spec {
+    pub fn generate_spec(&self, mut json_obj_spec: Value) -> Spec {
         for path_to_clean in self.clean.iter() {
             let path_parts = path_to_clean.split('/').collect::<Vec<&str>>();
             delete_property(&mut json_obj_spec, &path_parts);

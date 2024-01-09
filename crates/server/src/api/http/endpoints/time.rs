@@ -4,7 +4,7 @@ use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{IncreaseTimeResponse, SetTimeResponse, Time};
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 
-pub(crate) async fn set_time(
+pub async fn set_time(
     Json(data): Json<Time>,
     Extension(state): Extension<HttpApiHandler>,
 ) -> HttpApiResult<Json<SetTimeResponse>> {
@@ -25,7 +25,7 @@ pub(crate) async fn set_time(
     }
 }
 
-pub(crate) async fn increase_time(
+pub async fn increase_time(
     Json(data): Json<Time>,
     Extension(state): Extension<HttpApiHandler>,
 ) -> HttpApiResult<Json<IncreaseTimeResponse>> {

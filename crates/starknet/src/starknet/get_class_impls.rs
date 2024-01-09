@@ -148,8 +148,8 @@ mod tests {
 
         let class_hash = starknet.get_class_hash_at(block_id, account.account_address);
         match class_hash.err().unwrap() {
-            Error::NoStateAtBlock { .. } => (),
-            _ => panic!("Should fail with NoStateAtBlock."),
+            Error::StateHistoryDisabled { .. } => (),
+            _ => panic!("Should fail with StateHistoryDisabled."),
         }
     }
 

@@ -4442,16 +4442,25 @@ name = "server"
 version = "0.1.0"
 dependencies = [
  "anvil-rpc",
+ "anyhow",
  "async-trait",
  "axum",
  "futures",
  "hyper",
+ "rand",
+ "rand_chacha",
+ "regex_generate",
  "serde",
  "serde_json",
+ "serde_yaml",
  "starknet",
+ "starknet-core",
+ "thiserror",
+ "tokio",
  "tower",
  "tower-http 0.4.4",
  "tracing",
+ "types",
 ]
 
 [[package]]
@@ -4846,20 +4855,14 @@ name = "starknet-server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-trait",
- "axum",
  "cairo-lang-starknet",
  "clap",
  "ethers",
  "hyper",
  "lazy_static",
- "rand",
- "rand_chacha",
  "random-number-generator",
- "regex_generate",
  "serde",
  "serde_json",
- "serde_yaml",
  "server",
  "starknet",
  "starknet-accounts",

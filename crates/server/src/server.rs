@@ -1,13 +1,13 @@
 use std::net::SocketAddr;
 
 use axum::routing::{get, post};
-use server::builder::StarknetDevnetServer;
-use server::ServerConfig;
 use starknet_core::starknet::starknet_config::StarknetConfig;
 
 use crate::api::http::{endpoints as http, HttpApiHandler};
 use crate::api::json_rpc::JsonRpcHandler;
 use crate::api::Api;
+use crate::builder::StarknetDevnetServer;
+use crate::ServerConfig;
 
 /// Configures an [axum::Server] that handles related JSON-RPC calls and WEB API calls via HTTP
 pub fn serve_http_api_json_rpc(
@@ -19,7 +19,7 @@ pub fn serve_http_api_json_rpc(
     let http = HttpApiHandler { api: api.clone() };
     let json_rpc = JsonRpcHandler { api };
 
-    server::builder::Builder::<JsonRpcHandler, HttpApiHandler>::new(addr, json_rpc, http)
+    crate::builder::Builder::<JsonRpcHandler, HttpApiHandler>::new(addr, json_rpc, http)
         .set_config(config)
         .json_rpc_route("/")
         .json_rpc_route("/rpc")

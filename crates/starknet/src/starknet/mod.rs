@@ -42,8 +42,8 @@ use starknet_types::rpc::transactions::{
     BlockTransactionTrace, BlockTransactionTraces, BroadcastedTransaction,
     BroadcastedTransactionCommon, DeclareTransaction, DeclareTransactionTrace,
     DeployAccountTransactionTrace, ExecutionInvocation, FunctionInvocation, InvokeTransactionTrace,
-    L1HandlerTransaction, SimulatedTransaction, SimulationFlag, Transaction, TransactionTrace,
-    Transactions,
+    L1HandlerTransaction, L1HandlerTransactionTrace, SimulatedTransaction, SimulationFlag,
+    Transaction, TransactionTrace, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::error;
@@ -461,6 +461,10 @@ impl Starknet {
         match block_id {
             BlockId::Tag(_) => Ok(&self.state),
             _ => {
+                if self.config.state_archive == StateArchiveCapacity::None {
+                    return Err(Error::StateHistoryDisabled);
+                }
+
                 let block = self.blocks.get_by_block_id(*block_id).ok_or(Error::NoBlock)?;
                 let state = self
                     .blocks
@@ -893,6 +897,20 @@ impl Starknet {
                 fee_transfer_invocation,
                 state_diff,
             })),
+            Transaction::L1Handler(_) => {
+                match Self::get_call_info_invocation(
+                    &transaction_to_map.execution_info.execute_call_info,
+                    address_to_class_hash_map,
+                )? {
+                    Some(function_invocation) => {
+                        Ok(TransactionTrace::L1Handler(L1HandlerTransactionTrace {
+                            function_invocation,
+                            state_diff,
+                        }))
+                    }
+                    _ => Err(Error::MissingL1HandlerTransactionTrace),
+                }
+            }
             _ => Err(Error::UnsupportedTransactionType),
         }
     }
@@ -1237,27 +1255,41 @@ mod tests {
     }
 
     #[test]
-    fn getting_state_at_block_by_nonexistent_hash() {
-        let config = StarknetConfig::default();
+    fn getting_state_at_block_by_nonexistent_hash_with_full_state_archive() {
+        let config =
+            StarknetConfig { state_archive: StateArchiveCapacity::Full, ..Default::default() };
         let mut starknet = Starknet::new(&config).unwrap();
         starknet.generate_new_block(StateDiff::default(), None).unwrap();
 
         match starknet.get_state_at(&BlockId::Hash(Felt::from(0).into())) {
             Err(Error::NoBlock) => (),
-            _ => panic!("Should have failed"),
+            _ => panic!("Should fail with NoBlock"),
         }
     }
 
     #[test]
-    fn getting_nonexistent_state_at_block_by_number() {
-        let config = StarknetConfig::default();
+    fn getting_nonexistent_state_at_block_by_number_with_full_state_archive() {
+        let config =
+            StarknetConfig { state_archive: StateArchiveCapacity::Full, ..Default::default() };
         let mut starknet = Starknet::new(&config).unwrap();
         starknet.generate_new_block(StateDiff::default(), None).unwrap();
         starknet.blocks.num_to_state.remove(&BlockNumber(0));
 
         match starknet.get_state_at(&BlockId::Number(0)) {
             Err(Error::NoStateAtBlock { block_number: _ }) => (),
-            _ => panic!("Should have failed"),
+            _ => panic!("Should fail with NoStateAtBlock"),
+        }
+    }
+
+    #[test]
+    fn getting_state_at_without_state_archive() {
+        let config = StarknetConfig::default();
+        let mut starknet = Starknet::new(&config).unwrap();
+        starknet.generate_new_block(StateDiff::default(), None).unwrap();
+
+        match starknet.get_state_at(&BlockId::Number(0)) {
+            Err(Error::StateHistoryDisabled) => (),
+            _ => panic!("Should fail with StateHistoryDisabled."),
         }
     }
 

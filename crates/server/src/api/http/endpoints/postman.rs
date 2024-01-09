@@ -9,7 +9,7 @@ use crate::api::http::models::{
 };
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 
-pub(crate) async fn postman_load(
+pub async fn postman_load(
     Extension(state): Extension<HttpApiHandler>,
     Json(data): Json<PostmanLoadL1MessagingContract>,
 ) -> HttpApiResult<Json<MessagingLoadAddress>> {
@@ -25,7 +25,7 @@ pub(crate) async fn postman_load(
     Ok(Json(MessagingLoadAddress { messaging_contract_address }))
 }
 
-pub(crate) async fn postman_flush(
+pub async fn postman_flush(
     Extension(state): Extension<HttpApiHandler>,
     data: Option<Json<FlushParameters>>,
 ) -> HttpApiResult<Json<FlushedMessages>> {
@@ -85,7 +85,7 @@ pub(crate) async fn postman_flush(
     }))
 }
 
-pub(crate) async fn postman_send_message_to_l2(
+pub async fn postman_send_message_to_l2(
     Extension(state): Extension<HttpApiHandler>,
     Json(message): Json<MessageToL2>,
 ) -> HttpApiResult<Json<TxHash>> {
@@ -110,7 +110,7 @@ pub(crate) async fn postman_send_message_to_l2(
     Ok(Json(TxHash { transaction_hash }))
 }
 
-pub(crate) async fn postman_consume_message_from_l2(
+pub async fn postman_consume_message_from_l2(
     Extension(state): Extension<HttpApiHandler>,
     Json(message): Json<MessageToL1>,
 ) -> HttpApiResult<Json<MessageHash>> {

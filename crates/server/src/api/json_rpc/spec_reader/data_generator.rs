@@ -15,7 +15,7 @@ use super::spec_schemas::{Primitive, Schema};
 
 const MAX_DEPTH: u8 = 5;
 
-pub(crate) trait Visitor {
+pub trait Visitor {
     fn do_for_boolean_primitive(&self) -> Result<serde_json::Value, String>;
     fn do_for_string_primitive(
         &self,
@@ -36,17 +36,17 @@ pub(crate) trait Visitor {
     ) -> Result<serde_json::Value, String>;
 }
 
-pub(crate) trait Acceptor {
+pub trait Acceptor {
     fn accept(&self, visitor: &impl Visitor) -> Result<serde_json::Value, String>;
 }
 
-pub(crate) struct RandDataGenerator<'a> {
+pub struct RandDataGenerator<'a> {
     schemas: &'a HashMap<String, Schema>,
     depth: u8,
 }
 
 impl<'a> RandDataGenerator<'a> {
-    pub(crate) fn new(schemas: &'a HashMap<String, Schema>, depth: u8) -> Self {
+    pub fn new(schemas: &'a HashMap<String, Schema>, depth: u8) -> Self {
         Self { schemas, depth }
     }
 }
@@ -206,7 +206,7 @@ impl<'a> Visitor for RandDataGenerator<'a> {
     }
 }
 
-pub(crate) fn generate_schema_value(
+pub fn generate_schema_value(
     schema: &Schema,
     schemas: &HashMap<String, Schema>,
     depth: u8,
