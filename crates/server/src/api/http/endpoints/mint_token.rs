@@ -1,6 +1,7 @@
 use axum::{Extension, Json};
 use starknet_core::constants::{ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS};
 use starknet_core::starknet::Starknet;
+use starknet_core::starknet::dump::MintEvent;
 use starknet_rs_core::types::{BlockId, BlockTag};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::Felt;
@@ -50,8 +51,6 @@ pub async fn mint(
     Json(request): Json<MintTokensRequest>,
     Extension(state): Extension<HttpApiHandler>,
 ) -> HttpApiResult<Json<MintTokensResponse>> {
-    // TODO: If dump/load is enabled log mint action
-
     let mut starknet = state.api.starknet.write().await;
     let unit = request.unit.unwrap_or(FeeUnits::WEI);
     let erc20_address = match unit {
@@ -70,6 +69,8 @@ pub async fn mint(
         .mint(request.address, request.amount, erc20_address)
         .await
         .map_err(|err| HttpApiError::MintingError { msg: err.to_string() })?;
+
+    // starknet.handle_dump_event(starknet_core::starknet::dump::DumpEvent::Mint(MintEvent {address = request.address, amount = "", erc20_address = ""}));
 
     let new_balance = get_balance(&starknet, request.address, erc20_address)
         .map_err(|err| HttpApiError::MintingError { msg: err.to_string() })?;

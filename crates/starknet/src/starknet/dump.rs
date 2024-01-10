@@ -19,16 +19,16 @@ pub enum DumpEvent {
     AddDeployAccountTransaction(BroadcastedDeployAccountTransaction),
     AddInvokeTransaction(BroadcastedInvokeTransaction),
     AddL1HandlerTransaction(L1HandlerTransaction),
-    AddDeployTransaction,
+    AddDeployTransaction, // is it still supported?
     CreateBlock,
     Mint(MintEvent),
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MintEvent {
-    address: ContractAddress,
-    amount: u128,
-    erc20_address: ContractAddress,
+    pub address: ContractAddress,
+    pub amount: u128,
+    pub erc20_address: ContractAddress,
 }
 
 impl Starknet {
@@ -97,7 +97,7 @@ impl Starknet {
         match self.config.dump_on {
             Some(_) => {
                 self.dump_events.push(event);
-                println!("self.dump_events: {:?}", self.dump_events);
+                println!("handle_dump_event -> dump_events: {:?}", self.dump_events);
             }
             _ => (),
         }

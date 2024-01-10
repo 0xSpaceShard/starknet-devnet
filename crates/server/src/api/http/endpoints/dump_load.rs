@@ -45,10 +45,10 @@ pub async fn load(
     }
 
     let mut starknet = state.api.starknet.write().await;
-    let transactions = starknet
+    let events = starknet
         .load_events_custom_path(Some(path.path))
         .map_err(|_| HttpApiError::LoadError)?;
-    starknet.re_execute(transactions).await.map_err(|_| HttpApiError::ReExecutionError)?;
+    starknet.re_execute(events).await.map_err(|_| HttpApiError::ReExecutionError)?;
 
     Ok(())
 }
