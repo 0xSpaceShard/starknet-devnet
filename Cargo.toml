@@ -40,7 +40,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 # misc
 base64 = { version = "0.21.2" }
 clap = { version = "4.3.2", features = ["derive"] }
-flate2 = { version = "1.0.26" }
+flate2 = { version = ">= 1.0.26, < 1.0.27" }
 serde = { version = "1.0.171", features = ["derive"] }
 serde_json = { version = "1.0.81" }
 serde_yaml = { version = "0.9.27" }
