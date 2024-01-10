@@ -119,7 +119,7 @@ impl Default for Starknet {
 }
 
 impl Starknet {
-    pub fn new(config: &StarknetConfig) -> DevnetResult<Self> {
+    pub async fn new(config: &StarknetConfig) -> DevnetResult<Self> {
         let mut state = StarknetState::default();
         // deploy udc, eth erc20 and strk erc20 contracts
         let eth_erc20_fee_contract =
@@ -195,8 +195,8 @@ impl Starknet {
         // Load starknet transactions
         if this.config.dump_path.is_some() && this.config.re_execute_on_init {
             // Try to load transactions from dump_path, if there is no file skip this step
-            match this.load_transactions() {
-                Ok(txs) => this.re_execute(txs)?,
+            match this.load_events() {
+                Ok(events) => this.re_execute(events).await?,
                 Err(Error::FileNotFound) => {}
                 Err(err) => return Err(err),
             };
@@ -205,9 +205,9 @@ impl Starknet {
         Ok(this)
     }
 
-    pub fn restart(&mut self) -> DevnetResult<()> {
+    pub async fn restart(&mut self) -> DevnetResult<()> {
         self.config.re_execute_on_init = false;
-        *self = Starknet::new(&self.config)?;
+        *self = Starknet::new(&self.config).await?;
         Ok(())
     }
 

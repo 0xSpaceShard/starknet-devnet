@@ -79,7 +79,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let starknet_config = args.to_starknet_config()?;
     let mut addr: SocketAddr = SocketAddr::new(starknet_config.host, starknet_config.port);
 
-    let api = Api::new(Starknet::new(&starknet_config)?);
+    let api = Api::new(Starknet::new(&starknet_config).await?);
 
     // set block timestamp shift during startup if start time is set
     if let Some(start_time) = starknet_config.start_time {
@@ -117,5 +117,5 @@ pub async fn shutdown_signal(api: Api) {
     tokio::signal::ctrl_c().await.expect("Failed to install CTRL+C signal handler");
 
     let starknet = api.starknet.read().await;
-    starknet.dump_transactions().expect("Failed to dump starknet transactions");
+    starknet.dump_events().expect("Failed to dump starknet transactions");
 }
