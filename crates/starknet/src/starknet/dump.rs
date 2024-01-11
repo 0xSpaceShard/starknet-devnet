@@ -3,12 +3,11 @@ use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
+use starknet_types::contract_address::ContractAddress;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
-    BroadcastedInvokeTransaction,
-    L1HandlerTransaction, Transaction,
+    BroadcastedInvokeTransaction, L1HandlerTransaction, Transaction,
 };
-use starknet_types::contract_address::ContractAddress;
 
 use super::{DumpOn, Starknet};
 use crate::error::{DevnetResult, Error};
@@ -47,11 +46,15 @@ impl Starknet {
                     println!("BroadcastedDeclareTransaction::V3 {:?}: ", tx);
                     let _ = self.add_declare_transaction_v3(*tx);
                 }
-                DumpEvent::AddDeployAccountTransaction(BroadcastedDeployAccountTransaction::V1(tx)) => {
+                DumpEvent::AddDeployAccountTransaction(
+                    BroadcastedDeployAccountTransaction::V1(tx),
+                ) => {
                     println!("BroadcastedDeployAccountTransaction::V1 {:?}: ", tx);
                     let _ = self.add_deploy_account_transaction_v1(tx);
                 }
-                DumpEvent::AddDeployAccountTransaction(BroadcastedDeployAccountTransaction::V3(tx)) => {
+                DumpEvent::AddDeployAccountTransaction(
+                    BroadcastedDeployAccountTransaction::V3(tx),
+                ) => {
                     println!("BroadcastedDeployAccountTransaction::V3 {:?}: ", tx);
                     let _ = self.add_deploy_account_transaction_v3(tx);
                 }
@@ -75,7 +78,7 @@ impl Starknet {
                     //     entry_point_selector: tx.entry_point_selector,
                     //     calldata: tx.calldata.clone(),
                     //     paid_fee_on_l1: tx.paid_fee_on_l1,
-                    // })?;   
+                    // })?;
                 }
                 DumpEvent::CreateBlock => {
                     let _ = self.create_block(None);
@@ -95,9 +98,13 @@ impl Starknet {
     // add starknet dump event
     pub fn handle_dump_event(&mut self, event: DumpEvent) {
         match self.config.dump_on {
-            Some(_) => {
+            Some(DumpOn::Transaction) => {
+                println!("DumpOn::Transaction: {:?}", event);
+                // TODO: refactor self.dump_transaction(event);
+            }
+            Some(DumpOn::Exit) => {
                 self.dump_events.push(event);
-                println!("handle_dump_event -> dump_events: {:?}", self.dump_events);
+                println!("DumpOn::Exit: {:?}", self.dump_events);
             }
             _ => (),
         }

@@ -199,7 +199,7 @@ impl Starknet {
                 Ok(events) => {
                     this.dump_events = events.clone();
                     this.re_execute(events).await?
-                },
+                }
                 Err(Error::FileNotFound) => {}
                 Err(err) => return Err(err),
             };
@@ -386,7 +386,9 @@ impl Starknet {
         // clear pending block information
         self.generate_pending_block()?;
 
+        // TODO: move this to ...
         if self.config.dump_on == Some(DumpOn::Transaction) {
+            println!("DumpOn::Transaction!!!");
             self.dump_transaction(transaction)?;
         }
 

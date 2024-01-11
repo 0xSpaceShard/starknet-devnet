@@ -3,6 +3,8 @@ use starknet_types::rpc::transactions::{
     BroadcastedInvokeTransaction,
 };
 
+use starknet_core::starknet::dump::DumpEvent;
+
 use super::error::{ApiError, StrictRpcResult};
 use super::models::{
     DeclareTransactionOutput, DeployAccountTransactionOutput, InvokeTransactionOutput,
@@ -15,33 +17,19 @@ impl JsonRpcHandler {
         &self,
         request: BroadcastedDeclareTransaction,
     ) -> StrictRpcResult {
-        // TODO: to log dump/load actions use aspect programming? Is AOP possible in Rust?
-        // https://doc.rust-lang.org/reference/procedural-macros.html?
-
-        // TODO: If dump/load is enabled log add_declare_transaction action
-        // (BroadcastedDeclareTransaction) let x = self.api.starknet.write().await;
-        // x.dump_transaction_declare(request);
+        let mut starknet = self.api.starknet.write().await;
+        starknet.handle_dump_event(DumpEvent::AddDeclareTransaction(request.clone()));
 
         let (transaction_hash, class_hash) = match request {
-            BroadcastedDeclareTransaction::V1(broadcasted_declare_txn) => self
-                .api
-                .starknet
-                .write()
-                .await
-                .add_declare_transaction_v1(*broadcasted_declare_txn)?,
-            BroadcastedDeclareTransaction::V2(broadcasted_declare_txn) => self
-                .api
-                .starknet
-                .write()
-                .await
-                .add_declare_transaction_v2(*broadcasted_declare_txn)?,
-
-            BroadcastedDeclareTransaction::V3(broadcasted_declare_txn) => self
-                .api
-                .starknet
-                .write()
-                .await
-                .add_declare_transaction_v3(*broadcasted_declare_txn)?,
+            BroadcastedDeclareTransaction::V1(broadcasted_declare_txn) => {
+                starknet.add_declare_transaction_v1(*broadcasted_declare_txn)?
+            }
+            BroadcastedDeclareTransaction::V2(broadcasted_declare_txn) => {
+                starknet.add_declare_transaction_v2(*broadcasted_declare_txn)?
+            }
+            BroadcastedDeclareTransaction::V3(broadcasted_declare_txn) => {
+                starknet.add_declare_transaction_v3(*broadcasted_declare_txn)?
+            }
         };
 
         Ok(StarknetResponse::AddDeclareTransaction(DeclareTransactionOutput {
@@ -54,15 +42,11 @@ impl JsonRpcHandler {
         &self,
         request: BroadcastedDeployAccountTransaction,
     ) -> StrictRpcResult {
-        // TODO: If dump/load is enabled log add_deploy_account_transaction action
-        // (BroadcastedDeployAccountTransaction)
+        let mut starknet = self.api.starknet.write().await;
+        starknet.handle_dump_event(DumpEvent::AddDeployAccountTransaction(request.clone()));
 
         let (transaction_hash, contract_address) = match request {
-            BroadcastedDeployAccountTransaction::V1(deploy_account_txn_v1) => self
-                .api
-                .starknet
-                .write()
-                .await
+            BroadcastedDeployAccountTransaction::V1(deploy_account_txn_v1) => starknet
                 .add_deploy_account_transaction_v1(deploy_account_txn_v1)
                 .map_err(|err| match err {
                     starknet_core::error::Error::StateError(
@@ -70,12 +54,7 @@ impl JsonRpcHandler {
                     ) => ApiError::ClassHashNotFound,
                     unknown_error => ApiError::StarknetDevnetError(unknown_error),
                 })?,
-
-            BroadcastedDeployAccountTransaction::V3(deploy_account_txn_v3) => self
-                .api
-                .starknet
-                .write()
-                .await
+            BroadcastedDeployAccountTransaction::V3(deploy_account_txn_v3) => starknet
                 .add_deploy_account_transaction_v3(deploy_account_txn_v3)
                 .map_err(|err| match err {
                     starknet_core::error::Error::StateError(
@@ -95,15 +74,15 @@ impl JsonRpcHandler {
         &self,
         request: BroadcastedInvokeTransaction,
     ) -> StrictRpcResult {
-        // TODO: If dump/load is enabled log add_invoke_transaction action
-        // (BroadcastedInvokeTransaction)
+        let mut starknet = self.api.starknet.write().await;
+        starknet.handle_dump_event(DumpEvent::AddInvokeTransaction(request.clone()));
 
         let transaction_hash = match request {
             BroadcastedInvokeTransaction::V1(invoke_txn) => {
-                self.api.starknet.write().await.add_invoke_transaction_v1(invoke_txn)?
+                starknet.add_invoke_transaction_v1(invoke_txn)?
             }
             BroadcastedInvokeTransaction::V3(invoke_txn) => {
-                self.api.starknet.write().await.add_invoke_transaction_v3(invoke_txn)?
+                starknet.add_invoke_transaction_v3(invoke_txn)?
             }
         };
 
