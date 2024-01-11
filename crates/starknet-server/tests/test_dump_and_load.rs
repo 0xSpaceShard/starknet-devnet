@@ -55,6 +55,7 @@ mod dump_and_load_tests {
         assert!(devnet_dump.is_err());
     }
 
+    // TODO: test again when mint will be added
     #[tokio::test]
     async fn mint_dump_on_transaction_and_load() {
         // dump after transaction
@@ -98,6 +99,7 @@ mod dump_and_load_tests {
         }
     }
 
+    // TODO: test again when mint will be added
     #[tokio::test]
     async fn mint_dump_on_exit_and_load() {
         // dump on exit
@@ -135,6 +137,7 @@ mod dump_and_load_tests {
         }
     }
 
+    // TODO: fix deserialization error
     #[tokio::test]
     async fn declare_deploy() {
         let dump_file = UniqueAutoDeletableFile::new("dump_declare_deploy");
@@ -254,6 +257,7 @@ mod dump_and_load_tests {
         assert_eq!(result.status(), 400);
     }
 
+    // TODO: test again when mint will be added
     #[tokio::test]
     async fn dump_endpoint_fail_with_wrong_file_name() {
         let devnet_dump = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
@@ -290,6 +294,7 @@ mod dump_and_load_tests {
         assert_eq!(result.status(), 400);
     }
 
+    // TODO: test again when mint will be added
     #[tokio::test]
     async fn dump_load_endpoints_transaction_and_state_after_load_is_valid() {
         // check if the dump with the default path "dump_endpoint" works as expected when json body
