@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
-    BroadcastedInvokeTransaction, L1HandlerTransaction, Transaction,
+    BroadcastedInvokeTransaction, L1HandlerTransaction,
 };
 
 use super::{DumpOn, Starknet};
@@ -97,27 +97,29 @@ impl Starknet {
 
     // add starknet dump event
     pub fn handle_dump_event(&mut self, event: DumpEvent) {
+        println!("handle_dump_event");
+
         match self.config.dump_on {
             Some(DumpOn::Transaction) => {
-                println!("DumpOn::Transaction: {:?}", event);
-                // TODO: refactor self.dump_transaction(event);
+                println!("DumpOn::Transaction event: {:?}", event);
+                let _ = self.dump_event(event);
             }
             Some(DumpOn::Exit) => {
+                println!("DumpOn::Exit dump_events: {:?}", self.dump_events);
                 self.dump_events.push(event);
-                println!("DumpOn::Exit: {:?}", self.dump_events);
             }
             _ => (),
         }
     }
 
-    /// attach starknet transaction to end of existing file
-    pub fn dump_transaction(&self, transaction: &Transaction) -> DevnetResult<()> {
+    /// attach starknet event to end of existing file
+    pub fn dump_event(&self, event: DumpEvent) -> DevnetResult<()> {
         match &self.config.dump_path {
             Some(path) => {
                 let file_path = Path::new(path);
                 if file_path.exists() {
                     // attach to file
-                    let transaction_dump = serde_json::to_string(transaction)
+                    let event_dump = serde_json::to_string(&event)
                         .map_err(|e| Error::SerializationError { origin: e.to_string() })?;
                     let mut file = OpenOptions::new()
                         .append(true)
@@ -128,10 +130,10 @@ impl Starknet {
                     file.seek(SeekFrom::End(-1))?;
                     file.read_exact(&mut buffer)?;
                     if String::from_utf8_lossy(&buffer).into_owned() == "]" {
-                        // if the last character is "]", remove it and add transaction at the end
+                        // if the last character is "]", remove it and add event at the end
                         let length = file.seek(SeekFrom::End(0)).map_err(Error::IoError)?;
                         file.set_len(length - 1).map_err(Error::IoError)?; // remove last "]" with set_len
-                        file.write_all(format!(", {transaction_dump}]").as_bytes())
+                        file.write_all(format!(", {event_dump}]").as_bytes())
                             .map_err(Error::IoError)?;
                     } else {
                         // if the last character is not "]" it means that it's a wrongly formatted
@@ -140,10 +142,10 @@ impl Starknet {
                     }
                 } else {
                     // create file
-                    let transactions = vec![transaction];
-                    let transactions_dump = serde_json::to_string(&transactions)
+                    let events = vec![event];
+                    let events_dump = serde_json::to_string(&events)
                         .map_err(|e| Error::SerializationError { origin: e.to_string() })?;
-                    fs::write(Path::new(&path), transactions_dump)?;
+                    fs::write(Path::new(&path), events_dump)?;
                 }
 
                 Ok(())

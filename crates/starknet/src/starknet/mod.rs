@@ -387,10 +387,10 @@ impl Starknet {
         self.generate_pending_block()?;
 
         // TODO: move this to ...
-        if self.config.dump_on == Some(DumpOn::Transaction) {
-            println!("DumpOn::Transaction!!!");
-            self.dump_transaction(transaction)?;
-        }
+        // if self.config.dump_on == Some(DumpOn::Transaction) {
+        //     println!("DumpOn::Transaction!!!");
+        //     self.dump_event(transaction)?;
+        // }
 
         Ok(())
     }
