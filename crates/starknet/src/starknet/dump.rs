@@ -14,13 +14,16 @@ use crate::error::{DevnetResult, Error};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum DumpEvent {
-    AddDeclareTransaction(BroadcastedDeclareTransaction),
-    AddDeployAccountTransaction(BroadcastedDeployAccountTransaction),
-    AddInvokeTransaction(BroadcastedInvokeTransaction),
-    AddL1HandlerTransaction(L1HandlerTransaction),
-    AddDeployTransaction, // is it still supported?
     CreateBlock,
     Mint(MintEvent),
+    #[serde(rename = "DECLARE")]
+    AddDeclareTransaction(BroadcastedDeclareTransaction),
+    #[serde(rename = "INVOKE")]
+    AddInvokeTransaction(BroadcastedInvokeTransaction),
+    #[serde(rename = "DEPLOY_ACCOUNT")]
+    AddDeployAccountTransaction(BroadcastedDeployAccountTransaction),
+    #[serde(rename = "L1_HANDLER")]
+    AddL1HandlerTransaction(L1HandlerTransaction),
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -31,7 +34,7 @@ pub struct MintEvent {
 }
 
 impl Starknet {
-    pub async fn re_execute(&mut self, events: Vec<DumpEvent>) -> DevnetResult<()> {
+    pub fn re_execute(&mut self, events: Vec<DumpEvent>) -> DevnetResult<()> {
         for event in events.into_iter() {
             match event {
                 DumpEvent::AddDeclareTransaction(BroadcastedDeclareTransaction::V1(tx)) => {
@@ -69,25 +72,12 @@ impl Starknet {
                 DumpEvent::AddL1HandlerTransaction(tx) => {
                     println!("AddL1Handler {:?}: ", tx);
                     let _ = self.add_l1_handler_transaction(tx);
-                    // remove later
-                    // self.add_l1_handler_transaction(L1HandlerTransaction {
-                    //     transaction_hash: tx.transaction_hash,
-                    //     version: tx.version,
-                    //     nonce: tx.nonce,
-                    //     contract_address: tx.contract_address,
-                    //     entry_point_selector: tx.entry_point_selector,
-                    //     calldata: tx.calldata.clone(),
-                    //     paid_fee_on_l1: tx.paid_fee_on_l1,
-                    // })?;
                 }
                 DumpEvent::CreateBlock => {
                     let _ = self.create_block(None);
                 }
                 DumpEvent::Mint(mint) => {
-                    let _ = self.mint(mint.address, mint.amount, mint.erc20_address).await;
-                }
-                DumpEvent::AddDeployTransaction => {
-                    return Err(Error::SerializationNotSupported { obj_name: "Deploy tx".into() });
+                    // let _ = self.mint(mint.address, mint.amount, mint.erc20_address).await;
                 }
             };
         }

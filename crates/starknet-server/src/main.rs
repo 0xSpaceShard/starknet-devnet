@@ -79,7 +79,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let starknet_config = args.to_starknet_config()?;
     let mut addr: SocketAddr = SocketAddr::new(starknet_config.host, starknet_config.port);
 
-    let api = Api::new(Starknet::new(&starknet_config).await?);
+    let api = Api::new(Starknet::new(&starknet_config)?);
 
     // set block timestamp shift during startup if start time is set
     if let Some(start_time) = starknet_config.start_time {

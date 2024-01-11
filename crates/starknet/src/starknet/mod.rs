@@ -119,7 +119,7 @@ impl Default for Starknet {
 }
 
 impl Starknet {
-    pub async fn new(config: &StarknetConfig) -> DevnetResult<Self> {
+    pub fn new(config: &StarknetConfig) -> DevnetResult<Self> {
         let mut state = StarknetState::default();
         // deploy udc, eth erc20 and strk erc20 contracts
         let eth_erc20_fee_contract =
@@ -198,7 +198,7 @@ impl Starknet {
             match this.load_events() {
                 Ok(events) => {
                     this.dump_events = events.clone();
-                    this.re_execute(events).await?
+                    this.re_execute(events)?
                 }
                 Err(Error::FileNotFound) => {}
                 Err(err) => return Err(err),
@@ -210,7 +210,7 @@ impl Starknet {
 
     pub async fn restart(&mut self) -> DevnetResult<()> {
         self.config.re_execute_on_init = false;
-        *self = Starknet::new(&self.config).await?;
+        *self = Starknet::new(&self.config)?;
         Ok(())
     }
 
@@ -385,12 +385,6 @@ impl Starknet {
         self.generate_new_block(state_difference, None)?;
         // clear pending block information
         self.generate_pending_block()?;
-
-        // TODO: move this to ...
-        // if self.config.dump_on == Some(DumpOn::Transaction) {
-        //     println!("DumpOn::Transaction!!!");
-        //     self.dump_event(transaction)?;
-        // }
 
         Ok(())
     }
@@ -694,6 +688,8 @@ impl Starknet {
                 nonce: nonce.0.into(),
             },
         };
+
+        // TODO: mint as self.handle_dump_event(AddInvokeTransaction::);?
 
         // apply the invoke tx
         add_invoke_transaction::add_invoke_transaction_v1(self, invoke_tx)
