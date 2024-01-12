@@ -414,8 +414,10 @@ mod test_messaging {
     async fn can_interact_with_l1() {
         let anvil = BackgroundAnvil::spawn().await.unwrap();
 
+        // check with --dump-on exit or transaction
+        // TODO: copy this test to dump/load tests and revert changes here
         let (devnet, sn_account, sn_l1l2_contract) =
-            setup_devnet(&["--account-class", "cairo1"]).await;
+            setup_devnet(&["--account-class", "cairo1", "--dump-path", "can_interact_with_l1", "--dump-on", "exit"]).await;
 
         // Load l1 messaging contract.
         let req_body = Body::from(json!({ "network_url": anvil.url }).to_string());
@@ -498,6 +500,9 @@ mod test_messaging {
         // Ensure the balance is back to 1 on L2.
         assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [FieldElement::ONE]);
 
+        // todo: test this with dump scenario
+        // println!("devnet.process {:?}", devnet.);
+        // println!("anvil.process {:?}", anvil.process);
         // Assert traces of L1Handler transaction with custom rpc call,
         // json_rpc_client.trace_transaction() is not supported
         let flush_body = get_json_body(resp).await;

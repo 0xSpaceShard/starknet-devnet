@@ -29,11 +29,13 @@ pub async fn postman_flush(
     Extension(state): Extension<HttpApiHandler>,
     data: Option<Json<FlushParameters>>,
 ) -> HttpApiResult<Json<FlushedMessages>> {
-    // TODO: If dump/load is enabled log postman_flush action
-
     // Need to handle L1 to L2 first in case that those messages
     // will create L2 to L1 messages.
     let mut starknet = state.api.starknet.write().await;
+
+    // TODO: in exit mode should dump_events = starknet.transactions, check that if it's true and remove later
+    println!("starknet.dump_events: {:?}", starknet.dump_events.len());
+    println!("starknet.transactions: {:?}", starknet.transactions.len());
 
     let is_dry_run = if let Some(data) = data {
         let data = Json(data);

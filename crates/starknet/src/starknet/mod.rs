@@ -94,7 +94,7 @@ pub struct Starknet {
     pub config: StarknetConfig,
     pub pending_block_timestamp_shift: i64,
     pub(crate) messaging: MessagingBroker,
-    pub(crate) dump_events: Vec<DumpEvent>,
+    pub dump_events: Vec<DumpEvent>, // TODO: change to pub(crate) later
 }
 
 impl Default for Starknet {

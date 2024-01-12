@@ -22,8 +22,9 @@ pub enum DumpEvent {
     AddInvokeTransaction(BroadcastedInvokeTransaction),
     #[serde(rename = "DEPLOY_ACCOUNT")]
     AddDeployAccountTransaction(BroadcastedDeployAccountTransaction),
-    #[serde(rename = "L1_HANDLER")]
-    AddL1HandlerTransaction(L1HandlerTransaction),
+    // TODO: I think that this is not used...
+    // #[serde(rename = "L1_HANDLER")]
+    // AddL1HandlerTransaction(L1HandlerTransaction),
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -69,14 +70,15 @@ impl Starknet {
                     println!("BroadcastedInvokeTransaction::V3 {:?}: ", tx);
                     let _ = self.add_invoke_transaction_v3(tx);
                 }
-                DumpEvent::AddL1HandlerTransaction(tx) => {
-                    println!("AddL1Handler {:?}: ", tx);
-                    let _ = self.add_l1_handler_transaction(tx);
-                }
+                // DumpEvent::AddL1HandlerTransaction(tx) => {
+                //     println!("AddL1Handler {:?}: ", tx);
+                //     let _ = self.add_l1_handler_transaction(tx);
+                // }
                 DumpEvent::CreateBlock => {
                     let _ = self.create_block(None);
                 }
                 DumpEvent::Mint(mint) => {
+                    println!("mint {:?}: ", mint);
                     // let _ = self.mint(mint.address, mint.amount, mint.erc20_address).await;
                 }
             };
@@ -91,11 +93,11 @@ impl Starknet {
 
         match self.config.dump_on {
             Some(DumpOn::Transaction) => {
-                println!("DumpOn::Transaction event: {:?}", event);
+                // println!("DumpOn::Transaction event: {:?}", event);
                 let _ = self.dump_event(event);
             }
             Some(DumpOn::Exit) => {
-                println!("DumpOn::Exit dump_events: {:?}", self.dump_events);
+                // println!("DumpOn::Exit dump_events: {:?}", self.dump_events);
                 self.dump_events.push(event);
             }
             _ => (),

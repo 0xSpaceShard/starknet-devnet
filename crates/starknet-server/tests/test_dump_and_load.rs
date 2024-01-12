@@ -137,7 +137,6 @@ mod dump_and_load_tests {
         }
     }
 
-    // TODO: fix deserialization error
     #[tokio::test]
     async fn declare_deploy() {
         let dump_file = UniqueAutoDeletableFile::new("dump_declare_deploy");
