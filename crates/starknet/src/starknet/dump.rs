@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
-    BroadcastedInvokeTransaction, L1HandlerTransaction,
+    BroadcastedInvokeTransaction,
 };
 
 use super::{DumpOn, Starknet};

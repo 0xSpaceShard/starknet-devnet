@@ -416,8 +416,15 @@ mod test_messaging {
 
         // check with --dump-on exit or transaction
         // TODO: copy this test to dump/load tests and revert changes here
-        let (devnet, sn_account, sn_l1l2_contract) =
-            setup_devnet(&["--account-class", "cairo1", "--dump-path", "can_interact_with_l1", "--dump-on", "exit"]).await;
+        let (devnet, sn_account, sn_l1l2_contract) = setup_devnet(&[
+            "--account-class",
+            "cairo1",
+            "--dump-path",
+            "can_interact_with_l1",
+            "--dump-on",
+            "exit",
+        ])
+        .await;
 
         // Load l1 messaging contract.
         let req_body = Body::from(json!({ "network_url": anvil.url }).to_string());

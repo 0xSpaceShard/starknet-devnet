@@ -39,11 +39,11 @@ use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use starknet_types::rpc::transactions::{
-    BlockTransactionTrace, BlockTransactionTraces, BroadcastedTransaction,
-    BroadcastedTransactionCommon, DeclareTransaction, DeclareTransactionTrace,
-    DeployAccountTransactionTrace, ExecutionInvocation, FunctionInvocation, InvokeTransactionTrace,
-    L1HandlerTransaction, L1HandlerTransactionTrace, SimulatedTransaction, SimulationFlag,
-    Transaction, TransactionTrace, Transactions, BroadcastedInvokeTransaction,
+    BlockTransactionTrace, BlockTransactionTraces, BroadcastedInvokeTransaction,
+    BroadcastedTransaction, BroadcastedTransactionCommon, DeclareTransaction,
+    DeclareTransactionTrace, DeployAccountTransactionTrace, ExecutionInvocation,
+    FunctionInvocation, InvokeTransactionTrace, L1HandlerTransaction, L1HandlerTransactionTrace,
+    SimulatedTransaction, SimulationFlag, Transaction, TransactionTrace, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::error;
@@ -689,7 +689,9 @@ impl Starknet {
             },
         };
 
-        self.handle_dump_event(DumpEvent::AddInvokeTransaction(BroadcastedInvokeTransaction::V1(invoke_tx.clone())));
+        self.handle_dump_event(DumpEvent::AddInvokeTransaction(BroadcastedInvokeTransaction::V1(
+            invoke_tx.clone(),
+        )));
 
         // apply the invoke tx
         add_invoke_transaction::add_invoke_transaction_v1(self, invoke_tx)

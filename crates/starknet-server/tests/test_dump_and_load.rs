@@ -273,7 +273,7 @@ mod dump_and_load_tests {
             })
             .to_string(),
         );
-        let result = devnet_dump.post_json("/dump".into(), dump_body).await.unwrap();        
+        let result = devnet_dump.post_json("/dump".into(), dump_body).await.unwrap();
         assert_eq!(result.status(), 400);
     }
 

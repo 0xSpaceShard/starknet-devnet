@@ -35,11 +35,6 @@ impl StarknetTransactions {
     pub fn iter(&self) -> indexmap::map::Iter<'_, Felt, StarknetTransaction> {
         self.0.iter()
     }
-    
-    // TODO: Can be removed later
-    pub fn len(&self) -> usize{
-        self.0.len()
-    }
 }
 
 impl HashIdentifiedMut for StarknetTransactions {

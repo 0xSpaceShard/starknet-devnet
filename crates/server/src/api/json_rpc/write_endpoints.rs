@@ -1,9 +1,8 @@
+use starknet_core::starknet::dump::DumpEvent;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction,
 };
-
-use starknet_core::starknet::dump::DumpEvent;
 
 use super::error::{ApiError, StrictRpcResult};
 use super::models::{
