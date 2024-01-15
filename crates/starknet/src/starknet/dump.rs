@@ -35,34 +35,34 @@ impl Starknet {
         for event in events.into_iter() {
             match event {
                 DumpEvent::AddDeclareTransaction(BroadcastedDeclareTransaction::V1(tx)) => {
-                    let _ = self.add_declare_transaction_v1(*tx);
+                    self.add_declare_transaction_v1(*tx)?;
                 }
                 DumpEvent::AddDeclareTransaction(BroadcastedDeclareTransaction::V2(tx)) => {
-                    let _ = self.add_declare_transaction_v2(*tx);
+                    self.add_declare_transaction_v2(*tx)?;
                 }
                 DumpEvent::AddDeclareTransaction(BroadcastedDeclareTransaction::V3(tx)) => {
-                    let _ = self.add_declare_transaction_v3(*tx);
+                    self.add_declare_transaction_v3(*tx)?;
                 }
                 DumpEvent::AddDeployAccountTransaction(
                     BroadcastedDeployAccountTransaction::V1(tx),
                 ) => {
-                    println!("BroadcastedDeployAccountTransaction::V1 {:?}: ", tx);
-                    let _ = self.add_deploy_account_transaction_v1(tx);
+                    println!("TODO: BroadcastedDeployAccountTransaction::V1 {:?}: ", tx);
+                    self.add_deploy_account_transaction_v1(tx)?;
                 }
                 DumpEvent::AddDeployAccountTransaction(
                     BroadcastedDeployAccountTransaction::V3(tx),
                 ) => {
-                    println!("BroadcastedDeployAccountTransaction::V3 {:?}: ", tx);
-                    let _ = self.add_deploy_account_transaction_v3(tx);
+                    println!("TODO: BroadcastedDeployAccountTransaction::V3 {:?}: ", tx);
+                    self.add_deploy_account_transaction_v3(tx)?;
                 }
                 DumpEvent::AddInvokeTransaction(BroadcastedInvokeTransaction::V1(tx)) => {
-                    let _ = self.add_invoke_transaction_v1(tx);
+                    self.add_invoke_transaction_v1(tx)?;
                 }
                 DumpEvent::AddInvokeTransaction(BroadcastedInvokeTransaction::V3(tx)) => {
-                    let _ = self.add_invoke_transaction_v3(tx);
+                    self.add_invoke_transaction_v3(tx)?;
                 }
                 DumpEvent::CreateBlock => {
-                    let _ = self.create_block(None);
+                    self.create_block(None)?;
                 }
             };
         }
@@ -72,15 +72,11 @@ impl Starknet {
 
     // add starknet dump event
     pub fn handle_dump_event(&mut self, event: DumpEvent) {
-        println!("handle_dump_event");
-
         match self.config.dump_on {
             Some(DumpOn::Transaction) => {
-                println!("DumpOn::Transaction event: {:?}", event);
                 let _ = self.dump_event(event);
             }
             Some(DumpOn::Exit) => {
-                println!("DumpOn::Exit dump_events: {:?}", self.dump_events);
                 self.dump_events.push(event);
             }
             _ => (),
@@ -105,7 +101,6 @@ impl Starknet {
                     file.seek(SeekFrom::End(-1))?;
                     file.read_exact(&mut buffer)?;
                     if String::from_utf8_lossy(&buffer).into_owned() == "]" {
-                        println!("into_owned() == ]");
                         // if the last character is "]", remove it and add event at the end
                         let length = file.seek(SeekFrom::End(0)).map_err(Error::IoError)?;
                         file.set_len(length - 1).map_err(Error::IoError)?; // remove last "]" with set_len
@@ -140,7 +135,6 @@ impl Starknet {
         match dump_path {
             Some(path) => {
                 let events = &self.dump_events;
-                println!("self.dump_events: {:?}", events);
 
                 // dump only if there are events to dump
                 if !events.is_empty() {

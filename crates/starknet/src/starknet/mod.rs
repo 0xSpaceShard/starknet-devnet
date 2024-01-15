@@ -94,7 +94,7 @@ pub struct Starknet {
     pub config: StarknetConfig,
     pub pending_block_timestamp_shift: i64,
     pub(crate) messaging: MessagingBroker,
-    pub dump_events: Vec<DumpEvent>, // TODO: change to pub(crate) later
+    pub(crate) dump_events: Vec<DumpEvent>,
 }
 
 impl Default for Starknet {
@@ -208,7 +208,7 @@ impl Starknet {
         Ok(this)
     }
 
-    pub async fn restart(&mut self) -> DevnetResult<()> {
+    pub fn restart(&mut self) -> DevnetResult<()> {
         self.config.re_execute_on_init = false;
         *self = Starknet::new(&self.config)?;
         Ok(())

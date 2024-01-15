@@ -507,9 +507,6 @@ mod test_messaging {
         // Ensure the balance is back to 1 on L2.
         assert_eq!(get_balance(&devnet, sn_l1l2_contract, user_sn).await, [FieldElement::ONE]);
 
-        // todo: test this with dump scenario
-        // println!("devnet.process {:?}", devnet.);
-        // println!("anvil.process {:?}", anvil.process);
         // Assert traces of L1Handler transaction with custom rpc call,
         // json_rpc_client.trace_transaction() is not supported
         let flush_body = get_json_body(resp).await;

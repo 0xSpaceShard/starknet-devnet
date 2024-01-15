@@ -35,7 +35,6 @@ pub async fn restart(Extension(state): Extension<HttpApiHandler>) -> HttpApiResu
         .write()
         .await
         .restart()
-        .await
         .map_err(|err| HttpApiError::RestartError { msg: err.to_string() })?;
     Ok(())
 }
