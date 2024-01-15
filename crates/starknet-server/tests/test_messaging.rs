@@ -414,8 +414,7 @@ mod test_messaging {
     async fn can_interact_with_l1() {
         let anvil = BackgroundAnvil::spawn().await.unwrap();
 
-        // check with --dump-on exit or transaction
-        // TODO: copy this test to dump/load tests and revert changes here
+        // TODO: copy/reuse this test and use --dump-on exit or transaction
         let (devnet, sn_account, sn_l1l2_contract) = setup_devnet(&[
             "--account-class",
             "cairo1",

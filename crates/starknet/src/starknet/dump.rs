@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
-    BroadcastedInvokeTransaction,
+    BroadcastedInvokeTransaction, L1HandlerTransaction,
 };
 
 use super::{DumpOn, Starknet};
@@ -21,6 +21,8 @@ pub enum DumpEvent {
     AddInvokeTransaction(BroadcastedInvokeTransaction),
     #[serde(rename = "DEPLOY_ACCOUNT")]
     AddDeployAccountTransaction(BroadcastedDeployAccountTransaction),
+    #[serde(rename = "L1_HANDLER")]
+    AddL1HandlerTransaction(L1HandlerTransaction),
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -60,6 +62,9 @@ impl Starknet {
                 }
                 DumpEvent::AddInvokeTransaction(BroadcastedInvokeTransaction::V3(tx)) => {
                     self.add_invoke_transaction_v3(tx)?;
+                }
+                DumpEvent::AddL1HandlerTransaction(tx) => {
+                    self.add_l1_handler_transaction(tx)?;
                 }
                 DumpEvent::CreateBlock => {
                     self.create_block(None)?;

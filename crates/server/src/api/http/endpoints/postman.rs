@@ -1,4 +1,5 @@
 use axum::{Extension, Json};
+use starknet_core::starknet::dump::DumpEvent;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::transactions::L1HandlerTransaction;
 
@@ -87,8 +88,6 @@ pub async fn postman_send_message_to_l2(
     Extension(state): Extension<HttpApiHandler>,
     Json(message): Json<MessageToL2>,
 ) -> HttpApiResult<Json<TxHash>> {
-    // TODO: If dump/load is enabled log postman_send_message_to_l2 action
-
     let mut starknet = state.api.starknet.write().await;
 
     let chain_id = starknet.chain_id().to_felt();
@@ -102,8 +101,9 @@ pub async fn postman_send_message_to_l2(
     let transaction_hash = transaction.transaction_hash;
 
     starknet
-        .add_l1_handler_transaction(transaction)
+        .add_l1_handler_transaction(transaction.clone())
         .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
+    starknet.handle_dump_event(DumpEvent::AddL1HandlerTransaction(transaction)); // move inside add_l1_handler_transaction?
 
     Ok(Json(TxHash { transaction_hash }))
 }
