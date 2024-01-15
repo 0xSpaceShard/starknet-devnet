@@ -55,7 +55,6 @@ mod dump_and_load_tests {
         assert!(devnet_dump.is_err());
     }
 
-    // TODO: test again when mint will be added
     #[tokio::test]
     async fn mint_dump_on_transaction_and_load() {
         // dump after transaction
@@ -99,7 +98,6 @@ mod dump_and_load_tests {
         }
     }
 
-    // TODO: test again when mint will be added
     #[tokio::test]
     async fn mint_dump_on_exit_and_load() {
         // dump on exit
@@ -256,10 +254,18 @@ mod dump_and_load_tests {
         assert_eq!(result.status(), 400);
     }
 
-    // TODO: test again when mint will be added
     #[tokio::test]
     async fn dump_endpoint_fail_with_wrong_file_name() {
-        let devnet_dump = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let dump_file = UniqueAutoDeletableFile::new("dump_wrong_file_name");
+        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-path",
+            &dump_file.path,
+            "--dump-on",
+            "exit",
+        ])
+        .await
+        .expect("Could not start Devnet");
+
         devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
         let dump_body = Body::from(
             json!({
@@ -267,7 +273,7 @@ mod dump_and_load_tests {
             })
             .to_string(),
         );
-        let result = devnet_dump.post_json("/dump".into(), dump_body).await.unwrap();
+        let result = devnet_dump.post_json("/dump".into(), dump_body).await.unwrap();        
         assert_eq!(result.status(), 400);
     }
 
@@ -293,17 +299,21 @@ mod dump_and_load_tests {
         assert_eq!(result.status(), 400);
     }
 
-    // TODO: test again when mint will be added
     #[tokio::test]
     async fn dump_load_endpoints_transaction_and_state_after_load_is_valid() {
         // check if the dump with the default path "dump_endpoint" works as expected when json body
         // is empty, later check if the dump with the custom path "dump_endpoint_custom_path"
         // works
         let dump_file = UniqueAutoDeletableFile::new("dump_endpoint");
-        let devnet_dump =
-            BackgroundDevnet::spawn_with_additional_args(&["--dump-path", &dump_file.path])
-                .await
-                .expect("Could not start Devnet");
+        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-path",
+            &dump_file.path,
+            "--dump-on",
+            "exit",
+        ])
+        .await
+        .expect("Could not start Devnet");
+
         let mint_tx_hash = devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
         let dump_body = Body::from(json!({}).to_string());
         devnet_dump.post_json("/dump".into(), dump_body).await.unwrap();

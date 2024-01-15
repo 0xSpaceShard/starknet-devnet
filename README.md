@@ -207,9 +207,10 @@ cargo run -- --dump-on exit --dump-path <PATH>
 cargo run -- --dump-on transaction --dump-path <PATH>
 ```
 
-- Dumping on request (replace <HOST>, <PORT> and <PATH> with your own):
+- Dumping on request in "exit" mode (replace "<HOST>", "<PORT>" and "<PATH>" with your own):
 
 ```
+cargo run -- --dump-on exit --dump-path <PATH>
 curl -X POST http://<HOST>:<PORT>/dump -d '{ "path": <PATH> }' -H "Content-Type: application/json"
 ```
 
