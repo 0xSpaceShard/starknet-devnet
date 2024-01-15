@@ -43,7 +43,7 @@ use starknet_types::rpc::transactions::{
     BroadcastedTransactionCommon, DeclareTransaction, DeclareTransactionTrace,
     DeployAccountTransactionTrace, ExecutionInvocation, FunctionInvocation, InvokeTransactionTrace,
     L1HandlerTransaction, L1HandlerTransactionTrace, SimulatedTransaction, SimulationFlag,
-    Transaction, TransactionTrace, Transactions,
+    Transaction, TransactionTrace, Transactions, BroadcastedInvokeTransaction,
 };
 use starknet_types::traits::HashProducer;
 use tracing::error;
@@ -689,7 +689,7 @@ impl Starknet {
             },
         };
 
-        // TODO: mint as self.handle_dump_event(AddInvokeTransaction::);?
+        self.handle_dump_event(DumpEvent::AddInvokeTransaction(BroadcastedInvokeTransaction::V1(invoke_tx.clone())));
 
         // apply the invoke tx
         add_invoke_transaction::add_invoke_transaction_v1(self, invoke_tx)

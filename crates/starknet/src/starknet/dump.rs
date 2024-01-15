@@ -15,16 +15,12 @@ use crate::error::{DevnetResult, Error};
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum DumpEvent {
     CreateBlock,
-    Mint(MintEvent),
     #[serde(rename = "DECLARE")]
     AddDeclareTransaction(BroadcastedDeclareTransaction),
     #[serde(rename = "INVOKE")]
     AddInvokeTransaction(BroadcastedInvokeTransaction),
     #[serde(rename = "DEPLOY_ACCOUNT")]
     AddDeployAccountTransaction(BroadcastedDeployAccountTransaction),
-    // TODO: I think that this is not used...
-    // #[serde(rename = "L1_HANDLER")]
-    // AddL1HandlerTransaction(L1HandlerTransaction),
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -39,15 +35,12 @@ impl Starknet {
         for event in events.into_iter() {
             match event {
                 DumpEvent::AddDeclareTransaction(BroadcastedDeclareTransaction::V1(tx)) => {
-                    println!("BroadcastedDeclareTransaction::V1 {:?}: ", tx);
                     let _ = self.add_declare_transaction_v1(*tx);
                 }
                 DumpEvent::AddDeclareTransaction(BroadcastedDeclareTransaction::V2(tx)) => {
-                    println!("BroadcastedDeclareTransaction::V2 {:?}: ", tx);
                     let _ = self.add_declare_transaction_v2(*tx);
                 }
                 DumpEvent::AddDeclareTransaction(BroadcastedDeclareTransaction::V3(tx)) => {
-                    println!("BroadcastedDeclareTransaction::V3 {:?}: ", tx);
                     let _ = self.add_declare_transaction_v3(*tx);
                 }
                 DumpEvent::AddDeployAccountTransaction(
@@ -63,23 +56,13 @@ impl Starknet {
                     let _ = self.add_deploy_account_transaction_v3(tx);
                 }
                 DumpEvent::AddInvokeTransaction(BroadcastedInvokeTransaction::V1(tx)) => {
-                    println!("BroadcastedInvokeTransaction::V1 {:?}: ", tx);
                     let _ = self.add_invoke_transaction_v1(tx);
                 }
                 DumpEvent::AddInvokeTransaction(BroadcastedInvokeTransaction::V3(tx)) => {
-                    println!("BroadcastedInvokeTransaction::V3 {:?}: ", tx);
                     let _ = self.add_invoke_transaction_v3(tx);
                 }
-                // DumpEvent::AddL1HandlerTransaction(tx) => {
-                //     println!("AddL1Handler {:?}: ", tx);
-                //     let _ = self.add_l1_handler_transaction(tx);
-                // }
                 DumpEvent::CreateBlock => {
                     let _ = self.create_block(None);
-                }
-                DumpEvent::Mint(mint) => {
-                    println!("mint {:?}: ", mint);
-                    // let _ = self.mint(mint.address, mint.amount, mint.erc20_address).await;
                 }
             };
         }
@@ -93,11 +76,11 @@ impl Starknet {
 
         match self.config.dump_on {
             Some(DumpOn::Transaction) => {
-                // println!("DumpOn::Transaction event: {:?}", event);
+                println!("DumpOn::Transaction event: {:?}", event);
                 let _ = self.dump_event(event);
             }
             Some(DumpOn::Exit) => {
-                // println!("DumpOn::Exit dump_events: {:?}", self.dump_events);
+                println!("DumpOn::Exit dump_events: {:?}", self.dump_events);
                 self.dump_events.push(event);
             }
             _ => (),
@@ -122,6 +105,7 @@ impl Starknet {
                     file.seek(SeekFrom::End(-1))?;
                     file.read_exact(&mut buffer)?;
                     if String::from_utf8_lossy(&buffer).into_owned() == "]" {
+                        println!("into_owned() == ]");
                         // if the last character is "]", remove it and add event at the end
                         let length = file.seek(SeekFrom::End(0)).map_err(Error::IoError)?;
                         file.set_len(length - 1).map_err(Error::IoError)?; // remove last "]" with set_len
