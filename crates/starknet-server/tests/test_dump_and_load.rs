@@ -346,4 +346,59 @@ mod dump_and_load_tests {
             panic!("Could not unpack the transaction from {loaded_transaction:?}");
         }
     }
+
+    #[tokio::test]
+    async fn dump_load_dump_load() {
+        let dump_file = UniqueAutoDeletableFile::new("dump_load_dump_load");
+        let devnet_dump_first = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-path",
+            &dump_file.path,
+            "--dump-on",
+            "exit",
+        ])
+        .await
+        .expect("Could not start Devnet");
+
+        devnet_dump_first
+            .post_json("/create_block".into(), Body::from(json!({}).to_string()))
+            .await
+            .unwrap();
+        devnet_dump_first.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+
+        // ctrl c
+        send_ctrl_c_signal(&devnet_dump_first.process).await;
+        std::thread::sleep(std::time::Duration::from_secs(1));
+
+        let devnet_dump_second = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-path",
+            &dump_file.path,
+            "--dump-on",
+            "exit",
+        ])
+        .await
+        .expect("Could not start Devnet");
+        devnet_dump_second
+            .post_json("/create_block".into(), Body::from(json!({}).to_string()))
+            .await
+            .unwrap();
+        devnet_dump_second.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+
+        // ctrl c
+        send_ctrl_c_signal(&devnet_dump_second.process).await;
+        std::thread::sleep(std::time::Duration::from_secs(1));
+
+        let devnet_dump_third = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-path",
+            &dump_file.path,
+            "--dump-on",
+            "exit",
+        ])
+        .await
+        .expect("Could not start Devnet");
+
+        let last_block = &devnet_dump_third
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
+        assert_eq!(last_block["block_number"], 3);
+    }
 }
