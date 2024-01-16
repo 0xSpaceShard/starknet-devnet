@@ -3,10 +3,9 @@ use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use starknet_types::rpc::transactions::invoke_transaction_v3::InvokeTransactionV3;
-use starknet_types::rpc::transactions::{InvokeTransaction, Transaction, BroadcastedInvokeTransaction};
+use starknet_types::rpc::transactions::{InvokeTransaction, Transaction};
 
 use super::Starknet;
-use super::dump::DumpEvent;
 use crate::error::{DevnetResult, Error};
 
 pub fn add_invoke_transaction_v1(
@@ -32,9 +31,6 @@ pub fn add_invoke_transaction_v1(
         .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
     starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
-    starknet.handle_dump_event(DumpEvent::AddInvokeTransaction(BroadcastedInvokeTransaction::V1(
-        broadcasted_invoke_transaction,
-    )));
 
     Ok(transaction_hash)
 }
@@ -64,9 +60,6 @@ pub fn add_invoke_transaction_v3(
     )));
 
     starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
-    starknet.handle_dump_event(DumpEvent::AddInvokeTransaction(BroadcastedInvokeTransaction::V3(
-        broadcasted_invoke_transaction,
-    )));
 
     Ok(transaction_hash)
 }
