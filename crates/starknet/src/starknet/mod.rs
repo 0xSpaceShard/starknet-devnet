@@ -689,12 +689,13 @@ impl Starknet {
             },
         };
 
+        // apply the invoke tx
+        let result = add_invoke_transaction::add_invoke_transaction_v1(self, invoke_tx.clone());
         self.handle_dump_event(DumpEvent::AddInvokeTransaction(BroadcastedInvokeTransaction::V1(
-            invoke_tx.clone(),
+            invoke_tx,
         )));
 
-        // apply the invoke tx
-        add_invoke_transaction::add_invoke_transaction_v1(self, invoke_tx)
+        result
     }
 
     pub fn block_state_update(&self, block_id: BlockId) -> DevnetResult<StateUpdate> {

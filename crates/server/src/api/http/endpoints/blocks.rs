@@ -12,7 +12,6 @@ pub async fn create_block(
     starknet
         .create_block(None)
         .map_err(|err| HttpApiError::CreateEmptyBlockError { msg: err.to_string() })?;
-
     starknet.handle_dump_event(DumpEvent::CreateBlock);
 
     let last_block = starknet.get_latest_block();
