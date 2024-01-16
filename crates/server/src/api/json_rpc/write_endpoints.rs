@@ -17,6 +17,7 @@ impl JsonRpcHandler {
         request: BroadcastedDeclareTransaction,
     ) -> StrictRpcResult {
         let mut starknet = self.api.starknet.write().await;
+        // TODO: move to add_declare_transaction_v1 add_declare_transaction_v2 add_declare_transaction_v3
         starknet.handle_dump_event(DumpEvent::AddDeclareTransaction(request.clone()));
 
         let (transaction_hash, class_hash) = match request {
@@ -42,6 +43,7 @@ impl JsonRpcHandler {
         request: BroadcastedDeployAccountTransaction,
     ) -> StrictRpcResult {
         let mut starknet = self.api.starknet.write().await;
+        // TODO: move to add_deploy_account_transaction_v1 and add_deploy_account_transaction_v3
         starknet.handle_dump_event(DumpEvent::AddDeployAccountTransaction(request.clone()));
 
         let (transaction_hash, contract_address) = match request {
@@ -74,7 +76,6 @@ impl JsonRpcHandler {
         request: BroadcastedInvokeTransaction,
     ) -> StrictRpcResult {
         let mut starknet = self.api.starknet.write().await;
-        starknet.handle_dump_event(DumpEvent::AddInvokeTransaction(request.clone()));
 
         let transaction_hash = match request {
             BroadcastedInvokeTransaction::V1(invoke_txn) => {

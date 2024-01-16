@@ -689,10 +689,6 @@ impl Starknet {
             },
         };
 
-        self.handle_dump_event(DumpEvent::AddInvokeTransaction(BroadcastedInvokeTransaction::V1(
-            invoke_tx.clone(),
-        )));
-
         // apply the invoke tx
         add_invoke_transaction::add_invoke_transaction_v1(self, invoke_tx)
     }
