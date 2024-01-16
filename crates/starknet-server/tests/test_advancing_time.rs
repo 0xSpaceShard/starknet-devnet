@@ -17,9 +17,8 @@ mod advancing_time_tests {
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::{
         get_json_body, get_timestamp_contract_in_sierra_and_compiled_class_hash,
-        get_unix_timestamp_as_seconds,
+        get_unix_timestamp_as_seconds, send_ctrl_c_signal, UniqueAutoDeletableFile,
     };
-    use crate::common::utils::{send_ctrl_c_signal, UniqueAutoDeletableFile};
 
     const DUMMY_ADDRESS: u128 = 1;
     const DUMMY_AMOUNT: u128 = 1;
@@ -558,28 +557,30 @@ mod advancing_time_tests {
             last_block["timestamp"].as_u64(),
             third_increase_time_block["timestamp"].as_u64(),
         );
-        println!("last_block dump 5: {:?}", last_block["block_number"]);
 
         // ctrl c
         send_ctrl_c_signal(&devnet.process).await;
         std::thread::sleep(std::time::Duration::from_secs(1));
 
-        // load from file and check time and block number
-        // let devnet_load = BackgroundDevnet::spawn_with_additional_args(&[
-        //     "--start-time",
-        //     past_time.to_string().as_str(),
-        //     "--dump-path",
-        //     dump_file.path.as_str(),
-        //     "--dump-on",
-        //     "exit",
-        // ])
-        // .await
-        // .expect("Could not start Devnet");
+        // load from file and check block number and timestamp
+        let devnet_load = BackgroundDevnet::spawn_with_additional_args(&[
+            "--start-time",
+            past_time.to_string().as_str(),
+            "--dump-path",
+            dump_file.path.as_str(),
+            "--dump-on",
+            "exit",
+        ])
+        .await
+        .expect("Could not start Devnet");
 
-        // let last_block_load = &devnet
-        //     .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
-        //     .await["result"];
-        // println!("last_block_load: {:?}", last_block_load);
+        let last_block_load = &devnet_load
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
+        assert_eq!(last_block["block_number"], last_block_load["block_number"]);
 
+        let timestamp_diff = last_block_load["timestamp"].as_i64().unwrap()
+            - last_block["timestamp"].as_i64().unwrap();
+        assert!(timestamp_diff.abs() < BUFFER_TIME_SECONDS as i64)
     }
 }
