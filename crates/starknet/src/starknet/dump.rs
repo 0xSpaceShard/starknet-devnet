@@ -50,13 +50,11 @@ impl Starknet {
                 DumpEvent::AddDeployAccountTransaction(
                     BroadcastedDeployAccountTransaction::V1(tx),
                 ) => {
-                    println!("TODO: BroadcastedDeployAccountTransaction::V1 {:?}: ", tx);
                     self.add_deploy_account_transaction_v1(tx)?;
                 }
                 DumpEvent::AddDeployAccountTransaction(
                     BroadcastedDeployAccountTransaction::V3(tx),
                 ) => {
-                    println!("TODO: BroadcastedDeployAccountTransaction::V3 {:?}: ", tx);
                     self.add_deploy_account_transaction_v3(tx)?;
                 }
                 DumpEvent::AddInvokeTransaction(BroadcastedInvokeTransaction::V1(tx)) => {
