@@ -12,7 +12,9 @@ pub async fn create_block(
     starknet
         .create_block(None)
         .map_err(|err| HttpApiError::CreateEmptyBlockError { msg: err.to_string() })?;
-    starknet.handle_dump_event(DumpEvent::CreateBlock);
+    starknet
+        .handle_dump_event(DumpEvent::CreateBlock)
+        .map_err(|err| HttpApiError::CreateEmptyBlockError { msg: err.to_string() })?;
 
     let last_block = starknet.get_latest_block();
     match last_block {

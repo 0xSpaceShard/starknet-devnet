@@ -3,7 +3,6 @@ use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
-use starknet_types::contract_address::ContractAddress;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction, L1HandlerTransaction,
@@ -25,13 +24,6 @@ pub enum DumpEvent {
     AddDeployAccountTransaction(BroadcastedDeployAccountTransaction),
     #[serde(rename = "L1_HANDLER")]
     AddL1HandlerTransaction(L1HandlerTransaction),
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct MintEvent {
-    pub address: ContractAddress,
-    pub amount: u128,
-    pub erc20_address: ContractAddress,
 }
 
 impl Starknet {
@@ -82,15 +74,15 @@ impl Starknet {
     }
 
     // add starknet dump event
-    pub fn handle_dump_event(&mut self, event: DumpEvent) {
+    pub fn handle_dump_event(&mut self, event: DumpEvent) -> DevnetResult<()> {
         match self.config.dump_on {
-            Some(DumpOn::Transaction) => {
-                let _ = self.dump_event(event);
-            }
+            Some(DumpOn::Transaction) => self.dump_event(event),
             Some(DumpOn::Exit) => {
                 self.dump_events.push(event);
+
+                Ok(())
             }
-            _ => (),
+            _ => Ok(()),
         }
     }
 

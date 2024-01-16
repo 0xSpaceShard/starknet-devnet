@@ -103,7 +103,9 @@ pub async fn postman_send_message_to_l2(
     starknet
         .add_l1_handler_transaction(transaction.clone())
         .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
-    starknet.handle_dump_event(DumpEvent::AddL1HandlerTransaction(transaction));
+    starknet
+        .handle_dump_event(DumpEvent::AddL1HandlerTransaction(transaction))
+        .map_err(|e| HttpApiError::MessagingError { msg: e.to_string() })?;
 
     Ok(Json(TxHash { transaction_hash }))
 }

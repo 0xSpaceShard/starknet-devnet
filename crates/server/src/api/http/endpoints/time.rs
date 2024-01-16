@@ -13,7 +13,9 @@ pub async fn set_time(
     starknet
         .set_time(data.time)
         .map_err(|err| HttpApiError::BlockSetTimeError { msg: err.to_string() })?;
-    starknet.handle_dump_event(DumpEvent::SetTime(data.time));
+    starknet
+        .handle_dump_event(DumpEvent::SetTime(data.time))
+        .map_err(|err| HttpApiError::BlockSetTimeError { msg: err.to_string() })?;
 
     let last_block = starknet.get_latest_block();
     match last_block {
@@ -33,7 +35,9 @@ pub async fn increase_time(
     starknet
         .increase_time(data.time)
         .map_err(|err| HttpApiError::BlockIncreaseTimeError { msg: err.to_string() })?;
-    starknet.handle_dump_event(DumpEvent::IncreaseTime(data.time));
+    starknet
+        .handle_dump_event(DumpEvent::IncreaseTime(data.time))
+        .map_err(|err| HttpApiError::BlockIncreaseTimeError { msg: err.to_string() })?;
 
     let last_block = starknet.get_latest_block();
     match last_block {
