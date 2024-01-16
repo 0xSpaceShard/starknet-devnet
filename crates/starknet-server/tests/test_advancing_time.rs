@@ -558,10 +558,28 @@ mod advancing_time_tests {
             last_block["timestamp"].as_u64(),
             third_increase_time_block["timestamp"].as_u64(),
         );
+        println!("last_block dump 5: {:?}", last_block["block_number"]);
 
         // ctrl c
         send_ctrl_c_signal(&devnet.process).await;
         std::thread::sleep(std::time::Duration::from_secs(1));
-        
+
+        // load from file and check time and block number
+        // let devnet_load = BackgroundDevnet::spawn_with_additional_args(&[
+        //     "--start-time",
+        //     past_time.to_string().as_str(),
+        //     "--dump-path",
+        //     dump_file.path.as_str(),
+        //     "--dump-on",
+        //     "exit",
+        // ])
+        // .await
+        // .expect("Could not start Devnet");
+
+        // let last_block_load = &devnet
+        //     .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+        //     .await["result"];
+        // println!("last_block_load: {:?}", last_block_load);
+
     }
 }
