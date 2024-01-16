@@ -1,4 +1,5 @@
 use axum::{Extension, Json};
+use starknet_core::starknet::dump::DumpEvent;
 
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{IncreaseTimeResponse, SetTimeResponse, Time};
@@ -8,12 +9,11 @@ pub async fn set_time(
     Json(data): Json<Time>,
     Extension(state): Extension<HttpApiHandler>,
 ) -> HttpApiResult<Json<SetTimeResponse>> {
-    // TODO: If dump/load is enabled log set_time action
-
     let mut starknet = state.api.starknet.write().await;
     starknet
         .set_time(data.time)
         .map_err(|err| HttpApiError::BlockSetTimeError { msg: err.to_string() })?;
+    starknet.handle_dump_event(DumpEvent::SetTime(data.time));
 
     let last_block = starknet.get_latest_block();
     match last_block {
@@ -29,12 +29,11 @@ pub async fn increase_time(
     Json(data): Json<Time>,
     Extension(state): Extension<HttpApiHandler>,
 ) -> HttpApiResult<Json<IncreaseTimeResponse>> {
-    // TODO: If dump/load is enabled log increase_time action
-
     let mut starknet = state.api.starknet.write().await;
     starknet
         .increase_time(data.time)
         .map_err(|err| HttpApiError::BlockIncreaseTimeError { msg: err.to_string() })?;
+    starknet.handle_dump_event(DumpEvent::IncreaseTime(data.time));
 
     let last_block = starknet.get_latest_block();
     match last_block {

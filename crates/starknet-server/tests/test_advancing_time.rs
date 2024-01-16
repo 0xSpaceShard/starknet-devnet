@@ -19,6 +19,7 @@ mod advancing_time_tests {
         get_json_body, get_timestamp_contract_in_sierra_and_compiled_class_hash,
         get_unix_timestamp_as_seconds,
     };
+    use crate::common::utils::{send_ctrl_c_signal, UniqueAutoDeletableFile};
 
     const DUMMY_ADDRESS: u128 = 1;
     const DUMMY_AMOUNT: u128 = 1;
@@ -462,12 +463,17 @@ mod advancing_time_tests {
     }
 
     #[tokio::test]
-    async fn advance_time_combination_test() {
+    async fn advance_time_combination_test_with_dump_and_load() {
         let now = get_unix_timestamp_as_seconds();
         let past_time = 1;
+        let dump_file = UniqueAutoDeletableFile::new("time_combination");
         let devnet = BackgroundDevnet::spawn_with_additional_args(&[
             "--start-time",
             past_time.to_string().as_str(),
+            "--dump-path",
+            dump_file.path.as_str(),
+            "--dump-on",
+            "exit",
         ])
         .await
         .expect("Could not start Devnet");
@@ -552,5 +558,10 @@ mod advancing_time_tests {
             last_block["timestamp"].as_u64(),
             third_increase_time_block["timestamp"].as_u64(),
         );
+
+        // ctrl c
+        send_ctrl_c_signal(&devnet.process).await;
+        std::thread::sleep(std::time::Duration::from_secs(1));
+        
     }
 }

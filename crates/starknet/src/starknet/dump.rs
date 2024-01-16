@@ -15,6 +15,8 @@ use crate::error::{DevnetResult, Error};
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum DumpEvent {
     CreateBlock,
+    SetTime(u64),
+    IncreaseTime(u64),
     #[serde(rename = "DECLARE")]
     AddDeclareTransaction(BroadcastedDeclareTransaction),
     #[serde(rename = "INVOKE")]
@@ -68,6 +70,12 @@ impl Starknet {
                 }
                 DumpEvent::CreateBlock => {
                     self.create_block(None)?;
+                }
+                DumpEvent::SetTime(timestamp) => {
+                    self.set_time(timestamp)?;
+                }
+                DumpEvent::IncreaseTime(time_shift) => {
+                    self.increase_time(time_shift)?;
                 }
             };
         }
