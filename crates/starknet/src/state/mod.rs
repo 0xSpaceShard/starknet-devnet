@@ -1,22 +1,15 @@
 use std::collections::HashMap;
 
 use blockifier::state::cached_state::CachedState;
-use blockifier::state::state_api::StateReader;
-use cairo_felt::Felt252;
-use starknet_types::contract_address::ContractAddress;
+use blockifier::test_utils::DictStateReader;
 use starknet_types::contract_class::ContractClass;
-use starknet_types::contract_storage_key::ContractStorageKey;
-use starknet_types::felt::{ClassHash, CompiledClassHash, Felt};
-
-use self::state_diff::StateDiff;
-use crate::error::{DevnetResult, Error, StateError};
-use crate::traits::{DevnetStateReader, StateChanger, StateExtractor};
+use starknet_types::felt::ClassHash;
 
 pub(crate) mod state_diff;
 pub mod state_update;
 
 pub(crate) struct StarknetState {
-    pub state: CachedState<DevnetState>,
+    pub state: CachedState<DictStateReader>,
     pub(crate) contract_classes: HashMap<ClassHash, ContractClass>,
 }
 
@@ -29,77 +22,33 @@ impl Default for StarknetState {
     }
 }
 
-#[derive(Default, Clone)]
-pub(crate) struct DevnetState {
-    pub address_to_class_hash: HashMap<ContractAddress, ClassHash>,
-    pub address_to_nonce: HashMap<ContractAddress, Felt>,
-    pub address_to_storage: HashMap<ContractStorageKey, Felt>,
-    pub class_hash_to_compiled_class: HashMap<ClassHash, ContractClass>,
-    pub class_hash_to_compiled_class_hash: HashMap<ClassHash, CompiledClassHash>,
-}
-
-impl crate::traits::DevnetStateReader for DevnetState {
-    fn compiled_class_hash_at(&self, class_hash: &ClassHash) -> ClassHash {
-        self.class_hash_to_compiled_class_hash.get(class_hash).cloned().unwrap_or_default()
-    }
-
-    fn storage_at(&self, storage_key: &ContractStorageKey) -> Felt {
-        self.address_to_storage.get(storage_key).cloned().unwrap_or_default()
-    }
-
-    fn nonce_at(&self, address: &ContractAddress) -> Felt {
-        self.address_to_nonce.get(address).cloned().unwrap_or_default()
-    }
-
-    fn class_hash_at(&self, address: &ContractAddress) -> ClassHash {
-        self.address_to_class_hash.get(address).cloned().unwrap_or_default()
-    }
-
-    fn contract_class_at(&self, class_hash: &ClassHash) -> DevnetResult<ContractClass> {
-        if let Some(deprecated_contract_class) = self.class_hash_to_compiled_class.get(class_hash) {
-            Ok(deprecated_contract_class.clone())
-        } else {
-            let compiled_class_hash = self
-                .class_hash_to_compiled_class_hash
-                .get(class_hash)
-                .ok_or(Error::StateError(StateError::NoneCompiledHash(*class_hash)))?;
-
-            self.class_hash_to_compiled_class
-                .get(compiled_class_hash)
-                .ok_or(Error::StateError(StateError::NoneCasmClass(*compiled_class_hash)))
-                .cloned()
-        }
+impl StarknetState {
+    fn get_contract_class(&self, class_hash: &starknet_api::core::ClassHash) {
+        todo!("sierra for cairo1, regular artifact for cairo0")
     }
 }
 
-impl blockifier::state::state_api::StateReader for DevnetState {
+impl blockifier::state::state_api::StateReader for StarknetState {
     fn get_storage_at(
         &mut self,
         contract_address: starknet_api::core::ContractAddress,
         key: starknet_api::state::StorageKey,
     ) -> blockifier::state::state_api::StateResult<starknet_api::hash::StarkFelt> {
-        let storage = crate::traits::DevnetStateReader::storage_at(
-            self,
-            &ContractStorageKey::new(contract_address.into(), key.0.into()),
-        );
-        Ok(storage.into())
+        self.state.get_storage_at(contract_address, key)
     }
 
     fn get_nonce_at(
         &mut self,
         contract_address: starknet_api::core::ContractAddress,
     ) -> blockifier::state::state_api::StateResult<starknet_api::core::Nonce> {
-        let nonce = crate::traits::DevnetStateReader::nonce_at(self, &contract_address.into());
-        Ok(starknet_api::core::Nonce(nonce.into()))
+        self.state.get_nonce_at(contract_address)
     }
 
     fn get_class_hash_at(
         &mut self,
         contract_address: starknet_api::core::ContractAddress,
     ) -> blockifier::state::state_api::StateResult<starknet_api::core::ClassHash> {
-        let class_hash =
-            crate::traits::DevnetStateReader::class_hash_at(self, &contract_address.into());
-        Ok(starknet_api::core::ClassHash(class_hash.into()))
+        self.state.get_class_hash_at(contract_address)
     }
 
     fn get_compiled_contract_class(
@@ -108,185 +57,36 @@ impl blockifier::state::state_api::StateReader for DevnetState {
     ) -> blockifier::state::state_api::StateResult<
         blockifier::execution::contract_class::ContractClass,
     > {
-        let contract_class =
-            crate::traits::DevnetStateReader::contract_class_at(self, &class_hash.0.into())
-                .map_err(|_| {
-                    blockifier::state::errors::StateError::UndeclaredClassHash(*class_hash)
-                })?;
-
-        blockifier::execution::contract_class::ContractClass::try_from(contract_class)
-            .map_err(|err| blockifier::state::errors::StateError::StateReadError(err.to_string()))
+        self.get_compiled_contract_class(class_hash)
     }
 
     fn get_compiled_class_hash(
         &mut self,
         class_hash: starknet_api::core::ClassHash,
     ) -> blockifier::state::state_api::StateResult<starknet_api::core::CompiledClassHash> {
-        let compiled_class_hash =
-            crate::traits::DevnetStateReader::compiled_class_hash_at(self, &(class_hash.0.into()));
-        Ok(starknet_api::core::CompiledClassHash(compiled_class_hash.into()))
-    }
-}
-
-impl StarknetState {
-    /// this method clears the state from data that was accumulated in the StateCache
-    /// and restores it to the data in the state_reader, which is the "persistent" data
-    pub(crate) fn clear_dirty_state(&mut self) {
-        self.state = CachedState::new(self.state.state.clone(), Default::default());
+        self.state.get_compiled_class_hash(class_hash)
     }
 }
 
 impl Clone for StarknetState {
     fn clone(&self) -> Self {
         Self {
-            state: CachedState::new(self.state.state.clone(), Default::default()),
+            state: CachedState::new(
+                DictStateReader {
+                    storage_view: self.state.state.storage_view.clone(),
+                    address_to_nonce: self.state.state.address_to_nonce.clone(),
+                    address_to_class_hash: self.state.state.address_to_class_hash.clone(),
+                    class_hash_to_class: self.state.state.class_hash_to_class.clone(),
+                    class_hash_to_compiled_class_hash: self
+                        .state
+                        .state
+                        .class_hash_to_compiled_class_hash
+                        .clone(),
+                },
+                Default::default(),
+            ),
             contract_classes: self.contract_classes.clone(),
         }
-    }
-}
-
-impl StateChanger for StarknetState {
-    fn declare_contract_class(
-        &mut self,
-        class_hash: ClassHash,
-        contract_class: ContractClass,
-    ) -> DevnetResult<()> {
-        self.contract_classes.insert(class_hash, contract_class.clone());
-        let persistent_state = &mut self.state.state;
-
-        persistent_state.class_hash_to_compiled_class.insert(class_hash, contract_class);
-
-        Ok(())
-    }
-
-    fn deploy_contract(
-        &mut self,
-        address: ContractAddress,
-        class_hash: ClassHash,
-    ) -> DevnetResult<()> {
-        let persistent_state = &mut self.state.state;
-
-        persistent_state.address_to_class_hash.insert(address, class_hash);
-        persistent_state.address_to_nonce.insert(address, Felt::from(0));
-
-        Ok(())
-    }
-
-    fn change_storage(&mut self, storage_key: ContractStorageKey, data: Felt) -> DevnetResult<()> {
-        let persistent_state = &mut self.state.state;
-
-        persistent_state.address_to_storage.insert(storage_key, data);
-
-        Ok(())
-    }
-
-    fn increment_nonce(&mut self, address: ContractAddress) -> DevnetResult<()> {
-        let nonce = self.state.state.nonce_at(&address);
-        let persistent_state = &mut self.state.state;
-
-        persistent_state
-            .address_to_nonce
-            .insert(address, (Felt252::from(nonce) + Felt252::new(1)).into());
-
-        Ok(())
-    }
-
-    fn apply_state_difference(&mut self, state_diff: StateDiff) -> DevnetResult<()> {
-        let old_state = &mut self.state.state;
-        let contract_classes_cache = &self.contract_classes;
-
-        let storage_updates =
-            state_diff.storage_updates.into_iter().flat_map(|(address, entries)| {
-                entries.into_iter().map(move |(storage_key, value)| {
-                    (ContractStorageKey::new(address, storage_key), value)
-                })
-            });
-
-        old_state.address_to_storage.extend(storage_updates);
-
-        // update cairo 0 differences
-        for class_hash in state_diff.cairo_0_declared_contracts {
-            let cairo_0_contract_class = contract_classes_cache
-                .get(&class_hash)
-                .ok_or(Error::StateError(crate::error::StateError::NoneClassHash(class_hash)))?;
-            old_state
-                .class_hash_to_compiled_class
-                .insert(class_hash, cairo_0_contract_class.clone());
-        }
-
-        // update class_hash -> compiled_class_hash differences
-        old_state
-            .class_hash_to_compiled_class_hash
-            .extend(state_diff.class_hash_to_compiled_class_hash.iter());
-
-        // update cairo 1 differences
-        state_diff.declared_contracts.iter().try_for_each(|class_hash| -> DevnetResult<()> {
-            let compiled_class_hash =
-                old_state.class_hash_to_compiled_class_hash.get(class_hash).ok_or(
-                    Error::StateError(crate::error::StateError::NoneCompiledHash(*class_hash)),
-                )?;
-
-            let cairo_1_sierra = contract_classes_cache
-                .get(class_hash)
-                .ok_or(Error::StateError(crate::error::StateError::NoneCasmClass(*class_hash)))?;
-
-            old_state
-                .class_hash_to_compiled_class
-                .insert(*compiled_class_hash, cairo_1_sierra.clone());
-
-            Ok(())
-        })?;
-
-        // update deployed contracts
-        old_state.address_to_class_hash.extend(state_diff.address_to_class_hash.iter());
-
-        // update accounts nonce
-        old_state.address_to_nonce.extend(state_diff.address_to_nonce.iter());
-
-        Ok(())
-    }
-}
-
-impl StateExtractor for StarknetState {
-    fn get_storage(&self, storage_key: ContractStorageKey) -> DevnetResult<Felt> {
-        if !self.is_contract_deployed(storage_key.get_contract_address()) {
-            return Err(Error::ContractNotFound);
-        }
-
-        let data = self.state.state.storage_at(&storage_key);
-
-        Ok(data)
-    }
-
-    fn is_contract_declared(&mut self, class_hash: &ClassHash) -> bool {
-        self.state.state.class_hash_to_compiled_class_hash.contains_key(class_hash)
-            || self.state.state.class_hash_to_compiled_class.contains_key(class_hash)
-    }
-
-    fn is_contract_deployed(&self, address: &ContractAddress) -> bool {
-        self.state.state.address_to_class_hash.contains_key(address)
-    }
-
-    fn get_class_hash_at_contract_address(
-        &mut self,
-        contract_address: &ContractAddress,
-    ) -> DevnetResult<ClassHash> {
-        Ok(self
-            .state
-            .get_class_hash_at((*contract_address).try_into()?)
-            .map(|f| Felt::from(f.0))?)
-    }
-
-    fn extract_state_diff_from_pending_state(&mut self) -> DevnetResult<StateDiff> {
-        StateDiff::difference_between_old_and_new_state(self.state.state.clone(), &mut self.state)
-    }
-
-    fn get_nonce(&self, address: &ContractAddress) -> DevnetResult<Felt> {
-        if !self.is_contract_deployed(address) {
-            return Err(Error::ContractNotFound);
-        }
-
-        Ok(self.state.state.nonce_at(address))
     }
 }
 
@@ -300,13 +100,11 @@ mod tests {
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::{ClassHash, Felt};
 
-    use super::{DevnetState, StarknetState};
+    use super::StarknetState;
     use crate::error::Error;
-    use crate::traits::{StateChanger, StateExtractor};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{
-        dummy_cairo_1_contract_class, dummy_contract_address, dummy_contract_storage_key,
-        dummy_felt,
+        dummy_contract_address, dummy_contract_storage_key, dummy_felt,
     };
 
     #[test]
@@ -615,22 +413,23 @@ mod tests {
         )
     }
 
-    fn setup_devnet_state() -> (DevnetState, ClassHash, ContractAddress, ContractStorageKey) {
-        let mut state = DevnetState::default();
+    fn setup_devnet_state() -> (StarknetState, ClassHash, ContractAddress, ContractStorageKey) {
+        let mut state = StarknetState::default();
         let class_hash = dummy_felt();
         let compiled_class_hash = Felt::from(1);
         let address = dummy_contract_address();
         let storage_key = dummy_contract_storage_key();
 
-        state.class_hash_to_compiled_class_hash.insert(class_hash, compiled_class_hash);
-        state
-            .class_hash_to_compiled_class
-            .insert(dummy_felt(), dummy_cairo_1_contract_class().into());
-        state.address_to_class_hash.insert(address, class_hash);
-        state.address_to_storage.insert(storage_key, class_hash);
-        state.address_to_nonce.insert(address, Felt::from(1));
+        unimplemented!()
+        //     state.class_hash_to_compiled_class_hash.insert(class_hash, compiled_class_hash);
+        //     state
+        //         .class_hash_to_compiled_class
+        //         .insert(dummy_felt(), dummy_cairo_1_contract_class().into());
+        //     state.address_to_class_hash.insert(address, class_hash);
+        //     state.address_to_storage.insert(storage_key, class_hash);
+        //     state.address_to_nonce.insert(address, Felt::from(1));
 
-        (state, class_hash, address, storage_key)
+        //     (state, class_hash, address, storage_key)
     }
 
     fn setup() -> (StarknetState, ContractAddress) {
