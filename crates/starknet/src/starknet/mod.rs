@@ -46,7 +46,7 @@ use starknet_types::rpc::transactions::{
     Transaction, TransactionTrace, Transactions,
 };
 use starknet_types::traits::HashProducer;
-use tracing::error;
+use tracing::{error, info};
 
 use self::predeployed::initialize_erc20_at_address;
 use self::starknet_config::{DumpOn, StarknetConfig, StateArchiveCapacity};
@@ -204,6 +204,8 @@ impl Starknet {
     pub fn restart(&mut self) -> DevnetResult<()> {
         self.config.re_execute_on_init = false;
         *self = Starknet::new(&self.config)?;
+        info!("Starknet Devnet restarted");
+
         Ok(())
     }
 
