@@ -174,12 +174,6 @@ impl Starknet {
                     let events: Vec<DumpEvent> = serde_json::from_reader(file)
                         .map_err(|e| Error::DeserializationError { origin: e.to_string() })?;
 
-                    // to avoid doublets in events mode during load, we need to remove the file
-                    // because they will be re-executed and saved again
-                    if self.config.dump_on == Some(DumpOn::Transaction) {
-                        fs::remove_file(file_path).map_err(Error::IoError)?;
-                    }
-
                     Ok(events)
                 } else {
                     Err(Error::FileNotFound)
