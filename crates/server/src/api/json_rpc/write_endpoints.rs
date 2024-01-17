@@ -15,18 +15,26 @@ impl JsonRpcHandler {
         &self,
         request: BroadcastedDeclareTransaction,
     ) -> StrictRpcResult {
-        let mut starknet = self.api.starknet.write().await;
+        let (transaction_hash, class_hash) = match request {
+            BroadcastedDeclareTransaction::V1(broadcasted_declare_txn) => self
+                .api
+                .starknet
+                .write()
+                .await
+                .add_declare_transaction_v1(*broadcasted_declare_txn)?,
+            BroadcastedDeclareTransaction::V2(broadcasted_declare_txn) => self
+                .api
+                .starknet
+                .write()
+                .await
+                .add_declare_transaction_v2(*broadcasted_declare_txn)?,
 
-        let (transaction_hash, class_hash) = match request.clone() {
-            BroadcastedDeclareTransaction::V1(broadcasted_declare_txn) => {
-                starknet.add_declare_transaction_v1(*broadcasted_declare_txn)?
-            }
-            BroadcastedDeclareTransaction::V2(broadcasted_declare_txn) => {
-                starknet.add_declare_transaction_v2(*broadcasted_declare_txn)?
-            }
-            BroadcastedDeclareTransaction::V3(broadcasted_declare_txn) => {
-                starknet.add_declare_transaction_v3(*broadcasted_declare_txn)?
-            }
+            BroadcastedDeclareTransaction::V3(broadcasted_declare_txn) => self
+                .api
+                .starknet
+                .write()
+                .await
+                .add_declare_transaction_v3(*broadcasted_declare_txn)?,
         };
 
         Ok(StarknetResponse::AddDeclareTransaction(DeclareTransactionOutput {
@@ -39,10 +47,12 @@ impl JsonRpcHandler {
         &self,
         request: BroadcastedDeployAccountTransaction,
     ) -> StrictRpcResult {
-        let mut starknet = self.api.starknet.write().await;
-
-        let (transaction_hash, contract_address) = match request.clone() {
-            BroadcastedDeployAccountTransaction::V1(deploy_account_txn_v1) => starknet
+        let (transaction_hash, contract_address) = match request {
+            BroadcastedDeployAccountTransaction::V1(deploy_account_txn_v1) => self
+                .api
+                .starknet
+                .write()
+                .await
                 .add_deploy_account_transaction_v1(deploy_account_txn_v1)
                 .map_err(|err| match err {
                     starknet_core::error::Error::StateError(
@@ -50,7 +60,12 @@ impl JsonRpcHandler {
                     ) => ApiError::ClassHashNotFound,
                     unknown_error => ApiError::StarknetDevnetError(unknown_error),
                 })?,
-            BroadcastedDeployAccountTransaction::V3(deploy_account_txn_v3) => starknet
+
+            BroadcastedDeployAccountTransaction::V3(deploy_account_txn_v3) => self
+                .api
+                .starknet
+                .write()
+                .await
                 .add_deploy_account_transaction_v3(deploy_account_txn_v3)
                 .map_err(|err| match err {
                     starknet_core::error::Error::StateError(
@@ -70,14 +85,12 @@ impl JsonRpcHandler {
         &self,
         request: BroadcastedInvokeTransaction,
     ) -> StrictRpcResult {
-        let mut starknet = self.api.starknet.write().await;
-
-        let transaction_hash = match request.clone() {
+        let transaction_hash = match request {
             BroadcastedInvokeTransaction::V1(invoke_txn) => {
-                starknet.add_invoke_transaction_v1(invoke_txn)?
+                self.api.starknet.write().await.add_invoke_transaction_v1(invoke_txn)?
             }
             BroadcastedInvokeTransaction::V3(invoke_txn) => {
-                starknet.add_invoke_transaction_v3(invoke_txn)?
+                self.api.starknet.write().await.add_invoke_transaction_v3(invoke_txn)?
             }
         };
 
