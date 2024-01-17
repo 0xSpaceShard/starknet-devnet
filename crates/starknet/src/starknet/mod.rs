@@ -197,9 +197,6 @@ impl Starknet {
             // Try to load transactions from dump_path, if there is no file skip this step
             match this.load_events() {
                 Ok(events) => {
-                    // // TODO: this can be commented so later I can refactor the code and include a
-                    // // handle dump event inside add_invoke_transaction_v1 for example...
-                    // this.dump_events = events.clone();
                     this.re_execute(events)?
                 }
                 Err(Error::FileNotFound) => {}
