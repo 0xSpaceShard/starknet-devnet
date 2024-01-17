@@ -67,6 +67,12 @@ impl TryFrom<Felt> for PatriciaKey {
     }
 }
 
+impl From<PatriciaKey> for starknet_api::state::StorageKey {
+    fn from(value: PatriciaKey) -> Self {
+        Self(value.try_into().unwrap()) // TODO
+    }
+}
+
 pub type StorageKey = PatriciaKey;
 
 #[cfg(test)]

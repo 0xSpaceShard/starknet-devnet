@@ -64,10 +64,7 @@ use crate::raw_execution::{Call, RawExecution};
 use crate::state::state_diff::StateDiff;
 use crate::state::state_update::StateUpdate;
 use crate::state::StarknetState;
-use crate::traits::{
-    AccountGenerator, Accounted, Deployed, HashIdentified, HashIdentifiedMut, StateChanger,
-    StateExtractor,
-};
+use crate::traits::{AccountGenerator, Accounted, Deployed, HashIdentified, HashIdentifiedMut};
 use crate::transactions::{StarknetTransaction, StarknetTransactions};
 
 mod add_declare_transaction;

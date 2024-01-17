@@ -9,7 +9,6 @@ use starknet_types::rpc::state::{
     ClassHashes, ContractNonce, DeployedContract, StorageDiff, StorageEntry, ThinStateDiff,
 };
 
-use super::DevnetState;
 use crate::error::DevnetResult;
 
 /// This struct is used to store the difference between state modifications

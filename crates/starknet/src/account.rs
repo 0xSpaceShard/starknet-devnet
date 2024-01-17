@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use blockifier::state::state_api::{State, StateReader};
 use starknet_api::core::{calculate_contract_address, PatriciaKey};
 use starknet_api::hash::{StarkFelt, StarkHash};
 use starknet_api::transaction::{Calldata, ContractAddressSalt};
@@ -17,7 +18,8 @@ use crate::constants::{
     CHARGEABLE_ACCOUNT_PUBLIC_KEY,
 };
 use crate::error::DevnetResult;
-use crate::traits::{Accounted, Deployed, StateChanger, StateExtractor};
+use crate::state::StarknetState;
+use crate::traits::{Accounted, Deployed};
 use crate::utils::get_storage_var_address;
 
 /// data taken from https://github.com/0xSpaceShard/starknet-devnet/blob/fb96e0cc3c1c31fb29892ecefd2a670cf8a32b51/starknet_devnet/account.py
@@ -114,19 +116,19 @@ impl Account {
 }
 
 impl Deployed for Account {
-    fn deploy(&self, state: &mut (impl StateChanger + StateExtractor)) -> DevnetResult<()> {
-        // declare if not declared
-        if !state.is_contract_declared(&self.class_hash) {
-            state.declare_contract_class(self.class_hash, self.contract_class.clone())?;
-        }
+    fn deploy(&self, state: &mut StarknetState) -> DevnetResult<()> {
+        self.declare_if_undeclared(state, self.class_hash, self.contract_class)?;
 
         // deploy
-        state.deploy_contract(self.account_address, self.class_hash)?;
+        state.set_class_hash_at(self.account_address.try_into()?, self.class_hash.into());
 
         // set public key
         let public_key_storage_var = get_storage_var_address("Account_public_key", &[])?;
-        let storage_key = ContractStorageKey::new(self.account_address, public_key_storage_var);
-        state.change_storage(storage_key, self.public_key)?;
+        state.set_storage_at(
+            self.account_address.try_into()?,
+            public_key_storage_var.into(),
+            self.public_key.into(),
+        );
 
         Ok(())
     }
@@ -137,34 +139,37 @@ impl Deployed for Account {
 }
 
 impl Accounted for Account {
-    fn set_initial_balance(&self, state: &mut impl StateChanger) -> DevnetResult<()> {
+    fn set_initial_balance(&self, state: &mut impl State) -> DevnetResult<()> {
         let storage_var_address =
             get_storage_var_address("ERC20_balances", &[Felt::from(self.account_address)])?;
 
         for fee_token_address in [self.eth_fee_token_address, self.strk_fee_token_address] {
-            let storage_key = ContractStorageKey::new(fee_token_address, storage_var_address);
-
-            state.change_storage(storage_key, self.initial_balance)?;
+            state.set_storage_at(
+                fee_token_address.try_into()?,
+                storage_var_address.into(),
+                self.initial_balance.into(),
+            );
         }
 
         Ok(())
     }
 
-    fn get_balance(
-        &self,
-        state: &mut impl StateExtractor,
-        token: FeeToken,
-    ) -> DevnetResult<Balance> {
+    fn get_balance(&self, state: &mut impl StateReader, token: FeeToken) -> DevnetResult<Balance> {
         let balance_storage_key = match token {
             FeeToken::ETH => self.eth_balance_storage_key()?,
             FeeToken::STRK => self.strk_balance_storage_key()?,
         };
-        state.get_storage(balance_storage_key)
+        let balance = state.get_storage_at(
+            (*balance_storage_key.get_contract_address()).try_into()?,
+            (*balance_storage_key.get_storage_key()).into(),
+        )?;
+        Ok(balance.into())
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use blockifier::state::state_api::State;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
@@ -173,7 +178,7 @@ mod tests {
     use crate::account::FeeToken;
     use crate::constants::ERC20_CONTRACT_CLASS_HASH;
     use crate::state::StarknetState;
-    use crate::traits::{Accounted, Deployed, StateChanger};
+    use crate::traits::{Accounted, Deployed};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::get_storage_var_address;
     use crate::utils::test_utils::{dummy_contract_address, dummy_felt};
@@ -301,9 +306,9 @@ mod tests {
 
         // deploy the erc20 contract
         state
-            .deploy_contract(
-                fee_token_address,
-                Felt::from_prefixed_hex_str(ERC20_CONTRACT_CLASS_HASH).unwrap(),
+            .set_class_hash_at(
+                fee_token_address.try_into().unwrap(),
+                Felt::from_prefixed_hex_str(ERC20_CONTRACT_CLASS_HASH).unwrap().into(),
             )
             .unwrap();
 

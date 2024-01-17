@@ -5,6 +5,7 @@ use starknet_types::felt::{Balance, ClassHash};
 
 use crate::account::FeeToken;
 use crate::error::DevnetResult;
+use crate::state::StarknetState;
 
 /// This trait should be implemented by structures that internally have collections and each element
 /// could be found by a hash
@@ -23,8 +24,26 @@ pub trait HashIdentifiedMut {
 }
 
 pub trait Deployed {
-    fn deploy(&self, state: &mut (impl State + StateReader)) -> DevnetResult<()>;
+    fn deploy(&self, state: &mut StarknetState) -> DevnetResult<()>;
     fn get_address(&self) -> ContractAddress;
+    fn declare_if_undeclared(&self, state: &mut StarknetState, class_hash: ClassHash, contract_class: ContractClass) -> DevnetResult<()> {
+        let class_hash = class_hash.into();
+        if state.get_compiled_contract_class(&class_hash).is_err() {
+            state.add_contract_class(&class_hash, contract_class);
+            let casm = match contract_class {
+                ContractClass::Cairo0(class) => {
+                    todo!("keep the same cairo0 artifact, but convert to the right type")
+                }
+                ContractClass::Cairo1(class) => todo!("convert to casm"),
+            };
+            state.set_contract_class(&self.class_hash.into(), casm);
+        }
+        if state.get_compiled_contract_class(&class_hash).is_err() {
+            state.add_contract_class(&class_hash, contract_class);
+        }
+
+        Ok(())
+    }
 }
 
 /// This trait sets the interface for the account

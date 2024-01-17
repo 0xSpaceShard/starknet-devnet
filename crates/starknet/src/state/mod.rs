@@ -9,8 +9,8 @@ pub(crate) mod state_diff;
 pub mod state_update;
 
 pub(crate) struct StarknetState {
-    pub state: CachedState<DictStateReader>,
-    pub(crate) contract_classes: HashMap<ClassHash, ContractClass>,
+    state: CachedState<DictStateReader>,
+    contract_classes: HashMap<ClassHash, ContractClass>,
 }
 
 impl Default for StarknetState {
@@ -23,8 +23,56 @@ impl Default for StarknetState {
 }
 
 impl StarknetState {
-    fn get_contract_class(&self, class_hash: &starknet_api::core::ClassHash) {
+    pub fn get_contract_class(&self, class_hash: &starknet_api::core::ClassHash) {
         todo!("sierra for cairo1, regular artifact for cairo0")
+    }
+
+    pub fn add_contract_class(&mut self, class_hash: &starknet_api::core::ClassHash, class: ContractClass) {
+        todo!("sierra for cairo1, regular artifact for cairo0")
+    }
+}
+
+impl blockifier::state::state_api::State for StarknetState {
+    fn set_storage_at(
+        &mut self,
+        contract_address: starknet_api::core::ContractAddress,
+        key: starknet_api::state::StorageKey,
+        value: starknet_api::hash::StarkFelt,
+    ) {
+        self.state.set_storage_at(contract_address, key, value)
+    }
+
+    fn increment_nonce(&mut self, contract_address: starknet_api::core::ContractAddress) -> blockifier::state::state_api::StateResult<()> {
+        self.state.increment_nonce(contract_address)
+    }
+
+    fn set_class_hash_at(
+        &mut self,
+        contract_address: starknet_api::core::ContractAddress,
+        class_hash: starknet_api::core::ClassHash,
+    ) -> blockifier::state::state_api::StateResult<()> {
+        self.state.set_class_hash_at(contract_address, class_hash)
+    }
+
+    fn set_contract_class(
+        &mut self,
+        class_hash: &starknet_api::core::ClassHash,
+        contract_class: blockifier::execution::contract_class::ContractClass,
+    ) -> blockifier::state::state_api::StateResult<()> {
+        self.state.set_contract_class(class_hash, contract_class)
+    }
+
+    fn set_compiled_class_hash(
+        &mut self,
+        class_hash: starknet_api::core::ClassHash,
+        compiled_class_hash: starknet_api::core::CompiledClassHash,
+    ) -> blockifier::state::state_api::StateResult<()> {
+        self.state.set_compiled_class_hash(class_hash, compiled_class_hash)
+    }
+
+    fn to_state_diff(&mut self) -> blockifier::state::cached_state::CommitmentStateDiff {
+        todo!("what about sierra classes?");
+        self.state.to_state_diff()
     }
 }
 
