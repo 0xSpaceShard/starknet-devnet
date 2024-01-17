@@ -196,9 +196,7 @@ impl Starknet {
         if this.config.dump_path.is_some() && this.config.re_execute_on_init {
             // Try to load transactions from dump_path, if there is no file skip this step
             match this.load_events() {
-                Ok(events) => {
-                    this.re_execute(events)?
-                }
+                Ok(events) => this.re_execute(events)?,
                 Err(Error::FileNotFound) => {}
                 Err(err) => return Err(err),
             };
