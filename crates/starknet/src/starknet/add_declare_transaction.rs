@@ -4,8 +4,11 @@ use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::Broad
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
 use starknet_types::rpc::transactions::declare_transaction_v3::DeclareTransactionV3;
-use starknet_types::rpc::transactions::{DeclareTransaction, Transaction};
+use starknet_types::rpc::transactions::{
+    BroadcastedDeclareTransaction, DeclareTransaction, Transaction,
+};
 
+use super::dump::DumpEvent;
 use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;
 
@@ -23,9 +26,12 @@ pub fn add_declare_transaction_v3(
     let transaction_hash = blockifier_declare_transaction.tx_hash().0.into();
     let class_hash = blockifier_declare_transaction.class_hash().0.into();
 
-    let transaction = Transaction::Declare(DeclareTransaction::Version3(
-        DeclareTransactionV3::new(broadcasted_declare_transaction, class_hash, transaction_hash),
-    ));
+    let transaction =
+        Transaction::Declare(DeclareTransaction::Version3(DeclareTransactionV3::new(
+            broadcasted_declare_transaction.clone(),
+            class_hash,
+            transaction_hash,
+        )));
 
     let blockifier_execution_result =
         blockifier::transaction::account_transaction::AccountTransaction::Declare(
@@ -34,6 +40,9 @@ pub fn add_declare_transaction_v3(
         .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
     starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
+    starknet.handle_dump_event(DumpEvent::AddDeclareTransaction(
+        BroadcastedDeclareTransaction::V3(Box::new(broadcasted_declare_transaction)),
+    ))?;
 
     Ok((transaction_hash, class_hash))
 }
@@ -63,6 +72,9 @@ pub fn add_declare_transaction_v2(
         .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
     starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
+    starknet.handle_dump_event(DumpEvent::AddDeclareTransaction(
+        BroadcastedDeclareTransaction::V2(Box::new(broadcasted_declare_transaction)),
+    ))?;
 
     Ok((transaction_hash, class_hash))
 }
@@ -93,6 +105,9 @@ pub fn add_declare_transaction_v1(
         .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
     starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
+    starknet.handle_dump_event(DumpEvent::AddDeclareTransaction(
+        BroadcastedDeclareTransaction::V1(Box::new(broadcasted_declare_transaction)),
+    ))?;
 
     Ok((transaction_hash, class_hash))
 }

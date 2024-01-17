@@ -1,4 +1,3 @@
-use starknet_core::starknet::dump::DumpEvent;
 use starknet_types::rpc::transactions::{
     BroadcastedDeclareTransaction, BroadcastedDeployAccountTransaction,
     BroadcastedInvokeTransaction,
@@ -29,7 +28,6 @@ impl JsonRpcHandler {
                 starknet.add_declare_transaction_v3(*broadcasted_declare_txn)?
             }
         };
-        starknet.handle_dump_event(DumpEvent::AddDeclareTransaction(request))?;
 
         Ok(StarknetResponse::AddDeclareTransaction(DeclareTransactionOutput {
             transaction_hash,
@@ -61,7 +59,6 @@ impl JsonRpcHandler {
                     unknown_error => ApiError::StarknetDevnetError(unknown_error),
                 })?,
         };
-        starknet.handle_dump_event(DumpEvent::AddDeployAccountTransaction(request))?;
 
         Ok(StarknetResponse::AddDeployAccountTransaction(DeployAccountTransactionOutput {
             transaction_hash,
@@ -83,7 +80,6 @@ impl JsonRpcHandler {
                 starknet.add_invoke_transaction_v3(invoke_txn)?
             }
         };
-        starknet.handle_dump_event(DumpEvent::AddInvokeTransaction(request))?;
 
         Ok(StarknetResponse::AddInvokeTransaction(InvokeTransactionOutput { transaction_hash }))
     }
