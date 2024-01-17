@@ -13,8 +13,6 @@ pub async fn postman_load(
     Extension(state): Extension<HttpApiHandler>,
     Json(data): Json<PostmanLoadL1MessagingContract>,
 ) -> HttpApiResult<Json<MessagingLoadAddress>> {
-    // TODO: do we need to log this action in dump/load?
-
     let mut starknet = state.api.starknet.write().await;
 
     let messaging_contract_address = starknet
@@ -110,8 +108,6 @@ pub async fn postman_consume_message_from_l2(
     Extension(state): Extension<HttpApiHandler>,
     Json(message): Json<MessageToL1>,
 ) -> HttpApiResult<Json<MessageHash>> {
-    // TODO: If dump/load is enabled log postman_consume_message_from_l2 action
-
     let mut starknet = state.api.starknet.write().await;
 
     let message_hash = starknet

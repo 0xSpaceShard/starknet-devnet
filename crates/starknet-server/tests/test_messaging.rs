@@ -412,14 +412,13 @@ mod test_messaging {
 
     #[tokio::test]
     async fn can_interact_with_l1() {
+        let dump_file = UniqueAutoDeletableFile::new("can_interact_with_l1");
         let anvil = BackgroundAnvil::spawn().await.unwrap();
-
-        // TODO: copy/reuse this test and use --dump-on exit or transaction
         let (devnet, sn_account, sn_l1l2_contract) = setup_devnet(&[
             "--account-class",
             "cairo1",
             "--dump-path",
-            "can_interact_with_l1",
+            &dump_file.path,
             "--dump-on",
             "exit",
         ])
@@ -516,6 +515,27 @@ mod test_messaging {
             )
             .await["result"];
         assert_traces(l1_handler_tx_trace);
+
+        send_ctrl_c_signal(&devnet.process).await;
+        std::thread::sleep(std::time::Duration::from_secs(1));
+
+        // Assert traces of L1Handler with loaded devnets
+        let load_devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-path",
+            &dump_file.path,
+            "--account-class",
+            "cairo1",
+        ])
+        .await
+        .unwrap();
+
+        let l1_handler_tx_trace_load = &load_devnet
+        .send_custom_rpc(
+            "starknet_traceTransaction",
+            json!({ "transaction_hash": flush_body.get("generated_l2_transactions").unwrap()[0] }),
+        )
+        .await["result"];
+        assert_traces(l1_handler_tx_trace_load);
     }
 
     #[tokio::test]
