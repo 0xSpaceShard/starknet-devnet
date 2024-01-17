@@ -424,7 +424,7 @@ mod dump_and_load_tests {
         // ctrl c
         send_ctrl_c_signal(&devnet_dump_first.process).await;
         std::thread::sleep(std::time::Duration::from_secs(1));
-        
+
         let devnet_dump_second = BackgroundDevnet::spawn_with_additional_args(&[
             "--dump-path",
             &dump_file.path,
