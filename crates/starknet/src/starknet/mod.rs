@@ -507,7 +507,7 @@ impl Starknet {
     ) -> DevnetResult<Vec<Felt>> {
         let state = self.get_state_at(&block_id)?;
 
-        if !self.state.is_contract_deployed(&ContractAddress::new(contract_address)?) {
+        if !state.is_contract_deployed(&ContractAddress::new(contract_address)?) {
             return Err(Error::ContractNotFound);
         }
 

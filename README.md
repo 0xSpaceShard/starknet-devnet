@@ -49,6 +49,12 @@ After git-cloning this repository, install and run the project with:
 $ cargo run
 ```
 
+For a more optimized and faster performance (though with a longer compilation time), run with:
+
+```
+$ cargo run --release
+```
+
 ## Run as a binary
 
 Installing and running as a binary is achievable via `cargo install`, but until Devnet is released as a crate, it comes with some caveats. You need to:
