@@ -12,7 +12,7 @@ pub const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str =
 
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/accounts_artifacts/OpenZeppelin/0.7.0/Account.cairo/Account.sierra"
+    "/accounts_artifacts/OpenZeppelin/0.8.0/Account.cairo/Account.sierra"
 );
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
     "0x04c6d6cf894f8bc96bb9c525e6853e5483177841f7388f74a46cfda6f028c755";
