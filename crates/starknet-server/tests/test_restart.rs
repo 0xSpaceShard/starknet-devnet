@@ -19,7 +19,9 @@ mod test_restart {
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::CHAIN_ID;
-    use crate::common::utils::{get_deployable_account_signer, remove_file, send_ctrl_c_signal};
+    use crate::common::utils::{
+        get_deployable_account_signer, remove_file, send_ctrl_c_signal_and_wait,
+    };
 
     #[tokio::test]
     async fn assert_restartable() {
@@ -204,8 +206,7 @@ mod test_restart {
         assert!(!Path::new(dump_file_name).exists());
 
         // assert killing the process can still dump devnet
-        send_ctrl_c_signal(&devnet.process).await;
-        std::thread::sleep(std::time::Duration::from_secs(1)); // sleep to allow dump
+        send_ctrl_c_signal_and_wait(&devnet.process).await;
         assert!(Path::new(dump_file_name).exists());
 
         remove_file(dump_file_name);
@@ -226,8 +227,7 @@ mod test_restart {
         // send a dummy tx; otherwise there's no dump
         let tx_hash = devnet.mint(FieldElement::ONE, 1).await;
 
-        send_ctrl_c_signal(&devnet.process).await;
-        std::thread::sleep(std::time::Duration::from_secs(1)); // sleep to allow dump
+        send_ctrl_c_signal_and_wait(&devnet.process).await;
         assert!(Path::new(dump_file_name).exists());
 
         let loaded_devnet =

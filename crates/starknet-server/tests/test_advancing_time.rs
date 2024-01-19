@@ -17,7 +17,7 @@ mod advancing_time_tests {
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::{
         get_json_body, get_timestamp_contract_in_sierra_and_compiled_class_hash,
-        get_unix_timestamp_as_seconds, send_ctrl_c_signal, UniqueAutoDeletableFile,
+        get_unix_timestamp_as_seconds, send_ctrl_c_signal_and_wait, UniqueAutoDeletableFile,
     };
 
     const DUMMY_ADDRESS: u128 = 1;
@@ -558,9 +558,7 @@ mod advancing_time_tests {
             third_increase_time_block["timestamp"].as_u64(),
         );
 
-        // ctrl c
-        send_ctrl_c_signal(&devnet.process).await;
-        std::thread::sleep(std::time::Duration::from_secs(1));
+        send_ctrl_c_signal_and_wait(&devnet.process).await;
 
         // load from file and check block number and timestamp
         let devnet_load = BackgroundDevnet::spawn_with_additional_args(&[

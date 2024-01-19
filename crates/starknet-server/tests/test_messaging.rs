@@ -40,8 +40,8 @@ mod test_messaging {
     };
     use crate::common::utils::{
         get_json_body, get_messaging_contract_in_sierra_and_compiled_class_hash,
-        get_messaging_lib_in_sierra_and_compiled_class_hash, send_ctrl_c_signal, to_hex_felt,
-        UniqueAutoDeletableFile,
+        get_messaging_lib_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait,
+        to_hex_felt, UniqueAutoDeletableFile,
     };
 
     const DUMMY_L1_ADDRESS: &str = "0xc662c410c0ecf747543f5ba90660f6abebd9c8c4";
@@ -516,8 +516,7 @@ mod test_messaging {
             .await["result"];
         assert_traces(l1_handler_tx_trace);
 
-        send_ctrl_c_signal(&devnet.process).await;
-        std::thread::sleep(std::time::Duration::from_secs(1));
+        send_ctrl_c_signal_and_wait(&devnet.process).await;
 
         // Assert traces of L1Handler with loaded devnets
         let load_devnet = BackgroundDevnet::spawn_with_additional_args(&[
@@ -575,8 +574,7 @@ mod test_messaging {
             [user_balance + increment_amount]
         );
 
-        send_ctrl_c_signal(&dumping_devnet.process).await;
-        std::thread::sleep(std::time::Duration::from_secs(1));
+        send_ctrl_c_signal_and_wait(&dumping_devnet.process).await;
 
         let loading_devnet = BackgroundDevnet::spawn_with_additional_args(&[
             "--dump-path",
