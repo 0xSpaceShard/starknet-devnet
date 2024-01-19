@@ -82,7 +82,7 @@ impl Starknet {
 
                 Ok(())
             }
-            _ => Ok(()),
+            None => Ok(()),
         }
     }
 
