@@ -16,13 +16,9 @@ pub enum DumpEvent {
     CreateBlock,
     SetTime(u64),
     IncreaseTime(u64),
-    #[serde(rename = "DECLARE")]
     AddDeclareTransaction(BroadcastedDeclareTransaction),
-    #[serde(rename = "INVOKE")]
     AddInvokeTransaction(BroadcastedInvokeTransaction),
-    #[serde(rename = "DEPLOY_ACCOUNT")]
     AddDeployAccountTransaction(BroadcastedDeployAccountTransaction),
-    #[serde(rename = "L1_HANDLER")]
     AddL1HandlerTransaction(L1HandlerTransaction),
 }
 
