@@ -7,16 +7,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in library 'server'",
+            "name": "Debug unit tests in library 'starknet-devnet-server'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
                     "--lib",
-                    "--package=server"
+                    "--package=starknet-devnet-server"
                 ],
                 "filter": {
-                    "name": "server",
+                    "name": "starknet-devnet-server",
                     "kind": "lib"
                 }
             },
@@ -26,16 +26,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in library 'starknet'",
+            "name": "Debug unit tests in library 'starknet-devnet-core'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
                     "--lib",
-                    "--package=starknet"
+                    "--package=starknet-devnet-core"
                 ],
                 "filter": {
-                    "name": "starknet",
+                    "name": "starknet-devnet-core",
                     "kind": "lib"
                 }
             },
@@ -64,16 +64,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in library 'types'",
+            "name": "Debug unit tests in library 'starknet-devnet-types'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
                     "--lib",
-                    "--package=types"
+                    "--package=starknet-devnet-types"
                 ],
                 "filter": {
-                    "name": "types",
+                    "name": "starknet-devnet-types",
                     "kind": "lib"
                 }
             },
@@ -88,7 +88,7 @@
                 "args": [
                     "build",
                     "--bin=starknet-devnet",
-                    "--package=starknet-server"
+                    "--package=starknet-devnet-cli"
                 ],
                 "filter": {
                     "name": "starknet-devnet",
@@ -107,11 +107,30 @@
                     "test",
                     "--no-run",
                     "--bin=starknet-devnet",
-                    "--package=starknet-server"
+                    "--package=starknet-devnet-cli"
                 ],
                 "filter": {
                     "name": "starknet-devnet",
                     "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'test_get_events'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=test_get_events",
+                    "--package=starknet-devnet-cli"
+                ],
+                "filter": {
+                    "name": "test_get_events",
+                    "kind": "test"
                 }
             },
             "args": [],
@@ -126,7 +145,7 @@
                     "test",
                     "--no-run",
                     "--test=get_transaction_by_hash",
-                    "--package=starknet-server"
+                    "--package=starknet-devnet-cli"
                 ],
                 "filter": {
                     "name": "get_transaction_by_hash",
@@ -139,16 +158,168 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug integration test 'integration_tests'",
+            "name": "Debug integration test 'test_account_selection'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--test=integration_tests",
-                    "--package=starknet-server"
+                    "--test=test_account_selection",
+                    "--package=starknet-devnet-cli"
                 ],
                 "filter": {
-                    "name": "integration_tests",
+                    "name": "test_account_selection",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'general_rpc_tests'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=general_rpc_tests",
+                    "--package=starknet-devnet-cli"
+                ],
+                "filter": {
+                    "name": "general_rpc_tests",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'test_messaging'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=test_messaging",
+                    "--package=starknet-devnet-cli"
+                ],
+                "filter": {
+                    "name": "test_messaging",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'test_advancing_time'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=test_advancing_time",
+                    "--package=starknet-devnet-cli"
+                ],
+                "filter": {
+                    "name": "test_advancing_time",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'test_estimate_message_fee'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=test_estimate_message_fee",
+                    "--package=starknet-devnet-cli"
+                ],
+                "filter": {
+                    "name": "test_estimate_message_fee",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'get_transaction_by_block_id_and_index'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=get_transaction_by_block_id_and_index",
+                    "--package=starknet-devnet-cli"
+                ],
+                "filter": {
+                    "name": "get_transaction_by_block_id_and_index",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'test_get_class'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=test_get_class",
+                    "--package=starknet-devnet-cli"
+                ],
+                "filter": {
+                    "name": "test_get_class",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'test_simulate_transactions'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=test_simulate_transactions",
+                    "--package=starknet-devnet-cli"
+                ],
+                "filter": {
+                    "name": "test_simulate_transactions",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'test_dump_and_load'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=test_dump_and_load",
+                    "--package=starknet-devnet-cli"
+                ],
+                "filter": {
+                    "name": "test_dump_and_load",
                     "kind": "test"
                 }
             },
@@ -164,7 +335,7 @@
                     "test",
                     "--no-run",
                     "--test=test_call",
-                    "--package=starknet-server"
+                    "--package=starknet-devnet-cli"
                 ],
                 "filter": {
                     "name": "test_call",
@@ -183,10 +354,143 @@
                     "test",
                     "--no-run",
                     "--test=test_get_class_hash_at",
-                    "--package=starknet-server"
+                    "--package=starknet-devnet-cli"
                 ],
                 "filter": {
                     "name": "test_get_class_hash_at",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'general_integration_tests'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=general_integration_tests",
+                    "--package=starknet-devnet-cli"
+                ],
+                "filter": {
+                    "name": "general_integration_tests",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'test_restart'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=test_restart",
+                    "--package=starknet-devnet-cli"
+                ],
+                "filter": {
+                    "name": "test_restart",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'test_minting'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=test_minting",
+                    "--package=starknet-devnet-cli"
+                ],
+                "filter": {
+                    "name": "test_minting",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'test_transaction_handling'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=test_transaction_handling",
+                    "--package=starknet-devnet-cli"
+                ],
+                "filter": {
+                    "name": "test_transaction_handling",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'test_estimate_fee'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=test_estimate_fee",
+                    "--package=starknet-devnet-cli"
+                ],
+                "filter": {
+                    "name": "test_estimate_fee",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'test_trace'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=test_trace",
+                    "--package=starknet-devnet-cli"
+                ],
+                "filter": {
+                    "name": "test_trace",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'get_transaction_receipt_by_hash'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=get_transaction_receipt_by_hash",
+                    "--package=starknet-devnet-cli"
+                ],
+                "filter": {
+                    "name": "get_transaction_receipt_by_hash",
                     "kind": "test"
                 }
             },
