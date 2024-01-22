@@ -55,7 +55,7 @@ impl Starknet {
                     self.add_l1_handler_transaction(tx)?;
                 }
                 DumpEvent::CreateBlock => {
-                    self.create_block(None, None)?;
+                    self.create_block_dump_event(None, None)?;
                 }
                 DumpEvent::SetTime(timestamp) => {
                     self.set_time(timestamp)?;

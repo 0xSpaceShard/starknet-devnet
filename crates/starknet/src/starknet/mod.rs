@@ -1056,16 +1056,23 @@ impl Starknet {
         Ok(simulation_results)
     }
 
-    pub fn create_block(
-        &mut self,
-        timestamp: Option<u64>,
-        dump_event: Option<DumpEvent>,
-    ) -> DevnetResult<(), Error> {
+    pub fn create_block(&mut self, timestamp: Option<u64>) -> DevnetResult<(), Error> {
         // create new block from pending one
         self.generate_new_block(StateDiff::default(), timestamp)?;
 
         // clear pending block information
         self.generate_pending_block()?;
+
+        Ok(())
+    }
+
+    // Create block and add DumpEvent
+    pub fn create_block_dump_event(
+        &mut self,
+        timestamp: Option<u64>,
+        dump_event: Option<DumpEvent>,
+    ) -> DevnetResult<(), Error> {
+        self.create_block(timestamp)?;
 
         // handle custom event if provided e.g. SetTime, IncreaseTime, otherwise log create block
         // events
@@ -1082,13 +1089,13 @@ impl Starknet {
         self.set_block_timestamp_shift(
             timestamp as i64 - Starknet::get_unix_timestamp_as_seconds() as i64,
         );
-        self.create_block(Some(timestamp), Some(DumpEvent::SetTime(timestamp)))
+        self.create_block_dump_event(Some(timestamp), Some(DumpEvent::SetTime(timestamp)))
     }
 
     // Set timestamp shift and create empty block
     pub fn increase_time(&mut self, time_shift: u64) -> DevnetResult<(), Error> {
         self.set_block_timestamp_shift(self.pending_block_timestamp_shift + time_shift as i64);
-        self.create_block(None, Some(DumpEvent::IncreaseTime(time_shift)))
+        self.create_block_dump_event(None, Some(DumpEvent::IncreaseTime(time_shift)))
     }
 
     // Set timestamp shift for next blocks
