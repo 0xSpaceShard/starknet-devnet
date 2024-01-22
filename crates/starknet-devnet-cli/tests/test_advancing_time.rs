@@ -17,7 +17,7 @@ mod advancing_time_tests {
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::{
         get_json_body, get_timestamp_contract_in_sierra_and_compiled_class_hash,
-        get_unix_timestamp_as_seconds,
+        get_unix_timestamp_as_seconds, send_ctrl_c_signal_and_wait, UniqueAutoDeletableFile,
     };
 
     const DUMMY_ADDRESS: u128 = 1;
@@ -462,12 +462,17 @@ mod advancing_time_tests {
     }
 
     #[tokio::test]
-    async fn advance_time_combination_test() {
+    async fn advance_time_combination_test_with_dump_and_load() {
         let now = get_unix_timestamp_as_seconds();
         let past_time = 1;
+        let dump_file = UniqueAutoDeletableFile::new("time_combination");
         let devnet = BackgroundDevnet::spawn_with_additional_args(&[
             "--start-time",
             past_time.to_string().as_str(),
+            "--dump-path",
+            dump_file.path.as_str(),
+            "--dump-on",
+            "exit",
         ])
         .await
         .expect("Could not start Devnet");
@@ -552,5 +557,28 @@ mod advancing_time_tests {
             last_block["timestamp"].as_u64(),
             third_increase_time_block["timestamp"].as_u64(),
         );
+
+        send_ctrl_c_signal_and_wait(&devnet.process).await;
+
+        // load from file and check block number and timestamp
+        let devnet_load = BackgroundDevnet::spawn_with_additional_args(&[
+            "--start-time",
+            past_time.to_string().as_str(),
+            "--dump-path",
+            dump_file.path.as_str(),
+            "--dump-on",
+            "exit",
+        ])
+        .await
+        .expect("Could not start Devnet");
+
+        let last_block_load = &devnet_load
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
+        assert_eq!(last_block["block_number"], last_block_load["block_number"]);
+
+        let timestamp_diff = last_block_load["timestamp"].as_i64().unwrap()
+            - last_block["timestamp"].as_i64().unwrap();
+        assert!(timestamp_diff.abs() < BUFFER_TIME_SECONDS as i64)
     }
 }

@@ -138,7 +138,12 @@ pub fn get_unix_timestamp_as_seconds() -> u64 {
         .as_secs()
 }
 
-pub async fn send_ctrl_c_signal(process: &Child) {
+pub async fn send_ctrl_c_signal_and_wait(process: &Child) {
+    send_ctrl_c_signal(process).await;
+    std::thread::sleep(std::time::Duration::from_secs(1));
+}
+
+async fn send_ctrl_c_signal(process: &Child) {
     #[cfg(windows)]
     {
         // To send SIGINT signal on windows, windows-kill is needed

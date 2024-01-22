@@ -4,8 +4,11 @@ use starknet_types::felt::TransactionHash;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
 use starknet_types::rpc::transactions::deploy_account_transaction_v3::DeployAccountTransactionV3;
-use starknet_types::rpc::transactions::{DeployAccountTransaction, Transaction};
+use starknet_types::rpc::transactions::{
+    BroadcastedDeployAccountTransaction, DeployAccountTransaction, Transaction,
+};
 
+use super::dump::DumpEvent;
 use super::Starknet;
 use crate::error::{DevnetResult, Error};
 use crate::traits::StateExtractor;
@@ -30,7 +33,7 @@ pub fn add_deploy_account_transaction_v3(
     let transaction_hash = blockifier_deploy_account_transaction.tx_hash.0.into();
     let address: ContractAddress = blockifier_deploy_account_transaction.contract_address.into();
     let deploy_account_transaction_v3 = DeployAccountTransactionV3::new(
-        broadcasted_deploy_account_transaction,
+        broadcasted_deploy_account_transaction.clone(),
         address,
         transaction_hash,
     );
@@ -46,6 +49,9 @@ pub fn add_deploy_account_transaction_v3(
         .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
     starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
+    starknet.handle_dump_event(DumpEvent::AddDeployAccountTransaction(
+        BroadcastedDeployAccountTransaction::V3(broadcasted_deploy_account_transaction),
+    ))?;
 
     Ok((transaction_hash, address))
 }
@@ -83,6 +89,9 @@ pub fn add_deploy_account_transaction_v1(
         .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
     starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
+    starknet.handle_dump_event(DumpEvent::AddDeployAccountTransaction(
+        BroadcastedDeployAccountTransaction::V1(broadcasted_deploy_account_transaction),
+    ))?;
 
     Ok((transaction_hash, address))
 }

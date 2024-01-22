@@ -9,11 +9,18 @@ pub async fn dump(
     Extension(state): Extension<HttpApiHandler>,
 ) -> HttpApiResult<()> {
     let starknet = state.api.starknet.write().await;
+
+    if starknet.config.dump_on.is_none() {
+        return Err(HttpApiError::DumpError {
+            msg: "Please provide --dump-on mode on startup.".to_string(),
+        });
+    }
+
     match path.path {
         None => {
             // path not present
             starknet
-                .dump_transactions()
+                .dump_events()
                 .map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
             Ok(())
         }
@@ -21,13 +28,13 @@ pub async fn dump(
             if !path.is_empty() {
                 // path is present and it's not empty
                 starknet
-                    .dump_transactions_custom_path(Some(path))
+                    .dump_events_custom_path(Some(path))
                     .map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
                 Ok(())
             } else {
                 // path is present but it's empty
                 starknet
-                    .dump_transactions()
+                    .dump_events()
                     .map_err(|err| HttpApiError::DumpError { msg: err.to_string() })?;
                 Ok(())
             }
@@ -45,10 +52,9 @@ pub async fn load(
     }
 
     let mut starknet = state.api.starknet.write().await;
-    let transactions = starknet
-        .load_transactions_custom_path(Some(path.path))
-        .map_err(|_| HttpApiError::LoadError)?;
-    starknet.re_execute(transactions).map_err(|_| HttpApiError::ReExecutionError)?;
+    let events =
+        starknet.load_events_custom_path(Some(path.path)).map_err(|_| HttpApiError::LoadError)?;
+    starknet.re_execute(events).map_err(|_| HttpApiError::ReExecutionError)?;
 
     Ok(())
 }

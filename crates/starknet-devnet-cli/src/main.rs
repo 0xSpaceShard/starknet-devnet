@@ -117,5 +117,5 @@ pub async fn shutdown_signal(api: Api) {
     tokio::signal::ctrl_c().await.expect("Failed to install CTRL+C signal handler");
 
     let starknet = api.starknet.read().await;
-    starknet.dump_transactions().expect("Failed to dump starknet transactions");
+    starknet.dump_events().expect("Failed to dump starknet transactions");
 }

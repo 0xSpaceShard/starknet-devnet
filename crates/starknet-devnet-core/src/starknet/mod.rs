@@ -48,6 +48,7 @@ use starknet_types::rpc::transactions::{
 use starknet_types::traits::HashProducer;
 use tracing::{error, info};
 
+use self::dump::DumpEvent;
 use self::predeployed::initialize_erc20_at_address;
 use self::starknet_config::{DumpOn, StarknetConfig, StateArchiveCapacity};
 use crate::account::Account;
@@ -74,7 +75,7 @@ mod add_declare_transaction;
 mod add_deploy_account_transaction;
 mod add_invoke_transaction;
 mod add_l1_handler_transaction;
-mod dump;
+pub mod dump;
 mod estimations;
 mod events;
 mod get_class_impls;
@@ -93,6 +94,7 @@ pub struct Starknet {
     pub config: StarknetConfig,
     pub pending_block_timestamp_shift: i64,
     pub(crate) messaging: MessagingBroker,
+    pub(crate) dump_events: Vec<DumpEvent>,
 }
 
 impl Default for Starknet {
@@ -111,6 +113,7 @@ impl Default for Starknet {
             config: Default::default(),
             pending_block_timestamp_shift: 0,
             messaging: Default::default(),
+            dump_events: Default::default(),
         }
     }
 }
@@ -184,6 +187,7 @@ impl Starknet {
             config: config.clone(),
             pending_block_timestamp_shift: 0,
             messaging: Default::default(),
+            dump_events: Default::default(),
         };
 
         this.restart_pending_block()?;
@@ -191,8 +195,8 @@ impl Starknet {
         // Load starknet transactions
         if this.config.dump_path.is_some() && this.config.re_execute_on_init {
             // Try to load transactions from dump_path, if there is no file skip this step
-            match this.load_transactions() {
-                Ok(txs) => this.re_execute(txs)?,
+            match this.load_events() {
+                Ok(events) => this.re_execute(events)?,
                 Err(Error::FileNotFound) => {}
                 Err(err) => return Err(err),
             };
@@ -380,10 +384,6 @@ impl Starknet {
         self.generate_new_block(state_difference, None)?;
         // clear pending block information
         self.generate_pending_block()?;
-
-        if self.config.dump_on == Some(DumpOn::Transaction) {
-            self.dump_transaction(transaction)?;
-        }
 
         Ok(())
     }
@@ -1061,8 +1061,27 @@ impl Starknet {
     pub fn create_block(&mut self, timestamp: Option<u64>) -> DevnetResult<(), Error> {
         // create new block from pending one
         self.generate_new_block(StateDiff::default(), timestamp)?;
+
         // clear pending block information
         self.generate_pending_block()?;
+
+        Ok(())
+    }
+
+    // Create block and add DumpEvent
+    pub fn create_block_dump_event(
+        &mut self,
+        timestamp: Option<u64>,
+        dump_event: Option<DumpEvent>,
+    ) -> DevnetResult<(), Error> {
+        self.create_block(timestamp)?;
+
+        // handle custom event if provided e.g. SetTime, IncreaseTime, otherwise log create block
+        // events
+        match dump_event {
+            Some(event) => self.handle_dump_event(event)?,
+            None => self.handle_dump_event(DumpEvent::CreateBlock)?,
+        }
 
         Ok(())
     }
@@ -1072,13 +1091,13 @@ impl Starknet {
         self.set_block_timestamp_shift(
             timestamp as i64 - Starknet::get_unix_timestamp_as_seconds() as i64,
         );
-        self.create_block(Some(timestamp))
+        self.create_block_dump_event(Some(timestamp), Some(DumpEvent::SetTime(timestamp)))
     }
 
     // Set timestamp shift and create empty block
     pub fn increase_time(&mut self, time_shift: u64) -> DevnetResult<(), Error> {
         self.set_block_timestamp_shift(self.pending_block_timestamp_shift + time_shift as i64);
-        self.create_block(None)
+        self.create_block_dump_event(None, Some(DumpEvent::IncreaseTime(time_shift)))
     }
 
     // Set timestamp shift for next blocks
