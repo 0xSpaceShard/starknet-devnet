@@ -1,5 +1,5 @@
 [package]
-name = "starknet"
+name = "starknet-devnet-core"
 version.workspace = true
 edition.workspace = true
 repository.workspace = true

@@ -14,7 +14,7 @@ RUN apt-get -y update && \
     rm -rf /var/lib/apt/lists/*
 
 # Necessary for predeployed contracts
-COPY crates/starknet/accounts_artifacts/ /crates/starknet/accounts_artifacts/
+COPY crates/starknet-devnet-core/accounts_artifacts/ /crates/starknet-devnet-core/accounts_artifacts/
 COPY --from=builder /target/release/starknet-devnet /usr/local/bin/starknet-devnet
 
 ENTRYPOINT [ "tini", "--", "starknet-devnet", "--host", "0.0.0.0" ]
