@@ -30,7 +30,7 @@ mod get_transaction_by_hash_integration_tests {
         let json_string = std::fs::read_to_string(resolve_path(
             "../starknet-devnet-core/test_artifacts/cairo_0_test.json",
         ))
-                .unwrap();
+        .unwrap();
 
         let legacy_contract_class = Cairo0Json::raw_json_from_json_str(&json_string).unwrap();
         let legacy_contract_class: LegacyContractClass =
