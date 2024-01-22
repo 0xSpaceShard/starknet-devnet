@@ -9,6 +9,13 @@ pub async fn dump(
     Extension(state): Extension<HttpApiHandler>,
 ) -> HttpApiResult<()> {
     let starknet = state.api.starknet.write().await;
+
+    if starknet.config.dump_on.is_none() {
+        return Err(HttpApiError::DumpError {
+            msg: "Please provide --dump-on mode on startup.".to_string(),
+        });
+    }
+
     match path.path {
         None => {
             // path not present
