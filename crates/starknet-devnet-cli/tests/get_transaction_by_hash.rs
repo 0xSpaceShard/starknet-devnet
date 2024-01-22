@@ -27,8 +27,9 @@ mod get_transaction_by_hash_integration_tests {
                 random max fee changes the expected transaction hash"]
     async fn get_declare_v1_transaction_by_hash_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let json_string =
-            std::fs::read_to_string(resolve_path("../starknet/test_artifacts/cairo_0_test.json"))
+        let json_string = std::fs::read_to_string(resolve_path(
+            "../starknet-devnet-core/test_artifacts/cairo_0_test.json",
+        ))
                 .unwrap();
 
         let legacy_contract_class = Cairo0Json::raw_json_from_json_str(&json_string).unwrap();
