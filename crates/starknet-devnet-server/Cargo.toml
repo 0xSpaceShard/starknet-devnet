@@ -1,5 +1,5 @@
 [package]
-name = "server"
+name = "starknet-devnet-server"
 version = "0.1.0"
 edition = "2021"
 

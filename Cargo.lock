@@ -2194,9 +2194,9 @@ checksum = "0ce7134b9999ecaf8bcd65542e436736ef32ddca1b3e06094cb6ec5755203b80"
 
 [[package]]
 name = "flate2"
-version = "1.0.28"
+version = "1.0.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46303f565772937ffe1d394a4fac6f411c6013172fadde9dcdb1e147a086940e"
+checksum = "3b9429470923de8e8cbd4d2dc513535400b4b3fef0319fb5c4e1f520a7bef743"
 dependencies = [
  "crc32fast",
  "miniz_oxide",
@@ -4438,32 +4438,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "server"
-version = "0.1.0"
-dependencies = [
- "anvil-rpc",
- "anyhow",
- "async-trait",
- "axum",
- "futures",
- "hyper",
- "rand",
- "rand_chacha",
- "regex_generate",
- "serde",
- "serde_json",
- "serde_yaml",
- "starknet",
- "starknet-core",
- "thiserror",
- "tokio",
- "tower",
- "tower-http 0.4.4",
- "tracing",
- "types",
-]
-
-[[package]]
 name = "sha1"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4633,30 +4607,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "starknet"
-version = "0.1.0"
-dependencies = [
- "blockifier",
- "cairo-felt",
- "cairo-lang-starknet",
- "clap",
- "ethers",
- "hex",
- "indexmap 2.1.0",
- "jsonschema",
- "random-number-generator",
- "serde",
- "serde_json",
- "starknet-core",
- "starknet-ff 0.3.6",
- "starknet-signers",
- "starknet_api",
- "thiserror",
- "tracing",
- "types",
-]
-
-[[package]]
 name = "starknet-accounts"
 version = "0.7.0"
 source = "git+https://github.com/xJonathanLEI/starknet-rs?rev=63538a3#63538a329090a99e56d40cd0126de89172ac05e3"
@@ -4807,6 +4757,105 @@ dependencies = [
 ]
 
 [[package]]
+name = "starknet-devnet-cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "cairo-lang-starknet",
+ "clap",
+ "ethers",
+ "hyper",
+ "lazy_static",
+ "random-number-generator",
+ "serde",
+ "serde_json",
+ "starknet-accounts",
+ "starknet-contract",
+ "starknet-core",
+ "starknet-devnet-core",
+ "starknet-devnet-server",
+ "starknet-devnet-types",
+ "starknet-providers",
+ "starknet-signers",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "url",
+]
+
+[[package]]
+name = "starknet-devnet-core"
+version = "0.1.0"
+dependencies = [
+ "blockifier",
+ "cairo-felt",
+ "cairo-lang-starknet",
+ "clap",
+ "ethers",
+ "hex",
+ "indexmap 2.1.0",
+ "jsonschema",
+ "random-number-generator",
+ "serde",
+ "serde_json",
+ "starknet-core",
+ "starknet-devnet-types",
+ "starknet-ff 0.3.6",
+ "starknet-signers",
+ "starknet_api",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
+name = "starknet-devnet-server"
+version = "0.1.0"
+dependencies = [
+ "anvil-rpc",
+ "anyhow",
+ "async-trait",
+ "axum",
+ "futures",
+ "hyper",
+ "rand",
+ "rand_chacha",
+ "regex_generate",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "starknet-core",
+ "starknet-devnet-core",
+ "starknet-devnet-types",
+ "thiserror",
+ "tokio",
+ "tower",
+ "tower-http 0.4.4",
+ "tracing",
+]
+
+[[package]]
+name = "starknet-devnet-types"
+version = "0.1.0"
+dependencies = [
+ "base64 0.21.5",
+ "blockifier",
+ "cairo-felt",
+ "cairo-lang-starknet",
+ "clap",
+ "flate2",
+ "num-bigint",
+ "num-integer",
+ "serde",
+ "serde_json",
+ "starknet-core",
+ "starknet-crypto 0.6.1 (git+https://github.com/xJonathanLEI/starknet-rs?rev=63538a3)",
+ "starknet-ff 0.3.6",
+ "starknet_api",
+ "thiserror",
+]
+
+[[package]]
 name = "starknet-ff"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4847,34 +4896,6 @@ dependencies = [
  "serde_with",
  "starknet-core",
  "thiserror",
- "url",
-]
-
-[[package]]
-name = "starknet-server"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "cairo-lang-starknet",
- "clap",
- "ethers",
- "hyper",
- "lazy_static",
- "random-number-generator",
- "serde",
- "serde_json",
- "server",
- "starknet",
- "starknet-accounts",
- "starknet-contract",
- "starknet-core",
- "starknet-providers",
- "starknet-signers",
- "thiserror",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "types",
  "url",
 ]
 
@@ -5497,27 +5518,6 @@ name = "typenum"
 version = "1.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42ff0bf0c66b8238c6f3b578df37d0b7848e55df8577b3f74f92a69acceeb825"
-
-[[package]]
-name = "types"
-version = "0.1.0"
-dependencies = [
- "base64 0.21.5",
- "blockifier",
- "cairo-felt",
- "cairo-lang-starknet",
- "clap",
- "flate2",
- "num-bigint",
- "num-integer",
- "serde",
- "serde_json",
- "starknet-core",
- "starknet-crypto 0.6.1 (git+https://github.com/xJonathanLEI/starknet-rs?rev=63538a3)",
- "starknet-ff 0.3.6",
- "starknet_api",
- "thiserror",
-]
 
 [[package]]
 name = "uint"

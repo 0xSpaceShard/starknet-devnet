@@ -46,7 +46,7 @@ use starknet_types::rpc::transactions::{
     Transaction, TransactionTrace, Transactions,
 };
 use starknet_types::traits::HashProducer;
-use tracing::error;
+use tracing::{error, info};
 
 use self::dump::DumpEvent;
 use self::predeployed::initialize_erc20_at_address;
@@ -208,6 +208,8 @@ impl Starknet {
     pub fn restart(&mut self) -> DevnetResult<()> {
         self.config.re_execute_on_init = false;
         *self = Starknet::new(&self.config)?;
+        info!("Starknet Devnet restarted");
+
         Ok(())
     }
 
@@ -505,7 +507,7 @@ impl Starknet {
     ) -> DevnetResult<Vec<Felt>> {
         let state = self.get_state_at(&block_id)?;
 
-        if !self.state.is_contract_deployed(&ContractAddress::new(contract_address)?) {
+        if !state.is_contract_deployed(&ContractAddress::new(contract_address)?) {
             return Err(Error::ContractNotFound);
         }
 

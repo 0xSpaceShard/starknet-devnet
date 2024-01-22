@@ -1,11 +1,11 @@
 [workspace]
 resolver = "2"
 members = [
-	"crates/server",
-	"crates/starknet-server",
-	"crates/types",
+	"crates/starknet-devnet-server",
+	"crates/starknet-devnet-cli",
+	"crates/starknet-devnet-types",
 	"crates/random-number-generator",
-	"crates/starknet",
+	"crates/starknet-devnet-core",
 ]
 
 [profile.release]
@@ -40,7 +40,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 # misc
 base64 = { version = "0.21.2" }
 clap = { version = "4.3.2", features = ["derive"] }
-flate2 = { version = "1.0.26" }
+flate2 = { version = ">= 1.0.26, < 1.0.27" }
 serde = { version = "1.0.171", features = ["derive"] }
 serde_json = { version = "1.0.81" }
 serde_yaml = { version = "0.9.27" }
@@ -66,9 +66,9 @@ cairo-lang-starknet = { version = "2.4.0-rc2", package = "cairo-lang-starknet" }
 url = "2.4"
 
 # Inner dependencies
-starknet-types = { path = "crates/types", package = "types" }
-starknet-core = { path = "crates/starknet", package = "starknet" }
-server = { path = "crates/server", package = "server"}
+starknet-types = { path = "crates/starknet-devnet-types", package = "starknet-devnet-types" }
+starknet-core = { path = "crates/starknet-devnet-core", package = "starknet-devnet-core" }
+server = { path = "crates/starknet-devnet-server", package = "starknet-devnet-server"}
 
 random-number-generator = { path = "crates/random-number-generator", package = "random-number-generator" }
 num-bigint = { version = "0.4" }
