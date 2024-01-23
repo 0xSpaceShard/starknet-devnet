@@ -1,9 +1,12 @@
 use serde::{Deserialize, Serialize};
-use starknet_rs_core::types::{Hash256, MsgToL1};
+use starknet_rs_core::types::{EthAddress, Hash256, MsgToL1, MsgToL2};
+use starknet_rs_ff::FieldElement;
 
 use crate::contract_address::ContractAddress;
+use crate::error::{DevnetResult, Error};
 use crate::felt::{Calldata, EntryPointSelector, Felt, Nonce};
 use crate::rpc::eth_address::EthAddressWrapper;
+use crate::utils::into_vec;
 
 /// An L1 to L2 message.
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
@@ -15,6 +18,30 @@ pub struct MessageToL2 {
     pub payload: Calldata,
     pub paid_fee_on_l1: Felt,
     pub nonce: Nonce,
+}
+
+impl MessageToL2 {
+    pub fn hash(&self) -> DevnetResult<Hash256> {
+        let msg_to_l2 = MsgToL2 {
+            from_address: EthAddress::from_felt(&self.l1_contract_address.into()).map_err(
+                |err| {
+                    Error::ConversionError(crate::error::ConversionError::OutOfRangeError(
+                        err.to_string(),
+                    ))
+                },
+            )?,
+            to_address: self.l2_contract_address.into(),
+            selector: self.entry_point_selector.into(),
+            payload: into_vec(&self.payload),
+            nonce: u64::try_from(FieldElement::from(self.nonce)).map_err(|err| {
+                Error::ConversionError(crate::error::ConversionError::OutOfRangeError(
+                    err.to_string(),
+                ))
+            })?,
+        };
+
+        Ok(msg_to_l2.hash())
+    }
 }
 
 pub type L2ToL1Payload = Vec<Felt>;

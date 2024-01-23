@@ -8,6 +8,7 @@ use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::emitted_event::{Event, OrderedEvent};
 use starknet_types::felt::{BlockHash, Felt, TransactionHash};
+use starknet_types::messaging::MessageToL2;
 use starknet_types::rpc::messaging::{MessageToL1, OrderedMessageToL1};
 use starknet_types::rpc::transaction_receipt::{
     DeployTransactionReceipt, FeeAmount, FeeInUnits, TransactionReceipt,
@@ -208,6 +209,15 @@ impl StarknetTransaction {
                 };
 
                 Ok(receipt)
+            }
+            Transaction::L1Handler(l1_transaction) => {
+                let msg_hash = MessageToL2::try_from(l1_transaction)?.hash()?;
+                Ok(TransactionReceipt::L1Handler(
+                    starknet_types::rpc::transaction_receipt::L1HandlerTransactionReceipt {
+                        common: common_receipt,
+                        message_hash: msg_hash,
+                    },
+                ))
             }
             _ => Ok(TransactionReceipt::Common(common_receipt)),
         }

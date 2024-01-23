@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use starknet_api::block::BlockNumber;
 use starknet_api::transaction::Fee;
-use starknet_rs_core::types::{ExecutionResult, TransactionFinalityStatus};
+use starknet_rs_core::types::{ExecutionResult, Hash256, TransactionFinalityStatus};
 
 use crate::constants::{
     BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME, N_STEPS,
@@ -17,6 +17,7 @@ use crate::rpc::transactions::TransactionType;
 #[serde(untagged)]
 pub enum TransactionReceipt {
     Deploy(DeployTransactionReceipt),
+    L1Handler(L1HandlerTransactionReceipt),
     Common(CommonTransactionReceipt),
 }
 
@@ -25,6 +26,13 @@ pub struct DeployTransactionReceipt {
     #[serde(flatten)]
     pub common: CommonTransactionReceipt,
     pub contract_address: ContractAddress,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct L1HandlerTransactionReceipt {
+    #[serde(flatten)]
+    pub common: CommonTransactionReceipt,
+    pub message_hash: Hash256,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
