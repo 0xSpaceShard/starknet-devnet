@@ -43,7 +43,7 @@ use starknet_types::rpc::transactions::{
     BroadcastedTransactionCommon, DeclareTransaction, DeclareTransactionTrace,
     DeployAccountTransactionTrace, ExecutionInvocation, FunctionInvocation, InvokeTransactionTrace,
     L1HandlerTransaction, L1HandlerTransactionTrace, SimulatedTransaction, SimulationFlag,
-    Transaction, TransactionTrace, Transactions,
+    Transaction, TransactionTrace, TransactionType, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, info};
@@ -368,20 +368,29 @@ impl Starknet {
         transaction: &Transaction,
         tx_info: TransactionExecutionInfo,
     ) -> DevnetResult<()> {
-        let transaction_to_add = StarknetTransaction::create_accepted(transaction, tx_info);
+        let state_diff = self.state.extract_state_diff_from_pending_state()?;
+
+        let address_to_class_hash = &self.state.state.state.address_to_class_hash;
+
+        let trace = Self::create_trace(
+            transaction.get_type(),
+            &tx_info,
+            state_diff.clone().into(),
+            address_to_class_hash,
+        )?;
+        let transaction_to_add = StarknetTransaction::create_accepted(transaction, tx_info, trace);
 
         // add accepted transaction to pending block
         self.blocks.pending_block.add_transaction(*transaction_hash);
 
         self.transactions.insert(transaction_hash, transaction_to_add);
 
-        let state_difference = self.state.extract_state_diff_from_pending_state()?;
         // apply state changes from cached state
-        self.state.apply_state_difference(state_difference.clone())?;
+        self.state.apply_state_difference(state_diff.clone())?;
         // make cached state part of "persistent" state
         self.state.clear_dirty_state();
         // create new block from pending one
-        self.generate_new_block(state_difference, None)?;
+        self.generate_new_block(state_diff, None)?;
         // clear pending block information
         self.generate_pending_block()?;
 
@@ -832,6 +841,67 @@ impl Starknet {
         })
     }
 
+    pub(crate) fn create_trace(
+        tx_type: TransactionType,
+        execution_info: &TransactionExecutionInfo,
+        state_diff: ThinStateDiff,
+        address_to_class_hash: &HashMap<ContractAddress, ClassHash>,
+    ) -> DevnetResult<TransactionTrace> {
+        let state_diff = Some(state_diff);
+        let validate_invocation = Self::get_call_info_invocation(
+            &execution_info.validate_call_info,
+            address_to_class_hash,
+        )?;
+
+        let fee_transfer_invocation = Self::get_call_info_invocation(
+            &execution_info.fee_transfer_call_info,
+            address_to_class_hash,
+        )?;
+
+        match tx_type {
+            TransactionType::Declare => Ok(TransactionTrace::Declare(DeclareTransactionTrace {
+                validate_invocation,
+                fee_transfer_invocation,
+                state_diff,
+            })),
+            TransactionType::DeployAccount => {
+                Ok(TransactionTrace::DeployAccount(DeployAccountTransactionTrace {
+                    validate_invocation,
+                    constructor_invocation: Self::get_call_info_invocation(
+                        &execution_info.execute_call_info,
+                        address_to_class_hash,
+                    )?,
+                    fee_transfer_invocation,
+                    state_diff,
+                }))
+            }
+            TransactionType::Invoke => Ok(TransactionTrace::Invoke(InvokeTransactionTrace {
+                validate_invocation,
+                execute_invocation: Self::get_execute_call_info(
+                    execution_info,
+                    address_to_class_hash,
+                )?,
+                fee_transfer_invocation,
+                state_diff,
+            })),
+            TransactionType::L1Handler => {
+                match Self::get_call_info_invocation(
+                    &execution_info.execute_call_info,
+                    address_to_class_hash,
+                )? {
+                    Some(function_invocation) => {
+                        Ok(TransactionTrace::L1Handler(L1HandlerTransactionTrace {
+                            function_invocation,
+                            state_diff,
+                        }))
+                    }
+                    _ => Err(Error::NoTransactionTrace),
+                }
+            }
+            _ => Err(Error::UnsupportedTransactionType),
+        }
+    }
+
     fn get_call_info_invocation(
         call_info_invocation: &Option<CallInfo>,
         address_to_class_hash_map: &HashMap<ContractAddress, ClassHash>,
@@ -847,70 +917,8 @@ impl Starknet {
         &self,
         transaction_hash: TransactionHash,
     ) -> DevnetResult<TransactionTrace> {
-        let transaction_to_map =
-            self.transactions.get(&transaction_hash).ok_or(Error::NoTransaction)?;
-
-        let mut state =
-            self.get_state_at(&BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))?.clone();
-
-        let state_diff: ThinStateDiff = state.extract_state_diff_from_pending_state()?.into();
-        let state_diff =
-            if state_diff == ThinStateDiff::default() { None } else { Some(state_diff) };
-
-        let address_to_class_hash_map = &state.state.state.address_to_class_hash;
-
-        let validate_invocation = Self::get_call_info_invocation(
-            &transaction_to_map.execution_info.validate_call_info,
-            address_to_class_hash_map,
-        )?;
-
-        let fee_transfer_invocation = Self::get_call_info_invocation(
-            &transaction_to_map.execution_info.fee_transfer_call_info,
-            address_to_class_hash_map,
-        )?;
-
-        match transaction_to_map.inner {
-            Transaction::Declare(_) => Ok(TransactionTrace::Declare(DeclareTransactionTrace {
-                validate_invocation,
-                fee_transfer_invocation,
-                state_diff,
-            })),
-            Transaction::DeployAccount(_) => {
-                Ok(TransactionTrace::DeployAccount(DeployAccountTransactionTrace {
-                    validate_invocation,
-                    constructor_invocation: Self::get_call_info_invocation(
-                        &transaction_to_map.execution_info.execute_call_info,
-                        address_to_class_hash_map,
-                    )?,
-                    fee_transfer_invocation,
-                    state_diff,
-                }))
-            }
-            Transaction::Invoke(_) => Ok(TransactionTrace::Invoke(InvokeTransactionTrace {
-                validate_invocation,
-                execute_invocation: Self::get_execute_call_info(
-                    &transaction_to_map.execution_info,
-                    address_to_class_hash_map,
-                )?,
-                fee_transfer_invocation,
-                state_diff,
-            })),
-            Transaction::L1Handler(_) => {
-                match Self::get_call_info_invocation(
-                    &transaction_to_map.execution_info.execute_call_info,
-                    address_to_class_hash_map,
-                )? {
-                    Some(function_invocation) => {
-                        Ok(TransactionTrace::L1Handler(L1HandlerTransactionTrace {
-                            function_invocation,
-                            state_diff,
-                        }))
-                    }
-                    _ => Err(Error::MissingL1HandlerTransactionTrace),
-                }
-            }
-            _ => Err(Error::UnsupportedTransactionType),
-        }
+        let tx = self.transactions.get(&transaction_hash).ok_or(Error::NoTransaction)?;
+        tx.get_trace().ok_or(Error::NoTransactionTrace)
     }
 
     pub fn get_transaction_traces_from_block(
