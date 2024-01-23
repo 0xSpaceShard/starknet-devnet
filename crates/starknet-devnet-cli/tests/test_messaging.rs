@@ -179,7 +179,7 @@ mod test_messaging {
         );
         assert_eq!(traces["function_invocation"]["entry_point_selector"], L1_HANDLER_SELECTOR);
         assert_eq!(traces["function_invocation"]["calldata"][0], MESSAGING_L1_CONTRACT_ADDRESS);
-        assert!(traces["state_diff"].is_null());
+        assert!(traces["state_diff"].is_object());
     }
 
     #[tokio::test]
