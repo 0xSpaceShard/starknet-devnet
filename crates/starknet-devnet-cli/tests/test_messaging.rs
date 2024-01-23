@@ -287,7 +287,6 @@ mod test_messaging {
     }
 
     #[tokio::test]
-    #[ignore = "Starknet-rs doesnt support receipt with actual_fee as object"]
     async fn mock_message_to_l2_creates_a_tx_with_desired_effect() {
         let (devnet, account, l1l2_contract_address) =
             setup_devnet(&["--account-class", "cairo1"]).await;
@@ -318,7 +317,7 @@ mod test_messaging {
         assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
         let body = get_json_body(resp).await;
         let tx_hash = body.get("transaction_hash").unwrap().as_str().unwrap();
-        assert_eq!(tx_hash, "0x7723a4247725834f72abe4d52768db6a2c5a39dac747a7d207250e0a583a31a");
+        assert_eq!(tx_hash, "0x4d5207a0713698517279d7431affe8400a120d9be1f6bcdf231b96f608a1b97");
 
         // assert state changed
         assert_eq!(
