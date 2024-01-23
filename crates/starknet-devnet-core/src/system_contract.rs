@@ -60,6 +60,7 @@ impl Accounted for SystemContract {
 
 #[cfg(test)]
 mod tests {
+    
     use starknet_types::contract_class::Cairo0Json;
 
     use super::SystemContract;
