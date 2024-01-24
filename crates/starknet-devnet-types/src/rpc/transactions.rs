@@ -512,6 +512,14 @@ impl BroadcastedTransaction {
 
         Ok(blockifier_transaction)
     }
+
+    pub fn get_type(&self) -> TransactionType {
+        match self {
+            BroadcastedTransaction::Invoke(_) => TransactionType::Invoke,
+            BroadcastedTransaction::Declare(_) => TransactionType::Declare,
+            BroadcastedTransaction::DeployAccount(_) => TransactionType::DeployAccount,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
