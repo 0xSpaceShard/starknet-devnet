@@ -3840,14 +3840,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "random-number-generator"
-version = "0.1.0"
-dependencies = [
- "rand",
- "rand_mt",
-]
-
-[[package]]
 name = "rawpointer"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4766,7 +4758,6 @@ dependencies = [
  "ethers",
  "hyper",
  "lazy_static",
- "random-number-generator",
  "serde",
  "serde_json",
  "starknet-accounts",
@@ -4796,7 +4787,8 @@ dependencies = [
  "hex",
  "indexmap 2.1.0",
  "jsonschema",
- "random-number-generator",
+ "rand",
+ "rand_mt",
  "serde",
  "serde_json",
  "starknet-core",

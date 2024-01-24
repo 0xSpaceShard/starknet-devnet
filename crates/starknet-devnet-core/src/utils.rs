@@ -6,11 +6,24 @@ use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 
 use crate::error::DevnetResult;
 
-pub(crate) fn generate_u128_random_numbers(
-    seed: u32,
-    random_numbers_count: u8,
-) -> DevnetResult<Vec<u128>> {
-    Ok(random_number_generator::generate_u128_random_numbers(seed, random_numbers_count))
+pub mod random_number_generator {
+    use rand::{thread_rng, Rng, SeedableRng};
+    use rand_mt::Mt64;
+
+    pub fn generate_u32_random_number() -> u32 {
+        thread_rng().gen()
+    }
+
+    pub(crate) fn generate_u128_random_numbers(seed: u32, random_numbers_count: u8) -> Vec<u128> {
+        let mut result: Vec<u128> = Vec::new();
+        let mut rng: Mt64 = SeedableRng::seed_from_u64(seed as u64);
+
+        for _ in 0..random_numbers_count {
+            result.push(rng.gen());
+        }
+
+        result
+    }
 }
 
 /// Returns the storage address of a Starknet storage variable given its name and arguments.
@@ -202,6 +215,7 @@ mod tests {
 
     use super::get_storage_var_address;
     use super::test_utils::{self, get_bytes_from_u32};
+    use crate::random_number_generator::generate_u128_random_numbers;
 
     #[test]
     fn correct_bytes_from_number() {
@@ -211,7 +225,7 @@ mod tests {
 
     #[test]
     fn correct_number_generated_based_on_fixed_seed() {
-        let generated_numbers = random_number_generator::generate_u128_random_numbers(123, 2);
+        let generated_numbers = generate_u128_random_numbers(123, 2);
         let expected_output: Vec<u128> =
             vec![261662301160200998434711212977610535782, 285327960644938307249498422906269531911];
         assert_eq!(generated_numbers, expected_output);

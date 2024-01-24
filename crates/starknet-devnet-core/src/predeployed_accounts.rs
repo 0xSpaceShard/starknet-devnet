@@ -7,7 +7,7 @@ use starknet_types::felt::{ClassHash, Felt, Key};
 use crate::account::Account;
 use crate::error::DevnetResult;
 use crate::traits::AccountGenerator;
-use crate::utils::generate_u128_random_numbers;
+use crate::utils::random_number_generator::generate_u128_random_numbers;
 
 #[derive(Default)]
 pub(crate) struct PredeployedAccounts {
@@ -36,8 +36,9 @@ impl PredeployedAccounts {
 }
 
 impl PredeployedAccounts {
+    // TODO: remove DevnetResult
     fn generate_private_keys(&self, number_of_accounts: u8) -> DevnetResult<Vec<Key>> {
-        let random_numbers = generate_u128_random_numbers(self.seed, number_of_accounts)?;
+        let random_numbers = generate_u128_random_numbers(self.seed, number_of_accounts);
         let private_keys = random_numbers.into_iter().map(Key::from).collect::<Vec<Key>>();
 
         Ok(private_keys)
