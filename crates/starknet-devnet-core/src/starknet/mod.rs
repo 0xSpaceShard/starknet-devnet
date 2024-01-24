@@ -370,13 +370,11 @@ impl Starknet {
     ) -> DevnetResult<()> {
         let state_diff = self.state.extract_state_diff_from_pending_state()?;
 
-        let address_to_class_hash = &self.state.state.state.address_to_class_hash;
-
         let trace = Self::create_trace(
             transaction.get_type(),
             &tx_info,
             state_diff.clone().into(),
-            address_to_class_hash,
+            &self.state.state.state.address_to_class_hash,
         )?;
         let transaction_to_add = StarknetTransaction::create_accepted(transaction, tx_info, trace);
 
@@ -984,53 +982,12 @@ impl Starknet {
             )?;
 
             let state_diff: ThinStateDiff = state.extract_state_diff_from_pending_state()?.into();
-            let state_diff =
-                if state_diff == ThinStateDiff::default() { None } else { Some(state_diff) };
-
-            let address_to_class_hash_map = &state.state.state.address_to_class_hash;
-
-            let validate_invocation = Self::get_call_info_invocation(
-                &tx_execution_info.validate_call_info,
-                address_to_class_hash_map,
+            let trace = Self::create_trace(
+                broadcasted_transaction.get_type(),
+                &tx_execution_info,
+                state_diff,
+                &state.state.state.address_to_class_hash,
             )?;
-
-            let fee_transfer_invocation = Self::get_call_info_invocation(
-                &tx_execution_info.fee_transfer_call_info,
-                address_to_class_hash_map,
-            )?;
-
-            let trace = match broadcasted_transaction {
-                BroadcastedTransaction::Declare(_) => {
-                    TransactionTrace::Declare(DeclareTransactionTrace {
-                        validate_invocation,
-                        fee_transfer_invocation,
-                        state_diff,
-                    })
-                }
-                BroadcastedTransaction::DeployAccount(_) => {
-                    TransactionTrace::DeployAccount(DeployAccountTransactionTrace {
-                        validate_invocation,
-                        constructor_invocation: Self::get_call_info_invocation(
-                            &tx_execution_info.execute_call_info,
-                            address_to_class_hash_map,
-                        )?,
-                        fee_transfer_invocation,
-                        state_diff,
-                    })
-                }
-                BroadcastedTransaction::Invoke(_) => {
-                    TransactionTrace::Invoke(InvokeTransactionTrace {
-                        fee_transfer_invocation,
-                        validate_invocation,
-                        state_diff,
-                        execute_invocation: Self::get_execute_call_info(
-                            &tx_execution_info,
-                            address_to_class_hash_map,
-                        )?,
-                    })
-                }
-            };
-
             transactions_traces.push(trace);
         }
 
