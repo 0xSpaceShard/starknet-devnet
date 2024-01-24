@@ -122,13 +122,11 @@ mod test_account_selection {
     }
 
     #[tokio::test]
-    #[ignore = "Starknet-rs doesnt support receipt with actual_fee as object"]
     async fn can_deploy_new_cairo1_account() {
         can_deploy_new_account_test_body(&["--account-class", "cairo1"]).await;
     }
 
     #[tokio::test]
-    #[ignore = "Starknet-rs doesnt support receipt with actual_fee as object"]
     async fn can_deploy_new_custom_account() {
         can_deploy_new_account_test_body(&[
             "--account-class-custom",

@@ -121,7 +121,6 @@ mod test_restart {
     }
 
     #[tokio::test]
-    #[ignore = "Starknet-rs does not support estimate_fee with simulation_flags"]
     async fn assert_gas_price_unaffected_by_restart() {
         let expected_gas_price = 1_000_000_u64;
         let devnet = BackgroundDevnet::spawn_with_additional_args(&[
