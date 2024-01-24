@@ -370,13 +370,11 @@ impl Starknet {
     ) -> DevnetResult<()> {
         let state_diff = self.state.extract_state_diff_from_pending_state()?;
 
-        let address_to_class_hash = &self.state.state.state.address_to_class_hash;
-
         let trace = Self::create_trace(
             transaction.get_type(),
             &tx_info,
             state_diff.clone().into(),
-            address_to_class_hash,
+            &self.state.state.state.address_to_class_hash,
         )?;
         let transaction_to_add = StarknetTransaction::create_accepted(transaction, tx_info, trace);
 
@@ -984,12 +982,11 @@ impl Starknet {
             )?;
 
             let state_diff: ThinStateDiff = state.extract_state_diff_from_pending_state()?.into();
-            let address_to_class_hash = &state.state.state.address_to_class_hash;
             let trace = Self::create_trace(
                 broadcasted_transaction.get_type(),
                 &tx_execution_info,
                 state_diff,
-                address_to_class_hash,
+                &state.state.state.address_to_class_hash,
             )?;
             transactions_traces.push(trace);
         }
