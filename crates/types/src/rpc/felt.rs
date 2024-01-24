@@ -234,6 +234,12 @@ impl From<Felt> for BigUint {
     }
 }
 
+impl From<starknet_api::core::Nonce> for Felt {
+    fn from(value: starknet_api::core::Nonce) -> Self {
+        value.0.into()
+    }
+}
+
 impl LowerHex for Felt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.to_prefixed_hex_str().as_str())

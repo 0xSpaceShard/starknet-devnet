@@ -9,6 +9,7 @@ use starknet_types::rpc::state::{
     ClassHashes, ContractNonce, DeployedContract, StorageDiff, StorageEntry, ThinStateDiff,
 };
 
+use super::dict_state_reader::DictStateReader;
 use crate::error::DevnetResult;
 
 /// This struct is used to store the difference between state modifications
@@ -29,9 +30,10 @@ pub struct StateDiff {
 impl Eq for StateDiff {}
 
 impl StateDiff {
+    // TODO should not operate on reader
     pub(crate) fn difference_between_old_and_new_state(
-        old_state: DevnetState,
-        new_state: &mut CachedState<DevnetState>,
+        old_state: DictStateReader,
+        new_state: &mut CachedState<DictStateReader>,
     ) -> DevnetResult<Self> {
         let mut declared_contracts = Vec::<ClassHash>::new();
         let mut cairo_0_declared_contracts = Vec::<ClassHash>::new();
@@ -43,11 +45,10 @@ impl StateDiff {
         let diff = new_state.to_state_diff();
 
         for (class_hash, class) in new_state.global_class_hash_to_class().get_order().iter() {
-            let class_hash_as_felt: Felt = class_hash.0.into();
-
-            if !(old_state.class_hash_to_compiled_class.contains_key(&class_hash_as_felt)
-                || old_state.class_hash_to_compiled_class_hash.contains_key(&class_hash_as_felt))
+            if !(old_state.class_hash_to_class.contains_key(&class_hash)
+                || old_state.class_hash_to_compiled_class_hash.contains_key(&class_hash))
             {
+                let class_hash_as_felt: Felt = class_hash.0.into();
                 match class {
                     blockifier::execution::contract_class::ContractClass::V0(_) => {
                         cairo_0_declared_contracts.push(class_hash_as_felt)
@@ -184,7 +185,7 @@ mod tests {
     use starknet_types::felt::Felt;
 
     use super::StateDiff;
-    use crate::state::DevnetState;
+    use crate::state::dict_state_reader::DictStateReader;
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{
         dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
@@ -230,7 +231,7 @@ mod tests {
 
     #[test]
     fn correct_difference_in_declared_classes() {
-        let old_state = DevnetState::default();
+        let old_state = DictStateReader::default();
 
         let compiled_class_hash = Felt::from(1);
 
@@ -254,7 +255,7 @@ mod tests {
 
     #[test]
     fn correct_difference_in_cairo_0_declared_classes() {
-        let old_state = DevnetState::default();
+        let old_state = DictStateReader::default();
 
         let class_hash = Felt::from(1);
         let cairo_0_contract_class: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
@@ -301,8 +302,8 @@ mod tests {
         assert_eq!(generated_diff, expected_diff);
     }
 
-    fn setup() -> (DevnetState, CachedState<DevnetState>) {
-        let state = DevnetState::default();
+    fn setup() -> (DictStateReader, CachedState<DictStateReader>) {
+        let state = DictStateReader::default();
         let cached_state = CachedState::from(state.clone());
 
         (state, cached_state)

@@ -23,7 +23,6 @@ use starknet_types::constants::{
 };
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
-use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::emitted_event::EmittedEvent;
 use starknet_types::felt::{ClassHash, Felt, TransactionHash};
 use starknet_types::patricia_key::PatriciaKey;
@@ -504,7 +503,8 @@ impl Starknet {
     ) -> DevnetResult<Vec<Felt>> {
         let state = self.get_state_at(&block_id)?;
 
-        if !state.is_contract_deployed(&ContractAddress::new(contract_address)?) {
+        let core_address = starknet_api::core::ContractAddress(contract_address.try_into()?);
+        if !state.is_contract_deployed(core_address) {
             return Err(Error::ContractNotFound);
         }
 
@@ -533,7 +533,7 @@ impl Starknet {
                 true,
             )?;
         let res = call
-            .execute(&mut state.clone().state, &mut execution_resources, &mut execution_context)
+            .execute(&mut state.clone(), &mut execution_resources, &mut execution_context)
             .map_err(|err| {
                 Error::BlockifierTransactionError(blockifier::transaction::errors::TransactionExecutionError::EntryPointExecutionError(err))
             })?;
@@ -640,10 +640,9 @@ impl Starknet {
     ) -> DevnetResult<Felt> {
         let sufficiently_big_max_fee: u128 = self.config.gas_price as u128 * 1_000_000;
         let chargeable_address_felt = Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?;
-        let nonce =
-            self.state.state.get_nonce_at(starknet_api::core::ContractAddress::try_from(
-                starknet_api::hash::StarkFelt::from(chargeable_address_felt),
-            )?)?;
+        let nonce = self.state.get_nonce_at(starknet_api::core::ContractAddress::try_from(
+            starknet_api::hash::StarkFelt::from(chargeable_address_felt),
+        )?)?;
 
         let calldata = vec![
             Felt::from(address).into(),
@@ -705,7 +704,7 @@ impl Starknet {
         contract_address: ContractAddress,
     ) -> DevnetResult<Felt> {
         let state = self.get_state_at(&block_id)?;
-        state.get_nonce(&contract_address)
+        Ok(state.get_nonce_at(contract_address.try_into()?)?.into())
     }
 
     pub fn contract_storage_at_block(
@@ -715,7 +714,7 @@ impl Starknet {
         storage_key: PatriciaKey,
     ) -> DevnetResult<Felt> {
         let state = self.get_state_at(&block_id)?;
-        state.get_storage(ContractStorageKey::new(contract_address, storage_key))
+        Ok(state.get_storage_at(contract_address.try_into()?, storage_key.into())?.into())
     }
 
     pub fn get_block(&self, block_id: BlockId) -> DevnetResult<StarknetBlock> {

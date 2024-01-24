@@ -1,3 +1,4 @@
+use blockifier::state::state_api::StateReader;
 use starknet_rs_core::types::BlockId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
@@ -12,13 +13,14 @@ pub fn get_class_hash_at_impl(
     contract_address: ContractAddress,
 ) -> DevnetResult<ClassHash> {
     let state = starknet.get_state_at(&block_id)?;
-    let class_hash = state.state.state.class_hash_at(&contract_address);
+    let class_hash = state.get_class_hash_at(contract_address.try_into()?)?;
 
-    if class_hash == Felt::default() {
+    let class_hash_felt = class_hash.into();
+    if class_hash_felt == Felt::default() {
         return Err(Error::ContractNotFound);
     }
 
-    Ok(class_hash)
+    Ok(class_hash_felt)
 }
 
 pub fn get_class_impl(
@@ -27,7 +29,7 @@ pub fn get_class_impl(
     class_hash: ClassHash,
 ) -> DevnetResult<ContractClass> {
     let state = starknet.get_state_at(&block_id)?;
-    state.state.state.contract_class_at(&class_hash)
+    Ok(state.get_rpc_contract_class(&class_hash.into())?)
 }
 
 pub fn get_class_at_impl(

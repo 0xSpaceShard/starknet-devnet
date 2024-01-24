@@ -42,10 +42,7 @@ impl Deployed for SystemContract {
 }
 
 impl Accounted for SystemContract {
-    fn set_initial_balance(
-        &self,
-        _state: &mut impl State,
-    ) -> DevnetResult<()> {
+    fn set_initial_balance(&self, _state: &mut impl State) -> DevnetResult<()> {
         Ok(())
     }
 
