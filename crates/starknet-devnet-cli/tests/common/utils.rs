@@ -5,7 +5,7 @@ use std::process::{Child, Command};
 
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use hyper::{Body, Response};
-use random_number_generator::generate_u32_random_number;
+use starknet_core::random_number_generator::generate_u32_random_number;
 use starknet_rs_core::types::contract::SierraClass;
 use starknet_rs_core::types::{ExecutionResult, FieldElement, FlattenedSierraClass};
 use starknet_rs_providers::Provider;

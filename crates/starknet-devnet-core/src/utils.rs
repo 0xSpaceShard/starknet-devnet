@@ -215,7 +215,6 @@ mod tests {
 
     use super::get_storage_var_address;
     use super::test_utils::{self, get_bytes_from_u32};
-    use crate::random_number_generator::generate_u128_random_numbers;
 
     #[test]
     fn correct_bytes_from_number() {
