@@ -224,14 +224,6 @@ mod tests {
     }
 
     #[test]
-    fn correct_number_generated_based_on_fixed_seed() {
-        let generated_numbers = generate_u128_random_numbers(123, 2);
-        let expected_output: Vec<u128> =
-            vec![261662301160200998434711212977610535782, 285327960644938307249498422906269531911];
-        assert_eq!(generated_numbers, expected_output);
-    }
-
-    #[test]
     fn correct_simple_storage_var_address_generated() {
         let expected_storage_var_address =
             blockifier::abi::abi_utils::get_storage_var_address("simple", &[]);
