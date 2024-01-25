@@ -81,3 +81,41 @@ impl AccountGenerator for PredeployedAccounts {
         Ok(&self.accounts)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use rand::{thread_rng, Rng};
+    use starknet_types::felt::Felt;
+
+    use crate::predeployed_accounts::PredeployedAccounts;
+    use crate::utils::test_utils::dummy_contract_address;
+
+    #[test]
+    fn private_key_from_different_seeds_should_be_different_and_equal_from_equal_seeds() {
+        let mut rng = thread_rng();
+
+        let seed1 = rng.gen::<u32>();
+        let private_key1 = PredeployedAccounts::new(
+            seed1,
+            Felt::from(1),
+            dummy_contract_address(),
+            dummy_contract_address(),
+        )
+        .generate_private_keys(1)[0];
+
+        let seed2 = rng.gen::<u32>();
+        let private_key2 = PredeployedAccounts::new(
+            seed2,
+            Felt::from(1),
+            dummy_contract_address(),
+            dummy_contract_address(),
+        )
+        .generate_private_keys(1)[0];
+
+        if seed1 == seed2 {
+            assert_eq!(private_key1, private_key2);
+        } else {
+            assert_ne!(private_key1, private_key2);
+        }
+    }
+}
