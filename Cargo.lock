@@ -528,8 +528,9 @@ dependencies = [
 
 [[package]]
 name = "blockifier"
-version = "0.4.0-rc8"
-source = "git+https://github.com/starkware-libs/blockifier?rev=v0.4.0-rc8#fb1c6ef99eb5cd2f072d9142422b578b49526900"
+version = "0.4.0-rc9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef5a3b188d99cd984d972584119bd44560e070bbf211433ae89e9be4e49fae3e"
 dependencies = [
  "ark-ec",
  "ark-ff",
@@ -544,7 +545,7 @@ dependencies = [
  "cairo-vm",
  "ctor",
  "derive_more",
- "indexmap 1.9.3",
+ "indexmap 2.1.0",
  "itertools 0.10.5",
  "keccak",
  "log",

@@ -50,7 +50,7 @@ regex_generate = "0.2.3"
 
 # Starknet dependencies
 starknet_api = { version = "0.6.0-rc2", features = ["testing"] }
-blockifier = { git = "https://github.com/starkware-libs/blockifier", rev = "v0.4.0-rc8", package = "blockifier" }
+blockifier = { version = "0.4.0-rc8", package = "blockifier" }
 starknet-rs-signers = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "63538a3", package="starknet-signers" }
 starknet-rs-ff = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "63538a3", package = "starknet-ff" }
 starknet-rs-core = {  git = "https://github.com/xJonathanLEI/starknet-rs", rev = "63538a3", package = "starknet-core" }
