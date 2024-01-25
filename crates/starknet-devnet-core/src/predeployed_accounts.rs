@@ -91,12 +91,47 @@ mod tests {
     use crate::utils::test_utils::dummy_contract_address;
 
     #[test]
-    fn private_key_from_different_seeds_should_be_different_and_equal_from_equal_seeds() {
+    fn private_key_from_equal_seeds_have_to_be_equal() {
+        for _ in 0..1000 {
+            let seed = thread_rng().gen::<u32>();
+
+            let private_key1 = PredeployedAccounts::new(
+                seed,
+                Felt::from(1),
+                dummy_contract_address(),
+                dummy_contract_address(),
+            )
+            .generate_private_keys(1)[0];
+
+            let private_key2 = PredeployedAccounts::new(
+                seed,
+                Felt::from(1),
+                dummy_contract_address(),
+                dummy_contract_address(),
+            )
+            .generate_private_keys(1)[0];
+
+            assert_eq!(private_key1, private_key2);
+        }
+    }
+
+    #[test]
+    fn private_key_from_different_seeds_have_to_be_different() {
         let mut rng = thread_rng();
 
-        // looping 10000 times to make sure that at least once the generated seeds are equal
-        for _ in 0..10000 {
-            let seed1 = rng.gen::<u32>();
+        for _ in 0..1000 {
+            let mut seed1;
+            let mut seed2;
+
+            // get two different seeds
+            loop {
+                seed1 = rng.gen::<u32>();
+                seed2 = rng.gen::<u32>();
+                if seed1 != seed2 {
+                    break;
+                }
+            }
+
             let private_key1 = PredeployedAccounts::new(
                 seed1,
                 Felt::from(1),
@@ -105,7 +140,6 @@ mod tests {
             )
             .generate_private_keys(1)[0];
 
-            let seed2 = rng.gen::<u32>();
             let private_key2 = PredeployedAccounts::new(
                 seed2,
                 Felt::from(1),
@@ -114,11 +148,7 @@ mod tests {
             )
             .generate_private_keys(1)[0];
 
-            if seed1 == seed2 {
-                assert_eq!(private_key1, private_key2);
-            } else {
-                assert_ne!(private_key1, private_key2);
-            }
+            assert_ne!(private_key1, private_key2);
         }
     }
 }
