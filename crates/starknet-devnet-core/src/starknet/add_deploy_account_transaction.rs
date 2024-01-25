@@ -251,7 +251,6 @@ mod tests {
             ContractStorageKey::new(eth_fee_token_address, balance_storage_var_address);
 
         starknet.state.change_storage(balance_storage_key, Felt::from(fee_raw)).unwrap();
-        starknet.state.clear_dirty_state();
 
         match starknet.add_deploy_account_transaction_v1(transaction).unwrap_err() {
             Error::TransactionValidationError(
@@ -284,7 +283,6 @@ mod tests {
             .state
             .change_storage(balance_storage_key, account_balance_before_deployment)
             .unwrap();
-        starknet.state.clear_dirty_state();
 
         // get accounts count before deployment
         let accounts_before_deployment = get_accounts_count(&starknet);
@@ -335,7 +333,6 @@ mod tests {
             .state
             .change_storage(balance_storage_key, account_balance_before_deployment)
             .unwrap();
-        starknet.state.clear_dirty_state();
 
         // get accounts count before deployment
         let accounts_before_deployment = get_accounts_count(&starknet);
@@ -372,7 +369,6 @@ mod tests {
         let class_hash = contract_class.generate_hash().unwrap();
 
         starknet.state.declare_contract_class(class_hash, contract_class.into()).unwrap();
-        starknet.state.clear_dirty_state();
         starknet.block_context = Starknet::init_block_context(
             1,
             constants::ETH_ERC20_CONTRACT_ADDRESS,

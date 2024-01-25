@@ -251,7 +251,6 @@ mod tests {
 
         // deploy dummy contract
         starknet.state.deploy_contract(dummy_contract_address, dummy_contract_class_hash).unwrap();
-        starknet.state.clear_dirty_state();
         starknet.block_context = Starknet::init_block_context(
             1,
             constants::ETH_ERC20_CONTRACT_ADDRESS,

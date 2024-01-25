@@ -128,14 +128,6 @@ impl blockifier::state::state_api::StateReader for DevnetState {
     }
 }
 
-impl StarknetState {
-    /// this method clears the state from data that was accumulated in the StateCache
-    /// and restores it to the data in the state_reader, which is the "persistent" data
-    pub(crate) fn clear_dirty_state(&mut self) {
-        self.state = CachedState::new(self.state.state.clone(), Default::default());
-    }
-}
-
 impl Clone for StarknetState {
     fn clone(&self) -> Self {
         Self {
@@ -267,8 +259,6 @@ mod tests {
         state.state.set_storage_at(contract_address, storage_key, dummy_felt().into());
 
         state.state.get_storage_at(contract_address, storage_key).unwrap();
-
-        state.clear_dirty_state();
 
         assert_eq!(
             state.state.get_storage_at(contract_address, storage_key).unwrap(),

@@ -169,9 +169,6 @@ impl Starknet {
         chargeable_account.deploy(&mut state)?;
         chargeable_account.set_initial_balance(&mut state)?;
 
-        // copy already modified state to cached state
-        state.clear_dirty_state();
-
         let mut this = Self {
             state,
             predeployed_accounts,
@@ -189,6 +186,7 @@ impl Starknet {
             dump_events: Default::default(),
         };
 
+        this.state.extract_state_diff_from_pending_state()?;
         this.restart_pending_block()?;
 
         // Load starknet transactions
