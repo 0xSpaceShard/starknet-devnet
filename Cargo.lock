@@ -155,15 +155,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anvil-rpc"
-version = "0.1.0"
-source = "git+https://github.com/foundry-rs/foundry?rev=5f2262736feaeabadeef2ae989a78e9b43da8eee#5f2262736feaeabadeef2ae989a78e9b43da8eee"
-dependencies = [
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "anyhow"
 version = "1.0.75"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4685,7 +4676,6 @@ dependencies = [
 name = "starknet-devnet-server"
 version = "0.1.0"
 dependencies = [
- "anvil-rpc",
  "anyhow",
  "async-trait",
  "axum",
