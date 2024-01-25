@@ -190,61 +190,6 @@ impl StateChanger for StarknetState {
 
         Ok(())
     }
-
-    fn apply_state_difference(&mut self, state_diff: StateDiff) -> DevnetResult<()> {
-        let old_state = &mut self.state.state;
-        let contract_classes_cache = &self.contract_classes;
-
-        let storage_updates =
-            state_diff.storage_updates.into_iter().flat_map(|(address, entries)| {
-                entries.into_iter().map(move |(storage_key, value)| {
-                    (ContractStorageKey::new(address, storage_key), value)
-                })
-            });
-
-        old_state.address_to_storage.extend(storage_updates);
-
-        // update cairo 0 differences
-        for class_hash in state_diff.cairo_0_declared_contracts {
-            let cairo_0_contract_class = contract_classes_cache
-                .get(&class_hash)
-                .ok_or(Error::StateError(crate::error::StateError::NoneClassHash(class_hash)))?;
-            old_state
-                .class_hash_to_compiled_class
-                .insert(class_hash, cairo_0_contract_class.clone());
-        }
-
-        // update class_hash -> compiled_class_hash differences
-        old_state
-            .class_hash_to_compiled_class_hash
-            .extend(state_diff.class_hash_to_compiled_class_hash.iter());
-
-        // update cairo 1 differences
-        state_diff.declared_contracts.iter().try_for_each(|class_hash| -> DevnetResult<()> {
-            let compiled_class_hash =
-                old_state.class_hash_to_compiled_class_hash.get(class_hash).ok_or(
-                    Error::StateError(crate::error::StateError::NoneCompiledHash(*class_hash)),
-                )?;
-
-            let cairo_1_sierra = contract_classes_cache
-                .get(class_hash)
-                .ok_or(Error::StateError(crate::error::StateError::NoneCasmClass(*class_hash)))?;
-
-            old_state
-                .class_hash_to_compiled_class
-                .insert(*compiled_class_hash, cairo_1_sierra.clone());
-
-            Ok(())
-        })?;
-
-        // update deployed contracts
-        old_state.address_to_class_hash.extend(state_diff.address_to_class_hash.iter());
-
-        // update accounts nonce
-        old_state.address_to_nonce.extend(state_diff.address_to_nonce.iter());
-
-        Ok(())
-    }
 }
 
 impl StateExtractor for StarknetState {
@@ -294,9 +239,8 @@ impl StateExtractor for StarknetState {
 mod tests {
     use blockifier::state::state_api::{State, StateReader};
     use blockifier::test_utils::DictStateReader;
-    use starknet_api::state::StorageKey;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
+    use starknet_types::contract_class::Cairo0ContractClass;
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::{ClassHash, Felt};
 
@@ -308,31 +252,6 @@ mod tests {
         dummy_cairo_1_contract_class, dummy_contract_address, dummy_contract_storage_key,
         dummy_felt,
     };
-
-    #[test]
-    fn apply_state_update_for_contract_class_successfully() {
-        let mut state = StarknetState::default();
-
-        let class_hash = dummy_felt().into();
-        let contract_class: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
-
-        state
-            .state
-            .set_contract_class(
-                &class_hash,
-                ContractClass::Cairo0(contract_class.clone()).try_into().unwrap(),
-            )
-            .unwrap();
-
-        state.contract_classes.insert(class_hash.into(), contract_class.into());
-
-        assert!(!state.is_contract_declared(&dummy_felt()));
-        state.state.get_compiled_contract_class(&class_hash).unwrap();
-        let state_diff = state.extract_state_diff_from_pending_state().unwrap();
-        state.apply_state_difference(state_diff).unwrap();
-
-        assert!(state.is_contract_declared(&dummy_felt()));
-    }
 
     #[test]
     fn synchronize_states_after_changing_pending_state_it_should_be_empty() {
@@ -354,58 +273,6 @@ mod tests {
         assert_eq!(
             state.state.get_storage_at(contract_address, storage_key).unwrap(),
             Felt::default().into()
-        );
-    }
-
-    #[test]
-    fn apply_state_updates_for_storage_successfully() {
-        let mut state = StarknetState::default();
-
-        let contract_address = *dummy_contract_storage_key().get_contract_address();
-        state
-            .state
-            .set_class_hash_at(
-                contract_address.try_into().unwrap(),
-                starknet_api::core::ClassHash(dummy_felt().into()),
-            )
-            .unwrap();
-
-        state.state.set_storage_at(
-            contract_address.try_into().unwrap(),
-            StorageKey((*dummy_contract_storage_key().get_storage_key()).try_into().unwrap()),
-            dummy_felt().into(),
-        );
-
-        let get_storage_result = state.get_storage(dummy_contract_storage_key());
-
-        assert!(matches!(get_storage_result.unwrap_err(), Error::ContractNotFound));
-
-        // apply changes to persistent state
-        let state_diff = state.extract_state_diff_from_pending_state().unwrap();
-        state.apply_state_difference(state_diff).unwrap();
-        assert_eq!(state.get_storage(dummy_contract_storage_key()).unwrap(), dummy_felt());
-    }
-
-    #[test]
-    fn apply_state_updates_for_address_nonce_successfully() {
-        let mut state = StarknetState::default();
-
-        state.deploy_contract(dummy_contract_address(), dummy_felt()).unwrap();
-        let contract_address = dummy_contract_address();
-
-        // check if current nonce is 0
-        assert!(
-            state.state.state.address_to_nonce.get(&contract_address).unwrap().eq(&Felt::from(0))
-        );
-
-        state.clear_dirty_state();
-        state.state.increment_nonce(contract_address.try_into().unwrap()).unwrap();
-        let state_diff = state.extract_state_diff_from_pending_state().unwrap();
-        state.apply_state_difference(state_diff).unwrap();
-
-        // check if nonce update was correct
-        assert!(
-            state.state.state.address_to_nonce.get(&contract_address).unwrap().eq(&Felt::from(1))
         );
     }
 

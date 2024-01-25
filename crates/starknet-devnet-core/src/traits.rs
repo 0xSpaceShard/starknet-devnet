@@ -62,8 +62,6 @@ pub trait StateChanger {
     ) -> DevnetResult<()>;
     fn change_storage(&mut self, storage_key: ContractStorageKey, data: Felt) -> DevnetResult<()>;
     fn increment_nonce(&mut self, address: ContractAddress) -> DevnetResult<()>;
-    // apply state_diff to "persistent" state
-    fn apply_state_difference(&mut self, state_diff: StateDiff) -> DevnetResult<()>;
 }
 
 /// Interface for extracting data from the state

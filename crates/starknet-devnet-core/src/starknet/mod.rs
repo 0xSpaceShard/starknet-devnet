@@ -66,8 +66,7 @@ use crate::state::state_diff::StateDiff;
 use crate::state::state_update::StateUpdate;
 use crate::state::StarknetState;
 use crate::traits::{
-    AccountGenerator, Accounted, Deployed, HashIdentified, HashIdentifiedMut, StateChanger,
-    StateExtractor,
+    AccountGenerator, Accounted, Deployed, HashIdentified, HashIdentifiedMut, StateExtractor,
 };
 use crate::transactions::{StarknetTransaction, StarknetTransactions};
 
@@ -379,10 +378,6 @@ impl Starknet {
 
         self.transactions.insert(transaction_hash, transaction_to_add);
 
-        // apply state changes from cached state
-        self.state.apply_state_difference(state_diff.clone())?;
-        // make cached state part of "persistent" state
-        self.state.clear_dirty_state();
         // create new block from pending one
         self.generate_new_block(state_diff, None)?;
         // clear pending block information
@@ -1083,7 +1078,7 @@ mod tests {
     use crate::error::{DevnetResult, Error};
     use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
     use crate::state::state_diff::StateDiff;
-    use crate::traits::{Accounted, StateChanger, StateExtractor};
+    use crate::traits::{Accounted, StateExtractor};
     use crate::utils::test_utils::{
         dummy_contract_address, dummy_declare_transaction_v1, dummy_felt,
     };
@@ -1424,8 +1419,6 @@ mod tests {
         starknet.state.state.increment_nonce(dummy_contract_address().try_into().unwrap()).unwrap();
         // get state difference
         let state_diff = starknet.state.extract_state_diff_from_pending_state().unwrap();
-        // move data from pending_state to state
-        starknet.state.apply_state_difference(state_diff.clone()).unwrap();
         // generate new block and save the state
         let second_block = starknet.generate_new_block(state_diff, None).unwrap();
         starknet.generate_pending_block().unwrap();
@@ -1435,8 +1428,6 @@ mod tests {
         starknet.state.state.increment_nonce(dummy_contract_address().try_into().unwrap()).unwrap();
         // get state difference
         let state_diff = starknet.state.extract_state_diff_from_pending_state().unwrap();
-        // move data from pending_state to state
-        starknet.state.apply_state_difference(state_diff.clone()).unwrap();
         // generate new block and save the state
         let third_block = starknet.generate_new_block(state_diff, None).unwrap();
         starknet.generate_pending_block().unwrap();
