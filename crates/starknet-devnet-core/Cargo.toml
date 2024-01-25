@@ -20,12 +20,12 @@ starknet-rs-signers = { workspace = true }
 starknet-rs-ff = { workspace = true }
 starknet-rs-core = { workspace = true }
 starknet-types = { workspace = true }
-random-number-generator = { workspace = true }
+rand = { workspace = true }
+rand_mt = { workspace = true }
 tracing = { workspace = true }
 indexmap = { workspace = true }
 
 [dev-dependencies]
-jsonschema = "0.16.0"
 hex = "0.4.3"
 
 [features]

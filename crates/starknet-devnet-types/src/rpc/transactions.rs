@@ -1,5 +1,6 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
+use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
@@ -748,15 +749,13 @@ pub struct SimulatedTransaction {
 impl FunctionInvocation {
     pub fn try_from_call_info(
         call_info: &blockifier::execution::call_info::CallInfo,
-        address_to_class_hash: &HashMap<ContractAddress, Felt>,
+        state_reader: &mut impl StateReader,
     ) -> DevnetResult<Self> {
         let mut internal_calls: Vec<FunctionInvocation> = vec![];
         let execution_resources = ExecutionResources::from(call_info);
         for internal_call in &call_info.inner_calls {
-            internal_calls.push(FunctionInvocation::try_from_call_info(
-                internal_call,
-                address_to_class_hash,
-            )?);
+            internal_calls
+                .push(FunctionInvocation::try_from_call_info(internal_call, state_reader)?);
         }
 
         let mut messages: Vec<OrderedMessageToL1> = call_info
@@ -769,28 +768,27 @@ impl FunctionInvocation {
 
         let mut events: Vec<OrderedEvent> =
             call_info.execution.events.iter().map(OrderedEvent::from).collect();
-        let contract_address = call_info.call.storage_address.into();
+        let contract_address = call_info.call.storage_address;
         events.sort_by_key(|event| event.order);
 
         // call_info.call.class_hash could be None, so we deduce it from
         // call_info.call.storage_address which is function_call.contract_address
         let class_hash = if let Some(class_hash) = call_info.call.class_hash {
-            class_hash.into()
+            class_hash
         } else {
-            address_to_class_hash
-                .get(&contract_address)
-                .ok_or(ConversionError::InvalidInternalStructure(
-                    "class_hash is unexpectedly undefined".into(),
-                ))
-                .cloned()?
+            state_reader.get_class_hash_at(contract_address).map_err(|_| {
+                ConversionError::InvalidInternalStructure(
+                    "class_hash is unxpectedly undefined".into(),
+                )
+            })?
         };
 
         Ok(FunctionInvocation {
-            contract_address,
+            contract_address: contract_address.into(),
             entry_point_selector: call_info.call.entry_point_selector.0.into(),
             calldata: call_info.call.calldata.0.iter().map(|f| Felt::from(*f)).collect(),
             caller_address: call_info.call.caller_address.into(),
-            class_hash,
+            class_hash: class_hash.into(),
             entry_point_type: call_info.call.entry_point_type,
             call_type: match call_info.call.call_type {
                 blockifier::execution::entry_point::CallType::Call => CallType::Call,

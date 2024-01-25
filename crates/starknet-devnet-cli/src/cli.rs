@@ -3,6 +3,7 @@ use starknet_core::constants::{
     DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TIMEOUT,
     DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
+use starknet_core::random_number_generator::generate_u32_random_number;
 use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig, StateArchiveCapacity};
 use starknet_types::chain_id::ChainId;
 
@@ -120,7 +121,7 @@ impl Args {
         Ok(StarknetConfig {
             seed: match self.seed {
                 Some(seed) => seed,
-                None => random_number_generator::generate_u32_random_number(),
+                None => generate_u32_random_number(),
             },
             total_accounts: self.accounts_count,
             account_contract_class: account_class_wrapper.contract_class,

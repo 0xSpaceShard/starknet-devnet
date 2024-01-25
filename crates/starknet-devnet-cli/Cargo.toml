@@ -12,7 +12,6 @@ path = "src/main.rs"
 [dependencies]
 # devnet
 cairo-lang-starknet = { workspace = true }
-random-number-generator = { workspace = true }
 server = { workspace = true }
 starknet-core = { workspace = true }
 starknet-types = { workspace = true }

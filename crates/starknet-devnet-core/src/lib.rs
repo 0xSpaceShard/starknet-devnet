@@ -10,6 +10,7 @@ mod state;
 mod system_contract;
 mod traits;
 pub mod transactions;
+pub use utils::random_number_generator;
 #[cfg(not(feature = "test_utils"))]
 mod utils;
 #[cfg(feature = "test_utils")]

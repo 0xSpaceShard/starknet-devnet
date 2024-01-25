@@ -287,10 +287,10 @@ mod tests {
 
     fn dummy_trace(tx: &Transaction) -> TransactionTrace {
         Starknet::create_trace(
+            &mut Default::default(),
             tx.get_type(),
             &Default::default(),
             Default::default(),
-            &Default::default(),
         )
         .unwrap()
     }
