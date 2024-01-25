@@ -5,7 +5,7 @@ mod test_account_selection {
     use std::sync::Arc;
 
     use starknet_core::constants::{
-        CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
+        CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH_0_7_0, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_7_0,
     };
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{
@@ -41,7 +41,7 @@ mod test_account_selection {
     async fn spawnable_with_custom_account() {
         BackgroundDevnet::spawn_with_additional_args(&[
             "--account-class-custom",
-            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
+            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_7_0,
         ])
         .await
         .unwrap();
@@ -65,7 +65,7 @@ mod test_account_selection {
     async fn correct_cairo1_artifact() {
         correct_artifact_test_body(
             &["--account-class", "cairo1"],
-            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
+            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH_0_7_0,
         )
         .await;
     }
@@ -73,8 +73,8 @@ mod test_account_selection {
     #[tokio::test]
     async fn correct_custom_artifact() {
         correct_artifact_test_body(
-            &["--account-class-custom", CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH],
-            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
+            &["--account-class-custom", CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_7_0],
+            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH_0_7_0,
         )
         .await;
     }
@@ -86,7 +86,7 @@ mod test_account_selection {
         let signer = get_deployable_account_signer();
 
         let account_factory = OpenZeppelinAccountFactory::new(
-            FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap(),
+            FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH_0_7_0).unwrap(),
             CHAIN_ID,
             signer,
             devnet.clone_provider(),
@@ -130,7 +130,7 @@ mod test_account_selection {
     async fn can_deploy_new_custom_account() {
         can_deploy_new_account_test_body(&[
             "--account-class-custom",
-            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
+            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_7_0,
         ])
         .await;
     }
@@ -217,7 +217,7 @@ mod test_account_selection {
     async fn can_declare_deploy_invoke_using_predeployed_custom() {
         can_declare_deploy_invoke_using_predeployed_test_body(&[
             "--account-class-custom",
-            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
+            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_7_0,
         ])
         .await;
     }

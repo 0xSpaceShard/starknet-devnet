@@ -144,7 +144,7 @@ impl Args {
 #[cfg(test)]
 mod tests {
     use clap::Parser;
-    use starknet_core::constants::{CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH, ERC20_CONTRACT_PATH_0_2_0};
+    use starknet_core::constants::{CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_7_0, ERC20_CONTRACT_PATH_0_2_0};
     use starknet_core::starknet::starknet_config::StateArchiveCapacity;
 
     use super::Args;
@@ -207,7 +207,7 @@ mod tests {
             "--account-class",
             "cairo1",
             "--account-class-custom",
-            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
+            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_7_0,
         ]) {
             Err(err) => {
                 assert_eq!(
@@ -233,7 +233,7 @@ mod tests {
         match Args::try_parse_from([
             "--",
             "--account-class-custom",
-            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
+            CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_7_0,
         ]) {
             Ok(_) => (),
             Err(err) => panic!("Should have passed; got: {err}"),
