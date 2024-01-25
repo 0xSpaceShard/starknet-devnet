@@ -144,7 +144,9 @@ impl Args {
 #[cfg(test)]
 mod tests {
     use clap::Parser;
-    use starknet_core::constants::{CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_7_0, ERC20_CONTRACT_PATH_0_2_0};
+    use starknet_core::constants::{
+        CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_7_0, ERC20_CONTRACT_PATH_0_2_0,
+    };
     use starknet_core::starknet::starknet_config::StateArchiveCapacity;
 
     use super::Args;

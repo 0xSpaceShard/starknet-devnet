@@ -51,7 +51,8 @@ mod tests {
 
     use crate::account::Account;
     use crate::constants::{
-        self, DEVNET_DEFAULT_CHAIN_ID, ERC20_CONTRACT_PATH_0_2_0, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS
+        self, DEVNET_DEFAULT_CHAIN_ID, ERC20_CONTRACT_PATH_0_2_0, ETH_ERC20_CONTRACT_ADDRESS,
+        STRK_ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::Error;
     use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
@@ -73,12 +74,15 @@ mod tests {
         );
         let contract_class = Cairo0Json::raw_json_from_path(account_json_path).unwrap();
 
-        let erc_20_contract =
-            predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS, ERC20_CONTRACT_PATH_0_2_0).unwrap();
+        let erc_20_contract = predeployed::create_erc20_at_address(
+            ETH_ERC20_CONTRACT_ADDRESS,
+            ERC20_CONTRACT_PATH_0_2_0,
+        )
+        .unwrap();
+        erc_20_contract.deploy(&mut starknet.state).unwrap();
 
         // TODO edit later
-        let deploy_result = erc_20_contract.deploy(&mut starknet.state).unwrap();
-        println!("deploy_result x: {:?}", deploy_result);
+        erc_20_contract.deploy(&mut starknet.state).unwrap();
 
         let acc = Account::new(
             Felt::from(acc_balance.unwrap_or(100)),

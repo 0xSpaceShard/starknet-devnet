@@ -64,7 +64,8 @@ mod tests {
 
     use super::SystemContract;
     use crate::constants::{
-        ERC20_CONTRACT_CLASS_HASH, ERC20_CONTRACT_PATH_0_2_0, ERC20_CONTRACT_PATH_0_8_0, ETH_ERC20_CONTRACT_ADDRESS
+        ERC20_CONTRACT_CLASS_HASH, ERC20_CONTRACT_PATH_0_2_0, ERC20_CONTRACT_PATH_0_8_0,
+        ETH_ERC20_CONTRACT_ADDRESS,
     };
     use crate::state::StarknetState;
     use crate::traits::Deployed;

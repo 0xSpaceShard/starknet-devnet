@@ -5,7 +5,8 @@ mod test_account_selection {
     use std::sync::Arc;
 
     use starknet_core::constants::{
-        CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH_0_7_0, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH_0_8_0, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_7_0, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_8_0
+        CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH_0_7_0, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH_0_8_0,
+        CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_8_0,
     };
     use starknet_core::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use starknet_rs_accounts::{

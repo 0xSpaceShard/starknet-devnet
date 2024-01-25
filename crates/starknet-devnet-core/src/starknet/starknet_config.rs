@@ -1,12 +1,14 @@
 use std::net::IpAddr;
 
-use starknet_types::{chain_id::ChainId, contract_class::Cairo0Json};
-use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
+use starknet_types::chain_id::ChainId;
+use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
 use starknet_types::felt::Felt;
 use starknet_types::traits::HashProducer;
 
 use crate::constants::{
-    CAIRO_0_ACCOUNT_CONTRACT_PATH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_7_0, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_HOST, DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TEST_SEED, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS
+    CAIRO_0_ACCOUNT_CONTRACT_PATH, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE,
+    DEVNET_DEFAULT_HOST, DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT,
+    DEVNET_DEFAULT_TEST_SEED, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum)]
@@ -48,16 +50,17 @@ impl Default for StarknetConfig {
     fn default() -> Self {
         // TODO revert it later
         // let account_contract_class =
-        //     ContractClass::cairo_1_from_path(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_7_0).unwrap();
+        //     ContractClass::cairo_1_from_path(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_7_0).
+        // unwrap();
 
-        let account_contract_class = 
+        let account_contract_class =
             Cairo0Json::raw_json_from_path(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
 
         StarknetConfig {
             seed: DEVNET_DEFAULT_TEST_SEED,
             total_accounts: DEVNET_DEFAULT_TOTAL_ACCOUNTS,
             account_contract_class_hash: account_contract_class.generate_hash().unwrap(),
-            //account_contract_class
+            // account_contract_class
             account_contract_class: ContractClass::Cairo0(Cairo0ContractClass::RawJson(
                 account_contract_class,
             )),
