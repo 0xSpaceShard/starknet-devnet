@@ -51,13 +51,13 @@ regex_generate = "0.2.3"
 # Starknet dependencies
 starknet_api = { version = "0.6.0-rc2", features = ["testing"] }
 blockifier = { version = "0.4.0-rc8", package = "blockifier" }
-starknet-rs-signers = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "63538a3", package="starknet-signers" }
-starknet-rs-ff = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "63538a3", package = "starknet-ff" }
-starknet-rs-core = {  git = "https://github.com/xJonathanLEI/starknet-rs", rev = "63538a3", package = "starknet-core" }
-starknet-rs-providers = {  git = "https://github.com/xJonathanLEI/starknet-rs", rev = "63538a3", package = "starknet-providers" }
-starknet-rs-accounts = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "63538a3", package = "starknet-accounts" }
-starknet-rs-contract = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "63538a3", package = "starknet-contract" }
-starknet-rs-crypto = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "63538a3", package = "starknet-crypto" }
+starknet-rs-signers = { version = "0.7.0", package="starknet-signers" }
+starknet-rs-ff = { version = "0.3.6", package = "starknet-ff" }
+starknet-rs-core = {  version = "0.9.0", package = "starknet-core" }
+starknet-rs-providers = {  version = "0.9.0", package = "starknet-providers" }
+starknet-rs-accounts = { version = "0.8.0", package = "starknet-accounts" }
+starknet-rs-contract = { version = "0.8.0", package = "starknet-contract" }
+starknet-rs-crypto = { version = "0.6.1", package = "starknet-crypto" }
 cairo-felt = { version = "0.8.5", package = "cairo-felt" }
 cairo-lang-starknet = { version = "2.4.0-rc2", package = "cairo-lang-starknet" }
 url = "2.4"
