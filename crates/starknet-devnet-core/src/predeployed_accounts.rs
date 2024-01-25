@@ -94,28 +94,31 @@ mod tests {
     fn private_key_from_different_seeds_should_be_different_and_equal_from_equal_seeds() {
         let mut rng = thread_rng();
 
-        let seed1 = rng.gen::<u32>();
-        let private_key1 = PredeployedAccounts::new(
-            seed1,
-            Felt::from(1),
-            dummy_contract_address(),
-            dummy_contract_address(),
-        )
-        .generate_private_keys(1)[0];
+        // looping 10000 times to make sure that at least once the generated seeds are equal
+        for _ in 0..10000 {
+            let seed1 = rng.gen::<u32>();
+            let private_key1 = PredeployedAccounts::new(
+                seed1,
+                Felt::from(1),
+                dummy_contract_address(),
+                dummy_contract_address(),
+            )
+            .generate_private_keys(1)[0];
 
-        let seed2 = rng.gen::<u32>();
-        let private_key2 = PredeployedAccounts::new(
-            seed2,
-            Felt::from(1),
-            dummy_contract_address(),
-            dummy_contract_address(),
-        )
-        .generate_private_keys(1)[0];
+            let seed2 = rng.gen::<u32>();
+            let private_key2 = PredeployedAccounts::new(
+                seed2,
+                Felt::from(1),
+                dummy_contract_address(),
+                dummy_contract_address(),
+            )
+            .generate_private_keys(1)[0];
 
-        if seed1 == seed2 {
-            assert_eq!(private_key1, private_key2);
-        } else {
-            assert_ne!(private_key1, private_key2);
+            if seed1 == seed2 {
+                assert_eq!(private_key1, private_key2);
+            } else {
+                assert_ne!(private_key1, private_key2);
+            }
         }
     }
 }
