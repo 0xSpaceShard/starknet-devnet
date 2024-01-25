@@ -26,7 +26,6 @@ tracing = { workspace = true }
 indexmap = { workspace = true }
 
 [dev-dependencies]
-jsonschema = "0.16.0"
 hex = "0.4.3"
 
 [features]
