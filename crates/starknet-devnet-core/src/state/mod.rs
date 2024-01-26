@@ -1,17 +1,28 @@
 use std::collections::HashMap;
 
 use blockifier::state::cached_state::CachedState;
-use blockifier::state::state_api::StateReader;
-use starknet_api::hash::StarkFelt;
+use blockifier::state::state_api::State;
+use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::ClassHash;
 
 use self::dict_state_reader::DictStateReader;
+use self::state_diff::StateDiff;
 use crate::error::DevnetResult;
 
 mod dict_state_reader;
 pub(crate) mod state_diff;
 pub mod state_update;
+
+trait CustomStateReader {
+    fn is_contract_deployed(&self, contract_address: ContractAddress) -> bool;
+    fn is_contract_declared(&self, class_hash: ClassHash) -> bool;
+}
+
+trait CustomState {
+    fn declare_contract_class(&mut self, class_hash: ClassHash, contract_class: ContractClass);
+    fn deploy_contract(&mut self, contract_address: ContractAddress, class_hash: ClassHash);
+}
 
 pub(crate) struct StarknetState {
     pub(crate) state: CachedState<DictStateReader>,
@@ -28,10 +39,6 @@ impl Default for StarknetState {
 }
 
 impl StarknetState {
-    pub fn is_contract_deployed(&self, address: starknet_api::core::ContractAddress) -> bool {
-        self.get_class_hash_at(address).is_ok_and(|c| c.0 != StarkFelt::ZERO)
-    }
-
     /// sierra for cairo1, only artifact for cairo0
     pub fn get_rpc_contract_class(
         &self,
@@ -49,6 +56,11 @@ impl StarknetState {
         class: ContractClass,
     ) {
         todo!("consider having a single method for adding both types of classes");
+    }
+
+    pub fn commit_state_and_get_diff(&mut self) -> StateDiff {
+        let commitment_state_diff = self.to_state_diff();
+        todo!("handle class commitment");
     }
 }
 
@@ -94,7 +106,6 @@ impl blockifier::state::state_api::State for StarknetState {
     }
 
     fn to_state_diff(&mut self) -> blockifier::state::cached_state::CommitmentStateDiff {
-        todo!("what about (sierra) classes?");
         self.state.to_state_diff()
     }
 }
@@ -105,7 +116,7 @@ impl blockifier::state::state_api::StateReader for StarknetState {
         contract_address: starknet_api::core::ContractAddress,
         key: starknet_api::state::StorageKey,
     ) -> blockifier::state::state_api::StateResult<starknet_api::hash::StarkFelt> {
-        if !self.is_contract_deployed(contract_address) {
+        if !CustomStateReader::is_contract_deployed(self, contract_address.into()) {
             // TODO make sure it's converted to the proper JSON-RPC API error
             return Err(blockifier::state::errors::StateError::StateReadError(
                 "No contract".into(),
@@ -118,7 +129,7 @@ impl blockifier::state::state_api::StateReader for StarknetState {
         &mut self,
         contract_address: starknet_api::core::ContractAddress,
     ) -> blockifier::state::state_api::StateResult<starknet_api::core::Nonce> {
-        if !self.is_contract_deployed(contract_address) {
+        if !CustomStateReader::is_contract_deployed(self, contract_address.into()) {
             return Err(blockifier::state::errors::StateError::StateReadError(
                 "No contract".into(),
             ));
@@ -150,6 +161,26 @@ impl blockifier::state::state_api::StateReader for StarknetState {
     }
 }
 
+impl CustomStateReader for StarknetState {
+    fn is_contract_deployed(&self, contract_address: ContractAddress) -> bool {
+        todo!()
+    }
+
+    fn is_contract_declared(&self, class_hash: ClassHash) -> bool {
+        todo!()
+    }
+}
+
+impl CustomState for StarknetState {
+    fn declare_contract_class(&mut self, class_hash: ClassHash, contract_class: ContractClass) {
+        todo!()
+    }
+
+    fn deploy_contract(&mut self, contract_address: ContractAddress, class_hash: ClassHash) {
+        todo!()
+    }
+}
+
 impl Clone for StarknetState {
     fn clone(&self) -> Self {
         Self {
@@ -170,7 +201,7 @@ mod tests {
 
     use super::StarknetState;
     use crate::error::Error;
-    use crate::state::dict_state_reader::DictStateReader;
+    use crate::state::{CustomState, CustomStateReader};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{
         dummy_contract_address, dummy_contract_storage_key, dummy_felt,
@@ -193,12 +224,11 @@ mod tests {
 
         state.rpc_contract_classes.insert(class_hash.into(), contract_class.into());
 
-        assert!(!state.is_contract_declared(&dummy_felt()));
+        assert!(!state.is_contract_declared(dummy_felt()));
         state.state.get_compiled_contract_class(&class_hash).unwrap();
-        let state_diff = state.extract_state_diff_from_pending_state().unwrap();
-        state.apply_state_difference(state_diff).unwrap();
+        let state_diff = state.commit_state_and_get_diff();
 
-        assert!(state.is_contract_declared(&dummy_felt()));
+        assert!(state.is_contract_declared(dummy_felt()));
     }
 
     #[test]
@@ -215,8 +245,6 @@ mod tests {
         state.state.set_storage_at(contract_address, storage_key, dummy_felt().into());
 
         state.state.get_storage_at(contract_address, storage_key).unwrap();
-
-        state.clear_dirty_state();
 
         assert_eq!(
             state.state.get_storage_at(contract_address, storage_key).unwrap(),
@@ -248,8 +276,7 @@ mod tests {
         assert!(matches!(get_storage_result.unwrap_err(), Error::ContractNotFound));
 
         // apply changes to persistent state
-        let state_diff = state.extract_state_diff_from_pending_state().unwrap();
-        state.apply_state_difference(state_diff).unwrap();
+        let state_diff = state.commit_state_and_get_diff();
         assert_eq!(state.get_storage(dummy_contract_storage_key()).unwrap(), dummy_felt());
     }
 
@@ -261,14 +288,13 @@ mod tests {
         let contract_address = dummy_contract_address();
 
         // check if current nonce is 0
+        // TODO no need for .eq like this, use assert_eq!() instead
         assert!(
             state.state.state.address_to_nonce.get(&contract_address).unwrap().eq(&Felt::from(0))
         );
 
-        state.clear_dirty_state();
         state.state.increment_nonce(contract_address.try_into().unwrap()).unwrap();
-        let state_diff = state.extract_state_diff_from_pending_state().unwrap();
-        state.apply_state_difference(state_diff).unwrap();
+        let state_diff = state.commit_state_and_get_diff();
 
         // check if nonce update was correct
         assert!(
@@ -370,116 +396,7 @@ mod tests {
 
     #[test]
     fn check_devnet_state_with_blockifier_dict_state_reader() {
-        let mut dict_state_reader = DictStateReader::default();
-        let (mut devnet_state, class_hash, address, storage_key) = setup_devnet_state();
-
-        devnet_state.address_to_class_hash.iter().for_each(|(k, v)| {
-            dict_state_reader.address_to_class_hash.insert(
-                starknet_api::core::ContractAddress::try_from(*k).unwrap(),
-                starknet_api::core::ClassHash((*v).into()),
-            );
-        });
-
-        devnet_state.address_to_nonce.iter().for_each(|(k, v)| {
-            dict_state_reader.address_to_nonce.insert(
-                starknet_api::core::ContractAddress::try_from(*k).unwrap(),
-                starknet_api::core::Nonce((*v).into()),
-            );
-        });
-
-        devnet_state.address_to_storage.iter().for_each(|(k, v)| {
-            dict_state_reader.storage_view.insert(
-                (
-                    starknet_api::core::ContractAddress::try_from(*k.get_contract_address())
-                        .unwrap(),
-                    starknet_api::state::StorageKey(
-                        starknet_api::core::PatriciaKey::try_from(*k.get_storage_key()).unwrap(),
-                    ),
-                ),
-                v.into(),
-            );
-        });
-
-        devnet_state.class_hash_to_compiled_class_hash.iter().for_each(|(k, v)| {
-            dict_state_reader.class_hash_to_compiled_class_hash.insert(
-                starknet_api::core::ClassHash((*k).into()),
-                starknet_api::core::CompiledClassHash((*v).into()),
-            );
-        });
-
-        devnet_state.class_hash_to_compiled_class.iter().for_each(|(k, v)| {
-            dict_state_reader.class_hash_to_class.insert(
-                starknet_api::core::ClassHash((*k).into()),
-                blockifier::execution::contract_class::ContractClass::try_from(v.clone()).unwrap(),
-            );
-        });
-
-        fn assert_equal_results(
-            first: &mut impl blockifier::state::state_api::StateReader,
-            second: &mut impl blockifier::state::state_api::StateReader,
-            address: starknet_api::core::ContractAddress,
-            class_hash: starknet_api::core::ClassHash,
-            contract_storage_key: (
-                starknet_api::core::ContractAddress,
-                starknet_api::state::StorageKey,
-            ),
-        ) {
-            let second_result = second.get_nonce_at(address);
-            match first.get_nonce_at(address) {
-                Ok(nonce) => assert_eq!(nonce, second_result.unwrap()),
-                Err(err) => {
-                    assert_eq!(err.to_string(), second_result.unwrap_err().to_string());
-                }
-            }
-
-            let second_result = second.get_class_hash_at(address);
-            match first.get_class_hash_at(address) {
-                Ok(class_hash) => assert_eq!(class_hash, second_result.unwrap()),
-                Err(err) => {
-                    assert_eq!(err.to_string(), second_result.unwrap_err().to_string());
-                }
-            }
-
-            let second_result =
-                second.get_storage_at(contract_storage_key.0, contract_storage_key.1);
-            match first.get_storage_at(contract_storage_key.0, contract_storage_key.1) {
-                Ok(storage) => assert_eq!(storage, second_result.unwrap()),
-                Err(err) => {
-                    assert_eq!(err.to_string(), second_result.unwrap_err().to_string());
-                }
-            }
-
-            let second_result = second.get_compiled_class_hash(class_hash);
-            match first.get_compiled_class_hash(class_hash) {
-                Ok(compiled_class_hash) => assert_eq!(compiled_class_hash, second_result.unwrap()),
-                Err(err) => {
-                    assert_eq!(err.to_string(), second_result.unwrap_err().to_string());
-                }
-            }
-
-            let second_result = second.get_compiled_contract_class(&class_hash);
-            match first.get_compiled_contract_class(&class_hash) {
-                Ok(contract_class) => assert_eq!(contract_class, second_result.unwrap()),
-                Err(err) => {
-                    assert_eq!(err.to_string(), second_result.unwrap_err().to_string());
-                }
-            }
-        }
-
-        assert_equal_results(
-            &mut devnet_state,
-            &mut dict_state_reader,
-            address.try_into().unwrap(),
-            class_hash.into(),
-            (
-                starknet_api::core::ContractAddress::try_from(*storage_key.get_contract_address())
-                    .unwrap(),
-                starknet_api::state::StorageKey(
-                    starknet_api::core::PatriciaKey::try_from(*storage_key.get_storage_key())
-                        .unwrap(),
-                ),
-            ),
-        )
+        todo!("here used to be a test which tested DictStateReader, but now our code uses a copy of it")
     }
 
     fn setup_devnet_state() -> (StarknetState, ClassHash, ContractAddress, ContractStorageKey) {

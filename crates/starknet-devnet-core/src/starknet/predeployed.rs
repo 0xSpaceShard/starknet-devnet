@@ -10,7 +10,6 @@ use crate::constants::{
 use crate::error::{DevnetResult, Error};
 use crate::state::StarknetState;
 use crate::system_contract::SystemContract;
-use crate::traits::StateChanger;
 use crate::utils::get_storage_var_address;
 
 pub(crate) fn create_erc20_at_address(contract_address: &str) -> DevnetResult<SystemContract> {

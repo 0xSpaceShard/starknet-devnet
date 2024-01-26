@@ -11,7 +11,6 @@ use starknet_types::rpc::transactions::{
 use super::dump::DumpEvent;
 use super::Starknet;
 use crate::error::{DevnetResult, Error};
-use crate::traits::StateExtractor;
 
 pub fn add_deploy_account_transaction_v3(
     starknet: &mut Starknet,
@@ -99,11 +98,12 @@ pub fn add_deploy_account_transaction_v1(
 #[cfg(test)]
 mod tests {
 
+    use blockifier::state::state_api::{State, StateReader};
+    use starknet_api::hash::StarkFelt;
     use starknet_api::transaction::{Fee, Tip};
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::Cairo0Json;
-    use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::{ClassHash, Felt};
     use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
@@ -117,7 +117,7 @@ mod tests {
     };
     use crate::error::Error;
     use crate::starknet::{predeployed, Starknet};
-    use crate::traits::{Deployed, HashIdentifiedMut, StateChanger, StateExtractor};
+    use crate::traits::{Deployed, HashIdentifiedMut};
     use crate::utils::get_storage_var_address;
 
     fn test_deploy_account_transaction_v3(
@@ -245,13 +245,17 @@ mod tests {
 
         // change balance at address
         let account_address = ContractAddress::from(blockifier_transaction.contract_address);
+        let fee_token_address: starknet_api::core::ContractAddress =
+            eth_fee_token_address.try_into().unwrap();
         let balance_storage_var_address =
-            get_storage_var_address("ERC20_balances", &[account_address.into()]).unwrap();
-        let balance_storage_key =
-            ContractStorageKey::new(eth_fee_token_address, balance_storage_var_address);
+            get_storage_var_address("ERC20_balances", &[account_address.into()]).unwrap().into();
 
-        starknet.state.change_storage(balance_storage_key, Felt::from(fee_raw)).unwrap();
-        starknet.state.clear_dirty_state();
+        let account_balance_before_deployment = StarkFelt::from_u128(1000000);
+        starknet.state.set_storage_at(
+            fee_token_address.into(),
+            balance_storage_var_address,
+            account_balance_before_deployment,
+        );
 
         match starknet.add_deploy_account_transaction_v1(transaction).unwrap_err() {
             Error::TransactionValidationError(
@@ -274,17 +278,17 @@ mod tests {
 
         // change balance at address
         let account_address = ContractAddress::from(blockifier_transaction.contract_address);
+        let fee_token_address: starknet_api::core::ContractAddress =
+            strk_fee_token_address.try_into().unwrap();
         let balance_storage_var_address =
-            get_storage_var_address("ERC20_balances", &[account_address.into()]).unwrap();
-        let balance_storage_key =
-            ContractStorageKey::new(strk_fee_token_address, balance_storage_var_address);
+            get_storage_var_address("ERC20_balances", &[account_address.into()]).unwrap().into();
 
-        let account_balance_before_deployment = Felt::from(1000000);
-        starknet
-            .state
-            .change_storage(balance_storage_key, account_balance_before_deployment)
-            .unwrap();
-        starknet.state.clear_dirty_state();
+        let account_balance_before_deployment = StarkFelt::from_u128(1000000);
+        starknet.state.set_storage_at(
+            fee_token_address.into(),
+            balance_storage_var_address,
+            account_balance_before_deployment,
+        );
 
         // get accounts count before deployment
         let accounts_before_deployment = get_accounts_count(&starknet);
@@ -297,7 +301,7 @@ mod tests {
 
         assert_eq!(get_accounts_count(&starknet), accounts_before_deployment + 1);
         let account_balance_after_deployment =
-            starknet.state.get_storage(balance_storage_key).unwrap();
+            starknet.state.get_storage_at(fee_token_address, balance_storage_var_address).unwrap();
 
         assert!(account_balance_before_deployment > account_balance_after_deployment);
     }
@@ -325,17 +329,17 @@ mod tests {
 
         // change balance at address
         let account_address = ContractAddress::from(blockifier_transaction.contract_address);
+        let fee_token_address: starknet_api::core::ContractAddress =
+            eth_fee_token_address.try_into().unwrap();
         let balance_storage_var_address =
-            get_storage_var_address("ERC20_balances", &[account_address.into()]).unwrap();
-        let balance_storage_key =
-            ContractStorageKey::new(eth_fee_token_address, balance_storage_var_address);
+            get_storage_var_address("ERC20_balances", &[account_address.into()]).unwrap().into();
 
-        let account_balance_before_deployment = Felt::from(1000000);
-        starknet
-            .state
-            .change_storage(balance_storage_key, account_balance_before_deployment)
-            .unwrap();
-        starknet.state.clear_dirty_state();
+        let account_balance_before_deployment = StarkFelt::from_u128(1000000);
+        starknet.state.set_storage_at(
+            fee_token_address.into(),
+            balance_storage_var_address,
+            account_balance_before_deployment,
+        );
 
         // get accounts count before deployment
         let accounts_before_deployment = get_accounts_count(&starknet);
@@ -348,7 +352,7 @@ mod tests {
 
         assert_eq!(get_accounts_count(&starknet), accounts_before_deployment + 1);
         let account_balance_after_deployment =
-            starknet.state.get_storage(balance_storage_key).unwrap();
+            starknet.state.get_storage_at(fee_token_address, balance_storage_var_address).unwrap();
 
         assert!(account_balance_before_deployment > account_balance_after_deployment);
     }
@@ -372,7 +376,6 @@ mod tests {
         let class_hash = contract_class.generate_hash().unwrap();
 
         starknet.state.declare_contract_class(class_hash, contract_class.into()).unwrap();
-        starknet.state.clear_dirty_state();
         starknet.block_context = Starknet::init_block_context(
             1,
             constants::ETH_ERC20_CONTRACT_ADDRESS,

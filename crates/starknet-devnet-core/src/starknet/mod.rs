@@ -166,8 +166,7 @@ impl Starknet {
         chargeable_account.deploy(&mut state)?;
         chargeable_account.set_initial_balance(&mut state)?;
 
-        // copy already modified state to cached state
-        state.clear_dirty_state();
+        state.commit_state_and_get_diff();
 
         let mut this = Self {
             state,
@@ -375,10 +374,6 @@ impl Starknet {
 
         self.transactions.insert(transaction_hash, transaction_to_add);
 
-        // apply state changes from cached state
-        self.state.apply_state_difference(state_diff.clone())?;
-        // make cached state part of "persistent" state
-        self.state.clear_dirty_state();
         // create new block from pending one
         self.generate_new_block(state_diff, None)?;
         // clear pending block information
@@ -1062,7 +1057,7 @@ mod tests {
     use std::thread;
     use std::time::Duration;
 
-    use blockifier::state::state_api::State;
+    use blockifier::state::state_api::{State, StateReader};
     use blockifier::transaction::errors::TransactionExecutionError;
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
     use starknet_rs_core::types::{BlockId, BlockTag};
@@ -1079,7 +1074,7 @@ mod tests {
     use crate::error::{DevnetResult, Error};
     use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
     use crate::state::state_diff::StateDiff;
-    use crate::traits::{Accounted, StateChanger, StateExtractor};
+    use crate::traits::Accounted;
     use crate::utils::test_utils::{
         dummy_contract_address, dummy_declare_transaction_v1, dummy_felt,
     };
@@ -1419,9 +1414,7 @@ mod tests {
         // add data to state
         starknet.state.state.increment_nonce(dummy_contract_address().try_into().unwrap()).unwrap();
         // get state difference
-        let state_diff = starknet.state.extract_state_diff_from_pending_state().unwrap();
-        // move data from pending_state to state
-        starknet.state.apply_state_difference(state_diff.clone()).unwrap();
+        let state_diff = starknet.state.commit_state_and_get_diff();
         // generate new block and save the state
         let second_block = starknet.generate_new_block(state_diff, None).unwrap();
         starknet.generate_pending_block().unwrap();
@@ -1430,9 +1423,7 @@ mod tests {
         // add data to state
         starknet.state.state.increment_nonce(dummy_contract_address().try_into().unwrap()).unwrap();
         // get state difference
-        let state_diff = starknet.state.extract_state_diff_from_pending_state().unwrap();
-        // move data from pending_state to state
-        starknet.state.apply_state_difference(state_diff.clone()).unwrap();
+        let state_diff = starknet.state.commit_state_and_get_diff();
         // generate new block and save the state
         let third_block = starknet.generate_new_block(state_diff, None).unwrap();
         starknet.generate_pending_block().unwrap();
@@ -1443,26 +1434,20 @@ mod tests {
             .num_to_state
             .get(&second_block)
             .unwrap()
-            .state
-            .state
-            .address_to_nonce
-            .get(&dummy_contract_address())
+            .get_nonce_at(dummy_contract_address().try_into().unwrap())
             .unwrap();
         let second_block_expected_address_nonce = Felt::from(1);
-        assert_eq!(second_block_expected_address_nonce, *second_block_address_nonce);
+        assert_eq!(second_block_expected_address_nonce, second_block_address_nonce.into());
 
         let third_block_address_nonce = starknet
             .blocks
             .num_to_state
             .get(&third_block)
             .unwrap()
-            .state
-            .state
-            .address_to_nonce
-            .get(&dummy_contract_address())
+            .get_nonce_at(dummy_contract_address().try_into().unwrap())
             .unwrap();
         let third_block_expected_address_nonce = Felt::from(2);
-        assert_eq!(third_block_expected_address_nonce, *third_block_address_nonce);
+        assert_eq!(third_block_expected_address_nonce, third_block_address_nonce.into());
     }
 
     #[test]
