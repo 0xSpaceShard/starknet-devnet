@@ -8,7 +8,6 @@ repository.workspace = true
 
 [dependencies]
 blockifier = { workspace = true, features = ["testing"]}
-cairo-felt = { workspace = true }
 cairo-lang-starknet = { workspace = true }
 clap = { workspace = true }
 ethers = { workspace = true }

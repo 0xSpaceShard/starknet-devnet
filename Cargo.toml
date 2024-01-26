@@ -67,7 +67,6 @@ starknet-rs-providers = {  version = "0.9.0", package = "starknet-providers" }
 starknet-rs-accounts = { version = "0.8.0", package = "starknet-accounts" }
 starknet-rs-contract = { version = "0.8.0", package = "starknet-contract" }
 starknet-rs-crypto = { version = "0.6.1", package = "starknet-crypto" }
-cairo-felt = { version = "0.8.5", package = "cairo-felt" }
 cairo-lang-starknet = { version = "2.4.0-rc2", package = "cairo-lang-starknet" }
 url = "2.4"
 

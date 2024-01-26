@@ -4620,7 +4620,6 @@ name = "starknet-devnet-core"
 version = "0.1.0"
 dependencies = [
  "blockifier",
- "cairo-felt",
  "cairo-lang-starknet",
  "clap",
  "ethers",
@@ -4670,7 +4669,6 @@ version = "0.1.0"
 dependencies = [
  "base64 0.21.5",
  "blockifier",
- "cairo-felt",
  "cairo-lang-starknet",
  "clap",
  "flate2",
