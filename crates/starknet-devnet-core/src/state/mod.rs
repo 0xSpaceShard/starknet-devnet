@@ -15,9 +15,27 @@ use crate::traits::{DevnetStateReader, StateChanger, StateExtractor};
 pub(crate) mod state_diff;
 pub mod state_update;
 
+#[derive(Default, Clone)]
+pub struct CommittedClassStorage {
+    staging: HashMap<ClassHash, ContractClass>,
+    committed: HashMap<ClassHash, ContractClass>,
+}
+
+impl CommittedClassStorage {
+    pub fn insert(&mut self, class_hash: ClassHash, contract_class: ContractClass) {
+        self.staging.insert(class_hash, contract_class);
+    }
+
+    pub fn commit(&mut self) -> HashMap<ClassHash, ContractClass> {
+        let diff = self.staging.clone();
+        self.committed.extend(self.staging.drain());
+        diff
+    }
+}
+
 pub(crate) struct StarknetState {
     pub state: CachedState<DevnetState>,
-    pub(crate) contract_classes: HashMap<ClassHash, ContractClass>,
+    pub(crate) contract_classes: CommittedClassStorage,
 }
 
 impl Default for StarknetState {
@@ -215,7 +233,7 @@ impl StateExtractor for StarknetState {
     }
 
     fn extract_state_diff_from_pending_state(&mut self) -> DevnetResult<StateDiff> {
-        StateDiff::difference_between_old_and_new_state(self.state.state.clone(), &mut self.state)
+        StateDiff::difference_between_old_and_new_state(self)
     }
 
     fn get_nonce(&self, address: &ContractAddress) -> DevnetResult<Felt> {

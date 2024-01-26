@@ -234,7 +234,9 @@ mod tests {
         // check if txn is with status accepted
         assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
-        assert!(starknet.state.contract_classes.get(&class_hash).is_some());
+        let new_classes = starknet.state.contract_classes.commit();
+        let actual_hashes = new_classes.keys().collect::<Vec<_>>();
+        assert_eq!(actual_hashes, vec![&class_hash]);
     }
 
     #[test]
@@ -255,7 +257,9 @@ mod tests {
         // check if txn is with status accepted
         assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
-        assert!(starknet.state.contract_classes.get(&class_hash).is_some());
+        let new_classes = starknet.state.contract_classes.commit();
+        let actual_hashes = new_classes.keys().collect::<Vec<_>>();
+        assert_eq!(actual_hashes, vec![&class_hash]);
     }
 
     #[test]
