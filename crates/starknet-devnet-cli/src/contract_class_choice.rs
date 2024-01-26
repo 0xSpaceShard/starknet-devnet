@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use starknet_core::constants::{
-    CAIRO_0_ACCOUNT_CONTRACT_PATH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_7_0,
+    CAIRO_0_ACCOUNT_CONTRACT_PATH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_7_0, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_8_0
 };
 use starknet_rs_core::types::FieldElement;
 use starknet_rs_core::utils::get_selector_from_name;
@@ -29,7 +29,7 @@ impl AccountContractClassChoice {
             }
             AccountContractClassChoice::Cairo1 => {
                 let contract_class_str =
-                    std::fs::read_to_string(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_7_0)?;
+                    std::fs::read_to_string(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_8_0)?;
                 let contract_class = ContractClass::Cairo1(
                     ContractClass::cairo_1_from_sierra_json_str(&contract_class_str)?,
                 );
@@ -49,6 +49,9 @@ impl FromStr for AccountClassWrapper {
     type Err = anyhow::Error;
 
     fn from_str(path_candidate: &str) -> Result<Self, Self::Err> {
+        
+        println!("here add support of cairo0: {:?}", path_candidate);
+
         // load artifact
         let contract_class = ContractClass::cairo_1_from_sierra_json_str(
             std::fs::read_to_string(path_candidate)?.as_str(),
