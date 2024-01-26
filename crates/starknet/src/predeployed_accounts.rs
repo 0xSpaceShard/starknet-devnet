@@ -94,7 +94,7 @@ mod tests {
     use starknet_types::felt::{Felt, Key};
     use starknet_types::traits::{HashProducer, ToDecimalString, ToHexString};
 
-    use crate::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_7_0;
+    use crate::constants::CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_8_0;
     use crate::predeployed_accounts::PredeployedAccounts;
     use crate::traits::AccountGenerator;
     use crate::utils::test_utils::dummy_contract_address;
@@ -182,7 +182,7 @@ mod tests {
             dummy_contract_address(),
         );
         let contract_class =
-            ContractClass::cairo_1_from_path(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_7_0).unwrap();
+            ContractClass::cairo_1_from_path(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_8_0).unwrap();
         let class_hash = contract_class.generate_hash().unwrap();
 
         let generated_accounts =
