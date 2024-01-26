@@ -4,8 +4,7 @@ use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::felt::Felt;
 
 use crate::constants::{
-    CHARGEABLE_ACCOUNT_ADDRESS, ERC20_CONTRACT_CLASS_HASH_0_2_0, UDC_CONTRACT_ADDRESS,
-    UDC_CONTRACT_CLASS_HASH, UDC_CONTRACT_PATH,
+    CHARGEABLE_ACCOUNT_ADDRESS, UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH, UDC_CONTRACT_PATH,
 };
 use crate::error::{DevnetResult, Error};
 use crate::state::StarknetState;
@@ -16,16 +15,12 @@ use crate::utils::get_storage_var_address;
 pub(crate) fn create_erc20_at_address(
     contract_address: &str,
     path: &str,
+    hash: &str,
 ) -> DevnetResult<SystemContract> {
     let erc20_contract_class_json_str = std::fs::read_to_string(path)
         .map_err(|err| Error::ReadFileError { source: err, path: path.to_string() })?;
-
-    // TODO refactor also ERC20_CONTRACT_CLASS_HASH
-    let erc20_fee_contract = SystemContract::new(
-        ERC20_CONTRACT_CLASS_HASH_0_2_0,
-        contract_address,
-        &erc20_contract_class_json_str,
-    )?;
+    let erc20_fee_contract =
+        SystemContract::new(hash, contract_address, &erc20_contract_class_json_str)?;
 
     Ok(erc20_fee_contract)
 }

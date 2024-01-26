@@ -55,8 +55,9 @@ use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
     CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, DEVNET_DEFAULT_CHAIN_ID,
-    ERC20_CONTRACT_PATH_0_2_0, ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME, ETH_ERC20_SYMBOL,
-    STRK_ERC20_CONTRACT_ADDRESS, STRK_ERC20_NAME, STRK_ERC20_SYMBOL,
+    ERC20_CONTRACT_CLASS_HASH_0_2_0, ERC20_CONTRACT_PATH_0_2_0, ETH_ERC20_CONTRACT_ADDRESS,
+    ETH_ERC20_NAME, ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS, STRK_ERC20_NAME,
+    STRK_ERC20_SYMBOL,
 };
 use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::messaging::MessagingBroker;
@@ -125,10 +126,12 @@ impl Starknet {
         let eth_erc20_fee_contract = predeployed::create_erc20_at_address(
             ETH_ERC20_CONTRACT_ADDRESS,
             ERC20_CONTRACT_PATH_0_2_0,
+            ERC20_CONTRACT_CLASS_HASH_0_2_0,
         )?;
         let strk_erc20_fee_contract = predeployed::create_erc20_at_address(
             STRK_ERC20_CONTRACT_ADDRESS,
             ERC20_CONTRACT_PATH_0_2_0,
+            ERC20_CONTRACT_CLASS_HASH_0_2_0,
         )?;
 
         let udc_contract = predeployed::create_udc()?;
