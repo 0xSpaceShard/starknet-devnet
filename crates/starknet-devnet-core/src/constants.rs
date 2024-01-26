@@ -29,10 +29,13 @@ pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH_0_8_0: &str =
 pub const ERC20_CONTRACT_PATH_0_8_0: &str =
     concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/ERC20_Mintable_OZ_0.8.0.json");
 
+pub const ERC20_CONTRACT_CLASS_HASH_0_8_0: &str =
+    "0x3af5816946625d3d2c94ea451225715784762050eba736f0b0ad9186685bced";
+
 pub const ERC20_CONTRACT_PATH_0_2_0: &str =
     concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/ERC20_Mintable_OZ_0.2.0.json");
 
-pub const ERC20_CONTRACT_CLASS_HASH: &str =
+pub const ERC20_CONTRACT_CLASS_HASH_0_2_0: &str =
     "0x6A22BF63C7BC07EFFA39A25DFBD21523D211DB0100A0AFD054D172B81840EAF";
 
 pub const ETH_ERC20_CONTRACT_ADDRESS: &str =
