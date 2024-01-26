@@ -64,8 +64,7 @@ mod tests {
 
     use super::SystemContract;
     use crate::constants::{
-        ERC20_CONTRACT_CLASS_HASH, ERC20_CONTRACT_PATH_0_2_0, ERC20_CONTRACT_PATH_0_8_0,
-        ETH_ERC20_CONTRACT_ADDRESS,
+        ERC20_CONTRACT_CLASS_HASH, ERC20_CONTRACT_PATH_0_8_0, ETH_ERC20_CONTRACT_ADDRESS,
     };
     use crate::state::StarknetState;
     use crate::traits::Deployed;
@@ -82,7 +81,7 @@ mod tests {
         let sys_contract = SystemContract::new(
             ERC20_CONTRACT_CLASS_HASH,
             ETH_ERC20_CONTRACT_ADDRESS,
-            std::fs::read_to_string(ERC20_CONTRACT_PATH_0_2_0).unwrap().as_str(),
+            std::fs::read_to_string(ERC20_CONTRACT_PATH_0_8_0).unwrap().as_str(),
         )
         .unwrap();
 
