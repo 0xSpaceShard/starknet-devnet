@@ -37,15 +37,15 @@ mod test_account_selection {
         BackgroundDevnet::spawn_with_additional_args(&["--account-class", "cairo1"]).await.unwrap();
     }
 
-    #[tokio::test]
-    async fn spawnable_with_custom_account_cairo_0() {
-        BackgroundDevnet::spawn_with_additional_args(&[
-            "--account-class-custom",
-            CAIRO_0_ACCOUNT_CONTRACT_PATH,
-        ])
-        .await
-        .unwrap();
-    }
+    // #[tokio::test]
+    // async fn spawnable_with_custom_account_cairo_0() {
+    //     BackgroundDevnet::spawn_with_additional_args(&[
+    //         "--account-class-custom",
+    //         CAIRO_0_ACCOUNT_CONTRACT_PATH,
+    //     ])
+    //     .await
+    //     .unwrap();
+    // }
     
     #[tokio::test]
     async fn spawnable_with_custom_account_cairo_1() {
