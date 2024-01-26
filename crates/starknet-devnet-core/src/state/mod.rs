@@ -9,8 +9,8 @@ use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::felt::{ClassHash, CompiledClassHash, Felt};
 
 use self::state_diff::StateDiff;
-use crate::error::{DevnetResult, Error, StateError};
-use crate::traits::{DevnetStateReader, StateChanger, StateExtractor};
+use crate::error::{DevnetResult, Error};
+use crate::traits::{StateChanger, StateExtractor};
 
 pub(crate) mod state_diff;
 pub mod state_update;
@@ -56,50 +56,17 @@ pub(crate) struct DevnetState {
     pub class_hash_to_compiled_class_hash: HashMap<ClassHash, CompiledClassHash>,
 }
 
-impl crate::traits::DevnetStateReader for DevnetState {
-    fn compiled_class_hash_at(&self, class_hash: &ClassHash) -> ClassHash {
-        self.class_hash_to_compiled_class_hash.get(class_hash).cloned().unwrap_or_default()
-    }
-
-    fn storage_at(&self, storage_key: &ContractStorageKey) -> Felt {
-        self.address_to_storage.get(storage_key).cloned().unwrap_or_default()
-    }
-
-    fn nonce_at(&self, address: &ContractAddress) -> Felt {
-        self.address_to_nonce.get(address).cloned().unwrap_or_default()
-    }
-
-    fn class_hash_at(&self, address: &ContractAddress) -> ClassHash {
-        self.address_to_class_hash.get(address).cloned().unwrap_or_default()
-    }
-
-    fn contract_class_at(&self, class_hash: &ClassHash) -> DevnetResult<ContractClass> {
-        if let Some(deprecated_contract_class) = self.class_hash_to_compiled_class.get(class_hash) {
-            Ok(deprecated_contract_class.clone())
-        } else {
-            let compiled_class_hash = self
-                .class_hash_to_compiled_class_hash
-                .get(class_hash)
-                .ok_or(Error::StateError(StateError::NoneCompiledHash(*class_hash)))?;
-
-            self.class_hash_to_compiled_class
-                .get(compiled_class_hash)
-                .ok_or(Error::StateError(StateError::NoneCasmClass(*compiled_class_hash)))
-                .cloned()
-        }
-    }
-}
-
 impl blockifier::state::state_api::StateReader for DevnetState {
     fn get_storage_at(
         &mut self,
         contract_address: starknet_api::core::ContractAddress,
         key: starknet_api::state::StorageKey,
     ) -> blockifier::state::state_api::StateResult<starknet_api::hash::StarkFelt> {
-        let storage = crate::traits::DevnetStateReader::storage_at(
-            self,
-            &ContractStorageKey::new(contract_address.into(), key.0.into()),
-        );
+        let storage = self
+            .address_to_storage
+            .get(&ContractStorageKey::new(contract_address.into(), key.0.into()))
+            .cloned()
+            .unwrap_or_default();
         Ok(storage.into())
     }
 
@@ -107,7 +74,7 @@ impl blockifier::state::state_api::StateReader for DevnetState {
         &mut self,
         contract_address: starknet_api::core::ContractAddress,
     ) -> blockifier::state::state_api::StateResult<starknet_api::core::Nonce> {
-        let nonce = crate::traits::DevnetStateReader::nonce_at(self, &contract_address.into());
+        let nonce = self.address_to_nonce.get(&contract_address.into()).cloned().unwrap_or_default();
         Ok(starknet_api::core::Nonce(nonce.into()))
     }
 
@@ -115,8 +82,7 @@ impl blockifier::state::state_api::StateReader for DevnetState {
         &mut self,
         contract_address: starknet_api::core::ContractAddress,
     ) -> blockifier::state::state_api::StateResult<starknet_api::core::ClassHash> {
-        let class_hash =
-            crate::traits::DevnetStateReader::class_hash_at(self, &contract_address.into());
+        let class_hash = self.address_to_class_hash.get(&contract_address.into()).cloned().unwrap_or_default();
         Ok(starknet_api::core::ClassHash(class_hash.into()))
     }
 
@@ -140,8 +106,7 @@ impl blockifier::state::state_api::StateReader for DevnetState {
         &mut self,
         class_hash: starknet_api::core::ClassHash,
     ) -> blockifier::state::state_api::StateResult<starknet_api::core::CompiledClassHash> {
-        let compiled_class_hash =
-            crate::traits::DevnetStateReader::compiled_class_hash_at(self, &(class_hash.0.into()));
+        let compiled_class_hash = self.class_hash_to_compiled_class_hash.get(&class_hash.into()).cloned().unwrap_or_default();
         Ok(starknet_api::core::CompiledClassHash(compiled_class_hash.into()))
     }
 }
@@ -290,11 +255,9 @@ mod tests {
         let class_hash = Felt::from_prefixed_hex_str("0xFE").unwrap();
 
         let contract_class: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
-        assert!(
-            state
-                .declare_contract_class(class_hash, contract_class.clone().try_into().unwrap())
-                .is_ok()
-        );
+        assert!(state
+            .declare_contract_class(class_hash, contract_class.clone().try_into().unwrap())
+            .is_ok());
         assert!(state.state.state.class_hash_to_compiled_class.len() == 1);
         let declared_contract_class =
             state.state.state.class_hash_to_compiled_class.get(&class_hash).unwrap().to_owned();

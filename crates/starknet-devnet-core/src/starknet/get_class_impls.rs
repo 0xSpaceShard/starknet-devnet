@@ -5,7 +5,6 @@ use starknet_types::felt::{ClassHash, Felt};
 
 use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;
-use crate::traits::DevnetStateReader;
 
 pub fn get_class_hash_at_impl(
     starknet: &Starknet,
