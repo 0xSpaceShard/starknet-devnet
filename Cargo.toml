@@ -14,7 +14,16 @@ panic = "unwind"
 authors = ["Mario"]
 version = "0.1.0"
 edition = "2021"
-repository = ""
+repository = "https://github.com/0xSpaceShard/starknet-devnet-rs"
+license-file = "LICENSE"
+homepage = "https://0xspaceshard.github.io/starknet-devnet/"
+description = "A local testnet for Starknet"
+readme = "README.md"
+documentation = "https://0xspaceshard.github.io/starknet-devnet/docs/intro"
+
+exclude = [".github/**", ".devcontainer/**", ".circleci/**"]
+
+keywords = ["starknet", "cairo", "testnet", "local", "server"]
 
 
 [workspace.dependencies]
