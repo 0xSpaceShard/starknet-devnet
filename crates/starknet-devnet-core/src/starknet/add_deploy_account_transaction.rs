@@ -113,7 +113,7 @@ mod tests {
     use starknet_types::traits::HashProducer;
 
     use crate::constants::{
-        self, DEVNET_DEFAULT_CHAIN_ID, ERC20_CONTRACT_CLASS_HASH_0_2_0, ERC20_CONTRACT_PATH_0_2_0,
+        self, DEVNET_DEFAULT_CHAIN_ID, ERC20_CONTRACT_CLASS_HASH_0_8_0, ERC20_CONTRACT_PATH_0_8_0,
         ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::Error;
@@ -363,16 +363,16 @@ mod tests {
         );
         let erc_20_contract = predeployed::create_erc20_at_address(
             ETH_ERC20_CONTRACT_ADDRESS,
-            ERC20_CONTRACT_PATH_0_2_0,
-            ERC20_CONTRACT_CLASS_HASH_0_2_0,
+            ERC20_CONTRACT_PATH_0_8_0,
+            ERC20_CONTRACT_CLASS_HASH_0_8_0,
         )
         .unwrap();
         erc_20_contract.deploy(&mut starknet.state).unwrap();
 
         let strk_erc20_contract = predeployed::create_erc20_at_address(
             STRK_ERC20_CONTRACT_ADDRESS,
-            ERC20_CONTRACT_PATH_0_2_0,
-            ERC20_CONTRACT_CLASS_HASH_0_2_0,
+            ERC20_CONTRACT_PATH_0_8_0,
+            ERC20_CONTRACT_CLASS_HASH_0_8_0,
         )
         .unwrap();
         strk_erc20_contract.deploy(&mut starknet.state).unwrap();

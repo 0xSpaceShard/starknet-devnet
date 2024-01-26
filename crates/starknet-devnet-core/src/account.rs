@@ -13,7 +13,7 @@ use starknet_types::num_bigint::BigUint;
 use starknet_types::traits::HashProducer;
 
 use crate::constants::{
-    CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
+    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_8_0, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
     CHARGEABLE_ACCOUNT_PUBLIC_KEY,
 };
 use crate::error::DevnetResult;
@@ -46,12 +46,10 @@ impl Account {
         eth_fee_token_address: ContractAddress,
         strk_fee_token_address: ContractAddress,
     ) -> DevnetResult<Self> {
-        let account_contract_class = Cairo0Json::raw_json_from_path(CAIRO_0_ACCOUNT_CONTRACT_PATH)?;
+        // let account_contract_class = Cairo0Json::raw_json_from_path(CAIRO_0_ACCOUNT_CONTRACT_PATH)?;
 
-        // TODO revert later
-        // let account_contract_class =
-        //     ContractClass::cairo_1_from_path(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH)?;
-
+        let account_contract_class =
+            ContractClass::cairo_1_from_path(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_8_0)?;
         let class_hash = account_contract_class.generate_hash()?;
 
         // insanely big - should practically never run out of funds
@@ -66,7 +64,7 @@ impl Account {
             .unwrap(),
             initial_balance: Felt::from_prefixed_hex_str(&initial_balance_hex).unwrap(),
             class_hash,
-            contract_class: account_contract_class.into(), // TODO remove into later
+            contract_class: account_contract_class,
             eth_fee_token_address,
             strk_fee_token_address,
         })
@@ -176,7 +174,7 @@ mod tests {
 
     use super::Account;
     use crate::account::FeeToken;
-    use crate::constants::ERC20_CONTRACT_CLASS_HASH_0_2_0;
+    use crate::constants::ERC20_CONTRACT_CLASS_HASH_0_8_0;
     use crate::state::StarknetState;
     use crate::traits::{Accounted, Deployed, StateChanger};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
@@ -308,7 +306,7 @@ mod tests {
         state
             .deploy_contract(
                 fee_token_address,
-                Felt::from_prefixed_hex_str(ERC20_CONTRACT_CLASS_HASH_0_2_0).unwrap(),
+                Felt::from_prefixed_hex_str(ERC20_CONTRACT_CLASS_HASH_0_8_0).unwrap(),
             )
             .unwrap();
 

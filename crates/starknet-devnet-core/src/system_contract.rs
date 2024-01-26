@@ -20,6 +20,19 @@ impl SystemContract {
         Ok(Self {
             class_hash: Felt::from_prefixed_hex_str(class_hash)?,
             address: ContractAddress::new(Felt::from_prefixed_hex_str(address)?)?,
+            contract_class: ContractClass::cairo_1_from_sierra_json_str(contract_class_json_str)?
+                .into(),
+        })
+    }
+
+    pub(crate) fn new_cairo_0_contract(
+        class_hash: &str,
+        address: &str,
+        contract_class_json_str: &str,
+    ) -> DevnetResult<Self> {
+        Ok(Self {
+            class_hash: Felt::from_prefixed_hex_str(class_hash)?,
+            address: ContractAddress::new(Felt::from_prefixed_hex_str(address)?)?,
             contract_class: Cairo0Json::raw_json_from_json_str(contract_class_json_str)?.into(),
         })
     }
@@ -64,7 +77,7 @@ mod tests {
 
     use super::SystemContract;
     use crate::constants::{
-        ERC20_CONTRACT_CLASS_HASH_0_2_0, ERC20_CONTRACT_PATH_0_8_0, ETH_ERC20_CONTRACT_ADDRESS,
+        ERC20_CONTRACT_CLASS_HASH_0_8_0, ERC20_CONTRACT_PATH_0_8_0, ETH_ERC20_CONTRACT_ADDRESS,
     };
     use crate::state::StarknetState;
     use crate::traits::Deployed;
@@ -79,7 +92,7 @@ mod tests {
     fn system_account_deployed_successfully() {
         let mut state = StarknetState::default();
         let sys_contract = SystemContract::new(
-            ERC20_CONTRACT_CLASS_HASH_0_2_0,
+            ERC20_CONTRACT_CLASS_HASH_0_8_0,
             ETH_ERC20_CONTRACT_ADDRESS,
             std::fs::read_to_string(ERC20_CONTRACT_PATH_0_8_0).unwrap().as_str(),
         )
