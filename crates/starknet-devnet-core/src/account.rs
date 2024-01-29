@@ -117,7 +117,7 @@ impl Account {
 
 impl Deployed for Account {
     fn deploy(&self, state: &mut StarknetState) -> DevnetResult<()> {
-        self.declare_if_undeclared(state, self.class_hash, self.contract_class)?;
+        self.declare_if_undeclared(state, self.class_hash, &self.contract_class)?;
 
         // deploy
         state.set_class_hash_at(self.account_address.try_into()?, self.class_hash.into());

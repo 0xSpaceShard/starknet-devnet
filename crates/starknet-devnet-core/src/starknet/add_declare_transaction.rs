@@ -114,9 +114,10 @@ pub fn add_declare_transaction_v1(
 
 #[cfg(test)]
 mod tests {
+    use blockifier::state::state_api::StateReader;
     use starknet_api::block::BlockNumber;
     use starknet_api::transaction::Fee;
-    use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
+    use starknet_rs_core::types::{BlockId, BlockTag, TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
@@ -235,7 +236,7 @@ mod tests {
         // check if txn is with status accepted
         assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
-        assert!(starknet.state.contract_classes.get(&class_hash).is_some());
+        starknet.state.get_rpc_contract_class(&class_hash).unwrap();
     }
 
     #[test]
@@ -256,7 +257,10 @@ mod tests {
         // check if txn is with status accepted
         assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
-        assert!(starknet.state.contract_classes.get(&class_hash).is_some());
+        assert_eq!(
+            starknet.get_class(BlockId::Tag(BlockTag::Latest), class_hash).unwrap(),
+            declare_txn.contract_class.into()
+        );
     }
 
     #[test]
@@ -269,14 +273,8 @@ mod tests {
 
         // check if contract is not declared
         assert!(!starknet.state.is_contract_declared(expected_class_hash));
-        assert!(
-            !starknet
-                .state
-                .state
-                .state
-                .class_hash_to_compiled_class
-                .contains_key(&expected_compiled_class_hash)
-        );
+        assert!(starknet.state.get_compiled_class_hash(expected_class_hash.into()).is_err());
+        assert!(starknet.get_class(BlockId::Tag(BlockTag::Latest), expected_class_hash).is_err());
 
         let (tx_hash, retrieved_class_hash) =
             starknet.add_declare_transaction_v2(declare_txn).unwrap();

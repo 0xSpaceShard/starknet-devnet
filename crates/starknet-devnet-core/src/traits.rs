@@ -30,10 +30,10 @@ pub trait Deployed {
         &self,
         state: &mut StarknetState,
         class_hash: ClassHash,
-        contract_class: ContractClass,
+        contract_class: &ContractClass,
     ) -> DevnetResult<()> {
         if state.get_compiled_contract_class(&class_hash.into()).is_err() {
-            state.declare_contract_class(class_hash, contract_class);
+            state.declare_contract_class(class_hash, contract_class.clone());
         }
 
         Ok(())

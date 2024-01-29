@@ -293,13 +293,13 @@ impl Starknet {
                 if !tx_info.is_reverted() {
                     match &transaction {
                         Transaction::Declare(DeclareTransaction::Version1(declare_v1)) => {
-                            self.state.declare_contract_class(declare_v1.class_hash, declare_v1.contract_class.into());
+                            self.state.declare_contract_class(declare_v1.class_hash, declare_v1.contract_class.clone().into());
                         }
                         Transaction::Declare(DeclareTransaction::Version2(declare_v2)) => {
-                            self.state.declare_contract_class(declare_v2.class_hash, declare_v2.contract_class.into());
+                            self.state.declare_contract_class(declare_v2.class_hash, declare_v2.contract_class.clone().into());
                         }
                         Transaction::Declare(DeclareTransaction::Version3(declare_v3)) => {
-                            self.state.declare_contract_class(*declare_v3.get_class_hash(), (*declare_v3.get_contract_class()).into());
+                            self.state.declare_contract_class(*declare_v3.get_class_hash(), declare_v3.get_contract_class().clone().into());
                         }
                         _ => {}
                     };
@@ -354,7 +354,7 @@ impl Starknet {
         transaction: &Transaction,
         tx_info: TransactionExecutionInfo,
     ) -> DevnetResult<()> {
-        let state_diff = self.state.extract_state_diff_from_pending_state()?;
+        let state_diff = self.state.commit_state_and_get_diff()?;
 
         let trace =
             self.create_trace(transaction.get_type(), &tx_info, state_diff.clone().into())?;
@@ -448,12 +448,12 @@ impl Starknet {
                     return Err(Error::StateHistoryDisabled);
                 }
 
-                let block = self.blocks.get_by_block_id(*block_id).ok_or(Error::NoBlock)?;
+                let block_number = self.blocks.get_by_block_id(*block_id).ok_or(Error::NoBlock)?.block_number();
                 let state = self
                     .blocks
                     .num_to_state
-                    .get(&block.block_number())
-                    .ok_or(Error::NoStateAtBlock { block_number: block.block_number().0 })?;
+                    .get(&block_number)
+                    .ok_or(Error::NoStateAtBlock { block_number: block_number.0 })?;
                 Ok(state)
             }
         }
@@ -490,6 +490,7 @@ impl Starknet {
         entrypoint_selector: Felt,
         calldata: Vec<Felt>,
     ) -> DevnetResult<Vec<Felt>> {
+        let block_context = self.block_context.clone();
         let state = self.get_state_at(&block_id)?;
 
         if !state.is_contract_deployed(ContractAddress::new(contract_address)?) {
@@ -512,7 +513,7 @@ impl Starknet {
             blockifier::execution::entry_point::ExecutionResources::default();
         let mut execution_context =
             blockifier::execution::entry_point::EntryPointExecutionContext::new(
-                &self.block_context,
+                &block_context,
                 &blockifier::transaction::objects::AccountTransactionContext::Deprecated(
                     blockifier::transaction::objects::DeprecatedAccountTransactionContext::default(
                     ),
@@ -946,7 +947,7 @@ impl Starknet {
                 !skip_validate,
             )?;
 
-            let state_diff: ThinStateDiff = state.extract_state_diff_from_pending_state()?.into();
+            let state_diff: ThinStateDiff = state.commit_state_and_get_diff()?.into();
             let trace = self.create_trace(
                 broadcasted_transaction.get_type(),
                 &tx_execution_info,
@@ -1404,7 +1405,7 @@ mod tests {
         // add data to state
         starknet.state.state.increment_nonce(dummy_contract_address().try_into().unwrap()).unwrap();
         // get state difference
-        let state_diff = starknet.state.commit_state_and_get_diff();
+        let state_diff = starknet.state.commit_state_and_get_diff().unwrap();
         // generate new block and save the state
         let second_block = starknet.generate_new_block(state_diff, None).unwrap();
         starknet.generate_pending_block().unwrap();
@@ -1413,7 +1414,7 @@ mod tests {
         // add data to state
         starknet.state.state.increment_nonce(dummy_contract_address().try_into().unwrap()).unwrap();
         // get state difference
-        let state_diff = starknet.state.commit_state_and_get_diff();
+        let state_diff = starknet.state.commit_state_and_get_diff().unwrap();
         // generate new block and save the state
         let third_block = starknet.generate_new_block(state_diff, None).unwrap();
         starknet.generate_pending_block().unwrap();

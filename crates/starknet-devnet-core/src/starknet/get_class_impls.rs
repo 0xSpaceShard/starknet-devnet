@@ -4,8 +4,9 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Felt};
 
-use crate::error::{DevnetResult, Error};
+use crate::error::{DevnetResult, Error, StateError};
 use crate::starknet::Starknet;
+use crate::state::CustomStateReader;
 
 pub fn get_class_hash_at_impl(
     starknet: &Starknet,
@@ -29,7 +30,10 @@ pub fn get_class_impl(
     class_hash: ClassHash,
 ) -> DevnetResult<ContractClass> {
     let state = starknet.get_state_at(&block_id)?;
-    Ok(state.get_rpc_contract_class(&class_hash.into())?)
+    state
+        .get_rpc_contract_class(&class_hash.into())
+        .cloned()
+        .ok_or(Error::StateError(StateError::NoneClassHash(class_hash)))
 }
 
 pub fn get_class_at_impl(

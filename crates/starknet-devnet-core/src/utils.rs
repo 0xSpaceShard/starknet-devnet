@@ -56,9 +56,7 @@ pub(crate) mod test_utils {
     use starknet_types::contract_class::{
         compute_casm_class_hash, Cairo0ContractClass, Cairo0Json, ContractClass,
     };
-    use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
-    use starknet_types::patricia_key::StorageKey;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
@@ -73,13 +71,6 @@ pub(crate) mod test_utils {
 
     pub(crate) fn dummy_felt() -> Felt {
         Felt::from_prefixed_hex_str("0xDD10").unwrap()
-    }
-
-    pub(crate) fn dummy_contract_storage_key() -> ContractStorageKey {
-        ContractStorageKey::new(
-            ContractAddress::new(Felt::from_prefixed_hex_str("0xFE").unwrap()).unwrap(),
-            StorageKey::try_from(dummy_felt()).unwrap(),
-        )
     }
 
     pub(crate) fn dummy_cairo_1_contract_class() -> SierraContractClass {
