@@ -96,6 +96,7 @@ mod tests {
     use crate::account::{Account, FeeToken};
     use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS};
     use crate::starknet::{predeployed, Starknet};
+    use crate::state::CustomState;
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::get_storage_var_address;

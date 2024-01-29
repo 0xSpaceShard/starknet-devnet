@@ -63,7 +63,7 @@ use crate::predeployed_accounts::PredeployedAccounts;
 use crate::raw_execution::{Call, RawExecution};
 use crate::state::state_diff::StateDiff;
 use crate::state::state_update::StateUpdate;
-use crate::state::StarknetState;
+use crate::state::{CustomState, CustomStateReader, StarknetState};
 use crate::traits::{AccountGenerator, Accounted, Deployed, HashIdentified, HashIdentifiedMut};
 use crate::transactions::{StarknetTransaction, StarknetTransactions};
 
@@ -293,22 +293,13 @@ impl Starknet {
                 if !tx_info.is_reverted() {
                     match &transaction {
                         Transaction::Declare(DeclareTransaction::Version1(declare_v1)) => {
-                            self.state.contract_classes.insert(
-                                declare_v1.class_hash,
-                                declare_v1.contract_class.clone().into(),
-                            );
+                            self.state.declare_contract_class(declare_v1.class_hash, declare_v1.contract_class.into());
                         }
                         Transaction::Declare(DeclareTransaction::Version2(declare_v2)) => {
-                            self.state.contract_classes.insert(
-                                declare_v2.class_hash,
-                                declare_v2.contract_class.clone().into(),
-                            );
+                            self.state.declare_contract_class(declare_v2.class_hash, declare_v2.contract_class.into());
                         }
                         Transaction::Declare(DeclareTransaction::Version3(declare_v3)) => {
-                            self.state.contract_classes.insert(
-                                *declare_v3.get_class_hash(),
-                                declare_v3.get_contract_class().clone().into(),
-                            );
+                            self.state.declare_contract_class(*declare_v3.get_class_hash(), (*declare_v3.get_contract_class()).into());
                         }
                         _ => {}
                     };
@@ -501,8 +492,7 @@ impl Starknet {
     ) -> DevnetResult<Vec<Felt>> {
         let state = self.get_state_at(&block_id)?;
 
-        let core_address = starknet_api::core::ContractAddress(contract_address.try_into()?);
-        if !state.is_contract_deployed(core_address) {
+        if !state.is_contract_deployed(ContractAddress::new(contract_address)?) {
             return Err(Error::ContractNotFound);
         }
 

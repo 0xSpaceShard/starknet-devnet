@@ -81,6 +81,7 @@ impl JsonRpcHandler {
         key: PatriciaKey,
         block_id: BlockId,
     ) -> StrictRpcResult {
+        todo!("for nonce, storage and maybe other -> check if 0 and return error instead");
         let felt = self
             .api
             .starknet

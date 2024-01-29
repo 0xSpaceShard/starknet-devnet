@@ -130,6 +130,7 @@ mod tests {
     };
     use crate::starknet::predeployed::create_erc20_at_address;
     use crate::starknet::{predeployed, Starknet};
+    use crate::state::CustomStateReader;
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{
@@ -267,7 +268,7 @@ mod tests {
         let expected_compiled_class_hash = declare_txn.compiled_class_hash;
 
         // check if contract is not declared
-        assert!(!starknet.state.is_contract_declared(&expected_class_hash));
+        assert!(!starknet.state.is_contract_declared(expected_class_hash));
         assert!(
             !starknet
                 .state
@@ -287,7 +288,7 @@ mod tests {
         // check if txn is with status accepted
         assert_eq!(retrieved_txn.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(retrieved_txn.execution_result.status(), TransactionExecutionStatus::Succeeded);
-        assert!(starknet.state.is_contract_declared(&expected_class_hash));
+        assert!(starknet.state.is_contract_declared(expected_class_hash));
     }
 
     #[test]
@@ -360,7 +361,7 @@ mod tests {
         assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
         // check if contract is successfully declared
-        assert!(starknet.state.is_contract_declared(&class_hash));
+        assert!(starknet.state.is_contract_declared(class_hash));
         // check if pending block is resetted
         assert!(starknet.pending_block().get_transactions().is_empty());
         // check if there is generated block
@@ -386,7 +387,7 @@ mod tests {
 
         let expected_class_hash = declare_txn.contract_class.generate_hash().unwrap();
         // check if contract is not declared
-        assert!(!starknet.state.is_contract_declared(&expected_class_hash));
+        assert!(!starknet.state.is_contract_declared(expected_class_hash));
 
         let (tx_hash, class_hash) = starknet.add_declare_transaction_v1(declare_txn).unwrap();
 
@@ -397,7 +398,7 @@ mod tests {
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
         // check if contract is declared
-        assert!(starknet.state.is_contract_declared(&class_hash));
+        assert!(starknet.state.is_contract_declared(class_hash));
     }
 
     /// Initializes starknet with 1 account - account without validations

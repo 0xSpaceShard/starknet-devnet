@@ -5,7 +5,7 @@ use starknet_types::felt::{Balance, ClassHash};
 
 use crate::account::FeeToken;
 use crate::error::DevnetResult;
-use crate::state::StarknetState;
+use crate::state::{CustomState, StarknetState};
 
 /// This trait should be implemented by structures that internally have collections and each element
 /// could be found by a hash
@@ -32,16 +32,8 @@ pub trait Deployed {
         class_hash: ClassHash,
         contract_class: ContractClass,
     ) -> DevnetResult<()> {
-        let class_hash = class_hash.into();
-        if state.get_compiled_contract_class(&class_hash).is_err() {
-            state.add_contract_class(&class_hash, contract_class);
-            let casm = match contract_class {
-                ContractClass::Cairo0(class) => {
-                    todo!("keep the same cairo0 artifact, but convert to the right type")
-                }
-                ContractClass::Cairo1(class) => todo!("convert to casm"),
-            };
-            state.set_contract_class(&self.class_hash.into(), casm);
+        if state.get_compiled_contract_class(&class_hash.into()).is_err() {
+            state.declare_contract_class(class_hash, contract_class);
         }
 
         Ok(())

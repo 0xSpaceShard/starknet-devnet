@@ -11,6 +11,7 @@ use starknet_types::rpc::transactions::{
 use super::dump::DumpEvent;
 use super::Starknet;
 use crate::error::{DevnetResult, Error};
+use crate::state::CustomStateReader;
 
 pub fn add_deploy_account_transaction_v3(
     starknet: &mut Starknet,
@@ -20,7 +21,7 @@ pub fn add_deploy_account_transaction_v3(
         return Err(Error::MaxFeeZeroError { tx_type: "deploy account transaction v3".into() });
     }
 
-    if !starknet.state.is_contract_declared(&broadcasted_deploy_account_transaction.class_hash) {
+    if !starknet.state.is_contract_declared(broadcasted_deploy_account_transaction.class_hash) {
         return Err(Error::StateError(crate::error::StateError::NoneClassHash(
             broadcasted_deploy_account_transaction.class_hash,
         )));
@@ -63,7 +64,7 @@ pub fn add_deploy_account_transaction_v1(
         return Err(Error::MaxFeeZeroError { tx_type: "deploy account transaction".into() });
     }
 
-    if !starknet.state.is_contract_declared(&broadcasted_deploy_account_transaction.class_hash) {
+    if !starknet.state.is_contract_declared(broadcasted_deploy_account_transaction.class_hash) {
         return Err(Error::StateError(crate::error::StateError::NoneClassHash(
             broadcasted_deploy_account_transaction.class_hash,
         )));
@@ -117,6 +118,7 @@ mod tests {
     };
     use crate::error::Error;
     use crate::starknet::{predeployed, Starknet};
+    use crate::state::CustomState;
     use crate::traits::{Deployed, HashIdentifiedMut};
     use crate::utils::get_storage_var_address;
 

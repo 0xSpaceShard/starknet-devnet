@@ -1,6 +1,6 @@
+use blockifier::state::state_api::State;
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::felt::Felt;
 
 use crate::constants::{
@@ -53,9 +53,12 @@ pub(crate) fn initialize_erc20_at_address(
         // necessary to set - otherwise minting txs cannot be executed
         ("Ownable_owner", Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?),
     ] {
-        let storage_var_address = get_storage_var_address(storage_var_name, &[])?;
-        let storage_key = ContractStorageKey::new(contract_address, storage_var_address);
-        state.change_storage(storage_key, storage_value)?;
+        let storage_var_address = get_storage_var_address(storage_var_name, &[])?.into();
+        state.set_storage_at(
+            contract_address.try_into()?,
+            storage_var_address,
+            storage_value.into(),
+        );
     }
 
     Ok(())

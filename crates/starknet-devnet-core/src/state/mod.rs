@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
 use blockifier::state::cached_state::CachedState;
-use blockifier::state::state_api::State;
+use blockifier::state::state_api::{State, StateReader};
+use starknet_api::hash::StarkFelt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::ClassHash;
@@ -14,14 +15,24 @@ mod dict_state_reader;
 pub(crate) mod state_diff;
 pub mod state_update;
 
-trait CustomStateReader {
-    fn is_contract_deployed(&self, contract_address: ContractAddress) -> bool;
-    fn is_contract_declared(&self, class_hash: ClassHash) -> bool;
+pub trait CustomStateReader {
+    fn is_contract_deployed(&mut self, contract_address: ContractAddress) -> bool;
+    fn is_contract_declared(&mut self, class_hash: ClassHash) -> bool;
+    /// sierra for cairo1, only artifact for cairo0
+    fn get_rpc_contract_class(&self, class_hash: &ClassHash) -> Option<&ContractClass>;
 }
 
-trait CustomState {
-    fn declare_contract_class(&mut self, class_hash: ClassHash, contract_class: ContractClass);
-    fn deploy_contract(&mut self, contract_address: ContractAddress, class_hash: ClassHash);
+pub trait CustomState {
+    fn declare_contract_class(
+        &mut self,
+        class_hash: ClassHash,
+        contract_class: ContractClass,
+    ) -> DevnetResult<()>;
+    fn deploy_contract(
+        &mut self,
+        contract_address: ContractAddress,
+        class_hash: ClassHash,
+    ) -> DevnetResult<()>;
 }
 
 pub(crate) struct StarknetState {
@@ -39,32 +50,13 @@ impl Default for StarknetState {
 }
 
 impl StarknetState {
-    /// sierra for cairo1, only artifact for cairo0
-    pub fn get_rpc_contract_class(
-        &self,
-        class_hash: &starknet_api::core::ClassHash,
-    ) -> DevnetResult<ContractClass> {
-        if let Some(class) = self.rpc_contract_classes.get(&(*class_hash).0.into()) {
-            return Ok(*class);
-        }
-        todo!("Decide on which error to return")
-    }
-
-    pub fn add_rpc_contract_class(
-        &mut self,
-        class_hash: &starknet_api::core::ClassHash,
-        class: ContractClass,
-    ) {
-        todo!("consider having a single method for adding both types of classes");
-    }
-
     pub fn commit_state_and_get_diff(&mut self) -> StateDiff {
         let commitment_state_diff = self.to_state_diff();
         todo!("handle class commitment");
     }
 }
 
-impl blockifier::state::state_api::State for StarknetState {
+impl State for StarknetState {
     fn set_storage_at(
         &mut self,
         contract_address: starknet_api::core::ContractAddress,
@@ -116,7 +108,7 @@ impl blockifier::state::state_api::StateReader for StarknetState {
         contract_address: starknet_api::core::ContractAddress,
         key: starknet_api::state::StorageKey,
     ) -> blockifier::state::state_api::StateResult<starknet_api::hash::StarkFelt> {
-        if !CustomStateReader::is_contract_deployed(self, contract_address.into()) {
+        if !self.is_contract_deployed(contract_address.into()) {
             // TODO make sure it's converted to the proper JSON-RPC API error
             return Err(blockifier::state::errors::StateError::StateReadError(
                 "No contract".into(),
@@ -129,7 +121,7 @@ impl blockifier::state::state_api::StateReader for StarknetState {
         &mut self,
         contract_address: starknet_api::core::ContractAddress,
     ) -> blockifier::state::state_api::StateResult<starknet_api::core::Nonce> {
-        if !CustomStateReader::is_contract_deployed(self, contract_address.into()) {
+        if !self.is_contract_deployed(contract_address.into()) {
             return Err(blockifier::state::errors::StateError::StateReadError(
                 "No contract".into(),
             ));
@@ -162,22 +154,43 @@ impl blockifier::state::state_api::StateReader for StarknetState {
 }
 
 impl CustomStateReader for StarknetState {
-    fn is_contract_deployed(&self, contract_address: ContractAddress) -> bool {
-        todo!()
+    fn is_contract_deployed(&mut self, contract_address: ContractAddress) -> bool {
+        let api_address = contract_address.try_into().unwrap();
+        self.get_class_hash_at(api_address)
+            .is_ok_and(|starknet_api::core::ClassHash(hash)| hash != StarkFelt::ZERO)
     }
 
-    fn is_contract_declared(&self, class_hash: ClassHash) -> bool {
-        todo!()
+    fn is_contract_declared(&mut self, class_hash: ClassHash) -> bool {
+        self.get_compiled_class_hash(class_hash.into()).is_ok()
+            || self.get_compiled_contract_class(&class_hash.into()).is_ok()
+    }
+
+    fn get_rpc_contract_class(
+        &self,
+        class_hash: &ClassHash,
+    ) -> Option<&ContractClass> {
+        self.rpc_contract_classes.get(class_hash)
     }
 }
 
 impl CustomState for StarknetState {
-    fn declare_contract_class(&mut self, class_hash: ClassHash, contract_class: ContractClass) {
-        todo!()
+    fn declare_contract_class(
+        &mut self,
+        class_hash: ClassHash,
+        contract_class: ContractClass,
+    ) -> DevnetResult<()> {
+        self.set_contract_class(&class_hash.into(), contract_class.try_into()?)?;
+        self.rpc_contract_classes.insert(class_hash, contract_class);
+        Ok(())
     }
 
-    fn deploy_contract(&mut self, contract_address: ContractAddress, class_hash: ClassHash) {
-        todo!()
+    fn deploy_contract(
+        &mut self,
+        contract_address: ContractAddress,
+        class_hash: ClassHash,
+    ) -> DevnetResult<()> {
+        let api_address = contract_address.try_into().unwrap();
+        State::set_class_hash_at(self, api_address, class_hash.into()).map_err(|e| e.into())
     }
 }
 
@@ -271,7 +284,7 @@ mod tests {
             dummy_felt().into(),
         );
 
-        let get_storage_result = state.get_storage(dummy_contract_storage_key());
+        let get_storage_result = state.get_storage_at(dummy_contract_storage_key());
 
         assert!(matches!(get_storage_result.unwrap_err(), Error::ContractNotFound));
 
@@ -396,7 +409,7 @@ mod tests {
 
     #[test]
     fn check_devnet_state_with_blockifier_dict_state_reader() {
-        todo!("here used to be a test which tested DictStateReader, but now our code uses a copy of it")
+        todo!("here used to be a test which tested DictStateReader, now our code uses a copy of it")
     }
 
     fn setup_devnet_state() -> (StarknetState, ClassHash, ContractAddress, ContractStorageKey) {
