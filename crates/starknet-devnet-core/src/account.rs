@@ -13,7 +13,7 @@ use starknet_types::num_bigint::BigUint;
 use starknet_types::traits::HashProducer;
 
 use crate::constants::{
-    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_8_0, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
+    CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
     CHARGEABLE_ACCOUNT_PUBLIC_KEY,
 };
 use crate::error::DevnetResult;
@@ -46,10 +46,12 @@ impl Account {
         eth_fee_token_address: ContractAddress,
         strk_fee_token_address: ContractAddress,
     ) -> DevnetResult<Self> {
-        // let account_contract_class = Cairo0Json::raw_json_from_path(CAIRO_0_ACCOUNT_CONTRACT_PATH)?;
+        // TODO: Cairo0Json::raw_json_from_path or ContractClass::cairo_1_from_pathhere?
+        let account_contract_class = Cairo0Json::raw_json_from_path(CAIRO_0_ACCOUNT_CONTRACT_PATH)?;
 
-        let account_contract_class =
-            ContractClass::cairo_1_from_path(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_8_0)?;
+        // let account_contract_class =
+        //     ContractClass::cairo_1_from_path(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_8_0)?;
+
         let class_hash = account_contract_class.generate_hash()?;
 
         // insanely big - should practically never run out of funds
@@ -64,7 +66,7 @@ impl Account {
             .unwrap(),
             initial_balance: Felt::from_prefixed_hex_str(&initial_balance_hex).unwrap(),
             class_hash,
-            contract_class: account_contract_class,
+            contract_class: account_contract_class.into(),
             eth_fee_token_address,
             strk_fee_token_address,
         })
