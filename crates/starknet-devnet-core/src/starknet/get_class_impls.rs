@@ -14,6 +14,7 @@ pub fn get_class_hash_at_impl(
     contract_address: ContractAddress,
 ) -> DevnetResult<ClassHash> {
     let state = starknet.get_mut_state_at(&block_id)?;
+    state.assert_contract_deployed(contract_address)?;
     let class_hash = state.get_class_hash_at(contract_address.try_into()?)?;
 
     let class_hash_felt = class_hash.into();

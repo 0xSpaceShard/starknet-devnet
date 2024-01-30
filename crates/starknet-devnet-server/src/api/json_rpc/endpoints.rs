@@ -76,16 +76,15 @@ impl JsonRpcHandler {
 
     /// starknet_getStorageAt
     pub async fn get_storage_at(
-        &self,
+        &mut self,
         contract_address: ContractAddress,
         key: PatriciaKey,
         block_id: BlockId,
     ) -> StrictRpcResult {
-        todo!("for nonce, storage and maybe other -> check if 0 and return error instead");
         let felt = self
             .api
             .starknet
-            .read()
+            .write()
             .await
             .contract_storage_at_block(block_id.into(), contract_address, key)
             .map_err(|err| match err {

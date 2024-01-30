@@ -9,7 +9,7 @@ use starknet_types::felt::ClassHash;
 
 use self::dict_state_reader::DictStateReader;
 use self::state_diff::StateDiff;
-use crate::error::DevnetResult;
+use crate::error::{DevnetResult, Error};
 
 mod dict_state_reader;
 pub(crate) mod state_diff;
@@ -71,6 +71,16 @@ impl StarknetState {
     pub fn commit_full_state_and_get_diff(&mut self) -> DevnetResult<StateDiff> {
         StateDiff::generate_commit(self)
     }
+
+    pub fn assert_contract_deployed(
+        &mut self,
+        contract_address: ContractAddress,
+    ) -> DevnetResult<()> {
+        if !self.is_contract_deployed(contract_address) {
+            return Err(Error::ContractNotFound);
+        }
+        Ok(())
+    }
 }
 
 impl State for StarknetState {
@@ -125,12 +135,6 @@ impl blockifier::state::state_api::StateReader for StarknetState {
         contract_address: starknet_api::core::ContractAddress,
         key: starknet_api::state::StorageKey,
     ) -> blockifier::state::state_api::StateResult<starknet_api::hash::StarkFelt> {
-        if !self.is_contract_deployed(contract_address.into()) {
-            // TODO make sure it's converted to the proper JSON-RPC API error
-            return Err(blockifier::state::errors::StateError::StateReadError(
-                "No contract".into(),
-            ));
-        }
         self.state.get_storage_at(contract_address, key)
     }
 
@@ -138,11 +142,6 @@ impl blockifier::state::state_api::StateReader for StarknetState {
         &mut self,
         contract_address: starknet_api::core::ContractAddress,
     ) -> blockifier::state::state_api::StateResult<starknet_api::core::Nonce> {
-        if !self.is_contract_deployed(contract_address.into()) {
-            return Err(blockifier::state::errors::StateError::StateReadError(
-                "No contract".into(),
-            ));
-        }
         self.state.get_nonce_at(contract_address)
     }
 

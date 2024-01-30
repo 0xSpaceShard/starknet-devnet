@@ -63,7 +63,7 @@ use crate::predeployed_accounts::PredeployedAccounts;
 use crate::raw_execution::{Call, RawExecution};
 use crate::state::state_diff::StateDiff;
 use crate::state::state_update::StateUpdate;
-use crate::state::{CustomState, CustomStateReader, StarknetState};
+use crate::state::{CustomState, StarknetState};
 use crate::traits::{AccountGenerator, Accounted, Deployed, HashIdentified, HashIdentifiedMut};
 use crate::transactions::{StarknetTransaction, StarknetTransactions};
 
@@ -523,9 +523,7 @@ impl Starknet {
         let block_context = self.block_context.clone();
         let state = self.get_mut_state_at(&block_id)?;
 
-        if !state.is_contract_deployed(ContractAddress::new(contract_address)?) {
-            return Err(Error::ContractNotFound);
-        }
+        state.assert_contract_deployed(ContractAddress::new(contract_address)?)?;
 
         let call = CallEntryPoint {
             calldata: starknet_api::transaction::Calldata(std::sync::Arc::new(
@@ -723,6 +721,7 @@ impl Starknet {
         contract_address: ContractAddress,
     ) -> DevnetResult<Felt> {
         let state = self.get_mut_state_at(&block_id)?;
+        state.assert_contract_deployed(contract_address)?;
         Ok(state.get_nonce_at(contract_address.try_into()?)?.into())
     }
 
@@ -733,6 +732,7 @@ impl Starknet {
         storage_key: PatriciaKey,
     ) -> DevnetResult<Felt> {
         let state = self.get_mut_state_at(&block_id)?;
+        state.assert_contract_deployed(contract_address)?;
         Ok(state.get_storage_at(contract_address.try_into()?, storage_key.into())?.into())
     }
 
