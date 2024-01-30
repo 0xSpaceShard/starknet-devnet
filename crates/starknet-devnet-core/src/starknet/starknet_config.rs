@@ -6,7 +6,7 @@ use starknet_types::felt::Felt;
 use starknet_types::traits::HashProducer;
 
 use crate::constants::{
-    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_8_0, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE,
+    CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE,
     DEVNET_DEFAULT_HOST, DEVNET_DEFAULT_INITIAL_BALANCE, DEVNET_DEFAULT_PORT,
     DEVNET_DEFAULT_TEST_SEED, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
@@ -50,7 +50,7 @@ impl Default for StarknetConfig {
     fn default() -> Self {
         // TODO: fix unwrap
         let account_contract_class =
-            ContractClass::cairo_1_from_path(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_8_0).unwrap();
+            ContractClass::cairo_1_from_path(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH).unwrap();
 
         // let account_contract_class =
         //     Cairo0Json::raw_json_from_path(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();

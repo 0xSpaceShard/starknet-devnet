@@ -51,8 +51,8 @@ mod tests {
 
     use crate::account::Account;
     use crate::constants::{
-        self, DEVNET_DEFAULT_CHAIN_ID, ERC20_CONTRACT_CLASS_HASH_0_8_0, ERC20_CONTRACT_PATH_0_8_0,
-        ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
+        self, CAIRO_1_ERC20_CONTRACT_CLASS_HASH, CAIRO_1_ERC20_CONTRACT_PATH,
+        DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::Error;
     use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
@@ -76,8 +76,8 @@ mod tests {
 
         let erc_20_contract = predeployed::create_erc20_at_address(
             ETH_ERC20_CONTRACT_ADDRESS,
-            ERC20_CONTRACT_PATH_0_8_0,
-            ERC20_CONTRACT_CLASS_HASH_0_8_0,
+            CAIRO_1_ERC20_CONTRACT_PATH,
+            CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
         )
         .unwrap();
         erc_20_contract.deploy(&mut starknet.state).unwrap();

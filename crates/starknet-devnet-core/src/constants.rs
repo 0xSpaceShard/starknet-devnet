@@ -7,37 +7,29 @@ pub const CAIRO_0_ACCOUNT_CONTRACT_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/accounts_artifacts/OpenZeppelin/0.5.1/Account.cairo/Account.casm"
 );
+
 pub const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str =
     "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f";
 
-// pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_7_0: &str = concat!(
-//     env!("CARGO_MANIFEST_DIR"),
-//     "/accounts_artifacts/OpenZeppelin/0.7.0/Account.cairo/Account.sierra"
-// );
-
-pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_8_0: &str = concat!(
+pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/accounts_artifacts/OpenZeppelin/0.8.0/Account.cairo/Account.sierra"
 );
 
-// pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH_0_7_0: &str =
-//     "0x04c6d6cf894f8bc96bb9c525e6853e5483177841f7388f74a46cfda6f028c755";
-
-pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH_0_8_0: &str =
+pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
     "0xf7f9cd401ad39a09f095001d31f0ad3fdc2f4e532683a84a8a6c76150de858";
 
-pub const ERC20_CONTRACT_PATH_0_8_0: &str =
+pub const CAIRO_1_ERC20_CONTRACT_PATH: &str =
     concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/ERC20_Mintable_OZ_0.8.0.json");
 
-pub const ERC20_CONTRACT_CLASS_HASH_0_8_0: &str =
+pub const CAIRO_1_ERC20_CONTRACT_CLASS_HASH: &str =
     "0x3af5816946625d3d2c94ea451225715784762050eba736f0b0ad9186685bced";
 
-// this is used in one test now but can be removed later
-pub const ERC20_CONTRACT_PATH_0_2_0: &str =
+pub const CAIRO_0_ERC20_CONTRACT_PATH: &str =
     concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/ERC20_Mintable_OZ_0.2.0.json");
 
-// pub const ERC20_CONTRACT_CLASS_HASH_0_2_0: &str =
-//     "0x6A22BF63C7BC07EFFA39A25DFBD21523D211DB0100A0AFD054D172B81840EAF";
+pub const CAIRO_0_ERC20_CONTRACT_CLASS_HASH: &str =
+    "0x6A22BF63C7BC07EFFA39A25DFBD21523D211DB0100A0AFD054D172B81840EAF";
 
 pub const ETH_ERC20_CONTRACT_ADDRESS: &str =
     "0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7";
