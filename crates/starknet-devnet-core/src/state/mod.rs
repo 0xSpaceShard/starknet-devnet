@@ -165,10 +165,7 @@ impl CustomStateReader for StarknetState {
             || self.get_compiled_contract_class(&class_hash.into()).is_ok()
     }
 
-    fn get_rpc_contract_class(
-        &self,
-        class_hash: &ClassHash,
-    ) -> Option<&ContractClass> {
+    fn get_rpc_contract_class(&self, class_hash: &ClassHash) -> Option<&ContractClass> {
         self.rpc_contract_classes.get(class_hash)
     }
 }
@@ -221,9 +218,12 @@ mod tests {
     use super::StarknetState;
     use crate::state::{CustomState, CustomStateReader};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
-    use crate::utils::test_utils::{dummy_contract_address, dummy_felt};
+    use crate::utils::test_utils::{
+        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
+    };
 
-    pub(crate) fn dummy_contract_storage_key() -> (starknet_api::core::ContractAddress, StorageKey) {
+    pub(crate) fn dummy_contract_storage_key() -> (starknet_api::core::ContractAddress, StorageKey)
+    {
         (0xfe_u128.into(), 0xdd10_u128.into())
     }
 
@@ -246,7 +246,7 @@ mod tests {
 
         assert!(!state.is_contract_declared(dummy_felt()));
         state.state.get_compiled_contract_class(&class_hash).unwrap();
-        let state_diff = state.commit_state_and_get_diff();
+        state.commit_state_and_get_diff();
 
         assert!(state.is_contract_declared(dummy_felt()));
     }
@@ -289,7 +289,7 @@ mod tests {
         assert_eq!(storage_before, StarkFelt::ZERO);
 
         // apply changes to persistent state
-        let state_diff = state.commit_state_and_get_diff();
+        state.commit_state_and_get_diff();
 
         let storage_after = state.get_storage_at(contract_address, storage_key).unwrap();
         assert_eq!(storage_after, dummy_felt().into());
@@ -306,7 +306,7 @@ mod tests {
         assert_eq!(state.get_nonce_at(contract_address).unwrap(), Nonce(StarkFelt::ZERO));
 
         state.state.increment_nonce(contract_address).unwrap();
-        let state_diff = state.commit_state_and_get_diff();
+        state.commit_state_and_get_diff();
 
         // check if nonce update was correct
         assert_eq!(state.get_nonce_at(contract_address).unwrap(), Nonce(StarkFelt::ONE));
@@ -318,18 +318,22 @@ mod tests {
         let class_hash = Felt::from_prefixed_hex_str("0xFE").unwrap();
 
         match state.get_compiled_contract_class(&class_hash.into()) {
-            Err(StateError::UndeclaredClassHash(reported_hash)) => assert_eq!(reported_hash, class_hash.into()),
-            other => panic!("Invalid result: {other:?}")
+            Err(StateError::UndeclaredClassHash(reported_hash)) => {
+                assert_eq!(reported_hash, class_hash.into())
+            }
+            other => panic!("Invalid result: {other:?}"),
         }
 
         let contract_class: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
-        state.declare_contract_class(class_hash, contract_class.try_into().unwrap()).unwrap();
+        state
+            .declare_contract_class(class_hash, contract_class.clone().try_into().unwrap())
+            .unwrap();
 
         match state.get_compiled_contract_class(&class_hash.into()) {
             Ok(blockifier::execution::contract_class::ContractClass::V0(retrieved_class)) => {
-                assert_eq!(retrieved_class, contract_class.try_into().unwrap());
-            },
-            other => panic!("Invalid result: {other:?}")
+                assert_eq!(retrieved_class, contract_class.clone().try_into().unwrap());
+            }
+            other => panic!("Invalid result: {other:?}"),
         }
 
         let retrieved_rpc_class = state.get_rpc_contract_class(&class_hash).unwrap();
@@ -353,7 +357,10 @@ mod tests {
         let storage_value = dummy_felt();
 
         state.set_storage_at(contract_address, storage_key, storage_value.into());
-        assert_eq!(state.get_storage_at(contract_address, storage_key).unwrap(), storage_value.into());
+        assert_eq!(
+            state.get_storage_at(contract_address, storage_key).unwrap(),
+            storage_value.into()
+        );
     }
 
     #[test]
@@ -374,9 +381,7 @@ mod tests {
         let (contract_address, storage_key) = dummy_contract_storage_key();
         let class_hash = dummy_felt();
 
-        state
-            .deploy_contract(contract_address.into(), class_hash)
-            .unwrap();
+        state.deploy_contract(contract_address.into(), class_hash).unwrap();
 
         state.set_storage_at(contract_address, storage_key, expected_result);
         let generated_result = state.get_storage_at(contract_address, storage_key).unwrap();
@@ -409,18 +414,14 @@ mod tests {
     fn setup_devnet_state() -> (StarknetState, ClassHash, ContractAddress, StorageKey) {
         let mut state = StarknetState::default();
         let class_hash = dummy_felt();
+        // TODO: use casm hash in declaration
         let compiled_class_hash = Felt::from(1);
         let (address, storage_key) = dummy_contract_storage_key();
 
-        //     state.class_hash_to_compiled_class_hash.insert(class_hash, compiled_class_hash);
-        //     state
-        //         .class_hash_to_compiled_class
-        //         .insert(dummy_felt(), dummy_cairo_1_contract_class().into());
-        //     state.address_to_class_hash.insert(address, class_hash);
-        //     state.address_to_storage.insert(storage_key, class_hash);
-        //     state.address_to_nonce.insert(address, Felt::from(1));
-
-        state.declare_contract_class()
+        state.declare_contract_class(class_hash, dummy_cairo_1_contract_class().into());
+        state.deploy_contract(address.into(), class_hash);
+        state.set_storage_at(address, storage_key, class_hash.into());
+        state.increment_nonce(address);
 
         (state, class_hash, address.into(), storage_key)
     }

@@ -293,13 +293,22 @@ impl Starknet {
                 if !tx_info.is_reverted() {
                     match &transaction {
                         Transaction::Declare(DeclareTransaction::Version1(declare_v1)) => {
-                            self.state.declare_contract_class(declare_v1.class_hash, declare_v1.contract_class.clone().into());
+                            self.state.declare_contract_class(
+                                declare_v1.class_hash,
+                                declare_v1.contract_class.clone().into(),
+                            );
                         }
                         Transaction::Declare(DeclareTransaction::Version2(declare_v2)) => {
-                            self.state.declare_contract_class(declare_v2.class_hash, declare_v2.contract_class.clone().into());
+                            self.state.declare_contract_class(
+                                declare_v2.class_hash,
+                                declare_v2.contract_class.clone().into(),
+                            );
                         }
                         Transaction::Declare(DeclareTransaction::Version3(declare_v3)) => {
-                            self.state.declare_contract_class(*declare_v3.get_class_hash(), declare_v3.get_contract_class().clone().into());
+                            self.state.declare_contract_class(
+                                *declare_v3.get_class_hash(),
+                                declare_v3.get_contract_class().clone().into(),
+                            );
                         }
                         _ => {}
                     };
@@ -448,7 +457,8 @@ impl Starknet {
                     return Err(Error::StateHistoryDisabled);
                 }
 
-                let block_number = self.blocks.get_by_block_id(*block_id).ok_or(Error::NoBlock)?.block_number();
+                let block_number =
+                    self.blocks.get_by_block_id(*block_id).ok_or(Error::NoBlock)?.block_number();
                 let state = self
                     .blocks
                     .num_to_state

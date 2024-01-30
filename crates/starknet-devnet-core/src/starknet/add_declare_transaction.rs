@@ -117,7 +117,9 @@ mod tests {
     use blockifier::state::state_api::StateReader;
     use starknet_api::block::BlockNumber;
     use starknet_api::transaction::Fee;
-    use starknet_rs_core::types::{BlockId, BlockTag, TransactionExecutionStatus, TransactionFinalityStatus};
+    use starknet_rs_core::types::{
+        BlockId, BlockTag, TransactionExecutionStatus, TransactionFinalityStatus,
+    };
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
