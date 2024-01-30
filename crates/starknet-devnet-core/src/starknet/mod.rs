@@ -469,8 +469,28 @@ impl Starknet {
         }
     }
 
+    fn get_mut_state_at(&mut self, block_id: &BlockId) -> DevnetResult<&mut StarknetState> {
+        match block_id {
+            BlockId::Tag(_) => Ok(&mut self.state),
+            _ => {
+                if self.config.state_archive == StateArchiveCapacity::None {
+                    return Err(Error::StateHistoryDisabled);
+                }
+
+                let block_number =
+                    self.blocks.get_by_block_id(*block_id).ok_or(Error::NoBlock)?.block_number();
+                let state = self
+                    .blocks
+                    .num_to_state
+                    .get_mut(&block_number)
+                    .ok_or(Error::NoStateAtBlock { block_number: block_number.0 })?;
+                Ok(state)
+            }
+        }
+    }
+
     pub fn get_class_hash_at(
-        &self,
+        &mut self,
         block_id: BlockId,
         contract_address: ContractAddress,
     ) -> DevnetResult<ClassHash> {
@@ -478,7 +498,7 @@ impl Starknet {
     }
 
     pub fn get_class(
-        &self,
+        &mut self,
         block_id: BlockId,
         class_hash: ClassHash,
     ) -> DevnetResult<ContractClass> {
@@ -486,7 +506,7 @@ impl Starknet {
     }
 
     pub fn get_class_at(
-        &self,
+        &mut self,
         block_id: BlockId,
         contract_address: ContractAddress,
     ) -> DevnetResult<ContractClass> {
@@ -494,14 +514,14 @@ impl Starknet {
     }
 
     pub fn call(
-        &self,
+        &mut self,
         block_id: BlockId,
         contract_address: Felt,
         entrypoint_selector: Felt,
         calldata: Vec<Felt>,
     ) -> DevnetResult<Vec<Felt>> {
         let block_context = self.block_context.clone();
-        let state = self.get_state_at(&block_id)?;
+        let state = self.get_mut_state_at(&block_id)?;
 
         if !state.is_contract_deployed(ContractAddress::new(contract_address)?) {
             return Err(Error::ContractNotFound);
@@ -556,7 +576,7 @@ impl Starknet {
     }
 
     pub fn estimate_message_fee(
-        &self,
+        &mut self,
         block_id: BlockId,
         message: MsgFromL1,
     ) -> DevnetResult<FeeEstimateWrapper> {
@@ -698,21 +718,21 @@ impl Starknet {
     }
 
     pub fn contract_nonce_at_block(
-        &self,
+        &mut self,
         block_id: BlockId,
         contract_address: ContractAddress,
     ) -> DevnetResult<Felt> {
-        let state = self.get_state_at(&block_id)?;
+        let state = self.get_mut_state_at(&block_id)?;
         Ok(state.get_nonce_at(contract_address.try_into()?)?.into())
     }
 
     pub fn contract_storage_at_block(
-        &self,
+        &mut self,
         block_id: BlockId,
         contract_address: ContractAddress,
         storage_key: PatriciaKey,
     ) -> DevnetResult<Felt> {
-        let state = self.get_state_at(&block_id)?;
+        let state = self.get_mut_state_at(&block_id)?;
         Ok(state.get_storage_at(contract_address.try_into()?, storage_key.into())?.into())
     }
 
@@ -1253,7 +1273,7 @@ mod tests {
     #[test]
     fn calling_method_of_undeployed_contract() {
         let config = StarknetConfig::default();
-        let starknet = Starknet::new(&config).unwrap();
+        let mut starknet = Starknet::new(&config).unwrap();
 
         let undeployed_address_hex = "0x1234";
         let undeployed_address = Felt::from_prefixed_hex_str(undeployed_address_hex).unwrap();
@@ -1274,7 +1294,7 @@ mod tests {
     #[test]
     fn calling_nonexistent_contract_method() {
         let config = StarknetConfig::default();
-        let starknet = Starknet::new(&config).unwrap();
+        let mut starknet = Starknet::new(&config).unwrap();
 
         let predeployed_account = &starknet.predeployed_accounts.get_accounts()[0];
         let entry_point_selector =
@@ -1299,7 +1319,7 @@ mod tests {
 
     /// utility method for happy path balance retrieval
     fn get_balance_at(
-        starknet: &Starknet,
+        starknet: &mut Starknet,
         contract_address: ContractAddress,
     ) -> DevnetResult<Vec<Felt>> {
         let entry_point_selector =
@@ -1315,10 +1335,10 @@ mod tests {
     #[test]
     fn getting_balance_of_predeployed_contract() {
         let config = StarknetConfig::default();
-        let starknet = Starknet::new(&config).unwrap();
+        let mut starknet = Starknet::new(&config).unwrap();
 
-        let predeployed_account = &starknet.predeployed_accounts.get_accounts()[0];
-        let result = get_balance_at(&starknet, predeployed_account.account_address).unwrap();
+        let predeployed_account = &starknet.predeployed_accounts.get_accounts()[0].clone();
+        let result = get_balance_at(&mut starknet, predeployed_account.account_address).unwrap();
 
         let balance_hex = format!("0x{:x}", DEVNET_DEFAULT_INITIAL_BALANCE);
         let balance_felt = Felt::from_prefixed_hex_str(balance_hex.as_str()).unwrap();
@@ -1329,11 +1349,11 @@ mod tests {
     #[test]
     fn getting_balance_of_undeployed_contract() {
         let config = StarknetConfig::default();
-        let starknet = Starknet::new(&config).unwrap();
+        let mut starknet = Starknet::new(&config).unwrap();
 
         let undeployed_address =
             ContractAddress::new(Felt::from_prefixed_hex_str("0x1234").unwrap()).unwrap();
-        let result = get_balance_at(&starknet, undeployed_address).unwrap();
+        let result = get_balance_at(&mut starknet, undeployed_address).unwrap();
 
         let zero = Felt::from_prefixed_hex_str("0x0").unwrap();
         let expected_balance_uint256 = vec![zero, zero];
@@ -1433,7 +1453,7 @@ mod tests {
         let second_block_address_nonce = starknet
             .blocks
             .num_to_state
-            .get(&second_block)
+            .get_mut(&second_block)
             .unwrap()
             .get_nonce_at(dummy_contract_address().try_into().unwrap())
             .unwrap();
@@ -1443,7 +1463,7 @@ mod tests {
         let third_block_address_nonce = starknet
             .blocks
             .num_to_state
-            .get(&third_block)
+            .get_mut(&third_block)
             .unwrap()
             .get_nonce_at(dummy_contract_address().try_into().unwrap())
             .unwrap();

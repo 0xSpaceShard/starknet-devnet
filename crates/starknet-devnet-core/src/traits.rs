@@ -23,7 +23,7 @@ pub trait HashIdentifiedMut {
     fn get_by_hash_mut(&mut self, hash: &Self::Hash) -> Option<&mut Self::Element>;
 }
 
-pub trait Deployed {
+pub(crate) trait Deployed {
     fn deploy(&self, state: &mut StarknetState) -> DevnetResult<()>;
     fn get_address(&self) -> ContractAddress;
     fn declare_if_undeclared(

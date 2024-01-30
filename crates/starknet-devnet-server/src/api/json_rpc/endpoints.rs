@@ -173,7 +173,7 @@ impl JsonRpcHandler {
 
     /// starknet_getClass
     pub async fn get_class(&self, block_id: BlockId, class_hash: ClassHash) -> StrictRpcResult {
-        match self.api.starknet.read().await.get_class(block_id.into(), class_hash) {
+        match self.api.starknet.write().await.get_class(block_id.into(), class_hash) {
             Ok(contract_class) => Ok(StarknetResponse::ClassByHash(contract_class.try_into()?)),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(Error::StateError(_) | Error::NoStateAtBlock { block_number: _ }) => {
@@ -189,7 +189,7 @@ impl JsonRpcHandler {
         block_id: BlockId,
         contract_address: ContractAddress,
     ) -> StrictRpcResult {
-        match self.api.starknet.read().await.get_class_at(block_id.into(), contract_address) {
+        match self.api.starknet.write().await.get_class_at(block_id.into(), contract_address) {
             Ok(contract_class) => {
                 Ok(StarknetResponse::ClassAtContractAddress(contract_class.try_into()?))
             }
@@ -209,7 +209,7 @@ impl JsonRpcHandler {
         block_id: BlockId,
         contract_address: ContractAddress,
     ) -> StrictRpcResult {
-        match self.api.starknet.read().await.get_class_hash_at(block_id.into(), contract_address) {
+        match self.api.starknet.write().await.get_class_hash_at(block_id.into(), contract_address) {
             Ok(class_hash) => Ok(StarknetResponse::ClassHashAtContractAddress(class_hash)),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(Error::ContractNotFound | Error::NoStateAtBlock { block_number: _ }) => {
@@ -230,7 +230,7 @@ impl JsonRpcHandler {
 
     /// starknet_call
     pub async fn call(&self, block_id: BlockId, request: FunctionCall) -> StrictRpcResult {
-        let starknet = self.api.starknet.read().await;
+        let mut starknet = self.api.starknet.write().await;
 
         match starknet.call(
             block_id.into(),
@@ -266,7 +266,7 @@ impl JsonRpcHandler {
         block_id: BlockId,
         message: MsgFromL1,
     ) -> StrictRpcResult {
-        match self.api.starknet.read().await.estimate_message_fee(block_id.into(), message) {
+        match self.api.starknet.write().await.estimate_message_fee(block_id.into(), message) {
             Ok(result) => Ok(StarknetResponse::EstimateMessageFee(result)),
             Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
@@ -343,7 +343,7 @@ impl JsonRpcHandler {
         let nonce = self
             .api
             .starknet
-            .read()
+            .write()
             .await
             .contract_nonce_at_block(block_id.into(), contract_address)
             .map_err(|err| match err {

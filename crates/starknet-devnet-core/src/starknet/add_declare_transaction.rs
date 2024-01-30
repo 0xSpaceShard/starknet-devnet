@@ -252,10 +252,10 @@ mod tests {
         let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
 
         // check if generated class hash is expected one
-        assert_eq!(
-            class_hash,
-            ContractClass::Cairo1(declare_txn.contract_class).generate_hash().unwrap()
-        );
+        let generated_hash =
+            ContractClass::Cairo1(declare_txn.contract_class.clone()).generate_hash().unwrap();
+        assert_eq!(class_hash, generated_hash);
+
         // check if txn is with status accepted
         assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
@@ -289,6 +289,10 @@ mod tests {
         assert_eq!(retrieved_txn.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(retrieved_txn.execution_result.status(), TransactionExecutionStatus::Succeeded);
         assert!(starknet.state.is_contract_declared(expected_class_hash));
+        assert_eq!(
+            starknet.state.get_compiled_class_hash(expected_class_hash.into()).unwrap(),
+            expected_compiled_class_hash.into()
+        );
     }
 
     #[test]

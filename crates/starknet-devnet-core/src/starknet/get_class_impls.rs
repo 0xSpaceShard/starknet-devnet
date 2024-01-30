@@ -9,11 +9,11 @@ use crate::starknet::Starknet;
 use crate::state::CustomStateReader;
 
 pub fn get_class_hash_at_impl(
-    starknet: &Starknet,
+    starknet: &mut Starknet,
     block_id: BlockId,
     contract_address: ContractAddress,
 ) -> DevnetResult<ClassHash> {
-    let state = starknet.get_state_at(&block_id)?;
+    let state = starknet.get_mut_state_at(&block_id)?;
     let class_hash = state.get_class_hash_at(contract_address.try_into()?)?;
 
     let class_hash_felt = class_hash.into();
@@ -25,11 +25,11 @@ pub fn get_class_hash_at_impl(
 }
 
 pub fn get_class_impl(
-    starknet: &Starknet,
+    starknet: &mut Starknet,
     block_id: BlockId,
     class_hash: ClassHash,
 ) -> DevnetResult<ContractClass> {
-    let state = starknet.get_state_at(&block_id)?;
+    let state = starknet.get_mut_state_at(&block_id)?;
     state
         .get_rpc_contract_class(&class_hash.into())
         .cloned()
@@ -37,7 +37,7 @@ pub fn get_class_impl(
 }
 
 pub fn get_class_at_impl(
-    starknet: &Starknet,
+    starknet: &mut Starknet,
     block_id: BlockId,
     contract_address: ContractAddress,
 ) -> DevnetResult<ContractClass> {

@@ -45,7 +45,7 @@ pub fn estimate_fee(
 }
 
 pub fn estimate_message_fee(
-    starknet: &Starknet,
+    starknet: &mut Starknet,
     block_id: BlockId,
     message: MsgFromL1,
 ) -> DevnetResult<FeeEstimateWrapper> {

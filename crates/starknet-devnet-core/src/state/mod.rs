@@ -390,7 +390,7 @@ mod tests {
 
     #[test]
     fn get_nonce_should_return_zerp_when_contract_not_deployed() {
-        let (state, _) = setup();
+        let (mut state, _) = setup();
 
         let dummy_address = starknet_api::core::ContractAddress::from(1_u32);
         match state.get_nonce_at(dummy_address) {
@@ -401,7 +401,7 @@ mod tests {
 
     #[test]
     fn get_nonce_should_return_zero_for_freshly_deployed_contract() {
-        let (state, address) = setup();
+        let (mut state, address) = setup();
         let core_address = address.try_into().unwrap();
         assert_eq!(state.get_nonce_at(core_address).unwrap(), Nonce(StarkFelt::ZERO));
     }

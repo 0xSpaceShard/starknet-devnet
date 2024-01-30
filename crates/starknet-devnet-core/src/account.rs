@@ -120,7 +120,7 @@ impl Deployed for Account {
         self.declare_if_undeclared(state, self.class_hash, &self.contract_class)?;
 
         // deploy
-        state.set_class_hash_at(self.account_address.try_into()?, self.class_hash.into());
+        state.set_class_hash_at(self.account_address.try_into()?, self.class_hash.into())?;
 
         // set public key
         let public_key_storage_var = get_storage_var_address("Account_public_key", &[])?;
