@@ -35,9 +35,27 @@ pub trait CustomState {
     ) -> DevnetResult<()>;
 }
 
+#[derive(Default, Clone)]
+pub struct CommittedClassStorage {
+    staging: HashMap<ClassHash, ContractClass>,
+    committed: HashMap<ClassHash, ContractClass>,
+}
+
+impl CommittedClassStorage {
+    pub fn insert(&mut self, class_hash: ClassHash, contract_class: ContractClass) {
+        self.staging.insert(class_hash, contract_class);
+    }
+
+    pub fn commit(&mut self) -> HashMap<ClassHash, ContractClass> {
+        let diff = self.staging.clone();
+        self.committed.extend(self.staging.drain());
+        diff
+    }
+}
+
 pub(crate) struct StarknetState {
     pub(crate) state: CachedState<DictStateReader>,
-    rpc_contract_classes: HashMap<ClassHash, ContractClass>,
+    rpc_contract_classes: CommittedClassStorage,
 }
 
 impl Default for StarknetState {
@@ -50,9 +68,8 @@ impl Default for StarknetState {
 }
 
 impl StarknetState {
-    pub fn commit_state_and_get_diff(&mut self) -> DevnetResult<StateDiff> {
-        let commitment_state_diff = self.to_state_diff();
-        todo!("handle class commitment");
+    pub fn commit_full_state_and_get_diff(&mut self) -> DevnetResult<StateDiff> {
+        StateDiff::generate_commit(self)
     }
 }
 
@@ -166,7 +183,7 @@ impl CustomStateReader for StarknetState {
     }
 
     fn get_rpc_contract_class(&self, class_hash: &ClassHash) -> Option<&ContractClass> {
-        self.rpc_contract_classes.get(class_hash)
+        self.rpc_contract_classes.committed.get(class_hash)
     }
 }
 
@@ -244,7 +261,7 @@ mod tests {
 
         assert!(!state.is_contract_declared(dummy_felt()));
         state.state.get_compiled_contract_class(&class_hash).unwrap();
-        state.commit_state_and_get_diff().unwrap();
+        state.commit_full_state_and_get_diff().unwrap();
 
         assert!(state.is_contract_declared(dummy_felt()));
     }
@@ -287,7 +304,7 @@ mod tests {
         assert_eq!(storage_before, StarkFelt::ZERO);
 
         // apply changes to persistent state
-        state.commit_state_and_get_diff().unwrap();
+        state.commit_full_state_and_get_diff().unwrap();
 
         let storage_after = state.get_storage_at(contract_address, storage_key).unwrap();
         assert_eq!(storage_after, dummy_felt().into());
@@ -304,7 +321,7 @@ mod tests {
         assert_eq!(state.get_nonce_at(contract_address).unwrap(), Nonce(StarkFelt::ZERO));
 
         state.state.increment_nonce(contract_address).unwrap();
-        state.commit_state_and_get_diff().unwrap();
+        state.commit_full_state_and_get_diff().unwrap();
 
         // check if nonce update was correct
         assert_eq!(state.get_nonce_at(contract_address).unwrap(), Nonce(StarkFelt::ONE));

@@ -166,7 +166,7 @@ impl Starknet {
         chargeable_account.deploy(&mut state)?;
         chargeable_account.set_initial_balance(&mut state)?;
 
-        state.commit_state_and_get_diff()?;
+        state.commit_full_state_and_get_diff()?;
 
         let mut this = Self {
             state,
@@ -363,7 +363,7 @@ impl Starknet {
         transaction: &Transaction,
         tx_info: TransactionExecutionInfo,
     ) -> DevnetResult<()> {
-        let state_diff = self.state.commit_state_and_get_diff()?;
+        let state_diff = self.state.commit_full_state_and_get_diff()?;
 
         let trace =
             self.create_trace(transaction.get_type(), &tx_info, state_diff.clone().into())?;
@@ -977,7 +977,7 @@ impl Starknet {
                 !skip_validate,
             )?;
 
-            let state_diff: ThinStateDiff = state.commit_state_and_get_diff()?.into();
+            let state_diff: ThinStateDiff = state.commit_full_state_and_get_diff()?.into();
             let trace = self.create_trace(
                 broadcasted_transaction.get_type(),
                 &tx_execution_info,
@@ -1435,7 +1435,7 @@ mod tests {
         // add data to state
         starknet.state.state.increment_nonce(dummy_contract_address().try_into().unwrap()).unwrap();
         // get state difference
-        let state_diff = starknet.state.commit_state_and_get_diff().unwrap();
+        let state_diff = starknet.state.commit_full_state_and_get_diff().unwrap();
         // generate new block and save the state
         let second_block = starknet.generate_new_block(state_diff, None).unwrap();
         starknet.generate_pending_block().unwrap();
@@ -1444,7 +1444,7 @@ mod tests {
         // add data to state
         starknet.state.state.increment_nonce(dummy_contract_address().try_into().unwrap()).unwrap();
         // get state difference
-        let state_diff = starknet.state.commit_state_and_get_diff().unwrap();
+        let state_diff = starknet.state.commit_full_state_and_get_diff().unwrap();
         // generate new block and save the state
         let third_block = starknet.generate_new_block(state_diff, None).unwrap();
         starknet.generate_pending_block().unwrap();
