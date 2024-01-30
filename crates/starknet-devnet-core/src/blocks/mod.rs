@@ -9,6 +9,7 @@ use starknet_types::felt::{BlockHash, Felt, TransactionHash};
 use starknet_types::rpc::block::{BlockHeader as TypesBlockHeader, ResourcePrice};
 use starknet_types::traits::HashProducer;
 
+use crate::constants::STARKNET_VERSION;
 use crate::error::{DevnetResult, Error};
 use crate::state::state_diff::StateDiff;
 use crate::state::StarknetState;
@@ -157,7 +158,7 @@ impl From<&StarknetBlock> for TypesBlockHeader {
             sequencer_address: value.sequencer_address(),
             new_root: value.new_root(),
             timestamp: value.timestamp(),
-            starknet_version: env!("STARKNET_VERSION").to_string(),
+            starknet_version: STARKNET_VERSION.to_string(),
             l1_gas_price: ResourcePrice {
                 price_in_fri: Felt::from(0),
                 price_in_wei: value.header.eth_l1_gas_price.0.into(),
