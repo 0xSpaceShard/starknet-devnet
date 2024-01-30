@@ -1,5 +1,5 @@
 [package]
-name = "starknet-devnet-cli"
+name = "starknet-devnet"
 version = "0.0.1"
 edition = "2021"
 repository.workspace = true

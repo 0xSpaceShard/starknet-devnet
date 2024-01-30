@@ -4589,7 +4589,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "starknet-devnet-cli"
+name = "starknet-devnet"
 version = "0.0.1"
 dependencies = [
  "anyhow",
