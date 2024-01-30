@@ -166,7 +166,7 @@ impl Starknet {
         chargeable_account.deploy(&mut state)?;
         chargeable_account.set_initial_balance(&mut state)?;
 
-        state.commit_state_and_get_diff();
+        state.commit_state_and_get_diff()?;
 
         let mut this = Self {
             state,
@@ -296,19 +296,19 @@ impl Starknet {
                             self.state.declare_contract_class(
                                 declare_v1.class_hash,
                                 declare_v1.contract_class.clone().into(),
-                            );
+                            )?;
                         }
                         Transaction::Declare(DeclareTransaction::Version2(declare_v2)) => {
                             self.state.declare_contract_class(
                                 declare_v2.class_hash,
                                 declare_v2.contract_class.clone().into(),
-                            );
+                            )?;
                         }
                         Transaction::Declare(DeclareTransaction::Version3(declare_v3)) => {
                             self.state.declare_contract_class(
                                 *declare_v3.get_class_hash(),
                                 declare_v3.get_contract_class().clone().into(),
-                            );
+                            )?;
                         }
                         _ => {}
                     };

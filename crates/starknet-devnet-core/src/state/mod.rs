@@ -213,14 +213,12 @@ mod tests {
     use starknet_api::state::StorageKey;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
-    use starknet_types::felt::{ClassHash, Felt};
+    use starknet_types::felt::Felt;
 
     use super::StarknetState;
     use crate::state::{CustomState, CustomStateReader};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
-    use crate::utils::test_utils::{
-        dummy_cairo_1_contract_class, dummy_contract_address, dummy_felt,
-    };
+    use crate::utils::test_utils::{dummy_contract_address, dummy_felt};
 
     pub(crate) fn dummy_contract_storage_key() -> (starknet_api::core::ContractAddress, StorageKey)
     {
@@ -246,7 +244,7 @@ mod tests {
 
         assert!(!state.is_contract_declared(dummy_felt()));
         state.state.get_compiled_contract_class(&class_hash).unwrap();
-        state.commit_state_and_get_diff();
+        state.commit_state_and_get_diff().unwrap();
 
         assert!(state.is_contract_declared(dummy_felt()));
     }
@@ -289,7 +287,7 @@ mod tests {
         assert_eq!(storage_before, StarkFelt::ZERO);
 
         // apply changes to persistent state
-        state.commit_state_and_get_diff();
+        state.commit_state_and_get_diff().unwrap();
 
         let storage_after = state.get_storage_at(contract_address, storage_key).unwrap();
         assert_eq!(storage_after, dummy_felt().into());
@@ -306,7 +304,7 @@ mod tests {
         assert_eq!(state.get_nonce_at(contract_address).unwrap(), Nonce(StarkFelt::ZERO));
 
         state.state.increment_nonce(contract_address).unwrap();
-        state.commit_state_and_get_diff();
+        state.commit_state_and_get_diff().unwrap();
 
         // check if nonce update was correct
         assert_eq!(state.get_nonce_at(contract_address).unwrap(), Nonce(StarkFelt::ONE));
@@ -409,21 +407,6 @@ mod tests {
     #[test]
     fn check_devnet_state_with_blockifier_dict_state_reader() {
         todo!("here used to be a test which tested DictStateReader, now our code uses a copy of it")
-    }
-
-    fn setup_devnet_state() -> (StarknetState, ClassHash, ContractAddress, StorageKey) {
-        let mut state = StarknetState::default();
-        let class_hash = dummy_felt();
-        // TODO: use casm hash in declaration
-        let compiled_class_hash = Felt::from(1);
-        let (address, storage_key) = dummy_contract_storage_key();
-
-        state.declare_contract_class(class_hash, dummy_cairo_1_contract_class().into());
-        state.deploy_contract(address.into(), class_hash);
-        state.set_storage_at(address, storage_key, class_hash.into());
-        state.increment_nonce(address);
-
-        (state, class_hash, address.into(), storage_key)
     }
 
     fn setup() -> (StarknetState, ContractAddress) {

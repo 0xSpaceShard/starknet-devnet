@@ -29,9 +29,9 @@ impl SystemContract {
 
 impl Deployed for SystemContract {
     fn deploy(&self, state: &mut StarknetState) -> DevnetResult<()> {
-        self.declare_if_undeclared(state, self.class_hash, &self.contract_class);
+        self.declare_if_undeclared(state, self.class_hash, &self.contract_class)?;
 
-        state.set_class_hash_at(self.address.try_into()?, self.class_hash.into());
+        state.set_class_hash_at(self.address.try_into()?, self.class_hash.into())?;
 
         Ok(())
     }
