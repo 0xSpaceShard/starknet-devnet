@@ -49,8 +49,6 @@ impl FromStr for AccountClassWrapper {
     type Err = anyhow::Error;
 
     fn from_str(path_candidate: &str) -> Result<Self, Self::Err> {
-        // println!("here add support of cairo0???: {:?}", path_candidate);
-
         // load artifact
         let contract_class = ContractClass::cairo_1_from_sierra_json_str(
             std::fs::read_to_string(path_candidate)?.as_str(),

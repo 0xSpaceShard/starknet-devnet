@@ -20,7 +20,7 @@ pub(crate) fn create_erc20_at_address(
     let erc20_contract_class_json_str = std::fs::read_to_string(path)
         .map_err(|err| Error::ReadFileError { source: err, path: path.to_string() })?;
     let erc20_fee_contract =
-        SystemContract::new(hash, contract_address, &erc20_contract_class_json_str)?;
+        SystemContract::new_cairo1(hash, contract_address, &erc20_contract_class_json_str)?;
 
     Ok(erc20_fee_contract)
 }
@@ -62,7 +62,7 @@ pub(crate) fn initialize_erc20_at_address(
 pub(crate) fn create_udc() -> DevnetResult<SystemContract> {
     let udc_contract_class_json_str = std::fs::read_to_string(UDC_CONTRACT_PATH)
         .map_err(|err| Error::ReadFileError { source: err, path: UDC_CONTRACT_PATH.to_string() })?;
-    let udc_contract = SystemContract::new_cairo_0_contract(
+    let udc_contract = SystemContract::new_cairo0(
         UDC_CONTRACT_CLASS_HASH,
         UDC_CONTRACT_ADDRESS,
         &udc_contract_class_json_str,

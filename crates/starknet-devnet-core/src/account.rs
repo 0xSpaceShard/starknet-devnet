@@ -46,12 +46,7 @@ impl Account {
         eth_fee_token_address: ContractAddress,
         strk_fee_token_address: ContractAddress,
     ) -> DevnetResult<Self> {
-        // TODO: Cairo0Json::raw_json_from_path or ContractClass::cairo_1_from_pathhere?
         let account_contract_class = Cairo0Json::raw_json_from_path(CAIRO_0_ACCOUNT_CONTRACT_PATH)?;
-
-        // let account_contract_class =
-        //     ContractClass::cairo_1_from_path(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH_0_8_0)?;
-
         let class_hash = account_contract_class.generate_hash()?;
 
         // insanely big - should practically never run out of funds

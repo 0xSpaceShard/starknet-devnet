@@ -48,21 +48,14 @@ pub struct StarknetConfig {
 
 impl Default for StarknetConfig {
     fn default() -> Self {
-        // TODO: fix unwrap
         let account_contract_class =
             ContractClass::cairo_1_from_path(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH).unwrap();
-
-        // let account_contract_class =
-        //     Cairo0Json::raw_json_from_path(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
 
         StarknetConfig {
             seed: DEVNET_DEFAULT_TEST_SEED,
             total_accounts: DEVNET_DEFAULT_TOTAL_ACCOUNTS,
             account_contract_class_hash: account_contract_class.generate_hash().unwrap(),
             account_contract_class,
-            // account_contract_class: ContractClass::Cairo0(Cairo0ContractClass::RawJson(
-            //     account_contract_class,
-            // )),
             predeployed_accounts_initial_balance: DEVNET_DEFAULT_INITIAL_BALANCE.into(),
             host: DEVNET_DEFAULT_HOST,
             port: DEVNET_DEFAULT_PORT,
