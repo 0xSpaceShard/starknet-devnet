@@ -86,8 +86,8 @@ cairo-lang-utils = "=2.4.0-rc6"
 
 # Inner dependencies
 starknet-types = { version = "0.0.1", path = "crates/starknet-devnet-types", package = "starknet-devnet-types" }
-starknet-core = { version = "0.0.1", path = "crates/starknet-devnet-core", package = "starknet-devnet-core" }
-server = { version = "0.0.1", path = "crates/starknet-devnet-server", package = "starknet-devnet-server"}
+starknet-core = { version = "0.0.2", path = "crates/starknet-devnet-core", package = "starknet-devnet-core" }
+server = { version = "0.0.2", path = "crates/starknet-devnet-server", package = "starknet-devnet-server"}
 
 num-bigint = { version = "0.4" }
 
