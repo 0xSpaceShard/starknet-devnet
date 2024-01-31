@@ -5,7 +5,8 @@ use blockifier::state::state_api::{State, StateReader};
 use starknet_api::hash::StarkFelt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
-use starknet_types::felt::ClassHash;
+use starknet_types::felt::{ClassHash, Felt};
+use starknet_types::traits::HashProducer;
 
 use self::dict_state_reader::DictStateReader;
 use self::state_diff::StateDiff;
@@ -192,11 +193,20 @@ impl CustomState for StarknetState {
         class_hash: ClassHash,
         contract_class: ContractClass,
     ) -> DevnetResult<()> {
-        let casm = contract_class.clone().try_into()?;
-        self.set_contract_class(&class_hash.into(), casm)?;
-        self.rpc_contract_classes.insert(class_hash, contract_class);
+        let compiled_class = contract_class.clone().try_into()?;
+        let compiled_class_hash: Felt = match contract_class {
+            ContractClass::Cairo0(_) => class_hash,
+            ContractClass::Cairo1(_) => {
+                let cairo_lang_compiled_class: cairo_lang_starknet::casm_contract_class::CasmContractClass =
+                    contract_class.clone().try_into()?;
+                let casm_hash: Felt = cairo_lang_compiled_class.compiled_class_hash().into();
+                self.set_compiled_class_hash(class_hash.into(), casm_hash.into())?;
+                casm_hash
+            }
+        };
 
-        todo!("match hash and casm hash");
+        self.set_contract_class(&compiled_class_hash.into(), compiled_class)?;
+        self.rpc_contract_classes.insert(class_hash, contract_class);
 
         Ok(())
     }
