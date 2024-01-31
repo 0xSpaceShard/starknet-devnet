@@ -1,10 +1,10 @@
 [workspace]
 resolver = "2"
 members = [
-	"crates/starknet-devnet-server",
-	"crates/starknet-devnet",
 	"crates/starknet-devnet-types",
 	"crates/starknet-devnet-core",
+	"crates/starknet-devnet-server",
+	"crates/starknet-devnet",
 ]
 
 [profile.release]
@@ -12,7 +12,6 @@ panic = "unwind"
 
 [workspace.package]
 authors = ["Mario"]
-version = "0.1.0"
 edition = "2021"
 repository = "https://github.com/0xSpaceShard/starknet-devnet-rs"
 license-file = "LICENSE"
