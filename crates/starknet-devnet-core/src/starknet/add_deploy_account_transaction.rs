@@ -254,7 +254,7 @@ mod tests {
 
         let account_balance_before_deployment = StarkFelt::from_u128(1000000);
         starknet.state.set_storage_at(
-            fee_token_address.into(),
+            fee_token_address,
             balance_storage_var_address,
             account_balance_before_deployment,
         );
@@ -287,7 +287,7 @@ mod tests {
 
         let account_balance_before_deployment = StarkFelt::from_u128(1000000);
         starknet.state.set_storage_at(
-            fee_token_address.into(),
+            fee_token_address,
             balance_storage_var_address,
             account_balance_before_deployment,
         );
@@ -338,7 +338,7 @@ mod tests {
 
         let account_balance_before_deployment = StarkFelt::from_u128(1000000);
         starknet.state.set_storage_at(
-            fee_token_address.into(),
+            fee_token_address,
             balance_storage_var_address,
             account_balance_before_deployment,
         );

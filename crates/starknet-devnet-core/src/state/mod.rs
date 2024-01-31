@@ -6,7 +6,6 @@ use starknet_api::hash::StarkFelt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Felt};
-use starknet_types::traits::HashProducer;
 
 use self::dict_state_reader::DictStateReader;
 use self::state_diff::StateDiff;
@@ -297,17 +296,10 @@ mod tests {
 
         state
             .state
-            .set_class_hash_at(
-                contract_address.try_into().unwrap(),
-                starknet_api::core::ClassHash(dummy_felt().into()),
-            )
+            .set_class_hash_at(contract_address, starknet_api::core::ClassHash(dummy_felt().into()))
             .unwrap();
 
-        state.state.set_storage_at(
-            contract_address.try_into().unwrap(),
-            storage_key,
-            dummy_felt().into(),
-        );
+        state.state.set_storage_at(contract_address, storage_key, dummy_felt().into());
 
         let storage_before = state.get_storage_at(contract_address, storage_key).unwrap();
         assert_eq!(storage_before, StarkFelt::ZERO);
@@ -428,11 +420,6 @@ mod tests {
         let (mut state, address) = setup();
         let core_address = address.try_into().unwrap();
         assert_eq!(state.get_nonce_at(core_address).unwrap(), Nonce(StarkFelt::ZERO));
-    }
-
-    #[test]
-    fn check_devnet_state_with_blockifier_dict_state_reader() {
-        todo!("here used to be a test which tested DictStateReader, now our code uses a copy of it")
     }
 
     fn setup() -> (StarknetState, ContractAddress) {

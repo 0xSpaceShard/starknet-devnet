@@ -17,7 +17,7 @@ pub trait RpcHandler: Clone + Send + Sync + 'static {
     type Request: DeserializeOwned + Send + Sync + fmt::Debug;
 
     /// Invoked when the request was received
-    async fn on_request(&self, request: Self::Request) -> ResponseResult;
+    async fn on_request(&mut self, request: Self::Request) -> ResponseResult;
 
     /// Invoked for every incoming `RpcMethodCall`
     ///
@@ -27,7 +27,7 @@ pub trait RpcHandler: Clone + Send + Sync + 'static {
     ///
     /// **Note**: override this function if the expected `Request` deviates from `{ "method" :
     /// "<name>", "params": "<params>" }`
-    async fn on_call(&self, call: RpcMethodCall) -> RpcResponse {
+    async fn on_call(&mut self, call: RpcMethodCall) -> RpcResponse {
         trace!(target: "rpc",  id = ?call.id , method = ?call.method, "received method call");
         let RpcMethodCall { method, params, id, .. } = call;
 
@@ -103,7 +103,7 @@ pub async fn handle_request<THandler: RpcHandler>(
 /// handle a single RPC method call
 async fn handle_call<THandler: RpcHandler>(
     call: RpcCall,
-    handler: THandler,
+    mut handler: THandler,
 ) -> Option<RpcResponse> {
     match call {
         RpcCall::MethodCall(call) => {

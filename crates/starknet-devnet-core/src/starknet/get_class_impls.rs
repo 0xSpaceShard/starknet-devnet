@@ -32,7 +32,7 @@ pub fn get_class_impl(
 ) -> DevnetResult<ContractClass> {
     let state = starknet.get_mut_state_at(&block_id)?;
     state
-        .get_rpc_contract_class(&class_hash.into())
+        .get_rpc_contract_class(&class_hash)
         .cloned()
         .ok_or(Error::StateError(StateError::NoneClassHash(class_hash)))
 }

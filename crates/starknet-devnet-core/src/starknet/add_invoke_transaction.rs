@@ -383,7 +383,7 @@ mod tests {
         assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Reverted);
 
-        let nonce_after_reverted = starknet.state.get_nonce_at(account_address.into()).unwrap();
+        let nonce_after_reverted = starknet.state.get_nonce_at(account_address).unwrap();
         assert_eq!(nonce_after_reverted, Nonce(StarkFelt::ONE));
     }
 
