@@ -223,6 +223,7 @@ impl CustomState for StarknetState {
 impl Clone for StarknetState {
     fn clone(&self) -> Self {
         Self {
+            // TODO perhaps different global
             state: CachedState::new(self.state.state.clone(), Default::default()),
             rpc_contract_classes: self.rpc_contract_classes.clone(),
         }

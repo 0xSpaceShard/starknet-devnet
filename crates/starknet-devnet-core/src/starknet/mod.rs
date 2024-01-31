@@ -521,6 +521,7 @@ impl Starknet {
         calldata: Vec<Felt>,
     ) -> DevnetResult<Vec<Felt>> {
         let block_context = self.block_context.clone();
+        // TODO perhaps clone sooner than L553 - self might not need to be mutable (mut self)
         let state = self.get_mut_state_at(&block_id)?;
 
         state.assert_contract_deployed(ContractAddress::new(contract_address)?)?;
