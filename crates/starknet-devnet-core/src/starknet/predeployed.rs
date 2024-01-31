@@ -4,7 +4,8 @@ use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::felt::Felt;
 
 use crate::constants::{
-    CHARGEABLE_ACCOUNT_ADDRESS, UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH, UDC_CONTRACT_PATH,
+    CAIRO_1_ERC20_CONTRACT_CLASS_HASH, CAIRO_1_ERC20_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS,
+    UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH, UDC_CONTRACT_PATH,
 };
 use crate::error::{DevnetResult, Error};
 use crate::state::StarknetState;
@@ -12,16 +13,16 @@ use crate::system_contract::SystemContract;
 use crate::traits::StateChanger;
 use crate::utils::get_storage_var_address;
 
-pub(crate) fn create_erc20_at_address(
-    contract_address: &str,
-    path: &str,
-    hash: &str,
-) -> DevnetResult<SystemContract> {
-    let erc20_contract_class_json_str = std::fs::read_to_string(path)
-        .map_err(|err| Error::ReadFileError { source: err, path: path.to_string() })?;
-    let erc20_fee_contract =
-        SystemContract::new_cairo1(hash, contract_address, &erc20_contract_class_json_str)?;
-
+pub(crate) fn create_erc20_at_address(contract_address: &str) -> DevnetResult<SystemContract> {
+    let erc20_contract_class_json_str =
+        std::fs::read_to_string(CAIRO_1_ERC20_CONTRACT_PATH).map_err(|err| {
+            Error::ReadFileError { source: err, path: CAIRO_1_ERC20_CONTRACT_PATH.to_string() }
+        })?;
+    let erc20_fee_contract = SystemContract::new_cairo1(
+        CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
+        contract_address,
+        &erc20_contract_class_json_str,
+    )?;
     Ok(erc20_fee_contract)
 }
 

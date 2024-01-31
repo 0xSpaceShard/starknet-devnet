@@ -57,8 +57,7 @@ mod tests {
 
     use crate::account::Account;
     use crate::constants::{
-        self, CAIRO_1_ERC20_CONTRACT_CLASS_HASH, CAIRO_1_ERC20_CONTRACT_PATH,
-        DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
+        self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     };
     use crate::starknet::{predeployed, Starknet};
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut, StateChanger};
@@ -181,20 +180,12 @@ mod tests {
         let mut starknet = Starknet::default();
 
         // deploy erc20 contract
-        let eth_erc_20_contract = predeployed::create_erc20_at_address(
-            ETH_ERC20_CONTRACT_ADDRESS,
-            CAIRO_1_ERC20_CONTRACT_PATH,
-            CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
-        )
-        .unwrap();
+        let eth_erc_20_contract =
+            predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS).unwrap();
         eth_erc_20_contract.deploy(&mut starknet.state).unwrap();
 
-        let strk_erc_20_contract = predeployed::create_erc20_at_address(
-            STRK_ERC20_CONTRACT_ADDRESS,
-            CAIRO_1_ERC20_CONTRACT_PATH,
-            CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
-        )
-        .unwrap();
+        let strk_erc_20_contract =
+            predeployed::create_erc20_at_address(STRK_ERC20_CONTRACT_ADDRESS).unwrap();
         strk_erc_20_contract.deploy(&mut starknet.state).unwrap();
 
         // deploy account contract
