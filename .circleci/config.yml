@@ -132,16 +132,16 @@ jobs:
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
 workflows:
-  main:
-    jobs:
-      - build-and-test:
-          cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-v1
-      - image-build-amd:
-          <<: *on_main
-      - image-build-arm:
-          <<: *on_main
-      - tag-and-create-joint-image-manifest:
-          <<: *on_test_branch_after_build
+  # main:
+  #   jobs:
+  #     - build-and-test:
+  #         cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-v1
+  #     - image-build-amd:
+  #         <<: *on_main
+  #     - image-build-arm:
+  #         <<: *on_main
+  #     - tag-and-create-joint-image-manifest:
+  #         <<: *on_test_branch_after_build
   test-push:
     jobs:
       - image-build-amd:
