@@ -5,6 +5,10 @@ echo "Creating a joint docker manifest for each pair of -arm and -amd images."
 
 IMAGE=shardlabs/starknet-devnet-rs
 
+if [ ! -z $IMAGE_NAME]; then
+    IMAGE=$IMAGE_NAME
+fi
+
 docker login --username "$DOCKER_USER" --password "$DOCKER_PASS"
 
 # TODO

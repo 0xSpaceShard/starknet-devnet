@@ -8,6 +8,10 @@ set -eu
 
 IMAGE=shardlabs/starknet-devnet-rs
 
+if [ ! -z $IMAGE_NAME]; then
+    IMAGE=$IMAGE_NAME
+fi
+
 function validate_and_push() {
     local tagged_image="$IMAGE:$1"
 
