@@ -7,12 +7,12 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Felt};
 
-use self::dict_state_reader::DictStateReader;
 use self::state_diff::StateDiff;
+use self::state_readers::DictStateReader;
 use crate::error::{DevnetResult, Error};
 
-mod dict_state_reader;
 pub(crate) mod state_diff;
+mod state_readers;
 pub mod state_update;
 
 pub trait CustomStateReader {
@@ -216,14 +216,13 @@ impl CustomState for StarknetState {
         class_hash: ClassHash,
     ) -> DevnetResult<()> {
         let api_address = contract_address.try_into().unwrap();
-        State::set_class_hash_at(self, api_address, class_hash.into()).map_err(|e| e.into())
+        self.set_class_hash_at(api_address, class_hash.into()).map_err(|e| e.into())
     }
 }
 
 impl Clone for StarknetState {
     fn clone(&self) -> Self {
         Self {
-            // TODO perhaps different global
             state: CachedState::new(self.state.state.clone(), Default::default()),
             rpc_contract_classes: self.rpc_contract_classes.clone(),
         }
