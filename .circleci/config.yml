@@ -9,6 +9,19 @@ aliases:
       branches:
         only:
           - main
+  
+  - &on_test_branch
+    context: spaceshard
+    filters:
+      branches:
+        only:
+          - publish_as_crate
+  
+  - &on_test_branch_after_build
+    <<: *on_test_branch
+    requires:
+      - image-build-amd
+      - image-build-arm
 
   - &on_main_after_test_and_build
     <<: *on_main
@@ -83,6 +96,7 @@ jobs:
           environment:
             ARCH_SUFFIX: "-amd"
             REMOTE: true
+            IMAGE_NAME: "starknet-devnet-rs-test"
 
   image-build-arm:
     machine:
@@ -96,18 +110,24 @@ jobs:
           environment:
             ARCH_SUFFIX: -arm
             REMOTE: ""
+            IMAGE_NAME: "starknet-devnet-rs-test"
 
-  create-joint-image-manifest:
+  tag-and-create-joint-image-manifest:
     docker:
-      - image: cimg/base:2021.04
+      - image: cimg/rust:1.70.0
     resource_class: medium
     steps:
       - checkout
       - setup_remote_docker:
           version: docker23
       - run:
+          name: Publish new versions to crates.io
+          command: ./scripts/publish_cratesio_new_versions.sh
+      - run:
           name: Create and push joint image manifest
           command: ./docker/create_joint_image_manifest.sh
+          environment:
+            IMAGE_NAME: "starknet-devnet-rs-test"
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
@@ -120,5 +140,13 @@ workflows:
           <<: *on_main
       - image-build-arm:
           <<: *on_main
-      - create-joint-image-manifest:
-          <<: *on_main_after_test_and_build
+      - tag-and-create-joint-image-manifest:
+          <<: *on_test_branch_after_build
+  test-push:
+    jobs:
+      - image-build-amd:
+          <<: *on_test_branch
+      - image-build-arm:
+          <<: *on_test_branch
+      - tag-and-create-joint-image-manifest:
+          <<: *on_test_branch_after_build
