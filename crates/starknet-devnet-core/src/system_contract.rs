@@ -14,7 +14,7 @@ pub(crate) struct SystemContract {
 }
 
 impl SystemContract {
-    pub(crate) fn new(
+    pub(crate) fn new_cairo0(
         class_hash: &str,
         address: &str,
         contract_class_json_str: &str,
@@ -23,6 +23,19 @@ impl SystemContract {
             class_hash: Felt::from_prefixed_hex_str(class_hash)?,
             address: ContractAddress::new(Felt::from_prefixed_hex_str(address)?)?,
             contract_class: Cairo0Json::raw_json_from_json_str(contract_class_json_str)?.into(),
+        })
+    }
+
+    pub(crate) fn new_cairo1(
+        class_hash: &str,
+        address: &str,
+        contract_class_json_str: &str,
+    ) -> DevnetResult<Self> {
+        Ok(Self {
+            class_hash: Felt::from_prefixed_hex_str(class_hash)?,
+            address: ContractAddress::new(Felt::from_prefixed_hex_str(address)?)?,
+            contract_class: ContractClass::cairo_1_from_sierra_json_str(contract_class_json_str)?
+                .into(),
         })
     }
 }
@@ -57,27 +70,28 @@ impl Accounted for SystemContract {
 
 #[cfg(test)]
 mod tests {
-    use starknet_types::contract_class::Cairo0Json;
+    use starknet_types::contract_class::ContractClass;
 
     use super::SystemContract;
     use crate::constants::{
-        ERC20_CONTRACT_CLASS_HASH, ERC20_CONTRACT_PATH, ETH_ERC20_CONTRACT_ADDRESS,
+        CAIRO_1_ERC20_CONTRACT_CLASS_HASH, CAIRO_1_ERC20_CONTRACT_PATH, ETH_ERC20_CONTRACT_ADDRESS,
     };
     use crate::state::StarknetState;
     use crate::traits::Deployed;
+
     #[test]
     fn load_erc20_contract() {
-        let json_str = std::fs::read_to_string(ERC20_CONTRACT_PATH).unwrap();
-        assert!(Cairo0Json::raw_json_from_json_str(&json_str).is_ok());
+        let json_str = std::fs::read_to_string(CAIRO_1_ERC20_CONTRACT_PATH).unwrap();
+        assert!(ContractClass::cairo_1_from_sierra_json_str(&json_str).is_ok());
     }
 
     #[test]
     fn system_account_deployed_successfully() {
         let mut state = StarknetState::default();
-        let sys_contract = SystemContract::new(
-            ERC20_CONTRACT_CLASS_HASH,
+        let sys_contract = SystemContract::new_cairo1(
+            CAIRO_1_ERC20_CONTRACT_CLASS_HASH,
             ETH_ERC20_CONTRACT_ADDRESS,
-            std::fs::read_to_string(ERC20_CONTRACT_PATH).unwrap().as_str(),
+            std::fs::read_to_string(CAIRO_1_ERC20_CONTRACT_PATH).unwrap().as_str(),
         )
         .unwrap();
 

@@ -169,15 +169,14 @@ impl Accounted for Account {
 
 #[cfg(test)]
 mod tests {
-    use blockifier::state::state_api::State;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
 
     use super::Account;
     use crate::account::FeeToken;
-    use crate::constants::ERC20_CONTRACT_CLASS_HASH;
-    use crate::state::StarknetState;
+    use crate::constants::CAIRO_1_ERC20_CONTRACT_CLASS_HASH;
+    use crate::state::{CustomState, StarknetState};
     use crate::traits::{Accounted, Deployed};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::get_storage_var_address;
@@ -306,9 +305,9 @@ mod tests {
 
         // deploy the erc20 contract
         state
-            .set_class_hash_at(
-                fee_token_address.try_into().unwrap(),
-                Felt::from_prefixed_hex_str(ERC20_CONTRACT_CLASS_HASH).unwrap().into(),
+            .deploy_contract(
+                fee_token_address,
+                Felt::from_prefixed_hex_str(CAIRO_1_ERC20_CONTRACT_CLASS_HASH).unwrap(),
             )
             .unwrap();
 
