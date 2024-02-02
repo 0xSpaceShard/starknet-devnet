@@ -229,7 +229,7 @@ impl JsonRpcHandler {
 
     /// starknet_call
     pub async fn call(&self, block_id: BlockId, request: FunctionCall) -> StrictRpcResult {
-        let mut starknet = self.api.starknet.write().await;
+        let starknet = self.api.starknet.read().await;
 
         match starknet.call(
             block_id.into(),

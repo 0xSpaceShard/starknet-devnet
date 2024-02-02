@@ -514,15 +514,14 @@ impl Starknet {
     }
 
     pub fn call(
-        &mut self,
+        &self,
         block_id: BlockId,
         contract_address: Felt,
         entrypoint_selector: Felt,
         calldata: Vec<Felt>,
     ) -> DevnetResult<Vec<Felt>> {
         let block_context = self.block_context.clone();
-        // TODO perhaps clone sooner than L553 - self might not need to be mutable (mut self)
-        let state = self.get_mut_state_at(&block_id)?;
+        let mut state = self.get_state_at(&block_id)?.clone();
 
         state.assert_contract_deployed(ContractAddress::new(contract_address)?)?;
 
@@ -551,7 +550,7 @@ impl Starknet {
                 true,
             )?;
         let res = call
-            .execute(&mut state.clone(), &mut execution_resources, &mut execution_context)
+            .execute(&mut state, &mut execution_resources, &mut execution_context)
             .map_err(|err| {
                 Error::BlockifierTransactionError(blockifier::transaction::errors::TransactionExecutionError::EntryPointExecutionError(err))
             })?;
@@ -1274,7 +1273,7 @@ mod tests {
     #[test]
     fn calling_method_of_undeployed_contract() {
         let config = StarknetConfig::default();
-        let mut starknet = Starknet::new(&config).unwrap();
+        let starknet = Starknet::new(&config).unwrap();
 
         let undeployed_address_hex = "0x1234";
         let undeployed_address = Felt::from_prefixed_hex_str(undeployed_address_hex).unwrap();
@@ -1295,7 +1294,7 @@ mod tests {
     #[test]
     fn calling_nonexistent_contract_method() {
         let config = StarknetConfig::default();
-        let mut starknet = Starknet::new(&config).unwrap();
+        let starknet = Starknet::new(&config).unwrap();
 
         let predeployed_account = &starknet.predeployed_accounts.get_accounts()[0];
         let entry_point_selector =
@@ -1320,7 +1319,7 @@ mod tests {
 
     /// utility method for happy path balance retrieval
     fn get_balance_at(
-        starknet: &mut Starknet,
+        starknet: &Starknet,
         contract_address: ContractAddress,
     ) -> DevnetResult<Vec<Felt>> {
         let entry_point_selector =
@@ -1336,10 +1335,10 @@ mod tests {
     #[test]
     fn getting_balance_of_predeployed_contract() {
         let config = StarknetConfig::default();
-        let mut starknet = Starknet::new(&config).unwrap();
+        let starknet = Starknet::new(&config).unwrap();
 
         let predeployed_account = &starknet.predeployed_accounts.get_accounts()[0].clone();
-        let result = get_balance_at(&mut starknet, predeployed_account.account_address).unwrap();
+        let result = get_balance_at(&starknet, predeployed_account.account_address).unwrap();
 
         let balance_hex = format!("0x{:x}", DEVNET_DEFAULT_INITIAL_BALANCE);
         let balance_felt = Felt::from_prefixed_hex_str(balance_hex.as_str()).unwrap();
@@ -1350,11 +1349,11 @@ mod tests {
     #[test]
     fn getting_balance_of_undeployed_contract() {
         let config = StarknetConfig::default();
-        let mut starknet = Starknet::new(&config).unwrap();
+        let starknet = Starknet::new(&config).unwrap();
 
         let undeployed_address =
             ContractAddress::new(Felt::from_prefixed_hex_str("0x1234").unwrap()).unwrap();
-        let result = get_balance_at(&mut starknet, undeployed_address).unwrap();
+        let result = get_balance_at(&starknet, undeployed_address).unwrap();
 
         let zero = Felt::from_prefixed_hex_str("0x0").unwrap();
         let expected_balance_uint256 = vec![zero, zero];
