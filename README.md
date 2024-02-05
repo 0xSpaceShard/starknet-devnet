@@ -29,7 +29,7 @@ This repository is work in progress, please be patient. Please check below the s
 
 ### TODO to reach feature parity with the Pythonic Devnet
 
-- [ ] Availability as a package (crate)
+- [x] Availability as a package (crate)
 - [ ] [Forking](https://0xspaceshard.github.io/starknet-devnet/docs/guide/fork)
 - [x] [L1-L2 Postman integration](https://0xspaceshard.github.io/starknet-devnet/docs/guide/postman)
 - [ ] [Block manipulation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/blocks)
@@ -57,9 +57,16 @@ $ cargo run --release
 
 ## Run as a binary
 
-Installing and running as a binary is achievable via `cargo install`, but until Devnet is released as a crate, it comes with some caveats. You need to:
+Installing and running as a binary is achievable via `cargo install`. The project can be installed from crates.io and github.com.
 
-- Populate your environment with the variables defined in [the config file](/.cargo/config.toml)
+### Installing from crates.io
+
+```
+$ cargo install starknet-devnet
+```
+
+### Installing from github
+
 - Use the `--locked` flag to ensure using the dependencies listed in [the lock file](/Cargo.lock)
 - Preferrably familiarize yourself with the `cargo install` command ([docs](https://doc.rust-lang.org/cargo/commands/cargo-install.html#dealing-with-the-lockfile))
 
@@ -86,6 +93,13 @@ $ docker run -p [HOST:]<PORT>:5050 shardlabs/starknet-devnet-rs [OPTIONS]
 ```
 
 ### Docker image tags
+
+All of the versions published on crates.io for starknet-devnet are available as docker images, which can be used via:
+NOTE! The latest docker image tag corresponds to the last published version in crates.io
+
+```
+$ docker pull shardlabs/starknet-devnet-rs:<CRATES_IO_VERSION>
+```
 
 Commits to the `main` branch of this repository are mostly available as images tagged with their commit hash (the full 40-lowercase-hex-digits SHA1 digest):
 
