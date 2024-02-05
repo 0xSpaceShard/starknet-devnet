@@ -1,2 +1,5 @@
-cargo +nightly fmt --all
+#!/bin/bash
 
+set -eu
+
+cargo +nightly fmt --all

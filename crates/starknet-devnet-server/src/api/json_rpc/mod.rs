@@ -1,6 +1,6 @@
 mod endpoints;
 pub mod error;
-mod models;
+pub mod models;
 #[cfg(test)]
 mod spec_reader;
 mod write_endpoints;

@@ -370,14 +370,8 @@ impl Starknet {
     ) -> DevnetResult<()> {
         let state_diff = self.state.extract_state_diff_from_pending_state()?;
 
-        let address_to_class_hash = &self.state.state.state.address_to_class_hash;
-
-        let trace = Self::create_trace(
-            transaction.get_type(),
-            &tx_info,
-            state_diff.clone().into(),
-            address_to_class_hash,
-        )?;
+        let trace =
+            self.create_trace(transaction.get_type(), &tx_info, state_diff.clone().into())?;
         let transaction_to_add = StarknetTransaction::create_accepted(transaction, tx_info, trace);
 
         // add accepted transaction to pending block
@@ -808,14 +802,14 @@ impl Starknet {
     }
 
     fn get_execute_call_info(
+        &mut self,
         execution_info: &TransactionExecutionInfo,
-        address_to_class_hash_map: &HashMap<ContractAddress, ClassHash>,
     ) -> DevnetResult<ExecutionInvocation> {
         Ok(match &execution_info.execute_call_info {
             Some(call_info) => match call_info.execution.failed {
                 false => ExecutionInvocation::Succeeded(FunctionInvocation::try_from_call_info(
                     call_info,
-                    address_to_class_hash_map,
+                    &mut self.state.state,
                 )?),
                 true => {
                     ExecutionInvocation::Reverted(starknet_types::rpc::transactions::Reversion {
@@ -842,21 +836,17 @@ impl Starknet {
     }
 
     pub(crate) fn create_trace(
+        &mut self,
         tx_type: TransactionType,
         execution_info: &TransactionExecutionInfo,
         state_diff: ThinStateDiff,
-        address_to_class_hash: &HashMap<ContractAddress, ClassHash>,
     ) -> DevnetResult<TransactionTrace> {
         let state_diff = Some(state_diff);
-        let validate_invocation = Self::get_call_info_invocation(
-            &execution_info.validate_call_info,
-            address_to_class_hash,
-        )?;
+        let validate_invocation =
+            self.get_call_info_invocation(&execution_info.validate_call_info)?;
 
-        let fee_transfer_invocation = Self::get_call_info_invocation(
-            &execution_info.fee_transfer_call_info,
-            address_to_class_hash,
-        )?;
+        let fee_transfer_invocation =
+            self.get_call_info_invocation(&execution_info.fee_transfer_call_info)?;
 
         match tx_type {
             TransactionType::Declare => Ok(TransactionTrace::Declare(DeclareTransactionTrace {
@@ -867,28 +857,20 @@ impl Starknet {
             TransactionType::DeployAccount => {
                 Ok(TransactionTrace::DeployAccount(DeployAccountTransactionTrace {
                     validate_invocation,
-                    constructor_invocation: Self::get_call_info_invocation(
-                        &execution_info.execute_call_info,
-                        address_to_class_hash,
-                    )?,
+                    constructor_invocation: self
+                        .get_call_info_invocation(&execution_info.execute_call_info)?,
                     fee_transfer_invocation,
                     state_diff,
                 }))
             }
             TransactionType::Invoke => Ok(TransactionTrace::Invoke(InvokeTransactionTrace {
                 validate_invocation,
-                execute_invocation: Self::get_execute_call_info(
-                    execution_info,
-                    address_to_class_hash,
-                )?,
+                execute_invocation: self.get_execute_call_info(execution_info)?,
                 fee_transfer_invocation,
                 state_diff,
             })),
             TransactionType::L1Handler => {
-                match Self::get_call_info_invocation(
-                    &execution_info.execute_call_info,
-                    address_to_class_hash,
-                )? {
+                match self.get_call_info_invocation(&execution_info.execute_call_info)? {
                     Some(function_invocation) => {
                         Ok(TransactionTrace::L1Handler(L1HandlerTransactionTrace {
                             function_invocation,
@@ -903,11 +885,11 @@ impl Starknet {
     }
 
     fn get_call_info_invocation(
+        &mut self,
         call_info_invocation: &Option<CallInfo>,
-        address_to_class_hash_map: &HashMap<ContractAddress, ClassHash>,
     ) -> DevnetResult<Option<FunctionInvocation>> {
         Ok(if let Some(call_info) = call_info_invocation {
-            Some(FunctionInvocation::try_from_call_info(call_info, address_to_class_hash_map)?)
+            Some(FunctionInvocation::try_from_call_info(call_info, &mut self.state.state)?)
         } else {
             None
         })
@@ -952,7 +934,7 @@ impl Starknet {
     }
 
     pub fn simulate_transactions(
-        &self,
+        &mut self,
         block_id: BlockId,
         transactions: &[BroadcastedTransaction],
         simulation_flags: Vec<SimulationFlag>,
@@ -984,53 +966,11 @@ impl Starknet {
             )?;
 
             let state_diff: ThinStateDiff = state.extract_state_diff_from_pending_state()?.into();
-            let state_diff =
-                if state_diff == ThinStateDiff::default() { None } else { Some(state_diff) };
-
-            let address_to_class_hash_map = &state.state.state.address_to_class_hash;
-
-            let validate_invocation = Self::get_call_info_invocation(
-                &tx_execution_info.validate_call_info,
-                address_to_class_hash_map,
+            let trace = self.create_trace(
+                broadcasted_transaction.get_type(),
+                &tx_execution_info,
+                state_diff,
             )?;
-
-            let fee_transfer_invocation = Self::get_call_info_invocation(
-                &tx_execution_info.fee_transfer_call_info,
-                address_to_class_hash_map,
-            )?;
-
-            let trace = match broadcasted_transaction {
-                BroadcastedTransaction::Declare(_) => {
-                    TransactionTrace::Declare(DeclareTransactionTrace {
-                        validate_invocation,
-                        fee_transfer_invocation,
-                        state_diff,
-                    })
-                }
-                BroadcastedTransaction::DeployAccount(_) => {
-                    TransactionTrace::DeployAccount(DeployAccountTransactionTrace {
-                        validate_invocation,
-                        constructor_invocation: Self::get_call_info_invocation(
-                            &tx_execution_info.execute_call_info,
-                            address_to_class_hash_map,
-                        )?,
-                        fee_transfer_invocation,
-                        state_diff,
-                    })
-                }
-                BroadcastedTransaction::Invoke(_) => {
-                    TransactionTrace::Invoke(InvokeTransactionTrace {
-                        fee_transfer_invocation,
-                        validate_invocation,
-                        state_diff,
-                        execute_invocation: Self::get_execute_call_info(
-                            &tx_execution_info,
-                            address_to_class_hash_map,
-                        )?,
-                    })
-                }
-            };
-
             transactions_traces.push(trace);
         }
 
