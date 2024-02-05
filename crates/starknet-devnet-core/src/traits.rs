@@ -5,7 +5,7 @@ use starknet_types::felt::{Balance, ClassHash};
 
 use crate::account::FeeToken;
 use crate::error::DevnetResult;
-use crate::state::{CustomState, StarknetState};
+use crate::state::{CustomState, CustomStateReader, StarknetState};
 
 /// This trait should be implemented by structures that internally have collections and each element
 /// could be found by a hash
@@ -26,13 +26,14 @@ pub trait HashIdentifiedMut {
 pub(crate) trait Deployed {
     fn deploy(&self, state: &mut StarknetState) -> DevnetResult<()>;
     fn get_address(&self) -> ContractAddress;
+    /// `class_hash` is sierra hash for cairo1 contracts
     fn declare_if_undeclared(
         &self,
         state: &mut StarknetState,
         class_hash: ClassHash,
         contract_class: &ContractClass,
     ) -> DevnetResult<()> {
-        if state.get_compiled_contract_class(&class_hash.into()).is_err() {
+        if !state.is_contract_declared(class_hash) {
             state.declare_contract_class(class_hash, contract_class.clone())?;
         }
 

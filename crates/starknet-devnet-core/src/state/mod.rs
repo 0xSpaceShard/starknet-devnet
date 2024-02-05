@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::{State, StateReader};
+use starknet_api::core::CompiledClassHash;
 use starknet_api::hash::StarkFelt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
@@ -177,7 +178,8 @@ impl CustomStateReader for StarknetState {
     }
 
     fn is_contract_declared(&mut self, class_hash: ClassHash) -> bool {
-        self.get_compiled_class_hash(class_hash.into()).is_ok()
+        self.get_compiled_class_hash(class_hash.into())
+            .is_ok_and(|CompiledClassHash(class_hash)| class_hash != StarkFelt::ZERO)
             || self.get_compiled_contract_class(&class_hash.into()).is_ok()
     }
 
