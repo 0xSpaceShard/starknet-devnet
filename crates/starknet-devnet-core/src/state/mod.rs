@@ -206,7 +206,6 @@ impl CustomState for StarknetState {
 
         self.set_contract_class(&compiled_class_hash.into(), compiled_class)?;
         self.rpc_contract_classes.insert(class_hash, contract_class);
-
         Ok(())
     }
 
