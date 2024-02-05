@@ -4,7 +4,7 @@ use starknet_types::contract_class::{Cairo0Json, ContractClass};
 use starknet_types::felt::{Balance, ClassHash, Felt};
 
 use crate::error::DevnetResult;
-use crate::state::StarknetState;
+use crate::state::{CustomState, StarknetState};
 use crate::traits::{Accounted, Deployed};
 
 pub(crate) struct SystemContract {
@@ -43,9 +43,7 @@ impl SystemContract {
 impl Deployed for SystemContract {
     fn deploy(&self, state: &mut StarknetState) -> DevnetResult<()> {
         self.declare_if_undeclared(state, self.class_hash, &self.contract_class)?;
-
-        state.set_class_hash_at(self.address.try_into()?, self.class_hash.into())?;
-
+        state.deploy_contract(self.address, self.class_hash)?;
         Ok(())
     }
 

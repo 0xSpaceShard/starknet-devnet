@@ -18,7 +18,7 @@ use crate::constants::{
     CHARGEABLE_ACCOUNT_PUBLIC_KEY,
 };
 use crate::error::DevnetResult;
-use crate::state::StarknetState;
+use crate::state::{CustomState, StarknetState};
 use crate::traits::{Accounted, Deployed};
 use crate::utils::get_storage_var_address;
 
@@ -119,8 +119,7 @@ impl Deployed for Account {
     fn deploy(&self, state: &mut StarknetState) -> DevnetResult<()> {
         self.declare_if_undeclared(state, self.class_hash, &self.contract_class)?;
 
-        // deploy
-        state.set_class_hash_at(self.account_address.try_into()?, self.class_hash.into())?;
+        state.deploy_contract(self.account_address, self.class_hash)?;
 
         // set public key
         let public_key_storage_var = get_storage_var_address("Account_public_key", &[])?;
