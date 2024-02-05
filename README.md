@@ -95,11 +95,11 @@ $ docker run -p [HOST:]<PORT>:5050 shardlabs/starknet-devnet-rs [OPTIONS]
 ### Docker image tags
 
 All of the versions published on crates.io for starknet-devnet are available as docker images, which can be used via:
-NOTE! The latest docker image tag corresponds to the last published version in crates.io
 
 ```
 $ docker pull shardlabs/starknet-devnet-rs:<CRATES_IO_VERSION>
 ```
+NOTE! The latest docker image tag corresponds to the last published version in crates.io
 
 Commits to the `main` branch of this repository are mostly available as images tagged with their commit hash (the full 40-lowercase-hex-digits SHA1 digest):
 
