@@ -216,8 +216,13 @@ impl CustomState for StarknetState {
         contract_address: ContractAddress,
         class_hash: ClassHash,
     ) -> DevnetResult<()> {
-        let api_address = contract_address.try_into().unwrap();
-        self.set_class_hash_at(api_address, class_hash.into()).map_err(|e| e.into())
+        let api_address = contract_address.try_into().unwrap(); // TODO
+        let api_hash = class_hash.into();
+        let compiled_class_hash = match self.get_compiled_class_hash(api_hash)? {
+            CompiledClassHash(hash) if hash == StarkFelt::ZERO => api_hash,
+            CompiledClassHash(casm_hash) => starknet_api::core::ClassHash(casm_hash),
+        };
+        self.set_class_hash_at(api_address, compiled_class_hash).map_err(|e| e.into())
     }
 }
 
