@@ -6,6 +6,8 @@ cargo install cargo-get
 workspace_members=$(cargo get --delimiter ";" workspace.members)
 current_dir="$(pwd)"
 
+cargo login $CRATES_IO_API_KEY
+
 IFS=';' read -a array <<< "$workspace_members"
 
 for workspace_member in "${array[@]}" 
