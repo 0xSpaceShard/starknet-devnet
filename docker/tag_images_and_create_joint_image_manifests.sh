@@ -9,24 +9,7 @@ echo "Logging in to docker hub";
 docker login --username "$DOCKER_USER" --password "$DOCKER_PASS"
 
 # Get the version of the binary crate
-workspace_members=$(cargo get --delimiter ";" workspace.members)
-current_dir="$(pwd)"
-
-IFS=';' read -a array <<< "$workspace_members"
-
-bin_crate_version="";
-
-for workspace_member in "${array[@]}" 
-do
-    crate_dir="$current_dir/$workspace_member";
-
-    # Check if the Cargo.toml file contains a [[bin]] section
-    if grep -q '\[\[bin\]\]' "$crate_dir/Cargo.toml"; then
-        echo "The Cargo.toml file in $crate_dir contains a [[bin]] section"
-        bin_crate_version=$(cargo get --entry $crate_dir package.version)
-        break
-    fi
-done
+bin_crate_version=$(cargo get --entry crates/starknet-devnet package.version);
 
 function image_exists() {
     docker manifest inspect $1 > /dev/null 2>&1

@@ -4,7 +4,6 @@ set -eu
 
 cargo install cargo-get
 workspace_members=$(cargo get --delimiter ";" workspace.members)
-current_dir="$(pwd)"
 
 cargo login $CRATES_IO_API_KEY
 
@@ -12,7 +11,7 @@ IFS=';' read -a array <<< "$workspace_members"
 
 for workspace_member in "${array[@]}"
 do
-    crate_dir="$current_dir/$workspace_member";
+    crate_dir="crates/$workspace_member";
 
     package_name=$(cargo get --entry $crate_dir package.name)
     package_version=$(cargo get --entry $crate_dir package.version)
