@@ -10,7 +10,7 @@ cargo login $CRATES_IO_API_KEY
 
 IFS=';' read -a array <<< "$workspace_members"
 
-for workspace_member in "${array[@]}" 
+for workspace_member in "${array[@]}"
 do
     crate_dir="$current_dir/$workspace_member";
 
