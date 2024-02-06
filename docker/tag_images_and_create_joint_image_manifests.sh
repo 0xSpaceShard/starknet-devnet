@@ -52,9 +52,6 @@ function create_and_push_manifest() {
 
 echo "Creating a joint docker manifest for each pair of -arm and -amd images."
 
-# TODO
-echo "Temporarily pushing tag latest. Once semver is established for this project, this should be done conditionally (if version incremented), as with devnet-py"
-
 # construct the image tag from the version
 # check if the image tag exists in docker registry
 # If it does, do not publish the version
@@ -95,5 +92,3 @@ for seed_suffix in "" "-seed0"; do
         echo "manifest: ($image_manifest_with_version) exists"
     fi
 done
-
-echo "DONE"
