@@ -294,7 +294,7 @@ impl Starknet {
         match transaction_result {
             Ok(tx_info) => {
                 // If transaction is not reverted
-                // then save the contract class in the state cache for Declare V1/V2 transactions
+                // then save the contract class in the state cache for Declare transactions
                 if !tx_info.is_reverted() {
                     match &transaction {
                         Transaction::Declare(DeclareTransaction::Version1(declare_v1)) => {
