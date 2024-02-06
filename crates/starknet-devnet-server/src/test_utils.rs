@@ -1,4 +1,3 @@
-#[cfg(any(test, feature = "test_utils"))]
 pub mod exported_test_utils {
     pub const EXPECTED_SPEC_VERSION: &str = "0.6.0";
 

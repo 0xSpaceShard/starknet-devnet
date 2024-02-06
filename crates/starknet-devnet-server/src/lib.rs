@@ -4,7 +4,7 @@ mod config;
 /// handlers for axum server
 pub mod rpc_handler;
 pub mod server;
-#[cfg(feature = "test_utils")]
+#[cfg(any(test, feature = "test_utils"))]
 pub mod test_utils;
 
 pub use config::ServerConfig;
