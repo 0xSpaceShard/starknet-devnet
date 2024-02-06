@@ -200,11 +200,6 @@ mod tests {
         let specs =
             Spec::load_from_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/spec/0.6.0"));
         let combined_schema = generate_combined_schema(&specs);
-        let expected_failed_method_responses = vec![
-            "starknet_getTransactionByHash",
-            "starknet_getBlockWithTxs",
-            "starknet_getTransactionByBlockIdAndIndex",
-        ];
 
         for _ in 0..1000 {
             for spec in specs.iter() {
@@ -231,16 +226,12 @@ mod tests {
                     let sn_response = serde_json::from_value::<StarknetResponse>(response.clone());
 
                     if sn_response.is_err() {
-                        if expected_failed_method_responses.contains(&method.name.as_str()) {
-                            continue;
-                        } else {
-                            serde_json::to_writer_pretty(
-                                File::create("failed_response.json").unwrap(),
-                                &response,
-                            )
-                            .unwrap();
-                            panic!("Failed method response: {}", method.name);
-                        }
+                        serde_json::to_writer_pretty(
+                            File::create("failed_response.json").unwrap(),
+                            &response,
+                        )
+                        .unwrap();
+                        panic!("Failed method response: {}", method.name);
                     }
 
                     let sn_response = sn_response.unwrap();
@@ -338,13 +329,5 @@ mod tests {
                 }
             }
         }
-
-        // TODO: there are some failed methods responses deserializations, because
-        // The implemented response variants have more fields than the json created from the
-        // generator Thus they diverge in some way from the spec, issue: https://github.com/0xSpaceShard/starknet-devnet-rs/issues/248
-        println!(
-            "Methods diverging from the spec in some way {:?}",
-            expected_failed_method_responses
-        );
     }
 }
