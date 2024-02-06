@@ -1,4 +1,3 @@
-use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
 
@@ -12,8 +11,6 @@ use crate::felt::{
 pub struct DeclareTransactionV2 {
     pub class_hash: ClassHash,
     pub compiled_class_hash: CompiledClassHash,
-    // TODO: in spec RPC response the contract class is missing
-    pub contract_class: SierraContractClass,
     pub sender_address: ContractAddress,
     pub nonce: Nonce,
     pub max_fee: Fee,
