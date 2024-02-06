@@ -280,16 +280,34 @@ impl Starknet {
     /// # Arguments
     ///
     /// * `transaction` - Transaction to be added in the collection of transactions.
+    /// * `contract_class` - Contract class to be added in the state cache. Only in declare
+    ///   transactions.
     /// * `transaction_result` - Result with transaction_execution_info
     pub(crate) fn handle_transaction_result(
         &mut self,
         transaction: Transaction,
+        contract_class: Option<ContractClass>,
         transaction_result: Result<
             TransactionExecutionInfo,
             blockifier::transaction::errors::TransactionExecutionError,
         >,
     ) -> DevnetResult<()> {
         let transaction_hash = *transaction.get_transaction_hash();
+
+        fn save_contract_class(
+            class_hash: &ClassHash,
+            contract_class: Option<ContractClass>,
+            state: &mut StarknetState,
+        ) -> DevnetResult<()> {
+            state.contract_classes.insert(
+                *class_hash,
+                contract_class.ok_or(Error::UnexpectedInternalError {
+                    msg: "contract class not provided".to_string(),
+                })?,
+            );
+
+            Ok(())
+        }
 
         match transaction_result {
             Ok(tx_info) => {
@@ -298,22 +316,25 @@ impl Starknet {
                 if !tx_info.is_reverted() {
                     match &transaction {
                         Transaction::Declare(DeclareTransaction::Version1(declare_v1)) => {
-                            self.state.contract_classes.insert(
-                                declare_v1.class_hash,
-                                declare_v1.contract_class.clone().into(),
-                            );
+                            save_contract_class(
+                                &declare_v1.class_hash,
+                                contract_class,
+                                &mut self.state,
+                            )?
                         }
                         Transaction::Declare(DeclareTransaction::Version2(declare_v2)) => {
-                            self.state.contract_classes.insert(
-                                declare_v2.class_hash,
-                                declare_v2.contract_class.clone().into(),
-                            );
+                            save_contract_class(
+                                &declare_v2.class_hash,
+                                contract_class,
+                                &mut self.state,
+                            )?
                         }
                         Transaction::Declare(DeclareTransaction::Version3(declare_v3)) => {
-                            self.state.contract_classes.insert(
-                                *declare_v3.get_class_hash(),
-                                declare_v3.get_contract_class().clone().into(),
-                            );
+                            save_contract_class(
+                                &declare_v3.get_class_hash(),
+                                contract_class,
+                                &mut self.state,
+                            )?
                         }
                         _ => {}
                     };
