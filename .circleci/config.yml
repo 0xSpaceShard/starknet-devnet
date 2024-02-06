@@ -108,10 +108,10 @@ jobs:
       - run:
           name: Publish new versions to crates.io
           command: ./scripts/publish_cratesio_new_versions.sh
+
       - run:
           name: Create tags and push joint image manifests
           command: ./docker/tag_images_and_create_joint_image_manifests.sh
-          environment:
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
