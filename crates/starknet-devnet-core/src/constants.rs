@@ -23,7 +23,7 @@ pub const CAIRO_1_ERC20_CONTRACT_PATH: &str =
     concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/ERC20_Mintable_OZ_0.8.0.json");
 
 pub const CAIRO_1_ERC20_CONTRACT_CLASS_HASH: &str =
-    "0x043d77c1d5f6404388bcafb0d3f084fe59c8e52ecd6fd9f3462590fcfc5ef74c";
+    "0x043d77c1d5f6404388bcafb0d3f084fe59c8e52ecd6fd9f3462590fcfc5ef74c"; // TODO starkli returns this value; revert?
 
 pub const CAIRO_0_ERC20_CONTRACT_PATH: &str =
     concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/ERC20_Mintable_OZ_0.2.0.json");

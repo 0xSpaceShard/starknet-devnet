@@ -222,6 +222,7 @@ impl CustomState for StarknetState {
             CompiledClassHash(hash) if hash == StarkFelt::ZERO => api_hash,
             CompiledClassHash(casm_hash) => starknet_api::core::ClassHash(casm_hash),
         };
+        // TODO self.increment_nonce(api_address)?;
         self.set_class_hash_at(api_address, compiled_class_hash).map_err(|e| e.into())
     }
 }

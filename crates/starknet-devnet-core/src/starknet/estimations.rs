@@ -14,14 +14,15 @@ use crate::starknet::Starknet;
 use crate::state::StarknetState;
 
 pub fn estimate_fee(
-    starknet: &Starknet,
+    starknet: &mut Starknet,
     block_id: BlockId,
     transactions: &[BroadcastedTransaction],
     charge_fee: Option<bool>,
     validate: Option<bool>,
 ) -> DevnetResult<Vec<FeeEstimateWrapper>> {
-    let mut state = starknet.get_state_at(&block_id)?.clone();
     let chain_id = starknet.chain_id().to_felt();
+    let block_context = starknet.block_context.clone();
+    let state = starknet.get_mut_state_at(&block_id)?;
 
     let transactions = transactions
         .iter()
@@ -32,8 +33,8 @@ pub fn estimate_fee(
         .into_iter()
         .map(|transaction| {
             estimate_transaction_fee(
-                &mut state,
-                &starknet.block_context,
+                state,
+                &block_context,
                 blockifier::transaction::transaction_execution::Transaction::AccountTransaction(
                     transaction,
                 ),
@@ -50,6 +51,7 @@ pub fn estimate_message_fee(
     message: MsgFromL1,
 ) -> DevnetResult<FeeEstimateWrapper> {
     let estimate_message_fee = EstimateMessageFeeRequestWrapper::new(block_id, message);
+    // TODO shouldn't clone state; probably the input parameter could be CachedState (block_context could be a param)
     let mut state = starknet.get_state_at(estimate_message_fee.get_raw_block_id())?.clone();
 
     match starknet

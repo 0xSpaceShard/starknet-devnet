@@ -563,7 +563,7 @@ impl Starknet {
     }
 
     pub fn estimate_fee(
-        &self,
+        &mut self,
         block_id: BlockId,
         transactions: &[BroadcastedTransaction],
         simulation_flags: &[SimulationFlag],
