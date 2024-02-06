@@ -15,10 +15,10 @@ authors = ["Mario"]
 edition = "2021"
 repository = "https://github.com/0xSpaceShard/starknet-devnet-rs"
 license-file = "LICENSE"
-homepage = "https://0xspaceshard.github.io/starknet-devnet/"
+homepage = "https://github.com/0xSpaceShard/starknet-devnet-rs"
 description = "A local testnet for Starknet"
 readme = "README.md"
-documentation = "https://0xspaceshard.github.io/starknet-devnet/docs/intro"
+documentation = "https://github.com/0xSpaceShard/starknet-devnet-rs"
 
 exclude = [".github/**", ".devcontainer/**", ".circleci/**"]
 
