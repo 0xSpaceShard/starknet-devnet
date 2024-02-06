@@ -331,7 +331,7 @@ impl Starknet {
                         }
                         Transaction::Declare(DeclareTransaction::Version3(declare_v3)) => {
                             save_contract_class(
-                                &declare_v3.get_class_hash(),
+                                declare_v3.get_class_hash(),
                                 contract_class,
                                 &mut self.state,
                             )?
