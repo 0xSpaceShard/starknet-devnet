@@ -97,7 +97,7 @@ jobs:
             ARCH_SUFFIX: -arm
             REMOTE: ""
 
-  tag-and-create-joint-image-manifest:
+  publish:
     docker:
       - image: cimg/rust:1.70.0
     resource_class: medium
@@ -124,5 +124,5 @@ workflows:
           <<: *on_main
       - image-build-arm:
           <<: *on_main
-      - tag-and-create-joint-image-manifest:
+      - publish:
           <<: *on_main_after_test_and_build
