@@ -15,7 +15,7 @@ do
 
     package_name=$(cargo get --entry $crate_dir package.name)
     package_version=$(cargo get --entry $crate_dir package.version)
-    cratesio_version=$(cargo search $package_name --limit 1 | head -n 1 | sed -n 's/'$package_name' = "\([^"]*\)".*/\1/p');
+    cratesio_version=$(cargo search $package_name | sed -n 's/'$package_name' = "\([^"]*\)".*/\1/p');
 
     # if local version is different from crates.io version, then publish
     if [ $package_version != $cratesio_version ]; then
