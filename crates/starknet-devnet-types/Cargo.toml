@@ -19,7 +19,10 @@ thiserror = { workspace = true }
 starknet-rs-core = { workspace = true }
 starknet-rs-crypto = { workspace = true }
 serde = { workspace = true }
-serde_json = { version = "1.0.81", features = ["arbitrary_precision", "preserve_order"] }
+serde_json = { version = "1.0.81", features = [
+    "arbitrary_precision",
+    "preserve_order",
+] }
 starknet-rs-ff = { workspace = true }
 num-integer = { version = "0.1.45", default-features = false }
 num-bigint = { version = "0.4", features = ["serde"], default-features = false }
@@ -42,5 +45,17 @@ cairo-lang-utils = { workspace = true }
 
 [package.metadata.cargo-machete]
 ignored = [
-    "num-integer" # dependency of the types crate, but only re-exported
+    "num-integer",                 # dependency of the types crate, but only re-exported
+    "cairo-lang-casm",             # cannot publish without cairo-lang-*
+    "cairo-lang-compiler",
+    "cairo-lang-defs",
+    "cairo-lang-diagnostics",
+    "cairo-lang-filesystem",
+    "cairo-lang-lowering",
+    "cairo-lang-semantic",
+    "cairo-lang-sierra",
+    "cairo-lang-sierra-generator",
+    "cairo-lang-sierra-to-casm",
+    "cairo-lang-syntax",
+    "cairo-lang-utils",
 ]
