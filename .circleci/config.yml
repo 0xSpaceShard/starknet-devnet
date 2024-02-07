@@ -67,7 +67,7 @@ jobs:
           # if jobs not limited - fails
           # problem: https://app.circleci.com/pipelines/github/0xSpaceShard/starknet-devnet-rs/339/workflows/97e98c29-1563-4aa0-b716-4bfd023c563e/jobs/335/steps
           # solution: https://stackoverflow.com/questions/71962406/how-to-use-less-memory-when-compiling-to-avoid-killing-the-build
-          command: cargo test --jobs 7
+          command: cargo test --jobs 7 --no-fail-fast
 
   image-build-amd:
     docker:
@@ -97,17 +97,21 @@ jobs:
             ARCH_SUFFIX: -arm
             REMOTE: ""
 
-  create-joint-image-manifest:
+  tag-and-create-joint-image-manifest:
     docker:
-      - image: cimg/base:2021.04
+      - image: cimg/rust:1.70.0
     resource_class: medium
     steps:
       - checkout
       - setup_remote_docker:
           version: docker23
       - run:
-          name: Create and push joint image manifest
-          command: ./docker/create_joint_image_manifest.sh
+          name: Publish new versions to crates.io
+          command: ./scripts/publish_cratesio_new_versions.sh
+
+      - run:
+          name: Create tags and push joint image manifests
+          command: ./docker/tag_images_and_create_joint_image_manifests.sh
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
@@ -120,5 +124,5 @@ workflows:
           <<: *on_main
       - image-build-arm:
           <<: *on_main
-      - create-joint-image-manifest:
+      - tag-and-create-joint-image-manifest:
           <<: *on_main_after_test_and_build

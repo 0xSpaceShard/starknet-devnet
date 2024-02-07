@@ -1,6 +1,5 @@
 use std::str::FromStr;
 
-use cairo_felt::Felt252;
 use starknet_api::core::EthAddress as ApiEthAddress;
 use starknet_rs_core::types::EthAddress;
 use starknet_rs_ff::FieldElement;
@@ -41,13 +40,5 @@ impl From<ApiEthAddress> for EthAddressWrapper {
         let eth_address: EthAddress = EthAddress::from_hex(eth_address)
             .expect("EthAddress from starknet_api is out of range");
         EthAddressWrapper { inner: eth_address }
-    }
-}
-
-impl From<EthAddressWrapper> for Felt252 {
-    fn from(value: EthAddressWrapper) -> Self {
-        let felt: FieldElement = value.inner.into();
-        let raw_felt = felt.to_bytes_be();
-        Felt252::from_bytes_be(&raw_felt)
     }
 }

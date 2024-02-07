@@ -1,6 +1,7 @@
 pub mod api;
 pub mod builder;
 mod config;
+pub mod rpc_core;
 /// handlers for axum server
 pub mod rpc_handler;
 pub mod server;
@@ -8,4 +9,3 @@ pub mod server;
 pub mod test_utils;
 
 pub use config::ServerConfig;
-pub use rpc_core;
