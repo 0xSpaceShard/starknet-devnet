@@ -1,5 +1,5 @@
 #!/bin/bash
-set -u
+set -eu
 
 IMAGE=shardlabs/starknet-devnet-rs
 
@@ -16,13 +16,9 @@ function image_exists() {
 }
 
 function create_and_push_manifest() {
-    local image=$1;
-    local manifest_prefix=$2;
-    local seed_suffix="";
-
-    if [ -n "${3:-}" ]; then
-        seed_suffix=$3
-    fi
+    local image="$1";
+    local manifest_prefix="$2";
+    local seed_suffix="$3";
 
     local joint_manifest="$image:${manifest_prefix}${seed_suffix}"
 
@@ -30,7 +26,7 @@ function create_and_push_manifest() {
         "$image:${CIRCLE_SHA1}-arm${seed_suffix}" \
         "$image:${CIRCLE_SHA1}-amd${seed_suffix}"
 
-    docker manifest push $joint_manifest
+    docker manifest push "$joint_manifest"
 }
 
 echo "Creating a joint docker manifest for each pair of -arm and -amd images."
@@ -43,35 +39,31 @@ for seed_suffix in "" "-seed0"; do
     # and tag the image with the crate version if not done yet
     for image_suffix in "-arm" "-amd"; do
         image_tag_with_commit_hash="$IMAGE:${CIRCLE_SHA1}${image_suffix}${seed_suffix}"
-        docker pull $image_tag_with_commit_hash
+        docker pull "$image_tag_with_commit_hash"
 
         image_tag_with_version="$IMAGE:${bin_crate_version}${image_suffix}${seed_suffix}"
-        image_exists $image_tag_with_version
-        # Get the exit code of the command
-        exit_code=$?
 
-        # if exit code is different than 0, therefore the last command failed, because the image is not found
-        if [ $exit_code -ne 0 ]; then
+        if image_exists $image_tag_with_version; then
+            echo "image: ($image_tag_with_version) already exists"
+        else
             echo "image: ($image_tag_with_version) does not exist"
-            docker tag $image_tag_with_commit_hash $image_tag_with_version
-            docker push $image_tag_with_version
+            docker tag "$image_tag_with_commit_hash" "$image_tag_with_version"
+            docker push "$image_tag_with_version"
         fi
     done
 
     # Create and push the joint manifest
-    create_and_push_manifest $IMAGE $CIRCLE_SHA1 $seed_suffix
+    create_and_push_manifest "$IMAGE" "$CIRCLE_SHA1" "$seed_suffix"
 
     image_manifest_with_version="$IMAGE:${bin_crate_version}${seed_suffix}"
-    image_exists $image_manifest_with_version
-    exit_code=$?
 
-    if [ $exit_code -ne 0 ]; then
+    if image_exists $image_manifest_with_version; then
+        echo "manifest: ($image_manifest_with_version) already exists"
+    else
         echo "manifest: ($image_manifest_with_version) does not exist"
-        create_and_push_manifest $IMAGE $bin_crate_version $seed_suffix
+        create_and_push_manifest "$IMAGE" "$bin_crate_version" "$seed_suffix"
 
         echo "Creating and pushing the joint manifest with the latest tag"
-        create_and_push_manifest $IMAGE "latest" $seed_suffix
-    else
-        echo "manifest: ($image_manifest_with_version) exists"
+        create_and_push_manifest "$IMAGE" "latest" "$seed_suffix"
     fi
 done
