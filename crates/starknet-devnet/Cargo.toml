@@ -1,7 +1,10 @@
 [package]
-name = "starknet-devnet-cli"
-version = "0.1.0"
+name = "starknet-devnet"
+version = "0.0.2"
 edition = "2021"
+repository.workspace = true
+license-file.workspace = true
+description = "A local testnet for Starknet"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

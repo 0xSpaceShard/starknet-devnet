@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::StateReader;
-use cairo_felt::Felt252;
+use starknet_rs_ff::FieldElement;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::contract_storage_key::ContractStorageKey;
@@ -186,7 +186,7 @@ impl StateChanger for StarknetState {
 
         persistent_state
             .address_to_nonce
-            .insert(address, (Felt252::from(nonce) + Felt252::new(1)).into());
+            .insert(address, (FieldElement::from(nonce) + FieldElement::ONE).into());
 
         Ok(())
     }

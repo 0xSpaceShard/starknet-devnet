@@ -1,14 +1,15 @@
 [package]
 name = "starknet-devnet-core"
-version.workspace = true
+version = "0.0.2"
 edition.workspace = true
 repository.workspace = true
+license-file.workspace = true
+description = "Starknet core logic for devnet"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 blockifier = { workspace = true, features = ["testing"]}
-cairo-felt = { workspace = true }
 cairo-lang-starknet = { workspace = true }
 clap = { workspace = true }
 ethers = { workspace = true }

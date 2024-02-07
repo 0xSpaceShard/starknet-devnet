@@ -1,10 +1,10 @@
 [workspace]
 resolver = "2"
 members = [
-	"crates/starknet-devnet-server",
-	"crates/starknet-devnet-cli",
 	"crates/starknet-devnet-types",
 	"crates/starknet-devnet-core",
+	"crates/starknet-devnet-server",
+	"crates/starknet-devnet",
 ]
 
 [profile.release]
@@ -12,9 +12,17 @@ panic = "unwind"
 
 [workspace.package]
 authors = ["Mario"]
-version = "0.1.0"
 edition = "2021"
-repository = ""
+repository = "https://github.com/0xSpaceShard/starknet-devnet-rs"
+license-file = "LICENSE"
+homepage = "https://github.com/0xSpaceShard/starknet-devnet-rs"
+description = "A local testnet for Starknet"
+readme = "README.md"
+documentation = "https://github.com/0xSpaceShard/starknet-devnet-rs"
+
+exclude = [".github/**", ".devcontainer/**", ".circleci/**"]
+
+keywords = ["starknet", "cairo", "testnet", "local", "server"]
 
 
 [workspace.dependencies]
@@ -23,9 +31,6 @@ axum = { version = "0.5" }
 hyper = "0.14"
 tower-http = { version = "0.4", features = ["full"] }
 tower = { version = "0.4", features = ["full"] }
-
-# rpc
-rpc-core = { git = "https://github.com/foundry-rs/foundry", rev = "5f2262736feaeabadeef2ae989a78e9b43da8eee", package = "anvil-rpc" }
 
 # async
 tokio = { version = "1", features = ["time", "macros", "rt-multi-thread", "signal"] }
@@ -50,25 +55,38 @@ rand = "0.8.5"
 rand_chacha = "0.3.1"
 rand_mt = "4.2.2"
 regex_generate = "0.2.3"
+url = "2.4"
 
 # Starknet dependencies
 starknet_api = { version = "0.6.0-rc2", features = ["testing"] }
-blockifier = { git = "https://github.com/starkware-libs/blockifier", rev = "v0.4.0-rc8", package = "blockifier" }
-starknet-rs-signers = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "63538a3", package="starknet-signers" }
-starknet-rs-ff = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "63538a3", package = "starknet-ff" }
-starknet-rs-core = {  git = "https://github.com/xJonathanLEI/starknet-rs", rev = "63538a3", package = "starknet-core" }
-starknet-rs-providers = {  git = "https://github.com/xJonathanLEI/starknet-rs", rev = "63538a3", package = "starknet-providers" }
-starknet-rs-accounts = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "63538a3", package = "starknet-accounts" }
-starknet-rs-contract = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "63538a3", package = "starknet-contract" }
-starknet-rs-crypto = { git = "https://github.com/xJonathanLEI/starknet-rs", rev = "63538a3", package = "starknet-crypto" }
-cairo-felt = { version = "0.8.5", package = "cairo-felt" }
-cairo-lang-starknet = { version = "2.4.0-rc2", package = "cairo-lang-starknet" }
-url = "2.4"
+blockifier = { version = "0.4.0-rc8", package = "blockifier" }
+starknet-rs-signers = { version = "0.7.0", package="starknet-signers" }
+starknet-rs-ff = { version = "0.3.6", package = "starknet-ff" }
+starknet-rs-core = {  version = "0.9.0", package = "starknet-core" }
+starknet-rs-providers = {  version = "0.9.0", package = "starknet-providers" }
+starknet-rs-accounts = { version = "0.8.0", package = "starknet-accounts" }
+starknet-rs-contract = { version = "0.8.0", package = "starknet-contract" }
+starknet-rs-crypto = { version = "0.6.1", package = "starknet-crypto" }
+
+# Cairo-lang dependencies
+cairo-lang-starknet = { version = "=2.4.0-rc6", package = "cairo-lang-starknet" }
+cairo-lang-compiler = "=2.4.0-rc6"
+cairo-lang-casm = "=2.4.0-rc6"
+cairo-lang-defs = "=2.4.0-rc6"
+cairo-lang-diagnostics = "=2.4.0-rc6"
+cairo-lang-filesystem = "=2.4.0-rc6"
+cairo-lang-lowering = "=2.4.0-rc6"
+cairo-lang-semantic = "=2.4.0-rc6"
+cairo-lang-sierra = "=2.4.0-rc6"
+cairo-lang-sierra-generator = "=2.4.0-rc6"
+cairo-lang-sierra-to-casm = "=2.4.0-rc6"
+cairo-lang-syntax = "=2.4.0-rc6"
+cairo-lang-utils = "=2.4.0-rc6"
 
 # Inner dependencies
-starknet-types = { path = "crates/starknet-devnet-types", package = "starknet-devnet-types" }
-starknet-core = { path = "crates/starknet-devnet-core", package = "starknet-devnet-core" }
-server = { path = "crates/starknet-devnet-server", package = "starknet-devnet-server"}
+starknet-types = { version = "0.0.1", path = "crates/starknet-devnet-types", package = "starknet-devnet-types" }
+starknet-core = { version = "0.0.2", path = "crates/starknet-devnet-core", package = "starknet-devnet-core" }
+server = { version = "0.0.2", path = "crates/starknet-devnet-server", package = "starknet-devnet-server"}
 
 num-bigint = { version = "0.4" }
 

@@ -1,5 +1,5 @@
-ARG BASE_TAG
+ARG BASE_IMAGE
 
-FROM shardlabs/starknet-devnet-rs:${BASE_TAG}
+FROM ${BASE_IMAGE}
 
 ENTRYPOINT [ "tini", "--", "starknet-devnet", "--host", "0.0.0.0", "--seed", "0" ]
