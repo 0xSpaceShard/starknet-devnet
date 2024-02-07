@@ -11,7 +11,7 @@ IFS=';' read -a array <<< "$workspace_members"
 
 for workspace_member in "${array[@]}"
 do
-    crate_dir="crates/$workspace_member";
+    crate_dir=$workspace_member
 
     package_name=$(cargo get --entry $crate_dir package.name)
     package_version=$(cargo get --entry $crate_dir package.version)
