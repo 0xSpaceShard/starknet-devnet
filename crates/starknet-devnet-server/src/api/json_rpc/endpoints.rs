@@ -12,11 +12,9 @@ use starknet_types::traits::ToHexString;
 
 use super::error::{ApiError, StrictRpcResult};
 use super::models::{BlockHashAndNumberOutput, SyncingOutput, TransactionStatusOutput};
-use super::{JsonRpcHandler, StarknetResponse};
+use super::{JsonRpcHandler, StarknetResponse, RPC_SPEC_VERSION};
 
 const DEFAULT_CONTINUATION_TOKEN: &str = "0";
-
-const RPC_SPEC_VERSION: &str = "0.6.0";
 
 /// here are the definitions and stub implementations of all JSON-RPC read endpoints
 impl JsonRpcHandler {

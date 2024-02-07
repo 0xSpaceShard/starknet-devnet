@@ -39,7 +39,11 @@ pub fn add_declare_transaction_v3(
         )
         .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
-    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
+    starknet.handle_transaction_result(
+        transaction,
+        Some(broadcasted_declare_transaction.contract_class.clone().into()),
+        blockifier_execution_result,
+    )?;
     starknet.handle_dump_event(DumpEvent::AddDeclareTransaction(
         BroadcastedDeclareTransaction::V3(Box::new(broadcasted_declare_transaction)),
     ))?;
@@ -71,7 +75,11 @@ pub fn add_declare_transaction_v2(
         )
         .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
-    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
+    starknet.handle_transaction_result(
+        transaction,
+        Some(broadcasted_declare_transaction.contract_class.clone().into()),
+        blockifier_execution_result,
+    )?;
     starknet.handle_dump_event(DumpEvent::AddDeclareTransaction(
         BroadcastedDeclareTransaction::V2(Box::new(broadcasted_declare_transaction)),
     ))?;
@@ -104,7 +112,11 @@ pub fn add_declare_transaction_v1(
         )
         .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
-    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
+    starknet.handle_transaction_result(
+        transaction,
+        Some(broadcasted_declare_transaction.contract_class.clone().into()),
+        blockifier_execution_result,
+    )?;
     starknet.handle_dump_event(DumpEvent::AddDeclareTransaction(
         BroadcastedDeclareTransaction::V1(Box::new(broadcasted_declare_transaction)),
     ))?;

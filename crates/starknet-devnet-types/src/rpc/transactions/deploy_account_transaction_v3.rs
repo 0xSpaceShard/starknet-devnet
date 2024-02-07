@@ -24,6 +24,7 @@ pub struct DeployAccountTransactionV3 {
     contract_address_salt: ContractAddressSalt,
     constructor_calldata: Calldata,
     class_hash: ClassHash,
+    #[serde(skip)]
     contract_address: ContractAddress,
     transaction_hash: TransactionHash,
 }

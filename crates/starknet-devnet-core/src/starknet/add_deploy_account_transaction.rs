@@ -48,7 +48,7 @@ pub fn add_deploy_account_transaction_v3(
         )
         .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
-    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
+    starknet.handle_transaction_result(transaction, None, blockifier_execution_result)?;
     starknet.handle_dump_event(DumpEvent::AddDeployAccountTransaction(
         BroadcastedDeployAccountTransaction::V3(broadcasted_deploy_account_transaction),
     ))?;
@@ -88,7 +88,7 @@ pub fn add_deploy_account_transaction_v1(
         )
         .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
-    starknet.handle_transaction_result(transaction, blockifier_execution_result)?;
+    starknet.handle_transaction_result(transaction, None, blockifier_execution_result)?;
     starknet.handle_dump_event(DumpEvent::AddDeployAccountTransaction(
         BroadcastedDeployAccountTransaction::V1(broadcasted_deploy_account_transaction),
     ))?;
