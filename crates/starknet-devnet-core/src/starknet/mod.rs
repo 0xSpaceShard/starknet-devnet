@@ -264,9 +264,9 @@ impl Starknet {
         // save into blocks state archive
 
         if self.config.state_archive == StateArchiveCapacity::Full {
-            // TODO cloning not correct
-            let deep_cloned_state = self.state.clone();
-            self.blocks.save_state_at(new_block_number, deep_cloned_state);
+            todo!("Temporarily disabled because cloning is not done as expected");
+            // let deep_cloned_state = self.state.clone();
+            // self.blocks.save_state_at(new_block_number, deep_cloned_state);
         }
 
         Ok(new_block_number)
@@ -975,8 +975,9 @@ impl Starknet {
         transactions: &[BroadcastedTransaction],
         simulation_flags: Vec<SimulationFlag>,
     ) -> DevnetResult<Vec<SimulatedTransaction>> {
-        let mut state = self.get_state_at(&block_id)?.clone();
         let chain_id = self.chain_id().to_felt();
+        let block_context = self.block_context.clone();
+        let mut state = self.get_mut_state_at(&block_id)?;
 
         let mut skip_validate = false;
         let mut skip_fee_charge = false;
@@ -991,12 +992,13 @@ impl Starknet {
 
         let mut transactions_traces: Vec<TransactionTrace> = vec![];
 
+        let mut transactional_state = CachedState::create_transactional(&mut state.state);
         for broadcasted_transaction in transactions.iter() {
             let blockifier_transaction =
                 broadcasted_transaction.to_blockifier_account_transaction(chain_id, true)?;
             let tx_execution_info = blockifier_transaction.execute(
-                &mut state.state,
-                &self.block_context,
+                &mut transactional_state,
+                &block_context,
                 !skip_fee_charge,
                 !skip_validate,
             )?;

@@ -67,6 +67,7 @@ impl StarknetBlocks {
     }
 
     pub fn save_state_at(&mut self, block_number: BlockNumber, state: StarknetState) {
+        // TODO we also need to store block context or somehow reconstruct it when needed
         self.num_to_state.insert(block_number, state);
     }
 
