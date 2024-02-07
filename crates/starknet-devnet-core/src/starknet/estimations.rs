@@ -1,4 +1,5 @@
 use blockifier::fee::fee_utils::{calculate_l1_gas_by_vm_usage, extract_l1_gas_and_vm_usage};
+use blockifier::state::cached_state::CachedState;
 use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::objects::HasRelatedFeeType;
 use blockifier::transaction::transactions::ExecutableTransaction;
@@ -91,8 +92,9 @@ fn estimate_transaction_fee(
         ) => tx.fee_type(),
     };
 
+    let mut transactional_state = CachedState::create_transactional(&mut state.state);
     let transaction_execution_info = transaction.execute(
-        &mut state.state,
+        &mut transactional_state,
         block_context,
         charge_fee.unwrap_or(false),
         validate.unwrap_or(true),

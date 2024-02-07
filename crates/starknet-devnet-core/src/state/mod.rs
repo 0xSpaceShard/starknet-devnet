@@ -228,6 +228,7 @@ impl CustomState for StarknetState {
     }
 }
 
+// TODO delete? it doesn't clone the cache
 impl Clone for StarknetState {
     fn clone(&self) -> Self {
         Self {
