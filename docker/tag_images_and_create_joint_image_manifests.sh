@@ -12,19 +12,18 @@ docker login --username "$DOCKER_USER" --password "$DOCKER_PASS"
 bin_crate_version=$(cargo get --entry crates/starknet-devnet package.version);
 
 function image_exists() {
-    docker manifest inspect $1 > /dev/null 2>&1
+    docker manifest inspect "$1" > /dev/null 2>&1
 }
 
 function create_and_push_manifest() {
-    local image="$1";
-    local manifest_prefix="$2";
-    local seed_suffix="$3";
+    local manifest_prefix="$1";
+    local seed_suffix="$2";
 
-    local joint_manifest="$image:${manifest_prefix}${seed_suffix}"
+    local joint_manifest="$IMAGE:${manifest_prefix}${seed_suffix}"
 
     docker manifest create $joint_manifest \
-        "$image:${CIRCLE_SHA1}-arm${seed_suffix}" \
-        "$image:${CIRCLE_SHA1}-amd${seed_suffix}"
+        "$IMAGE:${CIRCLE_SHA1}-arm${seed_suffix}" \
+        "$IMAGE:${CIRCLE_SHA1}-amd${seed_suffix}"
 
     docker manifest push "$joint_manifest"
 }
@@ -53,7 +52,7 @@ for seed_suffix in "" "-seed0"; do
     done
 
     # Create and push the joint manifest
-    create_and_push_manifest "$IMAGE" "$CIRCLE_SHA1" "$seed_suffix"
+    create_and_push_manifest "$CIRCLE_SHA1" "$seed_suffix"
 
     image_manifest_with_version="$IMAGE:${bin_crate_version}${seed_suffix}"
 
@@ -61,9 +60,9 @@ for seed_suffix in "" "-seed0"; do
         echo "manifest: ($image_manifest_with_version) already exists"
     else
         echo "manifest: ($image_manifest_with_version) does not exist"
-        create_and_push_manifest "$IMAGE" "$bin_crate_version" "$seed_suffix"
+        create_and_push_manifest "$bin_crate_version" "$seed_suffix"
 
         echo "Creating and pushing the joint manifest with the latest tag"
-        create_and_push_manifest "$IMAGE" "latest" "$seed_suffix"
+        create_and_push_manifest "latest" "$seed_suffix"
     fi
 done
