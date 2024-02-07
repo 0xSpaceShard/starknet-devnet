@@ -5,19 +5,19 @@ IMAGE=shardlabs/starknet-devnet-rs
 
 cargo install cargo-get
 
-echo "Logging in to docker hub";
+echo "Logging in to docker hub"
 docker login --username "$DOCKER_USER" --password "$DOCKER_PASS"
 
 # Get the version of the binary crate
-bin_crate_version=$(cargo get --entry crates/starknet-devnet package.version);
+bin_crate_version=$(cargo get --entry crates/starknet-devnet package.version)
 
 function image_exists() {
-    docker manifest inspect "$1" > /dev/null 2>&1
+    docker manifest inspect "$1" >/dev/null 2>&1
 }
 
 function create_and_push_manifest() {
-    local manifest_prefix="$1";
-    local seed_suffix="$2";
+    local manifest_prefix="$1"
+    local seed_suffix="$2"
 
     local joint_manifest="$IMAGE:${manifest_prefix}${seed_suffix}"
 
