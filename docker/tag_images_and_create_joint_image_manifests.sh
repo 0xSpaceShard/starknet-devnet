@@ -52,7 +52,7 @@ for seed_suffix in "" "-seed0"; do
 
         # if exit code is different than 0, therefore the last command failed, because the image is not found
         if [ $exit_code -ne 0 ]; then
-            echo "image: ($image_tag_with_version) does not exists"
+            echo "image: ($image_tag_with_version) does not exist"
             docker tag $image_tag_with_commit_hash $image_tag_with_version
             docker push $image_tag_with_version
         fi
@@ -66,7 +66,7 @@ for seed_suffix in "" "-seed0"; do
     exit_code=$?
 
     if [ $exit_code -ne 0 ]; then
-        echo "manifest: ($image_manifest_with_version) does not exists"
+        echo "manifest: ($image_manifest_with_version) does not exist"
         create_and_push_manifest $IMAGE $bin_crate_version $seed_suffix
 
         echo "Creating and pushing the joint manifest with the latest tag"
