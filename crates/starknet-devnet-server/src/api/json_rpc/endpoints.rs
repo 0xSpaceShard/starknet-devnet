@@ -16,11 +16,13 @@ use super::{JsonRpcHandler, StarknetResponse};
 
 const DEFAULT_CONTINUATION_TOKEN: &str = "0";
 
+const RPC_SPEC_VERSION: &str = "0.6.0";
+
 /// here are the definitions and stub implementations of all JSON-RPC read endpoints
 impl JsonRpcHandler {
     /// starknet_specVersion
     pub fn spec_version(&self) -> StrictRpcResult {
-        Ok(StarknetResponse::SpecVersion(env!("RPC_SPEC_VERSION").to_string()))
+        Ok(StarknetResponse::SpecVersion(RPC_SPEC_VERSION.to_string()))
     }
 
     /// starknet_getBlockWithTxHashes
