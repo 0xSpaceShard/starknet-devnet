@@ -422,6 +422,10 @@ Devnet exposes the following endpoints:
 - `/postman/send_message_to_l2`: sends and executes a message on L2 (L1 node **not** required).
 - `/postman/consume_message_from_l2`: consumes a message on L1 node from the L2 (requires L1 node to be running).
 
+## Development - Update of OpenZeppelin contracts
+
+Tests in devnet require an erc20 contract with the `Mintable` feature, keep in mind that before the compilation process of [cairo-contracts](https://github.com/OpenZeppelin/cairo-contracts/) you need to mark the `Mintable` check box in this [wizard](https://wizard.openzeppelin.com/cairo) and copy this implementation to `/src/presets/erc20.cairo`.
+
 ## ✏️ Contributing
 
 We ❤️ and encourage all contributions!
