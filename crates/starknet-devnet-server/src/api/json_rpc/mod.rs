@@ -5,6 +5,8 @@ pub mod models;
 mod spec_reader;
 mod write_endpoints;
 
+pub const RPC_SPEC_VERSION: &str = "0.6.0";
+
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
     EstimateFeeInput, EventsInput, GetStorageInput, TransactionHashInput,

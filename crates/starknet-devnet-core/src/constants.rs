@@ -46,6 +46,8 @@ pub const UDC_CONTRACT_CLASS_HASH: &str =
 pub const UDC_CONTRACT_ADDRESS: &str =
     "0x41A78E741E5AF2FEC34B695679BC6891742439F7AFB8484ECD7766661AD02BF";
 
+pub const STARKNET_VERSION: &str = "0.13.0";
+
 /// ERC20 contracts storage variables
 /// taken from starkcan urls:
 /// https://testnet.starkscan.co/token/0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7#read-write-contract

@@ -12,7 +12,7 @@ use starknet_types::traits::ToHexString;
 
 use super::error::{ApiError, StrictRpcResult};
 use super::models::{BlockHashAndNumberOutput, SyncingOutput, TransactionStatusOutput};
-use super::{JsonRpcHandler, StarknetResponse};
+use super::{JsonRpcHandler, StarknetResponse, RPC_SPEC_VERSION};
 
 const DEFAULT_CONTINUATION_TOKEN: &str = "0";
 
@@ -20,7 +20,7 @@ const DEFAULT_CONTINUATION_TOKEN: &str = "0";
 impl JsonRpcHandler {
     /// starknet_specVersion
     pub fn spec_version(&self) -> StrictRpcResult {
-        Ok(StarknetResponse::SpecVersion(env!("RPC_SPEC_VERSION").to_string()))
+        Ok(StarknetResponse::SpecVersion(RPC_SPEC_VERSION.to_string()))
     }
 
     /// starknet_getBlockWithTxHashes

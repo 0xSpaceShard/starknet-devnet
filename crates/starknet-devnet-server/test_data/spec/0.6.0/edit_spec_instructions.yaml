@@ -38,6 +38,8 @@ remove_from_array:
     index: 1
   - path: components/schemas/TXN_RECEIPT/oneOf
     index: 1
+  - path: components/schemas/DECLARE_TXN/oneOf
+    index: 0
 
 edit_manually:
   - action: CHANGE

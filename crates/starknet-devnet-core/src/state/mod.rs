@@ -200,7 +200,8 @@ impl CustomState for StarknetState {
             ContractClass::Cairo1(_) => {
                 let cairo_lang_compiled_class: cairo_lang_starknet::casm_contract_class::CasmContractClass =
                     contract_class.clone().try_into()?;
-                let casm_hash: Felt = cairo_lang_compiled_class.compiled_class_hash().into();
+                let casm_hash =
+                    Felt::new(cairo_lang_compiled_class.compiled_class_hash().to_be_bytes())?;
                 self.set_compiled_class_hash(class_hash.into(), casm_hash.into())?;
                 casm_hash
             }

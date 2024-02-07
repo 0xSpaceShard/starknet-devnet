@@ -1,7 +1,5 @@
-use cairo_felt::Felt252;
-use starknet_api::hash::{pedersen_hash, StarkFelt};
+use starknet_rs_ff::FieldElement;
 use starknet_types::felt::Felt;
-use starknet_types::num_integer::Integer;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 
 use crate::error::DevnetResult;
@@ -31,19 +29,13 @@ pub(crate) fn get_storage_var_address(
     storage_var_name: &str,
     args: &[Felt],
 ) -> DevnetResult<StorageKey> {
-    let storage_var_name_hash =
-        starknet_rs_core::utils::starknet_keccak(storage_var_name.as_bytes());
-    let storage_var_name_hash = StarkFelt::new(storage_var_name_hash.to_bytes_be())?;
+    let storage_var_address = starknet_rs_core::utils::get_storage_var_address(
+        storage_var_name,
+        &args.iter().map(|f| FieldElement::from(*f)).collect::<Vec<FieldElement>>(),
+    )
+    .map_err(|err| crate::error::Error::UnexpectedInternalError { msg: err.to_string() })?;
 
-    let storage_key_hash = args
-        .iter()
-        .fold(storage_var_name_hash, |res, arg| pedersen_hash(&res, &StarkFelt::from(arg)));
-
-    let storage_key = Felt252::from_bytes_be(storage_key_hash.bytes()).mod_floor(
-        &Felt252::from_bytes_be(&starknet_api::core::L2_ADDRESS_UPPER_BOUND.to_bytes_be()),
-    );
-
-    Ok(PatriciaKey::new(Felt::new(storage_key.to_be_bytes())?)?)
+    Ok(PatriciaKey::new(Felt::new(storage_var_address.to_bytes_be())?)?)
 }
 
 #[cfg(test)]

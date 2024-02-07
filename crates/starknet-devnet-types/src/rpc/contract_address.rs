@@ -1,6 +1,5 @@
 use std::fmt::LowerHex;
 
-use cairo_felt::Felt252;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_rs_ff::FieldElement;
 
@@ -57,12 +56,6 @@ impl TryFrom<ContractAddress> for starknet_api::core::ContractAddress {
     fn try_from(value: ContractAddress) -> DevnetResult<Self> {
         let patricia_key: starknet_api::core::PatriciaKey = value.0.try_into()?;
         Ok(starknet_api::core::ContractAddress(patricia_key))
-    }
-}
-
-impl From<ContractAddress> for Felt252 {
-    fn from(value: ContractAddress) -> Self {
-        Felt::from(value).into()
     }
 }
 

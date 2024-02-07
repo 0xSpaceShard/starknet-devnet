@@ -166,14 +166,13 @@ mod tests {
 
     use super::{generate_combined_schema, generate_json_rpc_response, Spec};
     use crate::api::json_rpc::spec_reader::generate_json_rpc_request;
-    use crate::api::json_rpc::{StarknetRequest, StarknetResponse};
-    use crate::test_utils::exported_test_utils::EXPECTED_SPEC_VERSION;
+    use crate::api::json_rpc::{StarknetRequest, StarknetResponse, RPC_SPEC_VERSION};
 
     #[test]
     /// This test asserts that the spec files used in testing indeed match the expected version
     fn rpc_spec_using_correct_version() {
         let manifest_dir = env!("CARGO_MANIFEST_DIR");
-        let path_to_spec_dir = format!("{manifest_dir}/test_data/spec/{EXPECTED_SPEC_VERSION}");
+        let path_to_spec_dir = format!("{manifest_dir}/test_data/spec/{RPC_SPEC_VERSION}");
         let spec_files = std::fs::read_dir(path_to_spec_dir).unwrap();
 
         // traverse all json files in the rpc spec dir and assert they all have the expected version
@@ -189,7 +188,7 @@ mod tests {
                 .and_then(|info| info.get("version"))
                 .and_then(|ver| ver.as_str())
             {
-                Some(EXPECTED_SPEC_VERSION) => (),
+                Some(RPC_SPEC_VERSION) => (),
                 other => panic!("Invalid version in {spec_file_path}: {other:?}"),
             }
         }
@@ -200,11 +199,6 @@ mod tests {
         let specs =
             Spec::load_from_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/spec/0.6.0"));
         let combined_schema = generate_combined_schema(&specs);
-        let expected_failed_method_responses = vec![
-            "starknet_getTransactionByHash",
-            "starknet_getBlockWithTxs",
-            "starknet_getTransactionByBlockIdAndIndex",
-        ];
 
         for _ in 0..1000 {
             for spec in specs.iter() {
@@ -231,16 +225,12 @@ mod tests {
                     let sn_response = serde_json::from_value::<StarknetResponse>(response.clone());
 
                     if sn_response.is_err() {
-                        if expected_failed_method_responses.contains(&method.name.as_str()) {
-                            continue;
-                        } else {
-                            serde_json::to_writer_pretty(
-                                File::create("failed_response.json").unwrap(),
-                                &response,
-                            )
-                            .unwrap();
-                            panic!("Failed method response: {}", method.name);
-                        }
+                        serde_json::to_writer_pretty(
+                            File::create("failed_response.json").unwrap(),
+                            &response,
+                        )
+                        .unwrap();
+                        panic!("Failed method response: {}", method.name);
                     }
 
                     let sn_response = sn_response.unwrap();
@@ -338,13 +328,5 @@ mod tests {
                 }
             }
         }
-
-        // TODO: there are some failed methods responses deserializations, because
-        // The implemented response variants have more fields than the json created from the
-        // generator Thus they diverge in some way from the spec, issue: https://github.com/0xSpaceShard/starknet-devnet-rs/issues/248
-        println!(
-            "Methods diverging from the spec in some way {:?}",
-            expected_failed_method_responses
-        );
     }
 }
