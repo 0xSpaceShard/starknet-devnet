@@ -9,7 +9,7 @@ pub const CAIRO_0_ACCOUNT_CONTRACT_PATH: &str = concat!(
 );
 
 pub const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str =
-    "0x07a711d70338e05d7008fdf553207adc791297461fe3464b450fdc5f26f836ae";
+    "0x4d07e40e93398ed3c76981e72dd1fd22557a78ce36c0515f679e27f0bb5bc5f";
 
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
