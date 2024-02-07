@@ -4,7 +4,7 @@ pub mod common;
 mod general_rpc_tests {
     use hyper::Body;
     use serde_json::json;
-    use server::test_utils::exported_test_utils::EXPECTED_SPEC_VERSION;
+    use server::api::json_rpc::RPC_SPEC_VERSION;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::RPC_PATH;
@@ -31,7 +31,7 @@ mod general_rpc_tests {
 
         let resp_body = devnet.send_custom_rpc("starknet_specVersion", json!([])).await;
         match resp_body.get("result").and_then(|val| val.as_str()) {
-            Some(received_ver) => assert_eq!(received_ver, EXPECTED_SPEC_VERSION),
+            Some(received_ver) => assert_eq!(received_ver, RPC_SPEC_VERSION),
             _ => panic!("Invalid resp: {resp_body}"),
         }
     }
