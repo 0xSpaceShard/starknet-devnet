@@ -190,11 +190,11 @@ The JSON-RPC API is reachable via `/rpc` and `/` (e.g. if spawning Devnet with d
 
 ## Predeployed contracts
 
-Devnet predeploys a [UDC](https://docs.openzeppelin.com/contracts-cairo/0.6.1/udc), an [ERC20 (fee token)](https://docs.openzeppelin.com/contracts-cairo/0.8.0/erc20) contract and a set of predeployed funded accounts.
+Devnet predeploys a [UDC](https://docs.openzeppelin.com/contracts-cairo/0.6.1/udc), an [ERC20 (fee token)](https://docs.openzeppelin.com/contracts-cairo/0.8.1/erc20) contract and a set of predeployed funded accounts.
 
 The set of accounts can be controlled via [CLI options](#cli-options): `--accounts <NUMBER_OF>`, `--initial-balance <WEI>`, `--seed <VALUE>`.
 
-Choose between predeploying Cairo 0 (OpenZeppelin 0.5.1) or Cairo 1 (OpenZeppelin 0.8.0) accounts by using `--account-class [cairo0 | cairo1]`. Alternatively, provide a path to the [Sierra artifact](https://github.com/starkware-libs/cairo#compiling-and-running-cairo-files) of your custom account using `--account-class-custom <SIERRA_PATH>`.
+Choose between predeploying Cairo 0 (OpenZeppelin 0.5.1) or Cairo 1 (OpenZeppelin 0.8.1) accounts by using `--account-class [cairo0 | cairo1]`. Alternatively, provide a path to the [Sierra artifact](https://github.com/starkware-libs/cairo#compiling-and-running-cairo-files) of your custom account using `--account-class-custom <SIERRA_PATH>`.
 
 The predeployment information is logged on Devnet startup. Predeployed accounts can be retrieved in JSON format by sending a `GET` request to `/predeployed_accounts` of your Devnet.
 
@@ -421,6 +421,10 @@ Devnet exposes the following endpoints:
 - `/postman/flush`: fetches and executes L1 -> L2 messages, and sends L2 -> L1 messages (requires L1 node to be running if `dry_run` option is not used).
 - `/postman/send_message_to_l2`: sends and executes a message on L2 (L1 node **not** required).
 - `/postman/consume_message_from_l2`: consumes a message on L1 node from the L2 (requires L1 node to be running).
+
+## Development - Update of OpenZeppelin contracts
+
+Tests in devnet require an erc20 contract with the `Mintable` feature, keep in mind that before the compilation process of [cairo-contracts](https://github.com/OpenZeppelin/cairo-contracts/) you need to mark the `Mintable` check box in this [wizard](https://wizard.openzeppelin.com/cairo) and copy this implementation to `/src/presets/erc20.cairo`.
 
 ## ✏️ Contributing
 

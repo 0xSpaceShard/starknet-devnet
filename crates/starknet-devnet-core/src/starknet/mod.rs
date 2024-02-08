@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use blockifier::block_context::BlockContext;
-use blockifier::execution::call_info::CallInfo;
 use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::StateReader;
@@ -40,10 +39,8 @@ use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::Broadc
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use starknet_types::rpc::transactions::{
     BlockTransactionTrace, BlockTransactionTraces, BroadcastedTransaction,
-    BroadcastedTransactionCommon, DeclareTransaction, DeclareTransactionTrace,
-    DeployAccountTransactionTrace, ExecutionInvocation, FunctionInvocation, InvokeTransactionTrace,
-    L1HandlerTransaction, L1HandlerTransactionTrace, SimulatedTransaction, SimulationFlag,
-    Transaction, TransactionTrace, TransactionType, Transactions,
+    BroadcastedTransactionCommon, DeclareTransaction, L1HandlerTransaction, SimulatedTransaction,
+    SimulationFlag, Transaction, TransactionTrace, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, info};
@@ -51,6 +48,7 @@ use tracing::{error, info};
 use self::dump::DumpEvent;
 use self::predeployed::initialize_erc20_at_address;
 use self::starknet_config::{DumpOn, StarknetConfig, StateArchiveCapacity};
+use self::transaction_trace::create_trace;
 use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
@@ -79,6 +77,7 @@ mod get_class_impls;
 mod predeployed;
 pub mod starknet_config;
 mod state_update;
+pub(crate) mod transaction_trace;
 
 pub struct Starknet {
     pub(in crate::starknet) state: StarknetState,
@@ -386,8 +385,12 @@ impl Starknet {
     ) -> DevnetResult<()> {
         let state_diff = self.state.commit_full_state_and_get_diff()?;
 
-        let trace =
-            self.create_trace(transaction.get_type(), &tx_info, state_diff.clone().into())?;
+        let trace = create_trace(
+            &mut self.state.state,
+            transaction.get_type(),
+            &tx_info,
+            state_diff.clone().into(),
+        )?;
         let transaction_to_add = StarknetTransaction::create_accepted(transaction, tx_info, trace);
 
         // add accepted transaction to pending block
@@ -837,100 +840,6 @@ impl Starknet {
         transaction_to_map.get_receipt()
     }
 
-    fn get_execute_call_info(
-        &mut self,
-        execution_info: &TransactionExecutionInfo,
-    ) -> DevnetResult<ExecutionInvocation> {
-        Ok(match &execution_info.execute_call_info {
-            Some(call_info) => match call_info.execution.failed {
-                false => ExecutionInvocation::Succeeded(FunctionInvocation::try_from_call_info(
-                    call_info,
-                    &mut self.state.state,
-                )?),
-                true => {
-                    ExecutionInvocation::Reverted(starknet_types::rpc::transactions::Reversion {
-                        revert_reason: execution_info
-                            .revert_error
-                            .clone()
-                            .unwrap_or("Revert reason not found".into()),
-                    })
-                }
-            },
-            None => {
-                match execution_info.revert_error.clone() {
-                    Some(revert_reason) => ExecutionInvocation::Reverted(
-                        starknet_types::rpc::transactions::Reversion { revert_reason },
-                    ),
-                    None => {
-                        return Err(Error::UnexpectedInternalError {
-                            msg: "Simulation contains neither call_info nor revert_error".into(),
-                        });
-                    }
-                }
-            }
-        })
-    }
-
-    pub(crate) fn create_trace(
-        &mut self,
-        tx_type: TransactionType,
-        execution_info: &TransactionExecutionInfo,
-        state_diff: ThinStateDiff,
-    ) -> DevnetResult<TransactionTrace> {
-        let state_diff = Some(state_diff);
-        let validate_invocation =
-            self.get_call_info_invocation(&execution_info.validate_call_info)?;
-
-        let fee_transfer_invocation =
-            self.get_call_info_invocation(&execution_info.fee_transfer_call_info)?;
-
-        match tx_type {
-            TransactionType::Declare => Ok(TransactionTrace::Declare(DeclareTransactionTrace {
-                validate_invocation,
-                fee_transfer_invocation,
-                state_diff,
-            })),
-            TransactionType::DeployAccount => {
-                Ok(TransactionTrace::DeployAccount(DeployAccountTransactionTrace {
-                    validate_invocation,
-                    constructor_invocation: self
-                        .get_call_info_invocation(&execution_info.execute_call_info)?,
-                    fee_transfer_invocation,
-                    state_diff,
-                }))
-            }
-            TransactionType::Invoke => Ok(TransactionTrace::Invoke(InvokeTransactionTrace {
-                validate_invocation,
-                execute_invocation: self.get_execute_call_info(execution_info)?,
-                fee_transfer_invocation,
-                state_diff,
-            })),
-            TransactionType::L1Handler => {
-                match self.get_call_info_invocation(&execution_info.execute_call_info)? {
-                    Some(function_invocation) => {
-                        Ok(TransactionTrace::L1Handler(L1HandlerTransactionTrace {
-                            function_invocation,
-                            state_diff,
-                        }))
-                    }
-                    _ => Err(Error::NoTransactionTrace),
-                }
-            }
-            _ => Err(Error::UnsupportedTransactionType),
-        }
-    }
-
-    fn get_call_info_invocation(
-        &mut self,
-        call_info_invocation: &Option<CallInfo>,
-    ) -> DevnetResult<Option<FunctionInvocation>> {
-        Ok(if let Some(call_info) = call_info_invocation {
-            Some(FunctionInvocation::try_from_call_info(call_info, &mut self.state.state)?)
-        } else {
-            None
-        })
-    }
-
     pub fn get_transaction_trace_by_hash(
         &self,
         transaction_hash: TransactionHash,
@@ -1003,8 +912,9 @@ impl Starknet {
                 !skip_validate,
             )?;
 
-            let state_diff: ThinStateDiff = state.commit_full_state_and_get_diff()?.into();
-            let trace = self.create_trace(
+            let state_diff: ThinStateDiff = todo!();
+            let trace = create_trace(
+                &mut transactional_state,
                 broadcasted_transaction.get_type(),
                 &tx_execution_info,
                 state_diff,
