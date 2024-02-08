@@ -401,13 +401,15 @@ impl Starknet {
         self.transactions.insert(transaction_hash, transaction_to_add);
 
         // apply state changes from cached state
-        self.state.apply_state_difference(state_diff.clone())?;
+        self.state.apply_state_difference(state_diff)?;
+        // TODO
+        println!("Skipping block creation");
         // make cached state part of "persistent" state
-        self.state.clear_dirty_state();
+        // self.state.clear_dirty_state();
         // create new block from pending one
-        self.generate_new_block(state_diff, None)?;
+        // self.generate_new_block(state_diff, None)?;
         // clear pending block information
-        self.generate_pending_block()?;
+        // self.generate_pending_block()?;
 
         Ok(())
     }
