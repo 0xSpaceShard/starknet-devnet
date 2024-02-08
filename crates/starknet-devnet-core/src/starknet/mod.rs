@@ -263,9 +263,7 @@ impl Starknet {
         // save into blocks state archive
 
         if self.config.state_archive == StateArchiveCapacity::Full {
-            todo!("Temporarily disabled because cloning is not done as expected");
-            // let deep_cloned_state = self.state.clone();
-            // self.blocks.save_state_at(new_block_number, deep_cloned_state);
+            self.blocks.save_state_at(new_block_number, &self.state);
         }
 
         Ok(new_block_number)
@@ -471,26 +469,6 @@ impl Starknet {
         self.blocks.pending_block = block;
 
         Ok(())
-    }
-
-    fn get_state_at(&self, block_id: &BlockId) -> DevnetResult<&StarknetState> {
-        match block_id {
-            BlockId::Tag(_) => Ok(&self.state),
-            _ => {
-                if self.config.state_archive == StateArchiveCapacity::None {
-                    return Err(Error::StateHistoryDisabled);
-                }
-
-                let block_number =
-                    self.blocks.get_by_block_id(*block_id).ok_or(Error::NoBlock)?.block_number();
-                let state = self
-                    .blocks
-                    .num_to_state
-                    .get(&block_number)
-                    .ok_or(Error::NoStateAtBlock { block_number: block_number.0 })?;
-                Ok(state)
-            }
-        }
     }
 
     // TODO consider returning transactional state (together with block context?)
@@ -1161,15 +1139,15 @@ mod tests {
     #[test]
     fn getting_state_of_latest_block() {
         let config = StarknetConfig::default();
-        let starknet = Starknet::new(&config).unwrap();
-        starknet.get_state_at(&BlockId::Tag(BlockTag::Latest)).expect("Should be OK");
+        let mut starknet = Starknet::new(&config).unwrap();
+        starknet.get_mut_state_at(&BlockId::Tag(BlockTag::Latest)).expect("Should be OK");
     }
 
     #[test]
     fn getting_state_of_pending_block() {
         let config = StarknetConfig::default();
-        let starknet = Starknet::new(&config).unwrap();
-        starknet.get_state_at(&BlockId::Tag(BlockTag::Pending)).expect("Should be OK");
+        let mut starknet = Starknet::new(&config).unwrap();
+        starknet.get_mut_state_at(&BlockId::Tag(BlockTag::Pending)).expect("Should be OK");
     }
 
     #[test]
@@ -1179,7 +1157,7 @@ mod tests {
         let mut starknet = Starknet::new(&config).unwrap();
         starknet.generate_new_block(StateDiff::default(), None).unwrap();
 
-        match starknet.get_state_at(&BlockId::Hash(Felt::from(0).into())) {
+        match starknet.get_mut_state_at(&BlockId::Hash(Felt::from(0).into())) {
             Err(Error::NoBlock) => (),
             _ => panic!("Should fail with NoBlock"),
         }
@@ -1193,7 +1171,7 @@ mod tests {
         starknet.generate_new_block(StateDiff::default(), None).unwrap();
         starknet.blocks.num_to_state.remove(&BlockNumber(0));
 
-        match starknet.get_state_at(&BlockId::Number(0)) {
+        match starknet.get_mut_state_at(&BlockId::Number(0)) {
             Err(Error::NoStateAtBlock { block_number: _ }) => (),
             _ => panic!("Should fail with NoStateAtBlock"),
         }
@@ -1205,7 +1183,7 @@ mod tests {
         let mut starknet = Starknet::new(&config).unwrap();
         starknet.generate_new_block(StateDiff::default(), None).unwrap();
 
-        match starknet.get_state_at(&BlockId::Number(0)) {
+        match starknet.get_mut_state_at(&BlockId::Number(0)) {
             Err(Error::StateHistoryDisabled) => (),
             _ => panic!("Should fail with StateHistoryDisabled."),
         }

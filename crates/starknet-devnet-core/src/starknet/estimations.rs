@@ -54,7 +54,7 @@ pub fn estimate_message_fee(
     let estimate_message_fee = EstimateMessageFeeRequestWrapper::new(block_id, message);
 
     let block_context = starknet.block_context.clone();
-    let mut state = starknet.get_mut_state_at(estimate_message_fee.get_raw_block_id())?;
+    let state = starknet.get_mut_state_at(estimate_message_fee.get_raw_block_id())?;
 
     let address = ContractAddress::new(estimate_message_fee.get_to_address())?;
     state.assert_contract_deployed(address)?;
@@ -62,7 +62,7 @@ pub fn estimate_message_fee(
     let l1_transaction = estimate_message_fee.create_blockifier_l1_transaction()?;
 
     estimate_transaction_fee(
-        &mut state,
+        state,
         &block_context,
         blockifier::transaction::transaction_execution::Transaction::L1HandlerTransaction(
             l1_transaction,
