@@ -88,7 +88,7 @@
                 "args": [
                     "build",
                     "--bin=starknet-devnet",
-                    "--package=starknet-devnet-cli"
+                    "--package=starknet-devnet"
                 ],
                 "filter": {
                     "name": "starknet-devnet",
@@ -107,7 +107,7 @@
                     "test",
                     "--no-run",
                     "--bin=starknet-devnet",
-                    "--package=starknet-devnet-cli"
+                    "--package=starknet-devnet"
                 ],
                 "filter": {
                     "name": "starknet-devnet",
@@ -126,7 +126,7 @@
                     "test",
                     "--no-run",
                     "--test=test_get_events",
-                    "--package=starknet-devnet-cli"
+                    "--package=starknet-devnet"
                 ],
                 "filter": {
                     "name": "test_get_events",
@@ -145,7 +145,7 @@
                     "test",
                     "--no-run",
                     "--test=get_transaction_by_hash",
-                    "--package=starknet-devnet-cli"
+                    "--package=starknet-devnet"
                 ],
                 "filter": {
                     "name": "get_transaction_by_hash",
@@ -164,7 +164,7 @@
                     "test",
                     "--no-run",
                     "--test=test_account_selection",
-                    "--package=starknet-devnet-cli"
+                    "--package=starknet-devnet"
                 ],
                 "filter": {
                     "name": "test_account_selection",
@@ -183,7 +183,7 @@
                     "test",
                     "--no-run",
                     "--test=general_rpc_tests",
-                    "--package=starknet-devnet-cli"
+                    "--package=starknet-devnet"
                 ],
                 "filter": {
                     "name": "general_rpc_tests",
@@ -202,7 +202,7 @@
                     "test",
                     "--no-run",
                     "--test=test_messaging",
-                    "--package=starknet-devnet-cli"
+                    "--package=starknet-devnet"
                 ],
                 "filter": {
                     "name": "test_messaging",
@@ -221,7 +221,7 @@
                     "test",
                     "--no-run",
                     "--test=test_advancing_time",
-                    "--package=starknet-devnet-cli"
+                    "--package=starknet-devnet"
                 ],
                 "filter": {
                     "name": "test_advancing_time",
@@ -240,7 +240,7 @@
                     "test",
                     "--no-run",
                     "--test=test_estimate_message_fee",
-                    "--package=starknet-devnet-cli"
+                    "--package=starknet-devnet"
                 ],
                 "filter": {
                     "name": "test_estimate_message_fee",
@@ -259,7 +259,7 @@
                     "test",
                     "--no-run",
                     "--test=get_transaction_by_block_id_and_index",
-                    "--package=starknet-devnet-cli"
+                    "--package=starknet-devnet"
                 ],
                 "filter": {
                     "name": "get_transaction_by_block_id_and_index",
@@ -278,7 +278,7 @@
                     "test",
                     "--no-run",
                     "--test=test_get_class",
-                    "--package=starknet-devnet-cli"
+                    "--package=starknet-devnet"
                 ],
                 "filter": {
                     "name": "test_get_class",
@@ -297,7 +297,7 @@
                     "test",
                     "--no-run",
                     "--test=test_simulate_transactions",
-                    "--package=starknet-devnet-cli"
+                    "--package=starknet-devnet"
                 ],
                 "filter": {
                     "name": "test_simulate_transactions",
@@ -316,7 +316,7 @@
                     "test",
                     "--no-run",
                     "--test=test_dump_and_load",
-                    "--package=starknet-devnet-cli"
+                    "--package=starknet-devnet"
                 ],
                 "filter": {
                     "name": "test_dump_and_load",
@@ -335,7 +335,7 @@
                     "test",
                     "--no-run",
                     "--test=test_call",
-                    "--package=starknet-devnet-cli"
+                    "--package=starknet-devnet"
                 ],
                 "filter": {
                     "name": "test_call",
@@ -354,7 +354,7 @@
                     "test",
                     "--no-run",
                     "--test=test_get_class_hash_at",
-                    "--package=starknet-devnet-cli"
+                    "--package=starknet-devnet"
                 ],
                 "filter": {
                     "name": "test_get_class_hash_at",
@@ -373,7 +373,7 @@
                     "test",
                     "--no-run",
                     "--test=general_integration_tests",
-                    "--package=starknet-devnet-cli"
+                    "--package=starknet-devnet"
                 ],
                 "filter": {
                     "name": "general_integration_tests",
@@ -392,7 +392,7 @@
                     "test",
                     "--no-run",
                     "--test=test_restart",
-                    "--package=starknet-devnet-cli"
+                    "--package=starknet-devnet"
                 ],
                 "filter": {
                     "name": "test_restart",
@@ -411,7 +411,7 @@
                     "test",
                     "--no-run",
                     "--test=test_minting",
-                    "--package=starknet-devnet-cli"
+                    "--package=starknet-devnet"
                 ],
                 "filter": {
                     "name": "test_minting",
@@ -430,7 +430,7 @@
                     "test",
                     "--no-run",
                     "--test=test_transaction_handling",
-                    "--package=starknet-devnet-cli"
+                    "--package=starknet-devnet"
                 ],
                 "filter": {
                     "name": "test_transaction_handling",
@@ -449,7 +449,7 @@
                     "test",
                     "--no-run",
                     "--test=test_estimate_fee",
-                    "--package=starknet-devnet-cli"
+                    "--package=starknet-devnet"
                 ],
                 "filter": {
                     "name": "test_estimate_fee",
@@ -468,7 +468,7 @@
                     "test",
                     "--no-run",
                     "--test=test_trace",
-                    "--package=starknet-devnet-cli"
+                    "--package=starknet-devnet"
                 ],
                 "filter": {
                     "name": "test_trace",
@@ -487,7 +487,7 @@
                     "test",
                     "--no-run",
                     "--test=get_transaction_receipt_by_hash",
-                    "--package=starknet-devnet-cli"
+                    "--package=starknet-devnet"
                 ],
                 "filter": {
                     "name": "get_transaction_receipt_by_hash",
