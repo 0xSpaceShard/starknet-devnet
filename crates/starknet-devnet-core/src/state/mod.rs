@@ -69,8 +69,12 @@ impl Default for StarknetState {
 }
 
 impl StarknetState {
+    pub fn clone_rpc_contract_classes(&self) -> CommittedClassStorage {
+        self.rpc_contract_classes.clone()
+    }
+
     pub fn commit_full_state_and_get_diff(&mut self) -> DevnetResult<StateDiff> {
-        StateDiff::generate_commit(self)
+        StateDiff::generate_commit(&mut self.state, &mut self.rpc_contract_classes)
     }
 
     pub fn assert_contract_deployed(
