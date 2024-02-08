@@ -281,12 +281,12 @@ mod tests {
     use starknet_types::traits::HashProducer;
 
     use super::{StarknetTransaction, StarknetTransactions};
-    use crate::starknet::Starknet;
+    use crate::starknet::transaction_trace::create_trace;
     use crate::traits::HashIdentifiedMut;
     use crate::utils::test_utils::dummy_declare_transaction_v1;
 
     fn dummy_trace(tx: &Transaction) -> TransactionTrace {
-        Starknet::create_trace(
+        create_trace(
             &mut Default::default(),
             tx.get_type(),
             &Default::default(),
