@@ -52,22 +52,18 @@ pub fn estimate_message_fee(
     message: MsgFromL1,
 ) -> DevnetResult<FeeEstimateWrapper> {
     let estimate_message_fee = EstimateMessageFeeRequestWrapper::new(block_id, message);
-    // TODO shouldn't clone state; probably the input parameter could be CachedState (block_context
-    // could be a param)
-    let mut state = starknet.get_state_at(estimate_message_fee.get_raw_block_id())?.clone();
 
-    match starknet
-        .get_class_hash_at(block_id, ContractAddress::new(estimate_message_fee.get_to_address())?)
-    {
-        Ok(_) => Ok(()),
-        Err(err) => Err(err),
-    }?;
+    let block_context = starknet.block_context.clone();
+    let mut state = starknet.get_mut_state_at(estimate_message_fee.get_raw_block_id())?;
+
+    let address = ContractAddress::new(estimate_message_fee.get_to_address())?;
+    state.assert_contract_deployed(address)?;
 
     let l1_transaction = estimate_message_fee.create_blockifier_l1_transaction()?;
 
     estimate_transaction_fee(
         &mut state,
-        &starknet.block_context,
+        &block_context,
         blockifier::transaction::transaction_execution::Transaction::L1HandlerTransaction(
             l1_transaction,
         ),

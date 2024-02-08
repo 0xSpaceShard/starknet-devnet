@@ -493,7 +493,7 @@ impl Starknet {
         }
     }
 
-    // TODO consider returning transactional state
+    // TODO consider returning transactional state (together with block context?)
     fn get_mut_state_at(&mut self, block_id: &BlockId) -> DevnetResult<&mut StarknetState> {
         match block_id {
             BlockId::Tag(_) => Ok(&mut self.state),
