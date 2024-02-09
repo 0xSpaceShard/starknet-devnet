@@ -1,6 +1,6 @@
 pub mod common;
 
-mod estimate_fee_tests {
+mod simulation_tests {
     use std::sync::Arc;
 
     use serde_json::json;

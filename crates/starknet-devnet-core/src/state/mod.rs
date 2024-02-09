@@ -199,19 +199,16 @@ impl CustomState for StarknetState {
         contract_class: ContractClass,
     ) -> DevnetResult<()> {
         let compiled_class = contract_class.clone().try_into()?;
-        let compiled_class_hash: Felt = match contract_class {
-            ContractClass::Cairo0(_) => class_hash,
-            ContractClass::Cairo1(_) => {
-                let cairo_lang_compiled_class: cairo_lang_starknet::casm_contract_class::CasmContractClass =
-                    contract_class.clone().try_into()?;
-                let casm_hash =
-                    Felt::new(cairo_lang_compiled_class.compiled_class_hash().to_be_bytes())?;
-                self.set_compiled_class_hash(class_hash.into(), casm_hash.into())?;
-                casm_hash
-            }
+
+        if let ContractClass::Cairo1(_) = contract_class {
+            let cairo_lang_compiled_class: cairo_lang_starknet::casm_contract_class::CasmContractClass =
+                contract_class.clone().try_into()?;
+            let casm_hash =
+                Felt::new(cairo_lang_compiled_class.compiled_class_hash().to_be_bytes())?;
+            self.set_compiled_class_hash(class_hash.into(), casm_hash.into())?;
         };
 
-        self.set_contract_class(&compiled_class_hash.into(), compiled_class)?;
+        self.set_contract_class(&class_hash.into(), compiled_class)?;
         self.rpc_contract_classes.insert(class_hash, contract_class);
         Ok(())
     }
@@ -221,14 +218,9 @@ impl CustomState for StarknetState {
         contract_address: ContractAddress,
         class_hash: ClassHash,
     ) -> DevnetResult<()> {
-        let api_address = contract_address.try_into().unwrap(); // TODO
-        let api_hash = class_hash.into();
-        let compiled_class_hash = match self.get_compiled_class_hash(api_hash)? {
-            CompiledClassHash(hash) if hash == StarkFelt::ZERO => api_hash,
-            CompiledClassHash(casm_hash) => starknet_api::core::ClassHash(casm_hash),
-        };
         // TODO self.increment_nonce(api_address)?;
-        self.set_class_hash_at(api_address, compiled_class_hash).map_err(|e| e.into())
+        self.set_class_hash_at(contract_address.try_into()?, class_hash.into())
+            .map_err(|e| e.into())
     }
 }
 

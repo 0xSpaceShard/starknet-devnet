@@ -215,14 +215,21 @@ mod estimate_fee_tests {
             ExecutionEncoding::Legacy,
         );
 
-        let fee_estimation = account
-            .declare(Arc::clone(&flattened_contract_artifact), casm_hash)
-            .nonce(FieldElement::ZERO)
-            .fee_estimate_multiplier(1.0)
-            .estimate_fee()
-            .await
-            .unwrap();
-        assert_fee_estimation(&fee_estimation);
+        // two times in a row should produce the same result
+        let mut fee_estimations: Vec<FeeEstimate> = vec![];
+        for _ in 0..2 {
+            let fee_estimation = account
+                .declare(Arc::clone(&flattened_contract_artifact), casm_hash)
+                .nonce(FieldElement::ZERO)
+                .fee_estimate_multiplier(1.0)
+                .estimate_fee()
+                .await
+                .unwrap();
+            assert_fee_estimation(&fee_estimation);
+            fee_estimations.push(fee_estimation);
+        }
+        assert_eq!(fee_estimations[0], fee_estimations[1]);
+        let fee_estimation = &fee_estimations[0];
 
         // try sending with insufficient max fee
         let unsuccessful_declare_tx = account

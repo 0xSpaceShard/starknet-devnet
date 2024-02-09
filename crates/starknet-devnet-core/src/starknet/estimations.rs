@@ -1,5 +1,6 @@
 use blockifier::fee::fee_utils::{calculate_l1_gas_by_vm_usage, extract_l1_gas_and_vm_usage};
 use blockifier::state::cached_state::CachedState;
+use blockifier::state::state_api::StateReader;
 use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::objects::HasRelatedFeeType;
 use blockifier::transaction::transactions::ExecutableTransaction;
@@ -12,7 +13,6 @@ use starknet_types::rpc::transactions::BroadcastedTransaction;
 
 use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;
-use crate::state::StarknetState;
 
 pub fn estimate_fee(
     starknet: &mut Starknet,
@@ -24,6 +24,7 @@ pub fn estimate_fee(
     let chain_id = starknet.chain_id().to_felt();
     let block_context = starknet.block_context.clone();
     let state = starknet.get_mut_state_at(&block_id)?;
+    let mut transactional_state = CachedState::create_transactional(&mut state.state);
 
     let transactions = transactions
         .iter()
@@ -34,7 +35,7 @@ pub fn estimate_fee(
         .into_iter()
         .map(|transaction| {
             estimate_transaction_fee(
-                state,
+                &mut transactional_state,
                 &block_context,
                 blockifier::transaction::transaction_execution::Transaction::AccountTransaction(
                     transaction,
@@ -59,10 +60,12 @@ pub fn estimate_message_fee(
     let address = ContractAddress::new(estimate_message_fee.get_to_address())?;
     state.assert_contract_deployed(address)?;
 
+    let mut transactional_state = CachedState::create_transactional(&mut state.state);
+
     let l1_transaction = estimate_message_fee.create_blockifier_l1_transaction()?;
 
     estimate_transaction_fee(
-        state,
+        &mut transactional_state,
         &block_context,
         blockifier::transaction::transaction_execution::Transaction::L1HandlerTransaction(
             l1_transaction,
@@ -72,8 +75,8 @@ pub fn estimate_message_fee(
     )
 }
 
-fn estimate_transaction_fee(
-    state: &mut StarknetState,
+fn estimate_transaction_fee<S: StateReader>(
+    transactional_state: &mut CachedState<S>,
     block_context: &blockifier::block_context::BlockContext,
     transaction: blockifier::transaction::transaction_execution::Transaction,
     charge_fee: Option<bool>,
@@ -88,9 +91,8 @@ fn estimate_transaction_fee(
         ) => tx.fee_type(),
     };
 
-    let mut transactional_state = CachedState::create_transactional(&mut state.state);
     let transaction_execution_info = transaction.execute(
-        &mut transactional_state,
+        transactional_state,
         block_context,
         charge_fee.unwrap_or(false),
         validate.unwrap_or(true),
