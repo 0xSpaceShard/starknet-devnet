@@ -24,7 +24,9 @@ mod get_transaction_by_hash_integration_tests {
 
     #[tokio::test]
     async fn get_declare_v1_transaction_by_hash_happy_path() {
-        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--account-class", "cairo0"]).await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--account-class", "cairo0"])
+            .await
+            .expect("Could not start Devnet");
         let json_string = std::fs::read_to_string(resolve_path(
             "../starknet-devnet-core/test_artifacts/cairo_0_test.json",
         ))
@@ -167,7 +169,9 @@ mod get_transaction_by_hash_integration_tests {
 
     #[tokio::test]
     async fn get_invoke_v1_transaction_by_hash_happy_path() {
-        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--account-class", "cairo0"]).await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--account-class", "cairo0"])
+            .await
+            .expect("Could not start Devnet");
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
 
         let account = SingleOwnerAccount::new(
