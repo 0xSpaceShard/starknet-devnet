@@ -17,7 +17,7 @@ pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH: &str = concat!(
 );
 
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
-    "0x07a711d70338e05d7008fdf553207adc791297461fe3464b450fdc5f26f836ae";
+    "0x061dac032f228abef9c6626f995015233097ae253a7f72d68552db02f2971b8f";
 
 pub const CAIRO_1_ERC20_CONTRACT_PATH: &str =
     concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/ERC20_Mintable_OZ_0.8.1.json");
