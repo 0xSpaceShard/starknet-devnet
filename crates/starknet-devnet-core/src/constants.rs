@@ -13,17 +13,17 @@ pub const CAIRO_0_ACCOUNT_CONTRACT_HASH: &str =
 
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/accounts_artifacts/OpenZeppelin/0.8.0/Account.cairo/Account.sierra"
+    "/accounts_artifacts/OpenZeppelin/0.8.1/Account.cairo/Account.sierra"
 );
 
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
-    "0xf7f9cd401ad39a09f095001d31f0ad3fdc2f4e532683a84a8a6c76150de858";
+    "0x07a711d70338e05d7008fdf553207adc791297461fe3464b450fdc5f26f836ae";
 
 pub const CAIRO_1_ERC20_CONTRACT_PATH: &str =
-    concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/ERC20_Mintable_OZ_0.8.0.json");
+    concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/ERC20_Mintable_OZ_0.8.1.json");
 
 pub const CAIRO_1_ERC20_CONTRACT_CLASS_HASH: &str =
-    "0x3af5816946625d3d2c94ea451225715784762050eba736f0b0ad9186685bced";
+    "0x02ce20303e4b963bed8f11fdb309f859822ee17be99399a9acdc289443bc9d09";
 
 pub const CAIRO_0_ERC20_CONTRACT_PATH: &str =
     concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/ERC20_Mintable_OZ_0.2.0.json");
