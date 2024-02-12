@@ -16,7 +16,13 @@ pub enum BlockHashOrNumber {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize)]
-pub struct BlockId(starknet_rs_core::types::BlockId);
+pub struct BlockId(ImportedBlockId);
+
+impl AsRef<ImportedBlockId> for BlockId {
+    fn as_ref(&self) -> &ImportedBlockId {
+        &self.0
+    }
+}
 
 impl From<BlockId> for ImportedBlockId {
     fn from(block_id: BlockId) -> Self {
