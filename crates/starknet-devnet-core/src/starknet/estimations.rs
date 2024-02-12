@@ -15,12 +15,12 @@ use crate::state::StarknetState;
 
 pub fn estimate_fee(
     starknet: &Starknet,
-    block_id: BlockId,
+    block_id: &BlockId,
     transactions: &[BroadcastedTransaction],
     charge_fee: Option<bool>,
     validate: Option<bool>,
 ) -> DevnetResult<Vec<FeeEstimateWrapper>> {
-    let mut state = starknet.get_state_at(&block_id)?.clone();
+    let mut state = starknet.get_state_at(block_id)?.clone();
     let chain_id = starknet.chain_id().to_felt();
 
     let transactions = transactions

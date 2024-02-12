@@ -126,7 +126,7 @@ impl JsonRpcHandler {
             StarknetRequest::ClassHashAtContractAddress(BlockAndContractAddressInput {
                 block_id,
                 contract_address,
-            }) => self.get_class_hash_at(block_id.as_ref(), contract_address).await.to_rpc_result(),
+            }) => self.get_class_hash_at(block_id, contract_address).await.to_rpc_result(),
             StarknetRequest::ClassAtContractAddress(BlockAndContractAddressInput {
                 block_id,
                 contract_address,
