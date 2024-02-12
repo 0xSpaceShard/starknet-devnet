@@ -169,14 +169,14 @@ pub struct TransactionStatusOutput {
 
 #[cfg(test)]
 mod tests {
+    use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag, FieldElement};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
     use starknet_types::patricia_key::PatriciaKey;
-    use starknet_types::rpc::block::{BlockHashOrNumber, BlockId, Tag};
+    use starknet_types::rpc::block::BlockId;
     use starknet_types::rpc::transactions::{
         BroadcastedDeclareTransaction, BroadcastedTransaction,
     };
-    use starknet_types::starknet_api::block::BlockNumber;
 
     use super::{BlockIdInput, EstimateFeeInput, GetStorageInput};
     use crate::api::json_rpc::requests_tests::assert_contains;
@@ -238,8 +238,8 @@ mod tests {
             "request": [
                 {
                     "type": "DECLARE",
-                    "max_fee": "0xA", 
-                    "version": "0x1", 
+                    "max_fee": "0xA",
+                    "version": "0x1",
                     "signature": ["0xFF", "0xAA"],
                     "nonce": "0x0",
                     "sender_address": "0x0001",
@@ -269,8 +269,8 @@ mod tests {
                         }],
                         "program": "",
                         "entry_points_by_type": {
-                            "CONSTRUCTOR": [], 
-                            "EXTERNAL": [], 
+                            "CONSTRUCTOR": [],
+                            "EXTERNAL": [],
                             "L1_HANDLER": []
                         }
                     }
@@ -353,7 +353,7 @@ mod tests {
                     "constructor_calldata": ["0x01"],
                     "class_hash": "0x01"
                 }
-                ], 
+                ],
             "block_id": {
                 "block_number": 1
             },
@@ -361,10 +361,7 @@ mod tests {
         }"#;
 
         let estimate_fee_input = serde_json::from_str::<super::EstimateFeeInput>(json_str).unwrap();
-        assert_eq!(
-            estimate_fee_input.block_id,
-            BlockId::HashOrNumber(BlockHashOrNumber::Number(BlockNumber(1)))
-        );
+        assert_eq!(estimate_fee_input.block_id.as_ref(), &ImportedBlockId::Number(1));
         assert_eq!(estimate_fee_input.request.len(), 4);
         assert!(matches!(
             estimate_fee_input.request[0],
@@ -394,7 +391,7 @@ mod tests {
                     entry_point_selector: Felt::from_prefixed_hex_str("0x02").unwrap(),
                     calldata: vec![Felt::from_prefixed_hex_str("0x03").unwrap()],
                 },
-                block_id: BlockId::HashOrNumber(BlockHashOrNumber::Number(BlockNumber(1))),
+                block_id: BlockId::from(ImportedBlockId::Number(1)),
             }
         );
     }
@@ -417,8 +414,8 @@ mod tests {
         }
 
         let expected_storage_input = GetStorageInput {
-            block_id: BlockId::HashOrNumber(BlockHashOrNumber::Hash(
-                Felt::from_prefixed_hex_str("0x01").unwrap(),
+            block_id: BlockId::from(ImportedBlockId::Hash(
+                FieldElement::from_hex_be("0x01").unwrap(),
             )),
             contract_address: ContractAddress::new(Felt::from_prefixed_hex_str("0x02").unwrap())
                 .unwrap(),
@@ -462,16 +459,16 @@ mod tests {
     }
     #[test]
     fn deserialize_block_id_tag_variants() {
-        assert_block_id_tag_correctness(true, Tag::Latest, r#"{"block_id": "latest"}"#);
-        assert_block_id_tag_correctness(true, Tag::Pending, r#"{"block_id": "pending"}"#);
+        assert_block_id_tag_correctness(true, BlockTag::Latest, r#"{"block_id": "latest"}"#);
+        assert_block_id_tag_correctness(true, BlockTag::Pending, r#"{"block_id": "pending"}"#);
 
         // Incorrect tag
-        assert_block_id_tag_correctness(false, Tag::Latest, r#"{"block_id": "latests"}"#);
-        assert_block_id_tag_correctness(false, Tag::Pending, r#"{"block_id": "pendingg"}"#);
+        assert_block_id_tag_correctness(false, BlockTag::Latest, r#"{"block_id": "latests"}"#);
+        assert_block_id_tag_correctness(false, BlockTag::Pending, r#"{"block_id": "pendingg"}"#);
 
         // Incorrect key
-        assert_block_id_tag_correctness(false, Tag::Latest, r#"{"block": "latest"}"#);
-        assert_block_id_tag_correctness(false, Tag::Pending, r#"{"block": "pending"}"#);
+        assert_block_id_tag_correctness(false, BlockTag::Latest, r#"{"block": "latest"}"#);
+        assert_block_id_tag_correctness(false, BlockTag::Pending, r#"{"block": "pending"}"#);
     }
 
     #[test]
@@ -572,16 +569,13 @@ mod tests {
 
     fn assert_block_id_tag_correctness(
         should_be_correct: bool,
-        expected_tag: Tag,
+        expected_tag: BlockTag,
         json_str_block_id: &str,
     ) {
-        let is_correct = if let Ok(BlockIdInput { block_id: BlockId::Tag(generated_tag) }) =
+        let is_correct =
             serde_json::from_str::<BlockIdInput>(json_str_block_id)
-        {
-            generated_tag == expected_tag
-        } else {
-            false
-        };
+                .map(|BlockIdInput { block_id }| matches!(block_id.as_ref(), ImportedBlockId::Tag(generated_tag) if *generated_tag == expected_tag))
+                .unwrap_or(false);
 
         assert_eq!(should_be_correct, is_correct);
     }
@@ -591,14 +585,13 @@ mod tests {
         expected_block_number: u64,
         json_str_block_id: &str,
     ) {
-        let is_correct = if let Ok(BlockIdInput {
-            block_id: BlockId::HashOrNumber(BlockHashOrNumber::Number(generated_block_number)),
-        }) = serde_json::from_str::<BlockIdInput>(json_str_block_id)
-        {
-            generated_block_number == BlockNumber(expected_block_number)
-        } else {
-            false
-        };
+        let is_correct =
+            serde_json::from_str::<BlockIdInput>(json_str_block_id)
+                .map(
+                    |BlockIdInput { block_id }|
+                    matches!(block_id.as_ref(),
+                    ImportedBlockId::Number(generated_block_number) if *generated_block_number == expected_block_number)
+            ).unwrap_or(false);
 
         assert_eq!(should_be_correct, is_correct);
     }
@@ -608,14 +601,10 @@ mod tests {
         expected_block_hash: &str,
         json_str_block_id: &str,
     ) {
-        let is_correct = if let Ok(BlockIdInput {
-            block_id: BlockId::HashOrNumber(BlockHashOrNumber::Hash(generated_block_hash)),
-        }) = serde_json::from_str::<BlockIdInput>(json_str_block_id)
-        {
-            generated_block_hash == Felt::from_prefixed_hex_str(expected_block_hash).unwrap()
-        } else {
-            false
-        };
+        let is_correct =
+            serde_json::from_str::<BlockIdInput>(json_str_block_id)
+                .map(|BlockIdInput { block_id }| matches!(block_id.as_ref(), ImportedBlockId::Hash(generated_block_hash) if *generated_block_hash == FieldElement::from_hex_be(expected_block_hash).unwrap()))
+        .unwrap_or(false);
 
         assert_eq!(should_be_correct, is_correct)
     }

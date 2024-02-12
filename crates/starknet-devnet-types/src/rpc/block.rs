@@ -15,8 +15,14 @@ pub enum BlockHashOrNumber {
     Number(u64),
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct BlockId(ImportedBlockId);
+
+impl From<ImportedBlockId> for BlockId {
+    fn from(value: ImportedBlockId) -> Self {
+        Self(value)
+    }
+}
 
 impl AsRef<ImportedBlockId> for BlockId {
     fn as_ref(&self) -> &ImportedBlockId {

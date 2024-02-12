@@ -503,7 +503,7 @@ impl Starknet {
 
     pub fn get_class_hash_at(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
         contract_address: ContractAddress,
     ) -> DevnetResult<ClassHash> {
         get_class_impls::get_class_hash_at_impl(self, block_id, contract_address)
@@ -511,7 +511,7 @@ impl Starknet {
 
     pub fn get_class(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
         class_hash: ClassHash,
     ) -> DevnetResult<ContractClass> {
         get_class_impls::get_class_impl(self, block_id, class_hash)
@@ -519,7 +519,7 @@ impl Starknet {
 
     pub fn get_class_at(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
         contract_address: ContractAddress,
     ) -> DevnetResult<ContractClass> {
         get_class_impls::get_class_at_impl(self, block_id, contract_address)
@@ -588,7 +588,7 @@ impl Starknet {
 
     pub fn estimate_message_fee(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
         message: MsgFromL1,
     ) -> DevnetResult<FeeEstimateWrapper> {
         estimations::estimate_message_fee(self, block_id, message)
@@ -731,20 +731,20 @@ impl Starknet {
 
     pub fn contract_nonce_at_block(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
         contract_address: ContractAddress,
     ) -> DevnetResult<Felt> {
-        let state = self.get_state_at(&block_id)?;
+        let state = self.get_state_at(block_id)?;
         state.get_nonce(&contract_address)
     }
 
     pub fn contract_storage_at_block(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
         contract_address: ContractAddress,
         storage_key: PatriciaKey,
     ) -> DevnetResult<Felt> {
-        let state = self.get_state_at(&block_id)?;
+        let state = self.get_state_at(block_id)?;
         state.get_storage(ContractStorageKey::new(contract_address, storage_key))
     }
 
