@@ -864,7 +864,6 @@ impl Starknet {
     ) -> DevnetResult<Vec<SimulatedTransaction>> {
         let chain_id = self.chain_id().to_felt();
         let block_context = self.block_context.clone();
-        let state = self.get_mut_state_at(&block_id)?;
 
         let mut skip_validate = false;
         let mut skip_fee_charge = false;
@@ -878,9 +877,12 @@ impl Starknet {
         }
 
         let mut transactions_traces: Vec<TransactionTrace> = vec![];
-
+        let state = self.get_mut_state_at(&block_id)?;
         let mut transactional_rpc_contract_classes = state.clone_rpc_contract_classes();
-        let mut transactional_state = CachedState::create_transactional(&mut state.state);
+        let mut transactional_state = CachedState::new(
+            CachedState::create_transactional(&mut state.state),
+            Default::default(),
+        );
         for broadcasted_transaction in transactions.iter() {
             let blockifier_transaction =
                 broadcasted_transaction.to_blockifier_account_transaction(chain_id, true)?;

@@ -192,8 +192,9 @@ impl BackgroundDevnet {
         );
 
         let resp = self.post_json("/mint".into(), req_body).await.unwrap();
-        assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
+        let resp_status = resp.status();
         let resp_body = get_json_body(resp).await;
+        assert_eq!(resp_status, StatusCode::OK, "Checking status of {resp_body:?}");
 
         FieldElement::from_hex_be(resp_body["tx_hash"].as_str().unwrap()).unwrap()
     }
