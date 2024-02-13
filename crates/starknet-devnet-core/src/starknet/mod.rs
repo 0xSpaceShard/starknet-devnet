@@ -490,7 +490,7 @@ impl Starknet {
                     return Err(Error::StateHistoryDisabled);
                 }
 
-                let block = self.blocks.get_by_block_id(*block_id).ok_or(Error::NoBlock)?;
+                let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
                 let state = self
                     .blocks
                     .num_to_state
@@ -503,7 +503,7 @@ impl Starknet {
 
     pub fn get_class_hash_at(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
         contract_address: ContractAddress,
     ) -> DevnetResult<ClassHash> {
         get_class_impls::get_class_hash_at_impl(self, block_id, contract_address)
@@ -511,7 +511,7 @@ impl Starknet {
 
     pub fn get_class(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
         class_hash: ClassHash,
     ) -> DevnetResult<ContractClass> {
         get_class_impls::get_class_impl(self, block_id, class_hash)
@@ -519,7 +519,7 @@ impl Starknet {
 
     pub fn get_class_at(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
         contract_address: ContractAddress,
     ) -> DevnetResult<ContractClass> {
         get_class_impls::get_class_at_impl(self, block_id, contract_address)
@@ -527,12 +527,12 @@ impl Starknet {
 
     pub fn call(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
         contract_address: Felt,
         entrypoint_selector: Felt,
         calldata: Vec<Felt>,
     ) -> DevnetResult<Vec<Felt>> {
-        let state = self.get_state_at(&block_id)?;
+        let state = self.get_state_at(block_id)?;
 
         if !state.is_contract_deployed(&ContractAddress::new(contract_address)?) {
             return Err(Error::ContractNotFound);
@@ -573,7 +573,7 @@ impl Starknet {
 
     pub fn estimate_fee(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
         transactions: &[BroadcastedTransaction],
         simulation_flags: &[SimulationFlag],
     ) -> DevnetResult<Vec<FeeEstimateWrapper>> {
@@ -588,7 +588,7 @@ impl Starknet {
 
     pub fn estimate_message_fee(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
         message: MsgFromL1,
     ) -> DevnetResult<FeeEstimateWrapper> {
         estimations::estimate_message_fee(self, block_id, message)
@@ -719,11 +719,11 @@ impl Starknet {
         add_invoke_transaction::add_invoke_transaction_v1(self, invoke_tx)
     }
 
-    pub fn block_state_update(&self, block_id: BlockId) -> DevnetResult<StateUpdate> {
+    pub fn block_state_update(&self, block_id: &BlockId) -> DevnetResult<StateUpdate> {
         state_update::state_update_by_block_id(self, block_id)
     }
 
-    pub fn get_block_txs_count(&self, block_id: BlockId) -> DevnetResult<u64> {
+    pub fn get_block_txs_count(&self, block_id: &BlockId) -> DevnetResult<u64> {
         let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
 
         Ok(block.get_transactions().len() as u64)
@@ -731,29 +731,29 @@ impl Starknet {
 
     pub fn contract_nonce_at_block(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
         contract_address: ContractAddress,
     ) -> DevnetResult<Felt> {
-        let state = self.get_state_at(&block_id)?;
+        let state = self.get_state_at(block_id)?;
         state.get_nonce(&contract_address)
     }
 
     pub fn contract_storage_at_block(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
         contract_address: ContractAddress,
         storage_key: PatriciaKey,
     ) -> DevnetResult<Felt> {
-        let state = self.get_state_at(&block_id)?;
+        let state = self.get_state_at(block_id)?;
         state.get_storage(ContractStorageKey::new(contract_address, storage_key))
     }
 
-    pub fn get_block(&self, block_id: BlockId) -> DevnetResult<StarknetBlock> {
+    pub fn get_block(&self, block_id: &BlockId) -> DevnetResult<StarknetBlock> {
         let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
         Ok(block.clone())
     }
 
-    pub fn get_block_with_transactions(&self, block_id: BlockId) -> DevnetResult<Block> {
+    pub fn get_block_with_transactions(&self, block_id: &BlockId) -> DevnetResult<Block> {
         let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
         let transactions = block
             .get_transactions()
@@ -775,7 +775,7 @@ impl Starknet {
 
     pub fn get_transaction_by_block_id_and_index(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
         index: u64,
     ) -> DevnetResult<&Transaction> {
         let block = self.get_block(block_id)?;
@@ -790,7 +790,7 @@ impl Starknet {
     pub fn get_latest_block(&self) -> DevnetResult<StarknetBlock> {
         let block = self
             .blocks
-            .get_by_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))
+            .get_by_block_id(&BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))
             .ok_or(crate::error::Error::NoBlock)?;
 
         Ok(block.clone())
@@ -835,7 +835,7 @@ impl Starknet {
 
     pub fn get_transaction_traces_from_block(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
     ) -> DevnetResult<BlockTransactionTraces> {
         let transactions = self.get_block_with_transactions(block_id)?.transactions;
 
@@ -865,11 +865,11 @@ impl Starknet {
 
     pub fn simulate_transactions(
         &mut self,
-        block_id: BlockId,
+        block_id: &BlockId,
         transactions: &[BroadcastedTransaction],
         simulation_flags: Vec<SimulationFlag>,
     ) -> DevnetResult<Vec<SimulatedTransaction>> {
-        let mut state = self.get_state_at(&block_id)?.clone();
+        let mut state = self.get_state_at(block_id)?.clone();
         let chain_id = self.chain_id().to_felt();
 
         let mut skip_validate = false;
@@ -1200,7 +1200,7 @@ mod tests {
             starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();
 
         match starknet.call(
-            BlockId::Tag(BlockTag::Latest),
+            &BlockId::Tag(BlockTag::Latest),
             undeployed_address,
             entry_point_selector.into(),
             vec![],
@@ -1220,7 +1220,7 @@ mod tests {
             starknet_rs_core::utils::get_selector_from_name("nonExistentMethod").unwrap();
 
         match starknet.call(
-            BlockId::Tag(BlockTag::Latest),
+            &BlockId::Tag(BlockTag::Latest),
             Felt::from_prefixed_hex_str(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
             entry_point_selector.into(),
             vec![Felt::from(predeployed_account.account_address)],
@@ -1244,7 +1244,7 @@ mod tests {
         let entry_point_selector =
             starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();
         starknet.call(
-            BlockId::Tag(BlockTag::Latest),
+            &BlockId::Tag(BlockTag::Latest),
             Felt::from_prefixed_hex_str(ETH_ERC20_CONTRACT_ADDRESS)?,
             entry_point_selector.into(),
             vec![Felt::from(contract_address)],
@@ -1313,7 +1313,7 @@ mod tests {
         starknet.generate_new_block(StateDiff::default(), None).unwrap();
         starknet.generate_pending_block().unwrap();
 
-        let num_no_transactions = starknet.get_block_txs_count(BlockId::Number(0));
+        let num_no_transactions = starknet.get_block_txs_count(&BlockId::Number(0));
 
         assert_eq!(num_no_transactions.unwrap(), 0);
 
@@ -1324,7 +1324,7 @@ mod tests {
 
         starknet.generate_new_block(StateDiff::default(), None).unwrap();
 
-        let num_one_transaction = starknet.get_block_txs_count(BlockId::Number(1));
+        let num_one_transaction = starknet.get_block_txs_count(&BlockId::Number(1));
 
         assert_eq!(num_one_transaction.unwrap(), 1);
     }
