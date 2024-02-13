@@ -6,7 +6,7 @@ use crate::state::state_update::StateUpdate;
 
 pub fn state_update_by_block_id(
     starknet: &Starknet,
-    block_id: BlockId,
+    block_id: &BlockId,
 ) -> DevnetResult<StateUpdate> {
     let block = starknet.blocks.get_by_block_id(block_id).ok_or(crate::error::Error::NoBlock)?;
     let state_diff =
@@ -65,7 +65,7 @@ mod tests {
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
         let state_update = starknet
-            .block_state_update(starknet_rs_core::types::BlockId::Tag(
+            .block_state_update(&starknet_rs_core::types::BlockId::Tag(
                 starknet_rs_core::types::BlockTag::Latest,
             ))
             .unwrap();
