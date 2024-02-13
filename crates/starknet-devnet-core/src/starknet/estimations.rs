@@ -16,14 +16,14 @@ use crate::starknet::Starknet;
 
 pub fn estimate_fee(
     starknet: &mut Starknet,
-    block_id: BlockId,
+    block_id: &BlockId,
     transactions: &[BroadcastedTransaction],
     charge_fee: Option<bool>,
     validate: Option<bool>,
 ) -> DevnetResult<Vec<FeeEstimateWrapper>> {
     let chain_id = starknet.chain_id().to_felt();
     let block_context = starknet.block_context.clone();
-    let state = starknet.get_mut_state_at(&block_id)?;
+    let state = starknet.get_mut_state_at(block_id)?;
     let mut transactional_state = CachedState::create_transactional(&mut state.state);
 
     let transactions = transactions
@@ -49,13 +49,13 @@ pub fn estimate_fee(
 
 pub fn estimate_message_fee(
     starknet: &mut Starknet,
-    block_id: BlockId,
+    block_id: &BlockId,
     message: MsgFromL1,
 ) -> DevnetResult<FeeEstimateWrapper> {
-    let estimate_message_fee = EstimateMessageFeeRequestWrapper::new(block_id, message);
+    let estimate_message_fee = EstimateMessageFeeRequestWrapper::new(*block_id, message);
 
     let block_context = starknet.block_context.clone();
-    let state = starknet.get_mut_state_at(estimate_message_fee.get_raw_block_id())?;
+    let state = starknet.get_mut_state_at(estimate_message_fee.get_block_id())?;
 
     let address = ContractAddress::new(estimate_message_fee.get_to_address())?;
     state.assert_contract_deployed(address)?;

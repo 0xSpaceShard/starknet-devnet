@@ -25,7 +25,7 @@ fn get_balance(
     let balance_selector =
         starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap().into();
     let new_balance_raw = starknet.call(
-        BlockId::Tag(BlockTag::Pending),
+        &BlockId::Tag(BlockTag::Pending),
         erc20_address.into(),
         balance_selector,
         vec![Felt::from(address)], // calldata = the address being queried

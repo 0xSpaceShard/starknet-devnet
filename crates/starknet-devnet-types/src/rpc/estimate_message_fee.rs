@@ -11,7 +11,6 @@ use starknet_rs_ff::FieldElement;
 
 use crate::error::DevnetResult;
 use crate::felt::Felt;
-use crate::rpc::block::BlockId;
 use crate::rpc::eth_address::EthAddressWrapper;
 use crate::{impl_wrapper_deserialize, impl_wrapper_serialize};
 
@@ -71,11 +70,7 @@ impl EstimateMessageFeeRequestWrapper {
         self.inner.message.payload.iter().map(|el| (*el).into()).collect()
     }
 
-    pub fn get_block_id(&self) -> BlockId {
-        self.inner.block_id.into()
-    }
-
-    pub fn get_raw_block_id(&self) -> &SrBlockId {
+    pub fn get_block_id(&self) -> &SrBlockId {
         &self.inner.block_id
     }
 

@@ -10,10 +10,10 @@ use crate::state::CustomStateReader;
 
 pub fn get_class_hash_at_impl(
     starknet: &mut Starknet,
-    block_id: BlockId,
+    block_id: &BlockId,
     contract_address: ContractAddress,
 ) -> DevnetResult<ClassHash> {
-    let state = starknet.get_mut_state_at(&block_id)?;
+    let state = starknet.get_mut_state_at(block_id)?;
     state.assert_contract_deployed(contract_address)?;
     let class_hash = state.get_class_hash_at(contract_address.try_into()?)?;
 
@@ -27,10 +27,10 @@ pub fn get_class_hash_at_impl(
 
 pub fn get_class_impl(
     starknet: &mut Starknet,
-    block_id: BlockId,
+    block_id: &BlockId,
     class_hash: ClassHash,
 ) -> DevnetResult<ContractClass> {
-    let state = starknet.get_mut_state_at(&block_id)?;
+    let state = starknet.get_mut_state_at(block_id)?;
     state
         .get_rpc_contract_class(&class_hash)
         .cloned()
@@ -39,7 +39,7 @@ pub fn get_class_impl(
 
 pub fn get_class_at_impl(
     starknet: &mut Starknet,
-    block_id: BlockId,
+    block_id: &BlockId,
     contract_address: ContractAddress,
 ) -> DevnetResult<ContractClass> {
     let class_hash = starknet.get_class_hash_at(block_id, contract_address)?;
@@ -121,7 +121,7 @@ mod tests {
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
         let contract_class =
-            starknet.get_class(BlockId::Number(block_number.0), class_hash).unwrap();
+            starknet.get_class(&BlockId::Number(block_number.0), class_hash).unwrap();
 
         assert_eq!(contract_class, expected)
     }
@@ -136,7 +136,7 @@ mod tests {
         let block_number = starknet.get_latest_block().unwrap().block_number();
         let block_id = BlockId::Number(block_number.0);
 
-        let class_hash = starknet.get_class_hash_at(block_id, account.account_address).unwrap();
+        let class_hash = starknet.get_class_hash_at(&block_id, account.account_address).unwrap();
         let expected = account.class_hash;
         assert_eq!(class_hash, expected);
     }
@@ -151,7 +151,7 @@ mod tests {
         let block_number = starknet.get_latest_block().unwrap().block_number();
         let block_id = BlockId::Number(block_number.0);
 
-        let class_hash = starknet.get_class_hash_at(block_id, account.account_address);
+        let class_hash = starknet.get_class_hash_at(&block_id, account.account_address);
         match class_hash.err().unwrap() {
             Error::StateHistoryDisabled { .. } => (),
             _ => panic!("Should fail with StateHistoryDisabled."),
@@ -168,7 +168,7 @@ mod tests {
         let block_number = starknet.get_latest_block().unwrap().block_number();
         let block_id = BlockId::Number(block_number.0);
 
-        let contract_class = starknet.get_class_at(block_id, account.account_address).unwrap();
+        let contract_class = starknet.get_class_at(&block_id, account.account_address).unwrap();
         assert_eq!(contract_class, account.contract_class);
     }
 }
