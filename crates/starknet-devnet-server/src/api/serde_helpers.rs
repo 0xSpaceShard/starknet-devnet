@@ -19,3 +19,47 @@ pub mod empty_params {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use serde::de::IntoDeserializer;
+    use serde_json::{self, Value};
+
+    use super::empty_params::deserialize;
+
+    fn test_deserialization(json_str: &str) -> Result<(), serde_json::Error> {
+        let value: Value = serde_json::from_str(json_str)?;
+        let deserializer = value.into_deserializer();
+        deserialize(deserializer)
+    }
+
+    #[test]
+    fn deserialize_empty_object() {
+        let json_str = "{}";
+        assert!(test_deserialization(json_str).is_ok());
+    }
+
+    #[test]
+    fn deserialize_empty_array() {
+        let json_str = "[]";
+        assert!(test_deserialization(json_str).is_ok());
+    }
+
+    #[test]
+    fn deserialize_non_empty_object() {
+        let json_str = "{\"key\": \"value\"}";
+        assert!(test_deserialization(json_str).is_err());
+    }
+
+    #[test]
+    fn deserialize_non_empty_array() {
+        let json_str = "[1, 2, 3]";
+        assert!(test_deserialization(json_str).is_err());
+    }
+
+    #[test]
+    fn deserialize_other_types() {
+        let json_str = "\"string\"";
+        assert!(test_deserialization(json_str).is_err());
+    }
+}
