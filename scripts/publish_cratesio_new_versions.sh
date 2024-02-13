@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-cargo install cargo-get --version 1.1.0
+cargo install cargo-get --version 1.1.0 --locked
 
 for workspace_member in $(cargo get --delimiter " " workspace.members); do
     package_name=$(cargo get --entry "$workspace_member" package.name)
