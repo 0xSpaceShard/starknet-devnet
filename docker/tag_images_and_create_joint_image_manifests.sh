@@ -3,7 +3,7 @@ set -eu
 
 IMAGE=shardlabs/starknet-devnet-rs
 
-cargo install cargo-get
+cargo install cargo-get --version 1.1.0
 
 echo "Logging in to docker hub"
 docker login --username "$DOCKER_USER" --password "$DOCKER_PASS"
