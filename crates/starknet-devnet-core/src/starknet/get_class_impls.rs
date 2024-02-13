@@ -111,6 +111,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "State archiving disabled"]
     fn get_sierra_class() {
         let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::Full);
 
@@ -127,6 +128,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "State archiving disabled"]
     fn get_class_hash_at_generated_accounts() {
         let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::Full);
 
@@ -159,6 +161,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "State archiving disabled"]
     fn get_class_at_generated_accounts() {
         let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::Full);
 

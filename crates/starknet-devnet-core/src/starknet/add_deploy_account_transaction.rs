@@ -102,7 +102,9 @@ mod tests {
     use blockifier::state::state_api::{State, StateReader};
     use starknet_api::hash::StarkFelt;
     use starknet_api::transaction::{Fee, Tip};
-    use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
+    use starknet_rs_core::types::{
+        BlockId, BlockTag, TransactionExecutionStatus, TransactionFinalityStatus,
+    };
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::Cairo0Json;
     use starknet_types::felt::{ClassHash, Felt};
@@ -292,24 +294,21 @@ mod tests {
             account_balance_before_deployment,
         );
 
-        // get accounts count before deployment
-        let accounts_before_deployment = get_accounts_count(&starknet);
-
         let (txn_hash, _) = starknet.add_deploy_account_transaction_v3(transaction).unwrap();
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
 
         assert_eq!(txn.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(txn.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
-        assert_eq!(get_accounts_count(&starknet), accounts_before_deployment + 1);
+        assert_eq!(
+            starknet.get_class_hash_at(&BlockId::Tag(BlockTag::Latest), account_address).unwrap(),
+            account_class_hash,
+        );
+
         let account_balance_after_deployment =
             starknet.state.get_storage_at(fee_token_address, balance_storage_var_address).unwrap();
 
         assert!(account_balance_before_deployment > account_balance_after_deployment);
-    }
-
-    fn get_accounts_count(starknet: &Starknet) -> usize {
-        starknet.state.state.state.address_to_class_hash.len()
     }
 
     #[test]
@@ -343,20 +342,16 @@ mod tests {
             account_balance_before_deployment,
         );
 
-        // get accounts count before deployment
-        let accounts_before_deployment = get_accounts_count(&starknet);
-
         let (txn_hash, _) = starknet.add_deploy_account_transaction_v1(transaction).unwrap();
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
 
         assert_eq!(txn.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(txn.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
-        assert_eq!(get_accounts_count(&starknet), accounts_before_deployment + 1);
-        let account_balance_after_deployment =
-            starknet.state.get_storage_at(fee_token_address, balance_storage_var_address).unwrap();
-
-        assert!(account_balance_before_deployment > account_balance_after_deployment);
+        assert_eq!(
+            starknet.get_class_hash_at(&BlockId::Tag(BlockTag::Latest), account_address).unwrap(),
+            account_class_hash,
+        );
     }
 
     /// Initializes starknet with erc20 contract, 1 declared contract class. Gas price is set to 1

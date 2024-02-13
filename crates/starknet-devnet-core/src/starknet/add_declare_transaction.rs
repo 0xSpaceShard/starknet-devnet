@@ -128,6 +128,8 @@ pub fn add_declare_transaction_v1(
 mod tests {
     use blockifier::state::state_api::StateReader;
     use starknet_api::block::BlockNumber;
+    use starknet_api::core::CompiledClassHash;
+    use starknet_api::hash::StarkHash;
     use starknet_api::transaction::Fee;
     use starknet_rs_core::types::{
         BlockId, BlockTag, TransactionExecutionStatus, TransactionFinalityStatus,
@@ -287,7 +289,10 @@ mod tests {
 
         // check if contract is not declared
         assert!(!starknet.state.is_contract_declared(expected_class_hash));
-        assert!(starknet.state.get_compiled_class_hash(expected_class_hash.into()).is_err());
+        assert_eq!(
+            starknet.state.get_compiled_class_hash(expected_class_hash.into()).unwrap(),
+            CompiledClassHash(StarkHash::ZERO)
+        );
         assert!(starknet.get_class(&BlockId::Tag(BlockTag::Latest), expected_class_hash).is_err());
 
         let (tx_hash, retrieved_class_hash) =
