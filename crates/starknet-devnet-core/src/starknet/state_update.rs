@@ -81,9 +81,6 @@ mod tests {
         }
         .into();
 
-        // check only 3 of the 4 fields, because the inner property has changes to the storage of
-        // the ERC20 contract which are hard to be tested correctly, it depends on the fee
-        // calculation of starknet_in_rust_library
         assert_eq!(
             state_diff.deprecated_declared_classes,
             expected_state_diff.deprecated_declared_classes
