@@ -9,7 +9,7 @@ use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Felt};
 
 use self::state_diff::StateDiff;
-use self::state_readers::DictStateReader;
+use self::state_readers::DictState;
 use crate::error::{DevnetResult, Error};
 
 pub(crate) mod state_diff;
@@ -29,7 +29,7 @@ pub trait CustomState {
         class_hash: ClassHash,
         contract_class: ContractClass,
     ) -> DevnetResult<()>;
-    fn deploy_contract(
+    fn predeploy_contract(
         &mut self,
         contract_address: ContractAddress,
         class_hash: ClassHash,
@@ -55,7 +55,7 @@ impl CommittedClassStorage {
 }
 
 pub(crate) struct StarknetState {
-    pub(crate) state: CachedState<DictStateReader>,
+    pub(crate) state: CachedState<DictState>,
     rpc_contract_classes: CommittedClassStorage,
 }
 
@@ -213,13 +213,15 @@ impl CustomState for StarknetState {
         Ok(())
     }
 
-    fn deploy_contract(
+    fn predeploy_contract(
         &mut self,
         contract_address: ContractAddress,
         class_hash: ClassHash,
     ) -> DevnetResult<()> {
         // TODO self.increment_nonce(api_address)?;
-        self.set_class_hash_at(contract_address.try_into()?, class_hash.into())
+        self.state
+            .state
+            .set_class_hash_at(contract_address.try_into()?, class_hash.into())
             .map_err(|e| e.into())
     }
 }
@@ -310,7 +312,7 @@ mod tests {
     fn apply_state_updates_for_address_nonce_successfully() {
         let mut state = StarknetState::default();
 
-        state.deploy_contract(dummy_contract_address(), dummy_felt()).unwrap();
+        state.predeploy_contract(dummy_contract_address(), dummy_felt()).unwrap();
         let contract_address = dummy_contract_address().try_into().unwrap();
 
         // should be zero before update
@@ -356,7 +358,7 @@ mod tests {
         let (mut state, address) = setup();
         let felt = dummy_felt();
 
-        state.deploy_contract(address, felt).unwrap();
+        state.predeploy_contract(address, felt).unwrap();
         let core_address = address.try_into().unwrap();
         assert_eq!(state.get_nonce_at(core_address).unwrap(), Nonce(StarkFelt::ZERO));
     }
@@ -392,7 +394,7 @@ mod tests {
         let (contract_address, storage_key) = dummy_contract_storage_key();
         let class_hash = dummy_felt();
 
-        state.deploy_contract(contract_address.into(), class_hash).unwrap();
+        state.predeploy_contract(contract_address.into(), class_hash).unwrap();
 
         state.set_storage_at(contract_address, storage_key, expected_result);
         let generated_result = state.get_storage_at(contract_address, storage_key).unwrap();
@@ -424,7 +426,7 @@ mod tests {
         let class_hash = dummy_felt();
 
         state.declare_contract_class(class_hash, contract_class.into()).unwrap();
-        state.deploy_contract(address, class_hash).unwrap();
+        state.predeploy_contract(address, class_hash).unwrap();
 
         (state, address)
     }

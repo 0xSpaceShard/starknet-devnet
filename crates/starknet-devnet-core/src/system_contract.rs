@@ -43,7 +43,7 @@ impl SystemContract {
 impl Deployed for SystemContract {
     fn deploy(&self, state: &mut StarknetState) -> DevnetResult<()> {
         self.declare_if_undeclared(state, self.class_hash, &self.contract_class)?;
-        state.deploy_contract(self.address, self.class_hash)?;
+        state.predeploy_contract(self.address, self.class_hash)?;
         Ok(())
     }
 

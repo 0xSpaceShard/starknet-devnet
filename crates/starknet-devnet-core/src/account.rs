@@ -119,7 +119,7 @@ impl Deployed for Account {
     fn deploy(&self, state: &mut StarknetState) -> DevnetResult<()> {
         self.declare_if_undeclared(state, self.class_hash, &self.contract_class)?;
 
-        state.deploy_contract(self.account_address, self.class_hash)?;
+        state.predeploy_contract(self.account_address, self.class_hash)?;
 
         // set public key
         let public_key_storage_var = get_storage_var_address("Account_public_key", &[])?;
@@ -304,7 +304,7 @@ mod tests {
 
         // deploy the erc20 contract
         state
-            .deploy_contract(
+            .predeploy_contract(
                 fee_token_address,
                 Felt::from_prefixed_hex_str(CAIRO_1_ERC20_CONTRACT_CLASS_HASH).unwrap(),
             )
