@@ -196,8 +196,8 @@ mod tests {
 
     #[test]
     fn test_spec_methods() {
-        let specs =
-            Spec::load_from_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/spec/0.7.0"));
+        let specs_folder = concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/spec/");
+        let specs = Spec::load_from_dir(format!("{specs_folder}/{RPC_SPEC_VERSION}",).as_str());
         let combined_schema = generate_combined_schema(&specs);
 
         for _ in 0..1000 {
