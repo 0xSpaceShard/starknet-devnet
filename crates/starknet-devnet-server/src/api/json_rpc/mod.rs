@@ -861,6 +861,48 @@ mod requests_tests {
         );
     }
 
+    #[test]
+    fn deseralize_chain_id_request() {
+        [
+            json!({
+                "method": "starknet_chainId",
+                "params": {}
+            }),
+            json!({
+                "method": "starknet_chainId",
+                "params": []
+            }),
+            json!({
+                "method": "starknet_chainId",
+            }),
+        ]
+        .into_iter()
+        .for_each(|body| {
+            assert_deserialization_succeeds(body.to_string().as_str());
+        });
+    }
+
+    #[test]
+    fn deserialize_spec_version_request() {
+        [
+            json!({
+                "method": "starknet_specVersion",
+                "params": {}
+            }),
+            json!({
+                "method": "starknet_specVersion",
+                "params": []
+            }),
+            json!({
+                "method": "starknet_specVersion",
+            }),
+        ]
+        .into_iter()
+        .for_each(|body| {
+            assert_deserialization_succeeds(body.to_string().as_str());
+        });
+    }
+
     fn assert_deserialization_succeeds(json_str: &str) {
         serde_json::from_str::<StarknetRequest>(json_str).unwrap();
     }
