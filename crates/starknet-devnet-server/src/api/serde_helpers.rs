@@ -1,4 +1,4 @@
-/// A module that deserializes `[]` optionally
+/// A module that deserializes `[]` and `{}` optionally
 pub mod empty_params {
     use serde::de::Error as DeError;
     use serde::{Deserialize, Deserializer};
@@ -11,6 +11,7 @@ pub mod empty_params {
         let value: Value = Deserialize::deserialize(d)?;
 
         match value {
+            Value::Null => Ok(()),
             Value::Object(obj) if obj.is_empty() => Ok(()),
             Value::Array(arr) if arr.is_empty() => Ok(()),
             other => Err(DeError::custom(format!(
@@ -61,5 +62,12 @@ mod tests {
     fn deserialize_other_types() {
         let json_str = "\"string\"";
         assert!(test_deserialization(json_str).is_err());
+    }
+
+    #[test]
+    fn deserialize_null() {
+        let value: Value = serde_json::Value::Null;
+        let deserializer = value.into_deserializer();
+        assert!(deserialize(deserializer).is_ok());
     }
 }
