@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use blockifier::block_context::{BlockContext, BlockInfo, ChainInfo};
+use blockifier::block_context::{BlockContext, BlockContextArgs};
 use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::state_api::StateReader;
 use blockifier::test_utils::{DEFAULT_ETH_L1_DATA_GAS_PRICE, DEFAULT_STRK_L1_DATA_GAS_PRICE};
@@ -248,7 +248,10 @@ impl Starknet {
             ),
         };
         new_block.set_timestamp(block_timestamp);
-        self.block_context.block_info.block_timestamp = block_timestamp;
+        let mut block_context_args = Self::to_block_context_args(&self.block_context);
+        block_context_args.block_timestamp = block_timestamp;
+        // TODO: use other way of updating block_context
+        self.block_context = BlockContext::new_unchecked(block_context_args);
 
         let new_block_number = new_block.block_number();
 
@@ -428,51 +431,67 @@ impl Starknet {
 
         // Create a BlockContext based on BlockContext::create_for_testing()
         const N_STEPS_FEE_WEIGHT: f64 = 0.01;
-        BlockContext {
-            block_info: BlockInfo {
-                block_number: BlockNumber(0),
-                block_timestamp: BlockTimestamp(0),
-                sequencer_address: contract_address!("0x1000"),
 
-                vm_resource_fee_cost: std::sync::Arc::new(HashMap::from([
-                    (N_STEPS.to_string(), N_STEPS_FEE_WEIGHT),
-                    (OUTPUT_BUILTIN_NAME.to_string(), 0.0),
-                    (HASH_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 32.0),
-                    (RANGE_CHECK_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 16.0),
-                    (SIGNATURE_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 2048.0),
-                    (BITWISE_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 64.0),
-                    (EC_OP_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 1024.0),
-                    (POSEIDON_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 32.0),
-                    (SEGMENT_ARENA_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 10.0),
-                    (KECCAK_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 2048.0), // 2**11
-                ])),
-                gas_prices: blockifier::block_context::GasPrices {
-                    eth_l1_gas_price: gas_price as u128,
-                    strk_l1_gas_price: gas_price as u128,
-                    // TODO: modify these values
-                    eth_l1_data_gas_price: DEFAULT_ETH_L1_DATA_GAS_PRICE,
-                    strk_l1_data_gas_price: DEFAULT_STRK_L1_DATA_GAS_PRICE,
-                },
-                invoke_tx_max_n_steps: 4_000_000_u32,
-                validate_max_n_steps: 1_000_000_u32,
-                max_recursion_depth: 50,
-                use_kzg_da: false,
+        BlockContext::new_unchecked(BlockContextArgs {
+            block_number: BlockNumber(0),
+            block_timestamp: BlockTimestamp(0),
+            sequencer_address: contract_address!("0x1000"),
+
+            vm_resource_fee_cost: std::sync::Arc::new(HashMap::from([
+                (N_STEPS.to_string(), N_STEPS_FEE_WEIGHT),
+                (OUTPUT_BUILTIN_NAME.to_string(), 0.0),
+                (HASH_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 32.0),
+                (RANGE_CHECK_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 16.0),
+                (SIGNATURE_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 2048.0),
+                (BITWISE_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 64.0),
+                (EC_OP_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 1024.0),
+                (POSEIDON_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 32.0),
+                (SEGMENT_ARENA_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 10.0),
+                (KECCAK_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 2048.0), // 2**11
+            ])),
+            gas_prices: blockifier::block_context::GasPrices {
+                eth_l1_gas_price: gas_price as u128,
+                strk_l1_gas_price: gas_price as u128,
+                // TODO: modify these values
+                eth_l1_data_gas_price: DEFAULT_ETH_L1_DATA_GAS_PRICE,
+                strk_l1_data_gas_price: DEFAULT_STRK_L1_DATA_GAS_PRICE,
             },
-            chain_info: ChainInfo {
-                chain_id: chain_id.into(),
-                fee_token_addresses: blockifier::block_context::FeeTokenAddresses {
-                    eth_fee_token_address: contract_address!(eth_fee_token_address),
-                    strk_fee_token_address: contract_address!(strk_fee_token_address),
-                },
+            invoke_tx_max_n_steps: 4_000_000_u32,
+            validate_max_n_steps: 1_000_000_u32,
+            max_recursion_depth: 50,
+            use_kzg_da: false,
+            chain_id: chain_id.into(),
+            fee_token_addresses: blockifier::block_context::FeeTokenAddresses {
+                eth_fee_token_address: contract_address!(eth_fee_token_address),
+                strk_fee_token_address: contract_address!(strk_fee_token_address),
             },
-        }
+        })
     }
 
     /// Update block context block_number with the next one
     /// # Arguments
     /// * `block_context` - BlockContext to be updated
     fn update_block_context(block_context: &mut BlockContext) {
-        block_context.block_info.block_number = block_context.block_info.block_number.next();
+        let mut args = Self::to_block_context_args(block_context);
+        args.block_number = args.block_number.next();
+        // TODO: update block_context via preferred method in the documentation
+        *block_context = BlockContext::new_unchecked(args);
+    }
+
+    fn to_block_context_args(block_context: &BlockContext) -> BlockContextArgs {
+        BlockContextArgs {
+            chain_id: block_context.chain_info().chain_id.clone(),
+            block_number: block_context.block_info().block_number,
+            block_timestamp: block_context.block_info().block_timestamp,
+            sequencer_address: block_context.block_info().sequencer_address,
+            fee_token_addresses: block_context.chain_info().fee_token_addresses.clone(),
+            vm_resource_fee_cost: block_context.block_info().vm_resource_fee_cost.clone(),
+            use_kzg_da: block_context.block_info().use_kzg_da,
+            gas_prices: block_context.block_info().gas_prices.clone(),
+            invoke_tx_max_n_steps: block_context.block_info().invoke_tx_max_n_steps,
+            validate_max_n_steps: block_context.block_info().validate_max_n_steps,
+            max_recursion_depth: block_context.block_info().max_recursion_depth,
+        }
     }
 
     fn pending_block(&self) -> &StarknetBlock {
@@ -483,10 +502,10 @@ impl Starknet {
     fn restart_pending_block(&mut self) -> DevnetResult<()> {
         let mut block = StarknetBlock::create_pending_block();
 
-        block.header.block_number = self.block_context.block_info.block_number;
+        block.header.block_number = self.block_context.block_info().block_number;
         block.header.eth_l1_gas_price =
-            GasPrice(self.block_context.block_info.gas_prices.eth_l1_gas_price);
-        block.header.sequencer = self.block_context.block_info.sequencer_address;
+            GasPrice(self.block_context.block_info().gas_prices.eth_l1_gas_price);
+        block.header.sequencer = self.block_context.block_info().sequencer_address;
 
         self.blocks.pending_block = block;
 
@@ -1058,11 +1077,11 @@ mod tests {
             STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
         );
-        assert_eq!(block_ctx.block_info.block_number, BlockNumber(0));
-        assert_eq!(block_ctx.block_info.block_timestamp, BlockTimestamp(0));
-        assert_eq!(block_ctx.block_info.gas_prices.eth_l1_gas_price, 10);
+        assert_eq!(block_ctx.block_info().block_number, BlockNumber(0));
+        assert_eq!(block_ctx.block_info().block_timestamp, BlockTimestamp(0));
+        assert_eq!(block_ctx.block_info().gas_prices.eth_l1_gas_price, 10);
         assert_eq!(
-            ContractAddress::from(block_ctx.chain_info.fee_token_addresses.eth_fee_token_address),
+            ContractAddress::from(block_ctx.chain_info().fee_token_addresses.eth_fee_token_address),
             fee_token_address
         );
     }
@@ -1071,7 +1090,7 @@ mod tests {
     fn pending_block_is_correct() {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
-        let initial_block_number = starknet.block_context.block_info.block_number;
+        let initial_block_number = starknet.block_context.block_info().block_number;
         starknet.generate_pending_block().unwrap();
 
         assert_eq!(starknet.pending_block().header.block_number, initial_block_number.next());
@@ -1108,10 +1127,10 @@ mod tests {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        let initial_block_number = starknet.block_context.block_info.block_number;
-        let initial_gas_price = starknet.block_context.block_info.gas_prices.eth_l1_gas_price;
-        let initial_block_timestamp = starknet.block_context.block_info.block_timestamp;
-        let initial_sequencer = starknet.block_context.block_info.sequencer_address;
+        let initial_block_number = starknet.block_context.block_info().block_number;
+        let initial_gas_price = starknet.block_context.block_info().gas_prices.eth_l1_gas_price;
+        let initial_block_timestamp = starknet.block_context.block_info().block_timestamp;
+        let initial_sequencer = starknet.block_context.block_info().sequencer_address;
 
         // create pending block with some information in it
         let mut pending_block = StarknetBlock::create_pending_block();
@@ -1143,10 +1162,10 @@ mod tests {
             STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
         );
-        let initial_block_number = block_ctx.block_info.block_number;
+        let initial_block_number = block_ctx.block_info().block_number;
         Starknet::update_block_context(&mut block_ctx);
 
-        assert_eq!(block_ctx.block_info.block_number, initial_block_number.next());
+        assert_eq!(block_ctx.block_info().block_number, initial_block_number.next());
     }
 
     #[test]
