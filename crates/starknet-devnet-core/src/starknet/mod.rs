@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use blockifier::block_context::BlockContext;
 use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::state_api::StateReader;
+use blockifier::test_utils::{DEFAULT_ETH_L1_DATA_GAS_PRICE, DEFAULT_STRK_L1_DATA_GAS_PRICE};
 use blockifier::transaction::errors::TransactionPreValidationError;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
@@ -451,10 +452,14 @@ impl Starknet {
             gas_prices: blockifier::block_context::GasPrices {
                 eth_l1_gas_price: gas_price as u128,
                 strk_l1_gas_price: gas_price as u128,
+                // TODO: modify these values
+                eth_l1_data_gas_price: DEFAULT_ETH_L1_DATA_GAS_PRICE,
+                strk_l1_data_gas_price: DEFAULT_STRK_L1_DATA_GAS_PRICE,
             },
             invoke_tx_max_n_steps: 4_000_000_u32,
             validate_max_n_steps: 1_000_000_u32,
             max_recursion_depth: 50,
+            use_kzg_da: false,
         }
     }
 
