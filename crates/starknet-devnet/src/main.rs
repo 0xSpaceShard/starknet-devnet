@@ -13,6 +13,7 @@ use starknet_core::constants::{
 };
 use starknet_core::starknet::starknet_config::DumpOn;
 use starknet_core::starknet::Starknet;
+use starknet_types::chain_id::ChainId;
 use starknet_types::felt::Felt;
 use starknet_types::traits::{ToDecimalString, ToHexString};
 use tracing::info;
@@ -68,6 +69,11 @@ fn print_predeployed_contracts() {
     println!("Predeployed UDC");
     println!("Address: {UDC_CONTRACT_ADDRESS}");
     println!("Class Hash: {UDC_CONTRACT_CLASS_HASH}");
+    println!();
+}
+
+fn print_chain_id(chain_id: ChainId) {
+    println!("Chain ID: {} ({})", chain_id, chain_id.to_felt().to_prefixed_hex_str());
 }
 
 #[tokio::main]
@@ -89,6 +95,7 @@ async fn main() -> Result<(), anyhow::Error> {
     };
 
     print_predeployed_contracts();
+    print_chain_id(starknet_config.chain_id);
 
     let predeployed_accounts = api.starknet.read().await.get_predeployed_accounts();
     log_predeployed_accounts(
