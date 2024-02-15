@@ -565,7 +565,9 @@ impl Starknet {
         let res = call
             .execute(&mut state.clone().state, &mut execution_resources, &mut execution_context)
             .map_err(|err| {
-                Error::BlockifierTransactionError(blockifier::transaction::errors::TransactionExecutionError::EntryPointExecutionError(err))
+                Error::BlockifierTransactionError(
+                    blockifier::transaction::errors::TransactionExecutionError::ExecutionError(err),
+                )
             })?;
 
         Ok(res.execution.retdata.0.into_iter().map(Felt::from).collect())
@@ -1225,13 +1227,11 @@ mod tests {
             entry_point_selector.into(),
             vec![Felt::from(predeployed_account.account_address)],
         ) {
-            Err(Error::BlockifierTransactionError(
-                TransactionExecutionError::EntryPointExecutionError(
-                    blockifier::execution::errors::EntryPointExecutionError::PreExecutionError(
-                        blockifier::execution::errors::PreExecutionError::EntryPointNotFound(_),
-                    ),
+            Err(Error::BlockifierTransactionError(TransactionExecutionError::ExecutionError(
+                blockifier::execution::errors::EntryPointExecutionError::PreExecutionError(
+                    blockifier::execution::errors::PreExecutionError::EntryPointNotFound(_),
                 ),
-            )) => (),
+            ))) => (),
             unexpected => panic!("Should have failed; got {unexpected:?}"),
         }
     }
