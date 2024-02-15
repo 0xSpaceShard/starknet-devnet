@@ -23,6 +23,7 @@ pub trait HashIdentifiedMut {
     fn get_by_hash_mut(&mut self, hash: &Self::Hash) -> Option<&mut Self::Element>;
 }
 
+// TODO rename to Predeployed, predeploy and predeclare_if_undeclared
 pub(crate) trait Deployed {
     fn deploy(&self, state: &mut StarknetState) -> DevnetResult<()>;
     fn get_address(&self) -> ContractAddress;
@@ -34,7 +35,7 @@ pub(crate) trait Deployed {
         contract_class: &ContractClass,
     ) -> DevnetResult<()> {
         if !state.is_contract_declared(class_hash) {
-            state.declare_contract_class(class_hash, contract_class.clone())?;
+            state.predeclare_contract_class(class_hash, contract_class.clone())?;
         }
 
         Ok(())

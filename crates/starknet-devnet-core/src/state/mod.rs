@@ -24,6 +24,11 @@ pub trait CustomStateReader {
 }
 
 pub trait CustomState {
+    fn predeclare_contract_class(
+        &mut self,
+        class_hash: ClassHash,
+        contract_class: ContractClass,
+    ) -> DevnetResult<()>;
     fn declare_contract_class(
         &mut self,
         class_hash: ClassHash,
@@ -51,6 +56,12 @@ impl CommittedClassStorage {
         let diff = self.staging.clone();
         self.committed.extend(self.staging.drain());
         diff
+    }
+
+    fn insert_and_commit(&mut self, class_hash: ClassHash, contract_class: ContractClass) {
+        assert!(self.staging.is_empty());
+        self.insert(class_hash, contract_class);
+        self.commit();
     }
 }
 
@@ -193,6 +204,27 @@ impl CustomStateReader for StarknetState {
 }
 
 impl CustomState for StarknetState {
+    /// writes directly to the most underlying state, skipping cache
+    fn predeclare_contract_class(
+        &mut self,
+        class_hash: ClassHash,
+        contract_class: ContractClass,
+    ) -> DevnetResult<()> {
+        let compiled_class = contract_class.clone().try_into()?;
+
+        if let ContractClass::Cairo1(_) = contract_class {
+            let cairo_lang_compiled_class: cairo_lang_starknet::casm_contract_class::CasmContractClass =
+                contract_class.clone().try_into()?;
+            let casm_hash =
+                Felt::new(cairo_lang_compiled_class.compiled_class_hash().to_be_bytes())?;
+            self.state.state.set_compiled_class_hash(class_hash.into(), casm_hash.into())?;
+        };
+
+        self.state.state.set_contract_class(&class_hash.into(), compiled_class)?;
+        self.rpc_contract_classes.insert_and_commit(class_hash, contract_class);
+        Ok(())
+    }
+
     fn declare_contract_class(
         &mut self,
         class_hash: ClassHash,
