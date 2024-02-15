@@ -863,7 +863,7 @@ mod requests_tests {
 
     #[test]
     fn deseralize_chain_id_request() {
-        [
+        for body in [
             json!({
                 "method": "starknet_chainId",
                 "params": {}
@@ -875,16 +875,14 @@ mod requests_tests {
             json!({
                 "method": "starknet_chainId",
             }),
-        ]
-        .into_iter()
-        .for_each(|body| {
-            assert_deserialization_succeeds(body.to_string().as_str());
-        });
+        ] {
+            assert_deserialization_succeeds(body.to_string().as_str())
+        }
     }
 
     #[test]
     fn deserialize_spec_version_request() {
-        [
+        for body in [
             json!({
                 "method": "starknet_specVersion",
                 "params": {}
@@ -896,11 +894,9 @@ mod requests_tests {
             json!({
                 "method": "starknet_specVersion",
             }),
-        ]
-        .into_iter()
-        .for_each(|body| {
-            assert_deserialization_succeeds(body.to_string().as_str());
-        });
+        ] {
+            assert_deserialization_succeeds(body.to_string().as_str())
+        }
     }
 
     fn assert_deserialization_succeeds(json_str: &str) {
