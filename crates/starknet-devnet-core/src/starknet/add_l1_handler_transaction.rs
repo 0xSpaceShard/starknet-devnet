@@ -62,7 +62,7 @@ mod tests {
     };
     use crate::starknet::{predeployed, Starknet};
     use crate::state::CustomState;
-    use crate::traits::{Accounted, Deployed, HashIdentifiedMut};
+    use crate::traits::{Deployed, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_l1l2_contract;
     use crate::utils::test_utils::{
         cairo_0_account_without_validations, dummy_felt, get_bytes_from_u32,
@@ -207,7 +207,6 @@ mod tests {
         .unwrap();
 
         account.deploy(&mut starknet.state).unwrap();
-        account.set_initial_balance(&mut starknet.state).unwrap();
 
         // dummy contract
         let dummy_contract: Cairo0ContractClass = dummy_cairo_l1l2_contract().into();

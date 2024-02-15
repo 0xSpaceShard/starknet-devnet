@@ -63,7 +63,7 @@ mod tests {
     use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
     use crate::starknet::{predeployed, Starknet};
     use crate::state::state_diff::StateDiff;
-    use crate::traits::{Accounted, Deployed};
+    use crate::traits::Deployed;
     use crate::utils::test_utils::{dummy_broadcasted_declare_transaction_v2, dummy_felt};
 
     fn setup(
@@ -96,7 +96,6 @@ mod tests {
         .unwrap();
 
         acc.deploy(&mut starknet.state).unwrap();
-        acc.set_initial_balance(&mut starknet.state).unwrap();
 
         starknet.block_context = Starknet::init_block_context(
             1,

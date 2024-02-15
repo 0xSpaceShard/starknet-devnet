@@ -121,13 +121,16 @@ impl Deployed for Account {
 
         state.predeploy_contract(self.account_address, self.class_hash)?;
 
-        // set public key
+        // set public key directly in the most underlying state
         let public_key_storage_var = get_storage_var_address("Account_public_key", &[])?;
-        state.set_storage_at(
+        state.state.state.set_storage_at(
             self.account_address.try_into()?,
             public_key_storage_var.into(),
             self.public_key.into(),
         );
+
+        // set balance directly in the most underlying state
+        self.set_initial_balance(&mut state.state.state)?;
 
         Ok(())
     }
@@ -257,24 +260,11 @@ mod tests {
     }
 
     #[test]
-    fn account_get_balance_should_return_zero_because_balance_was_not_set() {
-        let (account, mut state) = setup();
-
-        account.deploy(&mut state).unwrap();
-        let balance = account.get_balance(&mut state, FeeToken::ETH).unwrap();
-        assert_eq!(balance, Felt::from(0));
-
-        let balance = account.get_balance(&mut state, FeeToken::STRK).unwrap();
-        assert_eq!(balance, Felt::from(0));
-    }
-
-    #[test]
     fn account_get_balance_should_return_correct_value() {
         let (mut account, mut state) = setup();
         let expected_balance = Felt::from(100);
         account.initial_balance = expected_balance;
         account.deploy(&mut state).unwrap();
-        account.set_initial_balance(&mut state).unwrap();
         let generated_balance = account.get_balance(&mut state, FeeToken::ETH).unwrap();
 
         assert_eq!(expected_balance, generated_balance);

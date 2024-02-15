@@ -33,7 +33,7 @@ mod tests {
     };
     use crate::starknet::{predeployed, Starknet};
     use crate::state::state_diff::StateDiff;
-    use crate::traits::{Accounted, Deployed, HashIdentifiedMut};
+    use crate::traits::{Deployed, HashIdentifiedMut};
     use crate::utils::test_utils::{dummy_cairo_1_contract_class, dummy_felt};
 
     #[test]
@@ -115,7 +115,6 @@ mod tests {
         .unwrap();
 
         acc.deploy(&mut starknet.state).unwrap();
-        acc.set_initial_balance(&mut starknet.state).unwrap();
 
         starknet.block_context = Starknet::init_block_context(
             1,

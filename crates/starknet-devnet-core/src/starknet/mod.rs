@@ -63,7 +63,7 @@ use crate::raw_execution::{Call, RawExecution};
 use crate::state::state_diff::StateDiff;
 use crate::state::state_update::StateUpdate;
 use crate::state::{CustomState, StarknetState};
-use crate::traits::{AccountGenerator, Accounted, Deployed, HashIdentified, HashIdentifiedMut};
+use crate::traits::{AccountGenerator, Deployed, HashIdentified, HashIdentifiedMut};
 use crate::transactions::{StarknetTransaction, StarknetTransactions};
 
 mod add_declare_transaction;
@@ -156,7 +156,6 @@ impl Starknet {
         )?;
         for account in accounts {
             account.deploy(&mut state)?;
-            account.set_initial_balance(&mut state)?;
         }
 
         let chargeable_account = Account::new_chargeable(
@@ -164,7 +163,6 @@ impl Starknet {
             strk_erc20_fee_contract.get_address(),
         )?;
         chargeable_account.deploy(&mut state)?;
-        chargeable_account.set_initial_balance(&mut state)?;
 
         state.commit_full_state_and_get_diff()?;
 

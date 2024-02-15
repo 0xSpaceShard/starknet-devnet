@@ -418,7 +418,6 @@ mod tests {
         .unwrap();
 
         account.deploy(&mut starknet.state).unwrap();
-        account.set_initial_balance(&mut starknet.state).unwrap();
 
         // dummy contract
         let dummy_contract: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
