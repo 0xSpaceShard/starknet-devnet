@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use blockifier::state::cached_state::CachedState;
+use blockifier::state::cached_state::{
+    CachedState, GlobalContractCache, GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST,
+};
 use blockifier::state::state_api::StateReader;
 use starknet_rs_ff::FieldElement;
 use starknet_types::contract_address::ContractAddress;
@@ -23,7 +25,10 @@ pub(crate) struct StarknetState {
 impl Default for StarknetState {
     fn default() -> Self {
         Self {
-            state: CachedState::new(Default::default(), Default::default()),
+            state: CachedState::new(
+                Default::default(),
+                GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
+            ),
             contract_classes: Default::default(),
         }
     }
@@ -132,14 +137,20 @@ impl StarknetState {
     /// this method clears the state from data that was accumulated in the StateCache
     /// and restores it to the data in the state_reader, which is the "persistent" data
     pub(crate) fn clear_dirty_state(&mut self) {
-        self.state = CachedState::new(self.state.state.clone(), Default::default());
+        self.state = CachedState::new(
+            self.state.state.clone(),
+            GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
+        );
     }
 }
 
 impl Clone for StarknetState {
     fn clone(&self) -> Self {
         Self {
-            state: CachedState::new(self.state.state.clone(), Default::default()),
+            state: CachedState::new(
+                self.state.state.clone(),
+                GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
+            ),
             contract_classes: self.contract_classes.clone(),
         }
     }
