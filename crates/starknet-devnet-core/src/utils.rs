@@ -75,6 +75,10 @@ pub(crate) mod test_utils {
         ContractClass::cairo_1_from_sierra_json_str(&json_str).unwrap()
     }
 
+    /// casm hash of dummy_cairo_1_contract_class
+    pub static DUMMY_CAIRO_1_COMPILED_CLASS_HASH: &str =
+        "0x3faafcc98742a29a5ca809bda3c827b2d2c73759c64f695e33106009e7e9fef";
+
     pub(crate) fn dummy_contract_address() -> ContractAddress {
         ContractAddress::new(Felt::from_prefixed_hex_str("0xADD4E55").unwrap()).unwrap()
     }

@@ -280,42 +280,14 @@ mod tests {
     }
 
     #[test]
-    fn apply_state_update_for_contract_class_successfully() {
+    fn test_class_present_after_declaration() {
         let mut state = StarknetState::default();
 
-        let class_hash = dummy_felt().into();
-        let contract_class: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
+        let class_hash = dummy_felt();
+        let contract_class = ContractClass::Cairo0(dummy_cairo_0_contract_class().into());
 
-        state
-            .state
-            .set_contract_class(
-                &class_hash,
-                ContractClass::Cairo0(contract_class.clone()).try_into().unwrap(),
-            )
-            .unwrap();
-
-        state.rpc_contract_classes.insert(class_hash.into(), contract_class.into());
-
-        assert!(!state.is_contract_declared(dummy_felt()));
-        state.state.get_compiled_contract_class(&class_hash).unwrap();
-        state.commit_full_state_and_get_diff().unwrap();
-
+        state.declare_contract_class(class_hash, contract_class).unwrap();
         assert!(state.is_contract_declared(dummy_felt()));
-    }
-
-    #[test]
-    fn synchronize_states_after_changing_pending_state_it_should_be_empty() {
-        let mut state = StarknetState::default();
-        let (contract_address, storage_key) = dummy_contract_storage_key();
-
-        state.state.set_storage_at(contract_address, storage_key, dummy_felt().into());
-
-        state.state.get_storage_at(contract_address, storage_key).unwrap();
-
-        assert_eq!(
-            state.state.get_storage_at(contract_address, storage_key).unwrap(),
-            Felt::default().into()
-        );
     }
 
     #[test]
@@ -323,17 +295,15 @@ mod tests {
         let mut state = StarknetState::default();
         let (contract_address, storage_key) = dummy_contract_storage_key();
 
+        let storage_before = state.get_storage_at(contract_address, storage_key).unwrap();
+        assert_eq!(storage_before, StarkFelt::ZERO);
+
         state
             .state
             .set_class_hash_at(contract_address, starknet_api::core::ClassHash(dummy_felt().into()))
             .unwrap();
 
         state.state.set_storage_at(contract_address, storage_key, dummy_felt().into());
-
-        let storage_before = state.get_storage_at(contract_address, storage_key).unwrap();
-        assert_eq!(storage_before, StarkFelt::ZERO);
-
-        // apply changes to persistent state
         state.commit_full_state_and_get_diff().unwrap();
 
         let storage_after = state.get_storage_at(contract_address, storage_key).unwrap();
@@ -373,6 +343,8 @@ mod tests {
         state
             .declare_contract_class(class_hash, contract_class.clone().try_into().unwrap())
             .unwrap();
+
+        state.commit_full_state_and_get_diff().unwrap();
 
         match state.get_compiled_contract_class(&class_hash.into()) {
             Ok(blockifier::execution::contract_class::ContractClass::V0(retrieved_class)) => {
