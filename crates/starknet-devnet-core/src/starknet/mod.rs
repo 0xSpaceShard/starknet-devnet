@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use blockifier::block_context::{BlockContext, BlockInfo};
+use blockifier::block_context::{BlockContext, BlockInfo, ChainInfo};
 use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::state_api::StateReader;
 use blockifier::test_utils::{DEFAULT_ETH_L1_DATA_GAS_PRICE, DEFAULT_STRK_L1_DATA_GAS_PRICE};
@@ -430,14 +430,10 @@ impl Starknet {
         const N_STEPS_FEE_WEIGHT: f64 = 0.01;
         BlockContext {
             block_info: BlockInfo {
-                chain_id: chain_id.into(),
                 block_number: BlockNumber(0),
                 block_timestamp: BlockTimestamp(0),
                 sequencer_address: contract_address!("0x1000"),
-                fee_token_addresses: blockifier::block_context::FeeTokenAddresses {
-                    eth_fee_token_address: contract_address!(eth_fee_token_address),
-                    strk_fee_token_address: contract_address!(strk_fee_token_address),
-                },
+
                 vm_resource_fee_cost: std::sync::Arc::new(HashMap::from([
                     (N_STEPS.to_string(), N_STEPS_FEE_WEIGHT),
                     (OUTPUT_BUILTIN_NAME.to_string(), 0.0),
@@ -461,6 +457,13 @@ impl Starknet {
                 validate_max_n_steps: 1_000_000_u32,
                 max_recursion_depth: 50,
                 use_kzg_da: false,
+            },
+            chain_info: ChainInfo {
+                chain_id: chain_id.into(),
+                fee_token_addresses: blockifier::block_context::FeeTokenAddresses {
+                    eth_fee_token_address: contract_address!(eth_fee_token_address),
+                    strk_fee_token_address: contract_address!(strk_fee_token_address),
+                },
             },
         }
     }
@@ -1059,7 +1062,7 @@ mod tests {
         assert_eq!(block_ctx.block_info.block_timestamp, BlockTimestamp(0));
         assert_eq!(block_ctx.block_info.gas_prices.eth_l1_gas_price, 10);
         assert_eq!(
-            ContractAddress::from(block_ctx.block_info.fee_token_addresses.eth_fee_token_address),
+            ContractAddress::from(block_ctx.chain_info.fee_token_addresses.eth_fee_token_address),
             fee_token_address
         );
     }
