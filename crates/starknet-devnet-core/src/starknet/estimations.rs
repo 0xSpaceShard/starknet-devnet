@@ -104,7 +104,7 @@ fn estimate_transaction_fee(
         extract_l1_gas_and_vm_usage(&transaction_execution_info.actual_resources);
     let l1_gas_by_vm_usage =
         calculate_l1_gas_by_vm_usage(&get_versioned_constants(), &vm_resources)?;
-    let total_l1_gas_usage = l1_gas_usage as f64 + l1_gas_by_vm_usage;
+    let total_l1_gas_usage = l1_gas_usage as f64 + l1_gas_by_vm_usage.l1_gas as f64; // TODO check the blob_gas
     let total_l1_gas_usage = total_l1_gas_usage.ceil() as u64;
 
     let gas_price = block_context.block_info().gas_prices.eth_l1_gas_price as u64;
