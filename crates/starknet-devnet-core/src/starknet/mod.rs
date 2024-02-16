@@ -1,3 +1,4 @@
+use std::num::{NonZeroU128, NonZeroU64};
 use std::sync::Arc;
 
 use blockifier::block::BlockInfo;
@@ -8,6 +9,8 @@ use blockifier::test_utils::{DEFAULT_ETH_L1_DATA_GAS_PRICE, DEFAULT_STRK_L1_DATA
 use blockifier::transaction::errors::TransactionPreValidationError;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
+use ethers::etherscan::gas;
+use nonzero_ext::nonzero;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
 use starknet_api::transaction::Fee;
 use starknet_rs_core::types::{
@@ -50,8 +53,8 @@ use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
     CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, DEVNET_DEFAULT_CHAIN_ID,
-    ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME, ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS,
-    STRK_ERC20_NAME, STRK_ERC20_SYMBOL,
+    DEVNET_DEFAULT_GAS_PRICE, ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME, ETH_ERC20_SYMBOL,
+    STRK_ERC20_CONTRACT_ADDRESS, STRK_ERC20_NAME, STRK_ERC20_SYMBOL,
 };
 use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::messaging::MessagingBroker;
@@ -98,7 +101,7 @@ impl Default for Starknet {
     fn default() -> Self {
         Self {
             block_context: Self::init_block_context(
-                0,
+                DEVNET_DEFAULT_GAS_PRICE,
                 ETH_ERC20_CONTRACT_ADDRESS,
                 STRK_ERC20_CONTRACT_ADDRESS,
                 DEVNET_DEFAULT_CHAIN_ID,
@@ -414,7 +417,7 @@ impl Starknet {
     }
 
     fn init_block_context(
-        gas_price: u64,
+        gas_price: NonZeroU64,
         eth_fee_token_address: &str,
         strk_fee_token_address: &str,
         chain_id: ChainId,
@@ -430,11 +433,11 @@ impl Starknet {
             block_timestamp: BlockTimestamp(0),
             sequencer_address: contract_address!("0x1000"),
             gas_prices: blockifier::block::GasPrices {
-                eth_l1_gas_price: gas_price as u128,
-                strk_l1_gas_price: gas_price as u128,
+                eth_l1_gas_price: NonZeroU128::from(gas_price),
+                strk_l1_gas_price: NonZeroU128::from(gas_price),
                 // TODO: modify these values
-                eth_l1_data_gas_price: DEFAULT_ETH_L1_DATA_GAS_PRICE,
-                strk_l1_data_gas_price: DEFAULT_STRK_L1_DATA_GAS_PRICE,
+                eth_l1_data_gas_price: nonzero!(DEFAULT_ETH_L1_DATA_GAS_PRICE),
+                strk_l1_data_gas_price: nonzero!(DEFAULT_STRK_L1_DATA_GAS_PRICE),
             },
             use_kzg_da: false,
         };
@@ -489,7 +492,7 @@ impl Starknet {
 
         block.header.block_number = self.block_context.block_info().block_number;
         block.header.eth_l1_gas_price =
-            GasPrice(self.block_context.block_info().gas_prices.eth_l1_gas_price);
+            GasPrice(self.block_context.block_info().gas_prices.eth_l1_gas_price.get());
         block.header.sequencer = self.block_context.block_info().sequencer_address;
 
         self.blocks.pending_block = block;
@@ -686,7 +689,7 @@ impl Starknet {
         amount: u128,
         erc20_address: ContractAddress,
     ) -> DevnetResult<Felt> {
-        let sufficiently_big_max_fee: u128 = self.config.gas_price as u128 * 1_000_000;
+        let sufficiently_big_max_fee = (self.config.gas_price.get() * 1_000_000) as u128;
         let chargeable_address_felt = Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?;
         let nonce =
             self.state.state.get_nonce_at(starknet_api::core::ContractAddress::try_from(
@@ -1017,6 +1020,7 @@ mod tests {
 
     use blockifier::state::state_api::State;
     use blockifier::transaction::errors::TransactionExecutionError;
+    use nonzero_ext::nonzero;
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
     use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_types::contract_address::ContractAddress;
@@ -1058,14 +1062,14 @@ mod tests {
         let fee_token_address =
             ContractAddress::new(Felt::from_prefixed_hex_str("0xAA").unwrap()).unwrap();
         let block_ctx = Starknet::init_block_context(
-            10,
+            nonzero!(10u64),
             "0xAA",
             STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
         );
         assert_eq!(block_ctx.block_info().block_number, BlockNumber(0));
         assert_eq!(block_ctx.block_info().block_timestamp, BlockTimestamp(0));
-        assert_eq!(block_ctx.block_info().gas_prices.eth_l1_gas_price, 10);
+        assert_eq!(block_ctx.block_info().gas_prices.eth_l1_gas_price.get(), 10);
         assert_eq!(
             ContractAddress::from(block_ctx.chain_info().fee_token_addresses.eth_fee_token_address),
             fee_token_address
@@ -1136,14 +1140,17 @@ mod tests {
         assert_eq!(starknet.pending_block().header.timestamp, initial_block_timestamp);
         assert_eq!(starknet.pending_block().header.block_number, initial_block_number);
         assert_eq!(starknet.pending_block().header.parent_hash, BlockHash::default());
-        assert_eq!(starknet.pending_block().header.eth_l1_gas_price, GasPrice(initial_gas_price));
+        assert_eq!(
+            starknet.pending_block().header.eth_l1_gas_price,
+            GasPrice(initial_gas_price.get())
+        );
         assert_eq!(starknet.pending_block().header.sequencer, initial_sequencer);
     }
 
     #[test]
     fn correct_block_context_update() {
         let mut block_ctx = Starknet::init_block_context(
-            0,
+            nonzero!(1u64),
             ETH_ERC20_CONTRACT_ADDRESS,
             STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,

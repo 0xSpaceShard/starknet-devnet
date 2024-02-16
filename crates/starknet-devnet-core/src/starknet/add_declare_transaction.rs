@@ -126,6 +126,7 @@ pub fn add_declare_transaction_v1(
 
 #[cfg(test)]
 mod tests {
+    use nonzero_ext::nonzero;
     use starknet_api::block::BlockNumber;
     use starknet_api::transaction::Fee;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
@@ -444,7 +445,7 @@ mod tests {
 
         starknet.state.clear_dirty_state();
         starknet.block_context = Starknet::init_block_context(
-            1,
+            nonzero!(1u64),
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,

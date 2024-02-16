@@ -50,6 +50,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 base64 = { version = "0.21.2" }
 clap = { version = "4.3.2", features = ["derive"] }
 flate2 = { version = ">= 1.0.26, < 1.0.27" }
+nonzero_ext = "0.3.0"
 serde = { version = "1.0.171", features = ["derive"] }
 serde_json = { version = "1.0.81" }
 serde_yaml = { version = "0.9.27" }
@@ -64,7 +65,7 @@ url = "2.4"
 
 # Starknet dependencies
 starknet_api = { version = "0.7.0-dev.0", features = ["testing"] }
-blockifier = { git = "https://github.com/starkware-libs/blockifier", rev = "e0a957e722d9da654c56170e8ad59c0b4e79fc77", package = "blockifier" }
+blockifier = { git = "https://github.com/starkware-libs/blockifier", rev = "38e81df37a99ffbc4ab46b043e8edbc78585cb7d", package = "blockifier" }
 starknet-rs-signers = { version = "0.7.0", package = "starknet-signers" }
 starknet-rs-ff = { version = "0.3.6", package = "starknet-ff" }
 starknet-rs-core = { version = "0.9.0", package = "starknet-core" }

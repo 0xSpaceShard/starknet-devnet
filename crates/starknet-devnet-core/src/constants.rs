@@ -1,5 +1,7 @@
 use std::net::{IpAddr, Ipv4Addr};
+use std::num::{NonZeroU128, NonZeroU64};
 
+use nonzero_ext::nonzero;
 use starknet_rs_ff::FieldElement;
 use starknet_types::chain_id::ChainId;
 use starknet_types::constants::{
@@ -66,7 +68,7 @@ pub const DEVNET_DEFAULT_SEED: u32 = 123;
 pub const DEVNET_DEFAULT_TEST_SEED: u32 = 123;
 pub const DEVNET_DEFAULT_TOTAL_ACCOUNTS: u8 = 10;
 pub const DEVNET_DEFAULT_INITIAL_BALANCE: u128 = 1_000_000_000_000_000_000_000;
-pub const DEVNET_DEFAULT_GAS_PRICE: u64 = 100_000_000_000;
+pub const DEVNET_DEFAULT_GAS_PRICE: NonZeroU64 = nonzero!(100_000_000_000u64);
 pub const DEVNET_DEFAULT_HOST: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
 pub const DEVNET_DEFAULT_PORT: u16 = 5050;
 pub const DEVNET_DEFAULT_TIMEOUT: u16 = 120;

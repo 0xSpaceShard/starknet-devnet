@@ -1,4 +1,5 @@
 use std::net::IpAddr;
+use std::num::{NonZeroU128, NonZeroU64};
 
 use starknet_types::chain_id::ChainId;
 use starknet_types::contract_class::ContractClass;
@@ -37,7 +38,7 @@ pub struct StarknetConfig {
     pub port: u16,
     pub start_time: Option<u64>,
     pub timeout: u16,
-    pub gas_price: u64,
+    pub gas_price: NonZeroU64,
     pub chain_id: ChainId,
     pub dump_on: Option<DumpOn>,
     pub dump_path: Option<String>,
@@ -50,7 +51,6 @@ impl Default for StarknetConfig {
     fn default() -> Self {
         let account_contract_class =
             ContractClass::cairo_1_from_path(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH).unwrap();
-
         StarknetConfig {
             seed: DEVNET_DEFAULT_TEST_SEED,
             total_accounts: DEVNET_DEFAULT_TOTAL_ACCOUNTS,
