@@ -252,7 +252,6 @@ impl CustomState for StarknetState {
         contract_address: ContractAddress,
         class_hash: ClassHash,
     ) -> DevnetResult<()> {
-        // TODO self.increment_nonce(api_address)?;
         self.state
             .state
             .set_class_hash_at(contract_address.try_into()?, class_hash.into())

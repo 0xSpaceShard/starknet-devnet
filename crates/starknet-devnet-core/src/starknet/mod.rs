@@ -286,7 +286,7 @@ impl Starknet {
     ) -> DevnetResult<()> {
         let transaction_hash = *transaction.get_transaction_hash();
 
-        fn declare_contract_clas(
+        fn declare_contract_class(
             class_hash: &ClassHash,
             contract_class: Option<ContractClass>,
             state: &mut StarknetState,
@@ -306,21 +306,21 @@ impl Starknet {
                 if !tx_info.is_reverted() {
                     match &transaction {
                         Transaction::Declare(DeclareTransaction::Version1(declare_v1)) => {
-                            declare_contract_clas(
+                            declare_contract_class(
                                 &declare_v1.class_hash,
                                 contract_class,
                                 &mut self.state,
                             )?
                         }
                         Transaction::Declare(DeclareTransaction::Version2(declare_v2)) => {
-                            declare_contract_clas(
+                            declare_contract_class(
                                 &declare_v2.class_hash,
                                 contract_class,
                                 &mut self.state,
                             )?
                         }
                         Transaction::Declare(DeclareTransaction::Version3(declare_v3)) => {
-                            declare_contract_clas(
+                            declare_contract_class(
                                 declare_v3.get_class_hash(),
                                 contract_class,
                                 &mut self.state,
@@ -469,7 +469,6 @@ impl Starknet {
         Ok(())
     }
 
-    // TODO consider returning transactional state (together with block context?)
     fn get_mut_state_at(&mut self, block_id: &BlockId) -> DevnetResult<&mut StarknetState> {
         match block_id {
             BlockId::Tag(_) => Ok(&mut self.state),

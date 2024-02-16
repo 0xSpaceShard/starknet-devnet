@@ -9,7 +9,7 @@ use starknet_api::hash::StarkFelt;
 use starknet_api::state::StorageKey;
 
 /// A simple implementation of `StateReader` using `HashMap`s as storage.
-/// Copied from blockifier test_utils
+/// Copied from blockifier test_utils, added `impl State`
 #[derive(Debug, Default, Clone)]
 pub struct DictState {
     pub storage_view: HashMap<ContractStorageKey, StarkFelt>,
