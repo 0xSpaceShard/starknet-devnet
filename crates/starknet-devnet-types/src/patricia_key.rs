@@ -67,9 +67,11 @@ impl TryFrom<Felt> for PatriciaKey {
     }
 }
 
-impl From<PatriciaKey> for starknet_api::state::StorageKey {
-    fn from(value: PatriciaKey) -> Self {
-        Self(value.try_into().unwrap()) // TODO
+impl TryFrom<PatriciaKey> for starknet_api::state::StorageKey {
+    type Error = Error;
+
+    fn try_from(value: PatriciaKey) -> Result<Self, Self::Error> {
+        Ok(Self(value.try_into()?))
     }
 }
 

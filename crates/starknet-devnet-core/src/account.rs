@@ -125,7 +125,7 @@ impl Deployed for Account {
         let public_key_storage_var = get_storage_var_address("Account_public_key", &[])?;
         state.state.state.set_storage_at(
             self.account_address.try_into()?,
-            public_key_storage_var.into(),
+            public_key_storage_var.try_into()?,
             self.public_key.into(),
         );
 
@@ -148,7 +148,7 @@ impl Accounted for Account {
         for fee_token_address in [self.eth_fee_token_address, self.strk_fee_token_address] {
             state.set_storage_at(
                 fee_token_address.try_into()?,
-                storage_var_address.into(),
+                storage_var_address.try_into()?,
                 self.initial_balance.into(),
             );
         }
@@ -163,7 +163,7 @@ impl Accounted for Account {
         };
         let balance = state.get_storage_at(
             (*balance_storage_key.get_contract_address()).try_into()?,
-            (*balance_storage_key.get_storage_key()).into(),
+            (*balance_storage_key.get_storage_key()).try_into()?,
         )?;
         Ok(balance.into())
     }

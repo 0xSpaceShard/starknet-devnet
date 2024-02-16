@@ -252,7 +252,10 @@ mod tests {
         let fee_token_address: starknet_api::core::ContractAddress =
             eth_fee_token_address.try_into().unwrap();
         let balance_storage_var_address =
-            get_storage_var_address("ERC20_balances", &[account_address.into()]).unwrap().into();
+            get_storage_var_address("ERC20_balances", &[account_address.into()])
+                .unwrap()
+                .try_into()
+                .unwrap();
 
         let account_balance_before_deployment = StarkFelt::from_u128(1000000);
         starknet.state.set_storage_at(
@@ -285,7 +288,10 @@ mod tests {
         let fee_token_address: starknet_api::core::ContractAddress =
             strk_fee_token_address.try_into().unwrap();
         let balance_storage_var_address =
-            get_storage_var_address("ERC20_balances", &[account_address.into()]).unwrap().into();
+            get_storage_var_address("ERC20_balances", &[account_address.into()])
+                .unwrap()
+                .try_into()
+                .unwrap();
 
         let account_balance_before_deployment = StarkFelt::from_u128(1000000);
         starknet.state.set_storage_at(
@@ -333,7 +339,10 @@ mod tests {
         let fee_token_address: starknet_api::core::ContractAddress =
             eth_fee_token_address.try_into().unwrap();
         let balance_storage_var_address =
-            get_storage_var_address("ERC20_balances", &[account_address.into()]).unwrap().into();
+            get_storage_var_address("ERC20_balances", &[account_address.into()])
+                .unwrap()
+                .try_into()
+                .unwrap();
 
         let account_balance_before_deployment = StarkFelt::from_u128(1000000);
         starknet.state.set_storage_at(

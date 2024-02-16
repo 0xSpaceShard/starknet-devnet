@@ -255,7 +255,7 @@ mod tests {
         ) = setup();
         let blockifier_address: starknet_api::core::ContractAddress =
             contract_address.try_into().unwrap();
-        let storage_key = (*balance_var_storage_address.get_storage_key()).into();
+        let storage_key = (*balance_var_storage_address.get_storage_key()).try_into().unwrap();
 
         let account_address = account.get_address();
 

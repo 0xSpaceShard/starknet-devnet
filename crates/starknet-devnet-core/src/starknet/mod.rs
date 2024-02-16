@@ -735,7 +735,7 @@ impl Starknet {
     ) -> DevnetResult<Felt> {
         let state = self.get_mut_state_at(block_id)?;
         state.assert_contract_deployed(contract_address)?;
-        Ok(state.get_storage_at(contract_address.try_into()?, storage_key.into())?.into())
+        Ok(state.get_storage_at(contract_address.try_into()?, storage_key.try_into()?)?.into())
     }
 
     pub fn get_block(&self, block_id: &BlockId) -> DevnetResult<StarknetBlock> {
