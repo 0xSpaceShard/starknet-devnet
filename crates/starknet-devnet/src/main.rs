@@ -11,7 +11,7 @@ use starknet_core::constants::{
     CAIRO_1_ERC20_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
 };
-use starknet_core::starknet::starknet_config::DumpOn;
+use starknet_core::starknet::starknet_config::{DumpOn, StateArchiveCapacity};
 use starknet_core::starknet::Starknet;
 use starknet_types::chain_id::ChainId;
 use starknet_types::felt::Felt;
@@ -83,6 +83,11 @@ async fn main() -> Result<(), anyhow::Error> {
     // parse arguments
     let args = Args::parse();
     let starknet_config = args.to_starknet_config()?;
+    if starknet_config.state_archive == StateArchiveCapacity::Full {
+        eprintln!("Error: State archiving (old state support) temporarily disabled");
+        std::process::exit(1);
+    }
+
     let mut addr: SocketAddr = SocketAddr::new(starknet_config.host, starknet_config.port);
 
     let api = Api::new(Starknet::new(&starknet_config)?);

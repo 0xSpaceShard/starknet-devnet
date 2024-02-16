@@ -42,6 +42,7 @@ pub trait CustomState {
 }
 
 #[derive(Default, Clone)]
+/// Utility structure that makes it easier to calculate state diff later on
 pub struct CommittedClassStorage {
     staging: HashMap<ClassHash, ContractClass>,
     committed: HashMap<ClassHash, ContractClass>,
@@ -58,6 +59,7 @@ impl CommittedClassStorage {
         diff
     }
 
+    /// Skips the staging phase
     fn insert_and_commit(&mut self, class_hash: ClassHash, contract_class: ContractClass) {
         assert!(self.staging.is_empty());
         self.insert(class_hash, contract_class);

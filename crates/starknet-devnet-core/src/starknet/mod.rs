@@ -258,8 +258,8 @@ impl Starknet {
 
         // insert pending block in the blocks collection and connect it to the state diff
         self.blocks.insert(new_block, state_diff);
-        // save into blocks state archive
 
+        // save into blocks state archive
         if self.config.state_archive == StateArchiveCapacity::Full {
             self.blocks.save_state_at(new_block_number, &self.state);
         }

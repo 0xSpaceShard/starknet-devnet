@@ -67,8 +67,8 @@ impl StarknetBlocks {
     }
 
     pub fn save_state_at(&mut self, _block_number: BlockNumber, _state: &StarknetState) {
-        todo!("we also need to store block context or somehow reconstruct it when needed");
         // self.num_to_state.insert(block_number, state.clone());
+        todo!("we also need to store block context or somehow reconstruct it when needed");
     }
 
     pub fn get_by_block_id(&self, block_id: &BlockId) -> Option<&StarknetBlock> {

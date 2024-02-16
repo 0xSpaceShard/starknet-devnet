@@ -23,7 +23,6 @@ pub trait HashIdentifiedMut {
     fn get_by_hash_mut(&mut self, hash: &Self::Hash) -> Option<&mut Self::Element>;
 }
 
-// TODO rename to Predeployed, predeploy and predeclare_if_undeclared
 pub(crate) trait Deployed {
     fn deploy(&self, state: &mut StarknetState) -> DevnetResult<()>;
     fn get_address(&self) -> ContractAddress;
