@@ -1,6 +1,4 @@
-use std::collections::HashMap;
-
-use blockifier::block_context::{BlockContext, BlockContextArgs};
+use blockifier::block_context::{BlockContext, BlockInfo, ChainInfo};
 use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::state_api::StateReader;
 use blockifier::test_utils::{DEFAULT_ETH_L1_DATA_GAS_PRICE, DEFAULT_STRK_L1_DATA_GAS_PRICE};
@@ -16,11 +14,6 @@ use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::Signer;
 use starknet_types::chain_id::ChainId;
-use starknet_types::constants::{
-    BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME, N_STEPS,
-    OUTPUT_BUILTIN_NAME, POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME,
-    SEGMENT_ARENA_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
-};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::contract_storage_key::ContractStorageKey;
@@ -69,6 +62,7 @@ use crate::traits::{
     StateExtractor,
 };
 use crate::transactions::{StarknetTransaction, StarknetTransactions};
+use crate::utils::get_versioned_constants;
 
 mod add_declare_transaction;
 mod add_deploy_account_transaction;
@@ -220,7 +214,7 @@ impl Starknet {
     // Update block context
     // Initialize values for new pending block
     pub(crate) fn generate_pending_block(&mut self) -> DevnetResult<()> {
-        Self::update_block_context(&mut self.block_context);
+        Self::advance_block_context_block_number(&mut self.block_context);
         self.restart_pending_block()?;
 
         Ok(())
@@ -248,10 +242,7 @@ impl Starknet {
             ),
         };
         new_block.set_timestamp(block_timestamp);
-        let mut block_context_args = Self::to_block_context_args(&self.block_context);
-        block_context_args.block_timestamp = block_timestamp;
-        // TODO: use other way of updating block_context
-        self.block_context = BlockContext::new_unchecked(block_context_args);
+        Self::update_block_context_block_timestamp(&mut self.block_context, block_timestamp);
 
         let new_block_number = new_block.block_number();
 
@@ -430,25 +421,11 @@ impl Starknet {
         use starknet_api::{contract_address, patricia_key};
 
         // Create a BlockContext based on BlockContext::create_for_testing()
-        const N_STEPS_FEE_WEIGHT: f64 = 0.01;
 
-        BlockContext::new_unchecked(BlockContextArgs {
+        let block_info = BlockInfo {
             block_number: BlockNumber(0),
             block_timestamp: BlockTimestamp(0),
             sequencer_address: contract_address!("0x1000"),
-
-            vm_resource_fee_cost: std::sync::Arc::new(HashMap::from([
-                (N_STEPS.to_string(), N_STEPS_FEE_WEIGHT),
-                (OUTPUT_BUILTIN_NAME.to_string(), 0.0),
-                (HASH_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 32.0),
-                (RANGE_CHECK_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 16.0),
-                (SIGNATURE_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 2048.0),
-                (BITWISE_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 64.0),
-                (EC_OP_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 1024.0),
-                (POSEIDON_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 32.0),
-                (SEGMENT_ARENA_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 10.0),
-                (KECCAK_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 2048.0), // 2**11
-            ])),
             gas_prices: blockifier::block_context::GasPrices {
                 eth_l1_gas_price: gas_price as u128,
                 strk_l1_gas_price: gas_price as u128,
@@ -456,42 +433,47 @@ impl Starknet {
                 eth_l1_data_gas_price: DEFAULT_ETH_L1_DATA_GAS_PRICE,
                 strk_l1_data_gas_price: DEFAULT_STRK_L1_DATA_GAS_PRICE,
             },
-            invoke_tx_max_n_steps: 4_000_000_u32,
-            validate_max_n_steps: 1_000_000_u32,
-            max_recursion_depth: 50,
             use_kzg_da: false,
+        };
+
+        let chain_info = ChainInfo {
             chain_id: chain_id.into(),
             fee_token_addresses: blockifier::block_context::FeeTokenAddresses {
                 eth_fee_token_address: contract_address!(eth_fee_token_address),
                 strk_fee_token_address: contract_address!(strk_fee_token_address),
             },
-        })
+        };
+
+        BlockContext::new_unchecked(&block_info, &chain_info, &get_versioned_constants())
     }
 
     /// Update block context block_number with the next one
     /// # Arguments
     /// * `block_context` - BlockContext to be updated
-    fn update_block_context(block_context: &mut BlockContext) {
-        let mut args = Self::to_block_context_args(block_context);
-        args.block_number = args.block_number.next();
+    fn advance_block_context_block_number(block_context: &mut BlockContext) {
+        let mut block_info = block_context.block_info().clone();
+        block_info.block_number = block_info.block_number.next();
         // TODO: update block_context via preferred method in the documentation
-        *block_context = BlockContext::new_unchecked(args);
+        *block_context = BlockContext::new_unchecked(
+            &block_info,
+            block_context.chain_info(),
+            &get_versioned_constants(),
+        );
     }
 
-    fn to_block_context_args(block_context: &BlockContext) -> BlockContextArgs {
-        BlockContextArgs {
-            chain_id: block_context.chain_info().chain_id.clone(),
-            block_number: block_context.block_info().block_number,
-            block_timestamp: block_context.block_info().block_timestamp,
-            sequencer_address: block_context.block_info().sequencer_address,
-            fee_token_addresses: block_context.chain_info().fee_token_addresses.clone(),
-            vm_resource_fee_cost: block_context.block_info().vm_resource_fee_cost.clone(),
-            use_kzg_da: block_context.block_info().use_kzg_da,
-            gas_prices: block_context.block_info().gas_prices.clone(),
-            invoke_tx_max_n_steps: block_context.block_info().invoke_tx_max_n_steps,
-            validate_max_n_steps: block_context.block_info().validate_max_n_steps,
-            max_recursion_depth: block_context.block_info().max_recursion_depth,
-        }
+    fn update_block_context_block_timestamp(
+        block_context: &mut BlockContext,
+        block_timestamp: BlockTimestamp,
+    ) {
+        let mut block_info = block_context.block_info().clone();
+        block_info.block_timestamp = block_timestamp;
+
+        // TODO: update block_context via preferred method in the documentation
+        *block_context = BlockContext::new_unchecked(
+            &block_info,
+            block_context.chain_info(),
+            &get_versioned_constants(),
+        );
     }
 
     fn pending_block(&self) -> &StarknetBlock {
@@ -1163,7 +1145,7 @@ mod tests {
             DEVNET_DEFAULT_CHAIN_ID,
         );
         let initial_block_number = block_ctx.block_info().block_number;
-        Starknet::update_block_context(&mut block_ctx);
+        Starknet::advance_block_context_block_number(&mut block_ctx);
 
         assert_eq!(block_ctx.block_info().block_number, initial_block_number.next());
     }
@@ -1450,7 +1432,7 @@ mod tests {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        Starknet::update_block_context(&mut starknet.block_context);
+        Starknet::advance_block_context_block_number(&mut starknet.block_context);
         starknet.generate_pending_block().unwrap();
         starknet
             .blocks

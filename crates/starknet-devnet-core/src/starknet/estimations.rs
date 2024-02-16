@@ -12,6 +12,7 @@ use starknet_types::rpc::transactions::BroadcastedTransaction;
 use crate::error::{DevnetResult, Error};
 use crate::starknet::Starknet;
 use crate::state::StarknetState;
+use crate::utils::get_versioned_constants;
 
 pub fn estimate_fee(
     starknet: &Starknet,
@@ -101,7 +102,8 @@ fn estimate_transaction_fee(
 
     let (l1_gas_usage, vm_resources) =
         extract_l1_gas_and_vm_usage(&transaction_execution_info.actual_resources);
-    let l1_gas_by_vm_usage = calculate_l1_gas_by_vm_usage(block_context, &vm_resources)?;
+    let l1_gas_by_vm_usage =
+        calculate_l1_gas_by_vm_usage(&get_versioned_constants(), &vm_resources)?;
     let total_l1_gas_usage = l1_gas_usage as f64 + l1_gas_by_vm_usage;
     let total_l1_gas_usage = total_l1_gas_usage.ceil() as u64;
 

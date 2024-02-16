@@ -1,7 +1,13 @@
+use std::collections::HashMap;
+
+use blockifier::versioned_constants::VersionedConstants;
 use starknet_rs_ff::FieldElement;
 use starknet_types::felt::Felt;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 
+use crate::constants::{
+    INVOKE_TX_MAX_N_STEPS, MAX_RECURSION_DEPTH, RESOURCE_FEE_COST, VALIDATE_MAX_N_STEPS,
+};
 use crate::error::DevnetResult;
 
 pub mod random_number_generator {
@@ -36,6 +42,20 @@ pub(crate) fn get_storage_var_address(
     .map_err(|err| crate::error::Error::UnexpectedInternalError { msg: err.to_string() })?;
 
     Ok(PatriciaKey::new(Felt::new(storage_var_address.to_bytes_be())?)?)
+}
+
+pub(crate) fn get_versioned_constants() -> VersionedConstants {
+    let resource_fee_cost_map = RESOURCE_FEE_COST
+        .iter()
+        .map(|(key, value)| (String::from(*key), *value))
+        .collect::<HashMap<String, f64>>();
+
+    VersionedConstants {
+        vm_resource_fee_cost: std::sync::Arc::new(resource_fee_cost_map),
+        invoke_tx_max_n_steps: INVOKE_TX_MAX_N_STEPS,
+        validate_max_n_steps: VALIDATE_MAX_N_STEPS,
+        max_recursion_depth: MAX_RECURSION_DEPTH,
+    }
 }
 
 #[cfg(test)]
