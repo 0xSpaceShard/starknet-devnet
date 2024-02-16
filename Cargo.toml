@@ -64,7 +64,7 @@ url = "2.4"
 
 # Starknet dependencies
 starknet_api = { version = "0.7.0-dev.0", features = ["testing"] }
-blockifier = { git = "https://github.com/starkware-libs/blockifier", rev = "f16fa89c785341aa1e30ab7fecf50909c98a72d3", package = "blockifier" }
+blockifier = { git = "https://github.com/starkware-libs/blockifier", rev = "e0a957e722d9da654c56170e8ad59c0b4e79fc77", package = "blockifier" }
 starknet-rs-signers = { version = "0.7.0", package = "starknet-signers" }
 starknet-rs-ff = { version = "0.3.6", package = "starknet-ff" }
 starknet-rs-core = { version = "0.9.0", package = "starknet-core" }

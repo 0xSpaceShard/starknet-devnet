@@ -1,5 +1,7 @@
+use std::sync::Arc;
+
 use blockifier::block::BlockInfo;
-use blockifier::context::{BlockContext, ChainInfo};
+use blockifier::context::{BlockContext, ChainInfo, TransactionContext};
 use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::state_api::StateReader;
 use blockifier::test_utils::{DEFAULT_ETH_L1_DATA_GAS_PRICE, DEFAULT_STRK_L1_DATA_GAS_PRICE};
@@ -567,11 +569,12 @@ impl Starknet {
             blockifier::execution::entry_point::ExecutionResources::default();
         let mut execution_context =
             blockifier::execution::entry_point::EntryPointExecutionContext::new(
-                &self.block_context,
-                &blockifier::transaction::objects::AccountTransactionContext::Deprecated(
-                    blockifier::transaction::objects::DeprecatedAccountTransactionContext::default(
+                Arc::new(TransactionContext {
+                    block_context: self.block_context.clone(),
+                    tx_info: blockifier::transaction::objects::TransactionInfo::Deprecated(
+                        blockifier::transaction::objects::DeprecatedTransactionInfo::default(),
                     ),
-                ),
+                }),
                 blockifier::execution::common_hints::ExecutionMode::Execute,
                 true,
             )?;
