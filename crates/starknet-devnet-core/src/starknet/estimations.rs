@@ -75,7 +75,7 @@ pub fn estimate_message_fee(
 
 fn estimate_transaction_fee(
     state: &mut StarknetState,
-    block_context: &blockifier::block_context::BlockContext,
+    block_context: &blockifier::context::BlockContext,
     transaction: blockifier::transaction::transaction_execution::Transaction,
     charge_fee: Option<bool>,
     validate: Option<bool>,

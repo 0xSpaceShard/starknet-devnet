@@ -1,4 +1,5 @@
-use blockifier::block_context::{BlockContext, BlockInfo, ChainInfo};
+use blockifier::block::BlockInfo;
+use blockifier::context::{BlockContext, ChainInfo};
 use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::state_api::StateReader;
 use blockifier::test_utils::{DEFAULT_ETH_L1_DATA_GAS_PRICE, DEFAULT_STRK_L1_DATA_GAS_PRICE};
@@ -426,7 +427,7 @@ impl Starknet {
             block_number: BlockNumber(0),
             block_timestamp: BlockTimestamp(0),
             sequencer_address: contract_address!("0x1000"),
-            gas_prices: blockifier::block_context::GasPrices {
+            gas_prices: blockifier::block::GasPrices {
                 eth_l1_gas_price: gas_price as u128,
                 strk_l1_gas_price: gas_price as u128,
                 // TODO: modify these values
@@ -438,7 +439,7 @@ impl Starknet {
 
         let chain_info = ChainInfo {
             chain_id: chain_id.into(),
-            fee_token_addresses: blockifier::block_context::FeeTokenAddresses {
+            fee_token_addresses: blockifier::context::FeeTokenAddresses {
                 eth_fee_token_address: contract_address!(eth_fee_token_address),
                 strk_fee_token_address: contract_address!(strk_fee_token_address),
             },
