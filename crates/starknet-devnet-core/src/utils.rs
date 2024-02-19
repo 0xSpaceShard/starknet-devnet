@@ -45,17 +45,7 @@ pub(crate) fn get_storage_var_address(
 }
 
 pub(crate) fn get_versioned_constants() -> VersionedConstants {
-    let resource_fee_cost_map = RESOURCE_FEE_COST
-        .iter()
-        .map(|(key, value)| (String::from(*key), *value))
-        .collect::<HashMap<String, f64>>();
-
-    VersionedConstants {
-        vm_resource_fee_cost: std::sync::Arc::new(resource_fee_cost_map),
-        invoke_tx_max_n_steps: INVOKE_TX_MAX_N_STEPS,
-        validate_max_n_steps: VALIDATE_MAX_N_STEPS,
-        max_recursion_depth: MAX_RECURSION_DEPTH,
-    }
+    VersionedConstants::create_for_testing()
 }
 
 #[cfg(test)]

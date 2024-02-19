@@ -1,5 +1,5 @@
 use std::net::{IpAddr, Ipv4Addr};
-use std::num::{NonZeroU64};
+use std::num::NonZeroU64;
 
 use nonzero_ext::nonzero;
 use starknet_rs_ff::FieldElement;

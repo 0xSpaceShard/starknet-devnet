@@ -1,5 +1,5 @@
 use std::net::IpAddr;
-use std::num::{NonZeroU64};
+use std::num::NonZeroU64;
 
 use starknet_types::chain_id::ChainId;
 use starknet_types::contract_class::ContractClass;
