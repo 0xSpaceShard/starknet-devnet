@@ -156,7 +156,7 @@ mod estimate_fee_tests {
             signer,
             account_address,
             CHAIN_ID,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         );
 
         let fee_estimation = account
@@ -212,7 +212,7 @@ mod estimate_fee_tests {
             signer,
             account_address,
             CHAIN_ID,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         );
 
         let fee_estimation = account
@@ -261,7 +261,7 @@ mod estimate_fee_tests {
             signer,
             account_address,
             CHAIN_ID,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         ));
 
         // get class
@@ -362,7 +362,7 @@ mod estimate_fee_tests {
             signer,
             account_address,
             CHAIN_ID,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         ));
 
         // get class
@@ -433,7 +433,7 @@ mod estimate_fee_tests {
             signer,
             account_address,
             CHAIN_ID,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         ));
 
         // get class
