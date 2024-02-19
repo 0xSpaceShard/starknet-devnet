@@ -84,11 +84,11 @@ pub struct ExecutionResources {
 impl From<&blockifier::execution::call_info::CallInfo> for ExecutionResources {
     fn from(call_info: &blockifier::execution::call_info::CallInfo) -> Self {
         ExecutionResources {
-            steps: call_info.vm_resources.n_steps,
-            memory_holes: if call_info.vm_resources.n_memory_holes == 0 {
+            steps: call_info.resources.n_steps,
+            memory_holes: if call_info.resources.n_memory_holes == 0 {
                 None
             } else {
-                Some(call_info.vm_resources.n_memory_holes)
+                Some(call_info.resources.n_memory_holes)
             },
             range_check_builtin_applications: Self::get_resource_from_call_info(
                 call_info,
@@ -169,7 +169,7 @@ impl ExecutionResources {
     fn get_memory_holes_from_call_info(
         call_info: &Option<blockifier::execution::call_info::CallInfo>,
     ) -> usize {
-        if let Some(call) = call_info { call.vm_resources.n_memory_holes } else { 0 }
+        if let Some(call) = call_info { call.resources.n_memory_holes } else { 0 }
     }
 
     fn get_resource_from_execution_info(
@@ -183,7 +183,7 @@ impl ExecutionResources {
         call_info: &blockifier::execution::call_info::CallInfo,
         resource_name: &str,
     ) -> Option<usize> {
-        call_info.vm_resources.builtin_instance_counter.get(resource_name).cloned()
+        call_info.resources.builtin_instance_counter.get(resource_name).cloned()
     }
 }
 

@@ -11,7 +11,7 @@ use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
 use nonzero_ext::nonzero;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
-use starknet_api::transaction::Fee;
+use starknet_api::transaction::{ExecutionResources, Fee};
 use starknet_rs_core::types::{
     BlockId, MsgFromL1, TransactionExecutionStatus, TransactionFinalityStatus,
 };
@@ -567,8 +567,6 @@ impl Starknet {
             ..Default::default()
         };
 
-        let mut execution_resources =
-            blockifier::execution::entry_point::ExecutionResources::default();
         let mut execution_context =
             blockifier::execution::entry_point::EntryPointExecutionContext::new(
                 Arc::new(TransactionContext {
@@ -581,7 +579,7 @@ impl Starknet {
                 true,
             )?;
         let res = call
-            .execute(&mut state.clone().state, &mut execution_resources, &mut execution_context)
+            .execute(&mut state.clone().state, &mut Default::default(), &mut execution_context)
             .map_err(|err| {
                 Error::BlockifierTransactionError(
                     blockifier::transaction::errors::TransactionExecutionError::ExecutionError(err),
