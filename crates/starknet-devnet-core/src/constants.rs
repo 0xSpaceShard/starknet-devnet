@@ -1,5 +1,5 @@
 use std::net::{IpAddr, Ipv4Addr};
-use std::num::{NonZeroU128, NonZeroU64};
+use std::num::{NonZeroU64};
 
 use nonzero_ext::nonzero;
 use starknet_rs_ff::FieldElement;
@@ -91,7 +91,7 @@ pub const CHARGEABLE_ACCOUNT_ADDRESS: &str =
 
 const N_STEPS_FEE_WEIGHT: f64 = 0.01;
 
-pub(crate) const RESOURCE_FEE_COST: [(&'static str, f64); 10] = [
+pub(crate) const RESOURCE_FEE_COST: [(&str, f64); 10] = [
     (N_STEPS, N_STEPS_FEE_WEIGHT),
     (OUTPUT_BUILTIN_NAME, 0.0),
     (HASH_BUILTIN_NAME, N_STEPS_FEE_WEIGHT * 32.0),
