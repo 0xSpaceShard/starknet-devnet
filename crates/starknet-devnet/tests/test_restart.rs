@@ -137,7 +137,7 @@ mod test_restart {
             signer,
             address,
             chain_id::TESTNET,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         ));
 
         // prepare class for estimation of declaration

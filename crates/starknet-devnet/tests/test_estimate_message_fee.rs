@@ -30,7 +30,7 @@ mod test_estimate_message_fee {
             signer,
             account_address,
             CHAIN_ID,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         ));
 
         // get class
