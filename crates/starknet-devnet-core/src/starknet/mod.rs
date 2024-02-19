@@ -563,7 +563,7 @@ impl Starknet {
             entry_point_selector: starknet_api::core::EntryPointSelector(
                 entrypoint_selector.into(),
             ),
-            initial_gas: blockifier::transaction::transaction_execution::Transaction::initial_gas(),
+            initial_gas: self.block_context.versioned_constants().tx_initial_gas(),
             ..Default::default()
         };
 
