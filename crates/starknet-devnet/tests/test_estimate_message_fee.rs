@@ -107,7 +107,6 @@ mod test_estimate_message_fee {
     }
 
     #[tokio::test]
-    #[ignore = "State archiving disabled"]
     async fn estimate_message_fee_block_not_found() {
         let devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
