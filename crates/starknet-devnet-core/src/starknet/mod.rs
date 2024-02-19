@@ -164,6 +164,7 @@ impl Starknet {
         )?;
         chargeable_account.deploy(&mut state)?;
 
+        state.sync_historic();
         state.commit_full_state_and_get_diff()?;
 
         let mut this = Self {
@@ -257,11 +258,12 @@ impl Starknet {
         });
 
         // insert pending block in the blocks collection and connect it to the state diff
-        self.blocks.insert(new_block, state_diff);
+        self.blocks.insert(new_block, state_diff.clone());
 
         // save into blocks state archive
         if self.config.state_archive == StateArchiveCapacity::Full {
-            self.blocks.save_state_at(new_block_number, &self.state);
+            let clone = self.state.clone_historic(state_diff)?;
+            self.blocks.save_state_at(new_block_number, clone);
         }
 
         Ok(new_block_number)

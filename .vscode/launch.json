@@ -95,7 +95,7 @@
                     "kind": "bin"
                 }
             },
-            "args": [],
+            "args": ["--accounts", "1", "--seed", "42", "--state-archive-capacity", "full"],
             "cwd": "${workspaceFolder}"
         },
         {
