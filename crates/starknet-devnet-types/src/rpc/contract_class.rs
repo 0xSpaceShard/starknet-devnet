@@ -1,6 +1,7 @@
 use core::fmt::Debug;
 use std::cmp::{Eq, PartialEq};
 
+use blockifier::transaction::transactions::ClassInfo;
 use cairo_lang_starknet::casm_contract_class::{CasmContractClass, CasmContractEntryPoint};
 use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
 use serde::{Serialize, Serializer};
@@ -107,20 +108,6 @@ impl TryFrom<ContractClass> for Cairo0Json {
     }
 }
 
-impl TryFrom<ContractClass> for cairo_lang_starknet::casm_contract_class::CasmContractClass {
-    type Error = Error;
-
-    fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
-        match value {
-            ContractClass::Cairo1(sierra_contract_class) => {
-                CasmContractClass::from_contract_class(sierra_contract_class, true)
-                    .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })
-            }
-            _ => Err(Error::ConversionError(crate::error::ConversionError::InvalidFormat)),
-        }
-    }
-}
-
 impl TryFrom<ContractClass> for blockifier::execution::contract_class::ContractClass {
     type Error = Error;
 
@@ -131,14 +118,60 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ContractC
                     deprecated_contract_class.try_into()?,
                 ))
             }
-            ContractClass::Cairo1(_) => {
-                let casm_contract_class = CasmContractClass::try_from(value.clone())?;
+            ContractClass::Cairo1(sierra_contract_class) => {
+                let casm_contract_class =
+                    CasmContractClass::from_contract_class(sierra_contract_class, true)
+                        .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
                 let blockifier_contract_class: blockifier::execution::contract_class::ContractClassV1 =
                     casm_contract_class.try_into().map_err(|_| Error::ProgramError)?;
 
                 Ok(blockifier::execution::contract_class::ContractClass::V1(
                     blockifier_contract_class,
                 ))
+            }
+        }
+    }
+}
+
+impl TryFrom<ContractClass> for blockifier::transaction::transactions::ClassInfo {
+    type Error = Error;
+
+    fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
+        match value {
+            ContractClass::Cairo0(deprecated_contract_class) => {
+                Ok(blockifier::transaction::transactions::ClassInfo {
+                    abi_length: deprecated_contract_class.abi_length()?,
+                    contract_class: blockifier::execution::contract_class::ContractClass::V0(
+                        deprecated_contract_class.try_into()?,
+                    ),
+                    sierra_program_length: 0,
+                })
+            }
+            ContractClass::Cairo1(sierra_contract_class) => {
+                let sierra_program_length = sierra_contract_class.sierra_program.len();
+                // TODO: decide how to calculate it
+                let abi_length = if let Some(abi) = sierra_contract_class.abi.as_ref() {
+                    serde_json::to_string(abi)
+                        .map(|json_str| json_str.len())
+                        .map_err(|err| Error::JsonError(JsonError::SerdeJsonError(err)))?
+                } else {
+                    0
+                };
+
+                let casm_contract_class =
+                    CasmContractClass::from_contract_class(sierra_contract_class, true)
+                        .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
+
+                let blockifier_contract_class: blockifier::execution::contract_class::ContractClassV1 =
+                        casm_contract_class.try_into().map_err(|_| Error::ProgramError)?;
+
+                Ok(ClassInfo {
+                    abi_length,
+                    contract_class: blockifier::execution::contract_class::ContractClass::V1(
+                        blockifier_contract_class,
+                    ),
+                    sierra_program_length,
+                })
             }
         }
     }

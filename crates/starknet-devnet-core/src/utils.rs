@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use blockifier::versioned_constants::VersionedConstants;
 use starknet_rs_ff::FieldElement;
 use starknet_types::felt::Felt;

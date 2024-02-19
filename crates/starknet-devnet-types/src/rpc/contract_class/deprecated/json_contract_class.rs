@@ -21,6 +21,27 @@ pub struct Cairo0Json {
 }
 
 impl Cairo0Json {
+    pub fn abi_length(&self) -> usize {
+        if let Some(json_value) = self.inner.get("abi") {
+            // TODO: decide how to process Null, Bool, Number. Although it shouldnt be of any
+            // interest to send abi in those types
+            match json_value {
+                Value::Null => return 0,
+                Value::Bool(_) => return 1,
+                Value::Number(_) => return 1,
+                Value::String(str) => str.len(),
+                // unwrapping here is possible because this is already a json array
+                Value::Object(_) | Value::Array(_) => {
+                    return serde_json::to_string(json_value)
+                        .map(|str| str[1..str.len() - 1].len())
+                        .unwrap_or_default();
+                }
+            }
+        } else {
+            0
+        }
+    }
+
     pub fn raw_json_from_json_str(json_str: &str) -> DevnetResult<Cairo0Json> {
         let value: Value = serde_json::from_str(json_str).map_err(JsonError::SerdeJsonError)?;
 
@@ -251,6 +272,7 @@ pub fn json_into_raw_program(json_data: &Value) -> DevnetResult<Vec<u8>> {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
     use starknet_rs_core::types::CompressedLegacyContractClass;
 
     use crate::contract_class::Cairo0Json;
@@ -260,5 +282,38 @@ mod tests {
     fn test_unzipped_to_codegen_conversion() {
         let class = Cairo0Json::raw_json_from_path(CAIRO_0_ACCOUNT_CONTRACT_PATH).unwrap();
         let _: CompressedLegacyContractClass = class.try_into().unwrap();
+    }
+
+    #[test]
+    fn test_empty_abi_returns_zero_length() {
+        fn assert_abi_length_is_zero(class: serde_json::Value) {
+            assert_eq!(Cairo0Json { inner: class }.abi_length(), 0);
+        }
+
+        let class = json!({
+            "program": "0x00aa"
+        });
+
+        assert_abi_length_is_zero(class);
+
+        let class = json!({
+            "abi": [],
+        });
+        assert_abi_length_is_zero(class);
+
+        let class = json!({
+            "abi": "",
+        });
+        assert_abi_length_is_zero(class);
+
+        let class = json!({
+            "abi": {},
+        });
+        assert_abi_length_is_zero(class);
+
+        let class = json!({
+            "abi": null,
+        });
+        assert_abi_length_is_zero(class);
     }
 }

@@ -106,7 +106,6 @@ impl BroadcastedDeclareTransactionV3 {
 
         let contract_class = ContractClass::Cairo1(self.contract_class.clone()).try_into()?;
         let transaction_hash = starknet_api::transaction::TransactionHash(transaction_hash.into());
-
         if only_query {
             Ok(DeclareTransaction::new_for_query(sn_api_declare, transaction_hash, contract_class)?)
         } else {
