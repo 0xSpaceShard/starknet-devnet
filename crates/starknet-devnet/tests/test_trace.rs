@@ -5,7 +5,8 @@ mod trace_tests {
 
     use serde_json::json;
     use starknet_core::constants::{
-        CAIRO_0_ACCOUNT_CONTRACT_HASH, CHARGEABLE_ACCOUNT_ADDRESS, ETH_ERC20_CONTRACT_ADDRESS,
+        CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CHARGEABLE_ACCOUNT_ADDRESS,
+        ETH_ERC20_CONTRACT_ADDRESS,
     };
     use starknet_rs_accounts::{
         Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
@@ -110,7 +111,7 @@ mod trace_tests {
             assert_eq!(validate_invocation.contract_address, account_address);
             assert_eq!(
                 validate_invocation.class_hash,
-                FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap()
+                FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
             );
             assert_eq!(
                 validate_invocation.calldata[0],
@@ -136,7 +137,7 @@ mod trace_tests {
         // define the key of the new account - dummy value
         let new_account_signer = get_deployable_account_signer();
         let account_factory = OpenZeppelinAccountFactory::new(
-            FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
+            FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap(),
             chain_id::TESTNET,
             new_account_signer.clone(),
             devnet.clone_provider(),
@@ -164,16 +165,16 @@ mod trace_tests {
             let validate_invocation = deployment_trace.validate_invocation.unwrap();
             assert_eq!(
                 validate_invocation.class_hash,
-                FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap()
+                FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
             );
             assert_eq!(
                 validate_invocation.calldata[0],
-                FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap()
+                FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
             );
 
             assert_eq!(
                 deployment_trace.constructor_invocation.class_hash,
-                FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap()
+                FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
             );
 
             assert_eq!(
