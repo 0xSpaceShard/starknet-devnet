@@ -24,7 +24,9 @@ mod get_transaction_by_hash_integration_tests {
 
     #[tokio::test]
     async fn get_declare_v1_transaction_by_hash_happy_path() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--account-class", "cairo0"])
+            .await
+            .expect("Could not start Devnet");
         let json_string = std::fs::read_to_string(resolve_path(
             "../starknet-devnet-core/test_artifacts/cairo_0_test.json",
         ))
@@ -117,7 +119,7 @@ mod get_transaction_by_hash_integration_tests {
             starknet_rs_core::types::DeclareTransaction::V2(declare_v2),
         ) = result
         {
-            let expected = "0x013070e9ff8b554254fb2d577ea75f0ed925947902893a23b8c738f8fbe5e122";
+            let expected = "0x04761a8b7dc76fd0764692005a7120da685690b01bb09a5de95fa2094895b520";
             assert_eq!(declare_v2.transaction_hash, FieldElement::from_hex_be(expected).unwrap());
         } else {
             panic!("Could not unpack the transaction from {result:?}");
@@ -175,7 +177,7 @@ mod get_transaction_by_hash_integration_tests {
             signer,
             account_address,
             chain_id::TESTNET,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         );
 
         let invoke_transaction = account
@@ -202,7 +204,7 @@ mod get_transaction_by_hash_integration_tests {
             starknet_rs_core::types::InvokeTransaction::V1(invoke_v1),
         ) = result
         {
-            let expected = "0x030611c52c63d5f22f5eadd95256932e6641000cb69cdd141e4ffb46b1a22537";
+            let expected = "0x02b5af34e9fee25d009e58c5d38f96343bd26e036db918e7458a9340e4a47e1a";
             assert_eq!(invoke_v1.transaction_hash, FieldElement::from_hex_be(expected).unwrap());
         } else {
             panic!("Could not unpack the transaction from {result:?}");

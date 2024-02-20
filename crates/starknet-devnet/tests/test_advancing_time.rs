@@ -44,7 +44,7 @@ mod advancing_time_tests {
             signer,
             address,
             chain_id::TESTNET,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         );
 
         // declare

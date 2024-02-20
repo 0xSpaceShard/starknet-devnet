@@ -26,7 +26,7 @@ pub(crate) struct Args {
     /// Class used for account predeployment
     #[arg(long = "account-class")]
     #[arg(value_name = "ACCOUNT_CLASS")]
-    #[arg(default_value = "cairo0")]
+    #[arg(default_value = "cairo1")]
     #[arg(help = "Specify the class used by predeployed accounts;")]
     account_class_choice: AccountContractClassChoice,
 
