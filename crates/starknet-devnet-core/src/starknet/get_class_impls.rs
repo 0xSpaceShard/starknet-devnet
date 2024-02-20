@@ -104,6 +104,7 @@ mod tests {
             DEVNET_DEFAULT_CHAIN_ID,
         );
 
+        starknet.state.sync_historic();
         starknet.restart_pending_block().unwrap();
 
         (starknet, acc)
@@ -161,7 +162,8 @@ mod tests {
     fn get_class_at_generated_accounts() {
         let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::Full);
 
-        starknet.generate_new_block(StateDiff::default(), None).unwrap();
+        let state_diff = starknet.state.commit_full_state_and_get_diff().unwrap();
+        starknet.generate_new_block(state_diff, None).unwrap();
         starknet.generate_pending_block().unwrap();
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
