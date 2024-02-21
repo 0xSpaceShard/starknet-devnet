@@ -22,9 +22,9 @@ pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
 pub const CAIRO_1_ERC20_CONTRACT_PATH: &str =
     concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/ERC20_Mintable_OZ_0.8.1.json");
 
-/// ERC20 class hash is hardcoded to be the same as OZ class hash ERC20.cairo although it should be different,
-/// due to commented key attributes in struct Approval (owner and spender), and add of mintable feature
-/// https://docs.openzeppelin.com/contracts-cairo/0.8.1/presets
+/// ERC20 class hash is hardcoded to be the same as OZ class hash ERC20.cairo although it should be
+/// different, due to commented key attributes in struct Approval (owner and spender), and add of
+/// mintable feature: https://docs.openzeppelin.com/contracts-cairo/0.8.1/presets
 pub const CAIRO_1_ERC20_CONTRACT_CLASS_HASH: &str =
     "0x046ded64ae2dead6448e247234bab192a9c483644395b66f2155f2614e5804b0";
 
