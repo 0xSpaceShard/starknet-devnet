@@ -9,8 +9,9 @@ use blockifier::test_utils::{DEFAULT_ETH_L1_DATA_GAS_PRICE, DEFAULT_STRK_L1_DATA
 use blockifier::transaction::errors::TransactionPreValidationError;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
-use nonzero_ext::nonzero;
-use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
+use nonzero_ext::{nonzero, NonZero};
+use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice, GasPricePerToken};
+use starknet_api::core::SequencerContractAddress;
 use starknet_api::transaction::{ExecutionResources, Fee};
 use starknet_rs_core::types::{
     BlockId, MsgFromL1, TransactionExecutionStatus, TransactionFinalityStatus,
@@ -490,9 +491,16 @@ impl Starknet {
         let mut block = StarknetBlock::create_pending_block();
 
         block.header.block_number = self.block_context.block_info().block_number;
-        block.header.eth_l1_gas_price =
-            GasPrice(self.block_context.block_info().gas_prices.eth_l1_gas_price.get());
-        block.header.sequencer = self.block_context.block_info().sequencer_address;
+        block.header.l1_gas_price = GasPricePerToken {
+            price_in_fri: GasPrice(
+                0, // self.block_context.block_info().gas_prices.strk_l1_gas_price.get(),
+            ),
+            price_in_wei: GasPrice(
+                self.block_context.block_info().gas_prices.eth_l1_gas_price.get(),
+            ),
+        };
+        block.header.sequencer =
+            SequencerContractAddress(self.block_context.block_info().sequencer_address);
 
         self.blocks.pending_block = block;
 
@@ -1138,10 +1146,10 @@ mod tests {
         assert_eq!(starknet.pending_block().header.block_number, initial_block_number);
         assert_eq!(starknet.pending_block().header.parent_hash, BlockHash::default());
         assert_eq!(
-            starknet.pending_block().header.eth_l1_gas_price,
+            starknet.pending_block().header.l1_gas_price.price_in_wei,
             GasPrice(initial_gas_price.get())
         );
-        assert_eq!(starknet.pending_block().header.sequencer, initial_sequencer);
+        assert_eq!(starknet.pending_block().header.sequencer.0, initial_sequencer);
     }
 
     #[test]

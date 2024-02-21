@@ -17,7 +17,7 @@ pub fn state_update_by_block_id(
 
 #[cfg(test)]
 mod tests {
-    use cairo_lang_starknet::casm_contract_class::CasmContractClass;
+    use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
     use nonzero_ext::nonzero;
     use starknet_api::transaction::Fee;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
@@ -45,8 +45,10 @@ mod tests {
 
         let sierra_class_hash =
             ContractClass::Cairo1(contract_class.clone()).generate_hash().unwrap();
+        // TODO: change usize::MAX
         let casm_contract_class =
-            CasmContractClass::from_contract_class(contract_class.clone(), true).unwrap();
+            CasmContractClass::from_contract_class(contract_class.clone(), true, usize::MAX)
+                .unwrap();
         let compiled_class_hash = compute_casm_class_hash(&casm_contract_class).unwrap();
 
         let declare_txn = BroadcastedDeclareTransactionV2::new(

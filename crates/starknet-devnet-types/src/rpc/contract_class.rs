@@ -2,8 +2,8 @@ use core::fmt::Debug;
 use std::cmp::{Eq, PartialEq};
 
 use blockifier::transaction::transactions::ClassInfo;
-use cairo_lang_starknet::casm_contract_class::{CasmContractClass, CasmContractEntryPoint};
-use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
+use cairo_lang_starknet_classes::casm_contract_class::{CasmContractClass, CasmContractEntryPoint};
+use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
 use serde::{Serialize, Serializer};
 use starknet_api::deprecated_contract_class::EntryPointType;
 use starknet_rs_core::types::contract::{SierraClass, SierraClassDebugInfo};
@@ -119,8 +119,9 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ContractC
                 ))
             }
             ContractClass::Cairo1(sierra_contract_class) => {
+                // TODO: what to input to max_bytecode_size
                 let casm_contract_class =
-                    CasmContractClass::from_contract_class(sierra_contract_class, true)
+                    CasmContractClass::from_contract_class(sierra_contract_class, true, usize::MAX)
                         .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
                 let blockifier_contract_class: blockifier::execution::contract_class::ContractClassV1 =
                     casm_contract_class.try_into().map_err(|_| Error::ProgramError)?;
@@ -158,8 +159,9 @@ impl TryFrom<ContractClass> for blockifier::transaction::transactions::ClassInfo
                     0
                 };
 
+                // TODO: what to input to max_bytecode_size
                 let casm_contract_class =
-                    CasmContractClass::from_contract_class(sierra_contract_class, true)
+                    CasmContractClass::from_contract_class(sierra_contract_class, true, usize::MAX)
                         .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
 
                 let blockifier_contract_class: blockifier::execution::contract_class::ContractClassV1 =
@@ -258,7 +260,7 @@ pub fn compute_sierra_class_hash(contract_class: &SierraContractClass) -> Devnet
         .into())
 }
 
-/// Computes cairo_lang_starknet::CasmContractClass hash.
+/// Computes cairo_lang_starknet_classes::casmContractClass hash.
 /// Implementation copied from starknet_in_rust
 /// # Arguments
 ///
@@ -336,7 +338,7 @@ fn get_contract_entry_points(
 
 #[cfg(test)]
 mod tests {
-    use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
+    use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
     use serde::Deserialize;
     use serde_json::Deserializer;
     use starknet_rs_core::types::LegacyEntryPointsByType;

@@ -49,8 +49,8 @@ pub(crate) fn get_versioned_constants() -> VersionedConstants {
 #[cfg(test)]
 pub(crate) mod test_utils {
 
-    use cairo_lang_starknet::casm_contract_class::CasmContractClass;
-    use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
+    use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
+    use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
     use starknet_api::transaction::Fee;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{
@@ -119,8 +119,10 @@ pub(crate) mod test_utils {
     ) -> BroadcastedDeclareTransactionV2 {
         let contract_class = dummy_cairo_1_contract_class();
 
+        // TODO: change usize::MAX to other value
         let compiled_class_hash = compute_casm_class_hash(
-            &CasmContractClass::from_contract_class(contract_class.clone(), true).unwrap(),
+            &CasmContractClass::from_contract_class(contract_class.clone(), true, usize::MAX)
+                .unwrap(),
         )
         .unwrap();
 
