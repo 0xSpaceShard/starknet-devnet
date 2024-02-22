@@ -156,7 +156,7 @@ mod estimate_fee_tests {
             signer,
             account_address,
             CHAIN_ID,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         );
 
         let fee_estimation = account
@@ -212,7 +212,7 @@ mod estimate_fee_tests {
             signer,
             account_address,
             CHAIN_ID,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         );
 
         // two times in a row should produce the same result
@@ -268,7 +268,7 @@ mod estimate_fee_tests {
             signer,
             account_address,
             CHAIN_ID,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         ));
 
         // get class
@@ -369,7 +369,7 @@ mod estimate_fee_tests {
             signer,
             account_address,
             CHAIN_ID,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         ));
 
         // get class
@@ -440,7 +440,7 @@ mod estimate_fee_tests {
             signer,
             account_address,
             CHAIN_ID,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         ));
 
         // get class
@@ -485,7 +485,9 @@ mod estimate_fee_tests {
     #[tokio::test]
     /// estimate fee of declare + deploy (invoke udc)
     async fn estimate_fee_of_multiple_txs() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--account-class", "cairo0"])
+            .await
+            .expect("Could not start Devnet");
 
         // get account
         let (_, account_address) = devnet.get_first_predeployed_account().await;

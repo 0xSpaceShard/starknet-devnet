@@ -73,16 +73,18 @@ mod get_transaction_receipt_by_hash_integration_tests {
             signer,
             address,
             chain_id::TESTNET,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         ));
 
         let (cairo_1_contract, casm_class_hash) =
             get_events_contract_in_sierra_and_compiled_class_hash();
 
+        let max_fee = FieldElement::from(1e18 as u128);
+
         // declare the contract
         let declaration_result = predeployed_account
             .declare(Arc::new(cairo_1_contract), casm_class_hash)
-            .max_fee(FieldElement::from(1e18 as u128))
+            .max_fee(max_fee)
             .send()
             .await
             .unwrap();
@@ -93,7 +95,6 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
         let salt = FieldElement::ZERO;
         let constructor_args = Vec::<FieldElement>::new();
-        let max_fee = FieldElement::from(1e18 as u128);
         let deployment_result = contract_factory
             .deploy(constructor_args.clone(), salt, false)
             .max_fee(max_fee)
@@ -132,16 +133,18 @@ mod get_transaction_receipt_by_hash_integration_tests {
             signer,
             address,
             chain_id::TESTNET,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         ));
 
         let (cairo_1_contract, casm_class_hash) =
             get_events_contract_in_sierra_and_compiled_class_hash();
 
+        let max_fee = FieldElement::from(1e18 as u128);
+
         // declare the contract
         let declaration_result = predeployed_account
             .declare(Arc::new(cairo_1_contract), casm_class_hash)
-            .max_fee(FieldElement::from(1e18 as u128))
+            .max_fee(max_fee)
             .send()
             .await
             .unwrap();
@@ -152,7 +155,6 @@ mod get_transaction_receipt_by_hash_integration_tests {
 
         let salt = FieldElement::ZERO;
         let invalid_constructor_args = vec![FieldElement::ONE];
-        let max_fee = FieldElement::from(1e18 as u128);
         let invalid_deployment_result = contract_factory
             .deploy(invalid_constructor_args, salt, false)
             .max_fee(max_fee)
@@ -189,7 +191,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
             signer,
             account_address,
             chain_id::TESTNET,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         );
 
         let transfer_execution = predeployed_account.execute(vec![Call {
