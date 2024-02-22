@@ -164,7 +164,6 @@ impl Starknet {
         )?;
         chargeable_account.deploy(&mut state)?;
 
-        state.sync_historic();
         state.commit_full_state_and_get_diff()?;
 
         let mut this = Self {
@@ -263,7 +262,7 @@ impl Starknet {
 
         // save into blocks state archive
         if self.config.state_archive == StateArchiveCapacity::Full {
-            let clone = self.state.clone_historic(state_diff)?;
+            let clone = self.state.expand_historic(state_diff)?;
             self.blocks.save_state_at(new_block_number, clone);
         }
 

@@ -104,7 +104,6 @@ mod tests {
             DEVNET_DEFAULT_CHAIN_ID,
         );
 
-        starknet.state.sync_historic();
         starknet.restart_pending_block().unwrap();
 
         (starknet, acc)
