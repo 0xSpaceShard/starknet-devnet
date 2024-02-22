@@ -132,7 +132,6 @@ mod tests {
         let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::Full);
 
         starknet.generate_new_block(StateDiff::default(), None).unwrap();
-        starknet.generate_pending_block().unwrap();
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
         let block_id = BlockId::Number(block_number.0);
@@ -147,7 +146,6 @@ mod tests {
         let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::None);
 
         starknet.generate_new_block(StateDiff::default(), None).unwrap();
-        starknet.generate_pending_block().unwrap();
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
         let block_id = BlockId::Number(block_number.0);
@@ -165,7 +163,6 @@ mod tests {
         let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::Full);
 
         starknet.generate_new_block(StateDiff::default(), None).unwrap();
-        starknet.generate_pending_block().unwrap();
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
         let block_id = BlockId::Number(block_number.0);
