@@ -83,7 +83,7 @@ mod simulation_tests {
             signer,
             account_address,
             CHAIN_ID,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         );
 
         let contract_json = dummy_cairo_0_contract_class();
@@ -154,7 +154,7 @@ mod simulation_tests {
             signer,
             account_address,
             CHAIN_ID,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         );
 
         // get class
@@ -331,7 +331,7 @@ mod simulation_tests {
             signer,
             account_address,
             CHAIN_ID,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         ));
 
         // get class
