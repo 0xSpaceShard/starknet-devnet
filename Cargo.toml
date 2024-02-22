@@ -65,7 +65,7 @@ url = "2.4"
 
 # Starknet dependencies
 starknet_api = { version = "0.8.0", features = ["testing"] }
-blockifier = { git = "https://github.com/starkware-libs/blockifier", rev = "55ced800afa75d958badf3d187d9b5873cf79808", package = "blockifier" }
+blockifier = { version = "=0.5.0-rc.3" }
 starknet-rs-signers = { version = "0.7.0", package = "starknet-signers" }
 starknet-rs-ff = { version = "0.3.6", package = "starknet-ff" }
 starknet-rs-core = { version = "0.9.0", package = "starknet-core" }
@@ -75,19 +75,19 @@ starknet-rs-contract = { version = "0.8.0", package = "starknet-contract" }
 starknet-rs-crypto = { version = "0.6.1", package = "starknet-crypto" }
 
 # Cairo-lang dependencies
-cairo-lang-starknet-classes = { version = "=2.6.0-rc.0", package = "cairo-lang-starknet-classes" }
-cairo-lang-compiler = "=2.6.0-rc.0"
-cairo-lang-casm = "=2.6.0-rc.0"
-cairo-lang-defs = "=2.6.0-rc.0"
-cairo-lang-diagnostics = "=2.6.0-rc.0"
-cairo-lang-filesystem = "=2.6.0-rc.0"
-cairo-lang-lowering = "=2.6.0-rc.0"
-cairo-lang-semantic = "=2.6.0-rc.0"
-cairo-lang-sierra = "=2.6.0-rc.0"
-cairo-lang-sierra-generator = "=2.6.0-rc.0"
-cairo-lang-sierra-to-casm = "=2.6.0-rc.0"
-cairo-lang-syntax = "=2.6.0-rc.0"
-cairo-lang-utils = "=2.6.0-rc.0"
+cairo-lang-starknet-classes = { version = "=2.6.0-rc.1", package = "cairo-lang-starknet-classes" }
+cairo-lang-compiler = "=2.6.0-rc.1"
+cairo-lang-casm = "=2.6.0-rc.1"
+cairo-lang-defs = "=2.6.0-rc.1"
+cairo-lang-diagnostics = "=2.6.0-rc.1"
+cairo-lang-filesystem = "=2.6.0-rc.1"
+cairo-lang-lowering = "=2.6.0-rc.1"
+cairo-lang-semantic = "=2.6.0-rc.1"
+cairo-lang-sierra = "=2.6.0-rc.1"
+cairo-lang-sierra-generator = "=2.6.0-rc.1"
+cairo-lang-sierra-to-casm = "=2.6.0-rc.1"
+cairo-lang-syntax = "=2.6.0-rc.1"
+cairo-lang-utils = "=2.6.0-rc.1"
 
 # Inner dependencies
 starknet-types = { version = "0.0.1", path = "crates/starknet-devnet-types", package = "starknet-devnet-types" }

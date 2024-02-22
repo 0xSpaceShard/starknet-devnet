@@ -1,7 +1,7 @@
 use core::fmt::Debug;
 use std::cmp::{Eq, PartialEq};
 
-use blockifier::transaction::transactions::ClassInfo;
+use blockifier::execution::contract_class::ClassInfo;
 use cairo_lang_starknet_classes::casm_contract_class::{CasmContractClass, CasmContractEntryPoint};
 use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
 use serde::{Serialize, Serializer};
@@ -134,18 +134,24 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ContractC
     }
 }
 
-impl TryFrom<ContractClass> for blockifier::transaction::transactions::ClassInfo {
+impl TryFrom<ContractClass> for blockifier::execution::contract_class::ClassInfo {
     type Error = Error;
 
     fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
         match value {
             ContractClass::Cairo0(deprecated_contract_class) => {
-                Ok(blockifier::transaction::transactions::ClassInfo {
-                    abi_length: deprecated_contract_class.abi_length()?,
-                    contract_class: blockifier::execution::contract_class::ContractClass::V0(
+                let abi_length = deprecated_contract_class.abi_length()?;
+                blockifier::execution::contract_class::ClassInfo::new(
+                    &blockifier::execution::contract_class::ContractClass::V0(
                         deprecated_contract_class.try_into()?,
                     ),
-                    sierra_program_length: 0,
+                    0,
+                    abi_length,
+                )
+                .map_err(|err| {
+                    Error::ConversionError(ConversionError::InvalidInternalStructure(
+                        err.to_string(),
+                    ))
                 })
             }
             ContractClass::Cairo1(sierra_contract_class) => {
@@ -167,12 +173,17 @@ impl TryFrom<ContractClass> for blockifier::transaction::transactions::ClassInfo
                 let blockifier_contract_class: blockifier::execution::contract_class::ContractClassV1 =
                         casm_contract_class.try_into().map_err(|_| Error::ProgramError)?;
 
-                Ok(ClassInfo {
-                    abi_length,
-                    contract_class: blockifier::execution::contract_class::ContractClass::V1(
+                ClassInfo::new(
+                    &blockifier::execution::contract_class::ContractClass::V1(
                         blockifier_contract_class,
                     ),
                     sierra_program_length,
+                    abi_length,
+                )
+                .map_err(|err| {
+                    Error::ConversionError(ConversionError::InvalidInternalStructure(
+                        err.to_string(),
+                    ))
                 })
             }
         }

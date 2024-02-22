@@ -1,4 +1,5 @@
-use blockifier::transaction::transactions::{ClassInfo, DeclareTransaction};
+use blockifier::execution::contract_class::ClassInfo;
+use blockifier::transaction::transactions::DeclareTransaction;
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
 use starknet_rs_core::crypto::compute_hash_on_elements;
