@@ -1,7 +1,7 @@
 {
     "openrpc": "1.0.0-rc1",
     "info": {
-        "version": "0.6.0",
+        "version": "0.7.0",
         "title": "StarkNet Node API",
         "license": {}
     },
@@ -1401,25 +1401,21 @@
                         "description": "The transactions in this block",
                         "type": "array",
                         "items": {
-                            "title": "transactions in block",
                             "type": "object",
-                            "allOf": [
-                                {
+                            "title": "transaction and receipt",
+                            "properties": {
+                                "transaction": {
                                     "title": "transaction",
                                     "$ref": "#/components/schemas/TXN"
                                 },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "receipt": {
-                                            "title": "receipt",
-                                            "$ref": "#/components/schemas/TXN_RECEIPT"
-                                        }
-                                    },
-                                    "required": [
-                                        "receipt"
-                                    ]
+                                "receipt": {
+                                    "title": "receipt",
+                                    "$ref": "#/components/schemas/TXN_RECEIPT_IN_BLOCK"
                                 }
+                            },
+                            "required": [
+                                "transaction",
+                                "receipt"
                             ]
                         }
                     }
@@ -1495,6 +1491,8 @@
                     "timestamp",
                     "sequencer_address",
                     "l1_gas_price",
+                    "l1_data_gas_price",
+                    "l1_da_mode",
                     "starknet_version"
                 ]
             },
@@ -2793,6 +2791,7 @@
                     },
                     "finality_status": {
                         "title": "Finality status",
+                        "description": "finality status of the tx, which is ACCEPTED_ON_L2 when included in a pending receipt, and can be ACCEPTED_ON_L1 when part of a getBlockWithReceipts response",
                         "$ref": "#/components/schemas/TXN_FINALITY_STATUS"
                     },
                     "block_hash": {
@@ -3145,6 +3144,10 @@
                     }
                 ]
             },
+            "TXN_RECEIPT_IN_BLOCK": {
+                "title": "receipt in block",
+                "$ref": "#/components/schemas/PENDING_TXN_RECEIPT"
+            },
             "PENDING_COMMON_RECEIPT_PROPERTIES": {
                 "title": "Pending common receipt properties",
                 "description": "Common properties for a pending transaction receipt",
@@ -3183,11 +3186,7 @@
                     },
                     "finality_status": {
                         "title": "Finality status",
-                        "type": "string",
-                        "enum": [
-                            "ACCEPTED_ON_L2"
-                        ],
-                        "description": "The finality status of the transaction"
+                        "$ref": "#/components/schemas/TXN_FINALITY_STATUS"
                     },
                     "execution_status": {
                         "title": "Execution status",
