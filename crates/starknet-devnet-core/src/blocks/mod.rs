@@ -66,7 +66,6 @@ impl StarknetBlocks {
         self.last_block_hash = Some(hash);
     }
 
-    // TODO pass state_diff?
     pub fn save_state_at(&mut self, block_number: BlockNumber, state: StarknetState) {
         self.num_to_state.insert(block_number, state);
     }
