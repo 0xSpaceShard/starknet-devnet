@@ -2,11 +2,14 @@ use std::collections::HashMap;
 
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::{State, StateReader};
+use starknet_api::core::Nonce;
+use starknet_api::hash::StarkFelt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt};
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 use starknet_types::rpc::state::{
-    ClassHashes, ContractNonce, DeployedContract, StorageDiff, StorageEntry, ThinStateDiff,
+    ClassHashes, ContractNonce, DeployedContract, ReplacedClasses, StorageDiff, StorageEntry,
+    ThinStateDiff,
 };
 
 use super::CommittedClassStorage;
@@ -25,6 +28,7 @@ pub struct StateDiff {
     pub(crate) declared_contracts: Vec<ClassHash>,
     // cairo 0 declared contracts
     pub(crate) cairo_0_declared_contracts: Vec<ClassHash>,
+    pub(crate) replaced_classes: Vec<ReplacedClasses>,
 }
 
 impl Eq for StateDiff {}
@@ -61,12 +65,22 @@ impl StateDiff {
             })
             .collect();
 
+        let mut replaced_classes = vec![];
         let address_to_class_hash = diff
             .address_to_class_hash
             .iter()
             .map(|(address, class_hash)| {
                 let contract_address = ContractAddress::from(*address);
                 let class_hash = class_hash.0.into();
+
+                // TODO this used the invalid assumption that contract nonce is changed - it's NOT,
+                // the account nonce is changed if nonce > 1, the contract was
+                // deployed earlier; now its class is changed TODO unrelated
+                // problem, the address_to_class_hash array seems to be populated with old data???
+                let nonce = state.get_nonce_at(*address);
+                if nonce.is_ok_and(|n| n.gt(&Nonce(StarkFelt::ONE))) {
+                    replaced_classes.push(ReplacedClasses { contract_address, class_hash })
+                }
 
                 (contract_address, class_hash)
             })
@@ -109,6 +123,7 @@ impl StateDiff {
             class_hash_to_compiled_class_hash,
             cairo_0_declared_contracts,
             declared_contracts,
+            replaced_classes,
         })
     }
 }
@@ -162,7 +177,7 @@ impl From<StateDiff> for ThinStateDiff {
                         .collect(),
                 })
                 .collect(),
-            replaced_classes: vec![],
+            replaced_classes: value.replaced_classes,
         }
     }
 }

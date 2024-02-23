@@ -175,24 +175,25 @@ pub(crate) mod test_utils {
 pub mod exported_test_utils {
     use starknet_types::contract_class::Cairo0Json;
 
-    pub fn dummy_cairo_l1l2_contract() -> Cairo0Json {
-        let json_str = std::fs::read_to_string(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/cairo_0_l1l2.json"
-        ))
-        .unwrap();
+    fn load_cairo_0_artifact(file_name: &str) -> Cairo0Json {
+        let path = format!("{}/{}/{}", env!("CARGO_MANIFEST_DIR"), "test_artifacts", file_name);
+        Cairo0Json::raw_json_from_path(&path).unwrap()
+    }
 
-        Cairo0Json::raw_json_from_json_str(&json_str).unwrap()
+    pub fn dummy_cairo_l1l2_contract() -> Cairo0Json {
+        load_cairo_0_artifact("cairo_0_l1l2.json")
     }
 
     pub fn dummy_cairo_0_contract_class() -> Cairo0Json {
-        let json_str = std::fs::read_to_string(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_artifacts/cairo_0_test.json"
-        ))
-        .unwrap();
+        load_cairo_0_artifact("cairo_0_test.json")
+    }
 
-        Cairo0Json::raw_json_from_json_str(&json_str).unwrap()
+    pub fn replaceable_class() -> Cairo0Json {
+        load_cairo_0_artifact("replaceable/replaceable.json")
+    }
+
+    pub fn replacing_class() -> Cairo0Json {
+        load_cairo_0_artifact("replacing/replacing.json")
     }
 }
 
