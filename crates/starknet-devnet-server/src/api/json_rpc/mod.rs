@@ -21,7 +21,7 @@ use starknet_types::rpc::estimate_message_fee::{
 use starknet_types::rpc::state::StateUpdate;
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
-    BlockTransactionTraces, EventsChunk, SimulatedTransaction, Transaction, TransactionTrace,
+    BlockTransactionTrace, EventsChunk, SimulatedTransaction, Transaction, TransactionTrace,
 };
 use starknet_types::starknet_api::block::BlockNumber;
 use tracing::{error, info, trace};
@@ -342,7 +342,7 @@ pub enum StarknetResponse {
     SimulateTransactions(Vec<SimulatedTransaction>),
     SpecVersion(String),
     TraceTransaction(TransactionTrace),
-    BlockTransactionTraces(BlockTransactionTraces),
+    BlockTransactionTraces(Vec<BlockTransactionTrace>),
 }
 
 #[cfg(test)]

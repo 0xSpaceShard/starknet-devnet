@@ -38,9 +38,9 @@ use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use starknet_types::rpc::transactions::{
-    BlockTransactionTrace, BlockTransactionTraces, BroadcastedTransaction,
-    BroadcastedTransactionCommon, DeclareTransaction, L1HandlerTransaction, SimulatedTransaction,
-    SimulationFlag, Transaction, TransactionTrace, Transactions,
+    BlockTransactionTrace, BroadcastedTransaction, BroadcastedTransactionCommon,
+    DeclareTransaction, L1HandlerTransaction, SimulatedTransaction, SimulationFlag, Transaction,
+    TransactionTrace, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, info};
@@ -862,7 +862,7 @@ impl Starknet {
     pub fn get_transaction_traces_from_block(
         &self,
         block_id: BlockId,
-    ) -> DevnetResult<BlockTransactionTraces> {
+    ) -> DevnetResult<Vec<BlockTransactionTrace>> {
         let transactions = self.get_block_with_transactions(block_id)?.transactions;
 
         let mut traces = Vec::new();
@@ -877,7 +877,7 @@ impl Starknet {
             }
         }
 
-        Ok(BlockTransactionTraces { traces })
+        Ok(traces)
     }
 
     pub fn get_transaction_execution_and_finality_status(
