@@ -32,7 +32,7 @@ use self::invoke_transaction_v3::InvokeTransactionV3;
 use super::estimate_message_fee::FeeEstimateWrapper;
 use super::messaging::{MessageToL1, OrderedMessageToL1};
 use super::state::ThinStateDiff;
-use super::transaction_receipt::{ExecutionResources, FeeInUnits};
+use super::transaction_receipt::{ComputationResources, ExecutionResources, FeeInUnits};
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::{Event, OrderedEvent};
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
@@ -667,7 +667,7 @@ pub struct FunctionInvocation {
     calls: Vec<FunctionInvocation>,
     events: Vec<OrderedEvent>,
     messages: Vec<OrderedMessageToL1>,
-    execution_resources: ExecutionResources,
+    execution_resources: ComputationResources,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -690,11 +690,6 @@ pub struct BlockTransactionTrace {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BlockTransactionTraces {
-    pub traces: Vec<BlockTransactionTrace>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Reversion {
     pub revert_reason: String,
 }
@@ -713,6 +708,7 @@ pub struct InvokeTransactionTrace {
     pub execute_invocation: ExecutionInvocation,
     pub fee_transfer_invocation: Option<FunctionInvocation>,
     pub state_diff: Option<ThinStateDiff>,
+    pub execution_resources: ExecutionResources,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -721,6 +717,7 @@ pub struct DeclareTransactionTrace {
     pub validate_invocation: Option<FunctionInvocation>,
     pub fee_transfer_invocation: Option<FunctionInvocation>,
     pub state_diff: Option<ThinStateDiff>,
+    pub execution_resources: ExecutionResources,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -730,6 +727,7 @@ pub struct DeployAccountTransactionTrace {
     pub constructor_invocation: Option<FunctionInvocation>,
     pub fee_transfer_invocation: Option<FunctionInvocation>,
     pub state_diff: Option<ThinStateDiff>,
+    pub execution_resources: ExecutionResources,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -752,7 +750,7 @@ impl FunctionInvocation {
         state_reader: &mut impl StateReader,
     ) -> DevnetResult<Self> {
         let mut internal_calls: Vec<FunctionInvocation> = vec![];
-        let execution_resources = ExecutionResources::from(call_info);
+        let execution_resources = ComputationResources::from(call_info);
         for internal_call in &call_info.inner_calls {
             internal_calls
                 .push(FunctionInvocation::try_from_call_info(internal_call, state_reader)?);
