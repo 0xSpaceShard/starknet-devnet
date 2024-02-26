@@ -163,6 +163,11 @@ impl From<&StarknetBlock> for TypesBlockHeader {
                 price_in_fri: value.header.l1_gas_price.price_in_fri.0.into(),
                 price_in_wei: value.header.l1_gas_price.price_in_wei.0.into(),
             },
+            l1_data_gas_price: ResourcePrice {
+                price_in_fri: value.header.l1_data_gas_price.price_in_fri.0.into(),
+                price_in_wei: value.header.l1_data_gas_price.price_in_wei.0.into(),
+            },
+            l1_da_mode: value.header.l1_da_mode,
         }
     }
 }

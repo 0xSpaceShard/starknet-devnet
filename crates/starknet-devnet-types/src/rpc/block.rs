@@ -1,5 +1,6 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp};
+use starknet_api::data_availability::L1DataAvailabilityMode;
 use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag as ImportedBlockTag};
 
 use crate::contract_address::ContractAddress;
@@ -116,6 +117,8 @@ pub struct BlockHeader {
     pub timestamp: BlockTimestamp,
     pub starknet_version: String,
     pub l1_gas_price: ResourcePrice,
+    pub l1_data_gas_price: ResourcePrice,
+    pub l1_da_mode: L1DataAvailabilityMode,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
