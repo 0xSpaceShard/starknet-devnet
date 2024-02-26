@@ -158,7 +158,7 @@ mod trace_tests {
             .await
             .unwrap();
 
-        // deploy
+        // deploy twice - should result in only 1 instance in deployed_contracts and no declares
         let contract_factory = ContractFactory::new(declaration_result.class_hash, account.clone());
         for salt in (0_u32..2).map(FieldElement::from) {
             let ctor_data = vec![];
