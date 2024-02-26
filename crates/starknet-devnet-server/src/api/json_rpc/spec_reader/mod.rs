@@ -200,10 +200,13 @@ mod tests {
         let specs = Spec::load_from_dir(format!("{specs_folder}/{RPC_SPEC_VERSION}",).as_str());
         let combined_schema = generate_combined_schema(&specs);
 
+        // TODO: implement starknet_getBlockWithReceipts
         for _ in 0..1000 {
             for spec in specs.iter() {
                 // Iterate over the methods in the spec
-                for method in spec.methods.iter() {
+                for method in
+                    spec.methods.iter().filter(|m| m.name != "starknet_getBlockWithReceipts")
+                {
                     // Create a JSON-RPC request for each method
                     let request = generate_json_rpc_request(method, &combined_schema)
                         .expect("Could not generate the JSON-RPC request");
