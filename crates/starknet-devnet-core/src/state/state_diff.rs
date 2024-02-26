@@ -73,10 +73,12 @@ impl StateDiff {
                 let contract_address = ContractAddress::from(*address);
                 let class_hash = class_hash.0.into();
 
-                // TODO this used the invalid assumption that contract nonce is changed - it's NOT,
-                // the account nonce is changed if nonce > 1, the contract was
-                // deployed earlier; now its class is changed TODO unrelated
-                // problem, the address_to_class_hash array seems to be populated with old data???
+                // TODO this used the invalid assumption that contract nonce is changed
+                //   - it's NOT, the account nonce is changed
+
+                // if nonce > 1, the contract was deployed earlier and now its class is changed
+                // TODO unrelated problem, the address_to_class_hash array seems to be populated
+                // with old data???
                 let nonce = state.get_nonce_at(*address);
                 if nonce.is_ok_and(|n| n.gt(&Nonce(StarkFelt::ONE))) {
                     replaced_classes.push(ReplacedClasses { contract_address, class_hash })
