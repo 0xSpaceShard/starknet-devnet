@@ -164,7 +164,7 @@ impl Starknet {
         )?;
         chargeable_account.deploy(&mut state)?;
 
-        state.commit_full_state_and_get_diff()?;
+        state.commit_with_diff()?;
 
         let mut this = Self {
             state,
@@ -382,7 +382,7 @@ impl Starknet {
         transaction: &Transaction,
         tx_info: TransactionExecutionInfo,
     ) -> DevnetResult<()> {
-        let state_diff = self.state.commit_full_state_and_get_diff()?;
+        let state_diff = self.state.commit_with_diff()?;
 
         let trace = create_trace(
             &mut self.state.state,
@@ -891,7 +891,7 @@ impl Starknet {
                 !skip_validate,
             )?;
 
-            let state_diff: ThinStateDiff = StateDiff::generate_commit(
+            let state_diff: ThinStateDiff = StateDiff::generate(
                 &mut transactional_state,
                 &mut transactional_rpc_contract_classes,
             )?
@@ -1349,7 +1349,7 @@ mod tests {
         // add data to state
         starknet.state.state.increment_nonce(dummy_contract_address().try_into().unwrap()).unwrap();
         // get state difference
-        let state_diff = starknet.state.commit_full_state_and_get_diff().unwrap();
+        let state_diff = starknet.state.commit_with_diff().unwrap();
         // generate new block and save the state
         let second_block = starknet.generate_new_block(state_diff, None).unwrap();
 
@@ -1357,7 +1357,7 @@ mod tests {
         // add data to state
         starknet.state.state.increment_nonce(dummy_contract_address().try_into().unwrap()).unwrap();
         // get state difference
-        let state_diff = starknet.state.commit_full_state_and_get_diff().unwrap();
+        let state_diff = starknet.state.commit_with_diff().unwrap();
         // generate new block and save the state
         let third_block = starknet.generate_new_block(state_diff, None).unwrap();
 
