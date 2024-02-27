@@ -254,6 +254,49 @@ mod tests {
     }
 
     #[test]
+    fn correct_difference_when_declaring_cairo0_and_cairo1() {
+        let mut state = setup();
+
+        // declare cairo0
+        {
+            let class_hash = Felt::from(1);
+            let contract_class = ContractClass::Cairo0(dummy_cairo_0_contract_class().into());
+
+            state.declare_contract_class(class_hash, contract_class).unwrap();
+
+            let generated_diff =
+                StateDiff::generate_commit(&mut state.state, &mut state.rpc_contract_classes)
+                    .unwrap();
+
+            let expected_diff = StateDiff {
+                cairo_0_declared_contracts: vec![class_hash].into_iter().collect(),
+                ..StateDiff::default()
+            };
+
+            assert_eq!(generated_diff, expected_diff);
+        }
+
+        // declare cairo1
+        {
+            let class_hash = Felt::from(2);
+            let contract_class = ContractClass::Cairo1(dummy_cairo_1_contract_class());
+            state.declare_contract_class(class_hash, contract_class).unwrap();
+
+            let generated_diff =
+                StateDiff::generate_commit(&mut state.state, &mut state.rpc_contract_classes)
+                    .unwrap();
+
+            let mut expected_diff = StateDiff::default();
+            expected_diff.declared_contracts.push(class_hash);
+            let expected_casm_hash =
+                Felt::from_prefixed_hex_str(DUMMY_CAIRO_1_COMPILED_CLASS_HASH).unwrap();
+            expected_diff.class_hash_to_compiled_class_hash.insert(class_hash, expected_casm_hash);
+
+            assert_eq!(generated_diff, expected_diff);
+        }
+    }
+
+    #[test]
     fn correct_difference_in_state_diff_object() {
         let mut state = setup();
         let class_hash = dummy_felt();
