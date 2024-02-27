@@ -436,10 +436,11 @@ impl Starknet {
                 eth_l1_gas_price: NonZeroU128::from(gas_price),
                 strk_l1_gas_price: NonZeroU128::from(gas_price),
                 // TODO: modify these values
-                eth_l1_data_gas_price: nonzero!(DEFAULT_ETH_L1_DATA_GAS_PRICE),
-                strk_l1_data_gas_price: nonzero!(DEFAULT_STRK_L1_DATA_GAS_PRICE),
+                eth_l1_data_gas_price: NonZeroU128::from(gas_price),
+                strk_l1_data_gas_price: NonZeroU128::from(gas_price),
             },
-            use_kzg_da: false,
+            // TODO: add a cli param
+            use_kzg_da: true,
         };
 
         let chain_info = ChainInfo {

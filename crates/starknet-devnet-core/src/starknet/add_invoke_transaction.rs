@@ -362,7 +362,7 @@ mod tests {
             Felt::from(10),               // calldata
         ];
 
-        let insufficient_max_fee = 2482; // this is minimum fee (enough for passing validation), anything lower than that is bounced back
+        let insufficient_max_fee = 137; // this is minimum fee (enough for passing validation), anything lower than that is bounced back
         let invoke_transaction = BroadcastedInvokeTransactionV1::new(
             account_address,
             Fee(insufficient_max_fee),

@@ -52,6 +52,7 @@ pub(crate) mod test_utils {
     use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
     use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
     use starknet_api::transaction::Fee;
+    use starknet_types::constants::MAX_BYTECODE_SIZE_LIMIT;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{
         compute_casm_class_hash, Cairo0ContractClass, Cairo0Json, ContractClass,
@@ -119,10 +120,13 @@ pub(crate) mod test_utils {
     ) -> BroadcastedDeclareTransactionV2 {
         let contract_class = dummy_cairo_1_contract_class();
 
-        // TODO: change usize::MAX to other value
         let compiled_class_hash = compute_casm_class_hash(
-            &CasmContractClass::from_contract_class(contract_class.clone(), true, usize::MAX)
-                .unwrap(),
+            &CasmContractClass::from_contract_class(
+                contract_class.clone(),
+                true,
+                MAX_BYTECODE_SIZE_LIMIT,
+            )
+            .unwrap(),
         )
         .unwrap();
 
@@ -130,7 +134,7 @@ pub(crate) mod test_utils {
             &contract_class,
             compiled_class_hash,
             *sender_address,
-            Fee(4000),
+            Fee(400000),
             &Vec::new(),
             Felt::from(0),
             Felt::from(2),

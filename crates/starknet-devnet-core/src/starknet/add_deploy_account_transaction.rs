@@ -109,9 +109,9 @@ mod tests {
     use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
     use starknet_types::rpc::transactions::{
-        BroadcastedTransactionCommonV3, ResourceBoundsWrapper,
+        BroadcastedTransaction, BroadcastedTransactionCommonV3, ResourceBoundsWrapper,
     };
-    use starknet_types::traits::HashProducer;
+    use starknet_types::traits::{HashProducer, ToHexString};
 
     use crate::constants::{
         self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
@@ -229,7 +229,7 @@ mod tests {
     fn deploy_account_transaction_v1_should_return_an_error_due_to_not_enough_fee() {
         let (mut starknet, account_class_hash, eth_fee_token_address, _) = setup();
 
-        let fee_raw: u128 = 2000;
+        let fee_raw: u128 = 1;
         let transaction = BroadcastedDeployAccountTransactionV1::new(
             &vec![],
             Fee(fee_raw),

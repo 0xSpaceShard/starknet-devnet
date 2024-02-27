@@ -59,7 +59,7 @@ mod tests {
             &contract_class,
             compiled_class_hash,
             sender_address,
-            Fee(4000),
+            Fee(400000),
             &Vec::new(),
             Felt::from(0),
             Felt::from(2),
@@ -113,7 +113,7 @@ mod tests {
         eth_erc_20_contract.deploy(&mut starknet.state).unwrap();
 
         let acc = Account::new(
-            Felt::from(100000),
+            Felt::from(1e18 as u128),
             dummy_felt(),
             dummy_felt(),
             contract_class.generate_hash().unwrap(),
