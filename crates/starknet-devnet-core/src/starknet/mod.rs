@@ -92,6 +92,7 @@ pub struct Starknet {
     pub transactions: StarknetTransactions,
     pub config: StarknetConfig,
     pub pending_block_timestamp_shift: i64,
+    pub next_block_timestamp: Option<u64>,
     pub(crate) messaging: MessagingBroker,
     pub(crate) dump_events: Vec<DumpEvent>,
 }
@@ -111,6 +112,7 @@ impl Default for Starknet {
             transactions: Default::default(),
             config: Default::default(),
             pending_block_timestamp_shift: 0,
+            next_block_timestamp: None,
             messaging: Default::default(),
             dump_events: Default::default(),
         }
@@ -185,6 +187,7 @@ impl Starknet {
             transactions: StarknetTransactions::default(),
             config: config.clone(),
             pending_block_timestamp_shift: 0,
+            next_block_timestamp: None,
             messaging: Default::default(),
             dump_events: Default::default(),
         };
@@ -241,10 +244,16 @@ impl Starknet {
         // set block timestamp and context block timestamp for contract execution
         let block_timestamp = match timestamp {
             Some(timestamp) => BlockTimestamp(timestamp),
-            None => BlockTimestamp(
-                (Starknet::get_unix_timestamp_as_seconds() as i64
-                    + self.pending_block_timestamp_shift) as u64,
-            ),
+            None => match self.next_block_timestamp {
+                Some(timestamp) => {
+                    self.next_block_timestamp = None;
+                    BlockTimestamp(timestamp)
+                }
+                None => BlockTimestamp(
+                    (Starknet::get_unix_timestamp_as_seconds() as i64
+                        + self.pending_block_timestamp_shift) as u64,
+                ),
+            },
         };
         new_block.set_timestamp(block_timestamp);
         self.block_context.block_timestamp = block_timestamp;
@@ -966,11 +975,25 @@ impl Starknet {
     }
 
     // Create empty block
-    pub fn set_time(&mut self, timestamp: u64) -> DevnetResult<(), Error> {
+    pub fn set_time(&mut self, timestamp: u64, create_block: bool) -> DevnetResult<(), Error> {
         self.set_block_timestamp_shift(
             timestamp as i64 - Starknet::get_unix_timestamp_as_seconds() as i64,
         );
-        self.create_block_dump_event(Some(timestamp), Some(DumpEvent::SetTime(timestamp)))
+
+        // TODO: implement dump...
+        if create_block {
+            // TODO: fire this only if optional parameter, add tests
+            self.create_block_dump_event(
+                Some(timestamp),
+                Some(DumpEvent::SetTimeCreateBlock(timestamp)),
+            )
+        } else {
+            // self.create_block(timestamp);
+            self.set_next_block_timestamp(timestamp);
+            // TODO: store event
+            // no next transaction should be with next_block_timestamp
+            Ok(())
+        }
     }
 
     // Set timestamp shift and create empty block
@@ -982,6 +1005,11 @@ impl Starknet {
     // Set timestamp shift for next blocks
     pub fn set_block_timestamp_shift(&mut self, timestamp: i64) {
         self.pending_block_timestamp_shift = timestamp;
+    }
+
+    // Set next block timestamp
+    pub fn set_next_block_timestamp(&mut self, timestamp: u64) {
+        self.next_block_timestamp = Some(timestamp);
     }
 
     pub fn get_unix_timestamp_as_seconds() -> u64 {
