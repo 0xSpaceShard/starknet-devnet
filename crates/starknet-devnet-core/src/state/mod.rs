@@ -89,8 +89,8 @@ impl StarknetState {
         self.rpc_contract_classes.clone()
     }
 
-    pub fn commit_full_state_and_get_diff(&mut self) -> DevnetResult<StateDiff> {
-        StateDiff::generate_commit(&mut self.state, &mut self.rpc_contract_classes)
+    pub fn commit_with_diff(&mut self) -> DevnetResult<StateDiff> {
+        StateDiff::generate(&mut self.state, &mut self.rpc_contract_classes)
     }
 
     pub fn assert_contract_deployed(
@@ -351,7 +351,7 @@ mod tests {
             .unwrap();
 
         state.state.set_storage_at(contract_address, storage_key, dummy_felt().into());
-        state.commit_full_state_and_get_diff().unwrap();
+        state.commit_with_diff().unwrap();
 
         let storage_after = state.get_storage_at(contract_address, storage_key).unwrap();
         assert_eq!(storage_after, dummy_felt().into());
@@ -368,7 +368,7 @@ mod tests {
         assert_eq!(state.get_nonce_at(contract_address).unwrap(), Nonce(StarkFelt::ZERO));
 
         state.state.increment_nonce(contract_address).unwrap();
-        state.commit_full_state_and_get_diff().unwrap();
+        state.commit_with_diff().unwrap();
 
         // check if nonce update was correct
         assert_eq!(state.get_nonce_at(contract_address).unwrap(), Nonce(StarkFelt::ONE));
@@ -391,7 +391,7 @@ mod tests {
             .declare_contract_class(class_hash, contract_class.clone().try_into().unwrap())
             .unwrap();
 
-        state.commit_full_state_and_get_diff().unwrap();
+        state.commit_with_diff().unwrap();
 
         match state.get_compiled_contract_class(&class_hash.into()) {
             Ok(blockifier::execution::contract_class::ContractClass::V0(retrieved_class)) => {
