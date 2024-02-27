@@ -13,6 +13,7 @@ use starknet_rs_core::types::{
 use starknet_rs_crypto::poseidon_hash_many;
 use starknet_rs_ff::FieldElement;
 
+use crate::constants::MAX_BYTECODE_SIZE_LIMIT;
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
 use crate::felt::Felt;
 use crate::traits::HashProducer;
@@ -120,9 +121,12 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ContractC
             }
             ContractClass::Cairo1(sierra_contract_class) => {
                 // TODO: what to input to max_bytecode_size
-                let casm_contract_class =
-                    CasmContractClass::from_contract_class(sierra_contract_class, true, usize::MAX)
-                        .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
+                let casm_contract_class = CasmContractClass::from_contract_class(
+                    sierra_contract_class,
+                    true,
+                    MAX_BYTECODE_SIZE_LIMIT,
+                )
+                .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
                 let blockifier_contract_class: blockifier::execution::contract_class::ContractClassV1 =
                     casm_contract_class.try_into().map_err(|_| Error::ProgramError)?;
 
@@ -166,9 +170,12 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ClassInfo
                 };
 
                 // TODO: what to input to max_bytecode_size
-                let casm_contract_class =
-                    CasmContractClass::from_contract_class(sierra_contract_class, true, usize::MAX)
-                        .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
+                let casm_contract_class = CasmContractClass::from_contract_class(
+                    sierra_contract_class,
+                    true,
+                    MAX_BYTECODE_SIZE_LIMIT,
+                )
+                .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
 
                 let blockifier_contract_class: blockifier::execution::contract_class::ContractClassV1 =
                         casm_contract_class.try_into().map_err(|_| Error::ProgramError)?;

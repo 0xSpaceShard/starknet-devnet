@@ -10,6 +10,7 @@ use starknet_rs_core::types::contract::SierraClass;
 use starknet_rs_core::types::{ExecutionResult, FieldElement, FlattenedSierraClass};
 use starknet_rs_providers::Provider;
 use starknet_rs_signers::LocalWallet;
+use starknet_types::constants::MAX_BYTECODE_SIZE_LIMIT;
 use starknet_types::contract_class::compute_casm_class_hash;
 
 pub async fn get_json_body(resp: Response<Body>) -> serde_json::Value {
@@ -59,9 +60,9 @@ pub fn get_flattened_sierra_contract_and_casm_hash(
     let contract_class: cairo_lang_starknet_classes::contract_class::ContractClass =
         serde_json::from_str(&sierra_string).unwrap();
 
-    // TODO: change usize::MAX
     let casm_contract_class =
-        CasmContractClass::from_contract_class(contract_class, false, usize::MAX).unwrap();
+        CasmContractClass::from_contract_class(contract_class, false, MAX_BYTECODE_SIZE_LIMIT)
+            .unwrap();
     let compiled_class_hash = compute_casm_class_hash(&casm_contract_class).unwrap();
     (sierra_class.flatten().unwrap(), compiled_class_hash.into())
 }

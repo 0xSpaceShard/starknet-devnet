@@ -21,6 +21,7 @@ mod tests {
     use nonzero_ext::nonzero;
     use starknet_api::transaction::Fee;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
+    use starknet_types::constants::MAX_BYTECODE_SIZE_LIMIT;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{compute_casm_class_hash, Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
@@ -45,10 +46,13 @@ mod tests {
 
         let sierra_class_hash =
             ContractClass::Cairo1(contract_class.clone()).generate_hash().unwrap();
-        // TODO: change usize::MAX
-        let casm_contract_class =
-            CasmContractClass::from_contract_class(contract_class.clone(), true, usize::MAX)
-                .unwrap();
+
+        let casm_contract_class = CasmContractClass::from_contract_class(
+            contract_class.clone(),
+            true,
+            MAX_BYTECODE_SIZE_LIMIT,
+        )
+        .unwrap();
         let compiled_class_hash = compute_casm_class_hash(&casm_contract_class).unwrap();
 
         let declare_txn = BroadcastedDeclareTransactionV2::new(
