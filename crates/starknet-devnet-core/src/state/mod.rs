@@ -70,7 +70,8 @@ impl CommittedClassStorage {
 pub(crate) struct StarknetState {
     pub(crate) state: CachedState<DictState>,
     rpc_contract_classes: CommittedClassStorage,
-    /// `None` indicates the state hasn't yet been cloned for old-state preservation purpose
+    /// - initially `None`
+    /// - indicates the state hasn't yet been cloned for old-state preservation purpose
     historic_state: Option<DictState>,
 }
 
@@ -90,7 +91,9 @@ impl StarknetState {
     }
 
     pub fn commit_with_diff(&mut self) -> DevnetResult<StateDiff> {
-        StateDiff::generate(&mut self.state, &mut self.rpc_contract_classes)
+        let diff = StateDiff::generate(&mut self.state, &mut self.rpc_contract_classes)?;
+        self.expand_historic(diff.clone())?;
+        Ok(diff)
     }
 
     pub fn assert_contract_deployed(
@@ -105,12 +108,8 @@ impl StarknetState {
 
     /// Expands the internal historic state copy and returns a StarknetState wrapper of it,
     /// together with current contract_classes
-    pub fn expand_historic(&mut self, state_diff: StateDiff) -> DevnetResult<Self> {
-        if self.historic_state.is_none() {
-            // to have predeployed content in the historic state; done only once
-            self.historic_state = Some(self.state.state.clone());
-        }
-        let mut historic_state = self.historic_state.as_ref().unwrap().clone();
+    fn expand_historic(&mut self, state_diff: StateDiff) -> DevnetResult<()> {
+        let mut historic_state = self.state.state.clone();
 
         for (address, class_hash) in state_diff.address_to_class_hash {
             historic_state.set_class_hash_at(address.try_into()?, class_hash.into())?;
@@ -136,14 +135,19 @@ impl StarknetState {
             let compiled_class = self.get_compiled_contract_class(&class_hash.into())?;
             historic_state.set_contract_class(&class_hash.into(), compiled_class)?;
         }
-
+        // TODO too much cloning
         self.historic_state = Some(historic_state.clone());
+        self.state = CachedState::new(historic_state, Default::default());
+        Ok(())
+    }
 
-        Ok(Self {
+    pub fn clone_historic(&self) -> Self {
+        let historic_state = self.historic_state.as_ref().unwrap().clone();
+        Self {
             state: CachedState::new(historic_state, Default::default()),
             rpc_contract_classes: self.rpc_contract_classes.clone(),
             historic_state: None,
-        })
+        }
     }
 }
 
