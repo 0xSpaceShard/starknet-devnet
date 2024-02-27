@@ -48,6 +48,7 @@ mod get_transaction_by_hash_integration_tests {
         let declare_transaction = account
             .declare_legacy(Arc::new(legacy_contract_class))
             .nonce(FieldElement::ZERO)
+            //.max_fee(FieldElement::from(1e18 as u128))
             .send()
             .await
             .unwrap();
