@@ -281,7 +281,7 @@ Response:
 
 ## Advancing time
 
-Block timestamp can be manipulated by setting the exact time or setting the time offset. Timestamps methods `/set_time` and `/increase_time` will generate a new block. All values should be set in Unix time seconds [Unix time seconds](https://en.wikipedia.org/wiki/Unix_time).
+Block timestamp can be manipulated by setting the exact time or setting the time offset. By default timestamps methods `/set_time` and `/increase_time` set will generate a new block. This behavior can be changed for `/set_time` endpoint by setting the optional parameter `generate_block` to `false`, in that case exact time will be set for the next generated block. All values should be set in Unix time seconds [Unix time seconds](https://en.wikipedia.org/wiki/Unix_time).
 
 ### Set time
 
@@ -290,7 +290,17 @@ Sets the exact time and generates a new block.
 ```
 POST /set_time
 {
-    "time": TIME_IN_SECONDS
+    "time": TIME_IN_SECONDS,
+}
+```
+
+Sets the exact time for the next block generated.
+
+```
+POST /set_time
+{
+    "time": TIME_IN_SECONDS,
+    "generate_block": false
 }
 ```
 
