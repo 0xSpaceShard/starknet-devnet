@@ -971,7 +971,7 @@ impl Starknet {
         Ok(())
     }
 
-    // Create empty block
+    // Set time
     pub fn set_time(&mut self, timestamp: u64, create_block: bool) -> DevnetResult<(), Error> {
         self.set_block_timestamp_shift(
             timestamp as i64 - Starknet::get_unix_timestamp_as_seconds() as i64,

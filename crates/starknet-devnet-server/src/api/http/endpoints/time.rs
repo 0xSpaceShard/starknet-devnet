@@ -23,7 +23,8 @@ pub async fn set_time(
             block_hash: Some(block.block_hash()),
         })),
         Err(Error::NoBlock) => {
-            // Handle case when generate_block is false and there is no latest block
+            // Handle case when generate_block is false and there is no latest block, this case can
+            // be removed once the genesis block is implemented
             if !generate_block {
                 return Ok(Json(SetTimeResponse { block_timestamp: data.time, block_hash: None }));
             }
