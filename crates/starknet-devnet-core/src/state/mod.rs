@@ -92,7 +92,8 @@ impl StarknetState {
 
     pub fn commit_with_diff(&mut self) -> DevnetResult<StateDiff> {
         let diff = StateDiff::generate(&mut self.state, &mut self.rpc_contract_classes)?;
-        self.expand_historic(diff.clone())?;
+        let new_historic = self.expand_historic(diff.clone())?;
+        self.state = CachedState::new(new_historic.clone(), Default::default());
         Ok(diff)
     }
 
@@ -106,9 +107,8 @@ impl StarknetState {
         Ok(())
     }
 
-    /// Expands the internal historic state copy and returns a StarknetState wrapper of it,
-    /// together with current contract_classes
-    fn expand_historic(&mut self, state_diff: StateDiff) -> DevnetResult<()> {
+    /// Expands the internal historic state copy and returns a reference to it
+    fn expand_historic(&mut self, state_diff: StateDiff) -> DevnetResult<&DictState> {
         let mut historic_state = self.state.state.clone();
 
         for (address, class_hash) in state_diff.address_to_class_hash {
@@ -135,10 +135,8 @@ impl StarknetState {
             let compiled_class = self.get_compiled_contract_class(&class_hash.into())?;
             historic_state.set_contract_class(&class_hash.into(), compiled_class)?;
         }
-        // TODO too much cloning
-        self.historic_state = Some(historic_state.clone());
-        self.state = CachedState::new(historic_state, Default::default());
-        Ok(())
+        self.historic_state = Some(historic_state);
+        Ok(self.historic_state.as_ref().unwrap())
     }
 
     pub fn clone_historic(&self) -> Self {
