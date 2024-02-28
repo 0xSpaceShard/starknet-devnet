@@ -60,7 +60,6 @@ mod get_class_hash_at_integration_tests {
     }
 
     #[tokio::test]
-    #[ignore = "State archiving disabled"]
     async fn get_class_hash_at_by_block_number() {
         let devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
@@ -81,7 +80,6 @@ mod get_class_hash_at_integration_tests {
     }
 
     #[tokio::test]
-    #[ignore = "State archiving disabled"]
     async fn get_class_hash_at_by_block_hash() {
         let devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])

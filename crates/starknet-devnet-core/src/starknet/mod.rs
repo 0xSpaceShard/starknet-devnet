@@ -164,7 +164,7 @@ impl Starknet {
         )?;
         chargeable_account.deploy(&mut state)?;
 
-        state.commit_full_state_and_get_diff()?;
+        state.commit_with_diff()?;
 
         let mut this = Self {
             state,
@@ -262,7 +262,8 @@ impl Starknet {
 
         // save into blocks state archive
         if self.config.state_archive == StateArchiveCapacity::Full {
-            self.blocks.save_state_at(new_block_number, &self.state);
+            let clone = self.state.clone_historic();
+            self.blocks.save_state_at(new_block_number, clone);
         }
 
         self.generate_pending_block()?;
@@ -382,7 +383,7 @@ impl Starknet {
         transaction: &Transaction,
         tx_info: TransactionExecutionInfo,
     ) -> DevnetResult<()> {
-        let state_diff = self.state.commit_full_state_and_get_diff()?;
+        let state_diff = self.state.commit_with_diff()?;
 
         let trace = create_trace(
             &mut self.state.state,
@@ -891,7 +892,7 @@ impl Starknet {
                 !skip_validate,
             )?;
 
-            let state_diff: ThinStateDiff = StateDiff::generate_commit(
+            let state_diff: ThinStateDiff = StateDiff::generate(
                 &mut transactional_state,
                 &mut transactional_rpc_contract_classes,
             )?
@@ -1147,7 +1148,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "State archiving disabled"]
     fn getting_state_at_block_by_nonexistent_hash_with_full_state_archive() {
         let config =
             StarknetConfig { state_archive: StateArchiveCapacity::Full, ..Default::default() };
@@ -1161,7 +1161,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "State archiving disabled"]
     fn getting_nonexistent_state_at_block_by_number_with_full_state_archive() {
         let config =
             StarknetConfig { state_archive: StateArchiveCapacity::Full, ..Default::default() };
@@ -1334,7 +1333,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "State archiving disabled"]
     fn correct_state_at_specific_block() {
         let mut starknet = Starknet::new(&StarknetConfig {
             state_archive: StateArchiveCapacity::Full,
@@ -1349,7 +1347,7 @@ mod tests {
         // add data to state
         starknet.state.state.increment_nonce(dummy_contract_address().try_into().unwrap()).unwrap();
         // get state difference
-        let state_diff = starknet.state.commit_full_state_and_get_diff().unwrap();
+        let state_diff = starknet.state.commit_with_diff().unwrap();
         // generate new block and save the state
         let second_block = starknet.generate_new_block(state_diff, None).unwrap();
 
@@ -1357,7 +1355,7 @@ mod tests {
         // add data to state
         starknet.state.state.increment_nonce(dummy_contract_address().try_into().unwrap()).unwrap();
         // get state difference
-        let state_diff = starknet.state.commit_full_state_and_get_diff().unwrap();
+        let state_diff = starknet.state.commit_with_diff().unwrap();
         // generate new block and save the state
         let third_block = starknet.generate_new_block(state_diff, None).unwrap();
 
