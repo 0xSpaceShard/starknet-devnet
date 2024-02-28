@@ -2,6 +2,7 @@ pub mod common;
 
 mod dump_and_load_tests {
     use std::path::Path;
+    use std::{thread, time};
 
     use hyper::Body;
     use serde_json::json;
@@ -399,5 +400,52 @@ mod dump_and_load_tests {
         } else {
             panic!("Could not unpack the transaction from {loaded_transaction:?}");
         }
+    }
+
+    #[tokio::test]
+    async fn set_time_with_later_block_generation_dump_and_load() {
+        let dump_file = UniqueAutoDeletableFile::new("dump_set_time");
+        let devnet_dump = BackgroundDevnet::spawn_with_additional_args(&[
+            "--dump-path",
+            &dump_file.path,
+            "--dump-on",
+            "exit",
+        ])
+        .await
+        .expect("Could not start Devnet");
+
+        // set time in past without block generation
+        let past_time = 1;
+        let set_time_body =
+            Body::from(json!({ "time": past_time, "generate_block": false }).to_string());
+        devnet_dump.post_json("/set_time".into(), set_time_body).await.unwrap();
+
+        // wait 1 second
+        thread::sleep(time::Duration::from_secs(1));
+
+        // create block
+        devnet_dump
+            .post_json("/create_block".into(), Body::from(json!({}).to_string()))
+            .await
+            .unwrap();
+        let _ = &devnet_dump
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
+
+        // dump and load
+        send_ctrl_c_signal_and_wait(&devnet_dump.process).await;
+
+        // load and assert
+        let devnet_load =
+            BackgroundDevnet::spawn_with_additional_args(&["--dump-path", &dump_file.path])
+                .await
+                .expect("Could not start Devnet");
+
+        let latest_block = &devnet_load
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
+
+        assert_eq!(latest_block["block_number"], 0);
+        assert_eq!(latest_block["timestamp"], past_time);
     }
 }

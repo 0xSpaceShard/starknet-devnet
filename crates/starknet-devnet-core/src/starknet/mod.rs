@@ -980,18 +980,15 @@ impl Starknet {
             timestamp as i64 - Starknet::get_unix_timestamp_as_seconds() as i64,
         );
 
-        // TODO: implement dump...
         if create_block {
-            // TODO: fire this only if optional parameter, add tests
             self.create_block_dump_event(
                 Some(timestamp),
                 Some(DumpEvent::SetTimeCreateBlock(timestamp)),
             )
         } else {
-            // self.create_block(timestamp);
             self.set_next_block_timestamp(timestamp);
-            // TODO: store event
-            // no next transaction should be with next_block_timestamp
+            self.handle_dump_event(DumpEvent::SetTime(timestamp))?;
+
             Ok(())
         }
     }

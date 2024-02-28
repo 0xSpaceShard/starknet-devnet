@@ -606,12 +606,13 @@ mod advancing_time_tests {
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
 
+        // create block and assert
         devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
-        let empty_block = &devnet
+        let latest_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
 
-        assert_eq!(empty_block["block_number"], 0);
-        assert_eq!(empty_block["timestamp"], past_time);
+        assert_eq!(latest_block["block_number"], 0);
+        assert_eq!(latest_block["timestamp"], past_time);
     }
 }
