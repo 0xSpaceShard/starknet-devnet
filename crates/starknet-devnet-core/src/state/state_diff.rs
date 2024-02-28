@@ -2,8 +2,6 @@ use std::collections::HashMap;
 
 use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::{State, StateReader};
-use starknet_api::core::Nonce;
-use starknet_api::hash::StarkFelt;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{ClassHash, Felt};
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
@@ -65,25 +63,18 @@ impl StateDiff {
             })
             .collect();
 
-        let mut replaced_classes = vec![];
+        let replaced_classes = vec![];
+        // TODO To completely populate replaced_classes, one would need to check all entries in
+        // diff.address_to_class_hash, compare with the previous state, and filter out those
+        // addresses that were present, but with a different class hash. Potential solution:
+        // commit_with_diff can be moved from StarknetState to Starknet (problem in
+        // StarknetState tests which rely on commit_with_diff directly on StarknetState)
         let address_to_class_hash = diff
             .address_to_class_hash
             .iter()
             .map(|(address, class_hash)| {
                 let contract_address = ContractAddress::from(*address);
                 let class_hash = class_hash.0.into();
-
-                // TODO this used the invalid assumption that contract nonce is changed
-                //   - it's NOT, the account nonce is changed
-
-                // if nonce > 1, the contract was deployed earlier and now its class is changed
-                // TODO unrelated problem, the address_to_class_hash array seems to be populated
-                // with old data???
-                let nonce = state.get_nonce_at(*address);
-                if nonce.is_ok_and(|n| n.gt(&Nonce(StarkFelt::ONE))) {
-                    replaced_classes.push(ReplacedClasses { contract_address, class_hash })
-                }
-
                 (contract_address, class_hash)
             })
             .collect::<HashMap<ContractAddress, ClassHash>>();
