@@ -8,8 +8,9 @@ mod get_class_hash_at_integration_tests {
     use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::{
-        BlockId, BlockTag, FieldElement, FunctionCall, StarknetError, TransactionExecutionStatus,
-        TransactionStatus,
+        BlockId, BlockTag, FieldElement, FunctionCall, MaybePendingStateUpdate, ReplacedClassItem,
+        StarknetError, StateUpdate, TransactionExecutionStatus, TransactionStatus,
+        TransactionTrace,
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::{Provider, ProviderError};
@@ -147,6 +148,36 @@ mod get_class_hash_at_integration_tests {
         declaration_result.class_hash
     }
 
+    async fn assert_only_replacement(
+        devnet: &BackgroundDevnet,
+        tx_hash: FieldElement,
+        expected_replacement: &[ReplacedClassItem],
+    ) {
+        let replacement_trace = devnet.json_rpc_client.trace_transaction(tx_hash).await.unwrap();
+        match replacement_trace {
+            TransactionTrace::Invoke(tx) => {
+                let state_diff = tx.state_diff.unwrap();
+                assert_eq!(state_diff.declared_classes, []);
+                assert_eq!(state_diff.deprecated_declared_classes, []);
+                assert_eq!(state_diff.deployed_contracts, []);
+                assert_eq!(state_diff.replaced_classes, expected_replacement);
+            }
+            other => panic!("Invalid trace: {other:?}"),
+        }
+
+        let update =
+            devnet.json_rpc_client.get_state_update(BlockId::Tag(BlockTag::Latest)).await.unwrap();
+        match update {
+            MaybePendingStateUpdate::Update(StateUpdate { state_diff, .. }) => {
+                assert_eq!(state_diff.declared_classes, []);
+                assert_eq!(state_diff.deprecated_declared_classes, []);
+                assert_eq!(state_diff.deployed_contracts, []);
+                assert_eq!(state_diff.replaced_classes, expected_replacement);
+            }
+            other => panic!("Invalid: {other:?}"),
+        }
+    }
+
     #[tokio::test]
     async fn test_class_replacement() {
         let devnet = BackgroundDevnet::spawn().await.unwrap();
@@ -196,21 +227,12 @@ mod get_class_hash_at_integration_tests {
             other => panic!("Invalid response: {other:?}"),
         };
 
-        // TODO assert diff content, currently getting empty array
-        // let update =
-        //     devnet.json_rpc_client.get_state_update(BlockId::Tag(BlockTag::Latest)).await.
-        // unwrap(); match update {
-        //     MaybePendingStateUpdate::Update(StateUpdate { state_diff, .. }) => {
-        //         assert_eq!(
-        //             state_diff.replaced_classes,
-        //             [ReplacedClassItem {
-        //                 contract_address: replaceable_address,
-        //                 class_hash: replacing_hash
-        //             }]
-        //         )
-        //     }
-        //     other => panic!("Invalid: {other:?}"),
-        // }
+        let expected_replacement = [ReplacedClassItem {
+            contract_address: replaceable_address,
+            class_hash: replacing_hash,
+        }];
+        assert_only_replacement(&devnet, replacement_tx.transaction_hash, &expected_replacement)
+            .await;
 
         // assert current class is `replacing` by checking class hash and call result
         assert_hash_at_address(&devnet, replacing_hash, replaceable_address).await;
