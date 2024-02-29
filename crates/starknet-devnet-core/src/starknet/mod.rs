@@ -5,14 +5,12 @@ use blockifier::block::BlockInfo;
 use blockifier::context::{BlockContext, ChainInfo, TransactionContext};
 use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::state_api::StateReader;
-use blockifier::test_utils::{DEFAULT_ETH_L1_DATA_GAS_PRICE, DEFAULT_STRK_L1_DATA_GAS_PRICE};
 use blockifier::transaction::errors::TransactionPreValidationError;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
-use nonzero_ext::{nonzero, NonZero};
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice, GasPricePerToken};
 use starknet_api::core::SequencerContractAddress;
-use starknet_api::transaction::{ExecutionResources, Fee};
+use starknet_api::transaction::Fee;
 use starknet_rs_core::types::{
     BlockId, MsgFromL1, TransactionExecutionStatus, TransactionFinalityStatus,
 };
@@ -29,7 +27,9 @@ use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{Block, BlockHeader};
 use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
 use starknet_types::rpc::state::ThinStateDiff;
-use starknet_types::rpc::transaction_receipt::TransactionReceipt;
+use starknet_types::rpc::transaction_receipt::{
+    DeployTransactionReceipt, L1HandlerTransactionReceipt, TransactionReceipt,
+};
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
@@ -40,7 +40,7 @@ use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::Broadc
 use starknet_types::rpc::transactions::{
     BlockTransactionTrace, BroadcastedTransaction, BroadcastedTransactionCommon,
     DeclareTransaction, L1HandlerTransaction, SimulatedTransaction, SimulationFlag, Transaction,
-    TransactionTrace, Transactions,
+    TransactionTrace, TransactionWithReceipt, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, info};
@@ -800,6 +800,42 @@ impl Starknet {
         })
     }
 
+    pub fn get_block_with_receipts(&self, block_id: BlockId) -> DevnetResult<Block> {
+        let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
+        let mut transaction_receipts: Vec<TransactionWithReceipt> = vec![];
+
+        for transaction_hash in block.get_transactions() {
+            let sn_transaction =
+                self.transactions.get_by_hash(*transaction_hash).ok_or(Error::NoTransaction)?;
+
+            let transaction = sn_transaction.inner.clone();
+            let mut receipt = sn_transaction.get_receipt()?;
+
+            // remove the fields block_hash and block_number, because they are not needed as per the
+            // spec
+            // @Mario: waiting for the final decision on this fields, so we can refactor this.
+            // Currently the spec is at 0.7.0-rc.1
+            let common_field = match receipt {
+                TransactionReceipt::Deploy(DeployTransactionReceipt { ref mut common, .. })
+                | TransactionReceipt::L1Handler(L1HandlerTransactionReceipt {
+                    ref mut common,
+                    ..
+                })
+                | TransactionReceipt::Common(ref mut common) => common,
+            };
+            common_field.maybe_pending_properties.block_hash = None;
+            common_field.maybe_pending_properties.block_number = None;
+
+            transaction_receipts.push(TransactionWithReceipt { receipt, transaction });
+        }
+
+        Ok(Block {
+            status: *block.status(),
+            header: BlockHeader::from(block),
+            transactions: Transactions::FullWithReceipts(transaction_receipts),
+        })
+    }
+
     pub fn get_transaction_by_block_id_and_index(
         &self,
         block_id: BlockId,
@@ -844,10 +880,10 @@ impl Starknet {
 
     pub fn get_transaction_receipt_by_hash(
         &self,
-        transaction_hash: TransactionHash,
+        transaction_hash: &TransactionHash,
     ) -> DevnetResult<TransactionReceipt> {
         let transaction_to_map =
-            self.transactions.get(&transaction_hash).ok_or(Error::NoTransaction)?;
+            self.transactions.get(transaction_hash).ok_or(Error::NoTransaction)?;
 
         transaction_to_map.get_receipt()
     }

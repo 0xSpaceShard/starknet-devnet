@@ -102,6 +102,9 @@ impl JsonRpcHandler {
             StarknetRequest::BlockWithFullTransactions(block) => {
                 self.get_block_with_txs(block.block_id).await.to_rpc_result()
             }
+            StarknetRequest::BlockWithReceipts(block) => {
+                self.get_block_with_receipts(block.block_id).await.to_rpc_result()
+            }
             StarknetRequest::StateUpdate(block) => {
                 self.get_state_update(block.block_id).await.to_rpc_result()
             }
@@ -208,6 +211,8 @@ pub enum StarknetRequest {
     BlockWithTransactionHashes(BlockIdInput),
     #[serde(rename = "starknet_getBlockWithTxs")]
     BlockWithFullTransactions(BlockIdInput),
+    #[serde(rename = "starknet_getBlockWithReceipts")]
+    BlockWithReceipts(BlockIdInput),
     #[serde(rename = "starknet_getStateUpdate")]
     StateUpdate(BlockIdInput),
     #[serde(rename = "starknet_getStorageAt")]
@@ -268,6 +273,7 @@ impl std::fmt::Display for StarknetRequest {
                 write!(f, "starknet_getBlockWithTxHashes")
             }
             StarknetRequest::BlockWithFullTransactions(_) => write!(f, "starknet_getBlockWithTxs"),
+            StarknetRequest::BlockWithReceipts(_) => write!(f, "starknet_getBlockWithReceipts"),
             StarknetRequest::StateUpdate(_) => write!(f, "starknet_getStateUpdate"),
             StarknetRequest::StorageAt(_) => write!(f, "starknet_getStorageAt"),
             StarknetRequest::TransactionByHash(_) => write!(f, "starknet_getTransactionByHash"),
@@ -317,6 +323,7 @@ impl std::fmt::Display for StarknetRequest {
 pub enum StarknetResponse {
     BlockWithTransactionHashes(Block),
     BlockWithFullTransactions(Block),
+    BlockWithReceipts(Block),
     StateUpdate(StateUpdate),
     StorageAt(Felt),
     TransactionByHash(Transaction),

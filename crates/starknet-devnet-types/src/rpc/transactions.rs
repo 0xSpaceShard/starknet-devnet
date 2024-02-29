@@ -32,7 +32,9 @@ use self::invoke_transaction_v3::InvokeTransactionV3;
 use super::estimate_message_fee::FeeEstimateWrapper;
 use super::messaging::{MessageToL1, OrderedMessageToL1};
 use super::state::ThinStateDiff;
-use super::transaction_receipt::{ComputationResources, ExecutionResources, FeeInUnits};
+use super::transaction_receipt::{
+    ComputationResources, ExecutionResources, FeeInUnits, TransactionReceipt,
+};
 use crate::contract_address::ContractAddress;
 use crate::emitted_event::{Event, OrderedEvent};
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
@@ -70,6 +72,7 @@ pub mod l1_handler_transaction;
 pub enum Transactions {
     Hashes(Vec<TransactionHash>),
     Full(Vec<Transaction>),
+    FullWithReceipts(Vec<TransactionWithReceipt>),
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Deserialize, Serialize, Default)]
@@ -100,6 +103,12 @@ pub enum Transaction {
     Invoke(InvokeTransaction),
     #[serde(rename = "L1_HANDLER")]
     L1Handler(L1HandlerTransaction),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TransactionWithReceipt {
+    pub receipt: TransactionReceipt,
+    pub transaction: Transaction,
 }
 
 impl Transaction {
