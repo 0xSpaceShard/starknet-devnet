@@ -228,6 +228,22 @@ impl Starknet {
         Ok(())
     }
 
+    fn next_block_timestamp(&mut self, timestamp: Option<u64>) -> BlockTimestamp {
+        match timestamp {
+            Some(timestamp) => BlockTimestamp(timestamp),
+            None => match self.next_block_timestamp {
+                Some(timestamp) => {
+                    self.next_block_timestamp = None;
+                    BlockTimestamp(timestamp)
+                }
+                None => BlockTimestamp(
+                    (Starknet::get_unix_timestamp_as_seconds() as i64
+                        + self.pending_block_timestamp_shift) as u64,
+                ),
+            },
+        }
+    }
+
     /// Transfer data from pending block into new block and save it to blocks collection
     /// Generates new pending block
     /// Returns the new block number
@@ -243,19 +259,7 @@ impl Starknet {
         new_block.status = BlockStatus::AcceptedOnL2;
 
         // set block timestamp and context block timestamp for contract execution
-        let block_timestamp = match timestamp {
-            Some(timestamp) => BlockTimestamp(timestamp),
-            None => match self.next_block_timestamp {
-                Some(timestamp) => {
-                    self.next_block_timestamp = None;
-                    BlockTimestamp(timestamp)
-                }
-                None => BlockTimestamp(
-                    (Starknet::get_unix_timestamp_as_seconds() as i64
-                        + self.pending_block_timestamp_shift) as u64,
-                ),
-            },
-        };
+        let block_timestamp = self.next_block_timestamp(timestamp);
         new_block.set_timestamp(block_timestamp);
         self.block_context.block_timestamp = block_timestamp;
 
