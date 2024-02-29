@@ -11,6 +11,7 @@ use starknet_types::felt::{ClassHash, Felt};
 use self::state_diff::StateDiff;
 use self::state_readers::DictState;
 use crate::error::{DevnetResult, Error};
+use crate::starknet::starknet_config::ForkConfig;
 
 pub(crate) mod state_diff;
 mod state_readers;
@@ -86,6 +87,14 @@ impl Default for StarknetState {
 }
 
 impl StarknetState {
+    pub fn new(fork_config: ForkConfig) -> Self {
+        Self {
+            state: CachedState::new(DictState::new(fork_config), Default::default()),
+            rpc_contract_classes: Default::default(),
+            historic_state: Default::default(),
+        }
+    }
+
     pub fn clone_rpc_contract_classes(&self) -> CommittedClassStorage {
         self.rpc_contract_classes.clone()
     }

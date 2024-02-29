@@ -4,7 +4,9 @@ use starknet_core::constants::{
     DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
 use starknet_core::random_number_generator::generate_u32_random_number;
-use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig, StateArchiveCapacity};
+use starknet_core::starknet::starknet_config::{
+    DumpOn, ForkConfig, StarknetConfig, StateArchiveCapacity,
+};
 use starknet_types::chain_id::ChainId;
 
 use crate::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
@@ -108,6 +110,17 @@ pub(crate) struct Args {
     #[arg(default_value = "none")]
     #[arg(help = "Specify the state archive capacity;")]
     state_archive: StateArchiveCapacity,
+
+    #[arg(long = "fork-network")]
+    #[arg(value_name = "URL")]
+    #[arg(help = "Specify the URL of the network to fork;")]
+    fork_network: Option<String>,
+
+    #[arg(long = "fork-block")]
+    #[arg(value_name = "BLOCK_NUMBER")]
+    #[arg(help = "Specify the number of the block to fork at;")]
+    #[arg(requires = "fork_network")]
+    fork_block: Option<u64>,
 }
 
 impl Args {
@@ -137,6 +150,7 @@ impl Args {
             dump_path: self.dump_path.clone(),
             re_execute_on_init: true,
             state_archive: self.state_archive,
+            fork_config: ForkConfig { url: self.fork_network.clone(), block: self.fork_block },
         })
     }
 }

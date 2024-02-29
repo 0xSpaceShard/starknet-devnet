@@ -11,13 +11,17 @@ use starknet_core::constants::{
     CAIRO_1_ERC20_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
 };
-use starknet_core::starknet::starknet_config::DumpOn;
+use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
 use starknet_core::starknet::Starknet;
+use starknet_rs_core::types::{BlockId, BlockTag};
+use starknet_rs_providers::jsonrpc::HttpTransport;
+use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_types::chain_id::ChainId;
 use starknet_types::felt::Felt;
 use starknet_types::traits::{ToDecimalString, ToHexString};
 use tracing::info;
 use tracing_subscriber::EnvFilter;
+use url::Url;
 
 mod cli;
 mod contract_class_choice;
@@ -76,13 +80,40 @@ fn print_chain_id(chain_id: ChainId) {
     println!("Chain ID: {} ({})", chain_id, chain_id.to_felt().to_prefixed_hex_str());
 }
 
+pub async fn check_fork(starknet_config: &mut StarknetConfig) -> Result<(), anyhow::Error> {
+    // TODO add proper error handling
+    if let Some(url_candidate) = &starknet_config.fork_config.url {
+        let url = Url::parse(url_candidate)?;
+        let json_rpc_client = JsonRpcClient::new(HttpTransport::new(url.clone()));
+        let block_number = if let Some(block_number) = starknet_config.fork_config.block {
+            // if this passes, it means block number is valid
+            json_rpc_client.get_block_with_tx_hashes(BlockId::Number(block_number)).await?;
+            block_number
+        } else {
+            let block_id = BlockId::Tag(BlockTag::Latest);
+            let latest_block = json_rpc_client.get_block_with_tx_hashes(block_id).await?;
+            match latest_block {
+                starknet_rs_core::types::MaybePendingBlockWithTxHashes::Block(latest_block) => {
+                    latest_block.block_number
+                }
+                starknet_rs_core::types::MaybePendingBlockWithTxHashes::PendingBlock(_) => todo!(),
+            }
+        };
+        starknet_config.fork_config.block = Some(block_number)
+    }
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     configure_tracing();
 
     // parse arguments
     let args = Args::parse();
-    let starknet_config = args.to_starknet_config()?;
+    let mut starknet_config = args.to_starknet_config()?;
+
+    check_fork(&mut starknet_config).await?;
 
     let mut addr: SocketAddr = SocketAddr::new(starknet_config.host, starknet_config.port);
 
