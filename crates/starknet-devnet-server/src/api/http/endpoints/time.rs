@@ -1,5 +1,4 @@
 use axum::{Extension, Json};
-use starknet_core::error::Error;
 
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{IncreaseTime, IncreaseTimeResponse, SetTime, SetTimeResponse};
@@ -16,21 +15,16 @@ pub async fn set_time(
         .set_time(data.time, generate_block)
         .map_err(|err| HttpApiError::BlockSetTimeError { msg: err.to_string() })?;
 
+    if !generate_block {
+        return Ok(Json(SetTimeResponse { block_timestamp: data.time, block_hash: None }));
+    }
+
     let last_block = starknet.get_latest_block();
     match last_block {
         Ok(block) => Ok(Json(SetTimeResponse {
             block_timestamp: block.timestamp().0,
             block_hash: Some(block.block_hash()),
         })),
-        Err(Error::NoBlock) => {
-            // Handle case when generate_block is false and there is no latest block, this case can
-            // be removed once the genesis block is implemented
-            if !generate_block {
-                return Ok(Json(SetTimeResponse { block_timestamp: data.time, block_hash: None }));
-            }
-
-            Err(HttpApiError::CreateEmptyBlockError { msg: Error::NoBlock.to_string() })
-        }
         Err(err) => Err(HttpApiError::CreateEmptyBlockError { msg: err.to_string() }),
     }
 }
