@@ -251,7 +251,6 @@ pub fn json_into_raw_program(json_data: &Value) -> DevnetResult<Vec<u8>> {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::json;
     use starknet_rs_core::types::CompressedLegacyContractClass;
 
     use crate::contract_class::Cairo0Json;
