@@ -62,7 +62,7 @@ mod get_transaction_by_hash_integration_tests {
             starknet_rs_core::types::DeclareTransaction::V1(declare_v1),
         ) = result
         {
-            let expected = "0x07afcbaed2ffa59b36ded08df59c7e55c2b237cd2bc1d12869d742cf6ad923c2";
+            let expected = "0x05f47de31f16e7a474f6279c02b1783a86905c12bf0c2978bc2893e9d4f071a8";
             assert_eq!(declare_v1.transaction_hash, FieldElement::from_hex_be(expected).unwrap());
         } else {
             panic!("Could not unpack the transaction from {result:?}");
