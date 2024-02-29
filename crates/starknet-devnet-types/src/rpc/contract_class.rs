@@ -120,7 +120,6 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ContractC
                 ))
             }
             ContractClass::Cairo1(sierra_contract_class) => {
-                // TODO: what to input to max_bytecode_size
                 let casm_contract_class = CasmContractClass::from_contract_class(
                     sierra_contract_class,
                     true,
@@ -169,7 +168,6 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ClassInfo
                     0
                 };
 
-                // TODO: what to input to max_bytecode_size
                 let casm_contract_class = CasmContractClass::from_contract_class(
                     sierra_contract_class,
                     true,
