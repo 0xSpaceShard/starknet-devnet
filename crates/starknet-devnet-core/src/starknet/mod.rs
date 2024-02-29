@@ -981,13 +981,13 @@ impl Starknet {
             self.create_block_dump_event(
                 Some(timestamp),
                 Some(DumpEvent::SetTimeCreateBlock(timestamp)),
-            )
+            )?;
         } else {
             self.set_next_block_timestamp(timestamp);
             self.handle_dump_event(DumpEvent::SetTime(timestamp))?;
-
-            Ok(())
         }
+
+        Ok(())
     }
 
     // Set timestamp shift and create empty block
