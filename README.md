@@ -296,7 +296,7 @@ POST /set_time
 }
 ```
 
-Sets the exact time for the next block generated.
+Doesn't generate a new block, but sets the exact time for the next generated block.
 
 ```
 POST /set_time
