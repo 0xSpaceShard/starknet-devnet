@@ -292,7 +292,7 @@ Sets the exact time and generates a new block.
 ```
 POST /set_time
 {
-    "time": TIME_IN_SECONDS,
+    "time": TIME_IN_SECONDS
 }
 ```
 
