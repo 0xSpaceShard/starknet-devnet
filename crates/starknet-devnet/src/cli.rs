@@ -1,4 +1,4 @@
-use std::num::NonZeroU64;
+use std::num::NonZeroU128;
 
 use clap::Parser;
 use starknet_core::constants::{
@@ -85,7 +85,7 @@ pub(crate) struct Args {
     #[arg(value_name = "GAS_PRICE")]
     #[arg(default_value_t = DEVNET_DEFAULT_GAS_PRICE)]
     #[arg(help = "Specify the gas price in wei per gas unit;")]
-    gas_price: NonZeroU64,
+    gas_price: NonZeroU128,
 
     #[arg(long = "chain-id")]
     #[arg(value_name = "CHAIN_ID")]

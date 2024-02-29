@@ -255,7 +255,7 @@ mod tests {
         starknet.state.deploy_contract(dummy_contract_address, dummy_contract_class_hash).unwrap();
         starknet.state.clear_dirty_state();
         starknet.block_context = Starknet::init_block_context(
-            nonzero!(1u64),
+            nonzero!(1u128),
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,

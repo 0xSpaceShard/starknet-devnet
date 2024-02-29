@@ -1,5 +1,5 @@
 use std::net::IpAddr;
-use std::num::NonZeroU64;
+use std::num::NonZeroU128;
 
 use starknet_types::chain_id::ChainId;
 use starknet_types::contract_class::ContractClass;
@@ -38,7 +38,7 @@ pub struct StarknetConfig {
     pub port: u16,
     pub start_time: Option<u64>,
     pub timeout: u16,
-    pub gas_price: NonZeroU64,
+    pub gas_price: NonZeroU128,
     pub chain_id: ChainId,
     pub dump_on: Option<DumpOn>,
     pub dump_path: Option<String>,

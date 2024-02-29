@@ -1,4 +1,4 @@
-use std::num::{NonZeroU128, NonZeroU64};
+use std::num::NonZeroU128;
 use std::sync::Arc;
 
 use blockifier::block::BlockInfo;
@@ -417,7 +417,7 @@ impl Starknet {
     }
 
     fn init_block_context(
-        gas_price: NonZeroU64,
+        gas_price: NonZeroU128,
         eth_fee_token_address: &str,
         strk_fee_token_address: &str,
         chain_id: ChainId,
@@ -433,11 +433,11 @@ impl Starknet {
             block_timestamp: BlockTimestamp(0),
             sequencer_address: contract_address!("0x1000"),
             gas_prices: blockifier::block::GasPrices {
-                eth_l1_gas_price: NonZeroU128::from(gas_price),
-                strk_l1_gas_price: NonZeroU128::from(gas_price),
+                eth_l1_gas_price: gas_price,
+                strk_l1_gas_price: gas_price,
                 // TODO: modify these values
-                eth_l1_data_gas_price: NonZeroU128::from(gas_price),
-                strk_l1_data_gas_price: NonZeroU128::from(gas_price),
+                eth_l1_data_gas_price: gas_price,
+                strk_l1_data_gas_price: gas_price,
             },
             // TODO: add a cli param
             use_kzg_da: true,
@@ -695,7 +695,7 @@ impl Starknet {
         amount: u128,
         erc20_address: ContractAddress,
     ) -> DevnetResult<Felt> {
-        let sufficiently_big_max_fee = (self.config.gas_price.get() * 1_000_000) as u128;
+        let sufficiently_big_max_fee = self.config.gas_price.get() * 1_000_000;
         let chargeable_address_felt = Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?;
         let nonce =
             self.state.state.get_nonce_at(starknet_api::core::ContractAddress::try_from(
@@ -1104,7 +1104,7 @@ mod tests {
         let fee_token_address =
             ContractAddress::new(Felt::from_prefixed_hex_str("0xAA").unwrap()).unwrap();
         let block_ctx = Starknet::init_block_context(
-            nonzero!(10u64),
+            nonzero!(10u128),
             "0xAA",
             STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
@@ -1192,7 +1192,7 @@ mod tests {
     #[test]
     fn correct_block_context_update() {
         let mut block_ctx = Starknet::init_block_context(
-            nonzero!(1u64),
+            nonzero!(1u128),
             ETH_ERC20_CONTRACT_ADDRESS,
             STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
