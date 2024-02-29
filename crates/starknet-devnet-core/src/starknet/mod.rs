@@ -979,7 +979,8 @@ impl Starknet {
         if create_block {
             self.set_next_block_timestamp(timestamp);
             self.create_block()?;
-            self.handle_dump_event(DumpEvent::SetTimeCreateBlock(timestamp))?;
+            self.handle_dump_event(DumpEvent::SetTime(timestamp))?;
+            self.handle_dump_event(DumpEvent::CreateBlock)?;
         } else {
             self.set_next_block_timestamp(timestamp);
             self.handle_dump_event(DumpEvent::SetTime(timestamp))?;
