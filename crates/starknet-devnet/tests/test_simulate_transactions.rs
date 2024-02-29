@@ -70,6 +70,7 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Blockifier question regarding estimating fee with/without validation is pending"]
     async fn simulate_declare_v1() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -141,6 +142,7 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Blockifier question regarding estimating fee with/without validation is pending"]
     async fn simulate_declare_v2() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -213,6 +215,7 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Blockifier question regarding estimating fee with/without validation is pending"]
     async fn simulate_deploy_account() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -318,6 +321,7 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Blockifier question regarding estimating fee with/without validation is pending"]
     async fn simulate_invoke_v1() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
