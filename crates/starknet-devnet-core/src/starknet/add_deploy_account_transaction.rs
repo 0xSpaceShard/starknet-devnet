@@ -109,9 +109,9 @@ mod tests {
     use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
     use starknet_types::rpc::transactions::{
-        BroadcastedTransaction, BroadcastedTransactionCommonV3, ResourceBoundsWrapper,
+        BroadcastedTransactionCommonV3, ResourceBoundsWrapper,
     };
-    use starknet_types::traits::{HashProducer, ToHexString};
+    use starknet_types::traits::HashProducer;
 
     use crate::constants::{
         self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,

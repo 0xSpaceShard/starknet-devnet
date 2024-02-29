@@ -26,16 +26,14 @@ impl Cairo0Json {
             // TODO: decide how to process Null, Bool, Number. Although it shouldnt be of any
             // interest to send abi in those types
             match json_value {
-                Value::Null => return 0,
-                Value::Bool(_) => return 1,
-                Value::Number(_) => return 1,
+                Value::Null => 0,
+                Value::Bool(_) => 1,
+                Value::Number(_) => 1,
                 Value::String(str) => str.len(),
                 // unwrapping here is possible because this is already a json array
-                Value::Object(_) | Value::Array(_) => {
-                    return serde_json::to_string(json_value)
-                        .map(|str| str[1..str.len() - 1].len())
-                        .unwrap_or_default();
-                }
+                Value::Object(_) | Value::Array(_) => serde_json::to_string(json_value)
+                    .map(|str| str[1..str.len() - 1].len())
+                    .unwrap_or_default(),
             }
         } else {
             0

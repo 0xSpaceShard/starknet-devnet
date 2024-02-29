@@ -13,8 +13,8 @@ mod get_transaction_receipt_by_hash_integration_tests {
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::{
-        BlockId, BroadcastedDeclareTransactionV1, BroadcastedTransaction, ExecutionResult,
-        FieldElement, MaybePendingTransactionReceipt, StarknetError, TransactionReceipt,
+        BroadcastedDeclareTransactionV1, ExecutionResult, FieldElement,
+        MaybePendingTransactionReceipt, StarknetError, TransactionReceipt,
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::{Provider, ProviderError};
@@ -231,7 +231,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
     async fn declare_v1_transaction_fails_with_insufficient_max_fee() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let json_string = declare_v1_str();
-        let mut declare_txn_v1: BroadcastedDeclareTransactionV1 =
+        let declare_txn_v1: BroadcastedDeclareTransactionV1 =
             serde_json::from_str(&json_string).unwrap();
 
         let declare_transaction_result = devnet

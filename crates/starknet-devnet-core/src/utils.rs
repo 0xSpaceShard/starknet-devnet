@@ -3,9 +3,6 @@ use starknet_rs_ff::FieldElement;
 use starknet_types::felt::Felt;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
 
-use crate::constants::{
-    INVOKE_TX_MAX_N_STEPS, MAX_RECURSION_DEPTH, RESOURCE_FEE_COST, VALIDATE_MAX_N_STEPS,
-};
 use crate::error::DevnetResult;
 
 pub mod random_number_generator {

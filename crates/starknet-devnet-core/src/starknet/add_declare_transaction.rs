@@ -129,15 +129,13 @@ mod tests {
     use nonzero_ext::nonzero;
     use starknet_api::block::BlockNumber;
     use starknet_api::transaction::Fee;
-    use starknet_rs_core::types::{BlockId, TransactionExecutionStatus, TransactionFinalityStatus};
-    use starknet_rs_ff::FieldElement;
+    use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
-    use starknet_types::rpc::transactions::BroadcastedTransaction;
-    use starknet_types::traits::{HashProducer, ToHexString};
+    use starknet_types::traits::HashProducer;
 
     use crate::account::Account;
     use crate::constants::{
