@@ -601,7 +601,7 @@ mod advancing_time_tests {
 
         // time is set but the block was not generated
         assert_eq!(resp_body_set_time["block_timestamp"], past_time);
-        assert_eq!(resp_body_set_time["block_hash"].to_string(), "null");
+        assert!(resp_body_set_time["block_hash"].is_null());
 
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
