@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use blockifier::execution::contract_class::ContractClass;
 use blockifier::state::cached_state::ContractStorageKey;
@@ -7,6 +8,11 @@ use blockifier::state::state_api::{State, StateReader, StateResult};
 use starknet_api::core::{ClassHash, CompiledClassHash, ContractAddress, Nonce};
 use starknet_api::hash::StarkFelt;
 use starknet_api::state::StorageKey;
+use starknet_rs_core::types::BlockId;
+use starknet_rs_ff::FieldElement;
+use starknet_rs_providers::Provider;
+use starknet_rs_providers::{jsonrpc::HttpTransport, JsonRpcClient};
+use starknet_types::felt::Felt;
 
 use crate::starknet::starknet_config::ForkConfig;
 
@@ -19,16 +25,23 @@ pub struct DictState {
     pub address_to_class_hash: HashMap<ContractAddress, ClassHash>,
     pub class_hash_to_class: HashMap<ClassHash, ContractClass>,
     pub class_hash_to_compiled_class_hash: HashMap<ClassHash, CompiledClassHash>,
-    pub fork_config: ForkConfig,
+    block_id: Option<BlockId>,
+    origin_client: Option<Arc<JsonRpcClient<HttpTransport>>>,
 }
 
 impl DictState {
     pub fn new(fork_config: ForkConfig) -> Self {
-        Self { fork_config, ..Self::default() }
+        let (origin_client, block_id) = if let Some(fork_url) = fork_config.url {
+            (
+                Some(Arc::new(JsonRpcClient::new(HttpTransport::new(fork_url)))),
+                Some(BlockId::Number(fork_config.block.unwrap())),
+            )
+        } else {
+            (None, None)
+        };
+        Self { origin_client, block_id, ..Self::default() }
     }
 }
-
-// TODO introduce defaulting when forking
 
 impl StateReader for DictState {
     fn get_storage_at(
@@ -37,8 +50,25 @@ impl StateReader for DictState {
         key: StorageKey,
     ) -> StateResult<StarkFelt> {
         let contract_storage_key = (contract_address, key);
-        let value = self.storage_view.get(&contract_storage_key).copied().unwrap_or_default();
-        Ok(value)
+        Ok(match self.storage_view.get(&contract_storage_key) {
+            Some(value) => value.clone(),
+            None => {
+                if let Some(origin) = &self.origin_client {
+                    let contract_address = FieldElement::from(Felt::from(contract_address.0));
+                    let key = FieldElement::from(Felt::from(key.0));
+                    let origin_result = tokio::runtime::Runtime::new().unwrap().block_on(
+                        origin.get_storage_at(contract_address, key, self.block_id.unwrap())
+                    );
+                    match origin_result {
+                        Ok(value) => value.into(),
+                        // TODO better error granularity
+                        Err(_) => Default::default(),
+                    }
+                } else {
+                    Default::default()
+                }
+            }
+        })
     }
 
     fn get_nonce_at(&mut self, contract_address: ContractAddress) -> StateResult<Nonce> {

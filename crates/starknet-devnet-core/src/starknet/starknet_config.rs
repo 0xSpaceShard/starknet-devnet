@@ -4,6 +4,7 @@ use starknet_types::chain_id::ChainId;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::Felt;
 use starknet_types::traits::HashProducer;
+use url::Url;
 
 use crate::constants::{
     CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE,
@@ -28,7 +29,7 @@ pub enum StateArchiveCapacity {
 
 #[derive(Debug, Clone, Default)]
 pub struct ForkConfig {
-    pub url: Option<String>,
+    pub url: Option<Url>,
     pub block: Option<u64>,
 }
 

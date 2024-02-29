@@ -4632,10 +4632,13 @@ dependencies = [
  "starknet-core",
  "starknet-devnet-types",
  "starknet-ff",
+ "starknet-providers",
  "starknet-signers",
  "starknet_api",
  "thiserror",
+ "tokio",
  "tracing",
+ "url",
 ]
 
 [[package]]
