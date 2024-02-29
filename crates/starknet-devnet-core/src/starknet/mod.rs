@@ -494,7 +494,7 @@ impl Starknet {
         block.header.block_number = self.block_context.block_info().block_number;
         block.header.l1_gas_price = GasPricePerToken {
             price_in_fri: GasPrice(
-                0, // self.block_context.block_info().gas_prices.strk_l1_gas_price.get(),
+                self.block_context.block_info().gas_prices.strk_l1_gas_price.get(),
             ),
             price_in_wei: GasPrice(
                 self.block_context.block_info().gas_prices.eth_l1_gas_price.get(),
