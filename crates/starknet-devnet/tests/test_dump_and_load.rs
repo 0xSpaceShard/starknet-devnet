@@ -428,9 +428,9 @@ mod dump_and_load_tests {
             .post_json("/create_block".into(), Body::from(json!({}).to_string()))
             .await
             .unwrap();
-        let _ = &devnet_dump
+        devnet_dump
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
-            .await["result"];
+            .await;
 
         // dump and load
         send_ctrl_c_signal_and_wait(&devnet_dump.process).await;
