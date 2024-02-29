@@ -143,7 +143,9 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ClassInfo
     fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
         match value {
             ContractClass::Cairo0(deprecated_contract_class) => {
-                let abi_length = deprecated_contract_class.abi_length()?;
+                // Set abi_length to 0 as per this conversation
+                // https://spaceshard.slack.com/archives/C03HL8DH52N/p1708512271256699?thread_ts=1707845482.455099&cid=C03HL8DH52N
+                let abi_length = 0;
                 blockifier::execution::contract_class::ClassInfo::new(
                     &blockifier::execution::contract_class::ContractClass::V0(
                         deprecated_contract_class.try_into()?,
@@ -159,7 +161,8 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ClassInfo
             }
             ContractClass::Cairo1(sierra_contract_class) => {
                 let sierra_program_length = sierra_contract_class.sierra_program.len();
-                // TODO: decide how to calculate it
+                // Calculated as the length of the stringified abi
+                // https://spaceshard.slack.com/archives/C03HL8DH52N/p1708512271256699?thread_ts=1707845482.455099&cid=C03HL8DH52N
                 let abi_length = if let Some(abi) = sierra_contract_class.abi.as_ref() {
                     serde_json::to_string(abi)
                         .map(|json_str| json_str.len())

@@ -18,17 +18,6 @@ pub enum Cairo0ContractClass {
     Rpc(DeprecatedContractClass),
 }
 
-impl Cairo0ContractClass {
-    pub(crate) fn abi_length(&self) -> DevnetResult<usize> {
-        match self {
-            Cairo0ContractClass::RawJson(contract_json) => Ok(contract_json.abi_length()),
-            Cairo0ContractClass::Rpc(contract) => serde_json::to_string(&contract.abi)
-                .map(|json_str| json_str.len())
-                .map_err(|err| Error::JsonError(crate::error::JsonError::SerdeJsonError(err))),
-        }
-    }
-}
-
 impl Serialize for Cairo0ContractClass {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
