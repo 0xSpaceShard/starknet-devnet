@@ -17,9 +17,11 @@ pub fn state_update_by_block_id(
 
 #[cfg(test)]
 mod tests {
-    use cairo_lang_starknet::casm_contract_class::CasmContractClass;
+    use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
+    use nonzero_ext::nonzero;
     use starknet_api::transaction::Fee;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
+    use starknet_types::constants::MAX_BYTECODE_SIZE_LIMIT;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{compute_casm_class_hash, Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
@@ -44,15 +46,20 @@ mod tests {
 
         let sierra_class_hash =
             ContractClass::Cairo1(contract_class.clone()).generate_hash().unwrap();
-        let casm_contract_class =
-            CasmContractClass::from_contract_class(contract_class.clone(), true).unwrap();
+
+        let casm_contract_class = CasmContractClass::from_contract_class(
+            contract_class.clone(),
+            true,
+            MAX_BYTECODE_SIZE_LIMIT,
+        )
+        .unwrap();
         let compiled_class_hash = compute_casm_class_hash(&casm_contract_class).unwrap();
 
         let declare_txn = BroadcastedDeclareTransactionV2::new(
             &contract_class,
             compiled_class_hash,
             sender_address,
-            Fee(4000),
+            Fee(400000),
             &Vec::new(),
             Felt::from(0),
             Felt::from(2),
@@ -103,7 +110,7 @@ mod tests {
         eth_erc_20_contract.deploy(&mut starknet.state).unwrap();
 
         let acc = Account::new(
-            Felt::from(100000),
+            Felt::from(1e18 as u128),
             dummy_felt(),
             dummy_felt(),
             contract_class.generate_hash().unwrap(),
@@ -117,7 +124,7 @@ mod tests {
         acc.deploy(&mut starknet.state).unwrap();
 
         starknet.block_context = Starknet::init_block_context(
-            1,
+            nonzero!(1u128),
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,

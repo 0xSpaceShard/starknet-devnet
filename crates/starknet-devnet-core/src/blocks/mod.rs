@@ -160,9 +160,14 @@ impl From<&StarknetBlock> for TypesBlockHeader {
             timestamp: value.timestamp(),
             starknet_version: STARKNET_VERSION.to_string(),
             l1_gas_price: ResourcePrice {
-                price_in_fri: Felt::from(0),
-                price_in_wei: value.header.eth_l1_gas_price.0.into(),
+                price_in_fri: value.header.l1_gas_price.price_in_fri.0.into(),
+                price_in_wei: value.header.l1_gas_price.price_in_wei.0.into(),
             },
+            l1_data_gas_price: ResourcePrice {
+                price_in_fri: value.header.l1_data_gas_price.price_in_fri.0.into(),
+                price_in_wei: value.header.l1_data_gas_price.price_in_wei.0.into(),
+            },
+            l1_da_mode: value.header.l1_da_mode,
         }
     }
 }
@@ -189,7 +194,7 @@ impl StarknetBlock {
     }
 
     pub fn sequencer_address(&self) -> ContractAddress {
-        self.header.sequencer.into()
+        self.header.sequencer.0.into()
     }
 
     pub fn timestamp(&self) -> BlockTimestamp {

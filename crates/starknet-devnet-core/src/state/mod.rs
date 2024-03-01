@@ -1,9 +1,12 @@
 use std::collections::HashMap;
 
-use blockifier::state::cached_state::CachedState;
+use blockifier::state::cached_state::{
+    CachedState, GlobalContractCache, GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST,
+};
 use blockifier::state::state_api::{State, StateReader};
 use starknet_api::core::CompiledClassHash;
 use starknet_api::hash::StarkFelt;
+use starknet_types::constants::MAX_BYTECODE_SIZE_LIMIT;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Felt};
@@ -78,7 +81,10 @@ pub(crate) struct StarknetState {
 impl Default for StarknetState {
     fn default() -> Self {
         Self {
-            state: CachedState::new(Default::default(), Default::default()),
+            state: CachedState::new(
+                Default::default(),
+                GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
+            ),
             rpc_contract_classes: Default::default(),
             historic_state: Default::default(),
         }
@@ -93,7 +99,10 @@ impl StarknetState {
     pub fn commit_with_diff(&mut self) -> DevnetResult<StateDiff> {
         let diff = StateDiff::generate(&mut self.state, &mut self.rpc_contract_classes)?;
         let new_historic = self.expand_historic(diff.clone())?;
-        self.state = CachedState::new(new_historic.clone(), Default::default());
+        self.state = CachedState::new(
+            new_historic.clone(),
+            GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
+        );
         Ok(diff)
     }
 
@@ -124,16 +133,16 @@ impl StarknetState {
         for (address, storage_updates) in state_diff.storage_updates {
             let core_address = address.try_into()?;
             for (key, value) in storage_updates {
-                historic_state.set_storage_at(core_address, key.try_into()?, value.into());
+                historic_state.set_storage_at(core_address, key.try_into()?, value.into())?;
             }
         }
         for class_hash in state_diff.cairo_0_declared_contracts {
-            let compiled_class = self.get_compiled_contract_class(&class_hash.into())?;
-            historic_state.set_contract_class(&class_hash.into(), compiled_class)?;
+            let compiled_class = self.get_compiled_contract_class(class_hash.into())?;
+            historic_state.set_contract_class(class_hash.into(), compiled_class)?;
         }
         for class_hash in state_diff.declared_contracts {
-            let compiled_class = self.get_compiled_contract_class(&class_hash.into())?;
-            historic_state.set_contract_class(&class_hash.into(), compiled_class)?;
+            let compiled_class = self.get_compiled_contract_class(class_hash.into())?;
+            historic_state.set_contract_class(class_hash.into(), compiled_class)?;
         }
         self.historic_state = Some(historic_state);
         Ok(self.historic_state.as_ref().unwrap())
@@ -142,7 +151,10 @@ impl StarknetState {
     pub fn clone_historic(&self) -> Self {
         let historic_state = self.historic_state.as_ref().unwrap().clone();
         Self {
-            state: CachedState::new(historic_state, Default::default()),
+            state: CachedState::new(
+                historic_state,
+                GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
+            ),
             rpc_contract_classes: self.rpc_contract_classes.clone(),
             historic_state: None,
         }
@@ -155,7 +167,7 @@ impl State for StarknetState {
         contract_address: starknet_api::core::ContractAddress,
         key: starknet_api::state::StorageKey,
         value: starknet_api::hash::StarkFelt,
-    ) {
+    ) -> std::result::Result<(), blockifier::state::errors::StateError> {
         self.state.set_storage_at(contract_address, key, value)
     }
 
@@ -176,7 +188,7 @@ impl State for StarknetState {
 
     fn set_contract_class(
         &mut self,
-        class_hash: &starknet_api::core::ClassHash,
+        class_hash: starknet_api::core::ClassHash,
         contract_class: blockifier::execution::contract_class::ContractClass,
     ) -> blockifier::state::state_api::StateResult<()> {
         self.state.set_contract_class(class_hash, contract_class)
@@ -192,6 +204,14 @@ impl State for StarknetState {
 
     fn to_state_diff(&mut self) -> blockifier::state::cached_state::CommitmentStateDiff {
         self.state.to_state_diff()
+    }
+
+    fn add_visited_pcs(
+        &mut self,
+        class_hash: starknet_api::core::ClassHash,
+        pcs: &std::collections::HashSet<usize>,
+    ) {
+        self.state.add_visited_pcs(class_hash, pcs)
     }
 }
 
@@ -220,7 +240,7 @@ impl blockifier::state::state_api::StateReader for StarknetState {
 
     fn get_compiled_contract_class(
         &mut self,
-        class_hash: &starknet_api::core::ClassHash,
+        class_hash: starknet_api::core::ClassHash,
     ) -> blockifier::state::state_api::StateResult<
         blockifier::execution::contract_class::ContractClass,
     > {
@@ -245,7 +265,7 @@ impl CustomStateReader for StarknetState {
     fn is_contract_declared(&mut self, class_hash: ClassHash) -> bool {
         self.get_compiled_class_hash(class_hash.into())
             .is_ok_and(|CompiledClassHash(class_hash)| class_hash != StarkFelt::ZERO)
-            || self.get_compiled_contract_class(&class_hash.into()).is_ok()
+            || self.get_compiled_contract_class(class_hash.into()).is_ok()
     }
 
     fn get_rpc_contract_class(&self, class_hash: &ClassHash) -> Option<&ContractClass> {
@@ -262,15 +282,16 @@ impl CustomState for StarknetState {
     ) -> DevnetResult<()> {
         let compiled_class = contract_class.clone().try_into()?;
 
-        if let ContractClass::Cairo1(_) = contract_class {
-            let cairo_lang_compiled_class: cairo_lang_starknet::casm_contract_class::CasmContractClass =
-                contract_class.clone().try_into()?;
+        if let ContractClass::Cairo1(cairo_lang_contract_class) = &contract_class {
+            let cairo_lang_compiled_class = cairo_lang_starknet_classes::casm_contract_class::CasmContractClass::from_contract_class(
+                cairo_lang_contract_class.clone(), true, MAX_BYTECODE_SIZE_LIMIT).map_err(|_| Error::SierraCompilationError
+            )?;
             let casm_hash =
                 Felt::new(cairo_lang_compiled_class.compiled_class_hash().to_be_bytes())?;
             self.state.state.set_compiled_class_hash(class_hash.into(), casm_hash.into())?;
         };
 
-        self.state.state.set_contract_class(&class_hash.into(), compiled_class)?;
+        self.state.state.set_contract_class(class_hash.into(), compiled_class)?;
         self.rpc_contract_classes.insert_and_commit(class_hash, contract_class);
         Ok(())
     }
@@ -282,15 +303,15 @@ impl CustomState for StarknetState {
     ) -> DevnetResult<()> {
         let compiled_class = contract_class.clone().try_into()?;
 
-        if let ContractClass::Cairo1(_) = contract_class {
-            let cairo_lang_compiled_class: cairo_lang_starknet::casm_contract_class::CasmContractClass =
-                contract_class.clone().try_into()?;
+        if let ContractClass::Cairo1(cairo_lang_contract_class) = &contract_class {
+            let cairo_lang_compiled_class = cairo_lang_starknet_classes::casm_contract_class::CasmContractClass::from_contract_class(cairo_lang_contract_class.clone(), true, MAX_BYTECODE_SIZE_LIMIT).map_err(|_| Error::SierraCompilationError
+            )?;
             let casm_hash =
                 Felt::new(cairo_lang_compiled_class.compiled_class_hash().to_be_bytes())?;
             self.set_compiled_class_hash(class_hash.into(), casm_hash.into())?;
         };
 
-        self.set_contract_class(&class_hash.into(), compiled_class)?;
+        self.set_contract_class(class_hash.into(), compiled_class)?;
         self.rpc_contract_classes.insert(class_hash, contract_class);
         Ok(())
     }
@@ -352,7 +373,7 @@ mod tests {
             .set_class_hash_at(contract_address, starknet_api::core::ClassHash(dummy_felt().into()))
             .unwrap();
 
-        state.state.set_storage_at(contract_address, storage_key, dummy_felt().into());
+        state.state.set_storage_at(contract_address, storage_key, dummy_felt().into()).unwrap();
         state.commit_with_diff().unwrap();
 
         let storage_after = state.get_storage_at(contract_address, storage_key).unwrap();
@@ -381,7 +402,7 @@ mod tests {
         let mut state = StarknetState::default();
         let class_hash = Felt::from_prefixed_hex_str("0xFE").unwrap();
 
-        match state.get_compiled_contract_class(&class_hash.into()) {
+        match state.get_compiled_contract_class(class_hash.into()) {
             Err(StateError::UndeclaredClassHash(reported_hash)) => {
                 assert_eq!(reported_hash, class_hash.into())
             }
@@ -395,7 +416,7 @@ mod tests {
 
         state.commit_with_diff().unwrap();
 
-        match state.get_compiled_contract_class(&class_hash.into()) {
+        match state.get_compiled_contract_class(class_hash.into()) {
             Ok(blockifier::execution::contract_class::ContractClass::V0(retrieved_class)) => {
                 assert_eq!(retrieved_class, contract_class.clone().try_into().unwrap());
             }
@@ -422,7 +443,7 @@ mod tests {
         let (contract_address, storage_key) = dummy_contract_storage_key();
         let storage_value = dummy_felt();
 
-        state.set_storage_at(contract_address, storage_key, storage_value.into());
+        state.set_storage_at(contract_address, storage_key, storage_value.into()).unwrap();
         assert_eq!(
             state.get_storage_at(contract_address, storage_key).unwrap(),
             storage_value.into()
@@ -449,7 +470,7 @@ mod tests {
 
         state.predeploy_contract(contract_address.into(), class_hash).unwrap();
 
-        state.set_storage_at(contract_address, storage_key, expected_result);
+        state.set_storage_at(contract_address, storage_key, expected_result).unwrap();
         let generated_result = state.get_storage_at(contract_address, storage_key).unwrap();
         assert_eq!(expected_result, generated_result);
     }
