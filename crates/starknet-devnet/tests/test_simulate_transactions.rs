@@ -33,9 +33,9 @@ mod estimate_fee_tests {
 
     /// Calculating the fee of a transaction depends on fee weights of vm resources and the resource
     /// usage. The fee from vm usage is the haviest product of cairo resource usage multiplied
-    /// by cairo resource fee cost, rounded down to the nearest integer So there is a
+    /// by cairo resource fee cost, rounded down to the nearest integer. There is a
     /// possibility that although some of the resources present in the resp_no_flags are not in
-    /// resp_skip_validation This doesnt mean that the fee will be high, because for example:
+    /// resp_skip_validation, this doesnt mean that the fee will be higher, for example:
     /// the fee from vm usage is determined from the `steps` and the transaction that skips
     /// validation might have less steps, but due to the rounding if the multiplied product
     /// falls in the range (7,8] both will be rounded to 7
