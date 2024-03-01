@@ -1,7 +1,7 @@
 {
     "openrpc": "1.0.0-rc1",
     "info": {
-        "version": "0.6.0",
+        "version": "0.7.0",
         "title": "StarkNet Trace API",
         "license": {}
     },
@@ -30,7 +30,7 @@
             },
             "errors": [
                 {
-                    "$ref": "#/components/errors/INVALID_TXN_HASH"
+                    "$ref": "#/components/errors/TXN_HASH_NOT_FOUND"
                 },
                 {
                     "$ref": "#/components/errors/NO_TRACE_AVAILABLE"
@@ -101,6 +101,45 @@
                     "$ref": "#/components/errors/TRANSACTION_EXECUTION_ERROR"
                 }
             ]
+        },
+        {
+            "name": "starknet_traceBlockTransactions",
+            "summary": "Retrieve traces for all transactions in the given block",
+            "description": "Returns the execution traces of all transactions included in the given block",
+            "params": [
+                {
+                    "name": "block_id",
+                    "description": "The hash of the requested block, or number (height) of the requested block, or a block tag",
+                    "required": true,
+                    "schema": {
+                        "$ref": "#/components/schemas/BLOCK_ID"
+                    }
+                }
+            ],
+            "result": {
+                "name": "traces",
+                "description": "The traces of all transactions in the block",
+                "schema": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "description": "A single pair of transaction hash and corresponding trace",
+                        "properties": {
+                            "transaction_hash": {
+                                "$ref": "#/components/schemas/FELT"
+                            },
+                            "trace_root": {
+                                "$ref": "#/components/schemas/TRANSACTION_TRACE"
+                            }
+                        }
+                    }
+                }
+            },
+            "errors": [
+                {
+                    "$ref": "#/components/errors/BLOCK_NOT_FOUND"
+                }
+            ]
         }
     ],
     "components": {
@@ -142,6 +181,11 @@
                                 "description": "the state diffs induced by the transaction",
                                 "$ref": "#/components/schemas/STATE_DIFF"
                             },
+                            "execution_resources": {
+                                "title": "Execution resources",
+                                "description": "the resources consumed by the transaction, includes both computation and data",
+                                "$ref": "#/components/schemas/EXECUTION_RESOURCES"
+                            },
                             "type": {
                                 "title": "Type",
                                 "type": "string",
@@ -152,7 +196,8 @@
                         },
                         "required": [
                             "type",
-                            "execute_invocation"
+                            "execute_invocation",
+                            "execution_resources"
                         ]
                     },
                     {
@@ -171,6 +216,11 @@
                                 "description": "the state diffs induced by the transaction",
                                 "$ref": "#/components/schemas/STATE_DIFF"
                             },
+                            "execution_resources": {
+                                "title": "Execution resources",
+                                "description": "the resources consumed by the transaction, includes both computation and data",
+                                "$ref": "#/components/schemas/EXECUTION_RESOURCES"
+                            },
                             "type": {
                                 "title": "Type",
                                 "type": "string",
@@ -180,7 +230,8 @@
                             }
                         },
                         "required": [
-                            "type"
+                            "type",
+                            "execution_resources"
                         ]
                     },
                     {
@@ -203,6 +254,11 @@
                                 "description": "the state diffs induced by the transaction",
                                 "$ref": "#/components/schemas/STATE_DIFF"
                             },
+                            "execution_resources": {
+                                "title": "Execution resources",
+                                "description": "the resources consumed by the transaction, includes both computation and data",
+                                "$ref": "#/components/schemas/EXECUTION_RESOURCES"
+                            },
                             "type": {
                                 "title": "Type",
                                 "type": "string",
@@ -213,6 +269,7 @@
                         },
                         "required": [
                             "type",
+                            "execution_resources",
                             "constructor_invocation"
                         ]
                     },
@@ -313,9 +370,9 @@
                                 }
                             },
                             "execution_resources": {
-                                "title": "Execution resources",
+                                "title": "Computation resources",
                                 "description": "Resources consumed by the internal call",
-                                "$ref": "#/components/schemas/EXECUTION_RESOURCES"
+                                "$ref": "#/components/schemas/COMPUTATION_RESOURCES"
                             }
                         },
                         "required": [
@@ -411,6 +468,9 @@
             },
             "STATE_DIFF": {
                 "$ref": "./api/starknet_api_openrpc.json#/components/schemas/STATE_DIFF"
+            },
+            "COMPUTATION_RESOURCES": {
+                "$ref": "./api/starknet_api_openrpc.json#/components/schemas/COMPUTATION_RESOURCES"
             },
             "EXECUTION_RESOURCES": {
                 "$ref": "./api/starknet_api_openrpc.json#/components/schemas/EXECUTION_RESOURCES"
