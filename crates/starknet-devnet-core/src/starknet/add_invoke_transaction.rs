@@ -76,6 +76,7 @@ pub fn add_invoke_transaction_v3(
 #[cfg(test)]
 mod tests {
 
+    use nonzero_ext::nonzero;
     use starknet_api::hash::StarkFelt;
     use starknet_api::transaction::{Fee, Tip};
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
@@ -361,7 +362,7 @@ mod tests {
             Felt::from(10),               // calldata
         ];
 
-        let insufficient_max_fee = 2482; // this is minimum fee (enough for passing validation), anything lower than that is bounced back
+        let insufficient_max_fee = 137; // this is minimum fee (enough for passing validation), anything lower than that is bounced back
         let invoke_transaction = BroadcastedInvokeTransactionV1::new(
             account_address,
             Fee(insufficient_max_fee),
@@ -454,7 +455,7 @@ mod tests {
 
         starknet.state.clear_dirty_state();
         starknet.block_context = Starknet::init_block_context(
-            1,
+            nonzero!(1u128),
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
