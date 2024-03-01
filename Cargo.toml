@@ -94,6 +94,11 @@ starknet-types = { version = "0.0.1", path = "crates/starknet-devnet-types", pac
 starknet-core = { version = "0.0.2", path = "crates/starknet-devnet-core", package = "starknet-devnet-core" }
 server = { version = "0.0.2", path = "crates/starknet-devnet-server", package = "starknet-devnet-server" }
 
+# Dependabot alerts
+zerocopy = "0.7.31"
+unsafe-libyaml = "0.2.10"
+h2 = "0.3.24"
+
 num-bigint = { version = "0.4" }
 
 lazy_static = { version = "1.4.0" }
