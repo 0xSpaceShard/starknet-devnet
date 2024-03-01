@@ -136,11 +136,8 @@ impl Cairo0Json {
             .unwrap_or(&Vec::<serde_json::Value>::new())
             .iter()
             .map(|el| {
-                let json_str = el.as_str().unwrap();
-                let non_prefixed_hex =
-                    json_str.as_bytes().iter().map(|b| format!("{:02x}", b)).collect::<String>();
-                let prefixed_hex = format!("0x{}", non_prefixed_hex);
-                prefixed_hex
+                let bytes = el.as_str().unwrap().as_bytes();
+                bytes.iter().fold(String::from("0x"), |acc, b| format!("{acc}{b:02x}"))
             })
             .collect::<Vec<String>>()
             .into_iter()
