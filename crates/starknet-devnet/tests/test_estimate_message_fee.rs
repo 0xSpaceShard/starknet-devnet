@@ -30,7 +30,7 @@ mod test_estimate_message_fee {
             signer,
             account_address,
             CHAIN_ID,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         ));
 
         // get class
@@ -79,7 +79,7 @@ mod test_estimate_message_fee {
             .await
             .unwrap();
 
-        assert_eq!(res.gas_consumed, FieldElement::from(18485u32));
+        assert_eq!(res.gas_consumed, FieldElement::from(16027u32));
     }
 
     #[tokio::test]

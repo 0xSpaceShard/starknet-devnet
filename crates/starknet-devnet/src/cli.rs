@@ -1,3 +1,5 @@
+use std::num::NonZeroU128;
+
 use clap::Parser;
 use starknet_core::constants::{
     DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TIMEOUT,
@@ -26,7 +28,7 @@ pub(crate) struct Args {
     /// Class used for account predeployment
     #[arg(long = "account-class")]
     #[arg(value_name = "ACCOUNT_CLASS")]
-    #[arg(default_value = "cairo0")]
+    #[arg(default_value = "cairo1")]
     #[arg(help = "Specify the class used by predeployed accounts;")]
     account_class_choice: AccountContractClassChoice,
 
@@ -83,7 +85,7 @@ pub(crate) struct Args {
     #[arg(value_name = "GAS_PRICE")]
     #[arg(default_value_t = DEVNET_DEFAULT_GAS_PRICE)]
     #[arg(help = "Specify the gas price in wei per gas unit;")]
-    gas_price: u64,
+    gas_price: NonZeroU128,
 
     #[arg(long = "chain-id")]
     #[arg(value_name = "CHAIN_ID")]

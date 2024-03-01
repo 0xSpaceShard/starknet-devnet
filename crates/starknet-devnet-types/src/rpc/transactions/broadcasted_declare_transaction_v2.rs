@@ -1,5 +1,5 @@
 use blockifier::transaction::transactions::DeclareTransaction;
-use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
+use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
 use starknet_rs_core::crypto::compute_hash_on_elements;

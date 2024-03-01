@@ -1,3 +1,4 @@
+use blockifier::versioned_constants::VersionedConstants;
 use starknet_rs_ff::FieldElement;
 use starknet_types::felt::Felt;
 use starknet_types::patricia_key::{PatriciaKey, StorageKey};
@@ -38,12 +39,17 @@ pub(crate) fn get_storage_var_address(
     Ok(PatriciaKey::new(Felt::new(storage_var_address.to_bytes_be())?)?)
 }
 
+pub(crate) fn get_versioned_constants() -> VersionedConstants {
+    VersionedConstants::create_for_testing()
+}
+
 #[cfg(test)]
 pub(crate) mod test_utils {
 
-    use cairo_lang_starknet::casm_contract_class::CasmContractClass;
-    use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
+    use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
+    use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
     use starknet_api::transaction::Fee;
+    use starknet_types::constants::MAX_BYTECODE_SIZE_LIMIT;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{
         compute_casm_class_hash, Cairo0ContractClass, Cairo0Json, ContractClass,
@@ -112,7 +118,12 @@ pub(crate) mod test_utils {
         let contract_class = dummy_cairo_1_contract_class();
 
         let compiled_class_hash = compute_casm_class_hash(
-            &CasmContractClass::from_contract_class(contract_class.clone(), true).unwrap(),
+            &CasmContractClass::from_contract_class(
+                contract_class.clone(),
+                true,
+                MAX_BYTECODE_SIZE_LIMIT,
+            )
+            .unwrap(),
         )
         .unwrap();
 
@@ -120,7 +131,7 @@ pub(crate) mod test_utils {
             &contract_class,
             compiled_class_hash,
             *sender_address,
-            Fee(4000),
+            Fee(400000),
             &Vec::new(),
             Felt::from(0),
             Felt::from(2),

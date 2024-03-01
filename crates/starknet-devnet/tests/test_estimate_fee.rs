@@ -50,6 +50,7 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Starknet-rs does not support rpc 0.7.0"]
     async fn estimate_fee_of_deploy_account() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -140,6 +141,7 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Starknet-rs does not support rpc 0.7.0"]
     async fn estimate_fee_of_declare_v1() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -156,7 +158,7 @@ mod estimate_fee_tests {
             signer,
             account_address,
             CHAIN_ID,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         );
 
         let fee_estimation = account
@@ -195,6 +197,7 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Starknet-rs does not support rpc 0.7.0"]
     async fn estimate_fee_of_declare_v2() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -212,7 +215,7 @@ mod estimate_fee_tests {
             signer,
             account_address,
             CHAIN_ID,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         );
 
         let fee_estimation = account
@@ -251,6 +254,7 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Starknet-rs does not support rpc 0.7.0"]
     async fn estimate_fee_of_invoke() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -261,7 +265,7 @@ mod estimate_fee_tests {
             signer,
             account_address,
             CHAIN_ID,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         ));
 
         // get class
@@ -362,7 +366,7 @@ mod estimate_fee_tests {
             signer,
             account_address,
             CHAIN_ID,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         ));
 
         // get class
@@ -433,7 +437,7 @@ mod estimate_fee_tests {
             signer,
             account_address,
             CHAIN_ID,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         ));
 
         // get class
@@ -477,8 +481,11 @@ mod estimate_fee_tests {
 
     #[tokio::test]
     /// estimate fee of declare + deploy (invoke udc)
+    #[ignore = "Starknet-rs does not support rpc 0.7.0"]
     async fn estimate_fee_of_multiple_txs() {
-        let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&["--account-class", "cairo0"])
+            .await
+            .expect("Could not start Devnet");
 
         // get account
         let (_, account_address) = devnet.get_first_predeployed_account().await;

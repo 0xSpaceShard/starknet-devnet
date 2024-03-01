@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use blockifier::state::cached_state::CachedState;
+use blockifier::state::cached_state::{
+    CachedState, GlobalContractCache, GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST,
+};
 use blockifier::state::state_api::StateReader;
 use starknet_rs_ff::FieldElement;
 use starknet_types::contract_address::ContractAddress;
@@ -23,7 +25,10 @@ pub(crate) struct StarknetState {
 impl Default for StarknetState {
     fn default() -> Self {
         Self {
-            state: CachedState::new(Default::default(), Default::default()),
+            state: CachedState::new(
+                Default::default(),
+                GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
+            ),
             contract_classes: Default::default(),
         }
     }
@@ -104,14 +109,14 @@ impl blockifier::state::state_api::StateReader for DevnetState {
 
     fn get_compiled_contract_class(
         &mut self,
-        class_hash: &starknet_api::core::ClassHash,
+        class_hash: starknet_api::core::ClassHash,
     ) -> blockifier::state::state_api::StateResult<
         blockifier::execution::contract_class::ContractClass,
     > {
         let contract_class =
             crate::traits::DevnetStateReader::contract_class_at(self, &class_hash.0.into())
                 .map_err(|_| {
-                    blockifier::state::errors::StateError::UndeclaredClassHash(*class_hash)
+                    blockifier::state::errors::StateError::UndeclaredClassHash(class_hash)
                 })?;
 
         blockifier::execution::contract_class::ContractClass::try_from(contract_class)
@@ -132,14 +137,20 @@ impl StarknetState {
     /// this method clears the state from data that was accumulated in the StateCache
     /// and restores it to the data in the state_reader, which is the "persistent" data
     pub(crate) fn clear_dirty_state(&mut self) {
-        self.state = CachedState::new(self.state.state.clone(), Default::default());
+        self.state = CachedState::new(
+            self.state.state.clone(),
+            GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
+        );
     }
 }
 
 impl Clone for StarknetState {
     fn clone(&self) -> Self {
         Self {
-            state: CachedState::new(self.state.state.clone(), Default::default()),
+            state: CachedState::new(
+                self.state.state.clone(),
+                GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
+            ),
             contract_classes: self.contract_classes.clone(),
         }
     }
@@ -293,7 +304,7 @@ impl StateExtractor for StarknetState {
 #[cfg(test)]
 mod tests {
     use blockifier::state::state_api::{State, StateReader};
-    use blockifier::test_utils::DictStateReader;
+    use blockifier::test_utils::dict_state_reader::DictStateReader;
     use starknet_api::state::StorageKey;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
@@ -319,7 +330,7 @@ mod tests {
         state
             .state
             .set_contract_class(
-                &class_hash,
+                class_hash,
                 ContractClass::Cairo0(contract_class.clone()).try_into().unwrap(),
             )
             .unwrap();
@@ -327,7 +338,7 @@ mod tests {
         state.contract_classes.insert(class_hash.into(), contract_class.into());
 
         assert!(!state.is_contract_declared(&dummy_felt()));
-        state.state.get_compiled_contract_class(&class_hash).unwrap();
+        state.state.get_compiled_contract_class(class_hash).unwrap();
         let state_diff = state.extract_state_diff_from_pending_state().unwrap();
         state.apply_state_difference(state_diff).unwrap();
 
@@ -345,7 +356,7 @@ mod tests {
             (*dummy_contract_storage_key().get_storage_key()).try_into().unwrap(),
         );
 
-        state.state.set_storage_at(contract_address, storage_key, dummy_felt().into());
+        state.state.set_storage_at(contract_address, storage_key, dummy_felt().into()).unwrap();
 
         state.state.get_storage_at(contract_address, storage_key).unwrap();
 
@@ -370,11 +381,14 @@ mod tests {
             )
             .unwrap();
 
-        state.state.set_storage_at(
-            contract_address.try_into().unwrap(),
-            StorageKey((*dummy_contract_storage_key().get_storage_key()).try_into().unwrap()),
-            dummy_felt().into(),
-        );
+        state
+            .state
+            .set_storage_at(
+                contract_address.try_into().unwrap(),
+                StorageKey((*dummy_contract_storage_key().get_storage_key()).try_into().unwrap()),
+                dummy_felt().into(),
+            )
+            .unwrap();
 
         let get_storage_result = state.get_storage(dummy_contract_storage_key());
 
@@ -590,8 +604,8 @@ mod tests {
                 }
             }
 
-            let second_result = second.get_compiled_contract_class(&class_hash);
-            match first.get_compiled_contract_class(&class_hash) {
+            let second_result = second.get_compiled_contract_class(class_hash);
+            match first.get_compiled_contract_class(class_hash) {
                 Ok(contract_class) => assert_eq!(contract_class, second_result.unwrap()),
                 Err(err) => {
                     assert_eq!(err.to_string(), second_result.unwrap_err().to_string());

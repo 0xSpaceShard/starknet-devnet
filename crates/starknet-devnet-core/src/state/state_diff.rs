@@ -238,7 +238,7 @@ mod tests {
         let mut new_state = CachedState::from(old_state.clone());
         new_state
             .set_contract_class(
-                &ClassHash(compiled_class_hash.into()),
+                ClassHash(compiled_class_hash.into()),
                 ContractClass::Cairo1(dummy_cairo_1_contract_class()).try_into().unwrap(),
             )
             .unwrap();
@@ -263,7 +263,7 @@ mod tests {
         let mut new_state = CachedState::from(old_state.clone());
         new_state
             .set_contract_class(
-                &ClassHash(class_hash.into()),
+                ClassHash(class_hash.into()),
                 ContractClass::Cairo0(cairo_0_contract_class).try_into().unwrap(),
             )
             .unwrap();

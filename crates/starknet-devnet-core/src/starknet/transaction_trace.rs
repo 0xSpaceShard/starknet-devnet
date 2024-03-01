@@ -3,6 +3,7 @@ use blockifier::state::cached_state::CachedState;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use starknet_types::rpc::state::ThinStateDiff;
+use starknet_types::rpc::transaction_receipt::ExecutionResources;
 use starknet_types::rpc::transactions::{
     DeclareTransactionTrace, DeployAccountTransactionTrace, ExecutionInvocation,
     FunctionInvocation, InvokeTransactionTrace, L1HandlerTransactionTrace, TransactionTrace,
@@ -61,6 +62,7 @@ pub(crate) fn create_trace<S: StateReader>(
 ) -> DevnetResult<TransactionTrace> {
     let state_diff = Some(state_diff);
     let validate_invocation = get_call_info_invocation(state, &execution_info.validate_call_info)?;
+    let execution_resources = ExecutionResources::from(execution_info);
 
     let fee_transfer_invocation =
         get_call_info_invocation(state, &execution_info.fee_transfer_call_info)?;
@@ -70,6 +72,7 @@ pub(crate) fn create_trace<S: StateReader>(
             validate_invocation,
             fee_transfer_invocation,
             state_diff,
+            execution_resources,
         })),
         TransactionType::DeployAccount => {
             Ok(TransactionTrace::DeployAccount(DeployAccountTransactionTrace {
@@ -80,6 +83,7 @@ pub(crate) fn create_trace<S: StateReader>(
                 )?,
                 fee_transfer_invocation,
                 state_diff,
+                execution_resources,
             }))
         }
         TransactionType::Invoke => Ok(TransactionTrace::Invoke(InvokeTransactionTrace {
@@ -87,6 +91,7 @@ pub(crate) fn create_trace<S: StateReader>(
             execute_invocation: get_execute_call_info(state, execution_info)?,
             fee_transfer_invocation,
             state_diff,
+            execution_resources,
         })),
         TransactionType::L1Handler => {
             match get_call_info_invocation(state, &execution_info.execute_call_info)? {

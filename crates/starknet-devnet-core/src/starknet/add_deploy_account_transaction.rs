@@ -99,6 +99,7 @@ pub fn add_deploy_account_transaction_v1(
 #[cfg(test)]
 mod tests {
 
+    use nonzero_ext::nonzero;
     use starknet_api::transaction::{Fee, Tip};
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::contract_address::ContractAddress;
@@ -228,7 +229,7 @@ mod tests {
     fn deploy_account_transaction_v1_should_return_an_error_due_to_not_enough_fee() {
         let (mut starknet, account_class_hash, eth_fee_token_address, _) = setup();
 
-        let fee_raw: u128 = 2000;
+        let fee_raw: u128 = 1;
         let transaction = BroadcastedDeployAccountTransactionV1::new(
             &vec![],
             Fee(fee_raw),
@@ -374,7 +375,7 @@ mod tests {
         starknet.state.declare_contract_class(class_hash, contract_class.into()).unwrap();
         starknet.state.clear_dirty_state();
         starknet.block_context = Starknet::init_block_context(
-            1,
+            nonzero!(1u128),
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,

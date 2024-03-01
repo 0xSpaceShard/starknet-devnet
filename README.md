@@ -20,7 +20,7 @@ This repository is work in progress, please be patient. Please check below the s
 
 ### Supported Features
 
-- [x] RPC v0.6.0
+- [x] RPC v0.7.0
 - [x] [Dump & Load](https://github.com/0xSpaceShard/starknet-devnet-rs#dumping--loading)
 - [x] [Mint token - Local faucet](https://0xspaceshard.github.io/starknet-devnet/docs/guide/mint-token)
 - [x] [Customizable predeployed accounts](#predeployed-contracts)
@@ -281,7 +281,9 @@ Response:
 
 ## Advancing time
 
-Block timestamp can be manipulated by setting the exact time or setting the time offset. Timestamps methods `/set_time` and `/increase_time` will generate a new block. All values should be set in Unix time seconds [Unix time seconds](https://en.wikipedia.org/wiki/Unix_time).
+Block timestamp can be manipulated by setting the exact time or setting the time offset. By default, timestamp methods `/set_time` and `/increase_time` generate a new block. This can be changed for `/set_time` by setting the optional parameter `generate_block` to `false`. This skips immediate new block generation, but will use the specified timestamp whenever the next block is supposed to be generated.
+
+All values should be set in [Unix time seconds](https://en.wikipedia.org/wiki/Unix_time).
 
 ### Set time
 
@@ -291,6 +293,16 @@ Sets the exact time and generates a new block.
 POST /set_time
 {
     "time": TIME_IN_SECONDS
+}
+```
+
+Doesn't generate a new block, but sets the exact time for the next generated block.
+
+```
+POST /set_time
+{
+    "time": TIME_IN_SECONDS,
+    "generate_block": false
 }
 ```
 
