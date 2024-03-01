@@ -811,7 +811,7 @@ impl Starknet {
     }
 
     pub fn get_block_with_receipts(&self, block_id: BlockId) -> DevnetResult<Block> {
-        let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
+        let block = self.blocks.get_by_block_id(&block_id).ok_or(Error::NoBlock)?;
         let mut transaction_receipts: Vec<TransactionWithReceipt> = vec![];
 
         for transaction_hash in block.get_transactions() {
