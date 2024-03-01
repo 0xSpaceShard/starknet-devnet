@@ -51,7 +51,7 @@ impl StateReader for DictState {
     ) -> StateResult<StarkFelt> {
         let contract_storage_key = (contract_address, key);
         Ok(match self.storage_view.get(&contract_storage_key) {
-            Some(value) => value.clone(),
+            Some(value) => *value,
             None => {
                 if let Some(origin) = &self.origin_client {
                     let contract_address = FieldElement::from(Felt::from(contract_address.0));

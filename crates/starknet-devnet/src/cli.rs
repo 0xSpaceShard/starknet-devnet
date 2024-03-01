@@ -116,7 +116,7 @@ pub(crate) struct Args {
     #[arg(long = "fork-network")]
     #[arg(value_name = "URL")]
     #[arg(help = "Specify the URL of the network to fork;")]
-    fork_network: Option<String>,
+    fork_network: Option<url::Url>,
 
     #[arg(long = "fork-block")]
     #[arg(value_name = "BLOCK_NUMBER")]
