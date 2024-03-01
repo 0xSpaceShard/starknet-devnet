@@ -52,14 +52,20 @@ pub struct AbortedBlocks {
 }
 
 #[derive(Deserialize)]
-pub struct Time {
+pub struct IncreaseTime {
     pub time: u64,
+}
+
+#[derive(Deserialize)]
+pub struct SetTime {
+    pub time: u64,
+    pub generate_block: Option<bool>,
 }
 
 #[derive(Serialize)]
 pub struct SetTimeResponse {
     pub block_timestamp: u64,
-    pub block_hash: BlockHash,
+    pub block_hash: Option<BlockHash>,
 }
 
 #[derive(Serialize)]

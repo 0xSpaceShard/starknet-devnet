@@ -103,6 +103,12 @@ impl From<starknet_rs_ff::FieldElement> for Felt {
     }
 }
 
+impl From<&starknet_rs_ff::FieldElement> for Felt {
+    fn from(value: &starknet_rs_ff::FieldElement) -> Self {
+        Self(value.to_bytes_be())
+    }
+}
+
 impl From<u128> for Felt {
     fn from(value: u128) -> Self {
         let le_part: [u8; 16] = value.to_be_bytes();

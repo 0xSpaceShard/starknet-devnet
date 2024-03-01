@@ -5,13 +5,18 @@ mod trace_tests {
 
     use serde_json::json;
     use starknet_core::constants::{
-        CAIRO_0_ACCOUNT_CONTRACT_HASH, CHARGEABLE_ACCOUNT_ADDRESS, ETH_ERC20_CONTRACT_ADDRESS,
+        CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH, CHARGEABLE_ACCOUNT_ADDRESS,
+        ETH_ERC20_CONTRACT_ADDRESS,
     };
     use starknet_rs_accounts::{
         Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
+    use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::chain_id;
-    use starknet_rs_core::types::{FieldElement, FunctionInvocation, StarknetError};
+    use starknet_rs_core::types::{
+        DeployedContractItem, FieldElement, FunctionInvocation, StarknetError, TransactionTrace,
+    };
+    use starknet_rs_core::utils::{get_udc_deployed_address, UdcUniqueness};
     use starknet_rs_providers::{Provider, ProviderError};
     use starknet_types::rpc::transactions::BlockTransactionTrace;
 
@@ -83,7 +88,7 @@ mod trace_tests {
             signer,
             account_address,
             chain_id::TESTNET,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         );
 
         let (cairo_1_contract, casm_class_hash) =
@@ -110,7 +115,7 @@ mod trace_tests {
             assert_eq!(validate_invocation.contract_address, account_address);
             assert_eq!(
                 validate_invocation.class_hash,
-                FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap()
+                FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
             );
             assert_eq!(
                 validate_invocation.calldata[0],
@@ -130,13 +135,78 @@ mod trace_tests {
     }
 
     #[tokio::test]
+    async fn test_contract_deployment_trace() {
+        let devnet = BackgroundDevnet::spawn().await.unwrap();
+
+        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+        let account = Arc::new(SingleOwnerAccount::new(
+            devnet.clone_provider(),
+            signer,
+            account_address,
+            chain_id::TESTNET,
+            ExecutionEncoding::New,
+        ));
+
+        let (cairo_1_contract, casm_class_hash) =
+            get_events_contract_in_sierra_and_compiled_class_hash();
+
+        // declare the contract
+        let declaration_result = account
+            .declare(Arc::new(cairo_1_contract), casm_class_hash)
+            .max_fee(FieldElement::from(1e18 as u128))
+            .send()
+            .await
+            .unwrap();
+
+        // deploy twice - should result in only 1 instance in deployed_contracts and no declares
+        let contract_factory = ContractFactory::new(declaration_result.class_hash, account.clone());
+        for salt in (0_u32..2).map(FieldElement::from) {
+            let ctor_data = vec![];
+            let deployment_tx = contract_factory
+                .deploy(ctor_data.clone(), salt, false)
+                .max_fee(FieldElement::from(1e18 as u128))
+                .send()
+                .await
+                .expect("Cannot deploy");
+
+            let deployment_address = get_udc_deployed_address(
+                salt,
+                declaration_result.class_hash,
+                &UdcUniqueness::NotUnique,
+                &ctor_data,
+            );
+            let deployment_trace = devnet
+                .json_rpc_client
+                .trace_transaction(deployment_tx.transaction_hash)
+                .await
+                .unwrap();
+
+            match deployment_trace {
+                TransactionTrace::Invoke(tx) => {
+                    let state_diff = tx.state_diff.unwrap();
+                    assert_eq!(state_diff.declared_classes, []);
+                    assert_eq!(state_diff.deprecated_declared_classes, []);
+                    assert_eq!(
+                        state_diff.deployed_contracts,
+                        [DeployedContractItem {
+                            address: deployment_address,
+                            class_hash: declaration_result.class_hash
+                        }]
+                    );
+                }
+                other => panic!("Invalid trace: {other:?}"),
+            }
+        }
+    }
+
+    #[tokio::test]
     async fn get_deploy_account_trace() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         // define the key of the new account - dummy value
         let new_account_signer = get_deployable_account_signer();
         let account_factory = OpenZeppelinAccountFactory::new(
-            FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
+            FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap(),
             chain_id::TESTNET,
             new_account_signer.clone(),
             devnet.clone_provider(),
@@ -164,16 +234,16 @@ mod trace_tests {
             let validate_invocation = deployment_trace.validate_invocation.unwrap();
             assert_eq!(
                 validate_invocation.class_hash,
-                FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap()
+                FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
             );
             assert_eq!(
                 validate_invocation.calldata[0],
-                FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap()
+                FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
             );
 
             assert_eq!(
                 deployment_trace.constructor_invocation.class_hash,
-                FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap()
+                FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap()
             );
 
             assert_eq!(

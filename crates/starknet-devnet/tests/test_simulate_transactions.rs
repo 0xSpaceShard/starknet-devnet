@@ -93,7 +93,7 @@ mod estimate_fee_tests {
             signer,
             account_address,
             CHAIN_ID,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         );
 
         let contract_json = dummy_cairo_0_contract_class();
@@ -164,7 +164,7 @@ mod estimate_fee_tests {
             signer,
             account_address,
             CHAIN_ID,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         );
 
         // get class
@@ -341,7 +341,7 @@ mod estimate_fee_tests {
             signer,
             account_address,
             CHAIN_ID,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         ));
 
         // get class
