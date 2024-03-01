@@ -31,13 +31,21 @@ mod estimate_fee_tests {
         u128::from_str_radix(fee_hex_stripped, 16).unwrap()
     }
 
-    fn assert_fee_in_resp_greater(
+    /// Calculating the fee of a transaction depends on fee weights of vm resources and the resource
+    /// usage. The fee from vm usage is the haviest product of cairo resource usage multiplied
+    /// by cairo resource fee cost, rounded down to the nearest integer So there is a
+    /// possibility that although some of the resources present in the resp_no_flags are not in
+    /// resp_skip_validation This doesnt mean that the fee will be high, because for example:
+    /// the fee from vm usage is determined from the `steps` and the transaction that skips
+    /// validation might have less steps, but due to the rounding if the multiplied product
+    /// falls in the range (7,8] both will be rounded to 7
+    fn assert_fee_in_resp_at_least_equal(
         resp_no_flags: &serde_json::Value,
         resp_skip_validation: &serde_json::Value,
     ) {
         let no_flags_fee = extract_overall_fee(resp_no_flags);
         let skip_validation_fee = extract_overall_fee(resp_skip_validation);
-        assert!(no_flags_fee.gt(&skip_validation_fee));
+        assert!(no_flags_fee.ge(&skip_validation_fee));
     }
 
     fn assert_difference_if_validation(
@@ -66,11 +74,15 @@ mod estimate_fee_tests {
             should_skip_fee_invocation
         );
 
-        assert_fee_in_resp_greater(resp_no_flags, resp_skip_validation);
+        assert!(
+            no_flags_trace["execution_resources"]["steps"].as_u64().unwrap()
+                > skip_validation_trace["execution_resources"]["steps"].as_u64().unwrap()
+        );
+
+        assert_fee_in_resp_at_least_equal(resp_no_flags, resp_skip_validation);
     }
 
     #[tokio::test]
-    #[ignore = "Blockifier question regarding estimating fee with/without validation is pending"]
     async fn simulate_declare_v1() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -142,7 +154,6 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
-    #[ignore = "Blockifier question regarding estimating fee with/without validation is pending"]
     async fn simulate_declare_v2() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -215,7 +226,6 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
-    #[ignore = "Blockifier question regarding estimating fee with/without validation is pending"]
     async fn simulate_deploy_account() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
@@ -304,7 +314,7 @@ mod estimate_fee_tests {
             account_address_hex
         );
 
-        assert_fee_in_resp_greater(resp_no_flags, resp_skip_validation);
+        assert_fee_in_resp_at_least_equal(resp_no_flags, resp_skip_validation);
 
         // skipped validation and fee charging (everything)
         let params_skip_everything = get_params(&["SKIP_VALIDATE", "SKIP_FEE_CHARGE"]);
@@ -321,7 +331,6 @@ mod estimate_fee_tests {
     }
 
     #[tokio::test]
-    #[ignore = "Blockifier question regarding estimating fee with/without validation is pending"]
     async fn simulate_invoke_v1() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
