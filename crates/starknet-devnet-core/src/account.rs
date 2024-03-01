@@ -127,7 +127,7 @@ impl Deployed for Account {
             self.account_address.try_into()?,
             public_key_storage_var.try_into()?,
             self.public_key.into(),
-        );
+        )?;
 
         // set balance directly in the most underlying state
         self.set_initial_balance(&mut state.state.state)?;
@@ -150,7 +150,7 @@ impl Accounted for Account {
                 fee_token_address.try_into()?,
                 storage_var_address.try_into()?,
                 self.initial_balance.into(),
-            );
+            )?;
         }
 
         Ok(())

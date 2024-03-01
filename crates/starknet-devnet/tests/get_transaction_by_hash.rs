@@ -64,7 +64,7 @@ mod get_transaction_by_hash_integration_tests {
             starknet_rs_core::types::DeclareTransaction::V1(declare_v1),
         ) = result
         {
-            let expected = "0x03260006dbb34ad0c3b70a39c9eaf84aade3d289a5a5517fc37b303f5f01ac1a";
+            let expected = "0x05f47de31f16e7a474f6279c02b1783a86905c12bf0c2978bc2893e9d4f071a8";
             assert_eq!(declare_v1.transaction_hash, FieldElement::from_hex_be(expected).unwrap());
         } else {
             panic!("Could not unpack the transaction from {result:?}");
@@ -119,7 +119,7 @@ mod get_transaction_by_hash_integration_tests {
             starknet_rs_core::types::DeclareTransaction::V2(declare_v2),
         ) = result
         {
-            let expected = "0x04761a8b7dc76fd0764692005a7120da685690b01bb09a5de95fa2094895b520";
+            let expected = "0x0559f6223ab81e2aadc6fe87a3c0495ffa29c2b4f3395ef28d8e60ca50f39aef";
             assert_eq!(declare_v2.transaction_hash, FieldElement::from_hex_be(expected).unwrap());
         } else {
             panic!("Could not unpack the transaction from {result:?}");
@@ -160,7 +160,7 @@ mod get_transaction_by_hash_integration_tests {
             .unwrap();
 
         if let starknet_rs_core::types::Transaction::DeployAccount(deploy) = result {
-            let expected = "0x02b4b37075273f836aa055c7a53e4e2635abcbd776ebef2ab1b74abd7235ac06";
+            let expected = "0x011ce9d9fab9d0fccd846ce0a7698da19ace2b91cb3db2df1c8845904f74af91";
             assert_eq!(*deploy.transaction_hash(), FieldElement::from_hex_be(expected).unwrap());
         } else {
             panic!("Could not unpack the transaction from {result:?}");
@@ -204,7 +204,7 @@ mod get_transaction_by_hash_integration_tests {
             starknet_rs_core::types::InvokeTransaction::V1(invoke_v1),
         ) = result
         {
-            let expected = "0x02b5af34e9fee25d009e58c5d38f96343bd26e036db918e7458a9340e4a47e1a";
+            let expected = "0x01816ae7cc33a3e0218b98f5e967b56518625429f0a456a6ff4a11335bae755a";
             assert_eq!(invoke_v1.transaction_hash, FieldElement::from_hex_be(expected).unwrap());
         } else {
             panic!("Could not unpack the transaction from {result:?}");

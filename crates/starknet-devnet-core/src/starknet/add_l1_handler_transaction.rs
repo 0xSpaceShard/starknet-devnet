@@ -46,6 +46,7 @@ mod tests {
 
     use blockifier::execution::errors::{EntryPointExecutionError, PreExecutionError};
     use blockifier::transaction::errors::TransactionExecutionError::ExecutionError;
+    use nonzero_ext::nonzero;
     use starknet_api::hash::StarkFelt;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_rs_core::utils::get_selector_from_name;
@@ -256,7 +257,7 @@ mod tests {
             .predeploy_contract(dummy_contract_address, dummy_contract_class_hash)
             .unwrap();
         starknet.block_context = Starknet::init_block_context(
-            1,
+            nonzero!(1u128),
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,

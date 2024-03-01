@@ -21,7 +21,6 @@ use starknet_types::felt::Felt;
 use starknet_types::traits::{ToDecimalString, ToHexString};
 use tracing::info;
 use tracing_subscriber::EnvFilter;
-use url::Url;
 
 mod cli;
 mod contract_class_choice;
@@ -82,8 +81,7 @@ fn print_chain_id(chain_id: ChainId) {
 
 pub async fn check_fork(starknet_config: &mut StarknetConfig) -> Result<(), anyhow::Error> {
     // TODO add proper error handling
-    if let Some(url_candidate) = &starknet_config.fork_config.url {
-        let url = Url::parse(url_candidate)?;
+    if let Some(url) = &starknet_config.fork_config.url {
         let json_rpc_client = JsonRpcClient::new(HttpTransport::new(url.clone()));
         let block_number = if let Some(block_number) = starknet_config.fork_config.block {
             // if this passes, it means block number is valid

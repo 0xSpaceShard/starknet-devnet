@@ -56,7 +56,7 @@ pub(crate) fn initialize_erc20_at_address(
             contract_address.try_into()?,
             storage_var_address,
             storage_value.into(),
-        );
+        )?;
     }
 
     Ok(())

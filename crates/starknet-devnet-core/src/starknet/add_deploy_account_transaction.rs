@@ -100,6 +100,7 @@ pub fn add_deploy_account_transaction_v1(
 mod tests {
 
     use blockifier::state::state_api::{State, StateReader};
+    use nonzero_ext::nonzero;
     use starknet_api::hash::StarkFelt;
     use starknet_api::transaction::{Fee, Tip};
     use starknet_rs_core::types::{
@@ -232,7 +233,7 @@ mod tests {
     fn deploy_account_transaction_v1_should_return_an_error_due_to_not_enough_fee() {
         let (mut starknet, account_class_hash, eth_fee_token_address, _) = setup();
 
-        let fee_raw: u128 = 2000;
+        let fee_raw: u128 = 1;
         let transaction = BroadcastedDeployAccountTransactionV1::new(
             &vec![],
             Fee(fee_raw),
@@ -258,11 +259,14 @@ mod tests {
                 .unwrap();
 
         let account_balance_before_deployment = StarkFelt::from_u128(1000000);
-        starknet.state.set_storage_at(
-            fee_token_address,
-            balance_storage_var_address,
-            account_balance_before_deployment,
-        );
+        starknet
+            .state
+            .set_storage_at(
+                fee_token_address,
+                balance_storage_var_address,
+                account_balance_before_deployment,
+            )
+            .unwrap();
 
         match starknet.add_deploy_account_transaction_v1(transaction).unwrap_err() {
             Error::TransactionValidationError(
@@ -294,11 +298,14 @@ mod tests {
                 .unwrap();
 
         let account_balance_before_deployment = StarkFelt::from_u128(1000000);
-        starknet.state.set_storage_at(
-            fee_token_address,
-            balance_storage_var_address,
-            account_balance_before_deployment,
-        );
+        starknet
+            .state
+            .set_storage_at(
+                fee_token_address,
+                balance_storage_var_address,
+                account_balance_before_deployment,
+            )
+            .unwrap();
 
         let (txn_hash, _) = starknet.add_deploy_account_transaction_v3(transaction).unwrap();
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
@@ -345,11 +352,14 @@ mod tests {
                 .unwrap();
 
         let account_balance_before_deployment = StarkFelt::from_u128(1000000);
-        starknet.state.set_storage_at(
-            fee_token_address,
-            balance_storage_var_address,
-            account_balance_before_deployment,
-        );
+        starknet
+            .state
+            .set_storage_at(
+                fee_token_address,
+                balance_storage_var_address,
+                account_balance_before_deployment,
+            )
+            .unwrap();
 
         let (txn_hash, _) = starknet.add_deploy_account_transaction_v1(transaction).unwrap();
         let txn = starknet.transactions.get_by_hash_mut(&txn_hash).unwrap();
@@ -383,7 +393,7 @@ mod tests {
 
         starknet.state.declare_contract_class(class_hash, contract_class.into()).unwrap();
         starknet.block_context = Starknet::init_block_context(
-            1,
+            nonzero!(1u128),
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,

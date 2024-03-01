@@ -1,3 +1,4 @@
+use blockifier::execution::contract_class::ClassInfo;
 use blockifier::transaction::transactions::DeclareTransaction;
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::Fee;
@@ -13,7 +14,7 @@ pub(crate) const PREFIX_DECLARE: FieldElement = FieldElement::from_mont([
 ]);
 
 use crate::contract_address::ContractAddress;
-use crate::contract_class::Cairo0ContractClass;
+use crate::contract_class::{Cairo0ContractClass, ContractClass};
 use crate::error::DevnetResult;
 use crate::felt::{
     ClassHash, Felt, Nonce, TransactionHash, TransactionSignature, TransactionVersion,
@@ -69,12 +70,13 @@ impl BroadcastedDeclareTransactionV1 {
             },
         );
 
+        let class_info: ClassInfo =
+            ContractClass::Cairo0(self.contract_class.clone()).try_into()?;
+
         Ok(DeclareTransaction::new(
             sn_api_declare,
             starknet_api::transaction::TransactionHash(transaction_hash.into()),
-            blockifier::execution::contract_class::ContractClass::V0(
-                self.contract_class.clone().try_into()?,
-            ),
+            class_info,
         )?)
     }
 

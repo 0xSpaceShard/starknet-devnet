@@ -1,6 +1,6 @@
 [package]
 name = "starknet-devnet-types"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 description = "Starknet types for the devnet"
 repository.workspace = true
@@ -11,7 +11,7 @@ license-file.workspace = true
 [dependencies]
 base64 = { workspace = true }
 blockifier = { workspace = true }
-cairo-lang-starknet = { workspace = true }
+cairo-lang-starknet-classes = { workspace = true }
 clap = { workspace = true }
 flate2 = { workspace = true }
 starknet_api = { workspace = true }

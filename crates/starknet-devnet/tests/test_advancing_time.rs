@@ -581,4 +581,38 @@ mod advancing_time_tests {
             - last_block["timestamp"].as_i64().unwrap();
         assert!(timestamp_diff.abs() < BUFFER_TIME_SECONDS as i64)
     }
+
+    #[tokio::test]
+    async fn set_time_with_later_block_generation() {
+        let now = get_unix_timestamp_as_seconds();
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--start-time",
+            now.to_string().as_str(),
+        ])
+        .await
+        .expect("Could not start Devnet");
+
+        // set time in past without block generation
+        let past_time = 1;
+        let set_time_body =
+            Body::from(json!({ "time": past_time, "generate_block": false }).to_string());
+        let resp_set_time = devnet.post_json("/set_time".into(), set_time_body).await.unwrap();
+        let resp_body_set_time = get_json_body(resp_set_time).await;
+
+        // time is set but the block was not generated
+        assert_eq!(resp_body_set_time["block_timestamp"], past_time);
+        assert!(resp_body_set_time["block_hash"].is_null());
+
+        // wait 1 second
+        thread::sleep(time::Duration::from_secs(1));
+
+        // create block and assert
+        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        let latest_block = &devnet
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
+
+        assert_eq!(latest_block["block_number"], 0);
+        assert_eq!(latest_block["timestamp"], past_time);
+    }
 }
