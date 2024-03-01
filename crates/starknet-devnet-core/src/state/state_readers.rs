@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use blockifier::execution::contract_class::ContractClass;
-use blockifier::state::cached_state::ContractStorageKey;
+use blockifier::state::cached_state::StorageEntry;
 use blockifier::state::errors::StateError;
 use blockifier::state::state_api::{State, StateReader, StateResult};
 use starknet_api::core::{ClassHash, CompiledClassHash, ContractAddress, Nonce};
@@ -10,8 +10,8 @@ use starknet_api::hash::StarkFelt;
 use starknet_api::state::StorageKey;
 use starknet_rs_core::types::BlockId;
 use starknet_rs_ff::FieldElement;
-use starknet_rs_providers::Provider;
-use starknet_rs_providers::{jsonrpc::HttpTransport, JsonRpcClient};
+use starknet_rs_providers::jsonrpc::HttpTransport;
+use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_types::felt::Felt;
 
 use crate::starknet::starknet_config::ForkConfig;
@@ -20,7 +20,7 @@ use crate::starknet::starknet_config::ForkConfig;
 /// Copied from blockifier test_utils, added `impl State`
 #[derive(Debug, Default, Clone)]
 pub struct DictState {
-    pub storage_view: HashMap<ContractStorageKey, StarkFelt>,
+    pub storage_view: HashMap<StorageEntry, StarkFelt>,
     pub address_to_nonce: HashMap<ContractAddress, Nonce>,
     pub address_to_class_hash: HashMap<ContractAddress, ClassHash>,
     pub class_hash_to_class: HashMap<ClassHash, ContractClass>,
@@ -57,7 +57,7 @@ impl StateReader for DictState {
                     let contract_address = FieldElement::from(Felt::from(contract_address.0));
                     let key = FieldElement::from(Felt::from(key.0));
                     let origin_result = tokio::runtime::Runtime::new().unwrap().block_on(
-                        origin.get_storage_at(contract_address, key, self.block_id.unwrap())
+                        origin.get_storage_at(contract_address, key, self.block_id.unwrap()),
                     );
                     match origin_result {
                         Ok(value) => value.into(),
@@ -76,14 +76,11 @@ impl StateReader for DictState {
         Ok(nonce)
     }
 
-    fn get_compiled_contract_class(
-        &mut self,
-        class_hash: &ClassHash,
-    ) -> StateResult<ContractClass> {
-        let contract_class = self.class_hash_to_class.get(class_hash).cloned();
+    fn get_compiled_contract_class(&mut self, class_hash: ClassHash) -> StateResult<ContractClass> {
+        let contract_class = self.class_hash_to_class.get(&class_hash).cloned();
         match contract_class {
             Some(contract_class) => Ok(contract_class),
-            _ => Err(StateError::UndeclaredClassHash(*class_hash)),
+            _ => Err(StateError::UndeclaredClassHash(class_hash)),
         }
     }
 
@@ -109,8 +106,9 @@ impl State for DictState {
         contract_address: ContractAddress,
         key: StorageKey,
         value: StarkFelt,
-    ) {
+    ) -> std::result::Result<(), blockifier::state::errors::StateError> {
         self.storage_view.insert((contract_address, key), value);
+        Ok(())
     }
 
     fn increment_nonce(&mut self, contract_address: ContractAddress) -> StateResult<()> {
@@ -138,10 +136,10 @@ impl State for DictState {
 
     fn set_contract_class(
         &mut self,
-        class_hash: &ClassHash,
+        class_hash: ClassHash,
         contract_class: ContractClass,
     ) -> StateResult<()> {
-        self.class_hash_to_class.insert(*class_hash, contract_class);
+        self.class_hash_to_class.insert(class_hash, contract_class);
         Ok(())
     }
 
@@ -156,5 +154,9 @@ impl State for DictState {
 
     fn to_state_diff(&mut self) -> blockifier::state::cached_state::CommitmentStateDiff {
         panic!("Should never be called")
+    }
+
+    fn add_visited_pcs(&mut self, _class_hash: ClassHash, _pcs: &std::collections::HashSet<usize>) {
+        todo!("What with this")
     }
 }

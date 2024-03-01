@@ -25,7 +25,7 @@ jobs:
       cargo_cache_key:
         type: string
     docker:
-      - image: cimg/rust:1.70.0
+      - image: cimg/rust:1.74.0
     resource_class: xlarge
     steps:
       - checkout
@@ -99,7 +99,7 @@ jobs:
 
   publish:
     docker:
-      - image: cimg/rust:1.70.0
+      - image: cimg/rust:1.74.0
     resource_class: medium
     steps:
       - checkout
@@ -119,7 +119,7 @@ workflows:
   main:
     jobs:
       - build-and-test:
-          cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-v1
+          cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
       - image-build-amd:
           <<: *on_main
       - image-build-arm:

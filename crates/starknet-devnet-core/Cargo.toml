@@ -1,6 +1,6 @@
 [package]
 name = "starknet-devnet-core"
-version = "0.0.2"
+version = "0.0.3"
 edition.workspace = true
 repository.workspace = true
 license-file.workspace = true
@@ -9,8 +9,8 @@ description = "Starknet core logic for devnet"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-blockifier = { workspace = true, features = ["testing"]}
-cairo-lang-starknet = { workspace = true }
+blockifier = { workspace = true, features = ["testing"] }
+cairo-lang-starknet-classes = { workspace = true }
 clap = { workspace = true }
 ethers = { workspace = true }
 starknet_api = { workspace = true, features = ["testing"] }
@@ -28,6 +28,7 @@ tracing = { workspace = true }
 indexmap = { workspace = true }
 url = { workspace = true }
 tokio = { workspace = true }
+nonzero_ext = { workspace = true }
 
 [dev-dependencies]
 hex = "0.4.3"

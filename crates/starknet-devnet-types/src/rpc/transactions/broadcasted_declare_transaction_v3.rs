@@ -1,5 +1,5 @@
 use blockifier::transaction::transactions::DeclareTransaction;
-use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
+use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
 use serde::{Deserialize, Serialize};
 use starknet_api::transaction::DeclareTransactionV3;
 use starknet_rs_crypto::poseidon_hash_many;
@@ -106,7 +106,6 @@ impl BroadcastedDeclareTransactionV3 {
 
         let contract_class = ContractClass::Cairo1(self.contract_class.clone()).try_into()?;
         let transaction_hash = starknet_api::transaction::TransactionHash(transaction_hash.into());
-
         if only_query {
             Ok(DeclareTransaction::new_for_query(sn_api_declare, transaction_hash, contract_class)?)
         } else {

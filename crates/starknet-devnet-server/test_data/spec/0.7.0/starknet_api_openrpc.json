@@ -1,7 +1,7 @@
 {
     "openrpc": "1.0.0-rc1",
     "info": {
-        "version": "0.6.0",
+        "version": "0.7.0",
         "title": "StarkNet Node API",
         "license": {}
     },
@@ -77,6 +77,39 @@
                         {
                             "title": "Block with transactions",
                             "$ref": "#/components/schemas/BLOCK_WITH_TXS"
+                        }
+                    ]
+                }
+            },
+            "errors": [
+                {
+                    "$ref": "#/components/errors/BLOCK_NOT_FOUND"
+                }
+            ]
+        },
+        {
+            "name": "starknet_getBlockWithReceipts",
+            "summary": "Get block information with full transactions and receipts given the block id",
+            "params": [
+                {
+                    "name": "block_id",
+                    "description": "The hash of the requested block, or number (height) of the requested block, or a block tag",
+                    "required": true,
+                    "schema": {
+                        "title": "Block id",
+                        "$ref": "#/components/schemas/BLOCK_ID"
+                    }
+                }
+            ],
+            "result": {
+                "name": "result",
+                "description": "The resulting block information with full transactions",
+                "schema": {
+                    "title": "Starknet get block with txs and receipts result",
+                    "oneOf": [
+                        {
+                            "title": "Block with transactions",
+                            "$ref": "#/components/schemas/BLOCK_WITH_RECEIPTS"
                         }
                     ]
                 }
@@ -1101,7 +1134,7 @@
             "u128": {
                 "type": "string",
                 "title": "u128",
-                "description": "128 bit integers, represented by hex string of length at most 32",
+                "description": "64 bit integers, represented by hex string of length at most 32",
                 "pattern": "^0x(0|[a-fA-F1-9]{1}[a-fA-F0-9]{0,31})$"
             },
             "CHAIN_ID": {
@@ -1355,6 +1388,38 @@
                     "transactions"
                 ]
             },
+            "BLOCK_BODY_WITH_RECEIPTS": {
+                "title": "Block body with transactions and receipts",
+                "type": "object",
+                "properties": {
+                    "transactions": {
+                        "title": "Transactions",
+                        "description": "The transactions in this block",
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "title": "transaction and receipt",
+                            "properties": {
+                                "transaction": {
+                                    "title": "transaction",
+                                    "$ref": "#/components/schemas/TXN"
+                                },
+                                "receipt": {
+                                    "title": "receipt",
+                                    "$ref": "#/components/schemas/TXN_RECEIPT_IN_BLOCK"
+                                }
+                            },
+                            "required": [
+                                "transaction",
+                                "receipt"
+                            ]
+                        }
+                    }
+                },
+                "required": [
+                    "transactions"
+                ]
+            },
             "BLOCK_HEADER": {
                 "title": "Block header",
                 "type": "object",
@@ -1394,6 +1459,20 @@
                         "description": "The price of l1 gas in the block",
                         "$ref": "#/components/schemas/RESOURCE_PRICE"
                     },
+                    "l1_data_gas_price": {
+                        "title": "L1 data gas price",
+                        "description": "The price of l1 data gas in the block",
+                        "$ref": "#/components/schemas/RESOURCE_PRICE"
+                    },
+                    "l1_da_mode": {
+                        "title": "L1 da mode",
+                        "type": "string",
+                        "description": "specifies whether the data of this block is published via blob data or calldata",
+                        "enum": [
+                            "BLOB",
+                            "CALLDATA"
+                        ]
+                    },
                     "starknet_version": {
                         "title": "Starknet version",
                         "description": "Semver of the current Starknet protocol",
@@ -1408,6 +1487,8 @@
                     "timestamp",
                     "sequencer_address",
                     "l1_gas_price",
+                    "l1_data_gas_price",
+                    "l1_da_mode",
                     "starknet_version"
                 ]
             },
@@ -1465,6 +1546,33 @@
                     }
                 ]
             },
+            "BLOCK_WITH_RECEIPTS": {
+                "title": "Block with transactions and receipts",
+                "description": "The block object",
+                "allOf": [
+                    {
+                        "title": "block with txs",
+                        "type": "object",
+                        "properties": {
+                            "status": {
+                                "title": "Status",
+                                "$ref": "#/components/schemas/BLOCK_STATUS"
+                            }
+                        },
+                        "required": [
+                            "status"
+                        ]
+                    },
+                    {
+                        "title": "Block header",
+                        "$ref": "#/components/schemas/BLOCK_HEADER"
+                    },
+                    {
+                        "title": "Block body with transactions and receipts",
+                        "$ref": "#/components/schemas/BLOCK_BODY_WITH_RECEIPTS"
+                    }
+                ]
+            },
             "PENDING_BLOCK_WITH_TX_HASHES": {
                 "title": "Pending block with transaction hashes",
                 "description": "The dynamic block being constructed by the sequencer. Note that this object will be deprecated upon decentralization.",
@@ -1486,6 +1594,20 @@
                     {
                         "title": "Block body with transactions",
                         "$ref": "#/components/schemas/BLOCK_BODY_WITH_TXS"
+                    },
+                    {
+                        "title": "Pending block header",
+                        "$ref": "#/components/schemas/PENDING_BLOCK_HEADER"
+                    }
+                ]
+            },
+            "PENDING_BLOCK_WITH_RECEIPTS": {
+                "title": "Pending block with transactions and receipts",
+                "description": "The dynamic block being constructed by the sequencer. Note that this object will be deprecated upon decentralization.",
+                "allOf": [
+                    {
+                        "title": "Block body with transactions and receipts",
+                        "$ref": "#/components/schemas/BLOCK_BODY_WITH_RECEIPTS"
                     },
                     {
                         "title": "Pending block header",
@@ -2614,7 +2736,10 @@
                             "version": {
                                 "title": "Version",
                                 "description": "Version of the transaction scheme",
-                                "$ref": "#/components/schemas/FELT"
+                                "type": "string",
+                                "enum": [
+                                    "0x0"
+                                ]
                             },
                             "type": {
                                 "title": "type",
@@ -2662,6 +2787,7 @@
                     },
                     "finality_status": {
                         "title": "Finality status",
+                        "description": "finality status of the tx, which is ACCEPTED_ON_L2 when included in a pending receipt, and can be ACCEPTED_ON_L1 when part of a getBlockWithReceipts response",
                         "$ref": "#/components/schemas/TXN_FINALITY_STATUS"
                     },
                     "block_hash": {
@@ -3014,6 +3140,10 @@
                     }
                 ]
             },
+            "TXN_RECEIPT_IN_BLOCK": {
+                "title": "receipt in block",
+                "$ref": "#/components/schemas/PENDING_TXN_RECEIPT"
+            },
             "PENDING_COMMON_RECEIPT_PROPERTIES": {
                 "title": "Pending common receipt properties",
                 "description": "Common properties for a pending transaction receipt",
@@ -3052,11 +3182,7 @@
                     },
                     "finality_status": {
                         "title": "Finality status",
-                        "type": "string",
-                        "enum": [
-                            "ACCEPTED_ON_L2"
-                        ],
-                        "description": "The finality status of the transaction"
+                        "$ref": "#/components/schemas/TXN_FINALITY_STATUS"
                     },
                     "execution_status": {
                         "title": "Execution status",
@@ -3593,17 +3719,27 @@
                 "properties": {
                     "gas_consumed": {
                         "title": "Gas consumed",
-                        "description": "The Ethereum gas cost of the transaction (see https://docs.starknet.io/docs/Fees/fee-mechanism for more info)",
+                        "description": "The Ethereum gas consumption of the transaction",
                         "$ref": "#/components/schemas/u64"
                     },
                     "gas_price": {
                         "title": "Gas price",
-                        "description": "The gas price (in gwei or fri, depending on the tx version) that was used in the cost estimation",
+                        "description": "The gas price (in wei or fri, depending on the tx version) that was used in the cost estimation",
+                        "$ref": "#/components/schemas/u64"
+                    },
+                    "data_gas_consumed": {
+                        "title": "Data gas consumed",
+                        "description": "The Ethereum data gas consumption of the transaction",
+                        "$ref": "#/components/schemas/u64"
+                    },
+                    "data_gas_price": {
+                        "title": "Data gas price",
+                        "description": "The data gas price (in wei or fri, depending on the tx version) that was used in the cost estimation",
                         "$ref": "#/components/schemas/u64"
                     },
                     "overall_fee": {
                         "title": "Overall fee",
-                        "description": "The estimated fee for the transaction (in gwei or fri, depending on the tx version), product of gas_consumed and gas_price",
+                        "description": "The estimated fee for the transaction (in wei or fri, depending on the tx version), equals to gas_consumed*gas_price + data_gas_consumed*data_gas_price",
                         "$ref": "#/components/schemas/u64"
                     },
                     "unit": {
@@ -3615,6 +3751,8 @@
                 "required": [
                     "gas_consumed",
                     "gas_price",
+                    "data_gas_consumed",
+                    "data_gas_price",
                     "overall_fee",
                     "unit"
                 ]
@@ -3706,8 +3844,8 @@
                     "price_in_fri"
                 ]
             },
-            "EXECUTION_RESOURCES": {
-                "title": "Execution resources",
+            "COMPUTATION_RESOURCES": {
+                "title": "Computation resources",
                 "description": "The resources consumed by the VM",
                 "type": "object",
                 "properties": {
@@ -3794,6 +3932,46 @@
                 },
                 "required": [
                     "steps"
+                ]
+            },
+            "EXECUTION_RESOURCES": {
+                "type": "object",
+                "title": "Execution resources",
+                "description": "the resources consumed by the transaction, includes both computation and data",
+                "allOf": [
+                    {
+                        "title": "ComputationResources",
+                        "$ref": "#/components/schemas/COMPUTATION_RESOURCES"
+                    },
+                    {
+                        "type": "object",
+                        "title": "DataResources",
+                        "description": "the data-availability resources of this transaction",
+                        "properties": {
+                            "data_availability": {
+                                "type": "object",
+                                "properties": {
+                                    "l1_gas": {
+                                        "title": "L1Gas",
+                                        "description": "the gas consumed by this transaction's data, 0 if it uses data gas for DA",
+                                        "type": "integer"
+                                    },
+                                    "l1_data_gas": {
+                                        "title": "L1DataGas",
+                                        "description": "the data gas consumed by this transaction's data, 0 if it uses gas for DA",
+                                        "type": "integer"
+                                    }
+                                },
+                                "required": [
+                                    "l1_gas",
+                                    "l1_data_gas"
+                                ]
+                            }
+                        },
+                        "required": [
+                            "data_availability"
+                        ]
+                    }
                 ]
             }
         },
