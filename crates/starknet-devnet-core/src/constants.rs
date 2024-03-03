@@ -1,5 +1,7 @@
 use std::net::{IpAddr, Ipv4Addr};
+use std::num::NonZeroU128;
 
+use nonzero_ext::nonzero;
 use starknet_rs_ff::FieldElement;
 use starknet_types::chain_id::ChainId;
 
@@ -17,13 +19,16 @@ pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH: &str = concat!(
 );
 
 pub const CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH: &str =
-    "0x07a711d70338e05d7008fdf553207adc791297461fe3464b450fdc5f26f836ae";
+    "0x061dac032f228abef9c6626f995015233097ae253a7f72d68552db02f2971b8f";
 
 pub const CAIRO_1_ERC20_CONTRACT_PATH: &str =
     concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/ERC20_Mintable_OZ_0.8.1.json");
 
+/// ERC20 class hash is hardcoded to be the same as OZ class hash ERC20.cairo although it should be
+/// different, due to commented key attributes in struct Approval (owner and spender), and add of
+/// mintable feature: https://docs.openzeppelin.com/contracts-cairo/0.8.1/presets
 pub const CAIRO_1_ERC20_CONTRACT_CLASS_HASH: &str =
-    "0x02ce20303e4b963bed8f11fdb309f859822ee17be99399a9acdc289443bc9d09";
+    "0x046ded64ae2dead6448e247234bab192a9c483644395b66f2155f2614e5804b0";
 
 pub const CAIRO_0_ERC20_CONTRACT_PATH: &str =
     concat!(env!("CARGO_MANIFEST_DIR"), "/accounts_artifacts/ERC20_Mintable_OZ_0.2.0.json");
@@ -46,7 +51,7 @@ pub const UDC_CONTRACT_CLASS_HASH: &str =
 pub const UDC_CONTRACT_ADDRESS: &str =
     "0x41A78E741E5AF2FEC34B695679BC6891742439F7AFB8484ECD7766661AD02BF";
 
-pub const STARKNET_VERSION: &str = "0.13.0";
+pub const STARKNET_VERSION: &str = "0.13.1";
 
 /// ERC20 contracts storage variables
 /// taken from starkcan urls:
@@ -61,7 +66,7 @@ pub const DEVNET_DEFAULT_SEED: u32 = 123;
 pub const DEVNET_DEFAULT_TEST_SEED: u32 = 123;
 pub const DEVNET_DEFAULT_TOTAL_ACCOUNTS: u8 = 10;
 pub const DEVNET_DEFAULT_INITIAL_BALANCE: u128 = 1_000_000_000_000_000_000_000;
-pub const DEVNET_DEFAULT_GAS_PRICE: u64 = 100_000_000_000;
+pub const DEVNET_DEFAULT_GAS_PRICE: NonZeroU128 = nonzero!(100_000_000_000u128);
 pub const DEVNET_DEFAULT_HOST: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
 pub const DEVNET_DEFAULT_PORT: u16 = 5050;
 pub const DEVNET_DEFAULT_TIMEOUT: u16 = 120;

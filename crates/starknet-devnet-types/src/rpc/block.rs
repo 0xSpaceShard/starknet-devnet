@@ -1,5 +1,6 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp};
+use starknet_api::data_availability::L1DataAvailabilityMode;
 use starknet_rs_core::types::{BlockId as ImportedBlockId, BlockTag as ImportedBlockTag};
 
 use crate::contract_address::ContractAddress;
@@ -8,71 +9,31 @@ use crate::rpc::transactions::Transactions;
 pub type GlobalRootHex = Felt;
 
 #[derive(Copy, Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum Tag {
-    /// The most recent fully constructed block
-    #[serde(rename = "latest")]
-    Latest,
-    /// Currently constructed block
-    #[serde(rename = "pending")]
-    Pending,
-}
-
-impl From<Tag> for ImportedBlockTag {
-    fn from(value: Tag) -> Self {
-        match value {
-            Tag::Latest => ImportedBlockTag::Latest,
-            Tag::Pending => ImportedBlockTag::Pending,
-        }
-    }
-}
-
-impl From<ImportedBlockTag> for Tag {
-    fn from(value: ImportedBlockTag) -> Self {
-        match value {
-            ImportedBlockTag::Latest => Tag::Latest,
-            ImportedBlockTag::Pending => Tag::Pending,
-        }
-    }
-}
-
-#[derive(Copy, Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum BlockHashOrNumber {
     #[serde(rename = "block_hash")]
     Hash(Felt),
     #[serde(rename = "block_number")]
-    Number(BlockNumber),
+    Number(u64),
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize)]
-#[serde(untagged)]
-pub enum BlockId {
-    HashOrNumber(BlockHashOrNumber),
-    Tag(Tag),
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct BlockId(ImportedBlockId);
+
+impl From<ImportedBlockId> for BlockId {
+    fn from(value: ImportedBlockId) -> Self {
+        Self(value)
+    }
+}
+
+impl AsRef<ImportedBlockId> for BlockId {
+    fn as_ref(&self) -> &ImportedBlockId {
+        &self.0
+    }
 }
 
 impl From<BlockId> for ImportedBlockId {
     fn from(block_id: BlockId) -> Self {
-        match block_id {
-            BlockId::HashOrNumber(hash_or_number) => match hash_or_number {
-                BlockHashOrNumber::Hash(hash) => ImportedBlockId::Hash(hash.into()),
-                BlockHashOrNumber::Number(number) => ImportedBlockId::Number(number.0),
-            },
-            BlockId::Tag(tag) => ImportedBlockId::Tag(tag.into()),
-        }
-    }
-}
-
-impl From<ImportedBlockId> for BlockId {
-    fn from(block_id: ImportedBlockId) -> Self {
-        match block_id {
-            ImportedBlockId::Tag(tag) => BlockId::Tag(tag.into()),
-            ImportedBlockId::Number(number) => {
-                BlockId::HashOrNumber(BlockHashOrNumber::Number(BlockNumber(number)))
-            }
-            ImportedBlockId::Hash(hash) => {
-                BlockId::HashOrNumber(BlockHashOrNumber::Hash(hash.into()))
-            }
-        }
+        block_id.0
     }
 }
 
@@ -83,13 +44,16 @@ impl<'de> Deserialize<'de> for BlockId {
     {
         let value = serde_json::Value::deserialize(deserializer)?;
         if value.as_str().is_some() {
-            let block_id: Tag = serde_json::from_value(value)
+            let block_tag: ImportedBlockTag = serde_json::from_value(value)
                 .map_err(|e| serde::de::Error::custom(format!("Invalid block ID: {e}")))?;
-            Ok(BlockId::Tag(block_id))
+            Ok(BlockId(ImportedBlockId::Tag(block_tag)))
         } else if value.as_object().is_some() {
             let block_id: BlockHashOrNumber = serde_json::from_value(value)
                 .map_err(|e| serde::de::Error::custom(format!("Invalid block ID: {e}")))?;
-            Ok(BlockId::HashOrNumber(block_id))
+            match block_id {
+                BlockHashOrNumber::Hash(hash) => Ok(BlockId(ImportedBlockId::Hash(hash.into()))),
+                BlockHashOrNumber::Number(number) => Ok(BlockId(ImportedBlockId::Number(number))),
+            }
         } else {
             Err(serde::de::Error::custom(format!("Invalid block ID: {value}")))
         }
@@ -116,6 +80,8 @@ pub struct BlockHeader {
     pub timestamp: BlockTimestamp,
     pub starknet_version: String,
     pub l1_gas_price: ResourcePrice,
+    pub l1_data_gas_price: ResourcePrice,
+    pub l1_da_mode: L1DataAvailabilityMode,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]

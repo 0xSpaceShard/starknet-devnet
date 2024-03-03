@@ -5,7 +5,7 @@ pub mod models;
 mod spec_reader;
 mod write_endpoints;
 
-pub const RPC_SPEC_VERSION: &str = "0.6.0";
+pub const RPC_SPEC_VERSION: &str = "0.7.0";
 
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
@@ -21,7 +21,7 @@ use starknet_types::rpc::estimate_message_fee::{
 use starknet_types::rpc::state::StateUpdate;
 use starknet_types::rpc::transaction_receipt::TransactionReceipt;
 use starknet_types::rpc::transactions::{
-    BlockTransactionTraces, EventsChunk, SimulatedTransaction, Transaction, TransactionTrace,
+    BlockTransactionTrace, EventsChunk, SimulatedTransaction, Transaction, TransactionTrace,
 };
 use starknet_types::starknet_api::block::BlockNumber;
 use tracing::{error, info, trace};
@@ -101,6 +101,9 @@ impl JsonRpcHandler {
             }
             StarknetRequest::BlockWithFullTransactions(block) => {
                 self.get_block_with_txs(block.block_id).await.to_rpc_result()
+            }
+            StarknetRequest::BlockWithReceipts(block) => {
+                self.get_block_with_receipts(block.block_id).await.to_rpc_result()
             }
             StarknetRequest::StateUpdate(block) => {
                 self.get_state_update(block.block_id).await.to_rpc_result()
@@ -208,6 +211,8 @@ pub enum StarknetRequest {
     BlockWithTransactionHashes(BlockIdInput),
     #[serde(rename = "starknet_getBlockWithTxs")]
     BlockWithFullTransactions(BlockIdInput),
+    #[serde(rename = "starknet_getBlockWithReceipts")]
+    BlockWithReceipts(BlockIdInput),
     #[serde(rename = "starknet_getStateUpdate")]
     StateUpdate(BlockIdInput),
     #[serde(rename = "starknet_getStorageAt")]
@@ -268,6 +273,7 @@ impl std::fmt::Display for StarknetRequest {
                 write!(f, "starknet_getBlockWithTxHashes")
             }
             StarknetRequest::BlockWithFullTransactions(_) => write!(f, "starknet_getBlockWithTxs"),
+            StarknetRequest::BlockWithReceipts(_) => write!(f, "starknet_getBlockWithReceipts"),
             StarknetRequest::StateUpdate(_) => write!(f, "starknet_getStateUpdate"),
             StarknetRequest::StorageAt(_) => write!(f, "starknet_getStorageAt"),
             StarknetRequest::TransactionByHash(_) => write!(f, "starknet_getTransactionByHash"),
@@ -317,6 +323,7 @@ impl std::fmt::Display for StarknetRequest {
 pub enum StarknetResponse {
     BlockWithTransactionHashes(Block),
     BlockWithFullTransactions(Block),
+    BlockWithReceipts(Block),
     StateUpdate(StateUpdate),
     StorageAt(Felt),
     TransactionByHash(Transaction),
@@ -342,7 +349,7 @@ pub enum StarknetResponse {
     SimulateTransactions(Vec<SimulatedTransaction>),
     SpecVersion(String),
     TraceTransaction(TransactionTrace),
-    BlockTransactionTraces(BlockTransactionTraces),
+    BlockTransactionTraces(Vec<BlockTransactionTrace>),
 }
 
 #[cfg(test)]
@@ -859,6 +866,44 @@ mod requests_tests {
                 .replace(r#""nonce":"0x0""#, r#""nonce":123"#),
             "Invalid declare transaction v2: invalid type: integer `123`",
         );
+    }
+
+    #[test]
+    fn deseralize_chain_id_request() {
+        for body in [
+            json!({
+                "method": "starknet_chainId",
+                "params": {}
+            }),
+            json!({
+                "method": "starknet_chainId",
+                "params": []
+            }),
+            json!({
+                "method": "starknet_chainId",
+            }),
+        ] {
+            assert_deserialization_succeeds(body.to_string().as_str())
+        }
+    }
+
+    #[test]
+    fn deserialize_spec_version_request() {
+        for body in [
+            json!({
+                "method": "starknet_specVersion",
+                "params": {}
+            }),
+            json!({
+                "method": "starknet_specVersion",
+                "params": []
+            }),
+            json!({
+                "method": "starknet_specVersion",
+            }),
+        ] {
+            assert_deserialization_succeeds(body.to_string().as_str())
+        }
     }
 
     fn assert_deserialization_succeeds(json_str: &str) {

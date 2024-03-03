@@ -20,7 +20,7 @@ This repository is work in progress, please be patient. Please check below the s
 
 ### Supported Features
 
-- [x] RPC v0.6.0
+- [x] RPC v0.7.0
 - [x] [Dump & Load](https://github.com/0xSpaceShard/starknet-devnet-rs#dumping--loading)
 - [x] [Mint token - Local faucet](https://0xspaceshard.github.io/starknet-devnet/docs/guide/mint-token)
 - [x] [Customizable predeployed accounts](#predeployed-contracts)
@@ -99,6 +99,7 @@ All of the versions published on crates.io for starknet-devnet are available as 
 ```
 $ docker pull shardlabs/starknet-devnet-rs:<CRATES_IO_VERSION>
 ```
+
 NOTE! The latest docker image tag corresponds to the last published version in crates.io
 
 Commits to the `main` branch of this repository are mostly available as images tagged with their commit hash (the full 40-lowercase-hex-digits SHA1 digest):
@@ -176,13 +177,13 @@ $ docker run -e RUST_LOG=<LEVEL> shardlabs/starknet-devnet-rs
 
 ## API
 
-Unlike Pythonic Devnet, which supported the gateway and feeder gateway API, Devnet in Rust only supports JSON-RPC, which at the time of writing this is synchronized with [specification v0.6.0](https://github.com/starkware-libs/starknet-specs/tree/v0.6.0/api).
+Unlike Pythonic Devnet, which supported the gateway and feeder gateway API, Devnet in Rust only supports JSON-RPC. Since JSON-RPC v0.6.0, to find out which JSON-RPC version is supported by which Devnet version, check out the [releases page](https://github.com/0xspaceshard/starknet-devnet-rs/releases).
 
-Below is the list of old RPC versions supported by Devnet, usable as git tags or branches. A `branch` indicates the revision is maintained with bugfix support.
+Below is the list of old RPC versions supported by Devnet, usable as git tags or branches.
 
-- `json-rpc-v0.4.0` - tag
-- `json-rpc-v0.5.0` - tag
-- `json-rpc-v0.5.1` - branch
+- `json-rpc-v0.4.0`
+- `json-rpc-v0.5.0`
+- `json-rpc-v0.5.1`
 
 These revisions should be used with `git checkout <REVISION>`.
 
@@ -194,7 +195,7 @@ Devnet predeploys a [UDC](https://docs.openzeppelin.com/contracts-cairo/0.6.1/ud
 
 The set of accounts can be controlled via [CLI options](#cli-options): `--accounts <NUMBER_OF>`, `--initial-balance <WEI>`, `--seed <VALUE>`.
 
-Choose between predeploying Cairo 0 (OpenZeppelin 0.5.1) or Cairo 1 (OpenZeppelin 0.8.1) accounts by using `--account-class [cairo0 | cairo1]`. Alternatively, provide a path to the [Sierra artifact](https://github.com/starkware-libs/cairo#compiling-and-running-cairo-files) of your custom account using `--account-class-custom <SIERRA_PATH>`.
+Choose between predeploying Cairo 0 (OpenZeppelin 0.5.1) or Cairo 1 (default; OpenZeppelin 0.8.1) accounts by using `--account-class [cairo0 | cairo1]`. Alternatively, provide a path to the [Sierra artifact](https://github.com/starkware-libs/cairo#compiling-and-running-cairo-files) of your custom account using `--account-class-custom <SIERRA_PATH>`.
 
 The predeployment information is logged on Devnet startup. Predeployed accounts can be retrieved in JSON format by sending a `GET` request to `/predeployed_accounts` of your Devnet.
 
@@ -281,7 +282,9 @@ Response:
 
 ## Advancing time
 
-Block timestamp can be manipulated by setting the exact time or setting the time offset. Timestamps methods `/set_time` and `/increase_time` will generate a new block. All values should be set in Unix time seconds [Unix time seconds](https://en.wikipedia.org/wiki/Unix_time).
+Block timestamp can be manipulated by setting the exact time or setting the time offset. By default, timestamp methods `/set_time` and `/increase_time` generate a new block. This can be changed for `/set_time` by setting the optional parameter `generate_block` to `false`. This skips immediate new block generation, but will use the specified timestamp whenever the next block is supposed to be generated.
+
+All values should be set in [Unix time seconds](https://en.wikipedia.org/wiki/Unix_time).
 
 ### Set time
 
@@ -291,6 +294,16 @@ Sets the exact time and generates a new block.
 POST /set_time
 {
     "time": TIME_IN_SECONDS
+}
+```
+
+Doesn't generate a new block, but sets the exact time for the next generated block.
+
+```
+POST /set_time
+{
+    "time": TIME_IN_SECONDS,
+    "generate_block": false
 }
 ```
 

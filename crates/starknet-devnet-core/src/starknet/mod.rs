@@ -1,12 +1,15 @@
-use std::collections::HashMap;
+use std::num::NonZeroU128;
+use std::sync::Arc;
 
-use blockifier::block_context::BlockContext;
+use blockifier::block::BlockInfo;
+use blockifier::context::{BlockContext, ChainInfo, TransactionContext};
 use blockifier::execution::entry_point::CallEntryPoint;
 use blockifier::state::state_api::StateReader;
 use blockifier::transaction::errors::TransactionPreValidationError;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
-use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
+use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice, GasPricePerToken};
+use starknet_api::core::SequencerContractAddress;
 use starknet_api::transaction::Fee;
 use starknet_rs_core::types::{
     BlockId, MsgFromL1, TransactionExecutionStatus, TransactionFinalityStatus,
@@ -15,11 +18,6 @@ use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::Signer;
 use starknet_types::chain_id::ChainId;
-use starknet_types::constants::{
-    BITWISE_BUILTIN_NAME, EC_OP_BUILTIN_NAME, HASH_BUILTIN_NAME, KECCAK_BUILTIN_NAME, N_STEPS,
-    OUTPUT_BUILTIN_NAME, POSEIDON_BUILTIN_NAME, RANGE_CHECK_BUILTIN_NAME,
-    SEGMENT_ARENA_BUILTIN_NAME, SIGNATURE_BUILTIN_NAME,
-};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::contract_storage_key::ContractStorageKey;
@@ -29,7 +27,9 @@ use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{Block, BlockHeader};
 use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
 use starknet_types::rpc::state::ThinStateDiff;
-use starknet_types::rpc::transaction_receipt::TransactionReceipt;
+use starknet_types::rpc::transaction_receipt::{
+    DeployTransactionReceipt, L1HandlerTransactionReceipt, TransactionReceipt,
+};
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
 use starknet_types::rpc::transactions::broadcasted_declare_transaction_v3::BroadcastedDeclareTransactionV3;
@@ -38,9 +38,9 @@ use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use starknet_types::rpc::transactions::{
-    BlockTransactionTrace, BlockTransactionTraces, BroadcastedTransaction,
-    BroadcastedTransactionCommon, DeclareTransaction, L1HandlerTransaction, SimulatedTransaction,
-    SimulationFlag, Transaction, TransactionTrace, Transactions,
+    BlockTransactionTrace, BroadcastedTransaction, BroadcastedTransactionCommon,
+    DeclareTransaction, L1HandlerTransaction, SimulatedTransaction, SimulationFlag, Transaction,
+    TransactionTrace, TransactionWithReceipt, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, info};
@@ -53,8 +53,8 @@ use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
     CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, DEVNET_DEFAULT_CHAIN_ID,
-    ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME, ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS,
-    STRK_ERC20_NAME, STRK_ERC20_SYMBOL,
+    DEVNET_DEFAULT_GAS_PRICE, ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME, ETH_ERC20_SYMBOL,
+    STRK_ERC20_CONTRACT_ADDRESS, STRK_ERC20_NAME, STRK_ERC20_SYMBOL,
 };
 use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::messaging::MessagingBroker;
@@ -68,6 +68,7 @@ use crate::traits::{
     StateExtractor,
 };
 use crate::transactions::{StarknetTransaction, StarknetTransactions};
+use crate::utils::get_versioned_constants;
 
 mod add_declare_transaction;
 mod add_deploy_account_transaction;
@@ -92,6 +93,7 @@ pub struct Starknet {
     pub transactions: StarknetTransactions,
     pub config: StarknetConfig,
     pub pending_block_timestamp_shift: i64,
+    pub next_block_timestamp: Option<u64>,
     pub(crate) messaging: MessagingBroker,
     pub(crate) dump_events: Vec<DumpEvent>,
 }
@@ -100,7 +102,7 @@ impl Default for Starknet {
     fn default() -> Self {
         Self {
             block_context: Self::init_block_context(
-                0,
+                DEVNET_DEFAULT_GAS_PRICE,
                 ETH_ERC20_CONTRACT_ADDRESS,
                 STRK_ERC20_CONTRACT_ADDRESS,
                 DEVNET_DEFAULT_CHAIN_ID,
@@ -111,6 +113,7 @@ impl Default for Starknet {
             transactions: Default::default(),
             config: Default::default(),
             pending_block_timestamp_shift: 0,
+            next_block_timestamp: None,
             messaging: Default::default(),
             dump_events: Default::default(),
         }
@@ -185,6 +188,7 @@ impl Starknet {
             transactions: StarknetTransactions::default(),
             config: config.clone(),
             pending_block_timestamp_shift: 0,
+            next_block_timestamp: None,
             messaging: Default::default(),
             dump_events: Default::default(),
         };
@@ -219,18 +223,31 @@ impl Starknet {
     // Update block context
     // Initialize values for new pending block
     pub(crate) fn generate_pending_block(&mut self) -> DevnetResult<()> {
-        Self::update_block_context(&mut self.block_context);
+        Self::advance_block_context_block_number(&mut self.block_context);
         self.restart_pending_block()?;
 
         Ok(())
     }
 
+    fn next_block_timestamp(&mut self) -> BlockTimestamp {
+        match self.next_block_timestamp {
+            Some(timestamp) => {
+                self.next_block_timestamp = None;
+                BlockTimestamp(timestamp)
+            }
+            None => BlockTimestamp(
+                (Starknet::get_unix_timestamp_as_seconds() as i64
+                    + self.pending_block_timestamp_shift) as u64,
+            ),
+        }
+    }
+
     /// Transfer data from pending block into new block and save it to blocks collection
+    /// Generates new pending block
     /// Returns the new block number
     pub(crate) fn generate_new_block(
         &mut self,
         state_diff: StateDiff,
-        timestamp: Option<u64>,
     ) -> DevnetResult<BlockNumber> {
         let mut new_block = self.pending_block().clone();
 
@@ -239,15 +256,9 @@ impl Starknet {
         new_block.status = BlockStatus::AcceptedOnL2;
 
         // set block timestamp and context block timestamp for contract execution
-        let block_timestamp = match timestamp {
-            Some(timestamp) => BlockTimestamp(timestamp),
-            None => BlockTimestamp(
-                (Starknet::get_unix_timestamp_as_seconds() as i64
-                    + self.pending_block_timestamp_shift) as u64,
-            ),
-        };
+        let block_timestamp = self.next_block_timestamp();
         new_block.set_timestamp(block_timestamp);
-        self.block_context.block_timestamp = block_timestamp;
+        Self::update_block_context_block_timestamp(&mut self.block_context, block_timestamp);
 
         let new_block_number = new_block.block_number();
 
@@ -270,6 +281,8 @@ impl Starknet {
             let deep_cloned_state = self.state.clone();
             self.blocks.save_state_at(new_block_number, deep_cloned_state);
         }
+
+        self.generate_pending_block()?;
 
         Ok(new_block_number)
     }
@@ -408,15 +421,13 @@ impl Starknet {
         // make cached state part of "persistent" state
         self.state.clear_dirty_state();
         // create new block from pending one
-        self.generate_new_block(state_diff, None)?;
-        // clear pending block information
-        self.generate_pending_block()?;
+        self.generate_new_block(state_diff)?;
 
         Ok(())
     }
 
     fn init_block_context(
-        gas_price: u64,
+        gas_price: NonZeroU128,
         eth_fee_token_address: &str,
         strk_fee_token_address: &str,
         chain_id: ChainId,
@@ -426,43 +437,60 @@ impl Starknet {
         use starknet_api::{contract_address, patricia_key};
 
         // Create a BlockContext based on BlockContext::create_for_testing()
-        const N_STEPS_FEE_WEIGHT: f64 = 0.01;
-        BlockContext {
-            chain_id: chain_id.into(),
+
+        let block_info = BlockInfo {
             block_number: BlockNumber(0),
             block_timestamp: BlockTimestamp(0),
             sequencer_address: contract_address!("0x1000"),
-            fee_token_addresses: blockifier::block_context::FeeTokenAddresses {
+            gas_prices: blockifier::block::GasPrices {
+                eth_l1_gas_price: gas_price,
+                strk_l1_gas_price: gas_price,
+                // TODO: modify these values
+                eth_l1_data_gas_price: gas_price,
+                strk_l1_data_gas_price: gas_price,
+            },
+            // TODO: add a cli param
+            use_kzg_da: true,
+        };
+
+        let chain_info = ChainInfo {
+            chain_id: chain_id.into(),
+            fee_token_addresses: blockifier::context::FeeTokenAddresses {
                 eth_fee_token_address: contract_address!(eth_fee_token_address),
                 strk_fee_token_address: contract_address!(strk_fee_token_address),
             },
-            vm_resource_fee_cost: std::sync::Arc::new(HashMap::from([
-                (N_STEPS.to_string(), N_STEPS_FEE_WEIGHT),
-                (OUTPUT_BUILTIN_NAME.to_string(), 0.0),
-                (HASH_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 32.0),
-                (RANGE_CHECK_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 16.0),
-                (SIGNATURE_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 2048.0),
-                (BITWISE_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 64.0),
-                (EC_OP_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 1024.0),
-                (POSEIDON_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 32.0),
-                (SEGMENT_ARENA_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 10.0),
-                (KECCAK_BUILTIN_NAME.to_string(), N_STEPS_FEE_WEIGHT * 2048.0), // 2**11
-            ])),
-            gas_prices: blockifier::block_context::GasPrices {
-                eth_l1_gas_price: gas_price as u128,
-                strk_l1_gas_price: gas_price as u128,
-            },
-            invoke_tx_max_n_steps: 4_000_000_u32,
-            validate_max_n_steps: 1_000_000_u32,
-            max_recursion_depth: 50,
-        }
+        };
+
+        BlockContext::new_unchecked(&block_info, &chain_info, &get_versioned_constants())
     }
 
     /// Update block context block_number with the next one
     /// # Arguments
     /// * `block_context` - BlockContext to be updated
-    fn update_block_context(block_context: &mut BlockContext) {
-        block_context.block_number = block_context.block_number.next();
+    fn advance_block_context_block_number(block_context: &mut BlockContext) {
+        let mut block_info = block_context.block_info().clone();
+        block_info.block_number = block_info.block_number.next();
+        // TODO: update block_context via preferred method in the documentation
+        *block_context = BlockContext::new_unchecked(
+            &block_info,
+            block_context.chain_info(),
+            &get_versioned_constants(),
+        );
+    }
+
+    fn update_block_context_block_timestamp(
+        block_context: &mut BlockContext,
+        block_timestamp: BlockTimestamp,
+    ) {
+        let mut block_info = block_context.block_info().clone();
+        block_info.block_timestamp = block_timestamp;
+
+        // TODO: update block_context via preferred method in the documentation
+        *block_context = BlockContext::new_unchecked(
+            &block_info,
+            block_context.chain_info(),
+            &get_versioned_constants(),
+        );
     }
 
     fn pending_block(&self) -> &StarknetBlock {
@@ -473,9 +501,17 @@ impl Starknet {
     fn restart_pending_block(&mut self) -> DevnetResult<()> {
         let mut block = StarknetBlock::create_pending_block();
 
-        block.header.block_number = self.block_context.block_number;
-        block.header.eth_l1_gas_price = GasPrice(self.block_context.gas_prices.eth_l1_gas_price);
-        block.header.sequencer = self.block_context.sequencer_address;
+        block.header.block_number = self.block_context.block_info().block_number;
+        block.header.l1_gas_price = GasPricePerToken {
+            price_in_fri: GasPrice(
+                self.block_context.block_info().gas_prices.strk_l1_gas_price.get(),
+            ),
+            price_in_wei: GasPrice(
+                self.block_context.block_info().gas_prices.eth_l1_gas_price.get(),
+            ),
+        };
+        block.header.sequencer =
+            SequencerContractAddress(self.block_context.block_info().sequencer_address);
 
         self.blocks.pending_block = block;
 
@@ -490,7 +526,7 @@ impl Starknet {
                     return Err(Error::StateHistoryDisabled);
                 }
 
-                let block = self.blocks.get_by_block_id(*block_id).ok_or(Error::NoBlock)?;
+                let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
                 let state = self
                     .blocks
                     .num_to_state
@@ -503,7 +539,7 @@ impl Starknet {
 
     pub fn get_class_hash_at(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
         contract_address: ContractAddress,
     ) -> DevnetResult<ClassHash> {
         get_class_impls::get_class_hash_at_impl(self, block_id, contract_address)
@@ -511,7 +547,7 @@ impl Starknet {
 
     pub fn get_class(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
         class_hash: ClassHash,
     ) -> DevnetResult<ContractClass> {
         get_class_impls::get_class_impl(self, block_id, class_hash)
@@ -519,7 +555,7 @@ impl Starknet {
 
     pub fn get_class_at(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
         contract_address: ContractAddress,
     ) -> DevnetResult<ContractClass> {
         get_class_impls::get_class_at_impl(self, block_id, contract_address)
@@ -527,12 +563,12 @@ impl Starknet {
 
     pub fn call(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
         contract_address: Felt,
         entrypoint_selector: Felt,
         calldata: Vec<Felt>,
     ) -> DevnetResult<Vec<Felt>> {
-        let state = self.get_state_at(&block_id)?;
+        let state = self.get_state_at(block_id)?;
 
         if !state.is_contract_deployed(&ContractAddress::new(contract_address)?) {
             return Err(Error::ContractNotFound);
@@ -546,26 +582,27 @@ impl Starknet {
             entry_point_selector: starknet_api::core::EntryPointSelector(
                 entrypoint_selector.into(),
             ),
-            initial_gas: blockifier::transaction::transaction_execution::Transaction::initial_gas(),
+            initial_gas: self.block_context.versioned_constants().tx_initial_gas(),
             ..Default::default()
         };
 
-        let mut execution_resources =
-            blockifier::execution::entry_point::ExecutionResources::default();
         let mut execution_context =
             blockifier::execution::entry_point::EntryPointExecutionContext::new(
-                &self.block_context,
-                &blockifier::transaction::objects::AccountTransactionContext::Deprecated(
-                    blockifier::transaction::objects::DeprecatedAccountTransactionContext::default(
+                Arc::new(TransactionContext {
+                    block_context: self.block_context.clone(),
+                    tx_info: blockifier::transaction::objects::TransactionInfo::Deprecated(
+                        blockifier::transaction::objects::DeprecatedTransactionInfo::default(),
                     ),
-                ),
+                }),
                 blockifier::execution::common_hints::ExecutionMode::Execute,
                 true,
             )?;
         let res = call
-            .execute(&mut state.clone().state, &mut execution_resources, &mut execution_context)
+            .execute(&mut state.clone().state, &mut Default::default(), &mut execution_context)
             .map_err(|err| {
-                Error::BlockifierTransactionError(blockifier::transaction::errors::TransactionExecutionError::EntryPointExecutionError(err))
+                Error::BlockifierTransactionError(
+                    blockifier::transaction::errors::TransactionExecutionError::ExecutionError(err),
+                )
             })?;
 
         Ok(res.execution.retdata.0.into_iter().map(Felt::from).collect())
@@ -573,7 +610,7 @@ impl Starknet {
 
     pub fn estimate_fee(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
         transactions: &[BroadcastedTransaction],
         simulation_flags: &[SimulationFlag],
     ) -> DevnetResult<Vec<FeeEstimateWrapper>> {
@@ -588,7 +625,7 @@ impl Starknet {
 
     pub fn estimate_message_fee(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
         message: MsgFromL1,
     ) -> DevnetResult<FeeEstimateWrapper> {
         estimations::estimate_message_fee(self, block_id, message)
@@ -668,7 +705,7 @@ impl Starknet {
         amount: u128,
         erc20_address: ContractAddress,
     ) -> DevnetResult<Felt> {
-        let sufficiently_big_max_fee: u128 = self.config.gas_price as u128 * 1_000_000;
+        let sufficiently_big_max_fee = self.config.gas_price.get() * 1_000_000;
         let chargeable_address_felt = Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?;
         let nonce =
             self.state.state.get_nonce_at(starknet_api::core::ContractAddress::try_from(
@@ -719,11 +756,11 @@ impl Starknet {
         add_invoke_transaction::add_invoke_transaction_v1(self, invoke_tx)
     }
 
-    pub fn block_state_update(&self, block_id: BlockId) -> DevnetResult<StateUpdate> {
+    pub fn block_state_update(&self, block_id: &BlockId) -> DevnetResult<StateUpdate> {
         state_update::state_update_by_block_id(self, block_id)
     }
 
-    pub fn get_block_txs_count(&self, block_id: BlockId) -> DevnetResult<u64> {
+    pub fn get_block_txs_count(&self, block_id: &BlockId) -> DevnetResult<u64> {
         let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
 
         Ok(block.get_transactions().len() as u64)
@@ -731,29 +768,29 @@ impl Starknet {
 
     pub fn contract_nonce_at_block(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
         contract_address: ContractAddress,
     ) -> DevnetResult<Felt> {
-        let state = self.get_state_at(&block_id)?;
+        let state = self.get_state_at(block_id)?;
         state.get_nonce(&contract_address)
     }
 
     pub fn contract_storage_at_block(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
         contract_address: ContractAddress,
         storage_key: PatriciaKey,
     ) -> DevnetResult<Felt> {
-        let state = self.get_state_at(&block_id)?;
+        let state = self.get_state_at(block_id)?;
         state.get_storage(ContractStorageKey::new(contract_address, storage_key))
     }
 
-    pub fn get_block(&self, block_id: BlockId) -> DevnetResult<StarknetBlock> {
+    pub fn get_block(&self, block_id: &BlockId) -> DevnetResult<StarknetBlock> {
         let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
         Ok(block.clone())
     }
 
-    pub fn get_block_with_transactions(&self, block_id: BlockId) -> DevnetResult<Block> {
+    pub fn get_block_with_transactions(&self, block_id: &BlockId) -> DevnetResult<Block> {
         let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
         let transactions = block
             .get_transactions()
@@ -773,9 +810,45 @@ impl Starknet {
         })
     }
 
+    pub fn get_block_with_receipts(&self, block_id: BlockId) -> DevnetResult<Block> {
+        let block = self.blocks.get_by_block_id(&block_id).ok_or(Error::NoBlock)?;
+        let mut transaction_receipts: Vec<TransactionWithReceipt> = vec![];
+
+        for transaction_hash in block.get_transactions() {
+            let sn_transaction =
+                self.transactions.get_by_hash(*transaction_hash).ok_or(Error::NoTransaction)?;
+
+            let transaction = sn_transaction.inner.clone();
+            let mut receipt = sn_transaction.get_receipt()?;
+
+            // remove the fields block_hash and block_number, because they are not needed as per the
+            // spec
+            // @Mario: waiting for the final decision on this fields, so we can refactor this.
+            // Currently the spec is at 0.7.0-rc.1
+            let common_field = match receipt {
+                TransactionReceipt::Deploy(DeployTransactionReceipt { ref mut common, .. })
+                | TransactionReceipt::L1Handler(L1HandlerTransactionReceipt {
+                    ref mut common,
+                    ..
+                })
+                | TransactionReceipt::Common(ref mut common) => common,
+            };
+            common_field.maybe_pending_properties.block_hash = None;
+            common_field.maybe_pending_properties.block_number = None;
+
+            transaction_receipts.push(TransactionWithReceipt { receipt, transaction });
+        }
+
+        Ok(Block {
+            status: *block.status(),
+            header: BlockHeader::from(block),
+            transactions: Transactions::FullWithReceipts(transaction_receipts),
+        })
+    }
+
     pub fn get_transaction_by_block_id_and_index(
         &self,
-        block_id: BlockId,
+        block_id: &BlockId,
         index: u64,
     ) -> DevnetResult<&Transaction> {
         let block = self.get_block(block_id)?;
@@ -790,7 +863,7 @@ impl Starknet {
     pub fn get_latest_block(&self) -> DevnetResult<StarknetBlock> {
         let block = self
             .blocks
-            .get_by_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))
+            .get_by_block_id(&BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))
             .ok_or(crate::error::Error::NoBlock)?;
 
         Ok(block.clone())
@@ -817,10 +890,10 @@ impl Starknet {
 
     pub fn get_transaction_receipt_by_hash(
         &self,
-        transaction_hash: TransactionHash,
+        transaction_hash: &TransactionHash,
     ) -> DevnetResult<TransactionReceipt> {
         let transaction_to_map =
-            self.transactions.get(&transaction_hash).ok_or(Error::NoTransaction)?;
+            self.transactions.get(transaction_hash).ok_or(Error::NoTransaction)?;
 
         transaction_to_map.get_receipt()
     }
@@ -835,8 +908,8 @@ impl Starknet {
 
     pub fn get_transaction_traces_from_block(
         &self,
-        block_id: BlockId,
-    ) -> DevnetResult<BlockTransactionTraces> {
+        block_id: &BlockId,
+    ) -> DevnetResult<Vec<BlockTransactionTrace>> {
         let transactions = self.get_block_with_transactions(block_id)?.transactions;
 
         let mut traces = Vec::new();
@@ -851,7 +924,7 @@ impl Starknet {
             }
         }
 
-        Ok(BlockTransactionTraces { traces })
+        Ok(traces)
     }
 
     pub fn get_transaction_execution_and_finality_status(
@@ -865,11 +938,11 @@ impl Starknet {
 
     pub fn simulate_transactions(
         &mut self,
-        block_id: BlockId,
+        block_id: &BlockId,
         transactions: &[BroadcastedTransaction],
         simulation_flags: Vec<SimulationFlag>,
     ) -> DevnetResult<Vec<SimulatedTransaction>> {
-        let mut state = self.get_state_at(&block_id)?.clone();
+        let mut state = self.get_state_at(block_id)?.clone();
         let chain_id = self.chain_id().to_felt();
 
         let mut skip_validate = false;
@@ -937,23 +1010,18 @@ impl Starknet {
         Ok(simulation_results)
     }
 
-    pub fn create_block(&mut self, timestamp: Option<u64>) -> DevnetResult<(), Error> {
-        // create new block from pending one
-        self.generate_new_block(StateDiff::default(), timestamp)?;
-
-        // clear pending block information
-        self.generate_pending_block()?;
-
+    /// create new block from pending one
+    pub fn create_block(&mut self) -> DevnetResult<(), Error> {
+        self.generate_new_block(StateDiff::default())?;
         Ok(())
     }
 
     // Create block and add DumpEvent
     pub fn create_block_dump_event(
         &mut self,
-        timestamp: Option<u64>,
         dump_event: Option<DumpEvent>,
     ) -> DevnetResult<(), Error> {
-        self.create_block(timestamp)?;
+        self.create_block()?;
 
         // handle custom event if provided e.g. SetTime, IncreaseTime, otherwise log create block
         // events
@@ -965,23 +1033,39 @@ impl Starknet {
         Ok(())
     }
 
-    // Create empty block
-    pub fn set_time(&mut self, timestamp: u64) -> DevnetResult<(), Error> {
+    // Set time and optionally create a new block
+    pub fn set_time(&mut self, timestamp: u64, create_block: bool) -> DevnetResult<(), Error> {
         self.set_block_timestamp_shift(
             timestamp as i64 - Starknet::get_unix_timestamp_as_seconds() as i64,
         );
-        self.create_block_dump_event(Some(timestamp), Some(DumpEvent::SetTime(timestamp)))
+
+        if create_block {
+            self.set_next_block_timestamp(timestamp);
+            self.create_block()?;
+            self.handle_dump_event(DumpEvent::SetTime(timestamp))?;
+            self.handle_dump_event(DumpEvent::CreateBlock)?;
+        } else {
+            self.set_next_block_timestamp(timestamp);
+            self.handle_dump_event(DumpEvent::SetTime(timestamp))?;
+        }
+
+        Ok(())
     }
 
     // Set timestamp shift and create empty block
     pub fn increase_time(&mut self, time_shift: u64) -> DevnetResult<(), Error> {
         self.set_block_timestamp_shift(self.pending_block_timestamp_shift + time_shift as i64);
-        self.create_block_dump_event(None, Some(DumpEvent::IncreaseTime(time_shift)))
+        self.create_block_dump_event(Some(DumpEvent::IncreaseTime(time_shift)))
     }
 
     // Set timestamp shift for next blocks
     pub fn set_block_timestamp_shift(&mut self, timestamp: i64) {
         self.pending_block_timestamp_shift = timestamp;
+    }
+
+    // Set next block timestamp
+    pub fn set_next_block_timestamp(&mut self, timestamp: u64) {
+        self.next_block_timestamp = Some(timestamp);
     }
 
     pub fn get_unix_timestamp_as_seconds() -> u64 {
@@ -999,6 +1083,7 @@ mod tests {
 
     use blockifier::state::state_api::State;
     use blockifier::transaction::errors::TransactionExecutionError;
+    use nonzero_ext::nonzero;
     use starknet_api::block::{BlockHash, BlockNumber, BlockStatus, BlockTimestamp, GasPrice};
     use starknet_rs_core::types::{BlockId, BlockTag};
     use starknet_types::contract_address::ContractAddress;
@@ -1040,16 +1125,16 @@ mod tests {
         let fee_token_address =
             ContractAddress::new(Felt::from_prefixed_hex_str("0xAA").unwrap()).unwrap();
         let block_ctx = Starknet::init_block_context(
-            10,
+            nonzero!(10u128),
             "0xAA",
             STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
         );
-        assert_eq!(block_ctx.block_number, BlockNumber(0));
-        assert_eq!(block_ctx.block_timestamp, BlockTimestamp(0));
-        assert_eq!(block_ctx.gas_prices.eth_l1_gas_price, 10);
+        assert_eq!(block_ctx.block_info().block_number, BlockNumber(0));
+        assert_eq!(block_ctx.block_info().block_timestamp, BlockTimestamp(0));
+        assert_eq!(block_ctx.block_info().gas_prices.eth_l1_gas_price.get(), 10);
         assert_eq!(
-            ContractAddress::from(block_ctx.fee_token_addresses.eth_fee_token_address),
+            ContractAddress::from(block_ctx.chain_info().fee_token_addresses.eth_fee_token_address),
             fee_token_address
         );
     }
@@ -1058,7 +1143,7 @@ mod tests {
     fn pending_block_is_correct() {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
-        let initial_block_number = starknet.block_context.block_number;
+        let initial_block_number = starknet.block_context.block_info().block_number;
         starknet.generate_pending_block().unwrap();
 
         assert_eq!(starknet.pending_block().header.block_number, initial_block_number.next());
@@ -1079,7 +1164,7 @@ mod tests {
         // blocks collection is empty
         assert!(starknet.blocks.num_to_block.is_empty());
 
-        starknet.generate_new_block(StateDiff::default(), None).unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
         // blocks collection should not be empty
         assert!(!starknet.blocks.num_to_block.is_empty());
 
@@ -1095,10 +1180,10 @@ mod tests {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        let initial_block_number = starknet.block_context.block_number;
-        let initial_gas_price = starknet.block_context.gas_prices.eth_l1_gas_price;
-        let initial_block_timestamp = starknet.block_context.block_timestamp;
-        let initial_sequencer = starknet.block_context.sequencer_address;
+        let initial_block_number = starknet.block_context.block_info().block_number;
+        let initial_gas_price = starknet.block_context.block_info().gas_prices.eth_l1_gas_price;
+        let initial_block_timestamp = starknet.block_context.block_info().block_timestamp;
+        let initial_sequencer = starknet.block_context.block_info().sequencer_address;
 
         // create pending block with some information in it
         let mut pending_block = StarknetBlock::create_pending_block();
@@ -1118,22 +1203,25 @@ mod tests {
         assert_eq!(starknet.pending_block().header.timestamp, initial_block_timestamp);
         assert_eq!(starknet.pending_block().header.block_number, initial_block_number);
         assert_eq!(starknet.pending_block().header.parent_hash, BlockHash::default());
-        assert_eq!(starknet.pending_block().header.eth_l1_gas_price, GasPrice(initial_gas_price));
-        assert_eq!(starknet.pending_block().header.sequencer, initial_sequencer);
+        assert_eq!(
+            starknet.pending_block().header.l1_gas_price.price_in_wei,
+            GasPrice(initial_gas_price.get())
+        );
+        assert_eq!(starknet.pending_block().header.sequencer.0, initial_sequencer);
     }
 
     #[test]
     fn correct_block_context_update() {
         let mut block_ctx = Starknet::init_block_context(
-            0,
+            nonzero!(1u128),
             ETH_ERC20_CONTRACT_ADDRESS,
             STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
         );
-        let initial_block_number = block_ctx.block_number;
-        Starknet::update_block_context(&mut block_ctx);
+        let initial_block_number = block_ctx.block_info().block_number;
+        Starknet::advance_block_context_block_number(&mut block_ctx);
 
-        assert_eq!(block_ctx.block_number, initial_block_number.next());
+        assert_eq!(block_ctx.block_info().block_number, initial_block_number.next());
     }
 
     #[test]
@@ -1155,7 +1243,7 @@ mod tests {
         let config =
             StarknetConfig { state_archive: StateArchiveCapacity::Full, ..Default::default() };
         let mut starknet = Starknet::new(&config).unwrap();
-        starknet.generate_new_block(StateDiff::default(), None).unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
 
         match starknet.get_state_at(&BlockId::Hash(Felt::from(0).into())) {
             Err(Error::NoBlock) => (),
@@ -1168,7 +1256,7 @@ mod tests {
         let config =
             StarknetConfig { state_archive: StateArchiveCapacity::Full, ..Default::default() };
         let mut starknet = Starknet::new(&config).unwrap();
-        starknet.generate_new_block(StateDiff::default(), None).unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
         starknet.blocks.num_to_state.remove(&BlockNumber(0));
 
         match starknet.get_state_at(&BlockId::Number(0)) {
@@ -1181,7 +1269,7 @@ mod tests {
     fn getting_state_at_without_state_archive() {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
-        starknet.generate_new_block(StateDiff::default(), None).unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
 
         match starknet.get_state_at(&BlockId::Number(0)) {
             Err(Error::StateHistoryDisabled) => (),
@@ -1200,7 +1288,7 @@ mod tests {
             starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();
 
         match starknet.call(
-            BlockId::Tag(BlockTag::Latest),
+            &BlockId::Tag(BlockTag::Latest),
             undeployed_address,
             entry_point_selector.into(),
             vec![],
@@ -1220,18 +1308,16 @@ mod tests {
             starknet_rs_core::utils::get_selector_from_name("nonExistentMethod").unwrap();
 
         match starknet.call(
-            BlockId::Tag(BlockTag::Latest),
+            &BlockId::Tag(BlockTag::Latest),
             Felt::from_prefixed_hex_str(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
             entry_point_selector.into(),
             vec![Felt::from(predeployed_account.account_address)],
         ) {
-            Err(Error::BlockifierTransactionError(
-                TransactionExecutionError::EntryPointExecutionError(
-                    blockifier::execution::errors::EntryPointExecutionError::PreExecutionError(
-                        blockifier::execution::errors::PreExecutionError::EntryPointNotFound(_),
-                    ),
+            Err(Error::BlockifierTransactionError(TransactionExecutionError::ExecutionError(
+                blockifier::execution::errors::EntryPointExecutionError::PreExecutionError(
+                    blockifier::execution::errors::PreExecutionError::EntryPointNotFound(_),
                 ),
-            )) => (),
+            ))) => (),
             unexpected => panic!("Should have failed; got {unexpected:?}"),
         }
     }
@@ -1244,7 +1330,7 @@ mod tests {
         let entry_point_selector =
             starknet_rs_core::utils::get_selector_from_name("balanceOf").unwrap();
         starknet.call(
-            BlockId::Tag(BlockTag::Latest),
+            &BlockId::Tag(BlockTag::Latest),
             Felt::from_prefixed_hex_str(ETH_ERC20_CONTRACT_ADDRESS)?,
             entry_point_selector.into(),
             vec![Felt::from(contract_address)],
@@ -1286,8 +1372,7 @@ mod tests {
 
         starknet.get_latest_block().err().unwrap();
 
-        starknet.generate_new_block(StateDiff::default(), None).unwrap();
-        starknet.generate_pending_block().unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
 
         // last added block number -> 0
         let added_block = starknet.blocks.num_to_block.get(&BlockNumber(0)).unwrap();
@@ -1296,8 +1381,7 @@ mod tests {
 
         assert_eq!(block_number.0, added_block.header.block_number.0);
 
-        starknet.generate_new_block(StateDiff::default(), None).unwrap();
-        starknet.generate_pending_block().unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
 
         let added_block2 = starknet.blocks.num_to_block.get(&BlockNumber(1)).unwrap();
         let block_number2 = starknet.get_latest_block().unwrap().block_number();
@@ -1310,10 +1394,9 @@ mod tests {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        starknet.generate_new_block(StateDiff::default(), None).unwrap();
-        starknet.generate_pending_block().unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
 
-        let num_no_transactions = starknet.get_block_txs_count(BlockId::Number(0));
+        let num_no_transactions = starknet.get_block_txs_count(&BlockId::Number(0));
 
         assert_eq!(num_no_transactions.unwrap(), 0);
 
@@ -1322,9 +1405,9 @@ mod tests {
         // add transaction hash to pending block
         starknet.blocks.pending_block.add_transaction(tx.transaction_hash);
 
-        starknet.generate_new_block(StateDiff::default(), None).unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
 
-        let num_one_transaction = starknet.get_block_txs_count(BlockId::Number(1));
+        let num_one_transaction = starknet.get_block_txs_count(&BlockId::Number(1));
 
         assert_eq!(num_one_transaction.unwrap(), 1);
     }
@@ -1347,8 +1430,7 @@ mod tests {
         .expect("Could not start Devnet");
 
         // generate initial block with empty state
-        starknet.generate_new_block(StateDiff::default(), None).unwrap();
-        starknet.generate_pending_block().unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
 
         // **generate second block**
         // add data to state
@@ -1358,8 +1440,7 @@ mod tests {
         // move data from pending_state to state
         starknet.state.apply_state_difference(state_diff.clone()).unwrap();
         // generate new block and save the state
-        let second_block = starknet.generate_new_block(state_diff, None).unwrap();
-        starknet.generate_pending_block().unwrap();
+        let second_block = starknet.generate_new_block(state_diff).unwrap();
 
         // **generate third block**
         // add data to state
@@ -1369,8 +1450,7 @@ mod tests {
         // move data from pending_state to state
         starknet.state.apply_state_difference(state_diff.clone()).unwrap();
         // generate new block and save the state
-        let third_block = starknet.generate_new_block(state_diff, None).unwrap();
-        starknet.generate_pending_block().unwrap();
+        let third_block = starknet.generate_new_block(state_diff).unwrap();
 
         // check modified state at block 1 and 2 to contain the correct value for the nonce
         let second_block_address_nonce = starknet
@@ -1405,11 +1485,9 @@ mod tests {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        starknet.generate_new_block(StateDiff::default(), None).unwrap();
-        starknet.generate_pending_block().unwrap();
-        starknet.generate_new_block(StateDiff::default(), None).unwrap();
-        starknet.generate_pending_block().unwrap();
-        starknet.generate_new_block(StateDiff::default(), None).unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
 
         let latest_block = starknet.get_latest_block();
 
@@ -1420,8 +1498,7 @@ mod tests {
         let config = StarknetConfig::default();
         let mut starknet = Starknet::new(&config).unwrap();
 
-        Starknet::update_block_context(&mut starknet.block_context);
-        starknet.generate_pending_block().unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
         starknet
             .blocks
             .pending_block
@@ -1430,7 +1507,7 @@ mod tests {
 
         let sleep_duration_secs = 5;
         thread::sleep(Duration::from_secs(sleep_duration_secs));
-        starknet.generate_new_block(StateDiff::default(), None).unwrap();
+        starknet.generate_new_block(StateDiff::default()).unwrap();
 
         let block_timestamp = starknet.get_latest_block().unwrap().header.timestamp;
         // check if the pending_block_timestamp is less than the block_timestamp,

@@ -70,10 +70,10 @@ impl StarknetBlocks {
         self.num_to_state.insert(block_number, state);
     }
 
-    pub fn get_by_block_id(&self, block_id: BlockId) -> Option<&StarknetBlock> {
+    pub fn get_by_block_id(&self, block_id: &BlockId) -> Option<&StarknetBlock> {
         match block_id {
             BlockId::Hash(hash) => self.get_by_hash(Felt::from(hash)),
-            BlockId::Number(block_number) => self.num_to_block.get(&BlockNumber(block_number)),
+            BlockId::Number(block_number) => self.num_to_block.get(&BlockNumber(*block_number)),
             // latest and pending for now will return the latest one
             BlockId::Tag(_) => {
                 if let Some(hash) = self.last_block_hash {
@@ -86,7 +86,7 @@ impl StarknetBlocks {
     }
 
     /// Returns the block number from a block id, by finding the block by the block id
-    fn block_number_from_block_id(&self, block_id: BlockId) -> Option<BlockNumber> {
+    fn block_number_from_block_id(&self, block_id: &BlockId) -> Option<BlockNumber> {
         self.get_by_block_id(block_id).map(|block| block.block_number())
     }
 
@@ -107,7 +107,7 @@ impl StarknetBlocks {
         let starting_block = if let Some(block_id) = from {
             // If the value for block number provided is not correct it will return None
             // So we have to return an error
-            let block_number = self.block_number_from_block_id(block_id).ok_or(Error::NoBlock)?;
+            let block_number = self.block_number_from_block_id(&block_id).ok_or(Error::NoBlock)?;
             Some(block_number)
         } else {
             None
@@ -116,7 +116,7 @@ impl StarknetBlocks {
         let ending_block = if let Some(block_id) = to {
             // if the value for block number provided is not correct it will return None
             // So we set the block number to the first possible block number which is 0
-            let block_number = self.block_number_from_block_id(block_id).ok_or(Error::NoBlock)?;
+            let block_number = self.block_number_from_block_id(&block_id).ok_or(Error::NoBlock)?;
             Some(block_number)
         } else {
             None
@@ -160,9 +160,14 @@ impl From<&StarknetBlock> for TypesBlockHeader {
             timestamp: value.timestamp(),
             starknet_version: STARKNET_VERSION.to_string(),
             l1_gas_price: ResourcePrice {
-                price_in_fri: Felt::from(0),
-                price_in_wei: value.header.eth_l1_gas_price.0.into(),
+                price_in_fri: value.header.l1_gas_price.price_in_fri.0.into(),
+                price_in_wei: value.header.l1_gas_price.price_in_wei.0.into(),
             },
+            l1_data_gas_price: ResourcePrice {
+                price_in_fri: value.header.l1_data_gas_price.price_in_fri.0.into(),
+                price_in_wei: value.header.l1_data_gas_price.price_in_wei.0.into(),
+            },
+            l1_da_mode: value.header.l1_da_mode,
         }
     }
 }
@@ -189,7 +194,7 @@ impl StarknetBlock {
     }
 
     pub fn sequencer_address(&self) -> ContractAddress {
-        self.header.sequencer.into()
+        self.header.sequencer.0.into()
     }
 
     pub fn timestamp(&self) -> BlockTimestamp {
@@ -295,12 +300,14 @@ mod tests {
         // latest/pending block returns none, because collection is empty
         assert!(
             blocks
-                .block_number_from_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))
+                .block_number_from_block_id(&BlockId::Tag(
+                    starknet_rs_core::types::BlockTag::Latest
+                ))
                 .is_none()
         );
         assert!(
             blocks
-                .block_number_from_block_id(BlockId::Tag(
+                .block_number_from_block_id(&BlockId::Tag(
                     starknet_rs_core::types::BlockTag::Pending
                 ))
                 .is_none()
@@ -313,23 +320,25 @@ mod tests {
         blocks.insert(block_to_insert, StateDiff::default());
 
         // returns block number, even if the block number is not present in the collection
-        assert!(blocks.block_number_from_block_id(BlockId::Number(11)).is_none());
-        assert!(blocks.block_number_from_block_id(BlockId::Number(10)).is_some());
+        assert!(blocks.block_number_from_block_id(&BlockId::Number(11)).is_none());
+        assert!(blocks.block_number_from_block_id(&BlockId::Number(10)).is_some());
         // returns none because there is no block with the given hash
-        assert!(blocks.block_number_from_block_id(BlockId::Hash(Felt::from(1).into())).is_none());
+        assert!(blocks.block_number_from_block_id(&BlockId::Hash(Felt::from(1).into())).is_none());
         assert!(
             blocks
-                .block_number_from_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))
+                .block_number_from_block_id(&BlockId::Tag(
+                    starknet_rs_core::types::BlockTag::Latest
+                ))
                 .is_some()
         );
         assert!(
             blocks
-                .block_number_from_block_id(BlockId::Tag(
+                .block_number_from_block_id(&BlockId::Tag(
                     starknet_rs_core::types::BlockTag::Pending
                 ))
                 .is_some()
         );
-        assert!(blocks.block_number_from_block_id(BlockId::Hash(block_hash.into())).is_some());
+        assert!(blocks.block_number_from_block_id(&BlockId::Hash(block_hash.into())).is_some());
     }
 
     #[test]
@@ -611,24 +620,24 @@ mod tests {
 
         blocks.insert(block_to_insert.clone(), StateDiff::default());
 
-        let extracted_block = blocks.get_by_block_id(BlockId::Number(10)).unwrap();
+        let extracted_block = blocks.get_by_block_id(&BlockId::Number(10)).unwrap();
         assert!(block_to_insert == extracted_block.clone());
 
         let extracted_block =
-            blocks.get_by_block_id(BlockId::Hash(block_to_insert.block_hash().into())).unwrap();
+            blocks.get_by_block_id(&BlockId::Hash(block_to_insert.block_hash().into())).unwrap();
         assert!(block_to_insert == extracted_block.clone());
 
         let extracted_block = blocks
-            .get_by_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))
+            .get_by_block_id(&BlockId::Tag(starknet_rs_core::types::BlockTag::Latest))
             .unwrap();
         assert!(block_to_insert == extracted_block.clone());
 
         let extracted_block = blocks
-            .get_by_block_id(BlockId::Tag(starknet_rs_core::types::BlockTag::Pending))
+            .get_by_block_id(&BlockId::Tag(starknet_rs_core::types::BlockTag::Pending))
             .unwrap();
         assert!(block_to_insert == extracted_block.clone());
 
-        match blocks.get_by_block_id(BlockId::Number(11)) {
+        match blocks.get_by_block_id(&BlockId::Number(11)) {
             None => (),
             _ => panic!("Expected none"),
         }

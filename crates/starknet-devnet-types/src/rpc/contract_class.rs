@@ -1,8 +1,9 @@
 use core::fmt::Debug;
 use std::cmp::{Eq, PartialEq};
 
-use cairo_lang_starknet::casm_contract_class::{CasmContractClass, CasmContractEntryPoint};
-use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
+use blockifier::execution::contract_class::ClassInfo;
+use cairo_lang_starknet_classes::casm_contract_class::{CasmContractClass, CasmContractEntryPoint};
+use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
 use serde::{Serialize, Serializer};
 use starknet_api::deprecated_contract_class::EntryPointType;
 use starknet_rs_core::types::contract::{SierraClass, SierraClassDebugInfo};
@@ -12,6 +13,7 @@ use starknet_rs_core::types::{
 use starknet_rs_crypto::poseidon_hash_many;
 use starknet_rs_ff::FieldElement;
 
+use crate::constants::MAX_BYTECODE_SIZE_LIMIT;
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
 use crate::felt::Felt;
 use crate::traits::HashProducer;
@@ -107,20 +109,6 @@ impl TryFrom<ContractClass> for Cairo0Json {
     }
 }
 
-impl TryFrom<ContractClass> for cairo_lang_starknet::casm_contract_class::CasmContractClass {
-    type Error = Error;
-
-    fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
-        match value {
-            ContractClass::Cairo1(sierra_contract_class) => {
-                CasmContractClass::from_contract_class(sierra_contract_class, true)
-                    .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })
-            }
-            _ => Err(Error::ConversionError(crate::error::ConversionError::InvalidFormat)),
-        }
-    }
-}
-
 impl TryFrom<ContractClass> for blockifier::execution::contract_class::ContractClass {
     type Error = Error;
 
@@ -131,14 +119,80 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ContractC
                     deprecated_contract_class.try_into()?,
                 ))
             }
-            ContractClass::Cairo1(_) => {
-                let casm_contract_class = CasmContractClass::try_from(value.clone())?;
+            ContractClass::Cairo1(sierra_contract_class) => {
+                let casm_contract_class = CasmContractClass::from_contract_class(
+                    sierra_contract_class,
+                    true,
+                    MAX_BYTECODE_SIZE_LIMIT,
+                )
+                .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
                 let blockifier_contract_class: blockifier::execution::contract_class::ContractClassV1 =
                     casm_contract_class.try_into().map_err(|_| Error::ProgramError)?;
 
                 Ok(blockifier::execution::contract_class::ContractClass::V1(
                     blockifier_contract_class,
                 ))
+            }
+        }
+    }
+}
+
+impl TryFrom<ContractClass> for blockifier::execution::contract_class::ClassInfo {
+    type Error = Error;
+
+    fn try_from(value: ContractClass) -> Result<Self, Self::Error> {
+        match value {
+            ContractClass::Cairo0(deprecated_contract_class) => {
+                // Set abi_length to 0 as per this conversation
+                // https://spaceshard.slack.com/archives/C03HL8DH52N/p1708512271256699?thread_ts=1707845482.455099&cid=C03HL8DH52N
+                let abi_length = 0;
+                blockifier::execution::contract_class::ClassInfo::new(
+                    &blockifier::execution::contract_class::ContractClass::V0(
+                        deprecated_contract_class.try_into()?,
+                    ),
+                    0,
+                    abi_length,
+                )
+                .map_err(|err| {
+                    Error::ConversionError(ConversionError::InvalidInternalStructure(
+                        err.to_string(),
+                    ))
+                })
+            }
+            ContractClass::Cairo1(sierra_contract_class) => {
+                let sierra_program_length = sierra_contract_class.sierra_program.len();
+                // Calculated as the length of the stringified abi
+                // https://spaceshard.slack.com/archives/C03HL8DH52N/p1708512271256699?thread_ts=1707845482.455099&cid=C03HL8DH52N
+                let abi_length = if let Some(abi) = sierra_contract_class.abi.as_ref() {
+                    serde_json::to_string(abi)
+                        .map(|json_str| json_str.len())
+                        .map_err(|err| Error::JsonError(JsonError::SerdeJsonError(err)))?
+                } else {
+                    0
+                };
+
+                let casm_contract_class = CasmContractClass::from_contract_class(
+                    sierra_contract_class,
+                    true,
+                    MAX_BYTECODE_SIZE_LIMIT,
+                )
+                .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
+
+                let blockifier_contract_class: blockifier::execution::contract_class::ContractClassV1 =
+                        casm_contract_class.try_into().map_err(|_| Error::ProgramError)?;
+
+                ClassInfo::new(
+                    &blockifier::execution::contract_class::ContractClass::V1(
+                        blockifier_contract_class,
+                    ),
+                    sierra_program_length,
+                    abi_length,
+                )
+                .map_err(|err| {
+                    Error::ConversionError(ConversionError::InvalidInternalStructure(
+                        err.to_string(),
+                    ))
+                })
             }
         }
     }
@@ -225,7 +279,7 @@ pub fn compute_sierra_class_hash(contract_class: &SierraContractClass) -> Devnet
         .into())
 }
 
-/// Computes cairo_lang_starknet::CasmContractClass hash.
+/// Computes cairo_lang_starknet_classes::casmContractClass hash.
 /// Implementation copied from starknet_in_rust
 /// # Arguments
 ///
@@ -303,7 +357,7 @@ fn get_contract_entry_points(
 
 #[cfg(test)]
 mod tests {
-    use cairo_lang_starknet::contract_class::ContractClass as SierraContractClass;
+    use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
     use serde::Deserialize;
     use serde_json::Deserializer;
     use starknet_rs_core::types::LegacyEntryPointsByType;

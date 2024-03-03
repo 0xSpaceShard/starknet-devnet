@@ -1,6 +1,6 @@
 [package]
 name = "starknet-devnet"
-version = "0.0.2"
+version = "0.0.3"
 edition = "2021"
 repository.workspace = true
 license-file.workspace = true
@@ -14,7 +14,7 @@ path = "src/main.rs"
 
 [dependencies]
 # devnet
-cairo-lang-starknet = { workspace = true }
+cairo-lang-starknet-classes = { workspace = true }
 server = { workspace = true }
 starknet-core = { workspace = true }
 starknet-types = { workspace = true }
@@ -43,5 +43,6 @@ server = { workspace = true, features = ["test_utils"] }
 starknet-core = { workspace = true, features = ["test_utils"] }
 starknet-rs-providers = { workspace = true }
 starknet-rs-signers = { workspace = true }
+starknet-rs-core = { workspace = true }
 starknet-rs-accounts = { workspace = true }
 hyper = { workspace = true }

@@ -27,7 +27,7 @@ mod get_events_integration_tests {
             signer,
             address,
             chain_id::TESTNET,
-            ExecutionEncoding::Legacy,
+            ExecutionEncoding::New,
         );
 
         let (cairo_1_contract, casm_class_hash) =

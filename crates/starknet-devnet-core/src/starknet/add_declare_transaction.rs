@@ -126,6 +126,7 @@ pub fn add_declare_transaction_v1(
 
 #[cfg(test)]
 mod tests {
+    use nonzero_ext::nonzero;
     use starknet_api::block::BlockNumber;
     use starknet_api::transaction::Fee;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
@@ -229,10 +230,11 @@ mod tests {
 
     #[test]
     fn add_declare_v3_transaction_successful_execution() {
-        let (mut starknet, sender) = setup(Some(100000000));
+        let (mut starknet, sender) = setup(Some(1e18 as u128));
 
         let declare_txn =
             convert_broadcasted_declare_v2_to_v3(dummy_broadcasted_declare_transaction_v2(&sender));
+
         let (tx_hash, class_hash) =
             starknet.add_declare_transaction_v3(declare_txn.clone()).unwrap();
 
@@ -444,7 +446,7 @@ mod tests {
 
         starknet.state.clear_dirty_state();
         starknet.block_context = Starknet::init_block_context(
-            1,
+            nonzero!(1u128),
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,

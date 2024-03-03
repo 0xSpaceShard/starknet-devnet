@@ -8,7 +8,7 @@ replace:
 # The following comment is for example purpose
   # - path: components/schemas/BLOCK_HEADER/properties/l1_gas_price/descritpion
   #   new_name: description
-  
+
 add:
   - path: components/schemas/NUM_AS_HEX
     new_entry: pattern/^0x[a-fA-F0-9]{1,10}$
@@ -45,10 +45,6 @@ edit_manually:
   - action: CHANGE
     what: every max_fee field type to u128
   - action: REMOVE
-    what: starknet_traceTransaction method from trace_api spec
-  - action: REMOVE
-    what: starknet_traceBlockTransactions method from trace_api spec
-  - action: REMOVE
     what: removed the outer "schema" object -  instead of being items -> schema -> {type, properties}, now its items -> {type, properties} in starknet_simulateTransactions
   - action: REMOVE
     what: PENDING_BLOCK_HEADER schema from the spec
@@ -76,3 +72,5 @@ edit_manually:
     what: block_hash, block_number to required fields of EMITTED_EVENT
   - action: REMOVE
     what: starknet_syncing -> result -> oneOf SYNC_STATUS variant
+  - action: REMOVE
+    what: starknet_getBlockWithReceipts -> result remove PENDING_BLOCK_WITH_RECEIPTS
