@@ -4631,7 +4631,6 @@ dependencies = [
  "rand_mt",
  "serde",
  "serde_json",
- "starknet-contract",
  "starknet-core",
  "starknet-devnet-types",
  "starknet-ff",
