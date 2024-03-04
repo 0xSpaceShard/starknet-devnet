@@ -13,6 +13,7 @@ blockifier = { workspace = true, features = ["testing"] }
 cairo-lang-starknet-classes = { workspace = true }
 clap = { workspace = true }
 ethers = { workspace = true }
+futures = { workspace = true }
 starknet_api = { workspace = true, features = ["testing"] }
 thiserror = { workspace = true }
 serde = { workspace = true }
@@ -27,7 +28,6 @@ rand_mt = { workspace = true }
 tracing = { workspace = true }
 indexmap = { workspace = true }
 url = { workspace = true }
-tokio = { workspace = true }
 nonzero_ext = { workspace = true }
 
 [dev-dependencies]

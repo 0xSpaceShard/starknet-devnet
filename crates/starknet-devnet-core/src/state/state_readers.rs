@@ -12,6 +12,7 @@ use starknet_rs_core::types::BlockId;
 use starknet_rs_ff::FieldElement;
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
+use starknet_types::contract_class::convert_codegen_to_blockifier_class;
 use starknet_types::felt::Felt;
 
 use crate::starknet::starknet_config::ForkConfig;
@@ -43,6 +44,20 @@ impl DictState {
     }
 }
 
+// TODO failing with: lifetime may not live long enough
+// cast requires that `'1` must outlive `'static`
+// fn resolve_origin_result(
+//  future: std::pin::Pin::<
+//      Box<dyn Future<Output = Result<FieldElement, starknet_rs_providers::ProviderError>> + Send>>
+// ) -> FieldElement {
+//     let origin_result = futures::executor::block_on(future);
+//     match origin_result {
+//         Ok(value) => value,
+//         // TODO better error granularity
+//         Err(_) => Default::default(),
+//     }
+// }
+
 impl StateReader for DictState {
     fn get_storage_at(
         &mut self,
@@ -56,12 +71,11 @@ impl StateReader for DictState {
                 if let Some(origin) = &self.origin_client {
                     let contract_address = FieldElement::from(Felt::from(contract_address.0));
                     let key = FieldElement::from(Felt::from(key.0));
-                    let origin_result = tokio::runtime::Runtime::new().unwrap().block_on(
-                        origin.get_storage_at(contract_address, key, self.block_id.unwrap()),
-                    );
+                    let future =
+                        origin.get_storage_at(contract_address, key, self.block_id.unwrap());
+                    let origin_result = futures::executor::block_on(future);
                     match origin_result {
                         Ok(value) => value.into(),
-                        // TODO better error granularity
                         Err(_) => Default::default(),
                     }
                 } else {
@@ -72,28 +86,69 @@ impl StateReader for DictState {
     }
 
     fn get_nonce_at(&mut self, contract_address: ContractAddress) -> StateResult<Nonce> {
-        let nonce = self.address_to_nonce.get(&contract_address).copied().unwrap_or_default();
-        Ok(nonce)
+        Ok(match self.address_to_nonce.get(&contract_address) {
+            Some(value) => *value,
+            None => {
+                if let Some(origin) = &self.origin_client {
+                    let contract_address = FieldElement::from(Felt::from(contract_address.0));
+                    let future = origin.get_nonce(self.block_id.unwrap(), contract_address);
+                    let origin_result = futures::executor::block_on(future);
+                    match origin_result {
+                        Ok(value) => Nonce(value.into()),
+                        Err(_) => Default::default(),
+                    }
+                } else {
+                    Default::default()
+                }
+            }
+        })
     }
 
     fn get_compiled_contract_class(&mut self, class_hash: ClassHash) -> StateResult<ContractClass> {
-        let contract_class = self.class_hash_to_class.get(&class_hash).cloned();
-        match contract_class {
-            Some(contract_class) => Ok(contract_class),
-            _ => Err(StateError::UndeclaredClassHash(class_hash)),
+        match self.class_hash_to_class.get(&class_hash) {
+            Some(contract_class) => Ok(contract_class.clone()),
+            None => {
+                if let Some(origin) = &self.origin_client {
+                    let future = origin.get_class(
+                        self.block_id.unwrap(),
+                        FieldElement::from(Felt::from(class_hash)),
+                    );
+                    let origin_result = futures::executor::block_on(future);
+                    match origin_result {
+                        Ok(class) => Ok(convert_codegen_to_blockifier_class(class)?),
+                        Err(_) => Err(StateError::UndeclaredClassHash(class_hash)),
+                    }
+                } else {
+                    Err(StateError::UndeclaredClassHash(class_hash))
+                }
+            }
         }
     }
 
     fn get_class_hash_at(&mut self, contract_address: ContractAddress) -> StateResult<ClassHash> {
-        let class_hash =
-            self.address_to_class_hash.get(&contract_address).copied().unwrap_or_default();
-        Ok(class_hash)
+        match self.address_to_class_hash.get(&contract_address) {
+            Some(class_hash) => Ok(*class_hash),
+            None => {
+                if let Some(origin) = &self.origin_client {
+                    let contract_address = FieldElement::from(Felt::from(contract_address.0));
+                    let future = origin.get_class_hash_at(self.block_id.unwrap(), contract_address);
+                    let origin_result = futures::executor::block_on(future);
+                    match origin_result {
+                        Ok(class_hash) => Ok(ClassHash(class_hash.into())),
+                        Err(_) => Ok(Default::default()),
+                    }
+                } else {
+                    Ok(Default::default())
+                }
+            }
+        }
     }
 
     fn get_compiled_class_hash(
         &mut self,
         class_hash: ClassHash,
     ) -> StateResult<starknet_api::core::CompiledClassHash> {
+        // TODO can't ask origin for this - insufficient API - probably not important
         let compiled_class_hash =
             self.class_hash_to_compiled_class_hash.get(&class_hash).copied().unwrap_or_default();
         Ok(compiled_class_hash)
