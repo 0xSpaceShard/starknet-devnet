@@ -126,22 +126,22 @@ impl StateReader for DictState {
     }
 
     fn get_class_hash_at(&mut self, contract_address: ContractAddress) -> StateResult<ClassHash> {
-        match self.address_to_class_hash.get(&contract_address) {
-            Some(class_hash) => Ok(*class_hash),
+        Ok(match self.address_to_class_hash.get(&contract_address) {
+            Some(class_hash) => *class_hash,
             None => {
                 if let Some(origin) = &self.origin_client {
                     let contract_address = FieldElement::from(Felt::from(contract_address.0));
                     let future = origin.get_class_hash_at(self.block_id.unwrap(), contract_address);
                     let origin_result = futures::executor::block_on(future);
                     match origin_result {
-                        Ok(class_hash) => Ok(ClassHash(class_hash.into())),
-                        Err(_) => Ok(Default::default()),
+                        Ok(class_hash) => ClassHash(class_hash.into()),
+                        Err(_) => Default::default(),
                     }
                 } else {
-                    Ok(Default::default())
+                    Default::default()
                 }
             }
-        }
+        })
     }
 
     fn get_compiled_class_hash(
