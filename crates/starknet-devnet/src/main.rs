@@ -13,7 +13,7 @@ use starknet_core::constants::{
 };
 use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
 use starknet_core::starknet::Starknet;
-use starknet_rs_core::types::{BlockId, BlockTag};
+use starknet_rs_core::types::{BlockId, BlockTag, MaybePendingBlockWithTxHashes};
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_types::chain_id::ChainId;
@@ -80,23 +80,30 @@ fn print_chain_id(chain_id: ChainId) {
 }
 
 pub async fn check_fork(starknet_config: &mut StarknetConfig) -> Result<(), anyhow::Error> {
-    // TODO add proper error handling
     if let Some(url) = &starknet_config.fork_config.url {
         let json_rpc_client = JsonRpcClient::new(HttpTransport::new(url.clone()));
         let block_number = if let Some(block_number) = starknet_config.fork_config.block {
-            // if this passes, it means block number is valid
-            json_rpc_client.get_block_with_tx_hashes(BlockId::Number(block_number)).await?;
+            // if this passes, it means the block number is valid
+            json_rpc_client.get_block_with_tx_hashes(BlockId::Number(block_number)).await.map_err(
+                |e| {
+                    anyhow::Error::msg(match e {
+                        starknet_rs_providers::ProviderError::StarknetError(
+                            starknet_rs_core::types::StarknetError::BlockNotFound,
+                        ) => format!("Forking at block {block_number}: block not found"),
+                        _ => format!("Forking at block {block_number}: {e}; Check the URL"),
+                    })
+                },
+            )?;
             block_number
         } else {
             let block_id = BlockId::Tag(BlockTag::Latest);
             let latest_block = json_rpc_client.get_block_with_tx_hashes(block_id).await?;
             match latest_block {
-                starknet_rs_core::types::MaybePendingBlockWithTxHashes::Block(latest_block) => {
-                    latest_block.block_number
-                }
-                starknet_rs_core::types::MaybePendingBlockWithTxHashes::PendingBlock(_) => todo!(),
+                MaybePendingBlockWithTxHashes::Block(latest_block) => latest_block.block_number,
+                MaybePendingBlockWithTxHashes::PendingBlock(_) => panic!("Should never be reached"),
             }
         };
+        println!("Forking at block {}", block_number);
         starknet_config.fork_config.block = Some(block_number)
     }
 
