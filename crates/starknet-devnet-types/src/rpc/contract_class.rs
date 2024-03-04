@@ -2,6 +2,7 @@ use core::fmt::Debug;
 use std::cmp::{Eq, PartialEq};
 
 use blockifier::execution::contract_class::ClassInfo;
+use blockifier::state::errors::StateError;
 use cairo_lang_starknet_classes::casm_contract_class::{CasmContractClass, CasmContractEntryPoint};
 use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
 use serde::{Serialize, Serializer};
@@ -249,6 +250,31 @@ fn convert_sierra_to_codegen(
         contract_class_version: contract_class.contract_class_version.clone(),
         entry_points_by_type,
         abi,
+    })
+}
+
+pub fn convert_codegen_to_blockifier_class(
+    class: CodegenContractClass,
+) -> Result<blockifier::execution::contract_class::ContractClass, StateError> {
+    let class_jsonified =
+        serde_json::to_string(&class).map_err(|e| StateError::StateReadError(e.to_string()))?;
+    Ok(match class {
+        CodegenContractClass::Sierra(_) => {
+            let class =
+                blockifier::execution::contract_class::ContractClassV1::try_from_json_string(
+                    &class_jsonified,
+                )
+                .map_err(|e| StateError::StateReadError(e.to_string()))?;
+            blockifier::execution::contract_class::ContractClass::V1(class)
+        }
+        CodegenContractClass::Legacy(_) => {
+            let class =
+                blockifier::execution::contract_class::ContractClassV0::try_from_json_string(
+                    &class_jsonified,
+                )
+                .map_err(|e| StateError::StateReadError(e.to_string()))?;
+            blockifier::execution::contract_class::ContractClass::V0(class)
+        }
     })
 }
 
