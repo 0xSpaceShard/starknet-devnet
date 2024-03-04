@@ -143,19 +143,21 @@ mod fork_tests {
             &[],
         );
 
+        println!("devnet.url.as_str() {:?}", devnet.url.as_str());
+
         // fork devnet
         let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
             "--fork-network",
             devnet.url.as_str(),
-            // "--port", - is this needed?
-            // DEVNET_DEFAULT_PORT,
+            // "--port",
+            // "1025",
             "--accounts",
             "0",
         ])
         .await
         .expect("Could not start Devnet");
     
-        let (fork_signer, fork_account_address) = devnet.get_first_predeployed_account().await;
+        let (fork_signer, fork_account_address) = fork_devnet.get_first_predeployed_account().await;
         let fork_predeployed_account = SingleOwnerAccount::new(
             fork_devnet.clone_provider(),
             fork_signer,
