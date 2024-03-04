@@ -154,6 +154,15 @@ mod fork_tests {
         ])
         .await
         .expect("Could not start Devnet");
+    
+        let (fork_signer, fork_account_address) = devnet.get_first_predeployed_account().await;
+        let fork_predeployed_account = SingleOwnerAccount::new(
+            fork_devnet.clone_provider(),
+            fork_signer,
+            fork_account_address,
+            chain_id::TESTNET,
+            ExecutionEncoding::New,
+        );
 
         // invoke on forked devnet
         let events_contract_call = vec![Call {
@@ -162,12 +171,14 @@ mod fork_tests {
             calldata: vec![FieldElement::from(1u8)],
         }];
 
-        let invoke_result = predeployed_account
+        let invoke_result = fork_predeployed_account
             .execute(events_contract_call.clone())
             .max_fee(FieldElement::from(100000000000000000000u128))
             .send()
             .await
             .unwrap();
+
+        println!("invoke_result {:?}", invoke_result);
 
         // check invoke transaction
         let invoke_tx = fork_devnet
@@ -175,6 +186,8 @@ mod fork_tests {
             .get_transaction_by_hash(invoke_result.transaction_hash)
             .await
             .unwrap();
+
+        println!("invoke_tx {:?}", invoke_tx);
 
         if let starknet_rs_core::types::Transaction::Invoke(
             starknet_rs_core::types::InvokeTransaction::V1(invoke_v1),
