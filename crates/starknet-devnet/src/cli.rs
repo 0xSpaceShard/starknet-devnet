@@ -289,4 +289,72 @@ mod tests {
             Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
         }
     }
+
+    #[test]
+    fn not_allowing_invalid_url_as_fork_network() {
+        for url in ["abc", "", "http://"] {
+            match Args::try_parse_from(["--", "--fork-network", url]) {
+                Err(_) => (),
+                Ok(parsed) => panic!("Should fail for {url}; got: {parsed:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn allowing_valid_url_as_fork_network() {
+        for url in [
+            "https://free-rpc.nethermind.io/mainnet-juno/v0_6",
+            "http://localhost/",
+            "http://localhost:5051/",
+            "http://127.0.0.1/",
+            "http://127.0.0.1:5050/",
+            "https://localhost/",
+            "https://localhost:5050/",
+        ] {
+            match Args::try_parse_from(["--", "--fork-network", url]) {
+                Ok(args) => assert_eq!(args.fork_network.unwrap().to_string(), url),
+                Err(e) => panic!("Should have passed; got: {e}"),
+            }
+        }
+    }
+
+    #[test]
+    fn not_allowing_fork_block_without_fork_network() {
+        match Args::try_parse_from(["--", "--fork-block", "12"]) {
+            Err(_) => (),
+            Ok(parsed) => panic!("Should fail when just --fork-block got: {parsed:?}"),
+        }
+    }
+
+    #[test]
+    fn not_allowing_invalid_value_as_fork_block() {
+        for number in ["", "abc", "-1"] {
+            match Args::try_parse_from([
+                "--",
+                "--fork-network",
+                "http://localhost:5051",
+                "--fork-block",
+                number,
+            ]) {
+                Err(_) => (),
+                Ok(parsed) => panic!("Should fail for {number}; got: {parsed:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn allowing_number_as_fork_block() {
+        for number in [0, 1, 42, 999] {
+            match Args::try_parse_from([
+                "--",
+                "--fork-network",
+                "http://localhost:5051",
+                "--fork-block",
+                &number.to_string(),
+            ]) {
+                Ok(args) => assert_eq!(args.fork_block, Some(number)),
+                Err(e) => panic!("Should have passed; got: {e}"),
+            }
+        }
+    }
 }
