@@ -162,6 +162,7 @@ mod fork_tests {
             chain_id::TESTNET,
             ExecutionEncoding::New,
         );
+        println!("fork_signer");
 
         // invoke on forked devnet
         let events_contract_call = vec![Call {
@@ -169,6 +170,7 @@ mod fork_tests {
             selector: get_selector_from_name("emit_event").unwrap(),
             calldata: vec![FieldElement::from(1u8)],
         }];
+        println!("events_contract_call");
 
         let invoke_result = fork_predeployed_account
             .execute(events_contract_call.clone())
