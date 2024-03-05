@@ -105,7 +105,7 @@ async fn main() -> Result<(), anyhow::Error> {
     );
 
     let server =
-        serve_http_api_json_rpc(addr, ServerConfig::default(), api.clone(), &starknet_config);
+        serve_http_api_json_rpc(addr, ServerConfig::default(), api.clone(), &starknet_config)?;
     addr = server.local_addr();
 
     info!("Starknet Devnet listening on {}", addr);

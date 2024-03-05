@@ -13,6 +13,7 @@ use tower_http::cors::CorsLayer;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 
+use crate::error::ServerResult;
 use crate::rpc_handler::{self, RpcHandler};
 use crate::ServerConfig;
 
@@ -91,7 +92,7 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
     /// [`ServerConfig`] and all handlers that have Some value. If TJsonRpcHandler and/or
     /// THttpApiHandler are set each methods that serves the route will be able to use it.
     /// https://docs.rs/axum/latest/axum/#using-request-extensions
-    pub fn build(self, starknet_config: &StarknetConfig) -> StarknetDevnetServer {
+    pub fn build(self, starknet_config: &StarknetConfig) -> ServerResult<StarknetDevnetServer> {
         let mut svc = self.routes;
 
         svc = svc
@@ -111,6 +112,6 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
             )
         }
 
-        Server::bind(&self.address).serve(svc.into_make_service())
+        Ok(Server::try_bind(&self.address)?.serve(svc.into_make_service()))
     }
 }
