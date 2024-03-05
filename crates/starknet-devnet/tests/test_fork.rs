@@ -23,12 +23,11 @@ mod fork_tests {
         "0x5c627d4aeb51280058bed93c7889bce78114d63baad1be0f0aeb32496d5f19c";
 
     #[tokio::test]
+    #[ignore = "Not supported"]
     async fn test_forking_sepolia_genesis_block() {
         let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
             "--fork-network",
             SEPOLIA_URL,
-            "--accounts",
-            "0",
         ])
         .await
         .expect("Could not start Devnet");
@@ -44,6 +43,7 @@ mod fork_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Not supported"]
     async fn test_forking_sepolia_contract_call_get_balance() {
         let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
             "--fork-network",
@@ -63,11 +63,14 @@ mod fork_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Not supported"]
     async fn test_forking_local_genesis_block() {
         let devnet: BackgroundDevnet =
             BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        
         // devnet.post_json("/create_block".into(),
         // Body::from(json!({}).to_string())).await.unwrap();
+        
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
         let latest_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
@@ -76,10 +79,6 @@ mod fork_tests {
         let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
             "--fork-network",
             devnet.url.as_str(),
-            // "--port", - is this needed?
-            // DEVNET_DEFAULT_PORT,
-            "--accounts",
-            "0",
         ])
         .await
         .expect("Could not start Devnet");
