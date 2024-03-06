@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use blockifier::state::state_api::{State, StateReader};
+use blockifier::state::state_api::StateReader;
 use starknet_api::core::{calculate_contract_address, PatriciaKey};
 use starknet_api::hash::{StarkFelt, StarkHash};
 use starknet_api::transaction::{Calldata, ContractAddressSalt};
