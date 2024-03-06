@@ -62,7 +62,8 @@ mod tests {
         self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     };
     use crate::starknet::{predeployed, Starknet};
-    use crate::traits::{Accounted, Deployed, HashIdentifiedMut, StateChanger};
+    use crate::state::CustomState;
+    use crate::traits::{Deployed, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_l1l2_contract;
     use crate::utils::test_utils::{
         cairo_0_account_without_validations, dummy_felt, get_bytes_from_u32,
@@ -207,7 +208,6 @@ mod tests {
         .unwrap();
 
         account.deploy(&mut starknet.state).unwrap();
-        account.set_initial_balance(&mut starknet.state).unwrap();
 
         // dummy contract
         let dummy_contract: Cairo0ContractClass = dummy_cairo_l1l2_contract().into();
@@ -252,8 +252,10 @@ mod tests {
             .unwrap();
 
         // deploy dummy contract
-        starknet.state.deploy_contract(dummy_contract_address, dummy_contract_class_hash).unwrap();
-        starknet.state.clear_dirty_state();
+        starknet
+            .state
+            .predeploy_contract(dummy_contract_address, dummy_contract_class_hash)
+            .unwrap();
         starknet.block_context = Starknet::init_block_context(
             nonzero!(1u128),
             constants::ETH_ERC20_CONTRACT_ADDRESS,
