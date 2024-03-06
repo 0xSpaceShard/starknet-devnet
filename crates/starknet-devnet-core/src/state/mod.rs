@@ -20,7 +20,7 @@ mod state_readers;
 pub mod state_update;
 
 pub trait CustomStateReader {
-    fn is_contract_deployed(&mut self, contract_address: ContractAddress) -> bool;
+    fn is_contract_deployed(&mut self, contract_address: ContractAddress) -> DevnetResult<bool>;
     fn is_contract_declared(&mut self, class_hash: ClassHash) -> bool;
     /// sierra for cairo1, only artifact for cairo0
     fn get_rpc_contract_class(&self, class_hash: &ClassHash) -> Option<&ContractClass>;
@@ -110,7 +110,7 @@ impl StarknetState {
         &mut self,
         contract_address: ContractAddress,
     ) -> DevnetResult<()> {
-        if !self.is_contract_deployed(contract_address) {
+        if !self.is_contract_deployed(contract_address)? {
             return Err(Error::ContractNotFound);
         }
         Ok(())
@@ -256,10 +256,11 @@ impl blockifier::state::state_api::StateReader for StarknetState {
 }
 
 impl CustomStateReader for StarknetState {
-    fn is_contract_deployed(&mut self, contract_address: ContractAddress) -> bool {
-        let api_address = contract_address.try_into().unwrap();
-        self.get_class_hash_at(api_address)
-            .is_ok_and(|starknet_api::core::ClassHash(hash)| hash != StarkFelt::ZERO)
+    fn is_contract_deployed(&mut self, contract_address: ContractAddress) -> DevnetResult<bool> {
+        let api_address = contract_address.try_into()?;
+        Ok(self
+            .get_class_hash_at(api_address)
+            .is_ok_and(|starknet_api::core::ClassHash(hash)| hash != StarkFelt::ZERO))
     }
 
     fn is_contract_declared(&mut self, class_hash: ClassHash) -> bool {
