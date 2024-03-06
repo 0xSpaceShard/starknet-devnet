@@ -83,7 +83,7 @@ pub struct JsonRpcHandler {
 impl RpcHandler for JsonRpcHandler {
     type Request = StarknetRequest;
 
-    async fn on_request(&mut self, request: Self::Request) -> ResponseResult {
+    async fn on_request(&self, request: Self::Request) -> ResponseResult {
         info!(target: "rpc", "received method in on_request {}", request);
         self.execute(request).await
     }
@@ -91,7 +91,7 @@ impl RpcHandler for JsonRpcHandler {
 
 impl JsonRpcHandler {
     /// The method matches the request to the corresponding enum variant and executes the request
-    async fn execute(&mut self, request: StarknetRequest) -> ResponseResult {
+    async fn execute(&self, request: StarknetRequest) -> ResponseResult {
         trace!(target: "JsonRpcHandler::execute", "executing starknet request");
 
         match request {

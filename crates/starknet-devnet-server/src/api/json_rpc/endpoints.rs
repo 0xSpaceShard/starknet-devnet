@@ -92,7 +92,7 @@ impl JsonRpcHandler {
 
     /// starknet_getStorageAt
     pub async fn get_storage_at(
-        &mut self,
+        &self,
         contract_address: ContractAddress,
         key: PatriciaKey,
         block_id: BlockId,
