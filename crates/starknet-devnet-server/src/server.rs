@@ -7,6 +7,7 @@ use crate::api::http::{endpoints as http, HttpApiHandler};
 use crate::api::json_rpc::JsonRpcHandler;
 use crate::api::Api;
 use crate::builder::StarknetDevnetServer;
+use crate::error::ServerResult;
 use crate::ServerConfig;
 
 /// Configures an [axum::Server] that handles related JSON-RPC calls and WEB API calls via HTTP
@@ -15,7 +16,7 @@ pub fn serve_http_api_json_rpc(
     config: ServerConfig,
     api: Api,
     starknet_config: &StarknetConfig,
-) -> StarknetDevnetServer {
+) -> ServerResult<StarknetDevnetServer> {
     let http = HttpApiHandler { api: api.clone() };
     let json_rpc = JsonRpcHandler { api };
 
