@@ -7,6 +7,7 @@ use blockifier::state::state_api::{State, StateReader, StateResult};
 use starknet_api::core::{ClassHash, CompiledClassHash, ContractAddress, Nonce};
 use starknet_api::hash::StarkFelt;
 use starknet_api::state::StorageKey;
+use tracing::warn;
 
 /// A simple implementation of `StateReader` using `HashMap`s as storage.
 /// Copied from blockifier test_utils, added `impl State`
@@ -116,6 +117,6 @@ impl State for DictState {
     }
 
     fn add_visited_pcs(&mut self, _class_hash: ClassHash, _pcs: &std::collections::HashSet<usize>) {
-        todo!("What with this")
+        warn!("Calling add_visited_pcs which has no effect")
     }
 }
