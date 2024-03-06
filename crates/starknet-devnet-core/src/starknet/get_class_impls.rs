@@ -62,8 +62,7 @@ mod tests {
     };
     use crate::error::Error;
     use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
-    use crate::starknet::{predeployed, Starknet};
-    use crate::state::state_diff::StateDiff;
+    use crate::starknet::Starknet;
     use crate::traits::Deployed;
     use crate::utils::test_utils::{dummy_broadcasted_declare_transaction_v2, dummy_felt};
 
@@ -80,17 +79,14 @@ mod tests {
         );
         let contract_class = Cairo0Json::raw_json_from_path(account_json_path).unwrap();
 
-        let erc_20_contract =
-            predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS).unwrap();
-        erc_20_contract.deploy(&mut starknet.state).unwrap();
-
         let acc = Account::new(
             Felt::from(acc_balance.unwrap_or(100)),
             dummy_felt(),
             dummy_felt(),
             contract_class.generate_hash().unwrap(),
             contract_class.into(),
-            erc_20_contract.get_address(),
+            ContractAddress::new(Felt::from_prefixed_hex_str(ETH_ERC20_CONTRACT_ADDRESS).unwrap())
+                .unwrap(),
             ContractAddress::new(Felt::from_prefixed_hex_str(STRK_ERC20_CONTRACT_ADDRESS).unwrap())
                 .unwrap(),
         )
@@ -111,7 +107,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "State archiving disabled"]
     fn get_sierra_class() {
         let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::Full);
 
@@ -128,11 +123,10 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "State archiving disabled"]
     fn get_class_hash_at_generated_accounts() {
         let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::Full);
-
-        starknet.generate_new_block(StateDiff::default()).unwrap();
+        let state_diff = starknet.state.commit_with_diff().unwrap();
+        starknet.generate_new_block(state_diff).unwrap();
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
         let block_id = BlockId::Number(block_number.0);
@@ -145,8 +139,8 @@ mod tests {
     #[test]
     fn get_class_hash_at_generated_accounts_without_state_archive() {
         let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::None);
-
-        starknet.generate_new_block(StateDiff::default()).unwrap();
+        let state_diff = starknet.state.commit_with_diff().unwrap();
+        starknet.generate_new_block(state_diff).unwrap();
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
         let block_id = BlockId::Number(block_number.0);
@@ -159,11 +153,10 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "State archiving disabled"]
     fn get_class_at_generated_accounts() {
         let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::Full);
-
-        starknet.generate_new_block(StateDiff::default()).unwrap();
+        let state_diff = starknet.state.commit_with_diff().unwrap();
+        starknet.generate_new_block(state_diff).unwrap();
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
         let block_id = BlockId::Number(block_number.0);

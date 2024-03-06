@@ -274,7 +274,8 @@ impl Starknet {
 
         // save into blocks state archive
         if self.config.state_archive == StateArchiveCapacity::Full {
-            self.blocks.save_state_at(new_block_number, &self.state);
+            let clone = self.state.clone_historic();
+            self.blocks.save_state_at(new_block_number, clone);
         }
 
         self.generate_pending_block()?;
@@ -1240,7 +1241,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "State archiving disabled"]
     fn getting_state_at_block_by_nonexistent_hash_with_full_state_archive() {
         let config =
             StarknetConfig { state_archive: StateArchiveCapacity::Full, ..Default::default() };
@@ -1254,7 +1254,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "State archiving disabled"]
     fn getting_nonexistent_state_at_block_by_number_with_full_state_archive() {
         let config =
             StarknetConfig { state_archive: StateArchiveCapacity::Full, ..Default::default() };
@@ -1425,7 +1424,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "State archiving disabled"]
     fn correct_state_at_specific_block() {
         let mut starknet = Starknet::new(&StarknetConfig {
             state_archive: StateArchiveCapacity::Full,

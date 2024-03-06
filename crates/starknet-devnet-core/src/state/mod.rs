@@ -73,6 +73,9 @@ impl CommittedClassStorage {
 pub(crate) struct StarknetState {
     pub(crate) state: CachedState<DictState>,
     rpc_contract_classes: CommittedClassStorage,
+    /// - initially `None`
+    /// - indicates the state hasn't yet been cloned for old-state preservation purpose
+    historic_state: Option<DictState>,
 }
 
 impl Default for StarknetState {
@@ -83,6 +86,7 @@ impl Default for StarknetState {
                 GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
             ),
             rpc_contract_classes: Default::default(),
+            historic_state: Default::default(),
         }
     }
 }
@@ -93,7 +97,13 @@ impl StarknetState {
     }
 
     pub fn commit_with_diff(&mut self) -> DevnetResult<StateDiff> {
-        StateDiff::generate(&mut self.state, &mut self.rpc_contract_classes)
+        let diff = StateDiff::generate(&mut self.state, &mut self.rpc_contract_classes)?;
+        let new_historic = self.expand_historic(diff.clone())?;
+        self.state = CachedState::new(
+            new_historic.clone(),
+            GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
+        );
+        Ok(diff)
     }
 
     pub fn assert_contract_deployed(
@@ -104,6 +114,50 @@ impl StarknetState {
             return Err(Error::ContractNotFound);
         }
         Ok(())
+    }
+
+    /// Expands the internal historic state copy and returns a reference to it
+    fn expand_historic(&mut self, state_diff: StateDiff) -> DevnetResult<&DictState> {
+        let mut historic_state = self.state.state.clone();
+
+        for (address, class_hash) in state_diff.address_to_class_hash {
+            historic_state.set_class_hash_at(address.try_into()?, class_hash.into())?;
+        }
+        for (class_hash, casm_hash) in state_diff.class_hash_to_compiled_class_hash {
+            historic_state.set_compiled_class_hash(class_hash.into(), casm_hash.into())?;
+        }
+        for (address, _nonce) in state_diff.address_to_nonce {
+            // assuming that historic_state.get_nonce(address) == _nonce - 1
+            historic_state.increment_nonce(address.try_into()?)?;
+        }
+        for (address, storage_updates) in state_diff.storage_updates {
+            let core_address = address.try_into()?;
+            for (key, value) in storage_updates {
+                historic_state.set_storage_at(core_address, key.try_into()?, value.into())?;
+            }
+        }
+        for class_hash in state_diff.cairo_0_declared_contracts {
+            let compiled_class = self.get_compiled_contract_class(class_hash.into())?;
+            historic_state.set_contract_class(class_hash.into(), compiled_class)?;
+        }
+        for class_hash in state_diff.declared_contracts {
+            let compiled_class = self.get_compiled_contract_class(class_hash.into())?;
+            historic_state.set_contract_class(class_hash.into(), compiled_class)?;
+        }
+        self.historic_state = Some(historic_state);
+        Ok(self.historic_state.as_ref().unwrap())
+    }
+
+    pub fn clone_historic(&self) -> Self {
+        let historic_state = self.historic_state.as_ref().unwrap().clone();
+        Self {
+            state: CachedState::new(
+                historic_state,
+                GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
+            ),
+            rpc_contract_classes: self.rpc_contract_classes.clone(),
+            historic_state: None,
+        }
     }
 }
 

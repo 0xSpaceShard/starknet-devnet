@@ -229,7 +229,7 @@ mod test_messaging {
             setup_devnet(&["--account-class", "cairo1"]).await;
 
         // Declare l1l2 lib with only one function to send messages.
-        // It's class hash can then be ignored, it's hardcoded in the contract.
+        // Its class hash can then be ignored, it's hardcoded in the contract.
         let (sierra_class, casm_class_hash) = get_messaging_lib_in_sierra_and_compiled_class_hash();
         let lib_sierra_class_hash = sierra_class.class_hash();
 

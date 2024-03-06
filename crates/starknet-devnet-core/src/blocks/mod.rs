@@ -66,9 +66,8 @@ impl StarknetBlocks {
         self.last_block_hash = Some(hash);
     }
 
-    pub fn save_state_at(&mut self, _block_number: BlockNumber, _state: &StarknetState) {
-        // self.num_to_state.insert(block_number, state.clone());
-        todo!("we also need to store block context or somehow reconstruct it when needed");
+    pub fn save_state_at(&mut self, block_number: BlockNumber, state: StarknetState) {
+        self.num_to_state.insert(block_number, state);
     }
 
     pub fn get_by_block_id(&self, block_id: &BlockId) -> Option<&StarknetBlock> {
