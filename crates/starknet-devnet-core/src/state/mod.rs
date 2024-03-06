@@ -16,7 +16,7 @@ use self::state_readers::DictState;
 use crate::error::{DevnetResult, Error};
 
 pub(crate) mod state_diff;
-mod state_readers;
+pub(crate) mod state_readers;
 pub mod state_update;
 
 pub trait CustomStateReader {
