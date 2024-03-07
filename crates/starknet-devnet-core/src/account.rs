@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use blockifier::state::state_api::{State, StateReader};
+use blockifier::state::state_api::StateReader;
 use starknet_api::core::{calculate_contract_address, PatriciaKey};
 use starknet_api::hash::{StarkFelt, StarkHash};
 use starknet_api::transaction::{Calldata, ContractAddressSalt};
@@ -18,6 +18,7 @@ use crate::constants::{
     CHARGEABLE_ACCOUNT_PUBLIC_KEY,
 };
 use crate::error::DevnetResult;
+use crate::state::state_readers::DictState;
 use crate::state::{CustomState, StarknetState};
 use crate::traits::{Accounted, Deployed};
 use crate::utils::get_storage_var_address;
@@ -141,7 +142,7 @@ impl Deployed for Account {
 }
 
 impl Accounted for Account {
-    fn set_initial_balance(&self, state: &mut impl State) -> DevnetResult<()> {
+    fn set_initial_balance(&self, state: &mut DictState) -> DevnetResult<()> {
         let storage_var_address =
             get_storage_var_address("ERC20_balances", &[Felt::from(self.account_address)])?;
 
@@ -277,7 +278,7 @@ mod tests {
     #[test]
     fn account_changed_balance_successfully_without_deployment() {
         let (account, mut state) = setup();
-        assert!(account.set_initial_balance(&mut state).is_ok());
+        assert!(account.set_initial_balance(&mut state.state.state).is_ok());
     }
 
     #[test]

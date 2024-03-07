@@ -4,7 +4,7 @@ use std::sync::Arc;
 use blockifier::execution::contract_class::ContractClass;
 use blockifier::state::cached_state::StorageEntry;
 use blockifier::state::errors::StateError;
-use blockifier::state::state_api::{State, StateReader, StateResult};
+use blockifier::state::state_api::{StateReader, StateResult};
 use starknet_api::core::{ClassHash, CompiledClassHash, ContractAddress, Nonce};
 use starknet_api::hash::StarkFelt;
 use starknet_api::state::StorageKey;
@@ -155,8 +155,10 @@ impl StateReader for DictState {
     }
 }
 
-impl State for DictState {
-    fn set_storage_at(
+// Basing the methods on blockifier's `State` interface, without those that would never be used
+// (add_visited_pcs, to_state_diff)
+impl DictState {
+    pub fn set_storage_at(
         &mut self,
         contract_address: ContractAddress,
         key: StorageKey,
@@ -166,7 +168,7 @@ impl State for DictState {
         Ok(())
     }
 
-    fn increment_nonce(&mut self, contract_address: ContractAddress) -> StateResult<()> {
+    pub fn increment_nonce(&mut self, contract_address: ContractAddress) -> StateResult<()> {
         let current_nonce = self.get_nonce_at(contract_address)?;
         let current_nonce_as_u64 = usize::try_from(current_nonce.0)? as u64;
         let next_nonce_val = 1_u64 + current_nonce_as_u64;
@@ -176,7 +178,7 @@ impl State for DictState {
         Ok(())
     }
 
-    fn set_class_hash_at(
+    pub fn set_class_hash_at(
         &mut self,
         contract_address: ContractAddress,
         class_hash: ClassHash,
@@ -189,7 +191,7 @@ impl State for DictState {
         Ok(())
     }
 
-    fn set_contract_class(
+    pub fn set_contract_class(
         &mut self,
         class_hash: ClassHash,
         contract_class: ContractClass,
@@ -198,20 +200,12 @@ impl State for DictState {
         Ok(())
     }
 
-    fn set_compiled_class_hash(
+    pub fn set_compiled_class_hash(
         &mut self,
         class_hash: ClassHash,
         compiled_class_hash: CompiledClassHash,
     ) -> StateResult<()> {
         self.class_hash_to_compiled_class_hash.insert(class_hash, compiled_class_hash);
         Ok(())
-    }
-
-    fn to_state_diff(&mut self) -> blockifier::state::cached_state::CommitmentStateDiff {
-        panic!("Should never be called")
-    }
-
-    fn add_visited_pcs(&mut self, _class_hash: ClassHash, _pcs: &std::collections::HashSet<usize>) {
-        todo!("What with this")
     }
 }
