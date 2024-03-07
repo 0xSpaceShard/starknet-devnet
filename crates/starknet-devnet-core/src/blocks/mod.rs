@@ -665,8 +665,7 @@ mod tests {
         }
 
         assert!(
-            blocks.get_by_num(&BlockNumber(0)).unwrap().header.parent_hash
-                == BlockHash::default()
+            blocks.get_by_num(&BlockNumber(0)).unwrap().header.parent_hash == BlockHash::default()
         );
         assert!(
             blocks.get_by_num(&BlockNumber(0)).unwrap().header.block_hash

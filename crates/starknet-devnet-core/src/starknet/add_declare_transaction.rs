@@ -382,8 +382,8 @@ mod tests {
         // check if transaction is in generated block
         assert_eq!(
             *starknet
-                .blocks.get_by_hash(starknet
-                    .blocks.last_block_hash.unwrap())
+                .blocks
+                .get_by_hash(starknet.blocks.last_block_hash.unwrap())
                 .unwrap()
                 .get_transactions()
                 .first()
