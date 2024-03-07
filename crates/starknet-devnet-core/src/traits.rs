@@ -1,10 +1,11 @@
-use blockifier::state::state_api::{State, StateReader};
+use blockifier::state::state_api::StateReader;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{Balance, ClassHash};
 
 use crate::account::FeeToken;
 use crate::error::DevnetResult;
+use crate::state::state_readers::DictState;
 use crate::state::{CustomState, CustomStateReader, StarknetState};
 
 /// This trait should be implemented by structures that internally have collections and each element
@@ -47,7 +48,7 @@ pub trait Accounted {
     ///
     /// # Arguments
     /// `state` - state of the devnet
-    fn set_initial_balance(&self, state: &mut impl State) -> DevnetResult<()>;
+    fn set_initial_balance(&self, state: &mut DictState) -> DevnetResult<()>;
 
     /// Get balance of the account. In `FeeToken` token
     ///

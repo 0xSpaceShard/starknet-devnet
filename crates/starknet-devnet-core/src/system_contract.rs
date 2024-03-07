@@ -1,9 +1,10 @@
-use blockifier::state::state_api::{State, StateReader};
+use blockifier::state::state_api::StateReader;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0Json, ContractClass};
 use starknet_types::felt::{Balance, ClassHash, Felt};
 
 use crate::error::DevnetResult;
+use crate::state::state_readers::DictState;
 use crate::state::{CustomState, StarknetState};
 use crate::traits::{Accounted, Deployed};
 
@@ -53,7 +54,7 @@ impl Deployed for SystemContract {
 }
 
 impl Accounted for SystemContract {
-    fn set_initial_balance(&self, _state: &mut impl State) -> DevnetResult<()> {
+    fn set_initial_balance(&self, _state: &mut DictState) -> DevnetResult<()> {
         Ok(())
     }
 

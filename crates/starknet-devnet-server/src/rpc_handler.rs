@@ -18,7 +18,7 @@ pub trait RpcHandler: Clone + Send + Sync + 'static {
     type Request: DeserializeOwned + Send + Sync + fmt::Debug;
 
     /// Invoked when the request was received
-    async fn on_request(&mut self, request: Self::Request) -> ResponseResult;
+    async fn on_request(&self, request: Self::Request) -> ResponseResult;
 
     /// Invoked for every incoming `RpcMethodCall`
     ///
