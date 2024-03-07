@@ -13,15 +13,14 @@ blockifier = { workspace = true, features = ["testing"] }
 cairo-lang-starknet-classes = { workspace = true }
 clap = { workspace = true }
 ethers = { workspace = true }
-futures = { workspace = true }
 starknet_api = { workspace = true, features = ["testing"] }
 thiserror = { workspace = true }
+reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 starknet-rs-signers = { workspace = true }
 starknet-rs-ff = { workspace = true }
 starknet-rs-core = { workspace = true }
-starknet-rs-providers = { workspace = true }
 starknet-types = { workspace = true }
 rand = { workspace = true }
 rand_mt = { workspace = true }
