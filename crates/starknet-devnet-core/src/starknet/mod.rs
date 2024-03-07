@@ -1097,7 +1097,7 @@ mod tests {
     use crate::error::{DevnetResult, Error};
     use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
     use crate::state::state_diff::StateDiff;
-    use crate::traits::{Accounted, StateChanger, StateExtractor};
+    use crate::traits::{Accounted, HashIdentified, StateChanger, StateExtractor};
     use crate::utils::test_utils::{
         dummy_contract_address, dummy_declare_transaction_v1, dummy_felt,
     };
@@ -1160,14 +1160,14 @@ mod tests {
         // pending block has some transactions
         assert!(!starknet.pending_block().get_transactions().is_empty());
         // blocks collection is empty
-        assert!(starknet.blocks.num_to_block.is_empty());
+        assert!(starknet.blocks.hash_to_block.is_empty());
 
         starknet.generate_new_block(StateDiff::default()).unwrap();
         // blocks collection should not be empty
-        assert!(!starknet.blocks.num_to_block.is_empty());
+        assert!(!starknet.blocks.hash_to_block.is_empty());
 
-        // get block by number and check that the transactions in the block are correct
-        let added_block = starknet.blocks.num_to_block.get(&BlockNumber(0)).unwrap();
+        // get latest block and check that the transactions in the block are correct
+        let added_block = starknet.blocks.get_by_hash(starknet.blocks.last_block_hash.unwrap()).unwrap();
 
         assert!(added_block.get_transactions().len() == 1);
         assert_eq!(*added_block.get_transactions().first().unwrap(), tx.transaction_hash);
@@ -1373,7 +1373,7 @@ mod tests {
         starknet.generate_new_block(StateDiff::default()).unwrap();
 
         // last added block number -> 0
-        let added_block = starknet.blocks.num_to_block.get(&BlockNumber(0)).unwrap();
+        let added_block = starknet.blocks.get_by_hash(starknet.blocks.last_block_hash.unwrap()).unwrap();
         // number of the accepted block -> 1
         let block_number = starknet.get_latest_block().unwrap().block_number();
 
@@ -1381,7 +1381,7 @@ mod tests {
 
         starknet.generate_new_block(StateDiff::default()).unwrap();
 
-        let added_block2 = starknet.blocks.num_to_block.get(&BlockNumber(1)).unwrap();
+        let added_block2 = starknet.blocks.get_by_hash(starknet.blocks.last_block_hash.unwrap()).unwrap();
         let block_number2 = starknet.get_latest_block().unwrap().block_number();
 
         assert_eq!(block_number2.0, added_block2.header.block_number.0);
