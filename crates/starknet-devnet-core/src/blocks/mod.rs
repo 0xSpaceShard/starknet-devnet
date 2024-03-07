@@ -20,8 +20,8 @@ pub(crate) struct StarknetBlocks {
     pub(crate) num_to_block: HashMap<BlockNumber, StarknetBlock>,
     pub(crate) pending_block: StarknetBlock,
     pub(crate) last_block_hash: Option<BlockHash>,
-    pub(crate) num_to_state_diff: HashMap<BlockNumber, StateDiff>,
-    pub(crate) num_to_state: HashMap<BlockNumber, StarknetState>,
+    pub(crate) hash_to_state_diff: HashMap<BlockHash, StateDiff>,
+    pub(crate) hash_to_state: HashMap<BlockHash, StarknetState>,
 }
 
 impl HashIdentified for StarknetBlocks {
@@ -43,8 +43,8 @@ impl Default for StarknetBlocks {
             num_to_block: HashMap::new(),
             pending_block: StarknetBlock::create_pending_block(),
             last_block_hash: None,
-            num_to_state_diff: HashMap::new(),
-            num_to_state: HashMap::new(),
+            hash_to_state_diff: HashMap::new(),
+            hash_to_state: HashMap::new(),
         }
     }
 }
@@ -62,12 +62,12 @@ impl StarknetBlocks {
 
         self.hash_to_num.insert(hash, block_number);
         self.num_to_block.insert(block_number, block);
-        self.num_to_state_diff.insert(block_number, state_diff);
+        self.hash_to_state_diff.insert(hash, state_diff);
         self.last_block_hash = Some(hash);
     }
 
-    pub fn save_state_at(&mut self, block_number: BlockNumber, state: StarknetState) {
-        self.num_to_state.insert(block_number, state);
+    pub fn save_state_at(&mut self, block_hash: Felt, state: StarknetState) {
+        self.hash_to_state.insert(block_hash, state);
     }
 
     pub fn get_by_block_id(&self, block_id: &BlockId) -> Option<&StarknetBlock> {
