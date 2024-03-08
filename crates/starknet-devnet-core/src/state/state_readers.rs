@@ -99,7 +99,7 @@ impl BlockingOriginReader {
         let key: Felt = key.0.try_into().unwrap();
         Ok(
             match self.send_body(
-                "starknet_getStorage",
+                "starknet_getStorageAt",
                 serde_json::json!({
                     "contract_address": contract_address.to_prefixed_hex_str(),
                     "key": key.to_prefixed_hex_str(),
