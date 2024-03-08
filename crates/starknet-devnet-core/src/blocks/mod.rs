@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 
+use indexmap::IndexMap;
 use starknet_api::block::{BlockHeader, BlockNumber, BlockStatus, BlockTimestamp};
 use starknet_api::hash::{pedersen_hash_array, StarkFelt};
 use starknet_api::stark_felt;
@@ -16,7 +17,7 @@ use crate::state::StarknetState;
 use crate::traits::HashIdentified;
 
 pub(crate) struct StarknetBlocks {
-    pub(crate) num_to_hash: HashMap<BlockNumber, BlockHash>,
+    pub(crate) num_to_hash: IndexMap<BlockNumber, BlockHash>,
     pub(crate) hash_to_block: HashMap<BlockHash, StarknetBlock>,
     pub(crate) pending_block: StarknetBlock,
     pub(crate) last_block_hash: Option<BlockHash>,
@@ -38,7 +39,7 @@ impl HashIdentified for StarknetBlocks {
 impl Default for StarknetBlocks {
     fn default() -> Self {
         Self {
-            num_to_hash: HashMap::new(),
+            num_to_hash: IndexMap::new(),
             hash_to_block: HashMap::new(),
             pending_block: StarknetBlock::create_pending_block(),
             last_block_hash: None,
@@ -60,6 +61,9 @@ impl StarknetBlocks {
         let block_number = block.block_number();
 
         self.num_to_hash.insert(block_number, hash);
+
+        println!("insert {:?}", self.num_to_hash);
+
         self.hash_to_block.insert(hash, block);
         self.hash_to_state_diff.insert(hash, state_diff);
         self.last_block_hash = Some(hash);
@@ -127,6 +131,7 @@ impl StarknetBlocks {
         } else {
             None
         };
+        println!("self.num_to_hash: {:?}", self.num_to_hash);
 
         // iterate over the blocks and apply the filter
         // then insert the filtered blocks into the btree map
@@ -140,7 +145,10 @@ impl StarknetBlocks {
                     **current_block_number >= start && **current_block_number <= end
                 }
             })
-            .for_each(|(_, block_hash)| {
+            //.rev() - ? why this is needed?
+            .for_each(|(num, block_hash)| {
+                println!("num: {:?}", num);
+
                 let block = self.get_by_hash(*block_hash).unwrap(); // TODO: fix unwrap here
                 filtered_blocks.insert(*block_hash, block);
             });

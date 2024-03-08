@@ -27,9 +27,12 @@ pub(crate) fn get_events(
     mut skip: usize,
     limit: Option<usize>,
 ) -> DevnetResult<(Vec<EmittedEvent>, bool)> {
-    let blocks = starknet.blocks.get_blocks(from_block, to_block)?;
+    let mut blocks = starknet.blocks.get_blocks(from_block, to_block)?;
     let mut events: Vec<EmittedEvent> = Vec::new();
     let mut elements_added = 0;
+
+    // why this is needed?
+    blocks.reverse();
 
     // iterate over each block and get the transactions for each one
     // then iterate over each transaction events and filter them
@@ -360,7 +363,9 @@ mod tests {
     }
 
     #[test]
+
     fn check_correct_events_being_returned() {
+        // why it fails?
         let starknet = setup();
 
         // events with key 15 should be only 1 in the 5th transaction
@@ -369,7 +374,7 @@ mod tests {
                 .unwrap();
 
         assert_eq!(events.len(), 1);
-        assert_eq!(events[0].transaction_hash, Felt::from(104));
+        assert_eq!(events[0].transaction_hash, Felt::from(104)); // why?
         assert_eq!(events[0].keys.len(), 1);
         assert_eq!(events[0].keys[0], Felt::from(15));
         assert_eq!(events[0].data[0], Felt::from(25));
