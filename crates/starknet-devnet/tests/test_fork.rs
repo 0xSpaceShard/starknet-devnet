@@ -7,12 +7,12 @@ mod fork_tests {
     use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::chain_id;
-    use starknet_rs_core::types::FieldElement;
+    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, FunctionCall};
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::Provider;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::utils::get_events_contract_in_sierra_and_compiled_class_hash;
+    use crate::common::utils::get_simple_contract_in_sierra_and_compiled_class_hash;
 
     static DUMMY_ADDRESS: u128 = 1;
     static DUMMY_AMOUNT: u128 = 1;
@@ -87,22 +87,42 @@ mod fork_tests {
         assert_eq!(retrieved_result, expected_balance);
     }
 
+    async fn get_contract_balance(
+        devnet: &BackgroundDevnet,
+        contract_address: FieldElement,
+    ) -> FieldElement {
+        let contract_call = FunctionCall {
+            contract_address,
+            entry_point_selector: get_selector_from_name("get_balance").unwrap(),
+            calldata: vec![],
+        };
+        match devnet.json_rpc_client.call(contract_call, BlockId::Tag(BlockTag::Latest)).await {
+            Ok(res) => {
+                assert_eq!(res.len(), 1);
+                res[0]
+            }
+            Err(e) => panic!("Call failed: {e}"),
+        }
+    }
+
     #[tokio::test]
     async fn test_forking_local_declare_deploy_fork_invoke() {
-        let origin_devnet: BackgroundDevnet =
-            BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let origin_devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
+                .await
+                .unwrap();
 
         let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
-        let predeployed_account = SingleOwnerAccount::new(
+        let predeployed_account = Arc::new(SingleOwnerAccount::new(
             origin_devnet.clone_provider(),
-            signer,
+            signer.clone(),
             account_address,
             chain_id::TESTNET,
             ExecutionEncoding::New,
-        );
+        ));
 
         let (cairo_1_contract, casm_class_hash) =
-            get_events_contract_in_sierra_and_compiled_class_hash();
+            get_simple_contract_in_sierra_and_compiled_class_hash();
 
         // declare the contract
         let declaration_result = predeployed_account
@@ -112,52 +132,58 @@ mod fork_tests {
             .await
             .unwrap();
 
-        let predeployed_account = Arc::new(predeployed_account);
-
         // deploy the contract
         let contract_factory =
             ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
+        let initial_value = FieldElement::from(10_u32);
+        let ctor_args = vec![initial_value];
         contract_factory
-            .deploy(vec![], FieldElement::ZERO, false)
+            .deploy(ctor_args.clone(), FieldElement::ZERO, false)
             .max_fee(FieldElement::from(1e18 as u128))
             .send()
             .await
             .unwrap();
 
         // generate the address of the newly deployed contract
-        let new_contract_address = get_udc_deployed_address(
+        let contract_address = get_udc_deployed_address(
             FieldElement::ZERO,
             declaration_result.class_hash,
             &starknet_rs_core::utils::UdcUniqueness::NotUnique,
-            &[],
+            &ctor_args,
         );
+
+        // assert correctly deployed
+        assert_eq!(get_contract_balance(&origin_devnet, contract_address).await, initial_value);
 
         // fork devnet
         let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
             "--fork-network",
             origin_devnet.url.as_str(),
+            "--accounts",
+            "1", /* TODO ideally would work with 0; currently we're relying on the same set of
+                  * contract deployed on origin and fork */
         ])
         .await
         .unwrap();
 
-        let (fork_signer, fork_account_address) = fork_devnet.get_first_predeployed_account().await;
         let fork_predeployed_account = SingleOwnerAccount::new(
             fork_devnet.clone_provider(),
-            fork_signer,
-            fork_account_address,
+            signer,
+            account_address,
             chain_id::TESTNET,
             ExecutionEncoding::New,
         );
 
         // invoke on forked devnet
-        let events_contract_call = vec![Call {
-            to: new_contract_address,
-            selector: get_selector_from_name("emit_event").unwrap(),
-            calldata: vec![FieldElement::from(1u8)],
+        let increment = FieldElement::from(10_u32);
+        let contract_invoke = vec![Call {
+            to: contract_address,
+            selector: get_selector_from_name("increase_balance").unwrap(),
+            calldata: vec![increment],
         }];
 
         let invoke_result = fork_predeployed_account
-            .execute(events_contract_call.clone())
+            .execute(contract_invoke.clone())
             .max_fee(FieldElement::from(1e18 as u128))
             .send()
             .await

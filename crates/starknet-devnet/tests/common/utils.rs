@@ -13,6 +13,8 @@ use starknet_rs_signers::LocalWallet;
 use starknet_types::constants::MAX_BYTECODE_SIZE_LIMIT;
 use starknet_types::contract_class::compute_casm_class_hash;
 
+use super::constants::CAIRO_1_CONTRACT_PATH;
+
 pub async fn get_json_body(resp: Response<Body>) -> serde_json::Value {
     let resp_body = resp.into_body();
     let resp_body_bytes = hyper::body::to_bytes(resp_body).await.unwrap();
@@ -95,6 +97,12 @@ pub fn get_timestamp_contract_in_sierra_and_compiled_class_hash()
     let timestamp_sierra_path =
         concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo1/timestamp/timestamp.json");
     get_flattened_sierra_contract_and_casm_hash(timestamp_sierra_path)
+}
+
+pub fn get_simple_contract_in_sierra_and_compiled_class_hash()
+-> (FlattenedSierraClass, FieldElement) {
+    let contract_path = format!("{}/{}", env!("CARGO_MANIFEST_DIR"), CAIRO_1_CONTRACT_PATH);
+    get_flattened_sierra_contract_and_casm_hash(&contract_path)
 }
 
 pub async fn assert_tx_successful<T: Provider>(tx_hash: &FieldElement, client: &T) {
