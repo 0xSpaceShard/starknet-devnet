@@ -58,18 +58,19 @@ mod fork_tests {
     #[tokio::test]
     #[ignore = "Not supported"]
     async fn test_forking_local_genesis_block() {
-        let devnet: BackgroundDevnet =
-            BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+        let origin_devnet = BackgroundDevnet::spawn().await.unwrap();
 
-        devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
-        let latest_block = &devnet
+        origin_devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+        let latest_block = &origin_devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
 
-        let fork_devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--fork-network", devnet.url.as_str()])
-                .await
-                .expect("Could not start Devnet");
+        let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--fork-network",
+            origin_devnet.url.as_str(),
+        ])
+        .await
+        .unwrap();
 
         let fork_genesis_block = &fork_devnet
             .send_custom_rpc(
@@ -88,12 +89,12 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_forking_local_declare_deploy_fork_invoke() {
-        let devnet: BackgroundDevnet =
+        let origin_devnet: BackgroundDevnet =
             BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-        let (signer, account_address) = devnet.get_first_predeployed_account().await;
+        let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
         let predeployed_account = SingleOwnerAccount::new(
-            devnet.clone_provider(),
+            origin_devnet.clone_provider(),
             signer,
             account_address,
             chain_id::TESTNET,
@@ -132,10 +133,12 @@ mod fork_tests {
         );
 
         // fork devnet
-        let fork_devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--fork-network", devnet.url.as_str()])
-                .await
-                .expect("Could not start Devnet");
+        let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--fork-network",
+            origin_devnet.url.as_str(),
+        ])
+        .await
+        .unwrap();
 
         let (fork_signer, fork_account_address) = fork_devnet.get_first_predeployed_account().await;
         let fork_predeployed_account = SingleOwnerAccount::new(
@@ -155,7 +158,7 @@ mod fork_tests {
 
         let invoke_result = fork_predeployed_account
             .execute(events_contract_call.clone())
-            .max_fee(FieldElement::from(100000000000000000000u128))
+            .max_fee(FieldElement::from(1e18 as u128))
             .send()
             .await
             .unwrap();
