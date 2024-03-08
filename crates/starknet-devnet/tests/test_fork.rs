@@ -88,10 +88,8 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_forking_local_declare_deploy_fork_invoke() {
-        let devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
-                .await
-                .expect("Could not start Devnet");
+        let devnet: BackgroundDevnet =
+            BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
         let predeployed_account = SingleOwnerAccount::new(
@@ -134,14 +132,10 @@ mod fork_tests {
         );
 
         // fork devnet
-        let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
-            "--fork-network",
-            devnet.url.as_str(),
-            "--state-archive-capacity",
-            "full",
-        ])
-        .await
-        .expect("Could not start Devnet");
+        let fork_devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--fork-network", devnet.url.as_str()])
+                .await
+                .expect("Could not start Devnet");
 
         let (fork_signer, fork_account_address) = fork_devnet.get_first_predeployed_account().await;
         let fork_predeployed_account = SingleOwnerAccount::new(
