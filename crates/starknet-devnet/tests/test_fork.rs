@@ -25,12 +25,10 @@ mod fork_tests {
     #[tokio::test]
     #[ignore = "Not supported"]
     async fn test_forking_sepolia_genesis_block() {
-        let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
-            "--fork-network",
-            SEPOLIA_URL,
-        ])
-        .await
-        .expect("Could not start Devnet");
+        let fork_devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--fork-network", SEPOLIA_URL])
+                .await
+                .expect("Could not start Devnet");
 
         let fork_genesis_block = &fork_devnet
             .send_custom_rpc(
@@ -45,16 +43,11 @@ mod fork_tests {
     #[tokio::test]
     #[ignore = "Not supported"]
     async fn test_forking_sepolia_contract_call_get_balance() {
-        let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
-            "--fork-network",
-            SEPOLIA_URL,
-            "--accounts",
-            "0",
-        ])
-        .await
-        .expect("Could not start Devnet");
+        let fork_devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--fork-network", SEPOLIA_URL])
+                .await
+                .expect("Could not start Devnet");
 
-        // TODO: This should fail or get balance = 0? Maybe call for something different?
         let contract_address = FieldElement::from_hex_be(SEPOLIA_ACCOUNT_ADDRESS).unwrap();
         let retrieved_result = fork_devnet.get_balance(&contract_address).await.unwrap();
 
@@ -67,21 +60,16 @@ mod fork_tests {
     async fn test_forking_local_genesis_block() {
         let devnet: BackgroundDevnet =
             BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        
-        // devnet.post_json("/create_block".into(),
-        // Body::from(json!({}).to_string())).await.unwrap();
-        
+
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
         let latest_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
 
-        let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
-            "--fork-network",
-            devnet.url.as_str(),
-        ])
-        .await
-        .expect("Could not start Devnet");
+        let fork_devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--fork-network", devnet.url.as_str()])
+                .await
+                .expect("Could not start Devnet");
 
         let fork_genesis_block = &fork_devnet
             .send_custom_rpc(
@@ -94,17 +82,16 @@ mod fork_tests {
         let retrieved_result =
             fork_devnet.get_balance(&FieldElement::from(DUMMY_ADDRESS)).await.unwrap();
         let expected_balance = FieldElement::from(DUMMY_AMOUNT);
+
         assert_eq!(retrieved_result, expected_balance);
     }
 
     #[tokio::test]
     async fn test_forking_local_declare_deploy_fork_invoke() {
-        let devnet = BackgroundDevnet::spawn_with_additional_args(&[
-            "--state-archive-capacity",
-            "full",
-        ])
-        .await
-        .expect("Could not start Devnet");
+        let devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
+                .await
+                .expect("Could not start Devnet");
 
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
         let predeployed_account = SingleOwnerAccount::new(
@@ -146,8 +133,6 @@ mod fork_tests {
             &[],
         );
 
-        println!("devnet.url {:?}", devnet.url.as_str());
-
         // fork devnet
         let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
             "--fork-network",
@@ -157,8 +142,6 @@ mod fork_tests {
         ])
         .await
         .expect("Could not start Devnet");
-    
-        println!("fork_devnet.url {:?}", fork_devnet.url.as_str());
 
         let (fork_signer, fork_account_address) = fork_devnet.get_first_predeployed_account().await;
         let fork_predeployed_account = SingleOwnerAccount::new(
@@ -168,7 +151,6 @@ mod fork_tests {
             chain_id::TESTNET,
             ExecutionEncoding::New,
         );
-        println!("fork_signer");
 
         // invoke on forked devnet
         let events_contract_call = vec![Call {
@@ -176,7 +158,6 @@ mod fork_tests {
             selector: get_selector_from_name("emit_event").unwrap(),
             calldata: vec![FieldElement::from(1u8)],
         }];
-        println!("events_contract_call");
 
         let invoke_result = fork_predeployed_account
             .execute(events_contract_call.clone())
@@ -185,16 +166,12 @@ mod fork_tests {
             .await
             .unwrap();
 
-        println!("invoke_result {:?}", invoke_result);
-
         // check invoke transaction
         let invoke_tx = fork_devnet
             .json_rpc_client
             .get_transaction_by_hash(invoke_result.transaction_hash)
             .await
             .unwrap();
-
-        println!("invoke_tx {:?}", invoke_tx);
 
         if let starknet_rs_core::types::Transaction::Invoke(
             starknet_rs_core::types::InvokeTransaction::V1(invoke_v1),
