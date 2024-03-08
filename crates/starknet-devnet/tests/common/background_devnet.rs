@@ -40,7 +40,7 @@ pub struct BackgroundDevnet {
     pub http_client: Client<HttpConnector>,
     pub json_rpc_client: JsonRpcClient<HttpTransport>,
     pub process: Child,
-    url: String,
+    pub url: String,
     rpc_url: Url,
 }
 
