@@ -1,9 +1,4 @@
 use blockifier::versioned_constants::VersionedConstants;
-use starknet_rs_ff::FieldElement;
-use starknet_types::felt::Felt;
-use starknet_types::patricia_key::{PatriciaKey, StorageKey};
-
-use crate::error::DevnetResult;
 
 pub mod random_number_generator {
     use rand::{thread_rng, Rng, SeedableRng};
@@ -23,20 +18,6 @@ pub mod random_number_generator {
 
         result
     }
-}
-
-/// Returns the storage address of a Starknet storage variable given its name and arguments.
-pub(crate) fn get_storage_var_address(
-    storage_var_name: &str,
-    args: &[Felt],
-) -> DevnetResult<StorageKey> {
-    let storage_var_address = starknet_rs_core::utils::get_storage_var_address(
-        storage_var_name,
-        &args.iter().map(|f| FieldElement::from(*f)).collect::<Vec<FieldElement>>(),
-    )
-    .map_err(|err| crate::error::Error::UnexpectedInternalError { msg: err.to_string() })?;
-
-    Ok(PatriciaKey::new(Felt::new(storage_var_address.to_bytes_be())?)?)
 }
 
 pub(crate) fn get_versioned_constants() -> VersionedConstants {
@@ -214,44 +195,11 @@ pub mod exported_test_utils {
 
 #[cfg(test)]
 mod tests {
-    use starknet_types::traits::ToHexString;
-
-    use super::get_storage_var_address;
-    use super::test_utils::{self, get_bytes_from_u32};
+    use super::test_utils::{get_bytes_from_u32};
 
     #[test]
     fn correct_bytes_from_number() {
         let result = get_bytes_from_u32(123);
         assert!(result[31] == 123)
-    }
-
-    #[test]
-    fn correct_simple_storage_var_address_generated() {
-        let expected_storage_var_address =
-            blockifier::abi::abi_utils::get_storage_var_address("simple", &[]);
-        let generated_storage_var_address = get_storage_var_address("simple", &[]).unwrap();
-
-        assert_eq!(
-            expected_storage_var_address.0.key().bytes(),
-            generated_storage_var_address.to_felt().bytes()
-        );
-    }
-
-    #[test]
-    fn correct_complex_storage_var_address_generated() {
-        let prefixed_hex_felt_string = test_utils::dummy_felt().to_prefixed_hex_str();
-
-        let expected_storage_var_address = blockifier::abi::abi_utils::get_storage_var_address(
-            "complex",
-            &[prefixed_hex_felt_string.as_str().try_into().unwrap()],
-        );
-
-        let generated_storage_var_address =
-            get_storage_var_address("complex", &[test_utils::dummy_felt()]).unwrap();
-
-        assert_eq!(
-            expected_storage_var_address.0.key().bytes(),
-            generated_storage_var_address.to_felt().bytes()
-        );
     }
 }

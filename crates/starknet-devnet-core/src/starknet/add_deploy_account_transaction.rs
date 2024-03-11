@@ -102,6 +102,7 @@ mod tests {
     use nonzero_ext::nonzero;
     use starknet_api::transaction::{Fee, Tip};
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
+    use starknet_rs_core::utils::get_storage_var_address;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::Cairo0Json;
     use starknet_types::contract_storage_key::ContractStorageKey;
@@ -119,7 +120,7 @@ mod tests {
     use crate::error::Error;
     use crate::starknet::{predeployed, Starknet};
     use crate::traits::{Deployed, HashIdentifiedMut, StateChanger, StateExtractor};
-    use crate::utils::get_storage_var_address;
+    use starknet_rs_core::types::FieldElement;
 
     fn test_deploy_account_transaction_v3(
         class_hash: ClassHash,
@@ -247,7 +248,11 @@ mod tests {
         // change balance at address
         let account_address = ContractAddress::from(blockifier_transaction.contract_address);
         let balance_storage_var_address =
-            get_storage_var_address("ERC20_balances", &[account_address.into()]).unwrap();
+            starknet_types::patricia_key::PatriciaKey::new(Felt::new(
+                get_storage_var_address(
+                    "ERC20_balances",
+                    &[FieldElement::from(account_address)],
+                ).unwrap().to_bytes_be()).unwrap()).unwrap();
         let balance_storage_key =
             ContractStorageKey::new(eth_fee_token_address, balance_storage_var_address);
 
@@ -276,7 +281,11 @@ mod tests {
         // change balance at address
         let account_address = ContractAddress::from(blockifier_transaction.contract_address);
         let balance_storage_var_address =
-            get_storage_var_address("ERC20_balances", &[account_address.into()]).unwrap();
+            starknet_types::patricia_key::PatriciaKey::new(Felt::new(
+                get_storage_var_address(
+                    "ERC20_balances",
+                    &[FieldElement::from(account_address)],
+                ).unwrap().to_bytes_be()).unwrap()).unwrap();
         let balance_storage_key =
             ContractStorageKey::new(strk_fee_token_address, balance_storage_var_address);
 
@@ -327,7 +336,11 @@ mod tests {
         // change balance at address
         let account_address = ContractAddress::from(blockifier_transaction.contract_address);
         let balance_storage_var_address =
-            get_storage_var_address("ERC20_balances", &[account_address.into()]).unwrap();
+            starknet_types::patricia_key::PatriciaKey::new(Felt::new(
+                get_storage_var_address(
+                    "ERC20_balances",
+                    &[FieldElement::from(account_address)],
+                ).unwrap().to_bytes_be()).unwrap()).unwrap();
         let balance_storage_key =
             ContractStorageKey::new(eth_fee_token_address, balance_storage_var_address);
 

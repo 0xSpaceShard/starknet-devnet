@@ -21,7 +21,6 @@ starknet-rs-signers = { workspace = true }
 starknet-rs-ff = { workspace = true }
 starknet-rs-core = { workspace = true }
 starknet-types = { workspace = true }
-
 rand = { workspace = true }
 rand_mt = { workspace = true }
 tracing = { workspace = true }
