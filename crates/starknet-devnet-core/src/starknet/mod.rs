@@ -47,6 +47,7 @@ use starknet_types::rpc::transactions::{
 use starknet_types::traits::HashProducer;
 use tracing::{error, info};
 
+use self::defaulter::Defaulter;
 use self::dump::DumpEvent;
 use self::predeployed::initialize_erc20_at_address;
 use self::starknet_config::{DumpOn, StarknetConfig, StateArchiveCapacity};
@@ -73,6 +74,7 @@ mod add_declare_transaction;
 mod add_deploy_account_transaction;
 mod add_invoke_transaction;
 mod add_l1_handler_transaction;
+pub(crate) mod defaulter;
 pub mod dump;
 mod estimations;
 mod events;
@@ -95,6 +97,7 @@ pub struct Starknet {
     pub next_block_timestamp: Option<u64>,
     pub(crate) messaging: MessagingBroker,
     pub(crate) dump_events: Vec<DumpEvent>,
+    pub(crate) defaulter: Defaulter,
 }
 
 impl Default for Starknet {
@@ -115,6 +118,7 @@ impl Default for Starknet {
             next_block_timestamp: None,
             messaging: Default::default(),
             dump_events: Default::default(),
+            defaulter: Defaulter::default(),
         }
     }
 }
@@ -187,6 +191,7 @@ impl Starknet {
             next_block_timestamp: None,
             messaging: Default::default(),
             dump_events: Default::default(),
+            defaulter: Defaulter::default(),
         };
 
         this.restart_pending_block()?;

@@ -14,6 +14,7 @@ use starknet_types::felt::{ClassHash, Felt};
 use self::state_diff::StateDiff;
 use self::state_readers::DictState;
 use crate::error::{DevnetResult, Error};
+use crate::starknet::defaulter::Defaulter;
 use crate::starknet::starknet_config::ForkConfig;
 
 pub(crate) mod state_diff;
@@ -96,7 +97,7 @@ impl StarknetState {
     pub fn new(fork_config: ForkConfig) -> Self {
         Self {
             state: CachedState::new(
-                DictState::new(fork_config),
+                DictState::new(Defaulter::new(fork_config)),
                 GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
             ),
             rpc_contract_classes: Default::default(),

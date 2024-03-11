@@ -56,10 +56,11 @@ mod fork_tests {
     }
 
     #[tokio::test]
-    #[ignore = "Not supported"]
     async fn test_forking_local_genesis_block() {
-        let origin_devnet = BackgroundDevnet::spawn().await.unwrap();
+        let origin_devnet = BackgroundDevnet::spawn().await.unwrap(); // TODO state archive capacity
 
+        // change state and create block (without the block, there is nothing to fork from since
+        // there is no genesis block by default)
         origin_devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
         let latest_block = &origin_devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
@@ -72,13 +73,13 @@ mod fork_tests {
         .await
         .unwrap();
 
-        let fork_genesis_block = &fork_devnet
+        let block_resp = &fork_devnet
             .send_custom_rpc(
                 "starknet_getBlockWithTxHashes",
-                json!({ "block_id": latest_block["block_hash"] }),
+                json!({ "block_id": { "block_hash": latest_block["block_hash"] } }),
             )
-            .await["result"];
-        assert_eq!(fork_genesis_block["block_number"], 0);
+            .await;
+        assert_eq!(block_resp["result"]["block_number"], 0);
 
         let retrieved_result =
             fork_devnet.get_balance(&FieldElement::from(DUMMY_ADDRESS)).await.unwrap();
@@ -106,6 +107,7 @@ mod fork_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Not supported"]
     async fn test_forking_local_declare_deploy_fork_invoke() {
         let origin_devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
