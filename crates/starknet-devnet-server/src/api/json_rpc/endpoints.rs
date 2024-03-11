@@ -270,7 +270,7 @@ impl JsonRpcHandler {
     ) -> StrictRpcResult {
         let mut starknet = self.api.starknet.write().await;
         match starknet.estimate_fee(block_id.as_ref(), &request, &simulation_flags) {
-            Ok(result) => Ok(StarknetResponse::EsimateFee(result)),
+            Ok(result) => Ok(StarknetResponse::EstimateFee(result)),
             Err(Error::ContractNotFound) => Err(ApiError::ContractNotFound),
             Err(Error::NoBlock) => Err(ApiError::BlockNotFound),
             Err(err) => Err(ApiError::ContractError { error: err }),

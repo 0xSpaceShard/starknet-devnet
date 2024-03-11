@@ -489,7 +489,7 @@ mod tests {
     }
 
     #[test]
-    fn get_nonce_should_return_zerp_when_contract_not_deployed() {
+    fn get_nonce_should_return_zero_when_contract_not_deployed() {
         let (mut state, _) = setup();
 
         let dummy_address = starknet_api::core::ContractAddress::from(1_u32);

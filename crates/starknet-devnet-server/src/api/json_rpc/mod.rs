@@ -335,7 +335,7 @@ pub enum StarknetResponse {
     ClassAtContractAddress(CodegenContractClass),
     BlockTransactionCount(u64),
     Call(Vec<Felt>),
-    EsimateFee(Vec<FeeEstimateWrapper>),
+    EstimateFee(Vec<FeeEstimateWrapper>),
     BlockNumber(BlockNumber),
     BlockHashAndNumber(BlockHashAndNumberOutput),
     ChainId(String),
