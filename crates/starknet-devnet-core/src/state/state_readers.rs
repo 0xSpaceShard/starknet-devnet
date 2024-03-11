@@ -8,7 +8,7 @@ use blockifier::state::state_api::{StateReader, StateResult};
 use starknet_api::core::{ClassHash, CompiledClassHash, ContractAddress, Nonce};
 use starknet_api::hash::StarkFelt;
 use starknet_api::state::StorageKey;
-use starknet_types::contract_class::convert_codegen_to_blockifier_class;
+use starknet_types::contract_class::convert_codegen_to_blockifier_compiled_class;
 use starknet_types::felt::Felt;
 use starknet_types::traits::ToHexString;
 
@@ -80,6 +80,7 @@ impl BlockingOriginReader {
                 let mut buff = vec![];
                 resp.read_to_end(&mut buff).unwrap();
                 let value: serde_json::Value = serde_json::from_slice(&buff).unwrap();
+                // TODO perhaps deal with error here?
                 let result = &value["result"];
                 Ok(result.clone())
             }
@@ -155,7 +156,7 @@ impl BlockingOriginReader {
             Ok(value) => {
                 let contract_class: starknet_rs_core::types::ContractClass =
                     serde_json::from_value(value).unwrap();
-                convert_codegen_to_blockifier_class(contract_class)
+                convert_codegen_to_blockifier_compiled_class(contract_class)
             }
         }
     }

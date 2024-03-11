@@ -5,11 +5,12 @@ use blockifier::execution::contract_class::ClassInfo;
 use blockifier::state::errors::StateError;
 use cairo_lang_starknet_classes::casm_contract_class::{CasmContractClass, CasmContractEntryPoint};
 use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
+use serde::de::IntoDeserializer;
 use serde::{Serialize, Serializer};
 use starknet_api::deprecated_contract_class::EntryPointType;
 use starknet_rs_core::types::contract::{SierraClass, SierraClassDebugInfo};
 use starknet_rs_core::types::{
-    ContractClass as CodegenContractClass, FlattenedSierraClass as CodegenSierraContracrClass,
+    ContractClass as CodegenContractClass, FlattenedSierraClass as CodegenSierraContractClass,
 };
 use starknet_rs_crypto::poseidon_hash_many;
 use starknet_rs_ff::FieldElement;
@@ -17,6 +18,7 @@ use starknet_rs_ff::FieldElement;
 use crate::constants::MAX_BYTECODE_SIZE_LIMIT;
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
 use crate::felt::Felt;
+use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
 use crate::traits::HashProducer;
 
 pub mod deprecated;
@@ -120,6 +122,7 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ContractC
                     deprecated_contract_class.try_into()?,
                 ))
             }
+            // TODO consider using in state/mod.rs in declaration code
             ContractClass::Cairo1(sierra_contract_class) => {
                 let casm_contract_class = CasmContractClass::from_contract_class(
                     sierra_contract_class,
@@ -228,7 +231,7 @@ impl TryInto<CodegenContractClass> for ContractClass {
 
 fn convert_sierra_to_codegen(
     contract_class: &SierraContractClass,
-) -> DevnetResult<CodegenSierraContracrClass> {
+) -> DevnetResult<CodegenSierraContractClass> {
     let abi = serde_json::to_string(&contract_class.abi).map_err(JsonError::SerdeJsonError)?;
     let sierra_program = contract_class
         .sierra_program
@@ -245,7 +248,7 @@ fn convert_sierra_to_codegen(
     let entry_points_by_type =
         serde_json::from_value(entry_points_by_type_value).map_err(JsonError::SerdeJsonError)?;
 
-    Ok(CodegenSierraContracrClass {
+    Ok(CodegenSierraContractClass {
         sierra_program,
         contract_class_version: contract_class.contract_class_version.clone(),
         entry_points_by_type,
@@ -253,21 +256,18 @@ fn convert_sierra_to_codegen(
     })
 }
 
-pub fn convert_codegen_to_blockifier_class(
+pub fn convert_codegen_to_blockifier_compiled_class(
     class: CodegenContractClass,
 ) -> Result<blockifier::execution::contract_class::ContractClass, StateError> {
-    let class_jsonified =
-        serde_json::to_string(&class).map_err(|e| StateError::StateReadError(e.to_string()))?;
     Ok(match class {
         CodegenContractClass::Sierra(_) => {
-            let class =
-                blockifier::execution::contract_class::ContractClassV1::try_from_json_string(
-                    &class_jsonified,
-                )
-                .map_err(|e| StateError::StateReadError(e.to_string()))?;
-            blockifier::execution::contract_class::ContractClass::V1(class)
+            let json_value = serde_json::to_value(class).unwrap();
+            let devnet_class =
+                deserialize_to_sierra_contract_class(json_value.into_deserializer()).unwrap();
+            ContractClass::Cairo1(devnet_class).try_into().unwrap()
         }
         CodegenContractClass::Legacy(_) => {
+            let class_jsonified = serde_json::to_string(&class).unwrap();
             let class =
                 blockifier::execution::contract_class::ContractClassV0::try_from_json_string(
                     &class_jsonified,

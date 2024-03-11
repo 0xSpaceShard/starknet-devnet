@@ -7,7 +7,7 @@ mod fork_tests {
     use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::chain_id;
-    use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, FunctionCall};
+    use starknet_rs_core::types::{BlockId, BlockTag, ExecutionResult, FieldElement, FunctionCall};
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::Provider;
 
@@ -160,11 +160,12 @@ mod fork_tests {
             "--fork-network",
             origin_devnet.url.as_str(),
             "--accounts",
-            "1", /* TODO ideally would work with 0; currently we're relying on the same set of
-                  * contract deployed on origin and fork */
+            "0",
         ])
         .await
         .unwrap();
+
+        assert_eq!(get_contract_balance(&fork_devnet, contract_address).await, initial_value);
 
         let fork_predeployed_account = SingleOwnerAccount::new(
             fork_devnet.clone_provider(),
@@ -175,11 +176,11 @@ mod fork_tests {
         );
 
         // invoke on forked devnet
-        let increment = FieldElement::from(10_u32);
+        let increment = FieldElement::from(5_u32);
         let contract_invoke = vec![Call {
             to: contract_address,
             selector: get_selector_from_name("increase_balance").unwrap(),
-            calldata: vec![increment],
+            calldata: vec![increment, FieldElement::ZERO],
         }];
 
         let invoke_result = fork_predeployed_account
@@ -190,19 +191,18 @@ mod fork_tests {
             .unwrap();
 
         // check invoke transaction
-        let invoke_tx = fork_devnet
+        let invoke_receipt = fork_devnet
             .json_rpc_client
-            .get_transaction_by_hash(invoke_result.transaction_hash)
+            .get_transaction_receipt(invoke_result.transaction_hash)
             .await
             .unwrap();
+        assert_eq!(*invoke_receipt.execution_result(), ExecutionResult::Succeeded);
 
-        if let starknet_rs_core::types::Transaction::Invoke(
-            starknet_rs_core::types::InvokeTransaction::V1(invoke_v1),
-        ) = invoke_tx
-        {
-            assert_eq!(invoke_v1.transaction_hash, invoke_result.transaction_hash);
-        } else {
-            panic!("Could not unpack the transaction from {invoke_tx:?}");
-        }
+        // assert origin intact and fork changed
+        assert_eq!(get_contract_balance(&origin_devnet, contract_address).await, initial_value);
+        assert_eq!(
+            get_contract_balance(&fork_devnet, contract_address).await,
+            initial_value + increment
+        );
     }
 }
