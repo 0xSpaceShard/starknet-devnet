@@ -1,6 +1,7 @@
 pub mod api;
 pub mod builder;
 mod config;
+pub mod error;
 pub mod rpc_core;
 /// handlers for axum server
 pub mod rpc_handler;

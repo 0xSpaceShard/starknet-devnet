@@ -1,6 +1,6 @@
 pub mod common;
 
-mod estimate_fee_tests {
+mod simulation_tests {
     use std::sync::Arc;
 
     use serde_json::json;
@@ -12,10 +12,13 @@ mod estimate_fee_tests {
     };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
-    use starknet_rs_core::types::{BroadcastedInvokeTransaction, FieldElement};
+    use starknet_rs_core::types::{
+        BlockId, BlockTag, BroadcastedInvokeTransaction, FieldElement, FunctionCall,
+    };
     use starknet_rs_core::utils::{
         get_selector_from_name, get_udc_deployed_address, UdcUniqueness,
     };
+    use starknet_rs_providers::Provider;
     use starknet_rs_signers::Signer;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -440,5 +443,20 @@ mod estimate_fee_tests {
             &sender_address_hex,
             max_fee == FieldElement::ZERO,
         );
+
+        // assert simulations haven't changed the balance property
+        let final_balance = devnet
+            .json_rpc_client
+            .call(
+                FunctionCall {
+                    contract_address,
+                    entry_point_selector: get_selector_from_name("get_balance").unwrap(),
+                    calldata: vec![],
+                },
+                BlockId::Tag(BlockTag::Latest),
+            )
+            .await
+            .unwrap();
+        assert_eq!(final_balance, vec![FieldElement::ZERO]);
     }
 }

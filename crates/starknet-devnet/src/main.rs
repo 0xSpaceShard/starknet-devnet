@@ -83,6 +83,7 @@ async fn main() -> Result<(), anyhow::Error> {
     // parse arguments
     let args = Args::parse();
     let starknet_config = args.to_starknet_config()?;
+
     let mut addr: SocketAddr = SocketAddr::new(starknet_config.host, starknet_config.port);
 
     let api = Api::new(Starknet::new(&starknet_config)?);
@@ -105,7 +106,7 @@ async fn main() -> Result<(), anyhow::Error> {
     );
 
     let server =
-        serve_http_api_json_rpc(addr, ServerConfig::default(), api.clone(), &starknet_config);
+        serve_http_api_json_rpc(addr, ServerConfig::default(), api.clone(), &starknet_config)?;
     addr = server.local_addr();
 
     info!("Starknet Devnet listening on {}", addr);

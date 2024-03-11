@@ -115,8 +115,8 @@ pub(crate) struct Args {
 impl Args {
     pub(crate) fn to_starknet_config(&self) -> Result<StarknetConfig, anyhow::Error> {
         // use account-class-custom if specified; otherwise default to predefined account-class
-        let account_class_wrapper = match self.account_class_custom.clone() {
-            Some(account_class_custom) => account_class_custom,
+        let account_class_wrapper = match &self.account_class_custom {
+            Some(account_class_custom) => account_class_custom.clone(),
             None => self.account_class_choice.get_class_wrapper()?,
         };
 

@@ -35,7 +35,7 @@ mod tests {
     };
     use crate::starknet::{predeployed, Starknet};
     use crate::state::state_diff::StateDiff;
-    use crate::traits::{Accounted, Deployed, HashIdentifiedMut};
+    use crate::traits::{Deployed, HashIdentifiedMut};
     use crate::utils::test_utils::{dummy_cairo_1_contract_class, dummy_felt};
 
     #[test]
@@ -88,9 +88,6 @@ mod tests {
         }
         .into();
 
-        // check only 3 of the 4 fields, because the inner property has changes to the storage of
-        // the ERC20 contract which are hard to be tested correctly, it depends on the fee
-        // calculation of starknet_in_rust_library
         assert_eq!(
             state_diff.deprecated_declared_classes,
             expected_state_diff.deprecated_declared_classes
@@ -125,9 +122,7 @@ mod tests {
         .unwrap();
 
         acc.deploy(&mut starknet.state).unwrap();
-        acc.set_initial_balance(&mut starknet.state).unwrap();
 
-        starknet.state.clear_dirty_state();
         starknet.block_context = Starknet::init_block_context(
             nonzero!(1u128),
             constants::ETH_ERC20_CONTRACT_ADDRESS,

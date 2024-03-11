@@ -18,7 +18,7 @@ pub async fn get_fee_token() -> HttpApiResult<Json<FeeToken>> {
 
 /// get the balance of the `address`
 fn get_balance(
-    starknet: &Starknet,
+    starknet: &mut Starknet,
     address: ContractAddress,
     erc20_address: ContractAddress,
 ) -> Result<BigUint, ApiError> {
@@ -69,7 +69,7 @@ pub async fn mint(
         .await
         .map_err(|err| HttpApiError::MintingError { msg: err.to_string() })?;
 
-    let new_balance = get_balance(&starknet, request.address, erc20_address)
+    let new_balance = get_balance(&mut starknet, request.address, erc20_address)
         .map_err(|err| HttpApiError::MintingError { msg: err.to_string() })?;
 
     Ok(Json(MintTokensResponse { new_balance: new_balance.to_str_radix(10), unit, tx_hash }))

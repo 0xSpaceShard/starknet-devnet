@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use blockifier::state::state_api::StateReader;
 use starknet_api::core::{calculate_contract_address, PatriciaKey};
 use starknet_api::hash::{StarkFelt, StarkHash};
 use starknet_api::transaction::{Calldata, ContractAddressSalt};
@@ -19,7 +20,9 @@ use crate::constants::{
     CHARGEABLE_ACCOUNT_PUBLIC_KEY,
 };
 use crate::error::DevnetResult;
-use crate::traits::{Accounted, Deployed, StateChanger, StateExtractor};
+use crate::state::state_readers::DictState;
+use crate::state::{CustomState, StarknetState};
+use crate::traits::{Accounted, Deployed};
 
 /// data taken from https://github.com/0xSpaceShard/starknet-devnet/blob/fb96e0cc3c1c31fb29892ecefd2a670cf8a32b51/starknet_devnet/account.py
 const ACCOUNT_CLASS_HASH_HEX_FOR_ADDRESS_COMPUTATION: &str =
@@ -127,24 +130,26 @@ impl Account {
 }
 
 impl Deployed for Account {
-    fn deploy(&self, state: &mut (impl StateChanger + StateExtractor)) -> DevnetResult<()> {
-        // declare if not declared
-        if !state.is_contract_declared(&self.class_hash) {
-            state.declare_contract_class(self.class_hash, self.contract_class.clone())?;
-        }
+    fn deploy(&self, state: &mut StarknetState) -> DevnetResult<()> {
+        self.declare_if_undeclared(state, self.class_hash, &self.contract_class)?;
 
-        // deploy
-        state.deploy_contract(self.account_address, self.class_hash)?;
+        state.predeploy_contract(self.account_address, self.class_hash)?;
 
-        // set public key
+        // set public key directly in the most underlying state
         let public_key_storage_var = starknet_types::patricia_key::PatriciaKey::new(Felt::new(
             get_storage_var_address("Account_public_key", &[])
                 .map_err(|_| Error::ProgramError)?
                 .to_bytes_be(),
         )?)?;
 
-        let storage_key = ContractStorageKey::new(self.account_address, public_key_storage_var);
-        state.change_storage(storage_key, self.public_key)?;
+        state.state.state.set_storage_at(
+            self.account_address.try_into()?,
+            public_key_storage_var.try_into()?,
+            self.public_key.into(),
+        )?;
+
+        // set balance directly in the most underlying state
+        self.set_initial_balance(&mut state.state.state)?;
 
         Ok(())
     }
@@ -155,7 +160,7 @@ impl Deployed for Account {
 }
 
 impl Accounted for Account {
-    fn set_initial_balance(&self, state: &mut impl StateChanger) -> DevnetResult<()> {
+    fn set_initial_balance(&self, state: &mut DictState) -> DevnetResult<()> {
         let storage_var_address = starknet_types::patricia_key::PatriciaKey::new(Felt::new(
             get_storage_var_address(
                 "ERC20_balances",
@@ -166,24 +171,26 @@ impl Accounted for Account {
         )?)?;
 
         for fee_token_address in [self.eth_fee_token_address, self.strk_fee_token_address] {
-            let storage_key = ContractStorageKey::new(fee_token_address, storage_var_address);
-
-            state.change_storage(storage_key, self.initial_balance)?;
+            state.set_storage_at(
+                fee_token_address.try_into()?,
+                storage_var_address.try_into()?,
+                self.initial_balance.into(),
+            )?;
         }
 
         Ok(())
     }
 
-    fn get_balance(
-        &self,
-        state: &mut impl StateExtractor,
-        token: FeeToken,
-    ) -> DevnetResult<Balance> {
+    fn get_balance(&self, state: &mut impl StateReader, token: FeeToken) -> DevnetResult<Balance> {
         let balance_storage_key = match token {
             FeeToken::ETH => self.eth_balance_storage_key()?,
             FeeToken::STRK => self.strk_balance_storage_key()?,
         };
-        state.get_storage(balance_storage_key)
+        let balance = state.get_storage_at(
+            (*balance_storage_key.get_contract_address()).try_into()?,
+            (*balance_storage_key.get_storage_key()).try_into()?,
+        )?;
+        Ok(balance.into())
     }
 }
 
@@ -197,8 +204,8 @@ mod tests {
     use super::Account;
     use crate::account::FeeToken;
     use crate::constants::CAIRO_1_ERC20_CONTRACT_CLASS_HASH;
-    use crate::state::StarknetState;
-    use crate::traits::{Accounted, Deployed, StateChanger};
+    use crate::state::{CustomState, StarknetState};
+    use crate::traits::{Accounted, Deployed};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{dummy_contract_address, dummy_felt};
     use starknet_rs_core::types::FieldElement;
@@ -283,24 +290,11 @@ mod tests {
     }
 
     #[test]
-    fn account_get_balance_should_return_zero_because_balance_was_not_set() {
-        let (account, mut state) = setup();
-
-        account.deploy(&mut state).unwrap();
-        let balance = account.get_balance(&mut state, FeeToken::ETH).unwrap();
-        assert_eq!(balance, Felt::from(0));
-
-        let balance = account.get_balance(&mut state, FeeToken::STRK).unwrap();
-        assert_eq!(balance, Felt::from(0));
-    }
-
-    #[test]
     fn account_get_balance_should_return_correct_value() {
         let (mut account, mut state) = setup();
         let expected_balance = Felt::from(100);
         account.initial_balance = expected_balance;
         account.deploy(&mut state).unwrap();
-        account.set_initial_balance(&mut state).unwrap();
         let generated_balance = account.get_balance(&mut state, FeeToken::ETH).unwrap();
 
         assert_eq!(expected_balance, generated_balance);
@@ -313,7 +307,7 @@ mod tests {
     #[test]
     fn account_changed_balance_successfully_without_deployment() {
         let (account, mut state) = setup();
-        assert!(account.set_initial_balance(&mut state).is_ok());
+        assert!(account.set_initial_balance(&mut state.state.state).is_ok());
     }
 
     #[test]
@@ -330,7 +324,7 @@ mod tests {
 
         // deploy the erc20 contract
         state
-            .deploy_contract(
+            .predeploy_contract(
                 fee_token_address,
                 Felt::from_prefixed_hex_str(CAIRO_1_ERC20_CONTRACT_CLASS_HASH).unwrap(),
             )

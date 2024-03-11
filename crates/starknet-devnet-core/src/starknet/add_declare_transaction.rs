@@ -126,10 +126,15 @@ pub fn add_declare_transaction_v1(
 
 #[cfg(test)]
 mod tests {
+    use blockifier::state::state_api::StateReader;
     use nonzero_ext::nonzero;
     use starknet_api::block::BlockNumber;
+    use starknet_api::core::CompiledClassHash;
+    use starknet_api::hash::StarkHash;
     use starknet_api::transaction::Fee;
-    use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
+    use starknet_rs_core::types::{
+        BlockId, BlockTag, TransactionExecutionStatus, TransactionFinalityStatus,
+    };
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
@@ -143,7 +148,8 @@ mod tests {
     };
     use crate::starknet::predeployed::create_erc20_at_address;
     use crate::starknet::{predeployed, Starknet};
-    use crate::traits::{Accounted, Deployed, HashIdentifiedMut, StateExtractor};
+    use crate::state::CustomStateReader;
+    use crate::traits::{Deployed, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{
         convert_broadcasted_declare_v2_to_v3, dummy_broadcasted_declare_transaction_v2,
@@ -248,7 +254,7 @@ mod tests {
         // check if txn is with status accepted
         assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
-        assert!(starknet.state.contract_classes.get(&class_hash).is_some());
+        starknet.state.get_rpc_contract_class(&class_hash).unwrap();
     }
 
     #[test]
@@ -262,14 +268,17 @@ mod tests {
         let tx = starknet.transactions.get_by_hash_mut(&tx_hash).unwrap();
 
         // check if generated class hash is expected one
-        assert_eq!(
-            class_hash,
-            ContractClass::Cairo1(declare_txn.contract_class).generate_hash().unwrap()
-        );
+        let generated_hash =
+            ContractClass::Cairo1(declare_txn.contract_class.clone()).generate_hash().unwrap();
+        assert_eq!(class_hash, generated_hash);
+
         // check if txn is with status accepted
         assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
-        assert!(starknet.state.contract_classes.get(&class_hash).is_some());
+        assert_eq!(
+            starknet.get_class(&BlockId::Tag(BlockTag::Latest), class_hash).unwrap(),
+            declare_txn.contract_class.into()
+        );
     }
 
     #[test]
@@ -281,15 +290,12 @@ mod tests {
         let expected_compiled_class_hash = declare_txn.compiled_class_hash;
 
         // check if contract is not declared
-        assert!(!starknet.state.is_contract_declared(&expected_class_hash));
-        assert!(
-            !starknet
-                .state
-                .state
-                .state
-                .class_hash_to_compiled_class
-                .contains_key(&expected_compiled_class_hash)
+        assert!(!starknet.state.is_contract_declared(expected_class_hash));
+        assert_eq!(
+            starknet.state.get_compiled_class_hash(expected_class_hash.into()).unwrap(),
+            CompiledClassHash(StarkHash::ZERO)
         );
+        assert!(starknet.get_class(&BlockId::Tag(BlockTag::Latest), expected_class_hash).is_err());
 
         let (tx_hash, retrieved_class_hash) =
             starknet.add_declare_transaction_v2(declare_txn).unwrap();
@@ -301,7 +307,11 @@ mod tests {
         // check if txn is with status accepted
         assert_eq!(retrieved_txn.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(retrieved_txn.execution_result.status(), TransactionExecutionStatus::Succeeded);
-        assert!(starknet.state.is_contract_declared(&expected_class_hash));
+        assert!(starknet.state.is_contract_declared(expected_class_hash));
+        assert_eq!(
+            starknet.state.get_compiled_class_hash(expected_class_hash.into()).unwrap(),
+            expected_compiled_class_hash.into()
+        );
     }
 
     #[test]
@@ -374,7 +384,7 @@ mod tests {
         assert_eq!(tx.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
         // check if contract is successfully declared
-        assert!(starknet.state.is_contract_declared(&class_hash));
+        assert!(starknet.state.is_contract_declared(class_hash));
         // check if pending block is resetted
         assert!(starknet.pending_block().get_transactions().is_empty());
         // check if there is generated block
@@ -400,7 +410,7 @@ mod tests {
 
         let expected_class_hash = declare_txn.contract_class.generate_hash().unwrap();
         // check if contract is not declared
-        assert!(!starknet.state.is_contract_declared(&expected_class_hash));
+        assert!(!starknet.state.is_contract_declared(expected_class_hash));
 
         let (tx_hash, class_hash) = starknet.add_declare_transaction_v1(declare_txn).unwrap();
 
@@ -411,7 +421,7 @@ mod tests {
         assert_eq!(tx.execution_result.status(), TransactionExecutionStatus::Succeeded);
 
         // check if contract is declared
-        assert!(starknet.state.is_contract_declared(&class_hash));
+        assert!(starknet.state.is_contract_declared(class_hash));
     }
 
     /// Initializes starknet with 1 account - account without validations
@@ -442,9 +452,7 @@ mod tests {
         .unwrap();
 
         acc.deploy(&mut starknet.state).unwrap();
-        acc.set_initial_balance(&mut starknet.state).unwrap();
 
-        starknet.state.clear_dirty_state();
         starknet.block_context = Starknet::init_block_context(
             nonzero!(1u128),
             constants::ETH_ERC20_CONTRACT_ADDRESS,

@@ -1,3 +1,4 @@
+use blockifier::state::state_api::State;
 use starknet_rs_core::utils::{get_selector_from_name, get_storage_var_address};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_storage_key::ContractStorageKey;
@@ -11,7 +12,6 @@ use crate::constants::{
 use crate::error::{DevnetResult, Error};
 use crate::state::StarknetState;
 use crate::system_contract::SystemContract;
-use crate::traits::StateChanger;
 
 pub(crate) fn create_erc20_at_address(contract_address: &str) -> DevnetResult<SystemContract> {
     let erc20_contract_class_json_str =
@@ -52,12 +52,14 @@ pub(crate) fn initialize_erc20_at_address(
         // necessary to set - otherwise minting txs cannot be executed
         ("Ownable_owner", Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?),
     ] {
-        // let storage_var_address = get_storage_var_address(storage_var_name, &[])?;
         let storage_var_address = starknet_types::patricia_key::PatriciaKey::new(Felt::new(
             get_storage_var_address(storage_var_name, &[]).map_err(|_| ProgramError)?.to_bytes_be(),
         )?)?;
-        let storage_key = ContractStorageKey::new(contract_address, storage_var_address);
-        state.change_storage(storage_key, storage_value)?;
+        state.set_storage_at(
+            contract_address.try_into()?,
+            storage_var_address,
+            storage_value.into(),
+        )?;
     }
 
     Ok(())

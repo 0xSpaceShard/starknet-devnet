@@ -76,7 +76,9 @@ pub fn add_invoke_transaction_v3(
 #[cfg(test)]
 mod tests {
 
+    use blockifier::state::state_api::StateReader;
     use nonzero_ext::nonzero;
+    use starknet_api::core::Nonce;
     use starknet_api::hash::StarkFelt;
     use starknet_api::transaction::{Fee, Tip};
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
@@ -95,7 +97,8 @@ mod tests {
     use crate::account::{Account, FeeToken};
     use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS};
     use crate::starknet::{predeployed, Starknet};
-    use crate::traits::{Accounted, Deployed, HashIdentifiedMut, StateChanger, StateExtractor};
+    use crate::state::CustomState;
+    use crate::traits::{Accounted, Deployed, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{
         cairo_0_account_without_validations, dummy_contract_address, dummy_felt, get_bytes_from_u32,
@@ -250,6 +253,9 @@ mod tests {
             increase_balance_selector,
             balance_var_storage_address,
         ) = setup();
+        let blockifier_address: starknet_api::core::ContractAddress =
+            contract_address.try_into().unwrap();
+        let storage_key = (*balance_var_storage_address.get_storage_key()).try_into().unwrap();
 
         let account_address = account.get_address();
 
@@ -269,8 +275,8 @@ mod tests {
 
         // check storage
         assert_eq!(
-            starknet.state.get_storage(balance_var_storage_address).unwrap(),
-            Felt::from(10)
+            starknet.state.get_storage_at(blockifier_address, storage_key).unwrap(),
+            Felt::from(10).into()
         );
 
         let invoke_transaction = test_invoke_transaction_v1(
@@ -288,8 +294,8 @@ mod tests {
         assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Succeeded);
         assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(
-            starknet.state.get_storage(balance_var_storage_address).unwrap(),
-            Felt::from(25)
+            starknet.state.get_storage_at(blockifier_address, storage_key).unwrap(),
+            StarkFelt::from_u128(25)
         );
     }
 
@@ -350,9 +356,10 @@ mod tests {
     fn nonce_should_be_incremented_if_invoke_reverted() {
         let (mut starknet, account, contract_address, increase_balance_selector, _) = setup();
 
-        let account_address = account.get_address();
-        let initial_nonce = starknet.state.get_nonce(&account_address).unwrap();
-        assert_eq!(initial_nonce, Felt::from(0));
+        let account_address: starknet_api::core::ContractAddress =
+            account.get_address().try_into().unwrap();
+        let initial_nonce = starknet.state.get_nonce_at(account_address).unwrap();
+        assert_eq!(initial_nonce, Nonce(StarkFelt::ZERO));
 
         let calldata = vec![
             Felt::from(contract_address), // contract address
@@ -363,10 +370,10 @@ mod tests {
 
         let insufficient_max_fee = 137; // this is minimum fee (enough for passing validation), anything lower than that is bounced back
         let invoke_transaction = BroadcastedInvokeTransactionV1::new(
-            account_address,
+            account_address.into(),
             Fee(insufficient_max_fee),
             &vec![],
-            initial_nonce,
+            initial_nonce.into(),
             &calldata,
             Felt::from(1),
         );
@@ -376,8 +383,8 @@ mod tests {
         assert_eq!(transaction.finality_status, TransactionFinalityStatus::AcceptedOnL2);
         assert_eq!(transaction.execution_result.status(), TransactionExecutionStatus::Reverted);
 
-        let nonce_after_reverted = starknet.state.get_nonce(&account_address).unwrap();
-        assert_eq!(nonce_after_reverted, Felt::from(1));
+        let nonce_after_reverted = starknet.state.get_nonce_at(account_address).unwrap();
+        assert_eq!(nonce_after_reverted, Nonce(StarkFelt::ONE));
     }
 
     /// Initialize starknet object with: erc20 contract, account contract and  simple contract that
@@ -411,7 +418,6 @@ mod tests {
         .unwrap();
 
         account.deploy(&mut starknet.state).unwrap();
-        account.set_initial_balance(&mut starknet.state).unwrap();
 
         // dummy contract
         let dummy_contract: Cairo0ContractClass = dummy_cairo_0_contract_class().into();
@@ -453,11 +459,12 @@ mod tests {
             .unwrap();
 
         // deploy dummy contract
-        starknet.state.deploy_contract(dummy_contract_address, dummy_contract_class_hash).unwrap();
+        starknet
+            .state
+            .predeploy_contract(dummy_contract_address, dummy_contract_class_hash)
+            .unwrap();
         // change storage of dummy contract
-        // starknet.state.change_storage(contract_storage_key, Felt::from(0)).unwrap();
 
-        starknet.state.clear_dirty_state();
         starknet.block_context = Starknet::init_block_context(
             nonzero!(1u128),
             constants::ETH_ERC20_CONTRACT_ADDRESS,
