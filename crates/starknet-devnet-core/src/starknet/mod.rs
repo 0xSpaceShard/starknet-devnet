@@ -78,6 +78,7 @@ pub(crate) mod defaulter;
 pub mod dump;
 mod estimations;
 mod events;
+pub(crate) mod forked_provider;
 mod get_class_impls;
 mod predeployed;
 pub mod starknet_config;

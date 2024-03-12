@@ -10,6 +10,7 @@ use starknet_types::contract_class::convert_codegen_to_blockifier_compiled_class
 use starknet_types::felt::Felt;
 use starknet_types::traits::ToHexString;
 
+use super::forked_provider::ForkedOrigin;
 use super::starknet_config::ForkConfig;
 
 #[derive(Debug, Clone)]
@@ -64,6 +65,7 @@ impl BlockingOriginReader {
 #[derive(Clone, Debug, Default)]
 pub struct Defaulter {
     origin_reader: Option<BlockingOriginReader>,
+    forked_reader: Option<ForkedOrigin>,
 }
 
 impl Defaulter {
@@ -73,7 +75,7 @@ impl Defaulter {
         } else {
             None
         };
-        Self { origin_reader }
+        Self { origin_reader, forked_reader: None }
     }
 
     pub fn get_storage_at(

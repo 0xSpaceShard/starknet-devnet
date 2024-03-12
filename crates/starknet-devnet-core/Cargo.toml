@@ -21,6 +21,7 @@ serde_json = { workspace = true }
 starknet-rs-signers = { workspace = true }
 starknet-rs-ff = { workspace = true }
 starknet-rs-core = { workspace = true }
+starknet-rs-providers = { workspace = true }
 starknet-types = { workspace = true }
 rand = { workspace = true }
 rand_mt = { workspace = true }
@@ -28,6 +29,7 @@ tracing = { workspace = true }
 indexmap = { workspace = true }
 url = { workspace = true }
 nonzero_ext = { workspace = true }
+tokio = { workspace = true }
 
 [dev-dependencies]
 hex = "0.4.3"

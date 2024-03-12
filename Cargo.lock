@@ -4964,9 +4964,11 @@ dependencies = [
  "starknet-core",
  "starknet-devnet-types",
  "starknet-ff",
+ "starknet-providers",
  "starknet-signers",
  "starknet_api",
  "thiserror",
+ "tokio 1.36.0",
  "tracing",
  "url",
 ]
