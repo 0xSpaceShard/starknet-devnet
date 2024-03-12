@@ -195,7 +195,9 @@ impl BlockingOriginReader {
             Ok(value) => {
                 let contract_class: starknet_rs_core::types::ContractClass =
                     serde_json::from_value(value).unwrap();
-                Ok(convert_codegen_to_blockifier_compiled_class(contract_class).unwrap())
+                convert_codegen_to_blockifier_compiled_class(contract_class)
+                    // TODO wrong error handling; invalid cairo0 deserialization
+                    .map_err(|e| StateError::StateReadError(e.to_string()))
             }
         }
     }

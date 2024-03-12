@@ -40,7 +40,7 @@ pub struct BackgroundDevnet {
     pub http_client: Client<HttpConnector>,
     pub json_rpc_client: JsonRpcClient<HttpTransport>,
     pub process: Child,
-    pub url: String,
+    url: String,
     rpc_url: Url,
 }
 
@@ -248,6 +248,16 @@ impl BackgroundDevnet {
 
     pub async fn restart(&self) -> Result<Response<Body>, hyper::Error> {
         self.post_json("/restart".into(), Body::empty()).await
+    }
+
+    pub async fn fork(&self) -> Result<Self, TestError> {
+        BackgroundDevnet::spawn_with_additional_args(&[
+            "--fork-network",
+            self.url.as_str(),
+            "--accounts",
+            "0",
+        ])
+        .await
     }
 }
 

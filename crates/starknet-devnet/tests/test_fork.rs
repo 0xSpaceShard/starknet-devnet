@@ -7,7 +7,9 @@ mod fork_tests {
     use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::chain_id;
-    use starknet_rs_core::types::{BlockId, BlockTag, ExecutionResult, FieldElement, FunctionCall};
+    use starknet_rs_core::types::{
+        BlockId, BlockTag, ContractClass, ExecutionResult, FieldElement, FunctionCall,
+    };
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::Provider;
 
@@ -67,12 +69,7 @@ mod fork_tests {
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
 
-        let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
-            "--fork-network",
-            origin_devnet.url.as_str(),
-        ])
-        .await
-        .unwrap();
+        let fork_devnet = origin_devnet.fork().await.unwrap();
 
         let block_resp = &fork_devnet
             .send_custom_rpc(
@@ -104,6 +101,74 @@ mod fork_tests {
                 res[0]
             }
             Err(e) => panic!("Call failed: {e}"),
+        }
+    }
+
+    #[tokio::test]
+    #[ignore = "Not supported"]
+    async fn test_getting_class_from_origin_and_fork() {
+        let origin_devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
+                .await
+                .unwrap();
+
+        let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
+        let predeployed_account = Arc::new(SingleOwnerAccount::new(
+            origin_devnet.clone_provider(),
+            signer.clone(),
+            account_address,
+            chain_id::TESTNET,
+            ExecutionEncoding::New,
+        ));
+
+        let (cairo_1_contract, casm_class_hash) =
+            get_simple_contract_in_sierra_and_compiled_class_hash();
+
+        // declare the contract
+        let declaration_result = predeployed_account
+            .declare(Arc::new(cairo_1_contract.clone()), casm_class_hash)
+            .max_fee(FieldElement::from(1e18 as u128))
+            .send()
+            .await
+            .unwrap();
+
+        // deploy the contract
+        let contract_factory =
+            ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
+        let initial_value = FieldElement::from(10_u32);
+        let ctor_args = vec![initial_value];
+        contract_factory
+            .deploy(ctor_args.clone(), FieldElement::ZERO, false)
+            .max_fee(FieldElement::from(1e18 as u128))
+            .send()
+            .await
+            .unwrap();
+
+        // generate the address of the newly deployed contract
+        let contract_address = get_udc_deployed_address(
+            FieldElement::ZERO,
+            declaration_result.class_hash,
+            &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+            &ctor_args,
+        );
+
+        // fork devnet
+        let fork_devnet = origin_devnet.fork().await.unwrap();
+
+        for devnet in &[origin_devnet, fork_devnet] {
+            let retrieved_class_hash = devnet
+                .json_rpc_client
+                .get_class_hash_at(BlockId::Tag(BlockTag::Latest), contract_address)
+                .await
+                .unwrap();
+            assert_eq!(retrieved_class_hash, declaration_result.class_hash);
+
+            let retrieved_class = devnet
+                .json_rpc_client
+                .get_class(BlockId::Tag(BlockTag::Latest), declaration_result.class_hash)
+                .await
+                .unwrap(); // TODO abi comparison failing due to extra spaces between properties
+            assert_eq!(retrieved_class, ContractClass::Sierra(cairo_1_contract.clone()));
         }
     }
 
@@ -157,15 +222,7 @@ mod fork_tests {
         // assert correctly deployed
         assert_eq!(get_contract_balance(&origin_devnet, contract_address).await, initial_value);
 
-        // fork devnet
-        let fork_devnet = BackgroundDevnet::spawn_with_additional_args(&[
-            "--fork-network",
-            origin_devnet.url.as_str(),
-            "--accounts",
-            "0",
-        ])
-        .await
-        .unwrap();
+        let fork_devnet = origin_devnet.fork().await.unwrap();
 
         assert_eq!(get_contract_balance(&fork_devnet, contract_address).await, initial_value);
 
