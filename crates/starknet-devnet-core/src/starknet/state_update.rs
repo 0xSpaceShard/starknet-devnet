@@ -28,6 +28,7 @@ mod tests {
     use starknet_types::rpc::state::ThinStateDiff;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::traits::HashProducer;
+    use starknet_types::uint::Balance;
 
     use crate::account::Account;
     use crate::constants::{
@@ -110,7 +111,7 @@ mod tests {
         eth_erc_20_contract.deploy(&mut starknet.state).unwrap();
 
         let acc = Account::new(
-            Felt::from(1e18 as u128),
+            Balance::from(1e18 as u128),
             dummy_felt(),
             dummy_felt(),
             contract_class.generate_hash().unwrap(),

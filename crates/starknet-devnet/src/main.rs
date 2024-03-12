@@ -14,8 +14,8 @@ use starknet_core::constants::{
 use starknet_core::starknet::starknet_config::DumpOn;
 use starknet_core::starknet::Starknet;
 use starknet_types::chain_id::ChainId;
-use starknet_types::felt::Felt;
-use starknet_types::traits::{ToDecimalString, ToHexString};
+use starknet_types::traits::ToHexString;
+use starknet_types::uint::Balance;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
@@ -33,7 +33,11 @@ fn configure_tracing() {
     tracing_subscriber::fmt().with_env_filter(level_filter_layer).init();
 }
 
-fn log_predeployed_accounts(predeployed_accounts: &Vec<Account>, seed: u32, initial_balance: Felt) {
+fn log_predeployed_accounts(
+    predeployed_accounts: &Vec<Account>,
+    seed: u32,
+    initial_balance: Balance,
+) {
     for account in predeployed_accounts {
         let formatted_str = format!(
             r"
@@ -52,10 +56,7 @@ fn log_predeployed_accounts(predeployed_accounts: &Vec<Account>, seed: u32, init
         println!();
         let class_hash = predeployed_accounts.get(0).unwrap().class_hash.to_prefixed_hex_str();
         println!("Predeployed accounts using class with hash: {class_hash}");
-        println!(
-            "Initial balance of each account: {} WEI and FRI",
-            initial_balance.to_decimal_string()
-        );
+        println!("Initial balance of each account: {} WEI and FRI", initial_balance);
         println!("Seed to replicate this account sequence: {seed}");
     }
 }

@@ -92,7 +92,8 @@ mod tests {
     use starknet_types::rpc::transactions::{
         BroadcastedTransactionCommonV3, ResourceBoundsWrapper,
     };
-    use starknet_types::traits::{HashProducer, ToDecimalString};
+    use starknet_types::traits::HashProducer;
+    use starknet_types::uint::Balance;
 
     use crate::account::{Account, FeeToken};
     use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS};
@@ -207,7 +208,7 @@ mod tests {
             account
                 .get_balance(&mut starknet.state, crate::account::FeeToken::STRK)
                 .unwrap()
-                .to_decimal_string()
+                .to_string()
                 .parse::<u64>()
                 .unwrap(),
         );
@@ -408,7 +409,7 @@ mod tests {
             account_without_validations_contract_class.generate_hash().unwrap();
 
         let account = Account::new(
-            Felt::from(10000),
+            Balance::from(10000),
             dummy_felt(),
             dummy_felt(),
             account_without_validations_class_hash,

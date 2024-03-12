@@ -141,6 +141,7 @@ mod tests {
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::traits::HashProducer;
+    use starknet_types::uint::Balance;
 
     use crate::account::Account;
     use crate::constants::{
@@ -441,7 +442,7 @@ mod tests {
         strk_erc20_contract.deploy(&mut starknet.state).unwrap();
 
         let acc = Account::new(
-            Felt::from(acc_balance.unwrap_or(10000)),
+            Balance::from(acc_balance.unwrap_or(10000)),
             dummy_felt(),
             dummy_felt(),
             contract_class.generate_hash().unwrap(),

@@ -1,3 +1,4 @@
+use primitive_types::U256;
 use serde::{Deserialize, Serialize};
 use starknet_rs_core::types::{Hash256, MsgToL1};
 use starknet_types::contract_address::ContractAddress;
@@ -6,6 +7,7 @@ use starknet_types::rpc::eth_address::EthAddressWrapper;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::transaction_receipt::FeeUnits;
 use starknet_types::rpc::transactions::L1HandlerTransaction;
+use starknet_types::uint::u256_deserialize_from_dec_string;
 
 use crate::api::http::error::HttpApiError;
 
@@ -84,7 +86,7 @@ pub struct SerializableAccount {
 
 #[derive(Serialize)]
 pub struct Balance {
-    amount: u128,
+    amount: U256,
     unit: String,
 }
 
@@ -97,7 +99,8 @@ pub struct FeeToken {
 #[derive(Debug, Deserialize)]
 pub struct MintTokensRequest {
     pub address: ContractAddress,
-    pub amount: u128,
+    #[serde(deserialize_with = "u256_deserialize_from_dec_string")]
+    pub amount: U256,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub unit: Option<FeeUnits>,
 }

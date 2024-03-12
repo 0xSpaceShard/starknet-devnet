@@ -2,6 +2,7 @@ use std::fmt::LowerHex;
 use std::str::FromStr;
 
 use num_bigint::BigUint;
+use primitive_types::U256;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_api::serde_utils::{bytes_from_hex_str, hex_str_from_bytes};
 use starknet_api::StarknetApiError;
@@ -215,6 +216,12 @@ impl From<Felt> for BigUint {
     }
 }
 
+impl From<Felt> for U256 {
+    fn from(felt: Felt) -> Self {
+        U256::from_str(&felt.to_decimal_string()).expect("Should never fail: felt is 251 bits")
+    }
+}
+
 impl From<starknet_api::core::Nonce> for Felt {
     fn from(value: starknet_api::core::Nonce) -> Self {
         value.0.into()
@@ -238,7 +245,6 @@ pub type BlockHash = Felt;
 pub type TransactionHash = Felt;
 pub type ClassHash = Felt;
 pub type Key = Felt;
-pub type Balance = Felt;
 
 #[cfg(test)]
 mod tests {
