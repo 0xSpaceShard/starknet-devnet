@@ -2,6 +2,7 @@ pub mod common;
 
 mod minting_tests {
     use hyper::{Body, StatusCode};
+    use primitive_types::U256;
     use serde_json::json;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -23,7 +24,7 @@ mod minting_tests {
         let req_body = Body::from(
             json!({
                 "address": address,
-                "amount": mint_amount,
+                "amount": mint_amount.to_string(),
                 "unit": unit,
             })
             .to_string(),
@@ -39,7 +40,7 @@ mod minting_tests {
         assert_eq!(
             resp_body,
             json!({
-                "new_balance": (init_amount + mint_amount).to_string(),
+                "new_balance": (U256::from(init_amount) + U256::from(mint_amount)).to_string(),
                 "unit": unit,
                 "tx_hash": null
             })
@@ -63,7 +64,7 @@ mod minting_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let unit_not_specified = json!({
             "address": DUMMY_ADDRESS,
-            "amount": DUMMY_AMOUNT,
+            "amount": DUMMY_AMOUNT.to_string(),
         });
 
         let resp = devnet
@@ -100,6 +101,17 @@ mod minting_tests {
     }
 
     #[tokio::test]
+    async fn increase_balance_of_predeployed_account_u256() {
+        increase_balance_happy_path(
+            PREDEPLOYED_ACCOUNT_ADDRESS,
+            PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
+            u128::MAX,
+            "WEI",
+        )
+        .await
+    }
+
+    #[tokio::test]
     #[ignore = "Currently, starknet_rs_core::types::BroadcastedDeclareTransaction::V3 is not \
                 implemented so once it is available we could add test like this"]
     async fn execute_v3_transaction_with_strk_token() {
@@ -126,7 +138,7 @@ mod minting_tests {
             &devnet,
             json!({
                 "address": DUMMY_ADDRESS,
-                "amount": DUMMY_AMOUNT,
+                "amount": DUMMY_AMOUNT.to_string(),
                 "unit": "Satoshi"
             }),
             StatusCode::UNPROCESSABLE_ENTITY,
@@ -141,7 +153,7 @@ mod minting_tests {
             &devnet,
             json!({
                 "address": DUMMY_ADDRESS,
-                "amount": -1
+                "amount": "-1"
             }),
             StatusCode::BAD_REQUEST,
         )
@@ -153,7 +165,7 @@ mod minting_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         reject_bad_request(
             &devnet,
-            json!({ "amount": DUMMY_AMOUNT }),
+            json!({ "amount": DUMMY_AMOUNT.to_string() }),
             StatusCode::UNPROCESSABLE_ENTITY,
         )
         .await;

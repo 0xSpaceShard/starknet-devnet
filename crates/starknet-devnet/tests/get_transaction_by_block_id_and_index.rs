@@ -15,7 +15,7 @@ mod get_transaction_by_block_id_and_index_integration_tests {
         let req_body = Body::from(
             json!({
                 "address": "0x1",
-                "amount": 1
+                "amount": "1"
             })
             .to_string(),
         );
@@ -48,7 +48,7 @@ mod get_transaction_by_block_id_and_index_integration_tests {
         let req_body = Body::from(
             json!({
                 "address": "0x1",
-                "amount": 1
+                "amount": "1"
             })
             .to_string(),
         );

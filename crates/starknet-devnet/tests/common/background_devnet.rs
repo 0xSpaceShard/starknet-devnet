@@ -186,7 +186,7 @@ impl BackgroundDevnet {
         let req_body = Body::from(
             json!({
                 "address": format!("{address:#x}"),
-                "amount": mint_amount
+                "amount": mint_amount.to_string()
             })
             .to_string(),
         );
