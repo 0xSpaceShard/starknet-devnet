@@ -2,7 +2,6 @@ use core::fmt::Debug;
 use std::cmp::{Eq, PartialEq};
 
 use blockifier::execution::contract_class::ClassInfo;
-use blockifier::state::errors::StateError;
 use cairo_lang_starknet_classes::casm_contract_class::{CasmContractClass, CasmContractEntryPoint};
 use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
 use serde::de::IntoDeserializer;
@@ -229,6 +228,21 @@ impl TryInto<CodegenContractClass> for ContractClass {
     }
 }
 
+impl TryInto<ContractClass> for CodegenContractClass {
+    type Error = Error;
+    fn try_into(self) -> Result<ContractClass, Self::Error> {
+        let jsonified = serde_json::to_value(self.clone()).map_err(JsonError::SerdeJsonError)?;
+        Ok(match self {
+            CodegenContractClass::Sierra(_) => ContractClass::Cairo1(
+                serde_json::from_value(jsonified).map_err(JsonError::SerdeJsonError)?,
+            ),
+            CodegenContractClass::Legacy(_) => ContractClass::Cairo0(
+                serde_json::from_value(jsonified).map_err(JsonError::SerdeJsonError)?,
+            ),
+        })
+    }
+}
+
 fn convert_sierra_to_codegen(
     contract_class: &SierraContractClass,
 ) -> DevnetResult<CodegenSierraContractClass> {
@@ -258,21 +272,22 @@ fn convert_sierra_to_codegen(
 
 pub fn convert_codegen_to_blockifier_compiled_class(
     class: CodegenContractClass,
-) -> Result<blockifier::execution::contract_class::ContractClass, StateError> {
+) -> Result<blockifier::execution::contract_class::ContractClass, Error> {
     Ok(match class {
         CodegenContractClass::Sierra(_) => {
-            let json_value = serde_json::to_value(class).unwrap();
-            let devnet_class =
-                deserialize_to_sierra_contract_class(json_value.into_deserializer()).unwrap();
-            ContractClass::Cairo1(devnet_class).try_into().unwrap()
+            let json_value = serde_json::to_value(class).map_err(JsonError::SerdeJsonError)?;
+            let devnet_class = deserialize_to_sierra_contract_class(json_value.into_deserializer())
+                .map_err(JsonError::SerdeJsonError)?;
+            ContractClass::Cairo1(devnet_class).try_into()?
         }
         CodegenContractClass::Legacy(_) => {
-            let class_jsonified = serde_json::to_string(&class).unwrap();
+            let class_jsonified =
+                serde_json::to_string(&class).map_err(JsonError::SerdeJsonError)?;
             let class =
                 blockifier::execution::contract_class::ContractClassV0::try_from_json_string(
                     &class_jsonified,
                 )
-                .map_err(|e| StateError::StateReadError(e.to_string()))?;
+                .map_err(|e| Error::JsonError(JsonError::Custom { msg: e.to_string() }))?;
             blockifier::execution::contract_class::ContractClass::V0(class)
         }
     })

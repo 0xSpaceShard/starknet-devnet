@@ -58,7 +58,7 @@ mod fork_tests {
     #[tokio::test]
     #[ignore = "Not supported"]
     async fn test_forking_local_genesis_block() {
-        let origin_devnet = BackgroundDevnet::spawn().await.unwrap(); // TODO state archive capacity
+        let origin_devnet = BackgroundDevnet::spawn().await.unwrap(); // TODO state archive capacity?
 
         // change state and create block (without the block, there is nothing to fork from since
         // there is no genesis block by default)
@@ -108,7 +108,6 @@ mod fork_tests {
     }
 
     #[tokio::test]
-    #[ignore = "Not supported"]
     async fn test_forking_local_declare_deploy_fork_invoke() {
         let origin_devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])

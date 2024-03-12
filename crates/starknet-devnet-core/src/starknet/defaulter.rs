@@ -104,6 +104,17 @@ impl Defaulter {
         }
     }
 
+    pub fn get_contract_class(
+        &self,
+        class_hash: ClassHash,
+    ) -> StateResult<starknet_rs_core::types::ContractClass> {
+        if let Some(origin) = &self.origin_reader {
+            origin.get_contract_class(class_hash)
+        } else {
+            Err(StateError::UndeclaredClassHash(class_hash))
+        }
+    }
+
     pub fn get_class_hash_at(&self, contract_address: ContractAddress) -> StateResult<ClassHash> {
         if let Some(origin) = &self.origin_reader {
             origin.get_class_hash_at(contract_address)
@@ -184,8 +195,25 @@ impl BlockingOriginReader {
             Ok(value) => {
                 let contract_class: starknet_rs_core::types::ContractClass =
                     serde_json::from_value(value).unwrap();
-                convert_codegen_to_blockifier_compiled_class(contract_class)
+                Ok(convert_codegen_to_blockifier_compiled_class(contract_class).unwrap())
             }
+        }
+    }
+
+    fn get_contract_class(
+        &self,
+        class_hash: ClassHash,
+    ) -> StateResult<starknet_rs_core::types::ContractClass> {
+        match self.send_body(
+            "starknet_getClass",
+            serde_json::json!({
+                "class_hash": Felt::try_from(class_hash).unwrap().to_prefixed_hex_str(),
+            }),
+        ) {
+            Ok(serde_json::Value::Null) | Err(_) => {
+                Err(StateError::UndeclaredClassHash(class_hash))
+            }
+            Ok(value) => Ok(serde_json::from_value(value).unwrap()),
         }
     }
 }
