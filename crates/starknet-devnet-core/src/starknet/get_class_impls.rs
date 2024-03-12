@@ -16,12 +16,16 @@ pub fn get_class_hash_at_impl(
     let state = starknet.get_mut_state_at(block_id)?; // TODO what if block in origin
     let core_address = contract_address.try_into()?;
 
-    let class_hash = match state.get_class_hash_at(core_address)? {
-        class_hash if class_hash != Default::default() => class_hash,
-        _ => starknet.defaulter.get_class_hash_at(core_address)?,
-    };
+    let mut class_hash = state.get_class_hash_at(core_address)?;
+    if class_hash == Default::default() {
+        class_hash = starknet.defaulter.get_class_hash_at(core_address)?;
+    }
 
-    Ok(class_hash.into())
+    if class_hash == Default::default() {
+        Err(Error::ContractNotFound)
+    } else {
+        Ok(class_hash.into())
+    }
 }
 
 pub fn get_class_impl(

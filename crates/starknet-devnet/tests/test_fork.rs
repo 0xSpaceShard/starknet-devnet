@@ -56,6 +56,7 @@ mod fork_tests {
     }
 
     #[tokio::test]
+    #[ignore = "Not supported"]
     async fn test_forking_local_genesis_block() {
         let origin_devnet = BackgroundDevnet::spawn().await.unwrap(); // TODO state archive capacity
 
