@@ -7,15 +7,18 @@ mod fork_tests {
     use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::chain_id;
+    use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{
         BlockId, BlockTag, ContractClass, ExecutionResult, FieldElement, FunctionCall,
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::Provider;
+    use starknet_types::contract_class::Cairo0Json;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::{
-        assert_classes_equal, get_simple_contract_in_sierra_and_compiled_class_hash,
+        assert_cairo1_classes_equal, get_simple_contract_in_sierra_and_compiled_class_hash,
+        resolve_path,
     };
 
     static DUMMY_ADDRESS: u128 = 1;
@@ -107,7 +110,7 @@ mod fork_tests {
     }
 
     #[tokio::test]
-    async fn test_getting_class_from_origin_and_fork() {
+    async fn test_getting_cairo0_class_from_origin_and_fork() {
         let origin_devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
                 .await
@@ -122,12 +125,58 @@ mod fork_tests {
             ExecutionEncoding::New,
         ));
 
-        let (cairo_1_contract, casm_class_hash) =
+        let json_string = std::fs::read_to_string(resolve_path(
+            "../starknet-devnet-core/test_artifacts/cairo_0_test.json",
+        ))
+        .unwrap();
+        let contract_class = Cairo0Json::raw_json_from_json_str(&json_string).unwrap();
+        let contract_class: Arc<LegacyContractClass> =
+            Arc::new(serde_json::from_value(contract_class.inner).unwrap());
+
+        // declare the contract
+        let declaration_result = predeployed_account
+            .declare_legacy(contract_class.clone())
+            .max_fee(FieldElement::from(1e18 as u128))
+            .send()
+            .await
+            .unwrap();
+
+        let fork_devnet = origin_devnet.fork().await.unwrap();
+
+        for devnet in &[origin_devnet, fork_devnet] {
+            println!("DEBUG loop"); // TODO printed only once
+            let retrieved_class = devnet
+                .json_rpc_client
+                .get_class(BlockId::Tag(BlockTag::Latest), declaration_result.class_hash)
+                .await
+                .unwrap();
+
+            assert_eq!(retrieved_class, ContractClass::Legacy(contract_class.compress().unwrap()));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_getting_cairo1_class_from_origin_and_fork() {
+        let origin_devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
+                .await
+                .unwrap();
+
+        let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
+        let predeployed_account = Arc::new(SingleOwnerAccount::new(
+            origin_devnet.clone_provider(),
+            signer.clone(),
+            account_address,
+            chain_id::TESTNET,
+            ExecutionEncoding::New,
+        ));
+
+        let (contract_class, casm_class_hash) =
             get_simple_contract_in_sierra_and_compiled_class_hash();
 
         // declare the contract
         let declaration_result = predeployed_account
-            .declare(Arc::new(cairo_1_contract.clone()), casm_class_hash)
+            .declare(Arc::new(contract_class.clone()), casm_class_hash)
             .max_fee(FieldElement::from(1e18 as u128))
             .send()
             .await
@@ -153,7 +202,6 @@ mod fork_tests {
             &ctor_args,
         );
 
-        // fork devnet
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
         for devnet in &[origin_devnet, fork_devnet] {
@@ -169,8 +217,11 @@ mod fork_tests {
                 .get_class(BlockId::Tag(BlockTag::Latest), declaration_result.class_hash)
                 .await
                 .unwrap();
-            assert_classes_equal(retrieved_class, ContractClass::Sierra(cairo_1_contract.clone()))
-                .unwrap();
+            assert_cairo1_classes_equal(
+                retrieved_class,
+                ContractClass::Sierra(contract_class.clone()),
+            )
+            .unwrap();
         }
     }
 
@@ -190,12 +241,12 @@ mod fork_tests {
             ExecutionEncoding::New,
         ));
 
-        let (cairo_1_contract, casm_class_hash) =
+        let (contract_class, casm_class_hash) =
             get_simple_contract_in_sierra_and_compiled_class_hash();
 
         // declare the contract
         let declaration_result = predeployed_account
-            .declare(Arc::new(cairo_1_contract), casm_class_hash)
+            .declare(Arc::new(contract_class), casm_class_hash)
             .max_fee(FieldElement::from(1e18 as u128))
             .send()
             .await
