@@ -130,7 +130,7 @@ impl StarknetBlocks {
         };
 
         // iterate over the blocks and apply the filter
-        // then insert the filtered blocks into the btree map
+        // then insert the filtered blocks into the index map
         self.num_to_hash
             .iter()
             .filter(|(current_block_number, _)| match (starting_block, ending_block) {
@@ -142,8 +142,7 @@ impl StarknetBlocks {
                 }
             })
             .for_each(|(_, block_hash)| {
-                let block = self.get_by_hash(*block_hash).unwrap(); // TODO: fix unwrap here
-                filtered_blocks.insert(*block_hash, block);
+                filtered_blocks.insert(*block_hash, &self.hash_to_block[block_hash]);
             });
 
         Ok(filtered_blocks.into_values().collect())
