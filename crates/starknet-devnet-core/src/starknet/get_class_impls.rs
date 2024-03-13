@@ -1,38 +1,43 @@
+use blockifier::state::state_api::StateReader;
 use starknet_rs_core::types::BlockId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Felt};
 
-use crate::error::{DevnetResult, Error};
+use crate::error::{DevnetResult, Error, StateError};
 use crate::starknet::Starknet;
-use crate::traits::DevnetStateReader;
+use crate::state::CustomStateReader;
 
 pub fn get_class_hash_at_impl(
-    starknet: &Starknet,
+    starknet: &mut Starknet,
     block_id: &BlockId,
     contract_address: ContractAddress,
 ) -> DevnetResult<ClassHash> {
-    let state = starknet.get_state_at(block_id)?;
-    let class_hash = state.state.state.class_hash_at(&contract_address);
+    let state = starknet.get_mut_state_at(block_id)?;
+    let class_hash = state.get_class_hash_at(contract_address.try_into()?)?;
 
-    if class_hash == Felt::default() {
+    let class_hash_felt = class_hash.into();
+    if class_hash_felt == Felt::default() {
         return Err(Error::ContractNotFound);
     }
 
-    Ok(class_hash)
+    Ok(class_hash_felt)
 }
 
 pub fn get_class_impl(
-    starknet: &Starknet,
+    starknet: &mut Starknet,
     block_id: &BlockId,
     class_hash: ClassHash,
 ) -> DevnetResult<ContractClass> {
-    let state = starknet.get_state_at(block_id)?;
-    state.state.state.contract_class_at(&class_hash)
+    let state = starknet.get_mut_state_at(block_id)?;
+    state
+        .get_rpc_contract_class(&class_hash)
+        .cloned()
+        .ok_or(Error::StateError(StateError::NoneClassHash(class_hash)))
 }
 
 pub fn get_class_at_impl(
-    starknet: &Starknet,
+    starknet: &mut Starknet,
     block_id: &BlockId,
     contract_address: ContractAddress,
 ) -> DevnetResult<ContractClass> {
@@ -56,9 +61,8 @@ mod tests {
     };
     use crate::error::Error;
     use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
-    use crate::starknet::{predeployed, Starknet};
-    use crate::state::state_diff::StateDiff;
-    use crate::traits::{Accounted, Deployed};
+    use crate::starknet::Starknet;
+    use crate::traits::Deployed;
     use crate::utils::test_utils::{dummy_broadcasted_declare_transaction_v2, dummy_felt};
 
     fn setup(
@@ -74,26 +78,21 @@ mod tests {
         );
         let contract_class = Cairo0Json::raw_json_from_path(account_json_path).unwrap();
 
-        let erc_20_contract =
-            predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS).unwrap();
-        erc_20_contract.deploy(&mut starknet.state).unwrap();
-
         let acc = Account::new(
             Felt::from(acc_balance.unwrap_or(100)),
             dummy_felt(),
             dummy_felt(),
             contract_class.generate_hash().unwrap(),
             contract_class.into(),
-            erc_20_contract.get_address(),
+            ContractAddress::new(Felt::from_prefixed_hex_str(ETH_ERC20_CONTRACT_ADDRESS).unwrap())
+                .unwrap(),
             ContractAddress::new(Felt::from_prefixed_hex_str(STRK_ERC20_CONTRACT_ADDRESS).unwrap())
                 .unwrap(),
         )
         .unwrap();
 
         acc.deploy(&mut starknet.state).unwrap();
-        acc.set_initial_balance(&mut starknet.state).unwrap();
 
-        starknet.state.clear_dirty_state();
         starknet.block_context = Starknet::init_block_context(
             nonzero!(1u128),
             constants::ETH_ERC20_CONTRACT_ADDRESS,
@@ -125,8 +124,8 @@ mod tests {
     #[test]
     fn get_class_hash_at_generated_accounts() {
         let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::Full);
-
-        starknet.generate_new_block(StateDiff::default()).unwrap();
+        let state_diff = starknet.state.commit_with_diff().unwrap();
+        starknet.generate_new_block(state_diff).unwrap();
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
         let block_id = BlockId::Number(block_number.0);
@@ -139,8 +138,8 @@ mod tests {
     #[test]
     fn get_class_hash_at_generated_accounts_without_state_archive() {
         let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::None);
-
-        starknet.generate_new_block(StateDiff::default()).unwrap();
+        let state_diff = starknet.state.commit_with_diff().unwrap();
+        starknet.generate_new_block(state_diff).unwrap();
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
         let block_id = BlockId::Number(block_number.0);
@@ -155,8 +154,8 @@ mod tests {
     #[test]
     fn get_class_at_generated_accounts() {
         let (mut starknet, account) = setup(Some(100000000), StateArchiveCapacity::Full);
-
-        starknet.generate_new_block(StateDiff::default()).unwrap();
+        let state_diff = starknet.state.commit_with_diff().unwrap();
+        starknet.generate_new_block(state_diff).unwrap();
 
         let block_number = starknet.get_latest_block().unwrap().block_number();
         let block_id = BlockId::Number(block_number.0);

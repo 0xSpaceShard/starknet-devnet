@@ -67,6 +67,14 @@ impl TryFrom<Felt> for PatriciaKey {
     }
 }
 
+impl TryFrom<PatriciaKey> for starknet_api::state::StorageKey {
+    type Error = Error;
+
+    fn try_from(value: PatriciaKey) -> Result<Self, Self::Error> {
+        Ok(Self(value.try_into()?))
+    }
+}
+
 pub type StorageKey = PatriciaKey;
 
 #[cfg(test)]

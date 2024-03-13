@@ -20,8 +20,8 @@ mod get_transaction_by_block_id_and_index_integration_tests {
             .to_string(),
         );
         let resp = devnet.post_json("/mint".into(), req_body).await.unwrap();
-        let mut resp_body = get_json_body(resp).await;
-        let tx_hash_value = resp_body["tx_hash"].take();
+        let resp_body = get_json_body(resp).await;
+        let tx_hash_value = resp_body["tx_hash"].as_str().unwrap().to_string();
 
         let result = devnet
             .json_rpc_client
@@ -35,7 +35,7 @@ mod get_transaction_by_block_id_and_index_integration_tests {
         {
             assert_eq!(
                 invoke_v1.transaction_hash,
-                FieldElement::from_hex_be(tx_hash_value.as_str().unwrap()).unwrap()
+                FieldElement::from_hex_be(&tx_hash_value).unwrap()
             );
         } else {
             panic!("Could not unpack the transaction from {result:?}");
