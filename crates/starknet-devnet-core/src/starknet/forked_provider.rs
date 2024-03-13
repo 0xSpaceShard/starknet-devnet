@@ -4,11 +4,15 @@ use std::sync::{mpsc, Arc};
 use starknet_rs_core::types::BlockId;
 use starknet_rs_ff::FieldElement;
 use starknet_rs_providers::jsonrpc::HttpTransport;
-use starknet_rs_providers::{JsonRpcClient, Provider};
+use starknet_rs_providers::{JsonRpcClient, Provider, ProviderError};
 use url::Url;
 
+use crate::error::{DevnetResult, Error, ForkedProviderError};
+
+type ProviderResult<T> = Result<T, ProviderError>;
+
 enum ForkedRequest {
-    GetNonceAt(FieldElement, std::sync::mpsc::Sender<FieldElement>),
+    GetNonceAt(FieldElement, std::sync::mpsc::Sender<ProviderResult<FieldElement>>),
 }
 
 struct ForkedProvider {
@@ -17,9 +21,8 @@ struct ForkedProvider {
 }
 
 impl ForkedProvider {
-    fn new(fork_url: &str, rx: tokio::sync::mpsc::Receiver<ForkedRequest>) -> Self {
-        let json_rpc_client =
-            JsonRpcClient::new(HttpTransport::new(Url::from_str(fork_url).unwrap()));
+    fn new(fork_url: Url, rx: tokio::sync::mpsc::Receiver<ForkedRequest>) -> Self {
+        let json_rpc_client = JsonRpcClient::new(HttpTransport::new(fork_url));
 
         Self { client: Arc::new(json_rpc_client), receiver: rx }
     }
@@ -35,10 +38,9 @@ impl ForkedProvider {
             ForkedRequest::GetNonceAt(address, sender) => {
                 let nonce = client
                     .get_nonce(BlockId::Tag(starknet_rs_core::types::BlockTag::Latest), address)
-                    .await
-                    .unwrap();
+                    .await;
 
-                sender.send(nonce).unwrap();
+                sender.send(nonce).expect("unable to send result from get_nonce");
             }
         }
     }
@@ -50,7 +52,7 @@ pub(crate) struct ForkedOrigin {
 }
 
 impl ForkedOrigin {
-    fn new(rpc_url: &str) -> Self {
+    fn new(rpc_url: Url) -> Self {
         let (sender, receiver) = tokio::sync::mpsc::channel(10);
         let provider = ForkedProvider::new(rpc_url, receiver);
 
@@ -65,9 +67,15 @@ impl ForkedOrigin {
         Self { sender }
     }
 
-    fn get_nonce(&self, address: FieldElement) -> FieldElement {
+    fn get_nonce(&self, address: FieldElement) -> DevnetResult<FieldElement> {
         let (tx, rx) = mpsc::channel();
-        self.sender.try_send(ForkedRequest::GetNonceAt(address, tx)).unwrap();
-        rx.recv().unwrap()
+        self.sender
+            .try_send(ForkedRequest::GetNonceAt(address, tx))
+            .map_err(|err| ForkedProviderError::InfrastructureError(err.to_string()))?;
+        let nonce_result =
+            rx.recv().map_err(|err| ForkedProviderError::InfrastructureError(err.to_string()))?;
+
+        nonce_result
+            .map_err(|err| Error::ForkedProviderError(ForkedProviderError::ProviderError(err)))
     }
 }

@@ -68,6 +68,8 @@ pub enum Error {
     MessagingError(#[from] MessagingError),
     #[error("Transaction has no trace")]
     NoTransactionTrace,
+    #[error(transparent)]
+    ForkedProviderError(#[from] ForkedProviderError),
 }
 
 #[derive(Debug, Error)]
@@ -109,6 +111,14 @@ pub enum MessagingError {
     EthersError(String),
     #[error("Message to L1 with hash {0} is not present (never received OR already consumed).")]
     MessageToL1NotPresent(String),
+}
+
+#[derive(Debug, Error)]
+pub enum ForkedProviderError {
+    #[error("{0}")]
+    InfrastructureError(String),
+    #[error(transparent)]
+    ProviderError(#[from] starknet_rs_providers::ProviderError),
 }
 
 pub type DevnetResult<T, E = Error> = Result<T, E>;
