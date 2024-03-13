@@ -233,9 +233,12 @@ impl TryInto<ContractClass> for CodegenContractClass {
     fn try_into(self) -> Result<ContractClass, Self::Error> {
         let jsonified = serde_json::to_value(self.clone()).map_err(JsonError::SerdeJsonError)?;
         Ok(match self {
-            CodegenContractClass::Sierra(_) => ContractClass::Cairo1(
-                serde_json::from_value(jsonified).map_err(JsonError::SerdeJsonError)?,
-            ),
+            CodegenContractClass::Sierra(_) => {
+                let devnet_class =
+                    deserialize_to_sierra_contract_class(jsonified.into_deserializer())
+                        .map_err(JsonError::SerdeJsonError)?;
+                ContractClass::Cairo1(devnet_class)
+            }
             CodegenContractClass::Legacy(_) => ContractClass::Cairo0(
                 serde_json::from_value(jsonified).map_err(JsonError::SerdeJsonError)?,
             ),

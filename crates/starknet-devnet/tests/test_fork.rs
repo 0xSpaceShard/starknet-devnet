@@ -14,7 +14,9 @@ mod fork_tests {
     use starknet_rs_providers::Provider;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::utils::get_simple_contract_in_sierra_and_compiled_class_hash;
+    use crate::common::utils::{
+        assert_classes_equal, get_simple_contract_in_sierra_and_compiled_class_hash,
+    };
 
     static DUMMY_ADDRESS: u128 = 1;
     static DUMMY_AMOUNT: u128 = 1;
@@ -105,7 +107,6 @@ mod fork_tests {
     }
 
     #[tokio::test]
-    #[ignore = "Not supported"]
     async fn test_getting_class_from_origin_and_fork() {
         let origin_devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
@@ -167,8 +168,9 @@ mod fork_tests {
                 .json_rpc_client
                 .get_class(BlockId::Tag(BlockTag::Latest), declaration_result.class_hash)
                 .await
-                .unwrap(); // TODO abi comparison failing due to extra spaces between properties
-            assert_eq!(retrieved_class, ContractClass::Sierra(cairo_1_contract.clone()));
+                .unwrap();
+            assert_classes_equal(retrieved_class, ContractClass::Sierra(cairo_1_contract.clone()))
+                .unwrap();
         }
     }
 

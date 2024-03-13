@@ -7,7 +7,7 @@ use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use hyper::{Body, Response};
 use starknet_core::random_number_generator::generate_u32_random_number;
 use starknet_rs_core::types::contract::SierraClass;
-use starknet_rs_core::types::{ExecutionResult, FieldElement, FlattenedSierraClass};
+use starknet_rs_core::types::{ContractClass, ExecutionResult, FieldElement, FlattenedSierraClass};
 use starknet_rs_providers::Provider;
 use starknet_rs_signers::LocalWallet;
 use starknet_types::constants::MAX_BYTECODE_SIZE_LIMIT;
@@ -172,6 +172,30 @@ async fn send_ctrl_c_signal(process: &Child) {
             .unwrap();
         kill.wait().unwrap();
     }
+}
+
+fn take_abi_from_json(value: &mut serde_json::Value) -> Result<serde_json::Value, anyhow::Error> {
+    let abi_jsonified = value["abi"].take();
+    assert_ne!(abi_jsonified, serde_json::json!(null));
+    Ok(serde_json::from_str(abi_jsonified.as_str().unwrap())?)
+}
+
+/// Handles differences in abi serialization (some might contain spaces between properties, some
+/// not) Comparing the ABIs separately as JSON-parsed values.
+pub fn assert_classes_equal(
+    class_a: ContractClass,
+    class_b: ContractClass,
+) -> Result<(), anyhow::Error> {
+    let mut class_a_jsonified = serde_json::to_value(class_a)?;
+    let mut class_b_jsonified = serde_json::to_value(class_b)?;
+
+    let abi_a = take_abi_from_json(&mut class_a_jsonified)?;
+    let abi_b = take_abi_from_json(&mut class_b_jsonified)?;
+
+    assert_eq!(class_a_jsonified, class_b_jsonified);
+    assert_eq!(abi_a, abi_b);
+
+    Ok(())
 }
 
 /// Wrapper of file name which attempts to delete the file when the variable is dropped.
