@@ -27,12 +27,9 @@ pub(crate) fn get_events(
     mut skip: usize,
     limit: Option<usize>,
 ) -> DevnetResult<(Vec<EmittedEvent>, bool)> {
-    let mut blocks = starknet.blocks.get_blocks(from_block, to_block)?;
+    let blocks = starknet.blocks.get_blocks(from_block, to_block)?;
     let mut events: Vec<EmittedEvent> = Vec::new();
     let mut elements_added = 0;
-
-    // why this is needed?
-    blocks.reverse();
 
     // iterate over each block and get the transactions for each one
     // then iterate over each transaction events and filter them

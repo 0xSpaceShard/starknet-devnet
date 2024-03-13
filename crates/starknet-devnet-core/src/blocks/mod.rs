@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 use indexmap::IndexMap;
 use starknet_api::block::{BlockHeader, BlockNumber, BlockStatus, BlockTimestamp};
@@ -112,7 +112,7 @@ impl StarknetBlocks {
         to: Option<BlockId>,
     ) -> DevnetResult<Vec<&StarknetBlock>> {
         // used btree map to keep elements in the order of the keys
-        let mut filtered_blocks: BTreeMap<Felt, &StarknetBlock> = BTreeMap::new();
+        let mut filtered_blocks: IndexMap<Felt, &StarknetBlock> = IndexMap::new();
 
         let starting_block = if let Some(block_id) = from {
             // If the value for block number provided is not correct it will return None
@@ -145,10 +145,7 @@ impl StarknetBlocks {
                     **current_block_number >= start && **current_block_number <= end
                 }
             })
-            //.rev() - ? why this is needed?
-            .for_each(|(num, block_hash)| {
-                println!("num: {:?}", num);
-
+            .for_each(|(_, block_hash)| {
                 let block = self.get_by_hash(*block_hash).unwrap(); // TODO: fix unwrap here
                 filtered_blocks.insert(*block_hash, block);
             });
