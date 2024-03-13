@@ -13,7 +13,6 @@ mod fork_tests {
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
     use starknet_rs_providers::Provider;
-    use starknet_types::contract_class::Cairo0Json;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::{
@@ -129,9 +128,8 @@ mod fork_tests {
             "../starknet-devnet-core/test_artifacts/cairo_0_test.json",
         ))
         .unwrap();
-        let contract_class = Cairo0Json::raw_json_from_json_str(&json_string).unwrap();
         let contract_class: Arc<LegacyContractClass> =
-            Arc::new(serde_json::from_value(contract_class.inner).unwrap());
+            Arc::new(serde_json::from_str(&json_string).unwrap());
 
         // declare the contract
         let declaration_result = predeployed_account

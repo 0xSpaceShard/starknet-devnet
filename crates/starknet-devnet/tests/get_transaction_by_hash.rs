@@ -14,7 +14,6 @@ mod get_transaction_by_hash_integration_tests {
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_rs_providers::{Provider, ProviderError};
-    use starknet_types::contract_class::Cairo0Json;
     use starknet_types::felt::Felt;
     use starknet_types::traits::ToHexString;
 
@@ -34,9 +33,8 @@ mod get_transaction_by_hash_integration_tests {
         ))
         .unwrap();
 
-        let legacy_contract_class = Cairo0Json::raw_json_from_json_str(&json_string).unwrap();
         let legacy_contract_class: LegacyContractClass =
-            serde_json::from_value(legacy_contract_class.inner).unwrap();
+            serde_json::from_str(&json_string).unwrap();
 
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
 
