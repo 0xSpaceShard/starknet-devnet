@@ -67,7 +67,7 @@ impl ForkedOrigin {
         Self { sender }
     }
 
-    fn get_nonce(&self, address: FieldElement) -> DevnetResult<FieldElement> {
+    pub(crate) fn get_nonce(&self, address: FieldElement) -> DevnetResult<FieldElement> {
         let (tx, rx) = mpsc::channel();
         self.sender
             .try_send(ForkedRequest::GetNonceAt(address, tx))
@@ -77,5 +77,32 @@ impl ForkedOrigin {
 
         nonce_result
             .map_err(|err| Error::ForkedProviderError(ForkedProviderError::ProviderError(err)))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+
+    use starknet_rs_ff::FieldElement;
+    use url::Url;
+
+    use super::ForkedOrigin;
+
+    #[test]
+    fn test_get_nonce_completes_successful() {
+        let rpc_url = "https://free-rpc.nethermind.io/mainnet-juno/v0_6";
+
+        let origin = ForkedOrigin::new(Url::from_str(rpc_url).unwrap());
+        // taken from mainnet, first page of contracts
+        println!(
+            "{:?}",
+            origin.get_nonce(
+                FieldElement::from_str(
+                    "0x01cf0f13438f60162d2668ff72a741971af965c154c248da20035ce007a9df55",
+                )
+                .unwrap(),
+            )
+        );
     }
 }
