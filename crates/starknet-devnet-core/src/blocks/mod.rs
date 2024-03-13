@@ -61,9 +61,6 @@ impl StarknetBlocks {
         let block_number = block.block_number();
 
         self.num_to_hash.insert(block_number, hash);
-
-        println!("insert {:?}", self.num_to_hash);
-
         self.hash_to_block.insert(hash, block);
         self.hash_to_state_diff.insert(hash, state_diff);
         self.last_block_hash = Some(hash);
@@ -131,7 +128,6 @@ impl StarknetBlocks {
         } else {
             None
         };
-        println!("self.num_to_hash: {:?}", self.num_to_hash);
 
         // iterate over the blocks and apply the filter
         // then insert the filtered blocks into the btree map

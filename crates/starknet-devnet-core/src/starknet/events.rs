@@ -360,9 +360,7 @@ mod tests {
     }
 
     #[test]
-
     fn check_correct_events_being_returned() {
-        // why it fails?
         let starknet = setup();
 
         // events with key 15 should be only 1 in the 5th transaction
@@ -371,7 +369,7 @@ mod tests {
                 .unwrap();
 
         assert_eq!(events.len(), 1);
-        assert_eq!(events[0].transaction_hash, Felt::from(104)); // why?
+        assert_eq!(events[0].transaction_hash, Felt::from(104));
         assert_eq!(events[0].keys.len(), 1);
         assert_eq!(events[0].keys[0], Felt::from(15));
         assert_eq!(events[0].data[0], Felt::from(25));
