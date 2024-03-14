@@ -10,7 +10,7 @@ pub fn state_update_by_block_id(
 ) -> DevnetResult<StateUpdate> {
     let block = starknet.blocks.get_by_block_id(block_id).ok_or(crate::error::Error::NoBlock)?;
     let state_diff =
-        starknet.blocks.num_to_state_diff.get(&block.block_number()).cloned().unwrap_or_default();
+        starknet.blocks.hash_to_state_diff.get(&block.block_hash()).cloned().unwrap_or_default();
 
     Ok(StateUpdate::new(block.block_hash(), state_diff))
 }

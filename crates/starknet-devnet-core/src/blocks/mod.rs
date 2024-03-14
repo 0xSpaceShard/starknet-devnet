@@ -1,5 +1,6 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
+use indexmap::IndexMap;
 use starknet_api::block::{BlockHeader, BlockNumber, BlockStatus, BlockTimestamp};
 use starknet_api::hash::{pedersen_hash_array, StarkFelt};
 use starknet_api::stark_felt;
@@ -16,12 +17,12 @@ use crate::state::StarknetState;
 use crate::traits::HashIdentified;
 
 pub(crate) struct StarknetBlocks {
-    pub(crate) hash_to_num: HashMap<BlockHash, BlockNumber>,
-    pub(crate) num_to_block: HashMap<BlockNumber, StarknetBlock>,
+    pub(crate) num_to_hash: IndexMap<BlockNumber, BlockHash>,
+    pub(crate) hash_to_block: HashMap<BlockHash, StarknetBlock>,
     pub(crate) pending_block: StarknetBlock,
     pub(crate) last_block_hash: Option<BlockHash>,
-    pub(crate) num_to_state_diff: HashMap<BlockNumber, StateDiff>,
-    pub(crate) num_to_state: HashMap<BlockNumber, StarknetState>,
+    pub(crate) hash_to_state_diff: HashMap<BlockHash, StateDiff>,
+    pub(crate) hash_to_state: HashMap<BlockHash, StarknetState>,
 }
 
 impl HashIdentified for StarknetBlocks {
@@ -29,8 +30,7 @@ impl HashIdentified for StarknetBlocks {
     type Hash = BlockHash;
 
     fn get_by_hash(&self, hash: Self::Hash) -> Option<&Self::Element> {
-        let block_number = self.hash_to_num.get(&hash)?;
-        let block = self.num_to_block.get(block_number)?;
+        let block = self.hash_to_block.get(&hash)?;
 
         Some(block)
     }
@@ -39,12 +39,12 @@ impl HashIdentified for StarknetBlocks {
 impl Default for StarknetBlocks {
     fn default() -> Self {
         Self {
-            hash_to_num: HashMap::new(),
-            num_to_block: HashMap::new(),
+            num_to_hash: IndexMap::new(),
+            hash_to_block: HashMap::new(),
             pending_block: StarknetBlock::create_pending_block(),
             last_block_hash: None,
-            num_to_state_diff: HashMap::new(),
-            num_to_state: HashMap::new(),
+            hash_to_state_diff: HashMap::new(),
+            hash_to_state: HashMap::new(),
         }
     }
 }
@@ -60,20 +60,27 @@ impl StarknetBlocks {
         let hash = block.block_hash();
         let block_number = block.block_number();
 
-        self.hash_to_num.insert(hash, block_number);
-        self.num_to_block.insert(block_number, block);
-        self.num_to_state_diff.insert(block_number, state_diff);
+        self.num_to_hash.insert(block_number, hash);
+        self.hash_to_block.insert(hash, block);
+        self.hash_to_state_diff.insert(hash, state_diff);
         self.last_block_hash = Some(hash);
     }
 
-    pub fn save_state_at(&mut self, block_number: BlockNumber, state: StarknetState) {
-        self.num_to_state.insert(block_number, state);
+    fn get_by_num(&self, num: &BlockNumber) -> Option<&StarknetBlock> {
+        let block_hash = self.num_to_hash.get(num)?;
+        let block = self.hash_to_block.get(block_hash)?;
+
+        Some(block)
+    }
+
+    pub fn save_state_at(&mut self, block_hash: Felt, state: StarknetState) {
+        self.hash_to_state.insert(block_hash, state);
     }
 
     pub fn get_by_block_id(&self, block_id: &BlockId) -> Option<&StarknetBlock> {
         match block_id {
             BlockId::Hash(hash) => self.get_by_hash(Felt::from(hash)),
-            BlockId::Number(block_number) => self.num_to_block.get(&BlockNumber(*block_number)),
+            BlockId::Number(block_number) => self.get_by_num(&BlockNumber(*block_number)),
             // latest and pending for now will return the latest one
             BlockId::Tag(_) => {
                 if let Some(hash) = self.last_block_hash {
@@ -101,8 +108,8 @@ impl StarknetBlocks {
         from: Option<BlockId>,
         to: Option<BlockId>,
     ) -> DevnetResult<Vec<&StarknetBlock>> {
-        // used btree map to keep elements in the order of the keys
-        let mut filtered_blocks: BTreeMap<BlockNumber, &StarknetBlock> = BTreeMap::new();
+        // used IndexMap to keep elements in the order of the keys
+        let mut filtered_blocks: IndexMap<Felt, &StarknetBlock> = IndexMap::new();
 
         let starting_block = if let Some(block_id) = from {
             // If the value for block number provided is not correct it will return None
@@ -123,8 +130,8 @@ impl StarknetBlocks {
         };
 
         // iterate over the blocks and apply the filter
-        // then insert the filtered blocks into the btree map
-        self.num_to_block
+        // then insert the filtered blocks into the index map
+        self.num_to_hash
             .iter()
             .filter(|(current_block_number, _)| match (starting_block, ending_block) {
                 (None, None) => true,
@@ -134,8 +141,8 @@ impl StarknetBlocks {
                     **current_block_number >= start && **current_block_number <= end
                 }
             })
-            .for_each(|(block_number, block)| {
-                filtered_blocks.insert(*block_number, block);
+            .for_each(|(_, block_hash)| {
+                filtered_blocks.insert(*block_hash, &self.hash_to_block[block_hash]);
             });
 
         Ok(filtered_blocks.into_values().collect())
@@ -353,7 +360,7 @@ mod tests {
         }
 
         // check blocks len
-        assert!(blocks.num_to_block.len() == 10);
+        assert!(blocks.hash_to_block.len() == 10);
 
         // 1. None, None
         // no filter
@@ -658,20 +665,19 @@ mod tests {
         }
 
         assert!(
-            blocks.num_to_block.get(&BlockNumber(0)).unwrap().header.parent_hash
-                == BlockHash::default()
+            blocks.get_by_num(&BlockNumber(0)).unwrap().header.parent_hash == BlockHash::default()
         );
         assert!(
-            blocks.num_to_block.get(&BlockNumber(0)).unwrap().header.block_hash
-                == blocks.num_to_block.get(&BlockNumber(1)).unwrap().header.parent_hash
+            blocks.get_by_num(&BlockNumber(0)).unwrap().header.block_hash
+                == blocks.get_by_num(&BlockNumber(1)).unwrap().header.parent_hash
         );
         assert!(
-            blocks.num_to_block.get(&BlockNumber(1)).unwrap().header.block_hash
-                == blocks.num_to_block.get(&BlockNumber(2)).unwrap().header.parent_hash
+            blocks.get_by_num(&BlockNumber(1)).unwrap().header.block_hash
+                == blocks.get_by_num(&BlockNumber(2)).unwrap().header.parent_hash
         );
         assert!(
-            blocks.num_to_block.get(&BlockNumber(1)).unwrap().header.parent_hash
-                != blocks.num_to_block.get(&BlockNumber(2)).unwrap().header.parent_hash
+            blocks.get_by_num(&BlockNumber(1)).unwrap().header.parent_hash
+                != blocks.get_by_num(&BlockNumber(2)).unwrap().header.parent_hash
         )
     }
 
