@@ -111,7 +111,7 @@ impl Defaulter {
         if let Some(origin) = &self.origin_reader {
             origin.get_contract_class(class_hash)
         } else {
-            Err(StateError::UndeclaredClassHash(class_hash))
+            Err(StateError::UndeclaredClassHash(class_hash)) // TODO these StateErrors might not map well to the ApiError
         }
     }
 
@@ -128,7 +128,7 @@ fn convert_json_value_to_stark_felt(json_value: serde_json::Value) -> StarkFelt 
     StarkFelt::try_from(json_value.as_str().unwrap()).unwrap()
 }
 
-// Same as Statereader, but with &self instead of &mut self
+// Same as StateReader, but with &self instead of &mut self
 impl BlockingOriginReader {
     fn get_storage_at(
         &self,
@@ -196,7 +196,7 @@ impl BlockingOriginReader {
                 let contract_class: starknet_rs_core::types::ContractClass =
                     serde_json::from_value(value).unwrap();
                 convert_codegen_to_blockifier_compiled_class(contract_class)
-                    // TODO wrong error handling; invalid cairo0 deserialization
+                    // TODO wrong error handling; invalid cairo0 deserialization - maybe not?
                     .map_err(|e| StateError::StateReadError(e.to_string()))
             }
         }

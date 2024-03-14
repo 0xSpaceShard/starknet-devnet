@@ -7,6 +7,8 @@ mod write_endpoints;
 
 pub const RPC_SPEC_VERSION: &str = "0.7.0";
 
+use axum::http::request;
+use hyper::client::HttpConnector;
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
     EstimateFeeInput, EventsInput, GetStorageInput, TransactionHashInput,
@@ -40,6 +42,7 @@ use crate::api::json_rpc::models::{
 };
 use crate::api::serde_helpers::empty_params;
 use crate::rpc_core::error::RpcError;
+use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::ResponseResult;
 use crate::rpc_handler::RpcHandler;
 
@@ -71,99 +74,130 @@ impl ToRpcResponseResult for StrictRpcResult {
     }
 }
 
+// TODO this struct needs a name that will distinguish it from the similar Defaulter
+#[derive(Clone)]
+pub struct OriginCaller {
+    client: hyper::Client<HttpConnector>,
+    url: hyper::Uri,
+}
+
+impl OriginCaller {
+    pub fn new(url: hyper::Uri) -> Self {
+        Self { client: hyper::Client::new(), url }
+    }
+
+    async fn call(&self, rpc_call: &RpcMethodCall) -> ResponseResult {
+        let req_body = hyper::Body::from(serde_json::to_string(&rpc_call).unwrap());
+        let req = request::Request::builder()
+            .method("POST")
+            .uri(self.url.clone())
+            .header("content-type", "application/json")
+            .body(req_body)
+            .unwrap();
+
+        let origin_resp = self.client.request(req).await.unwrap();
+        let resp_body = origin_resp.into_body();
+        let resp_body_bytes = hyper::body::to_bytes(resp_body).await.unwrap();
+        serde_json::from_slice(&resp_body_bytes).unwrap()
+    }
+}
+
 /// This object will be used as a shared state between HTTP calls.
 /// Is simillar to the HttpApiHandler but is with extended functionality and is used for JSON-RPC
 /// methods
 #[derive(Clone)]
 pub struct JsonRpcHandler {
     pub api: Api,
+    pub origin_caller: Option<OriginCaller>,
 }
 
 #[async_trait::async_trait]
 impl RpcHandler for JsonRpcHandler {
     type Request = StarknetRequest;
 
-    async fn on_request(&self, request: Self::Request) -> ResponseResult {
+    async fn on_request(
+        &self,
+        request: Self::Request,
+        original_call: RpcMethodCall,
+    ) -> ResponseResult {
         info!(target: "rpc", "received method in on_request {}", request);
-        self.execute(request).await
+        self.execute(request, original_call).await
     }
 }
 
 impl JsonRpcHandler {
     /// The method matches the request to the corresponding enum variant and executes the request
-    async fn execute(&self, request: StarknetRequest) -> ResponseResult {
+    async fn execute(
+        &self,
+        request: StarknetRequest,
+        original_call: RpcMethodCall,
+    ) -> ResponseResult {
         trace!(target: "JsonRpcHandler::execute", "executing starknet request");
 
-        match request {
-            StarknetRequest::SpecVersion => self.spec_version().to_rpc_result(),
+        let starknet_resp = match request {
+            StarknetRequest::SpecVersion => self.spec_version(),
             StarknetRequest::BlockWithTransactionHashes(block) => {
-                self.get_block_with_tx_hashes(block.block_id).await.to_rpc_result()
+                self.get_block_with_tx_hashes(block.block_id).await
             }
             StarknetRequest::BlockWithFullTransactions(block) => {
-                self.get_block_with_txs(block.block_id).await.to_rpc_result()
+                self.get_block_with_txs(block.block_id).await
             }
             StarknetRequest::BlockWithReceipts(block) => {
-                self.get_block_with_receipts(block.block_id).await.to_rpc_result()
+                self.get_block_with_receipts(block.block_id).await
             }
-            StarknetRequest::StateUpdate(block) => {
-                self.get_state_update(block.block_id).await.to_rpc_result()
-            }
+            StarknetRequest::StateUpdate(block) => self.get_state_update(block.block_id).await,
             StarknetRequest::StorageAt(GetStorageInput { contract_address, key, block_id }) => {
-                self.get_storage_at(contract_address, key, block_id).await.to_rpc_result()
+                self.get_storage_at(contract_address, key, block_id).await
             }
             StarknetRequest::TransactionStatusByHash(TransactionHashInput { transaction_hash }) => {
-                self.get_transaction_status_by_hash(transaction_hash).await.to_rpc_result()
+                self.get_transaction_status_by_hash(transaction_hash).await
             }
             StarknetRequest::TransactionByHash(TransactionHashInput { transaction_hash }) => {
-                self.get_transaction_by_hash(transaction_hash).await.to_rpc_result()
+                self.get_transaction_by_hash(transaction_hash).await
             }
             StarknetRequest::TransactionByBlockAndIndex(BlockAndIndexInput { block_id, index }) => {
-                self.get_transaction_by_block_id_and_index(block_id, index).await.to_rpc_result()
+                self.get_transaction_by_block_id_and_index(block_id, index).await
             }
             StarknetRequest::TransactionReceiptByTransactionHash(TransactionHashInput {
                 transaction_hash,
-            }) => self.get_transaction_receipt_by_hash(transaction_hash).await.to_rpc_result(),
+            }) => self.get_transaction_receipt_by_hash(transaction_hash).await,
             StarknetRequest::ClassByHash(BlockAndClassHashInput { block_id, class_hash }) => {
-                self.get_class(block_id, class_hash).await.to_rpc_result()
+                self.get_class(block_id, class_hash).await
             }
             StarknetRequest::ClassHashAtContractAddress(BlockAndContractAddressInput {
                 block_id,
                 contract_address,
-            }) => self.get_class_hash_at(block_id, contract_address).await.to_rpc_result(),
+            }) => self.get_class_hash_at(block_id, contract_address).await,
             StarknetRequest::ClassAtContractAddress(BlockAndContractAddressInput {
                 block_id,
                 contract_address,
-            }) => self.get_class_at(block_id, contract_address).await.to_rpc_result(),
+            }) => self.get_class_at(block_id, contract_address).await,
             StarknetRequest::BlockTransactionCount(block) => {
-                self.get_block_txs_count(block.block_id).await.to_rpc_result()
+                self.get_block_txs_count(block.block_id).await
             }
             StarknetRequest::Call(CallInput { request, block_id }) => {
-                self.call(block_id, request).await.to_rpc_result()
+                self.call(block_id, request).await
             }
             StarknetRequest::EsimateFee(EstimateFeeInput {
                 request,
                 block_id,
                 simulation_flags,
-            }) => self.estimate_fee(block_id, request, simulation_flags).await.to_rpc_result(),
-            StarknetRequest::BlockNumber => self.block_number().await.to_rpc_result(),
-            StarknetRequest::BlockHashAndNumber => {
-                self.block_hash_and_number().await.to_rpc_result()
-            }
-            StarknetRequest::ChainId => self.chain_id().await.to_rpc_result(),
-            StarknetRequest::Syncing => self.syncing().await.to_rpc_result(),
-            StarknetRequest::Events(EventsInput { filter }) => {
-                self.get_events(filter).await.to_rpc_result()
-            }
+            }) => self.estimate_fee(block_id, request, simulation_flags).await,
+            StarknetRequest::BlockNumber => self.block_number().await,
+            StarknetRequest::BlockHashAndNumber => self.block_hash_and_number().await,
+            StarknetRequest::ChainId => self.chain_id().await,
+            StarknetRequest::Syncing => self.syncing().await,
+            StarknetRequest::Events(EventsInput { filter }) => self.get_events(filter).await,
             StarknetRequest::ContractNonce(BlockAndContractAddressInput {
                 block_id,
                 contract_address,
-            }) => self.get_nonce(block_id, contract_address).await.to_rpc_result(),
+            }) => self.get_nonce(block_id, contract_address).await,
             StarknetRequest::AddDeclareTransaction(BroadcastedDeclareTransactionInput {
                 declare_transaction,
             }) => {
                 let BroadcastedDeclareTransactionEnumWrapper::Declare(broadcasted_transaction) =
                     declare_transaction;
-                self.add_declare_transaction(broadcasted_transaction).await.to_rpc_result()
+                self.add_declare_transaction(broadcasted_transaction).await
             }
             StarknetRequest::AddDeployAccountTransaction(
                 BroadcastedDeployAccountTransactionInput { deploy_account_transaction },
@@ -171,33 +205,44 @@ impl JsonRpcHandler {
                 let BroadcastedDeployAccountTransactionEnumWrapper::DeployAccount(
                     broadcasted_transaction,
                 ) = deploy_account_transaction;
-                self.add_deploy_account_transaction(broadcasted_transaction).await.to_rpc_result()
+                self.add_deploy_account_transaction(broadcasted_transaction).await
             }
             StarknetRequest::AddInvokeTransaction(BroadcastedInvokeTransactionInput {
                 invoke_transaction,
             }) => {
                 let BroadcastedInvokeTransactionEnumWrapper::Invoke(broadcasted_transaction) =
                     invoke_transaction;
-                self.add_invoke_transaction(broadcasted_transaction).await.to_rpc_result()
+                self.add_invoke_transaction(broadcasted_transaction).await
             }
-            StarknetRequest::EstimateMessageFee(request) => self
-                .estimate_message_fee(request.get_block_id(), request.get_raw_message().clone())
-                .await
-                .to_rpc_result(),
+            StarknetRequest::EstimateMessageFee(request) => {
+                self.estimate_message_fee(request.get_block_id(), request.get_raw_message().clone())
+                    .await
+            }
             StarknetRequest::SimulateTransactions(SimulateTransactionsInput {
                 block_id,
                 transactions,
                 simulation_flags,
-            }) => self
-                .simulate_transactions(block_id, transactions, simulation_flags)
-                .await
-                .to_rpc_result(),
+            }) => self.simulate_transactions(block_id, transactions, simulation_flags).await,
             StarknetRequest::TraceTransaction(TransactionHashInput { transaction_hash }) => {
-                self.get_trace_transaction(transaction_hash).await.to_rpc_result()
+                self.get_trace_transaction(transaction_hash).await
             }
             StarknetRequest::BlockTransactionTraces(BlockIdInput { block_id }) => {
-                self.get_trace_block_transactions(block_id).await.to_rpc_result()
+                self.get_trace_block_transactions(block_id).await
             }
+        };
+
+        if let (Err(err), Some(defaulter)) = (&starknet_resp, &self.origin_caller) {
+            match err {
+                error::ApiError::BlockNotFound // TODO what if a block is requested that was only added to origin after forking happened
+                | error::ApiError::TransactionNotFound
+                | error::ApiError::ClassHashNotFound // TODO add a parameter to distinguish who is throwing this (starknet_getClass or starknet_deployAccount)
+                    => {
+                    defaulter.call(&original_call).await
+                }
+                _other_error => starknet_resp.to_rpc_result(),
+            }
+        } else {
+            starknet_resp.to_rpc_result()
         }
     }
 }

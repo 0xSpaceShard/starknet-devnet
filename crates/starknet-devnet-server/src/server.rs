@@ -1,10 +1,11 @@
 use std::net::SocketAddr;
+use std::str::FromStr;
 
 use axum::routing::{get, post};
 use starknet_core::starknet::starknet_config::StarknetConfig;
 
 use crate::api::http::{endpoints as http, HttpApiHandler};
-use crate::api::json_rpc::JsonRpcHandler;
+use crate::api::json_rpc::{JsonRpcHandler, OriginCaller};
 use crate::api::Api;
 use crate::builder::StarknetDevnetServer;
 use crate::error::ServerResult;
@@ -18,7 +19,13 @@ pub fn serve_http_api_json_rpc(
     starknet_config: &StarknetConfig,
 ) -> ServerResult<StarknetDevnetServer> {
     let http = HttpApiHandler { api: api.clone() };
-    let json_rpc = JsonRpcHandler { api };
+    let origin_caller = starknet_config
+        .fork_config
+        .url
+        .as_ref()
+        .map(|url| OriginCaller::new(hyper::Uri::from_str(url.as_str()).unwrap()));
+
+    let json_rpc = JsonRpcHandler { api, origin_caller };
 
     crate::builder::Builder::<JsonRpcHandler, HttpApiHandler>::new(addr, json_rpc, http)
         .set_config(config)

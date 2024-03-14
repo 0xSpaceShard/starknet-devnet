@@ -11,7 +11,7 @@ use starknet_core::constants::{
     CAIRO_1_ERC20_CONTRACT_CLASS_HASH, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     UDC_CONTRACT_ADDRESS, UDC_CONTRACT_CLASS_HASH,
 };
-use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig};
+use starknet_core::starknet::starknet_config::{DumpOn, ForkConfig};
 use starknet_core::starknet::Starknet;
 use starknet_rs_core::types::{BlockId, BlockTag, MaybePendingBlockWithTxHashes};
 use starknet_rs_providers::jsonrpc::HttpTransport;
@@ -79,10 +79,10 @@ fn print_chain_id(chain_id: ChainId) {
     println!("Chain ID: {} ({})", chain_id, chain_id.to_felt().to_prefixed_hex_str());
 }
 
-pub async fn check_fork(starknet_config: &mut StarknetConfig) -> Result<(), anyhow::Error> {
-    if let Some(url) = &starknet_config.fork_config.url {
+pub async fn set_and_log_fork_block(fork_config: &mut ForkConfig) -> Result<(), anyhow::Error> {
+    if let Some(url) = &fork_config.url {
         let json_rpc_client = JsonRpcClient::new(HttpTransport::new(url.clone()));
-        let block_number = if let Some(block_number) = starknet_config.fork_config.block {
+        let block_number = if let Some(block_number) = fork_config.block {
             // if this passes, it means the block number is valid
             json_rpc_client.get_block_with_tx_hashes(BlockId::Number(block_number)).await.map_err(
                 |e| {
@@ -104,7 +104,7 @@ pub async fn check_fork(starknet_config: &mut StarknetConfig) -> Result<(), anyh
             }
         };
         println!("Forking at block {}", block_number);
-        starknet_config.fork_config.block = Some(block_number)
+        fork_config.block = Some(block_number)
     }
 
     Ok(())
@@ -118,7 +118,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let args = Args::parse();
     let mut starknet_config = args.to_starknet_config()?;
 
-    check_fork(&mut starknet_config).await?;
+    set_and_log_fork_block(&mut starknet_config.fork_config).await?;
 
     let mut addr: SocketAddr = SocketAddr::new(starknet_config.host, starknet_config.port);
 
