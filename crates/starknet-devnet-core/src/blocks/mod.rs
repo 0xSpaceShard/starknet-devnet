@@ -108,7 +108,7 @@ impl StarknetBlocks {
         from: Option<BlockId>,
         to: Option<BlockId>,
     ) -> DevnetResult<Vec<&StarknetBlock>> {
-        // used btree map to keep elements in the order of the keys
+        // used IndexMap to keep elements in the order of the keys
         let mut filtered_blocks: IndexMap<Felt, &StarknetBlock> = IndexMap::new();
 
         let starting_block = if let Some(block_id) = from {

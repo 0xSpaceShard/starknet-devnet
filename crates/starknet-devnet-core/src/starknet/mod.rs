@@ -273,7 +273,7 @@ impl Starknet {
         // save into blocks state archive
         if self.config.state_archive == StateArchiveCapacity::Full {
             let clone = self.state.clone_historic();
-            self.blocks.save_state_at(new_block_number, clone);
+            self.blocks.save_state_at(new_block_hash, clone);
         }
 
         self.generate_pending_block()?;
@@ -515,12 +515,13 @@ impl Starknet {
                 }
 
                 let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
-                let block_number = block.block_number();
+                let block_number = block.block_number().0;
+                let block_hash = block.block_hash();
                 let state = self
                     .blocks
                     .hash_to_state
-                    .get(&block.block_hash())
-                    .ok_or(Error::NoStateAtBlock { block_number: block.block_number().0 })?;
+                    .get_mut(&block_hash)
+                    .ok_or(Error::NoStateAtBlock { block_number })?;
                 Ok(state)
             }
         }
@@ -1099,7 +1100,7 @@ mod tests {
     use crate::error::{DevnetResult, Error};
     use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
     use crate::state::state_diff::StateDiff;
-    use crate::traits::{Accounted, HashIdentified, StateChanger, StateExtractor};
+    use crate::traits::{Accounted, HashIdentified};
     use crate::utils::test_utils::{
         dummy_contract_address, dummy_declare_transaction_v1, dummy_felt,
     };
@@ -1455,7 +1456,7 @@ mod tests {
         let second_block_address_nonce = starknet
             .blocks
             .hash_to_state
-            .get(&second_block)
+            .get_mut(&second_block)
             .unwrap()
             .get_nonce_at(dummy_contract_address().try_into().unwrap())
             .unwrap();
@@ -1465,7 +1466,7 @@ mod tests {
         let third_block_address_nonce = starknet
             .blocks
             .hash_to_state
-            .get(&third_block)
+            .get_mut(&third_block)
             .unwrap()
             .get_nonce_at(dummy_contract_address().try_into().unwrap())
             .unwrap();

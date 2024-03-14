@@ -128,7 +128,6 @@ pub fn add_declare_transaction_v1(
 mod tests {
     use blockifier::state::state_api::StateReader;
     use nonzero_ext::nonzero;
-    use starknet_api::block::BlockNumber;
     use starknet_api::core::CompiledClassHash;
     use starknet_api::hash::StarkHash;
     use starknet_api::transaction::Fee;
@@ -148,9 +147,8 @@ mod tests {
     };
     use crate::starknet::predeployed::create_erc20_at_address;
     use crate::starknet::{predeployed, Starknet};
-    use crate::traits::{Accounted, Deployed, HashIdentified, HashIdentifiedMut, StateExtractor};
     use crate::state::CustomStateReader;
-    use crate::traits::{Deployed, HashIdentifiedMut};
+    use crate::traits::{Deployed, HashIdentified, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{
         convert_broadcasted_declare_v2_to_v3, dummy_broadcasted_declare_transaction_v2,
