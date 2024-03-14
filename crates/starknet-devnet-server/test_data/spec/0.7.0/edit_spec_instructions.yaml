@@ -53,8 +53,6 @@ edit_manually:
   - action: REMOVE
     what: starknet_getBlockWithTxs -> result removed PENDING_BLOCK_WITH_TXS
   - action: REMOVE
-    what: starknet_getTransactionReceipt -> result removed PENDING_TXN_RECEIPT
-  - action: REMOVE
     what: starknet_getBlockWithTxHashes -> result removed PENDING_BLOCK_WITH_TX_HASHES
   - action: ADD
     what: execution_status to required fields of the result of starknet_getTransactionStatus
