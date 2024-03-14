@@ -444,12 +444,10 @@ mod tests {
         let dummy_contract_address =
             ContractAddress::new(Felt::new(address_bytes).unwrap()).unwrap();
         let dummy_contract_class_hash = dummy_contract.generate_hash().unwrap();
-        let storage_key = 
-        starknet_types::patricia_key::PatriciaKey::new(Felt::new(
-            get_storage_var_address(
-                "balance",
-                &[],
-            ).unwrap().to_bytes_be()).unwrap()).unwrap();
+        let storage_key = starknet_types::patricia_key::PatriciaKey::new(
+            Felt::new(get_storage_var_address("balance", &[]).unwrap().to_bytes_be()).unwrap(),
+        )
+        .unwrap();
         let contract_storage_key = ContractStorageKey::new(dummy_contract_address, storage_key);
 
         // declare dummy contract

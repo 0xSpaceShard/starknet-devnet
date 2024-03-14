@@ -106,24 +106,18 @@ impl Account {
 
     fn eth_balance_storage_key(&self) -> DevnetResult<ContractStorageKey> {
         let storage_var_address = starknet_types::patricia_key::PatriciaKey::new(Felt::new(
-            get_storage_var_address(
-                "ERC20_balances",
-                &[FieldElement::from(self.account_address)],
-            )
-            .map_err(|_| Error::ProgramError)?
-            .to_bytes_be(),
+            get_storage_var_address("ERC20_balances", &[FieldElement::from(self.account_address)])
+                .map_err(|_| Error::ProgramError)?
+                .to_bytes_be(),
         )?)?;
         Ok(ContractStorageKey::new(self.eth_fee_token_address, storage_var_address))
     }
 
     fn strk_balance_storage_key(&self) -> DevnetResult<ContractStorageKey> {
         let storage_var_address = starknet_types::patricia_key::PatriciaKey::new(Felt::new(
-            get_storage_var_address(
-                "ERC20_balances",
-                &[FieldElement::from(self.account_address)],
-            )
-            .map_err(|_| Error::ProgramError)?
-            .to_bytes_be(),
+            get_storage_var_address("ERC20_balances", &[FieldElement::from(self.account_address)])
+                .map_err(|_| Error::ProgramError)?
+                .to_bytes_be(),
         )?)?;
         Ok(ContractStorageKey::new(self.strk_fee_token_address, storage_var_address))
     }
@@ -162,12 +156,9 @@ impl Deployed for Account {
 impl Accounted for Account {
     fn set_initial_balance(&self, state: &mut DictState) -> DevnetResult<()> {
         let storage_var_address = starknet_types::patricia_key::PatriciaKey::new(Felt::new(
-            get_storage_var_address(
-                "ERC20_balances",
-                &[FieldElement::from(self.account_address)],
-            )
-            .map_err(|_| Error::ProgramError)?
-            .to_bytes_be(),
+            get_storage_var_address("ERC20_balances", &[FieldElement::from(self.account_address)])
+                .map_err(|_| Error::ProgramError)?
+                .to_bytes_be(),
         )?)?;
 
         for fee_token_address in [self.eth_fee_token_address, self.strk_fee_token_address] {
@@ -196,6 +187,7 @@ impl Accounted for Account {
 
 #[cfg(test)]
 mod tests {
+    use starknet_rs_core::types::FieldElement;
     use starknet_rs_core::utils::get_storage_var_address;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_storage_key::ContractStorageKey;
@@ -208,8 +200,7 @@ mod tests {
     use crate::traits::{Accounted, Deployed};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{dummy_contract_address, dummy_felt};
-    use starknet_rs_core::types::FieldElement;
-    
+
     /// Testing if generated account address has the same value as the first account in
     /// https://github.com/0xSpaceShard/starknet-devnet/blob/9d867e38e6d465e568e82a47e82e40608f6d220f/test/support/schemas/predeployed_accounts_fixed_seed.json
     #[test]
@@ -274,11 +265,18 @@ mod tests {
 
         let expected_balance_storage_key = ContractStorageKey::new(
             fee_token_address,
-            starknet_types::patricia_key::PatriciaKey::new(Felt::new(
-                get_storage_var_address(
-                    "ERC20_balances",
-                    &[FieldElement::from(account_address)],
-                ).unwrap().to_bytes_be()).unwrap()).unwrap(),
+            starknet_types::patricia_key::PatriciaKey::new(
+                Felt::new(
+                    get_storage_var_address(
+                        "ERC20_balances",
+                        &[FieldElement::from(account_address)],
+                    )
+                    .unwrap()
+                    .to_bytes_be(),
+                )
+                .unwrap(),
+            )
+            .unwrap(),
         );
         assert_eq!(expected_balance_storage_key, account.eth_balance_storage_key().unwrap());
     }

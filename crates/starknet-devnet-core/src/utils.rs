@@ -190,7 +190,7 @@ pub mod exported_test_utils {
 
 #[cfg(test)]
 mod tests {
-    use super::test_utils::{get_bytes_from_u32};
+    use super::test_utils::get_bytes_from_u32;
 
     #[test]
     fn correct_bytes_from_number() {
