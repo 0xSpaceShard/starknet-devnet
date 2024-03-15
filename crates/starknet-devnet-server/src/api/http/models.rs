@@ -43,12 +43,12 @@ pub struct CreatedBlock {
 #[derive(Deserialize)]
 pub struct AbortingBlocks {
     #[serde(rename = "startingBlockHash")]
-    starting_block_hash: BlockHash,
+    pub(crate) starting_block_hash: BlockHash,
 }
 
 #[derive(Serialize)]
 pub struct AbortedBlocks {
-    aborted: Vec<BlockHash>,
+    pub(crate) aborted: Vec<BlockHash>,
 }
 
 #[derive(Deserialize)]

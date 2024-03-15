@@ -77,6 +77,15 @@ impl StarknetBlocks {
         self.hash_to_state.insert(block_hash, state);
     }
 
+    pub fn reject_block(&mut self, block_hash: Felt) {
+        let block: Option<&mut StarknetBlock> = self.hash_to_block.get_mut(&block_hash);
+        if let Some(block) = block {
+            block.status = BlockStatus::Rejected;
+
+            // TODO: reject all transactions
+        }
+    }
+
     pub fn get_by_block_id(&self, block_id: &BlockId) -> Option<&StarknetBlock> {
         match block_id {
             BlockId::Hash(hash) => self.get_by_hash(Felt::from(hash)),

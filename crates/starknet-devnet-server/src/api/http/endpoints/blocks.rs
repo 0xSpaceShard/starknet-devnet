@@ -19,6 +19,13 @@ pub async fn create_block(
     }
 }
 
-pub async fn abort_blocks(Json(_data): Json<AbortingBlocks>) -> HttpApiResult<Json<AbortedBlocks>> {
-    Err(HttpApiError::GeneralError)
+pub async fn abort_blocks(
+    Json(data): Json<AbortingBlocks>,
+    Extension(state): Extension<HttpApiHandler>,
+) -> HttpApiResult<Json<AbortedBlocks>> {
+    let mut starknet = state.api.starknet.write().await;
+    starknet.abort_blocks(data.starting_block_hash);
+
+    let aborted = vec![data.starting_block_hash];
+    Ok(Json(AbortedBlocks { aborted }))
 }
