@@ -169,7 +169,10 @@
                                                 "description": "the revert reason for the failed execution",
                                                 "type": "string"
                                             }
-                                        }
+                                        },
+                                        "required": [
+                                            "revert_reason"
+                                        ]
                                     }
                                 ]
                             },
@@ -371,7 +374,7 @@
                             },
                             "execution_resources": {
                                 "title": "Computation resources",
-                                "description": "Resources consumed by the internal call",
+                                "description": "Resources consumed by the internal call. This is named execution_resources for legacy reasons",
                                 "$ref": "#/components/schemas/COMPUTATION_RESOURCES"
                             }
                         },
