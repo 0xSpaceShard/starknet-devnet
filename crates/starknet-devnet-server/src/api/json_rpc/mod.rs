@@ -26,6 +26,7 @@ use starknet_types::rpc::transactions::{
     BlockTransactionTrace, EventsChunk, SimulatedTransaction, Transaction, TransactionTrace,
 };
 use starknet_types::starknet_api::block::BlockNumber;
+use thiserror::Error;
 use tracing::{error, info, trace};
 
 use self::error::StrictRpcResult;
@@ -43,7 +44,7 @@ use crate::api::json_rpc::models::{
 use crate::api::serde_helpers::empty_params;
 use crate::rpc_core::error::RpcError;
 use crate::rpc_core::request::RpcMethodCall;
-use crate::rpc_core::response::ResponseResult;
+use crate::rpc_core::response::{ResponseResult, RpcResponse};
 use crate::rpc_handler::RpcHandler;
 
 /// Helper trait to easily convert results to rpc results
@@ -76,29 +77,46 @@ impl ToRpcResponseResult for StrictRpcResult {
 
 // TODO this struct needs a name that will distinguish it from the similar Defaulter
 #[derive(Clone)]
-pub struct OriginCaller {
+pub struct OriginForwarder {
     client: hyper::Client<HttpConnector>,
     url: hyper::Uri,
 }
 
-impl OriginCaller {
+#[derive(Debug, Error)]
+enum OriginInteractionError {}
+
+impl OriginForwarder {
     pub fn new(url: hyper::Uri) -> Self {
         Self { client: hyper::Client::new(), url }
     }
 
-    async fn call(&self, rpc_call: &RpcMethodCall) -> ResponseResult {
-        let req_body = hyper::Body::from(serde_json::to_string(&rpc_call).unwrap());
+    async fn call_with_error_handling(
+        &self,
+        rpc_call: &RpcMethodCall,
+    ) -> Result<ResponseResult, anyhow::Error> {
+        let req_body_str = serde_json::to_string(&rpc_call)?;
+        let req_body = hyper::Body::from(req_body_str);
         let req = request::Request::builder()
             .method("POST")
             .uri(self.url.clone())
             .header("content-type", "application/json")
-            .body(req_body)
-            .unwrap();
+            .body(req_body)?;
 
-        let origin_resp = self.client.request(req).await.unwrap();
-        let resp_body = origin_resp.into_body();
-        let resp_body_bytes = hyper::body::to_bytes(resp_body).await.unwrap();
-        serde_json::from_slice(&resp_body_bytes).unwrap()
+        let origin_resp = self.client.request(req).await?;
+        let origin_body = origin_resp.into_body();
+        let origin_body_bytes = hyper::body::to_bytes(origin_body).await?;
+        let origin_rpc_resp: RpcResponse = serde_json::from_slice(&origin_body_bytes)?;
+
+        Ok(origin_rpc_resp.result)
+    }
+
+    async fn call(&self, rpc_call: &RpcMethodCall) -> ResponseResult {
+        match self.call_with_error_handling(rpc_call).await {
+            Ok(result) => result,
+            Err(e) => ResponseResult::Error(RpcError::internal_error_with::<String>(format!(
+                "Error in interacting with origin: {e}"
+            ))),
+        }
     }
 }
 
@@ -108,7 +126,7 @@ impl OriginCaller {
 #[derive(Clone)]
 pub struct JsonRpcHandler {
     pub api: Api,
-    pub origin_caller: Option<OriginCaller>,
+    pub origin_caller: Option<OriginForwarder>,
 }
 
 #[async_trait::async_trait]
@@ -233,8 +251,10 @@ impl JsonRpcHandler {
 
         if let (Err(err), Some(defaulter)) = (&starknet_resp, &self.origin_caller) {
             match err {
-                error::ApiError::BlockNotFound // TODO what if a block is requested that was only added to origin after forking happened
+                // TODO what if a block or state is requested that was only added to origin after forking happened
+                error::ApiError::BlockNotFound
                 | error::ApiError::TransactionNotFound
+                | error::ApiError::NoStateAtBlock { .. }
                 | error::ApiError::ClassHashNotFound // TODO add a parameter to distinguish who is throwing this (starknet_getClass or starknet_deployAccount)
                     => {
                     defaulter.call(&original_call).await
@@ -404,18 +424,7 @@ mod requests_tests {
     use starknet_types::felt::Felt;
 
     use super::StarknetRequest;
-
-    /// Panics if `text` does not contain `pattern`
-    pub fn assert_contains(text: &str, pattern: &str) {
-        if !text.contains(pattern) {
-            panic!(
-                "Failed content assertion!
-    Pattern: '{pattern}'
-    not present in
-    Text: '{text}'"
-            );
-        }
-    }
+    use crate::test_utils::exported_test_utils::assert_contains;
 
     #[test]
     fn deserialize_get_block_with_transaction_hashes_request() {

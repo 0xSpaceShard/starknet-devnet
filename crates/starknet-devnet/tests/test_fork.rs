@@ -3,6 +3,7 @@ pub mod common;
 mod fork_tests {
     use std::sync::Arc;
 
+    use hyper::Body;
     use serde_json::json;
     use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
@@ -10,84 +11,133 @@ mod fork_tests {
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{
         BlockId, BlockTag, ContractClass, ExecutionResult, FieldElement, FunctionCall,
+        MaybePendingBlockWithTxHashes, StarknetError,
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
-    use starknet_rs_providers::Provider;
+    use starknet_rs_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::{
-        assert_cairo1_classes_equal, get_simple_contract_in_sierra_and_compiled_class_hash,
-        resolve_path,
+        assert_cairo1_classes_equal, get_json_body,
+        get_simple_contract_in_sierra_and_compiled_class_hash, resolve_path,
     };
 
-    static DUMMY_ADDRESS: u128 = 1;
-    static DUMMY_AMOUNT: u128 = 1;
-    const SEPOLIA_URL: &str = "https://alpha-sepolia.starknet.io";
-    const SEPOLIA_ACCOUNT_ADDRESS: &str = "0x0";
-    const SEPOLIA_EXPECTED_BALANCE: &str = "0x0";
-    const SEPOLIA_GENESIS_BLOCK: &str =
-        "0x5c627d4aeb51280058bed93c7889bce78114d63baad1be0f0aeb32496d5f19c";
+    const SEPOLIA_URL: &str = "http://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_7";
+    const SEPOLIA_GENESIS_BLOCK_HASH: &str =
+        "0x19f675d3fb226821493a6ab9a1955e384bba80f130de625621a418e9a7c0ca3";
 
     #[tokio::test]
-    #[ignore = "Not supported"]
     async fn test_forking_sepolia_genesis_block() {
         let fork_devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--fork-network", SEPOLIA_URL])
                 .await
-                .expect("Could not start Devnet");
+                .unwrap();
 
-        let fork_genesis_block = &fork_devnet
-            .send_custom_rpc(
-                "starknet_getBlockWithTxHashes",
-                json!({ "block_id": SEPOLIA_GENESIS_BLOCK }),
-            )
-            .await["result"];
+        let resp = &fork_devnet
+            .json_rpc_client
+            .get_block_with_tx_hashes(BlockId::Hash(
+                FieldElement::from_hex_be(SEPOLIA_GENESIS_BLOCK_HASH).unwrap(),
+            ))
+            .await
+            .unwrap();
 
-        assert_eq!(fork_genesis_block["block_number"], 0);
+        match resp {
+            MaybePendingBlockWithTxHashes::Block(block) => {
+                assert_eq!(block.block_number, 0);
+            }
+            _ => panic!("Unexpected resp: {resp:?}"),
+        };
     }
 
     #[tokio::test]
-    #[ignore = "Not supported"]
-    async fn test_forking_sepolia_contract_call_get_balance() {
+    async fn test_getting_non_existent_block_from_origin() {
         let fork_devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--fork-network", SEPOLIA_URL])
                 .await
                 .expect("Could not start Devnet");
 
-        let contract_address = FieldElement::from_hex_be(SEPOLIA_ACCOUNT_ADDRESS).unwrap();
-        let retrieved_result = fork_devnet.get_balance(&contract_address).await.unwrap();
+        let non_existent_block_hash = "0x123456";
+        let err = &fork_devnet
+            .json_rpc_client
+            .get_block_with_tx_hashes(BlockId::Hash(
+                FieldElement::from_hex_be(non_existent_block_hash).unwrap(),
+            ))
+            .await
+            .expect_err("Should be an error");
 
-        let expected_balance = FieldElement::from_hex_be(SEPOLIA_EXPECTED_BALANCE).unwrap();
-        assert_eq!(retrieved_result, expected_balance);
+        match err {
+            ProviderError::StarknetError(StarknetError::BlockNotFound) => (),
+            other => panic!("Unexpected error: {other}"),
+        }
     }
 
     #[tokio::test]
-    #[ignore = "Not supported"]
     async fn test_forking_local_genesis_block() {
-        let origin_devnet = BackgroundDevnet::spawn().await.unwrap(); // TODO state archive capacity?
+        let origin_devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
+                .await
+                .unwrap();
 
-        // change state and create block (without the block, there is nothing to fork from since
-        // there is no genesis block by default)
-        origin_devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
-        let latest_block = &origin_devnet
-            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
-            .await["result"];
+        let block_creation_resp =
+            origin_devnet // TODO replace with a utility method
+                .post_json("/create_block".into(), Body::from(json!({}).to_string()))
+                .await
+                .unwrap();
+        let block_creation_resp_body = get_json_body(block_creation_resp).await;
+        let block_hash =
+            FieldElement::from_hex_be(block_creation_resp_body["block_hash"].as_str().unwrap())
+                .unwrap();
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
-        let block_resp = &fork_devnet
-            .send_custom_rpc(
-                "starknet_getBlockWithTxHashes",
-                json!({ "block_id": { "block_hash": latest_block["block_hash"] } }),
-            )
-            .await;
-        assert_eq!(block_resp["result"]["block_number"], 0);
+        let resp = &fork_devnet
+            .json_rpc_client
+            .get_block_with_tx_hashes(BlockId::Hash(block_hash))
+            .await
+            .unwrap();
 
-        let retrieved_result =
-            fork_devnet.get_balance(&FieldElement::from(DUMMY_ADDRESS)).await.unwrap();
-        let expected_balance = FieldElement::from(DUMMY_AMOUNT);
+        match resp {
+            MaybePendingBlockWithTxHashes::Block(block) => {
+                assert_eq!(block.block_number, 0);
+            }
+            _ => panic!("Unexpected resp: {resp:?}"),
+        };
+    }
 
-        assert_eq!(retrieved_result, expected_balance);
+    #[tokio::test]
+    async fn test_forked_account_balance() {
+        let origin_devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
+                .await
+                .unwrap();
+
+        // new origin block
+        origin_devnet // TODO replace with a utility method
+            .post_json("/create_block".into(), Body::from(json!({}).to_string()))
+            .await
+            .unwrap();
+
+        // new origin block
+        let dummy_address = FieldElement::ONE;
+        let mint_amount = 100;
+        origin_devnet.mint(dummy_address, mint_amount).await;
+
+        let fork_devnet = origin_devnet.fork().await.unwrap();
+
+        // new fork block
+        fork_devnet.mint(dummy_address, mint_amount).await;
+
+        for block_i in 0..=1 {
+            let block_id = BlockId::Number(block_i);
+            let balance = fork_devnet.get_balance_at_block(&dummy_address, block_id).await.unwrap();
+            let expected_balance = (block_i as u128 * mint_amount).into();
+            assert_eq!(balance, expected_balance);
+        }
+
+        // not using get_balance_at_block=2; that requires fork with --state-archive-capacity full
+        let final_balance = fork_devnet.get_balance(&dummy_address).await.unwrap();
+        let expected_final_balance = (2_u128 * mint_amount).into();
+        assert_eq!(final_balance, expected_final_balance);
     }
 
     async fn get_contract_balance(

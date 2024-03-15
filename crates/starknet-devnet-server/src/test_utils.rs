@@ -14,4 +14,16 @@ pub mod exported_test_utils {
         ))
         .unwrap()
     }
+
+    /// Panics if `text` does not contain `pattern`
+    pub fn assert_contains(text: &str, pattern: &str) {
+        if !text.contains(pattern) {
+            panic!(
+                "Failed content assertion!
+    Pattern: '{pattern}'
+    not present in
+    Text: '{text}'"
+            );
+        }
+    }
 }

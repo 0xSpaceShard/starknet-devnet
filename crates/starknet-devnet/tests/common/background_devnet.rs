@@ -36,6 +36,7 @@ lazy_static! {
     static ref BACKGROUND_DEVNET_MUTEX: Mutex<()> = Mutex::new(());
 }
 
+#[derive(Debug)]
 pub struct BackgroundDevnet {
     pub http_client: Client<HttpConnector>,
     pub json_rpc_client: JsonRpcClient<HttpTransport>,
@@ -200,18 +201,27 @@ impl BackgroundDevnet {
     }
 
     /// Get balance at contract_address, as written in ERC20
-    pub async fn get_balance(&self, address: &FieldElement) -> Result<FieldElement, anyhow::Error> {
+    pub async fn get_balance_at_block(
+        &self,
+        address: &FieldElement,
+        block_id: BlockId,
+    ) -> Result<FieldElement, anyhow::Error> {
         let call = FunctionCall {
             contract_address: FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
             entry_point_selector: get_selector_from_name("balanceOf").unwrap(),
             calldata: vec![*address],
         };
-        let balance_raw = self.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await?;
+        let balance_raw = self.json_rpc_client.call(call, block_id).await?;
         assert_eq!(balance_raw.len(), 2);
         let balance_low: BigUint = (Felt::from(*balance_raw.get(0).unwrap())).into();
         let balance_high: BigUint = (Felt::from(*balance_raw.get(1).unwrap())).into();
         let balance: BigUint = (balance_high << 128) + balance_low;
         Ok(FieldElement::from_byte_slice_be(&balance.to_bytes_be())?)
+    }
+
+    /// Get ERC20 balance as in the latest block
+    pub async fn get_balance(&self, address: &FieldElement) -> Result<FieldElement, anyhow::Error> {
+        self.get_balance_at_block(address, BlockId::Tag(BlockTag::Latest)).await
     }
 
     pub async fn get(

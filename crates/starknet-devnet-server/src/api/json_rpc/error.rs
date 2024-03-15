@@ -53,6 +53,8 @@ pub enum ApiError {
     ValidationFailure { reason: String },
     #[error("No trace available for transaction")]
     NoTraceAvailable,
+    #[error("{msg}")]
+    NoStateAtBlock { msg: String },
 }
 
 impl ApiError {
@@ -178,6 +180,11 @@ impl ApiError {
             },
             ApiError::NoTraceAvailable => RpcError {
                 code: crate::rpc_core::error::ErrorCode::ServerError(10),
+                message: error_message.into(),
+                data: None,
+            },
+            ApiError::NoStateAtBlock { .. } => RpcError {
+                code: crate::rpc_core::error::ErrorCode::ServerError(WILDCARD_RPC_ERROR_CODE),
                 message: error_message.into(),
                 data: None,
             },

@@ -517,17 +517,16 @@ impl Starknet {
             BlockId::Tag(_) => Ok(&mut self.state),
             _ => {
                 if self.config.state_archive == StateArchiveCapacity::None {
-                    return Err(Error::StateHistoryDisabled);
+                    return Err(Error::NoStateAtBlock { block_id: *block_id });
                 }
 
                 let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
-                let block_number = block.block_number().0;
                 let block_hash = block.block_hash();
                 let state = self
                     .blocks
                     .hash_to_state
                     .get_mut(&block_hash)
-                    .ok_or(Error::NoStateAtBlock { block_number })?;
+                    .ok_or(Error::NoStateAtBlock { block_id: *block_id })?;
                 Ok(state)
             }
         }
@@ -1268,7 +1267,7 @@ mod tests {
         starknet.blocks.hash_to_state.remove(&block_hash);
 
         match starknet.get_mut_state_at(&BlockId::Number(0)) {
-            Err(Error::NoStateAtBlock { block_number: _ }) => (),
+            Err(Error::NoStateAtBlock { block_id: _ }) => (),
             _ => panic!("Should fail with NoStateAtBlock"),
         }
     }
@@ -1280,8 +1279,8 @@ mod tests {
         starknet.generate_new_block(StateDiff::default()).unwrap();
 
         match starknet.get_mut_state_at(&BlockId::Number(0)) {
-            Err(Error::StateHistoryDisabled) => (),
-            _ => panic!("Should fail with StateHistoryDisabled."),
+            Err(Error::NoStateAtBlock { .. }) => (),
+            _ => panic!("Should fail with NoStateAtBlock."),
         }
     }
 

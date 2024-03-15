@@ -5,7 +5,7 @@ use axum::routing::{get, post};
 use starknet_core::starknet::starknet_config::StarknetConfig;
 
 use crate::api::http::{endpoints as http, HttpApiHandler};
-use crate::api::json_rpc::{JsonRpcHandler, OriginCaller};
+use crate::api::json_rpc::{JsonRpcHandler, OriginForwarder};
 use crate::api::Api;
 use crate::builder::StarknetDevnetServer;
 use crate::error::ServerResult;
@@ -23,7 +23,7 @@ pub fn serve_http_api_json_rpc(
         .fork_config
         .url
         .as_ref()
-        .map(|url| OriginCaller::new(hyper::Uri::from_str(url.as_str()).unwrap()));
+        .map(|url| OriginForwarder::new(hyper::Uri::from_str(url.as_str()).unwrap()));
 
     let json_rpc = JsonRpcHandler { api, origin_caller };
 
