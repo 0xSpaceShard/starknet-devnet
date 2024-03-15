@@ -128,7 +128,6 @@ pub fn add_declare_transaction_v1(
 mod tests {
     use blockifier::state::state_api::StateReader;
     use nonzero_ext::nonzero;
-    use starknet_api::block::BlockNumber;
     use starknet_api::core::CompiledClassHash;
     use starknet_api::hash::StarkHash;
     use starknet_api::transaction::Fee;
@@ -149,7 +148,7 @@ mod tests {
     use crate::starknet::predeployed::create_erc20_at_address;
     use crate::starknet::{predeployed, Starknet};
     use crate::state::CustomStateReader;
-    use crate::traits::{Deployed, HashIdentifiedMut};
+    use crate::traits::{Deployed, HashIdentified, HashIdentifiedMut};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
     use crate::utils::test_utils::{
         convert_broadcasted_declare_v2_to_v3, dummy_broadcasted_declare_transaction_v2,
@@ -388,13 +387,12 @@ mod tests {
         // check if pending block is resetted
         assert!(starknet.pending_block().get_transactions().is_empty());
         // check if there is generated block
-        assert_eq!(starknet.blocks.num_to_block.len(), 1);
+        assert_eq!(starknet.blocks.hash_to_block.len(), 1);
         // check if transaction is in generated block
         assert_eq!(
             *starknet
                 .blocks
-                .num_to_block
-                .get(&BlockNumber(0))
+                .get_by_hash(starknet.blocks.last_block_hash.unwrap())
                 .unwrap()
                 .get_transactions()
                 .first()

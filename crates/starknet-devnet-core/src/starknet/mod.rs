@@ -247,10 +247,7 @@ impl Starknet {
     /// Transfer data from pending block into new block and save it to blocks collection
     /// Generates new pending block
     /// Returns the new block number
-    pub(crate) fn generate_new_block(
-        &mut self,
-        state_diff: StateDiff,
-    ) -> DevnetResult<BlockNumber> {
+    pub(crate) fn generate_new_block(&mut self, state_diff: StateDiff) -> DevnetResult<Felt> {
         let mut new_block = self.pending_block().clone();
 
         // set new block header
@@ -263,11 +260,12 @@ impl Starknet {
         Self::update_block_context_block_timestamp(&mut self.block_context, block_timestamp);
 
         let new_block_number = new_block.block_number();
+        let new_block_hash: Felt = new_block.header.block_hash.0.into();
 
         // update txs block hash block number for each transaction in the pending block
         new_block.get_transactions().iter().for_each(|tx_hash| {
             if let Some(tx) = self.transactions.get_by_hash_mut(tx_hash) {
-                tx.block_hash = Some(new_block.header.block_hash.0.into());
+                tx.block_hash = Some(new_block_hash);
                 tx.block_number = Some(new_block_number);
                 tx.finality_status = TransactionFinalityStatus::AcceptedOnL2;
             } else {
@@ -281,12 +279,12 @@ impl Starknet {
         // save into blocks state archive
         if self.config.state_archive == StateArchiveCapacity::Full {
             let clone = self.state.clone_historic();
-            self.blocks.save_state_at(new_block_number, clone);
+            self.blocks.save_state_at(new_block_hash, clone);
         }
 
         self.generate_pending_block()?;
 
-        Ok(new_block_number)
+        Ok(new_block_hash)
     }
 
     /// Handles transaction result either Ok or Error and updates the state accordingly.
@@ -523,12 +521,13 @@ impl Starknet {
                 }
 
                 let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
-                let block_number = block.block_number();
+                let block_number = block.block_number().0;
+                let block_hash = block.block_hash();
                 let state = self
                     .blocks
-                    .num_to_state
-                    .get_mut(&block_number)
-                    .ok_or(Error::NoStateAtBlock { block_number: block_number.0 })?;
+                    .hash_to_state
+                    .get_mut(&block_hash)
+                    .ok_or(Error::NoStateAtBlock { block_number })?;
                 Ok(state)
             }
         }
@@ -1107,7 +1106,7 @@ mod tests {
     use crate::error::{DevnetResult, Error};
     use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
     use crate::state::state_diff::StateDiff;
-    use crate::traits::Accounted;
+    use crate::traits::{Accounted, HashIdentified};
     use crate::utils::test_utils::{
         dummy_contract_address, dummy_declare_transaction_v1, dummy_felt,
     };
@@ -1170,14 +1169,15 @@ mod tests {
         // pending block has some transactions
         assert!(!starknet.pending_block().get_transactions().is_empty());
         // blocks collection is empty
-        assert!(starknet.blocks.num_to_block.is_empty());
+        assert!(starknet.blocks.hash_to_block.is_empty());
 
         starknet.generate_new_block(StateDiff::default()).unwrap();
         // blocks collection should not be empty
-        assert!(!starknet.blocks.num_to_block.is_empty());
+        assert!(!starknet.blocks.hash_to_block.is_empty());
 
-        // get block by number and check that the transactions in the block are correct
-        let added_block = starknet.blocks.num_to_block.get(&BlockNumber(0)).unwrap();
+        // get latest block and check that the transactions in the block are correct
+        let added_block =
+            starknet.blocks.get_by_hash(starknet.blocks.last_block_hash.unwrap()).unwrap();
 
         assert!(added_block.get_transactions().len() == 1);
         assert_eq!(*added_block.get_transactions().first().unwrap(), tx.transaction_hash);
@@ -1264,8 +1264,8 @@ mod tests {
         let config =
             StarknetConfig { state_archive: StateArchiveCapacity::Full, ..Default::default() };
         let mut starknet = Starknet::new(&config).unwrap();
-        starknet.generate_new_block(StateDiff::default()).unwrap();
-        starknet.blocks.num_to_state.remove(&BlockNumber(0));
+        let block_hash = starknet.generate_new_block(StateDiff::default()).unwrap();
+        starknet.blocks.hash_to_state.remove(&block_hash);
 
         match starknet.get_mut_state_at(&BlockId::Number(0)) {
             Err(Error::NoStateAtBlock { block_number: _ }) => (),
@@ -1383,7 +1383,8 @@ mod tests {
         starknet.generate_new_block(StateDiff::default()).unwrap();
 
         // last added block number -> 0
-        let added_block = starknet.blocks.num_to_block.get(&BlockNumber(0)).unwrap();
+        let added_block =
+            starknet.blocks.get_by_hash(starknet.blocks.last_block_hash.unwrap()).unwrap();
         // number of the accepted block -> 1
         let block_number = starknet.get_latest_block().unwrap().block_number();
 
@@ -1391,7 +1392,8 @@ mod tests {
 
         starknet.generate_new_block(StateDiff::default()).unwrap();
 
-        let added_block2 = starknet.blocks.num_to_block.get(&BlockNumber(1)).unwrap();
+        let added_block2 =
+            starknet.blocks.get_by_hash(starknet.blocks.last_block_hash.unwrap()).unwrap();
         let block_number2 = starknet.get_latest_block().unwrap().block_number();
 
         assert_eq!(block_number2.0, added_block2.header.block_number.0);
@@ -1459,7 +1461,7 @@ mod tests {
         // check modified state at block 1 and 2 to contain the correct value for the nonce
         let second_block_address_nonce = starknet
             .blocks
-            .num_to_state
+            .hash_to_state
             .get_mut(&second_block)
             .unwrap()
             .get_nonce_at(dummy_contract_address().try_into().unwrap())
@@ -1469,7 +1471,7 @@ mod tests {
 
         let third_block_address_nonce = starknet
             .blocks
-            .num_to_state
+            .hash_to_state
             .get_mut(&third_block)
             .unwrap()
             .get_nonce_at(dummy_contract_address().try_into().unwrap())
