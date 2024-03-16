@@ -463,6 +463,7 @@ mod tests {
 
         starknet.block_context = Starknet::init_block_context(
             nonzero!(1u128),
+            nonzero!(1u128),
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
