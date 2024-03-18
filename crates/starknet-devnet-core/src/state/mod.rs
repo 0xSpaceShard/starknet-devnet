@@ -276,6 +276,8 @@ impl CustomStateReader for StarknetState {
     }
 
     fn is_contract_declared(&mut self, class_hash: ClassHash) -> bool {
+        // get_compiled_contract_class is important if forking; checking hash is impossible via
+        // JSON-RPC
         self.get_compiled_class_hash(class_hash.into())
             .is_ok_and(|CompiledClassHash(class_hash)| class_hash != StarkFelt::ZERO)
             || self.get_compiled_contract_class(class_hash.into()).is_ok()

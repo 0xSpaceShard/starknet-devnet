@@ -40,7 +40,7 @@ pub async fn restart(Extension(state): Extension<HttpApiHandler>) -> HttpApiResu
 }
 
 /// Fork
-// TODO
+// TODO - state.api.starknet.read().await.config.fork_config.url
 pub async fn get_fork_status() -> HttpApiResult<Json<ForkStatus>> {
     Err(HttpApiError::GeneralError)
 }

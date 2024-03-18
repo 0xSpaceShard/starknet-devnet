@@ -152,6 +152,9 @@ impl JsonRpcHandler {
     ) -> ResponseResult {
         trace!(target: "JsonRpcHandler::execute", "executing starknet request");
 
+        // true if origin should be tried after request fails; relevant in forking mode
+        let mut defaultable = true;
+
         let starknet_resp = match request {
             StarknetRequest::SpecVersion => self.spec_version(),
             StarknetRequest::BlockWithTransactionHashes(block) => {
@@ -220,6 +223,7 @@ impl JsonRpcHandler {
             StarknetRequest::AddDeployAccountTransaction(
                 BroadcastedDeployAccountTransactionInput { deploy_account_transaction },
             ) => {
+                defaultable = false;
                 let BroadcastedDeployAccountTransactionEnumWrapper::DeployAccount(
                     broadcasted_transaction,
                 ) = deploy_account_transaction;
@@ -251,19 +255,25 @@ impl JsonRpcHandler {
 
         if let (Err(err), Some(defaulter)) = (&starknet_resp, &self.origin_caller) {
             match err {
-                // TODO what if a block or state is requested that was only added to origin after forking happened
+                // TODO what if a block or state is requested that was only added to origin after
+                // forking happened
                 error::ApiError::BlockNotFound
                 | error::ApiError::TransactionNotFound
                 | error::ApiError::NoStateAtBlock { .. }
-                | error::ApiError::ClassHashNotFound // TODO add a parameter to distinguish who is throwing this (starknet_getClass or starknet_deployAccount)
-                    => {
-                    defaulter.call(&original_call).await
+                | error::ApiError::ClassHashNotFound => {
+                    // ClassHashNotFound can be thrown from starknet_getClass or
+                    // starknet_deployAccount, but only starknet_getClass should be retried from
+                    // here; starknet_deployAccount already fetches from origin internally
+
+                    if defaultable {
+                        return defaulter.call(&original_call).await;
+                    }
                 }
-                _other_error => starknet_resp.to_rpc_result(),
+                _other_error => (),
             }
-        } else {
-            starknet_resp.to_rpc_result()
         }
+
+        starknet_resp.to_rpc_result()
     }
 }
 

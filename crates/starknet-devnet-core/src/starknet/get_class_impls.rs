@@ -4,7 +4,7 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::ClassHash;
 
-use crate::error::{DevnetResult, Error};
+use crate::error::{DevnetResult, Error, StateError};
 use crate::starknet::Starknet;
 use crate::state::CustomStateReader;
 
@@ -36,10 +36,7 @@ pub fn get_class_impl(
     let state = starknet.get_mut_state_at(block_id)?;
     match state.get_rpc_contract_class(&class_hash) {
         Some(class) => Ok(class.clone()),
-        None => {
-            let fetched = starknet.defaulter.get_contract_class(class_hash.into())?;
-            Ok(fetched.try_into()?)
-        }
+        None => Err(Error::StateError(StateError::NoneClassHash(class_hash))),
     }
 }
 

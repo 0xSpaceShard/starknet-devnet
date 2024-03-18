@@ -286,13 +286,8 @@ pub fn convert_codegen_to_blockifier_compiled_class(
         CodegenContractClass::Legacy(_) => {
             let class_jsonified =
                 serde_json::to_string(&class).map_err(JsonError::SerdeJsonError)?;
-            let class =
-            // TODO this is wrong - not working due to wrong string deserialization; perhaps try deserializing with another class
-                blockifier::execution::contract_class::ContractClassV0::try_from_json_string(
-                    &class_jsonified,
-                )
-                .map_err(|e| Error::JsonError(JsonError::Custom { msg: e.to_string() }))?;
-            blockifier::execution::contract_class::ContractClass::V0(class)
+            let class = DeprecatedContractClass::rpc_from_json_str(&class_jsonified)?;
+            blockifier::execution::contract_class::ContractClass::V0(class.try_into()?)
         }
     })
 }

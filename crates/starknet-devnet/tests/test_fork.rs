@@ -5,12 +5,16 @@ mod fork_tests {
 
     use hyper::Body;
     use serde_json::json;
-    use starknet_rs_accounts::{Account, Call, ExecutionEncoding, SingleOwnerAccount};
+    use starknet_core::constants::CAIRO_0_ACCOUNT_CONTRACT_HASH;
+    use starknet_rs_accounts::{
+        Account, AccountFactory, AccountFactoryError, Call, ExecutionEncoding,
+        OpenZeppelinAccountFactory, SingleOwnerAccount,
+    };
     use starknet_rs_contract::ContractFactory;
     use starknet_rs_core::chain_id;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{
-        BlockId, BlockTag, ContractClass, ExecutionResult, FieldElement, FunctionCall,
+        BlockId, BlockTag, ContractClass, FieldElement, FunctionCall,
         MaybePendingBlockWithTxHashes, StarknetError,
     };
     use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
@@ -18,7 +22,7 @@ mod fork_tests {
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::{
-        assert_cairo1_classes_equal, get_json_body,
+        assert_cairo1_classes_equal, assert_tx_successful, get_json_body,
         get_simple_contract_in_sierra_and_compiled_class_hash, resolve_path,
     };
 
@@ -79,7 +83,7 @@ mod fork_tests {
                 .unwrap();
 
         let block_creation_resp =
-            origin_devnet // TODO replace with a utility method
+            origin_devnet // TODO replace with a utility method (in other places too)
                 .post_json("/create_block".into(), Body::from(json!({}).to_string()))
                 .await
                 .unwrap();
@@ -342,13 +346,7 @@ mod fork_tests {
             .await
             .unwrap();
 
-        // check invoke transaction
-        let invoke_receipt = fork_devnet
-            .json_rpc_client
-            .get_transaction_receipt(invoke_result.transaction_hash)
-            .await
-            .unwrap();
-        assert_eq!(*invoke_receipt.execution_result(), ExecutionResult::Succeeded);
+        assert_tx_successful(&invoke_result.transaction_hash, &fork_devnet.json_rpc_client).await;
 
         // assert origin intact and fork changed
         assert_eq!(get_contract_balance(&origin_devnet, contract_address).await, initial_value);
@@ -356,5 +354,81 @@ mod fork_tests {
             get_contract_balance(&fork_devnet, contract_address).await,
             initial_value + increment
         );
+    }
+
+    #[tokio::test]
+    async fn test_deploying_account_with_class_not_present_on_origin() {
+        let origin_devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
+                .await
+                .unwrap();
+
+        // create forkable origin block
+        origin_devnet
+            .post_json("/create_block".into(), Body::from(json!({}).to_string()))
+            .await
+            .unwrap();
+
+        let fork_devnet = origin_devnet.fork().await.unwrap();
+
+        let (signer, _) = origin_devnet.get_first_predeployed_account().await;
+
+        let nonexistent_class_hash = FieldElement::from_hex_be("0x123").unwrap();
+        let factory = OpenZeppelinAccountFactory::new(
+            nonexistent_class_hash,
+            chain_id::TESTNET,
+            signer,
+            fork_devnet.clone_provider(),
+        )
+        .await
+        .unwrap();
+
+        let salt = FieldElement::from_hex_be("0x123").unwrap();
+        let deployment =
+            factory.deploy(salt).max_fee(FieldElement::from(1e18 as u128)).send().await;
+        match deployment {
+            Err(AccountFactoryError::Provider(ProviderError::StarknetError(
+                StarknetError::ClassHashNotFound,
+            ))) => (),
+            unexpected => panic!("Unexpected resp: {unexpected:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_deploying_account_with_class_present_on_origin() {
+        let origin_devnet = BackgroundDevnet::spawn_with_additional_args(&[
+            "--state-archive-capacity",
+            "full",
+            "--account-class",
+            "cairo1",
+        ])
+        .await
+        .unwrap();
+
+        // create forkable origin block
+        origin_devnet
+            .post_json("/create_block".into(), Body::from(json!({}).to_string()))
+            .await
+            .unwrap();
+
+        let (signer, _) = origin_devnet.get_first_predeployed_account().await;
+
+        let fork_devnet = origin_devnet.fork().await.unwrap();
+
+        // deploy account using class from origin
+        let factory = OpenZeppelinAccountFactory::new(
+            FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
+            chain_id::TESTNET,
+            signer,
+            fork_devnet.clone_provider(),
+        )
+        .await
+        .unwrap();
+
+        let salt = FieldElement::from_hex_be("0x123").unwrap();
+        let deployment = factory.deploy(salt).max_fee(FieldElement::from(1e18 as u128));
+        let deployment_address = deployment.address();
+        fork_devnet.mint(deployment_address, 1e18 as u128).await;
+        deployment.send().await.unwrap();
     }
 }

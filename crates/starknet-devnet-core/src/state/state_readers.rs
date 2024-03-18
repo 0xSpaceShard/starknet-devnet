@@ -66,7 +66,7 @@ impl StateReader for DictState {
         &mut self,
         class_hash: ClassHash,
     ) -> StateResult<starknet_api::core::CompiledClassHash> {
-        // TODO can't ask origin for this - insufficient API - probably not important
+        // can't ask origin for this - insufficient API - probably not important
         let compiled_class_hash =
             self.class_hash_to_compiled_class_hash.get(&class_hash).copied().unwrap_or_default();
         Ok(compiled_class_hash)
