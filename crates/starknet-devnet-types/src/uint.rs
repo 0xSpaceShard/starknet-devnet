@@ -7,6 +7,7 @@ pub fn u256_deserialize_from_dec_string<'de, D>(deserializer: D) -> Result<U256,
 where
     D: serde::Deserializer<'de>,
 {
-    let s = String::deserialize(deserializer)?;
+    let number = serde_json::Number::deserialize(deserializer)?;
+    let s = number.to_string();
     U256::from_dec_str(&s).map_err(serde::de::Error::custom)
 }

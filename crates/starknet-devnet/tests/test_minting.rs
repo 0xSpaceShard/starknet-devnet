@@ -24,7 +24,7 @@ mod minting_tests {
         let req_body = Body::from(
             json!({
                 "address": address,
-                "amount": mint_amount.to_string(),
+                "amount": mint_amount,
                 "unit": unit,
             })
             .to_string(),
@@ -64,7 +64,7 @@ mod minting_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let unit_not_specified = json!({
             "address": DUMMY_ADDRESS,
-            "amount": DUMMY_AMOUNT.to_string(),
+            "amount": DUMMY_AMOUNT,
         });
 
         let resp = devnet
@@ -138,7 +138,7 @@ mod minting_tests {
             &devnet,
             json!({
                 "address": DUMMY_ADDRESS,
-                "amount": DUMMY_AMOUNT.to_string(),
+                "amount": DUMMY_AMOUNT,
                 "unit": "Satoshi"
             }),
             StatusCode::UNPROCESSABLE_ENTITY,
@@ -153,7 +153,7 @@ mod minting_tests {
             &devnet,
             json!({
                 "address": DUMMY_ADDRESS,
-                "amount": "-1"
+                "amount": -1
             }),
             StatusCode::BAD_REQUEST,
         )
@@ -165,7 +165,7 @@ mod minting_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         reject_bad_request(
             &devnet,
-            json!({ "amount": DUMMY_AMOUNT.to_string() }),
+            json!({ "amount": DUMMY_AMOUNT }),
             StatusCode::UNPROCESSABLE_ENTITY,
         )
         .await;
