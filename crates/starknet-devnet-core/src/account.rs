@@ -9,7 +9,6 @@ use starknet_api::transaction::{Calldata, ContractAddressSalt};
 use starknet_api::{patricia_key, stark_felt};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0Json, ContractClass};
-use starknet_types::contract_storage_key::ContractStorageKey;
 use starknet_types::error::Error;
 use starknet_types::felt::{ClassHash, Felt, Key};
 use starknet_types::traits::HashProducer;
@@ -103,20 +102,6 @@ impl Account {
 
         Ok(ContractAddress::from(account_address))
     }
-
-    #[allow(dead_code)]
-    fn eth_balance_storage_key(&self) -> DevnetResult<ContractStorageKey> {
-        let storage_var_address =
-            get_storage_var_address("ERC20_balances", &[Felt::from(self.account_address)])?;
-        Ok(ContractStorageKey::new(self.eth_fee_token_address, storage_var_address))
-    }
-
-    #[allow(dead_code)]
-    fn strk_balance_storage_key(&self) -> DevnetResult<ContractStorageKey> {
-        let storage_var_address =
-            get_storage_var_address("ERC20_balances", &[Felt::from(self.account_address)])?;
-        Ok(ContractStorageKey::new(self.strk_fee_token_address, storage_var_address))
-    }
 }
 
 impl Deployed for Account {
@@ -188,7 +173,6 @@ impl Accounted for Account {
 #[cfg(test)]
 mod tests {
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
     use starknet_types::uint::Balance;
 
@@ -198,7 +182,6 @@ mod tests {
     use crate::state::{CustomState, StarknetState};
     use crate::traits::{Accounted, Deployed};
     use crate::utils::exported_test_utils::dummy_cairo_0_contract_class;
-    use crate::utils::get_storage_var_address;
     use crate::utils::test_utils::{dummy_contract_address, dummy_felt};
 
     /// Testing if generated account address has the same value as the first account in
@@ -241,33 +224,6 @@ mod tests {
         .unwrap();
 
         assert_ne!(expected_result, generated_result);
-    }
-
-    #[test]
-    fn correct_balance_storage_key() {
-        let default_felt = Felt::default();
-        let fee_token_address =
-            ContractAddress::new(Felt::from_prefixed_hex_str("0xFEEE").unwrap()).unwrap();
-        // here we can use the same address for eth fee and strk fee, because we are not extracting
-        // any data from the state of those addresses. Only checking if the storage key is correct
-        let mut account = Account::new(
-            Balance::default(),
-            default_felt,
-            default_felt,
-            default_felt,
-            dummy_cairo_0_contract_class().into(),
-            fee_token_address,
-            fee_token_address,
-        )
-        .unwrap();
-        let account_address = ContractAddress::new(Felt::from(111)).unwrap();
-        account.account_address = account_address;
-
-        let expected_balance_storage_key = ContractStorageKey::new(
-            fee_token_address,
-            get_storage_var_address("ERC20_balances", &[Felt::from(account_address)]).unwrap(),
-        );
-        assert_eq!(expected_balance_storage_key, account.eth_balance_storage_key().unwrap());
     }
 
     #[test]
