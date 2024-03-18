@@ -212,7 +212,9 @@ impl UniqueAutoDeletableFile {
     /// Unlike [NamedTempFile](https://docs.rs/tempfile/latest/tempfile/struct.NamedTempFile.html),
     /// it doesn't create the file.
     pub fn new(name_base: &str) -> Self {
-        Self { path: format!("{name_base}-{}", generate_u32_random_number()) }
+        // generate two random numbers to increase uniqueness
+        let rand = format!("{}{}", generate_u32_random_number(), generate_u32_random_number());
+        Self { path: format!("{name_base}-{}", rand) }
     }
 }
 
