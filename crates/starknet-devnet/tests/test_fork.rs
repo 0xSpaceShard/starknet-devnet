@@ -4,7 +4,6 @@ mod fork_tests {
     use std::str::FromStr;
     use std::sync::Arc;
 
-    use starknet_core::constants::CAIRO_0_ACCOUNT_CONTRACT_HASH;
     use starknet_rs_accounts::{
         Account, AccountFactory, AccountFactoryError, Call, ExecutionEncoding,
         OpenZeppelinAccountFactory, SingleOwnerAccount,
@@ -390,12 +389,20 @@ mod fork_tests {
     }
 
     #[tokio::test]
+    /// For this test to make sense, origin must have a class not by default present in the fork.
+    /// If https://github.com/0xSpaceShard/starknet-devnet-rs/issues/373 is addressed,
+    /// both origin and fork have both of our default cairo0 and cairo1 classes, so using them for
+    /// this test wouldn't make sense, as we couldn't be sure that the class used in account
+    /// deployment is indeed coming from the origin
     async fn test_deploying_account_with_class_present_on_origin() {
         let origin_devnet = BackgroundDevnet::spawn_with_additional_args(&[
             "--state-archive-capacity",
             "full",
-            "--account-class",
-            "cairo1",
+            "--account-class-custom",
+            &resolve_path(
+                "../starknet-devnet-core/accounts_artifacts/OpenZeppelin/0.8.0/Account.cairo/\
+                 Account.sierra",
+            ),
         ])
         .await
         .unwrap();
@@ -407,9 +414,10 @@ mod fork_tests {
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
-        // deploy account using class from origin
+        // deploy account using class from origin, relying on precalculated hash
+        let account_hash = "0x00f7f9cd401ad39a09f095001d31f0ad3fdc2f4e532683a84a8a6c76150de858";
         let factory = OpenZeppelinAccountFactory::new(
-            FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
+            FieldElement::from_hex_be(account_hash).unwrap(),
             chain_id::TESTNET,
             signer,
             fork_devnet.clone_provider(),
