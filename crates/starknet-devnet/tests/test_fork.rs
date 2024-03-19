@@ -15,8 +15,11 @@ mod fork_tests {
         BlockId, BlockTag, ContractClass, FieldElement, FunctionCall,
         MaybePendingBlockWithTxHashes, StarknetError,
     };
-    use starknet_rs_core::utils::{get_selector_from_name, get_udc_deployed_address};
+    use starknet_rs_core::utils::{
+        get_selector_from_name, get_storage_var_address, get_udc_deployed_address,
+    };
     use starknet_rs_providers::{Provider, ProviderError};
+    use starknet_rs_signers::Signer;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::errors::TestError;
@@ -430,5 +433,80 @@ mod fork_tests {
         let deployment_address = deployment.address();
         fork_devnet.mint(deployment_address, 1e18 as u128).await;
         deployment.send().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_get_nonce_if_contract_not_deployed() {
+        let origin_devnet = spawn_forkable_devnet().await.unwrap();
+        let fork_devnet = origin_devnet.fork().await.unwrap();
+        let dummy_address = FieldElement::ONE;
+        match fork_devnet
+            .json_rpc_client
+            .get_nonce(BlockId::Tag(BlockTag::Latest), dummy_address)
+            .await
+        {
+            Err(ProviderError::StarknetError(StarknetError::ContractNotFound)) => (),
+            unexpected => panic!("Unexpected resp: {unexpected:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_nonce_if_contract_deployed_on_origin() {
+        let origin_devnet = spawn_forkable_devnet().await.unwrap();
+        let fork_devnet = origin_devnet.fork().await.unwrap();
+
+        let (_, account_address) = origin_devnet.get_first_predeployed_account().await;
+
+        let nonce = fork_devnet
+            .json_rpc_client
+            .get_nonce(BlockId::Tag(BlockTag::Latest), account_address)
+            .await
+            .unwrap();
+        assert_eq!(nonce, FieldElement::ZERO);
+    }
+
+    #[tokio::test]
+    async fn test_get_storage_if_contract_not_deployed() {
+        let origin_devnet = spawn_forkable_devnet().await.unwrap();
+        let fork_devnet = origin_devnet.fork().await.unwrap();
+        let dummy_address = FieldElement::ONE;
+        let dummy_key = FieldElement::ONE;
+        match fork_devnet
+            .json_rpc_client
+            .get_storage_at(dummy_address, dummy_key, BlockId::Tag(BlockTag::Latest))
+            .await
+        {
+            Err(ProviderError::StarknetError(StarknetError::ContractNotFound)) => (),
+            unexpected => panic!("Unexpected resp: {unexpected:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_storage_if_contract_deployed_on_origin() {
+        let origin_devnet = spawn_forkable_devnet().await.unwrap();
+        let fork_devnet = origin_devnet.fork().await.unwrap();
+
+        let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
+
+        let dummy_key = FieldElement::ONE;
+        let dummy_value = fork_devnet
+            .json_rpc_client
+            .get_storage_at(account_address, dummy_key, BlockId::Tag(BlockTag::Latest))
+            .await
+            .unwrap();
+        assert_eq!(dummy_value, FieldElement::ZERO);
+
+        let real_key = get_storage_var_address("Account_public_key", &[]).unwrap();
+        let real_value = fork_devnet
+            .json_rpc_client
+            .get_storage_at(account_address, real_key, BlockId::Tag(BlockTag::Latest))
+            .await
+            .unwrap();
+        assert_eq!(real_value, signer.get_public_key().await.unwrap().scalar());
+    }
+
+    #[tokio::test]
+    async fn test_fork_using_origin_token_contract() {
+        unimplemented!()
     }
 }
