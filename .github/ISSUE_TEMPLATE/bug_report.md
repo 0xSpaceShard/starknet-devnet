@@ -10,9 +10,9 @@ assignees: ""
 
 A clear and concise description of what the bug is. If applicable, add screenshots to help explain your problem. However, prefer providing plain text.
 
-**Not reproducible on alpha-goerli**
+**Not reproducible on testnet**
 
-- [ ] This issue is only present on Devnet and cannot be reproduced on alpha-goerli (check the box if true).
+- [ ] This issue is only present on Devnet and cannot be reproduced on the alpha-sepolia testnet (check the box if true).
 
 **To Reproduce**
 Steps to reproduce the behavior:
