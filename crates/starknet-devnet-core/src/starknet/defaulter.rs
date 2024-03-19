@@ -126,48 +126,45 @@ impl BlockingOriginReader {
     ) -> StateResult<StarkFelt> {
         let contract_address: Felt = contract_address.0.try_into().unwrap();
         let key: Felt = key.0.try_into().unwrap();
-        Ok(
-            match self.send_body(
-                "starknet_getStorageAt",
-                serde_json::json!({
-                    "contract_address": contract_address.to_prefixed_hex_str(),
-                    "key": key.to_prefixed_hex_str(),
-                }),
-            ) {
-                Ok(serde_json::Value::Null) | Err(_) => Default::default(),
-                Ok(value) => convert_json_value_to_stark_felt(value),
-            },
-        )
+        let storage = match self.send_body(
+            "starknet_getStorageAt",
+            serde_json::json!({
+                "contract_address": contract_address.to_prefixed_hex_str(),
+                "key": key.to_prefixed_hex_str(),
+            }),
+        ) {
+            Ok(serde_json::Value::Null) | Err(_) => Default::default(),
+            Ok(value) => convert_json_value_to_stark_felt(value),
+        };
+        Ok(storage)
     }
 
     fn get_nonce_at(&self, contract_address: ContractAddress) -> StateResult<Nonce> {
         let contract_address: Felt = contract_address.0.try_into().unwrap();
-        Ok(
-            match self.send_body(
-                "starknet_getNonce",
-                serde_json::json!({
-                    "contract_address": contract_address.to_prefixed_hex_str(),
-                }),
-            ) {
-                Ok(serde_json::Value::Null) | Err(_) => Default::default(),
-                Ok(value) => Nonce(convert_json_value_to_stark_felt(value)),
-            },
-        )
+        let nonce = match self.send_body(
+            "starknet_getNonce",
+            serde_json::json!({
+                "contract_address": contract_address.to_prefixed_hex_str(),
+            }),
+        ) {
+            Ok(serde_json::Value::Null) | Err(_) => Default::default(),
+            Ok(value) => Nonce(convert_json_value_to_stark_felt(value)),
+        };
+        Ok(nonce)
     }
 
     fn get_class_hash_at(&self, contract_address: ContractAddress) -> StateResult<ClassHash> {
         let contract_address: Felt = contract_address.0.try_into().unwrap();
-        Ok(
-            match self.send_body(
-                "starknet_getClassHashAt",
-                serde_json::json!({
-                    "contract_address": contract_address.to_prefixed_hex_str(),
-                }),
-            ) {
-                Ok(serde_json::Value::Null) | Err(_) => Default::default(),
-                Ok(value) => ClassHash(convert_json_value_to_stark_felt(value)),
-            },
-        )
+        let class_hash = match self.send_body(
+            "starknet_getClassHashAt",
+            serde_json::json!({
+                "contract_address": contract_address.to_prefixed_hex_str(),
+            }),
+        ) {
+            Ok(serde_json::Value::Null) | Err(_) => Default::default(),
+            Ok(value) => ClassHash(convert_json_value_to_stark_felt(value)),
+        };
+        Ok(class_hash)
     }
 
     fn get_compiled_contract_class(&self, class_hash: ClassHash) -> StateResult<ContractClass> {

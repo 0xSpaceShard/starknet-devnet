@@ -507,6 +507,15 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_fork_using_origin_token_contract() {
-        unimplemented!()
+        let origin_devnet = spawn_forkable_devnet().await.unwrap();
+
+        let address = FieldElement::ONE;
+        let mint_amount = 1000_u128;
+        origin_devnet.mint(address, mint_amount).await;
+
+        let fork_devnet = origin_devnet.fork().await.unwrap();
+
+        let fork_balance = fork_devnet.get_balance(&address).await.unwrap();
+        assert_eq!(fork_balance, FieldElement::from(mint_amount));
     }
 }

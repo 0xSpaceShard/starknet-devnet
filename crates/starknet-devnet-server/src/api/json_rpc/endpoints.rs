@@ -105,7 +105,9 @@ impl JsonRpcHandler {
             .contract_storage_at_block(block_id.as_ref(), contract_address, key)
             .map_err(|err| match err {
                 Error::NoBlock => ApiError::BlockNotFound,
-                Error::StateError(StateError::NoneStorage(_)) => ApiError::ContractNotFound,
+                Error::ContractNotFound | Error::StateError(StateError::NoneStorage(_)) => {
+                    ApiError::ContractNotFound
+                }
                 e @ Error::NoStateAtBlock { .. } => ApiError::NoStateAtBlock { msg: e.to_string() },
                 unknown_error => ApiError::StarknetDevnetError(unknown_error),
             })?;
