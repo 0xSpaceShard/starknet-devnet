@@ -103,6 +103,8 @@ pub type StorageKey = PatriciaKey;
 mod tests {
     use super::PatriciaKey;
     use crate::felt::Felt;
+    use starknet_rs_core::types::FieldElement;
+    use crate::contract_address::ContractAddress;
 
     #[test]
     fn creation_of_patricia_key_should_be_successful() {
@@ -126,5 +128,16 @@ mod tests {
             .unwrap(),
         );
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn patricia_key_try_from_field_element_succeeds() {
+        let account_address = ContractAddress::new(Felt::from(111)).unwrap();
+        let field_element = FieldElement::from(account_address); 
+        let result = PatriciaKey::try_from(field_element);
+        assert!(result.is_ok());
+        let patricia_key = result.unwrap();
+        assert_eq!(patricia_key.to_felt(), Felt::from(111));
+
     }
 }
