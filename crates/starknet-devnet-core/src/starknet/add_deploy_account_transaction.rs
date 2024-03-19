@@ -110,6 +110,7 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::Cairo0Json;
     use starknet_types::felt::{ClassHash, Felt};
+    use starknet_types::patricia_key::PatriciaKey;
     use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1::BroadcastedDeployAccountTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
     use starknet_types::rpc::transactions::{
@@ -252,16 +253,11 @@ mod tests {
         let account_address = ContractAddress::from(blockifier_transaction.contract_address);
         let fee_token_address: starknet_api::core::ContractAddress =
             eth_fee_token_address.try_into().unwrap();
-        let balance_storage_var_address = starknet_types::patricia_key::PatriciaKey::new(
-            Felt::new(
-                get_storage_var_address("ERC20_balances", &[FieldElement::from(account_address)])
-                    .unwrap()
-                    .to_bytes_be(),
-            )
-            .unwrap(),
+        let balance_storage_var_address = PatriciaKey::try_from(
+            get_storage_var_address("ERC20_balances", &[FieldElement::from(account_address)])
+                .unwrap(),
         )
         .unwrap();
-
         let account_balance_before_deployment = StarkFelt::from_u128(1000000);
         starknet
             .state
@@ -295,13 +291,9 @@ mod tests {
         let account_address = ContractAddress::from(blockifier_transaction.contract_address);
         let fee_token_address: starknet_api::core::ContractAddress =
             strk_fee_token_address.try_into().unwrap();
-        let balance_storage_var_address = starknet_types::patricia_key::PatriciaKey::new(
-            Felt::new(
-                get_storage_var_address("ERC20_balances", &[FieldElement::from(account_address)])
-                    .unwrap()
-                    .to_bytes_be(),
-            )
-            .unwrap(),
+        let balance_storage_var_address = PatriciaKey::try_from(
+            get_storage_var_address("ERC20_balances", &[FieldElement::from(account_address)])
+                .unwrap(),
         )
         .unwrap();
 
@@ -355,13 +347,9 @@ mod tests {
         let account_address = ContractAddress::from(blockifier_transaction.contract_address);
         let fee_token_address: starknet_api::core::ContractAddress =
             eth_fee_token_address.try_into().unwrap();
-        let balance_storage_var_address = starknet_types::patricia_key::PatriciaKey::new(
-            Felt::new(
-                get_storage_var_address("ERC20_balances", &[FieldElement::from(account_address)])
-                    .unwrap()
-                    .to_bytes_be(),
-            )
-            .unwrap(),
+        let balance_storage_var_address = PatriciaKey::try_from(
+            get_storage_var_address("ERC20_balances", &[FieldElement::from(account_address)])
+                .unwrap(),
         )
         .unwrap();
 

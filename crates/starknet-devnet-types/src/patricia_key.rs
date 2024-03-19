@@ -1,5 +1,7 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use starknet_api::core::{CONTRACT_ADDRESS_DOMAIN_SIZE, PATRICIA_KEY_UPPER_BOUND};
+use starknet_rs_core::types::FieldElement;
+use starknet_rs_core::utils::NonAsciiNameError;
 
 use crate::error::{DevnetResult, Error};
 use crate::felt::Felt;
@@ -72,6 +74,26 @@ impl TryFrom<PatriciaKey> for starknet_api::state::StorageKey {
 
     fn try_from(value: PatriciaKey) -> Result<Self, Self::Error> {
         Ok(Self(value.try_into()?))
+    }
+}
+
+impl TryFrom<FieldElement> for PatriciaKey {
+    type Error = Error; // Replace with the appropriate error type
+
+    fn try_from(element: FieldElement) -> Result<Self, Self::Error> {
+        let bytes = Felt::new(element.to_bytes_be())?; // Replace with the appropriate method to convert FieldElement to bytes
+        PatriciaKey::new(bytes) // Replace with the appropriate error handling
+    }
+}
+
+impl TryFrom<Result<FieldElement, NonAsciiNameError>> for PatriciaKey {
+    type Error = Error;
+
+    fn try_from(value: Result<FieldElement, NonAsciiNameError>) -> Result<Self, Self::Error> {
+        match value {
+            Ok(field_element) => PatriciaKey::try_from(field_element),
+            Err(_) => Err(Error::ProgramError),
+        }
     }
 }
 

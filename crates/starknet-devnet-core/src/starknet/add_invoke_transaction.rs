@@ -87,6 +87,7 @@ mod tests {
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
+    use starknet_types::patricia_key::PatriciaKey;
     use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
     use starknet_types::rpc::transactions::{
@@ -444,10 +445,8 @@ mod tests {
         let dummy_contract_address =
             ContractAddress::new(Felt::new(address_bytes).unwrap()).unwrap();
         let dummy_contract_class_hash = dummy_contract.generate_hash().unwrap();
-        let storage_key = starknet_types::patricia_key::PatriciaKey::new(
-            Felt::new(get_storage_var_address("balance", &[]).unwrap().to_bytes_be()).unwrap(),
-        )
-        .unwrap();
+        let storage_key =
+            PatriciaKey::try_from(get_storage_var_address("balance", &[]).unwrap()).unwrap();
         let contract_storage_key = ContractStorageKey::new(dummy_contract_address, storage_key);
 
         // declare dummy contract

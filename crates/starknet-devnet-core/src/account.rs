@@ -105,20 +105,18 @@ impl Account {
     }
 
     fn eth_balance_storage_key(&self) -> DevnetResult<ContractStorageKey> {
-        let storage_var_address = starknet_types::patricia_key::PatriciaKey::new(Felt::new(
-            get_storage_var_address("ERC20_balances", &[FieldElement::from(self.account_address)])
-                .map_err(|_| Error::ProgramError)?
-                .to_bytes_be(),
-        )?)?;
+        let storage_var_address = starknet_types::patricia_key::PatriciaKey::try_from(
+            get_storage_var_address("ERC20_balances", &[FieldElement::from(self.account_address)]),
+        )
+        .unwrap();
         Ok(ContractStorageKey::new(self.eth_fee_token_address, storage_var_address))
     }
 
     fn strk_balance_storage_key(&self) -> DevnetResult<ContractStorageKey> {
-        let storage_var_address = starknet_types::patricia_key::PatriciaKey::new(Felt::new(
-            get_storage_var_address("ERC20_balances", &[FieldElement::from(self.account_address)])
-                .map_err(|_| Error::ProgramError)?
-                .to_bytes_be(),
-        )?)?;
+        let storage_var_address = starknet_types::patricia_key::PatriciaKey::try_from(
+            get_storage_var_address("ERC20_balances", &[FieldElement::from(self.account_address)]),
+        )
+        .unwrap();
         Ok(ContractStorageKey::new(self.strk_fee_token_address, storage_var_address))
     }
 }
@@ -130,11 +128,10 @@ impl Deployed for Account {
         state.predeploy_contract(self.account_address, self.class_hash)?;
 
         // set public key directly in the most underlying state
-        let public_key_storage_var = starknet_types::patricia_key::PatriciaKey::new(Felt::new(
-            get_storage_var_address("Account_public_key", &[])
-                .map_err(|_| Error::ProgramError)?
-                .to_bytes_be(),
-        )?)?;
+        let public_key_storage_var = starknet_types::patricia_key::PatriciaKey::try_from(
+            get_storage_var_address("Account_public_key", &[]),
+        )
+        .unwrap();
 
         state.state.state.set_storage_at(
             self.account_address.try_into()?,
@@ -155,11 +152,10 @@ impl Deployed for Account {
 
 impl Accounted for Account {
     fn set_initial_balance(&self, state: &mut DictState) -> DevnetResult<()> {
-        let storage_var_address = starknet_types::patricia_key::PatriciaKey::new(Felt::new(
-            get_storage_var_address("ERC20_balances", &[FieldElement::from(self.account_address)])
-                .map_err(|_| Error::ProgramError)?
-                .to_bytes_be(),
-        )?)?;
+        let storage_var_address = starknet_types::patricia_key::PatriciaKey::try_from(
+            get_storage_var_address("ERC20_balances", &[FieldElement::from(self.account_address)]),
+        )
+        .unwrap();
 
         for fee_token_address in [self.eth_fee_token_address, self.strk_fee_token_address] {
             state.set_storage_at(
@@ -265,17 +261,10 @@ mod tests {
 
         let expected_balance_storage_key = ContractStorageKey::new(
             fee_token_address,
-            starknet_types::patricia_key::PatriciaKey::new(
-                Felt::new(
-                    get_storage_var_address(
-                        "ERC20_balances",
-                        &[FieldElement::from(account_address)],
-                    )
-                    .unwrap()
-                    .to_bytes_be(),
-                )
-                .unwrap(),
-            )
+            starknet_types::patricia_key::PatriciaKey::try_from(get_storage_var_address(
+                "ERC20_balances",
+                &[FieldElement::from(account_address)],
+            ))
             .unwrap(),
         );
         assert_eq!(expected_balance_storage_key, account.eth_balance_storage_key().unwrap());

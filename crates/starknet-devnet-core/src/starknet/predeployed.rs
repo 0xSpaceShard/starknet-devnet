@@ -2,6 +2,7 @@ use blockifier::state::state_api::State;
 use starknet_rs_core::utils::{get_selector_from_name, get_storage_var_address};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::Felt;
+use starknet_types::patricia_key::PatriciaKey;
 
 use crate::constants::{
     CAIRO_1_ERC20_CONTRACT_CLASS_HASH, CAIRO_1_ERC20_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS,
@@ -50,12 +51,9 @@ pub(crate) fn initialize_erc20_at_address(
         // necessary to set - otherwise minting txs cannot be executed
         ("Ownable_owner", Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?),
     ] {
-        let storage_var_address = starknet_types::patricia_key::PatriciaKey::new(
-            Felt::new(get_storage_var_address(storage_var_name, &[]).unwrap().to_bytes_be())
-                .unwrap(),
-        )
-        .unwrap();
-    
+        let storage_var_address =
+            PatriciaKey::try_from(get_storage_var_address(storage_var_name, &[])).unwrap();
+
         state.set_storage_at(
             contract_address.try_into()?,
             storage_var_address.try_into()?,
