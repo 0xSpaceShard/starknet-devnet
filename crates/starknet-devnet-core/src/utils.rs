@@ -45,15 +45,11 @@ pub(crate) fn get_versioned_constants() -> VersionedConstants {
 
 #[cfg(test)]
 pub(crate) mod test_utils {
-
-    use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
     use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
     use starknet_api::transaction::Fee;
-    use starknet_types::constants::MAX_BYTECODE_SIZE_LIMIT;
+    use starknet_rs_core::types::contract::CompiledClass;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{
-        compute_casm_class_hash, Cairo0ContractClass, Cairo0Json, ContractClass,
-    };
+    use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
@@ -112,15 +108,14 @@ pub(crate) mod test_utils {
     ) -> BroadcastedDeclareTransactionV2 {
         let contract_class = dummy_cairo_1_contract_class();
 
-        let compiled_class_hash = compute_casm_class_hash(
-            &CasmContractClass::from_contract_class(
-                contract_class.clone(),
-                true,
-                MAX_BYTECODE_SIZE_LIMIT,
-            )
-            .unwrap(),
-        )
-        .unwrap();
+        let casm_contract_class_json =
+            usc::compile_contract(serde_json::to_value(contract_class.clone()).unwrap()).unwrap();
+
+        let compiled_class_hash = serde_json::from_value::<CompiledClass>(casm_contract_class_json)
+            .unwrap()
+            .class_hash()
+            .unwrap()
+            .into();
 
         BroadcastedDeclareTransactionV2::new(
             &contract_class,

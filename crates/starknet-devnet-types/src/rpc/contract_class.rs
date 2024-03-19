@@ -2,15 +2,13 @@ use core::fmt::Debug;
 use std::cmp::{Eq, PartialEq};
 
 use blockifier::execution::contract_class::ClassInfo;
-use cairo_lang_starknet_classes::casm_contract_class::{CasmContractClass, CasmContractEntryPoint};
+use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use cairo_lang_starknet_classes::contract_class::ContractClass as SierraContractClass;
 use serde::{Serialize, Serializer};
-use starknet_api::deprecated_contract_class::EntryPointType;
 use starknet_rs_core::types::contract::{SierraClass, SierraClassDebugInfo};
 use starknet_rs_core::types::{
     ContractClass as CodegenContractClass, FlattenedSierraClass as CodegenSierraContracrClass,
 };
-use starknet_rs_crypto::poseidon_hash_many;
 use starknet_rs_ff::FieldElement;
 
 use crate::constants::MAX_BYTECODE_SIZE_LIMIT;
@@ -120,14 +118,17 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ContractC
                 ))
             }
             ContractClass::Cairo1(sierra_contract_class) => {
-                let casm_contract_class = CasmContractClass::from_contract_class(
-                    sierra_contract_class,
-                    true,
-                    MAX_BYTECODE_SIZE_LIMIT,
-                )
-                .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
+                let casm_json =
+                    usc::compile_contract(serde_json::to_value(sierra_contract_class).map_err(
+                        |err| Error::JsonError(JsonError::Custom { msg: err.to_string() }),
+                    )?)
+                    .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
+
+                let casm = serde_json::from_value::<CasmContractClass>(casm_json)
+                    .map_err(|err| Error::JsonError(JsonError::Custom { msg: err.to_string() }))?;
+
                 let blockifier_contract_class: blockifier::execution::contract_class::ContractClassV1 =
-                    casm_contract_class.try_into().map_err(|_| Error::ProgramError)?;
+                    casm.try_into().map_err(|_| Error::ProgramError)?;
 
                 Ok(blockifier::execution::contract_class::ContractClass::V1(
                     blockifier_contract_class,
@@ -277,82 +278,6 @@ pub fn compute_sierra_class_hash(contract_class: &SierraContractClass) -> Devnet
         .class_hash()
         .map_err(|_| Error::ConversionError(ConversionError::InvalidFormat))?
         .into())
-}
-
-/// Computes cairo_lang_starknet_classes::casmContractClass hash.
-/// Implementation copied from starknet_in_rust
-/// # Arguments
-///
-/// * `contract_class` - The contract class in casm format.
-pub fn compute_casm_class_hash(contract_class: &CasmContractClass) -> DevnetResult<Felt> {
-    const CONTRACT_CLASS_VERSION: &[u8] = b"COMPILED_CLASS_V1";
-
-    let api_version = FieldElement::from_byte_slice_be(CONTRACT_CLASS_VERSION)?;
-
-    // Entrypoints by type, hashed.
-    let external_functions =
-        get_contract_entry_points_hashed(contract_class, &EntryPointType::External)?;
-    let l1_handlers = get_contract_entry_points_hashed(contract_class, &EntryPointType::L1Handler)?;
-    let constructors =
-        get_contract_entry_points_hashed(contract_class, &EntryPointType::Constructor)?;
-
-    let mut casm_program_vector = Vec::with_capacity(contract_class.bytecode.len());
-    for number in &contract_class.bytecode {
-        casm_program_vector.push(FieldElement::from_byte_slice_be(&number.value.to_bytes_be())?);
-    }
-
-    // Hash casm program.
-    let casm_program_ptr = poseidon_hash_many(&casm_program_vector);
-
-    let flatted_contract_class =
-        vec![api_version, external_functions, l1_handlers, constructors, casm_program_ptr];
-
-    Ok(poseidon_hash_many(&flatted_contract_class).into())
-}
-
-/// Return hashed entry points for a given contract class and entry point type.
-/// # Arguments
-///
-/// * `contract_class` - Optional. The block id to start the query from.
-/// * `entry_point_type` - The entry point type to hash.
-fn get_contract_entry_points_hashed(
-    contract_class: &CasmContractClass,
-    entry_point_type: &EntryPointType,
-) -> DevnetResult<FieldElement> {
-    let contract_entry_points = get_contract_entry_points(contract_class, entry_point_type);
-
-    // for each entry_point, we need to store 3 FieldElements: [selector, offset,
-    // poseidon_hash_many(builtin_list)].
-    let mut entry_points_flatted = Vec::with_capacity(contract_entry_points.len() * 3);
-
-    for entry_point in contract_entry_points {
-        entry_points_flatted
-            .push(FieldElement::from_byte_slice_be(&entry_point.selector.to_bytes_be())?);
-        entry_points_flatted.push(FieldElement::from(entry_point.offset));
-        let builtins_flatted = entry_point
-            .builtins
-            .iter()
-            .map(|builtin| FieldElement::from_byte_slice_be(builtin.as_bytes()))
-            .collect::<Result<Vec<FieldElement>, _>>()?;
-        entry_points_flatted.push(poseidon_hash_many(&builtins_flatted));
-    }
-
-    Ok(poseidon_hash_many(&entry_points_flatted))
-}
-
-/// Helper function to fetch entry points based on their type.
-/// # Arguments
-/// * `contract_class` - The contract class in casm format.
-/// * `entry_point_type` - The entry point type to fetch.
-fn get_contract_entry_points(
-    contract_class: &CasmContractClass,
-    entry_point_type: &EntryPointType,
-) -> Vec<CasmContractEntryPoint> {
-    match entry_point_type {
-        EntryPointType::Constructor => contract_class.entry_points_by_type.constructor.clone(),
-        EntryPointType::External => contract_class.entry_points_by_type.external.clone(),
-        EntryPointType::L1Handler => contract_class.entry_points_by_type.l1_handler.clone(),
-    }
 }
 
 #[cfg(test)]

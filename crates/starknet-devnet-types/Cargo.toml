@@ -26,6 +26,7 @@ serde_json = { version = "1.0.81", features = [
 starknet-rs-ff = { workspace = true }
 num-integer = { version = "0.1.45", default-features = false }
 num-bigint = { version = "0.4", features = ["serde"], default-features = false }
+usc = { workspace = true }
 
 # Cairo-lang dependencies
 cairo-lang-compiler = { workspace = true }
