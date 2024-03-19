@@ -41,7 +41,7 @@ pub struct BackgroundDevnet {
     pub http_client: Client<HttpConnector>,
     pub json_rpc_client: JsonRpcClient<HttpTransport>,
     pub process: Child,
-    url: String,
+    pub url: String,
     rpc_url: Url,
 }
 
@@ -224,6 +224,7 @@ impl BackgroundDevnet {
         self.get_balance_at_block(address, BlockId::Tag(BlockTag::Latest)).await
     }
 
+    /// Performs GET request on devnet; path should have a leading slash
     pub async fn get(
         &self,
         path: &str,

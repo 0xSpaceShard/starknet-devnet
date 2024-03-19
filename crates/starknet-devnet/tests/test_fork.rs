@@ -1,6 +1,7 @@
 pub mod common;
 
 mod fork_tests {
+    use std::str::FromStr;
     use std::sync::Arc;
 
     use hyper::Body;
@@ -29,6 +30,31 @@ mod fork_tests {
     const SEPOLIA_URL: &str = "http://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_7";
     const SEPOLIA_GENESIS_BLOCK_HASH: &str =
         "0x19f675d3fb226821493a6ab9a1955e384bba80f130de625621a418e9a7c0ca3";
+
+    #[tokio::test]
+    async fn test_fork_status() {
+        let origin_devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
+                .await
+                .unwrap();
+
+        let origin_status =
+            get_json_body(origin_devnet.get("/fork_status", None).await.unwrap()).await;
+        assert_eq!(origin_status, serde_json::json!({}));
+
+        origin_devnet
+            .post_json("/create_block".into(), Body::from(json!({}).to_string()))
+            .await
+            .unwrap();
+        let fork_devnet = origin_devnet.fork().await.unwrap();
+
+        let fork_status = get_json_body(fork_devnet.get("/fork_status", None).await.unwrap()).await;
+        assert_eq!(
+            url::Url::from_str(fork_status["url"].as_str().unwrap()).unwrap(),
+            url::Url::from_str(&origin_devnet.url).unwrap()
+        );
+        assert_eq!(fork_status["block"].as_i64().unwrap(), 0);
+    }
 
     #[tokio::test]
     async fn test_forking_sepolia_genesis_block() {

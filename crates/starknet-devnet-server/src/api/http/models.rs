@@ -112,8 +112,10 @@ pub struct MintTokensResponse {
 
 #[derive(Serialize)]
 pub struct ForkStatus {
-    url: String,
-    block: u128,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub block: Option<u64>,
 }
 
 #[derive(Serialize)]
