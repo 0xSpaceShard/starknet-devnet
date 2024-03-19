@@ -26,6 +26,7 @@ mod fork_tests {
     use crate::common::utils::{
         assert_cairo1_classes_equal, assert_tx_successful, get_json_body,
         get_simple_contract_in_sierra_and_compiled_class_hash, resolve_path,
+        send_ctrl_c_signal_and_wait,
     };
 
     const SEPOLIA_URL: &str = "http://rpc.pathfinder.equilibrium.co/integration-sepolia/rpc/v0_7";
@@ -517,5 +518,19 @@ mod fork_tests {
 
         let fork_balance = fork_devnet.get_balance(&address).await.unwrap();
         assert_eq!(fork_balance, FieldElement::from(mint_amount));
+    }
+
+    #[tokio::test]
+    #[ignore = "Temporarily disabled"]
+    async fn test_fork_if_origin_dies() {
+        let origin_devnet = spawn_forkable_devnet().await.unwrap();
+        let fork_devnet = origin_devnet.fork().await.unwrap();
+        send_ctrl_c_signal_and_wait(&origin_devnet.process).await;
+
+        let address = FieldElement::ONE;
+        match fork_devnet.json_rpc_client.get_nonce(BlockId::Tag(BlockTag::Latest), address).await {
+            Err(ProviderError::Other(err)) => println!("DEBUG got err: {err}"),
+            unexpected_resp => panic!("Got unxpected resp: {unexpected_resp:?}"),
+        }
     }
 }

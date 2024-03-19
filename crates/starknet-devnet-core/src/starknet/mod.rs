@@ -47,7 +47,7 @@ use starknet_types::rpc::transactions::{
 use starknet_types::traits::HashProducer;
 use tracing::{error, info};
 
-use self::defaulter::Defaulter;
+use self::defaulter::StarknetDefaulter;
 use self::dump::DumpEvent;
 use self::predeployed::initialize_erc20_at_address;
 use self::starknet_config::{DumpOn, StarknetConfig, StateArchiveCapacity};
@@ -98,7 +98,7 @@ pub struct Starknet {
     pub next_block_timestamp: Option<u64>,
     pub(crate) messaging: MessagingBroker,
     pub(crate) dump_events: Vec<DumpEvent>,
-    pub(crate) defaulter: Defaulter,
+    pub(crate) defaulter: StarknetDefaulter,
 }
 
 impl Default for Starknet {
@@ -120,14 +120,14 @@ impl Default for Starknet {
             next_block_timestamp: None,
             messaging: Default::default(),
             dump_events: Default::default(),
-            defaulter: Defaulter::default(),
+            defaulter: StarknetDefaulter::default(),
         }
     }
 }
 
 impl Starknet {
     pub fn new(config: &StarknetConfig) -> DevnetResult<Self> {
-        let defaulter = Defaulter::new(config.fork_config.clone());
+        let defaulter = StarknetDefaulter::new(config.fork_config.clone());
         let mut state = StarknetState::new(defaulter.clone());
         // deploy udc, eth erc20 and strk erc20 contracts
         let eth_erc20_fee_contract =

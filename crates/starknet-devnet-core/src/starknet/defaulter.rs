@@ -3,14 +3,25 @@ use std::io::Read;
 use blockifier::execution::contract_class::ContractClass;
 use blockifier::state::errors::StateError;
 use blockifier::state::state_api::StateResult;
-use starknet_api::core::{ClassHash, ContractAddress, Nonce};
+use starknet_api::core::{ClassHash, ContractAddress, Nonce, PatriciaKey};
 use starknet_api::hash::StarkFelt;
 use starknet_api::state::StorageKey;
 use starknet_types::contract_class::convert_codegen_to_blockifier_compiled_class;
 use starknet_types::felt::Felt;
 use starknet_types::traits::ToHexString;
+use tracing::warn;
 
 use super::starknet_config::ForkConfig;
+
+#[derive(thiserror::Error, Debug)]
+enum OriginError {
+    #[error("Error in communication with origin: {0}")]
+    CommunicationError(String),
+    #[error("Received invalid response from origin: {0}")]
+    FormatError(String),
+    #[error("Received JSON response, but no result property in it")]
+    NoResult,
+}
 
 #[derive(Debug, Clone)]
 struct BlockingOriginReader {
@@ -28,7 +39,7 @@ impl BlockingOriginReader {
         &self,
         method: &str,
         mut params: serde_json::Value,
-    ) -> Result<serde_json::Value, reqwest::Error> {
+    ) -> Result<serde_json::Value, OriginError> {
         params["block_id"] = serde_json::json!({
             "block_number": self.block_number
         });
@@ -47,32 +58,45 @@ impl BlockingOriginReader {
             .send()
         {
             Ok(mut resp) => {
-                assert_eq!(resp.status(), reqwest::StatusCode::OK);
+                let resp_status = resp.status();
+                if resp_status != reqwest::StatusCode::OK {
+                    return Err(OriginError::CommunicationError(format!(
+                        "Received response with status: {resp_status}"
+                    )));
+                }
+
+                // load json
                 let mut buff = vec![];
-                resp.read_to_end(&mut buff).unwrap();
-                let value: serde_json::Value = serde_json::from_slice(&buff).unwrap();
-                // TODO perhaps deal with error here?
-                let result = &value["result"];
-                Ok(result.clone())
+                resp.read_to_end(&mut buff).map_err(|e| OriginError::FormatError(e.to_string()))?;
+                let resp_json_value: serde_json::Value = serde_json::from_slice(&buff)
+                    .map_err(|e| OriginError::FormatError(e.to_string()))?;
+
+                let result = &resp_json_value["result"];
+                if result.is_null() {
+                    warn!("Origin contains no 'result': {resp_json_value}");
+                    Err(OriginError::NoResult)
+                } else {
+                    Ok(result.clone())
+                }
             }
-            Err(err) => Err(err),
+            Err(other_err) => Err(OriginError::CommunicationError(other_err.to_string())),
         }
     }
 }
 
-// TODO rename to StarknetDefaulter
 #[derive(Clone, Debug, Default)]
-pub struct Defaulter {
+pub struct StarknetDefaulter {
     origin_reader: Option<BlockingOriginReader>,
 }
 
-impl Defaulter {
+impl StarknetDefaulter {
     pub fn new(fork_config: ForkConfig) -> Self {
-        let origin_reader = if let Some(fork_url) = fork_config.url {
-            Some(BlockingOriginReader::new(fork_url, fork_config.block.unwrap()))
-        } else {
-            None
-        };
+        let origin_reader =
+            if let (Some(fork_url), Some(block)) = (fork_config.url, fork_config.block) {
+                Some(BlockingOriginReader::new(fork_url, block))
+            } else {
+                None
+            };
         Self { origin_reader }
     }
 
@@ -113,8 +137,16 @@ impl Defaulter {
     }
 }
 
-fn convert_json_value_to_stark_felt(json_value: serde_json::Value) -> StarkFelt {
-    StarkFelt::try_from(json_value.as_str().unwrap()).unwrap()
+fn convert_json_value_to_stark_felt(json_value: serde_json::Value) -> StateResult<StarkFelt> {
+    let str_value = json_value
+        .as_str()
+        .ok_or(StateError::StateReadError(format!("Could not convert {json_value} to felt")))?;
+    StarkFelt::try_from(str_value).map_err(|e| StateError::StateReadError(e.to_string()))
+}
+
+fn convert_patricia_key_to_hex(key: PatriciaKey) -> StateResult<String> {
+    let felt = Felt::try_from(key).map_err(|e| StateError::StateReadError(e.to_string()))?;
+    Ok(felt.to_prefixed_hex_str())
 }
 
 // Same as StateReader, but with &self instead of &mut self
@@ -124,45 +156,44 @@ impl BlockingOriginReader {
         contract_address: ContractAddress,
         key: StorageKey,
     ) -> StateResult<StarkFelt> {
-        let contract_address: Felt = contract_address.0.try_into().unwrap();
-        let key: Felt = key.0.try_into().unwrap();
         let storage = match self.send_body(
             "starknet_getStorageAt",
             serde_json::json!({
-                "contract_address": contract_address.to_prefixed_hex_str(),
-                "key": key.to_prefixed_hex_str(),
+                "contract_address": convert_patricia_key_to_hex(contract_address.0)?,
+                "key": convert_patricia_key_to_hex(key.0)?,
             }),
         ) {
-            Ok(serde_json::Value::Null) | Err(_) => Default::default(),
-            Ok(value) => convert_json_value_to_stark_felt(value),
+            Err(OriginError::NoResult) => Default::default(),
+            Err(other_error) => return Err(StateError::StateReadError(other_error.to_string())),
+            Ok(value) => convert_json_value_to_stark_felt(value)?,
         };
         Ok(storage)
     }
 
     fn get_nonce_at(&self, contract_address: ContractAddress) -> StateResult<Nonce> {
-        let contract_address: Felt = contract_address.0.try_into().unwrap();
         let nonce = match self.send_body(
             "starknet_getNonce",
             serde_json::json!({
-                "contract_address": contract_address.to_prefixed_hex_str(),
+                "contract_address": convert_patricia_key_to_hex(contract_address.0)?,
             }),
         ) {
-            Ok(serde_json::Value::Null) | Err(_) => Default::default(),
-            Ok(value) => Nonce(convert_json_value_to_stark_felt(value)),
+            Err(OriginError::NoResult) => Default::default(),
+            Err(other_error) => return Err(StateError::StateReadError(other_error.to_string())),
+            Ok(value) => Nonce(convert_json_value_to_stark_felt(value)?),
         };
         Ok(nonce)
     }
 
     fn get_class_hash_at(&self, contract_address: ContractAddress) -> StateResult<ClassHash> {
-        let contract_address: Felt = contract_address.0.try_into().unwrap();
         let class_hash = match self.send_body(
             "starknet_getClassHashAt",
             serde_json::json!({
-                "contract_address": contract_address.to_prefixed_hex_str(),
+                "contract_address": convert_patricia_key_to_hex(contract_address.0)?,
             }),
         ) {
-            Ok(serde_json::Value::Null) | Err(_) => Default::default(),
-            Ok(value) => ClassHash(convert_json_value_to_stark_felt(value)),
+            Err(OriginError::NoResult) => Default::default(),
+            Err(other_error) => return Err(StateError::StateReadError(other_error.to_string())),
+            Ok(value) => ClassHash(convert_json_value_to_stark_felt(value)?),
         };
         Ok(class_hash)
     }
@@ -171,16 +202,15 @@ impl BlockingOriginReader {
         match self.send_body(
             "starknet_getClass",
             serde_json::json!({
-                "class_hash": Felt::try_from(class_hash).unwrap().to_prefixed_hex_str(),
+                "class_hash": Felt::from(class_hash.0).to_prefixed_hex_str(),
             }),
         ) {
-            // TODO perhaps don't do this null catching here and in other endpoints
-            Ok(serde_json::Value::Null) | Err(_) => {
-                Err(StateError::UndeclaredClassHash(class_hash))
-            }
+            Err(OriginError::NoResult) => Err(StateError::UndeclaredClassHash(class_hash)),
+            Err(other_error) => Err(StateError::StateReadError(other_error.to_string())),
             Ok(value) => {
                 let contract_class: starknet_rs_core::types::ContractClass =
-                    serde_json::from_value(value).unwrap();
+                    serde_json::from_value(value)
+                        .map_err(|e| StateError::StateReadError(e.to_string()))?;
                 convert_codegen_to_blockifier_compiled_class(contract_class)
                     .map_err(|e| StateError::StateReadError(e.to_string()))
             }

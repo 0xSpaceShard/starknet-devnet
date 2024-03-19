@@ -14,7 +14,7 @@ use starknet_types::felt::{ClassHash, Felt};
 use self::state_diff::StateDiff;
 use self::state_readers::DictState;
 use crate::error::{DevnetResult, Error};
-use crate::starknet::defaulter::Defaulter;
+use crate::starknet::defaulter::StarknetDefaulter;
 
 pub(crate) mod state_diff;
 pub(crate) mod state_readers;
@@ -93,7 +93,7 @@ impl Default for StarknetState {
 }
 
 impl StarknetState {
-    pub fn new(defaulter: Defaulter) -> Self {
+    pub fn new(defaulter: StarknetDefaulter) -> Self {
         Self {
             state: CachedState::new(
                 DictState::new(defaulter),

@@ -8,7 +8,7 @@ use starknet_api::core::{ClassHash, CompiledClassHash, ContractAddress, Nonce};
 use starknet_api::hash::StarkFelt;
 use starknet_api::state::StorageKey;
 
-use crate::starknet::defaulter::Defaulter;
+use crate::starknet::defaulter::StarknetDefaulter;
 
 /// A simple implementation of `StateReader` using `HashMap`s as storage.
 /// Copied from blockifier test_utils, added `impl State`
@@ -19,11 +19,11 @@ pub struct DictState {
     pub address_to_class_hash: HashMap<ContractAddress, ClassHash>,
     pub class_hash_to_class: HashMap<ClassHash, ContractClass>,
     pub class_hash_to_compiled_class_hash: HashMap<ClassHash, CompiledClassHash>,
-    defaulter: Defaulter,
+    defaulter: StarknetDefaulter,
 }
 
 impl DictState {
-    pub fn new(defaulter: Defaulter) -> Self {
+    pub fn new(defaulter: StarknetDefaulter) -> Self {
         Self { defaulter, ..Self::default() }
     }
 }
