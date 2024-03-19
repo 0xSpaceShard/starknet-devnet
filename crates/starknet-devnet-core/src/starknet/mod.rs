@@ -15,7 +15,7 @@ use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice, Ga
 use starknet_api::core::SequencerContractAddress;
 use starknet_api::transaction::Fee;
 use starknet_rs_core::types::{
-    BlockId, MsgFromL1, TransactionExecutionStatus, TransactionFinalityStatus,
+    BlockId, ExecutionResult, MsgFromL1, TransactionExecutionStatus, TransactionFinalityStatus,
 };
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
@@ -751,7 +751,44 @@ impl Starknet {
     }
 
     pub fn abort_blocks(&mut self, starting_block_hash: Felt) -> Vec<Felt> {
-        self.blocks.reject_blocks(starting_block_hash)
+        let mut reached_starting_block = false;
+        let mut block_to_abort_hash = self.blocks.last_block_hash.unwrap(); // TODO: remove unwrap
+        let mut aborted: Vec<Felt> = Vec::new();
+
+        // Abort blocks from latest to starting (iterating backwards).
+        while !reached_starting_block {
+            reached_starting_block = block_to_abort_hash == starting_block_hash;
+            let block_to_abort = self.blocks.hash_to_block.get_mut(&block_to_abort_hash);
+
+            if let Some(block) = block_to_abort {
+                block.status = BlockStatus::Rejected;
+                let txs = block.get_transactions();
+                for tx_hash in txs {
+                    let tx = self.transactions.get_by_hash_mut(tx_hash).unwrap(); // TODO: fix unwrap
+                    tx.execution_result =
+                        ExecutionResult::Reverted { reason: "Block aborted manually".to_string() };
+                }
+
+                aborted.push(block.block_hash());
+
+                // update next block hash to abort, break in case of none
+                block_to_abort_hash = block.parent_hash();
+                if block_to_abort_hash == Felt::from(0) {
+                    break;
+                }
+
+                // TODO:
+                // block_dict["block_number"] = None
+                // del self.__num2hash[block_dict["block_number"]]
+
+                // self.__state_archive.remove(numeric_hash)
+                // block_dict["transaction_receipts"] = None
+
+                // TODO: what with state?
+            }
+        }
+
+        aborted
     }
 
     pub fn get_block_txs_count(&self, block_id: &BlockId) -> DevnetResult<u64> {
