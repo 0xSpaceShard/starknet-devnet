@@ -2,8 +2,8 @@ use std::num::NonZeroU128;
 
 use clap::Parser;
 use starknet_core::constants::{
-    DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TIMEOUT,
-    DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+    DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT,
+    DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
 use starknet_core::random_number_generator::generate_u32_random_number;
 use starknet_core::starknet::starknet_config::{
@@ -89,6 +89,13 @@ pub(crate) struct Args {
     #[arg(help = "Specify the gas price in wei per gas unit;")]
     gas_price: NonZeroU128,
 
+    // Gas price in wei
+    #[arg(long = "data-gas-price")]
+    #[arg(value_name = "DATA_GAS_PRICE")]
+    #[arg(default_value_t = DEVNET_DEFAULT_DATA_GAS_PRICE)]
+    #[arg(help = "Specify the gas price in wei per data gas unit;")]
+    data_gas_price: NonZeroU128,
+
     #[arg(long = "chain-id")]
     #[arg(value_name = "CHAIN_ID")]
     #[arg(default_value = "TESTNET")]
@@ -147,6 +154,7 @@ impl Args {
             start_time: self.start_time,
             timeout: self.timeout,
             gas_price: self.gas_price,
+            data_gas_price: self.data_gas_price,
             chain_id: self.chain_id,
             dump_on: self.dump_on,
             dump_path: self.dump_path.clone(),
