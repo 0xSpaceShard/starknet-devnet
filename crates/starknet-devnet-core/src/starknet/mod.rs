@@ -750,8 +750,8 @@ impl Starknet {
         state_update::state_update_by_block_id(self, block_id)
     }
 
-    pub fn abort_blocks(&mut self, block_hash: Felt) {
-        self.blocks.reject_block(block_hash);
+    pub fn abort_blocks(&mut self, starting_block_hash: Felt) -> Vec<Felt> {
+        self.blocks.reject_blocks(starting_block_hash)
     }
 
     pub fn get_block_txs_count(&self, block_id: &BlockId) -> DevnetResult<u64> {

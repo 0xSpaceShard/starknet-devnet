@@ -77,13 +77,44 @@ impl StarknetBlocks {
         self.hash_to_state.insert(block_hash, state);
     }
 
-    pub fn reject_block(&mut self, block_hash: Felt) {
-        let block: Option<&mut StarknetBlock> = self.hash_to_block.get_mut(&block_hash);
-        if let Some(block) = block {
-            block.status = BlockStatus::Rejected;
+    pub fn reject_blocks(&mut self, starting_block_hash: Felt) -> Vec<Felt> {
+        let mut reached_starting_block = false;
+        let mut block_to_abort_hash = self.last_block_hash.unwrap(); // TODO: remove unwrap
+        let mut aborted: Vec<Felt> = Vec::new();
 
-            // TODO: reject all transactions
+        // Abort blocks from latest to starting (iterating backwards).
+        while !reached_starting_block {
+            reached_starting_block = block_to_abort_hash == starting_block_hash;
+
+            // println!("block_to_abort_hash: {:?}", block_to_abort_hash);
+
+            let block_to_abort: Option<&mut StarknetBlock> =
+                self.hash_to_block.get_mut(&block_to_abort_hash);
+            if let Some(block) = block_to_abort {
+                block.status = BlockStatus::Rejected;
+
+                // TODO: reject all transactions
+
+                aborted.push(block.block_hash());
+
+                // update next block hash to abort, break in case of none
+                block_to_abort_hash = block.parent_hash();
+                if block_to_abort_hash == Felt::from(0) {
+                    break;
+                }
+
+                // TODO:
+                // block_dict["block_number"] = None
+                // del self.__num2hash[block_dict["block_number"]]
+
+                // self.__state_archive.remove(numeric_hash)
+                // block_dict["transaction_receipts"] = None
+
+                // TODO: what with state?
+            }
         }
+
+        aborted
     }
 
     pub fn get_by_block_id(&self, block_id: &BlockId) -> Option<&StarknetBlock> {
