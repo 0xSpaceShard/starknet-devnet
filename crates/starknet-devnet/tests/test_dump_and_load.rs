@@ -37,10 +37,7 @@ mod dump_and_load_tests {
             .await
             .expect("Could not start Devnet");
 
-            devnet_dump
-                .post_json("/create_block".into(), Body::from(json!({}).to_string()))
-                .await
-                .unwrap();
+            devnet_dump.create_block().await.unwrap();
             devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
             send_ctrl_c_signal_and_wait(&devnet_dump.process).await;
@@ -423,11 +420,7 @@ mod dump_and_load_tests {
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
 
-        // create block
-        devnet_dump
-            .post_json("/create_block".into(), Body::from(json!({}).to_string()))
-            .await
-            .unwrap();
+        devnet_dump.create_block().await.unwrap();
         devnet_dump
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await;

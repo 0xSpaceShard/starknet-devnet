@@ -4,8 +4,6 @@ mod fork_tests {
     use std::str::FromStr;
     use std::sync::Arc;
 
-    use hyper::Body;
-    use serde_json::json;
     use starknet_core::constants::CAIRO_0_ACCOUNT_CONTRACT_HASH;
     use starknet_rs_accounts::{
         Account, AccountFactory, AccountFactoryError, Call, ExecutionEncoding,
@@ -42,10 +40,7 @@ mod fork_tests {
             get_json_body(origin_devnet.get("/fork_status", None).await.unwrap()).await;
         assert_eq!(origin_status, serde_json::json!({}));
 
-        origin_devnet
-            .post_json("/create_block".into(), Body::from(json!({}).to_string()))
-            .await
-            .unwrap();
+        origin_devnet.create_block().await.unwrap();
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
         let fork_status = get_json_body(fork_devnet.get("/fork_status", None).await.unwrap()).await;
@@ -108,15 +103,7 @@ mod fork_tests {
                 .await
                 .unwrap();
 
-        let block_creation_resp =
-            origin_devnet // TODO replace with a utility method (in other places too)
-                .post_json("/create_block".into(), Body::from(json!({}).to_string()))
-                .await
-                .unwrap();
-        let block_creation_resp_body = get_json_body(block_creation_resp).await;
-        let block_hash =
-            FieldElement::from_hex_be(block_creation_resp_body["block_hash"].as_str().unwrap())
-                .unwrap();
+        let block_hash = origin_devnet.create_block().await.unwrap();
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
@@ -142,10 +129,7 @@ mod fork_tests {
                 .unwrap();
 
         // new origin block
-        origin_devnet // TODO replace with a utility method
-            .post_json("/create_block".into(), Body::from(json!({}).to_string()))
-            .await
-            .unwrap();
+        origin_devnet.create_block().await.unwrap();
 
         // new origin block
         let dummy_address = FieldElement::ONE;
@@ -226,7 +210,8 @@ mod fork_tests {
             .await
             .unwrap();
 
-        // TODO Currently asserting cairo0 artifacts is failing
+        // Currently asserting cairo0 artifacts is failing;
+        // for now, successfully unwrapping the retrieved class will serve as proof of correctness
         // assert_eq!(retrieved_class, ContractClass::Legacy(contract_class.compress().unwrap()));
     }
 
@@ -390,10 +375,7 @@ mod fork_tests {
                 .unwrap();
 
         // create forkable origin block
-        origin_devnet
-            .post_json("/create_block".into(), Body::from(json!({}).to_string()))
-            .await
-            .unwrap();
+        origin_devnet.create_block().await.unwrap();
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
@@ -432,10 +414,7 @@ mod fork_tests {
         .unwrap();
 
         // create forkable origin block
-        origin_devnet
-            .post_json("/create_block".into(), Body::from(json!({}).to_string()))
-            .await
-            .unwrap();
+        origin_devnet.create_block().await.unwrap();
 
         let (signer, _) = origin_devnet.get_first_predeployed_account().await;
 

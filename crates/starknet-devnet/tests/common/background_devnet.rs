@@ -270,6 +270,15 @@ impl BackgroundDevnet {
         ])
         .await
     }
+
+    pub async fn create_block(&self) -> Result<FieldElement, anyhow::Error> {
+        let block_creation_resp =
+            self.post_json("/create_block".into(), Body::from(json!({}).to_string())).await?;
+
+        let block_creation_resp_body = get_json_body(block_creation_resp).await;
+        let block_hash_str = block_creation_resp_body["block_hash"].as_str().unwrap();
+        Ok(FieldElement::from_hex_be(block_hash_str)?)
+    }
 }
 
 /// By implementing Drop, we ensure there are no zombie background Devnet processes
