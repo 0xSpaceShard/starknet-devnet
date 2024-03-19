@@ -11,8 +11,8 @@ use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0Json, ContractClass};
 use starknet_types::error::Error;
 use starknet_types::felt::{ClassHash, Felt, Key};
+use starknet_types::rpc::state::Balance;
 use starknet_types::traits::HashProducer;
-use starknet_types::uint::Balance;
 
 use crate::constants::{
     CAIRO_0_ACCOUNT_CONTRACT_PATH, CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY,
@@ -174,7 +174,7 @@ impl Accounted for Account {
 mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
-    use starknet_types::uint::Balance;
+    use starknet_types::rpc::state::Balance;
 
     use super::Account;
     use crate::account::FeeToken;

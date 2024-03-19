@@ -7,7 +7,7 @@ use starknet_types::rpc::eth_address::EthAddressWrapper;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
 use starknet_types::rpc::transaction_receipt::FeeUnits;
 use starknet_types::rpc::transactions::L1HandlerTransaction;
-use starknet_types::uint::u256_deserialize_from_dec_string;
+use starknet_types::serde_helpers::dec_string::deserialize_u256;
 
 use crate::api::http::error::HttpApiError;
 
@@ -99,7 +99,7 @@ pub struct FeeToken {
 #[derive(Debug, Deserialize)]
 pub struct MintTokensRequest {
     pub address: ContractAddress,
-    #[serde(deserialize_with = "u256_deserialize_from_dec_string")]
+    #[serde(deserialize_with = "deserialize_u256")]
     pub amount: U256,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub unit: Option<FeeUnits>,

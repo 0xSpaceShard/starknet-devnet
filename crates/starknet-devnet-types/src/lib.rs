@@ -6,7 +6,6 @@ pub mod patricia_key;
 pub mod rpc;
 pub mod serde_helpers;
 pub mod traits;
-pub mod uint;
 mod utils;
 
 // Re export libraries

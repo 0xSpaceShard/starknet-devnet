@@ -53,8 +53,8 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
+    use starknet_types::rpc::state::Balance;
     use starknet_types::traits::HashProducer;
-    use starknet_types::uint::Balance;
 
     use crate::account::Account;
     use crate::constants::{

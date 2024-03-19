@@ -3,7 +3,7 @@ use starknet_rs_signers::SigningKey;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Key};
-use starknet_types::uint::Balance;
+use starknet_types::rpc::state::Balance;
 
 use crate::account::Account;
 use crate::error::DevnetResult;
@@ -86,7 +86,7 @@ impl AccountGenerator for PredeployedAccounts {
 #[cfg(test)]
 mod tests {
     use rand::{thread_rng, Rng};
-    use starknet_types::uint::Balance;
+    use starknet_types::rpc::state::Balance;
 
     use crate::predeployed_accounts::PredeployedAccounts;
     use crate::utils::test_utils::dummy_contract_address;

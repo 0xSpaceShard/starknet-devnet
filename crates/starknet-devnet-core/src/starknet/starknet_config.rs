@@ -4,8 +4,8 @@ use std::num::NonZeroU128;
 use starknet_types::chain_id::ChainId;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::Felt;
+use starknet_types::rpc::state::Balance;
 use starknet_types::traits::HashProducer;
-use starknet_types::uint::Balance;
 
 use crate::constants::{
     CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_GAS_PRICE,

@@ -1,8 +1,10 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
+use primitive_types::U256;
 use starknet_core::constants::DEVNET_DEFAULT_INITIAL_BALANCE;
-use starknet_types::uint::Balance;
+
+pub type Balance = U256;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct InitialBalanceWrapper(pub Balance);

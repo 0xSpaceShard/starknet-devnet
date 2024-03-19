@@ -25,10 +25,9 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{compute_casm_class_hash, Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
-    use starknet_types::rpc::state::ThinStateDiff;
+    use starknet_types::rpc::state::{Balance, ThinStateDiff};
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::traits::HashProducer;
-    use starknet_types::uint::Balance;
 
     use crate::account::Account;
     use crate::constants::{

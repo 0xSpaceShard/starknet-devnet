@@ -14,8 +14,8 @@ use starknet_core::constants::{
 use starknet_core::starknet::starknet_config::DumpOn;
 use starknet_core::starknet::Starknet;
 use starknet_types::chain_id::ChainId;
+use starknet_types::rpc::state::Balance;
 use starknet_types::traits::ToHexString;
-use starknet_types::uint::Balance;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 

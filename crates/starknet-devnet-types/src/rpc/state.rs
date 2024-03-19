@@ -1,3 +1,4 @@
+use primitive_types::U256;
 use serde::{Deserialize, Serialize};
 
 use super::block::GlobalRootHex;
@@ -6,6 +7,7 @@ use crate::felt::{BlockHash, ClassHash, Felt, Nonce};
 use crate::patricia_key::PatriciaKey;
 
 pub type CompiledClassHashHex = Felt;
+pub type Balance = U256;
 
 #[derive(Debug, Clone, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
