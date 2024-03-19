@@ -20,6 +20,7 @@ mod fork_tests {
     use starknet_rs_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;
+    use crate::common::errors::TestError;
     use crate::common::utils::{
         assert_cairo1_classes_equal, assert_tx_successful, get_json_body,
         get_simple_contract_in_sierra_and_compiled_class_hash, resolve_path,
@@ -29,18 +30,22 @@ mod fork_tests {
     const SEPOLIA_GENESIS_BLOCK_HASH: &str =
         "0x19f675d3fb226821493a6ab9a1955e384bba80f130de625621a418e9a7c0ca3";
 
+    async fn spawn_forkable_devnet() -> Result<BackgroundDevnet, TestError> {
+        let devnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
+                .await?;
+        devnet.create_block().await.unwrap();
+        Ok(devnet)
+    }
+
     #[tokio::test]
     async fn test_fork_status() {
-        let origin_devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
-                .await
-                .unwrap();
+        let origin_devnet = spawn_forkable_devnet().await.unwrap();
 
         let origin_status =
             get_json_body(origin_devnet.get("/fork_status", None).await.unwrap()).await;
         assert_eq!(origin_status, serde_json::json!({}));
 
-        origin_devnet.create_block().await.unwrap();
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
         let fork_status = get_json_body(fork_devnet.get("/fork_status", None).await.unwrap()).await;
@@ -123,13 +128,7 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_forked_account_balance() {
-        let origin_devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
-                .await
-                .unwrap();
-
-        // new origin block
-        origin_devnet.create_block().await.unwrap();
+        let origin_devnet = spawn_forkable_devnet().await.unwrap();
 
         // new origin block
         let dummy_address = FieldElement::ONE;
@@ -174,10 +173,7 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_getting_cairo0_class_from_origin_and_fork() {
-        let origin_devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
-                .await
-                .unwrap();
+        let origin_devnet = spawn_forkable_devnet().await.unwrap();
 
         let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
         let predeployed_account = Arc::new(SingleOwnerAccount::new(
@@ -282,10 +278,7 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_forking_local_declare_deploy_fork_invoke() {
-        let origin_devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
-                .await
-                .unwrap();
+        let origin_devnet = spawn_forkable_devnet().await.unwrap();
 
         let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
         let predeployed_account = Arc::new(SingleOwnerAccount::new(
@@ -369,13 +362,7 @@ mod fork_tests {
 
     #[tokio::test]
     async fn test_deploying_account_with_class_not_present_on_origin() {
-        let origin_devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
-                .await
-                .unwrap();
-
-        // create forkable origin block
-        origin_devnet.create_block().await.unwrap();
+        let origin_devnet = spawn_forkable_devnet().await.unwrap();
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
