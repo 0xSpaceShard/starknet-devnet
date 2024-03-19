@@ -101,11 +101,12 @@ pub type StorageKey = PatriciaKey;
 
 #[cfg(test)]
 mod tests {
-    use super::PatriciaKey;
-    use crate::felt::Felt;
     use starknet_rs_core::types::FieldElement;
-    use crate::contract_address::ContractAddress;
     use starknet_rs_core::utils::NonAsciiNameError;
+
+    use super::PatriciaKey;
+    use crate::contract_address::ContractAddress;
+    use crate::felt::Felt;
 
     #[test]
     fn creation_of_patricia_key_should_be_successful() {
@@ -134,18 +135,17 @@ mod tests {
     #[test]
     fn patricia_key_try_from_field_element_succeeds() {
         let account_address = ContractAddress::new(Felt::from(111)).unwrap();
-        let field_element = FieldElement::from(account_address); 
+        let field_element = FieldElement::from(account_address);
         let result = PatriciaKey::try_from(field_element);
         assert!(result.is_ok());
         let patricia_key = result.unwrap();
         assert_eq!(patricia_key.to_felt(), Felt::from(111));
-
     }
 
     #[test]
     fn test_try_from_result() {
         let account_address = ContractAddress::new(Felt::from(111)).unwrap();
-        let field_element = FieldElement::from(account_address); 
+        let field_element = FieldElement::from(account_address);
         let result: Result<FieldElement, NonAsciiNameError> = Ok(field_element);
         let patricia_key = PatriciaKey::try_from(result);
         assert!(patricia_key.is_ok());
