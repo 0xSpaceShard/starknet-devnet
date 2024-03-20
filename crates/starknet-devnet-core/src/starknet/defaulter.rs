@@ -9,7 +9,7 @@ use starknet_api::state::StorageKey;
 use starknet_types::contract_class::convert_codegen_to_blockifier_compiled_class;
 use starknet_types::felt::Felt;
 use starknet_types::traits::ToHexString;
-use tracing::warn;
+use tracing::info;
 
 use super::starknet_config::ForkConfig;
 
@@ -73,7 +73,7 @@ impl BlockingOriginReader {
 
                 let result = &resp_json_value["result"];
                 if result.is_null() {
-                    warn!("Origin contains no 'result': {resp_json_value}");
+                    info!("Origin response contains no 'result': {resp_json_value}");
                     Err(OriginError::NoResult)
                 } else {
                     Ok(result.clone())
