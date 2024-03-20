@@ -4,6 +4,7 @@ mod fork_tests {
     use std::str::FromStr;
     use std::sync::Arc;
 
+    use server::test_utils::exported_test_utils::assert_contains;
     use starknet_rs_accounts::{
         Account, AccountFactory, AccountFactoryError, Call, ExecutionEncoding,
         OpenZeppelinAccountFactory, SingleOwnerAccount,
@@ -521,7 +522,6 @@ mod fork_tests {
     }
 
     #[tokio::test]
-    #[ignore = "Temporarily disabled"]
     async fn test_fork_if_origin_dies() {
         let origin_devnet = spawn_forkable_devnet().await.unwrap();
         let fork_devnet = origin_devnet.fork().await.unwrap();
@@ -529,8 +529,8 @@ mod fork_tests {
 
         let address = FieldElement::ONE;
         match fork_devnet.json_rpc_client.get_nonce(BlockId::Tag(BlockTag::Latest), address).await {
-            Err(ProviderError::Other(err)) => println!("DEBUG got err: {err}"),
-            unexpected_resp => panic!("Got unxpected resp: {unexpected_resp:?}"),
+            Err(ProviderError::Other(e)) => assert_contains(&e.to_string(), "Connection refused"),
+            unexpected => panic!("Got unxpected resp: {unexpected:?}"),
         }
     }
 }

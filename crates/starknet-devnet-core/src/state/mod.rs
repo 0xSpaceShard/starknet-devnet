@@ -270,9 +270,8 @@ impl blockifier::state::state_api::StateReader for StarknetState {
 impl CustomStateReader for StarknetState {
     fn is_contract_deployed(&mut self, contract_address: ContractAddress) -> DevnetResult<bool> {
         let api_address = contract_address.try_into()?;
-        Ok(self
-            .get_class_hash_at(api_address)
-            .is_ok_and(|starknet_api::core::ClassHash(hash)| hash != StarkFelt::ZERO))
+        let starknet_api::core::ClassHash(class_hash) = self.get_class_hash_at(api_address)?;
+        Ok(class_hash != StarkFelt::ZERO)
     }
 
     fn is_contract_declared(&mut self, class_hash: ClassHash) -> bool {

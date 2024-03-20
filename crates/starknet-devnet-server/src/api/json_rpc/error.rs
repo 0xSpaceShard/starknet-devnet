@@ -24,7 +24,7 @@ pub enum ApiError {
     #[error("Invalid transaction index in a block")]
     InvalidTransactionIndexInBlock,
     #[error("Class hash not found")]
-    ClassHashNotFound, // TODO distinguish
+    ClassHashNotFound,
     #[error("Contract error")]
     ContractError { error: starknet_core::error::Error },
     #[error("There are no blocks")]
