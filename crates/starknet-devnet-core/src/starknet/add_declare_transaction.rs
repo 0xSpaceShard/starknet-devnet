@@ -137,6 +137,7 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
+    use starknet_types::rpc::state::Balance;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::traits::HashProducer;
@@ -439,7 +440,7 @@ mod tests {
         strk_erc20_contract.deploy(&mut starknet.state).unwrap();
 
         let acc = Account::new(
-            Felt::from(acc_balance.unwrap_or(10000)),
+            Balance::from(acc_balance.unwrap_or(10000)),
             dummy_felt(),
             dummy_felt(),
             contract_class.generate_hash().unwrap(),
@@ -452,6 +453,7 @@ mod tests {
         acc.deploy(&mut starknet.state).unwrap();
 
         starknet.block_context = Starknet::init_block_context(
+            nonzero!(1u128),
             nonzero!(1u128),
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,

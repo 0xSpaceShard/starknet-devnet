@@ -227,6 +227,14 @@ impl LowerHex for Felt {
     }
 }
 
+/// Returns (high, low)
+pub fn split_biguint(biguint: BigUint) -> DevnetResult<(Felt, Felt)> {
+    let high = Felt::try_from(biguint.clone() >> 128)?;
+    let low_mask = (BigUint::from(1_u8) << 128) - 1_u8;
+    let low = Felt::try_from(biguint & low_mask)?;
+    Ok((high, low))
+}
+
 pub type Nonce = Felt;
 pub type TransactionVersion = Felt;
 pub type TransactionSignature = Vec<Felt>;
@@ -238,7 +246,6 @@ pub type BlockHash = Felt;
 pub type TransactionHash = Felt;
 pub type ClassHash = Felt;
 pub type Key = Felt;
-pub type Balance = Felt;
 
 #[cfg(test)]
 mod tests {
