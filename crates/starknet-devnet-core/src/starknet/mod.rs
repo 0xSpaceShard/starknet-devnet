@@ -755,37 +755,40 @@ impl Starknet {
         let mut block_to_abort_hash = self.blocks.last_block_hash.unwrap(); // TODO: remove unwrap
         let mut aborted: Vec<Felt> = Vec::new();
 
-        // Abort blocks from latest to starting (iterating backwards).
+        // Abort blocks from latest to starting (iterating backwards) and revert transactions.
         while !reached_starting_block {
             reached_starting_block = block_to_abort_hash == starting_block_hash;
             let block_to_abort = self.blocks.hash_to_block.get_mut(&block_to_abort_hash);
 
             if let Some(block) = block_to_abort {
                 block.status = BlockStatus::Rejected;
-                let txs = block.get_transactions();
-                for tx_hash in txs {
+                self.blocks.num_to_hash.shift_remove(&block.block_number());
+
+                for tx_hash in block.get_transactions() {
                     let tx = self.transactions.get_by_hash_mut(tx_hash).unwrap(); // TODO: fix unwrap
                     tx.execution_result =
                         ExecutionResult::Reverted { reason: "Block aborted manually".to_string() };
                 }
 
+                // TODO: revert state and add tests
+                // self.__state_archive.remove(numeric_hash)
+                // block_dict["transaction_receipts"] = None
+
                 aborted.push(block.block_hash());
 
-                // update next block hash to abort, break in case of none
+                // Update next block hash to abort, break in case of none.
                 block_to_abort_hash = block.parent_hash();
                 if block_to_abort_hash == Felt::from(0) {
                     break;
                 }
-
-                // TODO:
-                // block_dict["block_number"] = None
-                // del self.__num2hash[block_dict["block_number"]]
-
-                // self.__state_archive.remove(numeric_hash)
-                // block_dict["transaction_receipts"] = None
-
-                // TODO: what with state?
             }
+        }
+
+        // Update last_block_hash based on block_to_abort_hash.
+        if block_to_abort_hash == Felt::from(0) {
+            self.blocks.last_block_hash = None;
+        } else {
+            self.blocks.last_block_hash = Some(block_to_abort_hash);
         }
 
         aborted

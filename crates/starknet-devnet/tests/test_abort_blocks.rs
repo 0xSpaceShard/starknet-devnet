@@ -3,6 +3,7 @@ pub mod common;
 mod abort_blocks_tests {
     use hyper::Body;
     use serde_json::json;
+    use server::api::json_rpc::error::ApiError;
     use starknet_rs_core::types::{FieldElement, TransactionStatus};
     use starknet_rs_providers::Provider;
 
@@ -137,5 +138,51 @@ mod abort_blocks_tests {
         );
     }
 
-    // TODO: add tests with block number queries
+    #[tokio::test]
+    async fn query_aborted_block_by_number_should_fail() {
+        let devnet: BackgroundDevnet =
+            BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        let second_block = &devnet
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
+
+        let abort_blocks = devnet
+            .post_json(
+                "/abort_blocks".into(),
+                Body::from(json!({ "startingBlockHash": second_block["block_hash"] }).to_string()),
+            )
+            .await
+            .unwrap();
+
+        let aborted_blocks = get_json_body(abort_blocks).await;
+        assert_eq!(aborted_blocks["aborted"][0], second_block["block_hash"]);
+
+        let second_block_after_abort = &devnet
+            .send_custom_rpc(
+                "starknet_getBlockWithTxHashes",
+                json!({
+                    "block_id": {"block_hash": second_block["block_hash"]},
+                }),
+            )
+            .await["result"];
+        assert_eq!(second_block_after_abort["status"], "REJECTED".to_string());
+
+        let second_block_after_abort_by_number = &devnet
+            .send_custom_rpc(
+                "starknet_getBlockWithTxHashes",
+                json!({
+                    "block_id": {"block_number": 1},
+                }),
+            )
+            .await;
+        assert_eq!(
+            second_block_after_abort_by_number["error"]["message"],
+            ApiError::BlockNotFound.to_string()
+        )
+    }
+
+    // TODO: add tests with state
 }
