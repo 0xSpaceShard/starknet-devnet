@@ -16,11 +16,7 @@ pub fn get_class_hash_at_impl(
     let state = starknet.get_mut_state_at(block_id)?;
     let core_address = contract_address.try_into()?;
 
-    let mut class_hash = state.get_class_hash_at(core_address)?;
-    if class_hash == Default::default() {
-        class_hash = starknet.defaulter.get_class_hash_at(core_address)?;
-    }
-
+    let class_hash = state.get_class_hash_at(core_address)?;
     if class_hash == Default::default() {
         Err(Error::ContractNotFound)
     } else {

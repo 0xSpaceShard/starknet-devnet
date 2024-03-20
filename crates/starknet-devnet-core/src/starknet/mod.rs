@@ -99,7 +99,6 @@ pub struct Starknet {
     pub next_block_timestamp: Option<u64>,
     pub(crate) messaging: MessagingBroker,
     pub(crate) dump_events: Vec<DumpEvent>,
-    pub(crate) defaulter: StarknetDefaulter,
 }
 
 impl Default for Starknet {
@@ -121,7 +120,6 @@ impl Default for Starknet {
             next_block_timestamp: None,
             messaging: Default::default(),
             dump_events: Default::default(),
-            defaulter: StarknetDefaulter::default(),
         }
     }
 }
@@ -196,7 +194,6 @@ impl Starknet {
             next_block_timestamp: None,
             messaging: Default::default(),
             dump_events: Default::default(),
-            defaulter,
         };
 
         this.restart_pending_block()?;
