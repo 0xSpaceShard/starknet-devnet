@@ -409,7 +409,7 @@ mod tests {
             account_without_validations_contract_class.generate_hash().unwrap();
 
         let account = Account::new(
-            Balance::from(10000),
+            Balance::from(10000_u32),
             dummy_felt(),
             dummy_felt(),
             account_without_validations_class_hash,

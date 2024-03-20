@@ -11,7 +11,6 @@ use blockifier::state::state_api::StateReader;
 use blockifier::transaction::errors::TransactionPreValidationError;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
-use primitive_types::U256;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice, GasPricePerToken};
 use starknet_api::core::SequencerContractAddress;
 use starknet_api::transaction::Fee;
@@ -25,7 +24,8 @@ use starknet_types::chain_id::ChainId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::emitted_event::EmittedEvent;
-use starknet_types::felt::{ClassHash, Felt, TransactionHash};
+use starknet_types::felt::{split_biguint, ClassHash, Felt, TransactionHash};
+use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{Block, BlockHeader};
 use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
@@ -152,7 +152,7 @@ impl Starknet {
 
         let mut predeployed_accounts = PredeployedAccounts::new(
             config.seed,
-            config.predeployed_accounts_initial_balance,
+            config.predeployed_accounts_initial_balance.clone(),
             eth_erc20_fee_contract.get_address(),
             strk_erc20_fee_contract.get_address(),
         );
@@ -696,7 +696,7 @@ impl Starknet {
     pub async fn mint(
         &mut self,
         address: ContractAddress,
-        amount: U256,
+        amount: BigUint,
         erc20_address: ContractAddress,
     ) -> DevnetResult<Felt> {
         let sufficiently_big_max_fee = self.config.gas_price.get() * 1_000_000;
@@ -705,11 +705,9 @@ impl Starknet {
             starknet_api::hash::StarkFelt::from(chargeable_address_felt),
         )?)?;
 
-        let low = amount.low_u128();
-        let high = (amount >> 128).low_u128();
+        let (high, low) = split_biguint(amount)?;
 
-        let calldata =
-            vec![Felt::from(address).into(), Felt::from(low).into(), Felt::from(high).into()];
+        let calldata = vec![Felt::from(address).into(), low.into(), high.into()];
 
         let raw_execution = RawExecution {
             calls: vec![Call {

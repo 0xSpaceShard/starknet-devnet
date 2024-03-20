@@ -282,37 +282,38 @@ pub mod hex_string {
 }
 
 pub mod dec_string {
-    use primitive_types::U256;
+    use std::str::FromStr;
+
+    use num_bigint::BigUint;
     use serde::Deserialize;
 
-    pub fn deserialize_u256<'de, D>(deserializer: D) -> Result<U256, D::Error>
+    pub fn deserialize_biguint<'de, D>(deserializer: D) -> Result<BigUint, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         let number = serde_json::Number::deserialize(deserializer)?;
-        let s = number.to_string();
-        U256::from_dec_str(&s).map_err(serde::de::Error::custom)
+        BigUint::from_str(&number.to_string()).map_err(serde::de::Error::custom)
     }
 
     #[cfg(test)]
     mod tests {
-        use primitive_types::U256;
+        use num_bigint::BigUint;
         use serde::Deserialize;
 
-        use crate::serde_helpers::dec_string::deserialize_u256;
+        use crate::serde_helpers::dec_string::deserialize_biguint;
 
         #[test]
-        fn deserialization_u256() {
+        fn deserialization_biguint() {
             #[derive(Deserialize)]
             struct TestDeserialization {
-                #[serde(deserialize_with = "deserialize_u256")]
-                u256: U256,
+                #[serde(deserialize_with = "deserialize_biguint")]
+                value: BigUint,
             }
 
-            let json_str = r#"{"u256": 3618502788666131106986593281521497120414687020801267626233049500247285301248}"#;
+            let json_str = r#"{"value": 3618502788666131106986593281521497120414687020801267626233049500247285301248}"#;
 
             let data = serde_json::from_str::<TestDeserialization>(json_str).unwrap();
-            assert!(data.u256 == U256::from(1) << 251);
+            assert!(data.value == BigUint::from(1_u8) << 251);
         }
     }
 }

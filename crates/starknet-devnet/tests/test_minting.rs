@@ -2,7 +2,6 @@ pub mod common;
 
 mod minting_tests {
     use hyper::{Body, StatusCode};
-    use primitive_types::U256;
     use serde_json::json;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -40,7 +39,7 @@ mod minting_tests {
         assert_eq!(
             resp_body,
             json!({
-                "new_balance": (U256::from(init_amount) + U256::from(mint_amount)).to_string(),
+                "new_balance": (init_amount + mint_amount).to_string(),
                 "unit": unit,
                 "tx_hash": null
             })
@@ -155,7 +154,7 @@ mod minting_tests {
                 "address": DUMMY_ADDRESS,
                 "amount": -1
             }),
-            StatusCode::BAD_REQUEST,
+            StatusCode::UNPROCESSABLE_ENTITY,
         )
         .await;
     }
