@@ -529,7 +529,9 @@ mod fork_tests {
 
         let address = FieldElement::ONE;
         match fork_devnet.json_rpc_client.get_nonce(BlockId::Tag(BlockTag::Latest), address).await {
-            Err(ProviderError::Other(e)) => assert_contains(&e.to_string(), "Connection refused"),
+            Err(ProviderError::Other(e)) => {
+                assert_contains(&e.to_string(), "error sending request")
+            }
             unexpected => panic!("Got unxpected resp: {unexpected:?}"),
         }
     }
