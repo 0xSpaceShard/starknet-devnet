@@ -2,7 +2,6 @@ use std::fmt::LowerHex;
 use std::str::FromStr;
 
 use num_bigint::BigUint;
-use primitive_types::U256;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use starknet_api::serde_utils::{bytes_from_hex_str, hex_str_from_bytes};
 use starknet_api::StarknetApiError;
@@ -216,12 +215,6 @@ impl From<Felt> for BigUint {
     }
 }
 
-impl From<Felt> for U256 {
-    fn from(felt: Felt) -> Self {
-        U256::from_str(&felt.to_decimal_string()).expect("Should never fail: felt is 251 bits")
-    }
-}
-
 impl From<starknet_api::core::Nonce> for Felt {
     fn from(value: starknet_api::core::Nonce) -> Self {
         value.0.into()
@@ -232,6 +225,14 @@ impl LowerHex for Felt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.to_prefixed_hex_str().as_str())
     }
+}
+
+/// Returns (high, low)
+pub fn split_biguint(biguint: BigUint) -> DevnetResult<(Felt, Felt)> {
+    let high = Felt::try_from(biguint.clone() >> 128)?;
+    let low_mask = (BigUint::from(1_u8) << 128) - 1_u8;
+    let low = Felt::try_from(biguint & low_mask)?;
+    Ok((high, low))
 }
 
 pub type Nonce = Felt;

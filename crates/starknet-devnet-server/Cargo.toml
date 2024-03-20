@@ -29,7 +29,6 @@ serde_json = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
 anyhow = { workspace = true }
-primitive-types = { workspace = true }
 
 # devnet
 starknet-core = { workspace = true }

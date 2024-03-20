@@ -1,10 +1,8 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
-use primitive_types::U256;
 use starknet_core::constants::DEVNET_DEFAULT_INITIAL_BALANCE;
-
-pub type Balance = U256;
+use starknet_types::rpc::state::Balance;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct InitialBalanceWrapper(pub Balance);
@@ -13,7 +11,7 @@ impl FromStr for InitialBalanceWrapper {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let balance = Balance::from_dec_str(s)?;
+        let balance = Balance::from_str(s)?;
         Ok(Self(balance))
     }
 }

@@ -68,7 +68,7 @@ impl AccountGenerator for PredeployedAccounts {
 
         for private_key in private_keys {
             let account = Account::new(
-                self.initial_balance,
+                self.initial_balance.clone(),
                 self.generate_public_key(&private_key),
                 private_key,
                 class_hash,
@@ -98,7 +98,7 @@ mod tests {
 
             let private_key1 = PredeployedAccounts::new(
                 seed,
-                Balance::from(1),
+                Balance::from(1_u8),
                 dummy_contract_address(),
                 dummy_contract_address(),
             )
@@ -106,7 +106,7 @@ mod tests {
 
             let private_key2 = PredeployedAccounts::new(
                 seed,
-                Balance::from(1),
+                Balance::from(1_u8),
                 dummy_contract_address(),
                 dummy_contract_address(),
             )
@@ -135,7 +135,7 @@ mod tests {
 
             let private_key1 = PredeployedAccounts::new(
                 seed1,
-                Balance::from(1),
+                Balance::from(1_u8),
                 dummy_contract_address(),
                 dummy_contract_address(),
             )
@@ -143,7 +143,7 @@ mod tests {
 
             let private_key2 = PredeployedAccounts::new(
                 seed2,
-                Balance::from(1),
+                Balance::from(1_u8),
                 dummy_contract_address(),
                 dummy_contract_address(),
             )

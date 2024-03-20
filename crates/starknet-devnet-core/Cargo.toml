@@ -26,7 +26,6 @@ rand_mt = { workspace = true }
 tracing = { workspace = true }
 indexmap = { workspace = true }
 nonzero_ext = { workspace = true }
-primitive-types = { workspace = true }
 
 [dev-dependencies]
 hex = "0.4.3"

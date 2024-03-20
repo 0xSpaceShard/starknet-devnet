@@ -103,7 +103,7 @@ async fn main() -> Result<(), anyhow::Error> {
     log_predeployed_accounts(
         &predeployed_accounts,
         starknet_config.seed,
-        starknet_config.predeployed_accounts_initial_balance,
+        starknet_config.predeployed_accounts_initial_balance.clone(),
     );
 
     let server =

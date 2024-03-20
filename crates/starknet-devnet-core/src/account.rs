@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use blockifier::abi::sierra_types::next_storage_key;
 use blockifier::state::state_api::StateReader;
-use primitive_types::U256;
 use starknet_api::core::{calculate_contract_address, PatriciaKey};
 use starknet_api::hash::{StarkFelt, StarkHash};
 use starknet_api::transaction::{Calldata, ContractAddressSalt};
@@ -10,7 +9,8 @@ use starknet_api::{patricia_key, stark_felt};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0Json, ContractClass};
 use starknet_types::error::Error;
-use starknet_types::felt::{ClassHash, Felt, Key};
+use starknet_types::felt::{split_biguint, ClassHash, Felt, Key};
+use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::state::Balance;
 use starknet_types::traits::HashProducer;
 
@@ -135,8 +135,7 @@ impl Accounted for Account {
             get_storage_var_address("ERC20_balances", &[Felt::from(self.account_address)])?;
         let storage_var_address_high = next_storage_key(&storage_var_address_low.try_into()?)?;
 
-        let low = self.initial_balance.low_u128();
-        let high = (self.initial_balance >> 128).low_u128();
+        let (high, low) = split_biguint(self.initial_balance.clone())?;
 
         for fee_token_address in [self.eth_fee_token_address, self.strk_fee_token_address] {
             state.set_storage_at(
@@ -164,9 +163,9 @@ impl Accounted for Account {
             self.account_address.try_into()?,
             fee_token_address.try_into()?,
         )?;
-        let low_u128: U256 = Felt::from(low).into();
-        let high_u128: U256 = Felt::from(high).into();
-        Ok(low_u128 + (high_u128 << 128))
+        let low: BigUint = Felt::from(low).into();
+        let high: BigUint = Felt::from(high).into();
+        Ok(low + (high << 128))
     }
 }
 
@@ -235,8 +234,8 @@ mod tests {
     #[test]
     fn account_get_balance_should_return_correct_value() {
         let (mut account, mut state) = setup();
-        let expected_balance = Balance::from(100);
-        account.initial_balance = expected_balance;
+        let expected_balance = Balance::from(100_u8);
+        account.initial_balance = expected_balance.clone();
         account.deploy(&mut state).unwrap();
         let generated_balance = account.get_balance(&mut state, FeeToken::ETH).unwrap();
 
@@ -275,7 +274,7 @@ mod tests {
 
         (
             Account::new(
-                Balance::from(10),
+                Balance::from(10_u8),
                 Felt::from(13431515),
                 Felt::from(11),
                 dummy_felt(),
