@@ -2,6 +2,7 @@ pub mod common;
 
 mod minting_tests {
     use hyper::{Body, StatusCode};
+    use primitive_types::U256;
     use serde_json::json;
 
     use crate::common::background_devnet::BackgroundDevnet;
@@ -39,7 +40,7 @@ mod minting_tests {
         assert_eq!(
             resp_body,
             json!({
-                "new_balance": (init_amount + mint_amount).to_string(),
+                "new_balance": (U256::from(init_amount) + U256::from(mint_amount)).to_string(),
                 "unit": unit,
                 "tx_hash": null
             })
@@ -94,6 +95,17 @@ mod minting_tests {
             PREDEPLOYED_ACCOUNT_ADDRESS,
             PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
             DUMMY_AMOUNT,
+            "WEI",
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn increase_balance_of_predeployed_account_u256() {
+        increase_balance_happy_path(
+            PREDEPLOYED_ACCOUNT_ADDRESS,
+            PREDEPLOYED_ACCOUNT_INITIAL_BALANCE,
+            u128::MAX,
             "WEI",
         )
         .await

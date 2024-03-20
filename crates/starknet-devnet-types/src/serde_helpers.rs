@@ -281,6 +281,42 @@ pub mod hex_string {
     }
 }
 
+pub mod dec_string {
+    use primitive_types::U256;
+    use serde::Deserialize;
+
+    pub fn deserialize_u256<'de, D>(deserializer: D) -> Result<U256, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let number = serde_json::Number::deserialize(deserializer)?;
+        let s = number.to_string();
+        U256::from_dec_str(&s).map_err(serde::de::Error::custom)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use primitive_types::U256;
+        use serde::Deserialize;
+
+        use crate::serde_helpers::dec_string::deserialize_u256;
+
+        #[test]
+        fn deserialization_u256() {
+            #[derive(Deserialize)]
+            struct TestDeserialization {
+                #[serde(deserialize_with = "deserialize_u256")]
+                u256: U256,
+            }
+
+            let json_str = r#"{"u256": 3618502788666131106986593281521497120414687020801267626233049500247285301248}"#;
+
+            let data = serde_json::from_str::<TestDeserialization>(json_str).unwrap();
+            assert!(data.u256 == U256::from(1) << 251);
+        }
+    }
+}
+
 pub mod base_64_gzipped_json_string {
     use base64::Engine;
     use flate2::write::GzEncoder;

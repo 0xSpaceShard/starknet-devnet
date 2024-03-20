@@ -11,6 +11,7 @@ use blockifier::state::state_api::StateReader;
 use blockifier::transaction::errors::TransactionPreValidationError;
 use blockifier::transaction::objects::TransactionExecutionInfo;
 use blockifier::transaction::transactions::ExecutableTransaction;
+use primitive_types::U256;
 use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice, GasPricePerToken};
 use starknet_api::core::SequencerContractAddress;
 use starknet_api::transaction::Fee;
@@ -695,7 +696,7 @@ impl Starknet {
     pub async fn mint(
         &mut self,
         address: ContractAddress,
-        amount: u128,
+        amount: U256,
         erc20_address: ContractAddress,
     ) -> DevnetResult<Felt> {
         let sufficiently_big_max_fee = self.config.gas_price.get() * 1_000_000;
@@ -704,11 +705,11 @@ impl Starknet {
             starknet_api::hash::StarkFelt::from(chargeable_address_felt),
         )?)?;
 
-        let calldata = vec![
-            Felt::from(address).into(),
-            FieldElement::from(amount), // `low` part of Uint256
-            FieldElement::from(0u32),   // `high` part
-        ];
+        let low = amount.low_u128();
+        let high = (amount >> 128).low_u128();
+
+        let calldata =
+            vec![Felt::from(address).into(), Felt::from(low).into(), Felt::from(high).into()];
 
         let raw_execution = RawExecution {
             calls: vec![Call {

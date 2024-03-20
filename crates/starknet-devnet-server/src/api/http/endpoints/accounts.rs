@@ -1,7 +1,6 @@
 use axum::extract::Query;
 use axum::{Extension, Json};
 use starknet_types::contract_address::ContractAddress;
-use starknet_types::traits::ToDecimalString;
 
 use crate::api::http::error::HttpApiError;
 use crate::api::http::models::{Balance, SerializableAccount};
@@ -18,7 +17,7 @@ pub async fn get_predeployed_accounts(
         .get_predeployed_accounts()
         .into_iter()
         .map(|acc| SerializableAccount {
-            initial_balance: acc.initial_balance.to_decimal_string(),
+            initial_balance: acc.initial_balance.to_string(),
             address: acc.account_address,
             public_key: acc.public_key,
             private_key: acc.private_key,

@@ -54,6 +54,7 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::felt::Felt;
+    use starknet_types::rpc::state::Balance;
     use starknet_types::rpc::transactions::L1HandlerTransaction;
     use starknet_types::traits::HashProducer;
 
@@ -197,7 +198,7 @@ mod tests {
             account_without_validations_contract_class.generate_hash().unwrap();
 
         let account = Account::new(
-            Felt::from(10000),
+            Balance::from(10000),
             dummy_felt(),
             dummy_felt(),
             account_without_validations_class_hash,
