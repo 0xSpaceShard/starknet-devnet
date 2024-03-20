@@ -3,6 +3,7 @@ pub mod common;
 mod minting_tests {
     use hyper::{Body, StatusCode};
     use serde_json::json;
+    use starknet_types::num_bigint::BigUint;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{
@@ -39,7 +40,7 @@ mod minting_tests {
         assert_eq!(
             resp_body,
             json!({
-                "new_balance": (init_amount + mint_amount).to_string(),
+                "new_balance": (BigUint::from(init_amount) + BigUint::from(mint_amount)).to_string(),
                 "unit": unit,
                 "tx_hash": null
             })
