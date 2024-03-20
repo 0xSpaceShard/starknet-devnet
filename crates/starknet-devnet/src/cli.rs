@@ -148,7 +148,7 @@ impl Args {
             total_accounts: self.accounts_count,
             account_contract_class: account_class_wrapper.contract_class,
             account_contract_class_hash: account_class_wrapper.class_hash,
-            predeployed_accounts_initial_balance: self.initial_balance.0,
+            predeployed_accounts_initial_balance: self.initial_balance.0.clone(),
             host: self.host.inner,
             port: self.port,
             start_time: self.start_time,

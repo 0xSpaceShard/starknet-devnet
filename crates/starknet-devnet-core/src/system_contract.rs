@@ -1,7 +1,8 @@
 use blockifier::state::state_api::StateReader;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::{Cairo0Json, ContractClass};
-use starknet_types::felt::{Balance, ClassHash, Felt};
+use starknet_types::felt::{ClassHash, Felt};
+use starknet_types::rpc::state::Balance;
 
 use crate::error::DevnetResult;
 use crate::state::state_readers::DictState;
@@ -63,7 +64,7 @@ impl Accounted for SystemContract {
         _state: &mut impl StateReader,
         _token: crate::account::FeeToken,
     ) -> DevnetResult<Balance> {
-        Ok(Felt::default())
+        Ok(Balance::default())
     }
 }
 

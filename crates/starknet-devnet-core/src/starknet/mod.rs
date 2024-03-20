@@ -24,7 +24,8 @@ use starknet_types::chain_id::ChainId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::emitted_event::EmittedEvent;
-use starknet_types::felt::{ClassHash, Felt, TransactionHash};
+use starknet_types::felt::{split_biguint, ClassHash, Felt, TransactionHash};
+use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{Block, BlockHeader};
 use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
@@ -156,7 +157,7 @@ impl Starknet {
 
         let mut predeployed_accounts = PredeployedAccounts::new(
             config.seed,
-            config.predeployed_accounts_initial_balance,
+            config.predeployed_accounts_initial_balance.clone(),
             eth_erc20_fee_contract.get_address(),
             strk_erc20_fee_contract.get_address(),
         );
@@ -700,7 +701,7 @@ impl Starknet {
     pub async fn mint(
         &mut self,
         address: ContractAddress,
-        amount: u128,
+        amount: BigUint,
         erc20_address: ContractAddress,
     ) -> DevnetResult<Felt> {
         let sufficiently_big_max_fee = self.config.gas_price.get() * 1_000_000;
@@ -709,11 +710,9 @@ impl Starknet {
             starknet_api::hash::StarkFelt::from(chargeable_address_felt),
         )?)?;
 
-        let calldata = vec![
-            Felt::from(address).into(),
-            FieldElement::from(amount), // `low` part of Uint256
-            FieldElement::from(0u32),   // `high` part
-        ];
+        let (high, low) = split_biguint(amount)?;
+
+        let calldata = vec![Felt::from(address).into(), low.into(), high.into()];
 
         let raw_execution = RawExecution {
             calls: vec![Call {

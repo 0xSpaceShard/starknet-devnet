@@ -4,6 +4,7 @@ use std::num::NonZeroU128;
 use starknet_types::chain_id::ChainId;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::Felt;
+use starknet_types::rpc::state::Balance;
 use starknet_types::traits::HashProducer;
 use url::Url;
 
@@ -41,7 +42,7 @@ pub struct StarknetConfig {
     pub total_accounts: u8,
     pub account_contract_class: ContractClass,
     pub account_contract_class_hash: Felt,
-    pub predeployed_accounts_initial_balance: Felt,
+    pub predeployed_accounts_initial_balance: Balance,
     pub host: IpAddr,
     pub port: u16,
     pub start_time: Option<u64>,

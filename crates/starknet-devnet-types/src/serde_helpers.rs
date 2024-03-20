@@ -281,6 +281,43 @@ pub mod hex_string {
     }
 }
 
+pub mod dec_string {
+    use std::str::FromStr;
+
+    use num_bigint::BigUint;
+    use serde::Deserialize;
+
+    pub fn deserialize_biguint<'de, D>(deserializer: D) -> Result<BigUint, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let number = serde_json::Number::deserialize(deserializer)?;
+        BigUint::from_str(&number.to_string()).map_err(serde::de::Error::custom)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use num_bigint::BigUint;
+        use serde::Deserialize;
+
+        use crate::serde_helpers::dec_string::deserialize_biguint;
+
+        #[test]
+        fn deserialization_biguint() {
+            #[derive(Deserialize)]
+            struct TestDeserialization {
+                #[serde(deserialize_with = "deserialize_biguint")]
+                value: BigUint,
+            }
+
+            let json_str = r#"{"value": 3618502788666131106986593281521497120414687020801267626233049500247285301248}"#;
+
+            let data = serde_json::from_str::<TestDeserialization>(json_str).unwrap();
+            assert!(data.value == BigUint::from(1_u8) << 251);
+        }
+    }
+}
+
 pub mod base_64_gzipped_json_string {
     use base64::Engine;
     use flate2::write::GzEncoder;
