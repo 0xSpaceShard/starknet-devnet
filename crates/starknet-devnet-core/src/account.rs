@@ -163,7 +163,6 @@ impl Accounted for Account {
             self.account_address.try_into()?,
             fee_token_address.try_into()?,
         )?;
-
         let low: BigUint = Felt::from(low).into();
         let high: BigUint = Felt::from(high).into();
         Ok(low + (high << 128))
@@ -234,7 +233,6 @@ mod tests {
 
     #[test]
     fn account_get_balance_should_return_correct_value() {
-        // TODO
         let (mut account, mut state) = setup();
         let expected_balance = Balance::from(100_u8);
         account.initial_balance = expected_balance.clone();
