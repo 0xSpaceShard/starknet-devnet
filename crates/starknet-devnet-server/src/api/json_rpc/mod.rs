@@ -75,7 +75,6 @@ impl ToRpcResponseResult for StrictRpcResult {
     }
 }
 
-// TODO this struct needs a name that will distinguish it from the similar Defaulter
 #[derive(Clone)]
 pub struct OriginForwarder {
     client: hyper::Client<HttpConnector>,

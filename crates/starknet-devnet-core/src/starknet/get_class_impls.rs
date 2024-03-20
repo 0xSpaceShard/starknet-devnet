@@ -13,7 +13,7 @@ pub fn get_class_hash_at_impl(
     block_id: &BlockId,
     contract_address: ContractAddress,
 ) -> DevnetResult<ClassHash> {
-    let state = starknet.get_mut_state_at(block_id)?; // TODO what if block in origin
+    let state = starknet.get_mut_state_at(block_id)?;
     let core_address = contract_address.try_into()?;
 
     let mut class_hash = state.get_class_hash_at(core_address)?;
