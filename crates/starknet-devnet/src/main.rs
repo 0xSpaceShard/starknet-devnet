@@ -83,29 +83,26 @@ fn print_chain_id(chain_id: ChainId) {
 pub async fn set_and_log_fork_block(fork_config: &mut ForkConfig) -> Result<(), anyhow::Error> {
     if let Some(url) = &fork_config.url {
         let json_rpc_client = JsonRpcClient::new(HttpTransport::new(url.clone()));
-        let block_number = if let Some(block_number) = fork_config.block {
-            // if this passes, it means the block number is valid
-            json_rpc_client.get_block_with_tx_hashes(BlockId::Number(block_number)).await.map_err(
-                |e| {
-                    anyhow::Error::msg(match e {
-                        starknet_rs_providers::ProviderError::StarknetError(
-                            starknet_rs_core::types::StarknetError::BlockNotFound,
-                        ) => format!("Forking at block {block_number}: block not found"),
-                        _ => format!("Forking at block {block_number}: {e}; Check the URL"),
-                    })
-                },
-            )?;
-            block_number
-        } else {
-            let block_id = BlockId::Tag(BlockTag::Latest);
-            let latest_block = json_rpc_client.get_block_with_tx_hashes(block_id).await?;
-            match latest_block {
-                MaybePendingBlockWithTxHashes::Block(latest_block) => latest_block.block_number,
-                MaybePendingBlockWithTxHashes::PendingBlock(_) => panic!("Should never be reached"),
+        let block_id =
+            fork_config.block_number.map_or(BlockId::Tag(BlockTag::Latest), BlockId::Number);
+
+        let block = json_rpc_client.get_block_with_tx_hashes(block_id).await.map_err(|e| {
+            anyhow::Error::msg(match e {
+                starknet_rs_providers::ProviderError::StarknetError(
+                    starknet_rs_core::types::StarknetError::BlockNotFound,
+                ) => format!("Forking at block {block_id:?}: block not found"),
+                _ => format!("Forking at block {block_id:?}: {e}; Check the URL"),
+            })
+        })?;
+
+        match block {
+            MaybePendingBlockWithTxHashes::Block(b) => {
+                fork_config.block_number = Some(b.block_number);
+                fork_config.block_hash = Some(b.block_hash.into());
+                println!("Forking from block: number={}, hash={:#x}", b.block_number, b.block_hash);
             }
+            _ => panic!("Unreachable"),
         };
-        println!("Forking at block {}", block_number);
-        fork_config.block = Some(block_number)
     }
 
     Ok(())

@@ -50,6 +50,9 @@ impl Default for StarknetBlocks {
 }
 
 impl StarknetBlocks {
+    pub fn new(last_block_hash: Option<Felt>) -> Self {
+        Self { last_block_hash, ..Default::default() }
+    }
     /// Inserts a block in the collection and modifies the block parent hash to match the last block
     /// hash
     pub fn insert(&mut self, mut block: StarknetBlock, state_diff: StateDiff) {
@@ -222,7 +225,7 @@ impl StarknetBlock {
 
     pub(crate) fn create_pending_block() -> Self {
         Self {
-            header: BlockHeader::default(),
+            header: BlockHeader::default(), // TODO block
             status: BlockStatus::Pending,
             transaction_hashes: Vec::new(),
         }

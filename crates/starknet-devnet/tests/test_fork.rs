@@ -72,13 +72,10 @@ mod fork_tests {
             .get_block_with_tx_hashes(BlockId::Hash(
                 FieldElement::from_hex_be(SEPOLIA_GENESIS_BLOCK_HASH).unwrap(),
             ))
-            .await
-            .unwrap();
+            .await;
 
         match resp {
-            MaybePendingBlockWithTxHashes::Block(block) => {
-                assert_eq!(block.block_number, 0);
-            }
+            Ok(MaybePendingBlockWithTxHashes::Block(b)) => assert_eq!(b.block_number, 0),
             _ => panic!("Unexpected resp: {resp:?}"),
         };
     }
@@ -91,17 +88,16 @@ mod fork_tests {
                 .expect("Could not start Devnet");
 
         let non_existent_block_hash = "0x123456";
-        let err = &fork_devnet
+        let resp = &fork_devnet
             .json_rpc_client
             .get_block_with_tx_hashes(BlockId::Hash(
                 FieldElement::from_hex_be(non_existent_block_hash).unwrap(),
             ))
-            .await
-            .expect_err("Should be an error");
+            .await;
 
-        match err {
-            ProviderError::StarknetError(StarknetError::BlockNotFound) => (),
-            other => panic!("Unexpected error: {other}"),
+        match resp {
+            Err(ProviderError::StarknetError(StarknetError::BlockNotFound)) => (),
+            _ => panic!("Unexpected resp: {resp:?}"),
         }
     }
 
@@ -116,16 +112,11 @@ mod fork_tests {
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
-        let resp = &fork_devnet
-            .json_rpc_client
-            .get_block_with_tx_hashes(BlockId::Hash(block_hash))
-            .await
-            .unwrap();
+        let resp =
+            &fork_devnet.json_rpc_client.get_block_with_tx_hashes(BlockId::Hash(block_hash)).await;
 
         match resp {
-            MaybePendingBlockWithTxHashes::Block(block) => {
-                assert_eq!(block.block_number, 0);
-            }
+            Ok(MaybePendingBlockWithTxHashes::Block(b)) => assert_eq!(b.block_number, 0),
             _ => panic!("Unexpected resp: {resp:?}"),
         };
     }
@@ -534,5 +525,42 @@ mod fork_tests {
             }
             unexpected => panic!("Got unxpected resp: {unexpected:?}"),
         }
+    }
+
+    #[tokio::test]
+    #[ignore = "TODO: failing"]
+    async fn test_block_count_increased() {
+        // latest block has number 0
+        let origin_devnet = spawn_forkable_devnet().await.unwrap();
+
+        // create two blocks
+        origin_devnet.create_block().await.unwrap();
+        origin_devnet.mint(0x1, 1).await; // dummy data
+
+        let fork_devnet = origin_devnet.fork().await.unwrap();
+
+        // create another block on origin - shouldn't affect fork
+        origin_devnet.create_block().await.unwrap();
+
+        let block_after_fork = fork_devnet
+            .json_rpc_client
+            .get_block_with_tx_hashes(BlockId::Tag(BlockTag::Latest))
+            .await;
+
+        match block_after_fork {
+            Ok(MaybePendingBlockWithTxHashes::Block(b)) => assert_eq!(b.block_number, 2),
+            unexpected => panic!("Unexpected resp: {unexpected:?}"),
+        };
+
+        fork_devnet.create_block().await.unwrap();
+        let new_fork_block = fork_devnet
+            .json_rpc_client
+            .get_block_with_tx_hashes(BlockId::Tag(BlockTag::Latest))
+            .await;
+
+        match new_fork_block {
+            Ok(MaybePendingBlockWithTxHashes::Block(b)) => assert_eq!(b.block_number, 3),
+            unexpected => panic!("Unexpected resp: {unexpected:?}"),
+        };
     }
 }

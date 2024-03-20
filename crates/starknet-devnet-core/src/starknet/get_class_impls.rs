@@ -100,6 +100,7 @@ mod tests {
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
+            None,
         );
 
         starknet.restart_pending_block().unwrap();

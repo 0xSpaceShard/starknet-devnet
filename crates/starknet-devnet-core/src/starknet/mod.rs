@@ -110,6 +110,7 @@ impl Default for Starknet {
                 ETH_ERC20_CONTRACT_ADDRESS,
                 STRK_ERC20_CONTRACT_ADDRESS,
                 DEVNET_DEFAULT_CHAIN_ID,
+                None,
             ),
             state: Default::default(),
             predeployed_accounts: Default::default(),
@@ -186,8 +187,9 @@ impl Starknet {
                 ETH_ERC20_CONTRACT_ADDRESS,
                 STRK_ERC20_CONTRACT_ADDRESS,
                 config.chain_id,
+                config.fork_config.block_number,
             ),
-            blocks: StarknetBlocks::default(),
+            blocks: StarknetBlocks::new(config.fork_config.block_hash),
             transactions: StarknetTransactions::default(),
             config: config.clone(),
             pending_block_timestamp_shift: 0,
@@ -427,6 +429,7 @@ impl Starknet {
         eth_fee_token_address: &str,
         strk_fee_token_address: &str,
         chain_id: ChainId,
+        block_number: Option<u64>,
     ) -> BlockContext {
         use starknet_api::core::{ContractAddress, PatriciaKey};
         use starknet_api::hash::StarkHash;
@@ -435,7 +438,7 @@ impl Starknet {
         // Create a BlockContext based on BlockContext::create_for_testing()
 
         let block_info = BlockInfo {
-            block_number: BlockNumber(0),
+            block_number: BlockNumber(block_number.unwrap_or_default()),
             block_timestamp: BlockTimestamp(0),
             sequencer_address: contract_address!("0x1000"),
             gas_prices: blockifier::block::GasPrices {
@@ -465,6 +468,7 @@ impl Starknet {
         let mut block_info = block_context.block_info().clone();
         block_info.block_number = block_info.block_number.next();
         // TODO: update block_context via preferred method in the documentation
+        // TODO what with the comment above? and the one below in L483
         *block_context = BlockContext::new_unchecked(
             &block_info,
             block_context.chain_info(),
@@ -1134,6 +1138,7 @@ mod tests {
             "0xAA",
             STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
+            None,
         );
         assert_eq!(block_ctx.block_info().block_number, BlockNumber(0));
         assert_eq!(block_ctx.block_info().block_timestamp, BlockTimestamp(0));
@@ -1224,6 +1229,7 @@ mod tests {
             ETH_ERC20_CONTRACT_ADDRESS,
             STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
+            None,
         );
         let initial_block_number = block_ctx.block_info().block_number;
         Starknet::advance_block_context_block_number(&mut block_ctx);

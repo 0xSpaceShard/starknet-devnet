@@ -160,7 +160,11 @@ impl Args {
             dump_path: self.dump_path.clone(),
             re_execute_on_init: true,
             state_archive: self.state_archive,
-            fork_config: ForkConfig { url: self.fork_network.clone(), block: self.fork_block },
+            fork_config: ForkConfig {
+                url: self.fork_network.clone(),
+                block_number: self.fork_block,
+                block_hash: None, // should be populated later
+            },
         })
     }
 }

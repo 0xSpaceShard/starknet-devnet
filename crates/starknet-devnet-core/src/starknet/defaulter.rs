@@ -92,7 +92,7 @@ pub struct StarknetDefaulter {
 impl StarknetDefaulter {
     pub fn new(fork_config: ForkConfig) -> Self {
         let origin_reader =
-            if let (Some(fork_url), Some(block)) = (fork_config.url, fork_config.block) {
+            if let (Some(fork_url), Some(block)) = (fork_config.url, fork_config.block_number) {
                 Some(BlockingOriginReader::new(fork_url, block))
             } else {
                 None

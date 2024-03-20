@@ -46,6 +46,6 @@ pub async fn get_fork_status(
     let fork_config = &state.api.starknet.read().await.config.fork_config;
     Ok(Json(ForkStatus {
         url: fork_config.url.as_ref().map(|url| url.to_string()),
-        block: fork_config.block,
+        block: fork_config.block_number,
     }))
 }

@@ -33,7 +33,8 @@ pub enum StateArchiveCapacity {
 #[derive(Debug, Clone, Default)]
 pub struct ForkConfig {
     pub url: Option<Url>,
-    pub block: Option<u64>,
+    pub block_number: Option<u64>,
+    pub block_hash: Option<Felt>,
 }
 
 #[derive(Clone, Debug)]
