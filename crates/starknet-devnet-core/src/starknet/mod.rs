@@ -189,7 +189,7 @@ impl Starknet {
                 config.chain_id,
                 config.fork_config.block_number,
             ),
-            blocks: StarknetBlocks::new(config.fork_config.block_hash),
+            blocks: StarknetBlocks::default(),
             transactions: StarknetTransactions::default(),
             config: config.clone(),
             pending_block_timestamp_shift: 0,

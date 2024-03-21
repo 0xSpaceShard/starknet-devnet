@@ -14,6 +14,7 @@ use models::{
     EstimateFeeInput, EventsInput, GetStorageInput, TransactionHashInput,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use starknet_rs_core::types::ContractClass as CodegenContractClass;
 use starknet_types::felt::{ClassHash, Felt};
 use starknet_types::rpc::block::Block;
@@ -79,20 +80,46 @@ impl ToRpcResponseResult for StrictRpcResult {
 pub struct OriginForwarder {
     client: hyper::Client<HttpConnector>,
     url: hyper::Uri,
+    block_number: u64,
 }
 
 #[derive(Debug, Error)]
 enum OriginInteractionError {}
 
 impl OriginForwarder {
-    pub fn new(url: hyper::Uri) -> Self {
-        Self { client: hyper::Client::new(), url }
+    pub fn new(url: hyper::Uri, block_number: u64) -> Self {
+        Self { client: hyper::Client::new(), url, block_number }
+    }
+
+    fn clone_call_with_origin_block_id(&self, rpc_call: &RpcMethodCall) -> RpcMethodCall {
+        let mut new_rpc_call = rpc_call.clone();
+        let origin_block_id = json!({ "block_number": self.block_number });
+
+        match new_rpc_call.params {
+            crate::rpc_core::request::RequestParams::None => (),
+            crate::rpc_core::request::RequestParams::Array(ref mut params) => {
+                for param in params.iter_mut() {
+                    if let Some("latest" | "pending") = param.as_str() {
+                        *param = origin_block_id;
+                        break;
+                    }
+                }
+            }
+            crate::rpc_core::request::RequestParams::Object(ref mut params) => {
+                if let Some(block_id) = params.get_mut("block_id") {
+                    *block_id = origin_block_id;
+                }
+            }
+        }
+        new_rpc_call
     }
 
     async fn call_with_error_handling(
         &self,
         rpc_call: &RpcMethodCall,
     ) -> Result<ResponseResult, anyhow::Error> {
+        let rpc_call = self.clone_call_with_origin_block_id(rpc_call);
+
         let req_body_str = serde_json::to_string(&rpc_call)?;
         let req_body = hyper::Body::from(req_body_str);
         let req = request::Request::builder()

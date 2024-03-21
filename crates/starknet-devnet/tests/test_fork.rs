@@ -549,7 +549,7 @@ mod fork_tests {
 
         match block_after_fork {
             Ok(MaybePendingBlockWithTxHashes::Block(b)) => assert_eq!(b.block_number, 2),
-            unexpected => panic!("Unexpected resp: {unexpected:?}"),
+            _ => panic!("Unexpected resp: {block_after_fork:?}"),
         };
 
         fork_devnet.create_block().await.unwrap();
@@ -560,7 +560,7 @@ mod fork_tests {
 
         match new_fork_block {
             Ok(MaybePendingBlockWithTxHashes::Block(b)) => assert_eq!(b.block_number, 3),
-            unexpected => panic!("Unexpected resp: {unexpected:?}"),
+            _ => panic!("Unexpected resp: {new_fork_block:?}"),
         };
     }
 }
