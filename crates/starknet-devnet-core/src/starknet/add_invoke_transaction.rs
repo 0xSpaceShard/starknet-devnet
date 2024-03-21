@@ -96,7 +96,10 @@ mod tests {
     use starknet_types::traits::HashProducer;
 
     use crate::account::{Account, FeeToken};
-    use crate::constants::{self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS};
+    use crate::constants::{
+        self, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
+        ETH_ERC20_CONTRACT_ADDRESS,
+    };
     use crate::starknet::{predeployed, Starknet};
     use crate::state::CustomState;
     use crate::traits::{Accounted, Deployed, HashIdentifiedMut};
@@ -468,7 +471,7 @@ mod tests {
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
-            None,
+            DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         );
 
         starknet.restart_pending_block().unwrap();

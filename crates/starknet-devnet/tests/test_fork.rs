@@ -528,14 +528,13 @@ mod fork_tests {
     }
 
     #[tokio::test]
-    #[ignore = "TODO: failing"]
     async fn test_block_count_increased() {
         // latest block has number 0
         let origin_devnet = spawn_forkable_devnet().await.unwrap();
 
         // create two blocks
-        origin_devnet.create_block().await.unwrap();
         origin_devnet.mint(0x1, 1).await; // dummy data
+        let forking_block_hash = origin_devnet.create_block().await.unwrap();
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
@@ -548,19 +547,26 @@ mod fork_tests {
             .await;
 
         match block_after_fork {
-            Ok(MaybePendingBlockWithTxHashes::Block(b)) => assert_eq!(b.block_number, 2),
+            Ok(MaybePendingBlockWithTxHashes::Block(b)) => {
+                assert_eq!((b.block_hash, b.block_number), (forking_block_hash, 2))
+            }
             _ => panic!("Unexpected resp: {block_after_fork:?}"),
         };
 
-        fork_devnet.create_block().await.unwrap();
+        let new_fork_block_hash = fork_devnet.create_block().await.unwrap();
         let new_fork_block = fork_devnet
             .json_rpc_client
             .get_block_with_tx_hashes(BlockId::Tag(BlockTag::Latest))
             .await;
 
         match new_fork_block {
-            Ok(MaybePendingBlockWithTxHashes::Block(b)) => assert_eq!(b.block_number, 3),
+            Ok(MaybePendingBlockWithTxHashes::Block(b)) => {
+                assert_eq!((b.block_hash, b.block_number), (new_fork_block_hash, 3));
+            }
             _ => panic!("Unexpected resp: {new_fork_block:?}"),
         };
     }
+
+    // TODO add test similar to the one above, but which interacts with a contract dependent on
+    // block number
 }
