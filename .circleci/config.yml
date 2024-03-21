@@ -70,7 +70,7 @@ jobs:
           command: cargo test --jobs 7 --bins --no-fail-fast
       - run:
           name: Integration tests
-          command: cargo test --jobs 5 --test '*' --no-fail-fast
+          command: cargo test --jobs 3 --test '*' --no-fail-fast
 
   image-build-amd:
     docker:
