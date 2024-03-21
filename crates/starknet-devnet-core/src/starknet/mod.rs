@@ -501,6 +501,14 @@ impl Starknet {
                 self.block_context.block_info().gas_prices.eth_l1_gas_price.get(),
             ),
         };
+        block.header.l1_data_gas_price = GasPricePerToken {
+            price_in_fri: GasPrice(
+                self.block_context.block_info().gas_prices.strk_l1_data_gas_price.get(),
+            ),
+            price_in_wei: GasPrice(
+                self.block_context.block_info().gas_prices.eth_l1_data_gas_price.get(),
+            ),
+        };
         block.header.sequencer =
             SequencerContractAddress(self.block_context.block_info().sequencer_address);
 
