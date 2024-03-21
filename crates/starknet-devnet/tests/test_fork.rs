@@ -567,6 +567,20 @@ mod fork_tests {
         };
     }
 
-    // TODO add test similar to the one above, but which interacts with a contract dependent on
-    // block number
+    #[tokio::test]
+    #[ignore = "TODO make artifact loadable; preferrably replace timestamp.cairo with \
+                block_reader.cairo"]
+    async fn test_block_count_increased_on_state() {
+        // let origin_devnet = spawn_forkable_devnet().await.unwrap();
+
+        // load contract
+        // declare contract
+        // deploy contract
+
+        // fork origin
+
+        // call contract to get the block number - assert
+        // create a block
+        // call contract to get the block number - assert
+    }
 }

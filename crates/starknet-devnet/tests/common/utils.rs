@@ -99,6 +99,14 @@ pub fn get_timestamp_contract_in_sierra_and_compiled_class_hash()
     get_flattened_sierra_contract_and_casm_hash(timestamp_sierra_path)
 }
 
+/// TODO temporarily not working - fails on load
+pub fn get_block_reader_contract_in_sierra_and_compiled_class_hash()
+-> (FlattenedSierraClass, FieldElement) {
+    let timestamp_sierra_path =
+        concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/cairo1/block_reader/block_reader.json");
+    get_flattened_sierra_contract_and_casm_hash(timestamp_sierra_path)
+}
+
 pub fn get_simple_contract_in_sierra_and_compiled_class_hash()
 -> (FlattenedSierraClass, FieldElement) {
     let contract_path = format!("{}/{}", env!("CARGO_MANIFEST_DIR"), CAIRO_1_CONTRACT_PATH);

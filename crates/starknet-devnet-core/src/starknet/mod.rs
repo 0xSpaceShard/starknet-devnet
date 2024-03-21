@@ -470,7 +470,6 @@ impl Starknet {
         let mut block_info = block_context.block_info().clone();
         block_info.block_number = block_info.block_number.next();
         // TODO: update block_context via preferred method in the documentation
-        // TODO what with the comment above? and the one below in L483
         *block_context = BlockContext::new_unchecked(
             &block_info,
             block_context.chain_info(),
