@@ -13,14 +13,15 @@ aliases:
   - &on_main_after_test_and_build
     <<: *on_main
     requires:
-      - build-and-test
+      - build
+      - test
       - image-build-amd
       - image-build-arm
 
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/configuration-reference/#jobs
 jobs:
-  build-and-test:
+  build:
     parameters:
       cargo_cache_key:
         type: string
@@ -63,13 +64,41 @@ jobs:
             - target/release/deps
           key: << parameters.cargo_cache_key >>
       - run:
-          name: Test libs
-          command: cargo test --jobs 7 --lib --no-fail-fast
-      - run:
-          name: Test bins
-          command: cargo test --jobs 7 --bins --no-fail-fast
+          name: Unit test libs and bins
+          command: cargo test --jobs 7 --lib --bins --no-fail-fast
       - run:
           name: Integration tests
+          command: cargo test --jobs 7 --test '*' --no-fail-fast
+
+  test:
+    parameters:
+      cargo_cache_test_key:
+        type: string
+      cargo_cache_key:
+        type: string
+    docker:
+      - image: cimg/rust:1.74.0
+    resource_class: xlarge
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - << parameters.cargo_cache_test_key >>
+            - << parameters.cargo_cache_key >>
+      - run:
+          name: Build tests
+          command: cargo test --no-run
+      - save_cache:
+          paths:
+            - target/debug/.fingerprint
+            - target/debug/deps
+            - target/debug/incremental
+          key: << parameters.cargo_cache_test_key >>
+      - run:
+          name: Run unit tests
+          command: cargo test --jobs 7 --lib --bins --no-fail-fast
+      - run:
+          name: Run integration tests
           command: cargo test --jobs 7 --test '*' --no-fail-fast
 
   image-build-amd:
@@ -121,7 +150,10 @@ jobs:
 workflows:
   main:
     jobs:
-      - build-and-test:
+      - build:
+          cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
+      - test:
+          cargo_cache_test_key: cargo-cache-test-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
           cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
       - image-build-amd:
           <<: *on_main
