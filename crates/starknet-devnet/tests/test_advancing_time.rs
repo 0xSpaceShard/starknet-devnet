@@ -16,7 +16,7 @@ mod advancing_time_tests {
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::{
-        get_json_body, get_timestamp_contract_in_sierra_and_compiled_class_hash,
+        get_block_reader_contract_in_sierra_and_compiled_class_hash, get_json_body,
         get_unix_timestamp_as_seconds, send_ctrl_c_signal_and_wait, UniqueAutoDeletableFile,
     };
 
@@ -49,7 +49,7 @@ mod advancing_time_tests {
 
         // declare
         let (cairo_1_contract, casm_class_hash) =
-            get_timestamp_contract_in_sierra_and_compiled_class_hash();
+            get_block_reader_contract_in_sierra_and_compiled_class_hash();
         let declaration_result = predeployed_account
             .declare(Arc::new(cairo_1_contract), casm_class_hash)
             .max_fee(FieldElement::from(100000000000000000000u128))

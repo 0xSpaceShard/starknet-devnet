@@ -25,7 +25,8 @@ mod fork_tests {
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::errors::TestError;
     use crate::common::utils::{
-        assert_cairo1_classes_equal, assert_tx_successful, get_json_body,
+        assert_cairo1_classes_equal, assert_tx_successful,
+        get_block_reader_contract_in_sierra_and_compiled_class_hash, get_json_body,
         get_simple_contract_in_sierra_and_compiled_class_hash, resolve_path,
         send_ctrl_c_signal_and_wait,
     };
@@ -573,7 +574,8 @@ mod fork_tests {
     async fn test_block_count_increased_on_state() {
         // let origin_devnet = spawn_forkable_devnet().await.unwrap();
 
-        // load contract
+        let (_contract, _class_hash) =
+            get_block_reader_contract_in_sierra_and_compiled_class_hash();
         // declare contract
         // deploy contract
 
