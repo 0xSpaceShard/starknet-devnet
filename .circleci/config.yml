@@ -38,9 +38,6 @@ jobs:
           name: Install nightly
           command: rustup install nightly
       - run:
-          name: Install foundry
-          command: ./scripts/install_foundry.sh
-      - run:
           name: Build
           command: cargo build --release
       - run:
@@ -85,6 +82,9 @@ jobs:
       - run:
           name: Build integration tests
           command: cargo test --test '*' --jobs 3 --no-run
+      - run:
+          name: Install foundry
+          command: ./scripts/install_foundry.sh
       - save_cache:
           paths:
             - target/debug/.fingerprint
