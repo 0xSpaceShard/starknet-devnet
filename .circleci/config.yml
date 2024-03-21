@@ -63,12 +63,6 @@ jobs:
             - target/release/build
             - target/release/deps
           key: << parameters.cargo_cache_key >>
-      - run:
-          name: Unit test libs and bins
-          command: cargo test --jobs 7 --lib --bins --no-fail-fast
-      - run:
-          name: Integration tests
-          command: cargo test --jobs 7 --test '*' --no-fail-fast
 
   test:
     parameters:
