@@ -80,11 +80,8 @@ jobs:
             - << parameters.cargo_cache_test_key >>
             - << parameters.cargo_cache_key >>
       - run:
-          name: Build unit tests
-          command: cargo test --lib --bins --no-run
-      - run:
-          name: Build integration tests
-          command: cargo test --test '*' --no-run
+          name: Build tests
+          command: cargo test --no-run
       - save_cache:
           paths:
             - target/debug/.fingerprint
@@ -150,8 +147,6 @@ workflows:
       - build:
           cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
       - test:
-          requires:
-            - build
           cargo_cache_test_key: cargo-cache-test-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
           cargo_cache_key: cargo-cache-{{ checksum "Cargo.lock" }}-{{ checksum "rust-toolchain.toml" }}-v1
       - image-build-amd:
