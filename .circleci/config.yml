@@ -84,7 +84,7 @@ jobs:
           command: cargo test --lib --bins --no-run
       - run:
           name: Build integration tests
-          command: cargo test --test '*' --jobs 3 --no-run
+          command: cargo test --test '*' --no-run
       - save_cache:
           paths:
             - target/debug/.fingerprint
