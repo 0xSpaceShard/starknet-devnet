@@ -10,7 +10,7 @@ use starknet_core::random_number_generator::generate_u32_random_number;
 use starknet_core::utils::casm_hash;
 use starknet_rs_accounts::{Account, SingleOwnerAccount};
 use starknet_rs_contract::ContractFactory;
-use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
+use starknet_rs_core::types::contract::SierraClass;
 use starknet_rs_core::types::{ContractClass, ExecutionResult, FieldElement, FlattenedSierraClass};
 use starknet_rs_core::utils::get_udc_deployed_address;
 use starknet_rs_providers::jsonrpc::HttpTransport;
