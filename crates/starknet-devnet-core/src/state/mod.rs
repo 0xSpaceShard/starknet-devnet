@@ -4,6 +4,7 @@ use blockifier::state::cached_state::{
     CachedState, GlobalContractCache, GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST,
 };
 use blockifier::state::state_api::{State, StateReader};
+use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use starknet_api::core::CompiledClassHash;
 use starknet_api::hash::StarkFelt;
 use starknet_types::constants::MAX_BYTECODE_SIZE_LIMIT;
@@ -297,9 +298,12 @@ impl CustomState for StarknetState {
         let compiled_class = contract_class.clone().try_into()?;
 
         if let ContractClass::Cairo1(cairo_lang_contract_class) = &contract_class {
-            let cairo_lang_compiled_class = cairo_lang_starknet_classes::casm_contract_class::CasmContractClass::from_contract_class(
-                cairo_lang_contract_class.clone(), true, MAX_BYTECODE_SIZE_LIMIT).map_err(|_| Error::SierraCompilationError
-            )?;
+            let cairo_lang_compiled_class = CasmContractClass::from_contract_class(
+                cairo_lang_contract_class.clone(),
+                true,
+                MAX_BYTECODE_SIZE_LIMIT,
+            )
+            .map_err(|_| Error::SierraCompilationError)?;
             let casm_hash =
                 Felt::new(cairo_lang_compiled_class.compiled_class_hash().to_be_bytes())?;
             self.state.state.set_compiled_class_hash(class_hash.into(), casm_hash.into())?;
@@ -318,8 +322,12 @@ impl CustomState for StarknetState {
         let compiled_class = contract_class.clone().try_into()?;
 
         if let ContractClass::Cairo1(cairo_lang_contract_class) = &contract_class {
-            let cairo_lang_compiled_class = cairo_lang_starknet_classes::casm_contract_class::CasmContractClass::from_contract_class(cairo_lang_contract_class.clone(), true, MAX_BYTECODE_SIZE_LIMIT).map_err(|_| Error::SierraCompilationError
-            )?;
+            let cairo_lang_compiled_class = CasmContractClass::from_contract_class(
+                cairo_lang_contract_class.clone(),
+                true,
+                MAX_BYTECODE_SIZE_LIMIT,
+            )
+            .map_err(|_| Error::SierraCompilationError)?;
             let casm_hash =
                 Felt::new(cairo_lang_compiled_class.compiled_class_hash().to_be_bytes())?;
             self.set_compiled_class_hash(class_hash.into(), casm_hash.into())?;

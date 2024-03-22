@@ -1,20 +1,18 @@
 mod endpoints;
 pub mod error;
 pub mod models;
+pub(crate) mod origin_forwarder;
 #[cfg(test)]
 mod spec_reader;
 mod write_endpoints;
 
 pub const RPC_SPEC_VERSION: &str = "0.7.0";
 
-use axum::http::request;
-use hyper::client::HttpConnector;
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
     EstimateFeeInput, EventsInput, GetStorageInput, TransactionHashInput,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use starknet_rs_core::types::ContractClass as CodegenContractClass;
 use starknet_types::felt::{ClassHash, Felt};
 use starknet_types::rpc::block::Block;
@@ -27,7 +25,6 @@ use starknet_types::rpc::transactions::{
     BlockTransactionTrace, EventsChunk, SimulatedTransaction, Transaction, TransactionTrace,
 };
 use starknet_types::starknet_api::block::BlockNumber;
-use thiserror::Error;
 use tracing::{error, info, trace};
 
 use self::error::StrictRpcResult;
@@ -37,6 +34,7 @@ use self::models::{
     DeclareTransactionOutput, DeployAccountTransactionOutput, InvokeTransactionOutput,
     SyncingOutput, TransactionStatusOutput,
 };
+use self::origin_forwarder::OriginForwarder;
 use super::Api;
 use crate::api::json_rpc::models::{
     BroadcastedDeclareTransactionEnumWrapper, BroadcastedDeployAccountTransactionEnumWrapper,
@@ -45,7 +43,7 @@ use crate::api::json_rpc::models::{
 use crate::api::serde_helpers::empty_params;
 use crate::rpc_core::error::RpcError;
 use crate::rpc_core::request::RpcMethodCall;
-use crate::rpc_core::response::{ResponseResult, RpcResponse};
+use crate::rpc_core::response::ResponseResult;
 use crate::rpc_handler::RpcHandler;
 
 /// Helper trait to easily convert results to rpc results
@@ -72,76 +70,6 @@ impl ToRpcResponseResult for StrictRpcResult {
         match self {
             Ok(data) => to_rpc_result(data),
             Err(err) => err.api_error_to_rpc_error().into(),
-        }
-    }
-}
-
-#[derive(Clone)]
-pub struct OriginForwarder {
-    client: hyper::Client<HttpConnector>,
-    url: hyper::Uri,
-    block_number: u64,
-}
-
-#[derive(Debug, Error)]
-enum OriginInteractionError {}
-
-impl OriginForwarder {
-    pub fn new(url: hyper::Uri, block_number: u64) -> Self {
-        Self { client: hyper::Client::new(), url, block_number }
-    }
-
-    fn clone_call_with_origin_block_id(&self, rpc_call: &RpcMethodCall) -> RpcMethodCall {
-        let mut new_rpc_call = rpc_call.clone();
-        let origin_block_id = json!({ "block_number": self.block_number });
-
-        match new_rpc_call.params {
-            crate::rpc_core::request::RequestParams::None => (),
-            crate::rpc_core::request::RequestParams::Array(ref mut params) => {
-                for param in params.iter_mut() {
-                    if let Some("latest" | "pending") = param.as_str() {
-                        *param = origin_block_id;
-                        break;
-                    }
-                }
-            }
-            crate::rpc_core::request::RequestParams::Object(ref mut params) => {
-                if let Some(block_id) = params.get_mut("block_id") {
-                    *block_id = origin_block_id;
-                }
-            }
-        }
-        new_rpc_call
-    }
-
-    async fn call_with_error_handling(
-        &self,
-        rpc_call: &RpcMethodCall,
-    ) -> Result<ResponseResult, anyhow::Error> {
-        let rpc_call = self.clone_call_with_origin_block_id(rpc_call);
-
-        let req_body_str = serde_json::to_string(&rpc_call)?;
-        let req_body = hyper::Body::from(req_body_str);
-        let req = request::Request::builder()
-            .method("POST")
-            .uri(self.url.clone())
-            .header("content-type", "application/json")
-            .body(req_body)?;
-
-        let origin_resp = self.client.request(req).await?;
-        let origin_body = origin_resp.into_body();
-        let origin_body_bytes = hyper::body::to_bytes(origin_body).await?;
-        let origin_rpc_resp: RpcResponse = serde_json::from_slice(&origin_body_bytes)?;
-
-        Ok(origin_rpc_resp.result)
-    }
-
-    async fn call(&self, rpc_call: &RpcMethodCall) -> ResponseResult {
-        match self.call_with_error_handling(rpc_call).await {
-            Ok(result) => result,
-            Err(e) => ResponseResult::Error(RpcError::internal_error_with::<String>(format!(
-                "Error in interacting with origin: {e}"
-            ))),
         }
     }
 }
@@ -179,7 +107,7 @@ impl JsonRpcHandler {
         trace!(target: "JsonRpcHandler::execute", "executing starknet request");
 
         // true if origin should be tried after request fails; relevant in forking mode
-        let mut defaultable = true;
+        let mut forwardable = true;
 
         let starknet_resp = match request {
             StarknetRequest::SpecVersion => self.spec_version(),
@@ -249,7 +177,7 @@ impl JsonRpcHandler {
             StarknetRequest::AddDeployAccountTransaction(
                 BroadcastedDeployAccountTransactionInput { deploy_account_transaction },
             ) => {
-                defaultable = false;
+                forwardable = false;
                 let BroadcastedDeployAccountTransactionEnumWrapper::DeployAccount(
                     broadcasted_transaction,
                 ) = deploy_account_transaction;
@@ -279,20 +207,21 @@ impl JsonRpcHandler {
             }
         };
 
-        if let (Err(err), Some(defaulter)) = (&starknet_resp, &self.origin_caller) {
+        if let (Err(err), Some(forwarder)) = (&starknet_resp, &self.origin_caller) {
             match err {
-                // TODO what if a block or state is requested that was only added to origin after
-                // forking happened
+                // if a block or state is requested that was only added to origin after
+                // forking happened, it will be normally returned; we don't extra-handle this case
                 error::ApiError::BlockNotFound
                 | error::ApiError::TransactionNotFound
                 | error::ApiError::NoStateAtBlock { .. }
                 | error::ApiError::ClassHashNotFound => {
                     // ClassHashNotFound can be thrown from starknet_getClass or
                     // starknet_deployAccount, but only starknet_getClass should be retried from
-                    // here; starknet_deployAccount already fetches from origin internally
+                    // here; starknet_deployAccount already fetches from origin internally. This is
+                    // handled by (un)setting the `forwardable` flag
 
-                    if defaultable {
-                        return defaulter.call(&original_call).await;
+                    if forwardable {
+                        return forwarder.call(&original_call).await;
                     }
                 }
                 _other_error => (),

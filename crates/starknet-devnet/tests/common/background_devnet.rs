@@ -262,15 +262,11 @@ impl BackgroundDevnet {
     }
 
     pub async fn fork(&self) -> Result<Self, TestError> {
-        BackgroundDevnet::spawn_with_additional_args(&[
-            "--fork-network",
-            self.url.as_str(),
-            "--accounts",
-            "0",
-        ])
-        .await
+        let args = ["--fork-network", self.url.as_str(), "--accounts", "0"];
+        BackgroundDevnet::spawn_with_additional_args(&args).await
     }
 
+    /// Mines a new block and returns its hash
     pub async fn create_block(&self) -> Result<FieldElement, anyhow::Error> {
         let block_creation_resp =
             self.post_json("/create_block".into(), Body::from(json!({}).to_string())).await?;

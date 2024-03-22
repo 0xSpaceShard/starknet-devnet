@@ -90,8 +90,8 @@ pub async fn set_and_log_fork_block(fork_config: &mut ForkConfig) -> Result<(), 
             anyhow::Error::msg(match e {
                 starknet_rs_providers::ProviderError::StarknetError(
                     starknet_rs_core::types::StarknetError::BlockNotFound,
-                ) => format!("Forking at block {block_id:?}: block not found"),
-                _ => format!("Forking at block {block_id:?}: {e}; Check the URL"),
+                ) => format!("Forking from block {block_id:?}: block not found"),
+                _ => format!("Forking from block {block_id:?}: {e}; Check the URL"),
             })
         })?;
 

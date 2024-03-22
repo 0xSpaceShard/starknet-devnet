@@ -23,6 +23,9 @@ enum OriginError {
     NoResult,
 }
 
+/// Used for interacting with the origin in forking mode. The calls are blocking. Only handles the
+/// basic state reading necessary for contract interaction. For other RPC methods, see
+/// `OriginForwarder`
 #[derive(Debug, Clone)]
 struct BlockingOriginReader {
     url: url::Url,

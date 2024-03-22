@@ -121,7 +121,6 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ContractC
                     deprecated_contract_class.try_into()?,
                 ))
             }
-            // TODO consider using in state/mod.rs in declaration code
             ContractClass::Cairo1(sierra_contract_class) => {
                 let casm_contract_class = CasmContractClass::from_contract_class(
                     sierra_contract_class,

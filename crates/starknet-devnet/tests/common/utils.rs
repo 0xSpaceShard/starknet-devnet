@@ -229,7 +229,7 @@ impl Drop for UniqueAutoDeletableFile {
     }
 }
 
-/// Works with Cairo 1
+/// Declares and deploys a Cairo 1 contract; returns class hash and contract address
 pub async fn declare_deploy(
     account: Arc<SingleOwnerAccount<JsonRpcClient<HttpTransport>, LocalWallet>>,
     contract_class: FlattenedSierraClass,

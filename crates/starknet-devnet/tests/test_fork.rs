@@ -23,7 +23,6 @@ mod fork_tests {
     use starknet_rs_signers::Signer;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::errors::TestError;
     use crate::common::utils::{
         assert_cairo1_classes_equal, assert_tx_successful, declare_deploy,
         get_block_reader_contract_in_sierra_and_compiled_class_hash, get_json_body,
@@ -35,11 +34,10 @@ mod fork_tests {
     const SEPOLIA_GENESIS_BLOCK_HASH: &str =
         "0x19f675d3fb226821493a6ab9a1955e384bba80f130de625621a418e9a7c0ca3";
 
-    async fn spawn_forkable_devnet() -> Result<BackgroundDevnet, TestError> {
-        let devnet =
-            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
-                .await?;
-        devnet.create_block().await.unwrap();
+    async fn spawn_forkable_devnet() -> Result<BackgroundDevnet, anyhow::Error> {
+        let args = ["--state-archive-capacity", "full"];
+        let devnet = BackgroundDevnet::spawn_with_additional_args(&args).await?;
+        devnet.create_block().await?;
         Ok(devnet)
     }
 
@@ -103,7 +101,7 @@ mod fork_tests {
     }
 
     #[tokio::test]
-    async fn test_forking_origin_genesis_block() {
+    async fn test_forking_local_genesis_block() {
         let origin_devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
                 .await
@@ -143,7 +141,7 @@ mod fork_tests {
             assert_eq!(balance, expected_balance);
         }
 
-        // not using get_balance_at_block=2; that requires fork with --state-archive-capacity full
+        // not using get_balance_at_block=2: requires forking with --state-archive-capacity full
         let final_balance = fork_devnet.get_balance(&dummy_address).await.unwrap();
         let expected_final_balance = (2_u128 * mint_amount).into();
         assert_eq!(final_balance, expected_final_balance);
@@ -202,9 +200,9 @@ mod fork_tests {
             .await
             .unwrap();
 
-        // Currently asserting cairo0 artifacts is failing;
-        // for now, successfully unwrapping the retrieved class will serve as proof of correctness
         // assert_eq!(retrieved_class, ContractClass::Legacy(contract_class.compress().unwrap()));
+        // For now, successfully unwrapping the retrieved class serves as proof of correctness.
+        // Currently asserting cairo0 artifacts is failing; related: https://github.com/0xSpaceShard/starknet-devnet-rs/pull/380
     }
 
     #[tokio::test]
@@ -251,7 +249,7 @@ mod fork_tests {
     }
 
     #[tokio::test]
-    async fn test_forking_origin_declare_deploy_fork_invoke() {
+    async fn test_origin_declare_deploy_fork_invoke() {
         let origin_devnet = spawn_forkable_devnet().await.unwrap();
 
         let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
@@ -368,7 +366,7 @@ mod fork_tests {
     /// If https://github.com/0xSpaceShard/starknet-devnet-rs/issues/373 is addressed,
     /// both origin and fork have both of our default cairo0 and cairo1 classes, so using them for
     /// this test wouldn't make sense, as we couldn't be sure that the class used in account
-    /// deployment is indeed coming from the origin
+    /// deployment is indeed coming from the origin.
     async fn test_deploying_account_with_class_present_on_origin() {
         let origin_devnet = BackgroundDevnet::spawn_with_additional_args(&[
             "--state-archive-capacity",
@@ -382,11 +380,10 @@ mod fork_tests {
         .await
         .unwrap();
 
-        // create forkable origin block
-        origin_devnet.create_block().await.unwrap();
-
         let (signer, _) = origin_devnet.get_first_predeployed_account().await;
 
+        // fork, but first create a forkable origin block
+        origin_devnet.create_block().await.unwrap();
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
         // deploy account using class from origin, relying on precalculated hash
@@ -517,7 +514,7 @@ mod fork_tests {
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
-        // create another block on origin - shouldn't affect fork
+        // create another block on origin - shouldn't affect fork - asserted later
         origin_devnet.create_block().await.unwrap();
 
         let block_after_fork = fork_devnet

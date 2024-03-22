@@ -5,7 +5,8 @@ use axum::routing::{get, post};
 use starknet_core::starknet::starknet_config::StarknetConfig;
 
 use crate::api::http::{endpoints as http, HttpApiHandler};
-use crate::api::json_rpc::{JsonRpcHandler, OriginForwarder};
+use crate::api::json_rpc::origin_forwarder::OriginForwarder;
+use crate::api::json_rpc::JsonRpcHandler;
 use crate::api::Api;
 use crate::builder::StarknetDevnetServer;
 use crate::error::ServerResult;
