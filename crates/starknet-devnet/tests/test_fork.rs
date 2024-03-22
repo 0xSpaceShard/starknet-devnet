@@ -25,7 +25,7 @@ mod fork_tests {
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::errors::TestError;
     use crate::common::utils::{
-        assert_cairo1_classes_equal, assert_tx_successful,
+        assert_cairo1_classes_equal, assert_tx_successful, declare_deploy,
         get_block_reader_contract_in_sierra_and_compiled_class_hash, get_json_body,
         get_simple_contract_in_sierra_and_compiled_class_hash, resolve_path,
         send_ctrl_c_signal_and_wait,
@@ -103,7 +103,7 @@ mod fork_tests {
     }
 
     #[tokio::test]
-    async fn test_forking_local_genesis_block() {
+    async fn test_forking_origin_genesis_block() {
         let origin_devnet =
             BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
                 .await
@@ -223,36 +223,14 @@ mod fork_tests {
             ExecutionEncoding::New,
         ));
 
-        let (contract_class, casm_class_hash) =
-            get_simple_contract_in_sierra_and_compiled_class_hash();
+        let (contract_class, casm_hash) = get_simple_contract_in_sierra_and_compiled_class_hash();
 
-        // declare the contract
-        let declaration_result = predeployed_account
-            .declare(Arc::new(contract_class.clone()), casm_class_hash)
-            .max_fee(FieldElement::from(1e18 as u128))
-            .send()
-            .await
-            .unwrap();
-
-        // deploy the contract
-        let contract_factory =
-            ContractFactory::new(declaration_result.class_hash, predeployed_account.clone());
         let initial_value = FieldElement::from(10_u32);
         let ctor_args = vec![initial_value];
-        contract_factory
-            .deploy(ctor_args.clone(), FieldElement::ZERO, false)
-            .max_fee(FieldElement::from(1e18 as u128))
-            .send()
-            .await
-            .unwrap();
-
-        // generate the address of the newly deployed contract
-        let contract_address = get_udc_deployed_address(
-            FieldElement::ZERO,
-            declaration_result.class_hash,
-            &starknet_rs_core::utils::UdcUniqueness::NotUnique,
-            &ctor_args,
-        );
+        let (class_hash, contract_address) =
+            declare_deploy(predeployed_account, contract_class.clone(), casm_hash, &ctor_args)
+                .await
+                .unwrap();
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
@@ -261,19 +239,19 @@ mod fork_tests {
             .get_class_hash_at(BlockId::Tag(BlockTag::Latest), contract_address)
             .await
             .unwrap();
-        assert_eq!(retrieved_class_hash, declaration_result.class_hash);
+        assert_eq!(retrieved_class_hash, class_hash);
 
         let retrieved_class = fork_devnet
             .json_rpc_client
-            .get_class(BlockId::Tag(BlockTag::Latest), declaration_result.class_hash)
+            .get_class(BlockId::Tag(BlockTag::Latest), class_hash)
             .await
             .unwrap();
-        assert_cairo1_classes_equal(retrieved_class, ContractClass::Sierra(contract_class.clone()))
+        assert_cairo1_classes_equal(retrieved_class, ContractClass::Sierra(contract_class))
             .unwrap();
     }
 
     #[tokio::test]
-    async fn test_forking_local_declare_deploy_fork_invoke() {
+    async fn test_forking_origin_declare_deploy_fork_invoke() {
         let origin_devnet = spawn_forkable_devnet().await.unwrap();
 
         let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
@@ -569,20 +547,45 @@ mod fork_tests {
     }
 
     #[tokio::test]
-    #[ignore = "TODO make artifact loadable; preferrably replace timestamp.cairo with \
-                block_reader.cairo"]
     async fn test_block_count_increased_on_state() {
-        // let origin_devnet = spawn_forkable_devnet().await.unwrap();
+        let origin_devnet = spawn_forkable_devnet().await.unwrap();
 
-        let (_contract, _class_hash) =
+        let (signer, account_address) = origin_devnet.get_first_predeployed_account().await;
+        let predeployed_account = Arc::new(SingleOwnerAccount::new(
+            origin_devnet.clone_provider(),
+            signer.clone(),
+            account_address,
+            chain_id::TESTNET,
+            ExecutionEncoding::New,
+        ));
+
+        let (contract_class, casm_hash) =
             get_block_reader_contract_in_sierra_and_compiled_class_hash();
-        // declare contract
-        // deploy contract
 
-        // fork origin
+        let (_, contract_address) =
+            declare_deploy(predeployed_account, contract_class, casm_hash, &[]).await.unwrap();
 
-        // call contract to get the block number - assert
-        // create a block
-        // call contract to get the block number - assert
+        let fork_devnet = origin_devnet.fork().await.unwrap();
+
+        let contract_call = FunctionCall {
+            contract_address,
+            entry_point_selector: get_selector_from_name("get_block_number").unwrap(),
+            calldata: vec![],
+        };
+        let first_fork_block_number = fork_devnet
+            .json_rpc_client
+            .call(contract_call.clone(), BlockId::Tag(BlockTag::Latest))
+            .await
+            .unwrap();
+        assert_eq!(first_fork_block_number, [FieldElement::THREE]); // origin block + declare + deploy
+
+        fork_devnet.create_block().await.unwrap();
+
+        let second_fork_block_number = fork_devnet
+            .json_rpc_client
+            .call(contract_call, BlockId::Tag(BlockTag::Latest))
+            .await
+            .unwrap();
+        assert_eq!(second_fork_block_number, [FieldElement::from(4_u8)]); // origin block + declare + deploy
     }
 }

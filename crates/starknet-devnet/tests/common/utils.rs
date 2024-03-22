@@ -2,13 +2,18 @@ use std::fmt::LowerHex;
 use std::fs;
 use std::path::Path;
 use std::process::{Child, Command};
+use std::sync::Arc;
 
 use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use hyper::{Body, Response};
 use starknet_core::random_number_generator::generate_u32_random_number;
+use starknet_rs_accounts::{Account, SingleOwnerAccount};
+use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::contract::SierraClass;
 use starknet_rs_core::types::{ContractClass, ExecutionResult, FieldElement, FlattenedSierraClass};
-use starknet_rs_providers::Provider;
+use starknet_rs_core::utils::get_udc_deployed_address;
+use starknet_rs_providers::jsonrpc::HttpTransport;
+use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::LocalWallet;
 use starknet_types::constants::MAX_BYTECODE_SIZE_LIMIT;
 use starknet_types::contract_class::compute_casm_class_hash;
@@ -222,6 +227,39 @@ impl Drop for UniqueAutoDeletableFile {
     fn drop(&mut self) {
         remove_file(&self.path)
     }
+}
+
+/// Works with Cairo 1
+pub async fn declare_deploy(
+    account: Arc<SingleOwnerAccount<JsonRpcClient<HttpTransport>, LocalWallet>>,
+    contract_class: FlattenedSierraClass,
+    casm_hash: FieldElement,
+    ctor_args: &[FieldElement],
+) -> Result<(FieldElement, FieldElement), anyhow::Error> {
+    // declare the contract
+    let declaration_result = account
+        .declare(Arc::new(contract_class), casm_hash)
+        .max_fee(FieldElement::from(1e18 as u128))
+        .send()
+        .await?;
+
+    // deploy the contract
+    let contract_factory = ContractFactory::new(declaration_result.class_hash, account.clone());
+    contract_factory
+        .deploy(ctor_args.to_vec(), FieldElement::ZERO, false)
+        .max_fee(FieldElement::from(1e18 as u128))
+        .send()
+        .await?;
+
+    // generate the address of the newly deployed contract
+    let contract_address = get_udc_deployed_address(
+        FieldElement::ZERO,
+        declaration_result.class_hash,
+        &starknet_rs_core::utils::UdcUniqueness::NotUnique,
+        ctor_args,
+    );
+
+    Ok((declaration_result.class_hash, contract_address))
 }
 
 #[cfg(test)]
