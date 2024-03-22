@@ -6,7 +6,7 @@ use std::process::{Child, Command};
 use hyper::{Body, Response};
 use starknet_core::random_number_generator::generate_u32_random_number;
 use starknet_core::utils::casm_hash;
-use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
+use starknet_rs_core::types::contract::SierraClass;
 use starknet_rs_core::types::{ExecutionResult, FieldElement, FlattenedSierraClass};
 use starknet_rs_providers::Provider;
 use starknet_rs_signers::LocalWallet;
