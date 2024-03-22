@@ -6,7 +6,6 @@ use blockifier::state::cached_state::{
 use blockifier::state::state_api::{State, StateReader};
 use starknet_api::core::CompiledClassHash;
 use starknet_api::hash::StarkFelt;
-use starknet_rs_core::types::contract::CompiledClass;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Felt};
@@ -14,6 +13,7 @@ use starknet_types::felt::{ClassHash, Felt};
 use self::state_diff::StateDiff;
 use self::state_readers::DictState;
 use crate::error::{DevnetResult, Error};
+use crate::utils::casm_hash;
 
 pub(crate) mod state_diff;
 pub(crate) mod state_readers;
@@ -290,12 +290,7 @@ impl CustomState for StarknetState {
             )
             .map_err(|_| Error::SierraCompilationError)?;
 
-            let casm_hash = Felt::from(
-                serde_json::from_value::<CompiledClass>(casm_json)
-                    .map_err(|err| Error::DeserializationError { origin: err.to_string() })?
-                    .class_hash()
-                    .map_err(|err| Error::UnexpectedInternalError { msg: err.to_string() })?,
-            );
+            let casm_hash = Felt::from(casm_hash(casm_json)?);
 
             self.state.state.set_compiled_class_hash(class_hash.into(), casm_hash.into())?;
         };
@@ -319,12 +314,7 @@ impl CustomState for StarknetState {
             )
             .map_err(|_| Error::SierraCompilationError)?;
 
-            let casm_hash = Felt::from(
-                serde_json::from_value::<CompiledClass>(casm_json)
-                    .map_err(|err| Error::DeserializationError { origin: err.to_string() })?
-                    .class_hash()
-                    .map_err(|err| Error::UnexpectedInternalError { msg: err.to_string() })?,
-            );
+            let casm_hash = Felt::from(casm_hash(casm_json)?);
             self.set_compiled_class_hash(class_hash.into(), casm_hash.into())?;
         };
 
