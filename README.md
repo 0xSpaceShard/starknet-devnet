@@ -338,7 +338,7 @@ cargo run -- --timeout <TIMEOUT>
 
 ## Forking
 
-To interact with contracts deployed on mainnet or testnet, you can use the forking feature to copy the remote origin and experiment with it locally with no changes to the origin.
+To interact with contracts deployed on mainnet or testnet, you can use the forking mode to simulate origin and experiment with it locally, making no changes to the origin itself.
 
 ```
 cargo run -- --fork-network <URL> [--fork-block <BLOCK_NUMBER>]
@@ -361,7 +361,7 @@ Response when Devnet is a fork of an origin:
 }
 ```
 
-Response when not: `{}`
+Response when not forking: `{}`
 
 ### Querying old state by specifying block hash or number
 
