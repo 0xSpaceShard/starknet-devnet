@@ -19,7 +19,6 @@ pub fn state_update_by_block_id(
 mod tests {
     use nonzero_ext::nonzero;
     use starknet_api::transaction::Fee;
-    use starknet_rs_core::types::contract::CompiledClass;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};
@@ -36,6 +35,7 @@ mod tests {
     use crate::starknet::{predeployed, Starknet};
     use crate::state::state_diff::StateDiff;
     use crate::traits::{Deployed, HashIdentifiedMut};
+    use crate::utils::casm_hash;
     use crate::utils::test_utils::{dummy_cairo_1_contract_class, dummy_felt};
 
     #[test]
@@ -50,12 +50,7 @@ mod tests {
         let casm_contract_class_json =
             usc::compile_contract(serde_json::to_value(contract_class.clone()).unwrap()).unwrap();
 
-        let compiled_class_hash =
-            serde_json::from_value::<CompiledClass>(casm_contract_class_json.clone())
-                .unwrap()
-                .class_hash()
-                .unwrap()
-                .into();
+        let compiled_class_hash = casm_hash(casm_contract_class_json).unwrap().into();
 
         let declare_txn = BroadcastedDeclareTransactionV2::new(
             &contract_class,
