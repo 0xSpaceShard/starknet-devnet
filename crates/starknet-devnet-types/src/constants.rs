@@ -8,6 +8,3 @@ pub const KECCAK_BUILTIN_NAME: &str = "keccak_builtin";
 pub const POSEIDON_BUILTIN_NAME: &str = "poseidon_builtin";
 pub const SEGMENT_ARENA_BUILTIN_NAME: &str = "segment_arena_builtin";
 pub const N_STEPS: &str = "n_steps";
-
-/// as per https://docs.starknet.io/documentation/tools/limits_and_triggers/
-pub const MAX_BYTECODE_SIZE_LIMIT: usize = 81920;
