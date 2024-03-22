@@ -73,6 +73,8 @@ impl BlockingOriginReader {
 
                 let result = &resp_json_value["result"];
                 if result.is_null() {
+                    // the received response is assumed to mean that the origin doesn't contain the
+                    // requested resource
                     info!("Origin response contains no 'result': {resp_json_value}");
                     Err(OriginError::NoResult)
                 } else {
@@ -84,6 +86,8 @@ impl BlockingOriginReader {
     }
 }
 
+/// Used for forking - reads from the origin if Some(origin_reader); otherwise returns the default
+/// or Err, depending on the method
 #[derive(Clone, Debug, Default)]
 pub struct StarknetDefaulter {
     origin_reader: Option<BlockingOriginReader>,
