@@ -48,6 +48,6 @@ pub async fn get_account_balance(
     let mut starknet = state.api.starknet.write().await;
 
     let balance = get_balance(&mut starknet, account_address, erc20_address)
-        .map_err(|_| HttpApiError::GeneralError)?;
+        .map_err(|e| HttpApiError::GeneralError(e.to_string()))?;
     Ok(Json(Balance { amount: balance.to_str_radix(10), unit }))
 }

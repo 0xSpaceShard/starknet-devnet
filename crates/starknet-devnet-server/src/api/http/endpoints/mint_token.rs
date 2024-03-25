@@ -8,13 +8,9 @@ use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::transaction_receipt::FeeUnit;
 
 use crate::api::http::error::HttpApiError;
-use crate::api::http::models::{FeeToken, MintTokensRequest, MintTokensResponse};
+use crate::api::http::models::{MintTokensRequest, MintTokensResponse};
 use crate::api::http::{HttpApiHandler, HttpApiResult};
 use crate::api::json_rpc::error::ApiError;
-
-pub async fn get_fee_token() -> HttpApiResult<Json<FeeToken>> {
-    Err(HttpApiError::GeneralError)
-}
 
 /// get the balance of the `address`
 pub fn get_balance(
