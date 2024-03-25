@@ -196,7 +196,7 @@ impl BackgroundDevnet {
         FieldElement::from_hex_be(resp_body["tx_hash"].as_str().unwrap()).unwrap()
     }
 
-    /// Get balance at contract_address, as written in ERC20
+    /// Get balance at contract_address, as written in the ERC20 contract corresponding to `unit`
     pub async fn get_balance(
         &self,
         address: &FieldElement,
