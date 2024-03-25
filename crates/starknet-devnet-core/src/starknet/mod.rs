@@ -789,8 +789,8 @@ impl Starknet {
         // starting block is reached in while loop.
         if next_block_to_abort == Felt::from(0) && reached_starting_block {
             self.blocks.last_block_hash = None;
-            // self.state = Default::default();
-            *self = Starknet::new(&self.config)?;
+            self.state = Default::default(); // TODO: this will remove all deployed contracts..
+        // *self = Starknet::new(&self.config)?; // TODO: what with this?
         } else if reached_starting_block {
             let current_block =
                 self.blocks.hash_to_block.get(&next_block_to_abort).ok_or(Error::NoBlock)?;
