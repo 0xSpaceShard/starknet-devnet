@@ -750,15 +750,15 @@ impl Starknet {
         state_update::state_update_by_block_id(self, block_id)
     }
 
-    pub fn abort_blocks(&mut self, starting_block_hash: Felt) -> Vec<Felt> {
+    pub fn abort_blocks(&mut self, starting_block_hash: Felt) -> DevnetResult<Vec<Felt>> {
         let mut reached_starting_block = false;
-        let mut block_to_abort_hash = self.blocks.last_block_hash.unwrap(); // TODO: remove unwrap
+        let mut next_block_to_abort = self.blocks.last_block_hash.unwrap(); // TODO: remove unwrap
         let mut aborted: Vec<Felt> = Vec::new();
 
         // Abort blocks from latest to starting (iterating backwards) and revert transactions.
         while !reached_starting_block {
-            reached_starting_block = block_to_abort_hash == starting_block_hash;
-            let block_to_abort = self.blocks.hash_to_block.get_mut(&block_to_abort_hash);
+            reached_starting_block = next_block_to_abort == starting_block_hash;
+            let block_to_abort = self.blocks.hash_to_block.get_mut(&next_block_to_abort);
 
             if let Some(block) = block_to_abort {
                 block.status = BlockStatus::Rejected;
@@ -770,28 +770,40 @@ impl Starknet {
                         ExecutionResult::Reverted { reason: "Block aborted manually".to_string() };
                 }
 
-                // TODO: revert state and add tests
-                // self.__state_archive.remove(numeric_hash)
+                // TODO: this is needed?
                 // block_dict["transaction_receipts"] = None
 
                 aborted.push(block.block_hash());
 
                 // Update next block hash to abort, break in case of none.
-                block_to_abort_hash = block.parent_hash();
-                if block_to_abort_hash == Felt::from(0) {
+                next_block_to_abort = block.parent_hash();
+
+                // TODO: is this code needed?
+                if next_block_to_abort == Felt::from(0) {
                     break;
                 }
             }
         }
 
-        // Update last_block_hash based on block_to_abort_hash.
-        if block_to_abort_hash == Felt::from(0) {
+        // Update last_block_hash based on last next_block_to_abort and revert state only if
+        // starting block is reached in while loop.
+        if next_block_to_abort == Felt::from(0) && reached_starting_block {
             self.blocks.last_block_hash = None;
-        } else {
-            self.blocks.last_block_hash = Some(block_to_abort_hash);
+            // self.state = Default::default();
+            *self = Starknet::new(&self.config)?;
+        } else if reached_starting_block {
+            let current_block =
+                self.blocks.hash_to_block.get(&next_block_to_abort).ok_or(Error::NoBlock)?;
+            self.blocks.last_block_hash = Some(current_block.block_hash());
+
+            let reverted_state =
+                self.blocks.hash_to_state.get(&current_block.block_hash()).ok_or(
+                    Error::NoStateAtBlock { block_number: current_block.block_number().0 },
+                )?;
+            self.state = reverted_state.clone_historic();
         }
 
-        aborted
+        Ok(aborted)
     }
 
     pub fn get_block_txs_count(&self, block_id: &BlockId) -> DevnetResult<u64> {
