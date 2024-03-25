@@ -9,14 +9,11 @@ use hyper::http::request;
 use hyper::{Body, Client, Response, StatusCode, Uri};
 use lazy_static::lazy_static;
 use serde_json::json;
-use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
-use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, FunctionCall};
-use starknet_rs_core::utils::get_selector_from_name;
+use starknet_rs_core::types::FieldElement;
 use starknet_rs_providers::jsonrpc::HttpTransport;
-use starknet_rs_providers::{JsonRpcClient, Provider};
+use starknet_rs_providers::JsonRpcClient;
 use starknet_rs_signers::{LocalWallet, SigningKey};
-use starknet_types::felt::Felt;
-use starknet_types::num_bigint::BigUint;
+use starknet_types::rpc::transaction_receipt::FeeUnit;
 use tokio::sync::Mutex;
 use url::Url;
 
@@ -200,18 +197,21 @@ impl BackgroundDevnet {
     }
 
     /// Get balance at contract_address, as written in ERC20
-    pub async fn get_balance(&self, address: &FieldElement) -> Result<FieldElement, anyhow::Error> {
-        let call = FunctionCall {
-            contract_address: FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
-            entry_point_selector: get_selector_from_name("balanceOf").unwrap(),
-            calldata: vec![*address],
-        };
-        let balance_raw = self.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await?;
-        assert_eq!(balance_raw.len(), 2);
-        let balance_low: BigUint = (Felt::from(*balance_raw.get(0).unwrap())).into();
-        let balance_high: BigUint = (Felt::from(*balance_raw.get(1).unwrap())).into();
-        let balance: BigUint = (balance_high << 128) + balance_low;
-        Ok(FieldElement::from_byte_slice_be(&balance.to_bytes_be())?)
+    pub async fn get_balance(
+        &self,
+        address: &FieldElement,
+        unit: FeeUnit,
+    ) -> Result<FieldElement, anyhow::Error> {
+        let params = format!("address={:#x}&unit={}", address, unit);
+
+        let resp = self.get("/account_balance", Some(params)).await?;
+        let json_resp = get_json_body(resp).await;
+
+        let amount = serde_json::from_value(json_resp["amount"].clone()).unwrap();
+        let received_unit: FeeUnit = serde_json::from_value(json_resp["unit"].clone()).unwrap();
+        assert_eq!(received_unit, unit);
+
+        Ok(amount)
     }
 
     pub async fn get(
@@ -219,12 +219,7 @@ impl BackgroundDevnet {
         path: &str,
         query: Option<String>,
     ) -> Result<Response<Body>, hyper::Error> {
-        let uri = if query.is_none() {
-            format!("{}{}", self.url, path)
-        } else {
-            format!("{}{}?{}", self.url, path, query.unwrap())
-        };
-
+        let uri = format!("{}{}?{}", self.url, path, query.unwrap_or("".into()));
         let response = self.http_client.get(uri.as_str().parse::<Uri>().unwrap()).await.unwrap();
         Ok(response)
     }
