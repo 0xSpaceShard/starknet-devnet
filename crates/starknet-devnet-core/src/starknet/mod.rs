@@ -178,6 +178,8 @@ impl Starknet {
 
         state.commit_with_diff()?;
 
+        // when forking, the number of the first new block to be mined is equal to the last origin
+        // block (the one specified by the user) plus one.
         let starting_block_number =
             config.fork_config.block_number.map_or(DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, |n| n + 1);
         let mut this = Self {
