@@ -6,6 +6,7 @@ mod abort_blocks_tests {
     use server::api::json_rpc::error::ApiError;
     use starknet_rs_core::types::{FieldElement, TransactionStatus};
     use starknet_rs_providers::Provider;
+    use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::get_json_body;
@@ -223,7 +224,10 @@ mod abort_blocks_tests {
         assert_eq!(aborted_blocks["aborted"][0], second_block["block_hash"]);
 
         let balance = devnet
-            .get_balance(&FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap())
+            .get_balance(
+                &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
+                FeeUnit::WEI,
+            )
             .await
             .unwrap();
         assert_eq!(balance.to_string(), DUMMY_AMOUNT.to_string());
@@ -239,7 +243,10 @@ mod abort_blocks_tests {
         assert_eq!(aborted_blocks["aborted"][0], first_block["block_hash"]);
 
         let balance = devnet
-            .get_balance(&FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap())
+            .get_balance(
+                &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
+                FeeUnit::WEI,
+            )
             .await
             .unwrap();
         assert_eq!(balance.to_string(), "0");
@@ -247,7 +254,10 @@ mod abort_blocks_tests {
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
         let balance = devnet
-            .get_balance(&FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap())
+            .get_balance(
+                &FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap(),
+                FeeUnit::WEI,
+            )
             .await
             .unwrap();
         assert_eq!(balance.to_string(), DUMMY_AMOUNT.to_string());
