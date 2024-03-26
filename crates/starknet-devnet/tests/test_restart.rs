@@ -16,6 +16,7 @@ mod test_restart {
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
     use starknet_rs_core::utils::get_storage_var_address;
     use starknet_rs_providers::{Provider, ProviderError};
+    use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::CHAIN_ID;
@@ -175,12 +176,14 @@ mod test_restart {
 
         let predeployed_account_addresss = devnet.get_first_predeployed_account().await.1;
 
-        let balance_before = devnet.get_balance(&predeployed_account_addresss).await.unwrap();
+        let balance_before =
+            devnet.get_balance(&predeployed_account_addresss, FeeUnit::WEI).await.unwrap();
         assert_eq!(balance_before, FieldElement::from(initial_balance));
 
         devnet.restart().await.unwrap();
 
-        let balance_after = devnet.get_balance(&predeployed_account_addresss).await.unwrap();
+        let balance_after =
+            devnet.get_balance(&predeployed_account_addresss, FeeUnit::WEI).await.unwrap();
         assert_eq!(balance_before, balance_after);
     }
 

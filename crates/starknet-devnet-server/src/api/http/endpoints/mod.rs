@@ -41,5 +41,5 @@ pub async fn restart(Extension(state): Extension<HttpApiHandler>) -> HttpApiResu
 
 /// Fork
 pub async fn get_fork_status() -> HttpApiResult<Json<ForkStatus>> {
-    Err(HttpApiError::GeneralError)
+    Err(HttpApiError::GeneralError("Unimplemented".into()))
 }

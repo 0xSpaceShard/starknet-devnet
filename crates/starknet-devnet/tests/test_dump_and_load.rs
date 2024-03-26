@@ -7,6 +7,7 @@ mod dump_and_load_tests {
     use hyper::Body;
     use serde_json::json;
     use starknet_rs_providers::Provider;
+    use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::{send_ctrl_c_signal_and_wait, UniqueAutoDeletableFile};
@@ -386,8 +387,10 @@ mod dump_and_load_tests {
         let load_body = Body::from(json!({ "path": dump_file.path }).to_string());
         devnet_load.post_json("/load".into(), load_body).await.unwrap();
 
-        let balance_result =
-            devnet_load.get_balance(&FieldElement::from(DUMMY_ADDRESS)).await.unwrap();
+        let balance_result = devnet_load
+            .get_balance(&FieldElement::from(DUMMY_ADDRESS), FeeUnit::WEI)
+            .await
+            .unwrap();
         assert_eq!(balance_result, DUMMY_AMOUNT.into());
 
         let loaded_transaction =
