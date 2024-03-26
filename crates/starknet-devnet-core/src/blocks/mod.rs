@@ -703,6 +703,12 @@ mod tests {
         let block = StarknetBlock::create_pending_block();
         assert!(block.status == BlockStatus::Pending);
         assert!(block.transaction_hashes.is_empty());
-        assert_eq!(block.header, BlockHeader::default());
+        assert_eq!(
+            block.header,
+            BlockHeader {
+                l1_da_mode: starknet_api::data_availability::L1DataAvailabilityMode::Blob,
+                ..Default::default()
+            }
+        );
     }
 }
