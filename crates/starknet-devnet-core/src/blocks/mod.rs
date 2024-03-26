@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use indexmap::IndexMap;
 use starknet_api::block::{BlockHeader, BlockNumber, BlockStatus, BlockTimestamp};
+use starknet_api::data_availability::L1DataAvailabilityMode;
 use starknet_api::hash::{pedersen_hash_array, StarkFelt};
 use starknet_api::stark_felt;
 use starknet_rs_core::types::BlockId;
@@ -222,7 +223,10 @@ impl StarknetBlock {
 
     pub(crate) fn create_pending_block() -> Self {
         Self {
-            header: BlockHeader::default(),
+            header: BlockHeader {
+                l1_da_mode: L1DataAvailabilityMode::Blob,
+                ..BlockHeader::default()
+            },
             status: BlockStatus::Pending,
             transaction_hashes: Vec::new(),
         }
