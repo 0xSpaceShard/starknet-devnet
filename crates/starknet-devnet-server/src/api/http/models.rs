@@ -86,7 +86,7 @@ pub struct SerializableAccount {
 
 #[derive(Serialize)]
 pub struct Balance {
-    pub amount: String,
+    pub amount: BigUint,
     pub unit: FeeUnit,
 }
 

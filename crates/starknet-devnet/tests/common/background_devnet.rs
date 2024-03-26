@@ -13,6 +13,7 @@ use starknet_rs_core::types::FieldElement;
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::JsonRpcClient;
 use starknet_rs_signers::{LocalWallet, SigningKey};
+use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::transaction_receipt::FeeUnit;
 use tokio::sync::Mutex;
 use url::Url;
@@ -207,11 +208,12 @@ impl BackgroundDevnet {
         let resp = self.get("/account_balance", Some(params)).await?;
         let json_resp = get_json_body(resp).await;
 
-        let amount = serde_json::from_value(json_resp["amount"].clone()).unwrap();
+        let amount: BigUint = serde_json::from_value(json_resp["amount"].clone()).unwrap();
         let received_unit: FeeUnit = serde_json::from_value(json_resp["unit"].clone()).unwrap();
         assert_eq!(received_unit, unit);
 
-        Ok(amount)
+        let felt_amount = FieldElement::from_hex_be(&amount.to_str_radix(16))?;
+        Ok(felt_amount)
     }
 
     pub async fn get(
