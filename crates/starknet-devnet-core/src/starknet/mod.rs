@@ -84,7 +84,8 @@ pub(crate) mod transaction_trace;
 
 pub struct Starknet {
     pub(in crate::starknet) state: StarknetState,
-    pub(in crate::starknet) init_state: StarknetState, // This will be refactored during the genesis block PR 
+    pub(in crate::starknet) init_state: StarknetState, /* This will be refactored during the
+                                                        * genesis block PR */
     predeployed_accounts: PredeployedAccounts,
     pub(in crate::starknet) block_context: BlockContext,
     // To avoid repeating some logic related to blocks,
@@ -172,7 +173,7 @@ impl Starknet {
         chargeable_account.deploy(&mut state)?;
 
         state.commit_with_diff()?;
-        
+
         let mut this = Self {
             state,
             init_state: StarknetState::default(),
@@ -195,7 +196,7 @@ impl Starknet {
         this.restart_pending_block()?;
 
         // Set init_state for abort blocks functionality
-        // This will be refactored during the genesis block PR 
+        // This will be refactored during the genesis block PR
         this.init_state = this.state.clone_historic();
 
         // Load starknet transactions
@@ -758,9 +759,11 @@ impl Starknet {
     }
 
     pub fn abort_blocks(&mut self, starting_block_hash: Felt) -> DevnetResult<Vec<Felt>> {
-        if self.config.state_archive != StateArchiveCapacity::Full
-        {
-            return Err(Error::UnsupportedAction { msg: ("The abort blocks feature requires state-archive-capacity set to full.".to_string()) });
+        if self.config.state_archive != StateArchiveCapacity::Full {
+            return Err(Error::UnsupportedAction {
+                msg: ("The abort blocks feature requires state-archive-capacity set to full."
+                    .to_string()),
+            });
         }
 
         let mut reached_starting_block = false;
