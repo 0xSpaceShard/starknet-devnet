@@ -1,5 +1,6 @@
 use axum::http::request;
 use hyper::client::HttpConnector;
+use serde_json::json;
 
 use crate::rpc_core::error::RpcError;
 use crate::rpc_core::request::RpcMethodCall;
@@ -31,7 +32,7 @@ impl OriginForwarder {
     /// numeric block id of the forked block. Both JSON-RPC 1 and 2 semantics is covered
     fn clone_call_with_origin_block_id(&self, rpc_call: &RpcMethodCall) -> RpcMethodCall {
         let mut new_rpc_call = rpc_call.clone();
-        let origin_block_id = serde_json::json!({ "block_number": self.block_number });
+        let origin_block_id = json!({ "block_number": self.block_number });
 
         match new_rpc_call.params {
             crate::rpc_core::request::RequestParams::None => (),
@@ -80,6 +81,55 @@ impl OriginForwarder {
             Err(e) => ResponseResult::Error(RpcError::internal_error_with::<String>(format!(
                 "Error in interacting with origin: {e}"
             ))),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::OriginForwarder;
+    use crate::rpc_core::request::RpcMethodCall;
+
+    #[test]
+    fn test_replacing_block_id() {
+        let block_number = 10;
+        let forwarder =
+            OriginForwarder::new(hyper::Uri::from_static("http://dummy.com"), block_number);
+
+        let common_body = json!({
+            "method": "starknet_dummyMethod",
+            "id": 1,
+        });
+        for (jsonrpc_value, orig_params, replaced_params) in [
+            ("2.0", json!(null), json!(null)),
+            ("1.0", json!(["a", 1, "latest", 2]), json!(["a", 1, { "block_number": 10 }, 2])),
+            ("1.0", json!(["a", 1, "pending", 2]), json!(["a", 1, { "block_number": 10 }, 2])),
+            (
+                "2.0",
+                json!({ "param1": "a", "param2": 1, "block_id": "latest", "param3": 2 }),
+                json!({ "param1": "a", "param2": 1, "block_id": { "block_number": 10 }, "param3": 2 }),
+            ),
+            (
+                "2.0",
+                json!({ "param1": "a", "param2": 1, "block_id": "pending", "param3": 2 }),
+                json!({ "param1": "a", "param2": 1, "block_id": { "block_number": 10 }, "param3": 2 }),
+            ),
+        ] {
+            let mut orig_body = common_body.clone();
+            orig_body["jsonrpc"] = serde_json::Value::String(jsonrpc_value.into());
+            orig_body["params"] = orig_params;
+
+            let request: RpcMethodCall = serde_json::from_value(orig_body).unwrap();
+            let replaced_request = forwarder.clone_call_with_origin_block_id(&request);
+            let replaced_request_json = serde_json::to_value(replaced_request).unwrap();
+
+            let mut expected_body = common_body.clone();
+            expected_body["jsonrpc"] = serde_json::Value::String(jsonrpc_value.into());
+            expected_body["params"] = replaced_params;
+
+            assert_eq!(replaced_request_json, expected_body);
         }
     }
 }
