@@ -20,5 +20,5 @@ pub async fn create_block(
 }
 
 pub async fn abort_blocks(Json(_data): Json<AbortingBlocks>) -> HttpApiResult<Json<AbortedBlocks>> {
-    Err(HttpApiError::GeneralError)
+    Err(HttpApiError::GeneralError("Unimplemented".into()))
 }

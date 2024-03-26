@@ -6,8 +6,8 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum HttpApiError {
-    #[error("General error")]
-    GeneralError,
+    #[error("{0}")]
+    GeneralError(String),
     #[error("Minting error: {msg}")]
     MintingError { msg: String },
     #[error("The file does not exist")]
@@ -35,7 +35,7 @@ pub enum HttpApiError {
 impl IntoResponse for HttpApiError {
     fn into_response(self) -> axum::response::Response {
         let (status, error_message) = match self {
-            err @ HttpApiError::GeneralError => (StatusCode::BAD_REQUEST, err.to_string()),
+            HttpApiError::GeneralError(err) => (StatusCode::BAD_REQUEST, err.to_string()),
             err @ HttpApiError::FileNotFound => (StatusCode::BAD_REQUEST, err.to_string()),
             err @ HttpApiError::DumpError { msg: _ } => (StatusCode::BAD_REQUEST, err.to_string()),
             err @ HttpApiError::LoadError => (StatusCode::BAD_REQUEST, err.to_string()),

@@ -21,6 +21,7 @@ mod fork_tests {
     };
     use starknet_rs_providers::{Provider, ProviderError};
     use starknet_rs_signers::Signer;
+    use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::{
@@ -142,7 +143,7 @@ mod fork_tests {
         }
 
         // not using get_balance_at_block=2: requires forking with --state-archive-capacity full
-        let final_balance = fork_devnet.get_balance(&dummy_address).await.unwrap();
+        let final_balance = fork_devnet.get_balance(&dummy_address, FeeUnit::WEI).await.unwrap();
         let expected_final_balance = (2_u128 * mint_amount).into();
         assert_eq!(final_balance, expected_final_balance);
     }
@@ -484,7 +485,7 @@ mod fork_tests {
 
         let fork_devnet = origin_devnet.fork().await.unwrap();
 
-        let fork_balance = fork_devnet.get_balance(&address).await.unwrap();
+        let fork_balance = fork_devnet.get_balance(&address, FeeUnit::WEI).await.unwrap();
         assert_eq!(fork_balance, FieldElement::from(mint_amount));
     }
 
