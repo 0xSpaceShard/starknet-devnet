@@ -2,7 +2,8 @@ use starknet_rs_ff::FieldElement;
 use starknet_rs_signers::SigningKey;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
-use starknet_types::felt::{ClassHash, Felt, Key};
+use starknet_types::felt::{ClassHash, Key};
+use starknet_types::rpc::state::Balance;
 
 use crate::account::Account;
 use crate::error::DevnetResult;
@@ -12,7 +13,7 @@ use crate::utils::random_number_generator::generate_u128_random_numbers;
 #[derive(Default)]
 pub(crate) struct PredeployedAccounts {
     seed: u32,
-    initial_balance: Felt,
+    initial_balance: Balance,
     eth_fee_token_address: ContractAddress,
     strk_fee_token_address: ContractAddress,
     accounts: Vec<Account>,
@@ -21,7 +22,7 @@ pub(crate) struct PredeployedAccounts {
 impl PredeployedAccounts {
     pub(crate) fn new(
         seed: u32,
-        initial_balance: Felt,
+        initial_balance: Balance,
         eth_fee_token_address: ContractAddress,
         strk_fee_token_address: ContractAddress,
     ) -> Self {
@@ -67,7 +68,7 @@ impl AccountGenerator for PredeployedAccounts {
 
         for private_key in private_keys {
             let account = Account::new(
-                self.initial_balance,
+                self.initial_balance.clone(),
                 self.generate_public_key(&private_key),
                 private_key,
                 class_hash,
@@ -85,7 +86,7 @@ impl AccountGenerator for PredeployedAccounts {
 #[cfg(test)]
 mod tests {
     use rand::{thread_rng, Rng};
-    use starknet_types::felt::Felt;
+    use starknet_types::rpc::state::Balance;
 
     use crate::predeployed_accounts::PredeployedAccounts;
     use crate::utils::test_utils::dummy_contract_address;
@@ -97,7 +98,7 @@ mod tests {
 
             let private_key1 = PredeployedAccounts::new(
                 seed,
-                Felt::from(1),
+                Balance::from(1_u8),
                 dummy_contract_address(),
                 dummy_contract_address(),
             )
@@ -105,7 +106,7 @@ mod tests {
 
             let private_key2 = PredeployedAccounts::new(
                 seed,
-                Felt::from(1),
+                Balance::from(1_u8),
                 dummy_contract_address(),
                 dummy_contract_address(),
             )
@@ -134,7 +135,7 @@ mod tests {
 
             let private_key1 = PredeployedAccounts::new(
                 seed1,
-                Felt::from(1),
+                Balance::from(1_u8),
                 dummy_contract_address(),
                 dummy_contract_address(),
             )
@@ -142,7 +143,7 @@ mod tests {
 
             let private_key2 = PredeployedAccounts::new(
                 seed2,
-                Felt::from(1),
+                Balance::from(1_u8),
                 dummy_contract_address(),
                 dummy_contract_address(),
             )

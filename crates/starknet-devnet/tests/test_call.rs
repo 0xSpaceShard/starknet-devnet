@@ -4,6 +4,7 @@ mod call {
     use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, FunctionCall, StarknetError};
     use starknet_rs_providers::{Provider, ProviderError};
+    use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{
@@ -70,7 +71,7 @@ mod call {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let contract_address = FieldElement::from_hex_be(PREDEPLOYED_ACCOUNT_ADDRESS).unwrap();
 
-        let retrieved_result = devnet.get_balance(&contract_address).await.unwrap();
+        let retrieved_result = devnet.get_balance(&contract_address, FeeUnit::WEI).await.unwrap();
 
         let expected_hex_balance = format!("0x{PREDEPLOYED_ACCOUNT_INITIAL_BALANCE:x}");
         let expected_balance = FieldElement::from_hex_be(expected_hex_balance.as_str()).unwrap();

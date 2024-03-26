@@ -54,6 +54,7 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::felt::Felt;
+    use starknet_types::rpc::state::Balance;
     use starknet_types::rpc::transactions::L1HandlerTransaction;
     use starknet_types::traits::HashProducer;
 
@@ -197,7 +198,7 @@ mod tests {
             account_without_validations_contract_class.generate_hash().unwrap();
 
         let account = Account::new(
-            Felt::from(10000),
+            Balance::from(10000_u32),
             dummy_felt(),
             dummy_felt(),
             account_without_validations_class_hash,
@@ -257,6 +258,7 @@ mod tests {
             .predeploy_contract(dummy_contract_address, dummy_contract_class_hash)
             .unwrap();
         starknet.block_context = Starknet::init_block_context(
+            nonzero!(1u128),
             nonzero!(1u128),
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
