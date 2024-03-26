@@ -245,5 +245,25 @@ mod abort_blocks_tests {
         assert_eq!(balance.to_string(), "0");
     }
 
-    // TODO: add state-archive-capacity and test when block is already rejected
+    #[tokio::test]
+    async fn abort_blocks_without_state_archive_capacity() {
+        let devnet: BackgroundDevnet =
+            BackgroundDevnet::spawn().await.expect("Could not start Devnet");
+
+        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        let first_block = &devnet
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
+
+        let abort_blocks = devnet
+            .post_json(
+                "/abort_blocks".into(),
+                Body::from(json!({ "startingBlockHash": first_block["block_hash"] }).to_string()),
+            )
+            .await
+            .unwrap();
+
+        let aborted_blocks = get_json_body(abort_blocks).await;
+        assert!(aborted_blocks["error"].to_string().starts_with("\"The block abortion failed"));
+    }
 }
