@@ -788,14 +788,15 @@ impl Starknet {
 
                 // Revert transactions
                 for tx_hash in block.get_transactions() {
-                    let tx = self.transactions.get_by_hash_mut(tx_hash).unwrap(); // TODO: fix unwrap
+                    let tx =
+                        self.transactions.get_by_hash_mut(tx_hash).ok_or(Error::NoTransaction)?;
                     tx.execution_result =
                         ExecutionResult::Reverted { reason: "Block aborted manually".to_string() };
                 }
 
                 aborted.push(block.block_hash());
 
-                // Update next block hash to abort, break in case of none.
+                // Update next block hash to abort
                 next_block_to_abort_hash = block.parent_hash();
             }
         }

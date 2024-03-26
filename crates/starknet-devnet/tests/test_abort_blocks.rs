@@ -243,6 +243,14 @@ mod abort_blocks_tests {
             .await
             .unwrap();
         assert_eq!(balance.to_string(), "0");
+
+        devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
+        
+        let balance = devnet
+            .get_balance(&FieldElement::from_hex_be(DUMMY_ADDRESS.to_string().as_str()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(balance.to_string(), DUMMY_AMOUNT.to_string());
     }
 
     #[tokio::test]
