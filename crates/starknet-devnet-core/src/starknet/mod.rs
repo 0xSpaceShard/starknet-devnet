@@ -509,6 +509,14 @@ impl Starknet {
                 self.block_context.block_info().gas_prices.eth_l1_gas_price.get(),
             ),
         };
+        block.header.l1_data_gas_price = GasPricePerToken {
+            price_in_fri: GasPrice(
+                self.block_context.block_info().gas_prices.strk_l1_data_gas_price.get(),
+            ),
+            price_in_wei: GasPrice(
+                self.block_context.block_info().gas_prices.eth_l1_data_gas_price.get(),
+            ),
+        };
         block.header.sequencer =
             SequencerContractAddress(self.block_context.block_info().sequencer_address);
 
@@ -1194,7 +1202,13 @@ mod tests {
         let mut starknet = Starknet::new(&config).unwrap();
 
         let initial_block_number = starknet.block_context.block_info().block_number;
-        let initial_gas_price = starknet.block_context.block_info().gas_prices.eth_l1_gas_price;
+        let initial_gas_price_wei = starknet.block_context.block_info().gas_prices.eth_l1_gas_price;
+        let initial_gas_price_fri =
+            starknet.block_context.block_info().gas_prices.strk_l1_gas_price;
+        let initial_data_gas_price_wei =
+            starknet.block_context.block_info().gas_prices.eth_l1_data_gas_price;
+        let initial_data_gas_price_fri =
+            starknet.block_context.block_info().gas_prices.strk_l1_data_gas_price;
         let initial_block_timestamp = starknet.block_context.block_info().block_timestamp;
         let initial_sequencer = starknet.block_context.block_info().sequencer_address;
 
@@ -1218,7 +1232,19 @@ mod tests {
         assert_eq!(starknet.pending_block().header.parent_hash, BlockHash::default());
         assert_eq!(
             starknet.pending_block().header.l1_gas_price.price_in_wei,
-            GasPrice(initial_gas_price.get())
+            GasPrice(initial_gas_price_wei.get())
+        );
+        assert_eq!(
+            starknet.pending_block().header.l1_gas_price.price_in_fri,
+            GasPrice(initial_gas_price_fri.get())
+        );
+        assert_eq!(
+            starknet.pending_block().header.l1_data_gas_price.price_in_wei,
+            GasPrice(initial_data_gas_price_wei.get())
+        );
+        assert_eq!(
+            starknet.pending_block().header.l1_data_gas_price.price_in_fri,
+            GasPrice(initial_data_gas_price_fri.get())
         );
         assert_eq!(starknet.pending_block().header.sequencer.0, initial_sequencer);
     }
