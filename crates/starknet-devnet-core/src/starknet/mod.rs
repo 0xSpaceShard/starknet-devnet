@@ -84,6 +84,7 @@ pub(crate) mod transaction_trace;
 
 pub struct Starknet {
     pub(in crate::starknet) state: StarknetState,
+    pub(in crate::starknet) init_state: StarknetState, // This will be refactored during the genesis block PR 
     predeployed_accounts: PredeployedAccounts,
     pub(in crate::starknet) block_context: BlockContext,
     // To avoid repeating some logic related to blocks,
@@ -107,6 +108,7 @@ impl Default for Starknet {
                 DEVNET_DEFAULT_CHAIN_ID,
             ),
             state: Default::default(),
+            init_state: Default::default(),
             predeployed_accounts: Default::default(),
             blocks: Default::default(),
             transactions: Default::default(),
@@ -170,9 +172,10 @@ impl Starknet {
         chargeable_account.deploy(&mut state)?;
 
         state.commit_with_diff()?;
-
+        
         let mut this = Self {
             state,
+            init_state: StarknetState::default(),
             predeployed_accounts,
             block_context: Self::init_block_context(
                 config.gas_price,
@@ -190,6 +193,10 @@ impl Starknet {
         };
 
         this.restart_pending_block()?;
+
+        // Set init_state for abort blocks functionality
+        // This will be refactored during the genesis block PR 
+        this.init_state = this.state.clone_historic();
 
         // Load starknet transactions
         if this.config.dump_path.is_some() && this.config.re_execute_on_init {
@@ -751,6 +758,11 @@ impl Starknet {
     }
 
     pub fn abort_blocks(&mut self, starting_block_hash: Felt) -> DevnetResult<Vec<Felt>> {
+        if self.config.state_archive != StateArchiveCapacity::Full
+        {
+            return Err(Error::UnsupportedAction { msg: ("The abort blocks feature requires state-archive-capacity set to full.".to_string()) });
+        }
+
         let mut reached_starting_block = false;
         let mut next_block_to_abort = self.blocks.last_block_hash.unwrap(); // TODO: remove unwrap
         let mut aborted: Vec<Felt> = Vec::new();
@@ -789,8 +801,7 @@ impl Starknet {
         // starting block is reached in while loop.
         if next_block_to_abort == Felt::from(0) && reached_starting_block {
             self.blocks.last_block_hash = None;
-            self.state = Default::default(); // TODO: this will remove all deployed contracts..
-        // *self = Starknet::new(&self.config)?; // TODO: what with this?
+            self.state = self.init_state.clone_historic(); // This will be refactored during the genesis block PR 
         } else if reached_starting_block {
             let current_block =
                 self.blocks.hash_to_block.get(&next_block_to_abort).ok_or(Error::NoBlock)?;
