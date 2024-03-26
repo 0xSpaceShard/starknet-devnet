@@ -766,48 +766,49 @@ impl Starknet {
             });
         }
 
+        let mut next_block_to_abort_hash = match self.blocks.last_block_hash {
+            None => {
+                return Err(Error::UnsupportedAction {
+                    msg: ("last_block_hash is not set".to_string()),
+                });
+            }
+            Some(felt) => felt,
+        };
         let mut reached_starting_block = false;
-        let mut next_block_to_abort = self.blocks.last_block_hash.unwrap(); // TODO: remove unwrap
         let mut aborted: Vec<Felt> = Vec::new();
 
         // Abort blocks from latest to starting (iterating backwards) and revert transactions.
         while !reached_starting_block {
-            reached_starting_block = next_block_to_abort == starting_block_hash;
-            let block_to_abort = self.blocks.hash_to_block.get_mut(&next_block_to_abort);
+            reached_starting_block = next_block_to_abort_hash == starting_block_hash;
+            let block_to_abort = self.blocks.hash_to_block.get_mut(&next_block_to_abort_hash);
 
             if let Some(block) = block_to_abort {
                 block.status = BlockStatus::Rejected;
                 self.blocks.num_to_hash.shift_remove(&block.block_number());
 
+                // Revert transactions
                 for tx_hash in block.get_transactions() {
                     let tx = self.transactions.get_by_hash_mut(tx_hash).unwrap(); // TODO: fix unwrap
                     tx.execution_result =
                         ExecutionResult::Reverted { reason: "Block aborted manually".to_string() };
                 }
 
-                // TODO: this is needed?
-                // block_dict["transaction_receipts"] = None
-
                 aborted.push(block.block_hash());
 
                 // Update next block hash to abort, break in case of none.
-                next_block_to_abort = block.parent_hash();
-
-                // TODO: is this code needed?
-                if next_block_to_abort == Felt::from(0) {
-                    break;
-                }
+                next_block_to_abort_hash = block.parent_hash();
             }
         }
+        let last_reached_block_hash = next_block_to_abort_hash;
 
-        // Update last_block_hash based on last next_block_to_abort and revert state only if
+        // Update last_block_hash based on last reached block and revert state only if
         // starting block is reached in while loop.
-        if next_block_to_abort == Felt::from(0) && reached_starting_block {
+        if last_reached_block_hash == Felt::from(0) && reached_starting_block {
             self.blocks.last_block_hash = None;
             self.state = self.init_state.clone_historic(); // This will be refactored during the genesis block PR 
         } else if reached_starting_block {
             let current_block =
-                self.blocks.hash_to_block.get(&next_block_to_abort).ok_or(Error::NoBlock)?;
+                self.blocks.hash_to_block.get(&last_reached_block_hash).ok_or(Error::NoBlock)?;
             self.blocks.last_block_hash = Some(current_block.block_hash());
 
             let reverted_state =
