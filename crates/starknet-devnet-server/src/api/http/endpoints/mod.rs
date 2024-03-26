@@ -40,6 +40,12 @@ pub async fn restart(Extension(state): Extension<HttpApiHandler>) -> HttpApiResu
 }
 
 /// Fork
-pub async fn get_fork_status() -> HttpApiResult<Json<ForkStatus>> {
-    Err(HttpApiError::GeneralError("Unimplemented".into()))
+pub async fn get_fork_status(
+    Extension(state): Extension<HttpApiHandler>,
+) -> HttpApiResult<Json<ForkStatus>> {
+    let fork_config = &state.api.starknet.read().await.config.fork_config;
+    Ok(Json(ForkStatus {
+        url: fork_config.url.as_ref().map(|url| url.to_string()),
+        block: fork_config.block_number,
+    }))
 }

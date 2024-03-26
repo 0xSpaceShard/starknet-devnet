@@ -50,6 +50,12 @@ impl Default for StarknetBlocks {
 }
 
 impl StarknetBlocks {
+    pub fn new(starting_block_number: u64) -> Self {
+        let mut blocks = Self::default();
+        blocks.pending_block.set_block_number(starting_block_number);
+        blocks
+    }
+
     /// Inserts a block in the collection and modifies the block parent hash to match the last block
     /// hash
     pub fn insert(&mut self, mut block: StarknetBlock, state_diff: StateDiff) {
@@ -226,6 +232,10 @@ impl StarknetBlock {
             status: BlockStatus::Pending,
             transaction_hashes: Vec::new(),
         }
+    }
+
+    pub(crate) fn set_block_number(&mut self, block_number: u64) {
+        self.header.block_number = BlockNumber(block_number)
     }
 
     pub(crate) fn set_timestamp(&mut self, timestamp: BlockTimestamp) {

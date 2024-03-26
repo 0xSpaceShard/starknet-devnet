@@ -274,7 +274,7 @@ mod tests {
                             ));
                         }
                         StarknetRequest::EsimateFee(_) => {
-                            assert!(matches!(sn_response, StarknetResponse::EsimateFee(_)));
+                            assert!(matches!(sn_response, StarknetResponse::EstimateFee(_)));
                         }
                         StarknetRequest::EstimateMessageFee(_) => {
                             assert!(matches!(sn_response, StarknetResponse::EstimateMessageFee(_)));

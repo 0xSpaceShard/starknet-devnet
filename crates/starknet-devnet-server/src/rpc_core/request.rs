@@ -94,6 +94,8 @@ fn no_params() -> RequestParams {
 pub enum Version {
     #[serde(rename = "2.0")]
     V2,
+    #[serde(rename = "1.0")]
+    V1,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

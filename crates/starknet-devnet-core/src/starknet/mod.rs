@@ -48,6 +48,7 @@ use starknet_types::rpc::transactions::{
 use starknet_types::traits::HashProducer;
 use tracing::{error, info};
 
+use self::defaulter::StarknetDefaulter;
 use self::dump::DumpEvent;
 use self::predeployed::initialize_erc20_at_address;
 use self::starknet_config::{DumpOn, StarknetConfig, StateArchiveCapacity};
@@ -56,9 +57,9 @@ use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
     CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, DEVNET_DEFAULT_CHAIN_ID,
-    DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, ETH_ERC20_CONTRACT_ADDRESS,
-    ETH_ERC20_NAME, ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS, STRK_ERC20_NAME,
-    STRK_ERC20_SYMBOL,
+    DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
+    ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME, ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS,
+    STRK_ERC20_NAME, STRK_ERC20_SYMBOL,
 };
 use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::messaging::MessagingBroker;
@@ -75,6 +76,7 @@ mod add_declare_transaction;
 mod add_deploy_account_transaction;
 mod add_invoke_transaction;
 mod add_l1_handler_transaction;
+pub(crate) mod defaulter;
 pub mod dump;
 mod estimations;
 mod events;
@@ -108,6 +110,7 @@ impl Default for Starknet {
                 ETH_ERC20_CONTRACT_ADDRESS,
                 STRK_ERC20_CONTRACT_ADDRESS,
                 DEVNET_DEFAULT_CHAIN_ID,
+                DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
             ),
             state: Default::default(),
             predeployed_accounts: Default::default(),
@@ -124,7 +127,8 @@ impl Default for Starknet {
 
 impl Starknet {
     pub fn new(config: &StarknetConfig) -> DevnetResult<Self> {
-        let mut state = StarknetState::default();
+        let defaulter = StarknetDefaulter::new(config.fork_config.clone());
+        let mut state = StarknetState::new(defaulter);
         // deploy udc, eth erc20 and strk erc20 contracts
         let eth_erc20_fee_contract =
             predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS)?;
@@ -174,6 +178,10 @@ impl Starknet {
 
         state.commit_with_diff()?;
 
+        // when forking, the number of the first new block to be mined is equal to the last origin
+        // block (the one specified by the user) plus one.
+        let starting_block_number =
+            config.fork_config.block_number.map_or(DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, |n| n + 1);
         let mut this = Self {
             state,
             predeployed_accounts,
@@ -183,8 +191,9 @@ impl Starknet {
                 ETH_ERC20_CONTRACT_ADDRESS,
                 STRK_ERC20_CONTRACT_ADDRESS,
                 config.chain_id,
+                starting_block_number,
             ),
-            blocks: StarknetBlocks::default(),
+            blocks: StarknetBlocks::new(starting_block_number),
             transactions: StarknetTransactions::default(),
             config: config.clone(),
             pending_block_timestamp_shift: 0,
@@ -424,6 +433,7 @@ impl Starknet {
         eth_fee_token_address: &str,
         strk_fee_token_address: &str,
         chain_id: ChainId,
+        block_number: u64,
     ) -> BlockContext {
         use starknet_api::core::{ContractAddress, PatriciaKey};
         use starknet_api::hash::StarkHash;
@@ -432,7 +442,7 @@ impl Starknet {
         // Create a BlockContext based on BlockContext::create_for_testing()
 
         let block_info = BlockInfo {
-            block_number: BlockNumber(0),
+            block_number: BlockNumber(block_number),
             block_timestamp: BlockTimestamp(0),
             sequencer_address: contract_address!("0x1000"),
             gas_prices: blockifier::block::GasPrices {
@@ -522,17 +532,16 @@ impl Starknet {
             BlockId::Tag(_) => Ok(&mut self.state),
             _ => {
                 if self.config.state_archive == StateArchiveCapacity::None {
-                    return Err(Error::StateHistoryDisabled);
+                    return Err(Error::NoStateAtBlock { block_id: *block_id });
                 }
 
                 let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
-                let block_number = block.block_number().0;
                 let block_hash = block.block_hash();
                 let state = self
                     .blocks
                     .hash_to_state
                     .get_mut(&block_hash)
-                    .ok_or(Error::NoStateAtBlock { block_number })?;
+                    .ok_or(Error::NoStateAtBlock { block_id: *block_id })?;
                 Ok(state)
             }
         }
@@ -1103,7 +1112,8 @@ mod tests {
     use crate::account::FeeToken;
     use crate::blocks::StarknetBlock;
     use crate::constants::{
-        DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_INITIAL_BALANCE, ETH_ERC20_CONTRACT_ADDRESS,
+        DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_INITIAL_BALANCE,
+        DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, ETH_ERC20_CONTRACT_ADDRESS,
         STRK_ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::{DevnetResult, Error};
@@ -1140,6 +1150,7 @@ mod tests {
             "0xAA",
             STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
+            DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         );
         assert_eq!(block_ctx.block_info().block_number, BlockNumber(0));
         assert_eq!(block_ctx.block_info().block_timestamp, BlockTimestamp(0));
@@ -1248,6 +1259,7 @@ mod tests {
             ETH_ERC20_CONTRACT_ADDRESS,
             STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
+            DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         );
         let initial_block_number = block_ctx.block_info().block_number;
         Starknet::advance_block_context_block_number(&mut block_ctx);
@@ -1291,7 +1303,7 @@ mod tests {
         starknet.blocks.hash_to_state.remove(&block_hash);
 
         match starknet.get_mut_state_at(&BlockId::Number(0)) {
-            Err(Error::NoStateAtBlock { block_number: _ }) => (),
+            Err(Error::NoStateAtBlock { block_id: _ }) => (),
             _ => panic!("Should fail with NoStateAtBlock"),
         }
     }
@@ -1303,8 +1315,8 @@ mod tests {
         starknet.generate_new_block(StateDiff::default()).unwrap();
 
         match starknet.get_mut_state_at(&BlockId::Number(0)) {
-            Err(Error::StateHistoryDisabled) => (),
-            _ => panic!("Should fail with StateHistoryDisabled."),
+            Err(Error::NoStateAtBlock { .. }) => (),
+            _ => panic!("Should fail with NoStateAtBlock."),
         }
     }
 

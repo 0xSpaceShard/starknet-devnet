@@ -6,7 +6,9 @@ use starknet_core::constants::{
     DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
 use starknet_core::random_number_generator::generate_u32_random_number;
-use starknet_core::starknet::starknet_config::{DumpOn, StarknetConfig, StateArchiveCapacity};
+use starknet_core::starknet::starknet_config::{
+    DumpOn, ForkConfig, StarknetConfig, StateArchiveCapacity,
+};
 use starknet_types::chain_id::ChainId;
 
 use crate::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
@@ -117,6 +119,17 @@ pub(crate) struct Args {
     #[arg(default_value = "none")]
     #[arg(help = "Specify the state archive capacity;")]
     state_archive: StateArchiveCapacity,
+
+    #[arg(long = "fork-network")]
+    #[arg(value_name = "URL")]
+    #[arg(help = "Specify the URL of the network to fork;")]
+    fork_network: Option<url::Url>,
+
+    #[arg(long = "fork-block")]
+    #[arg(value_name = "BLOCK_NUMBER")]
+    #[arg(help = "Specify the number of the block to fork at;")]
+    #[arg(requires = "fork_network")]
+    fork_block: Option<u64>,
 }
 
 impl Args {
@@ -147,6 +160,10 @@ impl Args {
             dump_path: self.dump_path.clone(),
             re_execute_on_init: true,
             state_archive: self.state_archive,
+            fork_config: ForkConfig {
+                url: self.fork_network.clone(),
+                block_number: self.fork_block,
+            },
         })
     }
 }
@@ -281,6 +298,74 @@ mod tests {
                 )
             ),
             Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
+        }
+    }
+
+    #[test]
+    fn not_allowing_invalid_url_as_fork_network() {
+        for url in ["abc", "", "http://"] {
+            match Args::try_parse_from(["--", "--fork-network", url]) {
+                Err(_) => (),
+                Ok(parsed) => panic!("Should fail for {url}; got: {parsed:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn allowing_valid_url_as_fork_network() {
+        for url in [
+            "https://free-rpc.nethermind.io/mainnet-juno/v0_6",
+            "http://localhost/",
+            "http://localhost:5051/",
+            "http://127.0.0.1/",
+            "http://127.0.0.1:5050/",
+            "https://localhost/",
+            "https://localhost:5050/",
+        ] {
+            match Args::try_parse_from(["--", "--fork-network", url]) {
+                Ok(args) => assert_eq!(args.fork_network.unwrap().to_string(), url),
+                Err(e) => panic!("Should have passed; got: {e}"),
+            }
+        }
+    }
+
+    #[test]
+    fn not_allowing_fork_block_without_fork_network() {
+        match Args::try_parse_from(["--", "--fork-block", "12"]) {
+            Err(_) => (),
+            Ok(parsed) => panic!("Should fail when just --fork-block got: {parsed:?}"),
+        }
+    }
+
+    #[test]
+    fn not_allowing_invalid_value_as_fork_block() {
+        for number in ["", "abc", "-1"] {
+            match Args::try_parse_from([
+                "--",
+                "--fork-network",
+                "http://localhost:5051",
+                "--fork-block",
+                number,
+            ]) {
+                Err(_) => (),
+                Ok(parsed) => panic!("Should fail for {number}; got: {parsed:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn allowing_number_as_fork_block() {
+        for number in [0, 1, 42, 999] {
+            match Args::try_parse_from([
+                "--",
+                "--fork-network",
+                "http://localhost:5051",
+                "--fork-block",
+                &number.to_string(),
+            ]) {
+                Ok(args) => assert_eq!(args.fork_block, Some(number)),
+                Err(e) => panic!("Should have passed; got: {e}"),
+            }
         }
     }
 }

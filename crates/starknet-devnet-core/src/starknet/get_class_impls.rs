@@ -2,7 +2,7 @@ use blockifier::state::state_api::StateReader;
 use starknet_rs_core::types::BlockId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
-use starknet_types::felt::{ClassHash, Felt};
+use starknet_types::felt::ClassHash;
 
 use crate::error::{DevnetResult, Error, StateError};
 use crate::starknet::Starknet;
@@ -14,14 +14,14 @@ pub fn get_class_hash_at_impl(
     contract_address: ContractAddress,
 ) -> DevnetResult<ClassHash> {
     let state = starknet.get_mut_state_at(block_id)?;
-    let class_hash = state.get_class_hash_at(contract_address.try_into()?)?;
+    let core_address = contract_address.try_into()?;
 
-    let class_hash_felt = class_hash.into();
-    if class_hash_felt == Felt::default() {
-        return Err(Error::ContractNotFound);
+    let class_hash = state.get_class_hash_at(core_address)?;
+    if class_hash == Default::default() {
+        Err(Error::ContractNotFound)
+    } else {
+        Ok(class_hash.into())
     }
-
-    Ok(class_hash_felt)
 }
 
 pub fn get_class_impl(
@@ -30,10 +30,10 @@ pub fn get_class_impl(
     class_hash: ClassHash,
 ) -> DevnetResult<ContractClass> {
     let state = starknet.get_mut_state_at(block_id)?;
-    state
-        .get_rpc_contract_class(&class_hash)
-        .cloned()
-        .ok_or(Error::StateError(StateError::NoneClassHash(class_hash)))
+    match state.get_rpc_contract_class(&class_hash) {
+        Some(class) => Ok(class.clone()),
+        None => Err(Error::StateError(StateError::NoneClassHash(class_hash))),
+    }
 }
 
 pub fn get_class_at_impl(
@@ -58,7 +58,8 @@ mod tests {
 
     use crate::account::Account;
     use crate::constants::{
-        self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
+        self, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
+        ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::Error;
     use crate::starknet::starknet_config::{StarknetConfig, StateArchiveCapacity};
@@ -100,6 +101,7 @@ mod tests {
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
+            DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         );
 
         starknet.restart_pending_block().unwrap();
@@ -148,8 +150,8 @@ mod tests {
 
         let class_hash = starknet.get_class_hash_at(&block_id, account.account_address);
         match class_hash.err().unwrap() {
-            Error::StateHistoryDisabled { .. } => (),
-            _ => panic!("Should fail with StateHistoryDisabled."),
+            Error::NoStateAtBlock { .. } => (),
+            _ => panic!("Should fail with NoStateAtBlock."),
         }
     }
 

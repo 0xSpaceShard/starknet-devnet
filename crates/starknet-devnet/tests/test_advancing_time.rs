@@ -16,7 +16,7 @@ mod advancing_time_tests {
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::utils::{
-        get_json_body, get_timestamp_contract_in_sierra_and_compiled_class_hash,
+        get_block_reader_contract_in_sierra_and_compiled_class_hash, get_json_body,
         get_unix_timestamp_as_seconds, send_ctrl_c_signal_and_wait, UniqueAutoDeletableFile,
     };
 
@@ -49,7 +49,7 @@ mod advancing_time_tests {
 
         // declare
         let (cairo_1_contract, casm_class_hash) =
-            get_timestamp_contract_in_sierra_and_compiled_class_hash();
+            get_block_reader_contract_in_sierra_and_compiled_class_hash();
         let declaration_result = predeployed_account
             .declare(Arc::new(cairo_1_contract), casm_class_hash)
             .max_fee(FieldElement::from(100000000000000000000u128))
@@ -95,10 +95,6 @@ mod advancing_time_tests {
         call_result[0].to_string().parse::<u64>().ok()
     }
 
-    pub async fn mine_new_block(devnet: &BackgroundDevnet) {
-        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
-    }
-
     #[tokio::test]
     async fn timestamp_syscall_set_in_past() {
         let devnet: BackgroundDevnet =
@@ -112,7 +108,7 @@ mod advancing_time_tests {
         let resp_body_set_time = get_json_body(resp_set_time).await;
         assert_eq!(resp_body_set_time["block_timestamp"], past_time);
 
-        mine_new_block(&devnet).await;
+        devnet.create_block().await.unwrap();
 
         // check if timestamp is greater/equal
         let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
@@ -133,7 +129,7 @@ mod advancing_time_tests {
         let resp_body_set_time = get_json_body(resp_set_time).await;
         assert_eq!(resp_body_set_time["block_timestamp"], future_time);
 
-        mine_new_block(&devnet).await;
+        devnet.create_block().await.unwrap();
 
         // check if timestamp is greater/equal
         let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
@@ -158,7 +154,7 @@ mod advancing_time_tests {
 
         // wait 1 second, mine block
         thread::sleep(time::Duration::from_secs(1));
-        mine_new_block(&devnet).await;
+        devnet.create_block().await.unwrap();
 
         // check if timestamp is greater
         let timestamp_after_new_block =
@@ -195,7 +191,7 @@ mod advancing_time_tests {
 
         // wait 1 second and mine block
         thread::sleep(time::Duration::from_secs(1));
-        mine_new_block(&devnet).await;
+        devnet.create_block().await.unwrap();
 
         // check if current timestamp is greater than storage timestamp and now
         let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
@@ -214,7 +210,7 @@ mod advancing_time_tests {
         .expect("Could not start Devnet");
         let timestamp_contract_address = setup_timestamp_contract(&devnet).await;
 
-        mine_new_block(&devnet).await;
+        devnet.create_block().await.unwrap();
 
         // check if timestamp is greater/equal
         let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
@@ -233,7 +229,7 @@ mod advancing_time_tests {
         .expect("Could not start Devnet");
         let timestamp_contract_address = setup_timestamp_contract(&devnet).await;
 
-        mine_new_block(&devnet).await;
+        devnet.create_block().await.unwrap();
 
         // check if timestamp is greater/equal
         let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
@@ -260,7 +256,7 @@ mod advancing_time_tests {
 
         // create block and check if block_timestamp is greater than past_time, check if it's inside
         // buffer limit
-        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        devnet.create_block().await.unwrap();
         let empty_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
@@ -299,7 +295,7 @@ mod advancing_time_tests {
 
         // create block and check if block_timestamp is greater than future_time, check if it's
         // inside buffer limit
-        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        devnet.create_block().await.unwrap();
         let empty_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
@@ -374,7 +370,7 @@ mod advancing_time_tests {
 
         // create block and check again if block_timestamp is greater than last block, check if it's
         // inside buffer limit
-        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        devnet.create_block().await.unwrap();
         let empty_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
@@ -434,7 +430,7 @@ mod advancing_time_tests {
 
         // create block and check if block timestamp is greater/equal 1, check if it's inside buffer
         // limit
-        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        devnet.create_block().await.unwrap();
         let empty_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
@@ -454,7 +450,7 @@ mod advancing_time_tests {
 
         // create block and check if block timestamp is greater than now, check if it's inside
         // buffer limit
-        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        devnet.create_block().await.unwrap();
         let empty_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
@@ -521,7 +517,7 @@ mod advancing_time_tests {
 
         // create a new empty block and check again if block timestamp is greater than
         // set_time_block, check if it's inside buffer limit
-        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        devnet.create_block().await.unwrap();
         let empty_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
@@ -549,7 +545,7 @@ mod advancing_time_tests {
 
         // check if the last block timestamp is greater previous block, check if it's inside buffer
         // limit
-        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        devnet.create_block().await.unwrap();
         let last_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
@@ -607,7 +603,7 @@ mod advancing_time_tests {
         thread::sleep(time::Duration::from_secs(1));
 
         // create block and assert
-        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        devnet.create_block().await.unwrap();
         let latest_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];

@@ -21,17 +21,17 @@ This repository is work in progress, please be patient. Please check below the s
 ### Supported Features
 
 - [x] RPC v0.7.0
-- [x] [Dump & Load](https://github.com/0xSpaceShard/starknet-devnet-rs#dumping--loading)
-- [x] [Mint token - Local faucet](https://0xspaceshard.github.io/starknet-devnet/docs/guide/mint-token)
+- [x] [Dump & Load](#dumping--loading)
+- [x] [Mint token - Local faucet](#mint-token)
 - [x] [Customizable predeployed accounts](#predeployed-contracts)
 - [x] Starknet.js test suite passes 100%
 - [x] [Advancing time](https://0xspaceshard.github.io/starknet-devnet/docs/guide/advancing-time)
+- [x] Availability as a package (crate)
+- [x] [Forking](#forking)
+- [x] [L1-L2 Postman integration](https://0xspaceshard.github.io/starknet-devnet/docs/guide/postman)
 
 ### TODO to reach feature parity with the Pythonic Devnet
 
-- [x] Availability as a package (crate)
-- [ ] [Forking](https://0xspaceshard.github.io/starknet-devnet/docs/guide/fork)
-- [x] [L1-L2 Postman integration](https://0xspaceshard.github.io/starknet-devnet/docs/guide/postman)
 - [ ] [Block manipulation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/blocks)
   - [x] Create an empty block
 
@@ -268,7 +268,7 @@ This means that timestamps of `StarknetBlock` will be different.
 Dumping and loading is not guaranteed to work cross-version. I.e. if you dumped one version of Devnet, do not expect it to be loadable with a different version.
 If you dumped a Devnet utilizing one class for account predeployment (e.g. the default `--account-class cairo0`), you should use the same option when loading.
 
-### Restarting
+## Restarting
 
 Devnet can be restarted by making a `POST /restart` request (no body required). All of the deployed contracts (including predeployed), blocks and storage updates will be restarted to the original state, without the transactions and requests from a dump file you may have provided on startup.
 
@@ -336,13 +336,40 @@ Devnet can be started with the `--start-time` argument, where `START_TIME_IN_SEC
 cargo run -- --start-time <START_TIME_IN_SECONDS>
 ```
 
-### Timeout
+## Timeout
 
 Timeout can be passed to Devnet's HTTP server. This makes it easier to deploy and manage large contracts that take longer to execute.
 
 ```
 cargo run -- --timeout <TIMEOUT>
 ```
+
+## Forking
+
+To interact with contracts deployed on mainnet or testnet, you can use the forking mode to simulate origin and experiment with it locally, making no changes to the origin itself.
+
+```
+cargo run -- --fork-network <URL> [--fork-block <BLOCK_NUMBER>]
+```
+
+The value passed to `--fork-network` should be the URL to a Starknet JSON-RPC API provider. Specifying a `--fork-block` is optional - defaults to the `"latest"` block at the time of Devnet's start-up. All calls will first try Devnet's state and then fall back to the forking block.
+
+### Forking status
+
+```
+GET /fork_status
+```
+
+Response when Devnet is a fork of an origin:
+
+```js
+{
+  "url": "https://your.origin.io",
+  "block": 42 // the block from which origin was forked
+}
+```
+
+Response when not forking: `{}`
 
 ### Querying old state by specifying block hash or number
 
