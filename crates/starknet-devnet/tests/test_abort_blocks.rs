@@ -27,6 +27,18 @@ mod abort_blocks_tests {
         aborted_blocks["aborted"].as_array().unwrap().clone()
     }
 
+    async fn assert_block_rejected(devnet: &BackgroundDevnet, block_hash: &Value) {
+        let block_after_abort = &devnet
+            .send_custom_rpc(
+                "starknet_getBlockWithTxHashes",
+                json!({
+                    "block_id": {"block_hash": block_hash},
+                }),
+            )
+            .await["result"];
+        assert_eq!(block_after_abort["status"], "REJECTED".to_string());
+    }
+
     #[tokio::test]
     async fn abort_latest_block() {
         let devnet: BackgroundDevnet =
@@ -57,15 +69,7 @@ mod abort_blocks_tests {
             .await["result"];
         assert_eq!(first_block_after_abort["status"], "ACCEPTED_ON_L2".to_string());
 
-        let second_block_after_abort = &devnet
-            .send_custom_rpc(
-                "starknet_getBlockWithTxHashes",
-                json!({
-                    "block_id": {"block_hash": second_block["block_hash"]},
-                }),
-            )
-            .await["result"];
-        assert_eq!(second_block_after_abort["status"], "REJECTED".to_string());
+        assert_block_rejected(&devnet, &second_block["block_hash"]).await;
     }
 
     #[tokio::test]
@@ -91,25 +95,8 @@ mod abort_blocks_tests {
             json!([second_block["block_hash"], first_block["block_hash"]])
         );
 
-        let first_block_after_abort = &devnet
-            .send_custom_rpc(
-                "starknet_getBlockWithTxHashes",
-                json!({
-                    "block_id": {"block_hash": first_block["block_hash"]},
-                }),
-            )
-            .await["result"];
-        assert_eq!(first_block_after_abort["status"], "REJECTED".to_string());
-
-        let second_block_after_abort = &devnet
-            .send_custom_rpc(
-                "starknet_getBlockWithTxHashes",
-                json!({
-                    "block_id": {"block_hash": second_block["block_hash"]},
-                }),
-            )
-            .await["result"];
-        assert_eq!(second_block_after_abort["status"], "REJECTED".to_string());
+        assert_block_rejected(&devnet, &first_block["block_hash"]).await;
+        assert_block_rejected(&devnet, &second_block["block_hash"]).await;
     }
 
     #[tokio::test]
@@ -154,16 +141,7 @@ mod abort_blocks_tests {
 
         let aborted_blocks = abort_blocks(&devnet, &second_block["block_hash"]).await;
         assert_eq!(aborted_blocks[0], second_block["block_hash"]);
-
-        let second_block_after_abort = &devnet
-            .send_custom_rpc(
-                "starknet_getBlockWithTxHashes",
-                json!({
-                    "block_id": {"block_hash": second_block["block_hash"]},
-                }),
-            )
-            .await["result"];
-        assert_eq!(second_block_after_abort["status"], "REJECTED".to_string());
+        assert_block_rejected(&devnet, &second_block["block_hash"]).await;
 
         let second_block_after_abort_by_number = &devnet
             .send_custom_rpc(
