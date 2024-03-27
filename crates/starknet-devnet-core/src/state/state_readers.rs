@@ -8,6 +8,8 @@ use starknet_api::core::{ClassHash, CompiledClassHash, ContractAddress, Nonce};
 use starknet_api::hash::StarkFelt;
 use starknet_api::state::StorageKey;
 
+use crate::starknet::defaulter::StarknetDefaulter;
+
 /// A simple implementation of `StateReader` using `HashMap`s as storage.
 /// Copied from blockifier test_utils, added `impl State`
 #[derive(Debug, Default, Clone)]
@@ -17,6 +19,13 @@ pub struct DictState {
     pub address_to_class_hash: HashMap<ContractAddress, ClassHash>,
     pub class_hash_to_class: HashMap<ClassHash, ContractClass>,
     pub class_hash_to_compiled_class_hash: HashMap<ClassHash, CompiledClassHash>,
+    defaulter: StarknetDefaulter,
+}
+
+impl DictState {
+    pub fn new(defaulter: StarknetDefaulter) -> Self {
+        Self { defaulter, ..Self::default() }
+    }
 }
 
 impl StateReader for DictState {
@@ -26,33 +35,38 @@ impl StateReader for DictState {
         key: StorageKey,
     ) -> StateResult<StarkFelt> {
         let contract_storage_key = (contract_address, key);
-        let value = self.storage_view.get(&contract_storage_key).copied().unwrap_or_default();
-        Ok(value)
+        match self.storage_view.get(&contract_storage_key) {
+            Some(value) => Ok(*value),
+            None => self.defaulter.get_storage_at(contract_address, key),
+        }
     }
 
     fn get_nonce_at(&mut self, contract_address: ContractAddress) -> StateResult<Nonce> {
-        let nonce = self.address_to_nonce.get(&contract_address).copied().unwrap_or_default();
-        Ok(nonce)
+        match self.address_to_nonce.get(&contract_address) {
+            Some(value) => Ok(*value),
+            None => self.defaulter.get_nonce_at(contract_address),
+        }
     }
 
     fn get_compiled_contract_class(&mut self, class_hash: ClassHash) -> StateResult<ContractClass> {
-        let contract_class = self.class_hash_to_class.get(&class_hash).cloned();
-        match contract_class {
-            Some(contract_class) => Ok(contract_class),
-            _ => Err(StateError::UndeclaredClassHash(class_hash)),
+        match self.class_hash_to_class.get(&class_hash) {
+            Some(contract_class) => Ok(contract_class.clone()),
+            None => self.defaulter.get_compiled_contract_class(class_hash),
         }
     }
 
     fn get_class_hash_at(&mut self, contract_address: ContractAddress) -> StateResult<ClassHash> {
-        let class_hash =
-            self.address_to_class_hash.get(&contract_address).copied().unwrap_or_default();
-        Ok(class_hash)
+        match self.address_to_class_hash.get(&contract_address) {
+            Some(class_hash) => Ok(*class_hash),
+            None => self.defaulter.get_class_hash_at(contract_address),
+        }
     }
 
     fn get_compiled_class_hash(
         &mut self,
         class_hash: ClassHash,
     ) -> StateResult<starknet_api::core::CompiledClassHash> {
+        // can't ask origin for this - insufficient API - probably not important
         let compiled_class_hash =
             self.class_hash_to_compiled_class_hash.get(&class_hash).copied().unwrap_or_default();
         Ok(compiled_class_hash)

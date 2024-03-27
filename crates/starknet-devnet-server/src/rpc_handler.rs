@@ -18,7 +18,11 @@ pub trait RpcHandler: Clone + Send + Sync + 'static {
     type Request: DeserializeOwned + Send + Sync + fmt::Debug;
 
     /// Invoked when the request was received
-    async fn on_request(&self, request: Self::Request) -> ResponseResult;
+    async fn on_request(
+        &self,
+        request: Self::Request,
+        original_call: RpcMethodCall,
+    ) -> ResponseResult;
 
     /// Invoked for every incoming `RpcMethodCall`
     ///
@@ -30,17 +34,17 @@ pub trait RpcHandler: Clone + Send + Sync + 'static {
     /// "<name>", "params": "<params>" }`
     async fn on_call(&mut self, call: RpcMethodCall) -> RpcResponse {
         trace!(target: "rpc",  id = ?call.id , method = ?call.method, "received method call");
-        let RpcMethodCall { method, params, id, .. } = call;
+        let RpcMethodCall { method, params, id, .. } = call.clone();
 
         let params: serde_json::Value = params.into();
-        let call = serde_json::json!({
+        let deserializable_call = serde_json::json!({
             "method": &method,
             "params": params
         });
 
-        match serde_json::from_value::<Self::Request>(call) {
+        match serde_json::from_value::<Self::Request>(deserializable_call) {
             Ok(req) => {
-                let result = self.on_request(req).await;
+                let result = self.on_request(req, call).await;
                 RpcResponse::new(id, result)
             }
             Err(err) => {

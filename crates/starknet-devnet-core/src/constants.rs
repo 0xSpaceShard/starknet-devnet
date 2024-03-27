@@ -72,6 +72,7 @@ pub const DEVNET_DEFAULT_HOST: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
 pub const DEVNET_DEFAULT_PORT: u16 = 5050;
 pub const DEVNET_DEFAULT_TIMEOUT: u16 = 120;
 pub const DEVNET_DEFAULT_CHAIN_ID: ChainId = ChainId::Testnet;
+pub const DEVNET_DEFAULT_STARTING_BLOCK_NUMBER: u64 = 0;
 
 pub const SUPPORTED_TX_VERSION: u32 = 1;
 pub const QUERY_VERSION_BASE: FieldElement = FieldElement::from_mont([
