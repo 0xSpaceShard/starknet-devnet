@@ -4,12 +4,11 @@ mod abort_blocks_tests {
     use hyper::Body;
     use serde_json::{json, Value};
     use server::api::json_rpc::error::ApiError;
-    use starknet_rs_core::types::{FieldElement, TransactionStatus};
-    use starknet_rs_providers::Provider;
+    use starknet_rs_core::types::FieldElement;
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::utils::get_json_body;
+    use crate::common::utils::{assert_tx_reverted, get_json_body};
 
     static DUMMY_ADDRESS: u128 = 1;
     static DUMMY_AMOUNT: u128 = 1;
@@ -115,15 +114,7 @@ mod abort_blocks_tests {
         let aborted_blocks = abort_blocks(&devnet, &latest_block["block_hash"]).await;
         assert_eq!(aborted_blocks[0], latest_block["block_hash"]);
 
-        let tx_status_after_abort =
-            devnet.json_rpc_client.get_transaction_status(mint_hash).await.unwrap();
-
-        assert_eq!(
-            tx_status_after_abort,
-            TransactionStatus::AcceptedOnL2(
-                starknet_rs_core::types::TransactionExecutionStatus::Reverted
-            )
-        );
+        assert_tx_reverted(&mint_hash, &devnet.json_rpc_client, &["Block aborted manually"]).await;
     }
 
     #[tokio::test]
