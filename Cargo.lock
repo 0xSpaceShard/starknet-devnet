@@ -4911,7 +4911,7 @@ dependencies = [
 
 [[package]]
 name = "starknet-devnet"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "anyhow",
  "cairo-lang-starknet-classes",
@@ -4938,7 +4938,7 @@ dependencies = [
 
 [[package]]
 name = "starknet-devnet-core"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "blockifier",
  "cairo-lang-starknet-classes",
@@ -4964,7 +4964,7 @@ dependencies = [
 
 [[package]]
 name = "starknet-devnet-server"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4989,7 +4989,7 @@ dependencies = [
 
 [[package]]
 name = "starknet-devnet-types"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "base64 0.21.7",
  "blockifier",
