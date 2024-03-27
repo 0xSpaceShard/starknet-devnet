@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
 use starknet_rs_core::chain_id::{MAINNET, TESTNET};
+use starknet_rs_core::utils::parse_cairo_short_string;
 use starknet_rs_ff::FieldElement;
 
 use crate::felt::Felt;
@@ -21,10 +22,9 @@ impl ChainId {
 
 impl Display for ChainId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ChainId::Mainnet => write!(f, "SN_MAIN"),
-            ChainId::Testnet => write!(f, "SN_GOERLI"),
-        }
+        let felt = FieldElement::from(self);
+        let str = parse_cairo_short_string(&felt).map_err(|_| std::fmt::Error)?;
+        f.write_str(&str)
     }
 }
 
@@ -63,5 +63,11 @@ mod tests {
         let sat: starknet_api::core::ChainId = t.into();
 
         assert_eq!(t.to_felt().to_prefixed_hex_str(), sat.as_hex());
+    }
+
+    #[test]
+    fn test_display() {
+        assert_eq!(format!("{}", ChainId::Mainnet), "SN_MAIN");
+        assert_eq!(format!("{}", ChainId::Testnet), "SN_SEPOLIA"); // TODO failing until starknet-rs updated
     }
 }
