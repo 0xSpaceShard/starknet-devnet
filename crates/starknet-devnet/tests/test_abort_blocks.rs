@@ -26,6 +26,19 @@ mod abort_blocks_tests {
         serde_json::from_value(aborted_blocks["aborted"].take()).unwrap()
     }
 
+    async fn abort_blocks_error(devnet: &BackgroundDevnet, starting_block_hash: &Value) {
+        let abort_blocks = devnet
+            .post_json(
+                "/abort_blocks".into(),
+                Body::from(json!({ "starting_block_hash": starting_block_hash }).to_string()),
+            )
+            .await
+            .unwrap();
+
+        let aborted_blocks = get_json_body(abort_blocks).await;
+        assert!(aborted_blocks["error"].to_string().starts_with("\"The block abortion failed"));
+    }
+
     async fn assert_block_rejected(devnet: &BackgroundDevnet, block_hash: &Value) {
         let block_after_abort = &devnet
             .send_custom_rpc(
@@ -216,15 +229,35 @@ mod abort_blocks_tests {
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
 
-        let abort_blocks = devnet
-            .post_json(
-                "/abort_blocks".into(),
-                Body::from(json!({ "starting_block_hash": first_block["block_hash"] }).to_string()),
-            )
-            .await
-            .unwrap();
+        abort_blocks_error(&devnet, &first_block["block_hash"]).await;
+    }
 
-        let aborted_blocks = get_json_body(abort_blocks).await;
-        assert!(aborted_blocks["error"].to_string().starts_with("\"The block abortion failed"));
+    #[tokio::test]
+    async fn abort_same_block_twice() {
+        let devnet: BackgroundDevnet =
+            BackgroundDevnet::spawn_with_additional_args(&["--state-archive-capacity", "full"])
+                .await
+                .expect("Could not start Devnet");
+
+        devnet.create_block().await.unwrap();
+
+        devnet.create_block().await.unwrap();
+        let second_block = &devnet
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
+
+        devnet.create_block().await.unwrap();
+        let third_block = &devnet
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
+
+        let aborted_blocks = abort_blocks(&devnet, &second_block["block_hash"]).await;
+        assert_eq!(
+            aborted_blocks,
+            vec![third_block["block_hash"].clone(), second_block["block_hash"].clone()]
+        );
+
+        abort_blocks_error(&devnet, &second_block["block_hash"]).await;
+        abort_blocks_error(&devnet, &third_block["block_hash"]).await;
     }
 }

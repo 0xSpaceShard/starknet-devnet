@@ -782,8 +782,12 @@ impl Starknet {
         if self.config.state_archive != StateArchiveCapacity::Full {
             return Err(Error::UnsupportedAction {
                 msg: ("The abort blocks feature requires state-archive-capacity set to full."
-                    .to_string()),
+                    .into()),
             });
+        }
+
+        if self.blocks.aborted_blocks.contains(&starting_block_hash) {
+            return Err(Error::UnsupportedAction { msg: "Block is already aborted".into() });
         }
 
         let mut next_block_to_abort_hash = self
