@@ -2,7 +2,7 @@ pub mod common;
 
 mod abort_blocks_tests {
     use hyper::Body;
-    use serde_json::json;
+    use serde_json::{json, Value};
     use server::api::json_rpc::error::ApiError;
     use starknet_rs_core::types::{FieldElement, TransactionStatus};
     use starknet_rs_providers::Provider;
@@ -13,6 +13,19 @@ mod abort_blocks_tests {
 
     static DUMMY_ADDRESS: u128 = 1;
     static DUMMY_AMOUNT: u128 = 1;
+
+    async fn abort_blocks(devnet: &BackgroundDevnet, starting_block_hash: &Value) -> Vec<Value> {
+        let abort_blocks = devnet
+            .post_json(
+                "/abort_blocks".into(),
+                Body::from(json!({ "starting_block_hash": starting_block_hash }).to_string()),
+            )
+            .await
+            .unwrap();
+        let aborted_blocks = get_json_body(abort_blocks).await;
+
+        aborted_blocks["aborted"].as_array().unwrap().clone()
+    }
 
     #[tokio::test]
     async fn abort_latest_block() {
@@ -31,18 +44,8 @@ mod abort_blocks_tests {
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
 
-        let abort_blocks = devnet
-            .post_json(
-                "/abort_blocks".into(),
-                Body::from(
-                    json!({ "starting_block_hash": second_block["block_hash"] }).to_string(),
-                ),
-            )
-            .await
-            .unwrap();
-
-        let aborted_blocks = get_json_body(abort_blocks).await;
-        assert_eq!(aborted_blocks["aborted"][0], second_block["block_hash"]);
+        let aborted_blocks = abort_blocks(&devnet, &second_block["block_hash"]).await;
+        assert_eq!(aborted_blocks[0], second_block["block_hash"]);
 
         let first_block_after_abort = &devnet
             .send_custom_rpc(
@@ -82,17 +85,11 @@ mod abort_blocks_tests {
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
 
-        let abort_blocks = devnet
-            .post_json(
-                "/abort_blocks".into(),
-                Body::from(json!({ "starting_block_hash": first_block["block_hash"] }).to_string()),
-            )
-            .await
-            .unwrap();
-
-        let aborted_blocks = get_json_body(abort_blocks).await;
-        assert_eq!(aborted_blocks["aborted"][0], second_block["block_hash"]);
-        assert_eq!(aborted_blocks["aborted"][1], first_block["block_hash"]);
+        let aborted_blocks = abort_blocks(&devnet, &first_block["block_hash"]).await;
+        assert_eq!(
+            json!(aborted_blocks),
+            json!([second_block["block_hash"], first_block["block_hash"]])
+        );
 
         let first_block_after_abort = &devnet
             .send_custom_rpc(
@@ -128,18 +125,8 @@ mod abort_blocks_tests {
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
 
-        let abort_blocks = devnet
-            .post_json(
-                "/abort_blocks".into(),
-                Body::from(
-                    json!({ "starting_block_hash": latest_block["block_hash"] }).to_string(),
-                ),
-            )
-            .await
-            .unwrap();
-
-        let aborted_blocks = get_json_body(abort_blocks).await;
-        assert_eq!(aborted_blocks["aborted"][0], latest_block["block_hash"]);
+        let aborted_blocks = abort_blocks(&devnet, &latest_block["block_hash"]).await;
+        assert_eq!(aborted_blocks[0], latest_block["block_hash"]);
 
         let tx_status_after_abort =
             devnet.json_rpc_client.get_transaction_status(mint_hash).await.unwrap();
@@ -165,18 +152,8 @@ mod abort_blocks_tests {
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
 
-        let abort_blocks = devnet
-            .post_json(
-                "/abort_blocks".into(),
-                Body::from(
-                    json!({ "starting_block_hash": second_block["block_hash"] }).to_string(),
-                ),
-            )
-            .await
-            .unwrap();
-
-        let aborted_blocks = get_json_body(abort_blocks).await;
-        assert_eq!(aborted_blocks["aborted"][0], second_block["block_hash"]);
+        let aborted_blocks = abort_blocks(&devnet, &second_block["block_hash"]).await;
+        assert_eq!(aborted_blocks[0], second_block["block_hash"]);
 
         let second_block_after_abort = &devnet
             .send_custom_rpc(
@@ -219,17 +196,8 @@ mod abort_blocks_tests {
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
 
-        let abort_blocks = devnet
-            .post_json(
-                "/abort_blocks".into(),
-                Body::from(
-                    json!({ "starting_block_hash": second_block["block_hash"] }).to_string(),
-                ),
-            )
-            .await
-            .unwrap();
-        let aborted_blocks = get_json_body(abort_blocks).await;
-        assert_eq!(aborted_blocks["aborted"][0], second_block["block_hash"]);
+        let aborted_blocks = abort_blocks(&devnet, &second_block["block_hash"]).await;
+        assert_eq!(aborted_blocks[0], second_block["block_hash"]);
 
         let balance = devnet
             .get_balance(
@@ -240,15 +208,8 @@ mod abort_blocks_tests {
             .unwrap();
         assert_eq!(balance.to_string(), DUMMY_AMOUNT.to_string());
 
-        let abort_blocks = devnet
-            .post_json(
-                "/abort_blocks".into(),
-                Body::from(json!({ "starting_block_hash": first_block["block_hash"] }).to_string()),
-            )
-            .await
-            .unwrap();
-        let aborted_blocks = get_json_body(abort_blocks).await;
-        assert_eq!(aborted_blocks["aborted"][0], first_block["block_hash"]);
+        let aborted_blocks = abort_blocks(&devnet, &first_block["block_hash"]).await;
+        assert_eq!(aborted_blocks[0], first_block["block_hash"]);
 
         let balance = devnet
             .get_balance(
