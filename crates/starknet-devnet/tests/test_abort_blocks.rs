@@ -261,6 +261,11 @@ mod abort_blocks_tests {
             .await
             .unwrap();
         assert_eq!(balance.to_string(), DUMMY_AMOUNT.to_string());
+
+        let latest_block = &devnet
+            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
+            .await["result"];
+        assert_eq!(latest_block["block_number"], 1);
     }
 
     #[tokio::test]

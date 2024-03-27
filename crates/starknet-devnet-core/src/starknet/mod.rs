@@ -265,7 +265,9 @@ impl Starknet {
         new_block.set_timestamp(block_timestamp);
         Self::update_block_context_block_timestamp(&mut self.block_context, block_timestamp);
 
-        let new_block_number = new_block.block_number();
+        let new_block_number =
+            BlockNumber(new_block.block_number().0 - self.blocks.aborted_blocks.len() as u64);
+        new_block.header.block_number = new_block_number;
         let new_block_hash: Felt = new_block.header.block_hash.0.into();
 
         // update txs block hash block number for each transaction in the pending block
@@ -827,6 +829,8 @@ impl Starknet {
                 )?;
             self.state = reverted_state.clone_historic();
         }
+
+        self.blocks.aborted_blocks = aborted.clone();
 
         Ok(aborted)
     }
