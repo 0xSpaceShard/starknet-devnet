@@ -127,7 +127,9 @@ pub async fn assert_tx_reverted<T: Provider>(
     let receipt = client.get_transaction_receipt(tx_hash).await.unwrap();
     match receipt.execution_result() {
         ExecutionResult::Reverted { reason } => {
-            assert_contains(reason, &expected_failure_reasons.join(" "));
+            for expected_reason in expected_failure_reasons {
+                assert_contains(reason, expected_reason);
+            }
         }
         other => panic!("Should have reverted; got: {other:?}; receipt: {receipt:?}"),
     }

@@ -21,9 +21,9 @@ mod abort_blocks_tests {
             )
             .await
             .unwrap();
-        let aborted_blocks = get_json_body(abort_blocks).await;
 
-        aborted_blocks["aborted"].as_array().unwrap().clone()
+        let mut aborted_blocks = get_json_body(abort_blocks).await;
+        serde_json::from_value(aborted_blocks["aborted"].take()).unwrap()
     }
 
     async fn assert_block_rejected(devnet: &BackgroundDevnet, block_hash: &Value) {
