@@ -828,10 +828,9 @@ impl Starknet {
                 self.blocks.hash_to_block.get(&last_reached_block_hash).ok_or(Error::NoBlock)?;
             self.blocks.last_block_hash = Some(current_block.block_hash());
 
-            let reverted_state =
-                self.blocks.hash_to_state.get(&current_block.block_hash()).ok_or(
-                    Error::NoStateAtBlock { block_number: current_block.block_number().0 },
-                )?;
+            let reverted_state = self.blocks.hash_to_state.get(&current_block.block_hash()).ok_or(
+                Error::NoStateAtBlock { block_id: BlockId::Number(current_block.block_number().0) },
+            )?;
             self.state = reverted_state.clone_historic();
         }
 

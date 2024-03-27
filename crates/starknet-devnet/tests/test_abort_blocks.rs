@@ -21,12 +21,12 @@ mod abort_blocks_tests {
                 .await
                 .expect("Could not start Devnet");
 
-        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        devnet.create_block().await.unwrap();
         let first_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
 
-        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        devnet.create_block().await.unwrap();
         let second_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
@@ -72,12 +72,12 @@ mod abort_blocks_tests {
                 .await
                 .expect("Could not start Devnet");
 
-        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        devnet.create_block().await.unwrap();
         let first_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
 
-        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        devnet.create_block().await.unwrap();
         let second_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
@@ -159,8 +159,8 @@ mod abort_blocks_tests {
                 .await
                 .expect("Could not start Devnet");
 
-        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
-        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        devnet.create_block().await.unwrap();
+        devnet.create_block().await.unwrap();
         let second_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
@@ -281,7 +281,7 @@ mod abort_blocks_tests {
         let devnet: BackgroundDevnet =
             BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-        devnet.post_json("/create_block".into(), Body::from(json!({}).to_string())).await.unwrap();
+        devnet.create_block().await.unwrap();
         let first_block = &devnet
             .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
             .await["result"];
