@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use hyper::{Body, Response};
+use server::test_utils::exported_test_utils::assert_contains;
 use starknet_core::random_number_generator::generate_u32_random_number;
 use starknet_rs_accounts::{Account, SingleOwnerAccount};
 use starknet_rs_contract::ContractFactory;
@@ -127,7 +128,7 @@ pub async fn assert_tx_reverted<T: Provider>(
     match receipt.execution_result() {
         ExecutionResult::Reverted { reason } => {
             for expected_reason in expected_failure_reasons {
-                reason.contains(expected_reason);
+                assert_contains(reason, expected_reason);
             }
         }
         other => panic!("Should have reverted; got: {other:?}; receipt: {receipt:?}"),

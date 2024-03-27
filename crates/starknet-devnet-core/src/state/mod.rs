@@ -169,7 +169,7 @@ impl StarknetState {
                 GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
             ),
             rpc_contract_classes: self.rpc_contract_classes.clone(),
-            historic_state: None,
+            historic_state: Some(self.historic_state.as_ref().unwrap().clone()),
         }
     }
 }

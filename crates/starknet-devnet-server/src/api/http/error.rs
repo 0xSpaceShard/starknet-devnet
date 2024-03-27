@@ -24,6 +24,8 @@ pub enum HttpApiError {
     BlockSetTimeError { msg: String },
     #[error("The increase time operation failed: {msg}")]
     BlockIncreaseTimeError { msg: String },
+    #[error("The block abortion failed: {msg}")]
+    BlockAbortError { msg: String },
     #[error("Could not restart: {msg}")]
     RestartError { msg: String },
     #[error("Messaging error: {msg}")]
@@ -39,6 +41,9 @@ impl IntoResponse for HttpApiError {
             err @ HttpApiError::FileNotFound => (StatusCode::BAD_REQUEST, err.to_string()),
             err @ HttpApiError::DumpError { msg: _ } => (StatusCode::BAD_REQUEST, err.to_string()),
             err @ HttpApiError::LoadError => (StatusCode::BAD_REQUEST, err.to_string()),
+            err @ HttpApiError::BlockAbortError { msg: _ } => {
+                (StatusCode::BAD_REQUEST, err.to_string())
+            }
             err @ HttpApiError::ReExecutionError => (StatusCode::BAD_REQUEST, err.to_string()),
             err @ HttpApiError::CreateEmptyBlockError { msg: _ } => {
                 (StatusCode::BAD_REQUEST, err.to_string())

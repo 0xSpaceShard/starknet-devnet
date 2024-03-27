@@ -24,6 +24,7 @@ pub(crate) struct StarknetBlocks {
     pub(crate) last_block_hash: Option<BlockHash>,
     pub(crate) hash_to_state_diff: HashMap<BlockHash, StateDiff>,
     pub(crate) hash_to_state: HashMap<BlockHash, StarknetState>,
+    pub(crate) aborted_blocks: Vec<Felt>,
 }
 
 impl HashIdentified for StarknetBlocks {
@@ -46,6 +47,7 @@ impl Default for StarknetBlocks {
             last_block_hash: None,
             hash_to_state_diff: HashMap::new(),
             hash_to_state: HashMap::new(),
+            aborted_blocks: Vec::new(),
         }
     }
 }

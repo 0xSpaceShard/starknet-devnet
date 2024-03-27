@@ -19,6 +19,14 @@ pub async fn create_block(
     }
 }
 
-pub async fn abort_blocks(Json(_data): Json<AbortingBlocks>) -> HttpApiResult<Json<AbortedBlocks>> {
-    Err(HttpApiError::GeneralError("Unimplemented".into()))
+pub async fn abort_blocks(
+    Json(data): Json<AbortingBlocks>,
+    Extension(state): Extension<HttpApiHandler>,
+) -> HttpApiResult<Json<AbortedBlocks>> {
+    let mut starknet = state.api.starknet.write().await;
+    let aborted = starknet
+        .abort_blocks(data.starting_block_hash)
+        .map_err(|err| HttpApiError::BlockAbortError { msg: (err.to_string()) })?;
+
+    Ok(Json(AbortedBlocks { aborted }))
 }

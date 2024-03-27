@@ -15,7 +15,7 @@ use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice, Ga
 use starknet_api::core::SequencerContractAddress;
 use starknet_api::transaction::Fee;
 use starknet_rs_core::types::{
-    BlockId, MsgFromL1, TransactionExecutionStatus, TransactionFinalityStatus,
+    BlockId, ExecutionResult, MsgFromL1, TransactionExecutionStatus, TransactionFinalityStatus,
 };
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
@@ -88,6 +88,8 @@ pub(crate) mod transaction_trace;
 
 pub struct Starknet {
     pub(in crate::starknet) state: StarknetState,
+    pub(in crate::starknet) init_state: StarknetState, /* This will be refactored during the
+                                                        * genesis block PR */
     predeployed_accounts: PredeployedAccounts,
     pub(in crate::starknet) block_context: BlockContext,
     // To avoid repeating some logic related to blocks,
@@ -113,6 +115,7 @@ impl Default for Starknet {
                 DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
             ),
             state: Default::default(),
+            init_state: Default::default(),
             predeployed_accounts: Default::default(),
             blocks: Default::default(),
             transactions: Default::default(),
@@ -184,6 +187,7 @@ impl Starknet {
             config.fork_config.block_number.map_or(DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, |n| n + 1);
         let mut this = Self {
             state,
+            init_state: StarknetState::default(),
             predeployed_accounts,
             block_context: Self::init_block_context(
                 config.gas_price,
@@ -203,6 +207,10 @@ impl Starknet {
         };
 
         this.restart_pending_block()?;
+
+        // Set init_state for abort blocks functionality
+        // This will be refactored during the genesis block PR
+        this.init_state = this.state.clone_historic();
 
         // Load starknet transactions
         if this.config.dump_path.is_some() && this.config.re_execute_on_init {
@@ -266,7 +274,9 @@ impl Starknet {
         new_block.set_timestamp(block_timestamp);
         Self::update_block_context_block_timestamp(&mut self.block_context, block_timestamp);
 
-        let new_block_number = new_block.block_number();
+        let new_block_number =
+            BlockNumber(new_block.block_number().0 - self.blocks.aborted_blocks.len() as u64);
+        new_block.header.block_number = new_block_number;
         let new_block_hash: Felt = new_block.header.block_hash.0.into();
 
         // update txs block hash block number for each transaction in the pending block
@@ -766,6 +776,71 @@ impl Starknet {
 
     pub fn block_state_update(&self, block_id: &BlockId) -> DevnetResult<StateUpdate> {
         state_update::state_update_by_block_id(self, block_id)
+    }
+
+    pub fn abort_blocks(&mut self, starting_block_hash: Felt) -> DevnetResult<Vec<Felt>> {
+        if self.config.state_archive != StateArchiveCapacity::Full {
+            return Err(Error::UnsupportedAction {
+                msg: ("The abort blocks feature requires state-archive-capacity set to full."
+                    .into()),
+            });
+        }
+
+        if self.blocks.aborted_blocks.contains(&starting_block_hash) {
+            return Err(Error::UnsupportedAction { msg: "Block is already aborted".into() });
+        }
+
+        let mut next_block_to_abort_hash = self
+            .blocks
+            .last_block_hash
+            .ok_or(Error::UnsupportedAction { msg: "No blocks to abort".into() })?;
+        let mut reached_starting_block = false;
+        let mut aborted: Vec<Felt> = Vec::new();
+
+        // Abort blocks from latest to starting (iterating backwards) and revert transactions.
+        while !reached_starting_block {
+            reached_starting_block = next_block_to_abort_hash == starting_block_hash;
+            let block_to_abort = self.blocks.hash_to_block.get_mut(&next_block_to_abort_hash);
+
+            if let Some(block) = block_to_abort {
+                block.status = BlockStatus::Rejected;
+                self.blocks.num_to_hash.shift_remove(&block.block_number());
+
+                // Revert transactions
+                for tx_hash in block.get_transactions() {
+                    let tx =
+                        self.transactions.get_by_hash_mut(tx_hash).ok_or(Error::NoTransaction)?;
+                    tx.execution_result =
+                        ExecutionResult::Reverted { reason: "Block aborted manually".to_string() };
+                }
+
+                aborted.push(block.block_hash());
+
+                // Update next block hash to abort
+                next_block_to_abort_hash = block.parent_hash();
+            }
+        }
+        let last_reached_block_hash = next_block_to_abort_hash;
+
+        // Update last_block_hash based on last reached block and revert state only if
+        // starting block is reached in while loop.
+        if last_reached_block_hash == Felt::from(0) && reached_starting_block {
+            self.blocks.last_block_hash = None;
+            self.state = self.init_state.clone_historic(); // This will be refactored during the genesis block PR 
+        } else if reached_starting_block {
+            let current_block =
+                self.blocks.hash_to_block.get(&last_reached_block_hash).ok_or(Error::NoBlock)?;
+            self.blocks.last_block_hash = Some(current_block.block_hash());
+
+            let reverted_state = self.blocks.hash_to_state.get(&current_block.block_hash()).ok_or(
+                Error::NoStateAtBlock { block_id: BlockId::Number(current_block.block_number().0) },
+            )?;
+            self.state = reverted_state.clone_historic();
+        }
+
+        self.blocks.aborted_blocks = aborted.clone();
+
+        Ok(aborted)
     }
 
     pub fn get_block_txs_count(&self, block_id: &BlockId) -> DevnetResult<u64> {
