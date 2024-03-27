@@ -34,7 +34,9 @@ mod abort_blocks_tests {
         let abort_blocks = devnet
             .post_json(
                 "/abort_blocks".into(),
-                Body::from(json!({ "startingBlockHash": second_block["block_hash"] }).to_string()),
+                Body::from(
+                    json!({ "starting_block_hash": second_block["block_hash"] }).to_string(),
+                ),
             )
             .await
             .unwrap();
@@ -83,7 +85,7 @@ mod abort_blocks_tests {
         let abort_blocks = devnet
             .post_json(
                 "/abort_blocks".into(),
-                Body::from(json!({ "startingBlockHash": first_block["block_hash"] }).to_string()),
+                Body::from(json!({ "starting_block_hash": first_block["block_hash"] }).to_string()),
             )
             .await
             .unwrap();
@@ -129,7 +131,9 @@ mod abort_blocks_tests {
         let abort_blocks = devnet
             .post_json(
                 "/abort_blocks".into(),
-                Body::from(json!({ "startingBlockHash": latest_block["block_hash"] }).to_string()),
+                Body::from(
+                    json!({ "starting_block_hash": latest_block["block_hash"] }).to_string(),
+                ),
             )
             .await
             .unwrap();
@@ -164,7 +168,9 @@ mod abort_blocks_tests {
         let abort_blocks = devnet
             .post_json(
                 "/abort_blocks".into(),
-                Body::from(json!({ "startingBlockHash": second_block["block_hash"] }).to_string()),
+                Body::from(
+                    json!({ "starting_block_hash": second_block["block_hash"] }).to_string(),
+                ),
             )
             .await
             .unwrap();
@@ -216,7 +222,9 @@ mod abort_blocks_tests {
         let abort_blocks = devnet
             .post_json(
                 "/abort_blocks".into(),
-                Body::from(json!({ "startingBlockHash": second_block["block_hash"] }).to_string()),
+                Body::from(
+                    json!({ "starting_block_hash": second_block["block_hash"] }).to_string(),
+                ),
             )
             .await
             .unwrap();
@@ -235,7 +243,7 @@ mod abort_blocks_tests {
         let abort_blocks = devnet
             .post_json(
                 "/abort_blocks".into(),
-                Body::from(json!({ "startingBlockHash": first_block["block_hash"] }).to_string()),
+                Body::from(json!({ "starting_block_hash": first_block["block_hash"] }).to_string()),
             )
             .await
             .unwrap();
@@ -281,7 +289,7 @@ mod abort_blocks_tests {
         let abort_blocks = devnet
             .post_json(
                 "/abort_blocks".into(),
-                Body::from(json!({ "startingBlockHash": first_block["block_hash"] }).to_string()),
+                Body::from(json!({ "starting_block_hash": first_block["block_hash"] }).to_string()),
             )
             .await
             .unwrap();

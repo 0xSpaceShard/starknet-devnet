@@ -44,7 +44,6 @@ pub struct CreatedBlock {
 
 #[derive(Deserialize)]
 pub struct AbortingBlocks {
-    #[serde(rename = "startingBlockHash")]
     pub(crate) starting_block_hash: BlockHash,
 }
 

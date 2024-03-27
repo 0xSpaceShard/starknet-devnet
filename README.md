@@ -303,7 +303,7 @@ Aborted blocks can only be queried by block hash. Aborting the blocks in forking
 ```
 POST /abort_blocks
 {
-    "startingBlockHash": BLOCK_HASH
+    "starting_block_hash": BLOCK_HASH
 }
 ```
 
