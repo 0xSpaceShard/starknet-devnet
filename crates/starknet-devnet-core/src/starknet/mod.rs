@@ -777,14 +777,10 @@ impl Starknet {
             });
         }
 
-        let mut next_block_to_abort_hash = match self.blocks.last_block_hash {
-            None => {
-                return Err(Error::UnsupportedAction {
-                    msg: ("last_block_hash is not set".to_string()),
-                });
-            }
-            Some(felt) => felt,
-        };
+        let mut next_block_to_abort_hash = self
+            .blocks
+            .last_block_hash
+            .ok_or(Error::UnsupportedAction { msg: "No blocks to abort".into() })?;
         let mut reached_starting_block = false;
         let mut aborted: Vec<Felt> = Vec::new();
 
