@@ -2,6 +2,10 @@ FROM rust:1.74.0-slim-buster as builder
 
 COPY . .
 
+RUN apt-get -y update && \
+    apt-get install pkg-config -y && \
+    apt-get install libssl-dev -y
+
 RUN cargo build --bin starknet-devnet --release
 
 FROM debian:buster-slim
