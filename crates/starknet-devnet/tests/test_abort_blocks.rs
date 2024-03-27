@@ -56,7 +56,7 @@ mod abort_blocks_tests {
             .await["result"];
 
         let aborted_blocks = abort_blocks(&devnet, &second_block["block_hash"]).await;
-        assert_eq!(aborted_blocks[0], second_block["block_hash"]);
+        assert_eq!(aborted_blocks, vec![second_block["block_hash"].clone()]);
 
         let first_block_after_abort = &devnet
             .send_custom_rpc(
@@ -112,7 +112,7 @@ mod abort_blocks_tests {
             .await["result"];
 
         let aborted_blocks = abort_blocks(&devnet, &latest_block["block_hash"]).await;
-        assert_eq!(aborted_blocks[0], latest_block["block_hash"]);
+        assert_eq!(aborted_blocks, vec![latest_block["block_hash"].clone()]);
 
         assert_tx_reverted(&mint_hash, &devnet.json_rpc_client, &["Block aborted manually"]).await;
     }
@@ -131,7 +131,7 @@ mod abort_blocks_tests {
             .await["result"];
 
         let aborted_blocks = abort_blocks(&devnet, &second_block["block_hash"]).await;
-        assert_eq!(aborted_blocks[0], second_block["block_hash"]);
+        assert_eq!(aborted_blocks, vec![second_block["block_hash"].clone()]);
         assert_block_rejected(&devnet, &second_block["block_hash"]).await;
 
         let second_block_after_abort_by_number = &devnet
@@ -166,7 +166,7 @@ mod abort_blocks_tests {
             .await["result"];
 
         let aborted_blocks = abort_blocks(&devnet, &second_block["block_hash"]).await;
-        assert_eq!(aborted_blocks[0], second_block["block_hash"]);
+        assert_eq!(aborted_blocks, vec![second_block["block_hash"].clone()]);
 
         let balance = devnet
             .get_balance(
@@ -178,7 +178,7 @@ mod abort_blocks_tests {
         assert_eq!(balance.to_string(), DUMMY_AMOUNT.to_string());
 
         let aborted_blocks = abort_blocks(&devnet, &first_block["block_hash"]).await;
-        assert_eq!(aborted_blocks[0], first_block["block_hash"]);
+        assert_eq!(aborted_blocks, vec![first_block["block_hash"].clone()]);
 
         let balance = devnet
             .get_balance(
