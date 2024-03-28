@@ -10,7 +10,9 @@ use hyper::{Body, Client, Response, StatusCode, Uri};
 use lazy_static::lazy_static;
 use serde_json::json;
 use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
-use starknet_rs_core::types::{BlockId, FieldElement, FunctionCall};
+use starknet_rs_core::types::{
+    BlockId, BlockTag, BlockWithTxHashes, FieldElement, FunctionCall, MaybePendingBlockWithTxHashes,
+};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
@@ -284,6 +286,15 @@ impl BackgroundDevnet {
         let block_creation_resp_body = get_json_body(block_creation_resp).await;
         let block_hash_str = block_creation_resp_body["block_hash"].as_str().unwrap();
         Ok(FieldElement::from_hex_be(block_hash_str)?)
+    }
+
+    pub async fn get_latest_block_with_tx_hashes(
+        &self,
+    ) -> Result<BlockWithTxHashes, anyhow::Error> {
+        match self.json_rpc_client.get_block_with_tx_hashes(BlockId::Tag(BlockTag::Latest)).await {
+            Ok(MaybePendingBlockWithTxHashes::Block(b)) => Ok(b),
+            other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
+        }
     }
 }
 

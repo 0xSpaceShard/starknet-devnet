@@ -24,7 +24,7 @@ pub enum HttpApiError {
     BlockSetTimeError { msg: String },
     #[error("The increase time operation failed: {msg}")]
     BlockIncreaseTimeError { msg: String },
-    #[error("The block abortion failed: {msg}")]
+    #[error("Block abortion failed: {msg}")]
     BlockAbortError { msg: String },
     #[error("Could not restart: {msg}")]
     RestartError { msg: String },
