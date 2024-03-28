@@ -7,7 +7,7 @@ use blockifier::state::state_api::{State, StateReader};
 use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use starknet_api::core::CompiledClassHash;
 use starknet_api::hash::StarkFelt;
-use starknet_types::constants::MAX_BYTECODE_SIZE_LIMIT;
+use starknet_rs_core::types::contract::CompiledClass;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Felt};
@@ -298,14 +298,19 @@ impl CustomState for StarknetState {
         let compiled_class = contract_class.clone().try_into()?;
 
         if let ContractClass::Cairo1(cairo_lang_contract_class) = &contract_class {
-            let cairo_lang_compiled_class = CasmContractClass::from_contract_class(
-                cairo_lang_contract_class.clone(),
-                true,
-                MAX_BYTECODE_SIZE_LIMIT,
+            let casm_json = usc::compile_contract(
+                serde_json::to_value(cairo_lang_contract_class)
+                    .map_err(|err| Error::SerializationError { origin: err.to_string() })?,
             )
             .map_err(|_| Error::SierraCompilationError)?;
-            let casm_hash =
-                Felt::new(cairo_lang_compiled_class.compiled_class_hash().to_be_bytes())?;
+
+            let casm_hash = Felt::from(
+                serde_json::from_value::<CompiledClass>(casm_json)
+                    .map_err(|err| Error::DeserializationError { origin: err.to_string() })?
+                    .class_hash()
+                    .map_err(|err| Error::UnexpectedInternalError { msg: err.to_string() })?,
+            );
+
             self.state.state.set_compiled_class_hash(class_hash.into(), casm_hash.into())?;
         };
 
@@ -322,14 +327,18 @@ impl CustomState for StarknetState {
         let compiled_class = contract_class.clone().try_into()?;
 
         if let ContractClass::Cairo1(cairo_lang_contract_class) = &contract_class {
-            let cairo_lang_compiled_class = CasmContractClass::from_contract_class(
-                cairo_lang_contract_class.clone(),
-                true,
-                MAX_BYTECODE_SIZE_LIMIT,
+            let casm_json = usc::compile_contract(
+                serde_json::to_value(cairo_lang_contract_class)
+                    .map_err(|err| Error::SerializationError { origin: err.to_string() })?,
             )
             .map_err(|_| Error::SierraCompilationError)?;
-            let casm_hash =
-                Felt::new(cairo_lang_compiled_class.compiled_class_hash().to_be_bytes())?;
+
+            let casm_hash = Felt::from(
+                serde_json::from_value::<CompiledClass>(casm_json)
+                    .map_err(|err| Error::DeserializationError { origin: err.to_string() })?
+                    .class_hash()
+                    .map_err(|err| Error::UnexpectedInternalError { msg: err.to_string() })?,
+            );
             self.set_compiled_class_hash(class_hash.into(), casm_hash.into())?;
         };
 
