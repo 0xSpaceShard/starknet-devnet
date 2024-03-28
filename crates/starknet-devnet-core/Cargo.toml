@@ -28,6 +28,7 @@ tracing = { workspace = true }
 indexmap = { workspace = true }
 url = { workspace = true }
 nonzero_ext = { workspace = true }
+usc = { workspace = true }
 
 [dev-dependencies]
 hex = "0.4.3"
