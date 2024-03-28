@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use starknet_rs_core::chain_id::{MAINNET, TESTNET};
+use starknet_rs_core::chain_id::{MAINNET, SEPOLIA};
 use starknet_rs_core::utils::parse_cairo_short_string;
 use starknet_rs_ff::FieldElement;
 
@@ -32,7 +32,7 @@ impl From<ChainId> for FieldElement {
     fn from(value: ChainId) -> Self {
         match value {
             ChainId::Mainnet => MAINNET,
-            ChainId::Testnet => TESTNET,
+            ChainId::Testnet => SEPOLIA,
         }
     }
 }
@@ -41,7 +41,7 @@ impl From<&ChainId> for FieldElement {
     fn from(value: &ChainId) -> Self {
         match value {
             ChainId::Mainnet => MAINNET,
-            ChainId::Testnet => TESTNET,
+            ChainId::Testnet => SEPOLIA,
         }
     }
 }
@@ -68,6 +68,6 @@ mod tests {
     #[test]
     fn test_display() {
         assert_eq!(format!("{}", ChainId::Mainnet), "SN_MAIN");
-        assert_eq!(format!("{}", ChainId::Testnet), "SN_SEPOLIA"); // TODO failing until starknet-rs updated
+        assert_eq!(format!("{}", ChainId::Testnet), "SN_SEPOLIA");
     }
 }
