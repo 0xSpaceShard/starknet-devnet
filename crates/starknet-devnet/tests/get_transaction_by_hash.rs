@@ -42,7 +42,7 @@ mod get_transaction_by_hash_integration_tests {
             &devnet.json_rpc_client,
             signer,
             account_address,
-            chain_id::TESTNET,
+            chain_id::SEPOLIA,
             ExecutionEncoding::Legacy,
         );
         account.set_block_id(BlockId::Tag(BlockTag::Latest));
@@ -90,7 +90,7 @@ mod get_transaction_by_hash_integration_tests {
             &devnet.json_rpc_client,
             signer,
             address,
-            chain_id::TESTNET,
+            chain_id::SEPOLIA,
             ExecutionEncoding::Legacy,
         );
         account.set_block_id(BlockId::Tag(BlockTag::Latest));
@@ -128,7 +128,7 @@ mod get_transaction_by_hash_integration_tests {
 
         let factory = OpenZeppelinAccountFactory::new(
             FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
-            chain_id::TESTNET,
+            chain_id::SEPOLIA,
             signer,
             devnet.clone_provider(),
         )
@@ -170,7 +170,7 @@ mod get_transaction_by_hash_integration_tests {
             &devnet.json_rpc_client,
             signer,
             account_address,
-            chain_id::TESTNET,
+            chain_id::SEPOLIA,
             ExecutionEncoding::New,
         );
 

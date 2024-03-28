@@ -137,7 +137,7 @@ mod test_restart {
             devnet.clone_provider(),
             signer,
             address,
-            chain_id::TESTNET,
+            chain_id::SEPOLIA,
             ExecutionEncoding::New,
         ));
 

@@ -26,7 +26,7 @@ mod get_events_integration_tests {
             devnet.clone_provider(),
             signer,
             address,
-            chain_id::TESTNET,
+            chain_id::SEPOLIA,
             ExecutionEncoding::New,
         );
 

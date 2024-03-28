@@ -72,7 +72,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
             devnet.clone_provider(),
             signer,
             address,
-            chain_id::TESTNET,
+            chain_id::SEPOLIA,
             ExecutionEncoding::New,
         ));
 
@@ -132,7 +132,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
             devnet.clone_provider(),
             signer,
             address,
-            chain_id::TESTNET,
+            chain_id::SEPOLIA,
             ExecutionEncoding::New,
         ));
 
@@ -190,7 +190,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
             devnet.clone_provider(),
             signer,
             account_address,
-            chain_id::TESTNET,
+            chain_id::SEPOLIA,
             ExecutionEncoding::New,
         );
 

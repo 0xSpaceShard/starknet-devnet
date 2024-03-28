@@ -87,7 +87,7 @@ mod trace_tests {
             devnet.clone_provider(),
             signer,
             account_address,
-            chain_id::TESTNET,
+            chain_id::SEPOLIA,
             ExecutionEncoding::New,
         );
 
@@ -143,7 +143,7 @@ mod trace_tests {
             devnet.clone_provider(),
             signer,
             account_address,
-            chain_id::TESTNET,
+            chain_id::SEPOLIA,
             ExecutionEncoding::New,
         ));
 
@@ -207,7 +207,7 @@ mod trace_tests {
         let new_account_signer = get_deployable_account_signer();
         let account_factory = OpenZeppelinAccountFactory::new(
             FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap(),
-            chain_id::TESTNET,
+            chain_id::SEPOLIA,
             new_account_signer.clone(),
             devnet.clone_provider(),
         )

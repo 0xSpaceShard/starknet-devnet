@@ -198,7 +198,7 @@ mod dump_and_load_tests {
             devnet.clone_provider(),
             signer,
             account_address,
-            chain_id::TESTNET,
+            chain_id::SEPOLIA,
             ExecutionEncoding::New,
         );
 

@@ -175,7 +175,7 @@ mod fork_tests {
             origin_devnet.clone_provider(),
             signer.clone(),
             account_address,
-            chain_id::TESTNET,
+            chain_id::SEPOLIA,
             ExecutionEncoding::New,
         ));
 
@@ -218,7 +218,7 @@ mod fork_tests {
             origin_devnet.clone_provider(),
             signer.clone(),
             account_address,
-            chain_id::TESTNET,
+            chain_id::SEPOLIA,
             ExecutionEncoding::New,
         ));
 
@@ -258,7 +258,7 @@ mod fork_tests {
             origin_devnet.clone_provider(),
             signer.clone(),
             account_address,
-            chain_id::TESTNET,
+            chain_id::SEPOLIA,
             ExecutionEncoding::New,
         ));
 
@@ -304,7 +304,7 @@ mod fork_tests {
             fork_devnet.clone_provider(),
             signer,
             account_address,
-            chain_id::TESTNET,
+            chain_id::SEPOLIA,
             ExecutionEncoding::New,
         );
 
@@ -344,7 +344,7 @@ mod fork_tests {
         let nonexistent_class_hash = FieldElement::from_hex_be("0x123").unwrap();
         let factory = OpenZeppelinAccountFactory::new(
             nonexistent_class_hash,
-            chain_id::TESTNET,
+            chain_id::SEPOLIA,
             signer,
             fork_devnet.clone_provider(),
         )
@@ -391,7 +391,7 @@ mod fork_tests {
         let account_hash = "0x00f7f9cd401ad39a09f095001d31f0ad3fdc2f4e532683a84a8a6c76150de858";
         let factory = OpenZeppelinAccountFactory::new(
             FieldElement::from_hex_be(account_hash).unwrap(),
-            chain_id::TESTNET,
+            chain_id::SEPOLIA,
             signer,
             fork_devnet.clone_provider(),
         )
@@ -553,7 +553,7 @@ mod fork_tests {
             origin_devnet.clone_provider(),
             signer.clone(),
             account_address,
-            chain_id::TESTNET,
+            chain_id::SEPOLIA,
             ExecutionEncoding::New,
         ));
 
