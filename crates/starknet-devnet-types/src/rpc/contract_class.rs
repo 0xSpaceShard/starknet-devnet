@@ -12,7 +12,6 @@ use starknet_rs_core::types::{
 };
 use starknet_rs_ff::FieldElement;
 
-use crate::constants::MAX_BYTECODE_SIZE_LIMIT;
 use crate::error::{ConversionError, DevnetResult, Error, JsonError};
 use crate::felt::Felt;
 use crate::serde_helpers::rpc_sierra_contract_class_to_sierra_contract_class::deserialize_to_sierra_contract_class;
@@ -162,7 +161,7 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ClassInfo
                     ))
                 })
             }
-            ContractClass::Cairo1(sierra_contract_class) => {
+            ContractClass::Cairo1(ref sierra_contract_class) => {
                 let sierra_program_length = sierra_contract_class.sierra_program.len();
                 // Calculated as the length of the stringified abi
                 // https://spaceshard.slack.com/archives/C03HL8DH52N/p1708512271256699?thread_ts=1707845482.455099&cid=C03HL8DH52N
@@ -174,28 +173,14 @@ impl TryFrom<ContractClass> for blockifier::execution::contract_class::ClassInfo
                     0
                 };
 
-                let casm_contract_class = CasmContractClass::from_contract_class(
-                    sierra_contract_class,
-                    true,
-                    MAX_BYTECODE_SIZE_LIMIT,
-                )
-                .map_err(|err| Error::SierraCompilationError { reason: err.to_string() })?;
+                let blockifier_contract_class: blockifier::execution::contract_class::ContractClass = value.try_into()?;
 
-                let blockifier_contract_class: blockifier::execution::contract_class::ContractClassV1 =
-                        casm_contract_class.try_into().map_err(|_| Error::ProgramError)?;
-
-                ClassInfo::new(
-                    &blockifier::execution::contract_class::ContractClass::V1(
-                        blockifier_contract_class,
-                    ),
-                    sierra_program_length,
-                    abi_length,
-                )
-                .map_err(|err| {
-                    Error::ConversionError(ConversionError::InvalidInternalStructure(
-                        err.to_string(),
-                    ))
-                })
+                ClassInfo::new(&blockifier_contract_class, sierra_program_length, abi_length)
+                    .map_err(|err| {
+                        Error::ConversionError(ConversionError::InvalidInternalStructure(
+                            err.to_string(),
+                        ))
+                    })
             }
         }
     }
