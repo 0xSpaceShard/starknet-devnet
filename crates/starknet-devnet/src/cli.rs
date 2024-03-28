@@ -277,7 +277,7 @@ mod tests {
                 get_first_line(&err.to_string()),
                 format!(
                     "error: invalid value '{custom_path}' for '--account-class-custom <PATH>': \
-                     missing field `kind` at line 1 column 292"
+                     Types error: missing field `kind` at line 1 column 292"
                 )
             ),
             Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
@@ -293,8 +293,8 @@ mod tests {
                 get_first_line(&err.to_string()),
                 format!(
                     "error: invalid value '{custom_path}' for '--account-class-custom <PATH>': \
-                     Not a valid Sierra account artifact; has __execute__: false; has \
-                     __validate__: false"
+                     Failed to load ContractClass: Not a valid Sierra account artifact; has \
+                     __execute__: false; has __validate__: false"
                 )
             ),
             Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
