@@ -1,13 +1,13 @@
 use std::str::FromStr;
 
-use starknet_core::constants::{
-    CAIRO_0_ACCOUNT_CONTRACT_PATH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH,
-};
 use starknet_rs_core::types::FieldElement;
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_types::contract_class::{Cairo0ContractClass, Cairo0Json, ContractClass};
 use starknet_types::felt::Felt;
 use starknet_types::traits::HashProducer;
+
+use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT_PATH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH};
+use crate::error::DevnetResult;
 
 #[derive(clap::ValueEnum, Debug, Clone)]
 pub enum AccountContractClassChoice {
@@ -16,7 +16,7 @@ pub enum AccountContractClassChoice {
 }
 
 impl AccountContractClassChoice {
-    pub(crate) fn get_class_wrapper(&self) -> Result<AccountClassWrapper, anyhow::Error> {
+    pub fn get_class_wrapper(&self) -> DevnetResult<AccountClassWrapper> {
         Ok(match self {
             AccountContractClassChoice::Cairo0 => {
                 let contract_class = Cairo0ContractClass::RawJson(Cairo0Json::raw_json_from_path(
@@ -46,7 +46,7 @@ pub struct AccountClassWrapper {
 }
 
 impl FromStr for AccountClassWrapper {
-    type Err = anyhow::Error;
+    type Err = crate::error::Error;
 
     fn from_str(path_candidate: &str) -> Result<Self, Self::Err> {
         // load artifact
@@ -72,7 +72,7 @@ impl FromStr for AccountClassWrapper {
                 "Not a valid Sierra account artifact; has __execute__: {has_execute}; has \
                  __validate__: {has_validate}"
             );
-            return Err(anyhow::Error::msg(msg));
+            return Err(crate::error::Error::ContractClassLoadError(msg));
         }
 
         // generate the hash and return
@@ -85,13 +85,11 @@ impl FromStr for AccountClassWrapper {
 #[cfg(test)]
 mod tests {
     use clap::ValueEnum;
-    use starknet_core::constants::{
-        CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH,
-    };
     use starknet_types::felt::Felt;
     use starknet_types::traits::HashProducer;
 
     use super::AccountContractClassChoice;
+    use crate::constants::{CAIRO_0_ACCOUNT_CONTRACT_HASH, CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH};
     use crate::contract_class_choice::AccountClassWrapper;
 
     #[test]

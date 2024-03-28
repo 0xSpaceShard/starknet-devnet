@@ -62,7 +62,7 @@ impl AccountGenerator for PredeployedAccounts {
         &mut self,
         number_of_accounts: u8,
         class_hash: ClassHash,
-        contract_class: ContractClass,
+        contract_class: &ContractClass,
     ) -> DevnetResult<&Vec<Self::Acc>> {
         let private_keys = self.generate_private_keys(number_of_accounts);
 
