@@ -342,7 +342,7 @@ mod tests {
         let (mut starknet, sender) = setup(Some(20000));
 
         let mut declare_txn = broadcasted_declare_transaction_v1(sender);
-        declare_txn.common.max_fee = Fee(declare_txn.common.max_fee.0 / 10);
+        declare_txn.common.max_fee = Fee(10);
 
         match starknet.add_declare_transaction_v1(declare_txn).unwrap_err() {
             crate::error::Error::TransactionValidationError(
