@@ -4,7 +4,6 @@ use blockifier::state::cached_state::{
     CachedState, GlobalContractCache, GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST,
 };
 use blockifier::state::state_api::{State, StateReader};
-use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use starknet_api::core::CompiledClassHash;
 use starknet_api::hash::StarkFelt;
 use starknet_types::contract_address::ContractAddress;

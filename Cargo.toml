@@ -68,14 +68,13 @@ usc = { version = "2.1.0", package = "universal-sierra-compiler" }
 # Starknet dependencies
 starknet_api = { version = "0.10.0", features = ["testing"] }
 blockifier = { version = "0.6.0-rc.0" }
-starknet-rs-signers = { version = "0.7.0", package = "starknet-signers" }
-starknet-rs-ff = { version = "0.3.6", package = "starknet-ff" }
-starknet-rs-core = { version = "0.9.0", package = "starknet-core" }
-starknet-rs-providers = { version = "0.9.0", package = "starknet-providers" }
-starknet-rs-accounts = { version = "0.8.0", package = "starknet-accounts" }
-starknet-rs-contract = { version = "0.8.0", package = "starknet-contract" }
-starknet-rs-crypto = { version = "0.6.1", package = "starknet-crypto" }
-
+starknet-rs-signers = { version = "0.8.0", package = "starknet-signers" }
+starknet-rs-ff = { version = "0.3.7", package = "starknet-ff" }
+starknet-rs-core = { version = "0.10.0", package = "starknet-core" }
+starknet-rs-providers = { version = "0.10.0", package = "starknet-providers" }
+starknet-rs-accounts = { version = "0.9.0", package = "starknet-accounts" }
+starknet-rs-contract = { version = "0.9.0", package = "starknet-contract" }
+starknet-rs-crypto = { version = "0.6.2", package = "starknet-crypto" }
 # Cairo-lang dependencies
 cairo-lang-starknet-classes = { version = "=2.6.0", package = "cairo-lang-starknet-classes" }
 cairo-lang-compiler = "=2.6.0"
