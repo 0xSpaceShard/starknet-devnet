@@ -29,11 +29,13 @@ This repository is work in progress, please be patient. Please check below the s
 - [x] Availability as a package (crate)
 - [x] [Forking](#forking)
 - [x] [L1-L2 Postman integration](https://0xspaceshard.github.io/starknet-devnet/docs/guide/postman)
+- [x] [Block manipulation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/blocks)
+  - [x] Aborting blocks
+  - [x] Create an empty block
 
 ### TODO to reach feature parity with the Pythonic Devnet
 
-- [ ] [Block manipulation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/blocks)
-  - [x] Create an empty block
+- [ ] Creating blocks on demand
 
 ## Requirements
 
@@ -282,11 +284,15 @@ A new block is generated with each new transaction, and you can create an empty 
 
 To create an empty block without transactions, POST a request to /create_block:
 
+```
 POST /create_block
+```
 
 Response:
 
-{'block_hash': '0x115e1b390cafa7942b6ab141ab85040defe7dee9bef3bc31d8b5b3d01cc9c67'}
+```
+{"block_hash": "0x115e1b390cafa7942b6ab141ab85040defe7dee9bef3bc31d8b5b3d01cc9c67"}
+```
 
 ### Abort blocks
 
@@ -408,11 +414,13 @@ cargo run -- --state-archive-capacity <CAPACITY>
 
 All RPC endpoints that support querying the state at an old (non-latest) block only work with state archive capacity set to `full`.
 
-## Development - Visual Studio Code
+## Development
+
+### Development - Visual Studio Code
 
 It is highly recommended to get familiar with [Visual Studio Code Dev Containers](https://code.visualstudio.com/docs/devcontainers/create-dev-container#_dockerfile) and install [rust-analyzer](https://code.visualstudio.com/docs/languages/rust) extension.
 
-## Development - Linter
+### Development - Linter
 
 Run the linter with:
 
@@ -420,7 +428,7 @@ Run the linter with:
 ./scripts/clippy_check.sh
 ```
 
-## Development - Formatter
+### Development - Formatter
 
 Run the formatter with:
 
@@ -440,7 +448,7 @@ Resolve it with:
 rustup default nightly
 ```
 
-## Development - Unused dependencies
+### Development - Unused dependencies
 
 To check for unused dependencies, run:
 
@@ -450,7 +458,7 @@ To check for unused dependencies, run:
 
 If you think this reports a dependency as a false-positive (i.e. isn't unused), check [here](https://github.com/bnjbvr/cargo-machete#false-positives).
 
-## Development - Testing
+### Development - Testing
 
 ### Prerequisites
 
@@ -458,7 +466,7 @@ Some tests require the `anvil` command, so you need to [install Foundry](https:/
 
 To ensure that integration tests pass, be sure to have run `cargo build --release` or `cargo run --release` prior to testing. This builds the production target used in integration tests, so spawning BackgroundDevnet won't time out.
 
-### Execution
+### Test execution
 
 Run all tests using all available CPUs with:
 
@@ -472,7 +480,7 @@ The previous command might cause your testing to die along the way due to memory
 cargo test --jobs <N>
 ```
 
-## Development - Docker
+### Development - Docker
 
 Due to internal needs, images with arch suffix are built and pushed to Docker Hub, but this is not mentioned in the user docs as users should NOT be needing it.
 
@@ -485,7 +493,7 @@ This is what happens under the hood on `main`:
 
 In the image, `tini` is used to properly handle killing of dockerized Devnet with Ctrl+C
 
-## Development - L1 / L2 (postman)
+### Development - L1 / L2 (postman)
 
 To test Starknet messaging, Devnet exposes endpoints prefixed with `postman/` which are dedicated to the messaging feature.
 You can find a full guide to test the messaging feature in the [contracts/l1-l2-messaging README](./contracts/l1-l2-messaging/README.md).
@@ -497,7 +505,7 @@ Devnet exposes the following endpoints:
 - `/postman/send_message_to_l2`: sends and executes a message on L2 (L1 node **not** required).
 - `/postman/consume_message_from_l2`: consumes a message on L1 node from the L2 (requires L1 node to be running).
 
-## Development - Update of OpenZeppelin contracts
+### Development - Update of OpenZeppelin contracts
 
 Tests in devnet require an erc20 contract with the `Mintable` feature, keep in mind that before the compilation process of [cairo-contracts](https://github.com/OpenZeppelin/cairo-contracts/) you need to mark the `Mintable` check box in this [wizard](https://wizard.openzeppelin.com/cairo) and copy this implementation to `/src/presets/erc20.cairo`.
 
