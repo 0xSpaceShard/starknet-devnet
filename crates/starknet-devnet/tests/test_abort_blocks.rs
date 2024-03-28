@@ -17,15 +17,9 @@ mod abort_blocks_tests {
         devnet: &BackgroundDevnet,
         starting_block_hash: &FieldElement,
     ) -> Vec<FieldElement> {
-        let abort_blocks_resp = devnet
-            .post_json(
-                "/abort_blocks".into(),
-                Body::from(
-                    json!({ "starting_block_hash": to_hex_felt(starting_block_hash) }).to_string(),
-                ),
-            )
-            .await
-            .unwrap();
+        let body = json!({ "starting_block_hash": to_hex_felt(starting_block_hash) }).to_string();
+        let abort_blocks_resp =
+            devnet.post_json("/abort_blocks".into(), Body::from(body)).await.unwrap();
 
         let mut aborted_blocks = get_json_body(abort_blocks_resp).await;
         let aborted_blocks = aborted_blocks["aborted"].take().as_array().unwrap().clone();
@@ -37,18 +31,12 @@ mod abort_blocks_tests {
     }
 
     async fn abort_blocks_error(devnet: &BackgroundDevnet, starting_block_hash: &FieldElement) {
-        let abort_blocks = devnet
-            .post_json(
-                "/abort_blocks".into(),
-                Body::from(
-                    json!({ "starting_block_hash": to_hex_felt(starting_block_hash) }).to_string(),
-                ),
-            )
-            .await
-            .unwrap();
+        let body = json!({ "starting_block_hash": to_hex_felt(starting_block_hash) }).to_string();
+        let abort_blocks =
+            devnet.post_json("/abort_blocks".into(), Body::from(body)).await.unwrap();
 
         let aborted_blocks = get_json_body(abort_blocks).await;
-        assert!(aborted_blocks["error"].to_string().starts_with("\"The block abortion failed"));
+        assert!(aborted_blocks["error"].to_string().starts_with("\"Block abortion failed"));
     }
 
     async fn assert_block_rejected(devnet: &BackgroundDevnet, block_hash: &FieldElement) {
