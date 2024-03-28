@@ -110,7 +110,7 @@ mod advancing_time_tests {
 
         devnet.create_block().await.unwrap();
 
-        // check if timestamp >=
+        // check if timestamp is greater/equal
         let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
         assert_ge_with_buffer(current_timestamp, past_time);
     }
@@ -131,7 +131,7 @@ mod advancing_time_tests {
 
         devnet.create_block().await.unwrap();
 
-        // check if timestamp >=
+        // check if timestamp is greater/equal
         let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
         assert_ge_with_buffer(current_timestamp, future_time);
     }
@@ -148,7 +148,7 @@ mod advancing_time_tests {
         let increase_time_body = Body::from(json!({ "time": increase_time }).to_string());
         devnet.post_json("/increase_time".into(), increase_time_body).await.unwrap();
 
-        // check if timestamp >=
+        // check if timestamp is greater/equal
         let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
         assert_ge_with_buffer(current_timestamp, now + increase_time);
 
@@ -193,7 +193,7 @@ mod advancing_time_tests {
         thread::sleep(time::Duration::from_secs(1));
         devnet.create_block().await.unwrap();
 
-        // check if current timestamp is greater than storage timestamp and now
+        // check if current timestamp > storage timestamp and now
         let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
         assert_gt_with_buffer(current_timestamp, now);
         assert_gt_with_buffer(current_timestamp, storage_timestamp);
@@ -212,7 +212,7 @@ mod advancing_time_tests {
 
         devnet.create_block().await.unwrap();
 
-        // check if timestamp >=
+        // check if timestamp is greater/equal
         let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
         assert_ge_with_buffer(current_timestamp, past_time);
     }
@@ -231,15 +231,14 @@ mod advancing_time_tests {
 
         devnet.create_block().await.unwrap();
 
-        // check if timestamp >=
+        // check if timestamp is greater/equal
         let current_timestamp = get_current_timestamp(&devnet, timestamp_contract_address).await;
         assert_ge_with_buffer(current_timestamp, future_time);
     }
 
     #[tokio::test]
     async fn set_time_in_past() {
-        // set time and assert if >= than past_time, check if inside buffer
-        // limit
+        // set time and assert if >= past_time, check if inside buffer limit
         let past_time = 1;
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let set_time_body = Body::from(json!({ "time": past_time }).to_string());
@@ -252,8 +251,7 @@ mod advancing_time_tests {
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
 
-        // create block and check if block_timestamp is greater than past_time, check if inside
-        // buffer limit
+        // create block and check if block_timestamp > past_time, check if inside buffer limit
         devnet.create_block().await.unwrap();
         let empty_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
         assert_gt_with_buffer(empty_block.timestamp, past_time);
@@ -261,7 +259,7 @@ mod advancing_time_tests {
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
 
-        // check if after mint timestamp > than last block, check if inside buffer limit
+        // check if after mint timestamp > last block, check if inside buffer limit
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
         let mint_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
         assert_gt_with_buffer(mint_block.timestamp, empty_block.timestamp);
@@ -269,8 +267,7 @@ mod advancing_time_tests {
 
     #[tokio::test]
     async fn set_time_in_future() {
-        // set time and assert if >= than future_time, check if inside buffer
-        // limit
+        // set time and assert if >= future_time, check if inside buffer limit
         let now = get_unix_timestamp_as_seconds();
         let future_time = now + 1000;
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
@@ -292,8 +289,7 @@ mod advancing_time_tests {
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
 
-        // check if after mint timestamp is greater than last empty block, check if inside
-        // buffer limit
+        // check if after mint timestamp > last empty block, check if inside buffer limit
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
         let mint_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
         assert_gt_with_buffer(mint_block.timestamp, future_time);
@@ -325,7 +321,7 @@ mod advancing_time_tests {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
         let now = get_unix_timestamp_as_seconds();
 
-        // increase time and assert if greater than now, check if inside buffer limit
+        // increase time and assert if > now, check if inside buffer limit
         let first_increase_time: u64 = 10000;
         let first_increase_time_body =
             Body::from(json!({ "time": first_increase_time }).to_string());
@@ -347,7 +343,7 @@ mod advancing_time_tests {
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
 
-        // create block and check again if block_timestamp is greater than last block, check if
+        // create block and check again if block_timestamp > last block, check if
         // inside buffer limit
         devnet.create_block().await.unwrap();
         let empty_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
@@ -356,8 +352,7 @@ mod advancing_time_tests {
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
 
-        // check if after mint timestamp is greater than last block, check if inside buffer
-        // limit
+        // check if after mint timestamp > last block, check if inside buffer limit
         devnet.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
         let last_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
         assert_gt_with_buffer(last_block.timestamp, empty_block.timestamp);
@@ -400,8 +395,7 @@ mod advancing_time_tests {
         .await
         .expect("Could not start Devnet");
 
-        // create block and check if block timestamp >= 1, check if inside buffer
-        // limit
+        // create block and check if block timestamp >= 1, check if inside buffer limit
         devnet.create_block().await.unwrap();
         let empty_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
         assert_ge_with_buffer(empty_block.timestamp, past_time);
@@ -418,8 +412,7 @@ mod advancing_time_tests {
         .await
         .expect("Could not start Devnet");
 
-        // create block and check if block timestamp is greater than now, check if inside
-        // buffer limit
+        // create block and check if block timestamp > now, check if inside buffer limit
         devnet.create_block().await.unwrap();
         let empty_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
         assert_ge_with_buffer(empty_block.timestamp, future_time);
@@ -441,8 +434,8 @@ mod advancing_time_tests {
         .await
         .expect("Could not start Devnet");
 
-        // increase time and assert if >= than start-time argument +
-        // first_increase_time, check if inside buffer limit
+        // increase time and assert if >= start-time argument + first_increase_time, check if inside
+        // buffer limit
         let first_increase_time: u64 = 1000;
         let first_increase_time_body =
             Body::from(json!({ "time": first_increase_time }).to_string());
@@ -450,8 +443,8 @@ mod advancing_time_tests {
         let first_increase_time_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
         assert_ge_with_buffer(first_increase_time_block.timestamp, past_time + first_increase_time);
 
-        // increase the time a second time and assert if >= than past_time +
-        // first_increase_time + second_increase_time, check if inside buffer limit
+        // increase the time a second time and assert if >= past_time + first_increase_time +
+        // second_increase_time, check if inside buffer limit
         let second_increase_time: u64 = 100;
         let second_increase_time_body =
             Body::from(json!({ "time": second_increase_time }).to_string());
@@ -474,14 +467,14 @@ mod advancing_time_tests {
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
 
-        // create a new empty block and check again if block timestamp is greater than
-        // set_time_block, check if inside buffer limit
+        // create a new empty block and check again if block timestamp > set_time_block, check if
+        // inside buffer limit
         devnet.create_block().await.unwrap();
         let empty_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
         assert_gt_with_buffer(empty_block.timestamp, set_time_block.timestamp);
 
-        // increase the time a third time and assert if >= than last empty block
-        // timestamp + third_increase_time, check if inside buffer limit
+        // increase the time a third time and assert >= last empty block timestamp +
+        // third_increase_time, check if inside buffer limit
         let third_increase_time: u64 = 10000;
         let third_increase_time_body =
             Body::from(json!({ "time": third_increase_time }).to_string());
@@ -495,8 +488,7 @@ mod advancing_time_tests {
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
 
-        // check if the last block timestamp is greater previous block, check if inside buffer
-        // limit
+        // check if the last block timestamp is > previous block, check if inside buffer limit
         devnet.create_block().await.unwrap();
         let last_block = devnet.get_latest_block_with_tx_hashes().await.unwrap();
         assert_ge_with_buffer(last_block.timestamp, third_increase_time_block.timestamp);
