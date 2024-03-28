@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use starknet_rs_core::chain_id::{MAINNET, SEPOLIA};
+use starknet_rs_core::chain_id::{MAINNET, SEPOLIA, TESTNET};
 use starknet_rs_core::utils::parse_cairo_short_string;
 use starknet_rs_ff::FieldElement;
 
@@ -15,6 +15,10 @@ pub enum ChainId {
 }
 
 impl ChainId {
+    pub fn goerli_legacy_id() -> Felt {
+        TESTNET.into()
+    }
+
     pub fn to_felt(&self) -> Felt {
         FieldElement::from(self).into()
     }

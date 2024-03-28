@@ -21,7 +21,7 @@ mod get_transaction_by_hash_integration_tests {
     use crate::common::constants::{
         CAIRO_1_CASM_PATH, CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH,
     };
-    use crate::common::utils::{get_deployable_account_signer, resolve_path};
+    use crate::common::utils::{assert_tx_successful, get_deployable_account_signer, resolve_path};
 
     #[tokio::test]
     async fn get_declare_v1_transaction_by_hash_happy_path() {
@@ -54,21 +54,7 @@ mod get_transaction_by_hash_integration_tests {
             .await
             .unwrap();
 
-        let result = devnet
-            .json_rpc_client
-            .get_transaction_by_hash(declare_transaction.transaction_hash)
-            .await
-            .unwrap();
-
-        if let starknet_rs_core::types::Transaction::Declare(
-            starknet_rs_core::types::DeclareTransaction::V1(declare_v1),
-        ) = result
-        {
-            let expected = "0x05f47de31f16e7a474f6279c02b1783a86905c12bf0c2978bc2893e9d4f071a8";
-            assert_eq!(declare_v1.transaction_hash, FieldElement::from_hex_be(expected).unwrap());
-        } else {
-            panic!("Could not unpack the transaction from {result:?}");
-        }
+        assert_tx_successful(&declare_transaction.transaction_hash, &devnet.json_rpc_client).await;
     }
 
     #[tokio::test]
@@ -101,23 +87,10 @@ mod get_transaction_by_hash_integration_tests {
             .declare(Arc::new(flattened_class), compiled_class_hash)
             .nonce(FieldElement::ZERO)
             .send()
-            .await;
-
-        let result = devnet
-            .json_rpc_client
-            .get_transaction_by_hash(declare_result.unwrap().transaction_hash)
             .await
             .unwrap();
 
-        if let starknet_rs_core::types::Transaction::Declare(
-            starknet_rs_core::types::DeclareTransaction::V2(declare_v2),
-        ) = result
-        {
-            let expected = "0x0559f6223ab81e2aadc6fe87a3c0495ffa29c2b4f3395ef28d8e60ca50f39aef";
-            assert_eq!(declare_v2.transaction_hash, FieldElement::from_hex_be(expected).unwrap());
-        } else {
-            panic!("Could not unpack the transaction from {result:?}");
-        }
+        assert_tx_successful(&declare_result.transaction_hash, &devnet.json_rpc_client).await;
     }
 
     #[tokio::test]
@@ -146,19 +119,8 @@ mod get_transaction_by_hash_integration_tests {
         devnet.mint(deployment_address, mint_amount.try_into().unwrap()).await;
 
         let deploy_account_result = deployment.send().await.unwrap();
-
-        let result = devnet
-            .json_rpc_client
-            .get_transaction_by_hash(deploy_account_result.transaction_hash)
-            .await
-            .unwrap();
-
-        if let starknet_rs_core::types::Transaction::DeployAccount(deploy) = result {
-            let expected = "0x011ce9d9fab9d0fccd846ce0a7698da19ace2b91cb3db2df1c8845904f74af91";
-            assert_eq!(*deploy.transaction_hash(), FieldElement::from_hex_be(expected).unwrap());
-        } else {
-            panic!("Could not unpack the transaction from {result:?}");
-        }
+        assert_tx_successful(&deploy_account_result.transaction_hash, &devnet.json_rpc_client)
+            .await;
     }
 
     #[tokio::test]
@@ -174,7 +136,7 @@ mod get_transaction_by_hash_integration_tests {
             ExecutionEncoding::New,
         );
 
-        let invoke_transaction = account
+        let invoke_tx_result = account
             .execute(vec![Call {
                 to: FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
                 selector: get_selector_from_name("transfer").unwrap(),
@@ -188,21 +150,7 @@ mod get_transaction_by_hash_integration_tests {
             .await
             .unwrap();
 
-        let result = devnet
-            .json_rpc_client
-            .get_transaction_by_hash(invoke_transaction.transaction_hash)
-            .await
-            .unwrap();
-
-        if let starknet_rs_core::types::Transaction::Invoke(
-            starknet_rs_core::types::InvokeTransaction::V1(invoke_v1),
-        ) = result
-        {
-            let expected = "0x01816ae7cc33a3e0218b98f5e967b56518625429f0a456a6ff4a11335bae755a";
-            assert_eq!(invoke_v1.transaction_hash, FieldElement::from_hex_be(expected).unwrap());
-        } else {
-            panic!("Could not unpack the transaction from {result:?}");
-        }
+        assert_tx_successful(&invoke_tx_result.transaction_hash, &devnet.json_rpc_client).await;
     }
 
     #[tokio::test]

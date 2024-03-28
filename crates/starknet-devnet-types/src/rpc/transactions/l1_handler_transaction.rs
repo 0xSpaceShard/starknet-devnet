@@ -173,7 +173,7 @@ mod tests {
             paid_fee_on_l1: fee.into(),
         };
 
-        let chain_id = ChainId::Testnet.to_felt();
+        let chain_id = ChainId::goerli_legacy_id();
 
         let transaction_hash = Felt::from_prefixed_hex_str(
             "0x6182c63599a9638272f1ce5b5cadabece9c81c2d2b8f88ab7a294472b8fce8b",
