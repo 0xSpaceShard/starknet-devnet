@@ -14,7 +14,6 @@ path = "src/main.rs"
 
 [dependencies]
 # devnet
-cairo-lang-starknet-classes = { workspace = true }
 server = { workspace = true }
 starknet-core = { workspace = true }
 starknet-types = { workspace = true }
@@ -46,3 +45,4 @@ starknet-rs-signers = { workspace = true }
 starknet-rs-core = { workspace = true }
 starknet-rs-accounts = { workspace = true }
 hyper = { workspace = true }
+usc = { workspace = true }

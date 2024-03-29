@@ -8,6 +8,7 @@
 
 ## Checklist:
 
+- [ ] Checked the relevant parts of the [Development section of the docs](https://github.com/0xSpaceShard/starknet-devnet-rs/?tab=readme-ov-file#development)
 - [ ] Applied formatting - `./scripts/format.sh`
 - [ ] No linter errors - `./scripts/clippy_check.sh`
 - [ ] No unused dependencies - `./scripts/check_unused_deps.sh`
@@ -15,6 +16,6 @@
 - [ ] Rebased to the last commit of the target branch (or merged it into my branch)
 - [ ] Documented the changes
 - [ ] Linked the issues which this PR resolves
-- [ ] Checked the TODO section in README.md if this PR resolves it
+- [ ] Checked if the [TODO section of the docs](https://github.com/0xSpaceShard/starknet-devnet-rs/?tab=readme-ov-file#todo-to-reach-feature-parity-with-the-pythonic-devnet) can be edited
 - [ ] Updated the tests
-- [ ] All tests are passing - `cargo test`
+- [ ] All tests are passing - [docs](https://github.com/0xSpaceShard/starknet-devnet-rs/?tab=readme-ov-file#test-execution)

@@ -53,10 +53,8 @@ mod dump_and_load_tests {
         .await
         .expect("Could not start Devnet");
 
-        let last_block = &devnet_load
-            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
-            .await["result"];
-        assert_eq!(last_block["block_number"], 3);
+        let last_block = devnet_load.get_latest_block_with_tx_hashes().await.unwrap();
+        assert_eq!(last_block.block_number, 3);
     }
 
     #[tokio::test]
@@ -424,9 +422,7 @@ mod dump_and_load_tests {
         thread::sleep(time::Duration::from_secs(1));
 
         devnet_dump.create_block().await.unwrap();
-        devnet_dump
-            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
-            .await;
+        devnet_dump.get_latest_block_with_tx_hashes().await.unwrap();
 
         // dump and load
         send_ctrl_c_signal_and_wait(&devnet_dump.process).await;
@@ -437,11 +433,9 @@ mod dump_and_load_tests {
                 .await
                 .expect("Could not start Devnet");
 
-        let latest_block = &devnet_load
-            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
-            .await["result"];
+        let latest_block = devnet_load.get_latest_block_with_tx_hashes().await.unwrap();
 
-        assert_eq!(latest_block["block_number"], 0);
-        assert_eq!(latest_block["timestamp"], past_time);
+        assert_eq!(latest_block.block_number, 0);
+        assert_eq!(latest_block.timestamp, past_time);
     }
 }
