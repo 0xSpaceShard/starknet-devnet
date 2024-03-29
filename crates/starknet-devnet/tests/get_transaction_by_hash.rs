@@ -8,7 +8,6 @@ mod get_transaction_by_hash_integration_tests {
         Account, AccountFactory, Call, ExecutionEncoding, OpenZeppelinAccountFactory,
         SingleOwnerAccount,
     };
-    use starknet_rs_core::chain_id;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
@@ -19,7 +18,7 @@ mod get_transaction_by_hash_integration_tests {
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{
-        CAIRO_1_CASM_PATH, CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH,
+        self, CAIRO_1_CASM_PATH, CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH,
     };
     use crate::common::utils::{assert_tx_successful, get_deployable_account_signer, resolve_path};
 
@@ -42,7 +41,7 @@ mod get_transaction_by_hash_integration_tests {
             &devnet.json_rpc_client,
             signer,
             account_address,
-            chain_id::SEPOLIA,
+            constants::CHAIN_ID,
             ExecutionEncoding::Legacy,
         );
         account.set_block_id(BlockId::Tag(BlockTag::Latest));
@@ -76,7 +75,7 @@ mod get_transaction_by_hash_integration_tests {
             &devnet.json_rpc_client,
             signer,
             address,
-            chain_id::SEPOLIA,
+            constants::CHAIN_ID,
             ExecutionEncoding::Legacy,
         );
         account.set_block_id(BlockId::Tag(BlockTag::Latest));
@@ -101,7 +100,7 @@ mod get_transaction_by_hash_integration_tests {
 
         let factory = OpenZeppelinAccountFactory::new(
             FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
-            chain_id::SEPOLIA,
+            constants::CHAIN_ID,
             signer,
             devnet.clone_provider(),
         )
@@ -132,7 +131,7 @@ mod get_transaction_by_hash_integration_tests {
             &devnet.json_rpc_client,
             signer,
             account_address,
-            chain_id::SEPOLIA,
+            constants::CHAIN_ID,
             ExecutionEncoding::New,
         );
 

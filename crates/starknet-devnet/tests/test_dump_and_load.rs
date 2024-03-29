@@ -10,6 +10,7 @@ mod dump_and_load_tests {
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
+    use crate::common::constants;
     use crate::common::utils::{send_ctrl_c_signal_and_wait, UniqueAutoDeletableFile};
 
     static DUMMY_ADDRESS: u128 = 1;
@@ -19,7 +20,6 @@ mod dump_and_load_tests {
 
     use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::chain_id;
     use starknet_rs_core::types::FieldElement;
 
     use crate::common::utils::get_events_contract_in_sierra_and_compiled_class_hash;
@@ -196,7 +196,7 @@ mod dump_and_load_tests {
             devnet.clone_provider(),
             signer,
             account_address,
-            chain_id::SEPOLIA,
+            constants::CHAIN_ID,
             ExecutionEncoding::New,
         );
 

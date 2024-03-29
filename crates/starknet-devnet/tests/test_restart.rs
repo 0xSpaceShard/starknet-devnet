@@ -11,7 +11,6 @@ mod test_restart {
     use starknet_rs_accounts::{
         Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
-    use starknet_rs_core::chain_id;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
     use starknet_rs_core::utils::get_storage_var_address;
@@ -19,7 +18,7 @@ mod test_restart {
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::constants::CHAIN_ID;
+    use crate::common::constants::{self, CHAIN_ID};
     use crate::common::utils::{
         get_deployable_account_signer, remove_file, send_ctrl_c_signal_and_wait,
     };
@@ -137,7 +136,7 @@ mod test_restart {
             devnet.clone_provider(),
             signer,
             address,
-            chain_id::SEPOLIA,
+            constants::CHAIN_ID,
             ExecutionEncoding::New,
         ));
 

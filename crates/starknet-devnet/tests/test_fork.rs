@@ -10,7 +10,6 @@ mod fork_tests {
         OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::chain_id;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::{
         BlockId, BlockTag, ContractClass, FieldElement, FunctionCall,
@@ -24,6 +23,7 @@ mod fork_tests {
     use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
+    use crate::common::constants;
     use crate::common::utils::{
         assert_cairo1_classes_equal, assert_tx_successful, declare_deploy,
         get_block_reader_contract_in_sierra_and_compiled_class_hash, get_json_body,
@@ -175,7 +175,7 @@ mod fork_tests {
             origin_devnet.clone_provider(),
             signer.clone(),
             account_address,
-            chain_id::SEPOLIA,
+            constants::CHAIN_ID,
             ExecutionEncoding::New,
         ));
 
@@ -218,7 +218,7 @@ mod fork_tests {
             origin_devnet.clone_provider(),
             signer.clone(),
             account_address,
-            chain_id::SEPOLIA,
+            constants::CHAIN_ID,
             ExecutionEncoding::New,
         ));
 
@@ -258,7 +258,7 @@ mod fork_tests {
             origin_devnet.clone_provider(),
             signer.clone(),
             account_address,
-            chain_id::SEPOLIA,
+            constants::CHAIN_ID,
             ExecutionEncoding::New,
         ));
 
@@ -304,7 +304,7 @@ mod fork_tests {
             fork_devnet.clone_provider(),
             signer,
             account_address,
-            chain_id::SEPOLIA,
+            constants::CHAIN_ID,
             ExecutionEncoding::New,
         );
 
@@ -344,7 +344,7 @@ mod fork_tests {
         let nonexistent_class_hash = FieldElement::from_hex_be("0x123").unwrap();
         let factory = OpenZeppelinAccountFactory::new(
             nonexistent_class_hash,
-            chain_id::SEPOLIA,
+            constants::CHAIN_ID,
             signer,
             fork_devnet.clone_provider(),
         )
@@ -391,7 +391,7 @@ mod fork_tests {
         let account_hash = "0x00f7f9cd401ad39a09f095001d31f0ad3fdc2f4e532683a84a8a6c76150de858";
         let factory = OpenZeppelinAccountFactory::new(
             FieldElement::from_hex_be(account_hash).unwrap(),
-            chain_id::SEPOLIA,
+            constants::CHAIN_ID,
             signer,
             fork_devnet.clone_provider(),
         )
@@ -553,7 +553,7 @@ mod fork_tests {
             origin_devnet.clone_provider(),
             signer.clone(),
             account_address,
-            chain_id::SEPOLIA,
+            constants::CHAIN_ID,
             ExecutionEncoding::New,
         ));
 

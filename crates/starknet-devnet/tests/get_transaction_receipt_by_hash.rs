@@ -11,7 +11,6 @@ mod get_transaction_receipt_by_hash_integration_tests {
         SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::chain_id;
     use starknet_rs_core::types::{
         BroadcastedDeclareTransactionV1, ExecutionResult, FieldElement,
         MaybePendingTransactionReceipt, StarknetError, TransactionReceipt,
@@ -20,7 +19,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
     use starknet_rs_providers::{Provider, ProviderError};
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::constants::CHAIN_ID;
+    use crate::common::constants::{self, CHAIN_ID};
     use crate::common::utils::{
         get_deployable_account_signer, get_events_contract_in_sierra_and_compiled_class_hash,
     };
@@ -72,7 +71,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
             devnet.clone_provider(),
             signer,
             address,
-            chain_id::SEPOLIA,
+            constants::CHAIN_ID,
             ExecutionEncoding::New,
         ));
 
@@ -132,7 +131,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
             devnet.clone_provider(),
             signer,
             address,
-            chain_id::SEPOLIA,
+            constants::CHAIN_ID,
             ExecutionEncoding::New,
         ));
 
@@ -190,7 +189,7 @@ mod get_transaction_receipt_by_hash_integration_tests {
             devnet.clone_provider(),
             signer,
             account_address,
-            chain_id::SEPOLIA,
+            constants::CHAIN_ID,
             ExecutionEncoding::New,
         );
 
