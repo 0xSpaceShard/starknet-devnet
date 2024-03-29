@@ -4,10 +4,10 @@ use std::path::Path;
 use std::process::{Child, Command};
 use std::sync::Arc;
 
-use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
 use hyper::{Body, Response};
 use server::test_utils::exported_test_utils::assert_contains;
 use starknet_core::random_number_generator::generate_u32_random_number;
+use starknet_core::utils::casm_hash;
 use starknet_rs_accounts::{Account, SingleOwnerAccount};
 use starknet_rs_contract::ContractFactory;
 use starknet_rs_core::types::contract::SierraClass;
@@ -16,8 +16,6 @@ use starknet_rs_core::utils::get_udc_deployed_address;
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::LocalWallet;
-use starknet_types::constants::MAX_BYTECODE_SIZE_LIMIT;
-use starknet_types::contract_class::compute_casm_class_hash;
 
 use super::constants::CAIRO_1_CONTRACT_PATH;
 
@@ -65,14 +63,8 @@ pub fn get_flattened_sierra_contract_and_casm_hash(
 ) -> (FlattenedSierraClass, FieldElement) {
     let sierra_string = std::fs::read_to_string(sierra_path).unwrap();
     let sierra_class: SierraClass = serde_json::from_str(&sierra_string).unwrap();
-    let contract_class: cairo_lang_starknet_classes::contract_class::ContractClass =
-        serde_json::from_str(&sierra_string).unwrap();
-
-    let casm_contract_class =
-        CasmContractClass::from_contract_class(contract_class, false, MAX_BYTECODE_SIZE_LIMIT)
-            .unwrap();
-    let compiled_class_hash = compute_casm_class_hash(&casm_contract_class).unwrap();
-    (sierra_class.flatten().unwrap(), compiled_class_hash.into())
+    let casm_json = usc::compile_contract(serde_json::from_str(&sierra_string).unwrap()).unwrap();
+    (sierra_class.flatten().unwrap(), casm_hash(casm_json).unwrap())
 }
 
 pub fn get_messaging_contract_in_sierra_and_compiled_class_hash()

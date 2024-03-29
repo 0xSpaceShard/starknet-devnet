@@ -46,3 +46,4 @@ starknet-rs-signers = { workspace = true }
 starknet-rs-core = { workspace = true }
 starknet-rs-accounts = { workspace = true }
 hyper = { workspace = true }
+usc = { workspace = true }
