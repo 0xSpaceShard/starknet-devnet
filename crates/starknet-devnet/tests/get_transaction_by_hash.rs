@@ -8,7 +8,6 @@ mod get_transaction_by_hash_integration_tests {
         Account, AccountFactory, Call, ExecutionEncoding, OpenZeppelinAccountFactory,
         SingleOwnerAccount,
     };
-    use starknet_rs_core::chain_id;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
@@ -19,9 +18,9 @@ mod get_transaction_by_hash_integration_tests {
 
     use crate::common::background_devnet::BackgroundDevnet;
     use crate::common::constants::{
-        CAIRO_1_CASM_PATH, CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH,
+        self, CAIRO_1_CASM_PATH, CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH,
     };
-    use crate::common::utils::{get_deployable_account_signer, resolve_path};
+    use crate::common::utils::{assert_tx_successful, get_deployable_account_signer, resolve_path};
 
     #[tokio::test]
     async fn get_declare_v1_transaction_by_hash_happy_path() {
@@ -42,7 +41,7 @@ mod get_transaction_by_hash_integration_tests {
             &devnet.json_rpc_client,
             signer,
             account_address,
-            chain_id::TESTNET,
+            constants::CHAIN_ID,
             ExecutionEncoding::Legacy,
         );
         account.set_block_id(BlockId::Tag(BlockTag::Latest));
@@ -54,21 +53,7 @@ mod get_transaction_by_hash_integration_tests {
             .await
             .unwrap();
 
-        let result = devnet
-            .json_rpc_client
-            .get_transaction_by_hash(declare_transaction.transaction_hash)
-            .await
-            .unwrap();
-
-        if let starknet_rs_core::types::Transaction::Declare(
-            starknet_rs_core::types::DeclareTransaction::V1(declare_v1),
-        ) = result
-        {
-            let expected = "0x02955d0f928d14d42ed5a4d86402c8e4ca2dddc3eb023c7a55a9063f21629cfd";
-            assert_eq!(declare_v1.transaction_hash, FieldElement::from_hex_be(expected).unwrap());
-        } else {
-            panic!("Could not unpack the transaction from {result:?}");
-        }
+        assert_tx_successful(&declare_transaction.transaction_hash, &devnet.json_rpc_client).await;
     }
 
     #[tokio::test]
@@ -90,7 +75,7 @@ mod get_transaction_by_hash_integration_tests {
             &devnet.json_rpc_client,
             signer,
             address,
-            chain_id::TESTNET,
+            constants::CHAIN_ID,
             ExecutionEncoding::Legacy,
         );
         account.set_block_id(BlockId::Tag(BlockTag::Latest));
@@ -101,23 +86,10 @@ mod get_transaction_by_hash_integration_tests {
             .declare(Arc::new(flattened_class), compiled_class_hash)
             .nonce(FieldElement::ZERO)
             .send()
-            .await;
-
-        let result = devnet
-            .json_rpc_client
-            .get_transaction_by_hash(declare_result.unwrap().transaction_hash)
             .await
             .unwrap();
 
-        if let starknet_rs_core::types::Transaction::Declare(
-            starknet_rs_core::types::DeclareTransaction::V2(declare_v2),
-        ) = result
-        {
-            let expected = "0x049a316ec8f658e3769fd2556efe2e78a9146d4561d7174adc083490f2c6eb46";
-            assert_eq!(declare_v2.transaction_hash, FieldElement::from_hex_be(expected).unwrap());
-        } else {
-            panic!("Could not unpack the transaction from {result:?}");
-        }
+        assert_tx_successful(&declare_result.transaction_hash, &devnet.json_rpc_client).await;
     }
 
     #[tokio::test]
@@ -128,7 +100,7 @@ mod get_transaction_by_hash_integration_tests {
 
         let factory = OpenZeppelinAccountFactory::new(
             FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
-            chain_id::TESTNET,
+            constants::CHAIN_ID,
             signer,
             devnet.clone_provider(),
         )
@@ -146,19 +118,8 @@ mod get_transaction_by_hash_integration_tests {
         devnet.mint(deployment_address, mint_amount.try_into().unwrap()).await;
 
         let deploy_account_result = deployment.send().await.unwrap();
-
-        let result = devnet
-            .json_rpc_client
-            .get_transaction_by_hash(deploy_account_result.transaction_hash)
-            .await
-            .unwrap();
-
-        if let starknet_rs_core::types::Transaction::DeployAccount(deploy) = result {
-            let expected = "0x011ce9d9fab9d0fccd846ce0a7698da19ace2b91cb3db2df1c8845904f74af91";
-            assert_eq!(*deploy.transaction_hash(), FieldElement::from_hex_be(expected).unwrap());
-        } else {
-            panic!("Could not unpack the transaction from {result:?}");
-        }
+        assert_tx_successful(&deploy_account_result.transaction_hash, &devnet.json_rpc_client)
+            .await;
     }
 
     #[tokio::test]
@@ -170,11 +131,11 @@ mod get_transaction_by_hash_integration_tests {
             &devnet.json_rpc_client,
             signer,
             account_address,
-            chain_id::TESTNET,
+            constants::CHAIN_ID,
             ExecutionEncoding::New,
         );
 
-        let invoke_transaction = account
+        let invoke_tx_result = account
             .execute(vec![Call {
                 to: FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
                 selector: get_selector_from_name("transfer").unwrap(),
@@ -188,21 +149,7 @@ mod get_transaction_by_hash_integration_tests {
             .await
             .unwrap();
 
-        let result = devnet
-            .json_rpc_client
-            .get_transaction_by_hash(invoke_transaction.transaction_hash)
-            .await
-            .unwrap();
-
-        if let starknet_rs_core::types::Transaction::Invoke(
-            starknet_rs_core::types::InvokeTransaction::V1(invoke_v1),
-        ) = result
-        {
-            let expected = "0x01816ae7cc33a3e0218b98f5e967b56518625429f0a456a6ff4a11335bae755a";
-            assert_eq!(invoke_v1.transaction_hash, FieldElement::from_hex_be(expected).unwrap());
-        } else {
-            panic!("Could not unpack the transaction from {result:?}");
-        }
+        assert_tx_successful(&invoke_tx_result.transaction_hash, &devnet.json_rpc_client).await;
     }
 
     #[tokio::test]

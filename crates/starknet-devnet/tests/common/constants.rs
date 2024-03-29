@@ -6,7 +6,7 @@ pub const MIN_PORT: u16 = 1025;
 pub const MAX_PORT: u16 = 65_535;
 pub const SEED: usize = 42;
 pub const ACCOUNTS: usize = 3;
-pub const CHAIN_ID: FieldElement = starknet_rs_core::chain_id::TESTNET;
+pub const CHAIN_ID: FieldElement = starknet_rs_core::chain_id::SEPOLIA;
 pub const CHAIN_ID_CLI_PARAM: &str = "TESTNET";
 
 // URL paths

@@ -5447,7 +5447,6 @@ name = "starknet-devnet"
 version = "0.0.4"
 dependencies = [
  "anyhow",
- "cairo-lang-starknet-classes",
  "clap",
  "ethers",
  "hyper 0.14.28",

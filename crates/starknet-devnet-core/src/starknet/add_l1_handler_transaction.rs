@@ -95,7 +95,7 @@ mod tests {
         .with_hash(ChainId::Testnet.to_felt());
 
         let transaction_hash = Felt::from_prefixed_hex_str(
-            "0x6182c63599a9638272f1ce5b5cadabece9c81c2d2b8f88ab7a294472b8fce8b",
+            "0x1b24ea8dd9e0cb603043958b27a8569635ea13568883cc155130591b7ffe37a",
         )
         .unwrap();
 

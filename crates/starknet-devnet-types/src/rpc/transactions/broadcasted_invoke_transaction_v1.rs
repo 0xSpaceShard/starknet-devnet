@@ -161,7 +161,7 @@ mod tests {
             feeder_gateway_transaction.version,
         );
 
-        let chain_id = ChainId::Testnet.to_felt();
+        let chain_id = ChainId::goerli_legacy_id();
         let blockifier_transaction =
             transaction.create_blockifier_invoke_transaction(chain_id, false).unwrap();
 
