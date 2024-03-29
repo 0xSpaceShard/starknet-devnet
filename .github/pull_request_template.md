@@ -15,7 +15,6 @@
 - [ ] Performed code self-review
 - [ ] Rebased to the last commit of the target branch (or merged it into my branch)
 - [ ] Documented the changes
-- [ ] Linked the issues which this PR resolves
 - [ ] Checked if the [TODO section of the docs](https://github.com/0xSpaceShard/starknet-devnet-rs/?tab=readme-ov-file#todo-to-reach-feature-parity-with-the-pythonic-devnet) can be edited
-- [ ] Updated the tests
-- [ ] All tests are passing - [docs](https://github.com/0xSpaceShard/starknet-devnet-rs/?tab=readme-ov-file#test-execution)
+- [ ] Linked the issues which this PR resolves
+- [ ] Updated the tests if needed; all passing ([execution info](<(https://github.com/0xSpaceShard/starknet-devnet-rs/?tab=readme-ov-file#test-execution)>))

@@ -24,14 +24,14 @@ This repository is work in progress, please be patient. Please check below the s
 - [x] [Dump & Load](#dumping--loading)
 - [x] [Mint token - Local faucet](#mint-token)
 - [x] [Customizable predeployed accounts](#predeployed-contracts)
-- [x] Starknet.js test suite passes 100%
+- [x] [Starknet.js test suite passes 100%](https://github.com/starknet-io/starknet.js/actions)
 - [x] [Advancing time](https://0xspaceshard.github.io/starknet-devnet/docs/guide/advancing-time)
-- [x] Availability as a package (crate)
+- [x] [Availability as a package (crate)](#installing-from-cratesio)
 - [x] [Forking](#forking)
 - [x] [L1-L2 Postman integration](https://0xspaceshard.github.io/starknet-devnet/docs/guide/postman)
 - [x] [Block manipulation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/blocks)
-  - [x] Aborting blocks
-  - [x] Create an empty block
+  - [x] [Aborting blocks](#abort-blocks)
+  - [x] [Creating an empty block](#create-an-empty-block)
 
 ### TODO to reach feature parity with the Pythonic Devnet
 
