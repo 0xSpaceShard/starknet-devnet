@@ -172,7 +172,7 @@ mod tests {
 
         assert_eq!(
             feeder_gateway_transaction.transaction_hash,
-            broadcasted_txn.calculate_transaction_hash(ChainId::Testnet.to_felt()).unwrap()
+            broadcasted_txn.calculate_transaction_hash(ChainId::goerli_legacy_id()).unwrap()
         );
     }
 }

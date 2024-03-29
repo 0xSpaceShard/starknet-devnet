@@ -12,7 +12,6 @@ mod trace_tests {
         Account, AccountFactory, ExecutionEncoding, OpenZeppelinAccountFactory, SingleOwnerAccount,
     };
     use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::chain_id;
     use starknet_rs_core::types::{
         DeployedContractItem, FieldElement, FunctionInvocation, StarknetError, TransactionTrace,
     };
@@ -21,6 +20,7 @@ mod trace_tests {
     use starknet_types::rpc::transactions::BlockTransactionTrace;
 
     use crate::common::background_devnet::BackgroundDevnet;
+    use crate::common::constants;
     use crate::common::utils::{
         get_deployable_account_signer, get_events_contract_in_sierra_and_compiled_class_hash,
     };
@@ -87,7 +87,7 @@ mod trace_tests {
             devnet.clone_provider(),
             signer,
             account_address,
-            chain_id::TESTNET,
+            constants::CHAIN_ID,
             ExecutionEncoding::New,
         );
 
@@ -143,7 +143,7 @@ mod trace_tests {
             devnet.clone_provider(),
             signer,
             account_address,
-            chain_id::TESTNET,
+            constants::CHAIN_ID,
             ExecutionEncoding::New,
         ));
 
@@ -207,7 +207,7 @@ mod trace_tests {
         let new_account_signer = get_deployable_account_signer();
         let account_factory = OpenZeppelinAccountFactory::new(
             FieldElement::from_hex_be(CAIRO_1_ACCOUNT_CONTRACT_SIERRA_HASH).unwrap(),
-            chain_id::TESTNET,
+            constants::CHAIN_ID,
             new_account_signer.clone(),
             devnet.clone_provider(),
         )

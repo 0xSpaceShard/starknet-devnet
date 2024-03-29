@@ -39,7 +39,8 @@ mod test_messaging {
         MESSAGING_L2_CONTRACT_ADDRESS, MESSAGING_WHITELISTED_L1_CONTRACT,
     };
     use crate::common::utils::{
-        get_json_body, get_messaging_contract_in_sierra_and_compiled_class_hash,
+        assert_tx_successful, get_json_body,
+        get_messaging_contract_in_sierra_and_compiled_class_hash,
         get_messaging_lib_in_sierra_and_compiled_class_hash, send_ctrl_c_signal_and_wait,
         to_hex_felt, UniqueAutoDeletableFile,
     };
@@ -316,8 +317,9 @@ mod test_messaging {
             .expect("send message to l2 failed");
         assert_eq!(resp.status(), StatusCode::OK, "Checking status of {resp:?}");
         let body = get_json_body(resp).await;
-        let tx_hash = body.get("transaction_hash").unwrap().as_str().unwrap();
-        assert_eq!(tx_hash, "0x4d5207a0713698517279d7431affe8400a120d9be1f6bcdf231b96f608a1b97");
+        let tx_hash_hex = body.get("transaction_hash").unwrap().as_str().unwrap();
+        let tx_hash = FieldElement::from_hex_be(tx_hash_hex).unwrap();
+        assert_tx_successful(&tx_hash, &devnet.json_rpc_client).await;
 
         // assert state changed
         assert_eq!(
@@ -326,19 +328,18 @@ mod test_messaging {
         );
 
         // assert tx and receipt retrievable and correct
-        let tx_hash_felt = FieldElement::from_hex_be(tx_hash).unwrap();
         let expected_calldata =
             vec![FieldElement::from_hex_be(MESSAGING_L1_ADDRESS).unwrap(), user, increment_amount];
-        match devnet.json_rpc_client.get_transaction_by_hash(tx_hash_felt).await {
+        match devnet.json_rpc_client.get_transaction_by_hash(tx_hash).await {
             Ok(starknet_rs_core::types::Transaction::L1Handler(tx)) => {
-                assert_eq!(tx.transaction_hash, tx_hash_felt);
+                assert_eq!(tx.transaction_hash, tx_hash);
                 assert_eq!(tx.calldata, expected_calldata);
             }
             other => panic!("Error in fetching tx: {other:?}"),
         }
-        match devnet.json_rpc_client.get_transaction_receipt(tx_hash_felt).await {
+        match devnet.json_rpc_client.get_transaction_receipt(tx_hash).await {
             Ok(MaybePendingTransactionReceipt::Receipt(TransactionReceipt::L1Handler(receipt))) => {
-                assert_eq!(receipt.transaction_hash, tx_hash_felt);
+                assert_eq!(receipt.transaction_hash, tx_hash);
                 assert_eq!(
                     receipt.execution_result.status(),
                     TransactionExecutionStatus::Succeeded

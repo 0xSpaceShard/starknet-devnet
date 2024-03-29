@@ -75,6 +75,7 @@ starknet-rs-providers = { version = "0.10.0", package = "starknet-providers" }
 starknet-rs-accounts = { version = "0.9.0", package = "starknet-accounts" }
 starknet-rs-contract = { version = "0.9.0", package = "starknet-contract" }
 starknet-rs-crypto = { version = "0.6.2", package = "starknet-crypto" }
+
 # Cairo-lang dependencies
 cairo-lang-starknet-classes = { version = "=2.6.0", package = "cairo-lang-starknet-classes" }
 cairo-lang-compiler = "=2.6.0"
