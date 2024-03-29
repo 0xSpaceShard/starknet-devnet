@@ -5,13 +5,13 @@ use starknet_core::constants::{
     DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT,
     DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
+use starknet_core::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
 use starknet_core::random_number_generator::generate_u32_random_number;
 use starknet_core::starknet::starknet_config::{
     DumpOn, ForkConfig, StarknetConfig, StateArchiveCapacity,
 };
 use starknet_types::chain_id::ChainId;
 
-use crate::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
 use crate::initial_balance_wrapper::InitialBalanceWrapper;
 use crate::ip_addr_wrapper::IpAddrWrapper;
 
@@ -277,7 +277,7 @@ mod tests {
                 get_first_line(&err.to_string()),
                 format!(
                     "error: invalid value '{custom_path}' for '--account-class-custom <PATH>': \
-                     missing field `kind` at line 1 column 292"
+                     Types error: missing field `kind` at line 1 column 292"
                 )
             ),
             Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),
@@ -293,8 +293,8 @@ mod tests {
                 get_first_line(&err.to_string()),
                 format!(
                     "error: invalid value '{custom_path}' for '--account-class-custom <PATH>': \
-                     Not a valid Sierra account artifact; has __execute__: false; has \
-                     __validate__: false"
+                     Failed to load ContractClass: Not a valid Sierra account artifact; has \
+                     __execute__: false; has __validate__: false"
                 )
             ),
             Ok(parsed) => panic!("Should have failed; got: {parsed:?}"),

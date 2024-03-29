@@ -23,7 +23,6 @@ use tracing::info;
 use tracing_subscriber::EnvFilter;
 
 mod cli;
-mod contract_class_choice;
 mod initial_balance_wrapper;
 mod ip_addr_wrapper;
 
