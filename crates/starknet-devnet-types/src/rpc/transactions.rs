@@ -744,6 +744,7 @@ pub struct DeployAccountTransactionTrace {
 pub struct L1HandlerTransactionTrace {
     pub function_invocation: FunctionInvocation,
     pub state_diff: Option<ThinStateDiff>,
+    pub execution_resources: ExecutionResources,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
