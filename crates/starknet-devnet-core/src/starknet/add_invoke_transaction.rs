@@ -87,8 +87,8 @@ mod tests {
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::contract_storage_key::ContractStorageKey;
     use starknet_types::felt::Felt;
-    use starknet_types::rpc::state::Balance;
     use starknet_types::patricia_key::PatriciaKey;
+    use starknet_types::rpc::state::Balance;
     use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::BroadcastedInvokeTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
     use starknet_types::rpc::transactions::{

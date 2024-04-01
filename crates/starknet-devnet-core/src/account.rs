@@ -136,12 +136,11 @@ impl Deployed for Account {
 
 impl Accounted for Account {
     fn set_initial_balance(&self, state: &mut DictState) -> DevnetResult<()> {
-        let storage_var_address_low =
-            starknet_types::patricia_key::PatriciaKey::try_from(
-                get_storage_var_address("ERC20_balances", &[FieldElement::from(self.account_address)])
-                    .unwrap(),
-            )
-            .unwrap();
+        let storage_var_address_low = starknet_types::patricia_key::PatriciaKey::try_from(
+            get_storage_var_address("ERC20_balances", &[FieldElement::from(self.account_address)])
+                .unwrap(),
+        )
+        .unwrap();
         let storage_var_address_high = next_storage_key(&storage_var_address_low.try_into()?)?;
 
         let (high, low) = split_biguint(self.initial_balance.clone())?;
@@ -180,8 +179,6 @@ impl Accounted for Account {
 
 #[cfg(test)]
 mod tests {
-    use starknet_rs_core::types::FieldElement;
-    use starknet_rs_core::utils::get_storage_var_address;
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::felt::Felt;
     use starknet_types::rpc::state::Balance;
