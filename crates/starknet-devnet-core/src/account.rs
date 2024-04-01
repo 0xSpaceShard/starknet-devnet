@@ -106,7 +106,8 @@ impl Account {
 
     fn eth_balance_storage_key(&self) -> DevnetResult<ContractStorageKey> {
         let storage_var_address = starknet_types::patricia_key::PatriciaKey::try_from(
-            get_storage_var_address("ERC20_balances", &[FieldElement::from(self.account_address)]),
+            get_storage_var_address("ERC20_balances", &[FieldElement::from(self.account_address)])
+                .unwrap(),
         )
         .unwrap();
         Ok(ContractStorageKey::new(self.eth_fee_token_address, storage_var_address))
@@ -114,7 +115,8 @@ impl Account {
 
     fn strk_balance_storage_key(&self) -> DevnetResult<ContractStorageKey> {
         let storage_var_address = starknet_types::patricia_key::PatriciaKey::try_from(
-            get_storage_var_address("ERC20_balances", &[FieldElement::from(self.account_address)]),
+            get_storage_var_address("ERC20_balances", &[FieldElement::from(self.account_address)])
+                .unwrap(),
         )
         .unwrap();
         Ok(ContractStorageKey::new(self.strk_fee_token_address, storage_var_address))
@@ -129,7 +131,7 @@ impl Deployed for Account {
 
         // set public key directly in the most underlying state
         let public_key_storage_var = starknet_types::patricia_key::PatriciaKey::try_from(
-            get_storage_var_address("Account_public_key", &[]),
+            get_storage_var_address("Account_public_key", &[]).unwrap(),
         )
         .unwrap();
 
@@ -153,7 +155,8 @@ impl Deployed for Account {
 impl Accounted for Account {
     fn set_initial_balance(&self, state: &mut DictState) -> DevnetResult<()> {
         let storage_var_address = starknet_types::patricia_key::PatriciaKey::try_from(
-            get_storage_var_address("ERC20_balances", &[FieldElement::from(self.account_address)]),
+            get_storage_var_address("ERC20_balances", &[FieldElement::from(self.account_address)])
+                .unwrap(),
         )
         .unwrap();
 
@@ -264,7 +267,7 @@ mod tests {
             starknet_types::patricia_key::PatriciaKey::try_from(get_storage_var_address(
                 "ERC20_balances",
                 &[FieldElement::from(account_address)],
-            ))
+            ).unwrap())
             .unwrap(),
         );
         assert_eq!(expected_balance_storage_key, account.eth_balance_storage_key().unwrap());

@@ -52,7 +52,7 @@ pub(crate) fn initialize_erc20_at_address(
         ("Ownable_owner", Felt::from_prefixed_hex_str(CHARGEABLE_ACCOUNT_ADDRESS)?),
     ] {
         let storage_var_address =
-            PatriciaKey::try_from(get_storage_var_address(storage_var_name, &[])).unwrap();
+            PatriciaKey::try_from(get_storage_var_address(storage_var_name, &[]).unwrap()).unwrap();
 
         state.set_storage_at(
             contract_address.try_into()?,
