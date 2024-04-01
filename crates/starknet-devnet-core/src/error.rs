@@ -1,3 +1,4 @@
+use starknet_rs_core::types::BlockId;
 use starknet_types;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_storage_key::ContractStorageKey;
@@ -32,10 +33,8 @@ pub enum Error {
     InvalidMintingTransaction { msg: String },
     #[error("No block found")]
     NoBlock,
-    #[error("No state at block {block_number}")]
-    NoStateAtBlock { block_number: u64 },
-    #[error("State history is disabled; ensure running with --state-archive-capacity full")]
-    StateHistoryDisabled,
+    #[error("No state at block {block_id:?}; consider running with --state-archive-capacity full")]
+    NoStateAtBlock { block_id: BlockId },
     #[error("Format error")]
     FormatError,
     #[error("Sierra compilation error")]
@@ -50,8 +49,8 @@ pub enum Error {
     UnsupportedAction { msg: String },
     #[error("Unexpected internal error: {msg}")]
     UnexpectedInternalError { msg: String },
-    #[error("Failed to load ContractClass")]
-    ContractClassLoadError,
+    #[error("Failed to load ContractClass: {0}")]
+    ContractClassLoadError(String),
     #[error("Deserialization error: {origin}")]
     DeserializationError { origin: String },
     #[error("Serialization error: {origin}")]

@@ -8,19 +8,19 @@ mod get_transaction_by_hash_integration_tests {
         Account, AccountFactory, Call, ExecutionEncoding, OpenZeppelinAccountFactory,
         SingleOwnerAccount,
     };
-    use starknet_rs_core::chain_id;
     use starknet_rs_core::types::contract::legacy::LegacyContractClass;
     use starknet_rs_core::types::contract::{CompiledClass, SierraClass};
     use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, StarknetError};
     use starknet_rs_core::utils::get_selector_from_name;
     use starknet_rs_providers::{Provider, ProviderError};
-    use starknet_types::contract_class::Cairo0Json;
     use starknet_types::felt::Felt;
     use starknet_types::traits::ToHexString;
 
     use crate::common::background_devnet::BackgroundDevnet;
-    use crate::common::constants::CASM_COMPILED_CLASS_HASH;
-    use crate::common::utils::{get_deployable_account_signer, resolve_path};
+    use crate::common::constants::{
+        self, CAIRO_1_CASM_PATH, CAIRO_1_CONTRACT_PATH, CASM_COMPILED_CLASS_HASH,
+    };
+    use crate::common::utils::{assert_tx_successful, get_deployable_account_signer, resolve_path};
 
     #[tokio::test]
     async fn get_declare_v1_transaction_by_hash_happy_path() {
@@ -32,9 +32,8 @@ mod get_transaction_by_hash_integration_tests {
         ))
         .unwrap();
 
-        let legacy_contract_class = Cairo0Json::raw_json_from_json_str(&json_string).unwrap();
         let legacy_contract_class: LegacyContractClass =
-            serde_json::from_value(legacy_contract_class.inner).unwrap();
+            serde_json::from_str(&json_string).unwrap();
 
         let (signer, account_address) = devnet.get_first_predeployed_account().await;
 
@@ -42,7 +41,7 @@ mod get_transaction_by_hash_integration_tests {
             &devnet.json_rpc_client,
             signer,
             account_address,
-            chain_id::TESTNET,
+            constants::CHAIN_ID,
             ExecutionEncoding::Legacy,
         );
         account.set_block_id(BlockId::Tag(BlockTag::Latest));
@@ -54,40 +53,20 @@ mod get_transaction_by_hash_integration_tests {
             .await
             .unwrap();
 
-        let result = devnet
-            .json_rpc_client
-            .get_transaction_by_hash(declare_transaction.transaction_hash)
-            .await
-            .unwrap();
-
-        if let starknet_rs_core::types::Transaction::Declare(
-            starknet_rs_core::types::DeclareTransaction::V1(declare_v1),
-        ) = result
-        {
-            let expected = "0x05f47de31f16e7a474f6279c02b1783a86905c12bf0c2978bc2893e9d4f071a8";
-            assert_eq!(declare_v1.transaction_hash, FieldElement::from_hex_be(expected).unwrap());
-        } else {
-            panic!("Could not unpack the transaction from {result:?}");
-        }
+        assert_tx_successful(&declare_transaction.transaction_hash, &devnet.json_rpc_client).await;
     }
 
     #[tokio::test]
     async fn get_declare_v2_transaction_by_hash_happy_path() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
 
-        // Sierra class artifact. Output of the `starknet-compile` command.
-        let path_to_cairo1 =
-            concat!(env!("CARGO_MANIFEST_DIR"), "/test_data/rpc/contract_cairo_v1/output.json");
+        let sierra_path = format!("{}/{}", env!("CARGO_MANIFEST_DIR"), CAIRO_1_CONTRACT_PATH);
         let contract_artifact: SierraClass =
-            serde_json::from_reader(std::fs::File::open(path_to_cairo1).unwrap()).unwrap();
+            serde_json::from_reader(std::fs::File::open(sierra_path).unwrap()).unwrap();
 
-        // Casm artifact. Output of the `starknet-sierra-compile` command.
-        let path_to_casm = concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test_data/rpc/contract_cairo_v1/output-casm.json"
-        );
+        let casm_path = format!("{}/{}", env!("CARGO_MANIFEST_DIR"), CAIRO_1_CASM_PATH);
         let casm_contract_definition: CompiledClass =
-            serde_json::from_reader(std::fs::File::open(path_to_casm).unwrap()).unwrap();
+            serde_json::from_reader(std::fs::File::open(casm_path).unwrap()).unwrap();
         let compiled_class_hash = (casm_contract_definition.class_hash()).unwrap();
         assert_eq!(Felt::from(compiled_class_hash).to_prefixed_hex_str(), CASM_COMPILED_CLASS_HASH);
 
@@ -96,7 +75,7 @@ mod get_transaction_by_hash_integration_tests {
             &devnet.json_rpc_client,
             signer,
             address,
-            chain_id::TESTNET,
+            constants::CHAIN_ID,
             ExecutionEncoding::Legacy,
         );
         account.set_block_id(BlockId::Tag(BlockTag::Latest));
@@ -107,23 +86,10 @@ mod get_transaction_by_hash_integration_tests {
             .declare(Arc::new(flattened_class), compiled_class_hash)
             .nonce(FieldElement::ZERO)
             .send()
-            .await;
-
-        let result = devnet
-            .json_rpc_client
-            .get_transaction_by_hash(declare_result.unwrap().transaction_hash)
             .await
             .unwrap();
 
-        if let starknet_rs_core::types::Transaction::Declare(
-            starknet_rs_core::types::DeclareTransaction::V2(declare_v2),
-        ) = result
-        {
-            let expected = "0x0559f6223ab81e2aadc6fe87a3c0495ffa29c2b4f3395ef28d8e60ca50f39aef";
-            assert_eq!(declare_v2.transaction_hash, FieldElement::from_hex_be(expected).unwrap());
-        } else {
-            panic!("Could not unpack the transaction from {result:?}");
-        }
+        assert_tx_successful(&declare_result.transaction_hash, &devnet.json_rpc_client).await;
     }
 
     #[tokio::test]
@@ -134,7 +100,7 @@ mod get_transaction_by_hash_integration_tests {
 
         let factory = OpenZeppelinAccountFactory::new(
             FieldElement::from_hex_be(CAIRO_0_ACCOUNT_CONTRACT_HASH).unwrap(),
-            chain_id::TESTNET,
+            constants::CHAIN_ID,
             signer,
             devnet.clone_provider(),
         )
@@ -152,19 +118,8 @@ mod get_transaction_by_hash_integration_tests {
         devnet.mint(deployment_address, mint_amount.try_into().unwrap()).await;
 
         let deploy_account_result = deployment.send().await.unwrap();
-
-        let result = devnet
-            .json_rpc_client
-            .get_transaction_by_hash(deploy_account_result.transaction_hash)
-            .await
-            .unwrap();
-
-        if let starknet_rs_core::types::Transaction::DeployAccount(deploy) = result {
-            let expected = "0x011ce9d9fab9d0fccd846ce0a7698da19ace2b91cb3db2df1c8845904f74af91";
-            assert_eq!(*deploy.transaction_hash(), FieldElement::from_hex_be(expected).unwrap());
-        } else {
-            panic!("Could not unpack the transaction from {result:?}");
-        }
+        assert_tx_successful(&deploy_account_result.transaction_hash, &devnet.json_rpc_client)
+            .await;
     }
 
     #[tokio::test]
@@ -176,11 +131,11 @@ mod get_transaction_by_hash_integration_tests {
             &devnet.json_rpc_client,
             signer,
             account_address,
-            chain_id::TESTNET,
+            constants::CHAIN_ID,
             ExecutionEncoding::New,
         );
 
-        let invoke_transaction = account
+        let invoke_tx_result = account
             .execute(vec![Call {
                 to: FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
                 selector: get_selector_from_name("transfer").unwrap(),
@@ -194,21 +149,7 @@ mod get_transaction_by_hash_integration_tests {
             .await
             .unwrap();
 
-        let result = devnet
-            .json_rpc_client
-            .get_transaction_by_hash(invoke_transaction.transaction_hash)
-            .await
-            .unwrap();
-
-        if let starknet_rs_core::types::Transaction::Invoke(
-            starknet_rs_core::types::InvokeTransaction::V1(invoke_v1),
-        ) = result
-        {
-            let expected = "0x01816ae7cc33a3e0218b98f5e967b56518625429f0a456a6ff4a11335bae755a";
-            assert_eq!(invoke_v1.transaction_hash, FieldElement::from_hex_be(expected).unwrap());
-        } else {
-            panic!("Could not unpack the transaction from {result:?}");
-        }
+        assert_tx_successful(&invoke_tx_result.transaction_hash, &devnet.json_rpc_client).await;
     }
 
     #[tokio::test]

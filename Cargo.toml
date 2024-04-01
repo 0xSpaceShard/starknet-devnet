@@ -28,12 +28,12 @@ keywords = ["starknet", "cairo", "testnet", "local", "server"]
 [workspace.dependencies]
 # axum
 axum = { version = "0.5" }
-hyper = "0.14"
+hyper = "0.14.12"
 tower-http = { version = "0.4", features = ["full"] }
 tower = { version = "0.4", features = ["full"] }
 
 # async
-tokio = { version = "1", features = [
+tokio = { version = "1.18.5", features = [
 	"time",
 	"macros",
 	"rt-multi-thread",
@@ -61,38 +61,40 @@ rand = "0.8.5"
 rand_chacha = "0.3.1"
 rand_mt = "4.2.2"
 regex_generate = "0.2.3"
+reqwest = { version = "0.10", features = ["blocking"] }
 url = "2.4"
+usc = { version = "2.1.0", package = "universal-sierra-compiler" }
 
 # Starknet dependencies
-starknet_api = { version = "0.8.0", features = ["testing"] }
-blockifier = { version = "=0.5.0-rc.3" }
-starknet-rs-signers = { version = "0.7.0", package = "starknet-signers" }
-starknet-rs-ff = { version = "0.3.6", package = "starknet-ff" }
-starknet-rs-core = { version = "0.9.0", package = "starknet-core" }
-starknet-rs-providers = { version = "0.9.0", package = "starknet-providers" }
-starknet-rs-accounts = { version = "0.8.0", package = "starknet-accounts" }
-starknet-rs-contract = { version = "0.8.0", package = "starknet-contract" }
-starknet-rs-crypto = { version = "0.6.1", package = "starknet-crypto" }
+starknet_api = { version = "0.10.0", features = ["testing"] }
+blockifier = { version = "0.6.0-rc.0" }
+starknet-rs-signers = { version = "0.8.0", package = "starknet-signers" }
+starknet-rs-ff = { version = "0.3.7", package = "starknet-ff" }
+starknet-rs-core = { version = "0.10.0", package = "starknet-core" }
+starknet-rs-providers = { version = "0.10.0", package = "starknet-providers" }
+starknet-rs-accounts = { version = "0.9.0", package = "starknet-accounts" }
+starknet-rs-contract = { version = "0.9.0", package = "starknet-contract" }
+starknet-rs-crypto = { version = "0.6.2", package = "starknet-crypto" }
 
 # Cairo-lang dependencies
-cairo-lang-starknet-classes = { version = "=2.6.0-rc.1", package = "cairo-lang-starknet-classes" }
-cairo-lang-compiler = "=2.6.0-rc.1"
-cairo-lang-casm = "=2.6.0-rc.1"
-cairo-lang-defs = "=2.6.0-rc.1"
-cairo-lang-diagnostics = "=2.6.0-rc.1"
-cairo-lang-filesystem = "=2.6.0-rc.1"
-cairo-lang-lowering = "=2.6.0-rc.1"
-cairo-lang-semantic = "=2.6.0-rc.1"
-cairo-lang-sierra = "=2.6.0-rc.1"
-cairo-lang-sierra-generator = "=2.6.0-rc.1"
-cairo-lang-sierra-to-casm = "=2.6.0-rc.1"
-cairo-lang-syntax = "=2.6.0-rc.1"
-cairo-lang-utils = "=2.6.0-rc.1"
+cairo-lang-starknet-classes = { version = "=2.6.0", package = "cairo-lang-starknet-classes" }
+cairo-lang-compiler = "=2.6.0"
+cairo-lang-casm = "=2.6.0"
+cairo-lang-defs = "=2.6.0"
+cairo-lang-diagnostics = "=2.6.0"
+cairo-lang-filesystem = "=2.6.0"
+cairo-lang-lowering = "=2.6.0"
+cairo-lang-semantic = "=2.6.0"
+cairo-lang-sierra = "=2.6.0"
+cairo-lang-sierra-generator = "=2.6.0"
+cairo-lang-sierra-to-casm = "=2.6.0"
+cairo-lang-syntax = "=2.6.0"
+cairo-lang-utils = "=2.6.0"
 
 # Inner dependencies
-starknet-types = { version = "0.0.2", path = "crates/starknet-devnet-types", package = "starknet-devnet-types" }
-starknet-core = { version = "0.0.3", path = "crates/starknet-devnet-core", package = "starknet-devnet-core" }
-server = { version = "0.0.3", path = "crates/starknet-devnet-server", package = "starknet-devnet-server" }
+starknet-types = { version = "0.0.3", path = "crates/starknet-devnet-types", package = "starknet-devnet-types" }
+starknet-core = { version = "0.0.4", path = "crates/starknet-devnet-core", package = "starknet-devnet-core" }
+server = { version = "0.0.4", path = "crates/starknet-devnet-server", package = "starknet-devnet-server" }
 
 # Dependabot alerts
 zerocopy = "0.7.31"

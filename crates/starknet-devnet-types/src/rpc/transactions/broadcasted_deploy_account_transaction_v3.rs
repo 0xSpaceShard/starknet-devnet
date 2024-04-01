@@ -186,7 +186,7 @@ mod tests {
             feeder_gateway_transaction.transaction_hash,
             broadcasted_txn
                 .calculate_transaction_hash(
-                    ChainId::Testnet.to_felt(),
+                    ChainId::goerli_legacy_id(),
                     BroadcastedDeployAccountTransactionV3::calculate_contract_address(
                         &broadcasted_txn.contract_address_salt,
                         &broadcasted_txn.class_hash,

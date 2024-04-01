@@ -10,13 +10,16 @@ use hyper::{Body, Client, Response, StatusCode, Uri};
 use lazy_static::lazy_static;
 use serde_json::json;
 use starknet_core::constants::ETH_ERC20_CONTRACT_ADDRESS;
-use starknet_rs_core::types::{BlockId, BlockTag, FieldElement, FunctionCall};
+use starknet_rs_core::types::{
+    BlockId, BlockTag, BlockWithTxHashes, FieldElement, FunctionCall, MaybePendingBlockWithTxHashes,
+};
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_providers::jsonrpc::HttpTransport;
 use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_rs_signers::{LocalWallet, SigningKey};
 use starknet_types::felt::Felt;
 use starknet_types::num_bigint::BigUint;
+use starknet_types::rpc::transaction_receipt::FeeUnit;
 use tokio::sync::Mutex;
 use url::Url;
 
@@ -36,11 +39,12 @@ lazy_static! {
     static ref BACKGROUND_DEVNET_MUTEX: Mutex<()> = Mutex::new(());
 }
 
+#[derive(Debug)]
 pub struct BackgroundDevnet {
     pub http_client: Client<HttpConnector>,
     pub json_rpc_client: JsonRpcClient<HttpTransport>,
     pub process: Child,
-    url: String,
+    pub url: String,
     rpc_url: Url,
 }
 
@@ -199,14 +203,18 @@ impl BackgroundDevnet {
         FieldElement::from_hex_be(resp_body["tx_hash"].as_str().unwrap()).unwrap()
     }
 
-    /// Get balance at contract_address, as written in ERC20
-    pub async fn get_balance(&self, address: &FieldElement) -> Result<FieldElement, anyhow::Error> {
+    /// Get ETH balance at contract_address, as written in ERC20
+    pub async fn get_balance_at_block(
+        &self,
+        address: &FieldElement,
+        block_id: BlockId,
+    ) -> Result<FieldElement, anyhow::Error> {
         let call = FunctionCall {
             contract_address: FieldElement::from_hex_be(ETH_ERC20_CONTRACT_ADDRESS).unwrap(),
             entry_point_selector: get_selector_from_name("balanceOf").unwrap(),
             calldata: vec![*address],
         };
-        let balance_raw = self.json_rpc_client.call(call, BlockId::Tag(BlockTag::Latest)).await?;
+        let balance_raw = self.json_rpc_client.call(call, block_id).await?;
         assert_eq!(balance_raw.len(), 2);
         let balance_low: BigUint = (Felt::from(*balance_raw.get(0).unwrap())).into();
         let balance_high: BigUint = (Felt::from(*balance_raw.get(1).unwrap())).into();
@@ -214,17 +222,32 @@ impl BackgroundDevnet {
         Ok(FieldElement::from_byte_slice_be(&balance.to_bytes_be())?)
     }
 
+    /// Get balance at contract_address, as written in the ERC20 contract corresponding to `unit`
+    pub async fn get_balance(
+        &self,
+        address: &FieldElement,
+        unit: FeeUnit,
+    ) -> Result<FieldElement, anyhow::Error> {
+        let params = format!("address={:#x}&unit={}", address, unit);
+
+        let resp = self.get("/account_balance", Some(params)).await?;
+        let json_resp = get_json_body(resp).await;
+
+        let amount: BigUint = serde_json::from_value(json_resp["amount"].clone()).unwrap();
+        let received_unit: FeeUnit = serde_json::from_value(json_resp["unit"].clone()).unwrap();
+        assert_eq!(received_unit, unit);
+
+        let felt_amount = FieldElement::from_hex_be(&amount.to_str_radix(16))?;
+        Ok(felt_amount)
+    }
+
+    /// Performs GET request on devnet; path should have a leading slash
     pub async fn get(
         &self,
         path: &str,
         query: Option<String>,
     ) -> Result<Response<Body>, hyper::Error> {
-        let uri = if query.is_none() {
-            format!("{}{}", self.url, path)
-        } else {
-            format!("{}{}?{}", self.url, path, query.unwrap())
-        };
-
+        let uri = format!("{}{}?{}", self.url, path, query.unwrap_or("".into()));
         let response = self.http_client.get(uri.as_str().parse::<Uri>().unwrap()).await.unwrap();
         Ok(response)
     }
@@ -248,6 +271,30 @@ impl BackgroundDevnet {
 
     pub async fn restart(&self) -> Result<Response<Body>, hyper::Error> {
         self.post_json("/restart".into(), Body::empty()).await
+    }
+
+    pub async fn fork(&self) -> Result<Self, TestError> {
+        let args = ["--fork-network", self.url.as_str(), "--accounts", "0"];
+        BackgroundDevnet::spawn_with_additional_args(&args).await
+    }
+
+    /// Mines a new block and returns its hash
+    pub async fn create_block(&self) -> Result<FieldElement, anyhow::Error> {
+        let block_creation_resp =
+            self.post_json("/create_block".into(), Body::from(json!({}).to_string())).await?;
+
+        let block_creation_resp_body = get_json_body(block_creation_resp).await;
+        let block_hash_str = block_creation_resp_body["block_hash"].as_str().unwrap();
+        Ok(FieldElement::from_hex_be(block_hash_str)?)
+    }
+
+    pub async fn get_latest_block_with_tx_hashes(
+        &self,
+    ) -> Result<BlockWithTxHashes, anyhow::Error> {
+        match self.json_rpc_client.get_block_with_tx_hashes(BlockId::Tag(BlockTag::Latest)).await {
+            Ok(MaybePendingBlockWithTxHashes::Block(b)) => Ok(b),
+            other => Err(anyhow::format_err!("Got unexpected block: {other:?}")),
+        }
     }
 }
 

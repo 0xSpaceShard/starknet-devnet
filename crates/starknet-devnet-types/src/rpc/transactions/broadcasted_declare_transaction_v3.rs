@@ -201,7 +201,7 @@ mod tests {
         assert_eq!(
             broadcasted_txn
                 .calculate_transaction_hash(
-                    ChainId::Testnet.to_felt(),
+                    ChainId::goerli_legacy_id(),
                     feeder_gateway_transaction.class_hash
                 )
                 .unwrap(),

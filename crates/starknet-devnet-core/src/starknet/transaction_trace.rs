@@ -99,6 +99,7 @@ pub(crate) fn create_trace<S: StateReader>(
                     Ok(TransactionTrace::L1Handler(L1HandlerTransactionTrace {
                         function_invocation,
                         state_diff,
+                        execution_resources,
                     }))
                 }
                 _ => Err(Error::NoTransactionTrace),

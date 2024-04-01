@@ -15,7 +15,7 @@ use starknet_api::block::{BlockNumber, BlockStatus, BlockTimestamp, GasPrice, Ga
 use starknet_api::core::SequencerContractAddress;
 use starknet_api::transaction::Fee;
 use starknet_rs_core::types::{
-    BlockId, MsgFromL1, TransactionExecutionStatus, TransactionFinalityStatus,
+    BlockId, ExecutionResult, MsgFromL1, TransactionExecutionStatus, TransactionFinalityStatus,
 };
 use starknet_rs_core::utils::get_selector_from_name;
 use starknet_rs_ff::FieldElement;
@@ -24,7 +24,8 @@ use starknet_types::chain_id::ChainId;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::emitted_event::EmittedEvent;
-use starknet_types::felt::{ClassHash, Felt, TransactionHash};
+use starknet_types::felt::{split_biguint, ClassHash, Felt, TransactionHash};
+use starknet_types::num_bigint::BigUint;
 use starknet_types::patricia_key::PatriciaKey;
 use starknet_types::rpc::block::{Block, BlockHeader};
 use starknet_types::rpc::estimate_message_fee::FeeEstimateWrapper;
@@ -47,6 +48,7 @@ use starknet_types::rpc::transactions::{
 use starknet_types::traits::HashProducer;
 use tracing::{error, info};
 
+use self::defaulter::StarknetDefaulter;
 use self::dump::DumpEvent;
 use self::predeployed::initialize_erc20_at_address;
 use self::starknet_config::{DumpOn, StarknetConfig, StateArchiveCapacity};
@@ -55,10 +57,11 @@ use crate::account::Account;
 use crate::blocks::{StarknetBlock, StarknetBlocks};
 use crate::constants::{
     CHARGEABLE_ACCOUNT_ADDRESS, CHARGEABLE_ACCOUNT_PRIVATE_KEY, DEVNET_DEFAULT_CHAIN_ID,
-    DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, ETH_ERC20_CONTRACT_ADDRESS,
-    ETH_ERC20_NAME, ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS, STRK_ERC20_NAME,
-    STRK_ERC20_SYMBOL,
+    DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
+    ETH_ERC20_CONTRACT_ADDRESS, ETH_ERC20_NAME, ETH_ERC20_SYMBOL, STRK_ERC20_CONTRACT_ADDRESS,
+    STRK_ERC20_NAME, STRK_ERC20_SYMBOL,
 };
+use crate::contract_class_choice::AccountContractClassChoice;
 use crate::error::{DevnetResult, Error, TransactionValidationError};
 use crate::messaging::MessagingBroker;
 use crate::predeployed_accounts::PredeployedAccounts;
@@ -74,6 +77,7 @@ mod add_declare_transaction;
 mod add_deploy_account_transaction;
 mod add_invoke_transaction;
 mod add_l1_handler_transaction;
+pub(crate) mod defaulter;
 pub mod dump;
 mod estimations;
 mod events;
@@ -85,6 +89,8 @@ pub(crate) mod transaction_trace;
 
 pub struct Starknet {
     pub(in crate::starknet) state: StarknetState,
+    pub(in crate::starknet) init_state: StarknetState, /* This will be refactored during the
+                                                        * genesis block PR */
     predeployed_accounts: PredeployedAccounts,
     pub(in crate::starknet) block_context: BlockContext,
     // To avoid repeating some logic related to blocks,
@@ -107,8 +113,10 @@ impl Default for Starknet {
                 ETH_ERC20_CONTRACT_ADDRESS,
                 STRK_ERC20_CONTRACT_ADDRESS,
                 DEVNET_DEFAULT_CHAIN_ID,
+                DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
             ),
             state: Default::default(),
+            init_state: Default::default(),
             predeployed_accounts: Default::default(),
             blocks: Default::default(),
             transactions: Default::default(),
@@ -123,7 +131,20 @@ impl Default for Starknet {
 
 impl Starknet {
     pub fn new(config: &StarknetConfig) -> DevnetResult<Self> {
-        let mut state = StarknetState::default();
+        let defaulter = StarknetDefaulter::new(config.fork_config.clone());
+        let mut state = StarknetState::new(defaulter);
+
+        // predeclare account classes
+        for account_class_choice in
+            [AccountContractClassChoice::Cairo0, AccountContractClassChoice::Cairo1]
+        {
+            let class_wrapper = account_class_choice.get_class_wrapper()?;
+            state.predeclare_contract_class(
+                class_wrapper.class_hash,
+                class_wrapper.contract_class,
+            )?;
+        }
+
         // deploy udc, eth erc20 and strk erc20 contracts
         let eth_erc20_fee_contract =
             predeployed::create_erc20_at_address(ETH_ERC20_CONTRACT_ADDRESS)?;
@@ -151,7 +172,7 @@ impl Starknet {
 
         let mut predeployed_accounts = PredeployedAccounts::new(
             config.seed,
-            config.predeployed_accounts_initial_balance,
+            config.predeployed_accounts_initial_balance.clone(),
             eth_erc20_fee_contract.get_address(),
             strk_erc20_fee_contract.get_address(),
         );
@@ -159,7 +180,7 @@ impl Starknet {
         let accounts = predeployed_accounts.generate_accounts(
             config.total_accounts,
             config.account_contract_class_hash,
-            config.account_contract_class.clone(),
+            &config.account_contract_class,
         )?;
         for account in accounts {
             account.deploy(&mut state)?;
@@ -173,8 +194,13 @@ impl Starknet {
 
         state.commit_with_diff()?;
 
+        // when forking, the number of the first new block to be mined is equal to the last origin
+        // block (the one specified by the user) plus one.
+        let starting_block_number =
+            config.fork_config.block_number.map_or(DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, |n| n + 1);
         let mut this = Self {
             state,
+            init_state: StarknetState::default(),
             predeployed_accounts,
             block_context: Self::init_block_context(
                 config.gas_price,
@@ -182,8 +208,9 @@ impl Starknet {
                 ETH_ERC20_CONTRACT_ADDRESS,
                 STRK_ERC20_CONTRACT_ADDRESS,
                 config.chain_id,
+                starting_block_number,
             ),
-            blocks: StarknetBlocks::default(),
+            blocks: StarknetBlocks::new(starting_block_number),
             transactions: StarknetTransactions::default(),
             config: config.clone(),
             pending_block_timestamp_shift: 0,
@@ -193,6 +220,10 @@ impl Starknet {
         };
 
         this.restart_pending_block()?;
+
+        // Set init_state for abort blocks functionality
+        // This will be refactored during the genesis block PR
+        this.init_state = this.state.clone_historic();
 
         // Load starknet transactions
         if this.config.dump_path.is_some() && this.config.re_execute_on_init {
@@ -256,7 +287,9 @@ impl Starknet {
         new_block.set_timestamp(block_timestamp);
         Self::update_block_context_block_timestamp(&mut self.block_context, block_timestamp);
 
-        let new_block_number = new_block.block_number();
+        let new_block_number =
+            BlockNumber(new_block.block_number().0 - self.blocks.aborted_blocks.len() as u64);
+        new_block.header.block_number = new_block_number;
         let new_block_hash: Felt = new_block.header.block_hash.0.into();
 
         // update txs block hash block number for each transaction in the pending block
@@ -423,6 +456,7 @@ impl Starknet {
         eth_fee_token_address: &str,
         strk_fee_token_address: &str,
         chain_id: ChainId,
+        block_number: u64,
     ) -> BlockContext {
         use starknet_api::core::{ContractAddress, PatriciaKey};
         use starknet_api::hash::StarkHash;
@@ -431,7 +465,7 @@ impl Starknet {
         // Create a BlockContext based on BlockContext::create_for_testing()
 
         let block_info = BlockInfo {
-            block_number: BlockNumber(0),
+            block_number: BlockNumber(block_number),
             block_timestamp: BlockTimestamp(0),
             sequencer_address: contract_address!("0x1000"),
             gas_prices: blockifier::block::GasPrices {
@@ -500,6 +534,14 @@ impl Starknet {
                 self.block_context.block_info().gas_prices.eth_l1_gas_price.get(),
             ),
         };
+        block.header.l1_data_gas_price = GasPricePerToken {
+            price_in_fri: GasPrice(
+                self.block_context.block_info().gas_prices.strk_l1_data_gas_price.get(),
+            ),
+            price_in_wei: GasPrice(
+                self.block_context.block_info().gas_prices.eth_l1_data_gas_price.get(),
+            ),
+        };
         block.header.sequencer =
             SequencerContractAddress(self.block_context.block_info().sequencer_address);
 
@@ -513,17 +555,16 @@ impl Starknet {
             BlockId::Tag(_) => Ok(&mut self.state),
             _ => {
                 if self.config.state_archive == StateArchiveCapacity::None {
-                    return Err(Error::StateHistoryDisabled);
+                    return Err(Error::NoStateAtBlock { block_id: *block_id });
                 }
 
                 let block = self.blocks.get_by_block_id(block_id).ok_or(Error::NoBlock)?;
-                let block_number = block.block_number().0;
                 let block_hash = block.block_hash();
                 let state = self
                     .blocks
                     .hash_to_state
                     .get_mut(&block_hash)
-                    .ok_or(Error::NoStateAtBlock { block_number })?;
+                    .ok_or(Error::NoStateAtBlock { block_id: *block_id })?;
                 Ok(state)
             }
         }
@@ -695,7 +736,7 @@ impl Starknet {
     pub async fn mint(
         &mut self,
         address: ContractAddress,
-        amount: u128,
+        amount: BigUint,
         erc20_address: ContractAddress,
     ) -> DevnetResult<Felt> {
         let sufficiently_big_max_fee = self.config.gas_price.get() * 1_000_000;
@@ -704,11 +745,9 @@ impl Starknet {
             starknet_api::hash::StarkFelt::from(chargeable_address_felt),
         )?)?;
 
-        let calldata = vec![
-            Felt::from(address).into(),
-            FieldElement::from(amount), // `low` part of Uint256
-            FieldElement::from(0u32),   // `high` part
-        ];
+        let (high, low) = split_biguint(amount)?;
+
+        let calldata = vec![Felt::from(address).into(), low.into(), high.into()];
 
         let raw_execution = RawExecution {
             calls: vec![Call {
@@ -750,6 +789,71 @@ impl Starknet {
 
     pub fn block_state_update(&self, block_id: &BlockId) -> DevnetResult<StateUpdate> {
         state_update::state_update_by_block_id(self, block_id)
+    }
+
+    pub fn abort_blocks(&mut self, starting_block_hash: Felt) -> DevnetResult<Vec<Felt>> {
+        if self.config.state_archive != StateArchiveCapacity::Full {
+            return Err(Error::UnsupportedAction {
+                msg: ("The abort blocks feature requires state-archive-capacity set to full."
+                    .into()),
+            });
+        }
+
+        if self.blocks.aborted_blocks.contains(&starting_block_hash) {
+            return Err(Error::UnsupportedAction { msg: "Block is already aborted".into() });
+        }
+
+        let mut next_block_to_abort_hash = self
+            .blocks
+            .last_block_hash
+            .ok_or(Error::UnsupportedAction { msg: "No blocks to abort".into() })?;
+        let mut reached_starting_block = false;
+        let mut aborted: Vec<Felt> = Vec::new();
+
+        // Abort blocks from latest to starting (iterating backwards) and revert transactions.
+        while !reached_starting_block {
+            reached_starting_block = next_block_to_abort_hash == starting_block_hash;
+            let block_to_abort = self.blocks.hash_to_block.get_mut(&next_block_to_abort_hash);
+
+            if let Some(block) = block_to_abort {
+                block.status = BlockStatus::Rejected;
+                self.blocks.num_to_hash.shift_remove(&block.block_number());
+
+                // Revert transactions
+                for tx_hash in block.get_transactions() {
+                    let tx =
+                        self.transactions.get_by_hash_mut(tx_hash).ok_or(Error::NoTransaction)?;
+                    tx.execution_result =
+                        ExecutionResult::Reverted { reason: "Block aborted manually".to_string() };
+                }
+
+                aborted.push(block.block_hash());
+
+                // Update next block hash to abort
+                next_block_to_abort_hash = block.parent_hash();
+            }
+        }
+        let last_reached_block_hash = next_block_to_abort_hash;
+
+        // Update last_block_hash based on last reached block and revert state only if
+        // starting block is reached in while loop.
+        if last_reached_block_hash == Felt::from(0) && reached_starting_block {
+            self.blocks.last_block_hash = None;
+            self.state = self.init_state.clone_historic(); // This will be refactored during the genesis block PR
+        } else if reached_starting_block {
+            let current_block =
+                self.blocks.hash_to_block.get(&last_reached_block_hash).ok_or(Error::NoBlock)?;
+            self.blocks.last_block_hash = Some(current_block.block_hash());
+
+            let reverted_state = self.blocks.hash_to_state.get(&current_block.block_hash()).ok_or(
+                Error::NoStateAtBlock { block_id: BlockId::Number(current_block.block_number().0) },
+            )?;
+            self.state = reverted_state.clone_historic();
+        }
+
+        self.blocks.aborted_blocks = aborted.clone();
+
+        Ok(aborted)
     }
 
     pub fn get_block_txs_count(&self, block_id: &BlockId) -> DevnetResult<u64> {
@@ -1096,7 +1200,8 @@ mod tests {
     use crate::account::FeeToken;
     use crate::blocks::StarknetBlock;
     use crate::constants::{
-        DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_INITIAL_BALANCE, ETH_ERC20_CONTRACT_ADDRESS,
+        DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_INITIAL_BALANCE,
+        DEVNET_DEFAULT_STARTING_BLOCK_NUMBER, ETH_ERC20_CONTRACT_ADDRESS,
         STRK_ERC20_CONTRACT_ADDRESS,
     };
     use crate::error::{DevnetResult, Error};
@@ -1133,6 +1238,7 @@ mod tests {
             "0xAA",
             STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
+            DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         );
         assert_eq!(block_ctx.block_info().block_number, BlockNumber(0));
         assert_eq!(block_ctx.block_info().block_timestamp, BlockTimestamp(0));
@@ -1186,7 +1292,13 @@ mod tests {
         let mut starknet = Starknet::new(&config).unwrap();
 
         let initial_block_number = starknet.block_context.block_info().block_number;
-        let initial_gas_price = starknet.block_context.block_info().gas_prices.eth_l1_gas_price;
+        let initial_gas_price_wei = starknet.block_context.block_info().gas_prices.eth_l1_gas_price;
+        let initial_gas_price_fri =
+            starknet.block_context.block_info().gas_prices.strk_l1_gas_price;
+        let initial_data_gas_price_wei =
+            starknet.block_context.block_info().gas_prices.eth_l1_data_gas_price;
+        let initial_data_gas_price_fri =
+            starknet.block_context.block_info().gas_prices.strk_l1_data_gas_price;
         let initial_block_timestamp = starknet.block_context.block_info().block_timestamp;
         let initial_sequencer = starknet.block_context.block_info().sequencer_address;
 
@@ -1210,7 +1322,19 @@ mod tests {
         assert_eq!(starknet.pending_block().header.parent_hash, BlockHash::default());
         assert_eq!(
             starknet.pending_block().header.l1_gas_price.price_in_wei,
-            GasPrice(initial_gas_price.get())
+            GasPrice(initial_gas_price_wei.get())
+        );
+        assert_eq!(
+            starknet.pending_block().header.l1_gas_price.price_in_fri,
+            GasPrice(initial_gas_price_fri.get())
+        );
+        assert_eq!(
+            starknet.pending_block().header.l1_data_gas_price.price_in_wei,
+            GasPrice(initial_data_gas_price_wei.get())
+        );
+        assert_eq!(
+            starknet.pending_block().header.l1_data_gas_price.price_in_fri,
+            GasPrice(initial_data_gas_price_fri.get())
         );
         assert_eq!(starknet.pending_block().header.sequencer.0, initial_sequencer);
     }
@@ -1223,6 +1347,7 @@ mod tests {
             ETH_ERC20_CONTRACT_ADDRESS,
             STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
+            DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         );
         let initial_block_number = block_ctx.block_info().block_number;
         Starknet::advance_block_context_block_number(&mut block_ctx);
@@ -1266,7 +1391,7 @@ mod tests {
         starknet.blocks.hash_to_state.remove(&block_hash);
 
         match starknet.get_mut_state_at(&BlockId::Number(0)) {
-            Err(Error::NoStateAtBlock { block_number: _ }) => (),
+            Err(Error::NoStateAtBlock { block_id: _ }) => (),
             _ => panic!("Should fail with NoStateAtBlock"),
         }
     }
@@ -1278,8 +1403,8 @@ mod tests {
         starknet.generate_new_block(StateDiff::default()).unwrap();
 
         match starknet.get_mut_state_at(&BlockId::Number(0)) {
-            Err(Error::StateHistoryDisabled) => (),
-            _ => panic!("Should fail with StateHistoryDisabled."),
+            Err(Error::NoStateAtBlock { .. }) => (),
+            _ => panic!("Should fail with NoStateAtBlock."),
         }
     }
 

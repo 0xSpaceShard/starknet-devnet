@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use indexmap::IndexMap;
 use starknet_api::block::{BlockHeader, BlockNumber, BlockStatus, BlockTimestamp};
+use starknet_api::data_availability::L1DataAvailabilityMode;
 use starknet_api::hash::{pedersen_hash_array, StarkFelt};
 use starknet_api::stark_felt;
 use starknet_rs_core::types::BlockId;
@@ -23,6 +24,7 @@ pub(crate) struct StarknetBlocks {
     pub(crate) last_block_hash: Option<BlockHash>,
     pub(crate) hash_to_state_diff: HashMap<BlockHash, StateDiff>,
     pub(crate) hash_to_state: HashMap<BlockHash, StarknetState>,
+    pub(crate) aborted_blocks: Vec<Felt>,
 }
 
 impl HashIdentified for StarknetBlocks {
@@ -45,11 +47,18 @@ impl Default for StarknetBlocks {
             last_block_hash: None,
             hash_to_state_diff: HashMap::new(),
             hash_to_state: HashMap::new(),
+            aborted_blocks: Vec::new(),
         }
     }
 }
 
 impl StarknetBlocks {
+    pub fn new(starting_block_number: u64) -> Self {
+        let mut blocks = Self::default();
+        blocks.pending_block.set_block_number(starting_block_number);
+        blocks
+    }
+
     /// Inserts a block in the collection and modifies the block parent hash to match the last block
     /// hash
     pub fn insert(&mut self, mut block: StarknetBlock, state_diff: StateDiff) {
@@ -222,10 +231,17 @@ impl StarknetBlock {
 
     pub(crate) fn create_pending_block() -> Self {
         Self {
-            header: BlockHeader::default(),
+            header: BlockHeader {
+                l1_da_mode: L1DataAvailabilityMode::Blob,
+                ..BlockHeader::default()
+            },
             status: BlockStatus::Pending,
             transaction_hashes: Vec::new(),
         }
+    }
+
+    pub(crate) fn set_block_number(&mut self, block_number: u64) {
+        self.header.block_number = BlockNumber(block_number)
     }
 
     pub(crate) fn set_timestamp(&mut self, timestamp: BlockTimestamp) {
@@ -699,6 +715,12 @@ mod tests {
         let block = StarknetBlock::create_pending_block();
         assert!(block.status == BlockStatus::Pending);
         assert!(block.transaction_hashes.is_empty());
-        assert_eq!(block.header, BlockHeader::default());
+        assert_eq!(
+            block.header,
+            BlockHeader {
+                l1_da_mode: starknet_api::data_availability::L1DataAvailabilityMode::Blob,
+                ..Default::default()
+            }
+        );
     }
 }

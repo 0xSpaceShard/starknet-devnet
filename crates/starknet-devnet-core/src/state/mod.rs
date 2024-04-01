@@ -6,7 +6,6 @@ use blockifier::state::cached_state::{
 use blockifier::state::state_api::{State, StateReader};
 use starknet_api::core::CompiledClassHash;
 use starknet_api::hash::StarkFelt;
-use starknet_types::constants::MAX_BYTECODE_SIZE_LIMIT;
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::{ClassHash, Felt};
@@ -14,6 +13,8 @@ use starknet_types::felt::{ClassHash, Felt};
 use self::state_diff::StateDiff;
 use self::state_readers::DictState;
 use crate::error::{DevnetResult, Error};
+use crate::starknet::defaulter::StarknetDefaulter;
+use crate::utils::casm_hash;
 
 pub(crate) mod state_diff;
 pub(crate) mod state_readers;
@@ -92,6 +93,17 @@ impl Default for StarknetState {
 }
 
 impl StarknetState {
+    pub fn new(defaulter: StarknetDefaulter) -> Self {
+        Self {
+            state: CachedState::new(
+                DictState::new(defaulter),
+                GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
+            ),
+            rpc_contract_classes: Default::default(),
+            historic_state: Default::default(),
+        }
+    }
+
     pub fn clone_rpc_contract_classes(&self) -> CommittedClassStorage {
         self.rpc_contract_classes.clone()
     }
@@ -156,7 +168,7 @@ impl StarknetState {
                 GlobalContractCache::new(GLOBAL_CONTRACT_CACHE_SIZE_FOR_TEST),
             ),
             rpc_contract_classes: self.rpc_contract_classes.clone(),
-            historic_state: None,
+            historic_state: Some(self.historic_state.as_ref().unwrap().clone()),
         }
     }
 }
@@ -258,12 +270,13 @@ impl blockifier::state::state_api::StateReader for StarknetState {
 impl CustomStateReader for StarknetState {
     fn is_contract_deployed(&mut self, contract_address: ContractAddress) -> DevnetResult<bool> {
         let api_address = contract_address.try_into()?;
-        Ok(self
-            .get_class_hash_at(api_address)
-            .is_ok_and(|starknet_api::core::ClassHash(hash)| hash != StarkFelt::ZERO))
+        let starknet_api::core::ClassHash(class_hash) = self.get_class_hash_at(api_address)?;
+        Ok(class_hash != StarkFelt::ZERO)
     }
 
     fn is_contract_declared(&mut self, class_hash: ClassHash) -> bool {
+        // get_compiled_contract_class is important if forking; checking hash is impossible via
+        // JSON-RPC
         self.get_compiled_class_hash(class_hash.into())
             .is_ok_and(|CompiledClassHash(class_hash)| class_hash != StarkFelt::ZERO)
             || self.get_compiled_contract_class(class_hash.into()).is_ok()
@@ -284,11 +297,14 @@ impl CustomState for StarknetState {
         let compiled_class = contract_class.clone().try_into()?;
 
         if let ContractClass::Cairo1(cairo_lang_contract_class) = &contract_class {
-            let cairo_lang_compiled_class = cairo_lang_starknet_classes::casm_contract_class::CasmContractClass::from_contract_class(
-                cairo_lang_contract_class.clone(), true, MAX_BYTECODE_SIZE_LIMIT).map_err(|_| Error::SierraCompilationError
-            )?;
-            let casm_hash =
-                Felt::new(cairo_lang_compiled_class.compiled_class_hash().to_be_bytes())?;
+            let casm_json = usc::compile_contract(
+                serde_json::to_value(cairo_lang_contract_class)
+                    .map_err(|err| Error::SerializationError { origin: err.to_string() })?,
+            )
+            .map_err(|_| Error::SierraCompilationError)?;
+
+            let casm_hash = Felt::from(casm_hash(casm_json)?);
+
             self.state.state.set_compiled_class_hash(class_hash.into(), casm_hash.into())?;
         };
 
@@ -305,10 +321,13 @@ impl CustomState for StarknetState {
         let compiled_class = contract_class.clone().try_into()?;
 
         if let ContractClass::Cairo1(cairo_lang_contract_class) = &contract_class {
-            let cairo_lang_compiled_class = cairo_lang_starknet_classes::casm_contract_class::CasmContractClass::from_contract_class(cairo_lang_contract_class.clone(), true, MAX_BYTECODE_SIZE_LIMIT).map_err(|_| Error::SierraCompilationError
-            )?;
-            let casm_hash =
-                Felt::new(cairo_lang_compiled_class.compiled_class_hash().to_be_bytes())?;
+            let casm_json = usc::compile_contract(
+                serde_json::to_value(cairo_lang_contract_class)
+                    .map_err(|err| Error::SerializationError { origin: err.to_string() })?,
+            )
+            .map_err(|_| Error::SierraCompilationError)?;
+
+            let casm_hash = Felt::from(casm_hash(casm_json)?);
             self.set_compiled_class_hash(class_hash.into(), casm_hash.into())?;
         };
 
@@ -477,7 +496,7 @@ mod tests {
     }
 
     #[test]
-    fn get_nonce_should_return_zerp_when_contract_not_deployed() {
+    fn get_nonce_should_return_zero_when_contract_not_deployed() {
         let (mut state, _) = setup();
 
         let dummy_address = starknet_api::core::ContractAddress::from(1_u32);

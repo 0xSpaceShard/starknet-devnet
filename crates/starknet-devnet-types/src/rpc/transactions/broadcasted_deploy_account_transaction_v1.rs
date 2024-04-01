@@ -181,7 +181,7 @@ mod tests {
             feeder_gateway_transaction.version,
         );
 
-        let chain_id = ChainId::Testnet.to_felt();
+        let chain_id = ChainId::goerli_legacy_id();
 
         let blockifier_deploy_account_transaction =
             broadcasted_tx.create_blockifier_deploy_account(chain_id, false).unwrap();

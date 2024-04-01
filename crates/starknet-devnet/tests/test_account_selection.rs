@@ -127,6 +127,11 @@ mod test_account_selection {
     }
 
     #[tokio::test]
+    async fn can_deploy_new_cairo1_account_when_cairo0_selected() {
+        can_deploy_new_account_test_body(&["--account-class", "cairo0"]).await;
+    }
+
+    #[tokio::test]
     async fn can_deploy_new_custom_account() {
         can_deploy_new_account_test_body(&[
             "--account-class-custom",

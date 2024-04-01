@@ -28,12 +28,11 @@ mod get_class_hash_at_integration_tests {
     #[tokio::test]
     async fn get_class_hash_at_for_undeployed_address() {
         let devnet = BackgroundDevnet::spawn().await.expect("Could not start Devnet");
-        let undeployed_address = "0x1234";
-        let contract_address = FieldElement::from_hex_be(undeployed_address).unwrap();
+        let undeployed_address = FieldElement::from_hex_be("0x1234").unwrap();
 
         let err = devnet
             .json_rpc_client
-            .get_class_hash_at(BlockId::Tag(BlockTag::Latest), contract_address)
+            .get_class_hash_at(BlockId::Tag(BlockTag::Latest), undeployed_address)
             .await
             .expect_err("Should have failed");
 

@@ -54,12 +54,14 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0ContractClass, ContractClass};
     use starknet_types::felt::Felt;
+    use starknet_types::rpc::state::Balance;
     use starknet_types::rpc::transactions::L1HandlerTransaction;
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;
     use crate::constants::{
-        self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
+        self, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
+        ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     };
     use crate::starknet::{predeployed, Starknet};
     use crate::state::CustomState;
@@ -93,7 +95,7 @@ mod tests {
         .with_hash(ChainId::Testnet.to_felt());
 
         let transaction_hash = Felt::from_prefixed_hex_str(
-            "0x6182c63599a9638272f1ce5b5cadabece9c81c2d2b8f88ab7a294472b8fce8b",
+            "0x1b24ea8dd9e0cb603043958b27a8569635ea13568883cc155130591b7ffe37a",
         )
         .unwrap();
 
@@ -197,7 +199,7 @@ mod tests {
             account_without_validations_contract_class.generate_hash().unwrap();
 
         let account = Account::new(
-            Felt::from(10000),
+            Balance::from(10000_u32),
             dummy_felt(),
             dummy_felt(),
             account_without_validations_class_hash,
@@ -262,6 +264,7 @@ mod tests {
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
+            DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         );
 
         starknet.restart_pending_block().unwrap();

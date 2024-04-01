@@ -137,13 +137,15 @@ mod tests {
     use starknet_types::contract_address::ContractAddress;
     use starknet_types::contract_class::{Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
+    use starknet_types::rpc::state::Balance;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v1::BroadcastedDeclareTransactionV1;
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;
     use crate::constants::{
-        self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
+        self, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
+        ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     };
     use crate::starknet::predeployed::create_erc20_at_address;
     use crate::starknet::{predeployed, Starknet};
@@ -340,7 +342,7 @@ mod tests {
         let (mut starknet, sender) = setup(Some(20000));
 
         let mut declare_txn = broadcasted_declare_transaction_v1(sender);
-        declare_txn.common.max_fee = Fee(declare_txn.common.max_fee.0 / 10);
+        declare_txn.common.max_fee = Fee(10);
 
         match starknet.add_declare_transaction_v1(declare_txn).unwrap_err() {
             crate::error::Error::TransactionValidationError(
@@ -439,7 +441,7 @@ mod tests {
         strk_erc20_contract.deploy(&mut starknet.state).unwrap();
 
         let acc = Account::new(
-            Felt::from(acc_balance.unwrap_or(10000)),
+            Balance::from(acc_balance.unwrap_or(10000)),
             dummy_felt(),
             dummy_felt(),
             contract_class.generate_hash().unwrap(),
@@ -457,6 +459,7 @@ mod tests {
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
+            DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         );
 
         starknet.restart_pending_block().unwrap();

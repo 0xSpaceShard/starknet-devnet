@@ -7,8 +7,10 @@ mod dump_and_load_tests {
     use hyper::Body;
     use serde_json::json;
     use starknet_rs_providers::Provider;
+    use starknet_types::rpc::transaction_receipt::FeeUnit;
 
     use crate::common::background_devnet::BackgroundDevnet;
+    use crate::common::constants;
     use crate::common::utils::{send_ctrl_c_signal_and_wait, UniqueAutoDeletableFile};
 
     static DUMMY_ADDRESS: u128 = 1;
@@ -18,7 +20,6 @@ mod dump_and_load_tests {
 
     use starknet_rs_accounts::{Account, ExecutionEncoding, SingleOwnerAccount};
     use starknet_rs_contract::ContractFactory;
-    use starknet_rs_core::chain_id;
     use starknet_rs_core::types::FieldElement;
 
     use crate::common::utils::get_events_contract_in_sierra_and_compiled_class_hash;
@@ -37,10 +38,7 @@ mod dump_and_load_tests {
             .await
             .expect("Could not start Devnet");
 
-            devnet_dump
-                .post_json("/create_block".into(), Body::from(json!({}).to_string()))
-                .await
-                .unwrap();
+            devnet_dump.create_block().await.unwrap();
             devnet_dump.mint(DUMMY_ADDRESS, DUMMY_AMOUNT).await;
 
             send_ctrl_c_signal_and_wait(&devnet_dump.process).await;
@@ -55,10 +53,8 @@ mod dump_and_load_tests {
         .await
         .expect("Could not start Devnet");
 
-        let last_block = &devnet_load
-            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
-            .await["result"];
-        assert_eq!(last_block["block_number"], 3);
+        let last_block = devnet_load.get_latest_block_with_tx_hashes().await.unwrap();
+        assert_eq!(last_block.block_number, 3);
     }
 
     #[tokio::test]
@@ -200,7 +196,7 @@ mod dump_and_load_tests {
             devnet.clone_provider(),
             signer,
             account_address,
-            chain_id::TESTNET,
+            constants::CHAIN_ID,
             ExecutionEncoding::New,
         );
 
@@ -386,8 +382,10 @@ mod dump_and_load_tests {
         let load_body = Body::from(json!({ "path": dump_file.path }).to_string());
         devnet_load.post_json("/load".into(), load_body).await.unwrap();
 
-        let balance_result =
-            devnet_load.get_balance(&FieldElement::from(DUMMY_ADDRESS)).await.unwrap();
+        let balance_result = devnet_load
+            .get_balance(&FieldElement::from(DUMMY_ADDRESS), FeeUnit::WEI)
+            .await
+            .unwrap();
         assert_eq!(balance_result, DUMMY_AMOUNT.into());
 
         let loaded_transaction =
@@ -423,14 +421,8 @@ mod dump_and_load_tests {
         // wait 1 second
         thread::sleep(time::Duration::from_secs(1));
 
-        // create block
-        devnet_dump
-            .post_json("/create_block".into(), Body::from(json!({}).to_string()))
-            .await
-            .unwrap();
-        devnet_dump
-            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
-            .await;
+        devnet_dump.create_block().await.unwrap();
+        devnet_dump.get_latest_block_with_tx_hashes().await.unwrap();
 
         // dump and load
         send_ctrl_c_signal_and_wait(&devnet_dump.process).await;
@@ -441,11 +433,9 @@ mod dump_and_load_tests {
                 .await
                 .expect("Could not start Devnet");
 
-        let latest_block = &devnet_load
-            .send_custom_rpc("starknet_getBlockWithTxHashes", json!({ "block_id": "latest" }))
-            .await["result"];
+        let latest_block = devnet_load.get_latest_block_with_tx_hashes().await.unwrap();
 
-        assert_eq!(latest_block["block_number"], 0);
-        assert_eq!(latest_block["timestamp"], past_time);
+        assert_eq!(latest_block.block_number, 0);
+        assert_eq!(latest_block.timestamp, past_time);
     }
 }

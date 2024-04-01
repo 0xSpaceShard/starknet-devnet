@@ -1,6 +1,7 @@
 pub mod account;
 mod blocks;
 pub mod constants;
+pub mod contract_class_choice;
 pub mod error;
 pub mod messaging;
 mod predeployed_accounts;

@@ -166,7 +166,7 @@ mod tests {
         );
 
         let blockifier_declare_transaction = broadcasted_declare_transaction
-            .create_blockifier_declare(ChainId::Testnet.to_felt())
+            .create_blockifier_declare(ChainId::goerli_legacy_id())
             .unwrap();
 
         assert_eq!(

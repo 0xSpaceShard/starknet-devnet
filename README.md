@@ -21,19 +21,21 @@ This repository is work in progress, please be patient. Please check below the s
 ### Supported Features
 
 - [x] RPC v0.7.0
-- [x] [Dump & Load](https://github.com/0xSpaceShard/starknet-devnet-rs#dumping--loading)
-- [x] [Mint token - Local faucet](https://0xspaceshard.github.io/starknet-devnet/docs/guide/mint-token)
+- [x] [Dump & Load](#dumping--loading)
+- [x] [Mint token - Local faucet](#mint-token)
 - [x] [Customizable predeployed accounts](#predeployed-contracts)
-- [x] Starknet.js test suite passes 100%
+- [x] [Starknet.js test suite passes 100%](https://github.com/starknet-io/starknet.js/actions)
 - [x] [Advancing time](https://0xspaceshard.github.io/starknet-devnet/docs/guide/advancing-time)
+- [x] [Availability as a package (crate)](#installing-from-cratesio)
+- [x] [Forking](#forking)
+- [x] [L1-L2 Postman integration](https://0xspaceshard.github.io/starknet-devnet/docs/guide/postman)
+- [x] [Block manipulation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/blocks)
+  - [x] [Aborting blocks](#abort-blocks)
+  - [x] [Creating an empty block](#create-an-empty-block)
 
 ### TODO to reach feature parity with the Pythonic Devnet
 
-- [x] Availability as a package (crate)
-- [ ] [Forking](https://0xspaceshard.github.io/starknet-devnet/docs/guide/fork)
-- [x] [L1-L2 Postman integration](https://0xspaceshard.github.io/starknet-devnet/docs/guide/postman)
-- [ ] [Block manipulation](https://0xspaceshard.github.io/starknet-devnet/docs/guide/blocks)
-  - [x] Create an empty block
+- [ ] Creating blocks on demand
 
 ## Requirements
 
@@ -212,6 +214,14 @@ POST /mint
 }
 ```
 
+### Check balance
+
+Check the balance of an address by sending a GET request to `/account_balance`. The address should be a 0x-prefixed hex string; the unit defaults to `WEI`.
+
+```
+GET /account_balance?address=<ADDRESS>&[unit=<FRI|WEI>]
+```
+
 ## Dumping & Loading
 
 To preserve your Devnet instance for future use, these are the options:
@@ -260,7 +270,7 @@ This means that timestamps of `StarknetBlock` will be different.
 Dumping and loading is not guaranteed to work cross-version. I.e. if you dumped one version of Devnet, do not expect it to be loadable with a different version.
 If you dumped a Devnet utilizing one class for account predeployment (e.g. the default `--account-class cairo0`), you should use the same option when loading.
 
-### Restarting
+## Restarting
 
 Devnet can be restarted by making a `POST /restart` request (no body required). All of the deployed contracts (including predeployed), blocks and storage updates will be restarted to the original state, without the transactions and requests from a dump file you may have provided on startup.
 
@@ -274,11 +284,42 @@ A new block is generated with each new transaction, and you can create an empty 
 
 To create an empty block without transactions, POST a request to /create_block:
 
+```
 POST /create_block
+```
 
 Response:
 
-{'block_hash': '0x115e1b390cafa7942b6ab141ab85040defe7dee9bef3bc31d8b5b3d01cc9c67'}
+```
+{"block_hash": "0x115e1b390cafa7942b6ab141ab85040defe7dee9bef3bc31d8b5b3d01cc9c67"}
+```
+
+### Abort blocks
+
+This functionality allows to simulate block abortion that can occur on mainnet.
+
+You can abort blocks and revert transactions from the specified block to the currently latest block. Newly created blocks after the abortion will have accepted status and will continue with numbering where the last accepted block left off.
+
+The state of Devnet will be reverted to the state of the last accepted block.
+
+E.g. assume there are 3 accepted blocks numbered 1, 2 and 3. Upon receiving a request to abort blocks starting with block 2, the blocks numbered 2 and 3 are aborted and their transactions reverted. The state of network will be as it was in block 1. Once a new block is mined, it will be accepted and it will have number 2.
+
+Aborted blocks can only be queried by block hash. Aborting the blocks in forking origin and already aborted blocks is not supported and results in an error.
+
+```
+POST /abort_blocks
+{
+    "starting_block_hash": BLOCK_HASH
+}
+```
+
+Response:
+
+```
+{
+    "aborted": [BLOCK_HASH_0, BLOCK_HASH_1, ...]
+}
+```
 
 ## Advancing time
 
@@ -328,13 +369,40 @@ Devnet can be started with the `--start-time` argument, where `START_TIME_IN_SEC
 cargo run -- --start-time <START_TIME_IN_SECONDS>
 ```
 
-### Timeout
+## Timeout
 
 Timeout can be passed to Devnet's HTTP server. This makes it easier to deploy and manage large contracts that take longer to execute.
 
 ```
 cargo run -- --timeout <TIMEOUT>
 ```
+
+## Forking
+
+To interact with contracts deployed on mainnet or testnet, you can use the forking to simulate the origin and experiment with it locally, making no changes to the origin itself.
+
+```
+cargo run -- --fork-network <URL> [--fork-block <BLOCK_NUMBER>]
+```
+
+The value passed to `--fork-network` should be the URL to a Starknet JSON-RPC API provider. Specifying a `--fork-block` is optional; it defaults to the `"latest"` block at the time of Devnet's start-up. All calls will first try Devnet's state and then fall back to the forking block.
+
+### Forking status
+
+```
+GET /fork_status
+```
+
+Response when Devnet is a fork of an origin:
+
+```js
+{
+  "url": "https://your.origin.io",
+  "block": 42 // the block from which origin was forked
+}
+```
+
+Response when not forking: `{}`
 
 ### Querying old state by specifying block hash or number
 
@@ -346,11 +414,13 @@ cargo run -- --state-archive-capacity <CAPACITY>
 
 All RPC endpoints that support querying the state at an old (non-latest) block only work with state archive capacity set to `full`.
 
-## Development - Visual Studio Code
+## Development
+
+### Development - Visual Studio Code
 
 It is highly recommended to get familiar with [Visual Studio Code Dev Containers](https://code.visualstudio.com/docs/devcontainers/create-dev-container#_dockerfile) and install [rust-analyzer](https://code.visualstudio.com/docs/languages/rust) extension.
 
-## Development - Linter
+### Development - Linter
 
 Run the linter with:
 
@@ -358,7 +428,7 @@ Run the linter with:
 ./scripts/clippy_check.sh
 ```
 
-## Development - Formatter
+### Development - Formatter
 
 Run the formatter with:
 
@@ -378,7 +448,7 @@ Resolve it with:
 rustup default nightly
 ```
 
-## Development - Unused dependencies
+### Development - Unused dependencies
 
 To check for unused dependencies, run:
 
@@ -388,7 +458,7 @@ To check for unused dependencies, run:
 
 If you think this reports a dependency as a false-positive (i.e. isn't unused), check [here](https://github.com/bnjbvr/cargo-machete#false-positives).
 
-## Development - Testing
+### Development - Testing
 
 ### Prerequisites
 
@@ -396,7 +466,7 @@ Some tests require the `anvil` command, so you need to [install Foundry](https:/
 
 To ensure that integration tests pass, be sure to have run `cargo build --release` or `cargo run --release` prior to testing. This builds the production target used in integration tests, so spawning BackgroundDevnet won't time out.
 
-### Execution
+### Test execution
 
 Run all tests using all available CPUs with:
 
@@ -410,7 +480,7 @@ The previous command might cause your testing to die along the way due to memory
 cargo test --jobs <N>
 ```
 
-## Development - Docker
+### Development - Docker
 
 Due to internal needs, images with arch suffix are built and pushed to Docker Hub, but this is not mentioned in the user docs as users should NOT be needing it.
 
@@ -423,7 +493,7 @@ This is what happens under the hood on `main`:
 
 In the image, `tini` is used to properly handle killing of dockerized Devnet with Ctrl+C
 
-## Development - L1 / L2 (postman)
+### Development - L1 / L2 (postman)
 
 To test Starknet messaging, Devnet exposes endpoints prefixed with `postman/` which are dedicated to the messaging feature.
 You can find a full guide to test the messaging feature in the [contracts/l1-l2-messaging README](./contracts/l1-l2-messaging/README.md).
@@ -435,7 +505,7 @@ Devnet exposes the following endpoints:
 - `/postman/send_message_to_l2`: sends and executes a message on L2 (L1 node **not** required).
 - `/postman/consume_message_from_l2`: consumes a message on L1 node from the L2 (requires L1 node to be running).
 
-## Development - Update of OpenZeppelin contracts
+### Development - Update of OpenZeppelin contracts
 
 Tests in devnet require an erc20 contract with the `Mintable` feature, keep in mind that before the compilation process of [cairo-contracts](https://github.com/OpenZeppelin/cairo-contracts/) you need to mark the `Mintable` check box in this [wizard](https://wizard.openzeppelin.com/cairo) and copy this implementation to `/src/presets/erc20.cairo`.
 

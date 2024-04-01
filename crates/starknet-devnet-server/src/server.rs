@@ -1,9 +1,11 @@
 use std::net::SocketAddr;
+use std::str::FromStr;
 
 use axum::routing::{get, post};
 use starknet_core::starknet::starknet_config::StarknetConfig;
 
 use crate::api::http::{endpoints as http, HttpApiHandler};
+use crate::api::json_rpc::origin_forwarder::OriginForwarder;
 use crate::api::json_rpc::JsonRpcHandler;
 use crate::api::Api;
 use crate::builder::StarknetDevnetServer;
@@ -18,7 +20,15 @@ pub fn serve_http_api_json_rpc(
     starknet_config: &StarknetConfig,
 ) -> ServerResult<StarknetDevnetServer> {
     let http = HttpApiHandler { api: api.clone() };
-    let json_rpc = JsonRpcHandler { api };
+    let origin_caller = if let (Some(url), Some(block_number)) =
+        (&starknet_config.fork_config.url, starknet_config.fork_config.block_number)
+    {
+        Some(OriginForwarder::new(hyper::Uri::from_str(url.as_str()).unwrap(), block_number))
+    } else {
+        None
+    };
+
+    let json_rpc = JsonRpcHandler { api, origin_caller };
 
     crate::builder::Builder::<JsonRpcHandler, HttpApiHandler>::new(addr, json_rpc, http)
         .set_config(config)
@@ -44,7 +54,6 @@ pub fn serve_http_api_json_rpc(
         .http_api_route("/increase_time", post(http::time::increase_time))
         .http_api_route("/predeployed_accounts", get(http::accounts::get_predeployed_accounts))
         .http_api_route("/account_balance", get(http::accounts::get_account_balance))
-        .http_api_route("/fee_token", get(http::mint_token::get_fee_token))
         .http_api_route("/mint", post(http::mint_token::mint))
         .http_api_route("/fork_status", get(http::get_fork_status))
         .build(starknet_config)

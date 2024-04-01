@@ -1,11 +1,12 @@
 mod endpoints;
 pub mod error;
 pub mod models;
+pub(crate) mod origin_forwarder;
 #[cfg(test)]
 mod spec_reader;
 mod write_endpoints;
 
-pub const RPC_SPEC_VERSION: &str = "0.7.0";
+pub const RPC_SPEC_VERSION: &str = "0.7.1";
 
 use models::{
     BlockAndClassHashInput, BlockAndContractAddressInput, BlockAndIndexInput, CallInput,
@@ -33,6 +34,7 @@ use self::models::{
     DeclareTransactionOutput, DeployAccountTransactionOutput, InvokeTransactionOutput,
     SyncingOutput, TransactionStatusOutput,
 };
+use self::origin_forwarder::OriginForwarder;
 use super::Api;
 use crate::api::json_rpc::models::{
     BroadcastedDeclareTransactionEnumWrapper, BroadcastedDeployAccountTransactionEnumWrapper,
@@ -40,6 +42,7 @@ use crate::api::json_rpc::models::{
 };
 use crate::api::serde_helpers::empty_params;
 use crate::rpc_core::error::RpcError;
+use crate::rpc_core::request::RpcMethodCall;
 use crate::rpc_core::response::ResponseResult;
 use crate::rpc_handler::RpcHandler;
 
@@ -77,128 +80,155 @@ impl ToRpcResponseResult for StrictRpcResult {
 #[derive(Clone)]
 pub struct JsonRpcHandler {
     pub api: Api,
+    pub origin_caller: Option<OriginForwarder>,
 }
 
 #[async_trait::async_trait]
 impl RpcHandler for JsonRpcHandler {
     type Request = StarknetRequest;
 
-    async fn on_request(&self, request: Self::Request) -> ResponseResult {
+    async fn on_request(
+        &self,
+        request: Self::Request,
+        original_call: RpcMethodCall,
+    ) -> ResponseResult {
         info!(target: "rpc", "received method in on_request {}", request);
-        self.execute(request).await
+        self.execute(request, original_call).await
     }
 }
 
 impl JsonRpcHandler {
     /// The method matches the request to the corresponding enum variant and executes the request
-    async fn execute(&self, request: StarknetRequest) -> ResponseResult {
+    async fn execute(
+        &self,
+        request: StarknetRequest,
+        original_call: RpcMethodCall,
+    ) -> ResponseResult {
         trace!(target: "JsonRpcHandler::execute", "executing starknet request");
 
-        match request {
-            StarknetRequest::SpecVersion => self.spec_version().to_rpc_result(),
+        // true if origin should be tried after request fails; relevant in forking mode
+        let mut forwardable = true;
+
+        let starknet_resp = match request {
+            StarknetRequest::SpecVersion => self.spec_version(),
             StarknetRequest::BlockWithTransactionHashes(block) => {
-                self.get_block_with_tx_hashes(block.block_id).await.to_rpc_result()
+                self.get_block_with_tx_hashes(block.block_id).await
             }
             StarknetRequest::BlockWithFullTransactions(block) => {
-                self.get_block_with_txs(block.block_id).await.to_rpc_result()
+                self.get_block_with_txs(block.block_id).await
             }
             StarknetRequest::BlockWithReceipts(block) => {
-                self.get_block_with_receipts(block.block_id).await.to_rpc_result()
+                self.get_block_with_receipts(block.block_id).await
             }
-            StarknetRequest::StateUpdate(block) => {
-                self.get_state_update(block.block_id).await.to_rpc_result()
-            }
+            StarknetRequest::StateUpdate(block) => self.get_state_update(block.block_id).await,
             StarknetRequest::StorageAt(GetStorageInput { contract_address, key, block_id }) => {
-                self.get_storage_at(contract_address, key, block_id).await.to_rpc_result()
+                self.get_storage_at(contract_address, key, block_id).await
             }
             StarknetRequest::TransactionStatusByHash(TransactionHashInput { transaction_hash }) => {
-                self.get_transaction_status_by_hash(transaction_hash).await.to_rpc_result()
+                self.get_transaction_status_by_hash(transaction_hash).await
             }
             StarknetRequest::TransactionByHash(TransactionHashInput { transaction_hash }) => {
-                self.get_transaction_by_hash(transaction_hash).await.to_rpc_result()
+                self.get_transaction_by_hash(transaction_hash).await
             }
             StarknetRequest::TransactionByBlockAndIndex(BlockAndIndexInput { block_id, index }) => {
-                self.get_transaction_by_block_id_and_index(block_id, index).await.to_rpc_result()
+                self.get_transaction_by_block_id_and_index(block_id, index).await
             }
             StarknetRequest::TransactionReceiptByTransactionHash(TransactionHashInput {
                 transaction_hash,
-            }) => self.get_transaction_receipt_by_hash(transaction_hash).await.to_rpc_result(),
+            }) => self.get_transaction_receipt_by_hash(transaction_hash).await,
             StarknetRequest::ClassByHash(BlockAndClassHashInput { block_id, class_hash }) => {
-                self.get_class(block_id, class_hash).await.to_rpc_result()
+                self.get_class(block_id, class_hash).await
             }
             StarknetRequest::ClassHashAtContractAddress(BlockAndContractAddressInput {
                 block_id,
                 contract_address,
-            }) => self.get_class_hash_at(block_id, contract_address).await.to_rpc_result(),
+            }) => self.get_class_hash_at(block_id, contract_address).await,
             StarknetRequest::ClassAtContractAddress(BlockAndContractAddressInput {
                 block_id,
                 contract_address,
-            }) => self.get_class_at(block_id, contract_address).await.to_rpc_result(),
+            }) => self.get_class_at(block_id, contract_address).await,
             StarknetRequest::BlockTransactionCount(block) => {
-                self.get_block_txs_count(block.block_id).await.to_rpc_result()
+                self.get_block_txs_count(block.block_id).await
             }
             StarknetRequest::Call(CallInput { request, block_id }) => {
-                self.call(block_id, request).await.to_rpc_result()
+                self.call(block_id, request).await
             }
             StarknetRequest::EsimateFee(EstimateFeeInput {
                 request,
                 block_id,
                 simulation_flags,
-            }) => self.estimate_fee(block_id, request, simulation_flags).await.to_rpc_result(),
-            StarknetRequest::BlockNumber => self.block_number().await.to_rpc_result(),
-            StarknetRequest::BlockHashAndNumber => {
-                self.block_hash_and_number().await.to_rpc_result()
-            }
-            StarknetRequest::ChainId => self.chain_id().await.to_rpc_result(),
-            StarknetRequest::Syncing => self.syncing().await.to_rpc_result(),
-            StarknetRequest::Events(EventsInput { filter }) => {
-                self.get_events(filter).await.to_rpc_result()
-            }
+            }) => self.estimate_fee(block_id, request, simulation_flags).await,
+            StarknetRequest::BlockNumber => self.block_number().await,
+            StarknetRequest::BlockHashAndNumber => self.block_hash_and_number().await,
+            StarknetRequest::ChainId => self.chain_id().await,
+            StarknetRequest::Syncing => self.syncing().await,
+            StarknetRequest::Events(EventsInput { filter }) => self.get_events(filter).await,
             StarknetRequest::ContractNonce(BlockAndContractAddressInput {
                 block_id,
                 contract_address,
-            }) => self.get_nonce(block_id, contract_address).await.to_rpc_result(),
+            }) => self.get_nonce(block_id, contract_address).await,
             StarknetRequest::AddDeclareTransaction(BroadcastedDeclareTransactionInput {
                 declare_transaction,
             }) => {
                 let BroadcastedDeclareTransactionEnumWrapper::Declare(broadcasted_transaction) =
                     declare_transaction;
-                self.add_declare_transaction(broadcasted_transaction).await.to_rpc_result()
+                self.add_declare_transaction(broadcasted_transaction).await
             }
             StarknetRequest::AddDeployAccountTransaction(
                 BroadcastedDeployAccountTransactionInput { deploy_account_transaction },
             ) => {
+                forwardable = false;
                 let BroadcastedDeployAccountTransactionEnumWrapper::DeployAccount(
                     broadcasted_transaction,
                 ) = deploy_account_transaction;
-                self.add_deploy_account_transaction(broadcasted_transaction).await.to_rpc_result()
+                self.add_deploy_account_transaction(broadcasted_transaction).await
             }
             StarknetRequest::AddInvokeTransaction(BroadcastedInvokeTransactionInput {
                 invoke_transaction,
             }) => {
                 let BroadcastedInvokeTransactionEnumWrapper::Invoke(broadcasted_transaction) =
                     invoke_transaction;
-                self.add_invoke_transaction(broadcasted_transaction).await.to_rpc_result()
+                self.add_invoke_transaction(broadcasted_transaction).await
             }
-            StarknetRequest::EstimateMessageFee(request) => self
-                .estimate_message_fee(request.get_block_id(), request.get_raw_message().clone())
-                .await
-                .to_rpc_result(),
+            StarknetRequest::EstimateMessageFee(request) => {
+                self.estimate_message_fee(request.get_block_id(), request.get_raw_message().clone())
+                    .await
+            }
             StarknetRequest::SimulateTransactions(SimulateTransactionsInput {
                 block_id,
                 transactions,
                 simulation_flags,
-            }) => self
-                .simulate_transactions(block_id, transactions, simulation_flags)
-                .await
-                .to_rpc_result(),
+            }) => self.simulate_transactions(block_id, transactions, simulation_flags).await,
             StarknetRequest::TraceTransaction(TransactionHashInput { transaction_hash }) => {
-                self.get_trace_transaction(transaction_hash).await.to_rpc_result()
+                self.get_trace_transaction(transaction_hash).await
             }
             StarknetRequest::BlockTransactionTraces(BlockIdInput { block_id }) => {
-                self.get_trace_block_transactions(block_id).await.to_rpc_result()
+                self.get_trace_block_transactions(block_id).await
+            }
+        };
+
+        if let (Err(err), Some(forwarder)) = (&starknet_resp, &self.origin_caller) {
+            match err {
+                // if a block or state is requested that was only added to origin after
+                // forking happened, it will be normally returned; we don't extra-handle this case
+                error::ApiError::BlockNotFound
+                | error::ApiError::TransactionNotFound
+                | error::ApiError::NoStateAtBlock { .. }
+                | error::ApiError::ClassHashNotFound => {
+                    // ClassHashNotFound can be thrown from starknet_getClass or
+                    // starknet_deployAccount, but only starknet_getClass should be retried from
+                    // here; starknet_deployAccount already fetches from origin internally. This is
+                    // handled by (un)setting the `forwardable` flag
+
+                    if forwardable {
+                        return forwarder.call(&original_call).await;
+                    }
+                }
+                _other_error => (),
             }
         }
+
+        starknet_resp.to_rpc_result()
     }
 }
 
@@ -335,7 +365,7 @@ pub enum StarknetResponse {
     ClassAtContractAddress(CodegenContractClass),
     BlockTransactionCount(u64),
     Call(Vec<Felt>),
-    EsimateFee(Vec<FeeEstimateWrapper>),
+    EstimateFee(Vec<FeeEstimateWrapper>),
     BlockNumber(BlockNumber),
     BlockHashAndNumber(BlockHashAndNumberOutput),
     ChainId(String),
@@ -359,18 +389,7 @@ mod requests_tests {
     use starknet_types::felt::Felt;
 
     use super::StarknetRequest;
-
-    /// Panics if `text` does not contain `pattern`
-    pub fn assert_contains(text: &str, pattern: &str) {
-        if !text.contains(pattern) {
-            panic!(
-                "Failed content assertion!
-    Pattern: '{pattern}'
-    not present in
-    Text: '{text}'"
-            );
-        }
-    }
+    use crate::test_utils::exported_test_utils::assert_contains;
 
     #[test]
     fn deserialize_get_block_with_transaction_hashes_request() {

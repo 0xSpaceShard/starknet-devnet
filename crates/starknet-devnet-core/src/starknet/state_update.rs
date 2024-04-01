@@ -17,25 +17,25 @@ pub fn state_update_by_block_id(
 
 #[cfg(test)]
 mod tests {
-    use cairo_lang_starknet_classes::casm_contract_class::CasmContractClass;
     use nonzero_ext::nonzero;
     use starknet_api::transaction::Fee;
     use starknet_rs_core::types::{TransactionExecutionStatus, TransactionFinalityStatus};
-    use starknet_types::constants::MAX_BYTECODE_SIZE_LIMIT;
     use starknet_types::contract_address::ContractAddress;
-    use starknet_types::contract_class::{compute_casm_class_hash, Cairo0Json, ContractClass};
+    use starknet_types::contract_class::{Cairo0Json, ContractClass};
     use starknet_types::felt::Felt;
-    use starknet_types::rpc::state::ThinStateDiff;
+    use starknet_types::rpc::state::{Balance, ThinStateDiff};
     use starknet_types::rpc::transactions::broadcasted_declare_transaction_v2::BroadcastedDeclareTransactionV2;
     use starknet_types::traits::HashProducer;
 
     use crate::account::Account;
     use crate::constants::{
-        self, DEVNET_DEFAULT_CHAIN_ID, ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
+        self, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
+        ETH_ERC20_CONTRACT_ADDRESS, STRK_ERC20_CONTRACT_ADDRESS,
     };
     use crate::starknet::{predeployed, Starknet};
     use crate::state::state_diff::StateDiff;
     use crate::traits::{Deployed, HashIdentifiedMut};
+    use crate::utils::casm_hash;
     use crate::utils::test_utils::{dummy_cairo_1_contract_class, dummy_felt};
 
     #[test]
@@ -47,13 +47,10 @@ mod tests {
         let sierra_class_hash =
             ContractClass::Cairo1(contract_class.clone()).generate_hash().unwrap();
 
-        let casm_contract_class = CasmContractClass::from_contract_class(
-            contract_class.clone(),
-            true,
-            MAX_BYTECODE_SIZE_LIMIT,
-        )
-        .unwrap();
-        let compiled_class_hash = compute_casm_class_hash(&casm_contract_class).unwrap();
+        let casm_contract_class_json =
+            usc::compile_contract(serde_json::to_value(contract_class.clone()).unwrap()).unwrap();
+
+        let compiled_class_hash = casm_hash(casm_contract_class_json).unwrap().into();
 
         let declare_txn = BroadcastedDeclareTransactionV2::new(
             &contract_class,
@@ -110,7 +107,7 @@ mod tests {
         eth_erc_20_contract.deploy(&mut starknet.state).unwrap();
 
         let acc = Account::new(
-            Felt::from(1e18 as u128),
+            Balance::from(1e18 as u128),
             dummy_felt(),
             dummy_felt(),
             contract_class.generate_hash().unwrap(),
@@ -129,6 +126,7 @@ mod tests {
             constants::ETH_ERC20_CONTRACT_ADDRESS,
             constants::STRK_ERC20_CONTRACT_ADDRESS,
             DEVNET_DEFAULT_CHAIN_ID,
+            DEVNET_DEFAULT_STARTING_BLOCK_NUMBER,
         );
 
         starknet.restart_pending_block().unwrap();

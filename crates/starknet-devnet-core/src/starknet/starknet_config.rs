@@ -4,7 +4,9 @@ use std::num::NonZeroU128;
 use starknet_types::chain_id::ChainId;
 use starknet_types::contract_class::ContractClass;
 use starknet_types::felt::Felt;
+use starknet_types::rpc::state::Balance;
 use starknet_types::traits::HashProducer;
+use url::Url;
 
 use crate::constants::{
     CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_DATA_GAS_PRICE,
@@ -28,13 +30,19 @@ pub enum StateArchiveCapacity {
     Full,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct ForkConfig {
+    pub url: Option<Url>,
+    pub block_number: Option<u64>,
+}
+
 #[derive(Clone, Debug)]
 pub struct StarknetConfig {
     pub seed: u32,
     pub total_accounts: u8,
     pub account_contract_class: ContractClass,
     pub account_contract_class_hash: Felt,
-    pub predeployed_accounts_initial_balance: Felt,
+    pub predeployed_accounts_initial_balance: Balance,
     pub host: IpAddr,
     pub port: u16,
     pub start_time: Option<u64>,
@@ -47,6 +55,7 @@ pub struct StarknetConfig {
     /// on initialization, re-execute loaded txs (if any)
     pub re_execute_on_init: bool,
     pub state_archive: StateArchiveCapacity,
+    pub fork_config: ForkConfig,
 }
 
 impl Default for StarknetConfig {
@@ -70,6 +79,7 @@ impl Default for StarknetConfig {
             dump_path: None,
             re_execute_on_init: true,
             state_archive: StateArchiveCapacity::default(),
+            fork_config: ForkConfig::default(),
         }
     }
 }

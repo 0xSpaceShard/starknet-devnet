@@ -2,6 +2,10 @@ FROM rust:1.74.0-slim-buster as builder
 
 COPY . .
 
+RUN apt-get -y update && \
+    apt-get install pkg-config -y && \
+    apt-get install libssl-dev -y
+
 RUN cargo build --bin starknet-devnet --release
 
 FROM debian:buster-slim
@@ -9,6 +13,7 @@ FROM debian:buster-slim
 # Use tini to avoid hanging process on Ctrl+C
 RUN apt-get -y update && \
     apt-get install tini && \
+    apt-get install libssl-dev -y && \
     apt-get autoremove -y && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*

@@ -2,10 +2,12 @@ use serde::{Deserialize, Serialize};
 use starknet_rs_core::types::{Hash256, MsgToL1};
 use starknet_types::contract_address::ContractAddress;
 use starknet_types::felt::{BlockHash, Calldata, EntryPointSelector, Felt, Nonce, TransactionHash};
+use starknet_types::num_bigint::BigUint;
 use starknet_types::rpc::eth_address::EthAddressWrapper;
 use starknet_types::rpc::messaging::{MessageToL1, MessageToL2};
-use starknet_types::rpc::transaction_receipt::FeeUnits;
+use starknet_types::rpc::transaction_receipt::FeeUnit;
 use starknet_types::rpc::transactions::L1HandlerTransaction;
+use starknet_types::serde_helpers::dec_string::deserialize_biguint;
 
 use crate::api::http::error::HttpApiError;
 
@@ -42,13 +44,12 @@ pub struct CreatedBlock {
 
 #[derive(Deserialize)]
 pub struct AbortingBlocks {
-    #[serde(rename = "startingBlockHash")]
-    starting_block_hash: BlockHash,
+    pub(crate) starting_block_hash: BlockHash,
 }
 
 #[derive(Serialize)]
 pub struct AbortedBlocks {
-    aborted: Vec<BlockHash>,
+    pub(crate) aborted: Vec<BlockHash>,
 }
 
 #[derive(Deserialize)]
@@ -84,8 +85,8 @@ pub struct SerializableAccount {
 
 #[derive(Serialize)]
 pub struct Balance {
-    amount: u128,
-    unit: String,
+    pub amount: BigUint,
+    pub unit: FeeUnit,
 }
 
 #[derive(Serialize)]
@@ -97,23 +98,26 @@ pub struct FeeToken {
 #[derive(Debug, Deserialize)]
 pub struct MintTokensRequest {
     pub address: ContractAddress,
-    pub amount: u128,
+    #[serde(deserialize_with = "deserialize_biguint")]
+    pub amount: BigUint,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub unit: Option<FeeUnits>,
+    pub unit: Option<FeeUnit>,
 }
 
 #[derive(Serialize)]
 pub struct MintTokensResponse {
     /// decimal repr
     pub new_balance: String,
-    pub unit: FeeUnits,
+    pub unit: FeeUnit,
     pub tx_hash: TransactionHash,
 }
 
 #[derive(Serialize)]
 pub struct ForkStatus {
-    url: String,
-    block: u128,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub block: Option<u64>,
 }
 
 #[derive(Serialize)]

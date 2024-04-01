@@ -12,7 +12,7 @@ pub struct RpcResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     id: Option<Id>,
     #[serde(flatten)]
-    result: ResponseResult,
+    pub(crate) result: ResponseResult,
 }
 
 impl From<RpcError> for RpcResponse {
