@@ -1,6 +1,6 @@
 <!-- logo / title -->
 <p align="center" style="margin-bottom: 0px !important">
-  <img width="200" src="[https://github.com/leoyoung-69/starknet-devnet-rs-logo/assets/21069052/08ba1821-b241-44ca-9d72-79905a5e7fe9](https://private-user-images.githubusercontent.com/21069052/318352360-08ba1821-b241-44ca-9d72-79905a5e7fe9.png)" alt="Devnet-RS" align="center">
+  <img width="200" src="https://github.com/leoyoung-69/starknet-devnet-rs-logo/assets/21069052/08ba1821-b241-44ca-9d72-79905a5e7fe9" alt="Devnet-RS" align="center">
 </p>
 
 <h1 align="center" style="margin-top: 12px !important">Starknet Devnet RS</h1>
