@@ -3,6 +3,7 @@ use std::net::SocketAddr;
 use anyhow::Ok;
 use clap::Parser;
 use cli::Args;
+use server::api::json_rpc::RPC_SPEC_VERSION;
 use server::api::Api;
 use server::server::serve_http_api_json_rpc;
 use server::ServerConfig;
@@ -19,7 +20,7 @@ use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_types::chain_id::ChainId;
 use starknet_types::rpc::state::Balance;
 use starknet_types::traits::ToHexString;
-use tracing::info;
+use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
 mod cli;
@@ -79,7 +80,22 @@ fn print_chain_id(chain_id: ChainId) {
     println!("Chain ID: {} ({})", chain_id, chain_id.to_felt().to_prefixed_hex_str());
 }
 
-pub async fn set_and_log_fork_block(fork_config: &mut ForkConfig) -> Result<(), anyhow::Error> {
+pub async fn check_forking_spec_version(
+    client: JsonRpcClient<HttpTransport>,
+) -> Result<(), anyhow::Error> {
+    let origin_spec_version = client.spec_version().await?;
+    if origin_spec_version != RPC_SPEC_VERSION {
+        warn!(
+            "JSON-RPC API version of origin ({}) does not match this Devnet's version ({}).",
+            origin_spec_version, RPC_SPEC_VERSION
+        );
+    }
+    Ok(())
+}
+
+/// Logs forking info if forking specified. If block_number not specified, it is set to the latest
+/// block number.
+pub async fn set_and_log_fork_config(fork_config: &mut ForkConfig) -> Result<(), anyhow::Error> {
     if let Some(url) = &fork_config.url {
         let json_rpc_client = JsonRpcClient::new(HttpTransport::new(url.clone()));
         let block_id =
@@ -114,7 +130,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let args = Args::parse();
     let mut starknet_config = args.to_starknet_config()?;
 
-    set_and_log_fork_block(&mut starknet_config.fork_config).await?;
+    set_and_log_fork_config(&mut starknet_config.fork_config).await?;
 
     let mut addr: SocketAddr = SocketAddr::new(starknet_config.host, starknet_config.port);
 
