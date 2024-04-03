@@ -5,7 +5,7 @@ use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v1
 use starknet_types::rpc::transactions::broadcasted_deploy_account_transaction_v3::BroadcastedDeployAccountTransactionV3;
 use starknet_types::rpc::transactions::deploy_account_transaction_v3::DeployAccountTransactionV3;
 use starknet_types::rpc::transactions::{
-    BroadcastedDeployAccountTransaction, DeployAccountTransaction, TransactionWithHash,
+    BroadcastedDeployAccountTransaction, DeployAccountTransaction, Transaction, TransactionWithHash,
 };
 
 use super::dump::DumpEvent;
@@ -38,9 +38,12 @@ pub fn add_deploy_account_transaction_v3(
         transaction_hash,
     );
 
-    let transaction = TransactionWithHash::DeployAccount(DeployAccountTransaction::Version3(
-        Box::new(deploy_account_transaction_v3),
-    ));
+    let transaction = TransactionWithHash::new(
+        transaction_hash,
+        Transaction::DeployAccount(DeployAccountTransaction::Version3(Box::new(
+            deploy_account_transaction_v3,
+        ))),
+    );
 
     let blockifier_execution_result =
         blockifier::transaction::account_transaction::AccountTransaction::DeployAccount(
@@ -78,9 +81,12 @@ pub fn add_deploy_account_transaction_v1(
     let deploy_account_transaction_v1 = broadcasted_deploy_account_transaction
         .compile_deploy_account_transaction_v1(&transaction_hash, address);
 
-    let transaction = TransactionWithHash::DeployAccount(DeployAccountTransaction::Version1(
-        Box::new(deploy_account_transaction_v1),
-    ));
+    let transaction = TransactionWithHash::new(
+        transaction_hash,
+        Transaction::DeployAccount(DeployAccountTransaction::Version1(Box::new(
+            deploy_account_transaction_v1,
+        ))),
+    );
 
     let blockifier_execution_result =
         blockifier::transaction::account_transaction::AccountTransaction::DeployAccount(

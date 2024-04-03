@@ -4,7 +4,7 @@ use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::Broadc
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use starknet_types::rpc::transactions::invoke_transaction_v3::InvokeTransactionV3;
 use starknet_types::rpc::transactions::{
-    BroadcastedInvokeTransaction, InvokeTransaction, TransactionWithHash,
+    BroadcastedInvokeTransaction, InvokeTransaction, Transaction, TransactionWithHash,
 };
 
 use super::dump::DumpEvent;
@@ -25,7 +25,10 @@ pub fn add_invoke_transaction_v1(
 
     let invoke_transaction =
         broadcasted_invoke_transaction.create_invoke_transaction(transaction_hash);
-    let transaction = TransactionWithHash::Invoke(InvokeTransaction::Version1(invoke_transaction));
+    let transaction = TransactionWithHash::new(
+        transaction_hash,
+        Transaction::Invoke(InvokeTransaction::Version1(invoke_transaction)),
+    );
 
     let blockifier_execution_result =
         blockifier::transaction::account_transaction::AccountTransaction::Invoke(
@@ -60,9 +63,13 @@ pub fn add_invoke_transaction_v3(
         )
         .execute(&mut starknet.state.state, &starknet.block_context, true, true);
 
-    let transaction = TransactionWithHash::Invoke(InvokeTransaction::Version3(
-        InvokeTransactionV3::new(broadcasted_invoke_transaction.clone(), transaction_hash),
-    ));
+    let transaction = TransactionWithHash::new(
+        transaction_hash,
+        Transaction::Invoke(InvokeTransaction::Version3(InvokeTransactionV3::new(
+            broadcasted_invoke_transaction.clone(),
+            transaction_hash,
+        ))),
+    );
 
     starknet.handle_transaction_result(transaction, None, blockifier_execution_result)?;
     starknet.handle_dump_event(DumpEvent::AddInvokeTransaction(

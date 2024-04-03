@@ -42,7 +42,7 @@ use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::Broadc
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use starknet_types::rpc::transactions::{
     BlockTransactionTrace, BroadcastedTransaction, BroadcastedTransactionCommon,
-    DeclareTransaction, L1HandlerTransaction, SimulatedTransaction, SimulationFlag,
+    DeclareTransaction, L1HandlerTransaction, SimulatedTransaction, SimulationFlag, Transaction,
     TransactionTrace, TransactionWithHash, TransactionWithReceipt, Transactions,
 };
 use starknet_types::traits::HashProducer;
@@ -341,22 +341,22 @@ impl Starknet {
                 // If transaction is not reverted
                 // then save the contract class in the state cache for Declare transactions
                 if !tx_info.is_reverted() {
-                    match &transaction {
-                        TransactionWithHash::Declare(DeclareTransaction::Version1(declare_v1)) => {
+                    match &transaction.transaction {
+                        Transaction::Declare(DeclareTransaction::Version1(declare_v1)) => {
                             declare_contract_class(
                                 &declare_v1.class_hash,
                                 contract_class,
                                 &mut self.state,
                             )?
                         }
-                        TransactionWithHash::Declare(DeclareTransaction::Version2(declare_v2)) => {
+                        Transaction::Declare(DeclareTransaction::Version2(declare_v2)) => {
                             declare_contract_class(
                                 &declare_v2.class_hash,
                                 contract_class,
                                 &mut self.state,
                             )?
                         }
-                        TransactionWithHash::Declare(DeclareTransaction::Version3(declare_v3)) => {
+                        Transaction::Declare(DeclareTransaction::Version3(declare_v3)) => {
                             declare_contract_class(
                                 declare_v3.get_class_hash(),
                                 contract_class,

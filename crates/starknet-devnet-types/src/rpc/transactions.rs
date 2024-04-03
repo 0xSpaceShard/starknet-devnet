@@ -92,7 +92,7 @@ pub enum TransactionType {
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", deny_unknown_fields)]
-pub enum TransactionWithHash {
+pub enum Transaction {
     #[serde(rename = "DECLARE")]
     Declare(DeclareTransaction),
     #[serde(rename = "DEPLOY_ACCOUNT")]
@@ -105,47 +105,29 @@ pub enum TransactionWithHash {
     L1Handler(L1HandlerTransaction),
 }
 
-// #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-// pub struct TransactionWithHash {
-//     transaction_hash: TransactionHash,
-//     #[serde(flatten)]
-//     transaction: Transaction,
-// }
-
-// impl TransactionWithHash {
-//     pub fn new(transaction_hash: TransactionHash, transaction: Transaction) -> Self {
-//         Self { transaction_hash, transaction }
-//     }
-
-//     pub fn get_transaction_hash(&self) -> &TransactionHash {
-//         &self.transaction_hash
-//     }
-// }
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TransactionWithReceipt {
-    pub receipt: TransactionReceipt,
-    pub transaction: TransactionWithHash,
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct TransactionWithHash {
+    transaction_hash: TransactionHash,
+    #[serde(flatten)]
+    pub transaction: Transaction,
 }
 
 impl TransactionWithHash {
-    pub fn get_type(&self) -> TransactionType {
-        match self {
-            TransactionWithHash::Declare(_) => TransactionType::Declare,
-            TransactionWithHash::DeployAccount(_) => TransactionType::DeployAccount,
-            TransactionWithHash::Deploy(_) => TransactionType::Deploy,
-            TransactionWithHash::Invoke(_) => TransactionType::Invoke,
-            TransactionWithHash::L1Handler(_) => TransactionType::L1Handler,
-        }
+    pub fn new(transaction_hash: TransactionHash, transaction: Transaction) -> Self {
+        Self { transaction_hash, transaction }
     }
 
     pub fn get_transaction_hash(&self) -> &TransactionHash {
-        match self {
-            TransactionWithHash::Declare(tx) => tx.get_transaction_hash(),
-            TransactionWithHash::L1Handler(tx) => tx.get_transaction_hash(),
-            TransactionWithHash::DeployAccount(tx) => tx.get_transaction_hash(),
-            TransactionWithHash::Invoke(tx) => tx.get_transaction_hash(),
-            TransactionWithHash::Deploy(tx) => tx.get_transaction_hash(),
+        &self.transaction_hash
+    }
+
+    pub fn get_type(&self) -> TransactionType {
+        match self.transaction {
+            Transaction::Declare(_) => TransactionType::Declare,
+            Transaction::DeployAccount(_) => TransactionType::DeployAccount,
+            Transaction::Deploy(_) => TransactionType::Deploy,
+            Transaction::Invoke(_) => TransactionType::Invoke,
+            Transaction::L1Handler(_) => TransactionType::L1Handler,
         }
     }
 
@@ -178,6 +160,12 @@ impl TransactionWithHash {
             execution_resources,
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TransactionWithReceipt {
+    pub receipt: TransactionReceipt,
+    pub transaction: TransactionWithHash,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
