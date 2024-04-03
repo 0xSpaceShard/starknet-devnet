@@ -11,9 +11,11 @@ RUN cargo build --bin starknet-devnet --release
 FROM debian:buster-slim
 
 # Use tini to avoid hanging process on Ctrl+C
+# Use ca-certificates to allow forking from URLs using https scheme
 RUN apt-get -y update && \
     apt-get install tini && \
     apt-get install libssl-dev -y && \
+    apt-get install ca-certificates -y && \
     apt-get autoremove -y && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
