@@ -108,8 +108,8 @@ async fn check_forking_chain_id(
     Ok(())
 }
 
-/// Logs forking info if forking specified. If block_number is not specified, it is set to the latest
-/// block number.
+/// Logs forking info if forking specified. If block_number is not specified, it is set to the
+/// latest block number.
 pub async fn set_and_log_fork_config(
     fork_config: &mut ForkConfig,
     chain_id: ChainId,
