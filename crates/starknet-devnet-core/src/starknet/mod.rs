@@ -826,7 +826,7 @@ impl Starknet {
         // starting block is reached in while loop.
         if last_reached_block_hash == Felt::from(0) && reached_starting_block {
             self.blocks.last_block_hash = None;
-            self.state = self.init_state.clone_historic(); // This will be refactored during the genesis block PR 
+            self.state = self.init_state.clone_historic(); // TODO: This will be refactored during the genesis block PR
         } else if reached_starting_block {
             let current_block =
                 self.blocks.hash_to_block.get(&last_reached_block_hash).ok_or(Error::NoBlock)?;
