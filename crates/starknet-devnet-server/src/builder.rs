@@ -2,6 +2,7 @@ use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::time::Duration;
 
+use axum::extract::DefaultBodyLimit;
 use axum::response::Response;
 use axum::routing::{post, IntoMakeService};
 use axum::{Extension, Router};
@@ -95,11 +96,13 @@ impl<TJsonRpcHandler: RpcHandler, THttpApiHandler: Clone + Send + Sync + 'static
     pub fn build(self, starknet_config: &StarknetConfig) -> ServerResult<StarknetDevnetServer> {
         let mut svc = self.routes;
 
+        println!("DEBUG setting request body size: {}", starknet_config.request_body_size_limit);
         svc = svc
             .layer(Extension(self.json_rpc_handler))
             .layer(Extension(self.http_api_handler))
             .layer(TraceLayer::new_for_http())
-            .layer(TimeoutLayer::new(Duration::from_secs(starknet_config.timeout.into())));
+            .layer(TimeoutLayer::new(Duration::from_secs(starknet_config.timeout.into())))
+            .layer(DefaultBodyLimit::max(starknet_config.request_body_size_limit));
 
         if let Some(ServerConfig { allow_origin }) = self.config {
             svc = svc.layer(

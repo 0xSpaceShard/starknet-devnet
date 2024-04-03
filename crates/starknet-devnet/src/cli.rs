@@ -3,7 +3,7 @@ use std::num::NonZeroU128;
 use clap::Parser;
 use starknet_core::constants::{
     DEVNET_DEFAULT_DATA_GAS_PRICE, DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_PORT,
-    DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+    DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT, DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
 use starknet_core::contract_class_choice::{AccountClassWrapper, AccountContractClassChoice};
 use starknet_core::random_number_generator::generate_u32_random_number;
@@ -130,6 +130,12 @@ pub(crate) struct Args {
     #[arg(help = "Specify the number of the block to fork at;")]
     #[arg(requires = "fork_network")]
     fork_block: Option<u64>,
+
+    #[arg(long = "request-body-size-limit")]
+    #[arg(value_name = "BYTES")]
+    #[arg(help = "Specify the maximum HTTP request body size;")]
+    #[arg(default_value_t = DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT)]
+    request_body_size_limit: usize,
 }
 
 impl Args {
@@ -164,6 +170,7 @@ impl Args {
                 url: self.fork_network.clone(),
                 block_number: self.fork_block,
             },
+            request_body_size_limit: self.request_body_size_limit,
         })
     }
 }

@@ -11,8 +11,8 @@ use url::Url;
 use crate::constants::{
     CAIRO_1_ACCOUNT_CONTRACT_SIERRA_PATH, DEVNET_DEFAULT_CHAIN_ID, DEVNET_DEFAULT_DATA_GAS_PRICE,
     DEVNET_DEFAULT_GAS_PRICE, DEVNET_DEFAULT_HOST, DEVNET_DEFAULT_INITIAL_BALANCE,
-    DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_TEST_SEED, DEVNET_DEFAULT_TIMEOUT,
-    DEVNET_DEFAULT_TOTAL_ACCOUNTS,
+    DEVNET_DEFAULT_PORT, DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT, DEVNET_DEFAULT_TEST_SEED,
+    DEVNET_DEFAULT_TIMEOUT, DEVNET_DEFAULT_TOTAL_ACCOUNTS,
 };
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, clap::ValueEnum)]
@@ -56,6 +56,7 @@ pub struct StarknetConfig {
     pub re_execute_on_init: bool,
     pub state_archive: StateArchiveCapacity,
     pub fork_config: ForkConfig,
+    pub request_body_size_limit: usize,
 }
 
 impl Default for StarknetConfig {
@@ -80,6 +81,7 @@ impl Default for StarknetConfig {
             re_execute_on_init: true,
             state_archive: StateArchiveCapacity::default(),
             fork_config: ForkConfig::default(),
+            request_body_size_limit: DEVNET_DEFAULT_REQUEST_BODY_SIZE_LIMIT,
         }
     }
 }
