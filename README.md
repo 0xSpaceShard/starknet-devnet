@@ -1,6 +1,6 @@
 <!-- logo / title -->
 <p align="center" style="margin-bottom: 0px !important">
-  <img width="200" src="https://github-production-user-asset-6210df.s3.amazonaws.com/21069052/319015860-4791b0e4-58fc-4a44-8f87-fc0db636a5c7.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20240403%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240403T024842Z&X-Amz-Expires=300&X-Amz-Signature=e61cd1c02454e33d5d4e1c0a8c1930b32ca9d93175abeac2fa78cf2eb13bcc7f&X-Amz-SignedHeaders=host&actor_id=21069052&key_id=0&repo_id=639929435" alt="Devnet-RS" align="center">
+  <img width="200" src="https://github.com/0xSpaceShard/starknet-devnet-rs/assets/21069052/4791b0e4-58fc-4a44-8f87-fc0db636a5c7" alt="Devnet-RS" align="center">
 </p>
 
 <h1 align="center" style="margin-top: 12px !important">Starknet Devnet RS</h1>
