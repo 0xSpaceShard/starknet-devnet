@@ -1,6 +1,6 @@
 use blockifier::transaction::transactions::ExecutableTransaction;
 use starknet_types::felt::TransactionHash;
-use starknet_types::rpc::transactions::{L1HandlerTransaction, Transaction};
+use starknet_types::rpc::transactions::{L1HandlerTransaction, TransactionWithHash};
 use tracing::trace;
 
 use super::Starknet;
@@ -30,7 +30,7 @@ pub fn add_l1_handler_transaction(
     );
 
     starknet.handle_transaction_result(
-        Transaction::L1Handler(transaction.clone()),
+        TransactionWithHash::L1Handler(transaction.clone()),
         None,
         blockifier_execution_result,
     )?;

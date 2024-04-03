@@ -42,8 +42,8 @@ use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v1::Broadc
 use starknet_types::rpc::transactions::broadcasted_invoke_transaction_v3::BroadcastedInvokeTransactionV3;
 use starknet_types::rpc::transactions::{
     BlockTransactionTrace, BroadcastedTransaction, BroadcastedTransactionCommon,
-    DeclareTransaction, L1HandlerTransaction, SimulatedTransaction, SimulationFlag, Transaction,
-    TransactionTrace, TransactionWithReceipt, Transactions,
+    DeclareTransaction, L1HandlerTransaction, SimulatedTransaction, SimulationFlag,
+    TransactionTrace, TransactionWithHash, TransactionWithReceipt, Transactions,
 };
 use starknet_types::traits::HashProducer;
 use tracing::{error, info};
@@ -314,7 +314,7 @@ impl Starknet {
     /// * `transaction_result` - Result with transaction_execution_info
     pub(crate) fn handle_transaction_result(
         &mut self,
-        transaction: Transaction,
+        transaction: TransactionWithHash,
         contract_class: Option<ContractClass>,
         transaction_result: Result<
             TransactionExecutionInfo,
@@ -342,21 +342,21 @@ impl Starknet {
                 // then save the contract class in the state cache for Declare transactions
                 if !tx_info.is_reverted() {
                     match &transaction {
-                        Transaction::Declare(DeclareTransaction::Version1(declare_v1)) => {
+                        TransactionWithHash::Declare(DeclareTransaction::Version1(declare_v1)) => {
                             declare_contract_class(
                                 &declare_v1.class_hash,
                                 contract_class,
                                 &mut self.state,
                             )?
                         }
-                        Transaction::Declare(DeclareTransaction::Version2(declare_v2)) => {
+                        TransactionWithHash::Declare(DeclareTransaction::Version2(declare_v2)) => {
                             declare_contract_class(
                                 &declare_v2.class_hash,
                                 contract_class,
                                 &mut self.state,
                             )?
                         }
-                        Transaction::Declare(DeclareTransaction::Version3(declare_v3)) => {
+                        TransactionWithHash::Declare(DeclareTransaction::Version3(declare_v3)) => {
                             declare_contract_class(
                                 declare_v3.get_class_hash(),
                                 contract_class,
@@ -413,7 +413,7 @@ impl Starknet {
     pub(crate) fn handle_accepted_transaction(
         &mut self,
         transaction_hash: &TransactionHash,
-        transaction: &Transaction,
+        transaction: &TransactionWithHash,
         tx_info: TransactionExecutionInfo,
     ) -> DevnetResult<()> {
         let state_diff = self.state.commit_with_diff()?;
@@ -886,7 +886,7 @@ impl Starknet {
                     .ok_or(Error::NoTransaction)
                     .map(|transaction| transaction.inner.clone())
             })
-            .collect::<DevnetResult<Vec<Transaction>>>()?;
+            .collect::<DevnetResult<Vec<TransactionWithHash>>>()?;
 
         Ok(Block {
             status: *block.status(),
@@ -935,7 +935,7 @@ impl Starknet {
         &self,
         block_id: &BlockId,
         index: u64,
-    ) -> DevnetResult<&Transaction> {
+    ) -> DevnetResult<&TransactionWithHash> {
         let block = self.get_block(block_id)?;
         let transaction_hash = block
             .get_transactions()
@@ -954,7 +954,10 @@ impl Starknet {
         Ok(block.clone())
     }
 
-    pub fn get_transaction_by_hash(&self, transaction_hash: Felt) -> DevnetResult<&Transaction> {
+    pub fn get_transaction_by_hash(
+        &self,
+        transaction_hash: Felt,
+    ) -> DevnetResult<&TransactionWithHash> {
         self.transactions
             .get_by_hash(transaction_hash)
             .map(|starknet_transaction| &starknet_transaction.inner)
