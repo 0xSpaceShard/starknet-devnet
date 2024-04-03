@@ -3,6 +3,7 @@ use std::net::SocketAddr;
 use anyhow::Ok;
 use clap::Parser;
 use cli::Args;
+use server::api::json_rpc::RPC_SPEC_VERSION;
 use server::api::Api;
 use server::server::serve_http_api_json_rpc;
 use server::ServerConfig;
@@ -19,7 +20,7 @@ use starknet_rs_providers::{JsonRpcClient, Provider};
 use starknet_types::chain_id::ChainId;
 use starknet_types::rpc::state::Balance;
 use starknet_types::traits::ToHexString;
-use tracing::info;
+use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
 mod cli;
@@ -63,7 +64,7 @@ fn log_predeployed_accounts(
     }
 }
 
-fn print_predeployed_contracts() {
+fn log_predeployed_contracts() {
     println!("Predeployed FeeToken");
     println!("ETH Address: {ETH_ERC20_CONTRACT_ADDRESS}");
     println!("STRK Address: {STRK_ERC20_CONTRACT_ADDRESS}");
@@ -75,11 +76,44 @@ fn print_predeployed_contracts() {
     println!();
 }
 
-fn print_chain_id(chain_id: ChainId) {
+fn log_chain_id(chain_id: ChainId) {
     println!("Chain ID: {} ({})", chain_id, chain_id.to_felt().to_prefixed_hex_str());
 }
 
-pub async fn set_and_log_fork_block(fork_config: &mut ForkConfig) -> Result<(), anyhow::Error> {
+async fn check_forking_spec_version(
+    client: &JsonRpcClient<HttpTransport>,
+) -> Result<(), anyhow::Error> {
+    let origin_spec_version = client.spec_version().await?;
+    if origin_spec_version != RPC_SPEC_VERSION {
+        warn!(
+            "JSON-RPC API version of origin ({}) does not match this Devnet's version ({}).",
+            origin_spec_version, RPC_SPEC_VERSION
+        );
+    }
+    Ok(())
+}
+
+async fn check_forking_chain_id(
+    client: &JsonRpcClient<HttpTransport>,
+    devnet_chain_id: ChainId,
+) -> Result<(), anyhow::Error> {
+    let origin_chain_id = client.chain_id().await?;
+    let devnet_chain_id_felt = devnet_chain_id.into();
+    if origin_chain_id != devnet_chain_id_felt {
+        warn!(
+            "Origin chain ID ({:#x}) does not match this Devnet's chain ID ({:#x}).",
+            origin_chain_id, devnet_chain_id_felt
+        );
+    }
+    Ok(())
+}
+
+/// Logs forking info if forking specified. If block_number is not specified, it is set to the latest
+/// block number.
+pub async fn set_and_log_fork_config(
+    fork_config: &mut ForkConfig,
+    chain_id: ChainId,
+) -> Result<(), anyhow::Error> {
     if let Some(url) = &fork_config.url {
         let json_rpc_client = JsonRpcClient::new(HttpTransport::new(url.clone()));
         let block_id =
@@ -101,6 +135,9 @@ pub async fn set_and_log_fork_block(fork_config: &mut ForkConfig) -> Result<(), 
             }
             _ => panic!("Unreachable"),
         };
+
+        check_forking_spec_version(&json_rpc_client).await?;
+        check_forking_chain_id(&json_rpc_client, chain_id).await?;
     }
 
     Ok(())
@@ -114,7 +151,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let args = Args::parse();
     let mut starknet_config = args.to_starknet_config()?;
 
-    set_and_log_fork_block(&mut starknet_config.fork_config).await?;
+    set_and_log_fork_config(&mut starknet_config.fork_config, starknet_config.chain_id).await?;
 
     let mut addr: SocketAddr = SocketAddr::new(starknet_config.host, starknet_config.port);
 
@@ -127,8 +164,8 @@ async fn main() -> Result<(), anyhow::Error> {
         );
     };
 
-    print_predeployed_contracts();
-    print_chain_id(starknet_config.chain_id);
+    log_predeployed_contracts();
+    log_chain_id(starknet_config.chain_id);
 
     let predeployed_accounts = api.starknet.read().await.get_predeployed_accounts();
     log_predeployed_accounts(
